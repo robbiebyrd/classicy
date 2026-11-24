@@ -8,8 +8,9 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
-import { CLASSICY_NOTIFICATION_BLINK_MS } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationBlink.internal";
+
 import {
+	CLASSICY_NOTIFICATION_BLINK_MS,
 	classicyNotify,
 	removeClassicyNotification,
 } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationManager";
@@ -142,6 +143,30 @@ describe("the ◆ mark in the Application menu", () => {
 	});
 });
 
+// Review M10: the blinking title says what it carries.
+describe("the titles' descriptions", () => {
+	const description = (selector: string) =>
+		document.querySelector(selector)?.getAttribute("aria-description");
+
+	it("names the apps whose requests a title carries", () => {
+		render(<ClassicyDesktopMenuBar />);
+		expect(description("#app-switcher")).toBeNull();
+		expect(description("#apple-menu")).toBeNull();
+		notify({ appId: "Mail.app" });
+		expect(description("#app-switcher")).toBe("Mail requests your attention");
+		notify({ appId: "Finder.app", icon: false });
+		expect(description("#app-switcher")).toBe(
+			"Mail and Finder request your attention",
+		);
+		const id = notify({ appId: "Closed.app", mark: false });
+		expect(description("#apple-menu")).toBe("Closed requests your attention");
+		act(() => {
+			removeClassicyNotification(id);
+		});
+		expect(description("#apple-menu")).toBeNull();
+	});
+});
+
 describe("the blinking icon", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -202,7 +227,10 @@ describe("the blinking icon", () => {
 		expect(appleImage()).toBe(apple);
 	});
 
-	it("shows the titles' own icons while a menu is open", () => {
+	// Review M4, observed on Mac OS 8.1 (Infinite Mac; report, fix round 1):
+	// the open Application menu's title shows its own icon, and while
+	// another menu is open the blink stops on the frame it showed.
+	it("shows the open title's own icon, and freezes the blink under another open menu", () => {
 		render(<ClassicyDesktopMenuBar />);
 		notify({ appId: "Mail.app" });
 		expect(switcherImage()).toBe("/icons/Mail.png");
@@ -210,6 +238,43 @@ describe("the blinking icon", () => {
 		expect(switcherImage()).toBe("/icons/Finder.png");
 		fireEvent.mouseDown(document.body);
 		expect(switcherImage()).toBe("/icons/Mail.png");
+		const apple = document.querySelector("#apple-menu > p") as HTMLElement;
+		fireEvent.click(apple);
+		expect(document.querySelector("#apple-menu")).toHaveClass("open");
+		act(() => {
+			vi.advanceTimersByTime(CLASSICY_NOTIFICATION_BLINK_MS * 3);
+		});
+		expect(switcherImage()).toBe("/icons/Mail.png");
+		fireEvent.mouseDown(document.body);
+		act(() => {
+			vi.advanceTimersByTime(CLASSICY_NOTIFICATION_BLINK_MS);
+		});
+		expect(switcherImage()).toBe("/icons/Finder.png");
+	});
+
+	it("shows the Apple title's own art while its menu is open", () => {
+		render(<ClassicyDesktopMenuBar />);
+		const art = appleImage();
+		notify({ appId: "Mail.app", mark: false, icon: "/bell.png" });
+		expect(appleImage()).toBe("/bell.png");
+		fireEvent.click(document.querySelector("#apple-menu > p") as HTMLElement);
+		expect(appleImage()).toBe(art);
+	});
+
+	// Review M3: nothing blinks where the bar is not drawn.
+	it("runs no blink timer under window placement", () => {
+		const intervals = vi.spyOn(window, "setInterval");
+		render(<ClassicyDesktopMenuBar placement="window" />);
+		notify({ appId: "Mail.app" });
+		notify({ appId: "Closed.app" });
+		expect(
+			intervals.mock.calls.filter(
+				([, ms]) =>
+					ms === CLASSICY_NOTIFICATION_BLINK_MS ||
+					ms === CLASSICY_NOTIFICATION_BLINK_MS / 2,
+			),
+		).toEqual([]);
+		intervals.mockRestore();
 	});
 
 	describe("for users who prefer reduced motion", () => {

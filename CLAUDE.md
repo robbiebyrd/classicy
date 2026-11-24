@@ -63,7 +63,7 @@ Uses **Zustand** for app/desktop state with the existing event reducer for domai
 - **`useAppManagerDispatch()`** - Returns `dispatch`, the module export of the same file (`dispatch(action, trust?)` runs the reducer inside `useAppManager.setState`)
 - **classicyDesktopStateEventReducer** (`ClassicyAppManager.ts`) - Still routes events by prefix to domain-specific handlers (called inside Zustand's `set()`)
 - **App windows** — `apps[id].windows` is a `Record<windowId, ClassicyStoreSystemAppWindow>` (1.0; an array in 0.x). Read/write it only through `getAppWindow`, `listAppWindows`, `hasAppWindow`, `countAppWindows`, `setAppWindow`, `removeAppWindow`, `updateAppWindow` (`ClassicyAppWindows.ts`); never branch on key order. `migrateClassicyState` (`ClassicyStateMigrations.ts`) converts 0.x arrays on load (after the merge over defaults) and on every `mergeClassicyState` result; it is shape-detecting and idempotent — there is no state version number
-- **SoundManager** still uses React Context/useReducer (not migrated to Zustand). Its `volume` (0–100, `ClassicyVolumeSet`) is the Howl player's gain, applied by `ClassicySoundManagerProvider` and re-applied when a sound pack loads; it is per-mount, like the mute flag (`"*"` in `disabled`); alerts (`ClassicyAlertSound`/`ClassicySoundPlayError`) play at that gain × the persisted `Appearance.alertVolume` (0–100, `ClassicyDesktopChangeAlertVolume`). The Howl is loaded from the registered sound pack named by `activeTheme.sound.pack` (`ClassicySoundPacks.ts`), reloaded when that changes, with Platinum as the fallback for sprites the pack lacks when Platinum's pack is registered (the sound modules import no pack; with none registered, no Howl is built and sound is silent, logging each missing pack id once). The alert sounds a user may pick are the pack's: `alerts` (`{ value, label }[]`; absent, the default pack's, as for sprites; `[]`, none) and `defaultAlert` (`ClassicyAlertSounds.ts`: `classicyPackAlerts`, `classicyPackDefaultAlert`, `resolveClassicyAlertSound`). The alert played is the stored `Appearance.alertSound` when the pack offers it, else the pack's default; it is never rewritten, and the default state seeds none. `CLASSICY_ALERT_SOUNDS` and `DEFAULT_ALERT_SOUND` are deprecated (Platinum's values)
+- **SoundManager** still uses React Context/useReducer (not migrated to Zustand). Its reducer is pure (StrictMode calls it twice): plays and stops are queued in the state's `commands` and loading a pack records only `packId`/`pack`/`sprites`/`fallbackPackId`; `ClassicySoundManagerProvider` builds the Howls in an effect (`buildClassicySoundPlayers`, one per pack, unloaded on a real unmount) and runs each queued command once (`runClassicySoundCommand`). Its `volume` (0–100, `ClassicyVolumeSet`) is the Howl player's gain, applied by `ClassicySoundManagerProvider` and re-applied when a sound pack loads; it is per-mount, like the mute flag (`"*"` in `disabled`); alerts (`ClassicyAlertSound`/`ClassicySoundPlayError`) play at that gain × the persisted `Appearance.alertVolume` (0–100, `ClassicyDesktopChangeAlertVolume`). The Howl is loaded from the registered sound pack named by `activeTheme.sound.pack` (`ClassicySoundPacks.ts`), reloaded when that changes, with Platinum as the fallback for sprites the pack lacks when Platinum's pack is registered (the sound modules import no pack; with none registered, no Howl is built and sound is silent, logging each missing pack id once). The alert sounds a user may pick are the pack's: `alerts` (`{ value, label }[]`; absent, the default pack's, as for sprites; `[]`, none) and `defaultAlert` (`ClassicyAlertSounds.ts`: `classicyPackAlerts`, `classicyPackDefaultAlert`, `resolveClassicyAlertSound`). The alert played is the stored `Appearance.alertSound` when the pack offers it, else the pack's default; it is never rewritten, and the default state seeds none. `CLASSICY_ALERT_SOUNDS` and `DEFAULT_ALERT_SOUND` are deprecated (Platinum's values)
 
 Event routing by prefix (unchanged):
 - `ClassicyWindow*` → Window operations (focus, move, resize, collapse, zoom)
@@ -645,13 +645,20 @@ menu (`ClassicyMenuItem.mark: "diamond"`, class `classicyMenuItemDiamond` in
 the mark column, drawn by each package; entries carry `notified` from
 `appSwitcherAppsFrom(apps, overrides, notifiedAppIds)`) and blinks each
 request's icon (default the app's) over the Application menu's title (a
-marked, listed app) or the Apple menu's, 1 s per frame, steady under
-reduced motion, own icons while a menu is open
+marked, listed app) or the Apple menu's, 1 s per frame
+(`CLASSICY_NOTIFICATION_BLINK_MS`, measured on Mac OS 8.1), steady under
+reduced motion; while a menu is open the blink stops on its frame and an
+open title shows its own icon (observed on 8.1; `ClassicyMenu`'s
+`onOpenItemChange`), no timer under window placement, and each carrying
+title has an `aria-description` naming its apps
 (`ClassicyNotificationBlink.internal.ts`). `ClassicyDesktop` mounts
 `ClassicyNotificationController` (`.internal.tsx`): the sound once at the
 alert volume (`classicyAlertVolumeSoundAction`; silent when muted), one
 `ClassicyAlert` at a time over the front app (`playSound={false}`; the
-window's `alertSound={false}`), `onResponse` after OK, and removal when the
+window's `playAlertSound={false}`), moved to the app in front if its owner
+quits or hides (no overlay wrapper; its window id carries a per-page token,
+and `sanitizeStateForPersistence` drops every modal window record),
+`onResponse` after OK, and removal when the
 app comes forward (`focusedAppId` changes to it, unless `removeOnActivate:
 false`) or quits; it waits for its second commit and for Classicy's own
 startup screen (`ClassicyStartupHold.internal.ts`). HyperCard stacks cannot

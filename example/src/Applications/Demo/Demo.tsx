@@ -18,9 +18,10 @@ import {
 	classicyNotify,
 	quitAppHelper,
 	quitMenuItemHelper,
+	useAppManager,
 	useAppManagerDispatch,
 } from "@classicy/classicy";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppIcons } from "../../app";
 
 // How long a Notification Manager demo waits before posting, so there is
@@ -65,17 +66,34 @@ export const Demo = () => {
 
 	// The Notification Manager (Inside Macintosh: Processes, ch. 5): post a
 	// request a few seconds from now, as a background task finishing would.
+	// The task ends with Demo: quitting it (or unmounting it) cancels the
+	// request that has not been posted yet.
 	const [notifyPending, setNotifyPending] = useState(false);
+	const notifyTimer = useRef<number | undefined>(undefined);
+	const cancelNotify = useCallback(() => {
+		window.clearTimeout(notifyTimer.current);
+		notifyTimer.current = undefined;
+		setNotifyPending(false);
+	}, []);
 	const notifyLater = useCallback(
 		(request: Omit<Parameters<typeof classicyNotify>[0], "appId">) => {
+			window.clearTimeout(notifyTimer.current);
 			setNotifyPending(true);
-			window.setTimeout(() => {
+			notifyTimer.current = window.setTimeout(() => {
+				notifyTimer.current = undefined;
 				classicyNotify({ ...request, appId });
 				setNotifyPending(false);
 			}, NOTIFY_DELAY_MS);
 		},
 		[],
 	);
+	const demoOpen = useAppManager(
+		(s) => s.System.Manager.Applications.apps[appId]?.open === true,
+	);
+	useEffect(() => {
+		if (!demoOpen) cancelNotify();
+	}, [demoOpen, cancelNotify]);
+	useEffect(() => () => window.clearTimeout(notifyTimer.current), []);
 
 	const quitApp = useCallback(() => {
 		desktopEventDispatch(quitAppHelper(appId, appName, appIcon));

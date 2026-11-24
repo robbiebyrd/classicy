@@ -221,10 +221,6 @@ describe("ClassicyAlert", () => {
 		expect(onHelp).toHaveBeenCalledTimes(1);
 	});
 
-	// ClassicyAlert is always modal={true} — ClassicyWindow's cleanup effect
-	// must dispatch ClassicyWindowDestroy for it on unmount (#222/#223). A real
-	// in-repo caller passes a real app id (not the "ClassicyAlert" default), so
-	// this pins that shape too.
 	// The fixed alert beeps through its error window, the movable one itself;
 	// `playSound={false}` silences both (a notification's alert, story
 	// 0225-ci7: its sound is the request's own).
@@ -246,6 +242,10 @@ describe("ClassicyAlert", () => {
 		expect(beeps()).toBe(2);
 	});
 
+	// ClassicyAlert is always modal={true} — ClassicyWindow's cleanup effect
+	// must dispatch ClassicyWindowDestroy for it on unmount (#222/#223). A real
+	// in-repo caller passes a real app id (not the "ClassicyAlert" default), so
+	// this pins that shape too.
 	it("dispatches ClassicyWindowDestroy for itself on unmount", () => {
 		const { unmount } = render(
 			<ClassicyAlert

@@ -1,10 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useClassicyNotificationBlink } from "./ClassicyNotificationBlink.internal";
 import {
 	CLASSICY_NOTIFICATION_BLINK_MS,
-	useClassicyNotificationBlink,
-} from "./ClassicyNotificationBlink.internal";
-import type { ClassicyNotificationMenuBarIcons } from "./ClassicyNotificationManager";
+	type ClassicyNotificationMenuBarIcons,
+} from "./ClassicyNotificationManager";
 
 const none: ClassicyNotificationMenuBarIcons = { apple: [], application: [] };
 
@@ -42,11 +42,37 @@ const advance = (ms: number) =>
 	});
 
 describe("useClassicyNotificationBlink", () => {
-	it("draws nothing without requests", () => {
+	it("draws nothing, and runs no timer, without requests", () => {
 		const { result } = renderHook(() =>
 			useClassicyNotificationBlink(none, false),
 		);
 		expect(result.current).toEqual({});
+		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	// Review M3: once a second while one title blinks, not twice.
+	it("ticks at the blink rate while one title blinks, twice as fast for two", () => {
+		let renders = 0;
+		let icons: ClassicyNotificationMenuBarIcons = {
+			apple: [],
+			application: ["/b.png"],
+		};
+		const { rerender } = renderHook(() => {
+			renders++;
+			return useClassicyNotificationBlink(icons, false);
+		});
+		// One act per half period, so each tick that changes state renders.
+		const halves = (n: number) => {
+			for (let i = 0; i < n; i++) advance(CLASSICY_NOTIFICATION_BLINK_MS / 2);
+		};
+		const settled = renders;
+		halves(8);
+		expect(renders - settled).toBe(4);
+		icons = { apple: ["/a.png"], application: ["/b.png"] };
+		rerender();
+		const again = renders;
+		halves(8);
+		expect(renders - again).toBe(8);
 	});
 
 	it("alternates one request's icon with the title's own, a second each", () => {
@@ -110,14 +136,37 @@ describe("useClassicyNotificationBlink", () => {
 		expect(result.current).toEqual({ application: "/a.png" });
 	});
 
-	it("shows each title's own icon while the menu bar is in use", () => {
-		const icons = { apple: ["/a.png"], application: ["/b.png"] };
-		const { result } = renderHook(() =>
-			useClassicyNotificationBlink(icons, true),
+	// Review M4, observed on Mac OS 8.1: while a menu is open the blink
+	// stops on whatever frame it showed, and goes on when the menu closes.
+	it("stops where it is while frozen, and goes on after", () => {
+		const icons = { apple: [], application: ["/b.png"] };
+		let frozen = false;
+		const { result, rerender } = renderHook(() =>
+			useClassicyNotificationBlink(icons, frozen),
 		);
+		advance(CLASSICY_NOTIFICATION_BLINK_MS);
 		expect(result.current).toEqual({});
+		frozen = true;
+		rerender();
+		advance(CLASSICY_NOTIFICATION_BLINK_MS * 5);
+		expect(result.current).toEqual({});
+		expect(vi.getTimerCount()).toBe(0);
+		frozen = false;
+		rerender();
+		advance(CLASSICY_NOTIFICATION_BLINK_MS);
+		expect(result.current).toEqual({ application: "/b.png" });
+	});
+
+	it("freezes on the request's icon when it was showing", () => {
+		const icons = { apple: [], application: ["/b.png"] };
+		let frozen = false;
+		const { result, rerender } = renderHook(() =>
+			useClassicyNotificationBlink(icons, frozen),
+		);
+		frozen = true;
+		rerender();
 		advance(CLASSICY_NOTIFICATION_BLINK_MS * 3);
-		expect(result.current).toEqual({});
+		expect(result.current).toEqual({ application: "/b.png" });
 	});
 
 	it("stops blinking for reduced motion: the first icon shows steadily", () => {

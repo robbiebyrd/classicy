@@ -734,7 +734,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark: "diamond"` draws the Notification Manager's ◆ in the mark column of an item that is not checked, §4.11)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, description?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark: "diamond"` draws the Notification Manager's ◆ in the mark column of an item that is not checked, §4.11; `description` is the item's `aria-description`)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -1046,7 +1046,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `hidden` | `boolean` | `false` |
 | `growable` | `boolean` | `false` |
 | `type` | `"default" \| "error"` | `"default"` |
-| `alertSound` | `boolean` (an error modal's beep on open) | `true` |
+| `playAlertSound` | `boolean` (an error modal's alert sound on open) | `true` |
 | `backgroundColor` | `string` | — |
 | `initialFocusRef` | `RefObject<HTMLElement \| null>` | — (nothing focused) |
 
@@ -1238,7 +1238,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount), `onOpenItemChange?(itemId \| null)` (the id of the item whose menu opens, `null` when it closes; the menu bar draws an open title's own icon with it) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned |
@@ -1584,19 +1584,37 @@ blinking icon, the sound, then the alert.
   marks an app that menu lists, else over the Apple menu's (p. 5-4; a
   request from an app that is not open, or with `mark: false`, blinks over
   the Apple menu). Each title shows its requests' icons in turn, then its
-  own, each for `CLASSICY_NOTIFICATION_BLINK_MS` (1000 ms: the System 7.1
-  Notification Manager's 60-tick wait; Inside Macintosh says only
-  "periodically"), so one request's icon alternates with the title's own;
-  with icons over both titles the two alternate half a period apart. For
-  users who prefer reduced motion (`prefers-reduced-motion: reduce`) nothing
-  blinks: each title shows its first request's icon steadily. While a menu
-  of the bar is open, both titles show their own icons. The Application
-  menu's title swaps only its image; its name stays.
+  own, each for `CLASSICY_NOTIFICATION_BLINK_MS` (exported; 1000 ms,
+  measured on Mac OS 8.1 under Infinite Mac, 1002 ms on average over 11
+  frames, and the System 7.1 Notification Manager's 60-tick wait; Inside
+  Macintosh says only "periodically"), so one request's icon alternates
+  with the title's own; with icons over both titles the two alternate half
+  a period apart. The timer runs only while a title blinks where it is
+  drawn: once a second, twice while both titles blink, never under window
+  placement. For users who prefer reduced motion
+  (`prefers-reduced-motion: reduce`) nothing blinks: each title shows its
+  first request's icon steadily. While a menu of the bar is open the blink
+  stops on the frame it showed, and the open title itself shows its own
+  icon, as Mac OS 8.1 draws them (observed on Infinite Mac: with the
+  Finder's File menu open the Application title kept whichever icon it
+  showed; with the Application menu open its title showed the front
+  application's icon, at every phase tried). The Application menu's title
+  swaps only its image; its name stays. While a title carries requests it
+  carries an `aria-description` naming their apps ("Mail requests your
+  attention", "Mail and Chat request your attention";
+  `classicyNotificationMenuBarDescriptions`).
 - **The alert** is a `ClassicyAlert` (note icon, the message as its label,
   OK), one request at a time, oldest first; the others wait their turn. It
   opens over the front application, as a window of that app, so it makes no
   other app active, and it plays no sound of its own (`playSound={false}`):
-  the request's `sound` is its only sound.
+  the request's `sound` is its only sound. It stays that app's window only
+  while the app is open and shown: should it quit or be hidden, the alert
+  moves to the app in front (else the Finder, else the first shown
+  application), and with no app shown it waits, drawing nothing. Its
+  window id carries a per-page token, and no modal window's record is
+  persisted, so an alert open at a reload leaves nothing behind. A `sound`
+  naming a sprite no registered pack has plays nothing and is logged once
+  (`ClassicyNotification`).
 - **Requests stay** until they are removed, as the reference's do: the mark
   and the icon remain; the sound and the alert are presented once (p. 5-5).
   A request is removed by `removeClassicyNotification(id)` (which also
@@ -5847,6 +5865,21 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 pack loads),
 `ClassicyAlertSound`, `ClassicySoundSetAlertSound`, `ClassicySoundSetAlertVolume`
 (`{ alertVolume }` 0–100, clamped and rounded). `useSound()` reads state.
+**The reducer is pure** (`ClassicySoundStateEventReducer`; React calls it
+twice in StrictMode): the plays and stops (`ClassicySoundPlay`,
+`…PlayInterrupt`, `…PlayError`, `ClassicyAlertSound`, `ClassicySoundStop`;
+`isClassicySoundCommand`) are queued in the state's `commands`, and
+`ClassicySoundLoad` only records the pack to play (`packId`, `pack`,
+`sprites`, `fallbackPackId`). `ClassicySoundManagerProvider` builds the
+players in an effect (`buildClassicySoundPlayers`, one Howl per pack, kept
+across StrictMode's rehearsal unmount and unloaded on a real unmount; they
+reach the state as `soundPlayer`/`fallbackPlayer` through
+`ClassicySoundSetPlayers`) and runs each queued command once
+(`runClassicySoundCommand`, then `ClassicySoundCommandsRun { through }`), a
+command queued before the players exist (a child's mount effect) waiting
+for them. A test that calls the reducer directly runs the commands itself
+with `runClassicySoundCommand`. `seedSoundState` builds no player, and
+returns its start state without a window.
 **Alert volume**: the persisted `Appearance.alertVolume` (default 100, set by
 `ClassicyDesktopChangeAlertVolume` from the Appearance Manager's Sound tab) is
 mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and

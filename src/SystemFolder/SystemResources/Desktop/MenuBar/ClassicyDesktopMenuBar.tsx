@@ -20,6 +20,7 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import {
@@ -40,10 +41,17 @@ import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/De
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import { useClassicyNotificationBlink } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationBlink.internal";
 import {
+	type ClassicyNotificationMenuBarIcons,
+	classicyNotificationMenuBarDescriptions,
 	classicyNotificationMenuBarIcons,
 	useClassicyNotifications,
 	useClassicyNotifiedAppIds,
 } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationManager";
+
+const NO_NOTIFICATION_ICONS: ClassicyNotificationMenuBarIcons = {
+	apple: [],
+	application: [],
+};
 
 export type ClassicyDesktopMenuBarProps = {
 	/** Extra class names, merged onto the `<nav>` after the component's own. */
@@ -204,7 +212,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// open at the switch (a keyboard equivalent or host code changed the
 	// package, with no mouse-down to close it) would leave the provider
 	// active: back on the screen, hovering a title would open its menu.
-	const { closeAll, menuBarActive } = useContext(ClassicyMenuContext);
+	const { closeAll } = useContext(ClassicyMenuContext);
 	useEffect(() => {
 		if (resolvedPlacement === "window") closeAll();
 	}, [resolvedPlacement, closeAll]);
@@ -221,32 +229,49 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// Notification Manager requests (Inside Macintosh: Processes, p. 5-4):
 	// a ◆ beside each app a request marks, and each request's icon blinking
 	// over the Application menu's title (a marked app it lists) or the Apple
-	// menu's (any other).
+	// menu's (any other), described for assistive technology. While a menu
+	// is open the blink stops where it is, and an open title shows its own
+	// icon, as Mac OS 8.1 draws them; nothing blinks where this bar is not
+	// drawn (window placement).
 	const notifiedAppIds = useClassicyNotifiedAppIds();
 	const notifications = useClassicyNotifications();
+	const [openTitle, setOpenTitle] = useState<string | null>(null);
 	const appSwitcherData = useMemo(
 		() => appSwitcherAppsFrom(apps, overrides, notifiedAppIds),
 		[apps, overrides, notifiedAppIds],
 	);
-	const notificationIcons = useMemo(
-		() =>
-			classicyNotificationMenuBarIcons(
+	const { notificationIcons, notificationDescriptions } = useMemo(() => {
+		const listed = new Set(appSwitcherData.map((a) => a.id));
+		const identity = (appId: string) =>
+			classicyAppIdentityFrom(
+				overrides,
+				appId,
+				apps[appId] ?? { name: appId, icon: "" },
+			);
+		return {
+			notificationIcons: classicyNotificationMenuBarIcons(
 				notifications,
-				new Set(appSwitcherData.map((a) => a.id)),
-				(appId) =>
-					classicyAppIdentityFrom(
-						overrides,
-						appId,
-						apps[appId] ?? { name: appId, icon: "" },
-					).icon,
+				listed,
+				(appId) => identity(appId).icon,
 			),
-		[notifications, appSwitcherData, overrides, apps],
-	);
+			notificationDescriptions: classicyNotificationMenuBarDescriptions(
+				notifications,
+				listed,
+				(appId) => identity(appId).name,
+			),
+		};
+	}, [notifications, appSwitcherData, overrides, apps]);
 	const blinkingIcons = useClassicyNotificationBlink(
-		notificationIcons,
-		menuBarActive,
+		resolvedPlacement === "window" ? NO_NOTIFICATION_ICONS : notificationIcons,
+		openTitle !== null,
 	);
-	const appleMenuIcon = blinkingIcons.apple ?? appleMenuArt;
+	const appleMenuDescription = notificationDescriptions.apple;
+	const appleMenuIcon =
+		openTitle === "apple-menu"
+			? appleMenuArt
+			: (blinkingIcons.apple ?? appleMenuArt);
+	const switcherTitleIcon =
+		openTitle === "app-switcher" ? undefined : blinkingIcons.application;
 
 	const setActiveApp = (appId: string) => {
 		desktopEventDispatch({
@@ -293,7 +318,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		];
 		return {
 			id: "app-switcher",
-			image: blinkingIcons.application ?? (focusedApp?.icon || ""),
+			image: switcherTitleIcon ?? (focusedApp?.icon || ""),
+			...(notificationDescriptions.application
+				? { description: notificationDescriptions.application }
+				: {}),
 			title: focusedApp?.name || finderName,
 			className: "classicyDesktopMenuAppSwitcher",
 			part: "switcher",
@@ -322,8 +350,14 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				})),
 			],
 		};
+	}, [
+		appSwitcherData,
+		finderName,
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
-	}, [appSwitcherData, finderName, setActiveApp, blinkingIcons.application]);
+		setActiveApp,
+		switcherTitleIcon,
+		notificationDescriptions.application,
+	]);
 
 	// The app whose menus the bar is showing. Extensions (e.g. Apple Guide) can
 	// take window focus but must never be treated as "the focused app" here —
@@ -424,6 +458,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				image: appleMenuIcon,
 				// The art is the title: its accessible name.
 				imageAlt: "Apple",
+				description: appleMenuDescription,
 				menuChildren,
 				className: "classicyDesktopMenuApple",
 				part: "apple",
@@ -437,6 +472,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		appMenu,
 		systemMenu,
 		appleMenuIcon,
+		appleMenuDescription,
 		overrides,
 		finderName,
 	]);
@@ -518,6 +554,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				menuItems={defaultMenuItems}
 				navClass={"classicyDesktopMenu"}
 				subNavClass={"classicySubMenu"}
+				onOpenItemChange={setOpenTitle}
 			>
 				{/* Sound lives on the Control Strip (ClassicyDesktop mounts it). */}
 				<ClassicyDesktopMenuWidgetTime />

@@ -315,7 +315,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 			// Non-movable → type="error" gives the red border AND blocks dragging.
 			// Movable → default type keeps dragging; red title bar comes from SCSS.
 			type={movable ? "default" : "error"}
-			alertSound={playSound}
+			playAlertSound={playSound}
 			initialSize={[0, 0]}
 			initialPosition={["center", "center"]}
 			analyticsExclude

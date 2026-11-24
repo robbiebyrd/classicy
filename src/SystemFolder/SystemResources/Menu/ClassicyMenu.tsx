@@ -79,10 +79,15 @@ export interface ClassicyMenuItem {
 	 * A mark drawn in the item's mark column when it is not checked:
 	 * `"diamond"` (◆), the Notification Manager's mark beside an application
 	 * asking for attention (Inside Macintosh: Processes, p. 5-4), drawn by the
-	 * package; the item's `aria-description` says "Requests your attention".
-	 * A check (`checked: true`) or dash wins over it.
+	 * package; the item's `aria-description` then defaults to "Requests your
+	 * attention". A check (`checked: true`) or dash wins over it.
 	 */
 	mark?: "diamond";
+	/**
+	 * The item's accessible description (`aria-description`), for state its
+	 * look alone shows (a title blinking with a notification's icon).
+	 */
+	description?: string;
 	/** Icon drawn before the title. */
 	icon?: string;
 	/**
@@ -181,6 +186,12 @@ interface ClassicyMenuProps {
 	 * scrolls (below).
 	 */
 	open?: boolean;
+	/**
+	 * Called with the id of the item whose menu opens, and `null` when it
+	 * closes (this list's own items only, not a submenu's). The menu bar
+	 * uses it to draw an open title's own icon over a blinking one.
+	 */
+	onOpenItemChange?: (itemId: string | null) => void;
 }
 
 // A pull-down too long for the screen keeps at least this much of its rows
@@ -239,9 +250,15 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	className,
 	style,
 	open,
+	onOpenItemChange,
 }) => {
 	const { closeSignal } = useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
+	const onOpenItemChangeRef = useRef(onOpenItemChange);
+	onOpenItemChangeRef.current = onOpenItemChange;
+	useEffect(() => {
+		onOpenItemChangeRef.current?.(openChildId);
+	}, [openChildId]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: closeSignal is intentionally used as a trigger; the effect resets menu state when the signal changes
 	useEffect(() => {
@@ -743,7 +760,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						: menuItem.checked === true
 					: undefined
 			}
-			aria-description={diamond ? "Requests your attention" : undefined}
+			aria-description={
+				menuItem.description ??
+				(diamond ? "Requests your attention" : undefined)
+			}
 			tabIndex={-1}
 			ref={itemRef}
 			id={menuItem.id}
