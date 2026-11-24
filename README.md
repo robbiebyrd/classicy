@@ -418,8 +418,9 @@ Which format to use:
 - A browser app, through any bundler: `import`.
 - A Node server: `import`, or `require()` (Node 20.16 or 22.3 and later),
   which reaches `dist/classicy.umd.cjs`, a small CommonJS loader for the
-  unchanged UMD bundle. `require()` is for Node only; a browser bundler must
-  `import`.
+  unchanged UMD bundle. `require()` is for Node only: a browser bundle that
+  `require()`s a Classicy package fails at its build (esbuild and webpack both
+  report the package's `require` entry as disabled), so `import` there.
 - A `<script>` tag (unpkg, jsDelivr): `dist/classicy.umd.js`, as before.
 
 On the server the desktop renders an empty shell, `<div

@@ -238,10 +238,19 @@ supported in Node only: these packages are `"type": "module"`, so Node reads
 the exports map's `require` names, under `node`, a few-line CommonJS loader
 beside it that runs it as CommonJS (Node 20.16 or 22.3 and later: the UMD
 bundle reaches Node's `url` module with `process.getBuiltinModule`, never a
-static `require("url")`). Every other `require` resolver, and `main`, take
-`dist/classicy.umd.js` itself; a browser bundler must `import` (webpack, for
-one, parses that `.js` file as an ES module in a `"type": "module"` package,
-so the UMD wrapper finds no `module` and exports nothing).
+static `require("url")`; on an older Node the loader throws an error naming
+the versions it needs). For every other `require` resolver the exports map's
+`require` is `null`, so a browser bundle that `require()`s a Classicy package
+fails at its build, at the `require()`: esbuild (`--platform=browser`) reports
+that `"."` `cannot be imported from package "@classicy/classicy" because it
+was explicitly disabled by the package author`, pointing at the `"default":
+null` under `"require"`, and webpack (`target: "web"`) that `"." is not
+exported under the conditions […"require"…"browser"]`. Use `import` there:
+both bundlers would otherwise bundle `dist/classicy.umd.js` as the ES module
+it is in a `"type": "module"` package, whose UMD wrapper then finds no
+`module`, reads its dependencies from `window` and throws when the page
+runs. `main` still names `dist/classicy.umd.js` for resolvers that read no
+exports map.
 
 **Server rendering (Next.js, Remix, Astro).** Every package's bundles load in
 Node with no DOM, on Node 22, 24, 25 and 26 alike (verify:dist invariant 19,
@@ -285,10 +294,12 @@ strict-CSP host does.
   `import`ed registers into the ES library only. Load the core and its
   packages the same way (`verify:host-types` checks it: `host-both.mjs`).
 - **Stack traces and source maps.** The loader runs the UMD bundle with a
-  direct `eval` carrying `//# sourceURL=` the bundle's path, so a stack trace
-  names `classicy.umd.js` and its own lines and columns, and
-  `--enable-source-maps` maps them through `classicy.umd.js.map` (Node maps
-  generated code with a source URL). Under
+  strict direct `eval` carrying `//# sourceURL=` the bundle's file URL (a
+  plain path holding a space, `Application Support` or `First Last`, is
+  dropped by V8), so a stack trace names `file:///…/classicy.umd.js` and its
+  own lines and columns, and `--enable-source-maps` maps them through
+  `classicy.umd.js.map` (Node maps generated code with a source URL). Strict,
+  so the bundle runs as fast through `require()` as through `import`. Under
   `--disallow-code-generation-from-strings` it compiles the bundle with
   `vm.runInThisContext` instead: the same file, lines and columns, no source
   maps.
