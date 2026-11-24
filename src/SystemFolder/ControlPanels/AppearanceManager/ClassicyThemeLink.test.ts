@@ -167,6 +167,28 @@ describe("readClassicyThemeLink", () => {
 		expect((await readOk(hash.slice(1))).name).toBe("Azul");
 	});
 
+	it("reads a key whose = was percent-encoded, and decodes escaped padding", async () => {
+		const hash = new URL(await linkOk(theme("azul"))).hash;
+		const payload = classicyThemeLinkPayload(hash) ?? "";
+		for (const key of ["%3D", "%3d"]) {
+			expect(
+				classicyThemeLinkPayload(`#${CLASSICY_THEME_LINK_KEY}${key}${payload}`),
+			).toBe(payload);
+			expect(
+				(await readOk(`#${CLASSICY_THEME_LINK_KEY}${key}${payload}`)).name,
+			).toBe("Azul");
+		}
+		expect(
+			classicyThemeLinkPayload(`#${CLASSICY_THEME_LINK_KEY}=abc%3D%3D`),
+		).toBe("abc==");
+		// The key itself is matched as written.
+		expect(classicyThemeLinkPayload(`#Classicy-Theme=${payload}`)).toBeNull();
+		// An escape that does not decode is left for the reader to refuse.
+		expect(classicyThemeLinkPayload(`#${CLASSICY_THEME_LINK_KEY}=abc%E0`)).toBe(
+			"abc%E0",
+		);
+	});
+
 	it("ignores a fragment that is not a theme link", async () => {
 		expect(await readClassicyThemeLink("")).toBeNull();
 		expect(await readClassicyThemeLink("#")).toBeNull();

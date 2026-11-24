@@ -148,7 +148,10 @@ export interface ClassicyDesktopProps {
 	 * the built-in splash — it owns its own visuals, timing, and (if desired)
 	 * session-once gating via the exported
 	 * `hasShownStartupScreenThisSession`/`markStartupScreenShownThisSession`
-	 * helpers. Still subject to the `startupScreen` gate.
+	 * helpers. Still subject to the `startupScreen` gate. Call
+	 * `useClassicyBootScreenActive(visible)` from it, so the desktop holds
+	 * what must not open unseen behind it (a theme link's alerts) until it
+	 * ends.
 	 */
 	bootScreen?: ReactNode;
 	/**

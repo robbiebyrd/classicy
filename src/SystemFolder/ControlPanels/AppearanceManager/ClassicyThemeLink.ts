@@ -78,15 +78,28 @@ export type ClassicyThemeLinkResult =
 	| { ok: true; url: string; payload: string }
 	| { ok: false; error: string };
 
+/** The key and its `=`, or the `=` percent-encoded (`%3D`), as a messenger
+ * that escapes a fragment's `=` may leave it. */
+const LINK_KEY_PREFIX = new RegExp(`^${CLASSICY_THEME_LINK_KEY}(?:=|%3[Dd])`);
+
 /**
  * The payload of `hash` (a URL's fragment, `location.hash`, with or without
  * its `#`) when it is a theme link, else `null`: the text after
- * `classicy-theme=`, unchecked.
+ * `classicy-theme=` (or `classicy-theme%3D`), unchecked. A payload holding
+ * percent escapes (`%3D` for base64 padding) is decoded; one that does not
+ * decode is returned as it is, to be refused as damaged.
  */
 export const classicyThemeLinkPayload = (hash: string): string | null => {
 	const fragment = hash.startsWith("#") ? hash.slice(1) : hash;
-	const prefix = `${CLASSICY_THEME_LINK_KEY}=`;
-	return fragment.startsWith(prefix) ? fragment.slice(prefix.length) : null;
+	const key = LINK_KEY_PREFIX.exec(fragment);
+	if (!key) return null;
+	const payload = fragment.slice(key[0].length);
+	if (!payload.includes("%")) return payload;
+	try {
+		return decodeURIComponent(payload);
+	} catch {
+		return payload;
+	}
 };
 
 /**

@@ -12,6 +12,7 @@ import {
 	within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	type ClassicyTheme,
 	getAllThemes,
@@ -31,7 +32,10 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { Classicy } from "@/SystemFolder/SystemResources/Desktop/Classicy";
-import { useClassicyThemeLinkImport } from "@/SystemFolder/SystemResources/Desktop/ClassicyThemeLinkImport.internal";
+import {
+	resetClassicyThemeLinkImportForTests,
+	useClassicyThemeLinkImport,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyThemeLinkImport.internal";
 
 // Whole-desktop integration tests, as the theme file ones: each boots the
 // desktop, so each gets the same headroom over vitest's 5 s default.
@@ -118,6 +122,8 @@ describe("ClassicyDesktop themeLinks", {
 		localStorage.clear();
 		sessionStorage.clear();
 		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		// A fresh page load: no link refused yet.
+		resetClassicyThemeLinkImportForTests();
 		visit("/");
 	});
 
@@ -381,5 +387,240 @@ describe("ClassicyDesktop themeLinks", {
 		await findAlert(/Ocean/);
 		await settle();
 		expect(screen.getAllByRole("alertdialog")).toHaveLength(1);
+	});
+	it("holds the alert until the startup screen has finished; a keystroke during the boot answers nothing", async () => {
+		const url = await linkTo(oceanTheme());
+		visit(url);
+		const { container } = render(
+			<Classicy controlStrip={false} themeLinks startupDuration={1000} />,
+		);
+		expect(container.querySelector(".classicyStartupScreen")).not.toBeNull();
+		// The link is read while the boot screen shows (linkTo loaded the
+		// codec, so the read settles at once).
+		await settle();
+		expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+		for (const key of ["Enter", "Escape", " "]) {
+			fireEvent.keyDown(document.activeElement ?? document.body, { key });
+			fireEvent.keyUp(document.activeElement ?? document.body, { key });
+		}
+		expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+		expect(container.querySelector(".classicyStartupScreen")).not.toBeNull();
+		expect(window.location.href).toBe(url);
+		expect(appearance().customThemes ?? []).toHaveLength(0);
+		// After the boot, the question, with the link still in the address.
+		const alert = await findAlert(/Ocean/);
+		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
+		expect(window.location.href).toBe(url);
+		press(alert, "Add Theme");
+		await noAlert();
+		expect(appearance().activeTheme.name).toBe("Ocean");
+	});
+
+	it("holds the alert while a pre-boot screen shows", async () => {
+		const url = await linkTo(oceanTheme());
+		visit(url);
+		render(
+			<Classicy
+				startupScreen={false}
+				controlStrip={false}
+				themeLinks
+				preBootScreen={(powerOn) => (
+					<button type="button" onClick={powerOn}>
+						Power On
+					</button>
+				)}
+			/>,
+		);
+		await settle();
+		fireEvent.keyDown(document.activeElement ?? document.body, {
+			key: "Escape",
+		});
+		expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+		expect(window.location.href).toBe(url);
+		fireEvent.click(screen.getByRole("button", { name: "Power On" }));
+		expect(await findAlert(/Ocean/)).toBeInTheDocument();
+	});
+
+	it("shows an error's link-chosen text without control or format characters", async () => {
+		const file = JSON.parse(compactClassicyThemeFile(oceanTheme()));
+		file.theme.package = "ir\u202Eix\u200B";
+		visit(linkHolding(JSON.stringify(file)));
+		mount(true);
+		const alert = await findAlert("The theme in this link could not be added.");
+		expect(alert).toHaveTextContent(
+			'This theme needs the "irix" appearance package, which is not installed.',
+		);
+		expect(alert.textContent).not.toMatch(/[\u202E\u200B]/);
+	});
+
+	it("reads a refused link again when the package registry changes, so a package registered late opens it", async () => {
+		const file = JSON.parse(compactClassicyThemeFile(oceanTheme()));
+		file.theme.package = "late-pack";
+		visit(linkHolding(JSON.stringify(file)));
+		mount(true);
+		const refused = await findAlert(
+			"The theme in this link could not be added.",
+		);
+		expect(refused).toHaveTextContent('"late-pack" appearance package');
+		act(() => {
+			registerClassicyAppearancePackage({
+				id: "late-pack",
+				name: "Late Pack",
+				css: "",
+				// Left registered: a registration outlives a test. Its defaults
+				// are named apart, so later imports of "Ocean" keep their name.
+				defaults: {
+					...oceanTheme(),
+					id: "late-default",
+					name: "Late Default",
+					package: "late-pack",
+				},
+				layout: {
+					window: { growBoxCorner: "bottom-right" },
+					menuBar: { placement: "screen" },
+					desktop: { iconGridOrigin: "top-right" },
+				},
+			});
+		});
+		const consent = await findAlert("Add the theme “Ocean” from this link?");
+		expect(consent).toHaveTextContent("a theme for the Late Pack appearance");
+		press(consent, "Add Theme");
+		await noAlert();
+		expect(appearance().packageId).toBe("late-pack");
+		expect(appearance().activeTheme.package).toBe("late-pack");
+	});
+
+	it("does not ask again this page load about a link the user cancelled", async () => {
+		const url = await linkTo(oceanTheme());
+		visit(url);
+		mount(true);
+		press(await findAlert(/Ocean/), "Cancel");
+		await noAlert();
+		expect(window.location.href).toBe(PAGE);
+		act(() => {
+			window.location.hash = new URL(url).hash;
+		});
+		await settle();
+		expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+		// Taken out of the address again, quietly.
+		expect(window.location.hash).toBe("");
+		// Another link still asks.
+		const other = await linkTo({ ...oceanTheme(), name: "Sea" });
+		act(() => {
+			window.location.hash = new URL(other).hash;
+		});
+		expect(await findAlert(/Sea/)).toBeInTheDocument();
+	});
+
+	it("hands the link on when the desktop asking about it unmounts", async () => {
+		const Opener = () => <>{useClassicyThemeLinkImport(true)}</>;
+		const url = await linkTo(oceanTheme());
+		visit(url);
+		const { rerender } = render(
+			<Classicy startupScreen={false} controlStrip={false} themeLinks>
+				<Opener />
+			</Classicy>,
+		);
+		await findAlert(/Ocean/);
+		// The child opener's effect runs first, so it asks; unmount it
+		// mid-question and the desktop's own opener asks instead.
+		rerender(
+			<Classicy startupScreen={false} controlStrip={false} themeLinks />,
+		);
+		const alert = await findAlert(/Ocean/);
+		expect(window.location.href).toBe(url);
+		press(alert, "Add Theme");
+		await noAlert();
+		expect(appearance().activeTheme.name).toBe("Ocean");
+	});
+
+	it("opens a link whose = a messenger percent-encoded", async () => {
+		const url = await linkTo(oceanTheme());
+		visit(
+			url.replace(
+				`#${CLASSICY_THEME_LINK_KEY}=`,
+				`#${CLASSICY_THEME_LINK_KEY}%3D`,
+			),
+		);
+		mount(true);
+		press(await findAlert(/Ocean/), "Add Theme");
+		await noAlert();
+		expect(appearance().activeTheme.name).toBe("Ocean");
+		expect(window.location.hash).toBe("");
+	});
+
+	it("asks about a second link that arrives while a prompt is open, after the first", async () => {
+		const first = await linkTo(oceanTheme());
+		const second = await linkTo({ ...oceanTheme(), name: "Sea" });
+		visit(first);
+		mount(true);
+		const asking = await findAlert(/Ocean/);
+		act(() => {
+			window.location.hash = new URL(second).hash;
+		});
+		await settle();
+		// One question at a time.
+		expect(screen.getAllByRole("alertdialog")).toHaveLength(1);
+		press(asking, "Cancel");
+		// The second link was not the first's to remove.
+		const next = await findAlert(/Sea/);
+		expect(window.location.href).toBe(second);
+		press(next, "Add Theme");
+		await noAlert();
+		expect(appearance().activeTheme.name).toBe("Sea");
+		expect(window.location.href).toBe(PAGE);
+	});
+
+	it("copies by selecting a temporary field when the Clipboard API is not offered", async () => {
+		vi.stubGlobal("navigator", { ...navigator, clipboard: undefined });
+		const copies: {
+			value: string;
+			start: number | null;
+			end: number | null;
+		}[] = [];
+		const execCommand = vi.fn((command: string) => {
+			const field = document.activeElement as HTMLTextAreaElement;
+			if (command === "copy")
+				copies.push({
+					value: field.value,
+					start: field.selectionStart,
+					end: field.selectionEnd,
+				});
+			return true;
+		});
+		Object.defineProperty(document, "execCommand", {
+			value: execCommand,
+			configurable: true,
+		});
+		try {
+			visit(PAGE);
+			mount(true);
+			const win = await openAppearanceManager();
+			await settle();
+			const button = within(win).getByRole("button", {
+				name: "Copy Theme Link",
+			});
+			button.focus();
+			fireEvent.click(button);
+			const status = await within(win).findByText(
+				/^The link to “.*” is on the clipboard\.$/,
+			);
+			expect(status.closest('[role="status"]')).toHaveClass(
+				"classicyAppearanceManagerThemeLinkStatus",
+			);
+			expect(copies).toHaveLength(1);
+			expect(
+				copies[0].value.startsWith(`${PAGE}#${CLASSICY_THEME_LINK_KEY}=`),
+			).toBe(true);
+			expect([copies[0].start, copies[0].end]).toEqual([
+				0,
+				copies[0].value.length,
+			]);
+			// The field is gone and the focus is back on the button.
+			expect(document.querySelector("body > textarea")).toBeNull();
+			expect(document.activeElement).toBe(button);
+		} finally {
+			Reflect.deleteProperty(document, "execCommand");
+		}
 	});
 });

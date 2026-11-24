@@ -109,7 +109,10 @@ export const useThemesTab = ({
 						/>
 					</div>
 					{copyThemeLink && (
-						<div role="status">
+						<div
+							role="status"
+							className={"classicyAppearanceManagerThemeLinkStatus"}
+						>
 							{copiedThemeName && (
 								<ClassicyControlLabel
 									label={`The link to “${copiedThemeName}” is on the clipboard.`}

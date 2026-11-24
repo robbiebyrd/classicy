@@ -16,10 +16,31 @@ import { useClassicyThemeLinksEnabled } from "@/SystemFolder/ControlPanels/Appea
 
 const COPY_FAILED = "The theme link could not be copied.";
 
-/** `text` through the `copy` command: for a page the Clipboard API is not
- * offered to (an http page other than localhost) or refused it. */
+/**
+ * `text` through the `copy` command, for a page the Clipboard API is not
+ * offered to (an http page other than localhost) or refused it. The
+ * standard technique: a temporary read-only text field holding `text`, its
+ * contents selected, then `copy`, since Safari copies only a selection; a
+ * `copy` listener also sets the text, for a browser that copies without
+ * one. The field never paints (it is gone before the task ends), but it is
+ * fixed at the viewport's corner so focusing it scrolls nothing, and focus
+ * goes back where it was.
+ */
 const copyWithCommand = (text: string): boolean => {
 	if (typeof document === "undefined" || !document.execCommand) return false;
+	const previous =
+		document.activeElement instanceof HTMLElement
+			? document.activeElement
+			: null;
+	const field = document.createElement("textarea");
+	field.value = text;
+	field.readOnly = true;
+	field.tabIndex = -1;
+	field.setAttribute("aria-hidden", "true");
+	field.style.position = "fixed";
+	field.style.top = "0";
+	field.style.left = "0";
+	field.style.opacity = "0";
 	let copied = false;
 	const onCopy = (event: ClipboardEvent) => {
 		if (!event.clipboardData) return;
@@ -27,13 +48,19 @@ const copyWithCommand = (text: string): boolean => {
 		event.preventDefault();
 		copied = true;
 	};
+	document.body.append(field);
 	document.addEventListener("copy", onCopy);
 	try {
-		document.execCommand("copy");
+		field.focus({ preventScroll: true });
+		field.select();
+		field.setSelectionRange(0, text.length);
+		copied = document.execCommand("copy") || copied;
 	} catch {
-		// Refused: copied stays false.
+		// Refused: copied stays as the listener left it.
 	} finally {
 		document.removeEventListener("copy", onCopy);
+		field.remove();
+		previous?.focus({ preventScroll: true });
 	}
 	return copied;
 };
