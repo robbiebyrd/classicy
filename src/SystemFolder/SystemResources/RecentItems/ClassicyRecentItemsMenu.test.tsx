@@ -414,6 +414,145 @@ describe("host sources", () => {
 	});
 });
 
+describe("edge cases (review M4, M7, M8)", () => {
+	it("show a remembered app by the name its record holds now", () => {
+		seed(
+			recent([
+				{
+					kind: "application",
+					appId: "Calculator.app",
+					name: "Calculator",
+					at: 1,
+				},
+			]),
+		);
+		act(() =>
+			useAppManager.setState((s) => {
+				const next = structuredClone(s);
+				next.System.Manager.Applications.apps["Calculator.app"].name =
+					"Calculator II";
+				return next;
+			}),
+		);
+		render(<ClassicyDesktopMenuBar />);
+		expect(childTitles("apple-recent-applications")).toEqual(["Calculator II"]);
+	});
+
+	it("show a host's application item by the host's name, even for a known app", () => {
+		seed(recent([]));
+		registerClassicyRecentItemsSource({
+			id: "launcher",
+			kind: "application",
+			list: () => [{ name: "My Calculator", at: 5, appId: "Calculator.app" }],
+		});
+		render(<ClassicyDesktopMenuBar />);
+		expect(childTitles("apple-recent-applications")).toEqual(["My Calculator"]);
+	});
+
+	it("report a host's missing application item as an application, with the alert", async () => {
+		const toolPath = "Macintosh HD:Applications:Old Tool";
+		// A remembered document at the same path: the application item's
+		// miss must not forget it.
+		seed(
+			recent([{ kind: "document", path: toolPath, name: "Old Tool", at: 1 }]),
+		);
+		registerClassicyRecentItemsSource({
+			id: "launcher",
+			kind: "application",
+			list: () => [{ name: "Old Tool", at: 5, path: toolPath }],
+		});
+		render(<ClassicyDesktopMenuBar />);
+		await choose("apple-recent-applications-0");
+		expect(desktop().errorDialog?.message).toBe(
+			"The alias “Old Tool” could not be opened, because the original item could not be found.",
+		);
+		expect(desktop().recentItems?.items.map((i) => i.path)).toEqual([toolPath]);
+	});
+
+	it("survive a host item whose open throws, warning once per throw", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		seed(recent([]));
+		registerClassicyRecentItemsSource({
+			id: "fragile",
+			kind: "document",
+			list: () => [
+				{
+					name: "Fragile Page",
+					at: 1,
+					open: () => {
+						throw new Error("nope");
+					},
+				},
+			],
+		});
+		render(<ClassicyDesktopMenuBar />);
+		await choose("apple-recent-documents-0");
+		expect(
+			warn.mock.calls.some((call) =>
+				String(call[0]).includes("A recent items source's open threw"),
+			),
+		).toBe(true);
+		expect(desktop().errorDialog).toBeNull();
+		expect(childTitles("apple-recent-documents")).toEqual(["Fragile Page"]);
+		warn.mockRestore();
+	});
+
+	it("keep two sources' items that share a key apart", async () => {
+		seed(recent([]));
+		const opened: string[] = [];
+		for (const id of ["one", "two"])
+			registerClassicyRecentItemsSource({
+				id,
+				kind: "document",
+				list: () => [
+					{
+						key: "home",
+						name: `Home ${id}`,
+						at: 1,
+						open: () => opened.push(id),
+					},
+				],
+			});
+		render(<ClassicyDesktopMenuBar />);
+		expect(childTitles("apple-recent-documents")).toEqual([
+			"Home one",
+			"Home two",
+		]);
+		await choose(itemNamed("apple-recent-documents", "Home two"));
+		expect(opened).toEqual(["two"]);
+	});
+
+	it("refuse a trashed document with the Finder's in-the-trash alert, and keep it (Mac OS 8.1)", async () => {
+		new ClassicyFileSystem().writeFile("Trash:Trashed Plan.txt", "x", {
+			_type: ClassicyFileSystemEntryFileType.TextFile,
+		});
+		seed(
+			recent([
+				{
+					kind: "document",
+					path: "Trash:Trashed Plan.txt",
+					name: "Trashed Plan.txt",
+					at: 1,
+				},
+			]),
+		);
+		render(<ClassicyDesktopMenuBar />);
+		await choose("apple-recent-documents-0");
+		expect(desktop().errorDialog?.message).toBe(
+			"The alias “Trashed Plan.txt” could not be opened, because the original item is in the trash.",
+		);
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps[
+				"SimpleText.app"
+			].data?.openFiles,
+		).toBeUndefined();
+		expect(desktop().recentItems?.items.map((i) => i.path)).toEqual([
+			"Trash:Trashed Plan.txt",
+		]);
+		expect(childTitles("apple-recent-documents")).toEqual(["Trashed Plan.txt"]);
+	});
+});
+
 describe("placement helper", () => {
 	it("sorts each group after the About section, the Recent entries in the first", () => {
 		const items: ClassicyMenuItem[] = [

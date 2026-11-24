@@ -124,26 +124,72 @@ describe("ClassicyAppleMenuOptions", () => {
 		expect(field("AppleMenuOptions_documents")?.value).toBe("3");
 	});
 
-	it("sets each count from its field: digits only, 999 stored as 99", () => {
+	/** Type into a field: one change per keystroke, as a user does. */
+	const typeInto = (id: string, text: string) => {
+		const input = field(id) as HTMLInputElement;
+		act(() => input.focus());
+		for (let n = 1; n <= text.length; n += 1)
+			fireEvent.change(input, { target: { value: text.slice(0, n) } });
+	};
+	const leave = (id: string) =>
+		act(() => (field(id) as HTMLInputElement).blur());
+
+	it("sets each count when the field is left: digits only, 999 stored as 99", () => {
 		renderOpen();
-		fireEvent.change(field("AppleMenuOptions_documents") as HTMLInputElement, {
-			target: { value: "4" },
-		});
+		typeInto("AppleMenuOptions_documents", "4");
+		expect(recent()?.counts.document).toBe(10);
+		leave("AppleMenuOptions_documents");
 		expect(recent()?.counts).toEqual({ application: 10, document: 4 });
-		fireEvent.change(
-			field("AppleMenuOptions_applications") as HTMLInputElement,
-			{ target: { value: "999" } },
-		);
+		typeInto("AppleMenuOptions_applications", "999");
+		leave("AppleMenuOptions_applications");
 		expect(recent()?.counts.application).toBe(99);
-		fireEvent.change(
-			field("AppleMenuOptions_applications") as HTMLInputElement,
-			{ target: { value: "0" } },
-		);
+		expect(field("AppleMenuOptions_applications")?.value).toBe("99");
+		typeInto("AppleMenuOptions_applications", "0");
+		fireEvent.keyDown(field("AppleMenuOptions_applications") as HTMLElement, {
+			key: "Enter",
+		});
 		expect(recent()?.counts.application).toBe(0);
-		fireEvent.change(
-			field("AppleMenuOptions_applications") as HTMLInputElement,
-			{ target: { value: "" } },
-		);
-		expect(recent()?.counts.application).toBe(0);
+	});
+
+	it("never forgets items while a count is typed digit by digit (review I1)", () => {
+		useAppManager.setState((s) => {
+			const next = structuredClone(s);
+			next.System.Manager.Desktop.recentItems = {
+				...next.System.Manager.Desktop.recentItems!,
+				items: Array.from({ length: 10 }, (_, i) => ({
+					kind: "document" as const,
+					path: `Macintosh HD:Doc ${i}`,
+					name: `Doc ${i}`,
+					at: 100 - i,
+				})),
+			};
+			return next;
+		});
+		renderOpen();
+		// "10" becomes "15": the field passes through "1" on the way.
+		typeInto("AppleMenuOptions_documents", "15");
+		expect(recent()?.items).toHaveLength(10);
+		leave("AppleMenuOptions_documents");
+		expect(recent()?.counts.document).toBe(15);
+		expect(recent()?.items).toHaveLength(10);
+	});
+
+	it("puts the stored count back in a field the user cleared (review M8)", () => {
+		renderOpen();
+		typeInto("AppleMenuOptions_documents", "");
+		fireEvent.change(field("AppleMenuOptions_documents") as HTMLInputElement, {
+			target: { value: "" },
+		});
+		expect(field("AppleMenuOptions_documents")?.value).toBe("");
+		leave("AppleMenuOptions_documents");
+		expect(recent()?.counts.document).toBe(10);
+		expect(field("AppleMenuOptions_documents")?.value).toBe("10");
+	});
+
+	it("sets a count still being typed when the panel closes", () => {
+		const { unmount } = renderOpen();
+		typeInto("AppleMenuOptions_documents", "7");
+		unmount();
+		expect(recent()?.counts.document).toBe(7);
 	});
 });

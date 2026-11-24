@@ -5,11 +5,14 @@
  * Recent Applications and Recent Documents submenus.
  *
  * Store-free and reducer-safe: the kernel calls `recordClassicyRecentApp`
- * from `openApp` (every launch: the Apple menu, a desktop icon, a document
- * that opens its app) and `recordClassicyRecentDocument` from the generic
- * OpenFile queue and Finder's open routing; the `ClassicyDesktopRecentItems*`
- * actions, routed here by the kernel, are the Apple Menu Options control
- * panel's. Story 0226-a6f.
+ * from `openApp` (every launch of an app that is there: the Apple menu, a
+ * desktop icon, a document that opens its app) and
+ * `recordClassicyRecentDocument`, the one helper every document open goes
+ * through (`openApp`'s `document`, the generic OpenFile queue, Finder's
+ * routing, the apps' own open actions, the Open dialog's
+ * `ClassicyDesktopRecentItemsRecordDocument`); the other
+ * `ClassicyDesktopRecentItems*` actions, routed here by the kernel, are the
+ * Apple Menu Options control panel's and the Apple menu's. Story 0226-a6f.
  *
  * Reference (Mac OS 8.1 and System 7.5.3, observed on Infinite Mac): the
  * panel defaults to remembering 10 documents and 10 applications (each 0 to
@@ -19,6 +22,9 @@
  */
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { isClassicyControlPanelApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyControlPanelApps.internal";
+import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import { peekClassicyFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 /** The lists Recent Items keeps. (The Mac's Recent Servers has no Classicy counterpart.) */
 export type ClassicyRecentItemKind = "application" | "document";
@@ -217,19 +223,24 @@ export function recordClassicyRecentItem(
 const FINDER_APP_ID = "Finder.app";
 
 /**
- * Remember that the app `appId` was opened. Only an app the store knows is
- * remembered, by its internal name: never the Finder, an extension, or an
- * app whose manifest marks it a control panel (`registerApp({ controlPanel:
- * true })`): Apple Menu Options remembered applications, and a control panel
- * opened from the Apple menu was not added (Mac OS 8.1).
+ * Remember that the app `appId` was opened. Only an app that is really there
+ * is remembered: one whose `ClassicyApp` is mounted (`isClassicyAppMounted`)
+ * and whose record the store holds, by its internal name. So an id an
+ * `ClassicyAppOpen` names but nothing loaded (a stack script's, a removed
+ * app's record) is never listed, however often it is opened. Never the
+ * Finder, an extension, or an app whose manifest marks it a control panel
+ * (`registerApp({ controlPanel: true })`): Apple Menu Options remembered
+ * applications, and a control panel opened from the Apple menu was not added
+ * (Mac OS 8.1).
  */
 export function recordClassicyRecentApp(
 	ds: ClassicyStore,
 	appId: string,
 ): ClassicyStore {
 	if (appId === FINDER_APP_ID) return ds;
-	const apps = ds.System.Manager.Applications.apps;
-	if (!Object.hasOwn(apps, appId)) return ds;
+	if (!isClassicyAppMounted(appId)) return ds;
+	const apps = ds.System?.Manager?.Applications?.apps;
+	if (!apps || !Object.hasOwn(apps, appId)) return ds;
 	const app = apps[appId];
 	if (!app || app.extension) return ds;
 	if (isClassicyControlPanelApp(appId)) return ds;
@@ -248,12 +259,33 @@ export const classicyRecentDocumentName = (path: string): string =>
 		.filter((part) => part !== "")
 		.pop() ?? path;
 
-/** Remember that the document at `path` was opened. */
+/**
+ * True when `path` names a file in the desktop's file system (the live tree
+ * under the default storage key): an entry that is neither a folder nor a
+ * disk. Read without building a file system (`peekClassicyFileSystemEntry`).
+ */
+export const isClassicyRecentDocumentPath = (path: unknown): path is string => {
+	if (typeof path !== "string" || path === "") return false;
+	const entry = peekClassicyFileSystemEntry(path);
+	return (
+		entry !== undefined &&
+		entry._type !== ClassicyFileSystemEntryFileType.Directory &&
+		entry._type !== ClassicyFileSystemEntryFileType.Drive
+	);
+};
+
+/**
+ * Remember that the document at `path` was opened: the one helper every
+ * document open records through (the generic OpenFile queue, Finder's
+ * routing, an app's own open actions, the Open dialog). Only a path that
+ * names a file in the file system is remembered (`isClassicyRecentDocumentPath`);
+ * anything else (a URL, a key that is not a path) is not.
+ */
 export function recordClassicyRecentDocument(
 	ds: ClassicyStore,
-	path: string,
+	path: unknown,
 ): ClassicyStore {
-	if (typeof path !== "string" || path === "") return ds;
+	if (!isClassicyRecentDocumentPath(path)) return ds;
 	return recordClassicyRecentItem(ds, {
 		kind: "document",
 		path,
@@ -313,6 +345,14 @@ export function followClassicyRecentDocumentMoves(
 export const classicyRecentItemMissingMessage = (name: string): string =>
 	`The alias “${name}” could not be opened, because the original item could not be found.`;
 
+/**
+ * The alert for a remembered document whose original is in the Trash: the
+ * Finder's, word for word (Mac OS 8.1, observed: the alias follows its file
+ * into the Trash, will not open it there, and stays listed).
+ */
+export const classicyRecentItemInTrashMessage = (name: string): string =>
+	`The alias “${name}” could not be opened, because the original item is in the trash.`;
+
 const hasKindAndTarget = (
 	action: Record<string, unknown>,
 ): action is Record<string, unknown> & {
@@ -333,6 +373,9 @@ const hasKindAndTarget = (
  *   forgets every item, as the Mac emptied its Recent folders.
  * - `ClassicyDesktopRecentItemsSetCount { kind, count }`: clamped to 0–99;
  *   items past the new count are forgotten.
+ * - `ClassicyDesktopRecentItemsRecordDocument { path }`: remember a
+ *   document opened by a surface outside the reducers (the Open dialog,
+ *   `ClassicyFileDialog`), when the path names a file.
  * - `ClassicyDesktopRecentItemsForget { kind, appId | path }`.
  * - `ClassicyDesktopRecentItemsMissing { kind, appId | path, name? }`: an item
  *   chosen in the Apple menu that cannot be opened: the Finder's alert, and
@@ -367,13 +410,24 @@ export const classicyRecentItemsEventHandler = (
 				items: capClassicyRecentItems(state.items, counts),
 			});
 		}
+		case "ClassicyDesktopRecentItemsRecordDocument": {
+			return recordClassicyRecentDocument(ds, action.path);
+		}
 		case "ClassicyDesktopRecentItemsForget": {
 			if (!hasKindAndTarget(action)) break;
 			return forgetClassicyRecentItem(ds, action);
 		}
 		case "ClassicyDesktopRecentItemsMissing": {
-			if (!hasKindAndTarget(action)) break;
-			const key = classicyRecentItemKey(action);
+			// Any item, a host's application named by a path included: it is
+			// forgotten only when it is remembered, but the alert is drawn.
+			if (!isKind(action.kind)) break;
+			const target = {
+				kind: action.kind,
+				appId: typeof action.appId === "string" ? action.appId : undefined,
+				path: typeof action.path === "string" ? action.path : undefined,
+			};
+			if (target.appId === undefined && target.path === undefined) break;
+			const key = classicyRecentItemKey(target);
 			const stored = classicyRecentItemsOf(ds).items.find(
 				(i) => classicyRecentItemKey(i) === key,
 			);
@@ -381,7 +435,7 @@ export const classicyRecentItemsEventHandler = (
 				typeof action.name === "string" && action.name !== ""
 					? action.name
 					: stored?.name;
-			ds = forgetClassicyRecentItem(ds, action);
+			ds = forgetClassicyRecentItem(ds, target);
 			if (name && ds.System?.Manager?.Desktop) {
 				ds.System.Manager.Desktop.errorDialog = {
 					message: classicyRecentItemMissingMessage(name),

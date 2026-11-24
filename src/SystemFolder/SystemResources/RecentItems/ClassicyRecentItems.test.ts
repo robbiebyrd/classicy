@@ -2,101 +2,33 @@
 // Menu Options actions. Reference: Mac OS 8.1 and System 7.5.3 on Infinite
 // Mac (10 of each by default, 0-99, most recent kept, off forgets all).
 import { produce } from "immer";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ClassicyActionTrust } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
+import { describe, expect, it, vi } from "vitest";
 import {
-	type ActionMessage,
 	type ClassicyStore,
-	classicyDesktopStateEventReducer,
 	DefaultAppManagerState,
+	mergeClassicyState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
+	base,
+	finderOpen,
+	items,
+	open,
+	reduce,
+	reduceAll,
+	setUpRecentItemsFixtures,
+	targets,
+} from "@/SystemFolder/SystemResources/RecentItems/__tests__/recentItemsStore";
+import {
 	CLASSICY_RECENT_ITEMS_DEFAULT_COUNT,
-	type ClassicyRecentItem,
 	classicyRecentItemMissingMessage,
 	classicyRecentItemsOf,
 	normalizeClassicyRecentItems,
 } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
-// Side effects: the reducers and manifests, as the package barrel loads them.
-import "@/SystemFolder/Finder/FinderContext";
-import "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
-import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
-import "@/SystemFolder/ControlPanels/AppleMenuOptions/ClassicyAppleMenuOptionsManifest";
 
-const reduce = (
-	ds: ClassicyStore,
-	action: ActionMessage,
-	trust: ClassicyActionTrust = "trusted",
-): ClassicyStore =>
-	produce(ds, (draft) => {
-		classicyDesktopStateEventReducer(draft, action, trust);
-	});
-
-const reduceAll = (ds: ClassicyStore, actions: ActionMessage[]) =>
-	actions.reduce((state, action) => reduce(state, action), ds);
-
-/** The default store with loaded (closed) app records, SimpleText handling text. */
-const base = (): ClassicyStore =>
-	produce(DefaultAppManagerState, (draft) => {
-		const add = (id: string, name: string, extra = {}) => {
-			draft.System.Manager.Applications.apps[id] = {
-				id,
-				name,
-				icon: `${id}.png`,
-				windows: {},
-				open: false,
-				data: {},
-				...extra,
-			};
-		};
-		add("SimpleText.app", "SimpleText");
-		add("Calculator.app", "Calculator");
-		add("PictureViewer.app", "Picture Viewer");
-		add("AppearanceManager.app", "Appearance");
-		add("ScreenSaver.app", "Screen Saver", { extension: true });
-		draft.System.Manager.Applications.fileTypeHandlers[
-			ClassicyFileSystemEntryFileType.TextFile
-		] = "SimpleText.app";
-		draft.System.Manager.Applications.fileTypeHandlers[
-			ClassicyFileSystemEntryFileType.Image
-		] = "PictureViewer.app";
-	});
-
-const open = (id: string): ActionMessage => ({
-	type: "ClassicyAppOpen",
-	app: { id, name: id, icon: "" },
-});
-
-const finderOpen = (
-	path: string,
-	type = ClassicyFileSystemEntryFileType.TextFile,
-): ActionMessage => ({
-	type: "ClassicyAppFinderOpenFile",
-	file: { _type: type },
-	path,
-});
-
-const items = (ds: ClassicyStore): ClassicyRecentItem[] =>
-	classicyRecentItemsOf(ds).items;
-const targets = (ds: ClassicyStore, kind: ClassicyRecentItem["kind"]) =>
-	items(ds)
-		.filter((i) => i.kind === kind)
-		.map((i) => i.appId ?? i.path);
-
-let now = 1_000;
-beforeEach(() => {
-	now = 1_000;
-	// Each use a millisecond later than the last, so order is by use.
-	vi.spyOn(Date, "now").mockImplementation(() => {
-		now += 1;
-		return now;
-	});
-});
-afterEach(() => {
-	vi.restoreAllMocks();
-});
+setUpRecentItemsFixtures();
 
 describe("defaults", () => {
 	it("remembers 10 documents and 10 applications, tracking on, nothing yet", () => {
@@ -379,5 +311,140 @@ describe("persistence", () => {
 			counts: { application: 2, document: 99 },
 			items: [{ kind: "document", path: "A", name: "A", at: 2 }],
 		});
+	});
+});
+
+describe("only what is really there (review I3, M3)", () => {
+	it("never remembers an app nothing loaded, however often it is opened, trusted or not", () => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		let ds = reduceAll(base(), [
+			open("Phantom.app"),
+			open("Phantom.app"),
+			open("Removed.app"),
+			open("Removed.app"),
+		]);
+		// ClassicyAppOpen is on the default untrusted allowlist: a stack
+		// script can name any id and any name.
+		for (const id of ["Script Made.app", "Script Made.app", "Removed.app"])
+			ds = reduce(
+				ds,
+				{ type: "ClassicyAppOpen", app: { id, name: "Anything", icon: "" } },
+				"untrusted",
+			);
+		expect(items(ds)).toEqual([]);
+		// A script opening an app that is there is a real use.
+		ds = reduce(ds, open("Calculator.app"), "untrusted");
+		expect(targets(ds, "application")).toEqual(["Calculator.app"]);
+	});
+
+	it("remembers a generic-queue path only when it names a file", () => {
+		const ds = reduceAll(base(), [
+			{
+				type: "ClassicyAppSimpleTextOpenFile",
+				app: { id: "SimpleText.app" },
+				path: "https://example.com/clip.mp4",
+			},
+			{
+				type: "ClassicyAppSimpleTextOpenFile",
+				app: { id: "SimpleText.app" },
+				path: "Macintosh HD:Nowhere.txt",
+			},
+			{
+				type: "ClassicyAppSimpleTextOpenFile",
+				app: { id: "SimpleText.app" },
+				path: "Macintosh HD:Notes",
+			},
+		]);
+		// Queued as before, but none is a file.
+		expect(
+			ds.System.Manager.Applications.apps["SimpleText.app"].data?.openFiles,
+		).toHaveLength(3);
+		expect(targets(ds, "document")).toEqual([]);
+	});
+});
+
+describe("a trashed document (review M4)", () => {
+	it("follows its file into the Trash and back out on Restore", () => {
+		let ds = reduce(base(), finderOpen("Macintosh HD:Notes:Plan.txt"));
+		ds = reduce(ds, {
+			type: "ClassicyAppFinderPathsMoved",
+			moves: [{ from: "Macintosh HD:Notes:Plan.txt", to: "Trash:Plan.txt" }],
+		});
+		expect(targets(ds, "document")).toEqual(["Trash:Plan.txt"]);
+		ds = reduce(ds, {
+			type: "ClassicyAppFinderPathsMoved",
+			moves: [{ from: "Trash:Plan.txt", to: "Macintosh HD:Notes:Plan.txt" }],
+		});
+		expect(targets(ds, "document")).toEqual(["Macintosh HD:Notes:Plan.txt"]);
+		expect(items(ds).find((i) => i.kind === "document")?.name).toBe("Plan.txt");
+	});
+});
+
+describe("a host turning Recent Items off (review M5)", () => {
+	it("a defaultState seed of `enabled: false` keeps the counts and records nothing", () => {
+		let ds = mergeClassicyState(base(), {
+			System: { Manager: { Desktop: { recentItems: { enabled: false } } } },
+		});
+		expect(classicyRecentItemsOf(ds)).toEqual({
+			enabled: false,
+			counts: { application: 10, document: 10 },
+			items: [],
+		});
+		ds = reduceAll(ds, [
+			open("Calculator.app"),
+			finderOpen("Macintosh HD:A.txt"),
+		]);
+		expect(items(ds)).toEqual([]);
+	});
+});
+
+describe("the load migration (review M6)", () => {
+	const withRecent = (recentItems: unknown): ClassicyStore =>
+		produce(DefaultAppManagerState, (draft) => {
+			(draft.System.Manager.Desktop as Record<string, unknown>).recentItems =
+				recentItems;
+		});
+
+	it("normalizes a malformed stored value, idempotently", () => {
+		const migrated = migrateClassicyState(
+			withRecent({
+				enabled: true,
+				counts: { application: 500, document: "x" },
+				items: [
+					{ kind: "document", path: "A", name: "A", at: 1 },
+					{ kind: "bogus" },
+					"junk",
+				],
+			}),
+		);
+		expect(migrated.System.Manager.Desktop.recentItems).toEqual({
+			enabled: true,
+			counts: { application: 99, document: 10 },
+			items: [{ kind: "document", path: "A", name: "A", at: 1 }],
+		});
+		expect(migrateClassicyState(migrated)).toBe(migrated);
+		expect(
+			migrateClassicyState(withRecent("not an object")).System.Manager.Desktop
+				.recentItems,
+		).toEqual({
+			enabled: true,
+			counts: { application: 10, document: 10 },
+			items: [],
+		});
+	});
+
+	it("leaves a valid value, or none, as it is", () => {
+		const valid = withRecent({
+			enabled: true,
+			counts: { application: 3, document: 4 },
+			items: [{ kind: "application", appId: "X.app", name: "X", at: 2 }],
+		});
+		expect(migrateClassicyState(valid)).toBe(valid);
+		const none = produce(DefaultAppManagerState, (draft) => {
+			delete draft.System.Manager.Desktop.recentItems;
+		});
+		expect(migrateClassicyState(none).System.Manager.Desktop.recentItems).toBe(
+			undefined,
+		);
 	});
 });

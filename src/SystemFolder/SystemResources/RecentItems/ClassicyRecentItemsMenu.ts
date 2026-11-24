@@ -7,7 +7,9 @@
  * items in alphabetical order, with its folder icon; its submenu lists the
  * remembered items by name, alphabetically, with no icons; an empty one has
  * no submenu; with tracking off neither is in the menu. Choosing an item
- * opens it; one whose original is gone draws the Finder's alias alert.
+ * opens it; one whose original is gone draws the Finder's alias alert (and
+ * is dropped here), one whose original is in the Trash the Finder's
+ * in-the-trash alert (and stays).
  * Story 0226-a6f.
  */
 import { useMemo, useRef } from "react";
@@ -24,11 +26,13 @@ import {
 import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { openClassicyFileSystemPath } from "@/SystemFolder/SystemResources/File/ClassicyFileOpen";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import { isInClassicyTrash } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import {
 	type ClassicyRecentItemKind,
 	type ClassicyStoreRecentItems,
+	classicyRecentItemInTrashMessage,
 	classicyRecentItemKey,
 	normalizeClassicyRecentItems,
 } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
@@ -183,8 +187,10 @@ export function useClassicyRecentItemsMenuItems(): ClassicyMenuItem[] {
 			"application",
 			state,
 			state.enabled ? readClassicyRecentItemsSourceEntries("application") : [],
+			// A remembered app by the name its record holds now, shown by
+			// the package's display name; a host's item by its own name.
 			(entry) =>
-				entry.appId
+				entry.appId && entry.sourceId === undefined
 					? classicyAppIdentityFrom(overrides, entry.appId, {
 							name: Object.hasOwn(apps, entry.appId)
 								? apps[entry.appId].name
@@ -220,10 +226,9 @@ export function useClassicyRecentItemsMenuItems(): ClassicyMenuItem[] {
 		const missing = (entry: ClassicyRecentMenuEntry) =>
 			dispatch({
 				type: "ClassicyDesktopRecentItemsMissing",
+				kind: entry.kind,
 				// What could not be opened: its path, else its application.
-				...(entry.path
-					? { kind: "document", path: entry.path }
-					: { kind: "application", appId: entry.appId }),
+				...(entry.path ? { path: entry.path } : { appId: entry.appId }),
 				name: entry.name,
 			});
 
@@ -244,7 +249,17 @@ export function useClassicyRecentItemsMenuItems(): ClassicyMenuItem[] {
 				return;
 			}
 			if (entry.path) {
-				if (!openClassicyFileSystemPath(getFileSystem(), entry.path, dispatch))
+				const fs = getFileSystem();
+				// Followed into the Trash, as an alias follows its file: it is
+				// not opened there, and stays listed (Restore brings it back).
+				if (isInClassicyTrash(fs, entry.path) && fs.resolve(entry.path)) {
+					dispatch({
+						type: "ClassicyDesktopShowErrorDialog",
+						message: classicyRecentItemInTrashMessage(entry.name),
+					});
+					return;
+				}
+				if (!openClassicyFileSystemPath(fs, entry.path, dispatch))
 					missing(entry);
 				return;
 			}

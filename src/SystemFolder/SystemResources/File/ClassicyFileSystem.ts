@@ -127,6 +127,35 @@ export function getClassicyFileSystemVersion(storageKey: string): number {
 }
 
 /**
+ * The entry at `path` in the live tree for `storageKey`, read without
+ * building a `ClassicyFileSystem` (so without touching localStorage): for
+ * reducers, which may ask whether a path names something but hold no file
+ * system. Undefined when nothing is there, when no file system for that key
+ * exists yet, or for a path with a forbidden segment (as `resolve`).
+ */
+export function peekClassicyFileSystemEntry(
+	path: string,
+	storageKey: string = "classicyStorage",
+	separator: string = ":",
+): ClassicyFileSystemEntry | undefined {
+	const shared = sharedTrees.get(storageKey);
+	if (!shared || typeof path !== "string") return undefined;
+	const segments = path.split(separator).filter((v) => v !== "");
+	if (
+		segments.length === 0 ||
+		segments.some((segment) => FORBIDDEN_PATH_SEGMENTS.has(segment))
+	) {
+		return undefined;
+	}
+	let entry: ClassicyFileSystemEntry | undefined = shared.tree;
+	for (const segment of segments) {
+		if (!entry || !Object.hasOwn(entry, segment)) return undefined;
+		entry = entry[segment] as ClassicyFileSystemEntry | undefined;
+	}
+	return entry && typeof entry === "object" ? entry : undefined;
+}
+
+/**
  * Forget every shared tree, so the next `ClassicyFileSystem` reads its
  * storage afresh. For tests, which reset localStorage between cases.
  */

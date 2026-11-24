@@ -42,6 +42,15 @@ describe("Recent Items across a reload", () => {
 				"SimpleText.app";
 			return next;
 		});
+		// SimpleText really there, and the document a file (this graph's).
+		const mounted = await import(
+			"@/SystemFolder/SystemResources/App/ClassicyMountedApps"
+		);
+		const unmount = mounted.markClassicyAppMounted("SimpleText.app");
+		const files = await import(
+			"@/SystemFolder/SystemResources/File/ClassicyFileSystem"
+		);
+		new files.ClassicyFileSystem().writeFile("Macintosh HD:Notes:Plan.txt", "");
 		first.dispatch({
 			type: "ClassicyDesktopRecentItemsSetCount",
 			kind: "application",
@@ -52,6 +61,7 @@ describe("Recent Items across a reload", () => {
 			app: { id: "SimpleText.app" },
 			path: "Macintosh HD:Notes:Plan.txt",
 		});
+		unmount();
 		const before = recentItems(first);
 		expect(before?.items.map((i: { name: string }) => i.name)).toEqual([
 			"Plan.txt",

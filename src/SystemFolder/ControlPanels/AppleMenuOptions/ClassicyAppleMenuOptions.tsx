@@ -1,5 +1,5 @@
 import "./ClassicyAppleMenuOptions.scss";
-import type { ChangeEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
@@ -76,18 +76,8 @@ export function ClassicyAppleMenuOptions() {
 	const stored = useAppManager((s) => s.System.Manager.Desktop.recentItems);
 	const { enabled, counts } = normalizeClassicyRecentItems(stored);
 
-	// A field takes digits only; a value past 99 is stored as 99. An empty
-	// field changes nothing.
-	const setCount =
-		(kind: ClassicyRecentItemKind) => (e: ChangeEvent<HTMLInputElement>) => {
-			const digits = e.target.value.replace(/\D/g, "");
-			if (digits === "") return;
-			dispatch({
-				type: "ClassicyDesktopRecentItemsSetCount",
-				kind,
-				count: Number.parseInt(digits, 10),
-			});
-		};
+	const setCount = (kind: ClassicyRecentItemKind, count: number) =>
+		dispatch({ type: "ClassicyDesktopRecentItemsSetCount", kind, count });
 
 	return (
 		<ClassicyApp
@@ -154,14 +144,13 @@ export function ClassicyAppleMenuOptions() {
 							/>
 						</ClassicyControlGroupFormRow>
 						{COUNT_FIELDS.map(({ kind, label }) => (
-							<ClassicyInput
+							<AppleMenuOptionsCountField
 								key={kind}
-								id={`AppleMenuOptions_${kind}s`}
-								labelTitle={label}
-								labelPosition="left"
-								disabled={!enabled}
-								prefillValue={enabled ? String(counts[kind]) : ""}
-								onChangeFunc={setCount(kind)}
+								kind={kind}
+								label={label}
+								enabled={enabled}
+								count={counts[kind]}
+								onCommit={(count) => setCount(kind, count)}
 							/>
 						))}
 					</ClassicyControlGroup>
@@ -169,5 +158,87 @@ export function ClassicyAppleMenuOptions() {
 			</ClassicyWindow>
 			{aboutWindow}
 		</ClassicyApp>
+	);
+}
+
+/**
+ * One count field. What the user types is a draft: the count is set when
+ * the field is left (it loses focus), on Return, or when the panel closes,
+ * never on each keystroke, since a smaller count forgets the items past it
+ * (typing "15" over "10" would otherwise pass through 1). A value past 99 is
+ * set to 99; anything else not a number, an empty field included, puts the
+ * stored count back in the field.
+ */
+function AppleMenuOptionsCountField({
+	kind,
+	label,
+	enabled,
+	count,
+	onCommit,
+}: {
+	kind: ClassicyRecentItemKind;
+	label: string;
+	enabled: boolean;
+	count: number;
+	onCommit: (count: number) => void;
+}) {
+	const draftRef = useRef<string | null>(null);
+	const onCommitRef = useRef(onCommit);
+	onCommitRef.current = onCommit;
+	const inputRef = useRef<HTMLInputElement | null>(null);
+	// Bumped to remount the field, so it shows the stored count again.
+	const [revision, setRevision] = useState(0);
+
+	const commit = () => {
+		const draft = draftRef.current;
+		draftRef.current = null;
+		if (draft === null) return;
+		const digits = draft.replace(/\D/g, "");
+		if (digits !== "") onCommitRef.current(Number.parseInt(digits, 10));
+		setRevision((r) => r + 1);
+	};
+	const commitRef = useRef(commit);
+	commitRef.current = commit;
+
+	// Leaving the field commits it. (Each remount is a new <input>.)
+	// biome-ignore lint/correctness/useExhaustiveDependencies: revision is the new <input> to listen on.
+	useEffect(() => {
+		const input = inputRef.current;
+		if (!input) return;
+		const onBlur = () => commitRef.current();
+		input.addEventListener("blur", onBlur);
+		return () => input.removeEventListener("blur", onBlur);
+	}, [revision]);
+
+	// Closing the panel commits a draft still in the field.
+	useEffect(
+		() => () => {
+			const draft = draftRef.current;
+			draftRef.current = null;
+			const digits = draft?.replace(/\D/g, "") ?? "";
+			if (digits !== "") onCommitRef.current(Number.parseInt(digits, 10));
+		},
+		[],
+	);
+
+	// Turning tracking off drops a draft: the field empties and dims.
+	useEffect(() => {
+		if (!enabled) draftRef.current = null;
+	}, [enabled]);
+
+	return (
+		<ClassicyInput
+			key={revision}
+			ref={inputRef}
+			id={`AppleMenuOptions_${kind}s`}
+			labelTitle={label}
+			labelPosition="left"
+			disabled={!enabled}
+			prefillValue={enabled ? String(count) : ""}
+			onChangeFunc={(e) => {
+				draftRef.current = e.target.value;
+			}}
+			onEnterFunc={() => commitRef.current()}
+		/>
 	);
 }
