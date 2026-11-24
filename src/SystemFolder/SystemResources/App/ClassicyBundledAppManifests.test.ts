@@ -13,6 +13,7 @@ import "@/SystemFolder/ClassicyBundledApps.internal";
 const BUNDLED_APP_IDS = [
 	"AppleGuide.app",
 	"AppearanceManager.app",
+	"AppleMenuOptions.app",
 	"Calculator.app",
 	"ControlStripManager.app",
 	"DateAndTimeManager.app",

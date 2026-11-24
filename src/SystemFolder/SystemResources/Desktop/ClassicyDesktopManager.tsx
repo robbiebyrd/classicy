@@ -83,6 +83,7 @@ import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/Bal
 import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import type { ClassicyStoreRecentItems } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
@@ -210,6 +211,10 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Bumped on each request so the controller's effect re-fires even for a
 	 *  repeated identical request. */
 	openUrlRequestId?: number;
+	/** Recent Items (Apple Menu Options): the applications and documents
+	 *  used most recently, and the panel's settings. Persisted. Optional for
+	 *  state built by hand; the defaults always carry it. */
+	recentItems?: ClassicyStoreRecentItems;
 }
 
 /** The default Control Strip arrangement: shown, nothing hidden or reordered. */

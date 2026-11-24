@@ -187,6 +187,9 @@ export const ClassicyIcons = {
 			file: icon("control-panels/appearance-manager/file.png"),
 			preferences: icon("control-panels/appearance-manager/preferences.png"),
 		},
+		appleMenuOptions: {
+			app: icon("control-panels/apple-menu-options/app.png"),
+		},
 		controlStripManager: {
 			app: icon("control-panels/control-strip/app.png"),
 		},

@@ -43,6 +43,15 @@ const openFileInSimpleText = (path: string) =>
 		});
 	});
 
+// A window's title bar showing `name`. (The Apple menu's Recent Documents
+// lists an opened file by the same name, so a bare text query finds both.)
+const windowTitled = (name: string): HTMLElement | null =>
+	[
+		...document.querySelectorAll<HTMLElement>(
+			".classicyWindow .classicyWindowTitleText",
+		),
+	].find((el) => el.textContent?.trim() === name) ?? null;
+
 // Whole-desktop integration tests: each boots ClassicyDesktop, opens a real
 // window and drives it through the store, costing up to ~1.5 s of CPU on an
 // idle machine (mostly React dev-mode rendering and jsdom style computation,
@@ -97,7 +106,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 
 		// Window title is the file name…
 		await waitFor(() => {
-			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+			expect(windowTitled("Read Me.txt")).toBeInTheDocument();
 		});
 		// …and the editor is seeded with the file's complete contents.
 		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -111,7 +120,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		renderDesktop();
 		openFileInSimpleText("Macintosh HD:Documents:Read Me.txt");
 		await waitFor(() => {
-			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+			expect(windowTitled("Read Me.txt")).toBeInTheDocument();
 		});
 
 		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -130,7 +139,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		renderDesktop();
 		openFileInSimpleText(READ_ME);
 		await waitFor(() => {
-			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+			expect(windowTitled("Read Me.txt")).toBeInTheDocument();
 		});
 
 		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -169,7 +178,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		renderDesktop();
 		openFileInSimpleText(READ_ME);
 		await waitFor(() => {
-			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+			expect(windowTitled("Read Me.txt")).toBeInTheDocument();
 		});
 
 		const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -196,7 +205,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 			});
 		});
 		await waitFor(() => {
-			expect(screen.queryByText("Read Me.txt")).not.toBeInTheDocument();
+			expect(windowTitled("Read Me.txt")).not.toBeInTheDocument();
 		});
 
 		// Reopen it: the editor seeds from the file system and shows the edit.

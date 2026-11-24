@@ -45,6 +45,11 @@ import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Deskt
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	classicyRecentItemsEventHandler,
+	defaultClassicyRecentItemsState,
+	recordClassicyRecentDocument,
+} from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
@@ -444,6 +449,8 @@ export const classicyAppEventHandler = (
 						app.data.openFiles = [...openFiles, action.path];
 					}
 					openApp(ds, app.id, app.name, app.icon);
+					// A document opened: Recent Documents remembers it.
+					recordClassicyRecentDocument(ds, action.path);
 				}
 			} else if (action.type.endsWith("CloseFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
@@ -532,6 +539,7 @@ const BUILT_IN_ROUTES: ReadonlyArray<
 > = [
 	["ClassicyWindow", classicyWindowEventHandler],
 	["ClassicyDesktopIcon", classicyDesktopIconEventHandler],
+	["ClassicyDesktopRecentItems", classicyRecentItemsEventHandler],
 	["ClassicyDesktop", classicyDesktopEventHandler],
 	["ClassicyBootParadeIcon", classicyBootEventHandler],
 	["ClassicyManagerDateTime", classicyDateTimeManagerEventHandler],
@@ -661,6 +669,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				doubleClickTitleToCollapse: true,
 				errorDialog: null,
 				fsVersion: 0,
+				recentItems: defaultClassicyRecentItemsState(),
 			},
 			Applications: {
 				focusedAppId: "Finder.app",

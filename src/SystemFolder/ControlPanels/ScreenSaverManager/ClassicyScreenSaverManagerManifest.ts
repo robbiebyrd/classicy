@@ -10,4 +10,6 @@ registerApp({
 	id: SCREEN_SAVER_MANAGER_APP_ID,
 	description:
 		"Control panel for the screen saver: pick a module and set idle timing.",
+	// Not an application: Recent Applications never lists it.
+	controlPanel: true,
 });

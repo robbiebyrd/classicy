@@ -9,6 +9,7 @@
 // `storybook/.storybook/PreviewAppManifests.test.ts` fails when the preview
 // and the library entry register different apps.
 import "@/SystemFolder/Calculator/CalculatorManifest";
+import "@/SystemFolder/ControlPanels/AppleMenuOptions/ClassicyAppleMenuOptionsManifest";
 import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";

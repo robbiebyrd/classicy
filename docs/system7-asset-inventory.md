@@ -262,6 +262,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `controlPanels.appearanceManager.backgroundTile` | Wallpaper position glyph: tile | core | Classicy UI glyph | — | — |
 | — | `controlPanels.appearanceManager.file` | Appearance theme file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | — | `controlPanels.appearanceManager.preferences` | Appearance preferences file | reuse | `system.files.preferences` (generic preferences) | — | — |
+| — | `controlPanels.appleMenuOptions.app` | Apple Menu Options control panel | core | The core tree's image, Apple Menu Options' own color control panel icon (Platinum's `resources/app-icons/unclassified/A/Apple Menu Options-8.png`; story 0226-a6f): System 7.5 has the panel, but its 7.5.5 export (ID -4064, as for the other control panels) is still to be made, an open question | — | — |
 | [x] | `controlPanels.controlStripManager.app` | Control Strip control panel | export | Control Strip control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-control-strip-manager-app.webp` |
 | [x] | `controlPanels.dateTimeManager.dateTimeManager` | Date & Time control panel | export | Date & Time control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-date-time-manager-date-time-manager.webp` |
 | [x] | `controlPanels.keyboard.app` | Keyboard control panel | export | Keyboard control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-keyboard-app.webp` |

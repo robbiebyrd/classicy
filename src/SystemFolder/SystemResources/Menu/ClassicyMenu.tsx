@@ -130,6 +130,13 @@ export interface ClassicyMenuItem {
 	 * It is never rendered as a DOM `part` (shadow-parts) attribute.
 	 */
 	part?: string;
+	/**
+	 * The item stands for user data (a recent document, say): its analytics
+	 * events carry its `id`, `disabled`, `event` and `childrenCount` only,
+	 * never its `title`, `image`, `icon`, `link` or `eventData`. Give such an
+	 * item an `id` that holds none of that data either.
+	 */
+	analyticsPrivate?: boolean;
 	/** Balloon help for the item, shown while balloons are on. */
 	balloon?: {
 		title?: string;
@@ -561,19 +568,27 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = useMemo(
-		() => ({
-			id: menuItem.id,
-			// An image-only title (the Apple menu, System 7's Help balloon) is
-			// tracked by its accessible name.
-			title: menuItem.title ?? menuItem.imageAlt,
-			image: menuItem.image,
-			disabled: menuItem.disabled,
-			icon: menuItem.icon,
-			link: menuItem.link,
-			event: menuItem.event,
-			eventData: menuItem.eventData,
-			childrenCount: menuItem.menuChildren?.length,
-		}),
+		() =>
+			menuItem.analyticsPrivate
+				? {
+						id: menuItem.id,
+						disabled: menuItem.disabled,
+						event: menuItem.event,
+						childrenCount: menuItem.menuChildren?.length,
+					}
+				: {
+						id: menuItem.id,
+						// An image-only title (the Apple menu, System 7's Help balloon)
+						// is tracked by its accessible name.
+						title: menuItem.title ?? menuItem.imageAlt,
+						image: menuItem.image,
+						disabled: menuItem.disabled,
+						icon: menuItem.icon,
+						link: menuItem.link,
+						event: menuItem.event,
+						eventData: menuItem.eventData,
+						childrenCount: menuItem.menuChildren?.length,
+					},
 		[menuItem],
 	);
 

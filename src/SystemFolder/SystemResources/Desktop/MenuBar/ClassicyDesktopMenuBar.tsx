@@ -37,6 +37,10 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+import {
+	useClassicyRecentItemsMenuItems,
+	withClassicyRecentItemsMenuItems,
+} from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItemsMenu";
 
 export type ClassicyDesktopMenuBarProps = {
 	/** Extra class names, merged onto the `<nav>` after the component's own. */
@@ -141,7 +145,9 @@ const stripAboutItem = (
  *
  * From left to right it shows the Apple menu (the system menu, led by "About
  * <focused app>" when that app publishes an About item — the item is moved
- * out of the app's own menus), the focused window's `appMenu`, the standard
+ * out of the app's own menus — then its items in alphabetical order, Recent
+ * Applications and Recent Documents among them), the focused window's
+ * `appMenu`, the standard
  * Help menu (always the rightmost: About Balloon Help…, Show/Hide Balloons
  * ⌥H, then the focused app's `useClassicyHelpMenu` items), then, at the far
  * right, menu bar extensions (`ClassicyMenuBarExtension`), the clock and the
@@ -190,6 +196,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// Optional per-app Help entries, keyed by appId. Read defensively so the bar
 	// works whether or not a consumer has populated the slot.
 	const helpMenus = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
+	const recentMenuItems = useClassicyRecentItemsMenuItems();
 	const desktopEventDispatch = useAppManagerDispatch();
 	const navRef = useRef<HTMLElement>(null);
 	useClassicyMenuCloseOnOutsideMouseDown(navRef);
@@ -362,10 +369,16 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		const aboutItem = findAppAboutItem(appMenu, focusedAppId);
 
 		let menuChildren: ClassicyMenuItem[];
+		// The system menu's items in alphabetical order (HIG7 p.98), Recent
+		// Applications and Recent Documents (Apple Menu Options) among them.
+		const systemItems = withClassicyRecentItemsMenuItems(
+			withClassicyAppIdentityMenuItems(systemMenu, overrides) ?? [],
+			recentMenuItems,
+		);
 		if (aboutItem) {
 			// Drop the system menu's leading "About This Computer" (and a spacer
 			// immediately after it) so our injected spacer isn't doubled.
-			let rest = withClassicyAppIdentityMenuItems(systemMenu, overrides) ?? [];
+			let rest = systemItems;
 			if (rest[0] && isAboutThisComputerItem(rest[0])) {
 				rest = rest.slice(1);
 				if (rest[0]?.id === "spacer") rest = rest.slice(1);
@@ -380,10 +393,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				...rest,
 			];
 		} else {
-			// No app About available — leave the system menu as it is, apart
-			// from showing its app entries by their display names.
-			menuChildren =
-				withClassicyAppIdentityMenuItems(systemMenu, overrides) ?? [];
+			// No app About available: the system menu as sorted above, its app
+			// entries shown by their display names.
+			menuChildren = systemItems;
 		}
 
 		return {
@@ -407,6 +419,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		appleMenuIcon,
 		overrides,
 		finderName,
+		recentMenuItems,
 	]);
 
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {

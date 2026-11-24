@@ -59,6 +59,8 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetri
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
+export * from "./SystemFolder/ControlPanels/AppleMenuOptions/ClassicyAppleMenuOptions";
+export * from "./SystemFolder/ControlPanels/AppleMenuOptions/ClassicyAppleMenuOptionsManifest";
 export * from "./SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
 export * from "./SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 export * from "./SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
@@ -210,6 +212,7 @@ export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable"
 export * from "./SystemFolder/SystemResources/File/ClassicyFileDrag";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileMove";
+export * from "./SystemFolder/SystemResources/File/ClassicyFileOpen";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystem";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
@@ -269,6 +272,9 @@ export * from "./SystemFolder/SystemResources/QuickTime/useControllableState";
 export * from "./SystemFolder/SystemResources/QuickTime/useQuickTimePlayback";
 export * from "./SystemFolder/SystemResources/QuickTime/useQuickTimeSubtitles";
 export * from "./SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
+export * from "./SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
+export * from "./SystemFolder/SystemResources/RecentItems/ClassicyRecentItemsMenu";
+export * from "./SystemFolder/SystemResources/RecentItems/ClassicyRecentItemsSources";
 export * from "./SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
 export * from "./SystemFolder/SystemResources/SchemaForm/ClassicySchemaForm";
 export * from "./SystemFolder/SystemResources/SchemaForm/ClassicySchemaFormFields";

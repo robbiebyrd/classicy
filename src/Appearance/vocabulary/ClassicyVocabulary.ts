@@ -31,6 +31,7 @@ export const classicyStateClasses = (
 export const CLASSICY_COMPONENT = {
 	Alert: "classicyAlert",
 	AppearanceManager: "classicyAppearanceManager",
+	AppleMenuOptions: "classicyAppleMenuOptions",
 	Assistant: "classicyAssistant",
 	BalloonHelp: "classicyBalloonHelp",
 	BevelButton: "classicyBevelButton",

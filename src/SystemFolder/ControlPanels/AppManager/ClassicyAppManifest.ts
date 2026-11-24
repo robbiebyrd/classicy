@@ -23,6 +23,7 @@ import {
 	type ClassicyStore,
 	registerAppEventHandler,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { markClassicyControlPanelApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyControlPanelApps.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /** One action an app handles: written commentary plus optional param schema. */
@@ -56,6 +57,12 @@ export interface ClassicyAppManifestDefinition {
 	 * empty before the app's first action.
 	 */
 	state?: z.ZodType;
+	/**
+	 * The app is a control panel, not an application: Recent Applications
+	 * (Apple Menu Options) never lists it, as the Mac remembered only
+	 * applications. Any registration of the id that says so makes it one.
+	 */
+	controlPanel?: boolean;
 }
 
 /** The stored, merged manifest for one app id. */
@@ -65,6 +72,8 @@ export interface ClassicyAppManifest {
 	prefixes: string[];
 	actions: Record<string, ClassicyAppActionManifestEntry>;
 	state?: z.ZodType;
+	/** True when a registration marked the app a control panel. */
+	controlPanel?: boolean;
 }
 
 const manifests = new Map<string, ClassicyAppManifest>();
@@ -103,20 +112,25 @@ export function registerApp(def: ClassicyAppManifestDefinition): void {
 			prefixes: [],
 			actions: {},
 			state: def.state,
+			...(def.controlPanel ? { controlPanel: true } : {}),
 		};
 		manifests.set(def.id, manifest);
-	} else if (def.state) {
-		if (!manifest.state) {
-			manifest.state = def.state;
-		} else if (def.state !== manifest.state) {
-			classicyLog(
-				"warn",
-				"registerApp",
-				"Ignoring second state schema for app — the first registration's schema wins",
-				{ appId: def.id },
-			);
+	} else {
+		if (def.controlPanel) manifest.controlPanel = true;
+		if (def.state) {
+			if (!manifest.state) {
+				manifest.state = def.state;
+			} else if (def.state !== manifest.state) {
+				classicyLog(
+					"warn",
+					"registerApp",
+					"Ignoring second state schema for app — the first registration's schema wins",
+					{ appId: def.id },
+				);
+			}
 		}
 	}
+	if (def.controlPanel) markClassicyControlPanelApp(def.id);
 	if (def.prefix && def.handler && !manifest.prefixes.includes(def.prefix)) {
 		manifest.prefixes.push(def.prefix);
 		prefixIndex.set(def.prefix, def.id);

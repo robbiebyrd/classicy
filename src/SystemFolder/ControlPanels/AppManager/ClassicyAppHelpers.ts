@@ -10,6 +10,7 @@ import {
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { recordClassicyRecentApp } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 
 // An app id is library input (a host's `ClassicyApp` id, a stack's
 // `ClassicyAppOpen`). Indexed plainly, `apps["__proto__"]` is
@@ -245,6 +246,9 @@ export function openApp(
 			w.closedThisSession = false;
 		}
 		focusApp(ds, appId);
+		// A launch: Recent Applications remembers it (not an app record this
+		// call conjured for an id nothing loaded).
+		recordClassicyRecentApp(ds, appId);
 	} else if (isAssignableAppId(appId)) {
 		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,

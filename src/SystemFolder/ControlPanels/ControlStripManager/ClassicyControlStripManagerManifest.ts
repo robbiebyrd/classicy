@@ -11,4 +11,6 @@ registerApp({
 	id: CONTROL_STRIP_MANAGER_APP_ID,
 	description:
 		"Control panel for the Control Strip: show or hide the strip, and choose which modules it shows and in what order.",
+	// Not an application: Recent Applications never lists it.
+	controlPanel: true,
 });

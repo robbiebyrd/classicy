@@ -38,6 +38,7 @@ import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePl
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { followClassicyRecentDocumentMoves } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
 export const FinderViewTypeSchema = z.enum(["icons", "list"]);
@@ -313,6 +314,8 @@ export const classicyFinderEventHandler = (
 			// zoom — all follow it to the new path.
 			const moves = readPathMoves(action);
 			if (moves.length === 0) break;
+			// Recent Documents follows them, as the Mac's aliases did.
+			ds = followClassicyRecentDocumentMoves(ds, moves);
 			const rename = (p: string): string => {
 				for (const { from, to } of moves) {
 					if (p === from) return to;

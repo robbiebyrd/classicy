@@ -1,4 +1,5 @@
 import { ClassicyAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
+import { ClassicyAppleMenuOptions } from "@/SystemFolder/ControlPanels/AppleMenuOptions/ClassicyAppleMenuOptions";
 import { ClassicyControlStripManager } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
 import { ClassicyDateAndTimeManager } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManager";
 import { ClassicyDriveSetup } from "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetup";
@@ -14,6 +15,7 @@ export function ClassicyControlPanels() {
 			<ClassicyDriveSetup />
 			<ClassicyScreenSaverManager />
 			<ClassicyControlStripManager />
+			<ClassicyAppleMenuOptions />
 		</>
 	);
 }

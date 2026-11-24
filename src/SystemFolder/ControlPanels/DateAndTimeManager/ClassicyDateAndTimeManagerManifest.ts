@@ -10,4 +10,6 @@ registerApp({
 	id: DATE_AND_TIME_MANAGER_APP_ID,
 	description:
 		"Control panel for the desktop clock's date, time, and time zone.",
+	// Not an application: Recent Applications never lists it.
+	controlPanel: true,
 });

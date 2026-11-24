@@ -9,4 +9,6 @@ export const APPEARANCE_MANAGER_APP_ID = "AppearanceManager.app";
 registerApp({
 	id: APPEARANCE_MANAGER_APP_ID,
 	description: "Control panel for themes, colors, and the desktop background.",
+	// Not an application: Recent Applications never lists it.
+	controlPanel: true,
 });
