@@ -416,11 +416,7 @@ describe("platinum.scss (compiled)", () => {
 	// invariant 9 (bin/classicyDistCharset.ts).
 	it("draws the menu, pop-up, bevel, placard and file-input glyphs as content", () => {
 		const glyphs: [string, string][] = [
-			[".classicyMenuItemCheck.checked::before", '"\\2713"'],
 			[".classicyMenuItemCheck.mixed::before", '"\\2013"'],
-			// The Notification Manager's mark (story 0225-ci7).
-			[".classicyMenuItemCheck.classicyMenuItemDiamond::before", '"\\25C6"'],
-			[".classicyPopUpMenuCheck.checked::before", '"\\2713"'],
 			[".classicyPopUpMenuScrollArrowUp::before", '"\\25B2"'],
 			[".classicyPopUpMenuScrollArrowDown::before", '"\\25BC"'],
 			[".classicyBevelButtonArrowHorizontal::before", '"\\25B8"'],
@@ -430,12 +426,64 @@ describe("platinum.scss (compiled)", () => {
 		];
 		for (const [selector, content] of glyphs)
 			expect(rule(`${P} ${selector}`).props.content).toBe(content);
+		expect([...css].every((ch) => ch.charCodeAt(0) < 0x80)).toBe(true);
+	});
+
+	// Story 0225-ci7, fix round 1: the bundled Charcoal has neither the check
+	// nor the diamond, so they are Charcoal 12's own bitmaps from Mac OS 8.1
+	// (_marks.scss): an empty inline box on the title's baseline, one
+	// `currentColor` rectangle per run, on the `menu.markPixel` grid.
+	it("draws the menu, pop-up and palette checks and the diamond as Charcoal's bitmaps", () => {
+		const runs = (props: Record<string, string>) =>
+			(
+				props.background.match(
+					/linear-gradient\(currentColor, currentColor\)/g,
+				) ?? []
+			).length;
+		const marks: [string, number, string, string][] = [
+			[
+				".classicyMenuItemCheck.checked::before",
+				9,
+				"calc(var(--menu-mark-pixel) * 9)",
+				"calc(var(--menu-mark-pixel) * 8)",
+			],
+			[
+				".classicyPopUpMenuCheck.checked::before",
+				9,
+				"calc(var(--menu-mark-pixel) * 9)",
+				"calc(var(--menu-mark-pixel) * 8)",
+			],
+			[
+				".classicyHyperCardPaletteEntry.selected .classicyHyperCardPaletteEntryMark::after",
+				9,
+				"calc(var(--menu-mark-pixel) * 9)",
+				"calc(var(--menu-mark-pixel) * 8)",
+			],
+			[
+				".classicyMenuItemCheck.classicyMenuItemDiamond::before",
+				7,
+				"calc(var(--menu-mark-pixel) * 7)",
+				"calc(var(--menu-mark-pixel) * 7)",
+			],
+		];
+		for (const [selector, count, width, height] of marks) {
+			const { props } = rule(`${P} ${selector}`);
+			expect(props.content, selector).toBe('""');
+			expect(props.display).toBe("inline-block");
+			expect(props["vertical-align"]).toBe("baseline");
+			expect(props.width).toBe(width);
+			expect(props.height).toBe(height);
+			expect(runs(props), selector).toBe(count);
+		}
+		// The palette's mark keeps the space the glyph had before it.
 		expect(
 			rule(
-				`${P} .classicyHyperCardPaletteEntry.selected .classicyHyperCardPaletteEntryMark::after`,
+				`${P} .classicyHyperCardPaletteEntry.selected .classicyHyperCardPaletteEntryMark::before`,
 			).props.content,
-		).toBe('" \\2713"');
-		expect([...css].every((ch) => ch.charCodeAt(0) < 0x80)).toBe(true);
+		).toBe('" "');
+		// The gutter is one line of the title's font, so the mark meets its
+		// baseline.
+		expect(rule(`${P} .classicyMenuItemCheck`).props.display).toBe("block");
 	});
 
 	it("scopes the desktop scrollbars", () => {

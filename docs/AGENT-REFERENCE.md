@@ -1655,9 +1655,10 @@ listed, iconFor)` sorts the icons onto the two titles.
 
 The ◆ is `ClassicyMenuItem.mark: "diamond"`: the item's mark column carries
 `classicyMenuItemDiamond` beside `classicyMenuItemCheck`, unless the item is
-checked, and the package draws it (Platinum: `"\25C6"` as `::before`
-content, like its check; System 7: Chicago 12's 7 × 7 diamond from Figure
-5-1's bitmap as pixel art, its top on the check's). The glyph sits in the
+checked, and the package draws it (Platinum: Charcoal 12's 7 × 7 diamond
+from Mac OS 8.1, pixel art on the title's baseline, as its check is;
+System 7: Chicago 12's 7 × 7 diamond from Figure 5-1's bitmap as pixel
+art, its top on the check's). The glyph sits in the
 `aria-hidden` mark column, so the item carries `aria-description="Requests
 your attention"`.
 
@@ -3234,8 +3235,14 @@ the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 (`role="button"`, `aria-pressed`, `.selected`; a toggle: pressing the armed
 entry again disarms it) gets its " ✓" as `::after`
 content on the aria-hidden `.classicyHyperCardPaletteEntryMark` after its
-label. Platinum uses the font's ✓ – ▸ ▾ ✕ and
-writes them as escapes with `string.unquote('"\\2713"')`, because Sass
+label. Platinum draws its checks and the ◆ as Charcoal 12's own bitmaps,
+pixel art in `currentColor` (`_marks.scss`, the grid knob
+`menu.markPixel`; from Mac OS 8.1 captures, story 0225-ci7: the bundled
+Charcoal has neither glyph, so a font glyph fell back to whatever font the
+browser found), on the title's baseline at the mark column's left edge
+(a 9 × 8 check, a 7 × 7 diamond, the palette's check after a space). It
+uses the font's – ▸ ▾ ✕ and
+writes them as escapes with `string.unquote('"\\2013"')`, because Sass
 decodes a quoted escape and prepends `@charset`; that keeps the Sass output
 ASCII. The shipped files stay ASCII because the library build sets
 `esbuild: { charset: "ascii" }` (Vite's CSS minifier would otherwise write
@@ -4849,7 +4856,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 24 families of its own (105 keys)
+**Package knob families.** Platinum adds 24 families of its own (106 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -4874,13 +4881,13 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 85 of the 105 are
+  overriding the knob's value, never the base CSS. 85 of the 106 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
   table, so the floor and the column cannot drift). Two of the rest are
-  the optional `fileBrowserList` knobs (below). The other 18 are
+  the optional `fileBrowserList` knobs (below). The other 19 are
   look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
   `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`), they are not in the floor and come only from
+  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`, `_marks.scss`), they are not in the floor and come only from
   Platinum's `platinum.json`. A package with stylesheets of its own may
   ignore them, unless it `@use`s Platinum's published mixins
   (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
@@ -5072,6 +5079,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `helpButton.glyphSize` | `--help-button-glyph-size` | 14 | — | yes | ClassicyHelpButton.scss |
 | `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | no | _QuickTimeMovieEmbed.scss |
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
+| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | no | _marks.scss (Charcoal's menu check and diamond) |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
@@ -5711,7 +5719,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 43 sites over 11 files, the sites kept on purpose
+the list ends at these 44 sites over 12 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -5746,6 +5754,10 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   quarter turn swings it about its center, so its margin is the knobs' sum
   or difference halved; Firefox centers the box, so its translation is half
   the box's overhang of the channel), geometry, not a role (H-R21).
+- Platinum's `_marks.scss`, the one `menu-mark-pixel × n` in its `px()`
+  helper: Charcoal 12's menu check and diamond, pixel for pixel from Mac
+  OS 8.1 (story 0225-ci7), one-pixel rectangles on the art's grid inside
+  `classicy-px-rect` (H-R7), as System 7's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle

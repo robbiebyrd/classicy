@@ -1,13 +1,17 @@
 // The Platinum HyperCard editor look (from HyperCard.scss): the check after
-// the tools palette entry armed for click-to-place. A font glyph with its
-// leading space, as an escape kept by `string.unquote` so the Sass output
-// stays ASCII (the build keeps dist ASCII; verify:dist invariant 9). The mark
-// is an aria-hidden inline span after the label, so the entry's accessible
-// name stays its label and aria-pressed carries the state.
-@use "sass:string";
+// the tools palette entry armed for click-to-place: a space, then Charcoal
+// 12's check (_marks.scss) on the label's baseline, where the font glyph
+// " \2713" was. The mark is an aria-hidden inline span after the label, so
+// the entry's accessible name stays its label and aria-pressed carries the
+// state.
+@use "../marks";
 
 @mixin hyperCard {
+  .classicyHyperCardPaletteEntry.selected .classicyHyperCardPaletteEntryMark::before {
+    content: " ";
+  }
+
   .classicyHyperCardPaletteEntry.selected .classicyHyperCardPaletteEntryMark::after {
-    content: string.unquote('" \\2713"'); // " ✓"
+    @include marks.check;
   }
 }

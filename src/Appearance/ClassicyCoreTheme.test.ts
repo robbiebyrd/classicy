@@ -42,6 +42,8 @@ const LOOK_ONLY = [
 	"utilityTitleBar.textureWidth",
 	"utilityTitleBar.textureHeight",
 	"quickTime.captionShadowBlur",
+	// Platinum's menu marks, Charcoal's bitmaps (_marks.scss).
+	"menu.markPixel",
 	// Platinum's slider, drawn from HIGOS8 Figure 2-17 (_Slider.scss).
 	"slider.pixel",
 	"slider.channel",
@@ -115,7 +117,7 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 
 	it("holds exactly the knobs AGENT-REFERENCE §8 marks structural", () => {
 		const documented = documentedKnobs();
-		expect(documented.size).toBe(105);
+		expect(documented.size).toBe(106);
 		const structural = [...documented]
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)

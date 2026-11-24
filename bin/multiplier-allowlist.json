@@ -1,4 +1,10 @@
 {
+	"packages/appearance/platinum/src/styles/_marks.scss": [
+		{
+			"count": 1,
+			"reason": "Platinum's menu marks, Charcoal 12's check and diamond from Mac OS 8.1 captures (story 0225-ci7): one-pixel rectangles placed in multiples of the one grid knob (--menu-mark-pixel x n, one site in the px() helper), coordinates in the art, not theme proportions (H-R7, as System 7's)."
+		}
+	],
 	"packages/appearance/platinum/src/styles/_scrollbars.scss": [
 		{
 			"count": 3,

@@ -1,0 +1,74 @@
+// Platinum's menu marks: Charcoal 12's check and diamond as Mac OS 8.1 draws
+// them, pixel for pixel, in the ink of the text beside them (`currentColor`,
+// so a highlighted row's mark turns white with its title). Charcoal's
+// bitmaps, not a font's: the bundled Charcoal has neither glyph (U+2713,
+// U+25C6), so a font glyph fell back to whatever font the browser found.
+// Taken from Mac OS 8.1 on Infinite Mac (story 0225-ci7, fix round 1): the
+// Application menu with a notification pending (`platinum-81-appmenu-
+// notification.png`: the Finder's check, Script Editor's diamond), the
+// Finder's View menu (`platinum-81-finder-view-menu.png`) and the Finder
+// Preferences' "Font for views" pop-up (`platinum-81-popup-font.png`). In
+// all three the mark's left column is the frame's fourth pixel and its
+// bottom row the title's baseline, the check 9 x 8, the diamond 7 x 7.
+// One grid pixel is `menu.markPixel` (1); the multiplier allowlist names
+// this file's one site, the `px()` helper.
+@use "sass:list";
+@use "pkg:@classicy/classicy/scss/layout";
+
+$px: var(--menu-mark-pixel);
+
+// A length of `$n` grid pixels.
+@function px($n) {
+  @if $n == 0 {
+    @return 0;
+  }
+  @if $n == 1 {
+    @return $px;
+  }
+  @return calc(#{$px} * #{$n});
+}
+
+// One `classicy-px-rect` layer per `(x y w h)` in grid pixels (a bare
+// `(x y)` is one pixel), inked in `$ink`, from the box's top left.
+@function pixel-art($ink, $rects) {
+  $layers: ();
+  @each $rect in $rects {
+    $w: 1;
+    $h: 1;
+    @if list.length($rect) > 2 {
+      $w: list.nth($rect, 3);
+      $h: list.nth($rect, 4);
+    }
+    $layers: list.append(
+      $layers,
+      layout.classicy-px-rect($ink, px(list.nth($rect, 1)), px(list.nth($rect, 2)), px($w), px($h)),
+      $separator: comma
+    );
+  }
+  @return $layers;
+}
+
+// Charcoal 12's check (9 x 8) and diamond (7 x 7), rows top to bottom.
+$check: (8 0) (7 1 2 1) (6 2 2 1) (5 3 2 1) (0 4 2 1) (4 4 2 1) (0 5 5 1) (1 6 3 1) (2 7);
+$diamond: (3 0) (2 1 3 1) (1 2 5 1) (0 3 7 1) (1 4 5 1) (2 5 3 1) (3 6);
+
+// A mark as an empty inline box whose bottom sits on the baseline of the
+// line it is in (an inline-block with no line boxes takes its bottom edge
+// as its baseline), so it lands on the title's baseline whatever the font
+// metrics, as the Menu Manager drew a mark at the title's pen position.
+@mixin mark($art, $width, $height) {
+  content: "";
+  display: inline-block;
+  vertical-align: baseline;
+  width: px($width);
+  height: px($height);
+  background: pixel-art(currentColor, $art);
+}
+
+@mixin check {
+  @include mark($check, 9, 8);
+}
+
+@mixin diamond {
+  @include mark($diamond, 7, 7);
+}
