@@ -18,6 +18,7 @@ import {
 	APPLICATION_SWITCHER_SET_PALETTE,
 	APPLICATION_SWITCHER_SWITCH,
 	type classicyApplicationSwitcherSettings,
+	classicyModalWindowOpen,
 } from "./ClassicyApplicationSwitcherContext";
 
 type Settings = ReturnType<typeof classicyApplicationSwitcherSettings>;
@@ -31,7 +32,10 @@ type Settings = ReturnType<typeof classicyApplicationSwitcherSettings>;
  * 8.5's palette shows none while its menu does
  * (`platinum-85-switcher-notification.png`). A click switches to the
  * application through the same path as the menu (a hidden one is shown);
- * an Option-click also hides the application that was in front.
+ * an Option-click also hides the application that was in front. While a
+ * modal window is open its buttons are dimmed, as 8.5's are under a dialog;
+ * it stays under the dialog (modal dialogs come above utility windows, HIG7
+ * p.145), where 8.5 draws it above.
  *
  * The zoom box sets the palette's options, as in 8.5: a click shows or hides
  * the names, an Option-click switches small and large icons, an
@@ -48,6 +52,9 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 	const dispatch = useAppManagerDispatch();
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const frontAppId = useFrontAppId();
+	// While a modal window is open the buttons are dimmed and do nothing, as
+	// 8.5 dims them under a dialog (`platinum-85-switcher-modal.png`).
+	const modalOpen = useAppManager(classicyModalWindowOpen);
 	const overrides = useClassicyAppIdentityOverrides();
 	const entries = useMemo(
 		() => appSwitcherAppsFrom(apps, overrides, { frontAppId }),
@@ -111,6 +118,7 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 						mode="push"
 						bevelWidth="small"
 						on={app.focused === true}
+						disabled={modalOpen}
 						aria-label={app.name}
 						className={classNames(
 							"classicyApplicationSwitcherButton",

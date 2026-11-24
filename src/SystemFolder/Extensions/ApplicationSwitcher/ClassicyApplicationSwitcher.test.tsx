@@ -277,6 +277,33 @@ describe("the Application Switcher", () => {
 			).toBeFalsy();
 		});
 
+		it("dims its buttons while a modal window is open, as 8.5 does under a dialog", () => {
+			setUp();
+			render(<ClassicyApplicationSwitcher />);
+			tearOff();
+			expect(button("Finder")).not.toBeDisabled();
+			act(() => {
+				useAppManager.setState(
+					produce(useAppManager.getState(), (d) => {
+						d.System.Manager.Applications.apps["Notes.app"].windows = {
+							dialog: {
+								id: "dialog",
+								closed: false,
+								modal: true,
+								size: [100, 100],
+								position: [0, 0],
+								minimumSize: [0, 0],
+							},
+						};
+					}),
+					true,
+				);
+			});
+			expect(buttons().every((b) => b.disabled)).toBe(true);
+			fireEvent.click(button("Finder"));
+			expect(front()).toBe("Notes.app");
+		});
+
 		it("closes from its close box", () => {
 			setUp();
 			render(<ClassicyApplicationSwitcher />);
