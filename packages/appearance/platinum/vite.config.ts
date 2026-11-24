@@ -6,6 +6,7 @@ import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclar
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
 import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText";
+import { classicyUmdLoaderPlugin } from "../../../bin/classicyUmdLoader";
 import { PLATINUM_FONT_FACES } from "./src/assets/platinumFonts.internal";
 
 // @classicy/appearance-platinum's library build: ES and UMD bundles of the
@@ -109,6 +110,9 @@ const platinumConfig = (mode: string): UserConfig => ({
 		// Last: the published maps keep Classicy's own text and drop zod's
 		// and any embedded asset's (verify-dist invariant 10).
 		classicySourceMapTextPlugin(),
+		// dist/appearance-platinum.umd.cjs, the exports map's `require` under `node`:
+		// it runs the UMD bundle as CommonJS (story 0223-a0y).
+		classicyUmdLoaderPlugin("appearance-platinum.umd.js"),
 	],
 	build: {
 		sourcemap: true,

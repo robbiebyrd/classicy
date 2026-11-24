@@ -37,7 +37,12 @@ describe("the exports", () => {
 			".": {
 				types: "./dist/types/index.d.ts",
 				import: "./dist/appearance-system7.es.js",
-				require: "./dist/appearance-system7.umd.js",
+				// Node's require() takes the CommonJS loader of the UMD bundle,
+				// any other resolver the bundle itself (story 0223-a0y).
+				require: {
+					node: "./dist/appearance-system7.umd.cjs",
+					default: "./dist/appearance-system7.umd.js",
+				},
 			},
 			"./scss/*": "./src/styles/*",
 			"./classicy-system7.css": "./dist/classicy-system7.css",

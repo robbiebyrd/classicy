@@ -81,7 +81,21 @@
 //    node_modules/ (zod) and embedded asset source, lists every vendor source
 //    in x_google_ignoreList, and keeps the text of each src/ source
 //    (classicySourceMapTextPlugin, bin/classicySourceMapText.ts).
+//
+// 11. BOTH BUNDLES LOAD IN NODE WITH NO BROWSER GLOBALS (the core's invariant
+//    19, story 0223-a0y). A server-rendering host imports the package in
+//    Node: appearance-platinum.es.js is imported, and appearance-platinum.umd.cjs,
+//    what `require()` resolves to there, required, each in a child Node
+//    process with `document`, `window`, `localStorage`, `navigator` and the
+//    rest deleted (bin/classicyNodeImport.ts); each must load, registering
+//    the package into the core it imports, without throwing, without a
+//    load-time task throwing and without logging. appearance-platinum.umd.cjs
+//    is the CommonJS loader bin/classicyUmdLoader.ts writes, which runs the
+//    UMD bundle beside it as CommonJS (in this "type": "module" package Node
+//    reads a .js file as an ES module). The core must be built first: the
+//    bundles import it.
 
+import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join, relative, sep } from "node:path";
 import { exit } from "node:process";
@@ -103,14 +117,23 @@ import {
 	classicyFontStylesheetFile,
 	findClassicyFontStylesheetProblems,
 } from "../../../../bin/classicyFontStylesheet.ts";
+import { findClassicyNodeImportProblems } from "../../../../bin/classicyNodeImport.ts";
 import { findClassicyPackageCssProblems } from "../../../../bin/classicyPackageCss.ts";
 import { findClassicySourceMapTextProblems } from "../../../../bin/classicySourceMapText.ts";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector.ts";
+import {
+	classicyUmdLoaderFile,
+	findClassicyUmdLoaderProblems,
+} from "../../../../bin/classicyUmdLoader.ts";
 import { PLATINUM_FONT_FACES } from "../src/assets/platinumFonts.internal.ts";
 
 const DIST = "dist";
 const ES = join(DIST, "appearance-platinum.es.js");
 const UMD = join(DIST, "appearance-platinum.umd.js");
+const UMD_LOADER = join(
+	DIST,
+	classicyUmdLoaderFile("appearance-platinum.umd.js"),
+);
 const BUNDLES = [ES, UMD];
 const STYLESHEET = join(DIST, "classicy-platinum.css");
 const FONT_STYLESHEET = join(DIST, classicyFontStylesheetFile("platinum"));
@@ -269,6 +292,7 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		"appearance-platinum.es.js.map",
 		"appearance-platinum.umd.js",
 		"appearance-platinum.umd.js.map",
+		basename(UMD_LOADER),
 		basename(STYLESHEET),
 		basename(FONT_STYLESHEET),
 		"assets",
@@ -277,7 +301,7 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 	for (const name of (await readdir(DIST).catch(() => [])).sort())
 		if (!top.has(name))
 			problems.push(
-				`${join(DIST, name)}: not a file the package ships -> the package's dist holds its two bundles and their maps, ${basename(STYLESHEET)}, ${basename(FONT_STYLESHEET)}, assets/ and types/.`,
+				`${join(DIST, name)}: not a file the package ships -> the package's dist holds its two bundles and their maps, the UMD bundle's CommonJS loader, ${basename(STYLESHEET)}, ${basename(FONT_STYLESHEET)}, assets/ and types/.`,
 			);
 	report(
 		problems,
@@ -448,6 +472,27 @@ report(
 	report(
 		problems,
 		`source maps: ${maps.length} dist/*.js.map file(s), each with Classicy's own text and no third-party or asset text`,
+	);
+}
+
+// Invariant 11: both bundles load in Node with no browser globals, the UMD
+// bundle through its CommonJS loader.
+{
+	const problems = findClassicyUmdLoaderProblems(
+		UMD_LOADER,
+		basename(UMD),
+		(file) => (existsSync(file) ? readFileSync(file, "utf8") : null),
+	);
+	if (!problems.length)
+		problems.push(
+			...(await findClassicyNodeImportProblems([
+				{ file: ES, kind: "import" },
+				{ file: UMD_LOADER, kind: "require" },
+			])),
+		);
+	report(
+		problems,
+		`server import: ${ES} (import) and ${UMD_LOADER} (require) load in Node with no browser globals, silently; ${UMD_LOADER} is the CommonJS loader of ${basename(UMD)}`,
 	);
 }
 

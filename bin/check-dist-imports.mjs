@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Seventeen invariants on the core's *published* bundle (and, for invariant 11,
-// on the sources it is built from), numbered 1-18: number 12 moved to the
+// Eighteen invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-19: number 12 moved to the
 // Platinum package's own dist check, packages/appearance/platinum/bin/
 // verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
@@ -184,7 +184,23 @@
 //    assets/img/ui/earth.webp byte for byte: the core's only WebP, so
 //    VitePluginImageTools never re-encoded it. Skipped when the caller names
 //    files.
+//
+// 19. THE LIBRARY LOADS IN NODE WITH NO BROWSER GLOBALS (story 0223-a0y). A
+//    server-rendering host (Next.js, Remix, Astro) loads the library in Node:
+//    classicy.es.js is imported, and classicy.umd.cjs, what `require()`
+//    resolves to there, required, each in a child Node process with
+//    `document`, `window`, `localStorage`, `navigator` and the rest deleted
+//    (bin/classicyNodeImport.ts); each must load without throwing, without a
+//    load-time task throwing and without logging. classicy.umd.cjs is the
+//    CommonJS loader bin/classicyUmdLoader.ts writes, a few lines that run
+//    classicy.umd.js beside it as CommonJS: in this "type": "module" package
+//    Node reads a .js file as an ES module, so the UMD bundle itself cannot
+//    be required. 3.7.0 threw `document is not defined` on import (a
+//    dependency's `browser` entry, bin/classicyNodeEntry.ts), and its UMD
+//    bundle could not be required at all. Skipped when the caller names
+//    files.
 
+import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -210,8 +226,13 @@ import {
 	findClassicyJsonDeclarations,
 	findClassicyTestDeclarations,
 } from "./classicyDistTypes.ts";
+import { findClassicyNodeImportProblems } from "./classicyNodeImport.ts";
 import { findClassicyPackageCssProblems } from "./classicyPackageCss.ts";
 import { findClassicySourceMapTextProblems } from "./classicySourceMapText.ts";
+import {
+	classicyUmdLoaderFile,
+	findClassicyUmdLoaderProblems,
+} from "./classicyUmdLoader.ts";
 
 const DIST = "dist";
 
@@ -922,6 +943,29 @@ if (!argv.slice(2).length) {
 	else
 		console.log(
 			`earth WebP: ${EARTH} (${earth.length} bytes) embedded byte-identical, once, in classicy.es.js and classicy.umd.js`,
+		);
+}
+
+// Invariant 19: the library loads in Node with no browser globals, the UMD
+// bundle through its CommonJS loader. Skipped when the caller names files.
+if (!argv.slice(2).length) {
+	const loader = join(DIST, classicyUmdLoaderFile("classicy.umd.js"));
+	const entries = [
+		{ file: join(DIST, "classicy.es.js"), kind: "import" },
+		{ file: loader, kind: "require" },
+	];
+	const problems = findClassicyUmdLoaderProblems(
+		loader,
+		"classicy.umd.js",
+		(file) => (existsSync(file) ? readFileSync(file, "utf8") : null),
+	);
+	if (!problems.length)
+		problems.push(...(await findClassicyNodeImportProblems(entries)));
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`server import: ${entries.map(({ file, kind }) => `${file} (${kind})`).join(" and ")} load in Node with no browser globals, silently; ${loader} is the CommonJS loader of classicy.umd.js`,
 		);
 }
 

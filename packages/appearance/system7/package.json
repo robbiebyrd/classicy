@@ -27,7 +27,10 @@
 		".": {
 			"types": "./dist/types/index.d.ts",
 			"import": "./dist/appearance-system7.es.js",
-			"require": "./dist/appearance-system7.umd.js"
+			"require": {
+				"node": "./dist/appearance-system7.umd.cjs",
+				"default": "./dist/appearance-system7.umd.js"
+			}
 		},
 		"./scss/*": "./src/styles/*",
 		"./classicy-system7.css": "./dist/classicy-system7.css",

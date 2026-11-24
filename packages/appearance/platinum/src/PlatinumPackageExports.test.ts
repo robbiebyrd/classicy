@@ -30,7 +30,12 @@ describe("the exports", () => {
 			".": {
 				types: "./dist/types/index.d.ts",
 				import: "./dist/appearance-platinum.es.js",
-				require: "./dist/appearance-platinum.umd.js",
+				// Node's require() takes the CommonJS loader of the UMD bundle,
+				// any other resolver the bundle itself (story 0223-a0y).
+				require: {
+					node: "./dist/appearance-platinum.umd.cjs",
+					default: "./dist/appearance-platinum.umd.js",
+				},
 			},
 			"./scss/*": "./src/styles/*",
 			"./classicy-platinum.css": "./dist/classicy-platinum.css",

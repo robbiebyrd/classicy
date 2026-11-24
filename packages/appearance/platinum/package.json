@@ -27,7 +27,10 @@
 		".": {
 			"types": "./dist/types/index.d.ts",
 			"import": "./dist/appearance-platinum.es.js",
-			"require": "./dist/appearance-platinum.umd.js"
+			"require": {
+				"node": "./dist/appearance-platinum.umd.cjs",
+				"default": "./dist/appearance-platinum.umd.js"
+			}
 		},
 		"./scss/*": "./src/styles/*",
 		"./classicy-platinum.css": "./dist/classicy-platinum.css",

@@ -6,9 +6,11 @@ import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
 import { classicyDeclarationExtensionsWriter } from "./bin/classicyDeclarationSpecifiers";
+import { classicyDeferredModulePlugin } from "./bin/classicyDeferredModule";
 import { classicyDeflateAssetPlugin } from "./bin/classicyDeflateAsset";
 import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
+import { classicyNodeEntryPlugin } from "./bin/classicyNodeEntry";
 import {
 	isClassicyAppearanceSourcePath,
 	noInlineAppearanceAssetsPlugin,
@@ -18,6 +20,7 @@ import {
 	classicyStyleInjector,
 	prependLayerOrder,
 } from "./bin/classicyStyleInjector";
+import { classicyUmdLoaderPlugin } from "./bin/classicyUmdLoader";
 
 // `import "@classicy/classicy"` should be enough to get a styled desktop (#303): no CSS
 // loader to configure, no second import to remember. This plugin embeds the
@@ -199,6 +202,14 @@ const config = defineConfig({
 		],
 	},
 	plugins: [
+		// The bundles import in Node, so a server-rendering host can import them
+		// (story 0223-a0y): micromark's decode-named-character-reference resolves
+		// to its default entry, not the `browser` one that touches `document` at
+		// load (bin/classicyNodeEntry.ts; verify:dist invariant 19).
+		classicyNodeEntryPlugin(),
+		// pdf.js's body runs when the PDF viewer first loads a document, not
+		// when the UMD bundle that inlines it loads (bin/classicyDeferredModule.ts).
+		classicyDeferredModulePlugin(),
 		// An Appearance Package's assets ship as files (bin/classicyNoInlineAssets.ts);
 		// the core's bundle reaches none since it stopped bundling Platinum, and
 		// verify:dist (invariant 5) fails if it ever does.
@@ -241,6 +252,10 @@ const config = defineConfig({
 		// and asset text (verify:dist invariant 16), after injectCssPlugin has
 		// changed the entry bundles.
 		classicySourceMapTextPlugin(),
+		// dist/classicy.umd.cjs, the exports map's `require` under `node`: it
+		// runs classicy.umd.js as CommonJS, which this "type": "module" package
+		// cannot `require()` as it is (bin/classicyUmdLoader.ts, invariant 19).
+		classicyUmdLoaderPlugin("classicy.umd.js"),
 	],
 	build: {
 		sourcemap: true,

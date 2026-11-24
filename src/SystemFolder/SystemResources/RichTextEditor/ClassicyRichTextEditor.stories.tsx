@@ -37,6 +37,21 @@ export const Default: Story = {
 	},
 };
 
+/**
+ * Markdown's named character references decode to their characters: the
+ * document is written `Caf&eacute; &amp; bar &copy; 1998`. A reference that
+ * names no character stays as written.
+ */
+export const NamedCharacterReferences: Story = {
+	args: {
+		content: [
+			"Caf&eacute; &amp; bar &copy; 1998",
+			"",
+			"Fish &notachar; chips",
+		].join("\n"),
+	},
+};
+
 const ImperativeEditor = () => {
 	const editorRef = useRef<ClassicyRichTextEditorMethods>(null);
 	const [saved, setSaved] = useState("");

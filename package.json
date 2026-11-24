@@ -77,7 +77,10 @@
 		".": {
 			"types": "./dist/types/src/index.d.ts",
 			"import": "./dist/classicy.es.js",
-			"require": "./dist/classicy.umd.js"
+			"require": {
+				"node": "./dist/classicy.umd.cjs",
+				"default": "./dist/classicy.umd.js"
+			}
 		},
 		"./dist/classicy.css": "./dist/classicy.css",
 		"./fonts": {

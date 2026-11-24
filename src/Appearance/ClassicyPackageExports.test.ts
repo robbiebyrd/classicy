@@ -23,8 +23,10 @@ const OLD_NAME = "classicy";
 const read = (file: string) => readFileSync(path.resolve(root, file), "utf8");
 const pkg = JSON.parse(read("package.json")) as {
 	name: string;
+	main: string;
+	module: string;
 	publishConfig?: { access?: string };
-	exports: Record<string, string | Record<string, string>>;
+	exports: Record<string, string | Record<string, unknown>>;
 	files: string[];
 	sideEffects: string[];
 	scripts: Record<string, string>;
@@ -56,6 +58,26 @@ describe("package.json: the npm name", () => {
 		expect(viteConfig).toMatch(/\bname: "classicy",/);
 		expect(viteConfig).toMatch(
 			/fileName: \(format\) => `classicy\.\$\{format\}\.js`,/,
+		);
+	});
+
+	// `require()` in Node takes dist/classicy.umd.cjs, a CommonJS loader that
+	// runs the UMD bundle (in this "type": "module" package a .js file is an
+	// ES module to Node); every other `require` resolver, a browser bundler's,
+	// takes the bundle itself, as `main` does (story 0223-a0y).
+	it("requires the UMD bundle through its CommonJS loader in Node only", () => {
+		expect(pkg.main).toBe("./dist/classicy.umd.js");
+		expect(pkg.module).toBe("./dist/classicy.es.js");
+		expect(pkg.exports["."]).toEqual({
+			types: "./dist/types/src/index.d.ts",
+			import: "./dist/classicy.es.js",
+			require: {
+				node: "./dist/classicy.umd.cjs",
+				default: "./dist/classicy.umd.js",
+			},
+		});
+		expect(read("vite.config.ts")).toMatch(
+			/classicyUmdLoaderPlugin\("classicy\.umd\.js"\)/,
 		);
 	});
 });
