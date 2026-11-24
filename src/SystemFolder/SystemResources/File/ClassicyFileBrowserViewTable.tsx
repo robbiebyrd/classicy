@@ -11,6 +11,7 @@ import {
 	memo,
 	type RefObject,
 	useCallback,
+	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -22,7 +23,10 @@ import {
 	asFinderDate,
 	formatFinderDate,
 } from "@/SystemFolder/Finder/FinderViewOptions";
-import { isClassicyFileBrowserListBlank } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
+import {
+	ClassicyFileBrowserListMarqueeContext,
+	isClassicyFileBrowserListBlank,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
@@ -333,6 +337,11 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				};
 			}, [data, fs, sizes, computeFolderSizes]);
 
+			// Inside a ClassicyFileBrowser, which starts its selection
+			// rectangle from a press beside a row's icon and name.
+			const marqueeBesideNames = useContext(
+				ClassicyFileBrowserListMarqueeContext,
+			);
 			const columns = useMemo<ClassicyTableColumn<FileRow>[]>(() => {
 				const cols: ClassicyTableColumn<FileRow>[] = [
 					{
@@ -350,8 +359,10 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 									: {})}
 								onMouseDown={(e) => {
 									// A press beside the icon and name starts the
-									// browser's selection rectangle, not a drag.
+									// browser's selection rectangle, not a drag
+									// (alone, with no browser around it, it drags).
 									if (
+										marqueeBesideNames &&
 										e.target instanceof Element &&
 										isClassicyFileBrowserListBlank(
 											e.target,
@@ -397,6 +408,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 									width={iconSize}
 									alt={row._path}
 									className={"classicyFileBrowserViewTableRowIcon"}
+									// Firefox would start an HTML drag of the image
+									// and stop the row drag's mousemoves.
+									draggable={false}
 									selectable
 									selected={expansion.selected === true}
 								/>
@@ -500,6 +514,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				relativeDates,
 				computeFolderSizes,
 				startRowDrag,
+				marqueeBesideNames,
 			]);
 
 			return (

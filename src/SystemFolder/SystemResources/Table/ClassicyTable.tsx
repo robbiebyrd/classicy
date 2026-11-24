@@ -399,12 +399,20 @@ export function ClassicyTable<T>({
 		commit(table.getRowModel().rows.map((r) => r.id));
 	}, [selectionMode, commit, table]);
 
+	// A selection made at once (a selection rectangle): the keyboard and a
+	// Shift-click go on from its first row in the current visual order.
 	const select = useCallback(
 		(ids: string[]) => {
 			if (selectionMode !== "multi") return;
+			const chosen = new Set(ids);
+			const first = table.getRowModel().rows.find((r) => chosen.has(r.id));
+			if (first) {
+				anchorId.current = first.id;
+				setCursorId(first.id);
+			}
 			commit(ids);
 		},
-		[selectionMode, commit],
+		[selectionMode, commit, table],
 	);
 
 	// Assigned in an effect rather than during render so a parent that reads

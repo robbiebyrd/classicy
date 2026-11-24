@@ -6,6 +6,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	type RefObject,
+	useEffect,
 	useId,
 	useRef,
 	useState,
@@ -28,6 +29,7 @@ import {
 	classicyFileDragAppearanceCallbacks,
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
@@ -89,15 +91,31 @@ interface ClassicyIconProps {
 	 * Drag the icon as a Finder item: a dotted outline follows the pointer
 	 * across windows and the desktop (`startClassicyFileDrag`) instead of the
 	 * icon itself. Called on release with the drop target (null when there is
-	 * none); return `false` to have the icon move to where its outline was let
-	 * go — a drop back in its own folder — or `true` when the drop was handled
-	 * (or refused) elsewhere and the icon stays put.
+	 * none), the pointer, where the outline's top left was let go, and how far
+	 * the pointer traveled from the press; return `false` to have the icon
+	 * move to where its outline was let go — a drop back in its own folder —
+	 * or `true` when the drop was handled (or refused) elsewhere and the icon
+	 * stays put.
 	 */
 	onFileDrag?: (
 		target: ClassicyFileDropTarget | null,
 		point: [number, number],
 		outlineTopLeft: [number, number],
+		travel: [number, number],
 	) => boolean;
+	/**
+	 * The parts the Finder drag's outline traces (see `onFileDrag`), read at
+	 * the press. Defaults to this icon's image and label; a container that
+	 * drags a selection passes every selected icon's.
+	 */
+	fileDragParts?: () => ClassicyFileDragOutlinePart[];
+	/**
+	 * Moves the icon by `dx`, `dy` (rounded onto `snapTo`'s grid) each time
+	 * `id` changes: a container moving a selection's other icons as far as
+	 * the one dragged within their folder. The value it mounts with is not
+	 * applied.
+	 */
+	moveBy?: { id: number; dx: number; dy: number };
 	/**
 	 * Whether the icon is selected, for a container that keeps the
 	 * selection itself (a file browser's icon view, whose selection
@@ -110,6 +128,14 @@ interface ClassicyIconProps {
 	 * says, so the container applies it.
 	 */
 	onSelectedChange?: (selected: boolean) => void;
+	/**
+	 * With `selected`, the presses and clicks that select, with their
+	 * modifiers, for the container to apply its own rules (the file
+	 * browser's icon view: a click selects the icon alone, Shift or Command
+	 * toggles it, a press on an unselected icon selects it alone so its drag
+	 * carries it alone). Given, a click no longer toggles the icon by itself.
+	 */
+	onSelectionGesture?: (gesture: ClassicyIconSelectionGesture) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/**
@@ -121,6 +147,13 @@ interface ClassicyIconProps {
 	 */
 	style?: CSSProperties;
 }
+
+/** A press (mousedown) or click on an icon, as `onSelectionGesture` reports it. */
+export type ClassicyIconSelectionGesture = {
+	type: "press" | "click";
+	shiftKey: boolean;
+	metaKey: boolean;
+};
 
 /**
  * Rounds a dropped icon's position to the nearest cell of the lattice with the
@@ -177,8 +210,11 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	dropFolderPath,
 	filePath,
 	onFileDrag,
+	fileDragParts,
+	moveBy,
 	selected,
 	onSelectedChange,
+	onSelectionGesture,
 	className,
 	style,
 }) => {
@@ -214,8 +250,20 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { type: "ClassicyIcon", appId, name, icon, label };
 
-	const toggleFocus = () => {
+	const toggleFocus = (e: MouseEvent<HTMLDivElement>) => {
 		track("focus", analyticsArgs);
+		if (onSelectionGesture) {
+			// The container's rules: a plain click selects, a modified one
+			// toggles.
+			const toggles = e.shiftKey || e.metaKey;
+			appearance.emit("select", { selected: toggles ? !active : true });
+			onSelectionGesture({
+				type: "click",
+				shiftKey: e.shiftKey,
+				metaKey: e.metaKey,
+			});
+			return;
+		}
 		appearance.emit("select", { selected: !active });
 		setActive(!active);
 	};
@@ -258,26 +306,47 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	// there, instead of following the pointer back with no button held.
 	useClassicyPointerStreamLost(dragging, () => stopChangeIcon(true));
 
+	// A container's `moveBy`: applied when its id changes, never at mount.
+	const movedByRef = useRef(moveBy?.id);
+	useEffect(() => {
+		if (!moveBy || movedByRef.current === moveBy.id) return;
+		movedByRef.current = moveBy.id;
+		setPosition((p) => {
+			const next: [number, number] = [p[0] + moveBy.dx, p[1] + moveBy.dy];
+			return snapTo ? snapToGrid(next, snapTo, snapOrigin) : next;
+		});
+	}, [moveBy, snapTo, snapOrigin]);
+
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
+		if (e.button === 0)
+			onSelectionGesture?.({
+				type: "press",
+				shiftKey: e.shiftKey,
+				metaKey: e.metaKey,
+			});
 		if (onFileDrag) {
 			if (e.button !== 0) return;
 			const el = iconRef.current;
 			const abandon = startClassicyFileDrag({
 				start: { clientX: e.clientX, clientY: e.clientY },
-				parts: [
+				parts: fileDragParts?.() ?? [
 					{ image: el?.querySelector("img"), label: el?.querySelector("p") },
 				],
 				source: el,
 				// The outline drags, not the icon: `dragging` stays off.
 				...classicyFileDragAppearanceCallbacks(appearance.emit),
 				onDrop: (target, point, outlineTopLeft) => {
-					if (onFileDrag(target, point, outlineTopLeft)) return;
+					const travel: [number, number] = [
+						point[0] - e.clientX,
+						point[1] - e.clientY,
+					];
+					if (onFileDrag(target, point, outlineTopLeft, travel)) return;
 					if (positionLocked) return;
 					// Dropped back in its own folder: the icon goes where its
 					// outline was let go, i.e. it moves as far as the pointer did.
 					const next: [number, number] = [
-						position[0] + point[0] - e.clientX,
-						position[1] + point[1] - e.clientY,
+						position[0] + travel[0],
+						position[1] + travel[1],
 					];
 					setPosition(snapTo ? snapToGrid(next, snapTo, snapOrigin) : next);
 					setFocus(true);
@@ -344,7 +413,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			style={{ "--classicy-icon-mask": `url("${iconUrl}")` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
-				<img src={image} alt={name} />
+				{/* Not natively draggable: Firefox would start an HTML drag
+				    of the image and stop the mousemoves the icon drags by. */}
+				<img src={image} alt={name} draggable={false} />
 			</div>
 		</div>
 	);

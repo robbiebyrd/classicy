@@ -212,9 +212,13 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 						id: `${appId}_${op}_edit_select_all`,
 						title: "Select All",
 						keyboardShortcut: "⌘A",
-						// Icons-view selection is a separate slice; until it exists the
-						// command has nothing to act on there.
-						disabled: viewType !== "list",
+						// The browser's own key, as every editing command keeps
+						// (`useClassicyEditMenu`): the app-wide dispatcher leaves
+						// it alone, so a text field selects its text, and the
+						// file browser with focus takes it for its icons or rows.
+						nativeShortcut: true,
+						// Either view: the browser's handle selects every row or
+						// every icon.
 						onClickFunc: () => selectionApiRef.current?.selectAll(),
 					},
 					{ id: "spacer" },
@@ -274,7 +278,6 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			toggleBalloonHelp,
 			aboutMenuItem,
 			openPreferences,
-			viewType,
 			inTrash,
 			trashItems,
 			restoreItems,

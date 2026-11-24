@@ -1,9 +1,26 @@
-import { type ReactElement, type RefObject, useEffect } from "react";
+import {
+	createContext,
+	type ReactElement,
+	type RefObject,
+	useEffect,
+	useRef,
+} from "react";
 import { CLASSICY_FILE_PATH_ATTRIBUTE } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
+	type ClassicyMarqueeBounds,
 	type ClassicyMarqueeItem,
+	openClassicyControlPressContextMenu,
 	useClassicyMarqueeSelection,
 } from "@/SystemFolder/SystemResources/File/useClassicyMarqueeSelection.internal";
+
+/**
+ * True inside a `ClassicyFileBrowser` showing its list: the browser starts a
+ * selection rectangle from a press beside a row's icon and name, so the row
+ * does not drag from there. A `ClassicyFileBrowserViewTable` used alone has
+ * no rectangle, and its rows still drag from anywhere in the name cell.
+ * @internal
+ */
+export const ClassicyFileBrowserListMarqueeContext = createContext(false);
 
 /**
  * The window contents a file browser scrolls in (a `ClassicyScrollArea`'s
@@ -72,23 +89,54 @@ export const isClassicyFileBrowserListBlank = (
 	);
 };
 
-// The click (and double-click) that end a press which started a rectangle on
-// a row are not the row's: swallowed before the table sees them, so they
-// neither select nor open it. Until the next press.
+// The click (and the double-click) that end a press which started a
+// rectangle on a row are not the row's: swallowed before the table sees
+// them, so they neither select nor open it. Only the gesture's own: a click
+// with no press behind it (`detail` 0: the keyboard's Space or Enter, a
+// script's `click()`) passes, and the swallow ends a task after the first
+// click it takes (a double-click's `dblclick` follows its click in the same
+// task), or at the next press, whichever comes first.
 const swallowRowClicks = () => {
-	const swallow = (e: Event) => {
-		e.stopPropagation();
-		if (e.type === "dblclick") stop();
-	};
+	let ending: ReturnType<typeof setTimeout> | null = null;
 	const stop = () => {
+		if (ending !== null) clearTimeout(ending);
 		document.removeEventListener("click", swallow, true);
 		document.removeEventListener("dblclick", swallow, true);
 		document.removeEventListener("mousedown", stop, true);
 	};
+	const swallow = (e: MouseEvent) => {
+		if (e.detail === 0) return;
+		e.stopPropagation();
+		if (ending === null) ending = setTimeout(stop, 0);
+	};
 	document.addEventListener("click", swallow, true);
 	document.addEventListener("dblclick", swallow, true);
-	// Once the press's own mousedown has passed.
-	queueMicrotask(() => document.addEventListener("mousedown", stop, true));
+	// Added during the press's own mousedown, so its capture phase has
+	// passed: the next press ends it.
+	document.addEventListener("mousedown", stop, true);
+};
+
+/**
+ * Where a list's rows show in its scroller: the scroller's box, less the
+ * column titles where they lie inside it (Platinum's, `inList`, sticky at its
+ * top), so the rectangle is cut under them and scrolls up past them. Null
+ * when the list scrolls in nothing.
+ * @internal
+ */
+export const classicyFileBrowserListBounds = (
+	root: Element | null,
+): ClassicyMarqueeBounds | null => {
+	const scroller = classicyFileBrowserScroller(root);
+	if (!scroller) return null;
+	const r = scroller.getBoundingClientRect();
+	const head = root
+		?.querySelector(".classicyTableHeader:not(.classicyTableHeaderHidden)")
+		?.getBoundingClientRect();
+	const top =
+		head && head.height > 0 && head.bottom > r.top && head.top < r.bottom
+			? Math.max(r.top, head.bottom)
+			: r.top;
+	return { left: r.left, top, right: r.right, bottom: r.bottom };
 };
 
 /**
@@ -110,6 +158,8 @@ export function useClassicyFileBrowserListMarquee({
 	getSelection: () => string[];
 	select: (paths: string[]) => void;
 }): ReactElement {
+	const selectionRef = useRef({ getSelection, select });
+	selectionRef.current = { getSelection, select };
 	const { start, marquee } = useClassicyMarqueeSelection({
 		surfaceRef: rootRef,
 		getItems: () =>
@@ -128,6 +178,7 @@ export function useClassicyFileBrowserListMarquee({
 		getSelection,
 		onSelect: select,
 		getScroller: () => classicyFileBrowserScroller(rootRef.current),
+		getVisibleBounds: () => classicyFileBrowserListBounds(rootRef.current),
 	});
 	useEffect(() => {
 		const root = rootRef.current;
@@ -142,8 +193,20 @@ export function useClassicyFileBrowserListMarquee({
 				isClassicyFileBrowserListBlank(target, e.clientX, e.clientY);
 			if (!onRow && !isClassicyFileBrowserBackground(target, root, area))
 				return;
-			start(e);
 			if (onRow) swallowRowClicks();
+			// The keyboard to the list (a press on a row focuses it already;
+			// one below the rows does not), for its arrows and Select All.
+			root
+				.querySelector<HTMLElement>(".classicyTableContainer")
+				?.focus({ preventScroll: true });
+			// Control-press: the contextual-menu click, never a rectangle.
+			if (e.ctrlKey) {
+				const current = selectionRef.current;
+				if (current.getSelection().length > 0) current.select([]);
+				openClassicyControlPressContextMenu(e);
+				return;
+			}
+			start(e);
 		};
 		area.addEventListener("mousedown", onDown);
 		return () => area.removeEventListener("mousedown", onDown);

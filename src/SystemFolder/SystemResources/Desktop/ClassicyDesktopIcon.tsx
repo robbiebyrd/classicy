@@ -618,7 +618,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							}
 						>
 							<div className={"classicyDesktopIconMask"}>
-								<img src={iconImage} alt={identity.name} />
+								{/* Not natively draggable: Firefox would start an HTML
+								    drag of the image and stop the icon's mousemoves. */}
+								<img src={iconImage} alt={identity.name} draggable={false} />
 							</div>
 						</div>
 						{isAlias && (
@@ -633,7 +635,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 								}
 							>
 								<div className={"classicyDesktopIconMask"}>
-									<img src={aliasBadge} alt="" aria-hidden="true" />
+									<img
+										src={aliasBadge}
+										alt=""
+										aria-hidden="true"
+										draggable={false}
+									/>
 								</div>
 							</div>
 						)}
