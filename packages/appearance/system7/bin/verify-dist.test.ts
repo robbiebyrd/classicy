@@ -19,6 +19,7 @@ import { classicyFontStylesheet } from "../../../../bin/classicyFontStylesheet";
 import { CLASSICY_NODE_IMPORT_FIXTURE } from "../../../../bin/classicyNodeImportFixture";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector";
 import { classicyUmdLoader } from "../../../../bin/classicyUmdLoader";
+import { CLASSICY_USE_CLIENT } from "../../../../bin/classicyUseClient";
 import { SYSTEM7_FONT_FACES } from "../src/assets/system7Fonts.internal";
 import { system7AssetFileName } from "./system7AssetNames";
 
@@ -869,6 +870,33 @@ describe("bin/verify-dist.mjs", () => {
 				status: 1,
 				stderr: `dist/appearance-system7.umd.js.map: has no text for Classicy's own source ${SAVER} -> only third-party and asset text may be dropped; if it is an embedded asset, add its extension to CLASSICY_MAP_ASSET_EXTENSIONS.`,
 			}));
+	});
+
+	// Invariant 12 (story 0224-siu): the package is no client module, so a
+	// server component's import of it fails the host's build rather than
+	// never running in the browser.
+	describe("12. the ES bundle is no client module", () => {
+		const PROBLEM =
+			"dist/appearance-system7.es.js: starts with a \"use client\" directive -> an Appearance Package registers itself when it loads: as a client module, a server component's import of it builds but never runs in the browser, and the desktop draws no package; unmarked, that import fails the host's build, and a client module's import of it works. Leave classicyUseClientPlugin out of the package's vite.config.ts (bin/classicyUseClient.ts).";
+
+		it.each([
+			["first", `${CLASSICY_USE_CLIENT}\n${ES}`],
+			["after a comment", `/*! Classicy */\n${CLASSICY_USE_CLIENT}\n${ES}`],
+		])('fails the ES bundle with "use client" %s', (_name, text) =>
+			expect(verify({ "appearance-system7.es.js": text })).toEqual({
+				status: 1,
+				stderr: PROBLEM,
+			}));
+
+		it("passes the directive's text past the prologue", () =>
+			expect(
+				verify({
+					"appearance-system7.es.js": ES.replace(
+						"export{u};",
+						'const s="use client";export{u,s};',
+					),
+				}),
+			).toEqual({ status: 0, stderr: "" }));
 	});
 });
 

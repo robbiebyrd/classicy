@@ -360,6 +360,57 @@ describe("check-dist-imports.mjs invariant 13: production JSX runtime (named fil
 	});
 });
 
+// Invariant 20 (story 0224-siu): the ES entry starts with "use client";, so a
+// React Server Components bundler treats it as a client module.
+describe('check-dist-imports.mjs invariant 20: the ES entry starts with "use client"; (named files)', () => {
+	const run20 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		for (const [file, text] of Object.entries(files)) {
+			mkdirSync(dirname(join(dir, file)), { recursive: true });
+			writeFileSync(join(dir, file), text);
+		}
+		const r = spawnSync(process.execPath, [SCRIPT, ...Object.keys(files)], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		// Invariants 3 and 10 also fail on these stand-ins; only 20's lines count.
+		const lines = `${r.stdout}${r.stderr}`
+			.split("\n")
+			.filter((line) => line.includes('"use client";'));
+		return { status: r.status, lines };
+	};
+	const ES = join("dist", "classicy.es.js");
+	const BODY = 'import{useState as u}from"react";const a=()=>u(1);export{a};\n';
+
+	it("passes an ES entry whose first statement is the directive", () =>
+		expect(run20({ [ES]: `"use client";\n${BODY}` }).lines).toEqual([
+			`${ES}: starts with "use client";, a client module to a React Server Components bundler`,
+		]));
+
+	it.each([
+		["without the directive", BODY],
+		["with a comment ahead of it", `/*! Classicy */\n"use client";\n${BODY}`],
+		["with it after the imports", `${BODY}"use client";\n`],
+	])("fails an ES entry %s", (_name, text) => {
+		const { status, lines } = run20({ [ES]: text });
+		expect(status).toBe(1);
+		expect(lines).toEqual([
+			`${ES}: does not start with "use client"; -> a React Server Components bundler (Next.js's App Router) evaluates it as a server module, where React has no createContext or hooks, so a server component that imports it fails the host's build; check classicyUseClientPlugin in vite.config.ts (bin/classicyUseClient.ts).`,
+		]);
+	});
+
+	it("asks nothing of the UMD bundle or a lazy chunk", () =>
+		expect(
+			run20({
+				[ES]: `"use client";\n${BODY}`,
+				[join("dist", "classicy.umd.js")]: BODY,
+				[join("dist", "pdf-DcHjwfzs.js")]: BODY,
+			}).lines,
+		).toEqual([
+			`${ES}: starts with "use client";, a client module to a React Server Components bundler`,
+		]));
+});
+
 describe("check-dist-imports.mjs invariant 14: no screen saver in the core (named files)", () => {
 	const lines14 = (stderr: string) =>
 		stderr.split("\n").filter((l) => /classicySaver/.test(l));

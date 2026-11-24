@@ -111,6 +111,18 @@
 //    and declares nothing at its top level (no global on a `<script>` page,
 //    no slow global lookups under the loader's eval).
 //    The core must be built first: the bundles import it.
+//
+// 12. THE ES BUNDLE IS NO CLIENT MODULE (story 0224-siu): it does not start
+//    with a "use client" directive, which the core's ES entry does (its
+//    invariant 20). The package registers System 7 when it runs, which must
+//    happen in the browser, so a host imports it from a client module. Marked
+//    as a client module, a server component's import of it (`import
+//    "@classicy/appearance-system7"` in the root layout) builds, but the browser
+//    never runs it and the desktop draws no package; unmarked, that import
+//    fails the host's build (Next.js 16.4.6, webpack and Turbopack:
+//    `Attempted to call encodeClassicyPixelArtRows() from the server`), which
+//    says where it went wrong (findClassicyNoUseClientProblems,
+//    bin/classicyUseClient.ts).
 
 import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
@@ -149,6 +161,7 @@ import {
 	findClassicyUmdLoaderProblems,
 } from "../../../../bin/classicyUmdLoader.ts";
 import { findClassicyUmdTopLevelDeclarations } from "../../../../bin/classicyUmdNodeUrl.ts";
+import { findClassicyNoUseClientProblems } from "../../../../bin/classicyUseClient.ts";
 import { SYSTEM7_FONT_FACES } from "../src/assets/system7Fonts.internal.ts";
 import { system7AssetFileName } from "./system7AssetNames.ts";
 
@@ -600,5 +613,14 @@ report(
 		`server import: ${ES} (import) and ${UMD_LOADER} (require) load in Node with no browser globals and with Node's own, silently; ${UMD_LOADER} is the CommonJS loader of ${basename(UMD)}, which declares nothing at its top level`,
 	);
 }
+
+// Invariant 12: the ES bundle is no client module.
+report(
+	findClassicyNoUseClientProblems(
+		ES,
+		existsSync(ES) ? readFileSync(ES, "utf8") : null,
+	),
+	`${ES}: no "use client" directive, so a host imports it from a client module`,
+);
 
 if (failed) exit(1);

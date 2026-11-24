@@ -23,6 +23,7 @@ import {
 } from "./bin/classicyStyleInjector";
 import { classicyUmdLoaderPlugin } from "./bin/classicyUmdLoader";
 import { classicyUmdNodeUrlPlugin } from "./bin/classicyUmdNodeUrl";
+import { classicyUseClientPlugin } from "./bin/classicyUseClient";
 
 // `import "@classicy/classicy"` should be enough to get a styled desktop (#303): no CSS
 // loader to configure, no second import to remember. This plugin embeds the
@@ -262,6 +263,10 @@ const config = defineConfig({
 		// not a static require("url") a browser bundler cannot resolve
 		// (bin/classicyUmdNodeUrl.ts, invariant 19).
 		classicyUmdNodeUrlPlugin(),
+		// `"use client";` heads the ES entry, so a Next.js server component
+		// imports Classicy with no client wrapper of its own; the UMD bundle and
+		// the lazy chunks carry none (bin/classicyUseClient.ts, invariant 20).
+		classicyUseClientPlugin("classicy.es.js"),
 		// Last: the published maps keep Classicy's own text and drop third-party
 		// and asset text (verify:dist invariant 16), after injectCssPlugin has
 		// changed the entry bundles.

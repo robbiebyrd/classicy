@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Eighteen invariants on the core's *published* bundle (and, for invariant 11,
-// on the sources it is built from), numbered 1-19: number 12 moved to the
+// Nineteen invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-20: number 12 moved to the
 // Platinum package's own dist check, packages/appearance/platinum/bin/
 // verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
@@ -212,6 +212,20 @@
 //    `document is not defined` on import (a dependency's `browser` entry,
 //    bin/classicyNodeEntry.ts), and its UMD bundle could not be required at
 //    all. Skipped when the caller names files.
+//
+// 20. THE ES ENTRY STARTS WITH "use client"; (story 0224-siu). A React Server
+//    Components bundler (Next.js's App Router, webpack or Turbopack) treats a
+//    module as a client module only when its first statement is the
+//    directive; without it a server component that imports ClassicyDesktop
+//    evaluates the bundle as a server module, where React has no
+//    createContext or hooks, and the host's build fails (3.7.0: every host
+//    wrote a "use client" wrapper of its own). Rollup drops a module-level
+//    directive from what it bundles, so classicyUseClientPlugin
+//    (bin/classicyUseClient.ts) adds it back as a banner: classicy.es.js must
+//    begin with exactly `"use client";`, before any comment or import. The
+//    UMD bundle and the lazy chunks carry none (they are never where a server
+//    module meets a client one), nor do the Appearance Packages (their
+//    invariant 12). Checked on classicy.es.js (when named, in named mode).
 
 import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
@@ -252,6 +266,7 @@ import {
 	findClassicyUmdNodeBuiltinProblems,
 	findClassicyUmdTopLevelDeclarations,
 } from "./classicyUmdNodeUrl.ts";
+import { findClassicyUseClientProblems } from "./classicyUseClient.ts";
 
 const DIST = "dist";
 
@@ -1003,6 +1018,22 @@ if (!argv.slice(2).length) {
 	else
 		console.log(
 			`server import: ${entries.map(({ file, kind }) => `${file} (${kind})`).join(" and ")} load in Node with no browser globals and with Node's own, silently; ${loader} is the CommonJS loader of classicy.umd.js, which requires no Node built-in and declares nothing at its top level`,
+		);
+}
+
+// Invariant 20: the ES entry's first statement is "use client";.
+for (const entry of ["classicy.es.js"]) {
+	const file = join(DIST, entry);
+	if (argv.slice(2).length && !argv.slice(2).includes(file)) continue;
+	const problems = findClassicyUseClientProblems(
+		file,
+		existsSync(file) ? readFileSync(file, "utf8") : null,
+	);
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`${file}: starts with "use client";, a client module to a React Server Components bundler`,
 		);
 }
 
