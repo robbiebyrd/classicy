@@ -110,6 +110,42 @@ const clickFind = () => {
 	fireEvent.click(within(win).getByRole("button", { name: "Find" }));
 };
 
+/**
+ * Return in a text field, as a browser handles it (HTML's implicit
+ * submission): the form's submit button is clicked; with none, the form is
+ * submitted when that field is the only one that blocks it (text-like
+ * inputs; checkboxes do not).
+ */
+const pressReturn = (field: HTMLInputElement) => {
+	const allowed = fireEvent.keyDown(field, { key: "Enter", code: "Enter" });
+	const form = field.form;
+	if (!allowed || !form) return;
+	const submit = form.querySelector<HTMLElement>(
+		'button[type="submit"], input[type="submit"]',
+	);
+	if (submit) {
+		fireEvent.click(submit);
+		return;
+	}
+	const blocking = Array.from(form.querySelectorAll("input")).filter((i) =>
+		[
+			"text",
+			"search",
+			"tel",
+			"url",
+			"email",
+			"password",
+			"date",
+			"month",
+			"week",
+			"time",
+			"datetime-local",
+			"number",
+		].includes(i.type),
+	);
+	if (blocking.length === 1) fireEvent.submit(form);
+};
+
 const logs: ClassicyLogEntry[] = [];
 
 describe("Find File", { timeout: 30_000 }, () => {
@@ -221,17 +257,30 @@ describe("Find File", { timeout: 30_000 }, () => {
 			expect(getAppWindow(apps()["Finder.app"], folder)?.focused).toBe(true),
 		);
 		expect(finderData().openPaths).toContain(folder);
-		expect(finderData().reveal?.path).toBe(`${folder}:Plan.txt`);
 		expect(
 			useAppManager.getState().System.Manager.Applications.focusedAppId,
 		).toBe("Finder.app");
 		// The Finder window's list shows the item selected.
-		await waitFor(() => {
-			const row = document
+		const selectedRow = () =>
+			document
 				.querySelector(`[data-classicy-file-path="${folder}:Plan.txt"]`)
 				?.closest("tr");
-			expect(row?.getAttribute("data-selected")).toBe("true");
+		await waitFor(() =>
+			expect(selectedRow()?.getAttribute("data-selected")).toBe("true"),
+		);
+		// Once shown, the reveal is spent (fix round 1, M1): closing the
+		// window and opening the folder by hand selects nothing.
+		await waitFor(() => expect(finderData().reveal).toBeUndefined());
+		act(() => {
+			dispatch({ type: "ClassicyAppFinderCloseFolder", path: folder });
 		});
+		await waitFor(() => expect(finderData().openPaths).not.toContain(folder));
+		act(() => {
+			dispatch({ type: "ClassicyAppFinderOpenFolder", path: folder });
+		});
+		await waitFor(() => expect(selectedRow()).toBeTruthy());
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(selectedRow()?.getAttribute("data-selected")).toBeNull();
 	});
 
 	it("refuses to reveal an item inside an invisible folder, in 8.1's words", async () => {
@@ -452,8 +501,16 @@ describe("Find File's channels", { timeout: 30_000 }, () => {
 		const field = document.getElementById(
 			"classicy-find-file-words",
 		) as HTMLInputElement;
+		// Return in the Words field, with Stop the form's only button: the
+		// browser's implicit submission (jsdom has none; `pressReturn` follows
+		// the HTML rule, and the browser check presses Return for real).
 		fireEvent.change(field, { target: { value: "second" } });
-		fireEvent.submit(field.form as HTMLFormElement);
+		expect(
+			within(field.form as HTMLFormElement).queryByRole("button", {
+				name: "Search",
+			}),
+		).toBeNull();
+		pressReturn(field);
 		await waitFor(() => expect(signals).toHaveLength(2));
 		expect(signals[0].aborted).toBe(true);
 		// The first answers late, after it was aborted: ignored.

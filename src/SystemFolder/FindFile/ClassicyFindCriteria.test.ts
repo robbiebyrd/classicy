@@ -8,6 +8,7 @@ import {
 	classicyFindClockDay,
 	classicyFindCriteriaProblem,
 	classicyFindCriterion,
+	classicyFindCriterionDefinition,
 	classicyFindCriterionMatches,
 	classicyFindDayDate,
 	classicyFindDayString,
@@ -41,7 +42,7 @@ const matches = (i: ClassicyFindItem, r: ClassicyFindCriterion) =>
 	classicyFindCriterionMatches(i, r);
 
 describe("Find File's criteria (Mac OS 8.1)", () => {
-	it("lists 8.1's twelve criteria in its order, then the two Option-click ones", () => {
+	it("lists 8.1's twelve criteria in its order, then the Option-click ones", () => {
 		expect(CLASSICY_FIND_CRITERIA.map((c) => c.label)).toEqual([
 			"name",
 			"size",
@@ -55,12 +56,13 @@ describe("Find File's criteria (Mac OS 8.1)", () => {
 			"folder attribute",
 			"file type",
 			"creator",
+			"contents",
 			"name/icon lock",
 			"visibility",
 		]);
 		expect(
 			CLASSICY_FIND_CRITERIA.filter((c) => c.optionOnly).map((c) => c.key),
-		).toEqual(["nameIconLock", "visibility"]);
+		).toEqual(["contents", "nameIconLock", "visibility"]);
 		expect(CLASSICY_FIND_MAX_CRITERIA).toBe(10);
 	});
 
@@ -179,6 +181,43 @@ describe("name", () => {
 	});
 });
 
+describe("contents (Option, files only, from the data Classicy holds)", () => {
+	const note = item("a", file(), { text: "Welcome to Infinite Macintosh!" });
+	it.each([
+		// 8.1: "infinite macintosh" found the Stickies file (case ignored).
+		["contain", "infinite macintosh", true],
+		["contain", "INFINITE", true],
+		["contain", "zzq", false],
+		["doNotContain", "zzq", true],
+		["doNotContain", "welcome", false],
+		// 8.1: an empty contents row searched, and found the Stickies file.
+		["contain", "", true],
+	])("%s %j → %s", (operator, value, expected) => {
+		expect(matches(note, row("contents", operator, value))).toBe(expected);
+	});
+
+	it("never matches a folder, or a file whose contents were not read", () => {
+		// 8.1: "contents do not contain zzq" on the desktop found none of its
+		// folders, which a name search found.
+		expect(
+			matches(
+				item("f", folder(), { text: "" }),
+				row("contents", "doNotContain", "zzq"),
+			),
+		).toBe(false);
+		expect(
+			matches(item("u", file()), row("contents", "doNotContain", "zzq")),
+		).toBe(false);
+	});
+
+	it("starts as an empty contain row, offered with Option", () => {
+		expect(classicyFindCriterion("contents", "2026-11-24")).toEqual(
+			row("contents", "contain", ""),
+		);
+		expect(classicyFindCriterionDefinition("contents").optionOnly).toBe(true);
+	});
+});
+
 describe("size (files only, in K)", () => {
 	const twoK = item("a", file(), { size: 2048 });
 	it.each([
@@ -267,22 +306,83 @@ describe.each(["dateCreated", "dateModified"] as const)("%s", (key) => {
 		["isNot", "2026-11-22", true],
 		["within1Day", "2026-11-21", true],
 		["within1Day", "2026-11-22", false],
+		["within1Day", "2026-11-19", true],
+		["within1Day", "2026-11-18", false],
+		["within2Days", "2026-11-22", true],
+		["within2Days", "2026-11-23", false],
 		["within2Days", "2026-11-18", true],
+		["within2Days", "2026-11-17", false],
 		["within3Days", "2026-11-23", true],
 		["within3Days", "2026-11-24", false],
-		["within1Week", "2026-11-27", true],
-		["within1Week", "2026-11-28", false],
+		["within3Days", "2026-11-17", true],
+		["within3Days", "2026-11-16", false],
+		["within1Week", "2026-11-28", true],
+		["within1Week", "2026-11-29", false],
+		["within1Week", "2026-11-13", true],
+		["within1Week", "2026-11-12", false],
+		["within2Weeks", "2026-12-05", true],
+		["within2Weeks", "2026-12-06", false],
 		["within2Weeks", "2026-11-06", true],
-		["within3Weeks", "2026-12-11", true],
-		["within3Weeks", "2026-12-12", false],
-		["within1Month", "2026-12-20", true],
-		["within1Month", "2026-12-21", false],
-		["within2Months", "2026-09-20", true],
-		["within3Months", "2027-02-20", true],
-		["within6Months", "2027-05-20", true],
-		["within6Months", "2027-05-21", false],
+		["within2Weeks", "2026-11-05", false],
+		["within3Weeks", "2026-12-12", true],
+		["within3Weeks", "2026-12-13", false],
+		["within3Weeks", "2026-10-30", true],
+		["within3Weeks", "2026-10-29", false],
+		["within1Month", "2026-12-22", true],
+		["within1Month", "2026-12-23", false],
+		["within1Month", "2026-10-20", true],
+		["within1Month", "2026-10-19", false],
+		["within2Months", "2027-01-22", true],
+		["within2Months", "2027-01-23", false],
+		["within2Months", "2026-09-19", true],
+		["within2Months", "2026-09-18", false],
+		["within3Months", "2027-02-22", true],
+		["within3Months", "2027-02-23", false],
+		["within3Months", "2026-08-19", true],
+		["within3Months", "2026-08-18", false],
+		["within6Months", "2027-05-26", true],
+		["within6Months", "2027-05-27", false],
+		["within6Months", "2026-05-18", true],
+		["within6Months", "2026-05-17", false],
 	])("%s %s → %s", (operator, value, expected) => {
 		expect(matches(dated, row(key, operator, value))).toBe(expected);
+	});
+
+	// Mac OS 8.1 on Infinite Mac (fix round 1): three folders modified on
+	// 11/24/26 at 2:33 and 2:36 PM, searched "on the desktop" with each
+	// operator and day; each pair is the last day found and the first not
+	// (`packages/appearance/platinum/resources/screenshots/find-file/81-within-*`).
+	const measured = item("x", file({ [field]: "2026-11-24T14:33:00.000Z" }));
+	it.each([
+		["within1Day", "2026-11-23", true],
+		["within1Day", "2026-11-22", false],
+		["within1Day", "2026-11-25", true],
+		["within1Day", "2026-11-26", false],
+		["within1Week", "2026-12-01", true],
+		["within1Week", "2026-12-02", true],
+		["within1Week", "2026-12-03", false],
+		["within1Week", "2026-11-17", true],
+		["within1Week", "2026-11-16", false],
+		["within1Week", "2026-11-15", false],
+		["within2Weeks", "2026-11-10", true],
+		["within2Weeks", "2026-11-09", false],
+		["within2Weeks", "2026-12-08", true],
+		["within2Weeks", "2026-12-09", true],
+		["within2Weeks", "2026-12-10", false],
+		["within1Month", "2026-12-24", true],
+		["within1Month", "2026-12-26", true],
+		["within1Month", "2026-12-27", false],
+		["within1Month", "2026-12-28", false],
+		["within1Month", "2026-12-31", false],
+		["within1Month", "2026-10-24", true],
+		["within1Month", "2026-10-23", false],
+		["within1Month", "2026-10-22", false],
+		["within2Months", "2026-09-23", true],
+		["within2Months", "2026-09-22", false],
+		["within6Months", "2026-05-22", true],
+		["within6Months", "2026-05-21", false],
+	])("as Mac OS 8.1 measured: %s %s → %s", (operator, value, expected) => {
+		expect(matches(measured, row(key, operator, value))).toBe(expected);
 	});
 
 	it("takes the day in Classicy's clock zone, from a Date too", () => {

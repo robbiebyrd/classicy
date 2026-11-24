@@ -12,10 +12,22 @@
 import {
 	type ClassicyFindChoice,
 	type ClassicyFindCriterion,
+	type ClassicyFindItem,
+	classicyFindCriterionMatches,
 	classicyFindItemMatches,
+	classicyFindRowNeedsRead,
 	classicyFindRowsNeedSize,
+	classicyFindRowsNeedText,
 	isClassicyFindFolder,
 } from "@/SystemFolder/FindFile/ClassicyFindCriteria";
+import {
+	type ClassicyFindLookupMemory,
+	classicyFindEachBounded,
+	classicyFindKnownSize,
+	classicyFindReadSize,
+	classicyFindReadText,
+	classicyFindWithLookupPlace,
+} from "@/SystemFolder/FindFile/ClassicyFindLookups.internal";
 import { classicyDesktopFolderPath } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
@@ -95,7 +107,11 @@ export interface ClassicyFindFileResult {
 	/** Its name (its key in its folder). */
 	name: string;
 	entry: ClassicyFileSystemEntry;
-	/** A file's size in bytes (`fs.size`: -1 when unknown); none for a folder. */
+	/**
+	 * A file's size in bytes, when the search had it: recorded, or read for a
+	 * size row (-1 when unknown). Items Found reads the others as it draws
+	 * them; the search never waits on a size it does not need.
+	 */
 	size?: number;
 }
 
@@ -106,6 +122,13 @@ export interface ClassicyFindFileSearchOptions {
 	signal?: AbortSignal;
 	/** Minutes east of UTC that dates are compared in (Classicy's clock). */
 	timeZoneOffsetMinutes?: number;
+	/**
+	 * Told the number of items found so far, as they are found (8.1's "Items
+	 * Found: N" beside Stop while it searches).
+	 */
+	onProgress?: (found: number) => void;
+	/** What the session remembers between reads (sizes that could not be had). */
+	memory?: ClassicyFindLookupMemory;
 }
 
 /** How many items are checked between yields to the event loop. */
@@ -140,6 +163,12 @@ const throwIfAborted = (signal: AbortSignal | undefined) => {
 /**
  * Search `fs` for the items that match every row under `location`, sorted
  * by name. Rejects with the signal's reason once `signal` aborts.
+ *
+ * Rows that need a read (size, contents) are checked last, and only for an
+ * item every other row already matched: a recorded size answers at once,
+ * anything else is one read per candidate, `CLASSICY_FIND_LOOKUPS` at a
+ * time, under `signal`. No other size is read: Items Found reads a result's
+ * size as it draws its row.
  */
 export async function searchClassicyFileSystem(
 	fs: ClassicyFileSystem,
@@ -148,6 +177,8 @@ export async function searchClassicyFileSystem(
 		criteria,
 		signal,
 		timeZoneOffsetMinutes = 0,
+		onProgress,
+		memory,
 	}: ClassicyFindFileSearchOptions,
 ): Promise<ClassicyFindFileResult[]> {
 	throwIfAborted(signal);
@@ -155,9 +186,31 @@ export async function searchClassicyFileSystem(
 	const desktopFolder = classicyDesktopFolderPath(fs);
 	const disks = classicyFindDisks(fs);
 	const startupDisk = disks[0];
-	const needSize = classicyFindRowsNeedSize(criteria);
+	const firstRows = criteria.filter((row) => !classicyFindRowNeedsRead(row));
+	const lastRows = criteria.filter(classicyFindRowNeedsRead);
+	const needSize = classicyFindRowsNeedSize(lastRows);
+	const needText = classicyFindRowsNeedText(lastRows);
 	const results: ClassicyFindFileResult[] = [];
+	/** Files every other row matched, waiting on a read. */
+	const candidates: { path: string; item: ClassicyFindItem }[] = [];
 	let checked = 0;
+
+	const sizeRows = lastRows.filter((row) => row.key === "size");
+	/** Every row matches (the visibility rule is the first rows' to apply). */
+	const matchesEvery = (
+		item: ClassicyFindItem,
+		rows: readonly ClassicyFindCriterion[],
+	) => rows.every((row) => classicyFindCriterionMatches(item, row));
+
+	const found = (path: string, item: ClassicyFindItem) => {
+		results.push({
+			path,
+			name: item.name,
+			entry: item.entry,
+			...(item.size === undefined ? {} : { size: item.size }),
+		});
+		onProgress?.(results.length);
+	};
 
 	const consider = async (
 		path: string,
@@ -170,29 +223,30 @@ export async function searchClassicyFileSystem(
 		}
 		throwIfAborted(signal);
 		const folder = isClassicyFindFolder(entry);
-		const size = needSize && !folder ? await fs.size(entry) : undefined;
-		throwIfAborted(signal);
-		const item = {
+		const item: ClassicyFindItem = {
 			name,
 			entry,
 			// The Desktop Folder is Classicy's invisible stand-in for the Mac's
 			// visible one: 8.1 found it by name, and lists what is in it.
 			visible: path === desktopFolder,
-			size,
 			empty: folder ? !hasVisibleChild(entry) : undefined,
 			timeZoneOffsetMinutes,
 		};
-		if (!classicyFindItemMatches(item, criteria)) return;
-		// Items Found lists a file's size (8.1's Size column): read for the
-		// files found, if a size row did not already.
-		const shownSize = folder ? undefined : (size ?? (await fs.size(entry)));
-		throwIfAborted(signal);
-		results.push({
-			path,
-			name,
-			entry,
-			...(shownSize === undefined ? {} : { size: shownSize }),
-		});
+		if (!classicyFindItemMatches(item, firstRows)) return;
+		// A folder fails a size or contents row (files only) without a read.
+		if (lastRows.length === 0 || folder) {
+			if (matchesEvery(item, lastRows)) found(path, item);
+			return;
+		}
+		const known = needSize ? classicyFindKnownSize(entry) : undefined;
+		const sized = known === undefined ? item : { ...item, size: known };
+		// A size already known answers the size rows at once.
+		if (known !== undefined && !matchesEvery(sized, sizeRows)) return;
+		if (!needText && (!needSize || known !== undefined)) {
+			found(path, sized);
+			return;
+		}
+		candidates.push({ path, item: sized });
 	};
 
 	/** Every item inside `folder`, at any depth, invisible folders included. */
@@ -229,7 +283,14 @@ export async function searchClassicyFileSystem(
 
 	if (location === "desktop") {
 		const folder = desktopFolder ? fs.resolve(desktopFolder) : undefined;
-		if (desktopFolder && folder) await walk(desktopFolder, folder);
+		if (desktopFolder && folder) {
+			// 8.1's "on the desktop" lists the Desktop Folder itself too.
+			const name = desktopFolder.slice(
+				desktopFolder.lastIndexOf(separator) + 1,
+			);
+			await consider(desktopFolder, name, folder);
+			await walk(desktopFolder, folder);
+		}
 	} else if (location.startsWith(DISK_PREFIX)) {
 		const disk = location.slice(DISK_PREFIX.length);
 		const root = disks.includes(disk) ? fs.resolve(disk) : undefined;
@@ -244,6 +305,34 @@ export async function searchClassicyFileSystem(
 		}
 		await walkTrash();
 	}
+
+	// The reads, last: one per candidate, a few at a time, under the signal.
+	await classicyFindEachBounded(
+		candidates,
+		async ({ path, item }) => {
+			let read = item;
+			if (needSize && item.size === undefined) {
+				const size =
+					(await classicyFindReadSize(fs, item.entry, {
+						signal,
+						memory,
+					})) ?? -1;
+				if (signal?.aborted) return;
+				read = { ...item, size };
+				// A size that does not fit spares the contents read.
+				if (!matchesEvery(read, sizeRows)) return;
+			}
+			if (needText) {
+				const text = await classicyFindWithLookupPlace(memory, signal, () =>
+					classicyFindReadText(item.entry),
+				);
+				if (signal?.aborted) return;
+				if (text !== undefined) read = { ...read, text };
+			}
+			if (matchesEvery(read, lastRows)) found(path, read);
+		},
+		{ signal },
+	);
 
 	throwIfAborted(signal);
 	return results.sort(compareClassicyFindFileResults);

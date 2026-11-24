@@ -117,6 +117,121 @@ describe("Find File and analytics", { timeout: 30_000 }, () => {
 		expect(sent).not.toContain("Quarterly");
 	});
 
+	it("names no item or disk from Open Item, Open Enclosing Folder, the refusal alert, the Label menu or the location pop-up", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.mkDir("Macintosh HD:Hidden Place");
+		fs.setMetadata("Macintosh HD:Hidden Place", { _invisible: true });
+		fs.writeFile(`Macintosh HD:Hidden Place:${SECRET} draft.txt`, "x", {
+			_type: ClassicyFileSystemEntryFileType.TextFile,
+		});
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop controlStrip={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		act(() => {
+			dispatch({ type: "ClassicyAppFindFileShowFind" });
+		});
+		await screen.findByText("Find items");
+		// The location pop-up: its choices name the disks.
+		fireEvent.click(
+			document.getElementById("classicy-find-file-location") as HTMLElement,
+		);
+		fireEvent.click(
+			within(await screen.findByRole("listbox")).getByText("on “Macintosh HD”"),
+		);
+		fireEvent.change(
+			document.getElementById("classicy-find-file-row-0-value") as HTMLElement,
+			{ target: { value: SECRET } },
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Find" }));
+		await waitFor(() =>
+			expect(screen.getByText("Items Found")).toBeInTheDocument(),
+		);
+		const menu = (title: string) => {
+			const walk = (
+				items: { title?: string; menuChildren?: unknown[] }[] = [],
+			): { onClickFunc?: () => void } | undefined => {
+				for (const item of items) {
+					if (item.title === title) return item as { onClickFunc?: () => void };
+					const found = walk(
+						item.menuChildren as { title?: string; menuChildren?: unknown[] }[],
+					);
+					if (found) return found;
+				}
+				return undefined;
+			};
+			return walk(
+				useAppManager.getState().System.Manager.Desktop.appMenu as {
+					title?: string;
+				}[],
+			);
+		};
+		const choose = (title: string) =>
+			act(() => {
+				menu(title)?.onClickFunc?.();
+			});
+		// The first result, by name: "Quarterly Secret draft.txt", the
+		// invisible one; the Label menu labels it, the refusal names it.
+		choose("Hot");
+		choose("Open Enclosing Folder");
+		await screen.findByText(/Unable to open enclosing folder for/);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		// The second: opened, then shown in its folder.
+		const front = () =>
+			act(() => {
+				dispatch({
+					type: "ClassicyWindowFocus",
+					app: { id: "FindFile.app" },
+					window: { id: "FindFile.app_results" },
+				});
+			});
+		front();
+		const results = screen
+			.getByText("Items Found")
+			.closest(".classicyWindow") as HTMLElement;
+		fireEvent.click(within(results).getAllByText(`${SECRET}.txt`)[0]);
+		choose("Open Item");
+		const apps = () =>
+			useAppManager.getState().System.Manager.Applications.apps;
+		await waitFor(() => expect(apps()["SimpleText.app"]?.open).toBe(true));
+		front();
+		choose("Open Enclosing Folder");
+		await waitFor(() =>
+			expect(
+				(apps()["Finder.app"]?.data as { openPaths?: string[] }).openPaths,
+			).toContain("Macintosh HD:Documents"),
+		);
+		// No track payload, and no pageview path, names the item; the
+		// location's event names no disk.
+		expect(JSON.stringify(analytics.track)).not.toContain("Quarterly");
+		expect(analytics.page.map(([path]) => path).join("\n")).not.toContain(
+			"Quarterly",
+		);
+		const location = analytics.track.filter(
+			([event, payload]) =>
+				event === "selected" &&
+				(payload as { id?: string }).id === "classicy-find-file-location",
+		);
+		expect(location).toEqual([
+			[
+				"selected",
+				{
+					type: "ClassicyPopUpMenu",
+					id: "classicy-find-file-location",
+					label: undefined,
+				},
+			],
+		]);
+		// A window's title reaches its pageview (the repo-wide trade-off,
+		// CLAUDE.md "Analytics"): only the opened document's, which a Finder
+		// double-click sends the same way, never one of Find File's own.
+		const titled = analytics.page.filter(([, title]) =>
+			String(title).includes("Quarterly"),
+		);
+		expect(titled.map(([path]) => path)).toEqual(["/simpletext/file"]);
+	});
+
 	it("keeps an analyticsPrivate field's text out, and a plain field's in", () => {
 		render(
 			<>

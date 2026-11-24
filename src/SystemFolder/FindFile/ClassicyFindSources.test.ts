@@ -1,9 +1,13 @@
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import {
+	CLASSICY_FIND_SOURCE_LABELS,
+	CLASSICY_FIND_SOURCE_TIMEOUT_MS,
 	type ClassicyFindResult,
 	type ClassicyFindSource,
 	type ClassicyFindSourceResult,
+	getClassicyFindSourceLabels,
 	listClassicyFindSources,
+	openClassicyFindSourceResult,
 	registerClassicyFindSource,
 	searchClassicyFindSources,
 	subscribeClassicyFindSources,
@@ -204,6 +208,153 @@ describe("searchClassicyFindSources", () => {
 		expect(outcomes.map((o) => o.status)).toEqual(["aborted", "aborted"]);
 		expect(onResults).not.toHaveBeenCalled();
 		expect(logs.filter((l) => l.level === "error")).toEqual([]);
+	});
+});
+
+describe("a source that never settles", () => {
+	it("is given up after its time, its signal aborted, the others shown", async () => {
+		vi.useFakeTimers();
+		try {
+			let seen: AbortSignal | undefined;
+			registerClassicyFindSource({
+				...source("hang", (_query, { signal }) => {
+					seen = signal;
+					return new Promise(() => {});
+				}),
+				timeoutMs: 5_000,
+			});
+			registerClassicyFindSource(source("good", async () => [result("Good")]));
+			const onResults = vi.fn();
+			const run = searchClassicyFindSources("x", {
+				signal: new AbortController().signal,
+				onResults,
+			});
+			await vi.advanceTimersByTimeAsync(4_999);
+			expect(onResults).toHaveBeenCalledTimes(1);
+			expect(seen?.aborted).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
+			const outcomes = await run;
+			expect(outcomes.map((o) => [o.sourceId, o.status])).toEqual([
+				["hang", "timedOut"],
+				["good", "found"],
+			]);
+			expect(seen?.aborted).toBe(true);
+			expect((seen?.reason as DOMException).name).toBe("TimeoutError");
+			expect(
+				logs.filter((l) => l.level === "warn").map((l) => l.message),
+			).toEqual([
+				'Search source "hang" did not answer within 5000 ms; its results were left out',
+			]);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("waits 30 seconds by default, and drops an answer that comes after", async () => {
+		vi.useFakeTimers();
+		try {
+			let answer: ((r: readonly ClassicyFindResult[]) => void) | undefined;
+			registerClassicyFindSource(
+				source(
+					"late",
+					() =>
+						new Promise((resolve) => {
+							answer = resolve;
+						}),
+				),
+			);
+			const onResults = vi.fn();
+			const run = searchClassicyFindSources("x", {
+				signal: new AbortController().signal,
+				onResults,
+			});
+			await vi.advanceTimersByTimeAsync(CLASSICY_FIND_SOURCE_TIMEOUT_MS);
+			expect((await run)[0].status).toBe("timedOut");
+			answer?.([result("too late")]);
+			await vi.advanceTimersByTimeAsync(1);
+			expect(onResults).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
+describe("the sources' labels", () => {
+	it("are Sherlock's until a source brings its own, the first labeled source's then", () => {
+		expect(getClassicyFindSourceLabels()).toEqual({
+			tab: "Search Internet",
+			sites: "Search Sites",
+			site: "Site",
+		});
+		registerClassicyFindSource(source("plain", async () => []));
+		registerClassicyFindSource(
+			source("archive", async () => []),
+			{
+				labels: { tab: "Search Archive", sites: "Collections" },
+			},
+		);
+		registerClassicyFindSource(
+			source("other", async () => []),
+			{
+				labels: { tab: "Search Elsewhere" },
+			},
+		);
+		expect(getClassicyFindSourceLabels()).toEqual({
+			tab: "Search Archive",
+			sites: "Collections",
+			site: "Site",
+		});
+		unregisterClassicyFindSource("archive");
+		expect(getClassicyFindSourceLabels()).toEqual({
+			...CLASSICY_FIND_SOURCE_LABELS,
+			tab: "Search Elsewhere",
+		});
+		unregisterClassicyFindSource("other");
+		expect(getClassicyFindSourceLabels()).toBe(CLASSICY_FIND_SOURCE_LABELS);
+	});
+
+	it("keeps only single-line labels of 1 to 64 characters, warning for the rest", () => {
+		registerClassicyFindSource(
+			source("a", async () => []),
+			{
+				labels: { tab: "  ", sites: "two\nlines", site: "Shelf" },
+			},
+		);
+		expect(getClassicyFindSourceLabels()).toEqual({
+			...CLASSICY_FIND_SOURCE_LABELS,
+			site: "Shelf",
+		});
+		expect(logs.filter((l) => l.level === "warn")).toHaveLength(2);
+	});
+});
+
+describe("openClassicyFindSourceResult", () => {
+	it("opens a result, and logs an open that throws or rejects", async () => {
+		const opened = vi.fn();
+		openClassicyFindSourceResult({ ...result("a", opened), sourceId: "s" });
+		expect(opened).toHaveBeenCalledTimes(1);
+		const boom = new Error("gone");
+		openClassicyFindSourceResult({
+			...result("b", () => {
+				throw boom;
+			}),
+			sourceId: "s",
+		});
+		openClassicyFindSourceResult({
+			name: "c",
+			kind: "page",
+			open: () => Promise.reject(boom),
+			sourceId: "s",
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(
+			logs
+				.filter((l) => l.level === "error")
+				.map((l) => [l.message, l.details]),
+		).toEqual([
+			["A search result failed to open", [{ source: "s", error: boom }]],
+			["A search result failed to open", [{ source: "s", error: boom }]],
+		]);
 	});
 });
 

@@ -1,8 +1,9 @@
 /**
  * Find File's criteria: the rows of "Find items … whose" (Mac OS 8.1's Find
- * File, observed on Infinite Mac; story 0227-815), each a criterion, an
- * operator and a value, and how an item of the Classicy file system matches
- * one. Store-free and pure: the search (`ClassicyFindFileSearch.ts`) and the
+ * File, observed on Infinite Mac; story 0227-815; the captures are in
+ * `packages/appearance/platinum/resources/screenshots/find-file/`), each a
+ * criterion, an operator and a value, and how an item of the Classicy file
+ * system matches one. Store-free and pure: the search (`ClassicyFindFileSearch.ts`) and the
  * window (`FindFile.tsx`) share it.
  *
  * Every value is a string, so a row is plain data: text, a number of K for
@@ -14,7 +15,7 @@ import {
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
-/** The criteria of 8.1's pop-up, in its order, then the two Option-click adds. */
+/** The criteria of 8.1's pop-up, in its order, then the Option-click adds. */
 export type ClassicyFindCriterionKey =
 	| "name"
 	| "size"
@@ -28,6 +29,7 @@ export type ClassicyFindCriterionKey =
 	| "folderAttribute"
 	| "fileType"
 	| "creator"
+	| "contents"
 	| "nameIconLock"
 	| "visibility";
 
@@ -215,6 +217,20 @@ export const CLASSICY_FIND_CRITERIA: readonly ClassicyFindCriterionDefinition[] 
 		{ key: "fileType", label: "file type", operators: IS_ISNOT, input: "text" },
 		{ key: "creator", label: "creator", operators: IS_ISNOT, input: "text" },
 		{
+			// 8.1's first Option-click criterion: "contents" "contain" / "do
+			// not contain" (`packages/appearance/platinum/resources/screenshots/find-file/81-contents-operators.png`).
+			// Classicy reads the contents it holds, a file's `_data`.
+			key: "contents",
+			label: "contents",
+			operators: [
+				op("contain", "contain"),
+				op("doNotContain", "do not contain"),
+			],
+			input: "text",
+			optionOnly: true,
+			filesOnly: true,
+		},
+		{
 			key: "nameIconLock",
 			label: "name/icon lock",
 			operators: [op("is", "is")],
@@ -343,6 +359,12 @@ export interface ClassicyFindItem {
 	visible?: boolean;
 	/** Its size in bytes, for a size row; read only when one is asked. */
 	size?: number;
+	/**
+	 * A file's contents as text, for a contents row; read only when one is
+	 * asked, and only from the `_data` Classicy holds (none for a `_url`
+	 * file, which matches no contents row).
+	 */
+	text?: string;
 	/** Whether a folder holds no visible item. */
 	empty?: boolean;
 	/** Minutes east of UTC for the day a date falls on (Classicy's clock). */
@@ -425,32 +447,33 @@ const dayOfValue = (value: string): number | undefined => {
 const dayOfDate = (date: Date, offsetMinutes: number): number =>
 	Math.floor((date.getTime() + offsetMinutes * 60_000) / DAY_MS);
 
-/** `day` moved by `months` calendar months (clamped to the month's end). */
-const addMonths = (day: number, months: number): number => {
-	const d = new Date(day * DAY_MS);
-	const year = d.getUTCFullYear();
-	const month = d.getUTCMonth() + months;
-	const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-	return Date.UTC(year, month, Math.min(d.getUTCDate(), lastDay)) / DAY_MS;
-};
-
-const WITHIN: Readonly<Record<string, { days?: number; months?: number }>> = {
-	within1Day: { days: 1 },
-	within2Days: { days: 2 },
-	within3Days: { days: 3 },
-	within1Week: { days: 7 },
-	within2Weeks: { days: 14 },
-	within3Weeks: { days: 21 },
-	within1Month: { months: 1 },
-	within2Months: { months: 2 },
-	within3Months: { months: 3 },
-	within6Months: { months: 6 },
+/**
+ * "Is within N … of" a day, as Mac OS 8.1's Find File measured it on
+ * Infinite Mac (fix round 1; `packages/appearance/platinum/resources/screenshots/find-file/81-within-*`):
+ * the item's day minus the chosen day must lie in `[-before, after]`, in
+ * calendar days. Days are N either side; a week counts 7 days and a month
+ * 31 (not calendar months: 2 months of 9/23 reached 11/24, 62 days on),
+ * and both take one day more before the chosen day than after it (1 week
+ * of 12/2 found an item of 11/24, 8 days before; 1 week of 11/16 did not
+ * find it, 8 days after).
+ */
+const WITHIN: Readonly<Record<string, { before: number; after: number }>> = {
+	within1Day: { before: 1, after: 1 },
+	within2Days: { before: 2, after: 2 },
+	within3Days: { before: 3, after: 3 },
+	within1Week: { before: 8, after: 7 },
+	within2Weeks: { before: 15, after: 14 },
+	within3Weeks: { before: 22, after: 21 },
+	within1Month: { before: 32, after: 31 },
+	within2Months: { before: 63, after: 62 },
+	within3Months: { before: 94, after: 93 },
+	within6Months: { before: 187, after: 186 },
 };
 
 /**
- * Whether a date matches: compared by day, in Classicy's clock zone. "Is
- * within N of" a day keeps the days N before through N after it. An item
- * with no such date matches no date row.
+ * Whether a date matches: compared by day, in Classicy's clock zone ("is
+ * within N of" as `WITHIN` has it). An item with no such date matches no
+ * date row.
  */
 const dateMatches = (
 	stored: unknown,
@@ -474,13 +497,8 @@ const dateMatches = (
 		default: {
 			const span = WITHIN[operator];
 			if (!span) return false;
-			if (span.days !== undefined) {
-				return Math.abs(day - wanted) <= span.days;
-			}
-			const months = span.months ?? 0;
-			return (
-				day >= addMonths(wanted, -months) && day <= addMonths(wanted, months)
-			);
+			const offset = day - wanted;
+			return offset >= -span.before && offset <= span.after;
 		}
 	}
 };
@@ -575,6 +593,9 @@ export const classicyFindCriterionMatches = (
 				operator,
 				value,
 			);
+		case "contents":
+			if (folder || item.text === undefined) return false;
+			return textMatches(item.text, operator, value);
 		case "nameIconLock": {
 			const locked = entry._nameLocked === true;
 			return value === "locked" ? locked : !locked;
@@ -610,3 +631,15 @@ export const classicyFindItemMatches = (
 export const classicyFindRowsNeedSize = (
 	rows: readonly ClassicyFindCriterion[],
 ): boolean => rows.some((r) => r.key === "size");
+
+/** Whether any row needs a file's contents (read lazily: it is async). */
+export const classicyFindRowsNeedText = (
+	rows: readonly ClassicyFindCriterion[],
+): boolean => rows.some((r) => r.key === "contents");
+
+/**
+ * Whether a row's answer waits on a read (a size, contents): the search
+ * checks every other row first and reads only for an item that passed them.
+ */
+export const classicyFindRowNeedsRead = (row: ClassicyFindCriterion): boolean =>
+	row.key === "size" || row.key === "contents";

@@ -132,6 +132,22 @@ describe("searchClassicyFileSystem", () => {
 		).toEqual(["Macintosh HD:Desktop Folder:Desk Plan.txt"]);
 	});
 
+	it("lists the Desktop Folder itself in a desktop search, as 8.1 did", async () => {
+		// 8.1: "date modified is within 2 months of 9/22" on the desktop found
+		// the Desktop Folder alone (`81-within-2-months-of-09-22-*`).
+		expect(
+			paths(
+				await searchClassicyFileSystem(makeFs(), {
+					location: "desktop",
+					criteria: nameContains("desk"),
+				}),
+			),
+		).toEqual([
+			"Macintosh HD:Desktop Folder:Desk Plan.txt",
+			"Macintosh HD:Desktop Folder",
+		]);
+	});
+
 	it("leaves out invisible items, except the Desktop Folder, unless asked for them", async () => {
 		const fs = makeFs();
 		expect(

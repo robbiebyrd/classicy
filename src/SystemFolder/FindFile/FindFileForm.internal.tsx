@@ -209,7 +209,10 @@ export type FindFileCriteriaFormProps = {
 	canAddRow: boolean;
 	onMoreChoices: () => void;
 	onFewerChoices: () => void;
+	/** Whether this form's search runs: its fields dim and Find reads Stop. */
 	running: boolean;
+	/** While it runs, the items found so far (8.1's "Items Found:N"). */
+	progress?: number;
 	onFind: () => void;
 	onStop: () => void;
 };
@@ -229,6 +232,7 @@ export const FindFileCriteriaForm: FunctionalComponent<
 	onMoreChoices,
 	onFewerChoices,
 	running,
+	progress,
 	onFind,
 	onStop,
 }) => (
@@ -237,6 +241,8 @@ export const FindFileCriteriaForm: FunctionalComponent<
 			<span className="classicyFindFileText">Find items</span>
 			<ClassicyPopUpMenu
 				id="classicy-find-file-location"
+				// Its choices name the user's disks.
+				analyticsPrivate
 				options={classicyFindPopUpOptions(locationChoices, locationIcons)}
 				selected={location}
 				disabled={running}
@@ -270,6 +276,13 @@ export const FindFileCriteriaForm: FunctionalComponent<
 				</ClassicyButton>
 			)}
 			<span className="classicyFindFileButtonsSpacer" />
+			{running && (
+				// 8.1 counts the items found beside Stop while it searches
+				// (`packages/appearance/platinum/resources/screenshots/find-file/81-contents-searching-count.png`).
+				<span className="classicyFindFileProgress" aria-live="polite">
+					{`Items Found:${progress ?? 0}`}
+				</span>
+			)}
 			{running ? (
 				<ClassicyButton isDefault onClickFunc={onStop}>
 					Stop
@@ -291,9 +304,12 @@ export type FindFileChannelsFormProps = {
 	onToggle: (id: string, on: boolean) => void;
 	words: string;
 	onWordsChange: (words: string) => void;
+	/** Whether a search of the sources runs: Search reads Stop. */
 	running: boolean;
 	onSearch: () => void;
 	onStop: () => void;
+	/** The list's title: Sherlock's "Search Sites", or a host's word. */
+	sitesLabel: string;
 };
 
 /**
@@ -311,6 +327,7 @@ export const FindFileChannelsForm: FunctionalComponent<
 	running,
 	onSearch,
 	onStop,
+	sitesLabel,
 }) => {
 	const rows: ChannelRow[] = sources.map((s) => ({
 		id: s.id,
@@ -337,7 +354,7 @@ export const FindFileChannelsForm: FunctionalComponent<
 		},
 		{
 			id: "name",
-			title: "Search Sites",
+			title: sitesLabel,
 			accessor: (row) => row.name,
 			sortable: false,
 			render: (row) => (

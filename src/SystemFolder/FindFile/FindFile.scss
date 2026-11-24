@@ -80,6 +80,15 @@
   flex: 1 1 auto;
 }
 
+// While a search runs, the items found so far, left of Stop (8.1), in the
+// small UI font.
+.classicyFindFileProgress {
+  flex: none;
+  font-family: var(--ui-font-small, var(--ui-font));
+  font-size: var(--ui-font-size-small);
+  white-space: nowrap;
+}
+
 // The channels: the words, then the list of sites.
 .classicyFindFileWords {
   width: 100%;
