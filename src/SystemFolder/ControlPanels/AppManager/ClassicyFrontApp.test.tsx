@@ -225,4 +225,31 @@ describe("the front application", () => {
 		});
 		expect(apps().focusedAppId).toBe("Calculator.app");
 	});
+
+	it("an extension with a menu window and a menuless one hands focus on when the menu window closes", () => {
+		const extMenu = fileMenu("Ext");
+		set((d) => {
+			d.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
+				"Calculator.app": app("Calculator.app", { lastFocusedAt: 5 }),
+				"Ext.app": app("Ext.app", {
+					extension: true,
+					focused: true,
+					windows: {
+						w: win("w", { focused: true, menuBar: extMenu }),
+						float: win("float", { menuBar: [] }),
+					},
+				}),
+			};
+			d.System.Manager.Applications.focusedAppId = "Ext.app";
+		});
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowClose",
+				app: { id: "Ext.app" },
+				window: { id: "w" },
+			});
+		});
+		expect(apps().focusedAppId).toBe("Calculator.app");
+	});
 });

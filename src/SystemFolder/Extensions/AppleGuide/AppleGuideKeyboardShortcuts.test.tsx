@@ -287,6 +287,43 @@ describe("Keyboard Shortcuts topic", () => {
 		});
 	});
 
+	it("page 3 does not list the front app's own help-menu items as 'every application'", () => {
+		setFront("Calc.app", "Calc", []);
+		act(() => {
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Desktop: {
+							...s.System.Manager.Desktop,
+							helpMenu: {
+								"Calc.app": [
+									{ id: "ch", title: "Calc Help", keyboardShortcut: "⌥/" },
+								],
+							},
+						},
+					},
+				},
+			}));
+		});
+		const { container } = render(<>{page(2)}</>);
+		expect(container.textContent).not.toContain("Calc Help");
+		act(() => {
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Desktop: { ...s.System.Manager.Desktop, helpMenu: {} },
+					},
+				},
+			}));
+		});
+	});
+
 	it("says so when the front app has none", () => {
 		setFront("Gamma.app", "Gamma", []);
 		render(<>{page(1)}</>);

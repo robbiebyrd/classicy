@@ -255,14 +255,14 @@ export const classicyWindowEventHandler = (
 				focused: false,
 			});
 			// An extension that held focus through a window with menus and has
-			// none left hands focus on to the front application.
+			// no open window with menus left hands focus on to the front application.
 			if (
 				ds.System.Manager.Applications.focusedAppId === action.app.id &&
 				ds.System.Manager.Applications.apps[action.app.id]?.extension ===
 					true &&
 				!listAppWindows(
 					ds.System.Manager.Applications.apps[action.app.id],
-				).some((w) => !w.closed)
+				).some((w) => !w.closed && (w.menuBar?.length ?? 0) > 0)
 			) {
 				const next = frontAppIdOf(ds.System.Manager.Applications);
 				if (next && next !== action.app.id) focusApp(ds, next);

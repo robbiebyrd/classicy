@@ -99,7 +99,7 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 	const { helpItem, appMenu } = useClassicyStandardHelpMenu({
 		appMenu: titled,
 		appId,
-		idPrefix: `${barId}_`,
+		idPrefix: `bar${barId.replace(/[^a-zA-Z0-9_-]/g, "")}_`,
 	});
 	const items = useMemo(
 		() => [...(appMenu ?? []), helpItem],

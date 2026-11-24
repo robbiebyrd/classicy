@@ -4,6 +4,7 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
+import { isFloatingExtensionWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
@@ -640,6 +641,25 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// while a floating extension window (Apple Guide) holds the focus flag.
 	const frontAppId = useFrontAppId();
 	const isFrontApp = !!currentApp?.focused || frontAppId === appId;
+	// A floating extension window (Apple Guide's) draws above the front app's
+	// windows, and floating windows stack among themselves by recency: its rank
+	// among the app's open floating windows by `zOrder`, and how many there are.
+	const isFloatingWindow = isFloatingExtensionWindow(
+		currentApp ?? { extension: false },
+		appMenu,
+	);
+	const floatingStack = useAppManager((s) => {
+		if (!isFloatingWindow) return "";
+		const app = s.System.Manager.Applications.apps[appId];
+		const mine = getAppWindow(app, id)?.zOrder ?? 0;
+		const peers = listAppWindows(app).filter(
+			(w) => !w.closed && !w.menuBar?.length,
+		);
+		return `${peers.filter((w) => (w.zOrder ?? 0) < mine).length}/${peers.length}`;
+	});
+	const [floatingRank, floatingCount] = floatingStack
+		? floatingStack.split("/").map(Number)
+		: [-1, 0];
 	// #206: double-click-title-to-collapse is a desktop preference (Appearance
 	// checkbox in the HIG), defaulting on. Optional chaining keeps this safe when
 	// the Desktop slice is absent (e.g. isolated unit tests).
@@ -1199,9 +1219,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 		// The window holding the bar: the focused one, or the front app's last
 		// accessed one while a floating extension window holds the focus flag.
+		// A closed window never publishes (it can stay mounted when closed).
 		const holdsBar =
-			ws.focused ||
-			(frontAppId === appId && currentApp?.lastAccessedWindowId === id);
+			!ws.closed &&
+			(ws.focused ||
+				(frontAppId === appId && currentApp?.lastAccessedWindowId === id));
 		// An extension's window with an empty menu leaves the bar alone.
 		const leavesBar = currentApp?.extension === true && appMenu.length === 0;
 		if (holdsBar && !leavesBar) {
@@ -1212,6 +1234,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	}, [
 		ws.focused,
+		ws.closed,
 		appMenu,
 		appId,
 		id,
@@ -1531,6 +1554,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const setActive = useCallback(
 		(_e?: MouseEvent<HTMLDivElement>) => {
+			// A floating window under a newer floating sibling is raised by a
+			// click even though it is already focused.
+			const raisesFloating =
+				floatingRank >= 0 && floatingRank < floatingCount - 1;
+			if (ws.focused && raisesFloating) {
+				desktopEventDispatch({
+					type: "ClassicyWindowFocus",
+					app: { id: appId, appMenu: appMenu },
+					window: ws,
+				});
+			}
 			if (!ws.focused) {
 				// Inside the guard so "focus" means the window BECAME focused.
 				// The root binds both onMouseUp (which calls setActive) and
@@ -1549,7 +1583,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				});
 			}
 		},
-		[ws, appId, appMenu, desktopEventDispatch, track, analyticsArgs, emit],
+		[
+			ws,
+			appId,
+			appMenu,
+			desktopEventDispatch,
+			track,
+			analyticsArgs,
+			emit,
+			floatingRank,
+			floatingCount,
+		],
 	);
 
 	useEffect(() => {
@@ -1943,8 +1987,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
 			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
+			// Above the active document band (300) and the palettes' (350),
+			// below the modal bands (360 and up): one level per floating window.
+			...(floatingRank >= 0 ? { zIndex: 351 + Math.min(floatingRank, 8) } : {}),
 		}),
 		[
+			floatingRank,
 			size[0],
 			size[1],
 			ws.collapsed,

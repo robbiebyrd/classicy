@@ -10,8 +10,9 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
  * extension window that publishes no menus (Apple Guide's) is a floating
  * window, which keeps the application in front and its menus, chords and
  * windows as they are, as Apple Guide's floating windows did in Mac OS 8
- * (HIGOS8 Ch. 2, floating windows stay active beside the document window; a
- * background-only extension has no menus of its own to show). An extension
+ * (floating windows "appear on top of other document windows", HIGOS7 Ch. 5,
+ * p. 145, Figure 5-13; a background-only extension has no menus of its own
+ * to show). An extension
  * window that does publish menus is an ordinary window of the front
  * application: it takes the bar, the Application menu and the keyboard scope.
  */

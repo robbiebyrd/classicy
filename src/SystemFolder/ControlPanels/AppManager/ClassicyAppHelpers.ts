@@ -84,9 +84,9 @@ export function focusWindow(
 	// A floating extension window (no menus of its own: Apple Guide's) comes
 	// to the top and is active, but leaves the front application, its menus,
 	// chords and windows alone.
-	const floating =
-		win0 !== undefined &&
-		isFloatingExtensionWindow(app, menuBar ?? win0.menuBar);
+	// Decided without needing the record: a topic's first open focuses its
+	// window before the window has registered.
+	const floating = isFloatingExtensionWindow(app, menuBar ?? win0?.menuBar);
 	if (!floating) markAppFocused(ds, appId);
 	const win = getAppWindow(app, windowId);
 	if (win) {
