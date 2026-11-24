@@ -61,6 +61,7 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
+import { markClassicyWindowMounted } from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
@@ -1087,6 +1088,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		wasKeyboardFocusedRef.current = ownsKeyboard;
 		if (becameFocused) focusInitialTarget();
 	}, [modal, ws.closed, ws.collapsed, ws.focused, focusInitialTarget]);
+
+	// Mounted, for openApp: it reopens only a window that is on screen to
+	// draw; one that is not reopens itself here when it mounts.
+	useEffect(() => markClassicyWindowMounted(appId, id), [appId, id]);
 
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);

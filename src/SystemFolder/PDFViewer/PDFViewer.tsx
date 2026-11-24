@@ -1,4 +1,11 @@
-import { type FC as FunctionalComponent, useCallback, useMemo } from "react";
+import {
+	type FC as FunctionalComponent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
@@ -16,9 +23,12 @@ import {
 	closeWindowMenuItemHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
+import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import type { ClassicyFileOpenSelection } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialog";
+import { desktopVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
+import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const { name: appName, id: appId } = PDFViewerAppInfo;
@@ -27,6 +37,7 @@ const { name: appName, id: appId } = PDFViewerAppInfo;
  *  literal, never built from the app's name: a display name is not an action
  *  type, and "PDF Viewer" carries a space. */
 const CLOSE_FILE = "ClassicyAppPDFViewerCloseFile";
+const OPEN_FILE = "ClassicyAppPDFViewerOpenFile";
 
 export const PDFViewer: FunctionalComponent = () => {
 	const appIcon = useClassicyAsset("icons", "system.files.document") ?? "";
@@ -35,10 +46,43 @@ export const PDFViewer: FunctionalComponent = () => {
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
 
-	const fs = useMemo(() => new ClassicyFileSystem(), []);
+	// The desktop's file system (its storage key: fileSystemStorageKey).
+	const getFileSystem = useClassicyFileSystemAccessor();
+	const fs = useMemo(() => getFileSystem(), [getFileSystem]);
 
 	const rawOpenFiles = appState?.data?.openFiles;
 	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];
+
+	// PDF Viewer has no window without a document, so a launch that opens
+	// none (the Apple menu, Recent Applications, a relaunch after a quit)
+	// asks for one: the Open dialog (story 0226-a6f). Only a launch in this
+	// session: a reload of an open PDF Viewer does not ask.
+	const appOpen = appState?.open === true;
+	const [showOpenDialog, setShowOpenDialog] = useState(false);
+	const wasOpenRef = useRef(appOpen);
+	useEffect(() => {
+		const launched = appOpen && !wasOpenRef.current;
+		wasOpenRef.current = appOpen;
+		if (!appOpen) setShowOpenDialog(false);
+		else if (launched && openFiles.length === 0) setShowOpenDialog(true);
+	}, [appOpen, openFiles.length]);
+
+	const volumes = useMemo(() => [desktopVolume(fs)], [fs]);
+	const openSelections = useCallback(
+		(selections: ClassicyFileOpenSelection[]) => {
+			setShowOpenDialog(false);
+			for (const selection of selections) {
+				desktopEventDispatch({
+					type: OPEN_FILE,
+					app: { id: appId },
+					path: String(
+						selection.entry.meta?.classicyPath ?? selection.entry.id,
+					),
+				});
+			}
+		},
+		[desktopEventDispatch],
+	);
 
 	const closeFile = useCallback(
 		(path: string) => {
@@ -64,6 +108,11 @@ export const PDFViewer: FunctionalComponent = () => {
 				id: `${windowId}_file`,
 				title: "File",
 				menuChildren: [
+					{
+						id: `${windowId}_open`,
+						title: "Open…",
+						onClickFunc: () => setShowOpenDialog(true),
+					},
 					closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
 						closeWindow(windowId, {
 							type: CLOSE_FILE,
@@ -129,6 +178,22 @@ export const PDFViewer: FunctionalComponent = () => {
 					</ClassicyWindow>
 				);
 			})}
+			<ClassicyFileOpenDialog
+				id={`${appId}_open_dialog`}
+				appId={appId}
+				open={showOpenDialog}
+				title={"Open"}
+				volumes={volumes}
+				selectionMode={"single"}
+				fileTypeFilters={[
+					{
+						label: "PDF Documents",
+						types: [ClassicyFileSystemEntryFileType.Pdf],
+					},
+				]}
+				onOpenFunc={openSelections}
+				onCancelFunc={() => setShowOpenDialog(false)}
+			/>
 			{aboutWindow}
 		</ClassicyApp>
 	);

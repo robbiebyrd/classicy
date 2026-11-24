@@ -337,6 +337,23 @@ describe("only what is really there (review I3, M3)", () => {
 		expect(targets(ds, "application")).toEqual(["Calculator.app"]);
 	});
 
+	// Fix round 2: an app on neither the desktop nor in the Applications
+	// folder (no app-shortcut icon; Web Viewer, opened only by its pages) has
+	// nothing to show when chosen on its own, so it is not listed.
+	it("never remembers an app the user cannot find (no desktop icon, not in Applications)", () => {
+		const hidden = produce(base(), (draft) => {
+			draft.System.Manager.Desktop.icons =
+				draft.System.Manager.Desktop.icons.filter(
+					(i) => i.appId !== "Calculator.app",
+				);
+		});
+		const ds = reduceAll(hidden, [
+			open("Calculator.app"),
+			open("PDFViewer.app"),
+		]);
+		expect(targets(ds, "application")).toEqual(["PDFViewer.app"]);
+	});
+
 	it("remembers a generic-queue path only when it names a file", () => {
 		const ds = reduceAll(base(), [
 			{

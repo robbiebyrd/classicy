@@ -17,6 +17,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	activateApp,
+	classicyDocumentWindowId,
 	closeApp,
 	deFocusApps,
 	focusApp,
@@ -27,8 +28,10 @@ import {
 	loadApp,
 	openApp,
 	pickSuccessorApp,
+	settleAppLaunch,
 	showAllApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -48,6 +51,7 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 import {
 	classicyRecentItemsEventHandler,
 	defaultClassicyRecentItemsState,
+	recordClassicyRecentDocument,
 } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
@@ -81,6 +85,20 @@ export interface ClassicyStoreSystemApp {
 	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;
 	extension?: boolean;
+	/**
+	 * Session state (stripped on save): `openApp` launched the app (it was
+	 * not open) and its windows have not all mounted yet. `ClassicyApp`
+	 * ends it (`ClassicyAppLaunchSettled`, `settleAppLaunch`), as a quit does.
+	 */
+	launching?: boolean;
+	/**
+	 * Session state (stripped on save): the launch was a document open
+	 * (`openApp` with `document` or `windows`), so a window that mounts with
+	 * the launch opens only when it shows the document
+	 * (`mayClassicyWindowReopen`, read by `ClassicyWindowOpen`). A plain open,
+	 * the launch's end or a quit ends it.
+	 */
+	launchedFor?: { documents: string[]; windows: string[] };
 	/**
 	 * Hidden by the Application menu's Hide commands (HIG7 p.127): the app
 	 * stays open, its windows out of sight, until Show All or until it takes
@@ -351,6 +369,13 @@ export const classicyAppEventHandler = (
 
 			break;
 		}
+		// ClassicyApp: the windows that mount with a launch have registered.
+		case "ClassicyAppLaunchSettled": {
+			if (hasApp(action)) {
+				settleAppLaunch(ds, action.app.id);
+			}
+			break;
+		}
 		case "ClassicyAppFocus": {
 			if (hasApp(action)) {
 				focusApp(ds, action.app.id);
@@ -442,18 +467,31 @@ export const classicyAppEventHandler = (
 				if (app) {
 					if (!app.data) app.data = {};
 					const openFiles = app.data.openFiles;
+					const alreadyQueued =
+						Array.isArray(openFiles) && openFiles.includes(action.path);
 					if (!Array.isArray(openFiles)) {
 						app.data.openFiles = [action.path];
 					} else if (!openFiles.includes(action.path)) {
 						app.data.openFiles = [...openFiles, action.path];
 					}
-					// A document open: only the document's window (ClassicyApp's
-					// `${id}_file_${path}`) reopens, and Recent Documents remembers
-					// the path when it names a file.
-					openApp(ds, app.id, app.name, app.icon, {
-						document: action.path,
-						windows: [`${app.id}_file_${action.path}`],
-					});
+					// A document open: only the document's window
+					// (`${id}_file_${path}`, the id ClassicyApp gives it) reopens,
+					// and Recent Documents remembers the path when it names a file.
+					// An app that draws its own windows for the queue under ids of
+					// its own, and kept this path queued when its window closed
+					// (it dispatches no CloseFile), has a window for it that the
+					// kernel cannot name: every window it closed reopens, as a plain
+					// open, so that one does (story 0226-a6f).
+					const ownWindow =
+						alreadyQueued &&
+						app.open &&
+						!getAppWindow(app, classicyDocumentWindowId(app.id, action.path));
+					if (ownWindow) {
+						openApp(ds, app.id, app.name, app.icon);
+						recordClassicyRecentDocument(ds, action.path);
+					} else {
+						openApp(ds, app.id, app.name, app.icon, { document: action.path });
+					}
 				}
 			} else if (action.type.endsWith("CloseFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];

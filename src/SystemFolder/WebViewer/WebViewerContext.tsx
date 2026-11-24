@@ -5,6 +5,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { registerClassicyAppQuitHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppQuitHandlers.internal";
 import {
 	isWebViewerData,
 	WebViewerAppInfo,
@@ -62,6 +63,13 @@ export const classicyWebViewerEventHandler = (
 	}
 	return ds;
 };
+
+// Quit closes the pages, as it closes an app's data.openFiles documents: a
+// later launch never brings a page back (story 0226-a6f).
+registerClassicyAppQuitHandler(WebViewerAppInfo.id, (app) => {
+	if (isWebViewerData(app.data ?? {}))
+		(app.data as WebViewerData).openUrls = [];
+});
 
 // Self-register so the kernel router can dispatch ClassicyAppWebViewer* events
 // without a hard-wired import. registerApp also records the manifest (action

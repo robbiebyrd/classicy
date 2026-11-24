@@ -40,6 +40,14 @@ describe("Recent Items across a reload", () => {
 			};
 			next.System.Manager.Applications.fileTypeHandlers.text_file =
 				"SimpleText.app";
+			// Listed in Applications, as ClassicyApp registers it.
+			next.System.Manager.Desktop.icons.push({
+				appId: "SimpleText.app",
+				appName: "SimpleText",
+				icon: "",
+				kind: "app_shortcut",
+				hidden: true,
+			});
 			return next;
 		});
 		// SimpleText really there, and the document a file (this graph's).

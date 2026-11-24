@@ -3,7 +3,7 @@
 // Infinite Mac: a document launching SimpleText shows that document alone,
 // and quitting closes the app's documents.
 import { produce } from "immer";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type {
 	ActionMessage,
 	ClassicyStore,
@@ -20,6 +20,7 @@ import {
 	setUpRecentItemsFixtures,
 	targets,
 } from "@/SystemFolder/SystemResources/RecentItems/__tests__/recentItemsStore";
+import { markClassicyWindowMounted } from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
 
 setUpRecentItemsFixtures();
 
@@ -114,11 +115,23 @@ describe("documents apps open themselves (review I2, M2)", () => {
 });
 
 describe("opening an app for a document (found during story 0226-a6f)", () => {
-	/** `appId` open, with every window it had closed again. */
-	const withClosedWindows = (appId: string, windowIds: string[]) =>
+	// A window record reopens with its app only while its ClassicyWindow is
+	// mounted (on screen to draw); fix round 2, R1.
+	const releases: (() => void)[] = [];
+	afterEach(() => {
+		for (const release of releases.splice(0)) release();
+	});
+	/** `appId` with every window it had closed again, still mounted unless `unmounted`. */
+	const withClosedWindows = (
+		appId: string,
+		windowIds: string[],
+		unmounted: string[] = [],
+	) =>
 		produce(base(), (draft) => {
 			const app = draft.System.Manager.Applications.apps[appId];
-			for (const id of windowIds)
+			for (const id of windowIds) {
+				if (!unmounted.includes(id))
+					releases.push(markClassicyWindowMounted(appId, id));
 				app.windows[id] = {
 					id,
 					appId,
@@ -127,6 +140,7 @@ describe("opening an app for a document (found during story 0226-a6f)", () => {
 					position: [10, 10],
 					minimumSize: [100, 50],
 				};
+			}
 		});
 	const closed = (ds: ClassicyStore, appId: string, windowId: string) =>
 		getAppWindow(ds.System.Manager.Applications.apps[appId], windowId)?.closed;
@@ -137,6 +151,21 @@ describe("opening an app for a document (found during story 0226-a6f)", () => {
 			open("SimpleText.app"),
 		);
 		expect(closed(ds, "SimpleText.app", "SimpleText_untitled_1")).toBe(false);
+	});
+
+	it("a plain open leaves closed a window that is not on screen to draw (R1)", () => {
+		const docWindow = "SimpleText.app_file_Macintosh HD:Read Me";
+		const ds = reduce(
+			withClosedWindows(
+				"SimpleText.app",
+				["SimpleText_untitled_1", docWindow],
+				[docWindow],
+			),
+			open("SimpleText.app"),
+		);
+		expect(closed(ds, "SimpleText.app", "SimpleText_untitled_1")).toBe(false);
+		// Its ClassicyWindow reopens it if and when it mounts.
+		expect(closed(ds, "SimpleText.app", docWindow)).toBe(true);
 	});
 
 	it("a document open leaves a window the user closed closed, and reopens the document's own", () => {

@@ -18,6 +18,7 @@ import {
 	isPictureViewerData,
 	PictureViewerAppInfo,
 	type PictureViewerOpenFile,
+	pictureViewerWindowId,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
 import { classicyWindowPagePath } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
@@ -30,8 +31,9 @@ import {
 	closeWindowMenuItemHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
+import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { useResolvedMediaSource } from "@/SystemFolder/SystemResources/File/useResolvedMediaSource";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -103,7 +105,9 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		(s) => s.System.Manager.Applications.apps[appId]?.open,
 	);
 
-	const fs = useMemo(() => new ClassicyFileSystem(), []);
+	// The desktop's file system (its storage key: fileSystemStorageKey).
+	const getFileSystem = useClassicyFileSystemAccessor();
+	const fs = useMemo(() => getFileSystem(), [getFileSystem]);
 
 	const rawAppData = appData ?? {};
 	const pictureData = isPictureViewerData(rawAppData) ? rawAppData : null;
@@ -119,7 +123,13 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 	// reload the demo.
 	const hasCheckedInitialLoadRef = useRef(false);
 	useEffect(() => {
-		if (!appOpen || hasCheckedInitialLoadRef.current) return;
+		// A quit ends the check: a later launch is a launch, and loads the
+		// demo again when it opens no document (story 0226-a6f).
+		if (!appOpen) {
+			hasCheckedInitialLoadRef.current = false;
+			return;
+		}
+		if (hasCheckedInitialLoadRef.current) return;
 		hasCheckedInitialLoadRef.current = true;
 		if (!pictureData?.openFiles || pictureData.openFiles.length === 0) {
 			const defaultDocs = [
@@ -156,7 +166,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		() =>
 			openDocuments.map((doc) => ({
 				doc,
-				windowId: `${appId}_PictureViewer_${doc.key}`,
+				windowId: pictureViewerWindowId(doc.key),
 			})),
 		[openDocuments],
 	);

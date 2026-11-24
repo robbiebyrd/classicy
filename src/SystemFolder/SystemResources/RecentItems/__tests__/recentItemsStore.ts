@@ -49,6 +49,15 @@ export const base = (): ClassicyStore =>
 				data: {},
 				...extra,
 			};
+			// What ClassicyApp registers for an app listed in Applications.
+			if (!("extension" in extra))
+				draft.System.Manager.Desktop.icons.push({
+					appId: id,
+					appName: name,
+					icon: `${id}.png`,
+					kind: "app_shortcut",
+					hidden: true,
+				});
 		};
 		add("SimpleText.app", "SimpleText");
 		add("Calculator.app", "Calculator");

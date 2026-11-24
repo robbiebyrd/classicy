@@ -832,6 +832,10 @@ export function sanitizeStateForPersistence(
 			// Hidden by the Application menu's Hide commands: session state, as
 			// Mac OS restores no hidden app (story 0214-c61, ruling R2).
 			delete app.hidden;
+			// Launched for a document: the launch's rule for windows that
+			// mount with it ends with the session (story 0226-a6f).
+			delete app.launching;
+			delete app.launchedFor;
 			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
 				delete w.resizing;

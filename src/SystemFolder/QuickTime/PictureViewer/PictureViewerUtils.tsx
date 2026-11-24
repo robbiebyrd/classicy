@@ -57,3 +57,11 @@ export const PictureViewerAppInfo = {
 		);
 	},
 };
+
+/** What a PictureViewer document is known by: its file-system path, or its URL. */
+export const pictureViewerDocumentKey = (doc: PictureViewerOpenFile): string =>
+	typeof doc === "string" ? doc : doc.url;
+
+/** The id of the window PictureViewer draws for the document known by `key`. */
+export const pictureViewerWindowId = (key: string): string =>
+	`${PictureViewerAppInfo.id}_PictureViewer_${key}`;

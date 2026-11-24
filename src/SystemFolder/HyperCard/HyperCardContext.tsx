@@ -12,6 +12,7 @@ import type {
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { registerClassicyAppQuitHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppQuitHandlers.internal";
 import { updateAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	consumeEffects,
@@ -307,6 +308,17 @@ export const classicyHyperCardEventHandler = (
 // SetVariable, OpenFileConsumed, OpenFileFailed) are internal plumbing
 // between the component and the reducer; only the user-meaningful actions
 // are documented here — a deliberate scoping, not an omission.
+// Quit closes the stacks, as it closes an app's data.openFiles documents: a
+// later launch shows HyperCard's empty window, never a stack it had open
+// (story 0226-a6f). An edit session stays, as a stack's unsaved draft: the
+// Quit asked about it first (HyperCard.tsx), and reopening the stack resumes it.
+registerClassicyAppQuitHandler(HyperCardAppInfo.id, (app) => {
+	if (!isHyperCardData(app.data ?? {})) return;
+	const data = app.data as unknown as HyperCardData;
+	data.openStacks = {};
+	delete data.activeStackId;
+});
+
 registerApp({
 	id: HyperCardAppInfo.id,
 	description: "HyperCard stack player: opens and runs .stack documents.",

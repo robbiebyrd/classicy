@@ -24,6 +24,7 @@ import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/Clas
 import { isClassicyControlPanelApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyControlPanelApps.internal";
 import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { peekClassicyFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 /** The lists Recent Items keeps. (The Mac's Recent Servers has no Classicy counterpart.) */
@@ -244,6 +245,16 @@ export function recordClassicyRecentApp(
 	const app = apps[appId];
 	if (!app || app.extension) return ds;
 	if (isClassicyControlPanelApp(appId)) return ds;
+	// An application the user can find: on the desktop or in the
+	// Applications folder (both built from its app-shortcut icon record). A
+	// helper with neither (Web Viewer, opened only by its pages) has nothing
+	// to show when it is chosen on its own.
+	const icons = ds.System?.Manager?.Desktop?.icons;
+	if (
+		!Array.isArray(icons) ||
+		!icons.some((i) => i.appId === appId && i.kind === APP_SHORTCUT_ICON_KIND)
+	)
+		return ds;
 	return recordClassicyRecentItem(ds, {
 		kind: "application",
 		appId,

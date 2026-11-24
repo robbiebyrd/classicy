@@ -7,7 +7,10 @@ import {
 	MoviePlayerAppInfo,
 	type MoviePlayerData,
 	MoviePlayerDataSchema,
+	type MoviePlayerOpenFile,
 	MoviePlayerOpenFileSchema,
+	moviePlayerDocumentKey,
+	moviePlayerWindowId,
 } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { recordClassicyRecentDocument } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 
@@ -41,20 +44,20 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 	const appData = ds.System.Manager.Applications.apps[appId]
 		.data as MoviePlayerData;
 
-	const openDocUrls = appData.openFiles.map((doc) =>
-		typeof doc === "string" ? undefined : doc.url,
-	);
+	// Each open document's key: a path string is known by its path, a URL
+	// object by its URL (a path string used to map to nothing, so a second
+	// one was skipped as already open).
+	const openDocKeys = appData.openFiles.map(moviePlayerDocumentKey);
 
 	switch (action.type) {
 		case "ClassicyAppMoviePlayerOpenDocument": {
 			if (!action.document) {
 				break;
 			}
-			if (
-				Array.isArray(openDocUrls) &&
-				!openDocUrls.includes(action.document.url)
-			) {
-				appData.openFiles = [...appData.openFiles, action.document];
+			const document = action.document as unknown as MoviePlayerOpenFile;
+			const key = moviePlayerDocumentKey(document);
+			if (!openDocKeys.includes(key)) {
+				appData.openFiles = [...appData.openFiles, document];
 				// A document open: its window opens as it mounts; a
 				// file-system path is remembered under Recent Documents.
 				openApp(
@@ -62,18 +65,23 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 					MoviePlayerAppInfo.id,
 					MoviePlayerAppInfo.name,
 					MoviePlayerAppInfo.icon,
-					// A document is a URL object; one given as a path string
-					// (untyped callers) is a file-system path.
-					typeof (action.document as unknown) === "string"
-						? { document: action.document as unknown as string }
-						: { windows: [] },
+					// Its window: a document is a URL object; one given as a path
+					// string (untyped callers) is a file-system path.
+					typeof document === "string"
+						? { document, windows: [moviePlayerWindowId(key)] }
+						: { windows: [moviePlayerWindowId(key)] },
 				);
 			}
 			break;
 		}
 		case "ClassicyAppMoviePlayerOpenDocuments": {
 			const docs = action.documents?.filter(
-				(doc) => !openDocUrls.includes(doc.url),
+				(doc, index, all) =>
+					!openDocKeys.includes(moviePlayerDocumentKey(doc)) &&
+					all.findIndex(
+						(other) =>
+							moviePlayerDocumentKey(other) === moviePlayerDocumentKey(doc),
+					) === index,
 			);
 			if (!docs) {
 				break;
@@ -84,7 +92,11 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				MoviePlayerAppInfo.id,
 				MoviePlayerAppInfo.name,
 				MoviePlayerAppInfo.icon,
-				{ windows: [] },
+				{
+					windows: docs.map((doc) =>
+						moviePlayerWindowId(moviePlayerDocumentKey(doc)),
+					),
+				},
 			);
 			for (const doc of docs) recordClassicyRecentDocument(ds, doc);
 			break;
@@ -112,7 +124,7 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				MoviePlayerAppInfo.id,
 				MoviePlayerAppInfo.name,
 				MoviePlayerAppInfo.icon,
-				{ document: action.path },
+				{ document: action.path, windows: [moviePlayerWindowId(action.path)] },
 			);
 			break;
 		}
