@@ -169,8 +169,8 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		menu: { popUpMaxHeight: 300, markPixel: 1 },
 		table: { resizerWidth: 15 },
 		stripMenu: { overlap: 3 },
-		// `pixel`: the grid of Platinum's checkbox art, its bevel and its
-		// marks (_Checkbox.scss, _marks.scss), on the floor for the same
+		// `pixel`: the grid of Platinum's checkbox marks (_marks.scss; the
+		// box's bevel follows the window metrics), on the floor for the same
 		// reason (story 0225-ci7, fix round 3).
 		checkbox: { pixel: 1 },
 		// Platinum's own partials' knobs (_Window.scss, _QuickTimeMovieEmbed

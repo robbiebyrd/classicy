@@ -3259,12 +3259,15 @@ Charcoal has neither glyph, so a font glyph fell back to whatever font the
 browser found), on the title's baseline at the mark column's left edge
 (a 9 × 8 check, a 7 × 7 diamond, the palette's check after a space). The
 checkbox is HIGOS8 Figure 2-8 (p.28) pixel for pixel, as Mac OS 8.1
-draws it (`_Checkbox.scss`, `_marks.scss`, on its own grid knob
-`checkbox.pixel`): the box (a black frame; inside it a white top and left
-edge and a #888888 right and bottom edge, the two corners where they meet
-in the #DDDDDD face; no shadow outside; pressed, a #777777 face between
-#555555 and #999999 edges; dimmed, a #888888 frame around the face alone)
-and its marks, the Appearance Manager's own shaded bitmaps, not a font's:
+draws it at the default metrics (`_Checkbox.scss`, `_marks.scss`): the box
+(a black frame; inside it a white top and left edge and a #888888 right and
+bottom edge, the two corners where they meet in the #DDDDDD face; no shadow
+outside; pressed, a #777777 face between #555555 and #999999 edges; dimmed,
+a #888888 frame around the face alone), its bevel bands a
+`window.borderSize` wide and running from the box's edges, so it follows
+the editable `window.controlSize` and `window.borderSize` as the inset
+shadows it replaced did, and its marks, fixed art on their own grid knob
+`checkbox.pixel`, the Appearance Manager's own shaded bitmaps, not a font's:
 the check (drawn from the box's inner corner over a 13 × 9 area that
 reaches two pixels past the box's right side), the mixed dash and the X
 (`mark="x"`), each at rest, pressed and dimmed as the figure draws them
@@ -5137,7 +5140,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | yes | _Slider.scss |
 | `slider.tickWidth` | `--slider-tick-width` | 3 | — | yes | _Slider.scss |
 | `slider.tickHeight` | `--slider-tick-height` | 8 | — | yes | _Slider.scss |
-| `checkbox.pixel` | `--checkbox-pixel` | 1 | — | yes | _Checkbox.scss, _marks.scss (the grid of the checkbox's bevel, check, mixed dash and X, Figure 2-8's bitmaps; on the floor so a theme of another package drawn under Platinum keeps its checkboxes) |
+| `checkbox.pixel` | `--checkbox-pixel` | 1 | — | yes | _marks.scss (the grid of the checkbox's check, mixed dash and X, Figure 2-8's bitmaps; on the floor so a theme of another package drawn under Platinum keeps its checkboxes) |
 | `fileBrowserList.mediumIconSize` | `--file-browser-list-medium-icon-size` | 16 | — | no | ClassicyFileBrowser.tsx (optional; HIGOS8 Fig. 2-24) |
 | `fileBrowserList.rowPadding` | `--file-browser-list-row-padding` | 1 | — | no | ClassicyFileBrowserViewTable.scss (optional; HIGOS8 Fig. 2-24) |
 
@@ -5807,8 +5810,8 @@ the list ends at these 45 sites over 12 files, the sites kept on purpose
   the box's overhang of the channel), geometry, not a role (H-R21).
 - Platinum's `_marks.scss`, the `menu-mark-pixel × n` and the
   `checkbox-pixel × n` in its `px()` helper: Charcoal 12's menu check and
-  diamond from Mac OS 8.1, and the checkbox's bevel, check, mixed dash and
-  X from HIGOS8 Figure 2-8 (story 0225-ci7), one-pixel rectangles on each
+  diamond from Mac OS 8.1, and the checkbox's check, mixed dash and X from
+  HIGOS8 Figure 2-8 (story 0225-ci7), one-pixel rectangles on each
   art's grid inside
   `classicy-px-rect` (H-R7), as System 7's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection

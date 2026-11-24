@@ -22,8 +22,9 @@
 // figure's through the emulator's display (E7 for DD, A5 for 88, C0 for AA,
 // 96 for 77, 77 for 55), so the inks are the figure's, HIGOS8's gray ramp
 // (`grayRamp`, with the core token nearest each as the fallback for a theme
-// of another package). They, and the box's bevel (_Checkbox.scss), are
-// drawn on the checkbox's own grid, `checkbox.pixel` (1). The multiplier
+// of another package). They are drawn on the checkbox's own grid,
+// `checkbox.pixel` (1); the box's bevel (_Checkbox.scss) follows the
+// window metrics the box is sized by. The multiplier
 // allowlist names this file's two sites, one per grid, in `px()`.
 @use "sass:list";
 @use "sass:map";

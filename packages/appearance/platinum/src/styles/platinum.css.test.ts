@@ -699,9 +699,70 @@ describe("platinum.scss (compiled)", () => {
 			if (!m) throw new Error(`not a grid length: ${n}`);
 			return Number(m[1]);
 		};
+		// Arithmetic over numbers, `+ - * /` and parentheses: a `calc()`
+		// with its variables put in.
+		const evaluate = (text: string): number => {
+			const tokens = text.match(/\d+(?:\.\d+)?|[-+*/()]/g) ?? [];
+			let at = 0;
+			const factor = (): number => {
+				const token = tokens[at++];
+				if (token === "(") {
+					const value = sum();
+					at++;
+					return value;
+				}
+				if (token === "-") return -factor();
+				return Number(token);
+			};
+			const product = (): number => {
+				let value = factor();
+				while (tokens[at] === "*" || tokens[at] === "/")
+					value = tokens[at++] === "*" ? value * factor() : value / factor();
+				return value;
+			};
+			const sum = (): number => {
+				let value = product();
+				while (tokens[at] === "+" || tokens[at] === "-")
+					value = tokens[at++] === "+" ? value + product() : value - product();
+				return value;
+			};
+			return sum();
+		};
+		// A length of the box's bevel at a control size `c` and a frame width
+		// `b` (the theme's `window.controlSize` and `window.borderSize`, CSS
+		// pixels), `100%` being the padding box's side.
+		const metricLength = (c: number, b: number) => (expr: string) => {
+			const text = expr
+				.replaceAll("var(--window-border-size)", String(b))
+				.replaceAll("var(--control-frame-width)", String(b * 2))
+				.replace(/(\d+(?:\.\d+)?)%/g, (_all, n: string) =>
+					String((Number(n) / 100) * (c - b * 2)),
+				)
+				.replace(/^calc/, "");
+			if (!/^[\d\s.+\-*/()]+$/.test(text))
+				throw new Error(`not a box length: ${expr}`);
+			return evaluate(text);
+		};
+		// A CSS value's space-separated words, parentheses kept whole.
+		const words = (value: string) => {
+			const out: string[] = [];
+			let depth = 0;
+			let word = "";
+			for (const ch of value.trim()) {
+				if (ch === "(") depth++;
+				if (ch === ")") depth--;
+				if (ch === " " && depth === 0) {
+					if (word) out.push(word);
+					word = "";
+				} else word += ch;
+			}
+			if (word) out.push(word);
+			return out;
+		};
 		// A background's pixel layers, by ink (`linear-gradient(ink, ink) x
-		// y / w h no-repeat`), and the color under them, if any.
-		const decode = (background: string) => {
+		// y / w h no-repeat`, the position two values or edge-offset pairs
+		// against a padding box `side` long), and the color under them.
+		const decode = (background: string, length = grid, side = 0) => {
 			const art = new Map<string, string>();
 			let color: string | undefined;
 			for (const layer of background.split(" no-repeat")) {
@@ -727,8 +788,16 @@ describe("platinum.scss (compiled)", () => {
 					.slice(close + 1)
 					.trim()
 					.split(/\s*\/\s*/);
-				const [x, y] = place.split(/ (?![^(]*\))/).map(grid);
-				const [w, h] = size.split(/ (?![^(]*\))/).map(grid);
+				const [w, h] = words(size).map(length);
+				const at = words(place);
+				const edge = (name: string, offset: string, extent: number) =>
+					name === "right" || name === "bottom"
+						? side - extent - length(offset)
+						: length(offset);
+				const [x, y] =
+					at.length === 4
+						? [edge(at[0], at[1], w), edge(at[2], at[3], h)]
+						: at.map(length);
 				for (let dy = 0; dy < h; dy++)
 					for (let dx = 0; dx < w; dx++) {
 						const key = `${x + dx},${y + dy}`;
@@ -740,19 +809,51 @@ describe("platinum.scss (compiled)", () => {
 		};
 		const asInks = (art: Map<string, string>) =>
 			new Map([...art].map(([key, level]) => [key, INK[level]]));
-		// The 12 x 12 box a rule draws: its frame, then the padding box's
-		// layers over its face color.
-		const box = (frame: string, background: string) => {
-			const { art, color } = decode(background);
+		// The box a rule draws at a control size `c` and a frame width `b`
+		// (Figure 2-8's 12 and 1 by default): its frame, then the padding
+		// box's layers over its face color.
+		const box = (frame: string, background: string, c = 12, b = 1) => {
+			const { art, color } = decode(background, metricLength(c, b), c - b * 2);
 			const rows: string[][] = [];
-			for (let y = 0; y < 12; y++) {
+			for (let y = 0; y < c; y++) {
 				const row: string[] = [];
-				for (let x = 0; x < 12; x++)
+				for (let x = 0; x < c; x++)
 					row.push(
-						x === 0 || y === 0 || x === 11 || y === 11
+						x < b || y < b || x >= c - b || y >= c - b
 							? frame
-							: (art.get(`${x - 1},${y - 1}`) ?? String(color)),
+							: (art.get(`${x - b},${y - b}`) ?? String(color)),
 					);
+				rows.push(row);
+			}
+			return rows;
+		};
+		// Figure 2-8's bevel at any size: a frame `b` wide, then bands `b`
+		// wide inside it, the highlight's along the top (short of the top
+		// right corner) and the left (between the corners), the shadow's
+		// along the right (below the top right corner) and the bottom
+		// (between the corners), the corners left to the face.
+		const bevelModel = (
+			c: number,
+			b: number,
+			[frame, light, dark, face]: string[],
+		) => {
+			const side = c - b * 2;
+			const rows: string[][] = [];
+			for (let y = 0; y < c; y++) {
+				const row: string[] = [];
+				for (let x = 0; x < c; x++) {
+					const [u, v] = [x - b, y - b];
+					row.push(
+						x < b || y < b || x >= c - b || y >= c - b
+							? frame
+							: (v < b && u < side - b) || (u < b && v >= b && v < side - b)
+								? light
+								: (u >= side - b && v >= b) ||
+										(v >= side - b && u >= b && u < side - b)
+									? dark
+									: face,
+					);
+				}
 				rows.push(row);
 			}
 			return rows;
@@ -854,6 +955,40 @@ describe("platinum.scss (compiled)", () => {
 			);
 			// No package rule anywhere gives the box a shadow.
 			expect(flat).not.toMatch(/\.classicyCheckbox[^{]*\{[^}]*box-shadow/);
+		});
+
+		// Re-review 2, C1: the box is the theme's `window.controlSize` square
+		// in a `window.borderSize` frame, both editable; the bevel follows
+		// them, Figure 2-8's at the default metrics.
+		it("draws the bevel from the box's metrics, the figure's at the default ones", () => {
+			const REST = [FRAME, INK.FF, INK["88"], INK.DD];
+			const PRESSED = [FRAME, INK["55"], INK["99"], INK["77"]];
+			expect(bevelModel(12, 1, REST)).toEqual(
+				figureBox(FIGURE_2_8.empty, FRAME),
+			);
+			expect(bevelModel(12, 1, PRESSED)).toEqual(
+				figureBox(FIGURE_2_8.emptyPressed, FRAME),
+			);
+			const rest = rule(CB).props.background;
+			const pressed = rule(`${CB}:active`).props.background;
+			const dimmed = rule(`${CB}:disabled, ${CB}:disabled:active`).props
+				.background;
+			for (const [c, b] of [
+				[12, 1],
+				[16, 1],
+				[12, 2],
+				[20, 3],
+				[13, 1],
+			]) {
+				expect(box(FRAME, rest, c, b), `${c}/${b}`).toEqual(
+					bevelModel(c, b, REST),
+				);
+				expect(box(FRAME, pressed, c, b), `${c}/${b} pressed`).toEqual(
+					bevelModel(c, b, PRESSED),
+				);
+				const flat = box(DIMMED_FRAME, dimmed, c, b).flat();
+				expect(new Set(flat)).toEqual(new Set([DIMMED_FRAME, INK.DD]));
+			}
 		});
 
 		const MARKS = `${CB}:checked::after, ${CB}.mixed::after`;

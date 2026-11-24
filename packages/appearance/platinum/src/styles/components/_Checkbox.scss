@@ -12,26 +12,32 @@
 // - Pressed: the face #777777, the highlight #555555 and the shadow #999999.
 // - Dimmed: a #888888 frame around the face alone.
 //
-// Every pixel is art on the checkbox's grid (`checkbox.pixel`), from the
-// padding box's corner; the grays are the gray ramp, each with the core
+// The bevel follows the box, as the inset shadows it replaced did: the box
+// is the base sheet's `window.controlSize` square in a `window.borderSize`
+// frame, both editable, so each band is a frame's width thick (Figure 2-8's
+// one pixel at the default metrics) and runs from an edge of the padding
+// box, its length the padding box's less the corner it leaves to the face.
+// The marks are fixed art on the checkbox's grid (`checkbox.pixel`), from
+// the padding box's corner. The grays are the gray ramp, each with the core
 // token nearest it for a theme of another package.
-@use "sass:list";
+@use "pkg:@classicy/classicy/scss/layout";
 @use "../marks";
 
-// The bevel: the highlight's top row and left column, the shadow's right
-// column and bottom row, in the padding box (10 x 10), its corners left to
-// the face.
-$highlight: (0 0 9 1) (0 1 1 8);
-$shadow: (9 1 1 9) (1 9 8 1);
+$band: var(--window-border-size);
+// Two bands: the frame's width doubled, a core derivation (`window.borderSize`
+// x 2), so no multiplier of the editable metric is written here.
+$two-bands: var(--control-frame-width);
 
-// The bevel's layers over the face's color.
+// The bevel's layers over the face's color: the highlight's top row (to the
+// corner it leaves at the top right) and left column (below that row, to
+// the corner at the bottom left), the shadow's right column (below the top
+// right corner, to the bottom) and bottom row (between the corners).
 @function bevel($light, $dark, $face) {
-  $layers: list.join(
-    marks.pixel-art($light, $highlight, checkbox),
-    marks.pixel-art($dark, $shadow, checkbox),
-    $separator: comma
-  );
-  @return list.append($layers, $face, $separator: comma);
+  @return layout.classicy-px-rect($light, 0, 0, calc(100% - #{$band}), $band),
+    layout.classicy-px-rect($light, 0, $band, $band, calc(100% - #{$two-bands})),
+    layout.classicy-px-rect($dark, right 0, top $band, $band, calc(100% - #{$band})),
+    layout.classicy-px-rect($dark, left $band, bottom 0, calc(100% - #{$two-bands}), $band),
+    $face;
 }
 
 @mixin checkbox {
