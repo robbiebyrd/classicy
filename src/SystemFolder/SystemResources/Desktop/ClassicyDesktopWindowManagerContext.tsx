@@ -183,10 +183,14 @@ export const classicyWindowEventHandler = (
 				flags.collapsable = win.collapsable;
 			if (typeof win.modal === "boolean") flags.modal = win.modal;
 			// An app launched for a document opens only that document's
-			// windows: another of its windows mounting with the launch (a main
-			// window, one the user closed before the quit) registers closed
-			// (story 0226-a6f).
-			const mayOpen = mayClassicyWindowReopen(app, win.id);
+			// windows (and its dialogs and palettes): another of its windows
+			// mounting with the launch (a main window, one the user closed
+			// before the quit) registers closed, until the launch's end opens
+			// it should nothing else have opened (story 0226-a6f).
+			const mayOpen = mayClassicyWindowReopen(app, win.id, {
+				modal: win.modal,
+				windowType: win.windowType ?? getAppWindow(app, win.id)?.windowType,
+			});
 			if (!getAppWindow(app, win.id)) {
 				// G18: only a window that supplied no position is cascaded, by the
 				// number already registered. The signal is explicit: [0, 0] is a

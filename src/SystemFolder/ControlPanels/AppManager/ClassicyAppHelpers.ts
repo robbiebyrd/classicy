@@ -8,6 +8,7 @@ import {
 	listAppWindows,
 	mostRecentAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -15,10 +16,7 @@ import {
 	recordClassicyRecentApp,
 	recordClassicyRecentDocument,
 } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
-import {
-	classicyAppHandlesOwnFiles,
-	isClassicyWindowMounted,
-} from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
+import { isClassicyWindowMounted } from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
 
 // An app id is library input (a host's `ClassicyApp` id, a stack's
 // `ClassicyAppOpen`). Indexed plainly, `apps["__proto__"]` is
@@ -287,12 +285,15 @@ const showsClassicyDocument = (
  * - A **document** open (`options.document` or `options.windows`) reopens
  *   only the document's windows (`${appId}_file_${document}`, or the ids
  *   named) and brings them to the front; every other window the app closed
- *   stays closed. When it launches the app (the app was not open), the
- *   windows that mount with the launch are held to the same rule
- *   (`launchedFor`, read by `mayClassicyWindowReopen`), so after a quit a
- *   document open shows only that document, as while the app runs.
- *   `ClassicyApp` ends the launch once its windows have mounted
- *   (`ClassicyAppLaunchSettled`); a plain open or a quit ends it too.
+ *   stays closed. When it launches the app (the app was not open, its
+ *   `ClassicyApp` mounted), the windows that mount with the launch are held
+ *   to the same rule (`launchedFor`, read by `mayClassicyWindowReopen`;
+ *   modal and utility windows are never held), so after a quit, or on a
+ *   first launch, a document open shows only that document, as while the
+ *   app runs. `ClassicyApp` ends the launch once its windows have mounted
+ *   (`ClassicyAppLaunchSettled`, `settleAppLaunch`, which opens the held
+ *   windows after all when none of the app's windows opened); a plain open
+ *   or a quit ends it too.
  *
  * Every open of an app that is there is remembered under Recent
  * Applications, and a document's path under Recent Documents.
@@ -312,7 +313,9 @@ export function openApp(
 	};
 	const findApp = ownApp(ds, appId);
 	if (findApp) {
-		const launching = !findApp.open;
+		// A launch is tracked only for an app whose ClassicyApp is mounted:
+		// that is what ends it (ClassicyAppLaunchSettled).
+		const launching = !findApp.open && isClassicyAppMounted(appId);
 		findApp.open = true;
 		if (launching) findApp.launching = true;
 		if (!forDocument) {
@@ -348,8 +351,9 @@ export function openApp(
 			windows: {},
 			open: true,
 			data: {},
-			launching: true,
-			...(forDocument ? { launchedFor: open } : {}),
+			...(isClassicyAppMounted(appId)
+				? { launching: true, ...(forDocument ? { launchedFor: open } : {}) }
+				: {}),
 		};
 	}
 	// A launch (only of an app that is really there: recordClassicyRecentApp),
@@ -370,9 +374,22 @@ export function settleAppLaunch(ds: ClassicyStore, appId: string) {
 	const app = ownApp(ds, appId);
 	if (!app) return;
 	const launching = app.launching === true;
+	const forDocument = app.launchedFor !== undefined;
 	delete app.launching;
 	delete app.launchedFor;
-	if (!launching || !app.open || !app.focused) return;
+	if (!launching || !app.open) return;
+	// A document launch that opened no window of the app (its document shows
+	// in a window of the app's own, not one the launch could name): fail
+	// open, reopening every mounted window as a plain launch does, so the
+	// app is never left in front with nothing on screen.
+	if (forDocument && !listAppWindows(app).some((w) => !w.closed)) {
+		for (const w of listAppWindows(app)) {
+			if (!w.closed || !isClassicyWindowMounted(appId, w.id)) continue;
+			w.closed = false;
+			w.closedThisSession = false;
+		}
+	}
+	if (!app.focused) return;
 	if (listAppWindows(app).some((w) => w.focused && !w.closed)) return;
 	const restore = pickWindowToRestore(app);
 	if (restore) focusWindow(ds, appId, restore.id);
@@ -380,25 +397,22 @@ export function settleAppLaunch(ds: ClassicyStore, appId: string) {
 
 /**
  * Whether a window that mounts while its app is being launched for a
- * document (`launchedFor`) may open: only when it shows the document. When
- * the kernel cannot tell which window that is (the app draws its own
- * document windows under ids of its own, none of them `${appId}_file_…`,
- * and the open named none), every window opens, as a plain launch.
+ * document (`launchedFor`) may open: when it shows the document, and always
+ * for a modal window (a dialog the document's opening asks, such as a
+ * HyperCard stack's `answer`) and a utility window (a palette, such as
+ * HyperCard's Tools and Info), which accompany documents rather than
+ * compete with them. Any other window waits for the launch's end, which
+ * opens it after all when no window of the app opened (`settleAppLaunch`).
  */
 export function mayClassicyWindowReopen(
 	app: ClassicyStoreSystemApp,
 	windowId: string,
+	window: { modal?: unknown; windowType?: unknown } = {},
 ): boolean {
 	const launch = app.launchedFor;
 	if (!launch) return true;
-	if (showsClassicyDocument(app.id, windowId, launch)) return true;
-	const known =
-		launch.windows.length > 0 ||
-		!classicyAppHandlesOwnFiles(app.id) ||
-		listAppWindows(app).some((w) =>
-			w.id.startsWith(classicyDocumentWindowId(app.id, "")),
-		);
-	return !known;
+	if (window.modal === true || window.windowType === "utility") return true;
+	return showsClassicyDocument(app.id, windowId, launch);
 }
 
 export function loadApp(

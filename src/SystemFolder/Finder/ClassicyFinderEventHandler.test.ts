@@ -584,9 +584,10 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with an app s
 		expect(app.focused).toBe(true);
 		// Its window reopens as its ClassicyWindow mounts with the app, not
 		// before: a record never reads open with nothing on screen (story
-		// 0226-a6f, R1).
+		// 0226-a6f, R1). No ClassicyApp is mounted here, so no launch is
+		// tracked (nothing would end it).
 		expect(listAppWindows(app)[0].closed).toBe(true);
-		expect(app.launching).toBe(true);
+		expect(app.launching).toBeUndefined();
 		expect(ds.System.Manager.Desktop.errorDialog).toBeUndefined();
 	});
 

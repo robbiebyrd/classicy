@@ -2,9 +2,16 @@
 // documents, and what a later launch shows. Whole-desktop tests: every window
 // record left open must be a window on screen.
 import "@/__tests__/withPlatinum";
-import { act, render, waitFor } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { openApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import {
 	type ActionMessage,
 	DefaultAppManagerState,
@@ -12,8 +19,10 @@ import {
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
 	dispatch,
+	sanitizeStateForPersistence,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
 	getAppWindow,
 	listAppWindows,
@@ -26,6 +35,9 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
 import "@/SystemFolder/PDFViewer/PDFViewerContext";
+import "@/SystemFolder/HyperCard/HyperCardContext";
+import "@/SystemFolder/HyperCard/Editor/HyperCardEditorContext";
+import type { HCStack } from "@/SystemFolder/HyperCard/HyperCardModel";
 
 const READ_ME = "Macintosh HD:Documents:Read Me.txt";
 const NOTES = "Macintosh HD:Documents:Notes.txt";
@@ -110,15 +122,107 @@ const OwnIdsApp = () => {
 	);
 };
 
+/**
+ * A host that opens documents by its own action, as §11 tells it to
+ * (`openApp(…, { document })`), into one window of its own: the launch names
+ * no window the kernel can match (re-review 2, A3).
+ */
+registerApp({
+	id: "DocHost.app",
+	description: "Shows one document at a time.",
+	prefix: "ClassicyAppDocHost",
+	handler: (ds, action) => {
+		if (
+			action.type === "ClassicyAppDocHostShow" &&
+			typeof action.path === "string"
+		) {
+			const app = ds.System.Manager.Applications.apps["DocHost.app"];
+			if (app) app.data = { ...(app.data ?? {}), current: action.path };
+			openApp(ds, "DocHost.app", "DocHost", "", { document: action.path });
+		}
+		return ds;
+	},
+	actions: {
+		ClassicyAppDocHostShow: { description: "Show a document." },
+	},
+});
+
+const DocHostApp = () => (
+	<ClassicyApp id="DocHost.app" name="DocHost" icon="">
+		<ClassicyWindow
+			id="dochost_main"
+			title="DocHost"
+			appId="DocHost.app"
+			initialSize={[200, 100]}
+			initialPosition={[30, 80]}
+		>
+			<span>current document</span>
+		</ClassicyWindow>
+	</ClassicyApp>
+);
+
+/** A `handlesOwnFiles` host that follows the convention, with a main window too (re-review 2, X15). */
+const ConvHostApp = () => {
+	const files = useAppManager(
+		(s) => s.System.Manager.Applications.apps["ConvHost.app"]?.data?.openFiles,
+	);
+	const queued: string[] = Array.isArray(files) ? files : [];
+	return (
+		<ClassicyApp
+			id="ConvHost.app"
+			name="ConvHost"
+			icon=""
+			handlesOwnFiles={true}
+			handlesFileTypes={[ClassicyFileSystemEntryFileType.TextFile]}
+		>
+			<ClassicyWindow
+				id="conv_main"
+				title="ConvHost"
+				appId="ConvHost.app"
+				initialSize={[200, 100]}
+				initialPosition={[40, 90]}
+			>
+				<span>main</span>
+			</ClassicyWindow>
+			{queued.map((path) => (
+				<ClassicyWindow
+					key={path}
+					id={`ConvHost.app_file_${path}`}
+					title={path.split(":").pop()}
+					appId="ConvHost.app"
+					initialSize={[200, 100]}
+					initialPosition={[50, 100]}
+				>
+					<span>{path}</span>
+				</ClassicyWindow>
+			))}
+		</ClassicyApp>
+	);
+};
+
 const renderDesktop = () =>
 	render(
 		<ClassicyAppManagerProvider>
 			<ClassicyDesktop controlStrip={false}>
 				<HostApp />
 				<OwnIdsApp />
+				<DocHostApp />
+				<ConvHostApp />
 			</ClassicyDesktop>
 		</ClassicyAppManagerProvider>,
 	);
+
+const welcomeStack: HCStack = {
+	name: "Welcome",
+	stackScript: {
+		onOpenStack: [{ do: "answer", message: "Welcome", buttons: ["Yes", "No"] }],
+	},
+	cards: [{ id: "c1", name: "One" }],
+};
+const plainStack: HCStack = {
+	name: "Plain",
+	cards: [{ id: "c1", name: "One" }],
+};
 
 const INTEGRATION_TIMEOUT_MS = 20_000;
 
@@ -164,6 +268,31 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 			expect(open).toHaveLength(1);
 			expect(open[0].id).not.toContain("clip.mp4");
 			expect(focusedWindow("MoviePlayer.app")).toBe(open[0].id);
+		});
+		expect(phantomWindows()).toEqual([]);
+	});
+
+	it("Movie Player: a Quit and a relaunch in one tick still load the sample (re-review 2, M2)", async () => {
+		renderDesktop();
+		launch("MoviePlayer.app", "Movie Player");
+		await waitFor(() =>
+			expect(
+				listAppWindows(apps()["MoviePlayer.app"]).some((w) => !w.closed),
+			).toBe(true),
+		);
+		act(() => {
+			dispatch({ type: "ClassicyAppClose", app: { id: "MoviePlayer.app" } });
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: "MoviePlayer.app", name: "Movie Player", icon: "" },
+			});
+		});
+		await waitFor(() => {
+			const open = listAppWindows(apps()["MoviePlayer.app"]).filter(
+				(w) => !w.closed,
+			);
+			expect(open).toHaveLength(1);
+			expect(onScreen("MoviePlayer.app", open[0].id)).toBe(true);
 		});
 		expect(phantomWindows()).toEqual([]);
 	});
@@ -310,6 +439,22 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 			expect(phantomWindows()).toEqual([]);
 		});
 
+		it("holds for a handlesOwnFiles host's first launch by a document (X15)", async () => {
+			renderDesktop();
+			send({
+				type: "ClassicyAppConvHostOpenFile",
+				app: { id: "ConvHost.app" },
+				path: READ_ME,
+			});
+			await waitFor(() =>
+				expect(onScreen("ConvHost.app", `ConvHost.app_file_${READ_ME}`)).toBe(
+					true,
+				),
+			);
+			expect(onScreen("ConvHost.app", "conv_main")).toBe(false);
+			expect(phantomWindows()).toEqual([]);
+		});
+
 		it("shows Movie Player's document alone, not the demo", async () => {
 			renderDesktop();
 			launch("MoviePlayer.app", "Movie Player");
@@ -427,6 +572,178 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 			expect(onScreen("Host.app", "host_main")).toBe(false);
 			expect(focusedWindow("Host.app")).toBe(`Host.app_file_${READ_ME}`);
 			void user;
+		});
+	});
+
+	describe("a document launch never holds a dialog or a palette (re-review 2, A1)", () => {
+		it("shows the answer dialog a stack's onOpenStack asks, HyperCard closed", async () => {
+			renderDesktop();
+			send({
+				type: "ClassicyAppHyperCardOpenStack",
+				stackId: "welcome",
+				stack: welcomeStack,
+			});
+			await waitFor(() => {
+				expect(onScreen("HyperCard.app", "hypercard_main")).toBe(true);
+				expect(onScreen("HyperCard.app", "hypercard_dialog")).toBe(true);
+			});
+			expect(phantomWindows()).toEqual([]);
+		});
+
+		it("shows the Tools and Info palettes of an edit session that survived Quit", async () => {
+			renderDesktop();
+			send({
+				type: "ClassicyAppHyperCardOpenStack",
+				stackId: "plain",
+				stack: plainStack,
+			});
+			send({ type: "ClassicyAppHCEditEnter", stackId: "plain" });
+			await waitFor(() => {
+				expect(onScreen("HyperCard.app", "hypercard_tools")).toBe(true);
+				expect(onScreen("HyperCard.app", "hypercard_inspector")).toBe(true);
+			});
+			quit("HyperCard.app");
+			const data = apps()["HyperCard.app"].data as {
+				edits?: Record<string, unknown>;
+			};
+			expect(Object.keys(data.edits ?? {})).toEqual(["plain"]);
+			expect(phantomWindows()).toEqual([]);
+
+			send({
+				type: "ClassicyAppHyperCardOpenStack",
+				stackId: "plain",
+				stack: plainStack,
+			});
+			await waitFor(() => {
+				expect(onScreen("HyperCard.app", "hypercard_main")).toBe(true);
+				expect(onScreen("HyperCard.app", "hypercard_tools")).toBe(true);
+				expect(onScreen("HyperCard.app", "hypercard_inspector")).toBe(true);
+			});
+			expect(phantomWindows()).toEqual([]);
+		});
+	});
+
+	describe("a document launch that opens no window fails open (re-review 2, A3)", () => {
+		const show = (path: string) =>
+			send({
+				type: "ClassicyAppDocHostShow",
+				app: { id: "DocHost.app" },
+				path,
+			});
+
+		it("shows the host's own window on a first launch by a document", async () => {
+			renderDesktop();
+			show(READ_ME);
+			await waitFor(() => {
+				expect(onScreen("DocHost.app", "dochost_main")).toBe(true);
+				expect(focusedWindow("DocHost.app")).toBe("dochost_main");
+			});
+			expect(apps()["DocHost.app"].launchedFor).toBeUndefined();
+			expect(phantomWindows()).toEqual([]);
+		});
+
+		it("shows it on a relaunch by a document after Quit", async () => {
+			renderDesktop();
+			show(READ_ME);
+			await waitFor(() =>
+				expect(onScreen("DocHost.app", "dochost_main")).toBe(true),
+			);
+			quit("DocHost.app");
+			expect(onScreen("DocHost.app", "dochost_main")).toBe(false);
+			show(NOTES);
+			await waitFor(() => {
+				expect(onScreen("DocHost.app", "dochost_main")).toBe(true);
+				expect(focusedWindow("DocHost.app")).toBe("dochost_main");
+			});
+			expect(phantomWindows()).toEqual([]);
+		});
+
+		it("still holds a main window when the document's own window opened", async () => {
+			renderDesktop();
+			send({
+				type: "ClassicyAppHostOpenFile",
+				app: { id: "Host.app" },
+				path: READ_ME,
+			});
+			await waitFor(() =>
+				expect(onScreen("Host.app", `Host.app_file_${READ_ME}`)).toBe(true),
+			);
+			expect(onScreen("Host.app", "host_main")).toBe(false);
+		});
+	});
+
+	describe("PDF Viewer is never left running with nothing to show (re-review 2, A2)", () => {
+		const PDF = "PDFViewer.app";
+		const GUIDE = "Macintosh HD:Documents:Guide.pdf";
+		const dialog = () =>
+			document.getElementById(
+				`${PDF}_${PDF}_open_dialog`,
+			) as HTMLElement | null;
+		const cancelDialog = () =>
+			act(() => {
+				fireEvent.click(within(dialog() as HTMLElement).getByText("Cancel"));
+			});
+		const savedOpen = () =>
+			sanitizeStateForPersistence(useAppManager.getState()).System.Manager
+				.Applications.apps[PDF]?.open;
+
+		it("quits on Cancel in its Open dialog, on the first launch and on a relaunch", async () => {
+			renderDesktop();
+			launch(PDF, "PDF Viewer");
+			await waitFor(() => expect(dialog()).not.toBeNull());
+			cancelDialog();
+			await waitFor(() => expect(apps()[PDF].open).toBe(false));
+			expect(savedOpen()).toBe(false);
+			expect(phantomWindows()).toEqual([]);
+
+			launch(PDF, "PDF Viewer");
+			await waitFor(() => expect(dialog()).not.toBeNull());
+			expect(apps()[PDF].open).toBe(true);
+			cancelDialog();
+			await waitFor(() => expect(apps()[PDF].open).toBe(false));
+			expect(savedOpen()).toBe(false);
+		});
+
+		it("quits when its last document closes", async () => {
+			renderDesktop();
+			send({
+				type: "ClassicyAppPDFViewerOpenFile",
+				app: { id: PDF },
+				path: GUIDE,
+			});
+			await waitFor(() =>
+				expect(onScreen(PDF, `${PDF}_file_${GUIDE}`)).toBe(true),
+			);
+			send({
+				type: "ClassicyWindowClose",
+				app: { id: PDF },
+				window: { id: `${PDF}_file_${GUIDE}` },
+			});
+			send({
+				type: "ClassicyAppPDFViewerCloseFile",
+				app: { id: PDF },
+				path: GUIDE,
+			});
+			await waitFor(() => expect(apps()[PDF].open).toBe(false));
+			expect(savedOpen()).toBe(false);
+		});
+
+		it("quits when a saved session left it running with no document", async () => {
+			useAppManager.setState((s) => {
+				const next = structuredClone(s);
+				next.System.Manager.Applications.apps[PDF] = {
+					id: PDF,
+					name: "PDF Viewer",
+					icon: "",
+					windows: {},
+					open: true,
+					data: { openFiles: [] },
+				};
+				return next;
+			});
+			renderDesktop();
+			await waitFor(() => expect(apps()[PDF].open).toBe(false));
+			expect(dialog()).toBeNull();
 		});
 	});
 });

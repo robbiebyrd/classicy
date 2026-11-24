@@ -20,7 +20,6 @@ import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { canonicalChord } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { markClassicyAppHandlesOwnFiles } from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 /** A keyboard chord an `extension` app registers app-wide (`globalShortcuts`). */
@@ -280,13 +279,6 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	// Runtime presence, separate from the persisted app record: Control Strip
 	// modules registered with this app's id show only while it is mounted.
 	useEffect(() => markClassicyAppMounted(id), [id]);
-	// The kernel names the document windows ClassicyApp draws below
-	// (`${id}_file_${path}`), not an app's own (mayClassicyWindowReopen).
-	useEffect(
-		() => (handlesOwnFiles ? markClassicyAppHandlesOwnFiles(id) : undefined),
-		[id, handlesOwnFiles],
-	);
-
 	// A launch ends once the windows that mount with it have registered:
 	// their effects run before this one, in the commit that opened the app.
 	const launching = appContext?.open === true && appContext.launching === true;

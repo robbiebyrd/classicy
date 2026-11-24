@@ -104,6 +104,12 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 	const appOpen = useAppManager(
 		(s) => s.System.Manager.Applications.apps[appId]?.open,
 	);
+	// Set from a launch (open after not open) until its windows have
+	// registered: a Quit and a relaunch in one tick never render the app
+	// closed, so the launch itself starts the sample check again.
+	const launching = useAppManager(
+		(s) => s.System.Manager.Applications.apps[appId]?.launching === true,
+	);
 
 	// The desktop's file system (its storage key: fileSystemStorageKey).
 	const getFileSystem = useClassicyFileSystemAccessor();
@@ -129,6 +135,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 			hasCheckedInitialLoadRef.current = false;
 			return;
 		}
+		if (launching) hasCheckedInitialLoadRef.current = false;
 		if (hasCheckedInitialLoadRef.current) return;
 		hasCheckedInitialLoadRef.current = true;
 		if (!pictureData?.openFiles || pictureData.openFiles.length === 0) {
@@ -146,6 +153,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		}
 	}, [
 		appOpen,
+		launching,
 		pictureData?.openFiles,
 		desktopEventDispatch,
 		defaultDocumentIcon,

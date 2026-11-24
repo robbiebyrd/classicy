@@ -21,6 +21,7 @@ import {
 import {
 	closeAllWindowsMenuItemHelper,
 	closeWindowMenuItemHelper,
+	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
@@ -53,24 +54,48 @@ export const PDFViewer: FunctionalComponent = () => {
 	const rawOpenFiles = appState?.data?.openFiles;
 	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];
 
-	// PDF Viewer has no window without a document, so a launch that opens
-	// none (the Apple menu, Recent Applications, a relaunch after a quit)
-	// asks for one: the Open dialog (story 0226-a6f). Only a launch in this
-	// session: a reload of an open PDF Viewer does not ask.
+	// PDF Viewer opens only documents, and has no window without one, so it
+	// is never left running with nothing to show (an app with no window has
+	// no menu bar in Classicy, so nothing could quit it). A launch that opens
+	// no document (the Apple menu, Recent Applications, a relaunch after a
+	// quit) asks for one, the Open dialog; and once it has none and is not
+	// asking (Cancel, its last document closed, or a saved session that left
+	// it open with none) it quits, as the Mac's document-only utilities did.
+	// So `open: true` is never saved for a PDF Viewer with no window (story
+	// 0226-a6f).
 	const appOpen = appState?.open === true;
 	const [showOpenDialog, setShowOpenDialog] = useState(false);
 	const wasOpenRef = useRef(appOpen);
+	const quittingRef = useRef(false);
 	useEffect(() => {
 		const launched = appOpen && !wasOpenRef.current;
 		wasOpenRef.current = appOpen;
-		if (!appOpen) setShowOpenDialog(false);
-		else if (launched && openFiles.length === 0) setShowOpenDialog(true);
-	}, [appOpen, openFiles.length]);
+		if (!appOpen) {
+			quittingRef.current = false;
+			setShowOpenDialog(false);
+			return;
+		}
+		if (openFiles.length > 0 || showOpenDialog) return;
+		if (launched) {
+			setShowOpenDialog(true);
+			return;
+		}
+		if (quittingRef.current) return;
+		quittingRef.current = true;
+		desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
+	}, [
+		appOpen,
+		openFiles.length,
+		showOpenDialog,
+		desktopEventDispatch,
+		appIcon,
+	]);
 
 	const volumes = useMemo(() => [desktopVolume(fs)], [fs]);
 	const openSelections = useCallback(
 		(selections: ClassicyFileOpenSelection[]) => {
-			setShowOpenDialog(false);
+			// The document first, so no render sees PDF Viewer with neither a
+			// document nor its dialog (which quits it).
 			for (const selection of selections) {
 				desktopEventDispatch({
 					type: OPEN_FILE,
@@ -80,6 +105,7 @@ export const PDFViewer: FunctionalComponent = () => {
 					),
 				});
 			}
+			setShowOpenDialog(false);
 		},
 		[desktopEventDispatch],
 	);
