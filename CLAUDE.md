@@ -656,12 +656,16 @@ title has an `aria-description` naming its apps
 (`ClassicyNotificationBlink.internal.ts`). `ClassicyDesktop` mounts
 `ClassicyNotificationController` (`.internal.tsx`): the sound once at the
 alert volume (`classicyAlertVolumeSoundAction`; silent when muted), one
-`ClassicyAlert` at a time over the front app (`playSound={false}`; the
+`ClassicyAlert` at a time over the front app (`useFrontAppId`; over an
+extension's own dialog, as that extension's window, while the dialog holds
+the focus, so answering hands the focus back to it; `playSound={false}`; the
 window's `playAlertSound={false}`), moved to the app in front if its owner
 quits or hides (no overlay wrapper; its window id carries a per-page token,
 and `sanitizeStateForPersistence` drops every modal window record),
 `onResponse` after OK, and removal when the
-app comes forward (`focusedAppId` changes to it, unless `removeOnActivate:
+app comes forward (it becomes the front application, `frontAppIdOf`, so a
+click back from Apple Guide's floating window or an extension's dialog
+handing the focus back brings nothing forward; unless `removeOnActivate:
 false`, or the alert's own window brought it forward, as with no app in
 front when the host is the notifying app), when the user answers an alert
 its own app hosts (same opt-out), or when it quits; it waits for its second commit and while a boot
