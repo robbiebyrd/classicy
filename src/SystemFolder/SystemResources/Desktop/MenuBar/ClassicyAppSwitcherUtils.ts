@@ -41,6 +41,27 @@ export const appSwitcherEntryMark = (
 			? { checked: false, mark: "diamond" }
 			: { checked: false };
 
+/** The accessible description of a hidden application's entry. */
+export const CLASSICY_APP_SWITCHER_HIDDEN_DESCRIPTION = "Hidden";
+
+/**
+ * The accessible description of an Application menu row or an Application
+ * Switcher button, for the state only its look shows: a hidden application
+ * (its icon dimmed, HIG7 p.127) is "Hidden", and, with `marked` (the menu's
+ * ◆; the palette draws none), one a notification marks also "Requests your
+ * attention". `undefined` when there is neither.
+ */
+export const appSwitcherEntryDescription = (
+	entry: Pick<ClassicyAppSwitcherEntry, "hidden" | "notified">,
+	{ marked = false }: { marked?: boolean } = {},
+): string | undefined => {
+	const parts = [
+		...(entry.hidden ? [CLASSICY_APP_SWITCHER_HIDDEN_DESCRIPTION] : []),
+		...(marked && entry.notified ? ["Requests your attention"] : []),
+	];
+	return parts.length > 0 ? parts.join(", ") : undefined;
+};
+
 /** What `appSwitcherAppsFrom` needs beyond the apps and their identities. */
 export type ClassicyAppSwitcherOptions = {
 	/**
@@ -57,13 +78,29 @@ export type ClassicyAppSwitcherOptions = {
 };
 
 /**
+ * Orders entries by display name, as the Application menu and the
+ * Application Switcher list them (Mac OS 8.5: Calculator, Finder, Help
+ * Viewer, Note Pad, Stickies, `resources/screenshots/mac-os-8.5/
+ * platinum-85-appmenu-order.png` beside Platinum's source); a tie keeps the
+ * ids' order, so the list never depends on the store's key order.
+ */
+const byDisplayName = (
+	a: ClassicyAppSwitcherEntry,
+	b: ClassicyAppSwitcherEntry,
+): number =>
+	a.name.localeCompare(b.name, "en", { sensitivity: "base" }) ||
+	(a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/**
  * Apps eligible for the menu-bar App Switcher: open (or transiently focused)
  * and not background extensions — extensions run with open: true but never
  * surface in the switcher, except one that is `frontAppId` (it publishes
  * menus, so the bar names it; its entry carries `extension`). Each entry
  * shows the app's display identity: its name and icon as `overrides` (the
  * active package's `apps`) resolve them, else the record's own. An app in
- * `notifiedAppIds` is `notified`.
+ * `notifiedAppIds` is `notified`. Entries come in alphabetical order of the
+ * names shown, the Application menu's order in Mac OS, which the
+ * Application Switcher's palette and its keyboard chord share.
  */
 export function appSwitcherAppsFrom(
 	apps: Record<string, ClassicyStoreSystemApp>,
@@ -95,6 +132,7 @@ export function appSwitcherAppsFrom(
 					...(notifiedAppIds.has(a.id) ? { notified: true } : {}),
 				};
 			})
+			.sort(byDisplayName)
 	);
 }
 

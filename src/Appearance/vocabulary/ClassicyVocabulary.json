@@ -98,6 +98,20 @@
 			"ThemeLinkStatus"
 		],
 		"AppleMenuOptions": [],
+		"ApplicationSwitcher": [
+			"Button",
+			"Buttons",
+			"Hidden",
+			"Horizontal",
+			"Icon",
+			"LargeIcons",
+			"Name",
+			"NoNames",
+			"Palette",
+			"ShortcutPage",
+			"TearOffOutline",
+			"Wrapped"
+		],
 		"Assistant": [
 			"AccessoryIcon",
 			"AccessoryIconLg",
@@ -613,6 +627,7 @@
 			"Title",
 			"TitleBar",
 			"TitleBarModal",
+			"TitleBarUtilityTitle",
 			"TitleCenter",
 			"TitleLeft",
 			"TitleRight",

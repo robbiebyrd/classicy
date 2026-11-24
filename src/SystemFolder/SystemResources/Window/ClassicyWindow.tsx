@@ -79,7 +79,10 @@ import {
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
-import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
+import {
+	ClassicyWindowTitleBar,
+	type ClassicyZoomBoxKeys,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 import {
 	type ClassicyZoomOrigin,
 	classicyWindowContentRect,
@@ -510,6 +513,23 @@ interface ClassicyWindowProps {
 	 */
 	alwaysOnTop?: boolean;
 	/**
+	 * Utility-only. Draws `title` in the windoid's drag region, between two
+	 * bands of its texture and with no proxy icon, as Mac OS 8.5's
+	 * Application Switcher palette does (HIGOS8 p.103 allows a utility
+	 * window a title). No-op on document windows. Defaults to `false`.
+	 */
+	utilityTitle?: boolean;
+	/**
+	 * Replaces what the zoom box does: called with the Option and Shift keys
+	 * held at the press, instead of zooming. Returns whether the window now
+	 * draws larger, the `zoomed` of the `zoom` event the package hears (its
+	 * zoom sound). For a window whose zoom box sets an option, as the
+	 * Application Switcher's palette shows or hides its names, Option-click
+	 * changes its icon size and Option-Shift-click its orientation (Mac OS
+	 * 8.5). Drawn only when `zoomable`.
+	 */
+	onZoomBox?: (keys: ClassicyZoomBoxKeys) => boolean;
+	/**
 	 * Zoom-box behavior (#208, HIGOS8 p.104). `"full"` zooms both axes to the
 	 * standard state (see `idealSize`); `"horizontal"` widens to the desktop
 	 * keeping the current height; `"vertical"` heightens to the desktop keeping
@@ -654,6 +674,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	children,
 	windowType = "document",
 	alwaysOnTop = false,
+	utilityTitle = false,
+	onZoomBox,
 	zoomMode = "full",
 	idealSize,
 	headerVariant = "standard",
@@ -1853,6 +1875,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
+	// `onZoomBox`: the zoom box sets the owner's option instead of zooming;
+	// the package still hears a zoom (its sound).
+	const pressZoomBox = (keys: ClassicyZoomBoxKeys) => {
+		setActive();
+		if (!zoomable || !onZoomBox) return;
+		const grew = onZoomBox(keys);
+		emit("zoom", withClassicyAppearanceInput({ zoomed: grew, cause: "zoom" }));
+	};
+
 	// #208: compute the "standard state" rect the window zooms to. `full` fills
 	// the available desktop; `horizontal`/`vertical` grow a single axis and keep
 	// the other at its current value.
@@ -2311,9 +2342,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				icon={icon}
 				hideIcon={hideIcon}
 				variant={windowType === "utility" ? "utility" : "document"}
+				utilityTitle={utilityTitle}
 				modal={modal === true}
 				onClose={closable ? close : undefined}
-				onZoom={zoomable ? toggleZoom : undefined}
+				onZoom={zoomable && !onZoomBox ? toggleZoom : undefined}
+				onZoomKeys={zoomable && onZoomBox ? pressZoomBox : undefined}
 				onCollapse={collapsable ? onCollapseBoxClick : undefined}
 				onCollapseKey={toggleCollapse}
 				onTitleMouseDown={onTitleMouseDown}

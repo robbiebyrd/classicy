@@ -31,8 +31,10 @@ import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
+import { ClassicyAppSwitcherTearOff } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherTearOff.internal";
 import {
 	appSwitcherAppsFrom,
+	appSwitcherEntryDescription,
 	appSwitcherEntryMark,
 	withClassicyAppIdentityMenuItems,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
@@ -334,7 +336,14 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					// its stylesheet (`classicyDesktopMenuAppHidden`).
 					...appSwitcherEntryMark(app, app.id === focusedApp?.id),
 					...(app.hidden
-						? { className: "classicyDesktopMenuAppHidden", imageDimmed: true }
+						? {
+								className: "classicyDesktopMenuAppHidden",
+								imageDimmed: true,
+								// Screen readers hear what the dimmed icon shows.
+								description: appSwitcherEntryDescription(app, {
+									marked: app.id !== focusedApp?.id,
+								}),
+							}
 						: {}),
 					onClickFunc: () => {
 						setActiveApp(app.id);
@@ -536,6 +545,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "extensions" }}
 				/>
 			</ClassicyMenu>
+			{/* Dragging past the Application menu's bottom tears it off into
+			    the Application Switcher's palette (Mac OS 8.5). */}
+			<ClassicyAppSwitcherTearOff navRef={navRef} />
 		</nav>
 	);
 };

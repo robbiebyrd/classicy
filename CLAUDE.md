@@ -208,7 +208,7 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   same app+id has mounted again by then (StrictMode's phantom remount, or a
   replacement instance). Modal windows are destroyed instead, as before.
 - `ClassicyWindowClose` promotes the app's highest-`zOrder` open sibling.
-- An extension (Apple Guide) never takes the **front application** (`frontAppIdOf`/`useFrontAppId`, `ClassicyFrontApp.ts`, `ClassicyFrontAppId.ts`): an extension window that publishes no menus is a floating window (`isFloatingExtensionWindow`), active beside the front app's windows without moving `focusedAppId`, the bar, the chords or the keyboard; one that publishes menus is the front app (it stays so under its own dialog); a modal window or alert never floats, whichever app owns it. Floating windows draw in the desktop's **floating layer** (`ClassicyFloatingLayer`, `#classicy-floating-layer`, an element of `ClassicyDesktop`'s tree at z-index 354, under the Control Strip; a window portals into it through `ClassicyFloatingLayerContext` and stacks there by recency with z-indices 1..N, so a raise moves no node). A front app with no open window keeps its menus through `ClassicyApp`'s `windowlessMenu` prop (SimpleText's File/Edit/Help; closing its last window opens no other), and when opened again in that state (a plain `ClassicyAppOpen` of a running app, counted by `openApp` as `apps[id].reopened`, session state) its `onReopen` shows a window as on launch: Finder 8's reopen application Apple event (TN1102); SimpleText opens a new untitled window, as Mac OS 8.1's did.
+- An extension (Apple Guide) never takes the **front application** (`frontAppIdOf`/`useFrontAppId`, `ClassicyFrontApp.ts`, `ClassicyFrontAppId.ts`): an extension window that publishes no menus is a floating window (`isFloatingExtensionWindow`), active beside the front app's windows without moving `focusedAppId`, the bar, the chords or the keyboard (and `focusApp` never marks an extension with no document window focused: it raises its most recent window, so a click in a floating utility window leaves the front app's window focused); one that publishes menus is the front app (it stays so under its own dialog); a modal window or alert never floats, whichever app owns it. Floating windows draw in the desktop's **floating layer** (`ClassicyFloatingLayer`, `#classicy-floating-layer`, an element of `ClassicyDesktop`'s tree at z-index 354, under the Control Strip; a window portals into it through `ClassicyFloatingLayerContext` and stacks there by recency with z-indices 1..N, so a raise moves no node). A front app with no open window keeps its menus through `ClassicyApp`'s `windowlessMenu` prop (SimpleText's File/Edit/Help; closing its last window opens no other), and when opened again in that state (a plain `ClassicyAppOpen` of a running app, counted by `openApp` as `apps[id].reopened`, session state) its `onReopen` shows a window as on launch: Finder 8's reopen application Apple event (TN1102); SimpleText opens a new untitled window, as Mac OS 8.1's did.
 - The Application menu's Hide <app>, Hide Others and Show All dispatch
   `ClassicyAppHide`, `ClassicyAppHideOthers` and `ClassicyAppShowAll`
   (HIG7 p.127). `apps[id].hidden` is **session state**: `sanitizeStateForPersistence`
@@ -851,6 +851,60 @@ each tab dims only for its own search.
 Typed words stay out of analytics (`ClassicyInput`'s `analyticsPrivate`).
 Pop-up options take `dividerBefore` (each package draws its menu divider).
 Details: `docs/AGENT-REFERENCE.md` §11, "Find File and search sources".
+
+### Application Switcher
+
+`ClassicyDesktop` mounts `ClassicyApplicationSwitcher`
+(`src/SystemFolder/Extensions/ApplicationSwitcher/`, extension
+`ApplicationSwitcher.app`, story 0231-8c6), Mac OS 8.5's Application
+Switcher (references: 8.5 on Infinite Mac,
+`packages/appearance/platinum/resources/screenshots/mac-os-8.5/`; HIG7
+pp.93-95). Dragging past the Application menu's bottom (3 px) with the
+button held from a press on it shows a dotted outline of the menu (centered
+on the pointer, bottom at the pointer) and, let go, opens the palette there
+(`ClassicyAppSwitcherTearOff.internal.tsx` in the screen bar; a pulled-down
+press on the closed title opens the menu first; Escape, a lost pointer
+stream or an open modal window cancels): a utility window titled "Applications" (`utilityTitle`)
+with a bevel button per app the menu lists (`appSwitcherAppsFrom`, now
+**alphabetical by display name**, which the menu, palette and chord share),
+the front app's held down, a hidden app's icon dimmed (`iconDimming`), no
+◆ (8.5 draws none there); click switches (`focusApp`, a hidden app shown),
+Option-click also hides the app that was in front; the zoom box sets names
+/ Option: icon size / Option-Shift: orientation (`onZoomBox`; horizontal
+puts the drag bar down the left side). It floats in the floating layer, an
+extension's menuless window, and never takes the bar, the focus or the
+keyboard (a press in it moves no DOM focus, a switch from it releases a
+focus left elsewhere); modals stay above it and dim its buttons (8.5 dims
+them under a dialog). A tear-off's release and its click are swallowed (no
+window under it comes forward), and the stored position is kept on the
+desktop (`classicyAppSwitcherTearOffPosition`). Platinum draws it as 8.5
+does (`components/_ApplicationSwitcher.scss`: 1-px frame, 12-row bar of
+raised dots, packed buttons in a sunken well, names at
+`--ui-font-size-small`); more apps than a column the desktop can hold wrap
+into another column (`classicyAppSwitcherPaletteLines`, from the desktop's
+capacity, never the palette's place: a move never reshapes it, and a
+palette dragged past an edge clips like any window); hidden apps' buttons and menu
+rows carry `aria-description` "Hidden"; it shows no icon in the startup
+parade (`bootIcon={false}`, which an extension may now pass; 8.5's has
+none, `platinum-85-startup-parade.png`). The menu's alphabetical order is
+8.1's too (`mac-os-8.1/platinum-81-appmenu-order.png`).
+State `apps["ApplicationSwitcher.app"].data` (`paletteOpen`, `paletteAt`,
+`showNames`, `iconSize`, `orientation`, `keyboardCycling`,
+`cyclingShortcut`; position in the window record `applications`), actions
+`ClassicyAppApplicationSwitcher{TearOff,Close,SetPalette,SetCycling,Cycle,Switch}`.
+The chord (default **⌃`**, Shift for the previous app; Control-Tab and
+Alt-Tab never reach a page) switches through the menu's order with no
+overlay, read on the document in the capture phase (ahead of the menu bar's
+dispatcher), skipped while a modal is open or the screen saver shows,
+matched by key or physical `code` (a letter by the character typed only;
+⌃⌘ needs both), and registered as two global shortcuts; Help ▸ Keyboard
+Shortcuts… page 4 turns it off or records another
+(`ClassicyKeyboardEquivalentField`; Control, Option or Command, no Shift;
+refused when any open app's menus use it, with or without Shift, Control
+and Command as one: `classicyAppSwitcherChordConflicts`). A package's
+`layout.applicationSwitcher.palette` is `"tearOff"` (default) or `"none"`
+(System 7: no tear-off, palette not drawn, state kept). Details:
+`docs/AGENT-REFERENCE.md` §4.12.
 
 ### Contextual Menus
 

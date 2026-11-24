@@ -32,6 +32,7 @@ export const CLASSICY_COMPONENT = {
 	Alert: "classicyAlert",
 	AppearanceManager: "classicyAppearanceManager",
 	AppleMenuOptions: "classicyAppleMenuOptions",
+	ApplicationSwitcher: "classicyApplicationSwitcher",
 	Assistant: "classicyAssistant",
 	BalloonHelp: "classicyBalloonHelp",
 	BevelButton: "classicyBevelButton",

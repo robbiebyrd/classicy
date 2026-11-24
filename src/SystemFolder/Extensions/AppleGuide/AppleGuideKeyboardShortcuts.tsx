@@ -7,7 +7,9 @@ import {
 } from "@/Appearance/ClassicyAppIdentity";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
+import { APPLE_GUIDE_APP_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { registerAppleGuideTopic } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
+import { ClassicyApplicationSwitcherShortcutPage } from "@/SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcherShortcutPage.internal";
 import {
 	BALLOON_HELP_SHORTCUT,
 	KEYBOARD_SHORTCUTS_TOPIC_ID,
@@ -189,6 +191,12 @@ const pages: ReactNode[] = [
 	<WhyPage key="why" />,
 	<FrontAppPage key="front" />,
 	<SystemPage key="system" />,
+	// Page 4: the Application Switcher's chord, and changing it (story
+	// 0231-8c6), as Mac OS 8.5's Mac OS Help offered it.
+	<ClassicyApplicationSwitcherShortcutPage
+		key="switching"
+		appId={APPLE_GUIDE_APP_ID}
+	/>,
 ];
 
 registerAppleGuideTopic({

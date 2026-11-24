@@ -1,0 +1,255 @@
+// The Application Switcher's palette under Platinum (from
+// ClassicyApplicationSwitcher.scss), pixel for pixel as Mac OS 8.5 draws it
+// (`resources/screenshots/mac-os-8.5/platinum-85-switcher-palette.png`, with
+// `-no-names`, `-large-icons`, `-horizontal` and `-collapsed` beside it):
+//
+// - the frame: a black line, then a one-pixel bevel (white top and left,
+//   #999999 bottom and right) with no padding inside it;
+// - the drag bar: 12 rows (a box's 10 and a row above and below), the close
+//   box against its left end, the zoom and collapse boxes against its right
+//   end a pixel apart, and between them three rows of raised dots on a 3 x 3
+//   grid (a white pixel, then #777777 down and to the right), two rows below
+//   the bar's top and two pixels clear of the boxes, broken by the title in
+//   the small font, bold, centered on the window; the narrow palette (small
+//   icons, no names) has room for no dots;
+// - the buttons: a sunken well (#999999 top and left, white bottom and
+//   right) around a black line, the buttons stacked in it with no gap, each
+//   a #CCCCCC face inside two bevels (#666666 / #333333 outside, white /
+//   #888888 inside), the held one (the front application's, or one the
+//   mouse is pressing) #888888 inside #111111 / #444444 and #555555 /
+//   #AAAAAA; the icon 4 pixels in from the inner bevel and 2 down, the name
+//   just after it;
+// - down the side (horizontal): the bar 12 columns wide, the close box at
+//   its top, the zoom and collapse boxes at its bottom, the dots between;
+// - collapsed: the frame around the bar.
+//
+// 8.5's grays between Platinum's seven are the theme's black mixed toward
+// its white (`classicy-tint`): exact under Platinum, and they follow an
+// edited black or white.
+@use "pkg:@classicy/classicy/scss/color" as c;
+
+$px: var(--window-border-size);
+$bevel: var(--control-bevel-sm);
+// Clear space between the dots and the boxes, and around the band.
+$gap: var(--control-padding-narrow);
+// The dots' pitch, the windoid's texture tile height (3).
+$pitch: var(--utility-title-bar-texture-height);
+// A box with its outer bevel (10), and the bar: a row above and below it.
+$box: var(--window-utility-title-bar-height);
+$bar: calc(#{$box} + #{$px} + #{$px});
+$band: calc(#{$box} + #{$px} + #{$px} - #{$gap} - #{$gap});
+
+$gray-99: c.classicy-tint("--color-black", 60%);
+$gray-88: c.classicy-tint("--color-black", 53.333%);
+$gray-77: c.classicy-tint("--color-black", 46.667%);
+$gray-66: c.classicy-tint("--color-black", 40%);
+$gray-55: c.classicy-tint("--color-black", 33.333%);
+$gray-44: c.classicy-tint("--color-black", 26.667%);
+$gray-33: c.classicy-tint("--color-black", 20%);
+$gray-11: c.classicy-tint("--color-black", 6.667%);
+
+// One raised dot per `$pitch` square, from the painted box's corner: the
+// white pixel, and the gray one a pixel down and to the right.
+@mixin raised-dots {
+  background-image: conic-gradient(from 270deg at #{$px} #{$px}, var(--color-white) 25%, transparent 0),
+    conic-gradient(from 270deg at #{$px} #{$px}, #{$gray-77} 25%, transparent 0);
+  background-position: 0 0, $px $px;
+  background-size: $pitch $pitch;
+}
+
+$palette: ".classicyWindow.classicyWindowUtility.classicyApplicationSwitcherPalette";
+
+@mixin applicationSwitcher {
+  #{$palette} {
+    padding: $px;
+    background-color: var(--color-system-03);
+    border: $px solid var(--color-black);
+    box-shadow: inset $px $px 0 0 var(--color-white),
+      inset calc(#{$px} * -1) calc(#{$px} * -1) 0 0 $gray-99,
+      $px $px 0 0 var(--color-black);
+
+    // The frame's drag edges are the frame's own width, so they never
+    // cover the boxes that sit against it.
+    > .classicyWindowFrameEdge-top,
+    > .classicyWindowFrameEdge-bottom {
+      height: $px;
+    }
+
+    > .classicyWindowFrameEdge-left,
+    > .classicyWindowFrameEdge-right {
+      width: $px;
+    }
+
+    > .classicyWindowTitleBar {
+      top: 0;
+      margin: 0;
+      padding: 0;
+      column-gap: 0;
+      height: $bar;
+      min-height: $bar;
+      align-items: center;
+
+      .classicyWindowControlBox {
+        box-sizing: border-box;
+        flex: none;
+        align-self: flex-start;
+        width: calc(#{$box} - #{$px});
+        height: calc(#{$box} - #{$px});
+        margin: $px 0 0;
+        padding: $px 0 0 $px;
+        box-shadow: inset $px $px $gray-88, $px $px var(--color-white);
+      }
+
+      [data-classicy-control="zoom"] {
+        margin-right: calc(#{$px} + #{$px});
+      }
+
+      [data-classicy-control="collapse"] {
+        margin-right: $px;
+      }
+
+      .classicyWindowTitle {
+        align-self: center;
+        align-items: center;
+        height: $bar;
+        margin: 0 $gap 0 calc(#{$px} + #{$gap});
+      }
+
+      // The dots fill the bar between the boxes; the title, in flow, takes
+      // its width out of them, the band before it starting a box wider so
+      // the title centers on the window (the bar ends in one box at the
+      // left and two at the right).
+      .classicyWindowTitleLeft,
+      .classicyWindowTitleRight,
+      .classicyWindowTitleCenter {
+        flex: 1 1 0;
+        min-width: $pitch;
+        height: $band;
+        margin: 0;
+        @include raised-dots;
+      }
+
+      .classicyWindowTitleLeft {
+        flex-basis: calc(#{$box} + #{$px});
+      }
+
+      .classicyWindowTitleText {
+        flex: none;
+        height: $bar;
+        margin: 0;
+        padding: 0;
+        line-height: $bar;
+        color: var(--color-black);
+        background: var(--color-system-03);
+        font-family: var(--ui-font-small, var(--body-font)), sans-serif;
+        font-size: var(--ui-font-size-small);
+        font-weight: bold;
+      }
+    }
+
+    > .classicyWindowContents {
+      height: auto;
+      padding: 0;
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    // The well: the bevels drawn outside the black line, corner to corner.
+    .classicyApplicationSwitcherButtons {
+      gap: 0;
+      margin: $px;
+      border: $px solid var(--color-black);
+      box-shadow: calc(#{$px} * -1) 0 0 0 $gray-99,
+        0 calc(#{$px} * -1) 0 0 $gray-99,
+        calc(#{$px} * -1) calc(#{$px} * -1) 0 0 $gray-99,
+        $px 0 0 0 var(--color-white),
+        0 $px 0 0 var(--color-white),
+        $px $px 0 0 var(--color-white);
+    }
+
+    // Named down to the button so they beat its own and the palette's base
+    // rules (three classes).
+    .classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton {
+      margin: 0;
+      padding: var(--control-padding-loose) var(--window-padding-size);
+      color: var(--color-black);
+      background-color: var(--color-system-03);
+      border: 0;
+      border-radius: 0;
+      box-shadow: inset $px $px 0 0 $gray-66,
+        inset calc(#{$px} * -1) calc(#{$px} * -1) 0 0 $gray-33,
+        inset $bevel $bevel 0 0 var(--color-white),
+        inset calc(#{$bevel} * -1) calc(#{$bevel} * -1) 0 0 $gray-88;
+
+      &.checked,
+      &.pressed {
+        background-color: $gray-88;
+        box-shadow: inset $px $px 0 0 $gray-11,
+          inset calc(#{$px} * -1) calc(#{$px} * -1) 0 0 $gray-44,
+          inset $bevel $bevel 0 0 $gray-55,
+          inset calc(#{$bevel} * -1) calc(#{$bevel} * -1) 0 0 var(--color-system-04);
+      }
+
+      .classicyBevelButtonLabel {
+        gap: $px;
+      }
+    }
+
+    // The name's line is the small icon's height, a row up: its letters
+    // stand 4 to 11 rows below the icon's top, as 8.5's do.
+    .classicyApplicationSwitcherName {
+      position: relative;
+      top: calc(#{$px} * -1);
+      line-height: var(--icon-small-size);
+    }
+
+    // The narrow palette has room for no dots between its two boxes.
+    &.classicyApplicationSwitcherNoNames:not(.classicyApplicationSwitcherLargeIcons):not(.classicyApplicationSwitcherHorizontal) > .classicyWindowTitleBar .classicyWindowTitleCenter {
+      background: none;
+    }
+
+    &.collapsed {
+      height: $bar;
+    }
+  }
+
+  // Down the side: the bar 12 columns wide, a box against its top (close)
+  // and its bottom (zoom, collapse), each against the left bevel, and the
+  // dots between, two rows clear of the boxes, a column in from the left.
+  #{$palette}.classicyApplicationSwitcherHorizontal > .classicyWindowTitleBar {
+    left: 0;
+    width: $bar;
+    min-width: $bar;
+    height: auto;
+    padding: 0;
+    row-gap: 0;
+    align-items: flex-start;
+
+    .classicyWindowControlBox {
+      margin: 0;
+    }
+
+    [data-classicy-control="zoom"] {
+      margin: 0 0 calc(#{$px} + #{$px});
+    }
+
+    [data-classicy-control="collapse"] {
+      margin: 0 0 $px;
+    }
+
+    .classicyWindowTitle {
+      align-self: flex-start;
+      width: $band;
+      height: auto;
+      min-height: $pitch;
+      margin: calc(#{$px} + #{$gap}) 0 $gap $px;
+    }
+
+    .classicyWindowTitle .classicyWindowTitleCenter {
+      width: $band;
+      height: auto;
+      margin: 0;
+    }
+  }
+}

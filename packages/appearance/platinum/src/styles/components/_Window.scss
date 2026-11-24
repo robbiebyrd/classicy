@@ -110,6 +110,19 @@
     }
   }
 
+  // A windoid with a title (Mac OS 8.5's Application Switcher palette,
+  // `resources/screenshots/mac-os-8.5/platinum-85-switcher-palette.png`):
+  // the texture on both sides of the title. Same specificity as the rule
+  // above, and after it.
+  .classicyWindow.classicyWindowUtility .classicyWindowTitleBarUtilityTitle .classicyWindowTitle {
+    .classicyWindowTitleLeft,
+    .classicyWindowTitleRight {
+      background-image: var(--classicy-art-window-utility-texture);
+      background-repeat: repeat;
+      background-size: var(--utility-title-bar-texture-width) var(--utility-title-bar-texture-height);
+    }
+  }
+
   // The focused title bar's stripes: the center band at the art's own size,
   // the bands beside a title a hair under full height.
   :where(.classicyWindow).active {

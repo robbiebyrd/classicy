@@ -17,9 +17,16 @@ export type ClassicyWindowTitleBarProps = {
 	hideIcon?: boolean;
 	/**
 	 * `"document"` (the default) draws the side bands around the title;
-	 * `"utility"` (a windoid) draws one center band and no title text.
+	 * `"utility"` (a windoid) draws one center band and no title text,
+	 * unless `utilityTitle` asks for it.
 	 */
 	variant?: "document" | "utility";
+	/**
+	 * A utility bar draws its `title` between two bands of its texture, with
+	 * no proxy icon, as Mac OS 8.5's Application Switcher palette does
+	 * (HIGOS8 p.103 lets a utility window carry a title). Defaults to `false`.
+	 */
+	utilityTitle?: boolean;
 	/** A modal dialog's bar: adds `classicyWindowTitleBarModal`, never a zoom box. */
 	modal?: boolean;
 	/** Draws the close box and is called, with no arguments, by its click, Enter or Space. */
@@ -29,6 +36,13 @@ export type ClassicyWindowTitleBarProps = {
 	 * arguments, by its click, Enter or Space.
 	 */
 	onZoom?: () => void;
+	/**
+	 * Draws the zoom box (not on a modal bar) like `onZoom`, and is called
+	 * instead of it with the Option and Shift keys held at the press, for a
+	 * window whose zoom box does more than zoom (the Application Switcher's
+	 * palette: Option-click and Option-Shift-click, Mac OS 8.5).
+	 */
+	onZoomKeys?: (keys: ClassicyZoomBoxKeys) => void;
 	/** Draws the collapse box and is called by its click. */
 	onCollapse?: (e: MouseEvent<HTMLDivElement>) => void;
 	/** Called by Enter or Space on the collapse box; without it they click the box. */
@@ -42,6 +56,14 @@ export type ClassicyWindowTitleBarProps = {
 	/** Inline style for the bar's root element. */
 	style?: CSSProperties;
 };
+
+/** The modifier keys held when the zoom box was pressed (`onZoomKeys`). */
+export type ClassicyZoomBoxKeys = { option: boolean; shift: boolean };
+
+const zoomBoxKeys = (e: {
+	altKey: boolean;
+	shiftKey: boolean;
+}): ClassicyZoomBoxKeys => ({ option: e.altKey, shift: e.shiftKey });
 
 /** Enter or Space on a control box, the keys that press a button. */
 const isPressKey = (e: KeyboardEvent<HTMLDivElement>) =>
@@ -74,9 +96,11 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 	icon,
 	hideIcon,
 	variant = "document",
+	utilityTitle = false,
 	modal = false,
 	onClose,
 	onZoom,
+	onZoomKeys,
 	onCollapse,
 	onCollapseKey,
 	onTitleMouseDown,
@@ -88,6 +112,9 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 		className={classNames(
 			"classicyWindowTitleBar",
 			modal === true ? "classicyWindowTitleBarModal" : "",
+			variant === "utility" && utilityTitle && title !== ""
+				? "classicyWindowTitleBarUtilityTitle"
+				: "",
 			className,
 		)}
 		style={style}
@@ -119,10 +146,10 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 			// mouseup here bubbles to it.
 			onDoubleClick={onTitleDoubleClick}
 		>
-			{title !== "" && variant !== "utility" ? (
+			{title !== "" && (variant !== "utility" || utilityTitle) ? (
 				<>
 					<div className={"classicyWindowTitleLeft"}></div>
-					{!hideIcon && (
+					{!hideIcon && variant !== "utility" && (
 						<div className={"classicyWindowIcon"}>
 							<ClassicyIconImage src={icon} alt={title} />
 						</div>
@@ -136,7 +163,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<div className={"classicyWindowTitleCenter"}></div>
 			)}
 		</div>
-		{onZoom && !modal && (
+		{(onZoom || onZoomKeys) && !modal && (
 			<div
 				className={"classicyWindowControlBox"}
 				{...{ [CLASSICY_PART_ATTRIBUTE.control]: "zoom" }}
@@ -147,9 +174,13 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 					role="button"
 					aria-label="Zoom"
 					tabIndex={0}
-					onClick={() => onZoom()}
+					onClick={(e) =>
+						onZoomKeys ? onZoomKeys(zoomBoxKeys(e)) : onZoom?.()
+					}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-						if (isPressKey(e)) onZoom();
+						if (!isPressKey(e)) return;
+						if (onZoomKeys) onZoomKeys(zoomBoxKeys(e));
+						else onZoom?.();
 					}}
 				></div>
 			</div>

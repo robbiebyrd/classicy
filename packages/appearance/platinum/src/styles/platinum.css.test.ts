@@ -243,8 +243,9 @@ describe("platinum.scss (compiled)", () => {
 	// the dimmed image (`classicyIconDimmedImage`). 0.46 puts black at #777777
 	// on the menu's #DDDDDD, as the rule does.
 	it("dims a hidden application's icon by opacity only when the core drew no dimmed image", () => {
+		// The Application Switcher's palette shares the rule (story 0231-8c6).
 		expect(css).toMatch(
-			/\.classicyDesktopMenuAppHidden > p > img:not\(\.classicyIconDimmedImage\) \{\s*opacity: 0\.46;\s*\}/,
+			/\.classicyDesktopMenuAppHidden > p > img:not\(\.classicyIconDimmedImage\),\s*[^{]*\.classicyApplicationSwitcherHidden \.classicyApplicationSwitcherIcon:not\(\.classicyIconDimmedImage\) \{\s*opacity: 0\.46;\s*\}/,
 		);
 		expect(css).not.toMatch(/\.classicyDesktopMenuAppHidden > p > img \{/);
 	});
@@ -1350,6 +1351,105 @@ describe("platinum.scss (compiled)", () => {
 			expect(body, selectors).not.toMatch(
 				/(^|\n)(width|height|top|position|display|content):/,
 			);
+	});
+
+	// A titled windoid (the Application Switcher's palette, Mac OS 8.5's
+	// `platinum-85-switcher-palette.png`): the texture on both sides of the
+	// title, over the untitled windoid's bare side bands by order at equal
+	// specificity; and a hidden application's icon in the palette dimmed as
+	// in the Application menu, for an icon a canvas cannot read.
+	it("textures a titled windoid's side bands and dims a hidden app in the palette", () => {
+		const utility = `${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle`;
+		const titled = `${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBarUtilityTitle .classicyWindowTitle`;
+		const bands = (prefix: string) =>
+			`${prefix} .classicyWindowTitleLeft, ${prefix} .classicyWindowTitleRight`;
+		const sides = rule(bands(titled));
+		expect(sides.props["background-image"]).toBe(
+			"var(--classicy-art-window-utility-texture)",
+		);
+		expect(sides.props["background-size"]).toBe(
+			"var(--utility-title-bar-texture-width) var(--utility-title-bar-texture-height)",
+		);
+		expect(sides.at).toBeGreaterThan(rule(bands(utility)).at);
+		expect(
+			rule(
+				`${P} .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage), ${P} .classicyApplicationSwitcherHidden .classicyApplicationSwitcherIcon:not(.classicyIconDimmedImage)`,
+			).props.opacity,
+		).toBe("0.46");
+	});
+
+	// The Application Switcher's palette as Mac OS 8.5 draws it
+	// (`resources/screenshots/mac-os-8.5/platinum-85-switcher-palette.png`,
+	// review M8 of story 0231-8c6): a one-pixel frame and bevel with no
+	// padding, a 12-row bar of raised dots on a 3 x 3 grid with the title in
+	// the small font, bold, and a sunken well of packed buttons with two
+	// one-pixel bevels each, the held one darker.
+	it("draws the Application Switcher's palette as Mac OS 8.5 does", () => {
+		const palette = `${P} .classicyWindow.classicyWindowUtility.classicyApplicationSwitcherPalette`;
+		const px = "var(--window-border-size)";
+		const gray = (pct: string) =>
+			`color-mix(in srgb, var(--color-black), white ${pct})`;
+		const frame = rule(palette);
+		expect(frame.props.padding).toBe(px);
+		expect(frame.props.border).toBe(`${px} solid var(--color-black)`);
+		expect(frame.props["box-shadow"]).toBe(
+			`inset ${px} ${px} 0 0 var(--color-white), inset calc(${px} * -1) calc(${px} * -1) 0 0 ${gray("60%")}, ${px} ${px} 0 0 var(--color-black)`,
+		);
+		// After the windoid's own rules, whose padding and bars it replaces.
+		expect(frame.at).toBeGreaterThan(
+			rule(
+				`${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBarUtilityTitle .classicyWindowTitle .classicyWindowTitleLeft, ${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBarUtilityTitle .classicyWindowTitle .classicyWindowTitleRight`,
+			).at,
+		);
+
+		const bar = rule(`${palette} > .classicyWindowTitleBar`);
+		expect(bar.props.height).toBe(
+			`calc(var(--window-utility-title-bar-height) + ${px} + ${px})`,
+		);
+		const bands = ["Left", "Right", "Center"]
+			.map(
+				(b) => `${palette} > .classicyWindowTitleBar .classicyWindowTitle${b}`,
+			)
+			.join(", ");
+		const dot = (ink: string) =>
+			`conic-gradient(from 270deg at ${px} ${px}, ${ink} 25%, transparent 0)`;
+		const tile =
+			"var(--utility-title-bar-texture-height) var(--utility-title-bar-texture-height)";
+		const dots = rule(bands).props;
+		expect(dots["background-image"]).toBe(
+			`${dot("var(--color-white)")}, ${dot(gray("46.667%"))}`,
+		);
+		expect(dots["background-position"]).toBe(`0 0, ${px} ${px}`);
+		expect(dots["background-size"]).toBe(tile);
+		const title = rule(
+			`${palette} > .classicyWindowTitleBar .classicyWindowTitleText`,
+		).props;
+		expect(title["font-family"]).toBe(
+			"var(--ui-font-small, var(--body-font)), sans-serif",
+		);
+		expect(title["font-size"]).toBe("var(--ui-font-size-small)");
+		expect(title["font-weight"]).toBe("bold");
+
+		expect(
+			rule(`${palette} .classicyApplicationSwitcherButtons`).props.border,
+		).toBe(`${px} solid var(--color-black)`);
+		const button = `${palette} .classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton`;
+		const bevel = "var(--control-bevel-sm)";
+		const bevels = (a: string, b: string, c: string, d: string) =>
+			`inset ${px} ${px} 0 0 ${a}, inset calc(${px} * -1) calc(${px} * -1) 0 0 ${b}, inset ${bevel} ${bevel} 0 0 ${c}, inset calc(${bevel} * -1) calc(${bevel} * -1) 0 0 ${d}`;
+		expect(rule(button).props["box-shadow"]).toBe(
+			bevels(gray("40%"), gray("20%"), "var(--color-white)", gray("53.333%")),
+		);
+		const held = rule(`${button}.checked, ${button}.pressed`).props;
+		expect(held["background-color"]).toBe(gray("53.333%"));
+		expect(held["box-shadow"]).toBe(
+			bevels(
+				gray("6.667%"),
+				gray("26.667%"),
+				gray("33.333%"),
+				"var(--color-system-04)",
+			),
+		);
 	});
 
 	// The inactive window's scroll-bar rules targeted the window root, which

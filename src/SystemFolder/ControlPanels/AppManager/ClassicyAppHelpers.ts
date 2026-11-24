@@ -167,6 +167,19 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	const restore = pickWindowToRestore(app);
 	if (restore) {
 		focusWindow(ds, appId, restore.id);
+	} else if (app.extension === true) {
+		// An extension with no document window to restore never takes the focus
+		// on its own: marked focused, it would unfocus the front application's
+		// window while `frontAppIdOf` still names that application, so the bar
+		// would show one app and the keyboard reach none. Its most recent open
+		// window (a utility window: the Application Switcher's palette) comes
+		// forward through `focusWindow`, which floats a menuless one over the
+		// front application, as a click in it does (the container's
+		// `ClassicyAppActivate`); with no open window nothing changes.
+		const latest = mostRecentAppWindow(
+			listAppWindows(app).filter((w) => !w.closed),
+		);
+		if (latest) focusWindow(ds, appId, latest.id);
 	} else {
 		markAppFocused(ds, appId);
 	}
@@ -492,8 +505,12 @@ export function loadApp(
 	appIcon: string,
 	contextMenu?: ClassicyMenuItem[],
 	extension?: boolean,
+	noBootParade?: boolean,
 ) {
 	const findApp = ownApp(ds, appId);
+	// An extension out of the startup parade (`ClassicyApp`'s
+	// `bootIcon={false}`), set or cleared from code on every load.
+	const paradeFlag = extension && noBootParade ? { noBootParade: true } : {};
 	if (!findApp) {
 		if (!isAssignableAppId(appId)) return;
 		ds.System.Manager.Applications.apps[appId] = {
@@ -508,6 +525,7 @@ export function loadApp(
 			data: {},
 			contextMenu,
 			...(extension ? { extension: true, focused: false } : {}),
+			...paradeFlag,
 		};
 	} else {
 		// Code-derived, like desktop-icon re-adds: the record is the app's own
@@ -524,11 +542,14 @@ export function loadApp(
 			findApp.extension = true;
 			findApp.open = true;
 			findApp.focused = false;
+			if (noBootParade) findApp.noBootParade = true;
+			else delete findApp.noBootParade;
 		} else if (findApp.extension) {
 			// The app was an extension in a previous session but mounts as a
 			// regular app now — clear the stale flag so it isn't hidden from
 			// the App Switcher or listed under System Folder/Extensions.
 			delete findApp.extension;
+			delete findApp.noBootParade;
 		}
 	}
 }

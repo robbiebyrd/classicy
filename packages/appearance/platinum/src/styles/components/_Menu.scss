@@ -13,8 +13,11 @@
   // its glossary, p.129, says only that a disabled item "may appear
   // dimmed"). This opacity is the fallback for an icon a canvas cannot read
   // (cross-origin, no CORS): it puts black at the rule's #777777 on the
-  // menu's #DDDDDD.
-  .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage) {
+  // menu's #DDDDDD. The Application Switcher's palette, the menu torn off,
+  // dims a hidden application's icon the same way (Mac OS 8.5,
+  // `resources/screenshots/mac-os-8.5/platinum-85-switcher-hidden-app.png`).
+  .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage),
+  .classicyApplicationSwitcherHidden .classicyApplicationSwitcherIcon:not(.classicyIconDimmedImage) {
     opacity: 0.46;
   }
 

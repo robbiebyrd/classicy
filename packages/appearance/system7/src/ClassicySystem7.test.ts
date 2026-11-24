@@ -846,6 +846,9 @@ describe("the System 7 appearance package", () => {
 			// scroll bar (`*-755-finder-list-row-selected.png`, story
 			// 0216-1im F9).
 			fileBrowser: { listColumnTitles: "aboveList" },
+			// System 7.5's Application menu does not tear off: the palette
+			// came with Mac OS 8.5 (story 0231-8c6).
+			applicationSwitcher: { palette: "none" },
 		});
 	});
 

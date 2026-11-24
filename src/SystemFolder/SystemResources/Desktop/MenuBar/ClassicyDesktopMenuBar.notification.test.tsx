@@ -171,10 +171,11 @@ describe("the ◆ mark in the Application menu", () => {
 		notify({ appId: "Mail.app" });
 		notify({ appId: "Calc.app" });
 		// Calc is in front: its check replaces its own diamond, Mail (in the
-		// background) has the ◆, and the guide is not listed.
+		// background) has the ◆, and the guide is not listed. The menu lists
+		// them in alphabetical order (story 0231-8c6).
 		expect(appRows()).toEqual([
-			["Finder.app", ""],
 			["Calc.app", "✓"],
+			["Finder.app", ""],
 			["Mail.app", "◆"],
 		]);
 		expect(switcher().textContent).toContain("Calc");

@@ -14,6 +14,7 @@ const BUNDLED_APP_IDS = [
 	"AppleGuide.app",
 	"AppearanceManager.app",
 	"AppleMenuOptions.app",
+	"ApplicationSwitcher.app",
 	"Calculator.app",
 	"ControlStripManager.app",
 	"DateAndTimeManager.app",

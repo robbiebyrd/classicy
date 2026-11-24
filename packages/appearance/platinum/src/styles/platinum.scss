@@ -43,6 +43,7 @@
 @use "components/Placard";
 @use "components/SplitView";
 @use "components/WindowFrame";
+@use "components/ApplicationSwitcher";
 @use "components/AppearanceManager";
 @use "screenSavers";
 
@@ -91,6 +92,9 @@
   @include Placard.placard;
   @include SplitView.splitView;
   @include WindowFrame.windowFrame;
+  // After the window and the bevel button: the palette's own frame and
+  // buttons over theirs.
+  @include ApplicationSwitcher.applicationSwitcher;
   @include AppearanceManager.appearanceManager;
   // The screen savers (plan 0016-vbq §2.1): in the package layer, but at its
   // root, outside the package scope, keyed on their own classes (see

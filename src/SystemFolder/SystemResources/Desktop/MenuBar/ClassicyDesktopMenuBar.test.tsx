@@ -541,10 +541,15 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 			["app-switcher_hide-others", "Hide Others", false, false, false],
 			["app-switcher_show-all", "Show All", false, false, false],
 			["divider"],
+			// Alphabetical, as Mac OS lists them (story 0231-8c6).
 			["Finder.app", "Finder", false, false, true],
-			["SimpleText.app", "SimpleText", false, true, true],
 			["Notes.app", "Notes", false, false, true, "hidden"],
+			["SimpleText.app", "SimpleText", false, true, true],
 		]);
+		// A screen reader hears what the dimmed icon shows (review M7).
+		const row = (id: string) => document.getElementById(id) as HTMLElement;
+		expect(row("Notes.app").getAttribute("aria-description")).toBe("Hidden");
+		expect(row("Finder.app").hasAttribute("aria-description")).toBe(false);
 	});
 
 	it("keeps the front application while an extension holds focus", () => {

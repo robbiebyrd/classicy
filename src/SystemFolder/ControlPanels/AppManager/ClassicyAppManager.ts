@@ -110,6 +110,11 @@ export interface ClassicyStoreSystemApp {
 	 */
 	reopened?: number;
 	/**
+	 * An extension kept out of the startup parade (`ClassicyApp`'s
+	 * `bootIcon={false}`): code-derived, refreshed on every load.
+	 */
+	noBootParade?: boolean;
+	/**
 	 * Hidden by the Application menu's Hide commands (HIG7 p.127): the app
 	 * stays open, its windows out of sight, until Show All or until it takes
 	 * focus again (`focusApp` shows it). Never set on an extension.
@@ -358,6 +363,7 @@ export const classicyAppEventHandler = (
 						? (action.contextMenu as ClassicyMenuItem[])
 						: undefined,
 					action.extension === true,
+					action.bootParade === false,
 				);
 			}
 			break;
