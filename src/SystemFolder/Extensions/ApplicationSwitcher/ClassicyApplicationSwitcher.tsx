@@ -6,6 +6,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -19,6 +20,7 @@ import {
 	classicyAppSwitcherChordDirection,
 	classicyAppSwitcherReverseShortcut,
 } from "./ClassicyApplicationSwitcherCycle";
+import { releaseClassicyAppSwitcherKeyboardTo } from "./ClassicyApplicationSwitcherKeyboard.internal";
 import { ClassicyApplicationSwitcherPalette } from "./ClassicyApplicationSwitcherPalette.internal";
 
 /**
@@ -34,9 +36,12 @@ import { ClassicyApplicationSwitcherPalette } from "./ClassicyApplicationSwitche
  * bar's dispatcher and the windows' own keys, as Mac OS 8.5 took
  * Command-Tab ahead of the application in front; a keyboard-equivalent
  * dialog recording a chord (its own capture listener, on `window`) still
- * gets it first. Both chords are also registered as global shortcuts, so
- * the Keyboard Shortcuts topic lists them and another extension cannot take
- * them.
+ * gets it first. A switch hands the keyboard to the application switched
+ * to, as Command-Tab did: a text field or control of the application left
+ * behind gives up the DOM focus, so the keys that follow reach the new
+ * front application, not the document left behind. Both chords are also
+ * registered as global shortcuts, so the Keyboard Shortcuts topic lists
+ * them and another extension cannot take them.
  */
 /**
  * Whether a screen saver is showing (`ScreenSaver.app`'s `active`): the key
@@ -71,7 +76,15 @@ export const ClassicyApplicationSwitcher: FunctionalComponent = () => {
 			const direction = classicyAppSwitcherChordDirection(cyclingShortcut, e);
 			if (direction === 0) return;
 			e.preventDefault();
+			const frontNow = () =>
+				frontAppIdOf(useAppManager.getState().System.Manager.Applications);
+			const before = frontNow();
 			dispatch({ type: APPLICATION_SWITCHER_CYCLE, direction });
+			// Only a switch moves the keyboard: a chord that switches nothing
+			// (a modal window open, one application) leaves it where it is.
+			const after = frontNow();
+			if (after !== undefined && after !== before)
+				releaseClassicyAppSwitcherKeyboardTo(after);
 		};
 		document.addEventListener("keydown", onKeyDown, true);
 		return () => document.removeEventListener("keydown", onKeyDown, true);

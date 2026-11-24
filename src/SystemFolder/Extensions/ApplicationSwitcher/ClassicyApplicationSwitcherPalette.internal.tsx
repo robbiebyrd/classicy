@@ -32,14 +32,13 @@ import {
 	type classicyApplicationSwitcherSettings,
 	classicyModalWindowOpen,
 } from "./ClassicyApplicationSwitcherContext";
+import {
+	isInClassicyAppSwitcherPalette as inPalette,
+	CLASSICY_APP_SWITCHER_PALETTE_CLASS as PALETTE_CLASS,
+	releaseClassicyAppSwitcherKeyboardTo,
+} from "./ClassicyApplicationSwitcherKeyboard.internal";
 
 type Settings = ReturnType<typeof classicyApplicationSwitcherSettings>;
-
-/** The palette window's root class (`ClassicyWindow`'s `className`). */
-const PALETTE_CLASS = "classicyApplicationSwitcherPalette";
-
-const inPalette = (node: EventTarget | null): boolean =>
-	node instanceof Element && node.closest(`.${PALETTE_CLASS}`) !== null;
 
 /**
  * Keeps the keyboard off the palette under the mouse, as Mac OS 8.5's
@@ -179,22 +178,6 @@ const useClassicyPaletteLines = (
 		return () => observer.disconnect();
 	}, [count, horizontal, ...deps]);
 	return lines;
-};
-
-/**
- * Hands the keyboard to the application a palette button switches to: the
- * element that has DOM focus gives it up unless it is inside one of that
- * application's windows (DOM id `${appId}_…`), so a control of the
- * application left behind, or the palette's button pressed from the
- * keyboard, never takes the next Enter or Space.
- */
-const releaseKeyboardTo = (appId: string) => {
-	if (typeof document === "undefined") return;
-	const active = document.activeElement;
-	if (!(active instanceof HTMLElement) || active === document.body) return;
-	const win = active.closest(".classicyWindow");
-	if (win && !inPalette(win) && win.id.startsWith(`${appId}_`)) return;
-	active.blur();
 };
 
 /**
@@ -346,7 +329,7 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 								app: { id: app.id },
 								hideFront: e.altKey,
 							});
-							releaseKeyboardTo(app.id);
+							releaseClassicyAppSwitcherKeyboardTo(app.id);
 						}}
 					>
 						<ClassicyIconImage

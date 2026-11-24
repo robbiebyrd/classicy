@@ -1,4 +1,5 @@
 import { act, fireEvent } from "@testing-library/react";
+import { produce } from "immer";
 import { beforeEach, describe, expect, it } from "vitest";
 import { render, userEvent } from "@/__tests__/test-utils";
 import { Calculator } from "@/SystemFolder/Calculator/Calculator";
@@ -10,6 +11,8 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
+import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyApplicationSwitcher } from "./ClassicyApplicationSwitcher";
 import {
 	APPLICATION_SWITCHER_APP_ID,
@@ -193,6 +196,140 @@ describe("the Application Switcher's palette never takes the focus or the keyboa
 			});
 			expectCalculatorHasTheKeyboard();
 			expect(apps().apps[APPLICATION_SWITCHER_APP_ID].focused).toBeFalsy();
+		}
+	});
+});
+
+/**
+ * Integration G of the feature-review branch: Control-` hands the keyboard
+ * to the application it switches to, as Command-Tab did and as the palette
+ * does. In Chromium and Firefox a switch from SimpleText's document to
+ * Calculator left the document focused, so "7 + 2 Enter" went into it.
+ */
+describe("the chord hands the keyboard to the application it switches to", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	const chord = (target: Element) =>
+		act(() => {
+			fireEvent.keyDown(target, {
+				key: "`",
+				code: "Backquote",
+				ctrlKey: true,
+			});
+		});
+
+	/** Calculator, Finder and Notes open, Notes in front, its text focused. */
+	const mountNotes = () => {
+		act(() => {
+			useAppManager.setState((s) => {
+				const next = structuredClone(s);
+				next.System.Manager.Applications.apps["Finder.app"] = {
+					id: "Finder.app",
+					name: "Finder",
+					icon: "/finder.png",
+					windows: {},
+					open: true,
+					focused: false,
+					data: {},
+					lastFocusedAt: 1,
+				};
+				return next;
+			}, true);
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: CALCULATOR_APP_ID, name: "Calculator", icon: "" },
+			});
+		});
+		const view = render(
+			<>
+				<Calculator />
+				<ClassicyApp id="Notes.app" name="Notes" icon="">
+					<ClassicyWindow
+						id="notes"
+						appId="Notes.app"
+						title="Notes"
+						initialSize={[200, 200]}
+						initialPosition={[400, 300]}
+					>
+						<textarea aria-label="Note" />
+					</ClassicyWindow>
+				</ClassicyApp>
+				<ClassicyApplicationSwitcher />
+			</>,
+		);
+		act(() => {
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: "Notes.app", name: "Notes", icon: "" },
+			});
+		});
+		const note = view.getByLabelText("Note");
+		act(() => {
+			note.focus();
+		});
+		expect(frontAppIdOf(apps())).toBe("Notes.app");
+		expect(document.activeElement).toBe(note);
+		return note;
+	};
+
+	it("Control-` from a focused text field to Calculator: 7 + 2 Enter shows 9", () => {
+		const note = mountNotes();
+		// Calculator, Finder, Notes: the next after Notes wraps to Calculator.
+		chord(note);
+		expectCalculatorHasTheKeyboard();
+		expect(document.activeElement).not.toBe(note);
+		type(["Escape", "7", "+", "2", "Enter"]);
+		expect(display()).toBe("9");
+	});
+
+	it("a chord that switches nothing (a dialog open) leaves the keyboard in the dialog", () => {
+		mountNotes();
+		// An extension's dialog over Notes holds the keyboard: Notes stays
+		// the front application (0225's host rule), the dialog's button has
+		// the DOM focus, and switching waits for the dialog.
+		act(() => {
+			useAppManager.setState(
+				produce(useAppManager.getState(), (d) => {
+					d.System.Manager.Applications.apps["Helper.app"] = {
+						id: "Helper.app",
+						name: "Helper",
+						icon: "",
+						open: true,
+						focused: false,
+						extension: true,
+						data: {},
+						windows: {
+							dialog: {
+								id: "dialog",
+								closed: false,
+								modal: true,
+								size: [200, 100],
+								position: [100, 100],
+								minimumSize: [0, 0],
+							},
+						},
+					};
+				}),
+				true,
+			);
+		});
+		const dialog = document.createElement("div");
+		dialog.className = "classicyWindow";
+		dialog.id = "Helper.app_dialog";
+		const ok = document.createElement("button");
+		ok.textContent = "OK";
+		dialog.append(ok);
+		document.body.append(dialog);
+		try {
+			ok.focus();
+			chord(ok);
+			expect(frontAppIdOf(apps())).toBe("Notes.app");
+			expect(document.activeElement).toBe(ok);
+		} finally {
+			dialog.remove();
 		}
 	});
 });

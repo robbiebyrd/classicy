@@ -2347,7 +2347,12 @@ any key while the screen saver shows (the saver's alone, whichever of the
 two capture listeners runs first). A chord with both Control and Command
 needs both held; a letter matches by the character typed (the physical key
 only where Option composed another character), so on a layout that moves
-letters one key matches it. Both
+letters one key matches it. A switch hands the keyboard to the application
+switched to, as 8.5's Command-Tab did and as the palette's buttons do: an
+element with the DOM focus outside that application's own windows (a text
+field of the application left behind) gives it up, so the keys that follow
+reach the new front application; a chord that switches nothing (a modal
+window open) leaves the focus where it is. Both
 chords are also registered as global shortcuts (`Keyboard.global`, titled
 "Switch to the next/previous application"), so the Keyboard Shortcuts topic
 lists them and another extension cannot take them.

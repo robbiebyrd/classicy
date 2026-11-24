@@ -898,7 +898,10 @@ Alt-Tab never reach a page) switches through the menu's order with no
 overlay, read on the document in the capture phase (ahead of the menu bar's
 dispatcher), skipped while a modal is open or the screen saver shows,
 matched by key or physical `code` (a letter by the character typed only;
-⌃⌘ needs both), and registered as two global shortcuts; Help ▸ Keyboard
+⌃⌘ needs both), and registered as two global shortcuts; a switch by it
+hands the keyboard to the app switched to, as a palette switch does (a
+focus left in another app's window is released,
+`ClassicyApplicationSwitcherKeyboard.internal.ts`); Help ▸ Keyboard
 Shortcuts… page 4 turns it off or records another
 (`ClassicyKeyboardEquivalentField`; Control, Option or Command, no Shift;
 refused when any open app's menus use it, with or without Shift, Control
