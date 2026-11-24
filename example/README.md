@@ -71,6 +71,18 @@ A basic rich-text editor backed by the `ClassicyRichTextEditor` component, inclu
 
 ---
 
+## Desktop state sync (mock backend)
+
+Open the example with `?stateSync=<account>` (for example
+http://localhost:5173/?stateSync=demo) to register its desktop state adapter
+(`src/stateSync/mockStateAdapter.ts`). It mirrors the desktop state (theme,
+windows, icons, settings) to a mock backend the dev and preview servers run
+(`mockStateServer.ts`, kept in the server's memory), and at boot restores the
+account's copy. Open the same URL in a second browser profile (or a private
+window) and the theme and window layout changed in the first are there after
+a reload, as a signed-in user's desktop follows them across devices. Without
+the parameter nothing is synced. Restarting the server forgets every account.
+
 ## TimeMachine Proxy Setup
 
 The **Browser** app requires the TimeMachine Web Proxy to be running locally. A Docker Compose configuration is provided in `timemachine/`.
