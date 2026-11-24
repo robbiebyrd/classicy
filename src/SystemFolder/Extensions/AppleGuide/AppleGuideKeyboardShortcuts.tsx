@@ -132,19 +132,22 @@ function trackFront({ apps, focusedAppId, appMenu }: FrontSource): FrontApp {
 	return lastFront;
 }
 
-useAppManager.subscribe((s) =>
+const trackFromStore = (s: ReturnType<typeof useAppManager.getState>) =>
 	trackFront({
 		apps: s.System.Manager.Applications.apps,
 		focusedAppId: s.System.Manager.Applications.focusedAppId,
 		appMenu: s.System.Manager.Desktop.appMenu,
-	}),
-);
-trackFront({
-	apps: useAppManager.getState().System.Manager.Applications.apps,
-	focusedAppId:
-		useAppManager.getState().System.Manager.Applications.focusedAppId,
-	appMenu: useAppManager.getState().System.Manager.Desktop.appMenu,
-});
+	});
+
+// A test that replaces the store with a hook-only double has no `subscribe`
+// or `getState`; the topic then simply reads what it is rendered with.
+if (
+	typeof useAppManager.subscribe === "function" &&
+	typeof useAppManager.getState === "function"
+) {
+	useAppManager.subscribe(trackFromStore);
+	trackFromStore(useAppManager.getState());
+}
 
 /** The front application, re-read on every change of the apps or the bar's menus. */
 function useFrontApp(): FrontApp {
