@@ -38,10 +38,14 @@
   pointer-events: none;
 }
 
+// The names are small text: "Calculator" is 8 rows tall in Mac OS 8.5
+// (`platinum-85-switcher-palette.png`), as Geneva is at the small UI size;
+// the theme's small UI family when it names one, else its body font (Geneva
+// under Platinum, whose UI family is Charcoal).
 .classicyApplicationSwitcherName {
   padding-right: var(--control-padding);
-  font-family: var(--body-font), sans-serif;
-  font-size: var(--body-font-size);
+  font-family: var(--ui-font-small, var(--body-font)), sans-serif;
+  font-size: var(--ui-font-size-small);
 }
 
 .classicyApplicationSwitcherLargeIcons .classicyApplicationSwitcherIcon {
