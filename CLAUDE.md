@@ -632,6 +632,29 @@ follows the theme. Widths snap to whole modules (module width plus its
 separator, `--control-strip-module-width` + `--control-strip-border-width`,
 31 px under Platinum).
 
+### Recent Items (Apple Menu Options)
+
+The Apple menu's **Recent Applications** and **Recent Documents** (story
+0226-a6f; Mac OS 8.1 and System 7.5.3 observed on Infinite Mac) are fed by
+the kernel: `openApp` records an app it opens (never the Finder, an
+extension, or an app whose manifest says `controlPanel: true`), and the
+generic `ClassicyApp${name}OpenFile` queue and `routeClassicyAppOpenFile`
+record a document (`src/SystemFolder/SystemResources/RecentItems/`,
+store-free). State is `System.Manager.Desktop.recentItems` `{ enabled,
+counts: { application, document } (0–99, default 10), items }`, persisted;
+`ClassicyDesktopRecentItems{SetEnabled,SetCount,Forget,Missing}` are routed
+before `ClassicyDesktop*` (off forgets every item). Finder's `PathsMoved`
+moves a document's path with it. The menu lists the newest items up to the
+count, alphabetically, without icons, the Apple menu's items after the About
+section sorted alphabetically (HIG7 p.98); a document opens through
+`openClassicyFileSystemPath` (`File/ClassicyFileOpen.ts`, the Finder's way,
+reusable), and a missing one draws the Finder's alias alert and is dropped.
+Hosts add items with `registerClassicyRecentItemsSource({ id, kind, list,
+subscribe? })`, merged by time. Recent items carry
+`ClassicyMenuItem.analyticsPrivate`, so no name reaches `track`. The
+Apple Menu Options control panel (`AppleMenuOptions.app`) is part of
+`ClassicyControlPanels`. Details: `docs/AGENT-REFERENCE.md` §11, "Recent Items".
+
 ### Contextual Menus
 
 Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.

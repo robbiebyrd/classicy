@@ -529,14 +529,15 @@ registration, file-system adapters, or engine callbacks.
 1. Trust gate — untrusted actions that fail the gate are rejected before any handler runs.
 2. `ClassicyWindow*` → window operations (focus, move, resize, collapse, zoom)
 3. `ClassicyDesktopIcon*` → icon add/selection/interaction
-4. `ClassicyDesktop*` → desktop (menus, themes, backgrounds, balloon help toggle)
-5. `ClassicyBootParadeIcon*` → boot parade
-6. `ClassicyManagerDateTime*` → date/time manager
-7. `ClassicyShortcut*` → keyboard shortcut registry
-8. **Registered plugin handlers** — first registered prefix that matches wins
+4. `ClassicyDesktopRecentItems*` → Recent Items (Apple Menu Options; §11, "Recent Items")
+5. `ClassicyDesktop*` → desktop (menus, themes, backgrounds, balloon help toggle)
+6. `ClassicyBootParadeIcon*` → boot parade
+7. `ClassicyManagerDateTime*` → date/time manager
+8. `ClassicyShortcut*` → keyboard shortcut registry
+9. **Registered plugin handlers** — first registered prefix that matches wins
    (insertion order, NOT longest-match; register more specific prefixes first)
-9. `ClassicyApp*` → generic app lifecycle (open, close, focus, activate)
-10. Otherwise: dev-mode "Unhandled action type" warning.
+10. `ClassicyApp*` → generic app lifecycle (open, close, focus, activate)
+11. Otherwise: dev-mode "Unhandled action type" warning.
 
 Add `debug: true` to any action to get a `console.group` dump of before/after
 state (non-production only).
@@ -674,6 +675,11 @@ Rules (enforced/warned by the kernel):
   `state` schema wins (a different second schema warns).
 - `scriptable: true` auto-adds the action type to the untrusted allowlist and
   validates script-authored args against `params` before dispatch.
+- `controlPanel: true` marks the app a control panel, not an application:
+  Recent Applications never lists it (§11, "Recent Items"). Any registration
+  of the id that says so makes it one; the bundled control panels (Appearance,
+  Sound, Date & Time, Screen Saver, Control Strip, Apple Menu Options) do.
+  Drive Setup is an application on the Mac, and stays one.
 - Dev builds validate `apps[id].data` against the schema after each routed
   action — **warn-only**, never rejects.
 - **Opening files from Finder.** Declare `<prefix>OpenFile` (e.g.
@@ -1495,7 +1501,7 @@ off:
 | Component | Purpose | Disable via provider prop |
 |---|---|---|
 | `Finder` | The Finder (file browsing, trash, Applications) | always on |
-| `ClassicyControlPanels` | Appearance, Date & Time, Drive Setup, Sound panels | always on |
+| `ClassicyControlPanels` | Appearance, Sound, Date & Time, Drive Setup, Screen Saver, Control Strip and Apple Menu Options panels | always on |
 | `SimpleText` | Text editor | `disableSimpleText` |
 | `HyperCard` | Stack player (+ `HyperCard/Editor/*` authoring UI) | `disableHyperCard` |
 | `PDFViewer` | PDF viewer | `disablePDFViewer` |
@@ -1506,9 +1512,11 @@ off:
 | `AppleGuide` | Help system extension | always on |
 
 The components are still individually exported (all take no props) for
-advanced setups that build their own desktop shell. The four control panels
+advanced setups that build their own desktop shell. The control panels
 are also individually exported (`ClassicyAppearanceManager`,
-`ClassicyDateAndTimeManager`, `ClassicyDriveSetup`, `ClassicySoundManager`),
+`ClassicyDateAndTimeManager`, `ClassicyDriveSetup`, `ClassicySoundManager`,
+`ClassicyScreenSaverManager`, `ClassicyControlStripManager`,
+`ClassicyAppleMenuOptions`),
 and `PDFViewerDocument` (`{ url, data? }` — data = gzip+base64url bytes) is a
 standalone PDF renderer with zoom/pan usable inside any consumer window.
 
@@ -5711,6 +5719,12 @@ display name for its app (the control panels, HyperCard) sends that name
 payloads keep the app's own name and icon; a window's `track` payload carries
 its `icon` prop, which for the control panels' windows is the display icon.
 
+A menu item that stands for user data sets `analyticsPrivate: true`
+(`ClassicyMenuItem`): its `hover` and `selected` events then carry only its
+`id`, `disabled`, `event` and `childrenCount`, so give it an id free of that
+data too. The Apple menu's Recent Applications and Recent Documents items do
+(§11, "Recent Items").
+
 ---
 
 ## 10. Sound
@@ -5895,6 +5909,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 | `registerClassicyScreenSaver(def)` | Add screensavers to the idle-activated Screen Saver extension, offered under the Appearance Packages `def.packages` names (see "Screen savers" below) |
 | `registerClassicyLogSink(sink)` | Receive Classicy's logs, errors, and crash reports in the host app (see "Logging & diagnostics" below) |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
+| `registerClassicyRecentItemsSource({ id, kind, list, subscribe? })` | Add a host's own recent items to the Apple menu's Recent Applications or Recent Documents, merged with the remembered ones by time (see "Recent Items" below) |
 | `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars |
 | `useFinderFolderSize`, `FinderContext` | Finder integration points |
 | `useClassicyCursor()` | Platinum cursor management |
@@ -6067,6 +6082,97 @@ Logos list in registration order (built-ins first). Read side:
 `resolveClassicyScreenSaverLogo(id)` (unknown → default),
 `useClassicyScreenSaverLogos()` (live), `unregisterClassicyScreenSaverLogo(id)`.
 A saved config naming a logo that is no longer registered draws the default.
+
+### Recent Items (Apple Menu Options)
+
+The Apple menu lists **Recent Applications** and **Recent Documents**, and the
+**Apple Menu Options** control panel (`AppleMenuOptions.app`, in
+`ClassicyControlPanels`; `src/SystemFolder/ControlPanels/AppleMenuOptions/`)
+turns them on and off and sets how many items each remembers. Story 0226-a6f.
+Reference, observed on Infinite Mac (Mac OS 8.1, System 7.5.3, Mac OS 8.5):
+the panel's "Recent Items" group, "Remember recently used items" (on),
+Documents 10, Applications 10 (each 0–99; 999 typed is stored as 99); the
+fields dim and empty while the box is off.
+
+**What is remembered** (`src/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems.ts`,
+store-free, called by the kernel):
+
+- An **application** each time `openApp` opens one the store has a record
+  for: `ClassicyAppOpen` (the Apple menu, the Control Strip, HyperCard), a
+  desktop icon (`ClassicyDesktopIconOpen`), a Finder app shortcut, and a
+  document that opens its app. Never the Finder, an extension, or an app
+  whose manifest says `controlPanel: true` (the Mac remembered applications;
+  a control panel opened from the Apple menu was not added), nor an id
+  nothing loaded. It is remembered by its **internal** name; the menu shows
+  the active package's display name (§8, "App display overrides").
+- A **document** each time one is opened through the Finder's routing
+  (`ClassicyAppFinderOpenFile` → `routeClassicyAppOpenFile`, an app's own
+  OpenFile case when its trust permits it) or the generic
+  `ClassicyApp${name}OpenFile` queue (`data.openFiles`), dispatched by
+  anything. Remembered by its path and file name.
+- Each use moves the item to the front; one per app or path; the oldest past
+  the count is forgotten. `ClassicyAppFinderPathsMoved` moves a document's
+  path with it (a moved document, or one in a moved folder, a trashed one
+  included), as the Mac's aliases followed their originals.
+
+State, persisted with the desktop (`System.Manager.Desktop.recentItems`,
+`ClassicyStoreRecentItems`; `defaultClassicyRecentItemsState()` in the
+default state; a state saved before it existed gets the defaults by the load
+merge; `normalizeClassicyRecentItems` reads any stored shape):
+
+```ts
+{ enabled: boolean, counts: { application: number, document: number },
+  items: { kind: "application" | "document", appId?, path?, name, at }[] } // newest first
+```
+
+Actions (prefix `ClassicyDesktopRecentItems`, routed before `ClassicyDesktop*`,
+so on the untrusted floor):
+
+| Action | Payload | Effect |
+|---|---|---|
+| `ClassicyDesktopRecentItemsSetEnabled` | `{ enabled }` | Off removes both entries from the Apple menu and **forgets every item** (the Mac emptied its Recent folders); on again starts empty |
+| `ClassicyDesktopRecentItemsSetCount` | `{ kind, count }` | Clamped to a whole number 0–99; items past it are forgotten |
+| `ClassicyDesktopRecentItemsForget` | `{ kind, appId \| path }` | Forget one item |
+| `ClassicyDesktopRecentItemsMissing` | `{ kind, appId \| path, name? }` | Forget it and show the Finder's alert: "The alias “<name>” could not be opened, because the original item could not be found." (Mac OS 8.1's wording, a stop alert with OK) |
+
+**In the Apple menu** (`ClassicyRecentItemsMenu.ts`,
+`useClassicyRecentItemsMenuItems`): each entry is drawn with its folder icon
+(`system.folders.applications`, `system.folders.recentDocuments`) among the
+Apple menu's items, which are listed **alphabetically** after the About
+section (HIG7 p.98; each later divider-delimited group sorted on its own,
+`withClassicyRecentItemsMenuItems`). Its submenu lists the newest items up to
+the count, **alphabetically, by name, without icons** (as all three systems
+draw them). An empty one is dimmed with no submenu (the Mac opened the empty
+folder; Classicy has none). Choosing a document opens it the way the Finder
+would (`openClassicyFileSystemPath(fs, path, dispatch)`,
+`SystemResources/File/ClassicyFileOpen.ts`: a folder or disk in a Finder
+window, anything else through `ClassicyAppFinderOpenFile`; reusable by any
+surface that opens a path it holds); choosing an application dispatches
+`ClassicyAppOpen` with its record. A document no longer at its path, or an
+application no longer mounted (`isClassicyAppMounted`), draws the alert and
+is dropped. The Mac's Recent Servers and the panel's Submenus group are left
+out: Classicy has no file servers, and its Apple menu no folders of its own.
+
+**Host items**: `registerClassicyRecentItemsSource({ id, kind, list,
+subscribe? })` (`ClassicyRecentItemsSources.ts`; returns the unregister;
+registering an `id` again replaces it; `unregisterClassicyRecentItemsSource(id)`)
+adds items such as recently viewed pages. `list()` returns `{ name, at (Date
+or ms), key?, open?, appId?, path? }[]`, read whenever the menu bar draws; an
+item opens by `open()` first, else `appId`, else `path` (through the Finder).
+Its items merge with the remembered ones **by time** under the same count,
+and one naming a remembered document's path (or app id) meets it, the newer
+use winning; Classicy never stores them. Pass `subscribe(onChange)` to redraw
+an open menu when they change. An item with no name, time or opener, and a
+`list` that throws, are skipped with one `ClassicyRecentItems` warning per
+source.
+
+**Analytics**: every Recent item in the menu carries
+`ClassicyMenuItem.analyticsPrivate`, so its `hover`/`selected` payloads hold
+only its id (`apple-recent-documents-3`), `disabled`, `event` and
+`childrenCount`, never its name, icon or path; the alert is
+`analyticsExclude`. Any host menu item standing for user data can set the flag
+too. (A document reopened from the menu opens its window as the Finder would,
+and that window's *title* reaches GA as every window title does, §9.)
 
 ### Logging & diagnostics
 
