@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { transformWithEsbuild } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -27,8 +28,13 @@ import {
 // loader beside it, required from a CommonJS file the way a Node host's
 // `require()` reaches it through the exports map.
 
-const root = mkdtempSync(join(tmpdir(), "classicy-umd-loader-"));
-afterAll(() => rmSync(root, { recursive: true, force: true }));
+// Under a folder whose name holds a space, as `Application Support` or a
+// `First Last` home folder does: V8 drops a source URL with whitespace, so
+// the loader writes a file URL (review N2).
+const parent = mkdtempSync(join(tmpdir(), "classicy-umd-loader-"));
+afterAll(() => rmSync(parent, { recursive: true, force: true }));
+const root = join(parent, "First Last");
+mkdirSync(root);
 
 // Line 3 builds the error a stack trace must name, at its own column.
 const UMD = [
@@ -132,9 +138,15 @@ describe("classicyUmdLoader", () => {
 		);
 		expect(
 			[...loader.matchAll(/require\("([^"]+)"\)/g)].map((m) => m[1]),
-		).toEqual(["node:fs", "node:vm", "node:path"]);
+		).toEqual(["node:fs", "node:vm", "node:url", "node:path"]);
 		expect(loader).toContain('join(__dirname, "classicy.umd.js")');
-		expect(loader).not.toContain('"use strict"');
+		// The eval runs strict; the loader's own top level stays sloppy, as
+		// Node runs a CommonJS module.
+		expect(loader.split("\n").slice(3, 6)).toEqual([
+			"function classicyUmdRun(exports, require, module, __filename, __dirname) {",
+			'\t"use strict";',
+			"\teval(arguments[5]);",
+		]);
 	});
 
 	// The bug: in a "type": "module" package Node reads the .js bundle as an
@@ -158,23 +170,56 @@ describe("classicyUmdLoader", () => {
 			host('console.log(require("fixture") === require("fixture"));').stdout,
 		).toBe("true"));
 
-	it("keeps a stack trace from inside the bundle on the bundle's own lines and columns", () => {
+	it("keeps a stack trace from inside the bundle on the bundle's own lines and columns, under a path with a space", () => {
 		const column = UMD.split("\n")[2].indexOf("new Error") + 1;
+		expect(root).toContain(" ");
 		expect(
 			host(`try { require("fixture").fail(); } catch (e) { ${firstFrame}; }`)
 				.stdout,
-		).toBe(`at e.fail (${join(pkg, "dist/fixture.umd.js")}:3:${column})`);
+		).toBe(
+			`at e.fail (${pathToFileURL(join(pkg, "dist/fixture.umd.js")).href}:3:${column})`,
+		);
 	});
 
 	// Node maps generated code that carries a source URL (module docs,
 	// setSourceMapsSupport's `generatedCode`), so the bundle's own map applies.
 	it("maps a stack trace through the bundle's source map under --enable-source-maps", () => {
 		const run = `try { require("mapped").run(5); } catch (e) { ${firstFrame}; }`;
-		expect(host(run).stdout).toMatch(/mapped\.umd\.js:1:\d+\)$/);
+		expect(host(run).stdout).toMatch(
+			new RegExp(
+				`\\(${pathToFileURL(join(root, "node_modules/mapped/dist/mapped.umd.js")).href.replaceAll(/[.]/g, "\\.")}:1:\\d+\\)$`,
+			),
+		);
 		expect(host(run, ["--enable-source-maps"]).stdout).toBe(
 			`at helper (${join(root, "mapped-src.js")}:3:11)`,
 		);
 	});
+
+	// Strict, so a top-level declaration stays in the eval's own scope: a
+	// sloppy direct eval put it in the calling function's, and every global
+	// name the bundle read became a slow dynamic lookup (review N1).
+	it("runs the bundle's top level strict, declaring nothing outside it", () => {
+		writePackage(
+			"toplevel",
+			"var leaked = 1;\nfunction declared() {}\nmodule.exports.strict = (function () { return this === undefined; })();\nmodule.exports.self = this === module.exports;\n",
+		);
+		expect(
+			host(
+				'const m = require("toplevel"); console.log(JSON.stringify([m.strict, m.self, typeof leaked, typeof declared, "leaked" in globalThis]));',
+			).stdout,
+		).toBe(JSON.stringify([true, true, "undefined", "undefined", false]));
+	});
+
+	// process.getBuiltinModule (Node 20.16, 22.3): the UMD bundle reaches
+	// Node's url module with it.
+	it("names the Node it needs when process.getBuiltinModule is missing", () =>
+		expect(
+			host(
+				'delete process.getBuiltinModule; try { require("fixture"); } catch (e) { console.log(e.message); }',
+			).stdout,
+		).toBe(
+			`fixture: require() needs Node 20.16, 22.3 or later (process.getBuiltinModule); this is Node ${process.version}. Upgrade Node, or import fixture (the ES build).`,
+		));
 
 	// --disallow-code-generation-from-strings forbids eval: vm compiles it.
 	it("loads where code generation from strings is disallowed", () => {
@@ -197,7 +242,8 @@ describe("classicyUmdLoader", () => {
 const vm = require("node:vm");
 const { createRequire } = require("node:module");
 const file = require.resolve("fixture");
-const sandbox = vm.createContext({ marker: "sandbox" });
+// A runner hands its sandbox a process, as Jest does.
+const sandbox = vm.createContext({ marker: "sandbox", process });
 const compiled = vm.runInContext(
 	"(function (exports, require, module, __filename, __dirname) {" + require("node:fs").readFileSync(file, "utf8") + "\\n})",
 	sandbox,

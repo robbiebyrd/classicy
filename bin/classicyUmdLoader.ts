@@ -17,22 +17,31 @@ export const classicyUmdLoaderFile = (umdFile: string): string =>
 /** The loader's size limit, in bytes: it must stay a few lines. */
 export const CLASSICY_UMD_LOADER_MAX_BYTES = 4096;
 
+/** The Node releases `require()` needs: the UMD bundle reaches Node's url
+ * module with `process.getBuiltinModule` (bin/classicyUmdNodeUrl.ts). */
+export const CLASSICY_UMD_LOADER_NODE_FLOOR = "Node 20.16, 22.3 or later";
+
 /**
  * The loader's source for `packageName`'s UMD bundle `umdFile` (a bare file
- * name in the same folder). It reads the bundle and runs it with a direct
- * `eval` inside a function whose parameters are CommonJS's (`exports`,
- * `require`, `module`, `__filename`, `__dirname`), the source ending in a
- * `//# sourceURL` of the bundle's path. So the bundle runs in the realm of
- * whoever required the loader (a test runner's sandbox, Jest's, included), a
- * stack trace names the bundle's own file, lines and columns, and
+ * name in the same folder). It reads the bundle and runs it with a strict
+ * direct `eval` inside a function whose parameters are CommonJS's
+ * (`exports`, `require`, `module`, `__filename`, `__dirname`), the source
+ * ending in a `//# sourceURL` of the bundle's file URL (V8 drops a source URL
+ * holding whitespace, so a plain path under `Application Support` or
+ * `First Last` named no file). So the bundle runs in the realm of whoever
+ * required the loader (a test runner's sandbox, Jest's, included), a stack
+ * trace names the bundle's own file, lines and columns, and
  * `--enable-source-maps` maps it through the bundle's source map (Node maps
- * generated code with a source URL). Where code generation from strings is
- * disallowed (`--disallow-code-generation-from-strings`) it compiles the
- * bundle with `vm.runInThisContext` instead, in the main realm and without
- * source maps. Its `require` is the loader's, which resolves from the same
- * folder as the bundle's would. A bundle missing beside it (a bundler copied
- * the loader alone into a server bundle) throws an error that says so.
- * No `"use strict"`: Node runs CommonJS modules, and so the bundle, sloppy.
+ * generated code with a source URL). Strict, so nothing the bundle declares
+ * at its top level lands in the function's scope, which would make every
+ * global name the bundle reads a slow dynamic lookup (story 0223-a0y). Where
+ * code generation from strings is disallowed
+ * (`--disallow-code-generation-from-strings`) it compiles the bundle with
+ * `vm.runInThisContext` instead, in the main realm and without source maps.
+ * Its `require` is the loader's, which resolves from the same folder as the
+ * bundle's would. A bundle missing beside it (a bundler copied the loader
+ * alone into a server bundle) throws an error that says so, and so does a
+ * Node older than CLASSICY_UMD_LOADER_NODE_FLOOR.
  */
 export const classicyUmdLoader = (
 	umdFile: string,
@@ -42,9 +51,16 @@ export const classicyUmdLoader = (
 // CommonJS, since in this "type": "module" package Node reads a .js file as an
 // ES module (bin/classicyUmdLoader.ts in the Classicy repository).
 function classicyUmdRun(exports, require, module, __filename, __dirname) {
+	"use strict";
 	eval(arguments[5]);
 }
 (function (file) {
+	if (typeof process.getBuiltinModule !== "function")
+		throw new Error(
+			${JSON.stringify(`${packageName}: require() needs ${CLASSICY_UMD_LOADER_NODE_FLOOR} (process.getBuiltinModule); this is Node `)} +
+				process.version +
+				${JSON.stringify(`. Upgrade Node, or import ${packageName} (the ES build).`)},
+		);
 	var source;
 	try {
 		source = require("node:fs").readFileSync(file, "utf8");
@@ -64,14 +80,18 @@ function classicyUmdRun(exports, require, module, __filename, __dirname) {
 	} catch (_disallowed) {
 		return require("node:vm")
 			.runInThisContext(
-				"(function (exports, require, module, __filename, __dirname) {\\n" +
+				'(function (exports, require, module, __filename, __dirname) {"use strict";\\n' +
 					source +
 					"\\n})",
 				{ filename: file, lineOffset: -1 },
 			)
 			.apply(module.exports, args);
 	}
-	args.push(source + "\\n//# sourceURL=" + file);
+	args.push(
+		source +
+			"\\n//# sourceURL=" +
+			require("node:url").pathToFileURL(file).href,
+	);
 	classicyUmdRun.apply(module.exports, args);
 })(require("node:path").join(__dirname, ${JSON.stringify(umdFile)}));
 `;
