@@ -26,6 +26,7 @@ import {
 	setAppWindow,
 	updateAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const initialWindowState = {
@@ -253,9 +254,25 @@ export const classicyWindowEventHandler = (
 				closedThisSession: true,
 				focused: false,
 			});
-			// Promote a sibling only when this app holds focus — closing a
-			// background app's window must not steal global focus.
-			if (ds.System.Manager.Applications.focusedAppId !== action.app.id) {
+			// An extension that held focus through a window with menus and has
+			// no open window with menus left hands focus on to the front application.
+			if (
+				ds.System.Manager.Applications.focusedAppId === action.app.id &&
+				ds.System.Manager.Applications.apps[action.app.id]?.extension ===
+					true &&
+				!listAppWindows(
+					ds.System.Manager.Applications.apps[action.app.id],
+				).some((w) => !w.closed && (w.menuBar?.length ?? 0) > 0)
+			) {
+				const next = frontAppIdOf(ds.System.Manager.Applications);
+				if (next && next !== action.app.id) focusApp(ds, next);
+				break;
+			}
+			// Promote a sibling only when this app holds the bar — closing a
+			// background app's window must not steal global focus. The front
+			// application, not the raw focus flag, so a floating extension
+			// window holding the flag changes nothing.
+			if (frontAppIdOf(ds.System.Manager.Applications) !== action.app.id) {
 				break;
 			}
 			const nextFocus = mostRecentAppWindow(
@@ -310,7 +327,25 @@ export const classicyWindowEventHandler = (
 			// skipping utility palettes). Removal happens first so the destroyed
 			// window can never select itself.
 			if (heldFocus) {
-				focusApp(ds, action.app.id);
+				// An extension hands focus back to the dialog still open under the
+				// closed window (its most recent open modal), else to its own menu
+				// window (it stays the front application), else to the front
+				// application.
+				const owner = ds.System.Manager.Applications.apps[action.app.id];
+				const open = owner?.extension
+					? listAppWindows(owner).filter((w) => !w.closed)
+					: [];
+				const successor =
+					mostRecentAppWindow(open.filter((w) => w.modal)) ??
+					mostRecentAppWindow(open.filter((w) => (w.menuBar?.length ?? 0) > 0));
+				if (successor) {
+					ds = focusWindow(ds, action.app.id, successor.id);
+				} else {
+					const target = owner?.extension
+						? (frontAppIdOf(ds.System.Manager.Applications) ?? action.app.id)
+						: action.app.id;
+					focusApp(ds, target);
+				}
 			}
 			break;
 		}

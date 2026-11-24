@@ -141,6 +141,44 @@ describe("the ◆ mark in the Application menu", () => {
 		notify({ appId: "Closed.app" });
 		expect(appRows().map(([id]) => id)).toEqual(["Finder.app", "Mail.app"]);
 	});
+
+	// Stories 0233-c79 and 0225-ci7 together: the marks follow the front
+	// application (`useFrontAppId`), which an extension holding the focus
+	// flag with a floating, menuless window (Apple Guide) never replaces.
+	it("follows the front application while an extension holds the focus flag", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", "Finder", { lastFocusedAt: 1 }),
+				"Calc.app": app("Calc.app", "Calc", { lastFocusedAt: 5 }),
+				"Mail.app": app("Mail.app", "Mail", { lastFocusedAt: 3 }),
+				"Guide.app": app("Guide.app", "Guide", {
+					extension: true,
+					focused: true,
+					lastFocusedAt: 9,
+					windows: {
+						topic: {
+							id: "topic",
+							appId: "Guide.app",
+							focused: true,
+							closed: false,
+						} as ClassicyStoreSystemApp["windows"][string],
+					},
+				}),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Guide.app";
+		});
+		render(<ClassicyDesktopMenuBar />);
+		notify({ appId: "Mail.app" });
+		notify({ appId: "Calc.app" });
+		// Calc is in front: its check replaces its own diamond, Mail (in the
+		// background) has the ◆, and the guide is not listed.
+		expect(appRows()).toEqual([
+			["Finder.app", ""],
+			["Calc.app", "✓"],
+			["Mail.app", "◆"],
+		]);
+		expect(switcher().textContent).toContain("Calc");
+	});
 });
 
 // Review M10: the blinking title says what it carries.

@@ -70,9 +70,11 @@ export interface ClassicyStoreSystemApp {
 	open: boolean;
 	data?: Record<string, unknown>;
 	focused?: boolean;
-	// Wall-clock (Date.now) of the app's most recent focus. The only cross-app
-	// recency signal in the store — window zOrder is per-app. Used to pick the
-	// successor that inherits the menu bar when the front app quits.
+	// Wall-clock (Date.now) of the app's most recent focus: the app-level
+	// recency signal. Used to pick the successor that inherits the menu bar when
+	// the front app quits, and the front app while an extension holds the focus
+	// flag. (A window's `zOrder` is strictly increasing across apps too, but it
+	// ranks windows, not apps.)
 	lastFocusedAt?: number;
 	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;
@@ -157,7 +159,15 @@ export interface ClassicyStoreSystemKeyboardManager
 	/** Extension globals: canonical chord → dispatched action. Unique; first-wins. */
 	global: Record<
 		string,
-		{ appId: string; event: string; eventData?: Record<string, unknown> }
+		{
+			appId: string;
+			event: string;
+			eventData?: Record<string, unknown>;
+			/** The chord as the extension spelled it, for display. */
+			shortcut?: string;
+			/** What the chord does, for the Keyboard Shortcuts topic. */
+			title?: string;
+		}
 	>;
 }
 
@@ -496,6 +506,12 @@ export const classicyShortcutEventHandler = (
 						appId: String(action.appId ?? ""),
 						event: action.event,
 						eventData: action.eventData as Record<string, unknown> | undefined,
+						...(typeof action.shortcut === "string"
+							? { shortcut: action.shortcut }
+							: {}),
+						...(typeof action.title === "string"
+							? { title: action.title }
+							: {}),
 					};
 				}
 			}

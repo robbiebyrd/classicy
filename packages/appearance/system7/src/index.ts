@@ -120,6 +120,8 @@ registerClassicyAppearancePackage({
 	hooks: system7AppearanceHooks,
 	sounds: [system7SoundPack],
 	defaultScreenSaver: "bouncing-ball",
+	// The Help menu's first item, as HIGOS7 Figure 4-88 (p. 125) words it.
+	helpMenu: { aboutTitle: "About Balloon Help\u2026" },
 	// The Finder is shown by the System file's Macintosh, its small icon
 	// the Application menu's title (`*-755-appmenu-closed.png`). The core's
 	// URL follows to the active theme's image (color, or the `bw` variant).

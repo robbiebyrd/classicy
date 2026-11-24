@@ -11,6 +11,8 @@ export type ClassicyAppSwitcherEntry = {
 	name: string;
 	icon: string;
 	focused?: boolean;
+	/** An extension, listed only while it is the front application. */
+	extension?: boolean;
 	open: boolean;
 	/** Hidden by the Application menu's Hide commands. */
 	hidden?: boolean;
@@ -39,33 +41,61 @@ export const appSwitcherEntryMark = (
 			? { checked: false, mark: "diamond" }
 			: { checked: false };
 
+/** What `appSwitcherAppsFrom` needs beyond the apps and their identities. */
+export type ClassicyAppSwitcherOptions = {
+	/**
+	 * The front application (`useFrontAppId()` / `frontAppIdOf`). When given,
+	 * it alone is `focused`, and an extension is listed only when it is the
+	 * front application (its window publishes menus).
+	 */
+	frontAppId?: string;
+	/**
+	 * The apps a Notification Manager request marks
+	 * (`useClassicyNotifiedAppIds()`); each is `notified`.
+	 */
+	notifiedAppIds?: ReadonlySet<string>;
+};
+
 /**
  * Apps eligible for the menu-bar App Switcher: open (or transiently focused)
- * and not background extensions — extensions run with open: true but must
- * never surface in the switcher. Each entry shows the app's display
- * identity: its name and icon as `overrides` (the active package's `apps`)
- * resolve them, else the record's own. An app in `notifiedAppIds`
- * (`useClassicyNotifiedAppIds()`) is `notified`.
+ * and not background extensions — extensions run with open: true but never
+ * surface in the switcher, except one that is `frontAppId` (it publishes
+ * menus, so the bar names it; its entry carries `extension`). Each entry
+ * shows the app's display identity: its name and icon as `overrides` (the
+ * active package's `apps`) resolve them, else the record's own. An app in
+ * `notifiedAppIds` is `notified`.
  */
 export function appSwitcherAppsFrom(
 	apps: Record<string, ClassicyStoreSystemApp>,
 	overrides: ClassicyAppIdentityOverrides = CLASSICY_NO_APP_IDENTITY_OVERRIDES,
-	notifiedAppIds: ReadonlySet<string> = CLASSICY_NO_NOTIFIED_APPS,
+	{
+		frontAppId,
+		notifiedAppIds = CLASSICY_NO_NOTIFIED_APPS,
+	}: ClassicyAppSwitcherOptions = {},
 ): ClassicyAppSwitcherEntry[] {
-	return Object.values(apps)
-		.filter((a) => (a.open || a.focused) && !a.extension)
-		.map((a) => {
-			const { name, icon } = classicyAppIdentityFrom(overrides, a.id, a);
-			return {
-				id: a.id,
-				name,
-				icon,
-				focused: a.focused,
-				open: a.open,
-				...(a.hidden ? { hidden: true } : {}),
-				...(notifiedAppIds.has(a.id) ? { notified: true } : {}),
-			};
-		});
+	return (
+		Object.values(apps)
+			// An extension is listed only while it is the front application (its
+			// window publishes menus), so the bar can name it.
+			.filter(
+				(a) => (a.open || a.focused) && (!a.extension || a.id === frontAppId),
+			)
+			.map((a) => {
+				const { name, icon } = classicyAppIdentityFrom(overrides, a.id, a);
+				return {
+					id: a.id,
+					name,
+					icon,
+					// With a front app given (`frontAppIdOf`) it alone is focused, so an
+					// extension's window holding focus leaves the title on the app in use.
+					focused: frontAppId === undefined ? a.focused : a.id === frontAppId,
+					...(a.extension ? { extension: true } : {}),
+					open: a.open,
+					...(a.hidden ? { hidden: true } : {}),
+					...(notifiedAppIds.has(a.id) ? { notified: true } : {}),
+				};
+			})
+	);
 }
 
 /**

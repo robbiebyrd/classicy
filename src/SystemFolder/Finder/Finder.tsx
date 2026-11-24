@@ -87,8 +87,6 @@ type FinderWindowProps = {
 	openFile: (path: string) => void;
 	getHeaderString: (dir: ClassicyFileSystemEntryMetadata) => string;
 	fs: ClassicyFileSystem;
-	disableBalloonHelp: boolean;
-	toggleBalloonHelp: () => void;
 	aboutMenuItem: ClassicyMenuItem;
 	openPreferences: () => void;
 	viewType: "icons" | "list";
@@ -119,8 +117,6 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	openFile,
 	getHeaderString,
 	fs,
-	disableBalloonHelp,
-	toggleBalloonHelp,
 	aboutMenuItem,
 	openPreferences,
 	viewType,
@@ -252,16 +248,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			{
 				id: `${appId}_${op}_help`,
 				title: "Help",
-				menuChildren: [
-					{
-						id: `${appId}_${op}_help_balloon`,
-						title: disableBalloonHelp
-							? "Show Balloon Help"
-							: "Hide Balloon Help",
-						onClickFunc: toggleBalloonHelp,
-					},
-					aboutMenuItem,
-				],
+				menuChildren: [aboutMenuItem],
 			},
 		],
 		[
@@ -270,8 +257,6 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			closeWindow,
 			closeAllFolders,
 			setFolderView,
-			disableBalloonHelp,
-			toggleBalloonHelp,
 			aboutMenuItem,
 			openPreferences,
 			viewType,
@@ -370,16 +355,6 @@ export const Finder = () => {
 	const finderData: FinderData = isFinderData(appState?.data ?? {})
 		? (appState?.data as FinderData)
 		: {};
-	const disableBalloonHelp = useAppManager(
-		(state) => state.System.Manager.Desktop.disableBalloonHelp,
-	);
-	const toggleBalloonHelp = useCallback(() => {
-		desktopEventDispatch({
-			type: "ClassicyDesktopSetBalloonHelp",
-			disableBalloonHelp: !disableBalloonHelp,
-		});
-	}, [desktopEventDispatch, disableBalloonHelp]);
-
 	const dateAndTime = useAppManager((s) => s.System.Manager.DateAndTime);
 	// Memoized on the primitive fields, not the DateAndTime object's identity —
 	// a fresh Date or a new object every render would invalidate the memos the
@@ -742,8 +717,6 @@ export const Finder = () => {
 							openFile={openFile}
 							getHeaderString={getHeaderString}
 							fs={fs}
-							disableBalloonHelp={disableBalloonHelp}
-							toggleBalloonHelp={toggleBalloonHelp}
 							aboutMenuItem={aboutMenuItem}
 							openPreferences={openPreferences}
 							// A path absent from folderViews follows the standard views'

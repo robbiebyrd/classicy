@@ -78,6 +78,62 @@ describe("Help menu — About Balloon Help", () => {
 	});
 });
 
+describe("Help menu — Keyboard Shortcuts", () => {
+	it("opens the Keyboard Shortcuts topic", async () => {
+		render(<ClassicyDesktopMenuBar />);
+
+		await userEvent.click(screen.getByText("Help"));
+		await userEvent.click(screen.getByText("Keyboard Shortcuts"));
+		completeMenuItemFlash("help-keyboard-shortcuts");
+
+		await waitFor(() =>
+			expect(appleGuideData().openTopics).toContain("keyboard-shortcuts"),
+		);
+	});
+});
+
+describe("Help menu — an app that publishes its own Help menu", () => {
+	it("shows one Help menu, with the app's items merged into it", async () => {
+		act(() => {
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Desktop: {
+							...s.System.Manager.Desktop,
+							appMenu: [
+								{
+									id: "f_file",
+									title: "File",
+									menuChildren: [{ id: "f_x", title: "Xx" }],
+								},
+								{
+									id: "f_help",
+									title: "Help",
+									menuChildren: [{ id: "f_h1", title: "Finder Help Item" }],
+								},
+							],
+						},
+					},
+				},
+			}));
+		});
+		render(<ClassicyDesktopMenuBar />);
+
+		expect(screen.getAllByText("Help")).toHaveLength(1);
+		await userEvent.click(screen.getByText("Help"));
+		expect(screen.getByText("About Balloon Help…")).toBeInTheDocument();
+		expect(screen.getByText("Keyboard Shortcuts")).toBeInTheDocument();
+		expect(screen.getByText("Finder Help Item")).toBeInTheDocument();
+		// The balloon toggle is the bar's alone, listed exactly once.
+		expect(screen.getAllByText(/^(Show|Hide) Balloons?( Help)?$/)).toHaveLength(
+			1,
+		);
+	});
+});
+
 /**
  * Seed an open+focused app plus its Help items.
  *
@@ -123,6 +179,8 @@ function seedAppWithHelp(
 						Applications: {
 							...s.System.Manager.Applications,
 							apps,
+							// The real focus reducers set both the flag and the id.
+							...(focused ? { focusedAppId: appId } : {}),
 						},
 						Desktop: {
 							...s.System.Manager.Desktop,

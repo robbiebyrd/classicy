@@ -2,6 +2,7 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	useId,
 	useMemo,
 	useRef,
 } from "react";
@@ -9,6 +10,7 @@ import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentit
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { withClassicyAppIdentityAboutItem } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import { useClassicyStandardHelpMenu } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyStandardHelpMenu";
 import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
@@ -43,8 +45,8 @@ export type ClassicyWindowMenuBarProps = {
  * bar's flex and `order` rules come from the screen bar's stylesheet, which
  * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
  *
- * Only the app's menus have a home here. The Apple, Help and App Switcher
- * menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
+ * The bar ends with the standard Help menu (`useClassicyStandardHelpMenu`),
+ * the same one the screen bar draws. The Apple and App Switcher menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
  * portals into the screen bar's extensions list) are not shown in window
  * placement. The headless screen bar reserves no band: the desktop root's
  * `--menu-bar-height` is `0px` in this placement (`classicyLayoutThemeVars`),
@@ -79,11 +81,29 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		(state) => state.System.Manager.Applications.apps[appId]?.name,
 	);
 	const overrides = useClassicyAppIdentityOverrides();
-	const items = useMemo(
+	// The standard Help menu closes the bar here as it does the screen bar's:
+	// About, Show/Hide Balloons, Keyboard Shortcuts and the app's own help
+	// items, with a "Help" the app publishes folded into it. The app's About
+	// stays in its own menus (no Apple menu to hoist it into).
+	// The About item is retitled first, so one inside the app's own "Help"
+	// menu (Finder's) keeps the display name when the menu is folded in.
+	const titled = useMemo(
 		() =>
 			withClassicyAppIdentityAboutItem(menuItems, appId, appName, overrides) ??
 			[],
 		[menuItems, appId, appName, overrides],
+	);
+	// Ids are DOM ids: scope the standard Help items to this bar, since
+	// several windows each draw one.
+	const barId = useId();
+	const { helpItem, appMenu } = useClassicyStandardHelpMenu({
+		appMenu: titled,
+		appId,
+		idPrefix: `bar${barId.replace(/[^a-zA-Z0-9_-]/g, "")}_`,
+	});
+	const items = useMemo(
+		() => [...(appMenu ?? []), helpItem],
+		[appMenu, helpItem],
 	);
 	return (
 		<div

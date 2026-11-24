@@ -119,13 +119,19 @@ export const SimpleText = () => {
 		};
 	}, []);
 
-	// Whenever SimpleText is open with nothing to show, open a fresh Untitled
-	// window. This is the classic new-application behavior, and it also keeps the
-	// app from stranding the user with no window — and therefore no menu bar to
-	// make one — after the last document window is closed. Launching via a file
-	// leaves openFiles non-empty, so no stray window opens in that case.
+	// A newly launched SimpleText with nothing to show opens a fresh Untitled
+	// window, as the Mac's does. Only on launch: closing the last window leaves
+	// the app open with none, its menus kept in the bar by `noWindowMenu`.
+	// Launching via a file leaves openFiles non-empty, so no stray window opens.
+	const launchedRef = useRef(false);
 	useEffect(() => {
-		if (appState?.open && openFiles.length === 0 && untitledDocs.length === 0) {
+		if (!appState?.open) {
+			launchedRef.current = false;
+			return;
+		}
+		if (launchedRef.current) return;
+		launchedRef.current = true;
+		if (openFiles.length === 0 && untitledDocs.length === 0) {
 			setUntitledDocs([makeUntitled()]);
 		}
 	}, [appState?.open, openFiles.length, untitledDocs.length, makeUntitled]);
@@ -430,6 +436,34 @@ export const SimpleText = () => {
 		],
 	);
 
+	// The menus SimpleText keeps in the bar with no window open: File (New,
+	// Open…, Quit), Edit and Help; Close, Save and Format need a document.
+	const noWindowMenu = useMemo<ClassicyMenuItem[]>(
+		() => [
+			{
+				id: `${appId}_file`,
+				title: "File",
+				menuChildren: [
+					{ id: `${appId}_new`, title: "New", onClickFunc: newFile },
+					{
+						id: `${appId}_open`,
+						title: "Open…",
+						onClickFunc: () => setShowOpenDialog(true),
+					},
+					{ id: "spacer" },
+					quitMenuItemHelper(appId, appName, appIcon),
+				],
+			},
+			editMenu,
+			{
+				id: `${appId}_help`,
+				title: "Help",
+				menuChildren: [aboutMenuItem],
+			},
+		],
+		[newFile, editMenu, aboutMenuItem, appIcon],
+	);
+
 	// --- Dialog inputs -----------------------------------------------------
 
 	const volumes = useMemo(() => [desktopVolume(fs)], [fs]);
@@ -480,6 +514,7 @@ export const SimpleText = () => {
 				ClassicyFileSystemEntryFileType.Markdown,
 			]}
 			handlesOwnFiles={true}
+			windowlessMenu={noWindowMenu}
 		>
 			{docs.map((doc, idx) => (
 				<ClassicyWindow

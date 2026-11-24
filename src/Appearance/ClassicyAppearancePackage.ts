@@ -408,6 +408,13 @@ export type ClassicyAppearancePackage = {
 	 */
 	defaultScreenSaver?: string;
 	/**
+	 * The standard Help menu's wording. `aboutTitle` is its first item, the
+	 * one that opens the Apple Guide "About Help" topic: HIGOS8 Figure 4-2
+	 * (Mac OS 8) reads "About Help", HIGOS7 Figure 4-88 (System 7)
+	 * "About Balloon Help…". Absent, the item reads "About Balloon Help…".
+	 */
+	helpMenu?: { aboutTitle?: string };
+	/**
 	 * How the package dims an icon per pixel (a hidden application's icon in
 	 * the Application menu), drawn on a canvas by the core
 	 * (`ClassicyIconDimming.ts`); without a rule, or for an icon a canvas
