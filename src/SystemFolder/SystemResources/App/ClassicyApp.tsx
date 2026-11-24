@@ -13,6 +13,7 @@ import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
@@ -106,6 +107,11 @@ export interface ClassicyAppProps {
 	 *  window wins over both). Sent with `ClassicyAppLoad`, which does not
 	 *  re-run when only this array changes. */
 	contextMenu?: ClassicyMenuItem[];
+	/** The app's menus while it is the front application with no open window,
+	 *  as on the Mac, where an application with every window closed keeps its
+	 *  menu bar (File ▸ New, Open, Quit). A window's own `appMenu` takes over
+	 *  while it is open. Memoize it: a new array each render is re-sent. */
+	appMenu?: ClassicyMenuItem[];
 	/** The app's windows (`ClassicyWindow`) and other UI. Rendered only while
 	 *  the app is open. */
 	children?: ReactNode;
@@ -153,6 +159,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	handlesFileTypes,
 	handlesOwnFiles = false,
 	contextMenu,
+	appMenu,
 	children,
 }) => {
 	const appContext = useAppManager(
@@ -352,6 +359,18 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		// appContext is the re-run trigger (any change to this app's record);
 		// the body reads the live store.
 	}, [appContext, defaultWindow, restoreWindowFocus, desktopEventDispatch, id]);
+
+	// The windowless menu bar: while this app is the front application and has
+	// no open window, no window publishes menus, so publish the app's own.
+	const frontAppId = useFrontAppId();
+	const hasOpenWindow = appContext
+		? listAppWindows(appContext).some((w) => !w.closed)
+		: false;
+	const appIsOpen = appContext?.open === true;
+	useEffect(() => {
+		if (!appMenu || !appIsOpen || hasOpenWindow || frontAppId !== id) return;
+		desktopEventDispatch({ type: "ClassicyWindowMenu", menuBar: appMenu });
+	}, [appMenu, appIsOpen, hasOpenWindow, frontAppId, id, desktopEventDispatch]);
 
 	const rawOpenFiles = appContext?.data?.openFiles;
 	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];

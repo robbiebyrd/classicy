@@ -185,9 +185,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 			{ timeout: 2000 },
 		);
 
-		// Close the document, dropping its in-memory working copy. (Closing the
-		// last document re-seeds an empty Untitled window, so assert on the
-		// document's own window going away rather than on textbox count.)
+		// Close the document, dropping its in-memory working copy.
 		act(() => {
 			dispatch({
 				type: "ClassicyAppSimpleTextCloseFile",
@@ -200,11 +198,44 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		});
 
 		// Reopen it: the editor seeds from the file system and shows the edit.
-		// getByDisplayValue targets the reopened document's textarea specifically,
-		// ignoring the empty Untitled editor.
 		openFileInSimpleText(READ_ME);
 		await waitFor(() => {
 			expect(screen.getByDisplayValue("PERSISTED EDIT")).toBeInTheDocument();
 		});
+	});
+
+	// Mac OS 8.1: closing a document's last window leaves SimpleText open with
+	// no window, and its File, Edit and Help menus stay in the bar (the front
+	// app keeps its menu bar); it opens an Untitled window only on launch.
+	it("leaves no window after its last one closes, and keeps its menus", async () => {
+		renderDesktop();
+		openFileInSimpleText(READ_ME);
+		await waitFor(() => {
+			expect(screen.getByText("Read Me.txt")).toBeInTheDocument();
+		});
+		act(() => {
+			dispatch({
+				type: "ClassicyAppSimpleTextCloseFile",
+				app: { id: SIMPLE_TEXT.id },
+				path: READ_ME,
+			});
+		});
+		await waitFor(() => {
+			expect(screen.queryByText("Read Me.txt")).not.toBeInTheDocument();
+		});
+		// Give an (unwanted) re-seed effect the chance it used to take.
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 50));
+		});
+		expect(screen.queryByText("Untitled")).not.toBeInTheDocument();
+		const st = useAppManager.getState().System.Manager;
+		expect(st.Applications.apps[SIMPLE_TEXT.id].open).toBe(true);
+		expect(st.Applications.focusedAppId).toBe(SIMPLE_TEXT.id);
+		const titles = st.Desktop.appMenu.map((m) => m.title);
+		expect(titles).toEqual(expect.arrayContaining(["File", "Edit", "Help"]));
+		const file = st.Desktop.appMenu.find((m) => m.title === "File");
+		expect(file?.menuChildren?.map((m) => m.title)).toEqual(
+			expect.arrayContaining(["New", "Open…"]),
+		);
 	});
 });
