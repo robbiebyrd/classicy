@@ -83,7 +83,8 @@ import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/Clas
 import { markClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import {
 	type ArrowDirection,
-	nearestIconInDirection,
+	iconForArrowKey,
+	iconForTabKey,
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import {
@@ -406,14 +407,29 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				// Delete, or ⌃⌫ (handled here so the menu bar doesn't run it twice).
 				if (trashSelectedDesktopItems()) e.preventDefault();
 			} else if (arrowKeys.includes(e.key)) {
+				// Mac OS 8.1's rules, with nothing selected too
+				// (`iconForArrowKey`).
 				e.preventDefault();
-				const currentId = selectedIcons[0];
-				if (!currentId) return;
-				const nextId = nearestIconInDirection(
+				const nextId = iconForArrowKey(
 					desktopIcons,
-					currentId,
+					selectedIcons,
 					e.key as ArrowDirection,
 				);
+				if (nextId) {
+					selectIconFromKeyboard(nextId);
+					document.getElementById(`${nextId}.shortcut`)?.focus();
+				}
+			} else if (
+				e.key === "Tab" &&
+				!e.altKey &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				desktopIcons.length > 0
+			) {
+				// Tab and Shift-Tab select by name, as the 8.1 Finder's did
+				// (`iconForTabKey`), in place of the browser's focus order.
+				e.preventDefault();
+				const nextId = iconForTabKey(typeaheadIcons, selectedIcons, e.shiftKey);
 				if (nextId) {
 					selectIconFromKeyboard(nextId);
 					document.getElementById(`${nextId}.shortcut`)?.focus();

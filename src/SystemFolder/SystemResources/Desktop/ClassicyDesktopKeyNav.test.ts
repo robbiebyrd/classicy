@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { classicyAppIdentityFrom } from "@/Appearance/ClassicyAppIdentity";
 import {
+	iconForArrowKey,
+	iconForTabKey,
 	type KeyNavIcon,
 	nearestIconInDirection,
 	typeaheadMatch,
@@ -164,5 +166,87 @@ describe("typeaheadMatch", () => {
 		expect(typeaheadMatch(apps, "C")).toBe("controls");
 		expect(typeaheadMatch(apps, "Pa")).toBe("pager");
 		expect(typeaheadMatch(apps, "Newsg")).toBe("newsgroups");
+	});
+});
+
+// The Mac OS 8.1 desktop (Infinite Mac, story 0228-e9l), one column at the
+// right: Macintosh HD, The Outside World, Infinite HD, then Trash at the
+// bottom. By name: Infinite HD, Macintosh HD, The Outside World, Trash.
+const desk81: KeyNavIcon[] = [
+	{ appId: "machd", appName: "Macintosh HD", location: [560, 40] },
+	{ appId: "outside", appName: "The Outside World", location: [560, 104] },
+	{ appId: "infinite", appName: "Infinite HD", location: [560, 168] },
+	{ appId: "trash", appName: "Trash", location: [560, 424] },
+];
+
+describe("iconForArrowKey (Mac OS 8.1)", () => {
+	it("selects the last icon in reading order on Right or Down, and the first on Left or Up, with nothing selected", () => {
+		// 8.1 desktop, captures e2-ArrowRight … e2-ArrowUp: Trash, Trash,
+		// Macintosh HD, Macintosh HD (the top icon, not the first by name).
+		expect(iconForArrowKey(desk81, [], "ArrowRight")).toBe("trash");
+		expect(iconForArrowKey(desk81, [], "ArrowDown")).toBe("trash");
+		expect(iconForArrowKey(desk81, [], "ArrowLeft")).toBe("machd");
+		expect(iconForArrowKey(desk81, [], "ArrowUp")).toBe("machd");
+		// Reading order: top to bottom, then left to right.
+		expect(iconForArrowKey(grid, [], "ArrowRight")).toBe("I");
+		expect(iconForArrowKey(grid, [], "ArrowUp")).toBe("A");
+	});
+
+	it("goes from the icon selected last on Right and Down, and from the first on Left and Up", () => {
+		// 8.1 desktop: Macintosh HD then Infinite HD selected, Down: Trash
+		// (f8); Up: nothing above Macintosh HD, unchanged (f9); Infinite HD
+		// then Macintosh HD, Down: The Outside World (f10).
+		expect(iconForArrowKey(desk81, ["machd", "infinite"], "ArrowDown")).toBe(
+			"trash",
+		);
+		expect(iconForArrowKey(desk81, ["machd", "infinite"], "ArrowUp")).toBe(
+			null,
+		);
+		expect(iconForArrowKey(desk81, ["infinite", "machd"], "ArrowDown")).toBe(
+			"outside",
+		);
+		expect(iconForArrowKey(grid, ["E"], "ArrowRight")).toBe("F");
+	});
+
+	it("ignores selected ids it has no placed icon for, and icons without a place", () => {
+		const icons: KeyNavIcon[] = [...grid, { appId: "X", appName: "X" }];
+		expect(iconForArrowKey(icons, ["gone"], "ArrowDown")).toBe("I");
+		expect(iconForArrowKey(icons, ["X"], "ArrowLeft")).toBe("A");
+		expect(iconForArrowKey([], [], "ArrowDown")).toBeNull();
+	});
+});
+
+describe("iconForTabKey (Mac OS 8.1)", () => {
+	it("selects the first name on Tab and the last on Shift-Tab, with nothing selected", () => {
+		// Captures e2-Tab (Infinite HD) and e4-none-shifttab (Trash).
+		expect(iconForTabKey(desk81, [], false)).toBe("infinite");
+		expect(iconForTabKey(desk81, [], true)).toBe("trash");
+	});
+
+	it("goes to the next or previous name, wrapping at the ends", () => {
+		// e3-tab2, e3-tab3: Macintosh HD, The Outside World; e3-shifttab:
+		// back to Macintosh HD; f1: Tab from Trash wraps to Infinite HD; f3:
+		// Shift-Tab from Infinite HD wraps to Trash.
+		expect(iconForTabKey(desk81, ["infinite"], false)).toBe("machd");
+		expect(iconForTabKey(desk81, ["machd"], false)).toBe("outside");
+		expect(iconForTabKey(desk81, ["outside"], true)).toBe("machd");
+		expect(iconForTabKey(desk81, ["trash"], false)).toBe("infinite");
+		expect(iconForTabKey(desk81, ["infinite"], true)).toBe("trash");
+	});
+
+	it("goes from the icon selected last, by the name it shows", () => {
+		// f5, f6: Macintosh HD then Trash selected: Tab Infinite HD,
+		// Shift-Tab The Outside World; f7: Trash then Macintosh HD, Tab:
+		// The Outside World.
+		expect(iconForTabKey(desk81, ["machd", "trash"], false)).toBe("infinite");
+		expect(iconForTabKey(desk81, ["machd", "trash"], true)).toBe("outside");
+		expect(iconForTabKey(desk81, ["trash", "machd"], false)).toBe("outside");
+		// A label wins over the app's name.
+		const labeled = [
+			{ appId: "a", appName: "Zed", label: "Apple" },
+			{ appId: "b", appName: "Bee" },
+		];
+		expect(iconForTabKey(labeled, [], false)).toBe("a");
+		expect(iconForTabKey([], [], false)).toBeNull();
 	});
 });

@@ -265,6 +265,80 @@ describe("ClassicyDesktop selection rectangle over the icons", () => {
 		expect(selected()).toEqual(["Alpha.app"]);
 	});
 
+	/** Leaves the desktop exactly these icons, placed (`[x, y]`). */
+	const place = (at: Record<string, [number, number]>) =>
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Desktop.icons = Object.entries(at).map(
+						([label, location]) => ({
+							...icon(`${label}.app`, label),
+							location,
+						}),
+					);
+					draft.System.Manager.Desktop.selectedIcons = [];
+				}),
+			);
+		});
+
+	it("takes the arrow keys and Tab with nothing selected as Mac OS 8.1's desktop does", () => {
+		renderDesktop();
+		// Reading order Beta, Alpha, Gamma; by name Alpha, Beta, Gamma.
+		place({ Beta: [900, 40], Alpha: [900, 200], Gamma: [900, 600] });
+		const fromNothing = (key: KeyboardEventInit) => {
+			press(860, 400);
+			fireEvent.mouseUp(document, { clientX: 860, clientY: 400 });
+			expect(selected()).toEqual([]);
+			fireEvent.keyDown(desktop(), key);
+			return selected();
+		};
+		// Right and Down: the last icon in reading order; Left and Up: the
+		// first, by place, not name (Infinite Mac, 8.1 desktop: Trash, and
+		// Macintosh HD, not Infinite HD).
+		expect(fromNothing({ key: "ArrowRight" })).toEqual(["Gamma.app"]);
+		expect(fromNothing({ key: "ArrowDown" })).toEqual(["Gamma.app"]);
+		expect(fromNothing({ key: "ArrowLeft" })).toEqual(["Beta.app"]);
+		expect(fromNothing({ key: "ArrowUp" })).toEqual(["Beta.app"]);
+		// Tab: the first name, then the next, wrapping; Shift-Tab: the last
+		// name, then back. The keyboard follows, and the browser's own Tab
+		// does not run.
+		const tab = (init: KeyboardEventInit = {}) =>
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "Tab",
+				...init,
+			});
+		expect(fromNothing({ key: "Tab" })).toEqual(["Alpha.app"]);
+		expect(tab()).toBe(false);
+		expect(selected()).toEqual(["Beta.app"]);
+		expect(document.activeElement?.id).toBe("Beta.app.shortcut");
+		tab();
+		expect(selected()).toEqual(["Gamma.app"]);
+		tab();
+		expect(selected()).toEqual(["Alpha.app"]);
+		expect(fromNothing({ key: "Tab", shiftKey: true })).toEqual(["Gamma.app"]);
+		tab({ shiftKey: true });
+		expect(selected()).toEqual(["Beta.app"]);
+	});
+
+	it("goes from the icon selected last on Down, and from the first on Up (8.1)", () => {
+		renderDesktop();
+		// A column of Alpha over Beta; Gamma far to the left.
+		place({ Alpha: [900, 40], Beta: [900, 120], Gamma: [100, 130] });
+		select(["Beta.app", "Alpha.app"]);
+		fireEvent.keyDown(desktop(), { key: "ArrowDown" });
+		expect(selected()).toEqual(["Beta.app"]);
+		// Nothing below Beta, the one selected last: the selection stays.
+		select(["Alpha.app", "Beta.app"]);
+		fireEvent.keyDown(desktop(), { key: "ArrowDown" });
+		expect(selected()).toEqual(["Alpha.app", "Beta.app"]);
+		// Up goes from Alpha, the first: nothing above it either.
+		fireEvent.keyDown(desktop(), { key: "ArrowUp" });
+		expect(selected()).toEqual(["Alpha.app", "Beta.app"]);
+		select(["Beta.app", "Alpha.app"]);
+		fireEvent.keyDown(desktop(), { key: "ArrowUp" });
+		expect(selected()).toEqual(["Alpha.app"]);
+	});
+
 	it("holds the arrow keys and type-ahead off while the rectangle lasts", () => {
 		renderDesktop();
 		press(860, 20);

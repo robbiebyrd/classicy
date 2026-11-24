@@ -453,6 +453,52 @@ describe("ClassicyFileBrowser icon view selection rectangle", () => {
 		expect(t.selected()).toEqual([PATHS[2]]);
 	});
 
+	it("selects by name with Tab and Shift-Tab, wrapping, as the 8.1 Finder does (the desktop's rule)", async () => {
+		const t = await setup("marquee-icons-tab");
+		// Zebra first in reading order, then apple, then mango.
+		const place = {
+			[PATHS[2]]: [20, 20],
+			[PATHS[0]]: [120, 20],
+			[PATHS[1]]: [20, 120],
+		};
+		for (const [path, [x, y]] of Object.entries(place)) {
+			t.icon(path).style.left = `${x}px`;
+			t.icon(path).style.top = `${y}px`;
+		}
+		const press = () => {
+			fireEvent.mouseDown(t.viewport, {
+				button: 0,
+				clientX: 300,
+				clientY: 190,
+			});
+			t.release(300, 190);
+		};
+		const tab = (shiftKey = false) =>
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "Tab",
+				shiftKey,
+			});
+		press();
+		expect(tab()).toBe(false);
+		expect(t.selected()).toEqual([PATHS[0]]);
+		expect(document.activeElement).toBe(t.icon(PATHS[0]));
+		tab();
+		expect(t.selected()).toEqual([PATHS[1]]);
+		tab();
+		expect(t.selected()).toEqual([PATHS[2]]);
+		tab();
+		expect(t.selected()).toEqual([PATHS[0]]);
+		tab(true);
+		expect(t.selected()).toEqual([PATHS[2]]);
+		press();
+		tab(true);
+		expect(t.selected()).toEqual([PATHS[2]]);
+		// The arrow keys with nothing selected go by place, not name.
+		press();
+		fireEvent.keyDown(t.holder, { key: "ArrowUp" });
+		expect(t.selected()).toEqual([PATHS[2]]);
+	});
+
 	it("hands its icons' holder to focusTargetRef (the list box in list view), for the window to focus", async () => {
 		const fs = makeFs("marquee-icons-focus-target");
 		const focusTargetRef = createRef<HTMLDivElement>();

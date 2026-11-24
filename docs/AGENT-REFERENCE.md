@@ -2787,9 +2787,24 @@ clip box cuts it at a window's edge.
 The desktop selects through the store (`ClassicyDesktopIconSelectBox
 { iconIds }`; a Shift-press sends `ClassicyDesktopFocus { keepSelection:
 true }`, which focuses Finder without clearing the selection) and keeps the
-keyboard: the arrow keys and type-ahead continue from the selection it made
-(`ClassicyDesktopKeyNav.ts`), and a rectangle's selection reports no
+keyboard: the arrow keys, Tab and type-ahead continue from the selection it
+made (`ClassicyDesktopKeyNav.ts`), and a rectangle's selection reports no
 keyboard `select` (`ClassicyDesktopIconKeyboardSelection.internal.ts`).
+
+The desktop and the icon view take the arrow keys and Tab by one set of
+rules, the Mac OS 8.1 Finder's (Infinite Mac, the 8.1 desktop and an
+icon-view window; HIG7 p.282: "the Finder uses arrow keys to change the
+selection"): an arrow selects the nearest icon that way
+(`nearestIconInDirection`), from the icon selected last for Right and Down
+and from the one selected first for Left and Up, and with nothing that way
+the selection stays; with nothing selected, Left and Up select the first
+icon and Right and Down the last, in reading order (top to bottom, then left
+to right: on the 8.1 desktop Left chose Macintosh HD, the top icon, not
+Infinite HD, the first by name) (`iconForArrowKey`). Tab and Shift-Tab select
+the next and previous icon by the name it shows, from the icon selected
+last, wrapping at the ends, and with nothing selected the first and last
+name (`iconForTabKey`); they take the place of the browser's focus order
+there. The keyboard moves to the icon selected.
 
 The icon view keeps its icons' selection itself (`ClassicyIcon`'s
 `selected`, `onSelectedChange` and `onSelectionGesture`), with the 8.1
@@ -2805,13 +2820,9 @@ the grid; not under "Keep arranged"). The click that ends a drag is no
 click: a group nudged and let go over the icon pressed stays selected, as in
 8.1 (`ClassicyIcon` ignores the click after a press that became a drag, a
 file drag or its own; `ClassicyDesktopIcon` after a file drag). The arrow
-keys change the selection as the 8.1 Finder's did (HIG7 p.282; Infinite Mac):
-the nearest icon that way becomes the selection (`nearestIconInDirection`),
-from the icon selected last for Right and Down and from the one selected
-first for Left and Up; with nothing that way the selection stays; with
-nothing selected, Left and Up select the first icon and Right and Down the
-last, in reading order; the keyboard moves to the icon (scrolling it into
-view). Its icons are memoized with stable
+keys and Tab change the selection by the desktop's rules (above), the
+keyboard moving to the icon selected and scrolling it into view. Its icons
+are memoized with stable
 handlers, so a selection change redraws only the icons it changes. Its
 selection handle (`selectionApiRef`, `{ selectAll, select }`) is lent
 through `ClassicyFileBrowser`'s `selectionApiRef` in either view, so the
@@ -3964,7 +3975,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
 | MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
-| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
+| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys, Tab and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box) and dragEnd `{ kind, lost }`, pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` (`lost: true`) |
 | Assistant | `div.classicyAssistant` | none | change `{ page, input }` (pager arrows, ←/→; not for a refused or no-op move) |
@@ -4035,7 +4046,7 @@ DesktopIcon and Icon:
 - DesktopIcon `select` is emitted when a gesture changes the selection to
   this icon (it becomes selected, or a multiple selection collapses to it),
   once per gesture: a press or click on the icon (`input` from that press),
-  or a key press that selects it (the desktop's arrow keys and type-ahead,
+  or a key press that selects it (the desktop's arrow keys, Tab and type-ahead,
   `input: "keyboard"`), which the icon reports after the selection commits:
   the desktop marks the id it selects, and the icon reports only a marked
   change, never inferring it from the last key. A click that re-selects an

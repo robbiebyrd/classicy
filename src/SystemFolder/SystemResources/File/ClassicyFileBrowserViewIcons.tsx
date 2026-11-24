@@ -28,8 +28,9 @@ import {
 import type { ClassicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
 	type ArrowDirection,
+	iconForArrowKey,
+	iconForTabKey,
 	type KeyNavIcon,
-	nearestIconInDirection,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import {
 	classicyFileBrowserScroller,
@@ -369,18 +370,17 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				return () => area.removeEventListener("mousedown", onDown);
 			}, [resolvedHolderRef, startMarquee, updateSelection]);
 
-			// The arrow keys change the selection (HIG7 p.282: "the Finder uses
-			// arrow keys to change the selection"), as the Mac OS 8.1 Finder's
-			// did in an icon view (Infinite Mac): the nearest icon that way
-			// becomes the selection, from the icon selected last for Right
-			// and Down and from the one selected first for Left and Up; with
-			// nothing that way the selection stays; with nothing selected,
-			// Left and Up select the first icon and Right and Down the last,
-			// in reading order. The keyboard goes to the icon selected,
-			// scrolling it into view.
+			// The arrow keys and Tab change the selection (HIG7 p.282: "the
+			// Finder uses arrow keys to change the selection") by the rules of
+			// the Mac OS 8.1 Finder, the same as on the desktop
+			// (`iconForArrowKey`, `iconForTabKey`): an arrow selects the
+			// nearest icon that way, Tab and Shift-Tab the next or previous
+			// by name, and with nothing selected the first or last. The
+			// keyboard goes to the icon selected, scrolling it into view.
 			const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 				if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
-				if (!ARROW_KEYS.has(e.key)) return;
+				const tab = e.key === "Tab";
+				if (!tab && !ARROW_KEYS.has(e.key)) return;
 				if (
 					(e.target as Element).closest(
 						"input, textarea, [contenteditable='true']",
@@ -389,45 +389,32 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					return;
 				const holder = resolvedHolderRef.current;
 				if (!holder) return;
-				e.preventDefault();
 				const icons = Array.from(
 					holder.querySelectorAll<HTMLElement>(
 						`:scope > .classicyIcon[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
 					),
 				);
+				if (icons.length === 0) return;
+				e.preventDefault();
 				const pathOf = (el: Element) =>
 					el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) ?? "";
 				const nav = icons.map(
 					(el): KeyNavIcon => ({
 						appId: pathOf(el),
-						appName: pathOf(el),
+						appName: el.querySelector("p")?.textContent ?? pathOf(el),
 						location: [
 							Number.parseFloat(el.style.left) || 0,
 							Number.parseFloat(el.style.top) || 0,
 						],
 					}),
 				);
-				const listed = new Set(nav.map((icon) => icon.appId));
-				const order = [...selectedRef.current].filter((p) => listed.has(p));
-				const backward = e.key === "ArrowLeft" || e.key === "ArrowUp";
-				let next: string | null;
-				if (order.length === 0) {
-					const reading = [...nav].sort(
-						(a, b) =>
-							(a.location?.[1] ?? 0) - (b.location?.[1] ?? 0) ||
-							(a.location?.[0] ?? 0) - (b.location?.[0] ?? 0),
-					);
-					next = (backward ? reading[0] : reading.at(-1))?.appId ?? null;
-				} else
-					next = nearestIconInDirection(
-						nav,
-						backward ? order[0] : order[order.length - 1],
-						e.key as ArrowDirection,
-					);
+				const selection = [...selectedRef.current];
+				const next = tab
+					? iconForTabKey(nav, selection, e.shiftKey)
+					: iconForArrowKey(nav, selection, e.key as ArrowDirection);
 				if (!next) return;
-				const chosen = next;
-				updateSelection(() => new Set([chosen]));
-				icons.find((el) => pathOf(el) === chosen)?.focus();
+				updateSelection(() => new Set([next]));
+				icons.find((el) => pathOf(el) === next)?.focus();
 			};
 
 			// The desktop-icon metrics, read from the desktop once per active
@@ -628,14 +615,15 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			}, [items]);
 
 			return (
-				// biome-ignore lint/a11y/noStaticElementInteractions: the arrow keys come here from the holder (focused by a press on empty space or by the window) and from its icons
+				// biome-ignore lint/a11y/noStaticElementInteractions: the arrow keys and Tab come here from the holder (focused by a press on empty space or by the window) and from its icons
 				<div
 					className={classNames("classicyFileBrowserFill", className)}
 					style={style}
 					ref={resolvedHolderRef}
 					// Focusable from code only: a press on empty space (or the
 					// window, through the browser's `focusTargetRef`) puts the
-					// keyboard here, for Select All, Delete and the arrow keys.
+					// keyboard here, for Select All, Delete, the arrow keys and
+					// Tab.
 					tabIndex={-1}
 					onKeyDown={onKeyDown}
 				>

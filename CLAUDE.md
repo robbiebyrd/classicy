@@ -745,8 +745,12 @@ The desktop selects through `ClassicyDesktopIconSelectBox` (Shift-press:
 icons' selection (`ClassicyIcon` `selected`/`onSelectedChange`/
 `onSelectionGesture`: a click selects alone, Shift or Command toggles; the
 click ending a drag is none) and drags a selection as one (`fileDragParts`,
-`moveBy`), moves it with the arrow keys as 8.1 did (from the icon selected
-last for Right/Down, first for Left/Up; with none, the first or last icon),
+`moveBy`), moves it with the arrow keys and Tab as 8.1 did, by the same rules
+as the desktop's (`iconForArrowKey`, `iconForTabKey` in
+`ClassicyDesktopKeyNav.ts`: an arrow from the icon selected last for
+Right/Down, first for Left/Up, with none the first or last icon in reading
+order; Tab/Shift-Tab the next or previous name, wrapping, with none the first
+or last),
 takes the keyboard from a press on its empty space (the `mousedown`
 `preventDefault`ed, so the browser's focus never lands on the desktop) and
 from window activation (its holder is the browser's `focusTargetRef`), and

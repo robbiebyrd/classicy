@@ -131,9 +131,11 @@ describe("DesktopIcon select from the desktop's keyboard selection", () => {
 		act(() => {
 			useAppManager.setState((state) =>
 				produce(state, (draft) => {
+					// Down goes from the icon selected last (Mac OS 8.1):
+					// Alpha, so Beta, which is in the selection.
 					draft.System.Manager.Desktop.selectedIcons = [
-						"Alpha.app",
 						"Beta.app",
+						"Alpha.app",
 					];
 				}),
 			);
