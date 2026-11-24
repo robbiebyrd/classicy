@@ -91,4 +91,70 @@ describe("QuickTimeVideoEmbed keyboard shortcuts (#306)", () => {
 		fireEvent.keyDown(window, { key: " " });
 		expect(onPlayingChange).toHaveBeenCalledWith(true);
 	});
+
+	// A floating Apple Guide window sits over the front app's window: keys a
+	// focused control of the guide handles itself (Space on a button, arrows in
+	// its pager) are not the movie's (story 0233-c79, m10).
+	describe("with a floating guide's control focused", () => {
+		const seeks: number[] = [];
+		const renderMovie = (windowDomId: string) => {
+			focusWindow(FILE_WINDOW);
+			const onPlayingChange = vi.fn();
+			const view = render(
+				<>
+					<div className="classicyWindow" id={windowDomId}>
+						<QuickTimeVideoEmbed
+							appId={APP_ID}
+							windowId={FILE_WINDOW}
+							name="clip.mov"
+							url={RESOLVED_SRC}
+							type="video"
+							onPlayingChange={onPlayingChange}
+						/>
+					</div>
+					<div className="classicyWindow" id="AppleGuide.app_apple_guide_x">
+						<button type="button" id="guide-button" />
+					</div>
+				</>,
+			);
+			const video = view.container.querySelector("video") as HTMLVideoElement;
+			seeks.length = 0;
+			Object.defineProperty(video, "duration", {
+				configurable: true,
+				get: () => 600,
+			});
+			Object.defineProperty(video, "currentTime", {
+				configurable: true,
+				get: () => 100,
+				set: (v: number) => {
+					seeks.push(v);
+				},
+			});
+			return { onPlayingChange, view };
+		};
+		const key = (target: Element, k: string) =>
+			fireEvent.keyDown(target, { key: k });
+
+		it("Space and the arrow keys aimed at a guide control are not the movie's", () => {
+			const { onPlayingChange, view } = renderMovie(`${APP_ID}_${FILE_WINDOW}`);
+			const button = view.container.querySelector("#guide-button") as Element;
+			key(button, " ");
+			key(button, "ArrowRight");
+			key(button, "ArrowLeft");
+			expect(onPlayingChange).not.toHaveBeenCalled();
+			expect(seeks).toEqual([]);
+		});
+
+		it("the same keys with the movie's own window in front still act on it", () => {
+			const { onPlayingChange, view } = renderMovie(`${APP_ID}_${FILE_WINDOW}`);
+			const video = view.container.querySelector("video") as Element;
+			key(video, " ");
+			key(video, "ArrowRight");
+			expect(onPlayingChange).toHaveBeenCalledWith(true);
+			expect(seeks.length).toBe(1);
+			// And from the page itself (no window aimed at), as before.
+			key(document.body, "ArrowLeft");
+			expect(seeks.length).toBe(2);
+		});
+	});
 });
