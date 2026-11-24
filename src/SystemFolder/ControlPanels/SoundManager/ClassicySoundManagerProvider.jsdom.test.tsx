@@ -64,7 +64,7 @@ describe("ClassicySoundManagerProvider without usable audio (jsdom)", () => {
 		expect(sounds.map((e) => [e.level, e.message])).toEqual([
 			[
 				"info",
-				"Sound is unavailable here (no audio, or no codec for the sound pack's formats); sounds play nothing",
+				"Sound is unavailable here (no audio, or no audio format this browser plays); sounds play nothing",
 			],
 		]);
 		first.unmount();

@@ -15,7 +15,7 @@ import {
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { resolveClassicyAlertSound } from "./ClassicyAlertSounds";
 import {
-	classicySoundCanPlay,
+	classicyAudioAvailable,
 	logClassicySoundUnavailable,
 } from "./ClassicySoundAvailability.internal";
 import soundLabels from "./ClassicySoundManagerLabels.json";
@@ -163,11 +163,12 @@ export const createSoundPlayer = ({
 	options,
 }: SoundPlayer): Howl | null => {
 	if ("src" in soundData && "sprite" in soundData) {
-		// No usable audio here (jsdom, audio disabled, no codec for the
-		// pack's formats): no player, and one quiet note per page, where a
-		// Howl would report a load error for every pack it tried.
-		if (classicySoundCanPlay(soundData.src) === false) {
-			logClassicySoundUnavailable(soundData.src);
+		// No audio here at all (jsdom, audio disabled): no player, and one
+		// quiet note per page, where a Howl would report a load error for
+		// every pack it tried. A pack whose own formats fail where audio
+		// works still gets its Howl, and its load error (below).
+		if (classicyAudioAvailable() === false) {
+			logClassicySoundUnavailable();
 			return null;
 		}
 		return new Howl({

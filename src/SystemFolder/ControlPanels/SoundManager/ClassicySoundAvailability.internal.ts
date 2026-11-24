@@ -1,19 +1,37 @@
 import { Howler } from "howler";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
+// Every format Howler tests the browser for (its `_setupCodecs` table).
+const HOWLER_FORMATS = [
+	"mp3",
+	"mpeg",
+	"opus",
+	"ogg",
+	"oga",
+	"wav",
+	"aac",
+	"caf",
+	"m4a",
+	"m4b",
+	"mp4",
+	"weba",
+	"webm",
+	"dolby",
+	"flac",
+] as const;
+
 /**
- * Whether this environment can play any of `src`, by Howler's own test: no
- * `Howler.noAudio`, and some source whose format (a `data:audio/<format>`
- * URI's, else the URL's extension, as Howler reads it) Howler's codec table
- * supports. jsdom (whose `canPlayType` supports nothing) and a browser with
- * audio disabled fail it; a Howl built there only reports "No codec
- * support" or "No audio support" as a load error. `undefined` when Howler's
- * global is not there to ask (a test's stand-in for the module): the caller
- * then builds its player as before.
+ * Whether this environment plays audio at all, by Howler's own test: false
+ * when Howler has no audio (`Howler.noAudio`) or the browser plays none of
+ * the formats Howler knows, which is jsdom's case (its `canPlayType`
+ * supports nothing) and a browser with audio disabled. A pack whose own
+ * sources are unsupported where other formats play (an ogg-only pack in a
+ * browser without ogg, a `blob:` or extensionless URL) is not this case:
+ * its Howl is built and reports the failure as a load error, per pack.
+ * `undefined` when Howler's global is not there to ask (a test's stand-in
+ * for the module): the caller then builds its player as before.
  */
-export function classicySoundCanPlay(
-	src: readonly string[],
-): boolean | undefined {
+export function classicyAudioAvailable(): boolean | undefined {
 	let howler: typeof Howler | undefined;
 	try {
 		howler = Howler;
@@ -23,13 +41,7 @@ export function classicySoundCanPlay(
 	}
 	if (!howler || typeof howler.codecs !== "function") return undefined;
 	if (howler.noAudio) return false;
-	return src.some((url) => {
-		const format = (
-			/^data:audio\/([^;,]+);/i.exec(url)?.[1] ??
-			/\.([^.]+)$/.exec(url.split("?", 1)[0])?.[1]
-		)?.toLowerCase();
-		return format !== undefined && Boolean(howler.codecs(format));
-	});
+	return HOWLER_FORMATS.some((format) => Boolean(howler.codecs(format)));
 }
 
 let unavailableLogged = false;
@@ -38,14 +50,13 @@ let unavailableLogged = false;
  * Logs, once per page, that sound is unavailable here: at `info`, since it
  * is the environment's state (jsdom, audio disabled), not a failure.
  */
-export function logClassicySoundUnavailable(src: readonly string[]): void {
+export function logClassicySoundUnavailable(): void {
 	if (unavailableLogged) return;
 	unavailableLogged = true;
 	classicyLog(
 		"info",
 		"ClassicySoundManager",
-		"Sound is unavailable here (no audio, or no codec for the sound pack's formats); sounds play nothing",
-		{ src },
+		"Sound is unavailable here (no audio, or no audio format this browser plays); sounds play nothing",
 	);
 }
 

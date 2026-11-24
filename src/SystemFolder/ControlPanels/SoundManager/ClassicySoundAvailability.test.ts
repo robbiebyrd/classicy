@@ -10,14 +10,15 @@ import {
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import {
-	classicySoundCanPlay,
+	classicyAudioAvailable,
 	resetClassicySoundUnavailableLogForTests,
 } from "./ClassicySoundAvailability.internal";
 
-// Story 0225-ci7, fix round 3: where there is no usable audio (Howler's
-// `noAudio`, or no codec for any of the pack's formats) no player is built
-// and sound's absence is noted once per page at `info`; where audio works,
-// a load that fails is still an error.
+// Story 0225-ci7, fix rounds 3 and 4: where the environment plays no audio
+// at all (Howler's `noAudio`, or no format Howler knows: jsdom, audio
+// disabled) no player is built and sound's absence is noted once per page at
+// `info`. Where audio works, every pack gets its Howl, and a pack whose own
+// sources fail (no supported format among them) is an error, per pack.
 
 const { howler, built } = vi.hoisted(() => ({
 	howler: {
@@ -73,13 +74,16 @@ const levels = () =>
 		.filter((e) => e.subsystem === "ClassicySoundManager")
 		.map((e) => e.level);
 
-describe("classicySoundCanPlay", () => {
-	it("reads each source's format as Howler does", () => {
-		expect(classicySoundCanPlay(["a.m4a", "b.ogg?v=2"])).toBe(true);
-		expect(classicySoundCanPlay(["data:audio/ogg;base64,AAAA"])).toBe(true);
-		expect(classicySoundCanPlay(["a.m4a", "a"])).toBe(false);
+describe("classicyAudioAvailable", () => {
+	it("is the environment's state, never a pack's", () => {
+		expect(classicyAudioAvailable()).toBe(true);
+		howler.supported = new Set(["mp3"]);
+		expect(classicyAudioAvailable()).toBe(true);
+		howler.supported = new Set();
+		expect(classicyAudioAvailable()).toBe(false);
+		howler.supported = new Set(["ogg"]);
 		howler.noAudio = true;
-		expect(classicySoundCanPlay(["a.ogg"])).toBe(false);
+		expect(classicyAudioAvailable()).toBe(false);
 	});
 });
 
@@ -92,13 +96,24 @@ describe("createSoundPlayer", () => {
 		expect(levels()).toEqual(["info"]);
 	});
 
-	it("builds no player when no codec plays the pack's formats", () => {
-		howler.supported = new Set(["mp3"]);
+	it("builds no player where the browser plays no format at all (jsdom)", () => {
+		howler.supported = new Set();
 		expect(
 			createSoundPlayer({ soundData: pack(["a.ogg", "a.m4a"]) }),
 		).toBeNull();
 		expect(built).toEqual([]);
 		expect(levels()).toEqual(["info"]);
+	});
+
+	// Re-review 2, A1: a pack's own unsupported formats, where others play,
+	// are the pack's failure, not the environment's.
+	it("builds a pack whose own formats are unsupported where others play", () => {
+		howler.supported = new Set(["mp3"]);
+		expect(
+			createSoundPlayer({ soundData: pack(["a.ogg", "a.m4a"]) }),
+		).not.toBeNull();
+		expect(built).toEqual([{ src: ["a.ogg", "a.m4a"] }]);
+		expect(levels()).toEqual([]);
 	});
 
 	it("still reports a real load failure as an error where audio works", () => {
