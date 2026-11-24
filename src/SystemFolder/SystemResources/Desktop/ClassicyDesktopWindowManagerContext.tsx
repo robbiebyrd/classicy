@@ -327,7 +327,12 @@ export const classicyWindowEventHandler = (
 			// skipping utility palettes). Removal happens first so the destroyed
 			// window can never select itself.
 			if (heldFocus) {
-				focusApp(ds, action.app.id);
+				// An extension's modal hands focus on to the front application.
+				const owner = ds.System.Manager.Applications.apps[action.app.id];
+				const target = owner?.extension
+					? (frontAppIdOf(ds.System.Manager.Applications) ?? action.app.id)
+					: action.app.id;
+				focusApp(ds, target);
 			}
 			break;
 		}

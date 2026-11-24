@@ -228,10 +228,14 @@ describe("the front application", () => {
 
 	it("an extension with a menu window and a menuless one hands focus on when the menu window closes", () => {
 		const extMenu = fileMenu("Ext");
+		const calcMenu = fileMenu("Calc");
 		set((d) => {
 			d.System.Manager.Applications.apps = {
 				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
-				"Calculator.app": app("Calculator.app", { lastFocusedAt: 5 }),
+				"Calculator.app": app("Calculator.app", {
+					lastFocusedAt: 5,
+					windows: { main: win("main", { menuBar: calcMenu }) },
+				}),
 				"Ext.app": app("Ext.app", {
 					extension: true,
 					focused: true,
@@ -248,6 +252,46 @@ describe("the front application", () => {
 				type: "ClassicyWindowClose",
 				app: { id: "Ext.app" },
 				window: { id: "w" },
+			});
+		});
+		expect(apps().focusedAppId).toBe("Calculator.app");
+		// The bar is Calculator's, not the closed extension window's.
+		expect(useAppManager.getState().System.Manager.Desktop.appMenu).toBe(
+			calcMenu,
+		);
+	});
+
+	it("an extension's modal takes the focus and hands it back to the front app when destroyed", () => {
+		set((d) => {
+			d.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
+				"Calculator.app": app("Calculator.app", {
+					focused: true,
+					lastFocusedAt: 5,
+				}),
+				"Ext.app": app("Ext.app", {
+					extension: true,
+					windows: { m: win("m", { modal: true, menuBar: [] }) },
+				}),
+			};
+			d.System.Manager.Applications.focusedAppId = "Calculator.app";
+		});
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: "Ext.app" },
+				window: { id: "m", menuBar: [] },
+			});
+		});
+		// A modal is never floating: it takes the focus like any modal...
+		expect(apps().focusedAppId).toBe("Ext.app");
+		// ...yet the bar stays with the front application.
+		expect(front()).toBe("Calculator.app");
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowDestroy",
+				app: { id: "Ext.app" },
+				window: { id: "m" },
 			});
 		});
 		expect(apps().focusedAppId).toBe("Calculator.app");

@@ -49,7 +49,8 @@ export function deFocusApps(ds: ClassicyStore) {
 		for (const w of listAppWindows(app)) {
 			// A floating extension window (Apple Guide's) stays active beside
 			// the front application's window.
-			if (!isFloatingExtensionWindow(app, w.menuBar)) w.focused = false;
+			if (!isFloatingExtensionWindow(app, w.menuBar, w.modal))
+				w.focused = false;
 		}
 	}
 	ds.System.Manager.Applications.focusedAppId = undefined;
@@ -86,7 +87,11 @@ export function focusWindow(
 	// chords and windows alone.
 	// Decided without needing the record: a topic's first open focuses its
 	// window before the window has registered.
-	const floating = isFloatingExtensionWindow(app, menuBar ?? win0?.menuBar);
+	const floating = isFloatingExtensionWindow(
+		app,
+		menuBar ?? win0?.menuBar,
+		win0?.modal,
+	);
 	if (!floating) markAppFocused(ds, appId);
 	const win = getAppWindow(app, windowId);
 	if (win) {

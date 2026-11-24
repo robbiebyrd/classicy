@@ -15,11 +15,14 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
  * to show). An extension
  * window that does publish menus is an ordinary window of the front
  * application: it takes the bar, the Application menu and the keyboard scope.
+ * A modal window or alert never floats, whichever app owns it: it keeps its
+ * modal layer above its own scrim and takes the focus as any modal does.
  */
 export const isFloatingExtensionWindow = (
 	app: Pick<ClassicyStoreSystemApp, "extension">,
 	menuBar: ClassicyMenuItem[] | undefined,
-): boolean => app.extension === true && !menuBar?.length;
+	modal?: boolean,
+): boolean => app.extension === true && !modal && !menuBar?.length;
 
 /** An extension whose focused window publishes menus (see above). */
 const extensionHoldsBar = (app: ClassicyStoreSystemApp): boolean =>

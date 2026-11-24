@@ -563,6 +563,17 @@ const withoutStateOwnedStyle = withoutZIndex;
 const mountedWindowKeys = new Map<string, number>();
 
 /**
+ * The z-index of a floating extension window (Apple Guide's), `rank`th from
+ * the bottom of `count` by recency. The band is 351-354, under the Control
+ * Strip (355) and every system layer above it, and over the palettes (350):
+ * the top window takes 354 and each one below the level beneath, so any
+ * number of windows fit and the newest is always on top; windows past the
+ * fourth share the bottom level, where a click still raises one to the top.
+ */
+const floatingZIndex = (rank: number, count: number): number =>
+	351 + Math.max(0, Math.min(3, 3 - (count - 1 - rank)));
+
+/**
  * A Mac OS 8 Platinum window (HIGOS8 Ch.5, p.99): title bar with close box on
  * the left and zoom and collapse boxes on the right (p.101), a draggable frame,
  * Platinum scroll bars and a grow box. It is the component for any app window
@@ -647,15 +658,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const isFloatingWindow = isFloatingExtensionWindow(
 		currentApp ?? { extension: false },
 		appMenu,
+		modal,
 	);
 	const floatingStack = useAppManager((s) => {
 		if (!isFloatingWindow) return "";
 		const app = s.System.Manager.Applications.apps[appId];
-		const mine = getAppWindow(app, id)?.zOrder ?? 0;
+		const record = getAppWindow(app, id);
+		// Before its record registers, a new window is the top one.
+		const mine = record ? (record.zOrder ?? 0) : Number.POSITIVE_INFINITY;
 		const peers = listAppWindows(app).filter(
-			(w) => !w.closed && !w.menuBar?.length,
+			(w) => !w.closed && !w.modal && !w.menuBar?.length,
 		);
-		return `${peers.filter((w) => (w.zOrder ?? 0) < mine).length}/${peers.length}`;
+		const below = peers.filter((w) => (w.zOrder ?? 0) < mine).length;
+		return `${below}/${peers.length + (record ? 0 : 1)}`;
 	});
 	const [floatingRank, floatingCount] = floatingStack
 		? floatingStack.split("/").map(Number)
@@ -1987,12 +2002,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
 			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
-			// Above the active document band (300) and the palettes' (350),
-			// below the modal bands (360 and up): one level per floating window.
-			...(floatingRank >= 0 ? { zIndex: 351 + Math.min(floatingRank, 8) } : {}),
+			// Above the active document band (300) and the palettes' (350), below
+			// the Control Strip (355) and the modal bands (360 and up): see
+			// `floatingZIndex`.
+			...(floatingRank >= 0
+				? { zIndex: floatingZIndex(floatingRank, floatingCount) }
+				: {}),
 		}),
 		[
 			floatingRank,
+			floatingCount,
 			size[0],
 			size[1],
 			ws.collapsed,
