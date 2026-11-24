@@ -268,6 +268,18 @@ const config = defineConfig({
 					)
 						? "assets/[name][extname]"
 						: "[name][extname]",
+				// Lazy chunks keep their default name, except the one holding only
+				// fflate (shared by the PDF viewer's worker source and the theme
+				// link codec), which would be named after fflate's file,
+				// `browser`: it is `fflate-[hash].js`, so a host listing the
+				// chunks can tell what it is. The UMD bundle has no chunks.
+				chunkFileNames: (chunk) =>
+					chunk.moduleIds.length > 0 &&
+					chunk.moduleIds.every((id) =>
+						/[\\/]node_modules[\\/]fflate[\\/]/.test(id),
+					)
+						? "fflate-[hash].js"
+						: "[name]-[hash].js",
 				globals: {
 					react: "React",
 					"react-dom": "ReactDOM",
