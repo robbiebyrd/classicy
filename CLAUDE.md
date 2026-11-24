@@ -453,7 +453,12 @@ in every browser (Firefox now shows Platinum's full bars).
 - Behavior: arrows scroll `lineStep` and repeat while held, the track pages
   toward the pointer until the thumb reaches it (both through
   `useClassicyPressRepeat`, `LittleArrows/useClassicyPressRepeat.internal.ts`,
-  which the little arrows share), the thumb drags proportionally, live, or
+  which the little arrows share; while the track is held and paging it
+  carries `--classicy-scroll-page-start` and `--classicy-scroll-page-length`,
+  the stretch between the thumb and the arrow on the pointer's side, from
+  the track's start, removed when the thumb reaches the pointer or the hold
+  ends, so a package may draw that side alone, as Windows 98's inverts it;
+  Platinum and System 7 read neither), the thumb drags proportionally, live, or
   on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"`
   (System 7: the thumb stays put, a `scroll-drag-outline` part follows the
   pointer and snaps back past the theme's `--scroll-bar-snap-back`, else the

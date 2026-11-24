@@ -70,6 +70,26 @@ The package's README, `packages/appearance/windows98/README.md`, has its
 exports (`WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json`,
 `windows98SoundPack`) and its SCSS (`@classicy/appearance-windows98/scss/*`).
 
+## New in the core
+
+Two additive hooks the Windows 98 look needed; neither changes what Platinum
+or System 7 draw, and a package that reads neither sees nothing new.
+
+- **The paged side of a scroll-bar track.** While a `ClassicyScrollArea`
+  track is held and paging, the track carries `--classicy-scroll-page-start`
+  and `--classicy-scroll-page-length`: the stretch between the thumb and the
+  arrow on the pointer's side, from the track's start, following the thumb
+  as it pages and removed when the thumb reaches the pointer or the button
+  comes up. Windows 98 inverts that side alone (Windows' `PatBlt` inversion
+  while paging); Mac OS inverts nothing, so Platinum and System 7 read it
+  not at all.
+- **The Finder list's icon as a mask.** Each row of `ClassicyFileBrowser`'s
+  list view (`classicyFileBrowserViewTableRowContainer`) carries
+  `--classicy-icon-mask`, `url("…")` of the row's icon, as `ClassicyIcon`
+  and the desktop icons already publish theirs, so a package can draw a
+  selected icon through its own shape (Windows 98's 50% highlight dither).
+  The `<img>` itself is unchanged.
+
 ## Upgrade
 
 1. Upgrading from 3.7.x, bump every Classicy package you load together to

@@ -19,12 +19,12 @@
 //   one ring of ButtonShadow) with the triangle a pixel down and right.
 // - The track is the 50% checker of ButtonFace and ButtonHilight that
 //   Windows fills a scroll bar's page area with (the SCROLLBAR's halftone
-//   brush), two gradient layers on the `--pixel-unit` grid, no image.
-//   Pressed (the page area held, the core's repeat paging), Windows inverts
-//   the track (`PatBlt DSTINVERT`): the checker turns ButtonDkShadow and
-//   `--color-system-06` (the inverse of ButtonFace). Windows inverts the
-//   clicked side alone; the core marks the whole track, so the whole track
-//   inverts.
+//   brush), one conic-gradient layer on the `--pixel-unit` grid, no image.
+//   Held (the core's repeat paging), Windows inverts the page area on the
+//   clicked side of the thumb alone (`PatBlt DSTINVERT`); the core marks the
+//   whole track `pressed` and a stylesheet cannot tell the sides apart, and
+//   inverting both would draw what Windows never does, so the track stays
+//   as it is while held.
 // - The thumb is a raised ButtonFace box (`b.raised`) with no grip, as long
 //   as the core computes it and never shorter than 8 pixels (half an arrow
 //   button, the proportional thumb's minimum); dragged, Windows redraws it
@@ -48,9 +48,7 @@
 //   ButtonLight       --color-system-02        the inner top-left ring
 //   ButtonShadow      --color-system-05        the inner bottom-right ring,
 //                                              GrayText, the pressed ring
-//   ButtonDkShadow    --color-system-07        the outer bottom-right ring,
-//                                              the inverted checker's dark
-//   (ButtonFace inverted) --color-system-06    the inverted checker's light
+//   ButtonDkShadow    --color-system-07        the outer bottom-right ring
 //   WindowText        --color-black            the triangles
 //
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
@@ -68,9 +66,8 @@ $arrow-left: runs(("...x", "..xx", ".xxx", "xxxx", ".xxx", "..xx", "...x"), "x")
 $arrow-right: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x");
 
 // The 50% checker of ButtonFace and ButtonHilight on the pixel grid (the
-// page area), and the same inverted (the page area held).
+// page area).
 $checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
-$checker-inverted: repeating-conic-gradient(b.$dkshadow 0 25%, var(--color-system-06) 0 50%) 0 0 / px(2) px(2);
 
 // The proportional thumb's minimum length: half an arrow button.
 $thumb-min: px(8);
@@ -154,13 +151,9 @@ $thumb-min: px(8);
     @include arrow-glyph($arrow-right, 4, 7, 2, 4);
   }
 
-  // The track: the checker; inverted while the page area is held.
+  // The track: the checker, held or not (the header says why).
   .classicyScrollBarTrack {
     background: $checker;
-  }
-
-  .classicyScrollBar:not(.fits) .classicyScrollBarTrack.pressed {
-    background: $checker-inverted;
   }
 
   // The thumb: raised ButtonFace, no grip, never shorter than half an arrow
@@ -179,11 +172,9 @@ $thumb-min: px(8);
     min-width: $thumb-min;
   }
 
-  // Nothing to scroll: the arrows embossed, the track as it is.
-  .classicyScrollBar.fits .classicyScrollBarArrow {
-    @include b.raised;
-  }
-
+  // Nothing to scroll: the arrows embossed, the track as it is (each rule
+  // restates the raised face at the weight of the pressed rules above, so
+  // a bar that fits never draws a held arrow).
   .classicyScrollBarVertical.fits .classicyScrollBarArrowStart {
     @include arrow-glyph-disabled($arrow-up);
   }

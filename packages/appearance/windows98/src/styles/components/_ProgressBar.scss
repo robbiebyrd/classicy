@@ -7,8 +7,12 @@
 // os-gui and React95 re-create it and Wine's progress.c draws it:
 //
 // - The track: a ButtonFace box `--progress-bar-height` (16) tall in the
-//   sunken two-ring bevel (`b.sunken`, the control's client edge), the fill
-//   `--progress-bar-inset` (2) inside it, where the rings end.
+//   one-ring sunken edge comctl32 draws it with (`DrawEdge(BDR_SUNKENOUTER)`:
+//   ButtonShadow at the top and left, ButtonHilight at the bottom and
+//   right, the bottom-right lines over the others at the corners; not the
+//   two-ring client edge of a field), the fill `--progress-bar-inset` (2)
+//   inside it: the ring and one pixel of face, which is where comctl32
+//   starts its blocks.
 // - The fill: Hilight blocks `--progress-bar-block-width` (8) wide with a
 //   `--progress-bar-block-gap` (2) of track between them (comctl32 draws a
 //   block two thirds of the inner height wide, then a two-pixel gap), one
@@ -29,10 +33,8 @@
 //
 //   Windows color     token
 //   ButtonFace        --color-system-03        the track
-//   ButtonHilight     --color-system-01        the outer bottom-right ring
-//   ButtonLight       --color-system-02        the inner bottom-right ring
-//   ButtonShadow      --color-system-05        the outer top-left ring
-//   ButtonDkShadow    --color-system-07        the inner top-left ring
+//   ButtonHilight     --color-system-01        the bottom-right ring
+//   ButtonShadow      --color-system-05        the top-left ring
 //   Hilight           --color-highlight        the blocks
 //
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
@@ -47,7 +49,9 @@ $period: calc(var(--progress-bar-block-width) + var(--progress-bar-block-gap));
   @return repeating-linear-gradient(to right, #{$ink} 0 var(--progress-bar-block-width), transparent 0 #{$period});
 }
 
-// The sunken ButtonFace track, the fill inset to where its rings end.
+// The ButtonFace track in its one-ring sunken edge (ButtonHilight listed
+// first: the bottom-right lines take the corners, as `DrawEdge` draws them
+// last), the fill inset a ring and a pixel of face.
 @mixin track {
   box-sizing: border-box;
   height: var(--progress-bar-height);
@@ -55,7 +59,9 @@ $period: calc(var(--progress-bar-block-width) + var(--progress-bar-block-gap));
   border: 0;
   border-radius: 0;
   background: b.$face;
-  @include b.sunken;
+  box-shadow:
+    inset b.$neg-b b.$neg-b b.$hilight,
+    inset b.$b b.$b b.$shadow;
 }
 
 @mixin progress-bar {

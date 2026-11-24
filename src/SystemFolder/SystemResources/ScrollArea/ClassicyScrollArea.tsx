@@ -874,9 +874,37 @@ const ClassicyScrollBar = ({
 				end: track.start + t.offset + t.length,
 			};
 		};
+		// The part of the track being paged, from the track's start along
+		// the bar: the stretch between the thumb and the arrow on the
+		// pointer's side, published on the track as
+		// `--classicy-scroll-page-start` and `--classicy-scroll-page-length`
+		// while the track is held and paging, so a package can draw that
+		// side alone (Windows inverted it; HIG7's Mac OS darkened nothing),
+		// and removed when the paging stops or the hold ends.
+		const trackEl = e.currentTarget;
+		const publishPaged = (direction: -1 | 1 | null) => {
+			if (direction === null) {
+				trackEl.style.removeProperty("--classicy-scroll-page-start");
+				trackEl.style.removeProperty("--classicy-scroll-page-length");
+				return;
+			}
+			const track = trackOf(refs, orientation);
+			const t = thumbNow();
+			const start = direction < 0 ? 0 : t.end - track.start;
+			const length =
+				direction < 0 ? t.start - track.start : track.length - start;
+			trackEl.style.setProperty(
+				"--classicy-scroll-page-start",
+				`${Math.max(0, Math.round(start))}px`,
+			);
+			trackEl.style.setProperty(
+				"--classicy-scroll-page-length",
+				`${Math.max(0, Math.round(length))}px`,
+			);
+		};
 		hold(
 			"track",
-			e.currentTarget,
+			trackEl,
 			(run, entered) => {
 				// Toward the pointer where it is now (a return over the track
 				// may be on the thumb's other side): where it came back over
@@ -885,17 +913,23 @@ const ClassicyScrollBar = ({
 					pointer = along(entered) - barStart(barEl.getBoundingClientRect());
 				}
 				const direction = pointer < thumbNow().start ? -1 : 1;
+				publishPaged(direction);
 				run(() => {
 					// Stop once the thumb reaches the pointer (HIG7 p.165).
 					const t = thumbNow();
 					if (direction < 0 ? pointer >= t.start : pointer < t.end) {
+						publishPaged(null);
 						return false;
 					}
 					scrollBy(orientation, direction * page());
+					publishPaged(direction);
 					return undefined;
 				});
 			},
-			() => document.removeEventListener("mousemove", onMove, true),
+			() => {
+				document.removeEventListener("mousemove", onMove, true);
+				publishPaged(null);
+			},
 		);
 	};
 

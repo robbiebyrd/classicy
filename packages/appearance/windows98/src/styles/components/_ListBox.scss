@@ -14,10 +14,11 @@
 // grays (GrayText over Hilight on the selected row, as user32 paints it),
 // where a disabled edit control turns ButtonFace. The tree view (TREEVIEW):
 // the same edge on a framed tree or list frame, and the selection on the
-// label alone, the text with a pixel of padding, Hilight under HilightText
-// with the focus rectangle on its edge, never the whole row; a disabled
-// item's label GrayText, its icon as it is (a tree view has no disabled
-// items).
+// label alone, Hilight under HilightText a pixel above and below the text
+// and two beside it (`--layout-item-gap-half`, the tree view's label
+// margin) with the focus rectangle on its edge, never the whole row; a
+// disabled item's label GrayText, its icon as it is (a tree view has no
+// disabled items).
 //
 // Overrides ClassicyListBox.scss and ClassicyTree.scss (`classicyListBoxFrame`
 // and `classicyTreeFramed` included). Standard File's well is the dialogs'
@@ -128,7 +129,7 @@ $tree-row: ".classicyTreeNodeLabelHolder:not(.classicyFileOpenDialogWell *)";
   }
 
   #{$tree-row} .classicyTreeNodeLabel {
-    padding: 0 b.$b;
+    padding: b.$b var(--layout-item-gap-half);
   }
 
   #{$tree-row}:focus .classicyTreeNodeLabel {

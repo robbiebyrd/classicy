@@ -61,8 +61,18 @@ and `nodenext` resolution).
   - scroll bars: an arrow at each end on a checkered track, a raised scroll
     box, the arrows and track kept in an inactive window;
   - the desktop: icons with plain labels that take the highlight when
-    selected, ToolTips in place of balloon help, and the Appearance Manager
-    and Control Strip under the same bevels.
+    selected, a selected icon blended with a 50% dither of the highlight
+    (as Explorer drew it) on the desktop, in icon views and in the Finder's
+    list, ToolTips in place of balloon help, and the Appearance Manager
+    and Control Strip under the same bevels;
+  - message boxes with their buttons centered, as Windows centers them
+    (a dialog's OK and Cancel stay at the right).
+- **Its knobs**, in the Appearance Manager's Options tab: the title-bar
+  buttons' width and height, the gap before Close and the gap under the
+  bar; the progress bar's block width and gap; the height of single-line
+  fields (21 px, Windows' edit and combo box height) and of tabs; and the
+  desktop labels' text-shadow offset (1 px; 0 removes the shadow, which
+  stock Windows 98 drew only with the Active Desktop).
 - **A sound pack**, `windows98`: four alert tones, Chimes, Chord, Ding (the
   default) and Exclamation, named after the roles Windows gave its sounds
   but synthesized for the package (Windows' own sounds are Microsoft's), plus

@@ -27,10 +27,14 @@
 //   opens below. Held, every mark steps down and right by the base's
 //   `--control-strip-pressed-shift`, as the base moves the glyphs.
 // - The tab, which sizes and collapses the strip, is a raised one-ring
-//   ButtonFace box of the Platinum tab's size (its art hidden in place, so
-//   the button keeps its box) carrying a toolbar gripper: a ButtonHilight
-//   line and a ButtonShadow line a face column apart, 18 rows tall, as the
-//   rebar's. Collapsed, the tab alone is the strip.
+//   ButtonFace box in the cells' frame (the strip's height, a face line at
+//   its top, bottom and outer side, so its ring runs level with the cells'),
+//   as wide as the Platinum tab's art (hidden in place, so the button keeps
+//   its width), carrying a toolbar gripper: a ButtonHilight line and a
+//   ButtonShadow line a face column apart (DrawEdge BDR_RAISEDINNER on a
+//   three-pixel band, the rebar's), 18 of the frame's 22 rows, two clear
+//   above and below. Collapsed, the tab alone is the strip; docked right it
+//   leads, and its frame closes the strip's left end instead.
 // - A module's pop-up menu and panel are every menu's and bevel pop-up's
 //   (_Menu.scss, _PopUpMenu.scss), and the status line in a module menu
 //   stays the base's.
@@ -63,10 +67,11 @@ $minimize: ((0 0 6 2),);
 // A module's pop-up arrow (5 x 3): the toolbar drop-down's.
 $drop-arrow: runs(("xxxxx", ".xxx.", "..x.."), "x");
 
-// The tab's gripper, on the 17 x 24 tab: a light and a dark line, 18 rows
-// tall from the fourth row, a face column between them.
-$grip-light: ((7 3 1 18),);
-$grip-dark: ((9 3 1 18),);
+// The tab's gripper, on the 17 x 22 face inside the tab's frame: a light
+// and a dark line, 18 rows tall from the third row, a face column between
+// them.
+$grip-light: ((7 2 1 18),);
+$grip-dark: ((9 2 1 18),);
 
 // --- Places -----------------------------------------------------------------
 // Each mark's place: the base's glyph position plus a fixed count of grid
@@ -172,11 +177,20 @@ $checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) 
   }
 
   // --- The tab ----------------------------------------------------------------
+  // In the cells' frame: the strip's height, a face line on every side but
+  // the one toward the cells (the base's tab has no border), so its ring sits
+  // one pixel in, level with the cells' rings.
   .classicyControlStripTab {
+    box-sizing: border-box;
+    height: calc(
+      var(--control-strip-border-width) + var(--control-strip-cell-height) + var(--control-strip-border-width)
+    );
+    border: var(--control-strip-border-width) solid b.$face;
+    border-left: none;
     background: pixel-art(b.$hilight, $grip-light), pixel-art(b.$shadow, $grip-dark), b.$face;
     @include b.raised-thin;
 
-    // Hidden in place: the tab keeps the art's box.
+    // Hidden in place: the tab keeps the art's width.
     svg {
       visibility: hidden;
     }
@@ -188,6 +202,13 @@ $checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) 
     &:focus-visible {
       @include focus;
     }
+  }
+
+  // Docked right, the tab leads: its frame closes the strip's left end, and
+  // the first scroll arrow's left line (the base's) parts it from the cells.
+  .classicyControlStripRight .classicyControlStripTab {
+    border-right: none;
+    border-left: var(--control-strip-border-width) solid b.$face;
   }
 
   // --- The modules ------------------------------------------------------------
@@ -229,13 +250,21 @@ $checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) 
   }
 
   // Held or open: one ring sunken, the icon and arrow a pixel down and right
-  // (the base moves them; the bevel button's own translate stands down).
+  // (the base moves them while the module is `pressed` or `open`; restated
+  // here for `:active` too, a key held on the module, which the rule must
+  // match to beat _Button.scss's; the bevel button's own translate stands
+  // down).
   .classicyControlStrip .classicyBevelButton.classicyControlStripModule:is(:active, .pressed, .open) {
     background: b.$face;
     @include sunken-thin;
 
     > * {
       translate: none;
+    }
+
+    .classicyBevelButtonIcon {
+      left: shifted(var(--control-strip-module-icon-left));
+      top: shifted(var(--control-strip-module-icon-top));
     }
 
     .classicyBevelButtonLabel {

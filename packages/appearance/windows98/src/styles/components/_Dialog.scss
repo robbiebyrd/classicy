@@ -29,7 +29,7 @@
 //   dialog, and the field above the button that redefines it) is the hot key
 //   control, an edit control: Window white under a two-ring sunken edge
 //   (WS_EX_CLIENTEDGE, `b.sunken`), the edit control's height and text
-//   inset (`--pop-up-height`, `--field-padding-*`, the text fields' own), its
+//   inset (`--field-height`, `--field-padding-*`, the text fields' own), its
 //   text left-aligned as an edit's is (the base centers it, HIGOS8's figure);
 //   in the dialog it spans the dialog's width (the base insets it 24 pixels
 //   for the figure). Disabled, ButtonFace with plain GrayText: an edit
@@ -153,13 +153,13 @@ $edge: var(--layout-dialog-edge);
 
   // The hot-key box, in the dialog and in the field a control panel shows
   // (the base names the element and both classes, so this does too): the
-  // edit control's height (`--pop-up-height`, 21: Windows' edit and combo
+  // edit control's height (`--field-height`, 21: Windows' edit and combo
   // box stand at one height, the text fields' partial's choice), its text on
   // the line left inside the field's inset, left-aligned, Window white under
   // the sunken edge; disabled, a disabled edit control.
   output.classicyOutput.classicyKeyboardEquivalentDisplay {
-    min-height: var(--pop-up-height);
-    line-height: calc(var(--pop-up-height) - var(--field-padding-y) - var(--field-padding-y));
+    min-height: var(--field-height);
+    line-height: calc(var(--field-height) - var(--field-padding-y) - var(--field-padding-y));
     padding: var(--field-padding-y) var(--field-padding-x);
     text-align: left;
 

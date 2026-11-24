@@ -465,6 +465,69 @@ describe("ClassicyScrollArea", () => {
 		expect(track.classList.contains(CLASSICY_STATE.pressed)).toBe(false);
 	});
 
+	// The stretch of track being paged, for a package that draws that side
+	// alone while the track is held (Windows inverted it): from the track's
+	// start along the bar, as `--classicy-scroll-page-start` and
+	// `--classicy-scroll-page-length` on the track, following the thumb as it
+	// pages, gone once the thumb reaches the pointer or the button comes up.
+	it("publishes the paged side of the track while it is held, and removes it", () => {
+		vi.useFakeTimers();
+		const { container, viewport } = renderTall({ lineStep: 16 });
+		const track = part(container, "scroll-track");
+		const thumb = part(container, "scroll-thumb");
+		const pageStart = () =>
+			track.style.getPropertyValue("--classicy-scroll-page-start");
+		const pageLength = () =>
+			track.style.getPropertyValue("--classicy-scroll-page-length");
+		expect(pageStart()).toBe("");
+		expect(pageLength()).toBe("");
+		// Below the thumb: the stretch from the thumb's end to the track's end
+		// (the track starts 17 px down the bar; the thumb's offset is from
+		// the bar's start).
+		fireEvent.mouseDown(track, { button: 0, clientY: 150 });
+		expect(viewport.scrollTop).toBe(184);
+		const thumbEnd =
+			px(thumb, "--classicy-scroll-thumb-offset") +
+			px(thumb, "--classicy-scroll-thumb-length") -
+			BAR;
+		expect(pageStart()).toBe(`${Math.round(thumbEnd)}px`);
+		expect(pageLength()).toBe(`${Math.round(LENGTH - 2 * BAR - thumbEnd)}px`);
+		// Each page moves the thumb, and the stretch with it.
+		act(() => {
+			vi.advanceTimersByTime(120);
+		});
+		expect(viewport.scrollTop).toBe(368);
+		const thumbEndAfter =
+			px(thumb, "--classicy-scroll-thumb-offset") +
+			px(thumb, "--classicy-scroll-thumb-length") -
+			BAR;
+		expect(thumbEndAfter).toBeGreaterThan(thumbEnd);
+		expect(pageStart()).toBe(`${Math.round(thumbEndAfter)}px`);
+		// The thumb reaches the pointer: the paging stops and the stretch goes.
+		act(() => {
+			vi.advanceTimersByTime(120 * 10);
+		});
+		expect(track.classList.contains(CLASSICY_STATE.pressed)).toBe(false);
+		expect(pageStart()).toBe("");
+		expect(pageLength()).toBe("");
+		fireEvent.mouseUp(document.body);
+		// Above the thumb: from the track's start to the thumb's start; the
+		// release removes it mid-page.
+		act(() => {
+			viewport.scrollTop = 800;
+			fireEvent.scroll(viewport);
+		});
+		fireEvent.mouseDown(track, { button: 0, clientY: 20 });
+		expect(viewport.scrollTop).toBe(616);
+		expect(pageStart()).toBe("0px");
+		expect(pageLength()).toBe(
+			`${Math.round(px(thumb, "--classicy-scroll-thumb-offset") - BAR)}px`,
+		);
+		fireEvent.mouseUp(document.body);
+		expect(pageStart()).toBe("");
+		expect(pageLength()).toBe("");
+	});
+
 	it("pages back up when pressed above the thumb", () => {
 		vi.useFakeTimers();
 		const { container, viewport } = renderTall();

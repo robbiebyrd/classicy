@@ -52,11 +52,11 @@
 @use "../bevels" as b;
 @use "../pixel" as *;
 
-// A tab's height. The theme has no tab-height knob; Windows' tab item for
-// the 8 pt system font is 21 pixels, the combo box's height (the same
+// A tab's height, the theme's `tabControl.height` knob: Windows' tab item
+// for the 8 pt system font is 21 pixels, the combo box's height (the same
 // geometry: the text row, two rings of edge and three pixels of padding
-// above and below), so the pop-up's knob stands for it.
-$tab-height: var(--pop-up-height);
+// above and below).
+$tab-height: var(--tab-control-height);
 $radius: var(--tab-control-radius);
 $lift: var(--tab-control-lift);
 

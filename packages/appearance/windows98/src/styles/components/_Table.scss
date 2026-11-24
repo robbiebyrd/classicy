@@ -43,6 +43,7 @@
 //
 // Every length is a knob or a ring (`b.$b`), every color a token.
 @use "../bevels" as b;
+@use "../pixel" as *;
 
 // The generic list: the Finder's has the window's edge and its own
 // selection, below.
@@ -164,10 +165,40 @@ $finder: ".classicyFileBrowserViewTableContainer";
     outline-offset: b.$neg-b;
   }
 
-  // The selected item's icon toward the highlight: darkened, drained to one
-  // hue and turned to the blues.
+  // The selected item's icon blended with the highlight: Explorer's
+  // ILD_BLEND50, a 50% dither of Hilight over the icon's own pixels, as the
+  // desktop's and the icon component's (_Desktop.scss, _Icon.scss), so it
+  // follows every scheme's selection color. The icon is a bare <img>, which
+  // takes no pseudo-element, so the dither is the disclosure gutter's
+  // `::after`, laid over the icon beside it (the gutter precedes the icon by
+  // the icon's margin, `--file-browser-list-icon-spacing`, and both are
+  // centered on the row), and clipped to the icon's shape by the mask the
+  // core publishes on the row, `--classicy-icon-mask`. The base's darkening
+  // filter stands down. Sized by the list's icon size, which the core
+  // publishes on the container (`--classicy-file-browser-icon-size`).
   :where(.classicyFileBrowserViewTableRow).selected
     .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
-    filter: brightness(0.6) sepia(1) hue-rotate(190deg) saturate(2);
+    filter: none;
+  }
+
+  .classicyFileBrowserViewTableDisclosure {
+    position: relative;
+  }
+
+  :where(.classicyFileBrowserViewTableRow).selected
+    .classicyFileBrowserViewTableDisclosure::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(100% + var(--file-browser-list-icon-spacing));
+    width: var(--classicy-file-browser-icon-size);
+    height: var(--classicy-file-browser-icon-size);
+    margin: auto 0;
+    pointer-events: none;
+    background: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
+    mask-image: var(--classicy-icon-mask);
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
   }
 }

@@ -21,8 +21,8 @@
 //   the outer mask is Platinum's). An opened item looks like any other
 //   (Windows marks no opened icon), a folder under a drag is drawn selected,
 //   as the shell highlighted a drop target, and a hidden file stays ghosted
-//   as the base draws it (Explorer's "Show all files" draws hidden files
-//   faint).
+//   as the base draws it, its window open or not (Explorer's "Show all
+//   files" draws hidden files faint).
 // - The image well: the client edge (`b.sunken`, WS_EX_CLIENTEDGE) around
 //   Window white, in place of the base's black line and its recess; selected,
 //   the dotted focus rectangle just inside the edge; a drop target the same
@@ -139,6 +139,12 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
     img {
       filter: none;
     }
+  }
+
+  // A hidden file stays ghosted while its window is open: the rule above
+  // clears the outer's filter, which is where the base ghosts it.
+  .classicyIcon.open .classicyIconMaskOuter.classicyIconInvisible {
+    filter: opacity(0.45);
   }
 
   // --- The image well --------------------------------------------------------

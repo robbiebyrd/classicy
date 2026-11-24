@@ -126,13 +126,15 @@
 			},
 			"field": {
 				"paddingX": 4,
-				"paddingY": 3
+				"paddingY": 3,
+				"height": 21
 			},
 			"tabControl": {
 				"radius": 3,
 				"lift": 2,
 				"paddingX": 10,
-				"padding": 12
+				"padding": 12,
+				"height": 21
 			},
 			"progressBar": {
 				"stripeWidth": 10,
@@ -172,6 +174,9 @@
 				"textureHeight": 3,
 				"buttonWidth": 12,
 				"buttonHeight": 11
+			},
+			"desktopLabel": {
+				"shadow": 1
 			}
 		},
 		"desktop": {
@@ -310,13 +315,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -356,6 +363,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -493,13 +503,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -539,6 +551,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -678,13 +693,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -724,6 +741,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -863,13 +883,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -909,6 +931,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -1048,13 +1073,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -1094,6 +1121,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -1233,13 +1263,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -1279,6 +1311,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -1420,13 +1455,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -1466,6 +1503,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -1603,13 +1643,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -1649,6 +1691,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -1786,13 +1831,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -1832,6 +1879,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -1973,13 +2023,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -2019,6 +2071,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -2158,13 +2213,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -2204,6 +2261,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -2343,13 +2403,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -2389,6 +2451,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -2530,13 +2595,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -2576,6 +2643,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -2715,13 +2785,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -2761,6 +2833,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -2900,13 +2975,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -2946,6 +3023,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -3085,13 +3165,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -3131,6 +3213,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -3268,13 +3353,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -3314,6 +3401,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -3455,13 +3545,15 @@
 				},
 				"field": {
 					"paddingX": 4,
-					"paddingY": 3
+					"paddingY": 3,
+					"height": 21
 				},
 				"tabControl": {
 					"radius": 3,
 					"lift": 2,
 					"paddingX": 10,
-					"padding": 12
+					"padding": 12,
+					"height": 21
 				},
 				"progressBar": {
 					"stripeWidth": 10,
@@ -3501,6 +3593,9 @@
 					"textureHeight": 3,
 					"buttonWidth": 12,
 					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
 				}
 			},
 			"desktop": {
@@ -3564,6 +3659,30 @@
 				"min": 0,
 				"max": 8,
 				"default": 2
+			}
+		},
+		"field": {
+			"height": {
+				"label": "Field height",
+				"min": 16,
+				"max": 32,
+				"default": 21
+			}
+		},
+		"tabControl": {
+			"height": {
+				"label": "Tab height",
+				"min": 16,
+				"max": 40,
+				"default": 21
+			}
+		},
+		"desktopLabel": {
+			"shadow": {
+				"label": "Label shadow",
+				"min": 0,
+				"max": 3,
+				"default": 1
 			}
 		}
 	},

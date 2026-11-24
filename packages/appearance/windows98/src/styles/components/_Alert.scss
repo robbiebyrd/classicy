@@ -12,10 +12,13 @@
 // - The buttons in Windows' order, [OK] [Cancel], [Yes] [No] [Cancel]: the
 //   default first, any other next, Cancel last (_Dialog.scss's `button-row`,
 //   on the `[data-classicy-role]` parts the alert sets); a Help button, which
-//   Windows places after Cancel ([OK] [Cancel] [Help]), at the far right, not
-//   the far left the base pushes it to. The row keeps the base's right
-//   alignment, as the brief has it (MessageBox itself centers its buttons;
-//   see the notes).
+//   Windows places after Cancel ([OK] [Cancel] [Help]), at the far right of
+//   the row, not the far left the base pushes it to. The row is centered
+//   under the text, as MessageBox centers it: Wine's user32 message box
+//   (windows/msgbox.c, MSGBOX_OnInit) places the first button at
+//   `(wwidth - (bw + bspace) * buttons + bspace) / 2`, and Microsoft's
+//   command-button guidelines say "On pop-up error messages, center command
+//   buttons" (a dialog's OK and Cancel stay right-aligned: _Dialog.scss).
 // - No red: Windows has no alert caption of its own. The base paints the
 //   movable alert's caption red (`classicyAlertMovableWindow`, and the fixed
 //   alert's through `classicyWindowRed`); the windows' caption gradient, in
@@ -39,6 +42,9 @@
 
     .classicyAlertButtons {
       @include Dialog.button-row;
+
+      // MessageBox centers its row of buttons (above).
+      justify-content: center;
 
       // Help last, at the right, after Cancel; the base's auto margin, which
       // pushed it to the far left, goes.

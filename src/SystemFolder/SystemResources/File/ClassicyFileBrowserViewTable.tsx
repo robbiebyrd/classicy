@@ -338,61 +338,70 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						id: "_name",
 						title: "Filename",
 						accessor: (row) => row._name ?? "",
-						render: (row, expansion) => (
-							// biome-ignore lint/a11y/noStaticElementInteractions: a press here may start a drag; keyboard users move items through the table's own selection
-							<div
-								className={"classicyFileBrowserViewTableRowContainer"}
-								{...{ [CLASSICY_FILE_PATH_ATTRIBUTE]: row._path }}
-								{...(row._type === ClassicyFileSystemEntryFileType.Directory &&
-								row._path
-									? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }
-									: {})}
-								onMouseDown={(e) =>
-									row._path && startRowDrag(e, row._path, expansion.emitDrag)
-								}
-								style={{
-									paddingLeft: `calc(var(--window-control-size) * ${expansion.depth})`,
-								}}
-							>
-								{/* Fixed-width gutter so files line up with folders at the
+						render: (row, expansion) => {
+							const iconSrc = row._icon || iconImageByType(row._type);
+							return (
+								// biome-ignore lint/a11y/noStaticElementInteractions: a press here may start a drag; keyboard users move items through the table's own selection
+								<div
+									className={"classicyFileBrowserViewTableRowContainer"}
+									{...{ [CLASSICY_FILE_PATH_ATTRIBUTE]: row._path }}
+									{...(row._type ===
+										ClassicyFileSystemEntryFileType.Directory && row._path
+										? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }
+										: {})}
+									onMouseDown={(e) =>
+										row._path && startRowDrag(e, row._path, expansion.emitDrag)
+									}
+									style={
+										{
+											paddingLeft: `calc(var(--window-control-size) * ${expansion.depth})`,
+											// The row's icon as a mask, for a package that draws
+											// a selected icon through its own shape (Windows 98's
+											// dither), as ClassicyIcon publishes its own.
+											"--classicy-icon-mask": `url("${iconSrc}")`,
+										} as CSSProperties
+									}
+								>
+									{/* Fixed-width gutter so files line up with folders at the
 								    same depth; only folders put a triangle in it. */}
-								<span className={"classicyFileBrowserViewTableDisclosure"}>
-									{expansion.canExpand && (
-										// biome-ignore lint/a11y/noStaticElementInteractions: swallows the click so toggling disclosure never doubles as a row selection
-										// biome-ignore lint/a11y/useKeyWithClickEvents: the triangle itself owns keyboard toggling; this wrapper only stops mouse bubbling
-										<span
-											className={
-												"classicyFileBrowserViewTableDisclosureTriangle"
-											}
-											onClick={(e) => e.stopPropagation()}
-											// A press on the triangle toggles; it never starts a drag.
-											onMouseDown={(e) => e.stopPropagation()}
-										>
-											<ClassicyTriangle
-												direction={"right"}
-												open={expansion.isExpanded}
-												onToggle={expansion.toggle}
-											/>
-										</span>
-									)}
-								</span>
-								{/* The Finder draws a selected item's icon selected: the
+									<span className={"classicyFileBrowserViewTableDisclosure"}>
+										{expansion.canExpand && (
+											// biome-ignore lint/a11y/noStaticElementInteractions: swallows the click so toggling disclosure never doubles as a row selection
+											// biome-ignore lint/a11y/useKeyWithClickEvents: the triangle itself owns keyboard toggling; this wrapper only stops mouse bubbling
+											<span
+												className={
+													"classicyFileBrowserViewTableDisclosureTriangle"
+												}
+												onClick={(e) => e.stopPropagation()}
+												// A press on the triangle toggles; it never starts a drag.
+												onMouseDown={(e) => e.stopPropagation()}
+											>
+												<ClassicyTriangle
+													direction={"right"}
+													open={expansion.isExpanded}
+													onToggle={expansion.toggle}
+												/>
+											</span>
+										)}
+									</span>
+									{/* The Finder draws a selected item's icon selected: the
 									active package's selected image when it has one,
 									else the stylesheet's darkening. */}
-								<ClassicyIconImage
-									src={row._icon || iconImageByType(row._type)}
-									drawnAt={iconSize}
-									width={iconSize}
-									alt={row._path}
-									className={"classicyFileBrowserViewTableRowIcon"}
-									selectable
-									selected={expansion.selected === true}
-								/>
-								<span className={"classicyFileBrowserViewTableRowIconLabel"}>
-									{row._name}
-								</span>
-							</div>
-						),
+									<ClassicyIconImage
+										src={iconSrc}
+										drawnAt={iconSize}
+										width={iconSize}
+										alt={row._path}
+										className={"classicyFileBrowserViewTableRowIcon"}
+										selectable
+										selected={expansion.selected === true}
+									/>
+									<span className={"classicyFileBrowserViewTableRowIconLabel"}>
+										{row._name}
+									</span>
+								</div>
+							);
+						},
 					},
 				];
 				if (columnFlags.modified) {
