@@ -45,6 +45,7 @@
 @use "pkg:@classicy/appearance-platinum/scss/components/Tabs";
 @use "pkg:@classicy/appearance-platinum/scss/components/ScrollArea";
 @use "pkg:@classicy/appearance-platinum/scss/components/DesktopIcon";
+@use "pkg:@classicy/appearance-platinum/scss/components/SelectionMarquee";
 @use "pkg:@classicy/appearance-platinum/scss/components/HyperCard";
 @use "pkg:@classicy/appearance-platinum/scss/components/FileInput";
 @use "pkg:@classicy/appearance-platinum/scss/components/Meter";
@@ -83,6 +84,7 @@
   @include Tabs.tabs;
   @include ScrollArea.scrollArea;
   @include DesktopIcon.desktopIcon;
+  @include SelectionMarquee.selectionMarquee;
   @include HyperCard.hyperCard;
   @include FileInput.fileInput;
   @include Meter.meter;

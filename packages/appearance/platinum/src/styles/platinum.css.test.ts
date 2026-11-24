@@ -436,6 +436,22 @@ describe("platinum.scss (compiled)", () => {
 		expect([...css].every((ch) => ch.charCodeAt(0) < 0x80)).toBe(true);
 	});
 
+	// Story 0228-e9l: the Mac OS 8.1 Finder's selection rectangle, a two-
+	// pixel frame of the 50% checker drawn in XOR, its white cells (inverted
+	// to black over white) at the screen's odd x + y.
+	it("draws the selection rectangle as a two-pixel XOR checker frame", () => {
+		const marquee = rule(`${P} [data-classicy-part=selection-marquee]`).props;
+		expect(marquee.padding).toBe("var(--selection-marquee-width)");
+		expect(marquee.background).toBe(
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top/var(--selection-marquee-tile-size) var(--selection-marquee-tile-size) fixed",
+		);
+		expect(marquee["mask-composite"]).toBe("exclude");
+		expect(marquee["mix-blend-mode"]).toBe("difference");
+		expect(readPlatinum("platinum.json")).toMatch(
+			/"selectionMarquee": \{\s*"width": 2,\s*"tileSize": 2\s*\}/,
+		);
+	});
+
 	it("scopes the desktop scrollbars", () => {
 		expect(flat).toContain(`${P} *::-webkit-scrollbar {`);
 		expect(flat).toContain(`${P}.classicyDesktopSplitArrows`);

@@ -51,8 +51,10 @@ import {
 // 0194-5bs added Platinum's slider family's seven knobs (--slider-pixel to
 // --slider-tick-height) before it; plan 0018-dbd Batch F-b added Platinum's
 // gray ramp, its first package color family, as the 14
-// --package-color-gray-ramp-step* variables after --color-theme-07 (every
-// other key and value unchanged each time).
+// --package-color-gray-ramp-step* variables after --color-theme-07; story
+// 0228-e9l added the selectionMarquee family's two knobs
+// (--selection-marquee-width, --selection-marquee-tile-size, 2px each) after
+// --dither-tile-size (every other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -76,8 +78,10 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // families and 96 keys; story 0194-5bs's slider family, Platinum's slider
 // drawn from HIGOS8 Figure 2-17, made 23 families and 103 keys; the list
 // view's HIGOS8 Figure 2-24 icon size and row padding, the optional
-// fileBrowserList family, made 24 families and 105 keys).
-const PLATINUM_KNOB_COUNT = 105;
+// fileBrowserList family, made 24 families and 105 keys; story 0228-e9l's
+// selection rectangle, the selectionMarquee family's pen and checker, made
+// 25 families and 107 keys).
+const PLATINUM_KNOB_COUNT = 107;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

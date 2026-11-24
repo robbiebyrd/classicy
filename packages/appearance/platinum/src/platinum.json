@@ -243,6 +243,10 @@
 			},
 			"dither": {
 				"tileSize": 0
+			},
+			"selectionMarquee": {
+				"width": 2,
+				"tileSize": 2
 			}
 		},
 		"desktop": {

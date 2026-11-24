@@ -54,6 +54,9 @@ const LOOK_ONLY = [
 	// (HIGOS8 Figure 2-24): a floor value would size every package's list.
 	"fileBrowserList.mediumIconSize",
 	"fileBrowserList.rowPadding",
+	// The selection rectangle's pen and checker (_SelectionMarquee.scss).
+	"selectionMarquee.width",
+	"selectionMarquee.tileSize",
 ];
 
 const platinumMeasurements = platinumJson.defaults.measurements as Record<
@@ -115,7 +118,7 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 
 	it("holds exactly the knobs AGENT-REFERENCE §8 marks structural", () => {
 		const documented = documentedKnobs();
-		expect(documented.size).toBe(105);
+		expect(documented.size).toBe(107);
 		const structural = [...documented]
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)

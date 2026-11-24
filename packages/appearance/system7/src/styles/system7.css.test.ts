@@ -167,6 +167,23 @@ describe("system7.scss (compiled)", () => {
 		return layer;
 	};
 
+	// Story 0228-e9l: the System 7.5 Finder's selection rectangle, a one-
+	// pixel frame of the 50% checker drawn in XOR (Mac OS 8's is two), its
+	// white cells (inverted to black over white) at the screen's odd x + y.
+	it("draws the selection rectangle as a one-pixel XOR checker frame", () => {
+		const marquee = rule("[data-classicy-part=selection-marquee]");
+		expect(marquee).toMatch(/padding: var\(--selection-marquee-width\);/);
+		expect(marquee).toMatch(
+			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) left top ?\/ ?var\(--selection-marquee-tile-size\) var\(--selection-marquee-tile-size\) fixed;/,
+		);
+		expect(marquee).toMatch(/mask-composite: exclude;/);
+		expect(marquee).toMatch(/mix-blend-mode: difference;/);
+		expect(system7JsonSource.defaults.measurements.selectionMarquee).toEqual({
+			width: 1,
+			tileSize: 2,
+		});
+	});
+
 	// Plan 0018-dbd §3.2: the window chrome, from the 7.5 captures.
 	describe("windows", () => {
 		it("frames a window in one pixel with a one-pixel drop shadow and no frame ring", () => {

@@ -1,0 +1,27 @@
+// The selection rectangle: the core's `selection-marquee` part
+// (useClassicyMarqueeSelection.internal.ts), on the desktop and in a file
+// browser, drawn as the System 7.5 Finder drew it (Infinite Mac captures,
+// story 0228-e9l): a one-pixel frame of the 50% checker drawn in XOR, so it
+// inverts the pixels it covers where x + y is odd on the screen (black over a
+// white window). Mac OS 8's frame is two pixels.
+//
+// The inversion is `difference` with white, exact in the 1-bit theme. In
+// color QuickDraw's XOR inverted the pixel's palette index, which no blend
+// reproduces (over the desktop pattern's #AAAAAA cells it drew #CCCCCC), so
+// a color there inverts as RGB does. The checker is fixed to the viewport, as
+// QuickDraw laid it from the screen's origin: its white cells at odd x + y.
+//
+// Knobs: `selectionMarquee.width`, the pen (1), and `selectionMarquee.tileSize`,
+// the checker's tile (2, for one-pixel cells).
+@mixin selection-marquee {
+  [data-classicy-part="selection-marquee"] {
+    padding: var(--selection-marquee-width);
+    background: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0)
+      left top / var(--selection-marquee-tile-size) var(--selection-marquee-tile-size) fixed;
+    mask:
+      linear-gradient(var(--color-black), var(--color-black)) content-box,
+      linear-gradient(var(--color-black), var(--color-black));
+    mask-composite: exclude;
+    mix-blend-mode: difference;
+  }
+}

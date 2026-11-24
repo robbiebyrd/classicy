@@ -319,6 +319,10 @@
 				"saveDividerWidth": 84,
 				"saveCancelTop": 133,
 				"saveOpenTop": 164
+			},
+			"selectionMarquee": {
+				"width": 1,
+				"tileSize": 2
 			}
 		},
 		"desktop": {
