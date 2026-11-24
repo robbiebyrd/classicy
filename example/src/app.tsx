@@ -15,6 +15,7 @@ import "./Applications/HyperCardPlugins/HyperCardPluginsDemo";
 import demoIcon from "./Applications/Demo/app.png";
 import { Demo } from "./Applications/Demo/Demo";
 import { DemoExtension } from "./Applications/DemoExtension/DemoExtension";
+import { ExtensionModalFixture } from "./Applications/ExtensionModalFixture/ExtensionModalFixture";
 
 // Register custom application icons before the React tree renders.
 export const AppIcons = registerClassicyIcons({
@@ -32,6 +33,9 @@ createRoot(rootElement).render(
 			<BlueBox />
 			<Demo />
 			<DemoExtension />
+			{/* Browser test fixture: ?fixture=extension-modal */}
+			{new URLSearchParams(location.search).get("fixture") ===
+				"extension-modal" && <ExtensionModalFixture />}
 		</Classicy>
 	</StrictMode>,
 );
