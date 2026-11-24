@@ -9,6 +9,12 @@
   max-width: var(--dialog-alert-max-width);
   font-family: var(--ui-font), sans-serif;
 
+  // With no default button the alert itself holds the keyboard focus
+  // (ClassicyAlert.tsx); Mac OS draws no ring around an alert.
+  &:focus {
+    outline: none;
+  }
+
   .classicyAlertTop {
     display: flex;
     flex-direction: row;

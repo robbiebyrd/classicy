@@ -39,7 +39,8 @@ export type ClassicyAlertButton = {
 	/** Button text — HIG asks for a specific verb (e.g. "Delete", not "OK"). */
 	label: string;
 	/**
-	 * default → Return/Enter triggers it and it gets the default ring.
+	 * default → Return/Enter triggers it and it gets the default ring (unless
+	 *           the alert's `defaultButtonId` is `null`).
 	 * cancel  → Escape / Command-period triggers it; laid out left of default.
 	 * help    → a ClassicyHelpButton pushed to the far left; `label` becomes
 	 *           its accessible name ("Help" when it is empty or "?").
@@ -77,8 +78,15 @@ export type ClassicyAlertProps = {
 	 * the safe choice (Cancel) should be the default — set this to the Cancel id.
 	 * Without it, the button with role `default` wins, else the last button
 	 * that is neither `cancel` nor `help`.
+	 *
+	 * `null`: no default button at all, for a choice whose likely answers
+	 * may each lose the user's data (HIG7 p.206: "When there is no default
+	 * button, pressing Return or Enter has no effect; the user must explicitly
+	 * click a button"). No ring is drawn, Return and Enter do nothing, and the
+	 * alert itself takes the keyboard focus on open, never a button, so a
+	 * keystroke meant for the field the user was typing in answers nothing.
 	 */
-	defaultButtonId?: string;
+	defaultButtonId?: string | null;
 	/**
 	 * Movable alert (draggable, red title-bar highlight) when true; otherwise a
 	 * non-movable alert with a red content-region border. Defaults to `false`.
@@ -215,6 +223,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 
 	// Resolve which button is the default (Return/Enter target).
 	const defaultButton = useMemo(() => {
+		if (defaultButtonId === null) return undefined;
 		if (defaultButtonId) {
 			const forced = resolvedButtons.find((b) => b.id === defaultButtonId);
 			if (forced) return forced;
@@ -265,7 +274,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	// Return → default button, Escape / Command-period → Cancel, scoped to the
 	// alert so stacked dialogs don't cross-fire.
 	useKeyboardEquivalents({
-		onDefault,
+		onDefault: defaultButton ? onDefault : undefined,
 		onCancel: cancelButton ? onCancel : undefined,
 		targetRef: contentRef,
 	});
@@ -273,11 +282,13 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	// Keep Tab focus inside the alert and focus the DEFAULT button on open (HIG
 	// Ch.3 "Keyboard Navigation and Focus"): focus must coincide with the default
 	// ring, otherwise Return activates whichever button happens to be first in the
-	// DOM (e.g. Cancel in a caution alert) rather than the default.
+	// DOM (e.g. Cancel in a caution alert) rather than the default. With no
+	// default, the alert itself: a focused button would take the Return or
+	// Space the user meant for their field.
 	useFocusTrap({
 		ref: contentRef,
 		autoFocus: true,
-		initialFocusRef: defaultButtonRef,
+		initialFocusRef: defaultButton ? defaultButtonRef : contentRef,
 	});
 
 	// The non-movable variant is an error-typed window, so ClassicyWindow already
@@ -325,6 +336,9 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 					role="alertdialog"
 					aria-modal="true"
 					aria-label={label}
+					// Focusable by script only, so it holds the focus when no button
+					// is the default; never a Tab stop.
+					tabIndex={defaultButton ? undefined : -1}
 				>
 					<div className={"classicyAlertTop"}>
 						<div className={"classicyAlertIcon"}>

@@ -137,7 +137,14 @@ export const useFocusTrap = ({
 			const first = items[0];
 			const last = items[items.length - 1];
 			const active = document.activeElement as HTMLElement | null;
-			if (e.shiftKey && (active === first || !container.contains(active))) {
+			// The container itself holds the focus (an alert with no default
+			// button): Shift-Tab wraps to the last item, not out of it.
+			if (
+				e.shiftKey &&
+				(active === first ||
+					active === container ||
+					!container.contains(active))
+			) {
 				e.preventDefault();
 				last.focus();
 			} else if (!e.shiftKey && active === last) {

@@ -362,3 +362,82 @@ describe("ClassicyAlert", () => {
 		});
 	});
 });
+
+// HIG7 (1995) p.206: "Don't use a default button if the most likely action
+// is dangerous ... When there is no default button, pressing Return or Enter
+// has no effect; the user must explicitly click a button."
+describe("ClassicyAlert with no default button (defaultButtonId={null})", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const renderNoDefault = (onKeep = vi.fn(), onUse = vi.fn()) => {
+		render(
+			<>
+				<textarea data-testid="field" />
+				<ClassicyAlert
+					alertType="caution"
+					label="Choose"
+					defaultButtonId={null}
+					buttons={[
+						{ id: "keep", label: "Keep", role: "normal", onClick: onKeep },
+						{ id: "use", label: "Use", role: "default", onClick: onUse },
+					]}
+				/>
+			</>,
+		);
+		return { onKeep, onUse };
+	};
+
+	it("draws no default ring, even on a button whose role is default", () => {
+		renderNoDefault();
+		for (const name of ["Keep", "Use"]) {
+			const button = screen.getByRole("button", { name });
+			expect(button).not.toHaveClass("default");
+			expect(button).toHaveAttribute("data-classicy-role", "other");
+		}
+	});
+
+	it("puts the keyboard focus on the alert itself, never on a button", () => {
+		// As laid out in a browser: the buttons are focusable candidates.
+		vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+			document.body,
+		);
+		renderNoDefault();
+		expect(document.activeElement).toBe(screen.getByRole("alertdialog"));
+	});
+
+	it("does nothing on Return, Enter or Space, or on typing", async () => {
+		const { onKeep, onUse } = renderNoDefault();
+		const user = userEvent.setup();
+		await user.keyboard("{Enter} x{Enter}");
+		fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Enter" });
+		expect(onKeep).not.toHaveBeenCalled();
+		expect(onUse).not.toHaveBeenCalled();
+		expect((screen.getByTestId("field") as HTMLTextAreaElement).value).toBe("");
+	});
+
+	it("keeps Tab inside the alert, both ways", async () => {
+		// jsdom lays nothing out: every element would count as hidden.
+		vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+			document.body,
+		);
+		renderNoDefault();
+		const user = userEvent.setup();
+		await user.tab();
+		expect(document.activeElement).toBe(
+			screen.getByRole("button", { name: "Keep" }),
+		);
+		screen.getByRole("alertdialog").focus();
+		await user.tab({ shift: true });
+		expect(document.activeElement).toBe(
+			screen.getByRole("button", { name: "Use" }),
+		);
+	});
+
+	it("still answers a click", async () => {
+		const { onUse } = renderNoDefault();
+		await userEvent.setup().click(screen.getByRole("button", { name: "Use" }));
+		expect(onUse).toHaveBeenCalledTimes(1);
+	});
+});
