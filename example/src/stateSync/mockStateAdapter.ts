@@ -57,6 +57,12 @@ export function mockStateAdapter(account: string): ClassicyStateAdapter {
 			savedHash = snapshot.hash;
 		},
 
+		// `reason` says why it is asked ("boot", Classicy's "retry", or the
+		// host's "request"), and `userActed` whether the user has worked on
+		// this desktop since it was drawn. This adapter merges nothing, so on a
+		// retry after the user acted Classicy asks them before using the
+		// account's copy; an adapter that merges `local` into its answer
+		// returns `merged: true` to skip that alert.
 		async reconcile(
 			local: ClassicyStateSnapshot,
 			{ signal }: ClassicyStateReconcileContext,

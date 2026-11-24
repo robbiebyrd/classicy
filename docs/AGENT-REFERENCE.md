@@ -3027,8 +3027,10 @@ registerClassicyStateAdapter({
     // debounced, one at a time: { state, hash, seq, storageKey: "classicyDesktopState", version, timestamp }
     // must throw or reject when it did not store the snapshot
     onSnapshot: async (snapshot) => { /* … */ },
-    // at boot and on reconcileClassicyState(); bounded; errors, timeouts and invalid states keep local
-    reconcile: async (local, { signal }) => ({ action: 'useLocal' }),  // or { action: 'replace', state }
+    // at boot, on Classicy's retries and on reconcileClassicyState(); bounded;
+    // errors, timeouts and invalid states keep local
+    reconcile: async (local, { signal, reason, userActed }) =>
+        ({ action: 'useLocal' }),  // or { action: 'replace', state, merged? }
 }, { snapshotDebounceMs: 500, reconcileTimeoutMs: 5000 })
 ```
 
@@ -3054,14 +3056,17 @@ localStorage stays the primary store either way.
   clock edits this page saw. A write of the clock is an edit unless it is
   the menu bar clock's tick (it notes each one,
   `ClassicyClockTick.internal.ts`) or moves the virtual clock with the real
-  one, within 1 s (a host running the clock itself). So an idle desktop
+  one, within 1 s of the last tick or edit (a host running the clock
+  itself; one running it faster drifts past that 1 s and counts). So an idle desktop
   sends nothing; a snapshot sent for any other reason carries the clock as
   it is.
 - **`seq`** is the version of the saved state in this browser: one more
   each time it changes as above, stored in
   `localStorage["classicyDesktopState:seq"]` (with `:seqContent`), the
   larger of the stored and remembered value, so it grows across reloads
-  and follows another tab's. Gaps are normal (the local snapshot handed to
+  and follows another tab's. Whether the state changed is judged against
+  this page's own last state (the stored one only before it has one), so
+  two tabs' different states do not count each other up. Gaps are normal (the local snapshot handed to
   `reconcile`, another tab's snapshots, changes the debounce coalesced);
   two tabs reading the same value may give two different states the same
   number; clearing the site's data starts it again at 1. It orders one
@@ -3073,32 +3078,38 @@ localStorage stays the primary store either way.
   and forgotten, so the next change sends again), and gets one delivery at
   a time: a snapshot due while one is under way waits, and only the latest
   is sent when it ends, so an older state never lands after a newer one.
-  A snapshot still waiting when the page hides (`pagehide`) is sent then,
-  best-effort, and the pending localStorage write is made with it, so the
-  backend never gets a state this browser did not save. An `onSnapshot`
+  A snapshot still due when the page hides (`pagehide`), on its debounce or
+  waiting behind a delivery under way, is sent then, at once and alongside
+  that delivery, best-effort, and the pending localStorage write is made
+  with it, so the backend never gets a state this browser did not save. An `onSnapshot`
   that cannot store (offline, signed out) must throw or reject: resolving
   tells Classicy the backend has it.
 - **Boot reconcile.** `ClassicyDesktop` runs the page's first reconcile when
   it first mounts in the browser, after the local load and migration, and
   draws only its empty shell (as on the server) until it settles. Each
   adapter implementing `reconcile`, in registration order, is offered the
-  local snapshot and `{ signal }`, and has `reconcileTimeoutMs` to answer
+  local snapshot and `{ signal, reason, userActed }` (below), and has
+  `reconcileTimeoutMs` to answer
   (default 5000 ms; finite, above 0 and at most 2^31 − 1, else the default
   with a warning); then its `signal` aborts, a late answer is ignored and
   the next adapter is asked, so the desktop waits at most the sum of those
   timeouts. The first valid `replace` wins: its `state` goes through the
   localStorage load path itself, as JSON (no `__proto__` key survives), the
   same shape check (every container the default state holds must be a
-  container of the same kind, every app record an object, before and after
-  the merge), merged over the defaults, `migrateClassicyState` (a state an
+  container of the same kind, before and after the merge, and every app
+  record and its windows, every desktop icon and every custom theme an
+  object; a `windows` value or window that is no record is dropped by the
+  migration, as on a local load), merged over the defaults, `migrateClassicyState` (a state an
   older build saved is upgraded as it would be on load), the built-in active
   theme refreshed from the code and the drawn package's defaults in place of
   another's; then it is saved to localStorage at once and applied. The
   session's `availableThemes` and this browser's `Desktop.fsVersion` (a
   file-system reload epoch) are kept, and a provider's `defaultState` no
   longer seeds (`wasHydratedFromStorage()` is true). The adapters after the
-  winner are not asked; they take the adopted state as their next snapshot,
-  and the winner is not sent back what it just handed over. An error, a
+  winner are asked too, with the adopted state as `local`: a `useLocal`
+  makes them take it as their next snapshot; a `replace` of theirs is not
+  adopted over the winner's, and they stay held (retried) with a warning.
+  The winner is not sent back what it just handed over. An error, a
   timeout or a state without the saved shape keeps the local state with a
   `classicyLog` warning.
 - **No snapshot before a successful reconcile.** An adapter implementing
@@ -3119,10 +3130,40 @@ localStorage stays the primary store either way.
   reconcile has started is asked on its own at once. Snapshots of every
   adapter also wait while any reconcile runs, and until the page's first one
   settles when one will run.
+- **Why it is asked, and whether the user has worked.** The context's
+  `reason` is `"boot"` (the page's first reconcile), `"retry"` (Classicy
+  asking again after a failure, or an adapter registered after the first
+  reconcile) or `"request"` (the host's `reconcileClassicyState()`).
+  `userActed` is true once the page has had a trusted `pointerdown` or
+  `keydown` (one capture-phase listener, while an adapter that reconciles is
+  registered) since the desktop was last drawn (loaded, or an adopted state)
+  and, for a held adapter, since it was held: this computer then has
+  changes the account's copy lacks.
+- **A retry never replaces the user's work unasked.** On a `"retry"` with
+  `userActed`, a valid `replace` is not adopted on the spot: the adapter
+  stays held, its retry timer stops, and the desktop shows a caution alert
+  (`Desktop.systemDialog` `"syncChoice"`, never persisted; it waits while
+  another system or error alert is up): "Use the settings saved on your
+  other computers?" — "They could not be reached when Classicy started up,
+  so this computer has used its own settings since then. Using the saved
+  settings replaces the changes made on this computer since startup.
+  Keeping the current settings replaces the saved ones on every computer
+  that shares them." **Use Saved** (the default) adopts the answer, a
+  restart; **Keep Current** keeps this desktop, marks the adapter synced
+  and sends it. (A caution alert warns before a dangerous action, says
+  what happens in the user's words, and names its buttons with verbs of
+  three words at most: HIG7 pp.195, 206, 310–311; HIGOS8 1997 pp.62–63.)
+  An adapter that merged `local` into its answer says so with
+  `{ action: "replace", state, merged: true }`, which is adopted without
+  asking. A boot reconcile and a host's request adopt as before; a host's
+  request while the alert is up settles it (the alert closes). Unanswered
+  when the page closes, the choice is gone: the adapter is still held,
+  and the next boot reconciles as usual.
 - **Later reconciles.** `reconcileClassicyState()` runs one again, when the
   remote copy may have changed under the page (a user signing in): it
   resolves true iff the state was replaced, never rejects, and concurrent
-  calls share one run. The desktop stays drawn meanwhile. An adopted state
+  calls share one run; a call made while Classicy retries an adapter waits
+  for that retry, then runs in full. The desktop stays drawn meanwhile. An adopted state
   is a restart: the gate closes, the store is replaced and the desktop's
   subtree is keyed anew in one synchronous step, so the mounted tree never
   renders or runs an effect against the adopted state; the new tree's apps

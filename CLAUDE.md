@@ -807,7 +807,15 @@ settles (`useClassicyStateSyncGate`), each adapter bounded by
 `reconcileTimeoutMs` (default 5000 ms, then its `signal` aborts and local
 wins). An adapter that reconciles takes no snapshot until a reconcile with
 it succeeds (retried after 10 s, doubling to 5 min), so a failed boot never
-pushes a fresh or stale desktop over the account's copy. A `replace` goes
+pushes a fresh or stale desktop over the account's copy. The context also
+carries `reason` (`boot`, `retry`, `request`) and `userActed` (a trusted
+`pointerdown`/`keydown` since the desktop was drawn and the adapter held);
+a retry's unmerged `replace` after the user acted is not adopted unasked:
+the adapter stays held and the desktop shows the caution alert
+`systemDialog: "syncChoice"` (Use Saved adopts, Keep Current sends this
+desktop; `resolveClassicyStateChoice`), waiting for any other alert;
+`merged: true` skips it. Adapters after a winning `replace` are asked with
+the adopted state; a host request during a retry runs after it. A `replace` goes
 through the localStorage load path itself (`adoptPersistedClassicyState` in
 `ClassicyAppManagerUtils.tsx`: `readPersistedClassicyState` with its
 container-kind check, then the active-theme refresh and drawn package's
