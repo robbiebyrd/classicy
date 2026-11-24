@@ -31,6 +31,7 @@ export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppOpenFileRouting";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+export * from "./SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceControlStripModule";
@@ -201,6 +202,7 @@ export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitche
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
+export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyStandardHelpMenu";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/ClassicyDesktopMenuWidgetSound";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
 export * from "./SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
