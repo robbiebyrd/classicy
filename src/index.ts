@@ -55,6 +55,7 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColor
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeLink";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -153,6 +154,7 @@ export * from "./SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 export * from "./SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
 export * from "./SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyBootManager";
+export * from "./SystemFolder/SystemResources/Boot/ClassicyBootScreenActive";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyBootSequence";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 export * from "./SystemFolder/SystemResources/Boot/ClassicyStartupScreen";

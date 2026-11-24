@@ -26,6 +26,14 @@ interface ThemesTabProps {
 	saveTheme: () => void;
 	/** Loads the theme file the user picked. */
 	loadThemeFile: (file: File) => void;
+	/**
+	 * Copies the active theme's link (`createClassicyThemeLink`) to the
+	 * clipboard. Copy Theme Link is shown only when it is given, which the
+	 * panel does while a desktop opens theme links (`themeLinks`).
+	 */
+	copyThemeLink?: () => void;
+	/** The theme whose link is on the clipboard, named in a status line. */
+	copiedThemeName?: string | null;
 }
 
 export const useThemesTab = ({
@@ -40,6 +48,8 @@ export const useThemesTab = ({
 	toggleDoubleClickTitleToCollapse,
 	saveTheme,
 	loadThemeFile,
+	copyThemeLink,
+	copiedThemeName = null,
 }: ThemesTabProps): TabIndividual => {
 	// A plain hidden file input, opened by the Load button: one file per pick
 	// and nothing to show, so ClassicyFileInput's running file list would only
@@ -84,6 +94,11 @@ export const useThemesTab = ({
 						<ClassicyButton onClickFunc={openFilePicker}>
 							Load Theme…
 						</ClassicyButton>
+						{copyThemeLink && (
+							<ClassicyButton onClickFunc={copyThemeLink}>
+								Copy Theme Link
+							</ClassicyButton>
+						)}
 						<input
 							ref={fileInputRef}
 							type="file"
@@ -93,6 +108,18 @@ export const useThemesTab = ({
 							onChange={onFilePicked}
 						/>
 					</div>
+					{copyThemeLink && (
+						<div
+							role="status"
+							className={"classicyAppearanceManagerThemeLinkStatus"}
+						>
+							{copiedThemeName && (
+								<ClassicyControlLabel
+									label={`The link to “${copiedThemeName}” is on the clipboard.`}
+								/>
+							)}
+						</div>
+					)}
 					{/* Mac OS 8 Appearance "Options" tab: Smart Scrolling groups both
 					    scroll arrows at the end of each bar; off splits them to
 					    opposite ends. */}
@@ -127,6 +154,8 @@ export const useThemesTab = ({
 			saveTheme,
 			openFilePicker,
 			onFilePicked,
+			copyThemeLink,
+			copiedThemeName,
 		],
 	);
 };

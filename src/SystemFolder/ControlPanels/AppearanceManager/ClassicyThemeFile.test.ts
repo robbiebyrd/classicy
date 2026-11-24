@@ -317,23 +317,101 @@ describe("assignImportedClassicyThemeIdentity", () => {
 		expect(out.name).toBe("Midnight Oil");
 	});
 
-	it("disambiguates a name already taken by a built-in, ignoring case", () => {
+	// The Finder's Duplicate naming (Mac OS 9 Help, "Duplicating items in
+	// the Finder"): " copy" on the whole name, then " copy 1", " copy 2", …
+	it("names a name already taken by a built-in as the Finder names a copy, ignoring case", () => {
 		const out = assignImportedClassicyThemeIdentity(
 			named("x", "azul"),
 			builtIns,
 		);
-		expect(out.name).toBe("azul 2");
-		expect(out.id).toBe("custom-azul-2");
+		expect(out.name).toBe("azul copy");
+		expect(out.id).toBe("custom-azul-copy");
 	});
 
-	it("counts up from a trailing number instead of stacking suffixes", () => {
+	it("never counts up a number the name ends with", () => {
 		const existing = [...builtIns, named("custom-azul-2", "Azul 2")];
 		const out = assignImportedClassicyThemeIdentity(
 			named("x", "Azul 2"),
 			existing,
 		);
-		expect(out.name).toBe("Azul 3");
-		expect(out.id).toBe("custom-azul-3");
+		expect(out.name).toBe("Azul 2 copy");
+		expect(out.id).toBe("custom-azul-2-copy");
+		const system7 = assignImportedClassicyThemeIdentity(
+			named("x", "System 7"),
+			[named("system7", "System 7")],
+		);
+		expect(system7.name).toBe("System 7 copy");
+	});
+
+	it("numbers repeated imports copy 1, copy 2, …", () => {
+		const existing = [...builtIns];
+		const names: string[] = [];
+		for (let i = 0; i < 4; i++) {
+			const out = assignImportedClassicyThemeIdentity(
+				named("x", "Bondi"),
+				existing,
+			);
+			existing.push(out);
+			names.push(out.name);
+		}
+		expect(names).toEqual([
+			"Bondi copy",
+			"Bondi copy 1",
+			"Bondi copy 2",
+			"Bondi copy 3",
+		]);
+		expect(existing.slice(-4).map((t) => t.id)).toEqual([
+			"custom-bondi-copy",
+			"custom-bondi-copy-1",
+			"custom-bondi-copy-2",
+			"custom-bondi-copy-3",
+		]);
+	});
+
+	// The Mac OS 8.1 Finder, observed on Infinite Mac in story 0232-tj2's
+	// re-review: duplicating "zed" four times made "zed copy", "zed copy 1",
+	// "zed copy 2", "zed copy 3"; then duplicating "zed copy 1" made "zed
+	// copy 4" and duplicating "zed copy" made "zed copy 5".
+	const importInto = (existing: ClassicyTheme[], name: string) => {
+		const out = assignImportedClassicyThemeIdentity(named("x", name), existing);
+		existing.push(out);
+		return out.name;
+	};
+
+	it("numbers four imports of one name as the Finder numbers four duplicates", () => {
+		const existing = [named("zed", "zed")];
+		expect(
+			["zed", "zed", "zed", "zed"].map((n) => importInto(existing, n)),
+		).toEqual(["zed copy", "zed copy 1", "zed copy 2", "zed copy 3"]);
+	});
+
+	it("continues the numbering for a copy of a copy, as the Finder does", () => {
+		const existing = [named("zed", "zed")];
+		for (let i = 0; i < 4; i++) importInto(existing, "zed");
+		expect(importInto(existing, "zed copy 1")).toBe("zed copy 4");
+		expect(importInto(existing, "zed copy")).toBe("zed copy 5");
+		// Never a copy suffix stacked on another.
+		expect(existing.map((t) => t.name).join("|")).not.toMatch(
+			/copy( \d+)? copy/,
+		);
+	});
+
+	it("starts a copy of a copy from the base name's first free copy", () => {
+		// A theme named "Bondi copy 1", imported where only it exists, takes
+		// the base name's first free copy name by the same rule: "Bondi copy".
+		expect(
+			assignImportedClassicyThemeIdentity(named("x", "Bondi copy 1"), [
+				...builtIns,
+				named("b", "Bondi copy 1"),
+			]).name,
+		).toBe("Bondi copy");
+		// The suffix is matched without regard to case, like the names.
+		expect(
+			assignImportedClassicyThemeIdentity(named("x", "Bondi COPY"), [
+				...builtIns,
+				named("a", "Bondi copy"),
+			]).name,
+		).toBe("Bondi copy 1");
 	});
 
 	it("appends -2, -3 … when the id is taken by a differently named theme", () => {
@@ -362,7 +440,12 @@ describe("assignImportedClassicyThemeIdentity", () => {
 			named("y", long),
 		]);
 		expect(out.name.length).toBeLessThanOrEqual(64);
-		expect(out.name.endsWith(" 2")).toBe(true);
+		expect(out.name).toBe(`${"N".repeat(59)} copy`);
+		const again = assignImportedClassicyThemeIdentity(named("x", long), [
+			named("y", long),
+			out,
+		]);
+		expect(again.name).toBe(`${"N".repeat(57)} copy 1`);
 	});
 
 	it("does not mutate its input", () => {

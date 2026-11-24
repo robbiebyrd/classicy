@@ -82,7 +82,9 @@ const ClassicyDesktopFrame = ({
 
 	if (!ready) return null;
 	return (
-		<Classicy startupScreen={false} controlStrip={controlStrip}>
+		// themeLinks: a story's address (its iframe's) opens a theme link
+		// Copy Theme Link made, after asking.
+		<Classicy startupScreen={false} controlStrip={controlStrip} themeLinks>
 			{children}
 		</Classicy>
 	);

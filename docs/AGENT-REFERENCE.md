@@ -400,7 +400,8 @@ export default function App() {
 with your apps as its children. It takes every prop of both, all optional:
 the provider's (below) go to the provider, and the desktop's (`children`,
 `startupScreen`, `startupDuration`, `preBootScreen`, `startupLogo`,
-`startupWordmark`, `bootScreen`, `controlStrip`, `className`, `style`; §4)
+`startupWordmark`, `bootScreen`, `controlStrip`, `themeLinks`, `className`,
+`style`; §4)
 go to the desktop, whose root `#classicyDesktop` takes `className` and
 `style`. The two sets share no name. It mounts the desktop in the provider's
 own commit, so the lazy-mount hazard (the desktop a tick after the provider)
@@ -1409,7 +1410,7 @@ plain integers (`0xRRGGBB`).
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
-| `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
+| `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`), `themeLinks? (false)` | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `themeLinks` opens the theme link in the page's address after asking, and offers Copy Theme Link (§8 "Theme links"); `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session, and call `useClassicyBootScreenActive(visible)` from it so the desktop holds a theme link's alerts until it ends); `controlStrip={false}` hides the strip |
 | `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
@@ -4500,8 +4501,10 @@ and is kept. Types are strict:
 ```ts
 import {
     exportClassicyTheme,      // (theme) => JSON string (envelope, portable wallpaper)
+    compactClassicyThemeFile, // (theme) => the same file as compact JSON (what a theme link carries)
     downloadClassicyTheme,    // (theme) => { ok: true } | { ok: false, error } — round-trip checked first
-    parseClassicyThemeFile,   // (text) => { ok: true, theme } | { ok: false, error }
+    parseClassicyThemeFile,   // (text, source = "file" | "link") => { ok: true, theme } | { ok: false, error }; source names it in errors
+    CLASSICY_THEME_FILE_MAX_LENGTH, // 256 * 1024: longer text is refused unread
     readClassicyTheme,        // (unknown) => same result; validate + make loadable (no envelope)
     readClassicyLoadedThemes, // (unknown[]) => { themes, dropped: { index, id, issue }[] }; ClassicyDesktopLoadThemes' check
     classicyThemeFileName,    // ({ name }) => "french-blue.classicy-theme.json"
@@ -4532,9 +4535,19 @@ Identity rules (`assignImportedClassicyThemeIdentity`):
   overwrite an existing theme or hide behind a preset ChangeTheme finds
   first, and re-importing the same file adds a second entry.
 - The name is kept unless a theme already has it (case-insensitive, the
-  active package's presets included); then
-  `" 2"`, `" 3"`, … is appended, counting up from an existing trailing number
-  (`"Azul 2"` → `"Azul 3"`).
+  active package's presets included); then it is named as the Mac OS 8.1
+  Finder names a duplicate (Mac OS 9 Help, "Duplicating items in the
+  Finder": "with the word 'copy' at the end"; the numbering observed in
+  8.1 on Infinite Mac in the story's re-review): `" copy"` on the name,
+  then `" copy 1"`, `" copy 2"`, … while that is taken too (`"Azul"` →
+  `"Azul copy"` → `"Azul copy 1"`). A copy of a copy continues the
+  numbering: a name ending in `" copy"` or `" copy <n>"` (any case) loses
+  that suffix first, so with `"zed"` and `"zed copy"` to `"zed copy 3"`
+  taken, `"zed copy 1"` imports as `"zed copy 4"` and `"zed copy"` then as
+  `"zed copy 5"` (the Finder's own results), never `"… copy copy"`. Any
+  other number the name ends with is part of the name and never counted up
+  (`"System 7"` → `"System 7 copy"`). The name, never the suffix, is
+  shortened to keep within 64 characters.
 
 An imported theme is a custom theme, so edits modify it in place (no fork).
 Like every `ClassicyDesktop*` action it is unreachable to untrusted
@@ -4549,6 +4562,140 @@ entry leaves `availableThemes` unchanged (an empty list still empties it).
 Unlike an import, a theme for an unregistered package is kept, since a host
 may load its themes before registering the package. A dropped theme is not
 in the list, so `ClassicyDesktopChangeTheme` can never activate it.
+
+### Theme links (share by link)
+
+A theme travels as a link: the theme file above, in the page address's
+fragment (`ClassicyThemeLink.ts`, story 0232-tj2).
+
+```
+https://host/page#classicy-theme=<base64url(deflate(theme file JSON))>
+```
+
+- **Format.** The payload is the file Save Theme… writes
+  (`compactClassicyThemeFile`: the same envelope and theme, without the
+  indentation), UTF-8, raw DEFLATE at level 9 (fflate's `deflateSync`, not
+  `CompressionStream`, which Safari 16.2 lacks), then unpadded base64url, so
+  it needs no escaping; a padded payload is read too, and so is a key whose
+  `=` a messenger percent-encoded (`#classicy-theme%3D…`, escapes in the
+  payload decoded too). A fragment is never
+  sent to the server. Platinum's themes make payloads of about 2,300
+  characters and System 7's about 3,400; `CLASSICY_THEME_LINK_MAX_LENGTH`
+  (8192) caps them both ways: a longer theme is refused a link ("Save it as
+  a file instead."), and a longer fragment is refused unread. The codec
+  (`ClassicyThemeLinkCodec.internal.ts`, which imports only fflate) loads on
+  first use with `import()`, a lazy chunk in the ES build (fflate is its own
+  lazy chunk, `fflate-[hash].js`, by `chunkFileNames` in `vite.config.ts`,
+  shared with the PDF viewer's worker source), so neither reaches the entry.
+- **Making one.** `createClassicyThemeLink(theme, href = location.href)`
+  resolves to `{ ok: true, url, payload }` (the address with its fragment
+  replaced) or `{ ok: false, error }`: the theme is read back first, as
+  `downloadClassicyTheme` does, so a theme that could not be opened (its
+  package not installed) gets no link. `classicyThemeLinkUrl(payload,
+  href?)` builds the address for a payload. The Themes tab's **Copy Theme
+  Link** copies the active theme's link to the clipboard (the Clipboard API,
+  else the `copy` command on a temporary read-only text field whose
+  contents are selected first, the standard technique, since Safari copies
+  only a selection; focus goes back to the button), then says "The link to
+  “<name>” is on the clipboard." in a status line
+  (`classicyAppearanceManagerThemeLinkStatus`, `--layout-item-gap` above
+  the checkboxes while it says something); a failure shows the tab's stop
+  alert. The
+  link is made ahead, whenever the active theme changes, so the click writes
+  the clipboard while Safari still counts it as the user's gesture, and the
+  address is read at the click. The button shows only while a mounted
+  desktop has `themeLinks` on (a link to a page that ignores it would open
+  nothing).
+- **Reading one.** `readClassicyThemeLink(hash)` (`location.hash`, with or
+  without `#`) resolves to `null` when the fragment is not a theme link
+  (`classicyThemeLinkPayload(hash)` is `null`), else to what
+  `parseClassicyThemeFile(text, "link")` gives for the decoded text: the
+  schema, the installed-package check and the wallpaper rules of Load
+  Theme…, with errors naming a link (`This theme link was made by a newer
+  version of Classicy …`). Before that it refuses a payload over the cap
+  ("This theme link is too long to open."), one that is not base64url, raw
+  DEFLATE and UTF-8, JSON or a theme file ("This link is damaged: it does
+  not hold a theme."), and one that inflates past
+  `CLASSICY_THEME_FILE_MAX_LENGTH` (256 K; "This theme link holds more than
+  a theme."). The payload cap bounds the inflate (about 6 KB of DEFLATE, at
+  most about 6 MB).
+- **Opening one: `ClassicyDesktop`'s `themeLinks`** (and `Classicy`'s),
+  **off by default**, since the host decides whether its addresses import
+  themes; the example app and Storybook's desktop decorator turn it on. On
+  mount and on every `hashchange` the desktop reads the page's link
+  (`ClassicyThemeLinkImport.internal.tsx`) and shows, in its dialog
+  overlay, once no boot screen covers the desktop (below):
+  1. a stop alert, "The theme in this link could not be added.", with the
+     reason, for a link that cannot be opened (oversized, damaged, invalid
+     settings, an uninstalled package). The reason is shown without control
+     or format characters, like the name below, since it can quote the
+     link's package id or setting names. While it shows, a change to the
+     package registry reads the link again, so a package a host registers
+     late (Storybook imports System 7 only once chosen) still opens it;
+  2. else a caution alert, "Add the theme “<name>” from this link?", naming
+     its appearance and whether adding it switches to another one, with
+     **Cancel the default** (HIGOS8 p.63 makes a caution alert's go-ahead
+     button the default; p.23 allows Cancel when going ahead is at all
+     risky, and accepting untrusted input the user never asked for is). The
+     buttons keep their places, Cancel left of Add Theme, with the ring on
+     Cancel: HIGOS8 p.72 ("The default button is not necessarily the button
+     in the lower-right corner … If this choice was 'Cancel', for example,
+     the default button would be on the left side of the dialog box") and
+     HIG7 p.196 (the action button lower right, Cancel to its left, so the
+     buttons do not move with the default). The name is shown without
+     control or format characters (`\p{Cc}`, `\p{Cf}`: bidi overrides,
+     zero-width characters). Nothing is dispatched before **Add Theme**. A
+     link the user cancels is not asked about again during that page load
+     (the same payload arriving again is dropped quietly, and taken out of
+     the address);
+  3. for a theme whose `desktop.backgroundImage` is an http(s) URL
+     (`classicyThemeLinkRemoteWallpaperHost`; a registered wallpaper reads
+     back as its filename, so any URL left is remote), a second caution
+     alert, "Use the desktop picture from <host>?" (the host in its ASCII
+     form), with **Don’t Use the default**: until **Use Picture** the URL is
+     neither shown nor stored, so a link never makes the browser fetch it
+     unasked. Don’t Use (or Escape) imports the theme with no picture (`""`,
+     its color);
+  4. the import itself, as Load Theme… does it: a theme of another
+     installed package dispatches `ClassicyDesktopChangeAppearancePackage`
+     first, then `ClassicyDesktopImportTheme` adds it as a new custom theme
+     (the reducer validates it again and names it apart, above) and makes it
+     current.
+
+  **No alert shows while a boot screen covers the desktop** (the pre-boot
+  screen until power-on, the startup screen while it runs): one there would
+  take the focus, and the keystrokes meant for the boot screen. The link is
+  read and held meanwhile and stays in the address. The boot screens say
+  they cover the desktop with `useClassicyBootScreenActive(covering)`
+  (`Boot/ClassicyBootScreenActive.ts`; `useClassicyBooting()` reads it); a
+  host's own `bootScreen` should call it too, with its own visibility, or
+  the desktop cannot tell when it ends and asks at once.
+
+  Once the alert closes, whatever the answer, the link is removed from the
+  address (`history.replaceState` with `withoutClassicyThemeLink(href)`),
+  so a reload does not ask again. A page with several desktops asks once
+  (the first to see the link claims it); one unmounted mid-question leaves
+  the link in the address and hands it on to another mounted desktop that
+  opens links. A second link arriving while one is asked about waits for
+  that answer, then is asked about (it is not the first's to remove). A
+  read that fails unexpectedly is logged (`classicyLog` error,
+  `ClassicyThemeLink`) and gives the claim back. A desktop without the prop
+  leaves the fragment alone.
+
+```ts
+import {
+    createClassicyThemeLink,      // (theme, href?) => Promise<{ ok: true, url, payload } | { ok: false, error }>
+    readClassicyThemeLink,        // (hash) => Promise<null | { ok: true, theme } | { ok: false, error }>
+    classicyThemeLinkPayload,     // (hash) => payload string | null
+    classicyThemeLinkUrl,         // (payload, href?) => address with the theme link | undefined
+    classicyThemeLinkRemoteWallpaperHost, // (theme) => host of a remote http(s) picture | undefined
+    withoutClassicyThemeLink,     // (href) => href without its fragment
+    CLASSICY_THEME_LINK_KEY,      // "classicy-theme"
+    CLASSICY_THEME_LINK_MAX_LENGTH, // 8192
+} from '@classicy/classicy'
+
+<Classicy themeLinks>…</Classicy>
+```
 
 ### Appearance Manager tabs
 
@@ -4565,7 +4712,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 
 | Tab | Hook (props) | What it shows and dispatches |
 |---|---|---|
-| Themes | `useThemesTab({ packageIcon?, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" with `packageIcon` (the active package's `icon`, from `useActiveClassicyAppearancePackage().icon`), else the generic package glyph (the icon tree's `system.extension`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
+| Themes | `useThemesTab({ packageIcon?, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile, copyThemeLink?, copiedThemeName? })` | "The current Appearance Package is <name>" with `packageIcon` (the active package's `icon`, from `useActiveClassicyAppearancePackage().icon`), else the generic package glyph (the icon tree's `system.extension`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); Copy Theme Link and its status line, only with `copyThemeLink` (the panel passes it while a desktop has `themeLinks` on; "Theme links" above); the scrolling and collapse checkboxes |
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
 | Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (None first, which stores `""`: no picture, the desktop's solid color; then the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`). `bg` is the resolved picture, `""` for none (the picker reads None and the preview shows the desktop color) |

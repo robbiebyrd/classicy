@@ -58,8 +58,9 @@ export type ClassicyThemeParseResult =
 	| { ok: true; theme: ClassicyTheme }
 	| { ok: false; error: string };
 
-/** Theme files are a few KB; anything far larger is not one. */
-const MAX_THEME_FILE_LENGTH = 256 * 1024;
+/** The longest theme file text `parseClassicyThemeFile` reads, in UTF-16
+ * code units: theme files are a few KB; anything far larger is not one. */
+export const CLASSICY_THEME_FILE_MAX_LENGTH = 256 * 1024;
 const MAX_REPORTED_ISSUES = 3;
 
 /**
@@ -114,12 +115,12 @@ const completeLoadedColorFamilies = <T>(value: T, packageId: string): T => {
 };
 
 /**
- * Serializes `theme` as a theme file (tab-indented JSON, trailing newline).
- * The theme is completed first (H-R17): a stored theme carries only the
- * package-family values (measurements and package colors) it changed, and
- * the file carries them all.
+ * The theme file of `stored`: the envelope around the theme, completed first
+ * (H-R17: a stored theme carries only the package-family values,
+ * measurements and package colors, it changed, and the file carries them
+ * all), its wallpaper written portably.
  */
-export const exportClassicyTheme = (stored: ClassicyTheme): string => {
+const classicyThemeFileOf = (stored: ClassicyTheme): ClassicyThemeFile => {
 	const theme = withDefaultThemeColorFamilies(
 		withDefaultThemeMetrics(
 			stored,
@@ -138,15 +139,32 @@ export const exportClassicyTheme = (stored: ClassicyTheme): string => {
 		},
 	};
 	// Strip anything the schema does not declare; a theme that somehow fails
-	// it is written as-is and caught by downloadClassicyTheme's round trip.
+	// it is written as-is and caught by the writers' round trips
+	// (downloadClassicyTheme, createClassicyThemeLink).
 	const parsed = ClassicyThemeSchema.safeParse(portable);
-	const file: ClassicyThemeFile = {
+	return {
 		format: CLASSICY_THEME_FILE_FORMAT,
 		version: CLASSICY_THEME_FILE_VERSION,
 		theme: parsed.success ? parsed.data : portable,
 	};
-	return `${JSON.stringify(file, null, "\t")}\n`;
 };
+
+/**
+ * Serializes `theme` as a theme file (tab-indented JSON, trailing newline).
+ * The theme is completed first (H-R17): a stored theme carries only the
+ * package-family values (measurements and package colors) it changed, and
+ * the file carries them all.
+ */
+export const exportClassicyTheme = (stored: ClassicyTheme): string =>
+	`${JSON.stringify(classicyThemeFileOf(stored), null, "\t")}\n`;
+
+/**
+ * The same theme file as `exportClassicyTheme`, as compact JSON (no
+ * indentation, no trailing newline): what a theme link carries
+ * (`createClassicyThemeLink`).
+ */
+export const compactClassicyThemeFile = (stored: ClassicyTheme): string =>
+	JSON.stringify(classicyThemeFileOf(stored));
 
 /** `"<theme-name>.classicy-theme.json"`, e.g. `french-blue.classicy-theme.json`. */
 export const classicyThemeFileName = (theme: Pick<ClassicyTheme, "name">) =>
@@ -268,49 +286,86 @@ export const readClassicyLoadedThemes = (
 	return { themes, dropped };
 };
 
+/** Where a theme file's text came from, which names it in the errors. */
+export type ClassicyThemeFileSource = "file" | "link";
+
+const THEME_FILE_ERRORS: Record<
+	ClassicyThemeFileSource,
+	{
+		tooLarge: string;
+		notJson: string;
+		noObject: string;
+		notThemeFile: string;
+		subject: string;
+		saved: string;
+	}
+> = {
+	file: {
+		tooLarge: "This file is too large to be a theme.",
+		notJson: "This file is not valid JSON.",
+		noObject: "This file does not contain a theme.",
+		notThemeFile: "This file is not a Classicy theme file.",
+		subject: "This theme file",
+		saved: "saved",
+	},
+	link: {
+		tooLarge: "This theme link holds more than a theme.",
+		notJson: "This link is damaged: it does not hold a theme.",
+		noObject: "This link is damaged: it does not hold a theme.",
+		notThemeFile: "This link is damaged: it does not hold a theme.",
+		subject: "This theme link",
+		saved: "made",
+	},
+};
+
 /**
  * Parses the text of a theme file. Returns the validated, loadable theme or a
- * human-readable reason it cannot be loaded.
+ * human-readable reason it cannot be loaded. `source` names where the text
+ * came from in those reasons: a file (the default) or a theme link's
+ * decoded payload (`readClassicyThemeLink`).
  */
 export const parseClassicyThemeFile = (
 	text: string,
+	source: ClassicyThemeFileSource = "file",
 ): ClassicyThemeParseResult => {
-	if (text.length > MAX_THEME_FILE_LENGTH) {
-		return { ok: false, error: "This file is too large to be a theme." };
+	// Anything but "link" reads as a file, for a caller outside TypeScript.
+	const errors = THEME_FILE_ERRORS[source === "link" ? "link" : "file"];
+	if (text.length > CLASSICY_THEME_FILE_MAX_LENGTH) {
+		return { ok: false, error: errors.tooLarge };
 	}
 	let data: unknown;
 	try {
 		data = JSON.parse(text);
 	} catch {
-		return { ok: false, error: "This file is not valid JSON." };
+		return { ok: false, error: errors.notJson };
 	}
 	if (!isRecord(data)) {
-		return { ok: false, error: "This file does not contain a theme." };
+		return { ok: false, error: errors.noObject };
 	}
 	if (!("format" in data)) {
 		// A bare theme object, without the file envelope.
 		return readClassicyTheme(data);
 	}
 	if (data.format !== CLASSICY_THEME_FILE_FORMAT) {
-		return { ok: false, error: "This file is not a Classicy theme file." };
+		return { ok: false, error: errors.notThemeFile };
 	}
 	if (typeof data.version !== "number") {
-		return { ok: false, error: "This theme file has no format version." };
+		return { ok: false, error: `${errors.subject} has no format version.` };
 	}
 	if (data.version > CLASSICY_THEME_FILE_VERSION) {
 		return {
 			ok: false,
-			error: `This theme file was saved by a newer version of Classicy (format version ${data.version}).`,
+			error: `${errors.subject} was ${errors.saved} by a newer version of Classicy (format version ${data.version}).`,
 		};
 	}
 	if (data.version !== CLASSICY_THEME_FILE_VERSION) {
 		return {
 			ok: false,
-			error: `This theme file has an unsupported format version (${data.version}).`,
+			error: `${errors.subject} has an unsupported format version (${data.version}).`,
 		};
 	}
 	if (!isRecord(data.theme)) {
-		return { ok: false, error: "This theme file does not contain a theme." };
+		return { ok: false, error: `${errors.subject} does not contain a theme.` };
 	}
 	return readClassicyTheme(data.theme);
 };

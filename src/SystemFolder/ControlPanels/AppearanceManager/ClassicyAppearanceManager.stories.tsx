@@ -43,6 +43,7 @@ import {
 	downloadClassicyTheme,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import { useClassicyThemeLinkCopy } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeLinkCopy.internal";
 import type {
 	ClassicyThemeMetricChange,
 	ClassicyThemeMetricFamilyTarget,
@@ -186,6 +187,17 @@ const ThemesTabStory = () => {
 		},
 		[dispatch, activePackage.id],
 	);
+	// Copy Theme Link as the panel has it: offered because the decorator's
+	// desktop opens theme links (`themeLinks`).
+	const reportThemeLinkError = useCallback(
+		(label: string, message: string) => setThemeFileError({ label, message }),
+		[],
+	);
+	const themeLinkCopy = useClassicyThemeLinkCopy(
+		appearance.activeTheme,
+		reportThemeLinkError,
+		true,
+	);
 	const tab = useThemesTab({
 		packageIcon: activePackage.icon,
 		packageName: activePackage.name,
@@ -207,6 +219,8 @@ const ThemesTabStory = () => {
 			}),
 		saveTheme,
 		loadThemeFile,
+		copyThemeLink: themeLinkCopy?.copy,
+		copiedThemeName: themeLinkCopy?.copiedThemeName ?? null,
 	});
 	return (
 		<AppearanceTabWindow id="themes" tab={tab}>
@@ -455,7 +469,9 @@ export const Panel: Story = {
 
 /**
  * Themes: the active Appearance Package's presets and custom themes, the
- * scrolling options, and Save Theme… / Load Theme…. Load Theme… with a file
+ * scrolling options, Save Theme… / Load Theme…, and Copy Theme Link (the
+ * story's desktop opens theme links: open the copied link, this story's
+ * iframe address, to be asked to add the theme). Load Theme… with a file
  * for a package that is not installed, or one that does not parse, is
  * refused before anything is dispatched, with the reason in a stop alert; a
  * file for another installed package (Test Pack, say) switches to that
