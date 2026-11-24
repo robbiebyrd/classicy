@@ -1,12 +1,13 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { produce } from "immer";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
+	dispatch,
 	sanitizeStateForPersistence,
 	startAppManagerPersistence,
 	useAppManager,
@@ -47,14 +48,22 @@ const remoteState = () =>
 	);
 
 let mounts = 0;
-/** A host app: shows the saved Control Strip edge, counts its mounts. */
+/** What each mount of the probe rendered and ran effects with, by mount. */
+let seen: string[] = [];
+/** A host app: shows the saved Control Strip edge, counts its mounts, and
+ * notes the edge each of its renders and effects saw. */
 function Probe() {
+	const [mount] = useState(() => {
+		mounts += 1;
+		return mounts;
+	});
 	const edge = useAppManager(
 		(s) => s.System.Manager.Desktop.controlStrip?.edge ?? "left",
 	);
+	seen.push(`render ${mount}:${edge}`);
 	useEffect(() => {
-		mounts += 1;
-	}, []);
+		seen.push(`effect ${mount}:${edge}`);
+	}, [mount, edge]);
 	return <div data-testid="probe">{edge}</div>;
 }
 
@@ -83,6 +92,7 @@ beforeEach(() => {
 	useAppManager.setState(DefaultAppManagerState, true);
 	startAppManagerPersistence();
 	mounts = 0;
+	seen = [];
 });
 
 afterEach(() => {
@@ -172,5 +182,106 @@ describe("ClassicyDesktop with a desktop state adapter", () => {
 		});
 		expect(screen.getByTestId("probe").textContent).toBe("right");
 		expect(mounts).toBe(2);
+		// The old tree never rendered, nor ran an effect, with the adopted
+		// state: it was replaced by the new one in the same step (review I2).
+		expect(seen).not.toContain("render 1:right");
+		expect(seen).not.toContain("effect 1:right");
+		expect(seen).toContain("render 2:right");
+	});
+
+	it("sends nothing while an idle desktop's clock ticks for minutes (review I1)", async () => {
+		const sent: string[] = [];
+		registerClassicyStateAdapter({
+			id: "mirror",
+			onSnapshot: (snapshot) => {
+				sent.push(snapshot.hash);
+			},
+		});
+		renderDesktop();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(2000);
+		});
+		const settled = sent.length;
+		expect(settled).toBeGreaterThan(0);
+		const before = useAppManager.getState().System.Manager.DateAndTime.dateTime;
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+		});
+		// The menu bar clock wrote its minute ticks...
+		expect(
+			useAppManager.getState().System.Manager.DateAndTime.dateTime,
+		).not.toBe(before);
+		// ...and nothing was sent for them.
+		expect(sent).toHaveLength(settled);
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Desktop.disableBalloonHelp = true;
+				}),
+			);
+		});
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(500);
+		});
+		expect(sent).toHaveLength(settled + 1);
+	});
+});
+
+describe("Reset PRAM with a desktop state adapter (reviews M1, M2)", () => {
+	const openResetAlert = () =>
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopShowSystemDialog",
+				dialog: "resetPram",
+			});
+		});
+
+	it("says the synced copy resets on every computer that shares it", () => {
+		registerClassicyStateAdapter({ id: "mirror", onSnapshot: () => {} });
+		renderDesktop();
+		openResetAlert();
+		expect(
+			screen.getByText(
+				/on this computer and on every other computer that shares them/,
+			),
+		).toBeInTheDocument();
+	});
+
+	it("says nothing of other computers without one", () => {
+		renderDesktop();
+		openResetAlert();
+		expect(
+			screen.getByText(
+				"This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone.",
+			),
+		).toBeInTheDocument();
+	});
+
+	it("shows the wristwatch while the reset is sent, and restarts once", async () => {
+		const reload = vi.fn();
+		vi.stubGlobal("location", { ...window.location, reload });
+		try {
+			registerClassicyStateAdapter({
+				id: "slow",
+				onSnapshot: () => new Promise<void>(() => {}),
+			});
+			renderDesktop();
+			openResetAlert();
+			fireEvent.click(screen.getByText("Reset"));
+			expect(document.body.style.cursor).not.toBe("");
+			openResetAlert();
+			fireEvent.click(screen.getByText("Reset"));
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(4999);
+			});
+			expect(reload).not.toHaveBeenCalled();
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(1);
+			});
+			expect(reload).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.unstubAllGlobals();
+			document.body.style.cursor = "";
+		}
 	});
 });

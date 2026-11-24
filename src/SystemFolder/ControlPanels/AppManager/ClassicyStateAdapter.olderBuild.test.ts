@@ -126,6 +126,11 @@ describe("adopting a state saved by an older build", () => {
 		});
 		await expect(remote.sync.reconcileClassicyState()).resolves.toBe(true);
 		const adopted = asJson(remote.utils.useAppManager.getState());
+		// Saved at once, a custom theme with no colors included.
+		const saved = JSON.parse(
+			localStorage.getItem("classicyDesktopState") ?? "null",
+		);
+		expect(saved?.System.Manager.Appearance.customThemes).toHaveLength(1);
 		remote.utils.stopAppManagerPersistence();
 
 		expect(adopted).toEqual(loaded);
@@ -148,5 +153,23 @@ describe("adopting a state saved by an older build", () => {
 		expect(custom.measurements?.window).toBeDefined();
 		expect(DateAndTime.dateTime).toBe("2001-09-11T12:46:00.000Z");
 		expect(remote.utils.wasHydratedFromStorage()).toBe(true);
+	});
+});
+
+describe("a saved state whose containers have the wrong kind (review M4)", () => {
+	it("is refused by the local load as by a reconcile", async () => {
+		const bad = olderBuildState() as {
+			System: { Manager: { Desktop: Record<string, unknown> } };
+		};
+		bad.System.Manager.Desktop.icons = "x";
+		localStorage.setItem("classicyDesktopState", JSON.stringify(bad));
+		const page = await freshPage();
+		expect(page.utils.wasHydratedFromStorage()).toBe(false);
+		expect(
+			Array.isArray(
+				page.utils.useAppManager.getState().System.Manager.Desktop.icons,
+			),
+		).toBe(true);
+		page.utils.stopAppManagerPersistence();
 	});
 });

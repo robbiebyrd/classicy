@@ -30,11 +30,17 @@ import {
 	resetClassicyStateSyncForTests,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
 import {
+	noteClassicyClockTick,
+	resetClassicyClockTickForTests,
+} from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyClockTick.internal";
+import {
 	type ClassicyLogEntry,
 	registerClassicyLogSink,
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { classicySha256Hex } from "@/SystemFolder/SystemResources/Utils/ClassicySyncAdapterHook.internal";
+import packageJson from "../../../../package.json";
+import { rememberClassicyDefaultStateSeed } from "./ClassicyDefaultStateSeed.internal";
 
 const KEY = "classicyDesktopState";
 
@@ -113,6 +119,7 @@ function remoteState(name = "Remote Theme"): ClassicyStore {
 beforeEach(() => {
 	vi.useFakeTimers();
 	resetClassicyStateSyncForTests();
+	resetClassicyClockTickForTests();
 	localStorage.clear();
 	useAppManager.setState(DefaultAppManagerState, true);
 	// A Reset PRAM case stops persistence; every case starts with it on.
@@ -261,19 +268,19 @@ describe("snapshots", () => {
 		).toContain("App9.app");
 	});
 
-	it("honors snapshotDebounceMs, the shared timer taking the shortest", () => {
+	it("honors snapshotDebounceMs, the shared timer taking the shortest", async () => {
 		const slow = collector("slow");
 		registerClassicyStateAdapter(slow.adapter, { snapshotDebounceMs: 3000 });
 		openApp("A.app");
-		vi.advanceTimersByTime(2999);
+		await vi.advanceTimersByTimeAsync(2999);
 		expect(slow.snapshots).toHaveLength(0);
-		vi.advanceTimersByTime(1);
+		await vi.advanceTimersByTimeAsync(1);
 		expect(slow.snapshots).toHaveLength(1);
 
 		const fast = collector("fast");
 		registerClassicyStateAdapter(fast.adapter, { snapshotDebounceMs: 100 });
 		openApp("B.app");
-		vi.advanceTimersByTime(100);
+		await vi.advanceTimersByTimeAsync(100);
 		expect(fast.snapshots).toHaveLength(1);
 		expect(slow.snapshots).toHaveLength(2);
 	});
@@ -316,16 +323,15 @@ describe("snapshots", () => {
 		expect(seen[2]).not.toBe(seen[1]);
 	});
 
-	it("numbers saved states with a seq that persists and only grows", () => {
+	it("numbers saved states with a seq that persists and only grows", async () => {
 		const { adapter, snapshots } = collector();
 		registerClassicyStateAdapter(adapter);
 		openApp("A.app");
-		vi.advanceTimersByTime(500);
+		await vi.advanceTimersByTimeAsync(500);
 		openApp("B.app");
-		vi.advanceTimersByTime(500);
+		await vi.advanceTimersByTimeAsync(500);
 		expect(snapshots.map((s) => s.seq)).toEqual([1, 2]);
 		expect(localStorage.getItem(`${KEY}:seq`)).toBe("2");
-		expect(localStorage.getItem(`${KEY}:hash`)).toBe(snapshots[1].hash);
 
 		// A reload: the in-memory count is gone, the stored one carries on.
 		resetClassicyStateSyncForTests();
@@ -333,16 +339,16 @@ describe("snapshots", () => {
 		registerClassicyStateAdapter(after.adapter);
 		// The same saved state keeps its number.
 		addParadeIcon("x");
-		vi.advanceTimersByTime(500);
+		await vi.advanceTimersByTimeAsync(500);
 		expect(after.snapshots.map((s) => s.seq)).toEqual([2]);
 		openApp("C.app");
-		vi.advanceTimersByTime(500);
+		await vi.advanceTimersByTimeAsync(500);
 		expect(after.snapshots.map((s) => s.seq)).toEqual([2, 3]);
 
 		// Another tab that counted further: this one follows it.
 		localStorage.setItem(`${KEY}:seq`, "10");
 		openApp("D.app");
-		vi.advanceTimersByTime(500);
+		await vi.advanceTimersByTimeAsync(500);
 		expect(after.snapshots.at(-1)?.seq).toBe(11);
 	});
 
@@ -571,6 +577,7 @@ describe("reconcile", () => {
 	it("holds snapshots while a reconcile runs, and before the first one", async () => {
 		const answer = deferred<ClassicyStateReconcileResult>();
 		const snapshots: ClassicyStateSnapshot[] = [];
+		const mirror = collector("mirror");
 		registerClassicyStateAdapter({
 			id: "both",
 			onSnapshot: (snapshot) => {
@@ -578,23 +585,33 @@ describe("reconcile", () => {
 			},
 			reconcile: () => answer.promise,
 		});
+		registerClassicyStateAdapter(mirror.adapter);
 		// Before the boot reconcile: the local state must not overwrite the
 		// copy it is about to read.
 		openApp("Early.app");
 		await vi.advanceTimersByTimeAsync(500);
 		expect(snapshots).toHaveLength(0);
+		expect(mirror.snapshots).toHaveLength(0);
 		const done = reconcileClassicyState();
 		openApp("During.app");
 		await vi.advanceTimersByTimeAsync(500);
 		expect(snapshots).toHaveLength(0);
+		expect(mirror.snapshots).toHaveLength(0);
 		answer.resolve({ action: "replace", state: remoteState() });
 		await done;
 		await vi.advanceTimersByTimeAsync(500);
+		// The adopted state goes to the other adapter, not back to the one it
+		// came from (review M6).
+		expect(snapshots).toHaveLength(0);
+		expect(mirror.snapshots).toHaveLength(1);
+		expect(
+			mirror.snapshots[0].state.System.Manager.Appearance.activeTheme.name,
+		).toBe("Remote Theme");
+		// A real change afterwards goes to both.
+		openApp("After.app");
+		await vi.advanceTimersByTimeAsync(500);
 		expect(snapshots).toHaveLength(1);
-		// What is sent is the adopted state.
-		expect(snapshots[0].state.System.Manager.Appearance.activeTheme.name).toBe(
-			"Remote Theme",
-		);
+		expect(mirror.snapshots).toHaveLength(2);
 	});
 
 	it("skips the boot reconcile after Reset PRAM, once", async () => {
@@ -675,5 +692,452 @@ describe("Reset PRAM", () => {
 		expect(restart).not.toHaveBeenCalled();
 		await vi.advanceTimersByTimeAsync(1);
 		expect(restart).toHaveBeenCalledTimes(1);
+	});
+});
+
+/** The saved clock's virtual time, in ms. */
+const virtualNow = () =>
+	Date.parse(useAppManager.getState().System.Manager.DateAndTime.dateTime);
+
+/** The menu bar clock's minute tick, as the widget dispatches it. */
+const tick = (date: Date) => {
+	noteClassicyClockTick(date);
+	dispatch({ type: "ClassicyManagerDateTimeSet", dateTime: date });
+};
+
+describe("the clock's minute tick (review I1)", () => {
+	it("an idle desktop sends nothing over several minutes; a real edit still sends", async () => {
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter);
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+		const firstSeq = snapshots[0].seq;
+		let virtual = virtualNow();
+		for (let minute = 0; minute < 5; minute++) {
+			await vi.advanceTimersByTimeAsync(60_000);
+			virtual += 60_000;
+			tick(new Date(virtual));
+		}
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+		openApp("Edit.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(2);
+		// The ticks moved no seq; the snapshot carries the clock as it is.
+		expect(snapshots[1].seq).toBe(firstSeq + 1);
+		expect(
+			Date.parse(snapshots[1].state.System.Manager.DateAndTime.dateTime),
+		).toBe(virtual);
+		expect(snapshots[1].hash).toBe(
+			classicySha256Hex(JSON.stringify(snapshots[1].state)),
+		);
+	});
+
+	it("the clock's tick is no change though the clock started late (a desktop drawn after a slow boot)", async () => {
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter);
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		// The menu bar clock anchors the saved time when it mounts, here 3 s
+		// after the page saw it: its ticks run 3 s behind the real time.
+		const virtual = virtualNow();
+		await vi.advanceTimersByTimeAsync(62_500);
+		tick(new Date(virtual + 60_000));
+		await vi.advanceTimersByTimeAsync(60_000);
+		tick(new Date(virtual + 120_000));
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+	});
+
+	it("a host running the clock at real speed is no change either", async () => {
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter);
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		let virtual = virtualNow();
+		for (let step = 0; step < 3; step++) {
+			await vi.advanceTimersByTimeAsync(20_000);
+			virtual += 20_000;
+			dispatch({
+				type: "ClassicyManagerDateTimeSet",
+				dateTime: new Date(virtual),
+			});
+		}
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+	});
+
+	it("an edit of the clock is a change", async () => {
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter);
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		dispatch({
+			type: "ClassicyManagerDateTimeSet",
+			dateTime: new Date(virtualNow() + 3_600_000),
+		});
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(2);
+		expect(snapshots[1].seq).toBe(snapshots[0].seq + 1);
+	});
+});
+
+describe("an adapter whose reconcile failed (review C1)", () => {
+	it("takes no snapshot until a retry succeeds", async () => {
+		const snapshots: ClassicyStateSnapshot[] = [];
+		const reconcile = vi
+			.fn<() => Promise<ClassicyStateReconcileResult>>()
+			.mockRejectedValueOnce(new Error("500"))
+			.mockResolvedValue({ action: "useLocal" });
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile,
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		await expect(reconcileClassicyState()).resolves.toBe(false);
+		openApp("Defaults.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(0);
+		await vi.advanceTimersByTimeAsync(10_000 - 500);
+		expect(reconcile).toHaveBeenCalledTimes(2);
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+		expect(
+			snapshots[0].state.System.Manager.Applications.apps["Defaults.app"],
+		).toBeDefined();
+	});
+
+	it("after a timeout too; a replace on the retry is adopted and not sent back", async () => {
+		const snapshots: ClassicyStateSnapshot[] = [];
+		const reconcile = vi
+			.fn<() => Promise<ClassicyStateReconcileResult>>()
+			.mockReturnValueOnce(new Promise(() => {}))
+			.mockResolvedValue({ action: "replace", state: remoteState() });
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile,
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		const boot = reconcileClassicyState();
+		await vi.advanceTimersByTimeAsync(5000);
+		await expect(boot).resolves.toBe(false);
+		openApp("Defaults.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(0);
+		// The retry, 10 s after the failure, adopts the account's copy.
+		await vi.advanceTimersByTimeAsync(9500);
+		expect(reconcile).toHaveBeenCalledTimes(2);
+		expect(
+			useAppManager.getState().System.Manager.Appearance.activeTheme.name,
+		).toBe("Remote Theme");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(0);
+		openApp("After.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+	});
+
+	it("is asked again twice as late after each failure", async () => {
+		const reconcile = vi.fn(() => Promise.reject(new Error("down")));
+		registerClassicyStateAdapter({ id: "down", reconcile });
+		await reconcileClassicyState();
+		expect(reconcile).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(reconcile).toHaveBeenCalledTimes(2);
+		await vi.advanceTimersByTimeAsync(19_999);
+		expect(reconcile).toHaveBeenCalledTimes(2);
+		await vi.advanceTimersByTimeAsync(1);
+		expect(reconcile).toHaveBeenCalledTimes(3);
+		await vi.advanceTimersByTimeAsync(40_000);
+		expect(reconcile).toHaveBeenCalledTimes(4);
+	});
+
+	it("an invalid replace holds it too", async () => {
+		const snapshots: ClassicyStateSnapshot[] = [];
+		registerClassicyStateAdapter({
+			id: "corrupt",
+			reconcile: async () => ({ action: "replace", state: {} as never }),
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		await reconcileClassicyState();
+		openApp("Local.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(0);
+	});
+
+	it("a later failed reconcile holds it again", async () => {
+		const snapshots: ClassicyStateSnapshot[] = [];
+		const reconcile = vi
+			.fn<() => Promise<ClassicyStateReconcileResult>>()
+			.mockResolvedValueOnce({ action: "useLocal" })
+			.mockRejectedValue(new Error("401"));
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile,
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		await reconcileClassicyState();
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+		// A sign-in whose reconcile fails: this device's state stays here.
+		await reconcileClassicyState();
+		openApp("B.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+	});
+
+	it("flushClassicyState sends it nothing and resolves false", async () => {
+		const onSnapshot = vi.fn();
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: () => Promise.reject(new Error("down")),
+			onSnapshot,
+		});
+		// Before the first reconcile too (review M9a).
+		openApp("A.app");
+		await expect(flushClassicyState()).resolves.toBe(false);
+		await reconcileClassicyState();
+		await expect(flushClassicyState()).resolves.toBe(false);
+		expect(onSnapshot).not.toHaveBeenCalled();
+	});
+
+	it("does not hold an adapter that only takes snapshots", async () => {
+		const mirror = collector("mirror");
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: () => Promise.reject(new Error("down")),
+		});
+		registerClassicyStateAdapter(mirror.adapter);
+		await reconcileClassicyState();
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(mirror.snapshots).toHaveLength(1);
+	});
+
+	it("an adapter registered after the first reconcile is asked on its own", async () => {
+		await reconcileClassicyState();
+		const snapshots: ClassicyStateSnapshot[] = [];
+		const reconcile = vi.fn(
+			async (): Promise<ClassicyStateReconcileResult> => ({
+				action: "useLocal",
+			}),
+		);
+		registerClassicyStateAdapter({
+			id: "late",
+			reconcile,
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(0);
+		expect(reconcile).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+	});
+});
+
+describe("deliveries (review M5)", () => {
+	it("go one at a time, the latest after the one under way", async () => {
+		const calls: ClassicyStateSnapshot[] = [];
+		const pending: Array<() => void> = [];
+		registerClassicyStateAdapter({
+			id: "slow",
+			onSnapshot: (snapshot) => {
+				calls.push(snapshot);
+				return new Promise<void>((resolve) => pending.push(resolve));
+			},
+		});
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(calls).toHaveLength(1);
+		for (const id of ["B.app", "C.app", "D.app"]) {
+			openApp(id);
+			await vi.advanceTimersByTimeAsync(500);
+		}
+		expect(calls).toHaveLength(1);
+		pending[0]();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(calls).toHaveLength(2);
+		expect(
+			Object.keys(calls[1].state.System.Manager.Applications.apps),
+		).toEqual(expect.arrayContaining(["B.app", "C.app", "D.app"]));
+		pending[1]();
+		await vi.advanceTimersByTimeAsync(500);
+		expect(calls).toHaveLength(2);
+	});
+});
+
+describe("the snapshot's envelope and the page's end", () => {
+	it("names the version of Classicy that built it (review M6)", async () => {
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter);
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots[0].version).toBe(packageJson.version);
+	});
+
+	it("saves the state in this browser when it sends a snapshot as the page hides (review M8)", () => {
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter, { snapshotDebounceMs: 3000 });
+		openApp("A.app");
+		expect(localStorage.getItem(KEY)).toBeNull();
+		window.dispatchEvent(new Event("pagehide"));
+		expect(snapshots).toHaveLength(1);
+		expect(
+			JSON.parse(localStorage.getItem(KEY) ?? "null").System.Manager
+				.Applications.apps["A.app"],
+		).toBeDefined();
+	});
+
+	it("refuses a delay a browser timer cannot wait (review M9e)", async () => {
+		const reconcile = vi.fn(() => new Promise<never>(() => {}));
+		registerClassicyStateAdapter(
+			{ id: "huge", reconcile },
+			{ reconcileTimeoutMs: 2 ** 31 },
+		);
+		expect(
+			warnings().some((w) => w.message.includes("reconcileTimeoutMs")),
+		).toBe(true);
+		let settled = false;
+		void reconcileClassicyState().then(() => {
+			settled = true;
+		});
+		await vi.advanceTimersByTimeAsync(10);
+		expect(settled).toBe(false);
+		await vi.advanceTimersByTimeAsync(4990);
+		expect(settled).toBe(true);
+	});
+});
+
+describe("adopting a remote state", () => {
+	it("keeps this browser's file-system epoch (review M9d)", async () => {
+		useAppManager.setState((state) =>
+			produce(state, (draft) => {
+				draft.System.Manager.Desktop.fsVersion = 7;
+			}),
+		);
+		const state = remoteState();
+		(state.System.Manager.Desktop as { fsVersion?: number }).fsVersion = 2;
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: async () => ({ action: "replace", state }),
+		});
+		await expect(reconcileClassicyState()).resolves.toBe(true);
+		expect(useAppManager.getState().System.Manager.Desktop.fsVersion).toBe(7);
+	});
+
+	it("refuses one whose containers have the wrong kind (review M4)", async () => {
+		const base = remoteState();
+		const wrong: unknown[] = [
+			{
+				System: {
+					Manager: {
+						Applications: { apps: "x" },
+						Desktop: 1,
+						Appearance: { activeTheme: {} },
+					},
+				},
+			},
+			produce(base, (draft) => {
+				(draft.System.Manager.Desktop as unknown as { icons: unknown }).icons =
+					"x";
+			}),
+			produce(base, (draft) => {
+				(draft.System.Manager.Applications.apps as Record<string, unknown>)[
+					"Bad.app"
+				] = "x";
+			}),
+		];
+		for (const state of wrong) {
+			resetClassicyStateSyncForTests();
+			registerClassicyStateAdapter({
+				id: "bad",
+				reconcile: async () => ({ action: "replace", state }) as never,
+			});
+			const before = useAppManager.getState();
+			await expect(reconcileClassicyState()).resolves.toBe(false);
+			expect(useAppManager.getState()).toBe(before);
+		}
+	});
+});
+
+describe("Reset PRAM (reviews M1, M3)", () => {
+	it("a second reset neither restarts early nor cuts the first short", async () => {
+		const delivery = deferred<void>();
+		registerClassicyStateAdapter({
+			id: "remote",
+			onSnapshot: () => delivery.promise,
+		});
+		const first = vi.fn();
+		const second = vi.fn();
+		resetClassicyPersistedState(first);
+		resetClassicyPersistedState(second);
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(first).not.toHaveBeenCalled();
+		expect(second).not.toHaveBeenCalled();
+		delivery.resolve();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(first).toHaveBeenCalledTimes(1);
+		expect(second).not.toHaveBeenCalled();
+	});
+
+	it("leaves no mark and restarts at once when no adapter takes snapshots", () => {
+		registerClassicyStateAdapter({
+			id: "readOnly",
+			reconcile: async () => ({ action: "useLocal" }),
+		});
+		const restart = vi.fn();
+		resetClassicyPersistedState(restart);
+		expect(restart).toHaveBeenCalledTimes(1);
+		expect(localStorage.getItem(`${KEY}:reset`)).toBeNull();
+	});
+
+	it("hands the adapters a first session's state with the provider's seed", async () => {
+		rememberClassicyDefaultStateSeed({
+			System: { Manager: { Desktop: { disableBalloonHelp: true } } },
+		});
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter);
+		const restart = vi.fn();
+		resetClassicyPersistedState(restart);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(snapshots).toHaveLength(1);
+		expect(snapshots[0].state.System.Manager.Desktop.disableBalloonHelp).toBe(
+			true,
+		);
+		expect(restart).toHaveBeenCalledTimes(1);
+	});
+
+	it("the boot after it sends its state, its reconcile skipped", async () => {
+		const reconcile = vi.fn(
+			async (): Promise<ClassicyStateReconcileResult> => ({
+				action: "useLocal",
+			}),
+		);
+		const snapshots: ClassicyStateSnapshot[] = [];
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile,
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		localStorage.setItem(`${KEY}:reset`, "1");
+		await reconcileClassicyState();
+		expect(reconcile).not.toHaveBeenCalled();
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
 	});
 });

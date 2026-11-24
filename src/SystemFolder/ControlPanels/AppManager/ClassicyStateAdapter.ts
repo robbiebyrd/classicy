@@ -6,7 +6,9 @@
  * devices. The counterpart of `registerClassicyFileSystemAdapter`
  * (ClassicyFileSystemAdapter.ts), with the same shape: debounced snapshots
  * carrying a sha256 hash and a persisted monotonic `seq`, and a boot
- * `reconcile` that may replace the local copy, local winning on any error.
+ * `reconcile` that may replace the local copy, local winning on any error
+ * (and an adapter that reconciles taking no snapshot until a reconcile with
+ * it succeeds).
  *
  * ```ts
  * registerClassicyStateAdapter(
@@ -35,6 +37,8 @@ export type {
 export {
 	CLASSICY_STATE_DEFAULT_RECONCILE_TIMEOUT_MS,
 	CLASSICY_STATE_DEFAULT_SNAPSHOT_DEBOUNCE_MS,
+	CLASSICY_STATE_RECONCILE_RETRY_MAX_MS,
+	CLASSICY_STATE_RECONCILE_RETRY_MS,
 	flushClassicyState,
 	getClassicyStateAdapters,
 	reconcileClassicyState,

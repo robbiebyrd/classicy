@@ -406,11 +406,29 @@ const getInitialState = (): ClassicyStore =>
 
 /**
  * The state a first session starts from now, with nothing saved: the store's
- * first state after Reset PRAM, before a provider's `defaultState` seed.
+ * first state after Reset PRAM, with a provider's `defaultState` `seed`
+ * applied as the provider applies it (`withClassicyDefaultStateSeed`), but
+ * without noting it applied or keeping its fork: nothing of the live session
+ * changes.
  * @internal
  */
-export const classicyFirstSessionState = (): ClassicyStore =>
-	withDrawnPackageDefaults(defaultInitialState());
+export const classicyFirstSessionState = (
+	seed?: DeepPartial<ClassicyStore>,
+): ClassicyStore => {
+	const state = withDrawnPackageDefaults(defaultInitialState());
+	if (!seed) return state;
+	const fork = seededThemeFork;
+	try {
+		return withForkedSeedTheme(
+			withoutDefaultActiveThemeMeasurements(
+				withSeededPackageDefaults(state, seed),
+			),
+			seed,
+		);
+	} finally {
+		seededThemeFork = fork;
+	}
+};
 
 /** The `localStorage` key the desktop state is saved under. */
 export const CLASSICY_DESKTOP_STATE_STORAGE_KEY = "classicyDesktopState";
@@ -423,12 +441,42 @@ export const CLASSICY_DESKTOP_STATE_STORAGE_KEY = "classicyDesktopState";
 const parsePersistedClassicyJson = (text: string): unknown =>
 	JSON.parse(text, (key, value) => (key === "__proto__" ? undefined : value));
 
+const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * True when every container the default state holds (an object or an array)
+ * is a container of the same kind in `value`, where `value` has that key:
+ * the kernel indexes them without checking, so a saved state with, say,
+ * `Desktop: 1` or `apps: "x"` would break it after the merge.
+ */
+const matchesDefaultContainers = (
+	value: unknown,
+	defaults: unknown,
+): boolean => {
+	if (Array.isArray(defaults)) return Array.isArray(value);
+	if (!isPlainRecord(defaults)) return true;
+	if (!isPlainRecord(value)) return false;
+	return Object.keys(defaults).every(
+		(key) =>
+			!Object.hasOwn(value, key) ||
+			matchesDefaultContainers(value[key], defaults[key]),
+	);
+};
+
+/** True when `state`, merged and migrated, can be handed to the kernel: the
+ * default state's containers are containers of the same kind, and every app
+ * record is an object (review M4). */
+const hasClassicyStateShape = (state: ClassicyStore): boolean =>
+	matchesDefaultContainers(state, DefaultAppManagerState) &&
+	Object.values(state.System.Manager.Applications.apps).every(isPlainRecord);
+
 /**
  * Saved desktop state (`parsed`, as `localStorage["classicyDesktopState"]`
  * holds it) as the store's state: merged over the defaults and migrated, with
  * the reference a built-in active theme was saved as, which
  * `withRefreshedActiveTheme` resolves. `undefined` when `parsed` does not have
- * the saved shape. The one load path: a load from `localStorage` and a state
+ * the saved shape, before or after the merge (`hasClassicyStateShape`). The one load path: a load from `localStorage` and a state
  * a storage adapter's `reconcile` hands back (`adoptPersistedClassicyState`)
  * both go through it. Edits `parsed` (the saved theme list and a reference's
  * flag are dropped); touches no module state.
@@ -480,15 +528,13 @@ function readPersistedClassicyState(
 	// idempotent pass keeps this load path correct on its own.)
 	// (The migration also stores a registered wallpaper by its
 	// filename; getThemeVars resolves it at render.)
-	return {
-		state: migrateClassicyState(
-			mergeClassicyState(
-				withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
-				saved,
-			),
+	const state = migrateClassicyState(
+		mergeClassicyState(
+			withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
+			saved,
 		),
-		reference,
-	};
+	);
+	return hasClassicyStateShape(state) ? { state, reference } : undefined;
 }
 
 function loadInitialState(): ClassicyStore {
@@ -942,6 +988,18 @@ export function persistAppManagerStateNow(): void {
 }
 
 /**
+ * Write the pending debounced localStorage write now, if there is one: the
+ * page is going away (`pagehide`, ClassicyStateSync.internal.ts), and the
+ * state a snapshot sends then must be the one this browser keeps (review
+ * M8). Nothing when no write is pending, so a host that cleared the saved
+ * state before reloading keeps it cleared.
+ * @internal
+ */
+export function persistPendingAppManagerState(): void {
+	if (debounceTimer !== null) persistAppManagerStateNow();
+}
+
+/**
  * Adopt `state`, desktop state a storage adapter's `reconcile` handed back
  * (ClassicyStateAdapter.ts), exactly as the store loads saved state: as JSON
  * (so it holds plain data and nothing of the adapter's objects), through
@@ -951,10 +1009,12 @@ export function persistAppManagerStateNow(): void {
  * applied, replacing the live state; a provider's `defaultState` seed no
  * longer applies (`wasHydratedFromStorage`).
  *
- * One thing is kept from the live state: `availableThemes`, the session's
+ * Two things are kept from the live state: `availableThemes`, the session's
  * built-in and host-loaded themes, which come from the code and the host,
- * never from saved state. Returns false, changing nothing, when `state` is
- * not saved desktop state.
+ * never from saved state; and `Desktop.fsVersion`, this browser's file-system
+ * reload epoch, which another browser's value would only make re-read
+ * localStorage. Returns false, changing nothing, when `state` is not saved
+ * desktop state.
  * @internal
  */
 export function adoptPersistedClassicyState(state: unknown): boolean {
@@ -973,8 +1033,9 @@ export function adoptPersistedClassicyState(state: unknown): boolean {
 		return false;
 	}
 	if (!loaded) return false;
-	const availableThemes =
-		useAppManager.getState().System.Manager.Appearance.availableThemes;
+	const live = useAppManager.getState().System.Manager;
+	const availableThemes = live.Appearance.availableThemes;
+	const fsVersion = live.Desktop.fsVersion;
 	pendingActiveThemeReference = null;
 	seededThemeFork = null;
 	const next = produce(
@@ -984,6 +1045,9 @@ export function adoptPersistedClassicyState(state: unknown): boolean {
 		(draft) => {
 			draft.System.Manager.Appearance.availableThemes =
 				castDraft(availableThemes);
+			if (fsVersion === undefined)
+				delete draft.System.Manager.Desktop.fsVersion;
+			else draft.System.Manager.Desktop.fsVersion = fsVersion;
 		},
 	);
 	hydratedFromStorage = true;

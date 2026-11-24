@@ -71,6 +71,7 @@ import {
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	resetClassicyPersistedState,
+	useClassicyStateMirrored,
 	useClassicyStateSyncGate,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
@@ -79,6 +80,7 @@ import {
 	ClassicyControlStrip,
 	type ClassicyControlStripProps,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
+import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { markClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import {
@@ -282,13 +284,17 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	}, [disabledAppsKey, desktopEventDispatch]);
 
 	// Special ▸ Reset PRAM: forget every saved setting and start over (a
-	// desktop state adapter's copy too: ClassicyStateSync.internal.ts).
+	// desktop state adapter's copy too: ClassicyStateSync.internal.ts). The
+	// wristwatch shows while the adapters take the reset (HIG7 p.270).
+	const stateMirrored = useClassicyStateMirrored();
+	const setCursor = useClassicyCursor();
 	const resetPram = useCallback(() => {
+		setCursor("watch");
 		resetClassicyPersistedState(() => {
 			resetStartupScreenSession();
 			window.location.reload();
 		});
-	}, []);
+	}, [setCursor]);
 
 	const closeSystemDialog = useCallback(() => {
 		desktopEventDispatch({
@@ -858,7 +864,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 						alertType={"caution"}
 						label={"Are you sure you want to reset PRAM?"}
 						message={
-							"This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
+							stateMirrored
+								? "This clears all saved settings — windows, icons, appearance — on this computer and on every other computer that shares them, and restarts Classicy. Files on your disks are kept. This action cannot be undone."
+								: "This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
 						}
 						defaultButtonId={"cancel"}
 						buttons={[
