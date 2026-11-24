@@ -175,11 +175,13 @@ $edge: b.$b2;
   :is(#{$titles}).classicyDesktopMenuApple {
     margin-left: 0;
     padding: 0 var(--menu-item-padding-x);
-    font-weight: bold;
     @include taskbar-button;
 
+    // The weight on the title's text alone: on the title itself it would
+    // be inherited by its menu's items, which Windows sets plain.
     > p {
       height: auto;
+      font-weight: bold;
     }
 
     &.open {

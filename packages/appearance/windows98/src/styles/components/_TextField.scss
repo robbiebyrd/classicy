@@ -265,7 +265,8 @@ $remove-x: runs(
       }
     }
 
-    &:has(input:disabled) {
+    // The frame's `disabled` state (its inputs are disabled with it).
+    &.disabled {
       color: b.$gray-text;
       background-color: b.$face;
     }

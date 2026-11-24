@@ -544,12 +544,13 @@ $horizontal: ":not(.classicySliderInputVertical)";
   }
 
   // On the side the thumb points to: above a slider pointing up, left of a
-  // vertical one pointing left (the base sheet lays them below and right).
-  // A browser without `:has()` keeps the base sheet's side.
-  .classicySliderStack:has(> .classicySliderTrackLayer > .classicySliderIndicatorUp#{$horizontal}),
-  .classicySliderStackVertical:has(
-      > .classicySliderTrackLayer
-        > .classicySliderInputVertical:not(.classicySliderIndicatorRight, .classicySliderIndicatorNondirectional)
+  // vertical one pointing left (the base sheet lays them below and right),
+  // keyed on the direction the core puts on the stack
+  // (`classicySliderStackIndicator*`).
+  .classicySliderStack.classicySliderStackIndicatorUp:not(.classicySliderStackVertical),
+  .classicySliderStackVertical:not(
+      .classicySliderStackIndicatorRight,
+      .classicySliderStackIndicatorNondirectional
     ) {
     .classicySliderTicks {
       order: -1;

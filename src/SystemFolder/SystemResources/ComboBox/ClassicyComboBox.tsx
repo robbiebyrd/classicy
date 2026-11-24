@@ -165,7 +165,14 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const reactId = useId();
 	const listId = `${reactId}-list`;
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
-	const appearance = useClassicyAppearance("ComboBox", { disabled }, anchorRef);
+	// The root's states: `disabled`, and `open` while the list is shown (the
+	// input says so too, `aria-expanded`), so a package keys the pressed
+	// drop-down button on the root, not on `:has()`.
+	const appearance = useClassicyAppearance(
+		"ComboBox",
+		{ disabled, open },
+		anchorRef,
+	);
 	const emitAppearance = appearance.emit;
 	// `close` follows the list going away, whichever path dismissed it, and
 	// so comes after the `change` a commit emits.

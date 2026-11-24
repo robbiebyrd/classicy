@@ -83,6 +83,14 @@ or System 7 draw, and a package that reads neither sees nothing new.
   comes up. Windows 98 inverts that side alone (Windows' `PatBlt` inversion
   while paging); Mac OS inverts nothing, so Platinum and System 7 read it
   not at all.
+- **Three states for the browser floor.** `ClassicyComboBox`'s root carries
+  `open` while its list is shown (its input's `aria-expanded` said so
+  already); `ClassicyDatePicker`'s and `ClassicyTimePicker`'s frames carry
+  `disabled` with their inputs; and a `ClassicySlider`'s stack carries its
+  indicator's direction (`classicySliderStackIndicatorUp`, `-Down`, `-Left`,
+  `-Right`, `-Nondirectional`) beside the input's own class. Each lets a
+  package key a rule on a class where it would otherwise need `:has()`,
+  which Firefox before 121 lacks; Platinum and System 7 read none of them.
 - **The Finder list's icon as a mask.** Each row of `ClassicyFileBrowser`'s
   list view (`classicyFileBrowserViewTableRowContainer`) carries
   `--classicy-icon-mask`, `url("…")` of the row's icon, as `ClassicyIcon`

@@ -14,6 +14,47 @@ vi.mock(
 );
 
 describe("ClassicySlider", () => {
+	// The stack carries the indicator's direction too, so a package can put
+	// the ticks on the side the indicator points to (Windows 98's trackbar)
+	// without `:has()`, which the browser floor lacks.
+	it("puts the indicator's direction on the stack", () => {
+		const { container, rerender } = render(
+			<ClassicySlider
+				id="test"
+				value={5}
+				tickInterval={5}
+				indicatorDirection="up"
+			/>,
+		);
+		const stack = () =>
+			container.querySelector(".classicySliderStack") as HTMLElement;
+		expect(stack().classList.contains("classicySliderStackIndicatorUp")).toBe(
+			true,
+		);
+		expect(stack().classList.contains("classicySliderStackVertical")).toBe(
+			false,
+		);
+		rerender(
+			<ClassicySlider
+				id="test"
+				value={5}
+				tickInterval={5}
+				orientation="vertical"
+				indicatorDirection="left"
+			/>,
+		);
+		expect(stack().classList.contains("classicySliderStackIndicatorLeft")).toBe(
+			true,
+		);
+		expect(stack().classList.contains("classicySliderStackVertical")).toBe(
+			true,
+		);
+		rerender(<ClassicySlider id="test" value={5} tickInterval={5} />);
+		expect(stack().classList.contains("classicySliderStackIndicatorDown")).toBe(
+			true,
+		);
+	});
+
 	it("renders a range input", () => {
 		const { container } = render(<ClassicySlider id="test" value={5} />);
 		expect(container.querySelector('input[type="range"]')).toBeInTheDocument();

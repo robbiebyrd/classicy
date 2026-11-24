@@ -50,6 +50,26 @@ describe("ClassicyComboBox", () => {
 		expect(input).toHaveAttribute("aria-expanded", "false");
 	});
 
+	// The root's `open` state follows the list, for a package that draws the
+	// drop-down button pressed while the list is shown (Windows 98) without
+	// `:has()`, which the browser floor lacks.
+	it("marks its root open while the list is shown", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<ClassicyComboBox id="fruit" options={options} />,
+		);
+		const root = container.querySelector(".classicyComboBox") as HTMLElement;
+		expect(root.classList.contains("open")).toBe(false);
+		await user.type(screen.getByRole("combobox"), "l");
+		expect(screen.getByRole("combobox")).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+		expect(root.classList.contains("open")).toBe(true);
+		await user.keyboard("{Escape}");
+		expect(root.classList.contains("open")).toBe(false);
+	});
+
 	it("typing opens the list and filters by startsWith", async () => {
 		const user = userEvent.setup();
 		render(<ClassicyComboBox id="fruit" options={options} />);

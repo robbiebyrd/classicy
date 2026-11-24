@@ -20,6 +20,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	validateDayOfMonth,
 	validateMonth,
@@ -299,6 +300,8 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 							className={classNames(
 								"classicyDatePicker",
 								isDefault ? "classicyDatePickerDefault" : "",
+								// The frame's state, for a package's disabled look.
+								classicyStateClasses({ disabled }),
 							)}
 						>
 							<input

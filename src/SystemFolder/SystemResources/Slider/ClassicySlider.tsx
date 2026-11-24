@@ -118,6 +118,18 @@ const indicatorClassMap: Record<ClassicySliderIndicatorDirection, string> = {
 	nondirectional: "classicySliderIndicatorNondirectional",
 };
 
+// The same direction on the stack, so a package can place the ticks and
+// their labels on the side the indicator points to (Windows 98's trackbar)
+// without `:has()`, which the browser floor lacks.
+const stackIndicatorClassMap: Record<ClassicySliderIndicatorDirection, string> =
+	{
+		up: "classicySliderStackIndicatorUp",
+		down: "classicySliderStackIndicatorDown",
+		left: "classicySliderStackIndicatorLeft",
+		right: "classicySliderStackIndicatorRight",
+		nondirectional: "classicySliderStackIndicatorNondirectional",
+	};
+
 interface ClassicySliderProps {
 	/** Id of the native `<input type="range">`; links the label to it. */
 	id: string;
@@ -630,6 +642,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 					className={classNames(
 						"classicySliderStack",
 						isVertical && "classicySliderStackVertical",
+						stackIndicatorClassMap[resolvedIndicator],
 					)}
 				>
 					<div

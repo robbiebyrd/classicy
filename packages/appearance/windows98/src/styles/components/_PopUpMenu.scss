@@ -344,9 +344,9 @@ $arrow-right: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x"
     }
   }
 
-  // While the list is open the button stays pressed. The combo box root
-  // carries no `open` state; its input says so (`aria-expanded`).
-  .classicyComboBox:has(> .classicyComboBoxInput[aria-expanded="true"]) > .classicyPopUpMenuIndicator.classicyComboBoxIndicator {
+  // While the list is open the button stays pressed (the root's `open`
+  // state).
+  .classicyComboBox.open > .classicyPopUpMenuIndicator.classicyComboBoxIndicator {
     @include drop-down-button-pressed;
   }
 
