@@ -323,6 +323,7 @@
 			"Operator",
 			"OperatorText",
 			"Path",
+			"Progress",
 			"ResultIcon",
 			"ResultName",
 			"Results",
@@ -530,7 +531,8 @@
 			"HeaderSticky",
 			"Row",
 			"SortArrow",
-			"SortArrowAscending"
+			"SortArrowAscending",
+			"Spacer"
 		],
 		"Tabs": [],
 		"TextEditor": [

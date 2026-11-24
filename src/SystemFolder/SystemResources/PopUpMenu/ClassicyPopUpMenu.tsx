@@ -155,6 +155,12 @@ type classicyPopUpMenuProps = {
 	style?: CSSProperties;
 	/** Disables the button. Defaults to `false`. */
 	disabled?: boolean;
+	/**
+	 * Keep the choices out of analytics: the `selected` event still fires,
+	 * without the item chosen, the options or the current choice (Find
+	 * File's location pop-up names the user's disks). Defaults to `false`.
+	 */
+	analyticsPrivate?: boolean;
 };
 
 /**
@@ -192,6 +198,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	size = "medium",
 	onChangeFunc,
 	disabled = false,
+	analyticsPrivate = false,
 }) => {
 	// For the control label, "mini" maps to "small" — "mini" is a menu-only size
 	const controlLabelSize: ClassicyControlLabelSize =
@@ -276,14 +283,19 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			if (value === PLACEHOLDER_VALUE) return;
 			setSelectedItem(value);
 			emitAppearance("change", withClassicyAppearanceInput({ value }));
-			track("selected", {
-				type: "ClassicyPopUpMenu",
-				itemId: value,
-				id,
-				label,
-				options,
-				selected,
-			});
+			track(
+				"selected",
+				analyticsPrivate
+					? { type: "ClassicyPopUpMenu", id, label }
+					: {
+							type: "ClassicyPopUpMenu",
+							itemId: value,
+							id,
+							label,
+							options,
+							selected,
+						},
+			);
 			if (onChangeFunc) {
 				// Synthesize a `{ target: { value } }`-shaped event so consumers
 				// written against the old native <select> API keep working.
@@ -294,7 +306,16 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				onChangeFunc(evt);
 			}
 		},
-		[onChangeFunc, track, id, label, options, selected, emitAppearance],
+		[
+			onChangeFunc,
+			track,
+			id,
+			label,
+			options,
+			selected,
+			emitAppearance,
+			analyticsPrivate,
+		],
 	);
 
 	const closeMenu = useCallback(() => {
@@ -699,7 +720,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 									const isSelected = o.value === selectedItem;
 									return (
 										<Fragment key={id + o.value}>
-											{o.dividerBefore && rowIndex > 0 && <ClassicySeparator />}
+											{o.dividerBefore && rowIndex > 0 && (
+												// A listbox holds options only: the divider is drawn,
+												// not announced.
+												<ClassicySeparator decorative />
+											)}
 											<div
 												id={optionId(index)}
 												role="option"

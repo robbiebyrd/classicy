@@ -39,6 +39,13 @@ describe("ClassicyPopUpMenu dividers", () => {
 			"—",
 			"on the disk",
 		]);
+		// A listbox holds options only: the dividers are drawn, not announced
+		// (fix round 1, M9).
+		for (const hr of Array.from(list.querySelectorAll("hr"))) {
+			expect(hr.getAttribute("role")).toBe("presentation");
+			expect(hr.hasAttribute("aria-orientation")).toBe(false);
+		}
+		expect(within(list).queryAllByRole("separator")).toEqual([]);
 		fireEvent.click(within(list).getByText("on the desktop"));
 		expect(onChange).toHaveBeenCalledWith("desktop");
 	});
