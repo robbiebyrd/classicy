@@ -12,6 +12,30 @@ describe("classicyBundleSpecifiers", () => {
 			),
 		).toEqual(["@classicy/classicy", "react", "pdfjs-dist"]));
 
+	// An ES entry starts with "use client"; (story 0224-siu): the static
+	// imports after it are still the prologue's. A string statement after an
+	// import is no directive, and ends the run as any other statement does.
+	it("reads the static imports after a directive prologue, and only there", () =>
+		expect(
+			classicyBundleSpecifiers(
+				'"use client";\nimport{a as b}from"@classicy/classicy";\n\'use strict\';import"react";\nconst x=1;',
+			),
+		).toEqual(["@classicy/classicy"]));
+
+	it("reads the imports after each directive of a prologue", () =>
+		expect(
+			classicyBundleSpecifiers(
+				'"use client";\n\'use strict\';\nimport"react";import"zustand";const s="import \\"nope\\"";',
+			),
+		).toEqual(["react", "zustand"]));
+
+	it("reads the static imports after a comment banner", () =>
+		expect(
+			classicyBundleSpecifiers(
+				'/*! Classicy | MIT */\n// built\n"use client";\nimport"react";const a=1;',
+			),
+		).toEqual(["react"]));
+
 	it("reads a UMD factory's require() calls", () =>
 		expect(
 			classicyBundleSpecifiers(
