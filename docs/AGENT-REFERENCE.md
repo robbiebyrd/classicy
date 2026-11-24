@@ -416,7 +416,40 @@ the core is a client reference: render the components, passing them
 serializable props (strings, numbers, plain objects, JSX children); a
 function prop (`onClick`, a menu item's `onClickFunc`), a call of a function
 export (`registerApp`, `registerClassicyIcons`, `classicyLog`) and a
-constant's value belong in a client module.
+constant's value belong in a client module. Route handlers, server actions
+and `generateMetadata` run in that same server layer and have no client
+module to move a call into, so they cannot call any Classicy function: React
+refuses to call a client reference on the server (a route handler or server
+action calling `getAllThemes()` answers 500 with `Attempted to call
+getAllThemes() from the server but getAllThemes is on the client`).
+
+The Pages Router needs none of this: its pages are not server components, so
+a page imports the core and an Appearance Package as in any React app, with
+no client file, and `getServerSideProps` may call Classicy's functions
+(checked with a page that imports Platinum and `Classicy` and calls
+`getAllThemes()` in `getServerSideProps`). The directive matters only to a
+React Server Components bundler: a host without one (a Vite app, Remix or
+React Router in framework mode, Astro, webpack, esbuild, Jest) is unaffected.
+The one trace is a warning from Rollup used on its own: bundling the core it
+prints `MODULE_LEVEL_DIRECTIVE: … Module level directives cause errors when
+bundled, "use client" in "…/classicy.es.js" was ignored.` once per build. It
+is harmless (Rollup drops the directive, which only an RSC bundler reads);
+silence it in the host's Rollup config:
+
+```js
+// rollup.config.mjs
+export default {
+    // …
+    onwarn(warning, warn) {
+        if (warning.code === "MODULE_LEVEL_DIRECTIVE" && warning.message.includes('"use client"')) return;
+        warn(warning);
+    },
+};
+```
+
+A Vite build prints nothing (checked with Vite 7.3.7, with and without
+`@vitejs/plugin-react`, which filters this warning itself), and neither do
+esbuild (0.28.2) or webpack (5.113.0).
 
 The Appearance Packages carry no directive (their invariant 12): a package
 registers itself when it runs, which must happen in the browser, so import
@@ -479,8 +512,10 @@ copies the file into its build and serves it under `/_next/static/media/`,
 so nothing is copied into `public/`; no `transpilePackages` or
 `serverExternalPackages` entry is needed either. Checked with Next.js 16.4.6
 (React 19.3.1) on both bundlers, from the packed packages: `next build` and
-`next start`, the Platinum desktop drawn in Chromium with its fonts, art and
-sprites loaded and no console error (story 0224-siu).
+`next start`, the Platinum desktop drawn in Chromium and Firefox with its
+fonts, art and sprites loaded and no console error, and `next dev`, all
+three routes drawn with no hydration warning (React reports hydration
+mismatches in full only in development) (story 0224-siu).
 
 **Source maps and declarations.** Every bundle ships its source map. A map
 holds the source text of Classicy's own modules only (3.7): a bundled

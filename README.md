@@ -466,7 +466,10 @@ stylesheets, as a strict-CSP host does (above).
 directly, with no client wrapper of your own. Pass them serializable props
 (strings, numbers, plain objects, JSX children); function props
 (`onClick`) and calls of Classicy's functions (`registerApp`,
-`registerClassicyIcons`) belong in a client module.
+`registerClassicyIcons`) belong in a client module. Route handlers and
+server actions run on the server with no client module to move a call
+into, so they cannot call Classicy's functions at all: there every Classicy
+export is a client reference, which React refuses to call on the server.
 
 An Appearance Package registers itself when it runs, which must happen in
 the browser, so import it from a client module: the client component that
@@ -507,8 +510,15 @@ export default function Page() {
 The packages' fonts, art and sound files need no setting: Next.js's
 bundler (Turbopack, or webpack with `next build --webpack`) copies each one
 its code references and serves it under `/_next/static/media/`. Checked with
-Next.js 16.4.6 on both bundlers. `docs/AGENT-REFERENCE.md` §1 has the
-details.
+Next.js 16.4.6 on both bundlers, with `next build`, `next start` and
+`next dev`.
+
+The Pages Router needs none of this: import the packages in a page as in any
+React app, and `getServerSideProps` may call Classicy's functions. Hosts
+without React Server Components (Vite, Remix, React Router, Astro) are
+unaffected by the directive; Rollup used on its own prints one harmless
+`MODULE_LEVEL_DIRECTIVE` warning for it, which an `onwarn` filter silences.
+`docs/AGENT-REFERENCE.md` §1 has the details.
 
 ## System 7
 
