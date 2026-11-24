@@ -640,8 +640,8 @@ The Apple menu's **Recent Applications** and **Recent Documents** (story
 0226-a6f; Mac OS 8.1 and System 7.5.3 observed on Infinite Mac) are fed by
 the kernel (`src/SystemFolder/SystemResources/RecentItems/`, store-free):
 `openApp` records an app that is really there (its `ClassicyApp` mounted,
-its record held, an `app_shortcut` icon record: on the desktop or in
-Applications; never the Finder, an extension, or an app whose manifest
+its record held, an `app_shortcut` icon record or an Apple-menu entry;
+never the Finder, an extension, or an app whose manifest
 says `controlPanel: true`), and every document open records through one
 helper, `recordClassicyRecentDocument`, which keeps a path only when it
 names a file of the desktop's file system (`peekClassicyFileSystemEntry`
@@ -658,16 +658,22 @@ the rest reopen as they mount), and is a **document open** when either
 option is given: only the document's windows (`${id}_file_${path}`,
 `classicyDocumentWindowId`, plus `windows`) reopen and come to the front;
 a document launch holds the windows mounting with it to that rule
-(`launchedFor`, `mayClassicyWindowReopen`, ended by `ClassicyApp`'s
-`ClassicyAppLaunchSettled`; session state). `closeApp` (Quit) empties
-`data.openFiles` and runs the app's quit handler
-(`ClassicyAppQuitHandlers.internal.ts`: Web Viewer's pages, HyperCard's
-stacks); on relaunch the viewers show their sample again, PDF Viewer its
-Open dialog. SimpleText asks before closing or quitting with unsaved text
-(Mac OS 8.1's alert: Don’t Save, Cancel, Save). A `handlesOwnFiles` app
-names a document window `${id}_file_${path}` and dispatches its
-`CloseFile` on close (the window-id convention, `docs/AGENT-REFERENCE.md`
-§11). State is
+(`launchedFor`, `mayClassicyWindowReopen`; never a modal or utility window),
+and its end (`ClassicyApp`'s `ClassicyAppLaunchSettled`, `settleAppLaunch`;
+session state) fails open, reopening the mounted windows when none of the
+app's opened. `closeApp` (Quit) empties `data.openFiles` and runs the app's
+quit handler (`ClassicyAppQuitHandlers.internal.ts`: Web Viewer's pages,
+HyperCard's stacks); on relaunch the viewers show their sample again; PDF
+Viewer asks for a document and quits whenever it has none. `ClassicyAppClose`
+quits at once; `requestClassicyAppQuit(appId)` (`ClassicyAppQuit.ts`) runs the
+app's quit guard first (`registerClassicyAppQuitGuard`; SimpleText's and
+HyperCard's File > Quit use it). SimpleText asks before closing or quitting
+with unsaved text (Mac OS 8.1's box: Don’t Save, Cancel, Save, in a movable
+modal dialog's frame, `ClassicyAlert`'s `dialogBox`), and registers a
+`beforeunload` handler while text is unsaved. A host names a document window
+`${id}_file_${path}` and dispatches its `CloseFile` on close, or passes its
+window ids to `openApp` (the window-id convention,
+`docs/AGENT-REFERENCE.md` §11). State is
 `System.Manager.Desktop.recentItems` `{ enabled, counts: { application,
 document } (0–99, default 10), items }`, persisted and normalized on load (a
 `migrateClassicyState` step); `ClassicyDesktopRecentItems{SetEnabled,SetCount,

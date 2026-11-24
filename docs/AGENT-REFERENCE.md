@@ -427,7 +427,7 @@ All optional, and all accepted by `Classicy` too:
 | `defaultState` | `DeepPartial<ClassicyStore>` | — | Initial store overrides; applied ONCE, and only when nothing was hydrated from localStorage |
 | `defaultFileSystem` | `ClassicyFileSystemTree` | — | Seed file system tree |
 | `defaultFileSystemMode` | `"merge" \| "exclusive"` | `"merge"` | How the seed combines with stored state |
-| `fileSystemStorageKey` | `string` | `"classicyStorage"` | The `localStorage` key the desktop's file system is kept under: the Finder's, every built-in app's and Recent Items', and that of every `useClassicyFileSystem()` / `useClassicyFileSystemAccessor()` called without a key of its own (published to reducers store-free, for Recent Documents) |
+| `fileSystemStorageKey` | `string` | `"classicyStorage"` | The `localStorage` key the desktop's file system is kept under: the Finder's, every built-in app's and Recent Items', and that of every `useClassicyFileSystem()` / `useClassicyFileSystemAccessor()` called without a key of its own (published to reducers store-free, for Recent Documents, while the provider is mounted; with two providers on one page, which share one store, the first mounted that is still mounted wins) |
 | `defaultFileSystemSeedMigrations` | `ClassicyFileSystemSeedMigration[]` | — | Corrections applied to a **returning** visitor's persisted tree (see `ClassicyFileSystemSeedMigrations.ts`), after the core's own `DefaultFSSeedMigrations` (skipped in `"exclusive"` mode). Without an `id` an op runs every boot, kept harmless by its guards (`ifData`, or `ifUrl` on `delete`); with one it runs once per storage key, recorded in `localStorage["<key>:seedMigrations"]`, and a fresh seed records it unrun. Give every `add` an id, or a deleted entry returns on the next boot |
 | `disableSimpleText`, `disablePDFViewer`, `disableMoviePlayer`, `disablePictureViewer`, `disableHyperCard`, `disableWebViewer`, `disableCalculator` | `boolean` | `false` | Turn off individual built-in apps. `ClassicyDesktop` also clears what a disabled app saved earlier (Apple-menu entry, icon record, open record; `classicyDisabledDefaultAppCleanup`, `ClassicyDisabledDefaultApps.ts`) unless the app is mounted anyway |
 | `defaultMuted` | `boolean` | `false` | Boot with sound off (first mount only; not persisted) |
@@ -631,6 +631,19 @@ Menu/lifecycle hooks for app authors: `useClassicyWindowClose`,
 `useClassicyAboutMenu`, `useClassicyHelpMenu`, `useClassicyEditMenu`, plus
 menu-item helpers `quitAppHelper`, `quitMenuItemHelper`,
 `closeWindowMenuItemHelper`, `closeAllWindowsMenuItemHelper`.
+
+**Quitting with unsaved work** (`ClassicyAppQuit.ts`): `ClassicyAppClose`
+(and `quitAppHelper`'s action) quits at once and discards whatever the app
+has not saved. To quit the way an app's own File > Quit does, asking first,
+call `requestClassicyAppQuit(appId)`: it runs the app's quit guard and
+dispatches `ClassicyAppClose` only when the guard resolves `true` (resolves
+whether the app quit; a second request while one is asking joins it). An app
+with unsaved work registers its guard from an effect,
+`registerClassicyAppQuitGuard(appId, () => boolean | Promise<boolean>)`
+(returns the unregister), and points its Quit item at
+`requestClassicyAppQuit` (`{ ...quitMenuItemHelper(…), onClickFunc }`).
+SimpleText's guard asks to save each unsaved document, HyperCard's each
+unsaved stack.
 `ClassicyAppIdContext` provides the current app id to descendants.
 
 Text your app draws that names the app (a window title, a proxy icon, an
@@ -1391,7 +1404,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `dialogBox?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `movable` alert is a movable alert box: Platinum draws red highlights on its title bar for every `alertType` (HIGOS8 p.61, Figure 3-4); the look is the package's, so System 7 (whose HIG has no movable alert box) draws a movable modal dialog's title bar. `dialogBox` (with `movable`) draws it in a movable modal dialog box's frame instead, the plain title bar (HIGOS8 p.59), for an alert the Mac put in a dialog box (Mac OS 8.1's SimpleText "Save changes…"). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -6133,9 +6146,9 @@ store-free, called by the kernel):
   nothing mounted (a stack script's invention, a removed app's saved record)
   never does, however often it is opened, trusted or not. Only an app the
   user can find, on the desktop or in the Applications folder (it has an
-  `app_shortcut` icon record, which `ClassicyApp` registers for either): an
-  app with `showDesktopIcon={false}` and `showInApplicationsFolder={false}`
-  (Web Viewer, opened only by its pages) is never listed, since chosen on its
+  `app_shortcut` icon record, which `ClassicyApp` registers for either) or
+  in the Apple menu (`addSystemMenu`): an app with none of the three (Web
+  Viewer, opened only by its pages) is never listed, since chosen on its
   own it would have nothing to show. Never the Finder, an extension, or an
   app whose manifest says `controlPanel: true` (the Mac remembered
   applications; a control panel opened from the Apple menu was not added). It is remembered by its **internal** name; the menu shows the name
@@ -6193,57 +6206,89 @@ untitled window only.
   app **for a document**: only the document's windows reopen and come to the
   front (`` `${appId}_file_${document}` ``, which `classicyDocumentWindowId`
   builds, and the ids in `windows`), and every other window the app closed
-  stays closed. When this launches the app (it was not open), the windows
-  that mount with the launch are held to the same rule (`launchedFor`,
-  `mayClassicyWindowReopen`, read by `ClassicyWindowOpen`): after a quit, or
-  on a first launch, a document open shows only that document, never a main
-  window or one the user closed. `ClassicyApp` ends the launch once those
-  windows have registered (`ClassicyAppLaunchSettled`, `settleAppLaunch`,
-  which also fronts the window the app last had in front when none is);
-  `launching` and `launchedFor` are session state, stripped on save.
+  stays closed. When this launches the app (it was not open, and its
+  `ClassicyApp` is mounted), the windows that mount with the launch are held
+  to the same rule (`launchedFor`, `mayClassicyWindowReopen`, read by
+  `ClassicyWindowOpen`), except a modal window (a dialog the document's
+  opening shows, such as a HyperCard stack's `answer`) and a utility window
+  (a palette, such as HyperCard's Tools and Info), which always open: after
+  a quit, or on a first launch, a document open shows only that document and
+  its dialogs and palettes, never a main window or one the user closed.
+  `ClassicyApp` ends the launch once those windows have registered
+  (`ClassicyAppLaunchSettled`, `settleAppLaunch`). If no window of the app
+  opened (the launch named none the app draws: a host showing its documents
+  in a window of its own), the end **fails open**: every mounted window
+  reopens, as on a plain launch, so the app is never left in front with
+  nothing on screen. The end also fronts the window the app last had in
+  front when none is. `launching` and `launchedFor` are session state,
+  stripped on save.
 - `closeApp` (Quit) closes the app's windows and its documents: it empties
   `data.openFiles`, and runs the app's quit handler for documents kept
   elsewhere (`registerClassicyAppQuitHandler`, internal: Web Viewer's
   `openUrls`, HyperCard's `openStacks` and `activeStackId`; a stack's edit
-  session stays, and HyperCard's Quit asks about it first). So a later
-  launch never brings back a document the app had open before it quit. On a
-  plain relaunch Movie Player and Picture Viewer load their sample again,
-  as on their first launch; PDF Viewer, which has no window without a
-  document, shows its Open dialog (PDF files) on a launch that opens none;
-  HyperCard shows its empty window; SimpleText a new Untitled window.
+  session stays, and HyperCard's Quit asks about it first; reopened, the
+  stack shows its Tools and Info palettes again). So a later launch never
+  brings back a document the app had open before it quit. On a plain
+  relaunch Movie Player and Picture Viewer load their sample again, as on
+  their first launch (the check restarts on every launch, a Quit and a
+  relaunch in one tick included); HyperCard shows its empty window;
+  SimpleText a new untitled window. **PDF Viewer** opens only documents and
+  has no window without one (and an app with no window has no menu bar in
+  Classicy, so nothing could quit it), so a launch that opens none shows its
+  Open dialog, and once it has no document and is not asking for one
+  (Cancel in that dialog, its last document closed, or a saved session that
+  left it open with none) it quits, as the Mac's document-only utilities
+  did: it is never saved `open` with no window.
+- `ClassicyAppClose` is the immediate quit: it discards what the app has
+  not saved. `requestClassicyAppQuit(appId)` (§2, "Quitting with unsaved
+  work") quits as the app's File > Quit does, asking first.
 - **SimpleText asks before it discards text** (Mac OS 8.1's SimpleText,
-  observed): closing a window, or quitting, with unsaved text (an Untitled
-  window typed in, a file edited since it was opened or saved) shows a
-  caution alert, "Save changes to the document “<title>” before closing?"
-  (the same words for a Quit), with **Don’t Save**, **Cancel** and **Save**,
-  Save the default. Cancel keeps the document, and stops the Quit; Save
-  writes a file (an Untitled one through the Save dialog, whose Cancel
-  cancels the close). A Quit asks about each unsaved document in turn, the
-  front window first.
+  observed): closing a window, or quitting (its File > Quit, or
+  `requestClassicyAppQuit`), with unsaved text (an untitled window typed in,
+  a file edited since it was opened or saved) shows a caution alert, "Save
+  changes to the document “<title>” before closing?" (the same words for a
+  Quit; a new document is "untitled", as on 8.1), with **Don’t Save**,
+  **Cancel** and **Save**, Save the default, in a movable modal dialog box's
+  frame (gray, as 8.1 draws it: `ClassicyAlert`'s `dialogBox`). Cancel keeps
+  the document, and stops the Quit; Save writes a file (an untitled one
+  through the Save dialog, whose Cancel cancels the close; a Save As… chosen
+  from the menu meanwhile is a Save As, which also answers the alert). A
+  Quit asks about each unsaved document in turn, the front window first,
+  closing each as it is answered, as the Mac did; Cancel leaves the rest
+  open. Two paths SimpleText cannot ask on: a reload or closing the browser
+  tab, where the browser's own confirmation asks instead (SimpleText
+  registers a `beforeunload` handler while any document is unsaved), and a
+  `ClassicyAppClose` dispatched from code, which quits at once and discards
+  unsaved text (a host that wants the alert calls
+  `requestClassicyAppQuit("SimpleText.app")`).
 
 **The window-id convention** (a host app's document windows). The kernel
 names a document's window `` `${appId}_file_${path}` ``. `ClassicyApp` draws
 its own windows for `data.openFiles` under that id (`handlesOwnFiles`
-`false`). An app that draws its own (`handlesOwnFiles`), as SimpleText and
-PDF Viewer do, should:
+`false`). What a host app does:
 
-1. give the window it draws for a queued path the id
-   `` `${appId}_file_${path}` `` (`classicyDocumentWindowId(appId, path)`), so
-   a document open reopens and fronts that window only, and a document
-   launch after a quit shows it alone; and
-2. dispatch `` `ClassicyApp${name}CloseFile` `` with the path when that
-   window closes, so the path leaves the queue: the window unmounts, and the
-   next open of the document queues it again and the window opens, in front.
+1. **Its documents on the generic queue, in windows it draws**
+   (`handlesOwnFiles`, as SimpleText and PDF Viewer do): give the window it
+   draws for a queued path the id `` `${appId}_file_${path}` ``
+   (`classicyDocumentWindowId(appId, path)`), so a document open reopens and
+   fronts that window only, and a document launch shows it alone; and
+   dispatch `` `ClassicyApp${name}CloseFile` `` with the path when that
+   window closes, so the path leaves the queue (the window unmounts, and the
+   next open of the document queues it again and the window opens, in
+   front).
+2. **Its documents opened by its own action** (its reducer calls
+   `openApp(ds, id, name, icon, { document: path })`): pass the ids of the
+   windows that show the document too, `{ document: path, windows: [id] }`,
+   as Movie Player, Picture Viewer (`moviePlayerWindowId`,
+   `pictureViewerWindowId`), Web Viewer (`` `${appId}_url_${url}` ``) and
+   HyperCard (`hypercard_main`) do. Then a document launch shows those
+   windows alone.
 
-An app whose document window has an id of its own and keeps its path queued
-after the window closes still reopens it: when a document already queued
-has no `` `${appId}_file_${path}` `` window, the generic queue reopens every
-window the app closed, as a plain open, that one among them. And a launch
-for a document never holds back the windows of such an app (it names none
-of the convention's ids), so they open as on a plain launch. Apps that queue
-documents elsewhere name their windows to `openApp` (`windows`): Movie
-Player and Picture Viewer (`moviePlayerWindowId`, `pictureViewerWindowId`),
-Web Viewer (`` `${appId}_url_${url}` ``), HyperCard (`hypercard_main`).
+A host that does neither still shows its documents. A document already
+queued with no `` `${appId}_file_${path}` `` window makes the generic queue
+reopen every window the app closed, as a plain open, so a closed window of
+its own comes back; and a document launch that opens none of the app's
+windows fails open, as above, so its windows open as on a plain launch.
 
 State, persisted with the desktop (`System.Manager.Desktop.recentItems`,
 `ClassicyStoreRecentItems`; `defaultClassicyRecentItemsState()` in the
