@@ -409,22 +409,44 @@ pixel-literal purge (Part H)", and §8, "Package knob families".
 
 ## Server rendering (Next.js, Remix, Astro)
 
-The bundles load in Node with no DOM, so a server-rendering host imports
-Classicy as it is, without `dynamic(() => import(…), { ssr: false })` or a
-client-only island. `import` takes the ES bundle; `require()` in Node takes
-`dist/classicy.umd.cjs` (and each Appearance Package's `.umd.cjs`), a small
-CommonJS loader for the unchanged UMD bundle, `dist/classicy.umd.js`, which
-browser bundlers, `main` and CDN script tags keep using.
+The bundles load in Node with no DOM, on Node 22 through 26, so a
+server-rendering host imports Classicy as it is, without
+`dynamic(() => import(…), { ssr: false })` or a client-only island.
+
+Which format to use:
+
+- A browser app, through any bundler: `import`.
+- A Node server: `import`, or `require()` (Node 20.16 or 22.3 and later),
+  which reaches `dist/classicy.umd.cjs`, a small CommonJS loader for the
+  unchanged UMD bundle. `require()` is for Node only; a browser bundler must
+  `import`.
+- A `<script>` tag (unpkg, jsDelivr): `dist/classicy.umd.js`, as before.
 
 On the server the desktop renders an empty shell, `<div
 class="classicyDesktop">` with your `className` and `style`; hydration renders
 the same shell, so nothing mismatches, and the desktop draws right after it.
 Everything it shows waits for the client: the state saved in `localStorage`,
-the viewport, the theme, the asset URLs, sound and the startup screen. A
-server render starts no timer and logs nothing. A `createRoot` host draws the
-desktop on its first render, as before. The stylesheet arrives with the JS;
-to have it in the server's HTML, link `@classicy/classicy/dist/classicy.css`
-and the package stylesheets, as a strict-CSP host does (above).
+the viewport, the theme, the asset URLs, sound and the startup screen. Lone
+components (a button, a pop-up menu on your own page) render in full. A
+server render reads no browser storage, starts no timer, raises no warning
+and logs nothing. A `createRoot` host draws the desktop on its first render,
+as before. The stylesheet arrives with the JS; to have it in the server's
+HTML, link `@classicy/classicy/dist/classicy.css` and the package
+stylesheets, as a strict-CSP host does (above).
+
+- Keep `@classicy/*` external in a server bundle that `require()`s them: a
+  Node-target bundler (esbuild `--platform=node`, webpack's `target: "node"`)
+  copies the CommonJS loader without the bundle it reads, and the loader then
+  says so when it runs.
+- Load the core and its Appearance Packages the same way in one process: a
+  process that both `import`s and `require()`s Classicy gets two separate
+  libraries, each with its own registries.
+- TypeScript hosts in CommonJS type-check `require()` too: the packages ship
+  `.d.cts` declarations for it.
+- Jest works through `require()` in its node and jsdom environments with two
+  settings of your own: transform `react-player` (ES modules only) and give
+  jsdom `structuredClone`. `docs/AGENT-REFERENCE.md` §1 has the snippet, and
+  more on stack traces and source maps.
 
 ## System 7
 

@@ -222,16 +222,34 @@ carries pdf.js inline, runs it only then too).
 `import '@classicy/classicy/fonts'` is a deprecated no-op (the Platinum
 package registers its fonts), and `dist/fonts.css` no longer exists.
 
+**Which format to use.** Each package ships an ES build and a UMD bundle:
+
+| Consumer | Use | It resolves |
+|---|---|---|
+| A browser app through a bundler (Vite, webpack, esbuild, Rollup) | `import` | `dist/classicy.es.js` |
+| A Node server (Next.js, Remix, Astro), ES modules | `import` | `dist/classicy.es.js` |
+| A Node server or test runner in CommonJS | `require()` | `dist/classicy.umd.cjs`, which runs `dist/classicy.umd.js` |
+| A page's `<script>` tag (unpkg, jsDelivr) | the file | `dist/classicy.umd.js`, globals `classicy`, `classicyAppearancePlatinum`, … |
+
+Each Appearance Package is the same with its own names
+(`dist/appearance-platinum.es.js`, `.umd.cjs`, `.umd.js`). `require()` is
+supported in Node only: these packages are `"type": "module"`, so Node reads
+`dist/classicy.umd.js` as an ES module and cannot `require()` it itself, and
+the exports map's `require` names, under `node`, a few-line CommonJS loader
+beside it that runs it as CommonJS (Node 20.16 or 22.3 and later: the UMD
+bundle reaches Node's `url` module with `process.getBuiltinModule`, never a
+static `require("url")`). Every other `require` resolver, and `main`, take
+`dist/classicy.umd.js` itself; a browser bundler must `import` (webpack, for
+one, parses that `.js` file as an ES module in a `"type": "module"` package,
+so the UMD wrapper finds no `module` and exports nothing).
+
 **Server rendering (Next.js, Remix, Astro).** Every package's bundles load in
-Node with no DOM (verify:dist invariant 19, the packages' invariant 11), so a
+Node with no DOM, on Node 22, 24, 25 and 26 alike (verify:dist invariant 19,
+the packages' invariant 11: each bundle imported and each loader required in
+a child Node, once with the browser's globals deleted and once with Node's
+own, `localStorage` and `sessionStorage` failing on any read), so a
 server-rendering host imports Classicy as it is, without
-`dynamic(() => import(…), { ssr: false })` or a client-only island. `import`
-takes the ES bundle. `require()` in Node takes `dist/classicy.umd.cjs` (each
-Appearance Package's `dist/<name>.umd.cjs`), a few-line CommonJS loader that
-runs the unchanged UMD bundle beside it as CommonJS: these packages are
-`"type": "module"`, so Node reads `dist/classicy.umd.js` as an ES module and
-cannot `require()` it itself. Every other `require` resolver (a browser
-bundler's), `main` and CDN script tags keep `dist/classicy.umd.js`.
+`dynamic(() => import(…), { ssr: false })` or a client-only island.
 
 What renders where: on the server, `ClassicyDesktop` (and `Classicy`) renders
 an empty shell, `<div class="classicyDesktop">` with the host's `className`
@@ -241,14 +259,74 @@ waits for the client: the state saved in `localStorage`, the viewport, the
 theme's CSS variables, the asset URLs (relative to the bundle's own URL,
 which is a `file:` path on the server), sound and the startup screen. A host
 that renders with `createRoot` draws the desktop on its first render, as
-before. On the server the provider builds no analytics instance (its queue
-timer is never cleared) and no sound player, and the store schedules no
-storage write, so a server render starts no timer and logs nothing. Import the
-Appearance Package where both sides load it (the module that renders the
-desktop). The stylesheet still arrives with the JS (`<style
-id="classicy-styles">`, inserted when the bundle loads in a browser); a host
-that wants it in the server's HTML links `dist/classicy.css` and the package
-stylesheets, as a strict-CSP host does.
+before. Lone components outside a desktop (a button, a pop-up menu, a
+checkbox on the host's own page) render in full on the server. On the server
+the provider builds no analytics instance (its queue timer is never cleared)
+and no sound player, and nothing reads `localStorage` or `sessionStorage` (from
+Node 25 Node defines both, and without `--localstorage-file` a read throws,
+returns an object without `setItem`, or warns), so a server render starts no
+timer, raises no warning and logs nothing. Import the Appearance Package
+where both sides load it (the module that renders the desktop). The
+stylesheet still arrives with the JS (`<style id="classicy-styles">`,
+inserted when the bundle loads in a browser); a host that wants it in the
+server's HTML links `dist/classicy.css` and the package stylesheets, as a
+strict-CSP host does.
+
+- **Keep `@classicy/*` external in a server bundle that `require()`s them.**
+  A Node-target bundler (esbuild `--platform=node`, webpack's `target:
+  "node"`) that bundles a `require()` copies the CommonJS loader without the
+  UMD bundle it reads; the loader then throws `@classicy/classicy: its UMD
+  bundle, … is missing beside its CommonJS loader`. Mark the packages
+  external (Next.js keeps `node_modules` external on the server by default),
+  or `import` them.
+- **One format per process.** A process that both `import`s and
+  `require()`s Classicy loads two separate libraries, each with its own
+  store and registries (Node's dual-package hazard): an Appearance Package
+  `import`ed registers into the ES library only. Load the core and its
+  packages the same way (`verify:host-types` checks it: `host-both.mjs`).
+- **Stack traces and source maps.** The loader runs the UMD bundle with a
+  direct `eval` carrying `//# sourceURL=` the bundle's path, so a stack trace
+  names `classicy.umd.js` and its own lines and columns, and
+  `--enable-source-maps` maps them through `classicy.umd.js.map` (Node maps
+  generated code with a source URL). Under
+  `--disallow-code-generation-from-strings` it compiles the bundle with
+  `vm.runInThisContext` instead: the same file, lines and columns, no source
+  maps.
+- **TypeScript in CommonJS.** The exports map's `require` has its own
+  `types`: each declaration ships again as a `.d.cts` twin
+  (`dist/types/src/index.d.cts`), so a `.cts` host, or a CommonJS one on
+  `module: node16` or `nodenext`, type-checks `require("@classicy/classicy")`
+  with or without `skipLibCheck` (`verify:host-types` checks `node16-cjs`,
+  `node16-cjs-lib-check` and `nodenext-cjs`).
+- **Jest.** Jest's CommonJS runtime reaches the loader in both its `node` and
+  `jsdom` environments, and the bundle runs in the test's own realm (its
+  globals and fake timers). Two settings are the host's: `react-player`, one
+  of the core's dependencies, ships ES modules only, which Jest cannot
+  `require()`, so transform it, and jsdom has no `structuredClone`, which
+  Platinum calls when it registers, so hand the environment Node's:
+
+  ```js
+  // jest.config.cjs (with @babel/plugin-transform-modules-commonjs installed)
+  module.exports = {
+  	transform: {
+  		"^.+\\.js$": ["babel-jest", { plugins: ["@babel/plugin-transform-modules-commonjs"] }],
+  	},
+  	transformIgnorePatterns: ["/node_modules/(?!react-player/)"],
+  	// testEnvironment: "./jsdom-environment.cjs" for the jsdom tests
+  };
+
+  // jsdom-environment.cjs
+  const { TestEnvironment } = require("jest-environment-jsdom");
+  module.exports = class extends TestEnvironment {
+  	constructor(...args) {
+  		super(...args);
+  		this.global.structuredClone = structuredClone;
+  	}
+  };
+  ```
+
+  Checked with Jest 30.5.2 and jest-environment-jsdom 30.5.2 against the
+  packed packages (story 0223-a0y).
 
 **Source maps and declarations.** Every bundle ships its source map. A map
 holds the source text of Classicy's own modules only (3.7): a bundled
