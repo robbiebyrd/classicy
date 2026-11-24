@@ -35,16 +35,37 @@
 //   line under it; a window's own menu bar flat ButtonFace, no bevel, as
 //   Windows 98 draws a menu bar (the package's layout places menus on the
 //   screen, so only a host that places a bar in a window sees it).
-// - A dialog (modal) in the same frame and caption, its body ButtonFace with
-//   no client edge; the tool window (utility) with a `--window-utility-title-
-//   bar-height` (13) caption and `--utility-title-bar-button-width` x
-//   `-height` (12 x 11) buttons with smaller marks, and standard scroll bars
-//   (the base narrows a windoid's).
+// - A dialog (modal) in the same edge and caption but the fixed window
+//   frame: a window that cannot be resized has no sizing border, its border
+//   coinciding with its edge (WIG Ch.6 "Window Frames", p.76), so its ring
+//   is the two-pixel edge plus one pixel of ButtonFace, three rings
+//   (Windows' dialog frame, SM_CXDLGFRAME 3), where the sizable window's is
+//   four (SM_CXFRAME 4; every bundled modal is `resizable={false}`); its
+//   body ButtonFace with no client edge. Its caption holds the title and
+//   the Close box alone: a secondary window "does not include Maximize or
+//   Minimize buttons" and "the title bar does not include icons" (WIG Ch.8
+//   "Appearance and Behavior", p.145, Figure 8.1), so the collapse box the
+//   core draws for a `collapsable` modal and the icon it draws unless
+//   `hideIcon` are not drawn (the core draws no zoom box on a modal bar).
+//   A modeless dialog (`contentFrame`) is a plain dialog too: Find and
+//   Replace are ButtonFace boxes of controls with no inner frame (WIG Ch.8
+//   "Find and Replace Dialog Boxes", p.158, Figure 8.8), so the core's
+//   two-pixel frame draws nothing and the client area around it is
+//   ButtonFace with no client edge. The tool window (utility) with a
+//   `--window-utility-title-bar-height` (13) caption and one
+//   `--utility-title-bar-button-width` x `-height` (12 x 11) button, Close,
+//   with a smaller mark (a palette window's title bar "includes only a
+//   Close button", WIG Ch.8 "Palette Windows", p.163, Figure 8.15: the
+//   zoom and collapse boxes are not drawn), and standard scroll bars (the
+//   base narrows a windoid's).
 // - Moving or resizing: the window's frame as a `--window-frame-inset` band
-//   of the 50% checker Windows drags a window by (Show Window Contents While
-//   Dragging off). Inactive windows are not dimmed, filtered or faded
-//   anywhere: only the caption's colors change. Collapsed (WindowShade,
-//   which Windows has not) leaves the caption alone.
+//   (a dialog's, its three rings) of the 50% checker Windows drags a window
+//   by (Show Window Contents While Dragging off; WIG Ch.6 "Moving Windows",
+//   p.83: an outline moves with the pointer). Inactive windows are not
+//   dimmed, filtered or faded anywhere: only the caption's colors change
+//   (WIG Ch.6 "Activating and Deactivating Windows", p.80: nothing but the
+//   title bar's color changes). Collapsed (WindowShade, which Windows has
+//   not) leaves the caption alone.
 // - The standalone frame (ClassicyWindowFrame) is the same frame and an
 //   active caption around a ButtonFace body; it draws no boxes and no icon,
 //   so it takes the bar and title alone.
@@ -75,6 +96,10 @@ $title-text-inactive: var(--package-color-title-bar-inactive-text, var(--color-s
 // read as the base sheet reads it.
 $title-gap: var(--title-bar-gap);
 $client-edge: b.$b2;
+// The fixed window frame (a dialog's): the two-pixel edge plus one pixel of
+// ButtonFace, three rings, where the sizable window's ring is the core's
+// `--window-frame-inset` (4).
+$fixed-frame: calc(#{b.$b2} + #{b.$b});
 $header: var(--control-row-height);
 $menu-bar: var(--classicy-window-menu-bar-height, var(--window-menu-bar-height));
 
@@ -103,14 +128,10 @@ $maximize: runs(
 );
 $minimize: runs(("xxxxxx", "xxxxxx"), "x");
 
-// The tool window's 12 x 11 buttons: the X 6 x 5 at (3, 3), the box 7 x 7 at
-// (2, 2), the bar 4 x 2 at (3, 6).
+// The tool window's 12 x 11 Close button: the X 6 x 5 at (3, 3). It is the
+// palette's only button (WIG Ch.8 "Palette Windows", p.163), so the small
+// Maximize and Minimize marks have no box to land on and are not drawn.
 $close-small: runs(("xx..xx", ".xxxx.", "..xx..", ".xxxx.", "xx..xx"), "x");
-$maximize-small: runs(
-  ("xxxxxxx", "xxxxxxx", "x.....x", "x.....x", "x.....x", "x.....x", "xxxxxxx"),
-  "x"
-);
-$minimize-small: runs(("xxxx", "xxxx"), "x");
 
 // The size grip (DrawFrameControl's DFCS_SCROLLSIZEGRIP), in a 14 x 14 box
 // anchored at the grip cell's lower right: three ridges from lower left to
@@ -489,17 +510,39 @@ $grip-shadow: runs($grip, "s");
     @include with-menu-bar($root);
   }
 
-  // A dialog: the same frame and caption as a window (the base gives a
+  // A dialog: the same edge and caption as a window (the base gives a
   // modal no frame and pads its caption instead; the caption's padding
-  // above covers the modal bar too), its body ButtonFace with no client edge
-  // or rule across the top, and under a header less the strip's height, as
-  // the base sheet's doubled rule has it.
+  // above covers the modal bar too) in the fixed frame: a window that
+  // cannot be resized has no sizing border (WIG Ch.6 "Window Frames",
+  // p.76: its border coincides with the edge of the window), so its ring is
+  // the edge plus one pixel of ButtonFace, three rings (SM_CXDLGFRAME),
+  // against the sizable window's four. Every bundled modal is
+  // `resizable={false}`; a resizable modal (none is) would keep the grip the
+  // core draws in a ring one pixel thinner than it is measured from. Its
+  // body ButtonFace with no client edge or rule across the top, and under a
+  // header less the strip's height, as the base sheet's doubled rule has it.
   .classicyWindow.classicyWindowModal {
-    padding: var(--window-frame-inset);
+    padding: $fixed-frame;
   }
 
   .classicyWindow .classicyWindowTitleBarModal .classicyWindowTitle {
     width: auto;
+  }
+
+  // A dialog's caption holds its title and Close box alone. A secondary
+  // window "does not include Maximize or Minimize buttons" and "the title
+  // bar does not include icons" (WIG Ch.8 "Appearance and Behavior", p.145;
+  // Figure 8.1 shows the title at the left and the buttons at the right):
+  // the core draws no zoom box on a modal bar, but draws the collapse box
+  // for a `collapsable` modal (the default; every bundled dialog opts out)
+  // and the icon unless `hideIcon` (the file dialog passes none). Neither is
+  // drawn here, so under this package a dialog has no WindowShade box (the
+  // title's double-click still collapses it where the desktop's preference
+  // is on). The title keeps its `--title-bar-text-inset` from the caption's
+  // left edge, where the icon stood.
+  .classicyWindow .classicyWindowTitleBarModal [data-classicy-control="collapse"],
+  .classicyWindow .classicyWindowTitleBarModal .classicyWindowIcon {
+    display: none;
   }
 
   .classicyWindow .classicyWindowContentsModal {
@@ -516,22 +559,39 @@ $grip-shadow: runs($grip, "s");
     height: calc(100% - var(--window-title-bar-height) - #{$title-gap} - #{$header});
   }
 
-  // A modeless dialog's content frame (`contentFrame`, on the contents'
-  // inner box): sunken two rings (the base's two-pixel black border),
-  // inactive or not.
+  // A modeless dialog (`contentFrame`, the core's two-pixel frame on the
+  // contents' inner box, HIGOS8 p.51's modeless-dialog frame) is a plain
+  // dialog under Windows: Find and Replace are ButtonFace boxes of fields,
+  // drop-downs and check boxes with no inner frame (WIG Ch.8 "Find and
+  // Replace Dialog Boxes", p.158, Figure 8.8). So the frame draws nothing,
+  // active or not, and the client area holding one gives up its client edge
+  // and Window white for ButtonFace (a host's `--classicy-window-contents-bg`
+  // first, as the modal body takes it); the viewport inherits the color.
+  // The second rule is keyed on `:has()`, as the base sheet keys its own
+  // menu-bar rule: a browser without it keeps the sunken white client area
+  // around a flat inner box.
   .classicyWindowContentsFramed {
     box-sizing: border-box;
-    padding: $client-edge;
+    padding: 0;
     border: none;
-
-    @include b.sunken;
+    box-shadow: none;
   }
 
-  // The tool window (WS_EX_TOOLWINDOW): a shorter caption with small
-  // buttons, no title (the core's windoid draws none), and standard scroll
-  // bars, where the base narrows a windoid's to the frame ring and derives
-  // the arrow from that; `inherit` takes the theme's values back from the
-  // desktop root.
+  .classicyWindow .classicyWindowContents:has(.classicyWindowContentsFramed) {
+    padding: 0;
+    box-shadow: none;
+    background-color: var(--classicy-window-contents-bg, b.$face);
+  }
+
+  // The tool window (WS_EX_TOOLWINDOW, a palette window): a shorter caption
+  // with one small button, Close (a palette window's title bar "is shorter
+  // but still includes only a Close button", WIG Ch.8 "Palette Windows",
+  // p.163, Figure 8.15: the zoom and collapse boxes the core draws for a
+  // `zoomable` or `collapsable` palette, the defaults, are not drawn, so a
+  // palette has no WindowShade box under this package), no title (the core's
+  // windoid draws none), and standard scroll bars, where the base narrows a
+  // windoid's to the frame ring and derives the arrow from that; `inherit`
+  // takes the theme's values back from the desktop root.
   .classicyWindow.classicyWindowUtility {
     --window-scrollbar-size: inherit;
     --window-scrollbar-arrow-size: inherit;
@@ -541,28 +601,21 @@ $grip-shadow: runs($grip, "s");
       height: var(--window-utility-title-bar-height);
       min-height: var(--window-utility-title-bar-height);
 
+      [data-classicy-control="zoom"],
+      [data-classicy-control="collapse"] {
+        display: none;
+      }
+
       .classicyWindowControlBox {
         width: var(--utility-title-bar-button-width);
         height: var(--utility-title-bar-button-height);
       }
 
-      .classicyWindowCloseBox,
-      .classicyWindowZoomBox,
-      .classicyWindowCollapseBox {
+      .classicyWindowCloseBox {
         width: var(--utility-title-bar-button-width);
         height: var(--utility-title-bar-button-height);
-      }
 
-      .classicyWindowCloseBox {
         @include caption-button($close-small, 3, 3);
-      }
-
-      .classicyWindowZoomBox {
-        @include caption-button($maximize-small, 2, 2);
-      }
-
-      .classicyWindowCollapseBox {
-        @include caption-button($minimize-small, 3, 6);
       }
     }
 
@@ -613,10 +666,16 @@ $grip-shadow: runs($grip, "s");
   }
 
   // Moving or resizing: the checkered band in the frame's place (the base
-  // clears the window's background and hides its children).
+  // clears the window's background and hides its children); a dialog's band
+  // is its fixed frame's three rings.
   .classicyWindow.dragging,
   .classicyWindow.classicyWindowResizing {
     @include drag-band;
+  }
+
+  .classicyWindow.classicyWindowModal.dragging::after,
+  .classicyWindow.classicyWindowModal.classicyWindowResizing::after {
+    padding: $fixed-frame;
   }
 
   // The standalone frame (ClassicyWindowFrame): a window's frame and an

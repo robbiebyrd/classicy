@@ -17,15 +17,20 @@
 //   are embossed (GrayText over a ButtonHilight copy one pixel down and
 //   right). Its menu is a Windows menu: ButtonFace in the window frame
 //   (`b.window-frame`), items `--menu-item-padding-x` (6) in, the tracked
-//   item HilightText on Hilight, a disabled one embossed, framed and spaced
-//   as _Menu.scss frames the pull-downs. The keyboard focus is the dotted
-//   rectangle inside the edge, `:focus-visible` only.
+//   item HilightText on Hilight, a disabled one embossed and browsed like
+//   any other, the band tracking it with its text GrayText (WIG Ch.7 "Menu
+//   Items", p.107: disabling an item does not prevent browsing or choosing
+//   it, choosing only does nothing), framed and spaced as _Menu.scss frames
+//   the pull-downs. The keyboard focus is the dotted rectangle inside the
+//   edge, `:focus-visible` only.
 // - The pager (Mac OS 8 Help's page control): two raised ButtonFace push
 //   buttons (`b.raised`) with a WindowText triangle 6 x 11 pointing back and
 //   forward, pressed in the pressed bevel with the triangle a pixel down and
 //   right, disabled with the triangle embossed; between them the page
-//   number, bold WindowText on Window white in the client edge
-//   (`b.sunken`). The pager's own knobs keep its geometry.
+//   number, WindowText on Window white in the client edge (`b.sunken`), in
+//   the plain weight (the base sets it bold; interface text is nonbold but
+//   to call attention or to make a hierarchy, WIG Ch.13 "Font and Size"
+//   (p.312)). The pager's own knobs keep its geometry.
 // - A link: the scheme's accent (`--color-theme-04`, navy in Windows
 //   Standard and the scheme's Hilight in every preset; the theme has no link
 //   color, and Windows' hyperlinks were navy) underlined, the same under the
@@ -145,14 +150,28 @@ $forward: runs(
     line-height: 1;
     color: b.$text;
 
-    &:hover:not(:disabled),
-    &:focus:not(:disabled) {
+    // Browsed, under the pointer or the keyboard: the Hilight band with
+    // HilightText, and no focus rectangle (the band marks the item).
+    &:hover,
+    &:focus {
+      outline: none;
       color: b.$highlight-text;
       background-color: b.$highlight;
     }
 
+    // Unavailable: embossed GrayText, and browsed like any item (WIG Ch.7
+    // "Menu Items", p.107), its text plain GrayText on the band, as the
+    // pull-downs' disabled items are (_Menu.scss) and as Windows 9x drew a
+    // selected disabled item. The state rules follow the band rule they
+    // override.
     &:disabled {
       @include b.disabled-text;
+    }
+
+    &:disabled:is(:hover, :focus) {
+      color: b.$gray-text;
+      background-color: b.$highlight;
+      text-shadow: none;
     }
   }
 
@@ -225,6 +244,7 @@ $forward: runs(
   .classicyPagerPage {
     border: 0;
     font-size: var(--ui-font-size);
+    font-weight: normal;
     color: b.$text;
     background: b.$window;
     @include b.sunken;

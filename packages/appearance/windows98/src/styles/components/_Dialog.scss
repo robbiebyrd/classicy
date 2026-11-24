@@ -29,16 +29,27 @@
 //   dialog, and the field above the button that redefines it) is the hot key
 //   control, an edit control: Window white under a two-ring sunken edge
 //   (WS_EX_CLIENTEDGE, `b.sunken`), the edit control's height and text
-//   inset (`--field-height`, `--field-padding-*`, the text fields' own), its
+//   inset (`--field-height`, `--field-padding-*`, the text fields' own, the
+//   height following a larger UI font as theirs does), its
 //   text left-aligned as an edit's is (the base centers it, HIGOS8's figure);
 //   in the dialog it spans the dialog's width (the base insets it 24 pixels
 //   for the figure). Disabled, ButtonFace with plain GrayText: an edit
 //   control draws its disabled text plain, where a static control embosses
 //   it (the text fields' partial reads the same).
-// - The file dialogs' list is a list view: white, sunken two rings, the
-//   viewport and its scroll bar inside the rings; a selected row Hilight
-//   with HilightText across the row, the focused row's dotted rectangle;
-//   the action buttons [Open or Save] [Cancel], then New Folder.
+// - The file dialogs are the Open and Save As common dialogs as far as the
+//   core's structure goes (WIG Ch.8 "Open Dialog Box" and "Save As Dialog
+//   Box", pp.155-157, Figures 8.6 and 8.7): the package's layout asks for
+//   flat navigation (`fileDialog.navigation: "flat"`: one folder's contents
+//   at a time, a folder entered by opening it, the pop-up over the list
+//   running the path upward and then the volumes, as Look in does) and for
+//   Save As to open with the file name selected (`saveName: "selected"`;
+//   p.157: "include a default name in the File Name text box", which the
+//   dialog manager selects on first focus). The list is a list view: white,
+//   sunken two rings, the viewport and its scroll bar inside the rings, rows
+//   of small icons and names with no disclosure cell; a selected row's name
+//   alone Hilight with HilightText, the icon untouched (Figure 8.6
+//   highlights "Letter to Nancy", not its icon), the focused name's dotted
+//   rectangle; the action buttons [Open or Save] [Cancel], then New Folder.
 // - The About box in the UI font: the name bold and large, the notice plain,
 //   no serif.
 // - Windows has no red alert caption and no uncaptioned dialog: an error
@@ -51,6 +62,17 @@
 
 // Windows' dialog margin, 7 dialog units.
 $edge: var(--layout-dialog-edge);
+
+// An edit control's height and the line inside its inset, as the text
+// fields' partial (_TextField.scss) sizes its fields: the knob (21), or, at
+// a UI font size the knob no longer holds, the font plus the text's inset
+// and the two rings above and below it, so the hot-key box follows the
+// Fonts tab (WIG Ch.14 "Scalability" (p.327)).
+$field-height: max(
+  var(--field-height),
+  calc(var(--ui-font-size) + var(--field-padding-y) + var(--field-padding-y) + #{b.$b2} + #{b.$b2})
+);
+$field-line: calc(#{$field-height} - var(--field-padding-y) - var(--field-padding-y));
 
 // A button row in Windows' order: the default button first, Cancel last, any
 // other button between (Help, at the alert's far right, is ordered by
@@ -154,12 +176,13 @@ $edge: var(--layout-dialog-edge);
   // The hot-key box, in the dialog and in the field a control panel shows
   // (the base names the element and both classes, so this does too): the
   // edit control's height (`--field-height`, 21: Windows' edit and combo
-  // box stand at one height, the text fields' partial's choice), its text on
+  // box stand at one height, the text fields' partial's choice; taller at a
+  // UI font size the knob no longer holds, as theirs are), its text on
   // the line left inside the field's inset, left-aligned, Window white under
   // the sunken edge; disabled, a disabled edit control.
   output.classicyOutput.classicyKeyboardEquivalentDisplay {
-    min-height: var(--field-height);
-    line-height: calc(var(--field-height) - var(--field-padding-y) - var(--field-padding-y));
+    min-height: $field-height;
+    line-height: $field-line;
     padding: var(--field-padding-y) var(--field-padding-x);
     text-align: left;
 
@@ -172,9 +195,11 @@ $edge: var(--layout-dialog-edge);
 
   // --- The file dialogs (Open and Save) --------------------------------------
   // The common dialog's parts as Classicy lays them out: the folder pop-up
-  // over the list, the list, the name row (Save), then the filter pop-up at
-  // the left and the buttons at the right. The body's items sit at the
-  // modal's margin (its own padding given up), WindowText in the UI font.
+  // over the list (the path upward, then the volumes, under the package's
+  // flat navigation: Windows' Look in / Save in, WIG Ch.8 p.156), the list,
+  // the name row (Save), then the filter pop-up at the left and the buttons
+  // at the right. The body's items sit at the modal's margin (its own
+  // padding given up), WindowText in the UI font.
   .classicyFileOpenDialogBody {
     padding: 0;
     color: b.$text;
@@ -197,13 +222,25 @@ $edge: var(--layout-dialog-edge);
     box-shadow: none;
   }
 
-  // The rows: items a hair inside the edge (the base's five pixels are the
-  // Mac list's), a selected row Hilight with HilightText, a disabled row's
-  // name GrayText, and the dotted focus rectangle a list view draws on the
-  // row that has the keyboard, one ring inside the row.
+  // The rows, as Figure 8.6's list view has them (WIG Ch.8 "Open Dialog
+  // Box", pp.155-156): items a hair inside the edge (the base's five pixels
+  // are the Mac list's); the disclosure cell not drawn (under the package's
+  // flat navigation every row is a small icon and a name, so the cell is
+  // empty; the tree view outside the well keeps its triangles,
+  // _ListBox.scss); the name alone taking the selection, Hilight under
+  // HilightText a ring high and half an item gap wide around the text, the
+  // icon untouched (a list view highlights the label, where the Mac list
+  // ran the bar across the row); the dotted focus rectangle a list view
+  // draws around the name of the row that has the keyboard (whenever the
+  // list has focus, a click's included), one ring inside its highlight and
+  // in HilightText over a selected name; a disabled row's name GrayText.
   .classicyFileOpenDialogWell {
     .classicyTree {
       padding: var(--layout-item-gap-half);
+    }
+
+    .classicyTreeNodeDisclosure {
+      display: none;
     }
 
     .classicyTreeNodeLabelHolder {
@@ -212,18 +249,25 @@ $edge: var(--layout-dialog-edge);
       &:focus {
         outline: none;
       }
-
-      &:focus-visible {
-        @include b.focus-rect(b.$b);
-      }
     }
 
-    :where(.classicyTreeNodeLabelHolder).selected {
-      background: b.$highlight;
+    .classicyTreeNodeLabel {
+      padding: b.$b var(--layout-item-gap-half);
+    }
 
-      .classicyTreeNodeLabel {
-        color: b.$highlight-text;
-      }
+    .classicyTreeNodeLabelHolder:focus .classicyTreeNodeLabel {
+      @include b.focus-rect(b.$b);
+    }
+
+    :where(.classicyTreeNodeLabelHolder).selected .classicyTreeNodeLabel {
+      color: b.$highlight-text;
+      background-color: b.$highlight;
+    }
+
+    // The state class on the row, not in `:where()`: it must outrank the
+    // focus rule above, whose shorthand sets the outline's color.
+    .classicyTreeNodeLabelHolder.selected:focus .classicyTreeNodeLabel {
+      outline-color: b.$highlight-text;
     }
 
     :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeLabel {

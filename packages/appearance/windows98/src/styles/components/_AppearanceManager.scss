@@ -18,6 +18,10 @@
 //   the dotted focus rectangle inside the rings when the keyboard has one;
 //   the Packages tab's 16-pixel theme-color swatches (the base: a black
 //   border) sunken one ring, ButtonShadow over ButtonHilight.
+// - The color picker's field labels (Red, Green, Blue and the rest, which
+//   the base sets bold) are plain, as the Color dialog's are: interface
+//   text is nonbold but to call attention or to make a hierarchy (WIG Ch.13
+//   "Font and Size" (p.312)).
 // - Drive Setup's list selects a drive in Hilight with HilightText, as a
 //   list view does, not the Mac's inverted black row (DriveSetupList.scss).
 //
@@ -66,6 +70,13 @@
     &:focus-visible {
       @include b.focus-rect(b.$b2);
     }
+  }
+
+  // The color picker's wheel fields (the Colors tab opens the picker):
+  // their labels in the plain weight, as the Color dialog's Hue, Sat, Lum,
+  // Red, Green and Blue are (WIG Ch.13 "Font and Size" (p.312)).
+  .classicyColorPickerWheelField .classicyControlLabel {
+    font-weight: normal;
   }
 
   // The Packages tab's theme-color swatches: small wells, one ring.

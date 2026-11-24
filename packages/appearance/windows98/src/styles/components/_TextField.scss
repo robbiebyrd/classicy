@@ -3,17 +3,24 @@
 // from the system colors (98.css, os-gui, React95): Window white under the
 // two-ring sunken edge (ButtonShadow over ButtonDkShadow at the top and
 // left, ButtonHilight over ButtonLight at the bottom and right: `b.sunken`,
-// one ring `--window-border-size` each), 21 px tall (`--field-height`, the
-// combo box's: Windows' edit and combo box stand at one height, and the
-// package has no field-height knob), the text `--field-padding-y` x
+// one ring `--window-border-size` each), 21 px tall (`--field-height`, a
+// knob: Windows' edit and combo box stand at one height), or, at a UI font
+// size the knob no longer holds, the font plus the text's inset and the two
+// rings above and below it, so the field follows the Fonts tab as a Windows
+// edit control is sized from its font (WIG Ch.14 "Scalability" (p.327): the
+// system's fonts and controls scale, and every element is sized by the same
+// metrics), the text `--field-padding-y` x
 // `--field-padding-x` (3 x 4) inside the edge in WindowText, the insertion
 // point WindowText, selected text HilightText on Hilight, a placeholder in
 // GrayText. The keyboard focus adds nothing: Windows draws no ring on an
 // edit control, the caret is the focus. A disabled field is ButtonFace with
 // GrayText and no emboss (the edit control draws its text plain, where a
-// static control embosses it). No field here is ever read-only (no
-// component in this group passes `readOnly`), so the read-only edit
-// (ES_READONLY, WindowText on ButtonFace) is not drawn.
+// static control embosses it). The one read-only field is the output well
+// (below): the read-only edit, ES_READONLY, WindowText on ButtonFace inside
+// the same edge, the gray interior Windows paints a read-only text box with
+// (WIG Ch.13 "Button Border Styles" (p.303) gives read-only text boxes the
+// button-down border, and Figure 13.21's read-only text box shows the
+// ButtonFace interior); no input here passes `readOnly`.
 //
 // Overrides ClassicyInput.scss and ClassicySpinner.scss (the field of the
 // little arrows' stepper, which stretches to its arrows), ClassicyTextEditor.scss
@@ -21,8 +28,8 @@
 // around the scroll area, its bars inside the rings, the text area's own
 // bevel, frame and focus ring gone; the rich editor's toolbar a ButtonFace
 // band, its prose in the body face), ClassicyOutput.scss (the inset result
-// well, a read-only edit; a disabled plain output embossed as a disabled
-// static), ClassicyDatePicker.scss and ClassicyTimePicker.scss (one edit
+// well, the read-only edit above; a disabled plain output embossed as a
+// disabled static), ClassicyDatePicker.scss and ClassicyTimePicker.scss (one edit
 // frame around the date's or time's fields, as the date and time picker
 // control draws), ClassicyFileInput.scss (a listed file's remove button
 // carries a 7 x 7 X in pixel art, never a font glyph; the error message in
@@ -33,7 +40,8 @@
 //   Windows color     token
 //   Window            --color-window-document   the field
 //   WindowText        --color-black             the text, the caret, the X
-//   ButtonFace        --color-system-03         a disabled field, the toolbar
+//   ButtonFace        --color-system-03         a disabled field, the
+//                                               read-only well, the toolbar
 //   ButtonShadow      --color-system-05         the outer top-left ring,
 //                                               GrayText
 //   ButtonDkShadow    --color-system-07         the inner top-left ring
@@ -51,6 +59,19 @@
 
 // The single-line fields: the edit control and the stepper's field.
 $fields: ".classicyInput, .classicySpinner";
+
+// A single-line field's height: the knob (21, Windows' edit and combo box),
+// or, at a UI font size the knob no longer holds, the font plus the text's
+// inset and the two rings above and below it (11 + 3 + 3 + 2 + 2 = 21 at the
+// default), so a field set in a larger font grows with it instead of
+// clipping its text (WIG Ch.14 "Scalability" (p.327)).
+$field-height: max(
+  var(--field-height),
+  calc(var(--ui-font-size) + var(--field-padding-y) + var(--field-padding-y) + #{b.$b2} + #{b.$b2})
+);
+
+// The line left inside that field's inset (15 at the default).
+$field-line: calc(#{$field-height} - var(--field-padding-y) - var(--field-padding-y));
 
 // The 7 x 7 X on a listed file's remove button, one-pixel diagonals.
 $remove-x: runs(
@@ -81,13 +102,14 @@ $remove-x: runs(
   @include field-marks;
 }
 
-// The client edge: Window white under the two sunken rings, square
-// cornered, no border of its own, no focus ring in any state.
-@mixin client-edge {
+// The client edge: Window white (or `$ground`, the read-only well's
+// ButtonFace) under the two sunken rings, square cornered, no border of its
+// own, no focus ring in any state.
+@mixin client-edge($ground: b.$window) {
   border: 0;
   border-radius: 0;
   outline: none;
-  background-color: b.$window;
+  background-color: $ground;
   @include b.sunken;
 
   &:focus,
@@ -109,7 +131,7 @@ $remove-x: runs(
   // ----- The edit control -----------------------------------------------
   #{$fields} {
     box-sizing: border-box;
-    height: var(--field-height);
+    height: $field-height;
     padding: var(--field-padding-y) var(--field-padding-x);
     font-size: var(--ui-font-size);
     @include client-edge;
@@ -127,7 +149,7 @@ $remove-x: runs(
   // (the base's floor is the Mac square's); a host's color, else white.
   .classicySpinner {
     height: auto;
-    min-height: var(--field-height);
+    min-height: $field-height;
     background-color: var(--classicy-spinner-background, var(--color-window-document));
   }
 
@@ -210,13 +232,17 @@ $remove-x: runs(
     color: b.$text;
   }
 
-  // The inset result well is a read-only edit: the field's height, the text
-  // at the field's inset in the line that is left inside it.
+  // The inset result well is a read-only edit (ES_READONLY): the field's
+  // height, the text at the field's inset in the line that is left inside
+  // it, and ButtonFace inside the sunken edge, the gray interior Windows
+  // paints a read-only text box with (WIG Ch.13 "Button Border Styles"
+  // (p.303), Figure 13.21's read-only text box), not the editable field's
+  // white.
   .classicyOutputInset {
-    min-height: var(--field-height);
-    line-height: calc(var(--field-height) - var(--field-padding-y) - var(--field-padding-y));
+    min-height: $field-height;
+    line-height: $field-line;
     padding: var(--field-padding-y) var(--field-padding-x);
-    @include client-edge;
+    @include client-edge(b.$face);
   }
 
   // Disabled: the plain output as a disabled static (embossed), the well as
@@ -239,7 +265,7 @@ $remove-x: runs(
   .classicyDatePicker,
   .classicyTimePicker {
     box-sizing: border-box;
-    min-height: var(--field-height);
+    min-height: $field-height;
     padding: 0 var(--field-padding-x);
     color: b.$text;
     @include client-edge;

@@ -4274,14 +4274,24 @@ it like Platinum (§1); its README lists what it ships.
   21: Windows' edit and combo box height, plus the text's padding),
   `tabControl` (`height`, a tab's, 21; the radius, lift and padding),
   `progressBar` (block width and gap, the stripe, the inset), `tooltip`,
-  `menuFrame`, `menuItem`, `slider`, `growBox`, `utilityTitleBar` and
+  `menuFrame`, `menuItem`, `menu` (`popUpMaxHeight`, 106: a drop-down's
+  open list eight 13-px rows and its line, the WIG's three to eight items),
+  `listBox` (`rowHeight`, 13: the 8-point MS Sans Serif row), `toolbar`
+  (`buttonWidth`/`buttonHeight`, 24 x 22, and `largeButtonWidth`/
+  `largeButtonHeight`, 32 x 30: the WIG's two toolbar button sizes, for a
+  medium or small and a large ClassicyButtonToolbar), `slider`, `growBox`,
+  `utilityTitleBar` and
   `desktopLabel` (`shadow`, the desktop labels' text shadow offset, 1; 0
   sends the shadow out of the desktop, the stock Windows 98 label); `knobs`,
   and so the Options tab, covers `titleBar`, `progressBar`, `field`,
-  `tabControl` and `desktopLabel`. Layout: grow box bottom right, menu bar
-  on the screen, icon grid from the top left, and `scrollBar.fitsBars:
+  `popUp` (`height`), `tabControl` and `desktopLabel`. Layout: grow box
+  bottom right, menu bar
+  on the screen, icon grid from the top left, `scrollBar.fitsBars:
   "shown"`, a window's bars drawn, disabled, where its content fits, as
-  Windows kept them.
+  Windows kept them, and `fileDialog: { frame: "movable", navigation:
+  "flat", saveName: "selected" }`: the Open and Save As boxes titled and
+  movable, one folder at a time under the path pop-up (Windows' Look in),
+  Save As opening with the name selected (WIG Ch.8, Figures 8.6 and 8.7).
 - **The look** (`src/styles/windows98.scss`, one `components/_<Name>.scss`
   partial per component, `_bevels.scss` and `_pixel.scss`): the four-ring
   bevels as inset box-shadows of the system tokens (`raised`, `pressed`,

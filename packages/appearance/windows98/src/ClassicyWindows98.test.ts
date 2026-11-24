@@ -231,14 +231,23 @@ describe("the Windows 98 appearance package", () => {
 	});
 
 	// Windows keeps a window's scroll bars drawn, disabled, where its content
-	// fits (Notepad's, say), so the bars stay in the `fits` state.
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits", async () => {
+	// fits (Notepad's, say), so the bars stay in the `fits` state; its Open
+	// and Save As dialogs are titled, movable boxes showing one folder at a
+	// time under a pop-up that runs the path upward (Look in), and Save As
+	// opens with the file name selected (WIG Ch.8 "Open Dialog Box" and
+	// "Save As Dialog Box", pp.155-157, Figures 8.6 and 8.7).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right" },
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: { fitsBars: "shown" },
+			fileDialog: {
+				frame: "movable",
+				navigation: "flat",
+				saveName: "selected",
+			},
 		});
 	});
 

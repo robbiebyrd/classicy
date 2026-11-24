@@ -15,9 +15,14 @@
 // the pointer (Windows 9x selects a disabled item, it only does nothing);
 // separators an etched line, ButtonShadow over ButtonHilight, in a 9 px
 // slot; a 7 x 6 check mark and a 4 x 7 solid triangle for a submenu, both
-// drawn in the item's ink; accelerators in a column at the right in the
-// item's font; a submenu beside its item, level with it, over the parent's
-// frame. No menu flashes when chosen: Windows never did.
+// drawn in the item's ink, and no mark at all for a setting whose selection
+// has mixed values (WIG Ch.7 "Types of Menu Items", p.108: the menu is
+// displayed without the check mark); the shortcuts in a column of their
+// own, left-aligned at one tab position after the longest title (WIG Ch.7
+// "Shortcut Keys in Menu Items", p.110), the list a two-column grid whose
+// rows are subgrids, so the column is shared by every item; a submenu
+// beside its item, level with it, over the parent's frame. No menu flashes
+// when chosen: Windows never did.
 //
 //   Windows color     token
 //   ButtonFace        --color-system-03   the face
@@ -60,9 +65,10 @@ $checkmark: runs(
   "x"
 );
 
-// The mixed-state mark, a dash as wide as the check (Windows has no mixed
-// menu item; the Mac's dash in Windows' terms).
-$dash: ((0 2 7 2),);
+// The tab space between the longest title and the shortcut column (8 px:
+// Windows' menu code reserved eight pixels before an item's tab-aligned
+// text, which Wine and ReactOS carry as MENU_TAB_SPACE).
+$tab-space: px(8);
 
 // The submenu triangle (4 x 7), pointing right.
 $submenu-arrow: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x");
@@ -91,10 +97,27 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
 }
 
 @mixin menu {
+  // The list: a grid of two columns, the titles and the shortcuts, each row
+  // a subgrid spanning both (below), so every shortcut starts at the same x,
+  // the first tab position after the longest title (WIG Ch.7 "Shortcut Keys
+  // in Menu Items", p.110: "left aligned at the first tab position after
+  // the longest item in the menu that has a shortcut"). The first column
+  // takes any width the list has beyond its items, so the band spans the
+  // list whatever stretches it; the second is as wide as the widest
+  // shortcut, and empty, with no gutter, in a menu that has none. The grid
+  // is set where the base shows a list (`display: flex` on a root list, and
+  // on a submenu while its item is open), so a closed submenu stays hidden.
   :is(#{$menus}) {
     @include menu-frame;
     // As wide as its widest item: Windows sizes a menu to its items.
     min-width: 0;
+    grid-template-columns: 1fr max-content;
+  }
+
+  .classicyMenu,
+  .classicyContextMenu,
+  .classicyMenuItem.open > .classicyMenuWrapper > :is(.classicySubMenu, .classicyContextSubMenu) {
+    display: grid;
   }
 
   // A menu too long for the screen scrolls (ClassicyMenu caps its height):
@@ -113,13 +136,16 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
   }
 
   // An item: a row 17 px tall at the face's size, 6 px of padding either
-  // side, its title and its accelerator a column apart.
+  // side, its title in the first column and its shortcut in the second,
+  // the row a subgrid across both (its padding counted into the columns at
+  // its ends), so the band spans the list's inner width.
   :is(#{$menus}) .classicyMenuItem {
     position: relative;
     box-sizing: border-box;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
     align-items: center;
-    column-gap: var(--layout-group-gap);
     height: auto;
     padding: px(3) var(--menu-item-padding-x);
     line-height: 1;
@@ -129,6 +155,7 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     cursor: default;
 
     > p {
+      grid-column: 1;
       height: auto;
     }
 
@@ -194,19 +221,35 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     background-color: transparent;
   }
 
-  // The accelerator column: the item's font and ink, flush right.
+  // The shortcut column: the item's font and ink, left-aligned in the
+  // second column, the tab space after the longest title (WIG Ch.7
+  // "Shortcut Keys in Menu Items", p.110), never flush right as the Mac
+  // sets it.
   :is(#{$menus}) .classicyMenuItem .classicyMenuItemKeyboardShortcut {
-    flex: none;
-    justify-content: flex-end;
+    grid-column: 2;
+    justify-content: flex-start;
+    margin: 0 0 0 $tab-space;
     padding: 0;
     font-size: inherit;
     line-height: inherit;
     color: inherit;
   }
 
+  // A balloon-wrapped item's anchor is a row of the grid too, its item the
+  // subgrid inside it (the base makes it a full-width block).
+  :is(#{$menus}) > .classicyMenuItemBalloonAnchor {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+  }
+
   // The mark column: a gutter an icon wide before every title in a menu
-  // that marks items, so marked and unmarked titles align; the check or the
-  // dash is pixel art in the item's ink, centered in it.
+  // that marks items, so marked and unmarked titles align; the check is
+  // pixel art in the item's ink, centered in it. A setting whose selection
+  // has mixed values (the core's `mixed`, the Mac's dash) shows no mark:
+  // WIG Ch.7 "Types of Menu Items" (p.108) displays such a menu "without
+  // the check mark", and Windows has no third mark; the gutter stays, so
+  // the titles keep their alignment.
   :is(#{$menus}) .classicyMenuItemCheck {
     width: var(--icon-small-size);
     margin-right: var(--layout-item-gap);
@@ -223,33 +266,22 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     }
 
     &.mixed::before {
-      background: pixel-art(currentColor, $dash);
+      background: none;
     }
   }
 
-  :is(#{$menus}) .classicyMenuItem.disabled .classicyMenuItemCheck {
-    &.checked::before {
-      background: embossed($checkmark);
-    }
-
-    &.mixed::before {
-      background: embossed($dash);
-    }
+  :is(#{$menus}) .classicyMenuItem.disabled .classicyMenuItemCheck.checked::before {
+    background: embossed($checkmark);
   }
 
-  :is(#{$menus}) .classicyMenuItem.disabled:is(:hover, .open, :focus-visible) .classicyMenuItemCheck {
-    &.checked::before {
-      background: pixel-art(currentColor, $checkmark);
-    }
-
-    &.mixed::before {
-      background: pixel-art(currentColor, $dash);
-    }
+  :is(#{$menus}) .classicyMenuItem.disabled:is(:hover, .open, :focus-visible) .classicyMenuItemCheck.checked::before {
+    background: pixel-art(currentColor, $checkmark);
   }
 
   // A separator: an etched line, ButtonShadow over ButtonHilight, across
   // the items' width in a 9 px slot (the line at its fourth and fifth rows).
   :is(#{$menus}) .classicySeparatorHorizontal {
+    grid-column: 1 / -1;
     box-sizing: border-box;
     height: b.$b2;
     margin: px(3) 0 px(4);
@@ -259,12 +291,13 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     background: none;
   }
 
-  // The submenu triangle in the accelerator column, the item's side padding
-  // in from its right edge and centered on its row, in the item's ink
-  // (HilightText while it is tracked); the item keeps the column clear of
-  // its title.
+  // The submenu triangle at the item's right, the item's side padding in
+  // from its edge and centered on its row, in the item's ink (HilightText
+  // while it is tracked); the title keeps the triangle's column clear.
   :is(#{$menus}) .classicyMenuItemChildMenuIndicator {
-    padding-right: calc(var(--menu-item-padding-x) + #{px(4)} + var(--menu-item-padding-x));
+    > p {
+      margin-right: calc(#{px(4)} + var(--menu-item-padding-x));
+    }
 
     &::after {
       content: "";

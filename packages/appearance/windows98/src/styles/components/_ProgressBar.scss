@@ -22,8 +22,10 @@
 // - Indeterminate (the browser's barber pole; Windows 98 had no marquee
 //   style, the v6 control's): the same blocks slide right through the
 //   track, one period per second in whole-pixel steps, so the blocks stay
-//   sharp as they move; nothing fades at the ends. Reduced motion slows the
-//   slide.
+//   sharp as they move; nothing fades at the ends. Under reduced motion the
+//   slide stops and the blocks stand still: the WIG asks for a way to turn
+//   animation off (Ch.13 "Animation" (p.325)), and the core pauses its
+//   screen savers the same way.
 // - The chasing arrows (Mac OS 8's, no Windows equivalent) are Hilight.
 // - A meter is the progress bar: the sunken ButtonFace track, its fill the
 //   blocks in Hilight while the value is in its optimal range and in the
@@ -113,11 +115,13 @@ $period: calc(var(--progress-bar-block-width) + var(--progress-bar-block-gap));
     }
   }
 
+  // Reduced motion: no slide, the blocks standing still (WIG Ch.13
+  // "Animation" (p.325): offer a way to turn animation off).
   @media (prefers-reduced-motion: reduce) {
     .classicyProgressIndeterminate progress[value] {
       &::-webkit-progress-value,
       &::-moz-progress-bar {
-        animation-duration: 3s;
+        animation: none;
       }
     }
   }

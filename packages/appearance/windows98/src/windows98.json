@@ -109,7 +109,13 @@
 			},
 			"pushButton": {
 				"height": 23,
-				"focusInset": 4
+				"focusInset": 3
+			},
+			"toolbar": {
+				"buttonWidth": 24,
+				"buttonHeight": 22,
+				"largeButtonWidth": 32,
+				"largeButtonHeight": 30
 			},
 			"checkbox": {
 				"size": 13,
@@ -123,6 +129,9 @@
 				"buttonWidth": 16,
 				"inset": 2,
 				"textInset": 4
+			},
+			"listBox": {
+				"rowHeight": 13
 			},
 			"field": {
 				"paddingX": 4,
@@ -156,6 +165,9 @@
 			},
 			"menuItem": {
 				"paddingX": 6
+			},
+			"menu": {
+				"popUpMaxHeight": 106
 			},
 			"slider": {
 				"pixel": 1,
@@ -298,7 +310,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -312,6 +330,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -345,6 +366,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -486,7 +510,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -500,6 +530,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -533,6 +566,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -676,7 +712,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -690,6 +732,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -723,6 +768,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -866,7 +914,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -880,6 +934,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -913,6 +970,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -1056,7 +1116,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -1070,6 +1136,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -1103,6 +1172,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -1246,7 +1318,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -1260,6 +1338,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -1293,6 +1374,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -1438,7 +1522,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -1452,6 +1542,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -1485,6 +1578,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -1626,7 +1722,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -1640,6 +1742,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -1673,6 +1778,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -1814,7 +1922,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -1828,6 +1942,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -1861,6 +1978,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -2006,7 +2126,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -2020,6 +2146,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -2053,6 +2182,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -2196,7 +2328,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -2210,6 +2348,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -2243,6 +2384,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -2386,7 +2530,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -2400,6 +2550,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -2433,6 +2586,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -2578,7 +2734,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -2592,6 +2754,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -2625,6 +2790,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -2768,7 +2936,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -2782,6 +2956,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -2815,6 +2992,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -2958,7 +3138,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -2972,6 +3158,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -3005,6 +3194,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -3148,7 +3340,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -3162,6 +3360,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -3195,6 +3396,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -3336,7 +3540,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -3350,6 +3560,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -3383,6 +3596,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -3528,7 +3744,13 @@
 				},
 				"pushButton": {
 					"height": 23,
-					"focusInset": 4
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30
 				},
 				"checkbox": {
 					"size": 13,
@@ -3542,6 +3764,9 @@
 					"buttonWidth": 16,
 					"inset": 2,
 					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
 				},
 				"field": {
 					"paddingX": 4,
@@ -3575,6 +3800,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
 				},
 				"slider": {
 					"pixel": 1,
@@ -3621,6 +3849,11 @@
 		},
 		"scrollBar": {
 			"fitsBars": "shown"
+		},
+		"fileDialog": {
+			"frame": "movable",
+			"navigation": "flat",
+			"saveName": "selected"
 		}
 	},
 	"knobs": {
@@ -3669,6 +3902,14 @@
 				"label": "Field height",
 				"min": 16,
 				"max": 32,
+				"default": 21
+			}
+		},
+		"popUp": {
+			"height": {
+				"label": "Pop-up height",
+				"min": 16,
+				"max": 40,
 				"default": 21
 			}
 		},

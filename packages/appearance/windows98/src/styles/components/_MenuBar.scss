@@ -3,21 +3,28 @@
 // ClassicyMenuBarExtension.scss and the Time and Sound widgets' sheets
 // (structure alone). Windows has no screen menu bar: a menu bar is a flat
 // ButtonFace strip in each window, and the screen's one bar is the taskbar.
-// This bar is both, in Windows' terms: a flat ButtonFace bar
-// `--menu-bar-height` tall (the taskbar's 28 px, near enough) with no
-// bevel; the Apple title a Start button (a raised ButtonFace button, its
-// label bold, pressed over the 50% ButtonHilight checker while its menu is
-// open, as the Start button is); the application's menu titles flat after
-// it, highlighted Hilight with HilightText while open or tracked by the
-// keyboard, as a window's menu bar highlights an open title, and never
-// under the pointer alone (Windows 98 hot-tracks no menu bar); the
-// Application menu a
-// taskbar button for the front application (raised, pressed and checkered
-// while open), pushed to the bar's right end before the tray; the menu bar
-// extensions flat tray icons; the clock a sunken one-ring pane at the far
-// right, the tray's. The pull-downs hang from the bar's bottom edge, their
-// left side under their title's (or their right side under its right side
-// where the screen has no room; the core flips them). A hidden
+// This bar is both, in Windows' terms, and styled as the taskbar (WIG Ch.3
+// "The Taskbar", Figure 3.1, p.15): a ButtonFace bar `--menu-bar-height`
+// tall (the taskbar's 28 px, near enough) with the taskbar's raised edge
+// along the side facing the desktop, which for a bar docked at the top of
+// the screen is its bottom: ButtonShadow inside ButtonDkShadow, the dark
+// side of DrawEdge's raised edge (a window's own menu bar, which Windows 98
+// draws flat, is _Window.scss's); the Apple title a Start button (a raised
+// ButtonFace button, its label bold, pressed over the 50% ButtonHilight
+// checker while its menu is open, as the Start button is); the
+// application's menu titles flat after it, highlighted Hilight with
+// HilightText while open or tracked by the keyboard, as a window's menu bar
+// highlights an open title, and never under the pointer alone (Windows 98
+// hot-tracks no menu bar); the Application menu the front application's
+// taskbar button, which stands for the active window and so is drawn as
+// Figure 3.1 draws that window's button: pressed over the checker at all
+// times, its label bold (the other windows' buttons, which this bar has
+// not, are raised), pushed to the bar's right end before the tray; the
+// menu bar extensions flat tray icons; the clock a sunken one-ring pane at
+// the far right, the tray's status area (WIG Ch.3 "The Status Area",
+// p.16). The pull-downs hang from the bar's bottom edge, below the raised
+// edge, their left side under their title's (or their right side under its
+// right side where the screen has no room; the core flips them). A hidden
 // application's icon in the Application menu is dimmed.
 //
 //   Windows color     token
@@ -28,8 +35,10 @@
 //   ButtonLight       --color-system-02   the buttons' inner top-left ring
 //   ButtonShadow      --color-system-05   the buttons' inner bottom-right
 //                                         ring, the clock pane's top-left
+//                                         ring, the bar's edge's inner
 //                                         ring, GrayText
-//   ButtonDkShadow    --color-system-07   the buttons' bottom-right ring
+//   ButtonDkShadow    --color-system-07   the buttons' bottom-right ring,
+//                                         the bar's edge's outer ring
 //   ButtonText        --color-black       the titles' ink
 //   Hilight           --color-highlight   an open or tracked title's band
 //   HilightText       --package-color-selection-text (--color-white)
@@ -56,15 +65,22 @@ $edge: b.$b2;
   }
 }
 
-// A taskbar button while its menu is open (the pressed Start button, the
-// front application's button): the pressed bevel over the 50% checker of
-// ButtonHilight and ButtonFace, on the pixel grid.
-@mixin taskbar-button-open {
+// A pressed taskbar button: the Start button while its menu is open, and
+// the active window's button at all times (WIG Ch.3 Figure 3.1, p.15: the
+// front "Document" button sunken, the others raised): the pressed bevel
+// over the 50% checker of ButtonHilight and ButtonFace, on the pixel grid,
+// unchanged under the pointer.
+@mixin taskbar-button-pressed {
   color: b.$text;
   background-color: b.$face;
   background-image: repeating-conic-gradient(b.$hilight 0% 25%, b.$face 0% 50%);
   background-size: px(2) px(2);
   @include b.pressed;
+
+  &:hover {
+    color: b.$text;
+    background-color: b.$face;
+  }
 }
 
 @mixin menu-bar {
@@ -72,6 +88,14 @@ $edge: b.$b2;
     background: b.$face;
   }
 
+  // The bar: ButtonFace, with the taskbar's raised edge along the side
+  // facing the desktop (WIG Ch.3 "The Taskbar", Figure 3.1, p.15: the
+  // taskbar is a raised ButtonFace bar, its edge toward the desktop the
+  // raised one). Docked at the top of the screen, as this bar is, that side
+  // is its bottom, the raised edge's dark side: ButtonShadow inside
+  // ButtonDkShadow (DrawEdge EDGE_RAISED, BF_BOTTOM), two rings inside the
+  // bar's box; the titles' bottom margin (`$edge`) keeps them above it and
+  // the pull-downs hang from the bar's bottom, below it.
   .classicyDesktopMenu {
     box-sizing: border-box;
     height: var(--menu-bar-height);
@@ -79,7 +103,9 @@ $edge: b.$b2;
     border-radius: 0;
     color: b.$text;
     background-color: b.$face;
-    box-shadow: none;
+    box-shadow:
+      inset 0 b.$neg-b b.$dkshadow,
+      inset 0 b.$neg-b2 b.$shadow;
   }
 
   // A title: a row 2 px in from the bar's top and bottom, 6 px of padding
@@ -185,7 +211,7 @@ $edge: b.$b2;
     }
 
     &.open {
-      @include taskbar-button-open;
+      @include taskbar-button-pressed;
     }
 
     &:focus-visible {
@@ -193,12 +219,15 @@ $edge: b.$b2;
     }
   }
 
-  // The Application menu is the front application's taskbar button: its
-  // icon and name on a raised face, pressed over the checker while open. It
-  // leads the bar's right group (the auto margin the base sheet gives the
-  // extensions is its), before the tray's icons and clock. No divider
-  // before it (the base sheet's is a Platinum bar). Two order rules, plain
-  // first: a browser without :has() drops the whole second one.
+  // The Application menu is the front application's taskbar button, the
+  // active window's: its icon and name pressed over the checker at all
+  // times, its label bold, as WIG Ch.3 Figure 3.1 (p.15) draws the active
+  // window's button (the raised face is an inactive window's, which this
+  // bar never shows), open or not. It leads the bar's right group (the auto
+  // margin the base sheet gives the extensions is its), before the tray's
+  // icons and clock. No divider before it (the base sheet's is a Platinum
+  // bar). Two order rules, plain first: a browser without :has() drops the
+  // whole second one.
   .classicyDesktopMenu > [data-classicy-part="switcher"] {
     order: 35;
     margin-left: auto;
@@ -220,18 +249,21 @@ $edge: b.$b2;
   :is(#{$titles}).classicyDesktopMenuAppSwitcher {
     margin: $edge 0 $edge auto;
     padding: 0 var(--menu-item-padding-x);
-    @include taskbar-button;
+    @include taskbar-button-pressed;
 
     &::before {
       content: none;
     }
 
-    > p > img {
-      margin-right: var(--layout-item-gap);
+    // The weight on the title's text alone, as the Start button's: on the
+    // title itself its menu's items would inherit it.
+    > p {
+      height: auto;
+      font-weight: bold;
     }
 
-    &.open {
-      @include taskbar-button-open;
+    > p > img {
+      margin-right: var(--layout-item-gap);
     }
 
     &:focus-visible {

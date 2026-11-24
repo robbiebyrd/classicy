@@ -45,13 +45,19 @@ and `nodenext` resolution).
   the desktop labels' are the package's own color families, editable in the
   Colors tab beside the palette.
 - **Its layout.** The grow box at the bottom right, the menu bar on the
-  screen, desktop icons from the top left, as Windows laid them, and a
-  window's scroll bars kept where its content fits.
+  screen, desktop icons from the top left, as Windows laid them, a
+  window's scroll bars kept where its content fits, and the Open and Save
+  boxes as titled, movable dialogs showing one folder at a time under a
+  pop-up that runs the path upward (Windows' Look in), Save As opening with
+  the file name selected.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
     Maximize (zoom) and Close buttons at the right, the gray inactive bar,
-    the sunken client edge, the size grip, dialogs on a flat face;
+    the sunken client edge, the size grip, dialogs on a flat face with the
+    title and Close alone in their caption (no icon, no Minimize), palette
+    windows with Close alone, a modeless dialog's frame flattened to a plain
+    ButtonFace box;
   - menus: the flat menu bar, raised pull-down and contextual menus with an
     inverted highlight and embossed dimmed items, etched separators;
   - controls: 23-pixel push buttons with the default button's dark ring and
@@ -73,7 +79,8 @@ and `nodenext` resolution).
 - **Its knobs**, in the Appearance Manager's Options tab: the title-bar
   buttons' width and height, the gap before Close and the gap under the
   bar; the progress bar's block width and gap; the height of single-line
-  fields (21 px, Windows' edit and combo box height) and of tabs; and the
+  fields and of pop-up menus (21 px each, Windows' edit and combo box
+  height, which a larger UI font raises on its own) and of tabs; and the
   desktop labels' text-shadow offset (1 px; 0 removes the shadow, which
   stock Windows 98 drew only with the Active Desktop).
 - **A sound pack**, `windows98`: four alert tones, Chimes, Chord, Ding (the

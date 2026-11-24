@@ -19,20 +19,40 @@
 //   DFCS_FLAT for a pushed BS_DEFPUSHBUTTON, where any other button takes
 //   DFCS_PUSHED). Disabled, the bevel stays raised and the label is
 //   embossed: GrayText over a ButtonHilight copy one ring down and right
-//   (`b.disabled-text`). The keyboard focus is the dotted rectangle whose
-//   line lies `--push-button-focus-inset` (4) pixels in (two rings of bevel,
-//   two of face: the edge, then InflateRect(-2, -2)), one further in on the
-//   default button, whose ring takes the first; `:focus-visible` only, so a
-//   mouse click leaves none behind.
+//   (`b.disabled-text`). The keyboard focus is the dotted rectangle inside
+//   the bevel (WIG Ch.7 "Command Buttons", Table 7.4 (p.115), the input
+//   focus appearance) whose line lies `--push-button-focus-inset` (3) pixels
+//   in (two rings of bevel, one of face: the row Windows draws it on, the
+//   client rectangle less the 2-pixel edge, deflated once more, as 98.css's
+//   `outline-offset: -4px` has it too), one further in on the default button,
+//   whose ring takes the first; `:focus-visible` only, so a mouse click
+//   leaves none behind.
 // - A bevel button (toolbar, palette, toggle, radio or pop-up): the same
 //   raised ButtonFace box, its content a pixel down and right with the rings
-//   turned while pressed, latched (checked), mixed or open; latched or
-//   mixed, the face is the 50% checker of ButtonFace and ButtonHilight that
-//   Windows fills a checked button with (DFCS_CHECKED). Inside a
-//   ClassicyButtonToolbar it is a Windows 98 flat toolbar button
+//   turned while pressed, latched (checked) or open; latched or open, the
+//   face is the 50% checker of ButtonFace and ButtonHilight that Windows
+//   fills a checked button with (DFCS_CHECKED, the option-set appearance,
+//   WIG Ch.13 "Option-Set Appearance" (p.306, Fig. 13.12)): a menu button
+//   whose menu is displayed takes it too (WIG Ch.7 "Command Buttons" (p.116,
+//   Fig. 7.8)). Mixed (a property whose values differ over the selection),
+//   the checker on the face with the rings still raised and the content in
+//   place: the mixed-value appearance (WIG Ch.13 "Mixed-Value Appearance"
+//   (p.308, Fig. 13.15), where only a set button is sunken). Disabled, the
+//   rings stay raised and the label is embossed; disabled and latched,
+//   sunken with the checker omitted (WIG Ch.13 "Unavailable Appearance"
+//   (p.309, Fig. 13.19)); disabled and mixed, the plain disabled button.
+//   Inside a ClassicyButtonToolbar it is a Windows 98 flat toolbar button
 //   (TBSTYLE_FLAT, the 98 shell's and IE4's): no bevel at rest, one raised
-//   ring under the mouse, one sunken ring pressed or latched. Its pop-up
-//   arrow and pop-up panel are _PopUpMenu.scss's.
+//   ring under the mouse, one sunken ring pressed or latched (a mixed one
+//   keeps the flat face under its checker); and it takes the WIG's two
+//   toolbar button sizes (Ch.7 "Support for User Options" (p.140); Ch.13
+//   "Font and Size" (p.313) names the 24 x 22 one, its 16 x 16 glyph
+//   centered on the face): 32 x 30 with a 24 x 24 image in a large toolbar
+//   (the default size), 24 x 22 with a 16 x 16 image in a medium or small
+//   one (`toolbar.largeButtonWidth`/`-Height` and
+//   `toolbar.buttonWidth`/`-Height`; an icon-only button is the whole box,
+//   its image inset 4 and 3, and a labeled one keeps its width at the same
+//   height). Its pop-up arrow and pop-up panel are _PopUpMenu.scss's.
 // - The help button: the caption help "?" (DFCS_CAPTIONHELP, 6 x 10) as
 //   pixel art centered on the bevel button's 20 x 21 box, in place of the
 //   registered art (the package registers none).
@@ -189,8 +209,8 @@ $tree-minus: ((2 4 5 1),);
 $pressed: ":is(:active, .pressed, .classicyButtonKeyActive)";
 
 // The states that turn a bevel button's rings: pressed, latched (checked),
-// mixed, or its pop-up open.
-$down: ":is(:active, .pressed, .checked, .mixed, .open)";
+// or its pop-up open. A mixed button's stay raised (WIG Fig. 13.15).
+$down: ":is(:active, .pressed, .checked, .open)";
 
 @mixin button {
   // ----- Push buttons -------------------------------------------------------
@@ -294,8 +314,13 @@ $down: ":is(:active, .pressed, .checked, .mixed, .open)";
     }
   }
 
-  // Pressed, latched, mixed or open: the rings turn, the content a pixel
-  // down and right; latched or mixed, the checker face.
+  // Pressed, latched or open: the rings turn, the content a pixel down and
+  // right; latched, mixed or open, the checker face: the option-set
+  // appearance (WIG Ch.13 "Option-Set Appearance" (p.306, Fig. 13.12)) and,
+  // on a mixed button, whose rings stay as they are (the root's raised
+  // bevel, or a toolbar's flat face) and whose content stays in place, the
+  // mixed-value appearance (WIG Ch.13 "Mixed-Value Appearance" (p.308,
+  // Fig. 13.15): only a set button is sunken).
   .classicyBevelButton:not(.disabled)#{$down} {
     color: b.$text;
     background: b.$face;
@@ -306,25 +331,28 @@ $down: ":is(:active, .pressed, .checked, .mixed, .open)";
     }
   }
 
-  .classicyBevelButton:not(.disabled):is(.checked, .mixed) {
+  .classicyBevelButton:not(.disabled):is(.checked, .mixed, .open) {
     background: $checker;
   }
 
   // Disabled: raised, the label embossed (the base dims the icon); a
-  // disabled latched button stays latched.
+  // disabled latched button stays latched, sunken, with the checker omitted
+  // (WIG Ch.13 "Unavailable Appearance" (p.309, Fig. 13.19)); a disabled
+  // mixed button is the plain disabled one.
   .classicyBevelButton.disabled {
     background: b.$face;
     @include b.raised;
     @include b.disabled-text;
   }
 
-  .classicyBevelButton.disabled:is(.checked, .mixed) {
-    background: $checker;
+  .classicyBevelButton.disabled.checked {
     @include b.pressed;
   }
 
   // In a toolbar, the Windows 98 flat button: no bevel until the mouse is
-  // over it (one raised ring), one sunken ring pressed or latched.
+  // over it (one raised ring), one sunken ring pressed or latched (a mixed
+  // one keeps the flat face under its checker, Fig. 13.15's raised button
+  // flattened; a disabled latched one its sunken ring, no checker).
   .classicyButtonToolbar .classicyBevelButton {
     box-shadow: none;
   }
@@ -334,8 +362,37 @@ $down: ":is(:active, .pressed, .checked, .mixed, .open)";
   }
 
   .classicyButtonToolbar .classicyBevelButton:not(.disabled)#{$down},
-  .classicyButtonToolbar .classicyBevelButton.disabled:is(.checked, .mixed) {
+  .classicyButtonToolbar .classicyBevelButton.disabled.checked {
     @include sunken-thin;
+  }
+
+  // The toolbar button sizes (WIG Ch.7 "Support for User Options", p.140):
+  // 32 x 30 in a large toolbar (the base's default size), 24 x 22 in a
+  // medium or small one, an icon-only (square) button the whole box with
+  // its image, 24 x 24 or 16 x 16, four pixels in at the sides and three at
+  // the top and bottom; a labeled button takes the row's height alone. The
+  // help button keeps its own 20 x 21 box (its "?" is placed on it).
+  .classicyButtonToolbar .classicyBevelButton {
+    box-sizing: border-box;
+    height: var(--toolbar-large-button-height);
+  }
+
+  .classicyButtonToolbar .classicyBevelButton.classicyBevelButtonSquare:not(.classicyHelpButton) {
+    width: var(--toolbar-large-button-width);
+    padding: px(3) px(4);
+  }
+
+  :is(.classicyButtonToolbarSizeMedium, .classicyButtonToolbarSizeSmall) .classicyBevelButton {
+    height: var(--toolbar-button-height);
+  }
+
+  :is(.classicyButtonToolbarSizeMedium, .classicyButtonToolbarSizeSmall)
+    .classicyBevelButton.classicyBevelButtonSquare:not(.classicyHelpButton) {
+    width: var(--toolbar-button-width);
+  }
+
+  .classicyButtonToolbar .classicyBevelButton.classicyHelpButton {
+    height: var(--help-button-height);
   }
 
   // ----- The help button ----------------------------------------------------

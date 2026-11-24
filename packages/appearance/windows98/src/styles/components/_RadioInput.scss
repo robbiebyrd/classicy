@@ -27,8 +27,9 @@
 //   Pressed (the mouse down on the button or its label), the inside turns
 //   ButtonFace with the dot kept; disabled, the inside is ButtonFace and the
 //   dot GrayText.
-// - Mixed (no Windows state): a 6 x 2 dash across the inside in the dot's
-//   ink, in the dot's place.
+// - Mixed: the empty circle, whatever the group's setting, as the WIG's
+//   mixed-value appearance has every button of the group drawn without a
+//   setting dot (WIG Ch.7 "Option Buttons" (p.117, Fig. 7.10)).
 // - The keyboard focus is the dotted rectangle around the label's text (the
 //   circle's own, a pixel out, when it has no label), while anything in the
 //   item has focus (`:focus-within`, as the checkbox's). A disabled label is
@@ -39,14 +40,15 @@
 //
 // The wrapper draws the circle, its inside and, while `checked`, the dot;
 // the native input lies over the whole circle (its hit area and focus),
-// invisible, and draws the pressed inside and the mixed dash itself, since
-// those are its own states. The inside's face and the mark's ink are the
-// wrapper's custom properties, inherited by the input, which the disabled
-// state and the input's press reset.
+// invisible, and draws the pressed inside and the mixed button's empty
+// inside itself (over the wrapper's dot), since those are its own states.
+// The inside's face and the mark's ink are the wrapper's custom properties,
+// inherited by the input, which the disabled state and the input's press
+// reset.
 //
 //   Windows color     token
 //   Window            --color-window-document  the inside
-//   WindowText        --color-black            the dot, the dash
+//   WindowText        --color-black            the dot
 //   ButtonFace        --color-system-03        the pressed and disabled inside
 //   ButtonHilight     --color-system-01        the outer lower-right arc, the
 //                                              emboss
@@ -79,9 +81,8 @@ $arc-light: runs($circle, "L");
 $arc-hilight: runs($circle, "H");
 $inside: runs($circle, "W");
 
-// The dot (4 x 4, its corners off) and the mixed dash (6 x 2).
+// The dot (4 x 4, its corners off).
 $dot: (5 4 2 1) (4 5 4 2) (5 7 2 1);
-$dash: ((3 5 6 2),);
 
 // The inside's face and the mark's ink, as the state sets them.
 $face: var(--windows98-radio-face);
@@ -176,7 +177,7 @@ $ink: var(--windows98-radio-ink);
   // Pressed, on the button or its label (whose control it is): the inside
   // turns ButtonFace, drawn by the input over the wrapper's, with the dot
   // over it while on. `:where()` keeps these at the input's own weight, so
-  // the mixed dash below wins pressed too.
+  // the mixed rule below wins pressed too.
   .classicyRadioInput:where(:active:not(:disabled)) {
     --windows98-radio-face: #{b.$face};
     opacity: 1;
@@ -187,10 +188,11 @@ $ink: var(--windows98-radio-ink);
     background: marked($dot);
   }
 
-  // Mixed: the dash in the dot's place, over the inside, on or off.
+  // Mixed: the empty circle, on or off (the inside in the state's face,
+  // drawn over the wrapper's dot; WIG Fig. 7.10).
   .classicyRadioInput.mixed {
     opacity: 1;
-    background: marked($dash);
+    background: well();
   }
 
   // The focus rectangle: around the label while the button has focus,
