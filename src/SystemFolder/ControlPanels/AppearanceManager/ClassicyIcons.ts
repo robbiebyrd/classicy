@@ -168,6 +168,9 @@ export const ClassicyIcons = {
 		calculator: {
 			app: icon("applications/calculator/app.png"),
 		},
+		findFile: {
+			app: icon("applications/find-file/app.png"),
+		},
 	},
 	controlPanels: {
 		appearanceManager: {

@@ -18,6 +18,7 @@ import "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManag
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
+import "@/SystemFolder/FindFile/FindFileContext";
 import "@/SystemFolder/Finder/FinderContext";
 // HyperCard.app spans two modules and its description is first-wins, so the
 // player registers before the editor, as in the library entry's barrel.

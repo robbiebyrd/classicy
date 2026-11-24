@@ -15,6 +15,9 @@ import "./Applications/HyperCardPlugins/HyperCardPluginsDemo";
 import demoIcon from "./Applications/Demo/app.png";
 import { Demo } from "./Applications/Demo/Demo";
 import { DemoExtension } from "./Applications/DemoExtension/DemoExtension";
+// Side-effect import: registers an example search source, which Find File
+// (File ▸ Find… in the Finder) offers on its Search Internet tab.
+import "./Applications/FindSources/ExampleFindSource";
 
 // Register custom application icons before the React tree renders.
 export const AppIcons = registerClassicyIcons({

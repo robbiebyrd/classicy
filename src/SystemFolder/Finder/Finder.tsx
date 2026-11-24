@@ -28,6 +28,7 @@ import {
 } from "@/SystemFolder/Finder/FinderContext";
 import { FinderPreferences } from "@/SystemFolder/Finder/FinderPreferences";
 import { useFinderFolderSize } from "@/SystemFolder/Finder/useFinderFolderSize";
+import { classicyFinderFindMenuItem } from "@/SystemFolder/FindFile/ClassicyFinderFindMenuItem.internal";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -41,6 +42,7 @@ import { classicySpecialMenuItems } from "@/SystemFolder/SystemResources/Desktop
 import {
 	ClassicyFileBrowser,
 	type ClassicyFileBrowserCommands,
+	type ClassicyFileBrowserReveal,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
@@ -104,6 +106,8 @@ type FinderWindowProps = {
 	) => ClassicyMenuItem[] | undefined;
 	/** The active package's Trash art, full or empty: the Trash window's icon. */
 	trashIcon: string;
+	/** The item to select, when the Finder revealed one in this folder. */
+	reveal?: ClassicyFileBrowserReveal;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -132,6 +136,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	restoreItems,
 	itemContextMenu,
 	trashIcon,
+	reveal,
 }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
 	// The browser's selection, for File ▸ Move To Trash and Restore.
@@ -198,6 +203,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 								},
 							]
 						: []),
+					{ id: "spacer" },
+					classicyFinderFindMenuItem(`${appId}_${op}`, desktopEventDispatch),
 				],
 			},
 			// Built inline rather than from useClassicyEditMenu: that hook's Select
@@ -323,6 +330,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				onDeleteItems={inTrash ? undefined : trashItems}
 				itemContextMenu={itemContextMenu}
 				commandsRef={commandsRef}
+				reveal={reveal}
 			/>
 		</ClassicyWindow>
 	);
@@ -711,6 +719,21 @@ export const Finder = () => {
 		[finderData],
 	);
 
+	// The item the Finder last revealed (Find File's Open Enclosing Folder),
+	// for the window of the folder that holds it.
+	const revealPath = finderData.reveal?.path;
+	const revealSeq = finderData.reveal?.seq;
+	const reveal = useMemo(
+		() =>
+			revealPath === undefined || revealSeq === undefined
+				? undefined
+				: {
+						folder: revealPath.slice(0, revealPath.lastIndexOf(":")),
+						value: { paths: [revealPath], key: revealSeq },
+					},
+		[revealPath, revealSeq],
+	);
+
 	return (
 		<ClassicyApp
 			id={appId}
@@ -760,6 +783,7 @@ export const Finder = () => {
 							restoreItems={restoreItems}
 							itemContextMenu={itemContextMenu}
 							trashIcon={trashIcon}
+							reveal={reveal?.folder === p ? reveal.value : undefined}
 						/>
 					))
 				: null}

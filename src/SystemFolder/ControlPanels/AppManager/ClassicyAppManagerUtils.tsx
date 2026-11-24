@@ -805,6 +805,13 @@ export function sanitizeStateForPersistence(
 		if (screenSaverApp?.data && "active" in screenSaverApp.data) {
 			delete (screenSaverApp.data as Record<string, unknown>).active;
 		}
+		// The item the Finder last revealed (Find File's Open Enclosing
+		// Folder) is selected once, in this session: a reload must not select
+		// it again, and the path is the user's.
+		const finderApp = draft.System.Manager.Applications.apps["Finder.app"];
+		if (finderApp?.data && "reveal" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).reveal;
+		}
 		// The Special menu's confirmation alert belongs to the session that
 		// opened it; a reload must not greet the user with Empty Trash. An
 		// error alert is just as transient, and its message may name an item

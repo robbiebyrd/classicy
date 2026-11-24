@@ -53,6 +53,14 @@ export type ClassicyFileBrowserViewIconsProps = {
 	 * `ClassicyFileBrowser`). Without it, icons can only be rearranged here.
 	 */
 	onMoveItems?: ClassicyFileBrowserMoveItems;
+	/**
+	 * The selected items' paths, when the caller keeps the selection (the
+	 * file browser does once the Finder has revealed an item). Omit it and
+	 * each icon keeps its own.
+	 */
+	selectedPaths?: readonly string[];
+	/** Called with the new selection when a kept selection changes. */
+	onSelectionChange?: (paths: string[]) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style for the root element. */
@@ -104,6 +112,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			showInvisible = true,
 			iconViewOptions,
 			onMoveItems,
+			selectedPaths,
+			onSelectionChange,
 			className,
 			style,
 		}) => {
@@ -305,7 +315,27 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					ref={resolvedHolderRef}
 				>
 					{items.map((item) => {
-						return <ClassicyIcon {...item} key={item.name} />;
+						if (!selectedPaths) {
+							return <ClassicyIcon {...item} key={item.name} />;
+						}
+						// A kept selection: each icon shows it and reports a toggle.
+						const selected = selectedPaths.includes(item.filePath);
+						return (
+							<ClassicyIcon
+								{...item}
+								key={item.name}
+								selected={selected}
+								onSelectedChange={(next) => {
+									if (next === selected) return;
+									const others = selectedPaths.filter(
+										(p) => p !== item.filePath,
+									);
+									onSelectionChange?.(
+										next ? [...others, item.filePath] : others,
+									);
+								}}
+							/>
+						);
 					})}
 				</div>
 			);

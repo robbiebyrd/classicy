@@ -61,6 +61,7 @@ export const CLASSICY_COMPONENT = {
 	FileDialog: "classicyFileDialog",
 	FileInput: "classicyFileInput",
 	FileOpenDialog: "classicyFileOpenDialog",
+	FindFile: "classicyFindFile",
 	Form: "classicyForm",
 	HelpButton: "classicyHelpButton",
 	HyperCard: "classicyHyperCard",

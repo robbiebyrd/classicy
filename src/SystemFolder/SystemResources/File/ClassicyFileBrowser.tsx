@@ -36,6 +36,15 @@ import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/Cla
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 
+/**
+ * Items to select, in either view, whenever `key` changes: the Finder's
+ * reveal (Find File's Open Enclosing Folder). The first is scrolled into view.
+ */
+export type ClassicyFileBrowserReveal = {
+	paths: readonly string[];
+	key: string | number;
+};
+
 /** Commands a host (e.g. a window's menu) can run on a file browser. */
 export type ClassicyFileBrowserCommands = {
 	/** Paths of the selected items: highlighted icons, or selected list rows. */
@@ -120,6 +129,12 @@ type ClassicyFileBrowserProps = {
 	) => ClassicyMenuItem[] | undefined;
 	/** Receives `{ selectedPaths() }`, for menu commands that act on the selection. */
 	commandsRef?: RefObject<ClassicyFileBrowserCommands | null>;
+	/**
+	 * Select these items whenever `reveal.key` changes, in either view, and
+	 * scroll the first into view (the Finder's reveal). From the first reveal
+	 * on, the browser keeps the selection itself, and both views show it.
+	 */
+	reveal?: ClassicyFileBrowserReveal;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -185,6 +200,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	onDeleteItems,
 	itemContextMenu,
 	commandsRef,
+	reveal,
 	className,
 	style,
 }) => {
@@ -192,16 +208,54 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	const rootRef = useRef<HTMLDivElement>(null);
 	const { showContextMenu } = useClassicyContextualMenu();
 
+	// The selection the browser keeps once something was revealed in it;
+	// until then each view keeps its own, as before.
+	const [keptSelection, setKeptSelection] = useState<string[] | undefined>(
+		undefined,
+	);
+
 	// The list view reports its selection; the icon view's lives in each icon
 	// (highlighted ones carry the selected state class), so it is read from the DOM.
 	const listSelectionRef = useRef<string[]>(selectedPaths ?? []);
 	const trackListSelection = useCallback(
 		(paths: string[]) => {
 			listSelectionRef.current = paths;
+			setKeptSelection((kept) => (kept === undefined ? kept : paths));
 			onSelectionChange?.(paths);
 		},
 		[onSelectionChange],
 	);
+	const trackIconSelection = useCallback((paths: string[]) => {
+		setKeptSelection(paths);
+	}, []);
+
+	// A reveal selects its items, whichever view shows, then brings the first
+	// into view once it has drawn.
+	const revealKey = reveal?.key;
+	const revealPathsRef = useRef(reveal?.paths);
+	revealPathsRef.current = reveal?.paths;
+	const pendingScrollRef = useRef<string | undefined>(undefined);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a reveal applies when its key changes, not when the parent hands over a new paths array
+	useLayoutEffect(() => {
+		const paths = revealPathsRef.current;
+		if (revealKey === undefined || !paths) return;
+		const next = [...paths];
+		listSelectionRef.current = next;
+		setKeptSelection(next);
+		pendingScrollRef.current = next[0];
+		onSelectionChange?.(next);
+	}, [revealKey]);
+	useLayoutEffect(() => {
+		const first = pendingScrollRef.current;
+		if (first === undefined || keptSelection === undefined) return;
+		const target = Array.from(
+			rootRef.current?.querySelectorAll(`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`) ??
+				[],
+		).find((el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) === first);
+		if (!target) return;
+		pendingScrollRef.current = undefined;
+		target.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+	});
 	const currentSelection = useCallback((): string[] => {
 		if (display === "list") return listSelectionRef.current;
 		return Array.from(
@@ -319,7 +373,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					listViewOptions={listViewOptions}
 					now={now}
 					selectionApiRef={selectionApiRef}
-					selectedPaths={selectedPaths}
+					selectedPaths={selectedPaths ?? keptSelection}
 					onSelectionChange={trackListSelection}
 					focusTargetRef={focusTargetRef}
 				/>
@@ -335,6 +389,8 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					hideFilesCreatedAfter={hideFilesCreatedAfter}
 					showInvisible={showInvisible}
 					iconViewOptions={iconViewOptions}
+					selectedPaths={keptSelection}
+					onSelectionChange={trackIconSelection}
 				/>
 			)}
 		</div>

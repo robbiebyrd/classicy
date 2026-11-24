@@ -1,0 +1,156 @@
+// Find File (story 0227-815): structure only. The pop-ups, fields, buttons,
+// group box, tabs, list, path pane and split view take their look from their
+// own components, drawn by the Appearance Package.
+
+.classicyFindFile {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--window-padding-size);
+  font-family: var(--ui-font);
+  font-size: var(--ui-font-size);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+// Scoped under the root to outrank .classicyForm's own layout.
+.classicyFindFile .classicyFindFileForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--window-padding-size);
+}
+
+// "Find items [where] whose", on one line.
+.classicyFindFileLocation {
+  display: flex;
+  align-items: center;
+  gap: var(--control-padding);
+}
+
+.classicyFindFileText {
+  flex: none;
+  white-space: nowrap;
+}
+
+// The rows, one under another in the group box.
+.classicyFindFileCriteria {
+  display: flex;
+  flex-direction: column;
+  gap: var(--control-padding);
+}
+
+// A row: the criterion and the operator, then the value taking the rest.
+.classicyFindFileCriterion {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  gap: var(--control-padding);
+}
+
+.classicyFindFileCriterionKey,
+.classicyFindFileOperator,
+.classicyFindFileValue {
+  min-width: 0;
+}
+
+// A single operator ("is") is words, not a pop-up.
+.classicyFindFileOperatorText {
+  justify-self: center;
+}
+
+// The size row's field, then its unit.
+.classicyFindFileSize {
+  display: flex;
+  align-items: center;
+  gap: var(--control-padding);
+  min-width: 0;
+}
+
+.classicyFindFileSizeUnit {
+  flex: none;
+}
+
+// More Choices and Fewer Choices at the left, Find at the right.
+.classicyFindFileButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--control-padding);
+}
+
+.classicyFindFileButtonsSpacer {
+  flex: 1 1 auto;
+}
+
+// The channels: the words, then the list of sites.
+.classicyFindFileWords {
+  width: 100%;
+}
+
+.classicyFindFileChannels {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--control-padding);
+}
+
+.classicyFindFileChannelList {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.classicyFindFileChannelName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--control-padding);
+  white-space: nowrap;
+}
+
+.classicyFindFileChannelIcon {
+  flex: none;
+  width: var(--icon-small-size);
+  height: var(--icon-small-size);
+  object-fit: contain;
+}
+
+// Items Found: the list over the path pane, then the count.
+.classicyFindFileResults {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  font-family: var(--ui-font);
+  font-size: var(--ui-font-size);
+}
+
+.classicyFindFileResultsSplit {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+// Scoped under the root to outrank .classicyListBox's and the table's sizes.
+.classicyFindFileResults .classicyFindFileResultsList,
+.classicyFindFileResults .classicyFindFilePath {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
+// Items Found highlights only the name, as the Finder's list view does
+// (ClassicyFileBrowserViewTable.scss): the table's whole-row highlight
+// stands down.
+.classicyFindFileResults .classicyFindFileResultsList :where(.classicyTableRow).selected {
+  color: inherit;
+  background: var(--color-system-01);
+}
+
+.classicyFindFileResultIcon {
+  width: var(--icon-small-size);
+  height: var(--icon-small-size);
+  object-fit: contain;
+}
+
+.classicyFindFileStatus {
+  flex: none;
+  padding: var(--control-padding) var(--window-padding-size);
+  white-space: nowrap;
+}

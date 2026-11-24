@@ -93,6 +93,11 @@ export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext"
 export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
 export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverOffer";
 export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+export * from "./SystemFolder/FindFile/ClassicyFindCriteria";
+export * from "./SystemFolder/FindFile/ClassicyFindFileSearch";
+export * from "./SystemFolder/FindFile/ClassicyFindSources";
+export * from "./SystemFolder/FindFile/FindFile";
+export * from "./SystemFolder/FindFile/FindFileContext";
 export * from "./SystemFolder/Finder/Finder";
 export * from "./SystemFolder/Finder/FinderAboutThisComputer";
 export * from "./SystemFolder/Finder/FinderContext";
