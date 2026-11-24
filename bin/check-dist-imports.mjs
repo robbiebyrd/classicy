@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Seventeen invariants on the core's *published* bundle (and, for invariant 11,
-// on the sources it is built from), numbered 1-18: number 12 moved to the
+// Nineteen invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-20: number 12 moved to the
 // Platinum package's own dist check, packages/appearance/platinum/bin/
 // verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
@@ -15,6 +15,12 @@
 //    in vite.config.ts. Shipped in 0.70.0: rt911's dev server refused to boot
 //    (rolldown: "No such file or directory") and its vitest failed to collect
 //    62 suites ("does not provide an export named 'default'").
+//    And the scan must have read the entry bundles' heads: classicy.es.js
+//    yields its static `react` import and classicy.umd.js its
+//    `require("react")`, or the check fails, since a head the parser cannot
+//    read (another quote style, a directive or comment it does not skip)
+//    yields no import and would pass unread. Story 0224-siu's first build did
+//    that: `"use client";` ahead of the imports read as "0 import(s), clean".
 //
 // 2. pdfjs-dist AND fflate MUST NOT BE EXTERNAL. The PDF viewer embeds *this
 //    repo's* pdf.worker in dist (deflated since plan 0019-fb7, invariant 17;
@@ -93,7 +99,11 @@
 //    map: every .d.ts.map is dead weight for a host (its `sources` point at
 //    files the tarball does not hold), so each dts() call passes
 //    `compilerOptions: { declarationMap: false }` (plan 0019-fb7 §2.1).
-//    Checked by walking dist/types (skipped when the caller names files).
+//    And each .d.ts has its .d.cts twin, its relative specifiers ending in
+//    .cjs (bin/classicyCommonJsDeclarations.ts): the exports map's `require`
+//    types, since a CommonJS TypeScript host on node16 cannot require() the
+//    ES-module .d.ts (TS1479; story 0223-a0y). Checked by walking dist/types
+//    (skipped when the caller names files).
 //
 // 9. EVERY STYLESHEET IN DIST/ IS ASCII ONLY, OR OPENS WITH `@charset "UTF-8";`.
 //    Strict-CSP hosts link dist/classicy.css and dist/classicy-<id>.css
@@ -184,16 +194,60 @@
 //    assets/img/ui/earth.webp byte for byte: the core's only WebP, so
 //    VitePluginImageTools never re-encoded it. Skipped when the caller names
 //    files.
+//
+// 19. THE LIBRARY LOADS IN NODE, SILENTLY (story 0223-a0y). A
+//    server-rendering host (Next.js, Remix, Astro) loads the library in Node:
+//    classicy.es.js is imported, and classicy.umd.cjs, what `require()`
+//    resolves to there, required, each in a child Node process
+//    (bin/classicyNodeImport.ts), twice: once with the browser's globals
+//    deleted (`document`, `window`, `navigator`, `localStorage` and the
+//    rest), and once with Node's own globals but `localStorage` and
+//    `sessionStorage` failing on any read, `typeof` included, as Node 25 and
+//    later throw or warn on one. Each must load without throwing, without a
+//    load-time task throwing, without a process warning and without writing
+//    to the console. classicy.umd.cjs is the CommonJS loader
+//    bin/classicyUmdLoader.ts writes, a few lines that run classicy.umd.js
+//    beside it as CommonJS (in this "type": "module" package Node reads a .js
+//    file as an ES module, so the UMD bundle itself cannot be required), and
+//    classicy.umd.js requires no Node built-in, which a browser bundler could
+//    not resolve (Rollup's `require("url")` for import.meta.url becomes
+//    process.getBuiltinModule, bin/classicyUmdNodeUrl.ts), and declares
+//    nothing at its top level: a `<script>` page would get it as a global,
+//    and it would make every global name the bundle reads a slow lookup
+//    under the loader's eval (25 to 60% slower). 3.7.0 threw
+//    `document is not defined` on import (a dependency's `browser` entry,
+//    bin/classicyNodeEntry.ts), and its UMD bundle could not be required at
+//    all. Skipped when the caller names files.
+//
+// 20. THE ES ENTRY STARTS WITH "use client"; (story 0224-siu). A React Server
+//    Components bundler (Next.js's App Router, webpack or Turbopack) treats a
+//    module as a client module only when its first statement is the
+//    directive; without it a server component that imports ClassicyDesktop
+//    evaluates the bundle as a server module, where React has no
+//    createContext or hooks, and the host's build fails (3.7.0: every host
+//    wrote a "use client" wrapper of its own). Rollup drops a module-level
+//    directive from what it bundles, so classicyUseClientPlugin
+//    (bin/classicyUseClient.ts) adds it back as a banner: classicy.es.js must
+//    begin with exactly `"use client";`, before any comment or import. The
+//    UMD bundle and the lazy chunks carry none (they are never where a server
+//    module meets a client one), nor do the Appearance Packages (their
+//    invariant 12). Checked on classicy.es.js (when named, in named mode).
 
+import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { argv, exit } from "node:process";
+import { parseAst } from "vite";
 import {
 	findClassicyPlainCssFiles,
 	findClassicyUnlayeredCss,
 } from "./classicyBaseCss.ts";
-import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
+import {
+	classicyBundleSpecifiers,
+	classicyBundleStaticImports,
+} from "./classicyBundleSpecifiers.ts";
+import { findClassicyCommonJsDeclarationProblems } from "./classicyCommonJsDeclarations.ts";
 import { findClassicyCssFloorProblems } from "./classicyCssFloor.ts";
 import { findClassicyExtensionlessSpecifiers } from "./classicyDeclarationSpecifiers.ts";
 import { classicyDeflatePayloads } from "./classicyDeflateAsset.ts";
@@ -210,8 +264,18 @@ import {
 	findClassicyJsonDeclarations,
 	findClassicyTestDeclarations,
 } from "./classicyDistTypes.ts";
+import { findClassicyNodeImportProblems } from "./classicyNodeImport.ts";
 import { findClassicyPackageCssProblems } from "./classicyPackageCss.ts";
 import { findClassicySourceMapTextProblems } from "./classicySourceMapText.ts";
+import {
+	classicyUmdLoaderFile,
+	findClassicyUmdLoaderProblems,
+} from "./classicyUmdLoader.ts";
+import {
+	findClassicyUmdNodeBuiltinProblems,
+	findClassicyUmdTopLevelDeclarations,
+} from "./classicyUmdNodeUrl.ts";
+import { findClassicyUseClientProblems } from "./classicyUseClient.ts";
 
 const DIST = "dist";
 
@@ -239,9 +303,33 @@ const MUST_BE_BUNDLED = {
 const bundledPackageOf = (s) =>
 	Object.keys(MUST_BE_BUNDLED).find((p) => s === p || s.startsWith(`${p}/`));
 
+// What each entry bundle's parsed imports must include, so the scan is known
+// to have read its head (invariant 1's floor): React, which every entry
+// imports, statically in the ES entry and by require() in the UMD bundle.
+const READ_FLOOR = {
+	[join(DIST, "classicy.es.js")]: {
+		read: (source) => classicyBundleStaticImports(source),
+		what: 'static import of "react"',
+	},
+	[join(DIST, "classicy.umd.js")]: {
+		read: (source) => classicyBundleSpecifiers(source),
+		what: 'require("react")',
+	},
+};
+
 let failed = false;
 for (const file of await bundles()) {
-	const specifiers = classicyBundleSpecifiers(await readFile(file, "utf8"));
+	const source = await readFile(file, "utf8");
+	const specifiers = classicyBundleSpecifiers(source);
+
+	const floor = READ_FLOOR[file];
+	const unread = floor && !floor.read(source).includes("react");
+	if (unread) {
+		failed = true;
+		console.error(
+			`${file}: the import scan read no ${floor.what} -> bin/classicyBundleSpecifiers.ts cannot read this bundle's head (a quote style, or a directive or comment it does not skip), so this check would pass it unread; teach the parser the new head.`,
+		);
+	}
 
 	const queried = specifiers.filter((s) => s.includes("?"));
 	if (queried.length) {
@@ -263,7 +351,7 @@ for (const file of await bundles()) {
 			console.error(`  -> ${p}: ${MUST_BE_BUNDLED[p]}`);
 	}
 
-	if (!queried.length && !leaked.length) {
+	if (!queried.length && !leaked.length && !unread) {
 		console.log(`${file}: ${specifiers.length} import(s), clean`);
 	}
 }
@@ -559,15 +647,26 @@ if (!argv.slice(2).length) {
 			`${file}: relative specifier(s) without an extension (${listed(specifiers.map((s) => JSON.stringify(s)))}) -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
 		);
 	}
+	const twins =
+		declarations === null
+			? []
+			: findClassicyCommonJsDeclarationProblems(
+					typesDir,
+					declarations.map(String),
+					(file) => readFileSync(join(typesDir, file), "utf8"),
+				);
+	for (const problem of twins) console.error(problem);
+	if (twins.length) failed = true;
 	if (
 		declarations !== null &&
 		!shipped.length &&
 		!scripts.length &&
 		!json.length &&
-		!bare
+		!bare &&
+		!twins.length
 	) {
 		console.log(
-			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension`,
+			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension; every .d.ts with its .d.cts twin for require()`,
 		);
 	}
 }
@@ -922,6 +1021,52 @@ if (!argv.slice(2).length) {
 	else
 		console.log(
 			`earth WebP: ${EARTH} (${earth.length} bytes) embedded byte-identical, once, in classicy.es.js and classicy.umd.js`,
+		);
+}
+
+// Invariant 19: the library loads in Node with no browser globals, the UMD
+// bundle through its CommonJS loader. Skipped when the caller names files.
+if (!argv.slice(2).length) {
+	const loader = join(DIST, classicyUmdLoaderFile("classicy.umd.js"));
+	const entries = [
+		{ file: join(DIST, "classicy.es.js"), kind: "import" },
+		{ file: loader, kind: "require" },
+	];
+	const read = (file) => (existsSync(file) ? readFileSync(file, "utf8") : null);
+	const umd = join(DIST, "classicy.umd.js");
+	const problems = [
+		...findClassicyUmdLoaderProblems(
+			loader,
+			"classicy.umd.js",
+			"@classicy/classicy",
+			read,
+		),
+		...findClassicyUmdNodeBuiltinProblems(umd, read(umd) ?? ""),
+		...findClassicyUmdTopLevelDeclarations(umd, read(umd) ?? "", parseAst),
+	];
+	if (!problems.length)
+		problems.push(...(await findClassicyNodeImportProblems(entries)));
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`server import: ${entries.map(({ file, kind }) => `${file} (${kind})`).join(" and ")} load in Node with no browser globals and with Node's own, silently; ${loader} is the CommonJS loader of classicy.umd.js, which requires no Node built-in and declares nothing at its top level`,
+		);
+}
+
+// Invariant 20: the ES entry's first statement is "use client";.
+for (const entry of ["classicy.es.js"]) {
+	const file = join(DIST, entry);
+	if (argv.slice(2).length && !argv.slice(2).includes(file)) continue;
+	const problems = findClassicyUseClientProblems(
+		file,
+		existsSync(file) ? readFileSync(file, "utf8") : null,
+	);
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`${file}: starts with "use client";, a client module to a React Server Components bundler`,
 		);
 }
 

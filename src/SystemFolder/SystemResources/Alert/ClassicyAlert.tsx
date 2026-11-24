@@ -6,6 +6,7 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
+	useId,
 	useMemo,
 	useRef,
 } from "react";
@@ -39,7 +40,8 @@ export type ClassicyAlertButton = {
 	/** Button text — HIG asks for a specific verb (e.g. "Delete", not "OK"). */
 	label: string;
 	/**
-	 * default → Return/Enter triggers it and it gets the default ring.
+	 * default → Return/Enter triggers it and it gets the default ring (unless
+	 *           the alert's `defaultButtonId` is `null`).
 	 * cancel  → Escape / Command-period triggers it; laid out left of default.
 	 * help    → a ClassicyHelpButton pushed to the far left; `label` becomes
 	 *           its accessible name ("Help" when it is empty or "?").
@@ -61,9 +63,11 @@ export type ClassicyAlertProps = {
 	alertType?: ClassicyAlertType;
 	/** Title-bar text, shown on the movable variant. Defaults to `""`. */
 	title?: string;
-	/** Bold system-font heading (tier 1); also the dialog's accessible name. */
+	/** Bold system-font heading (tier 1); also the dialog's accessible name
+	 * (`aria-labelledby`). */
 	label: string;
-	/** Plain small-system-font narrative (tier 2). Omitted when empty. */
+	/** Plain small-system-font narrative (tier 2), the dialog's accessible
+	 * description (`aria-describedby`). Omitted when empty. */
 	message?: ReactNode;
 	/**
 	 * Up to four buttons (extras are dropped), laid out left to right in array
@@ -77,8 +81,15 @@ export type ClassicyAlertProps = {
 	 * the safe choice (Cancel) should be the default — set this to the Cancel id.
 	 * Without it, the button with role `default` wins, else the last button
 	 * that is neither `cancel` nor `help`.
+	 *
+	 * `null`: no default button at all, for a choice whose likely answers
+	 * may each lose the user's data (HIG7 p.206: "When there is no default
+	 * button, pressing Return or Enter has no effect; the user must explicitly
+	 * click a button"). No ring is drawn, Return and Enter do nothing, and the
+	 * alert itself takes the keyboard focus on open, never a button, so a
+	 * keystroke meant for the field the user was typing in answers nothing.
 	 */
-	defaultButtonId?: string;
+	defaultButtonId?: string | null;
 	/**
 	 * Movable alert (draggable, red title-bar highlight) when true; otherwise a
 	 * non-movable alert with a red content-region border. Defaults to `false`.
@@ -200,6 +211,9 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	style,
 }) => {
 	const player = useSoundDispatch();
+	const labelId = useId();
+	const messageId = useId();
+	const hasMessage = message != null && message !== "";
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const defaultButtonRef = useRef<HTMLButtonElement | null>(null);
 	const appearance = useClassicyAppearance("Alert", {}, contentRef);
@@ -223,6 +237,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 
 	// Resolve which button is the default (Return/Enter target).
 	const defaultButton = useMemo(() => {
+		if (defaultButtonId === null) return undefined;
 		if (defaultButtonId) {
 			const forced = resolvedButtons.find((b) => b.id === defaultButtonId);
 			if (forced) return forced;
@@ -273,7 +288,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	// Return → default button, Escape / Command-period → Cancel, scoped to the
 	// alert so stacked dialogs don't cross-fire.
 	useKeyboardEquivalents({
-		onDefault,
+		onDefault: defaultButton ? onDefault : undefined,
 		onCancel: cancelButton ? onCancel : undefined,
 		targetRef: contentRef,
 	});
@@ -281,11 +296,13 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	// Keep Tab focus inside the alert and focus the DEFAULT button on open (HIG
 	// Ch.3 "Keyboard Navigation and Focus"): focus must coincide with the default
 	// ring, otherwise Return activates whichever button happens to be first in the
-	// DOM (e.g. Cancel in a caution alert) rather than the default.
+	// DOM (e.g. Cancel in a caution alert) rather than the default. With no
+	// default, the alert itself: a focused button would take the Return or
+	// Space the user meant for their field.
 	useFocusTrap({
 		ref: contentRef,
 		autoFocus: true,
-		initialFocusRef: defaultButtonRef,
+		initialFocusRef: defaultButton ? defaultButtonRef : contentRef,
 	});
 
 	// The non-movable variant is an error-typed window, so ClassicyWindow already
@@ -333,16 +350,27 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 					style={appearance.style}
 					role="alertdialog"
 					aria-modal="true"
-					aria-label={label}
+					// Named by the label and described by the narrative, so a
+					// screen reader reads the whole question with the dialog
+					// (WAI-ARIA 1.2, alertdialog).
+					aria-labelledby={labelId}
+					aria-describedby={hasMessage ? messageId : undefined}
+					// Focusable by script only, so it holds the focus when no button
+					// is the default; never a Tab stop.
+					tabIndex={defaultButton ? undefined : -1}
 				>
 					<div className={"classicyAlertTop"}>
 						<div className={"classicyAlertIcon"}>
 							<AlertIcon alertType={alertType} />
 						</div>
 						<div className={"classicyAlertBody"}>
-							<p className={"classicyAlertLabel"}>{label}</p>
-							{message != null && message !== "" && (
-								<div className={"classicyAlertMessage"}>{message}</div>
+							<p className={"classicyAlertLabel"} id={labelId}>
+								{label}
+							</p>
+							{hasMessage && (
+								<div className={"classicyAlertMessage"} id={messageId}>
+									{message}
+								</div>
 							)}
 						</div>
 					</div>

@@ -11,8 +11,15 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import {
+	classicyCommonJsDeclaration,
+	classicyCommonJsDeclarationFile,
+} from "../../../../bin/classicyCommonJsDeclarations";
 import { classicyFontStylesheet } from "../../../../bin/classicyFontStylesheet";
+import { CLASSICY_NODE_IMPORT_FIXTURE } from "../../../../bin/classicyNodeImportFixture";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector";
+import { classicyUmdLoader } from "../../../../bin/classicyUmdLoader";
+import { CLASSICY_USE_CLIENT } from "../../../../bin/classicyUseClient";
 import { SYSTEM7_FONT_FACES } from "../src/assets/system7Fonts.internal";
 import { system7AssetFileName } from "./system7AssetNames";
 
@@ -122,7 +129,7 @@ const urls = SHIPPED.map(
 		`new URL("assets/${system7AssetFileName(file)}",import.meta.url).href`,
 ).join(",");
 const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const d="${DITHER_URI}";${MASK_URIS}const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-system7.es.js.map\n`;
-const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearanceSystem7={},g.classicy,g.React)})(this,function(e,c,j){const d="${DITHER_URI}";${MASK_URIS}const z=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
+const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearanceSystem7={},g.classicy,g.React)})(this,function(e,c,j){const d="${DITHER_URI}";${MASK_URIS}const z=typeof document>"u"?$classicyUrl().pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});function $classicyUrl(){return process.getBuiltinModule("node:url")}});\n`;
 const FONTS = classicyFontStylesheet(
 	SYSTEM7_FONT_FACES,
 	(face) => `assets/${face.file}.woff2`,
@@ -141,6 +148,10 @@ const DIST: Record<string, string | Buffer> = {
 	"appearance-system7.es.js.map": MAP,
 	"appearance-system7.umd.js": UMD,
 	"appearance-system7.umd.js.map": MAP,
+	"appearance-system7.umd.cjs": classicyUmdLoader(
+		"appearance-system7.umd.js",
+		"@classicy/appearance-system7",
+	),
 	"classicy-system7.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE}`,
 	"classicy-system7.fonts.css": FONTS,
 	"types/index.d.ts": 'export * from "./hooks.js";\n',
@@ -165,12 +176,28 @@ const verify = (
 	omit: readonly string[] = [],
 ) => {
 	const dir = path.join(root, `case-${run++}`);
+	// What the bundles import, for the server-import invariant (11).
+	for (const [file, content] of Object.entries(CLASSICY_NODE_IMPORT_FIXTURE)) {
+		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+		writeFileSync(path.join(dir, file), content);
+	}
 	for (const [file, content] of Object.entries({ ...SOURCES, ...sources })) {
 		if (omit.includes(file)) continue;
 		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
 		writeFileSync(path.join(dir, file), content);
 	}
-	for (const [file, content] of Object.entries({ ...DIST, ...changes })) {
+	// Each declaration's .d.cts twin, as the build writes it (invariant 7),
+	// unless the case sets the twin itself.
+	const files: Record<string, string | Buffer | null> = { ...DIST, ...changes };
+	for (const [file, content] of Object.entries(files))
+		if (
+			file.endsWith(".d.ts") &&
+			typeof content === "string" &&
+			!(classicyCommonJsDeclarationFile(file) in changes)
+		)
+			files[classicyCommonJsDeclarationFile(file)] =
+				classicyCommonJsDeclaration(content);
+	for (const [file, content] of Object.entries(files)) {
 		if (content === null) continue;
 		const target = path.join(dir, "dist", file);
 		mkdirSync(path.dirname(target), { recursive: true });
@@ -179,6 +206,8 @@ const verify = (
 	const result = spawnSync(process.execPath, [SCRIPT], {
 		cwd: dir,
 		encoding: "utf8",
+		// The fixture bundles start no load-time task to wait for (invariant 11).
+		env: { ...process.env, CLASSICY_NODE_IMPORT_SETTLE_MS: "0" },
 	});
 	return { status: result.status, stderr: result.stderr.trim() };
 };
@@ -193,21 +222,26 @@ describe("bin/verify-dist.mjs", () => {
 
 	// Invariant 1: one copy of the registries (design 0014-ahm anti-goal).
 	describe("1. the core is an import, not a copy", () => {
-		it("fails a bundle that does not import @classicy/classicy", () =>
-			expect(
-				verify({
-					"appearance-system7.umd.js": UMD.replace(
-						'require("@classicy/classicy")',
-						'require("@classicy/classicy-copy")',
-					),
-				}),
-			).toEqual({
-				status: 1,
-				stderr: [
-					'dist/appearance-system7.umd.js: externalizes "@classicy/classicy-copy", which is not the core or React -> check `external` in vite.config.ts.',
-					"dist/appearance-system7.umd.js: does not import @classicy/classicy -> the core must stay external (a peer dependency), or System 7 registers into a copy of the registries nothing reads.",
-				].join("\n"),
-			}));
+		it("fails a bundle that does not import @classicy/classicy", () => {
+			const { status, stderr } = verify({
+				"appearance-system7.umd.js": UMD.replace(
+					'require("@classicy/classicy")',
+					'require("@classicy/classicy-copy")',
+				),
+			});
+			expect(status).toBe(1);
+			expect(stderr.split("\n")).toEqual([
+				'dist/appearance-system7.umd.js: externalizes "@classicy/classicy-copy", which is not the core or React -> check `external` in vite.config.ts.',
+				"dist/appearance-system7.umd.js: does not import @classicy/classicy -> the core must stay external (a peer dependency), or System 7 registers into a copy of the registries nothing reads.",
+				// And Node cannot load it (invariant 11), in either environment.
+				expect.stringMatching(
+					/^dist\/appearance-system7\.umd\.cjs: does not require cleanly in Node with no browser globals: throws Error: Cannot find module '@classicy\/classicy-copy'/,
+				),
+				expect.stringMatching(
+					/^dist\/appearance-system7\.umd\.cjs: does not require cleanly in Node with Node's own globals: throws Error: Cannot find module '@classicy\/classicy-copy'/,
+				),
+			]);
+		});
 
 		// Vite's Node-only asset URL shim is UMD output; an ES bundle has none.
 		it("fails Node's url module in the ES bundle", () =>
@@ -219,12 +253,44 @@ describe("bin/verify-dist.mjs", () => {
 				'dist/appearance-system7.es.js: externalizes "url", which is not the core or React -> check `external` in vite.config.ts.',
 			));
 
+		// Rollup's UMD asset URL, require("url"), which a browser bundler that
+		// bundles the UMD bundle cannot resolve: the build rewrites it
+		// (bin/classicyUmdNodeUrl.ts).
+		it("fails Node's url module in the UMD bundle too", () =>
+			expect(
+				verify({
+					"appearance-system7.umd.js": UMD.replace(
+						"$classicyUrl()",
+						'require("url")',
+					),
+				}).stderr,
+			).toBe(
+				'dist/appearance-system7.umd.js: externalizes "url", which is not the core or React -> check `external` in vite.config.ts.',
+			));
+
+		// Inside the factory, never at the top level: a <script> page's global,
+		// and slow global lookups under the CommonJS loader's eval (invariant
+		// 11).
+		it("fails a UMD bundle that declares anything at its top level", () =>
+			expect(
+				verify({
+					"appearance-system7.umd.js": `${UMD.replace(
+						'function $classicyUrl(){return process.getBuiltinModule("node:url")}',
+						"",
+					)}function $classicyUrl(){return process.getBuiltinModule("node:url")}\n`,
+				}).stderr,
+			).toBe(
+				"dist/appearance-system7.umd.js: declares $classicyUrl at its top level (FunctionDeclaration) -> a <script> page gets it as a global, and the CommonJS loader's eval slows every global name the bundle reads; keep it inside the UMD factory (bin/classicyUmdNodeUrl.ts).",
+			));
+
 		it("fails a bundle that carries the core's registries", () =>
 			expect(
 				verify({
 					"appearance-system7.es.js": ES.replace(
 						"export{u};",
-						'console.warn("Rejected sound pack");export{u};',
+						// Never called: the core warns only when a pack is rejected,
+						// and a bundle that logged at load would fail invariant 11.
+						'const w=()=>console.warn("Rejected sound pack");export{u,w};',
 					),
 				}),
 			).toEqual({
@@ -237,10 +303,17 @@ describe("bin/verify-dist.mjs", () => {
 			expect(
 				verify({
 					"appearance-system7.es.js": `import"@classicy/classicy/x.svg?url";${ES}`,
-				}).stderr,
-			).toBe(
+				}).stderr.split("\n"),
+			).toEqual([
 				'dist/appearance-system7.es.js: externalizes "@classicy/classicy/x.svg?url", which carries a Vite query -> an asset import must stay bundled.',
-			));
+				// Nor can Node resolve it (invariant 11), in either environment.
+				expect.stringMatching(
+					/^dist\/appearance-system7\.es\.js: does not import cleanly in Node with no browser globals: throws Error: Package subpath '\.\/x\.svg\?url' is not defined by "exports"/,
+				),
+				expect.stringMatching(
+					/^dist\/appearance-system7\.es\.js: does not import cleanly in Node with Node's own globals: throws Error: Package subpath '\.\/x\.svg\?url' is not defined by "exports"/,
+				),
+			]));
 	});
 
 	// Invariant 2 (the core's old 5, and 0131-ku3's review): exactly the
@@ -379,7 +452,7 @@ describe("bin/verify-dist.mjs", () => {
 			expect(verify({ "classicy.css": "" })).toEqual({
 				status: 1,
 				stderr:
-					"dist/classicy.css: not a file the package ships -> the package's dist holds its two bundles and their maps, classicy-system7.css, classicy-system7.fonts.css, assets/ and types/.",
+					"dist/classicy.css: not a file the package ships -> the package's dist holds its two bundles and their maps, the UMD bundle's CommonJS loader, classicy-system7.css, classicy-system7.fonts.css, assets/ and types/.",
 			}));
 	});
 
@@ -676,6 +749,30 @@ describe("bin/verify-dist.mjs", () => {
 				}).status,
 			).toBe(0));
 
+		// The exports map's `require` types (story 0223-a0y).
+		it("fails a declaration without its .d.cts twin", () =>
+			expect(verify({ "types/hooks.d.cts": null })).toEqual({
+				status: 1,
+				stderr:
+					"dist/types/hooks.d.cts: missing -> a CommonJS TypeScript host reads it for require(); check afterBuild (classicyCommonJsDeclarationsWriter) on dts in vite.config.ts.",
+			}));
+
+		it("fails a .d.cts twin that is not its declaration's", () =>
+			expect(
+				verify({ "types/index.d.cts": 'export * from "./hooks.js";\n' }),
+			).toEqual({
+				status: 1,
+				stderr:
+					"dist/types/index.d.cts: is not index.d.ts with its relative specifiers ending in .cjs -> it is written by classicyCommonJsDeclarationsWriter (bin/classicyCommonJsDeclarations.ts), not by hand.",
+			}));
+
+		it("fails a .d.cts with no declaration", () =>
+			expect(verify({ "types/stray.d.cts": "export {};\n" })).toEqual({
+				status: 1,
+				stderr:
+					"dist/types/stray.d.cts: has no stray.d.ts -> a .d.cts is only ever a .d.ts's CommonJS twin.",
+			}));
+
 		it("fails a declaration map", () =>
 			expect(verify({ "types/index.d.ts.map": "{}" })).toEqual({
 				status: 1,
@@ -773,6 +870,33 @@ describe("bin/verify-dist.mjs", () => {
 				status: 1,
 				stderr: `dist/appearance-system7.umd.js.map: has no text for Classicy's own source ${SAVER} -> only third-party and asset text may be dropped; if it is an embedded asset, add its extension to CLASSICY_MAP_ASSET_EXTENSIONS.`,
 			}));
+	});
+
+	// Invariant 12 (story 0224-siu): the package is no client module, so a
+	// server component's import of it fails the host's build rather than
+	// never running in the browser.
+	describe("12. the ES bundle is no client module", () => {
+		const PROBLEM =
+			"dist/appearance-system7.es.js: starts with a \"use client\" directive -> an Appearance Package registers itself when it loads: as a client module, a server component's import of it builds but never runs in the browser, and the desktop draws no package; unmarked, that import fails the host's build, and a client module's import of it works. Leave classicyUseClientPlugin out of the package's vite.config.ts (bin/classicyUseClient.ts).";
+
+		it.each([
+			["first", `${CLASSICY_USE_CLIENT}\n${ES}`],
+			["after a comment", `/*! Classicy */\n${CLASSICY_USE_CLIENT}\n${ES}`],
+		])('fails the ES bundle with "use client" %s', (_name, text) =>
+			expect(verify({ "appearance-system7.es.js": text })).toEqual({
+				status: 1,
+				stderr: PROBLEM,
+			}));
+
+		it("passes the directive's text past the prologue", () =>
+			expect(
+				verify({
+					"appearance-system7.es.js": ES.replace(
+						"export{u};",
+						'const s="use client";export{u,s};',
+					),
+				}),
+			).toEqual({ status: 0, stderr: "" }));
 	});
 });
 

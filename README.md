@@ -407,6 +407,119 @@ the theme (`--<family>-<key>`) instead of `Npx` literals.
 Details: `docs/AGENT-REFERENCE.md` §5, "Upgrading: package knobs and the
 pixel-literal purge (Part H)", and §8, "Package knob families".
 
+## Server rendering (Next.js, Remix, Astro)
+
+The bundles load in Node with no DOM (checked on Node 20.18 through 26), so a
+server-rendering host imports Classicy as it is, without
+`dynamic(() => import(…), { ssr: false })` or a client-only island.
+
+Which format to use:
+
+- A browser app, through any bundler: `import`.
+- A Node server: `import`, or `require()`, which reaches
+  `dist/classicy.umd.cjs`, a small CommonJS loader for the unchanged UMD
+  bundle. `require()` needs Node 20.19, 22.12 or later, the first whose own
+  `require()` loads an ES module without a flag (the core requires
+  `react-player`, which ships ES modules only); on an older Node the loader
+  throws an error that names them. `require()` is for Node only: a browser
+  bundle that `require()`s a Classicy package fails at its build (esbuild and
+  webpack both report the package's `require` entry as disabled), so `import`
+  there.
+- A `<script>` tag (unpkg, jsDelivr): `dist/classicy.umd.js`, as before.
+
+On the server the desktop renders an empty shell, `<div
+class="classicyDesktop">` with your `className` and `style`; hydration renders
+the same shell, so nothing mismatches, and the desktop draws right after it.
+Everything it shows waits for the client: the state saved in `localStorage`,
+the viewport, the theme, the asset URLs, sound and the startup screen. Lone
+components (a button, a pop-up menu on your own page) render in full. A
+server render reads no browser storage, starts no timer, raises no warning
+and logs nothing. A `createRoot` host draws the desktop on its first render,
+as before. The stylesheet arrives with the JS; to have it in the server's
+HTML, link `@classicy/classicy/dist/classicy.css` and the package
+stylesheets, as a strict-CSP host does (above).
+
+- Keep `@classicy/*` external in a server bundle that `require()`s them: a
+  Node-target bundler (esbuild `--platform=node`, webpack's `target: "node"`)
+  copies the CommonJS loader without the bundle it reads, and the loader then
+  says so when it runs.
+- Load the core and its Appearance Packages the same way in one process: a
+  process that both `import`s and `require()`s Classicy gets two separate
+  libraries, each with its own registries.
+- TypeScript hosts in CommonJS type-check `require()` too: the packages ship
+  `.d.cts` declarations for it.
+- Jest works through `require()` in its node and jsdom environments with
+  settings of your own: transform `react-player` (ES modules only), and give
+  jsdom `structuredClone`, `TextEncoder` and `TextDecoder`. Jest 29's jsdom
+  environment also needs
+  `testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] }`,
+  since it resolves under `browser`, for which the packages' `require` entry
+  is disabled, or, narrower, a `moduleNameMapper` that points each Classicy
+  package at `require.resolve(name)`, its CommonJS loader; Jest 30 resolves
+  under `node` already. `docs/AGENT-REFERENCE.md`
+  §1 has the snippets, and more on stack traces and source maps.
+
+### Next.js (App Router)
+
+`@classicy/classicy` starts with `"use client";`, so a server component
+(`app/page.tsx`, a layout) imports Classicy's components and renders them
+directly, with no client wrapper of your own. Pass them serializable props
+(strings, numbers, plain objects, JSX children); function props
+(`onClick`) and calls of Classicy's functions (`registerApp`,
+`registerClassicyIcons`) belong in a client module. Route handlers and
+server actions run on the server with no client module to move a call
+into, so they cannot call Classicy's functions at all: there every Classicy
+export is a client reference, which React refuses to call on the server.
+
+An Appearance Package registers itself when it runs, which must happen in
+the browser, so import it from a client module: the client component that
+renders the desktop, or a client component of one import that your root
+layout renders. Imported from a server component, it fails `next build`.
+
+```tsx
+// app/classicy-packages.tsx
+"use client";
+import "@classicy/appearance-platinum";
+
+export function ClassicyPackages() {
+  return null;
+}
+
+// app/layout.tsx
+import { ClassicyPackages } from "./classicy-packages";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <ClassicyPackages />
+        {children}
+      </body>
+    </html>
+  );
+}
+
+// app/page.tsx
+import { Classicy } from "@classicy/classicy";
+
+export default function Page() {
+  return <Classicy style={{ height: "100vh" }}>{/* your apps */}</Classicy>;
+}
+```
+
+The packages' fonts, art and sound files need no setting: Next.js's
+bundler (Turbopack, or webpack with `next build --webpack`) copies each one
+its code references and serves it under `/_next/static/media/`. Checked with
+Next.js 16.4.6 on both bundlers, with `next build`, `next start` and
+`next dev`.
+
+The Pages Router needs none of this: import the packages in a page as in any
+React app, and `getServerSideProps` may call Classicy's functions. Hosts
+without React Server Components (Vite, Remix, React Router, Astro) are
+unaffected by the directive; Rollup used on its own prints one harmless
+`MODULE_LEVEL_DIRECTIVE` warning for it, which an `onwarn` filter silences.
+`docs/AGENT-REFERENCE.md` §1 has the details.
+
 ## System 7
 
 `@classicy/appearance-system7` draws System 7.5, in black and white

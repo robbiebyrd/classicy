@@ -29,6 +29,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { noteClassicyClockTick } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyClockTick.internal";
 import { computeAnchoredTime } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 
 type ClassicyDesktopMenuWidgetTimeProps = {
@@ -158,6 +159,8 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent<
 
 			if (newMinutes !== prevMinutesRef.current) {
 				prevMinutesRef.current = newMinutes;
+				// A tick, not an edit: state adapters send nothing for it.
+				noteClassicyClockTick(date);
 				desktopEventDispatch({
 					type: "ClassicyManagerDateTimeSet",
 					dateTime: date,

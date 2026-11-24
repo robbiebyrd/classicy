@@ -7,6 +7,7 @@ import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "../../bin/classicyCssLayerPlugin";
 import { classicyDeflateAssetPlugin } from "../../bin/classicyDeflateAsset";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "../../bin/classicyImageTools";
+import { classicyNodeEntryPlugin } from "../../bin/classicyNodeEntry";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 // Platinum's source, the workspace package @classicy/appearance-platinum.
@@ -81,6 +82,11 @@ const config: StorybookConfig = {
 				// PDF viewer's lazy chunk, which rebuilds its data: URI when the first
 				// PDF opens, so Storybook emits no worker file.
 				classicyDeflateAssetPlugin(),
+				// The rich text editor's decoder entry, as in the library build
+				// (bin/classicyNodeEntry.ts, story 0223-a0y). The dev server's
+				// dependency pre-bundle is esbuild's, which the plugin does not
+				// reach, so only the static build draws with it.
+				classicyNodeEntryPlugin(),
 				richSvg(),
 				VitePluginImageTools({
 					// Package art is served and built exactly as authored (no svgo),

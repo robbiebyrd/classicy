@@ -78,12 +78,19 @@ import {
 	useClassicyAppearanceLayout,
 } from "@/Appearance/useClassicyAppearanceLayout";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import {
+	resetClassicyPersistedState,
+	resolveClassicyStateChoice,
+	useClassicyStateMirrored,
+	useClassicyStateSyncGate,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 import {
 	ClassicyControlStrip,
 	type ClassicyControlStripProps,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
+import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { markClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import {
@@ -105,6 +112,7 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import { useClassicyThemeLinkImport } from "@/SystemFolder/SystemResources/Desktop/ClassicyThemeLinkImport.internal";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import { useClassicyClientRender } from "@/SystemFolder/SystemResources/Desktop/useClassicyClientRender.internal";
 import { useClassicyDesktopMarquee } from "@/SystemFolder/SystemResources/Desktop/useClassicyDesktopMarquee.internal";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
@@ -300,12 +308,18 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			desktopEventDispatch(action);
 	}, [disabledAppsKey, desktopEventDispatch]);
 
-	// Special ▸ Reset PRAM: forget every saved setting and start over.
+	// Special ▸ Reset PRAM: forget every saved setting and start over (a
+	// desktop state adapter's copy too: ClassicyStateSync.internal.ts). The
+	// wristwatch shows while the adapters take the reset (HIG7 p.270).
+	const stateMirrored = useClassicyStateMirrored();
+	const setCursor = useClassicyCursor();
 	const resetPram = useCallback(() => {
-		localStorage.removeItem("classicyDesktopState");
-		resetStartupScreenSession();
-		window.location.reload();
-	}, []);
+		setCursor("watch");
+		resetClassicyPersistedState(() => {
+			resetStartupScreenSession();
+			window.location.reload();
+		});
+	}, [setCursor]);
 
 	const closeSystemDialog = useCallback(() => {
 		desktopEventDispatch({
@@ -810,7 +824,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 						alertType={"caution"}
 						label={"Are you sure you want to reset PRAM?"}
 						message={
-							"This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
+							stateMirrored
+								? "This clears all saved settings — windows, icons, appearance — on this computer and on every other computer that shares them, and restarts Classicy. Files on your disks are kept. This action cannot be undone."
+								: "This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
 						}
 						defaultButtonId={"cancel"}
 						buttons={[
@@ -820,6 +836,41 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 								label: "Reset",
 								role: "normal",
 								onClick: resetPram,
+							},
+						]}
+						onClose={closeSystemDialog}
+					/>
+				</div>
+			) : null}
+			{systemDialog === "syncChoice" ? (
+				// A desktop state adapter answered with the account's saved
+				// desktop while this computer holds work it never took (at boot,
+				// on a retry, after a late registration): the user chooses
+				// (ClassicyStateSync.internal.ts). Either answer loses something,
+				// so neither is the default and no button takes the focus
+				// (HIG7 p.206); copy per HIGOS8 p.61, HIG7 pp.206, 310-311.
+				<div className={"classicyDesktopDialogOverlay"}>
+					<ClassicyAlert
+						id={SYSTEM_DIALOG_WINDOW_IDS.syncChoice}
+						appId={"Finder.app"}
+						alertType={"caution"}
+						label={"Use your saved settings on this computer?"}
+						message={
+							"This computer has changes that were never added to your saved settings. Using the saved settings replaces this computer's, and those changes are lost. Keeping the current settings replaces the saved ones on every computer that shares them."
+						}
+						defaultButtonId={null}
+						buttons={[
+							{
+								id: "keepCurrent",
+								label: "Keep Current",
+								role: "normal",
+								onClick: () => resolveClassicyStateChoice("keep"),
+							},
+							{
+								id: "useSaved",
+								label: "Use Saved",
+								role: "normal",
+								onClick: () => resolveClassicyStateChoice("adopt"),
 							},
 						]}
 						onClose={closeSystemDialog}
@@ -878,6 +929,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
  * which takes `className` and `style`) until a package registers, and mounts
  * none of its children.
  *
+ * A server render draws only an empty `classicyDesktop` shell with the
+ * `className` and `style`, and so does the client's hydration of it; the
+ * desktop draws right after (`docs/AGENT-REFERENCE.md` §1, "Server
+ * rendering").
+ *
  * ```tsx
  * <ClassicyAppManagerProvider>
  *   <ClassicyDesktop controlStrip={{ defaultCollapsed: true }}>
@@ -901,10 +957,21 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 }) => {
 	// No package, no desktop: nothing below can draw without one.
 	const packages = useClassicyAppearancePackages();
+	// A server render (and the client's hydration of it) draws an empty shell,
+	// the desktop right after (useClassicyClientRender.internal.ts).
+	const clientRender = useClassicyClientRender();
+	// A desktop state adapter's boot reconcile draws the shell too, for at
+	// most its timeout; an adopted state remounts the desktop, as a restart
+	// (ClassicyStateSync.internal.ts).
+	const stateSync = useClassicyStateSyncGate();
+	if (!clientRender || !stateSync.ready)
+		return (
+			<div className={classNames("classicyDesktop", className)} style={style} />
+		);
 	if (packages.length === 0)
 		return <ClassicyNoAppearancePackage className={className} style={style} />;
 	return (
-		<ClassicyCrashScreen>
+		<ClassicyCrashScreen key={stateSync.epoch}>
 			<ClassicyContextualMenuProvider>
 				<ClassicyFloatingLayerProvider>
 					<ClassicyDesktopInner

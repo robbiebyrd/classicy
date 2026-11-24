@@ -41,8 +41,7 @@ describe("ClassicyDesktop presents notifications", () => {
 				onResponse,
 			});
 		});
-		expect(screen.getByRole("alertdialog")).toHaveAttribute(
-			"aria-label",
+		expect(screen.getByRole("alertdialog")).toHaveAccessibleName(
 			"Copy complete.",
 		);
 		fireEvent.click(screen.getByRole("button", { name: "OK" }));
@@ -74,8 +73,7 @@ describe("ClassicyDesktop presents notifications", () => {
 		expect(screen.queryByRole("alertdialog")).toBeNull();
 		act(() => finishBoot());
 		expect(screen.queryByTestId("host-boot")).toBeNull();
-		expect(screen.getByRole("alertdialog")).toHaveAttribute(
-			"aria-label",
+		expect(screen.getByRole("alertdialog")).toHaveAccessibleName(
 			"Copy complete.",
 		);
 		fireEvent.click(screen.getByRole("button", { name: "OK" }));

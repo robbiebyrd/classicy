@@ -383,3 +383,146 @@ describe("ClassicyAlert", () => {
 		});
 	});
 });
+
+// HIG7 (1995) p.206: "Don't use a default button if the most likely action
+// is dangerous ... When there is no default button, pressing Return or Enter
+// has no effect; the user must explicitly click a button."
+describe("ClassicyAlert with no default button (defaultButtonId={null})", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const renderNoDefault = (onKeep = vi.fn(), onUse = vi.fn()) => {
+		render(
+			<>
+				<textarea data-testid="field" />
+				<ClassicyAlert
+					alertType="caution"
+					label="Choose"
+					defaultButtonId={null}
+					buttons={[
+						{ id: "keep", label: "Keep", role: "normal", onClick: onKeep },
+						{ id: "use", label: "Use", role: "default", onClick: onUse },
+					]}
+				/>
+			</>,
+		);
+		return { onKeep, onUse };
+	};
+
+	it("draws no default ring, even on a button whose role is default", () => {
+		renderNoDefault();
+		for (const name of ["Keep", "Use"]) {
+			const button = screen.getByRole("button", { name });
+			expect(button).not.toHaveClass("default");
+			expect(button).toHaveAttribute("data-classicy-role", "other");
+		}
+	});
+
+	it("puts the keyboard focus on the alert itself, never on a button", () => {
+		// As laid out in a browser: the buttons are focusable candidates.
+		vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+			document.body,
+		);
+		renderNoDefault();
+		expect(document.activeElement).toBe(screen.getByRole("alertdialog"));
+	});
+
+	it("does nothing on Return, Enter or Space, or on typing", async () => {
+		const { onKeep, onUse } = renderNoDefault();
+		const user = userEvent.setup();
+		await user.keyboard("{Enter} x{Enter}");
+		fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Enter" });
+		expect(onKeep).not.toHaveBeenCalled();
+		expect(onUse).not.toHaveBeenCalled();
+		expect((screen.getByTestId("field") as HTMLTextAreaElement).value).toBe("");
+	});
+
+	it("keeps Tab inside the alert, both ways", async () => {
+		// jsdom lays nothing out: every element would count as hidden.
+		vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+			document.body,
+		);
+		renderNoDefault();
+		const user = userEvent.setup();
+		await user.tab();
+		expect(document.activeElement).toBe(
+			screen.getByRole("button", { name: "Keep" }),
+		);
+		screen.getByRole("alertdialog").focus();
+		await user.tab({ shift: true });
+		expect(document.activeElement).toBe(
+			screen.getByRole("button", { name: "Use" }),
+		);
+	});
+
+	it("still answers a click", async () => {
+		const { onUse } = renderNoDefault();
+		await userEvent.setup().click(screen.getByRole("button", { name: "Use" }));
+		expect(onUse).toHaveBeenCalledTimes(1);
+	});
+});
+
+// WAI-ARIA 1.2, alertdialog: "Authors SHOULD use aria-describedby on an
+// alertdialog to reference the alert message element in the dialog."
+describe("ClassicyAlert's accessible name and description", () => {
+	it("is named by its label and described by its message", () => {
+		render(
+			<ClassicyAlert
+				alertType="caution"
+				label="Empty the Trash?"
+				message="It holds 3 items. This cannot be undone."
+			/>,
+		);
+		const dialog = screen.getByRole("alertdialog");
+		expect(dialog).toHaveAccessibleName("Empty the Trash?");
+		expect(dialog).toHaveAccessibleDescription(
+			"It holds 3 items. This cannot be undone.",
+		);
+		const labelId = dialog.getAttribute("aria-labelledby") ?? "";
+		const messageId = dialog.getAttribute("aria-describedby") ?? "";
+		expect(document.getElementById(labelId)).toHaveClass("classicyAlertLabel");
+		expect(document.getElementById(messageId)).toHaveClass(
+			"classicyAlertMessage",
+		);
+		expect(dialog).not.toHaveAttribute("aria-label");
+	});
+
+	it("is described by a message that is markup too", () => {
+		render(
+			<ClassicyAlert
+				label="Replace “Notes”?"
+				message={
+					<>
+						An item named <b>Notes</b> already exists.
+					</>
+				}
+			/>,
+		);
+		expect(screen.getByRole("alertdialog")).toHaveAccessibleDescription(
+			"An item named Notes already exists.",
+		);
+	});
+
+	it("has no description without a message", () => {
+		render(<ClassicyAlert label="Done." />);
+		const dialog = screen.getByRole("alertdialog");
+		expect(dialog).toHaveAccessibleName("Done.");
+		expect(dialog).not.toHaveAttribute("aria-describedby");
+	});
+
+	it("gives two alerts their own ids", () => {
+		render(
+			<>
+				<ClassicyAlert id="one" label="One?" message="First." />
+				<ClassicyAlert id="two" label="Two?" message="Second." />
+			</>,
+		);
+		const [one, two] = screen.getAllByRole("alertdialog");
+		expect(one).toHaveAccessibleDescription("First.");
+		expect(two).toHaveAccessibleDescription("Second.");
+		expect(one.getAttribute("aria-describedby")).not.toBe(
+			two.getAttribute("aria-describedby"),
+		);
+	});
+});

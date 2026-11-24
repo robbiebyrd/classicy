@@ -23,8 +23,11 @@ const OLD_NAME = "classicy";
 const read = (file: string) => readFileSync(path.resolve(root, file), "utf8");
 const pkg = JSON.parse(read("package.json")) as {
 	name: string;
+	main: string;
+	module: string;
+	types: string;
 	publishConfig?: { access?: string };
-	exports: Record<string, string | Record<string, string>>;
+	exports: Record<string, string | Record<string, unknown>>;
 	files: string[];
 	sideEffects: string[];
 	scripts: Record<string, string>;
@@ -56,6 +59,34 @@ describe("package.json: the npm name", () => {
 		expect(viteConfig).toMatch(/\bname: "classicy",/);
 		expect(viteConfig).toMatch(
 			/fileName: \(format\) => `classicy\.\$\{format\}\.js`,/,
+		);
+	});
+
+	// `require()` in Node takes dist/classicy.umd.cjs, a CommonJS loader that
+	// runs the UMD bundle (in this "type": "module" package a .js file is an
+	// ES module to Node). Every other `require` resolver, a browser bundler's,
+	// gets null, so its build fails at the require() instead of bundling the
+	// UMD bundle as an ES module that crashes when it runs; `main` keeps the
+	// bundle for resolvers that read no exports map (story 0223-a0y).
+	it("requires the UMD bundle through its CommonJS loader in Node only", () => {
+		expect(pkg.main).toBe("./dist/classicy.umd.js");
+		expect(pkg.module).toBe("./dist/classicy.es.js");
+		// Each with its own declarations: TypeScript reads the `.d.ts` as ES
+		// modules, which a CommonJS host on node16 cannot require (TS1479).
+		expect(pkg.exports["."]).toEqual({
+			import: {
+				types: "./dist/types/src/index.d.ts",
+				default: "./dist/classicy.es.js",
+			},
+			require: {
+				types: "./dist/types/src/index.d.cts",
+				node: "./dist/classicy.umd.cjs",
+				default: null,
+			},
+		});
+		expect(pkg.types).toBe("./dist/types/src/index.d.ts");
+		expect(read("vite.config.ts")).toMatch(
+			/classicyUmdLoaderPlugin\("classicy\.umd\.js", "@classicy\/classicy"\)/,
 		);
 	});
 });

@@ -110,8 +110,13 @@ const player = () => players[players.length - 1];
 const focused = () =>
 	useAppManager.getState().System.Manager.Applications.focusedAppId;
 
-const alertTexts = () =>
-	screen.queryAllByRole("alertdialog").map((d) => d.getAttribute("aria-label"));
+/** An alert's name: the text of the label its `aria-labelledby` names. */
+const alertLabel = (d: HTMLElement) => {
+	const id = d.getAttribute("aria-labelledby");
+	return id ? (document.getElementById(id)?.textContent ?? null) : null;
+};
+
+const alertTexts = () => screen.queryAllByRole("alertdialog").map(alertLabel);
 
 /** The alerts the user can see: none inside a `display: none` box. */
 const visibleAlertTexts = () =>
@@ -122,7 +127,7 @@ const visibleAlertTexts = () =>
 				if (el.style.display === "none") return false;
 			return true;
 		})
-		.map((d) => d.getAttribute("aria-label"));
+		.map(alertLabel);
 
 /** The app whose windows hold the request's alert, if any. */
 const alertOwner = (id: string) =>

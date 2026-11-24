@@ -1103,6 +1103,27 @@ can follow an Appearance Package's display names: an entry never overwrites a
 static file of the same name, and takes "<own name> (<id>)" instead
 (AGENT-REFERENCE §8, "App display overrides").
 
+The desktop state (themes, windows, icons, settings) mirrors the same way, so
+a signed-in user's desktop follows them across devices:
+
+```ts
+registerClassicyStateAdapter({
+    id: 'my-backend',
+    onSnapshot: (snapshot) => {},   // debounced saved state + sha256 + seq
+    reconcile: async (local, { signal }) => ({ action: 'useLocal' }),   // or { action: 'replace', state }
+}, { snapshotDebounceMs: 500, reconcileTimeoutMs: 5000 })
+```
+
+The desktop draws nothing until the boot reconcile settles, for at most each
+adapter's `reconcileTimeoutMs`; errors, timeouts and invalid states keep the
+local state, and an adapter that reconciles takes no snapshot until a
+reconcile with it succeeds (it is retried), so a failed boot never pushes a
+device's defaults over the account's copy. The menu bar clock's minute tick
+sends nothing. `onSnapshot` must throw when it did not store the snapshot.
+Call `reconcileClassicyState()` again when the remote copy may have changed
+(a sign-in), and `flushClassicyState()` to save before signing out
+(AGENT-REFERENCE §7, "Mirroring the desktop state").
+
 ---
 
 ## 12. Dialogs and alerts
@@ -1132,7 +1153,10 @@ or a control is a window, not an alert.
 
 Button roles: `default` (Return triggers it, gets the ring), `cancel`
 (Escape / Command-period), `help` (far left), `normal`. Omit `buttons` and a
-sensible set is generated from `alertType`.
+sensible set is generated from `alertType`. `defaultButtonId={null}` makes
+no button the default (no ring, Return does nothing, the alert rather than a
+button takes the focus), for a choice where every answer can lose data
+(HIG7 p.206).
 
 > **`onClose` fires after *every* button**, in addition to that button's own
 > `onClick`. A handler pair that undoes itself is a real failure mode here.

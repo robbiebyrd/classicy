@@ -217,10 +217,305 @@ it is never fetched, on `file:`, CDN and custom-scheme hosts alike. The viewer
 uses pdf.js's legacy build, which installs core-js polyfills on the page's
 built-in prototypes (`Map`, `Set`, `WeakMap`, `Iterator`,
 `Uint8Array.prototype.toBase64` and others) where a method is missing or
-nonconforming: in the UMD bundle when it loads, in the ES build when the first
-PDF opens.
+nonconforming, when the first PDF opens (in both builds: the UMD bundle, which
+carries pdf.js inline, runs it only then too).
 `import '@classicy/classicy/fonts'` is a deprecated no-op (the Platinum
 package registers its fonts), and `dist/fonts.css` no longer exists.
+
+**Which format to use.** Each package ships an ES build and a UMD bundle:
+
+| Consumer | Use | It resolves |
+|---|---|---|
+| A browser app through a bundler (Vite, webpack, esbuild, Rollup) | `import` | `dist/classicy.es.js` |
+| A Node server (Next.js, Remix, Astro), ES modules | `import` | `dist/classicy.es.js` |
+| A Node server or test runner in CommonJS | `require()` (Node 20.19, 22.12 or later) | `dist/classicy.umd.cjs`, which runs `dist/classicy.umd.js` |
+| A page's `<script>` tag (unpkg, jsDelivr) | the file | `dist/classicy.umd.js`, globals `classicy`, `classicyAppearancePlatinum`, … |
+
+Each Appearance Package is the same with its own names
+(`dist/appearance-platinum.es.js`, `.umd.cjs`, `.umd.js`). `require()` is
+supported in Node only: these packages are `"type": "module"`, so Node reads
+`dist/classicy.umd.js` as an ES module and cannot `require()` it itself, and
+the exports map's `require` names, under `node`, a few-line CommonJS loader
+beside it that runs it as CommonJS. It needs Node 20.19, 22.12 or later
+(and every Node from 23.0): the core's UMD bundle requires `react-player`,
+which ships ES modules only, and those are the first releases whose own
+`require()` loads an ES module without a flag (nodejs/node#55085, "module:
+unflag --experimental-require-module", in the
+[22.12.0](https://nodejs.org/en/blog/release/v22.12.0) and
+[20.19.0](https://nodejs.org/en/blog/release/v20.19.0) notes). The loader asks
+Node itself, `process.features.require_module`, so on an older Node, on 22.10
+and 22.11 (where that is off by default) or under `--no-require-module` it
+throws an error naming those versions (`import` works there: checked on
+20.18.3 and 22.11.0). Node 22.12.x and Node 23 before 23.5 print Node's own
+`ExperimentalWarning` the first time `require()` loads an ES module (22.12 and
+23.4 only when the `require()` comes from a path outside `node_modules`, a
+linked checkout: nodejs/node#55960); 20.19, 22.13 and 23.5 on print it only
+under `--trace-require-module` (nodejs/node#56194). Every such Node has
+`process.getBuiltinModule` (20.16, 22.3), with which the UMD bundle reaches
+Node's `url` module, never a static `require("url")`. For every other
+`require` resolver the exports map's `require` is `null`, so a browser bundle
+that `require()`s a Classicy package fails at its build, at the `require()`:
+esbuild (`--platform=browser`) reports that `"."` `cannot be imported from
+package "@classicy/classicy" because it was explicitly disabled by the package
+author`, pointing at the `"default": null` under `"require"`, and webpack
+(`target: "web"`) that `"." is not
+exported under the conditions […"require"…"browser"]`. Use `import` there:
+both bundlers would otherwise bundle `dist/classicy.umd.js` as the ES module
+it is in a `"type": "module"` package, whose UMD wrapper then finds no
+`module`, reads its dependencies from `window` and throws when the page
+runs. `main` still names `dist/classicy.umd.js` for resolvers that read no
+exports map.
+
+**Server rendering (Next.js, Remix, Astro).** Every package's bundles load in
+Node with no DOM (verify:dist invariant 19, the packages' invariant 11: each
+bundle imported and each loader required in a child Node, once with the
+browser's globals deleted and once with Node's own, `localStorage` and
+`sessionStorage` failing on any read; story 0223-a0y ran it under Node
+20.19.0, 22.23.1, 24.19.0, 25.2.0, 25.5.0 and 26.7.0, under 22.12.0, whose
+only output was the `ExperimentalWarning` above, since the gate loads the
+packages from outside `node_modules`, and the `import` half under 20.18.3
+and 22.11.0), so a server-rendering host imports Classicy as it is, without
+`dynamic(() => import(…), { ssr: false })` or a client-only island.
+
+What renders where: on the server, `ClassicyDesktop` (and `Classicy`) renders
+an empty shell, `<div class="classicyDesktop">` with the host's `className`
+and `style`. The client's hydration renders the same shell, so nothing can
+mismatch, and the desktop draws right after it. Everything the desktop shows
+waits for the client: the state saved in `localStorage`, the viewport, the
+theme's CSS variables, the asset URLs (relative to the bundle's own URL,
+which is a `file:` path on the server), sound and the startup screen. A host
+that renders with `createRoot` draws the desktop on its first render, as
+before. Lone components outside a desktop (a button, a pop-up menu, a
+checkbox on the host's own page) render in full on the server. On the server
+the provider builds no analytics instance (its queue timer is never cleared)
+and no sound player, and nothing reads `localStorage` or `sessionStorage` (from
+Node 25 Node defines both, and without `--localstorage-file` a read throws,
+returns an object without `setItem`, or warns), so a server render starts no
+timer, raises no warning and logs nothing. Import the Appearance Package
+in a module both the server and the browser load (in Next.js's App Router, a
+client module: "Next.js (App Router)", below). The
+stylesheet still arrives with the JS (`<style id="classicy-styles">`,
+inserted when the bundle loads in a browser); a host that wants it in the
+server's HTML links `dist/classicy.css` and the package stylesheets, as a
+strict-CSP host does.
+
+- **Keep `@classicy/*` external in a server bundle that `require()`s them.**
+  A Node-target bundler (esbuild `--platform=node`, webpack's `target:
+  "node"`) that bundles a `require()` copies the CommonJS loader without the
+  UMD bundle it reads; the loader then throws `@classicy/classicy: its UMD
+  bundle, … is missing beside its CommonJS loader`. Mark the packages
+  external, or `import` them. (Next.js's Pages Router keeps `node_modules`
+  external on the server by default; its App Router bundles them, and
+  `import`s Classicy, so the loader never takes part there.)
+- **One format per process.** A process that both `import`s and
+  `require()`s Classicy loads two separate libraries, each with its own
+  store and registries (Node's dual-package hazard): an Appearance Package
+  `import`ed registers into the ES library only. Load the core and its
+  packages the same way (`verify:host-types` checks it: `host-both.mjs`).
+- **Stack traces and source maps.** The loader runs the UMD bundle with a
+  strict direct `eval` carrying `//# sourceURL=` the bundle's file URL (a
+  plain path holding a space, `Application Support` or `First Last`, is
+  dropped by V8), so a stack trace names `file:///…/classicy.umd.js` and its
+  own lines and columns, and `--enable-source-maps` maps them through
+  `classicy.umd.js.map` (Node maps generated code with a source URL). Strict,
+  so the bundle runs as fast through `require()` as through `import`. Under
+  `--disallow-code-generation-from-strings` it compiles the bundle with
+  `vm.runInThisContext` instead: the same file, lines and columns, no source
+  maps.
+- **TypeScript in CommonJS.** The exports map's `require` has its own
+  `types`: each declaration ships again as a `.d.cts` twin
+  (`dist/types/src/index.d.cts`), so a `.cts` host, or a CommonJS one on
+  `module: node16` or `nodenext`, type-checks `require("@classicy/classicy")`
+  with or without `skipLibCheck` (`verify:host-types` checks `node16-cjs`,
+  `node16-cjs-lib-check` and `nodenext-cjs`).
+- **Jest.** Jest's CommonJS runtime reaches the loader, and the bundle runs
+  in the test's own realm (its globals and fake timers). Jest 30 resolves a
+  `require()` under `node` in every environment, `jsdom` included. Jest 29's
+  `jsdom` environment resolves under `browser` instead, for which the exports
+  map's `require` is `null` (`Cannot find module '@classicy/classicy'`), so
+  give that environment Node's conditions,
+  `testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] }`
+  (every package with a `node` entry, not only Classicy, then resolves to it
+  in those tests), or, narrower, map only the Classicy packages to the files
+  Node's own resolution gives them, their CommonJS loaders, and every other
+  package keeps the environment's `browser` conditions:
+
+  ```js
+  // jest.config.cjs, on Jest 29, instead of customExportConditions
+  moduleNameMapper: {
+  	"^@classicy/classicy$": require.resolve("@classicy/classicy"), // …/dist/classicy.umd.cjs
+  	"^@classicy/appearance-platinum$": require.resolve("@classicy/appearance-platinum"),
+  	"^@classicy/appearance-system7$": require.resolve("@classicy/appearance-system7"), // when you load it
+  },
+  ```
+
+  Its `node` environment needs nothing. The rest is the
+  host's in both versions: `react-player`, one of the core's dependencies,
+  ships ES modules only, which Jest cannot `require()`, so transform it, and
+  jsdom has no `structuredClone` (Platinum calls it when it registers),
+  `TextEncoder` (the file system hashes with it when it boots) or
+  `TextDecoder` (HyperCard reads stacks with it), so hand the environment
+  Node's:
+
+  ```js
+  // jest.config.cjs (with @babel/plugin-transform-modules-commonjs installed)
+  module.exports = {
+  	transform: {
+  		"^.+\\.js$": ["babel-jest", { plugins: ["@babel/plugin-transform-modules-commonjs"] }],
+  	},
+  	transformIgnorePatterns: ["/node_modules/(?!react-player/)"],
+  	// testEnvironment: "./jsdom-environment.cjs" for the jsdom tests, and on Jest 29:
+  	// testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] },
+  };
+
+  // jsdom-environment.cjs
+  const { TestEnvironment } = require("jest-environment-jsdom");
+  module.exports = class extends TestEnvironment {
+  	constructor(...args) {
+  		super(...args);
+  		Object.assign(this.global, { structuredClone, TextEncoder, TextDecoder });
+  	}
+  };
+  ```
+
+  Jest 29's jsdom (20.0) cannot parse CSS cascade layers, so in each test
+  file that loads the core it reports `Could not parse CSS stylesheet` for
+  Classicy's stylesheet (Jest 30's jsdom 26 parses it), and Jest maps that
+  report's stack through `classicy.umd.js.map`, which cost 1 to 2 s per test
+  file where it was measured. An environment that drops those reports, and
+  only those, saves both; add this to the constructor above:
+
+  ```js
+  	// Jest 29: jsdom 20 cannot parse CSS cascade layers.
+  	const virtualConsole = this.dom.virtualConsole;
+  	const report = virtualConsole.listeners("jsdomError");
+  	virtualConsole.removeAllListeners("jsdomError");
+  	virtualConsole.on("jsdomError", (error) => {
+  		if (error.type !== "css parsing") for (const listener of report) listener(error);
+  	});
+  ```
+
+  jsdom plays no audio, so in either version a test that draws the desktop
+  logs the sound manager's `Failed to load audio sprite` error (`No codec
+  support for selected audio sources.`). Checked against the packed
+  packages with Jest 29.7.0 (jest-environment-jsdom 29.7.0, jsdom 20.0.3) and
+  Jest 30.5.2 (jest-environment-jsdom 30.5.2, jsdom 26.1.0), each in its
+  `node` and `jsdom` environments, with and without the setting: only Jest
+  29's `jsdom` environment without it fails (story 0223-a0y). The
+  `moduleNameMapper` alternative passed Jest 29.7.0's `node` and `jsdom`
+  environments too, with the same output (story 0224-siu).
+
+**Next.js (App Router).** The core's ES build starts with `"use client";`
+(verify:dist invariant 20), so Next.js treats `@classicy/classicy` as a
+client module: a server component (`app/page.tsx`, a layout) imports
+Classicy's components and renders them, with no `"use client"` wrapper file
+of the host's. (Without the directive Next.js evaluates the core as a
+server module, and the build fails: `TypeError: (0 , V.createContext) is not
+a function`.) In a server component every export of
+the core is a client reference: render the components, passing them
+serializable props (strings, numbers, plain objects, JSX children); a
+function prop (`onClick`, a menu item's `onClickFunc`), a call of a function
+export (`registerApp`, `registerClassicyIcons`, `classicyLog`) and a
+constant's value belong in a client module. Route handlers, server actions
+and `generateMetadata` run in that same server layer and have no client
+module to move a call into, so they cannot call any Classicy function: React
+refuses to call a client reference on the server (a route handler or server
+action calling `getAllThemes()` answers 500 with `Attempted to call
+getAllThemes() from the server but getAllThemes is on the client`).
+
+The Pages Router needs none of this: its pages are not server components, so
+a page imports the core and an Appearance Package as in any React app, with
+no client file, and `getServerSideProps` may call Classicy's functions
+(checked with a page that imports Platinum and `Classicy` and calls
+`getAllThemes()` in `getServerSideProps`). The directive matters only to a
+React Server Components bundler: a host without one (a Vite app, Remix or
+React Router in framework mode, Astro, webpack, esbuild, Jest) is unaffected.
+The one trace is a warning from Rollup used on its own: bundling the core it
+prints `MODULE_LEVEL_DIRECTIVE: … Module level directives cause errors when
+bundled, "use client" in "…/classicy.es.js" was ignored.` once per build. It
+is harmless (Rollup drops the directive, which only an RSC bundler reads);
+silence it in the host's Rollup config:
+
+```js
+// rollup.config.mjs
+export default {
+    // …
+    onwarn(warning, warn) {
+        if (warning.code === "MODULE_LEVEL_DIRECTIVE" && warning.message.includes('"use client"')) return;
+        warn(warning);
+    },
+};
+```
+
+A Vite build prints nothing (checked with Vite 7.3.7, with and without
+`@vitejs/plugin-react`, which filters this warning itself), and neither do
+esbuild (0.28.2) or webpack (5.113.0).
+
+The Appearance Packages carry no directive (their invariant 12): a package
+registers itself when it runs, which must happen in the browser, so import
+it from a client module, either the client component that renders the
+desktop or, when server components render it, a client component of one
+import that the root layout renders (the browser runs a client module a
+server component imports only when the page renders one of its exports).
+Imported from a server
+component, it fails the build (`Attempted to call
+encodeClassicyPixelArtRows() from the server but encodeClassicyPixelArtRows
+is on the client`); were it a client module, that import would build and
+never run, and the desktop would draw its "No Appearance Package is loaded"
+screen.
+
+```tsx
+// app/classicy-packages.tsx
+"use client";
+import "@classicy/appearance-platinum";
+
+export function ClassicyPackages() {
+    return null;
+}
+
+// app/layout.tsx (a server component)
+import { ClassicyPackages } from "./classicy-packages";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <html lang="en">
+            <body>
+                <ClassicyPackages />
+                {children}
+            </body>
+        </html>
+    );
+}
+
+// app/page.tsx (a server component)
+import { Classicy, ClassicyApp, ClassicyButton, ClassicyWindow } from "@classicy/classicy";
+
+export default function Page() {
+    return (
+        <Classicy style={{ height: "100vh" }}>
+            <ClassicyApp id="Hello.app" name="Hello" icon="/hello.svg">
+                <ClassicyWindow id="hello" appId="Hello.app" title="Hello" defaultWindow>
+                    <p>Rendered by a server component.</p>
+                    <ClassicyButton>OK</ClassicyButton>
+                </ClassicyWindow>
+            </ClassicyApp>
+        </Classicy>
+    );
+}
+```
+
+The page prerenders the desktop's empty shell (above), and the desktop
+draws after hydration, with no hydration warning. The packages' files need
+no setting: Next.js's bundler (Turbopack, its default, or webpack with
+`next build --webpack`) reads each `new URL("assets/…", import.meta.url)`,
+copies the file into its build and serves it under `/_next/static/media/`,
+so nothing is copied into `public/`; no `transpilePackages` or
+`serverExternalPackages` entry is needed either. Checked with Next.js 16.4.6
+(React 19.3.1) on both bundlers, from the packed packages: `next build` and
+`next start`, the Platinum desktop drawn in Chromium and Firefox with its
+fonts, art and sprites loaded and no console error, and `next dev`, all
+three routes drawn with no hydration warning (React reports hydration
+mismatches in full only in development) (story 0224-siu).
 
 **Source maps and declarations.** Every bundle ships its source map. A map
 holds the source text of Classicy's own modules only (3.7): a bundled
@@ -434,7 +729,9 @@ All optional, and all accepted by `Classicy` too:
 
 State persists automatically to `localStorage` under the key
 `classicyDesktopState` (debounced 500 ms). Because persisted state wins over
-`defaultState`, clearing that key resets the desktop.
+`defaultState`, clearing that key resets the desktop. A host can mirror it
+to its own backend with `registerClassicyStateAdapter` (§7, "Mirroring the
+desktop state").
 
 ---
 
@@ -1552,7 +1849,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `playSound? (true)`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound when it opens, unless `playSound` is `false` (a notification's alert, §4.11). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `playSound? (true)`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound when it opens, unless `playSound` is `false` (a notification's alert, §4.11). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `defaultButtonId={null}`: no default at all, for a choice whose answers may each lose data (HIG7 p.206): no ring, Return and Enter do nothing, and the alert itself (`tabIndex={-1}`, no outline) takes the focus on open, never a button, so a keystroke meant for a field answers nothing; Tab and Shift-Tab still cycle its buttons. The `alertdialog` is named by its `label` (`aria-labelledby`) and described by its `message` (`aria-describedby`, absent without one), so a screen reader reads the whole question. `id` is the window id, needed when two alerts can be open at once |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -3238,6 +3535,246 @@ stands for its key"); so does an app's or module's icon given as a core URL
 (the built-in modules' `fileIcon`s are). **Upgrading:** an
 adapter sees one snapshot-hash change on the first save after upgrading to a
 build with this rule, as the derived entries leave the persisted tree.
+
+### Mirroring the desktop state
+
+The desktop state (`localStorage["classicyDesktopState"]`: the active and
+custom themes, windows, icons, the Control Strip, Finder's views and every
+other setting) mirrors to a backend the same way, so a signed-in user's look
+and layout follow them across devices (story 0229-ymq;
+`ClassicyStateAdapter.ts`, implementation `ClassicyStateSync.internal.ts`):
+
+```ts
+import {
+    flushClassicyState,
+    reconcileClassicyState,
+    registerClassicyStateAdapter,
+} from '@classicy/classicy'
+
+registerClassicyStateAdapter({
+    id: 'my-backend',
+    // debounced, one at a time: { state, hash, seq, storageKey: "classicyDesktopState", version, timestamp }
+    // must throw or reject when it did not store the snapshot
+    onSnapshot: async (snapshot) => { /* … */ },
+    // at boot, on Classicy's retries and on reconcileClassicyState(); bounded;
+    // errors, timeouts and invalid states keep local
+    reconcile: async (local, { signal, reason, userActed }) =>
+        ({ action: 'useLocal' }),  // or { action: 'replace', state, merged? }
+}, { snapshotDebounceMs: 500, reconcileTimeoutMs: 5000 })
+```
+
+Register at app entry, before rendering; both hooks are optional, and
+re-registering an id replaces it (`unregisterClassicyStateAdapter(id)`,
+`getClassicyStateAdapters()`). With none registered nothing changes, and
+localStorage stays the primary store either way.
+
+- **The snapshot.** `state` is `sanitizeStateForPersistence`'s output as
+  JSON, byte for byte what localStorage holds, so it carries every field
+  the build persists, a new one included, and never the built-in themes
+  (`availableThemes`; a built-in active theme is its reference,
+  `{ id, package, defaults? }`) or session state (the shortcut registry,
+  parade icons, dialogs, hidden apps, window gesture flags, HyperCard's
+  runtime and undo, the screen saver's `active`, the Browser's history).
+  `hash` is the sha256 hex of that JSON. `version` is the
+  `@classicy/classicy` version that built it, so a backend can refuse to
+  let an older build's copy replace a newer one's.
+- **What counts as a change.** The saved state holds the virtual clock
+  (`DateAndTime.dateTime`), which the menu bar clock writes once a minute.
+  That tick is not a change: whether to send, and `seq`, follow a key that
+  leaves `dateTime` out (the sha256 of the saved state without it) plus the
+  clock edits this page saw. A write of the clock is an edit unless it is
+  the menu bar clock's tick (it notes each one,
+  `ClassicyClockTick.internal.ts`) or moves the virtual clock with the real
+  one, within 1 s of the last tick or edit (a host running the clock
+  itself; one running it faster drifts past that 1 s and counts). So an idle desktop
+  sends nothing; a snapshot sent for any other reason carries the clock as
+  it is.
+- **`seq`** is the version of the saved state in this browser: one more
+  each time it changes as above, stored in
+  `localStorage["classicyDesktopState:seq"]` (with `:seqContent`), the
+  larger of the stored and remembered value, so it grows across reloads
+  and follows another tab's. Whether the state changed is judged against
+  this page's own last state (the stored one only before it has one), so
+  two tabs' different states do not count each other up. Gaps are normal (the local snapshot handed to
+  `reconcile`, another tab's snapshots, changes the debounce coalesced);
+  two tabs reading the same value may give two different states the same
+  number; clearing the site's data starts it again at 1. It orders one
+  browser's states, never two devices'.
+- **When.** One shared timer, the shortest registered `snapshotDebounceMs`
+  (default 500 ms) after the last store change; the localStorage write
+  keeps its own 500 ms. An adapter is never handed the key it has (a
+  delivery that throws or rejects is logged, `error`, `ClassicyStateAdapter`,
+  and forgotten, so the next change sends again), and gets one delivery at
+  a time: a snapshot due while one is under way waits, and only the latest
+  is sent when it ends, so an older state never lands after a newer one.
+  A snapshot still due when the page hides (`pagehide`), on its debounce or
+  waiting behind a delivery under way, is sent then, at once and alongside
+  that delivery, best-effort, and the pending localStorage write is made
+  with it, so the backend never gets a state this browser did not save. An `onSnapshot`
+  that cannot store (offline, signed out) must throw or reject: resolving
+  tells Classicy the backend has it.
+- **Boot reconcile.** `ClassicyDesktop` runs the page's first reconcile when
+  it first mounts in the browser, after the local load and migration, and
+  draws only its empty shell (as on the server) until it settles. Each
+  adapter implementing `reconcile`, in registration order, is offered the
+  local snapshot and `{ signal, reason, userActed }` (below), and has
+  `reconcileTimeoutMs` to answer
+  (default 5000 ms; finite, above 0 and at most 2^31 − 1, else the default
+  with a warning); then its `signal` aborts, a late answer is ignored and
+  the next adapter is asked, so the desktop waits at most the sum of those
+  timeouts. The first valid `replace` wins (unless this computer holds work
+  that adapter never took: the user is asked, below): its `state` goes through the
+  localStorage load path itself, as JSON (no `__proto__` key survives), the
+  same shape check (every container the default state holds must be a
+  container of the same kind, before and after the merge, and every app
+  record and its windows, every desktop icon and every custom theme an
+  object; a `windows` value or window that is no record is dropped by the
+  migration, as on a local load), merged over the defaults, `migrateClassicyState` (a state an
+  older build saved is upgraded as it would be on load), the built-in active
+  theme refreshed from the code and the drawn package's defaults in place of
+  another's; then it is saved to localStorage at once and applied. The
+  session's `availableThemes` and this browser's `Desktop.fsVersion` (a
+  file-system reload epoch) are kept, and a provider's `defaultState` no
+  longer seeds (`wasHydratedFromStorage()` is true). The adapters after the
+  winner are asked too, with the adopted state as `local`: a `useLocal`
+  makes them take it as their next snapshot; a `replace` of theirs is not
+  adopted over the winner's: they stay held, with a warning and no retry
+  timer, until the host's next `reconcileClassicyState()`.
+  The winner is not sent back what it just handed over. An error, a
+  timeout or a state without the saved shape keeps the local state with a
+  `classicyLog` warning.
+- **No snapshot before a successful reconcile.** An adapter implementing
+  `reconcile` takes no snapshot (and `flushClassicyState()` counts it as not
+  taken) until a reconcile with it has succeeded in this page, a `useLocal`
+  or an adopted `replace`; until then the local state may be a new device's
+  defaults or an old device's stale desktop, and sent, it would replace the
+  account's copy on every device that trusts it. This holds whether or not
+  the page loaded a saved state of its own: a saved state can be as stale
+  as none. A failed one (error, timeout, invalid state) is asked again
+  10 s later (`CLASSICY_STATE_RECONCILE_RETRY_MS`), each failure in a row
+  doubling the wait up to 5 minutes (`CLASSICY_STATE_RECONCILE_RETRY_MAX_MS`),
+  and by every `reconcileClassicyState()`; a retry is a later reconcile (a
+  `replace` is adopted as a restart, below), and its success sends the
+  snapshot held meanwhile. A later reconcile that fails holds the adapter
+  again. An invalid copy is never overwritten from this device: the host
+  repairs or removes it. An adapter registered once the page's first
+  reconcile has started is asked on its own at once. Snapshots of every
+  adapter also wait while any reconcile runs, and until the page's first one
+  settles when one will run.
+- **Why it is asked, and whether the user has worked.** The context's
+  `reason` is `"boot"` (the page's first reconcile), `"retry"` (Classicy
+  asking again after a failure, or an adapter registered after the first
+  reconcile) or `"request"` (the host's `reconcileClassicyState()`).
+  `userActed` is true when this computer holds work the adapter never took:
+  an earlier session left its work unsent (below), or the page has had a
+  trusted `pointerdown` or `keydown` since the desktop was last drawn
+  (loaded, or an adopted state) and either a press came after the latest
+  state the adapter holds (the last snapshot it took, counted when that
+  snapshot was built, or its own adopted state; an adapter that has taken
+  none counts every press since the desktop was drawn), or the live state
+  is not that state. A press counts even when it changes no saved state
+  (typing in an open document, which a restart onto another state would
+  drop); the state test catches a press's change that lands after a
+  snapshot built while the press was down (on release, after a menu's
+  flash, from an async handler), which a count cannot bound. One
+  capture-phase listener counts the presses from the page's first
+  reconcile on, whatever is registered, so the work done while a failing
+  request runs, or before an adapter registers late, counts too.
+- **Unsent work survives the page.** `localStorage["classicyDesktopState:unsent"]`
+  (beside `:seq` and `:reset`) lists, as a JSON array, the ids of the
+  adapters this browser holds work for that they never took. An id is
+  added, synchronously, when a snapshot comes due for an adapter that is
+  held while `userActed` is true, or comes due while a reconcile holds every
+  snapshot (a host's request or a retry under way, sent once it settles),
+  when a delivery to it fails while `userActed` is true, and when the user
+  is asked (below); it is removed when the adapter takes a snapshot built
+  after it was added (or one it already had), when its state
+  is adopted (Use Saved, a `merged` replace, a host's request), and for
+  every adapter by Reset PRAM. Only adapters that take snapshots are
+  listed: one that never does could never take the work. At the next boot,
+  a listed adapter's context carries `userActed: true`, and its `replace`
+  that is not `merged` is not adopted: the boot settles on the local state,
+  the desktop draws, the adapter is held with no timer, and the desktop
+  asks, as below; a `useLocal` syncs it and sends this computer's state
+  (after the snapshot debounce, with no change needed: any `useLocal` while
+  `userActed` does), which removes the id. So a reload out of the alert, or a backend
+  down for the whole session, never drops the work unasked. An id whose
+  adapter is not registered is ignored (and kept). A snapshot sent as the
+  page hides is taken to have landed: the page is gone before it can learn
+  otherwise. A host can close that gap itself: a snapshot carries this
+  browser's `seq` and `hash`, and `reconcile` gets `local` with both, so an
+  adapter that keeps, per browser, the last `seq` it stored sees at the next
+  boot that `local.seq` is past it, and can answer `useLocal` or a `merged`
+  replace (Classicy gives no browser identity; the host keeps one).
+- **A boot or a retry never replaces the user's work unasked.** On a
+  `"boot"` or a `"retry"` with `userActed`, a valid `replace` is not adopted
+  on the spot: the adapter stays held, its retry timer stops, and the
+  desktop shows a caution alert (`Desktop.systemDialog` `"syncChoice"`,
+  never persisted; it waits while another system or error alert is up):
+  "Use your saved settings on this computer?" — "This computer has changes
+  that were never added to your saved settings. Using the saved settings
+  replaces this computer's, and those changes are lost. Keeping the
+  current settings replaces the saved ones on every computer that shares
+  them." That holds at boot, on a retry and after a late registration.
+  **Use Saved** adopts the answer, a restart; **Keep Current** keeps this
+  desktop, marks the adapter synced and sends it. Neither is the default,
+  since either may lose work (HIG7 p.206: "Don't use a default button if
+  the most likely action is dangerous ... When there is no default button,
+  pressing Return or Enter has no effect"), and the alert, not a button,
+  takes the keyboard focus (`ClassicyAlert`'s `defaultButtonId={null}`),
+  so a keystroke meant for a field the user was typing in answers nothing.
+  (The label summarizes the condition and the narrative its consequences,
+  HIGOS8 1997 p.61; the buttons are verbs of three words at most, HIG7
+  p.206; the message says what happens in the user's words, HIG7
+  pp.310–311.) An adapter that merged `local` into its answer says so with
+  `{ action: "replace", state, merged: true }`, which is adopted without
+  asking. A host's request adopts as before (its `userActed` is
+  informative); a host's request while the alert is up settles it (the
+  alert closes). Unanswered when the page closes, the work stays listed as
+  unsent, and the next boot asks again.
+- **Later reconciles.** `reconcileClassicyState()` runs one again, when the
+  remote copy may have changed under the page (a user signing in): it
+  resolves true iff the state was replaced, never rejects, and concurrent
+  calls share one run; a call made while Classicy retries an adapter waits
+  for that retry, then runs in full. The desktop stays drawn meanwhile. An adopted state
+  is a restart: the gate closes, the store is replaced and the desktop's
+  subtree is keyed anew in one synchronous step, so the mounted tree never
+  renders or runs an effect against the adopted state; the new tree's apps
+  register again (their windows, icons, menus and shortcuts). Host apps
+  inside the desktop lose their component state then; a host that wants to
+  avoid it reconciles before it mounts the desktop after a sign-in. Edits
+  made while a later reconcile runs are part of no snapshot yet, and a
+  `replace` drops them.
+- **`flushClassicyState()`** saves now: writes localStorage and hands each
+  adapter the current snapshot, canceling the pending debounce (after a
+  reconcile that runs), resolving true when every adapter took it (or had
+  it); false when one failed or has no successful reconcile yet. For a host
+  about to sign the user out or leave; it waits as long as the adapters do.
+- **Special ▸ Reset PRAM**, when an adapter takes snapshots, says in its
+  alert that the settings are cleared "on this computer and on every other
+  computer that shares them" (a caution alert says what the action does in
+  the user's words: HIG7 pp.195, 310–311; HIGOS8 1997 pp.62–63). On Reset it
+  shows the wristwatch (HIG7 p.270), stops saving, removes the saved state,
+  hands every such adapter a snapshot of a first session's state, a
+  provider's `defaultState` seed included (so the backend's copy resets
+  too, as Drive Setup's Initialize hands the file-system adapters the erased
+  tree), waits for them for at most 5000 ms, then reloads; the boot after it
+  skips its reconcile, once (`localStorage["classicyDesktopState:reset"]`),
+  and sends its state. A second Reset meanwhile does nothing. With no
+  adapter taking snapshots it reloads at once as before and marks nothing: a
+  reconcile-only adapter's copy is read-only to Classicy, and comes back.
+- **Servers.** Without a `window` nothing is scheduled or read: a store
+  change sends nothing, `reconcileClassicyState()` resolves false without
+  asking anyone, and `flushClassicyState()` resolves true.
+
+The example app shows one (`example/src/stateSync/mockStateAdapter.ts`, the
+shape of a production adapter: pushes deduplicated by hash, sent with
+`keepalive` when under 60 KiB, since the Fetch standard caps in-flight
+`keepalive` bodies at 64 KiB in all and fails a larger one, and the
+account's copy winning in reconcile) against a mock backend its dev and
+preview servers run (`example/mockStateServer.ts`, in memory): open it in two
+browser profiles with the same `?stateSync=<account>`, and a theme or window
+layout changed in one is there in the other after a reload.
 
 ---
 
@@ -6960,7 +7497,7 @@ untrusted disposition strings.
 
 1. **Always select** when reading the store: `useAppManager(s => s.System.Manager.Applications.apps[id])`. The app slice is `Applications`, not `App`.
 2. **Never mutate app/file-system state directly.** Apps change state only by dispatching actions handled by their registered handler; file system changes only via `fs.writeFile`/`mkDir`/`rmDir`/`setMetadata`.
-3. **Module-scope registration, render-time reads**: `registerClassicyIcons` (and the other `registerClassicy*` asset registrars, §5), `registerApp`, `registerClassicyFileSystemAdapter`, and HyperCard registrations must run before first render (top-level of an entry module). Registering is module scope; reading an asset is not: use `useClassicyAsset`/`resolveClassicyAsset`, never a module-scope capture of an icon or art URL.
+3. **Module-scope registration, render-time reads**: `registerClassicyIcons` (and the other `registerClassicy*` asset registrars, §5), `registerApp`, `registerClassicyFileSystemAdapter`, `registerClassicyStateAdapter`, and HyperCard registrations must run before first render (top-level of an entry module). Registering is module scope; reading an asset is not: use `useClassicyAsset`/`resolveClassicyAsset`, never a module-scope capture of an icon or art URL.
 4. **App state schemas are loose and optional**: `z.looseObject` with `.optional()` top-level fields, or the kernel's own writes will "fail" your schema in dev warnings.
 5. **Plugin prefix routing is insertion-order first-match**, not longest-match. Register more specific prefixes before general ones, and pick prefixes that don't collide with the built-in `ClassicyWindow*`/`ClassicyDesktop*`/`ClassicyApp*` families except intentionally under `ClassicyApp<YourApp>*`.
 6. **Guarded actions can never be scripted**: `ClassicyDesktop*`, `ClassicyWindow*`, `ClassicyAppFinderEmptyTrash`, `ClassicyAppHCEditSetScript`. Allowlisting them is a silent no-op by design.

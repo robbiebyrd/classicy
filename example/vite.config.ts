@@ -6,6 +6,7 @@ import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "../bin/classicyCssLayerPlugin";
 import { classicyDeflateAssetPlugin } from "../bin/classicyDeflateAsset";
+import { mockStateServer } from "./mockStateServer";
 
 // Repo root (this config lives in example/).
 const root = path.resolve(__dirname, "..");
@@ -61,6 +62,9 @@ export default defineConfig(({ command }) => {
 	return {
 		plugins: [
 			react(),
+			// The mock backend the `?stateSync=<account>` desktop state adapter
+			// talks to (src/stateSync/mockStateAdapter.ts).
+			mockStateServer(),
 			// Mirror the library's asset handling so live source imports (rich SVG
 			// components, ?inline/?no-inline images, webp) resolve identically.
 			...(useLiveSource

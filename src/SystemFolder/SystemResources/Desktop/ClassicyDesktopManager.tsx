@@ -118,7 +118,12 @@ export interface ClassicyStoreControlStrip {
 export type ClassicyControlStripEdge = "left" | "right";
 
 /** The Special menu's confirmation alerts (see `systemDialog`). */
-export type ClassicyDesktopSystemDialog = "emptyTrash" | "resetPram";
+export type ClassicyDesktopSystemDialog =
+	| "emptyTrash"
+	| "resetPram"
+	/** A desktop state adapter's choice: use the account's copy or keep this
+	 * desktop (ClassicyStateSync.internal.ts). */
+	| "syncChoice";
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
@@ -732,7 +737,9 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopShowSystemDialog": {
 			// Unknown values close the dialog rather than open a blank one.
 			ds.System.Manager.Desktop.systemDialog =
-				action.dialog === "emptyTrash" || action.dialog === "resetPram"
+				action.dialog === "emptyTrash" ||
+				action.dialog === "resetPram" ||
+				action.dialog === "syncChoice"
 					? action.dialog
 					: null;
 			break;

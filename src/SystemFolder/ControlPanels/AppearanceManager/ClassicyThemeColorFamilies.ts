@@ -184,7 +184,9 @@ export function withoutDefaultThemeColorFamilies<T extends ThemeWithColor>(
 	theme: T,
 	defaults: Readonly<ClassicyThemeColorFamilies> | undefined,
 ): T {
-	const current = theme.color.families;
+	// A theme without colors (a saved custom theme cut short) has nothing to
+	// drop; reading through it would stop every save of the desktop state.
+	const current = theme.color?.families;
 	if (!defaults || !isClassicyPlainObject(current)) return theme;
 	let next: Record<string, unknown> | undefined;
 	for (const [family, value] of Object.entries(current)) {
