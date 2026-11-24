@@ -129,10 +129,12 @@ export interface ClassicyAppProps {
 	/** Called when the app, already running with **no open window**, is
 	 *  opened again: a plain `ClassicyAppOpen` (its desktop icon, the Apple
 	 *  menu, Recent Applications), as Finder 8 sends a running application
-	 *  the reopen application Apple event (TN1102). Show a window, as on
-	 *  launch: SimpleText opens an untitled one. Never called for a document
-	 *  open, or while any window of the app (a palette or dialog included)
-	 *  is open. Without it, the app just comes to the front. */
+	 *  the reopen application Apple event (Apple Technote TN1102, "Mac OS 8",
+	 *  https://developer.apple.com/library/archive/technotes/tn/tn1102.html).
+	 *  Show a window, as on launch: SimpleText opens an untitled one. Never
+	 *  called for a document open, during the app's launch, or while any
+	 *  window of the app (a palette or dialog included) is open. Without it,
+	 *  the app just comes to the front. */
 	onReopen?: () => void;
 	/** The app's windows (`ClassicyWindow`) and other UI. Rendered only while
 	 *  the app is open. */
@@ -315,15 +317,18 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 
 	// Opened again with no window open (`apps[id].reopened`, counted by
 	// `openApp`): the app's onReopen shows a window. Only a change seen
-	// while mounted counts, so a remount never answers an old request.
+	// while mounted counts, so a remount never answers an old request. Every
+	// value is recorded, `undefined` included: a quit clears the count, so
+	// the next run counts from 1 again, and its first reopen must not be
+	// taken for one answered in an earlier run.
 	const reopened = appContext?.reopened;
 	const onReopenRef = useRef(onReopen);
 	onReopenRef.current = onReopen;
-	const answeredReopenRef = useRef(reopened);
+	const seenReopenRef = useRef(reopened);
 	useEffect(() => {
-		if (reopened === undefined || reopened === answeredReopenRef.current)
-			return;
-		answeredReopenRef.current = reopened;
+		const seen = seenReopenRef.current;
+		seenReopenRef.current = reopened;
+		if (reopened === undefined || reopened === seen) return;
 		onReopenRef.current?.();
 	}, [reopened]);
 

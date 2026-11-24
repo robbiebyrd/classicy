@@ -505,7 +505,7 @@ export const classicyAppEventHandler = (
 						app.open &&
 						!getAppWindow(app, classicyDocumentWindowId(app.id, action.path));
 					if (ownWindow) {
-						openApp(ds, app.id, app.name, app.icon);
+						openApp(ds, app.id, app.name, app.icon, { forOwnWindow: true });
 						recordClassicyRecentDocument(ds, action.path);
 					} else {
 						openApp(ds, app.id, app.name, app.icon, { document: action.path });

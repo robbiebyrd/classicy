@@ -282,6 +282,14 @@ export interface ClassicyOpenAppOptions {
 	 * the open is a document open.
 	 */
 	windows?: readonly string[];
+	/**
+	 * A plain open made for a document whose window the kernel cannot name
+	 * (the generic OpenFile queue's app that draws its own windows under
+	 * ids of its own): it reopens like a plain open but is never a reopen,
+	 * so `onReopen` never runs for a document open. Ignored for a document
+	 * open (`document` or `windows`).
+	 */
+	forOwnWindow?: boolean;
 }
 
 /** The id `ClassicyApp` gives the window it draws for `path` in `data.openFiles`. */
@@ -320,10 +328,14 @@ const showsClassicyDocument = (
  *   windows after all when none of the app's windows opened); a plain open
  *   or a quit ends it too.
  *
- * - A plain open of an app that is **already running** with no window open
- *   (after the reopening above) counts a reopen (`reopened`), Finder 8's
- *   reopen application Apple event (TN1102): `ClassicyApp`'s `onReopen`
- *   shows a window, as on launch (SimpleText opens an untitled one).
+ * - A plain open of an app that is **already running**, its launch over,
+ *   with no window open (after the reopening above) counts a reopen
+ *   (`reopened`), Finder 8's reopen application Apple event (Apple
+ *   Technote TN1102, "Mac OS 8",
+ *   https://developer.apple.com/library/archive/technotes/tn/tn1102.html):
+ *   `ClassicyApp`'s `onReopen` shows a window, as on launch (SimpleText
+ *   opens an untitled one). A document's open never counts, the
+ *   `forOwnWindow` plain open included.
  *
  * Every open of an app that is there is remembered under Recent
  * Applications, and a document's path under Recent Documents.
@@ -375,15 +387,21 @@ export function openApp(
 		// open already and leaves the focus where it is).
 		if (forDocument && reopened !== undefined) focusWindow(ds, appId, reopened);
 		// Opened again while it runs with no window open: Finder 8's reopen
-		// application Apple event (TN1102: "If no windows are open in the
+		// application Apple event (Apple Technote TN1102, "Mac OS 8",
+		// https://developer.apple.com/library/archive/technotes/tn/tn1102.html:
+		// "If no windows are open in the
 		// application, the action taken should be similar to what happens
 		// when the open application ('oapp') Apple event is received after
 		// the application is launched"). The app shows a window, as on
 		// launch, through ClassicyApp's onReopen; one with a window open,
 		// even a palette or dialog, needs nothing more.
+		// Not while the app is still launching (its windows have not mounted
+		// yet; the launch shows them), nor for a document's open.
 		if (
 			wasOpen &&
+			findApp.launching !== true &&
 			!forDocument &&
+			options.forOwnWindow !== true &&
 			!listAppWindows(findApp).some((w) => !w.closed)
 		)
 			findApp.reopened = (findApp.reopened ?? 0) + 1;

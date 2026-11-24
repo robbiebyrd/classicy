@@ -827,6 +827,38 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 			expect(phantomWindows()).toEqual([]);
 		});
 
+		// Review C1 and M7: opened again after a quit and a relaunch, it asks
+		// again (the quit cleared the reopen count, so this run's first
+		// reopen counts 1, as the first run's did); its windowless Help
+		// menu holds its About item.
+		it("asks for a document when opened again after a quit and a relaunch, and keeps Help", async () => {
+			renderDesktop();
+			launch(PDF, "PDF Viewer");
+			await waitFor(() => expect(dialog()).not.toBeNull());
+			cancelDialog();
+			await waitFor(() => expect(dialog()).toBeNull());
+			// Opened again with no window: the dialog (reopen 1).
+			launch(PDF, "PDF Viewer");
+			await waitFor(() => expect(dialog()).not.toBeNull());
+			cancelDialog();
+			await waitFor(() => expect(dialog()).toBeNull());
+			const help = (
+				useAppManager.getState().System.Manager.Desktop.appMenu ?? []
+			).find((m) => m.id === `${PDF}_help`);
+			expect(help?.title).toBe("Help");
+			expect(help?.menuChildren?.map((m) => m.id)).toContain(`${PDF}_about`);
+
+			quit(PDF);
+			launch(PDF, "PDF Viewer");
+			await waitFor(() => expect(dialog()).not.toBeNull());
+			cancelDialog();
+			await waitFor(() => expect(dialog()).toBeNull());
+			// This run's reopen 1 asks too.
+			launch(PDF, "PDF Viewer");
+			await waitFor(() => expect(dialog()).not.toBeNull());
+			expect(apps()[PDF].reopened).toBe(1);
+		});
+
 		it("stays running, asking nothing, when a saved session left it open with no document", async () => {
 			useAppManager.setState((s) => {
 				const next = structuredClone(s);

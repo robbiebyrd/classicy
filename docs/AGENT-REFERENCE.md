@@ -871,11 +871,14 @@ Common built-in actions:
 | `ClassicyDesktopChangeAlertVolume` | `{ alertVolume: number }` | Set the alert level, 0–100 (clamped, rounded; non-finite ignored) |
 
 Helper functions (exported, callable inside custom handlers): `openApp`
-(`(ds, id, name, icon, { document?, windows? }?)`: a plain open reopens every
-window the app closed that is mounted; a document open reopens and fronts
-only the document's windows (`${id}_file_${document}`,
-`classicyDocumentWindowId`, and `windows`), holds a launch to the same rule,
-and remembers `document` under Recent Documents, §11 "Recent Items"),
+(`(ds, id, name, icon, { document?, windows?, forOwnWindow? }?)`: a plain
+open reopens every window the app closed that is mounted, and of a running
+app left with no window open counts a reopen for `ClassicyApp`'s `onReopen`;
+a document open reopens and fronts only the document's windows
+(`${id}_file_${document}`, `classicyDocumentWindowId`, and `windows`), holds
+a launch to the same rule, and remembers `document` under Recent Documents,
+§11 "Recent Items"; `forOwnWindow`, a plain open made for a document whose
+window the kernel cannot name, counts no reopen),
 `closeApp` (quit: closes the windows and the documents, `data.openFiles`
 and what the app's quit handler closes), `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
 `loadApp`, `getDefaultAppForFileType`, `pickSuccessorApp`,
@@ -923,7 +926,7 @@ Full props:
 | `extension` | `boolean` | — | background app: no windows UI affordances, no icons |
 | `globalShortcuts` | `{ shortcut, event, eventData?, title? }[]` | — | honored only for extensions |
 | `windowlessMenu` | `ClassicyMenuItem[]` (memoize) | — | the menus shown while the app is the front application with **no open window record** (not `ClassicyWindow`'s `appMenu`: a dialog, About or palette keeps it out); under `menuBar.placement: "window"` only its chords act |
-| `onReopen` | `() => void` | — | called when the app, already running with **no open window record**, is opened again by a plain `ClassicyAppOpen` (its icon, the Apple menu, Recent Applications): Finder 8's reopen application Apple event (Apple Technote TN1102, "If no windows are open in the application, the action taken should be similar to what happens when the open application ('oapp') Apple event is received after the application is launched"). Show a window as on launch (SimpleText opens an untitled one, as Mac OS 8.1's did); never called for a document open or while any window, a palette or dialog included, is open. `openApp` counts the request in `apps[id].reopened` (session state); only a count that changes while the app is mounted is answered |
+| `onReopen` | `() => void` | — | called when the app, already running with **no open window record**, is opened again by a plain `ClassicyAppOpen` (its icon, the Apple menu, Recent Applications), its launch over: Finder 8's reopen application Apple event (Apple Technote TN1102, "Mac OS 8", https://developer.apple.com/library/archive/technotes/tn/tn1102.html, "If no windows are open in the application, the action taken should be similar to what happens when the open application ('oapp') Apple event is received after the application is launched"). Show a window as on launch (SimpleText opens an untitled one, as Mac OS 8.1's did); never called for a document open (the generic queue's `forOwnWindow` open included), during the app's launch, or while any window, a palette or dialog included, is open. `openApp` counts the request in `apps[id].reopened` (session state, cleared by a quit, so a run counts from 1 again); `ClassicyApp` answers a count that changes while it is mounted, recording every value it sees, the cleared one included |
 | `bootIcon` | `boolean \| string` | — | show in the boot icon parade (string = custom icon) |
 | `debug` | `boolean` | `false` | |
 | `handlesFileTypes` | `ClassicyFileSystemEntryFileType[]` | — | register as a file-type handler |
@@ -7286,7 +7289,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 
 **The front application** is `frontAppIdOf` (`ClassicyFrontAppId.ts`, store-free) / `useFrontAppId` (`ClassicyFrontApp.ts`): the focused app, except an extension that holds focus with no menu-publishing window, when it is the most recently focused open, shown non-extension app (`lastFocusedAt`), else Finder. An extension window that publishes no menus (Apple Guide's) is a **floating window** (`isFloatingExtensionWindow`): `focusWindow` marks it active (a topic's first open included, before its window registers) but leaves `focusedAppId`, the front app's windows (they stay active), `Desktop.appMenu`, chords and keyboard alone, and `deFocusApps` keeps it active, as floating windows sit "on top of other document windows" of the active app (HIGOS7 p. 145, Figure 5-13). Typing stays with the front app's window: plain typing reaches the front app wherever DOM focus is, the Assistant and a clicked guide button included; only Enter and Space aimed at an interactive control of another window (`isActivationKeyAimedAtOtherWindowControl`) are kept from the front app's listeners, and a key a control consumes (`defaultPrevented`) is skipped by them. A modal window or alert never floats, whichever app owns it: it keeps its modal band and takes the keyboard while the bar stays with the front app (its menus empty, as for any modal), and closing a window over it hands focus back to the dialog still open under it (the extension's most recent open modal), else to the extension's own menu window, else to the front application. Floating windows draw in one shared stacking context, the floating layer (`#classicy-floating-layer`, `ClassicyFloatingLayer`: an element of `ClassicyDesktop`'s own tree, so there is one per desktop, it exists before any floating window renders (a topic open at a reload included) and a server render touches no DOM; a full-size, pointer-transparent layer at z-index 354: above the palettes, under the Control Strip, 355, and every system layer): every extension's floating windows portal into it and stack there by recency with z-indices 1..N (`zOrder` rank), so any number of topics or extensions stack correctly, a click raises the clicked one, and a raise moves no node in the DOM (a move resets scroll offsets, blurs focus and can drop the click in flight). A window rendered with no desktop around it (a story or a test) finds or appends a layer of its own under its root, once. With an extension in front, Hide and Hide Others are dimmed. An extension window that does publish menus is an ordinary window of the front application (the bar, the Application menu's entry and the chord scope all name it). The menu bar, Application menu (its ✓ and the Notification Manager's ◆), chord registration, the dispatcher's app scope, `ClassicyDesktop`'s bar-ownership effect, the window layer and the Notification Manager (which app hosts its alert, and which app "comes forward" to take its requests down, §4.11) all read the front app; Hide hands the bar on from it either way.
 
-A **windowless front app keeps its menu bar** (Mac OS): `ClassicyApp`'s optional `windowlessMenu` prop is published to `Desktop.appMenu` while the app is the front application with no open window (SimpleText: File, Edit and Help; it opens an Untitled window on launch only).
+A **windowless front app keeps its menu bar** (Mac OS): `ClassicyApp`'s optional `windowlessMenu` prop is published to `Desktop.appMenu` while the app is the front application with no open window (SimpleText: File, Edit and Help; closing its last window opens no other, and it opens a new untitled window on launch and when opened again with no window, its `onReopen`).
 
 **Layer order** (z-index of `.classicyWindow` and the system layers sharing the desktop's stacking context): the desktop's selection rectangle 15 (under every window, §7), background windows 20, front app's inactive windows 150, active document 300, palettes 350, **the floating layer 354 (extension windows, stacked 1..N inside it)**, Control Strip 355, modal scrim 360, modal band 370, menu bar and raised icons 500, contextual menu 900, zoom rectangles 1000 (§4.1), crash screen 2000, menus and pop-up lists 5000, drag ghost 99000, error scrim 99998, red band and desktop dialogs 99999, balloon help, startup and boot 100000, Screen Saver 100001, QuickTime full screen 999999.
 
@@ -7558,8 +7561,9 @@ untitled window only.
   if and when it mounts (`ClassicyWindowOpen` on a closed record), so no
   window record ever reads open with nothing on screen. A plain open of an app
   **already running** with no window open afterward is Finder 8's reopen
-  (TN1102): `openApp` counts it (`reopened`, session state, cleared by a
-  quit) and `ClassicyApp`'s `onReopen` shows a window as on launch
+  (TN1102, https://developer.apple.com/library/archive/technotes/tn/tn1102.html;
+  never during its launch or for a document's open): `openApp` counts it
+  (`reopened`, session state, cleared by a quit) and `ClassicyApp`'s `onReopen` shows a window as on launch
   (SimpleText: a new untitled window, as Mac OS 8.1's SimpleText did when
   chosen again with every window closed); an app without `onReopen` just
   comes to the front, its `windowlessMenu` in the bar.

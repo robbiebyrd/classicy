@@ -322,6 +322,42 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 			expect(fileMenuIds()).toContain(`${now[0]}_close`);
 		});
 
+		// Review C1: a quit clears the reopen count, so a run's first reopen
+		// counts 1 again; it must open a window as the first run's did.
+		it("opens a new untitled window when opened again after a quit and a relaunch", async () => {
+			renderDesktop();
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			clickCloseBox("untitled");
+			await waitFor(() =>
+				expect(windowTitled("untitled")).not.toBeInTheDocument(),
+			);
+			// Opened again: a new untitled window (the run's reopen 1).
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			clickCloseBox("untitled");
+			await waitFor(() =>
+				expect(windowTitled("untitled")).not.toBeInTheDocument(),
+			);
+			act(() => {
+				dispatch({ type: "ClassicyAppClose", app: { id: SIMPLE_TEXT.id } });
+			});
+			expect(simpleText().open).toBe(false);
+			// Relaunched: an untitled window, as on every launch.
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			clickCloseBox("untitled");
+			await waitFor(() =>
+				expect(windowTitled("untitled")).not.toBeInTheDocument(),
+			);
+			expect(openRecords()).toEqual([]);
+			// Opened again: this run's reopen 1 opens a window too.
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			expect(simpleText().reopened).toBe(1);
+			expect(openRecords()).toHaveLength(1);
+		});
+
 		// RR2's S3: launch, open and close Read Me, close the untitled window,
 		// Quit, relaunch, close the new untitled window. No record of a closed
 		// document is left open, and the windowless menu comes back.
