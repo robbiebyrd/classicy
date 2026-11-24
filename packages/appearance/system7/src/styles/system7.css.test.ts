@@ -490,6 +490,20 @@ describe("system7.scss (compiled)", () => {
 			);
 		});
 
+		// Story 0227-815: a divider between a pop-up's groups (Find File's
+		// location and date pop-ups) is a menu's, inside the list's frame.
+		it("draws a pop-up's divider as a menu's, inside the list's frame", () => {
+			const divider = rule(
+				".classicyPopUpMenuList > .classicySeparatorHorizontal",
+			);
+			expect(divider).toMatch(/background-color: var\(--color-theme-06\);/);
+			expect(divider).toMatch(/background-image: none;/);
+			expect(divider).toMatch(/height: var\(--window-border-size\);/);
+			expect(divider).toMatch(
+				/margin: var\(--menu-item-divider-top\) var\(--window-border-size\)/,
+			);
+		});
+
 		// The vocabulary's mixins mask with the `ditherChecker` art, which System
 		// 7 draws in CSS: a 2 x 2 checker, sized by the theme's dither knob.
 		it("draws the dither's checker tile itself", () =>
@@ -3187,6 +3201,11 @@ describe("system7.scss (compiled)", () => {
 			"dim",
 		],
 		[`${MENUS} .classicySeparatorHorizontal`]: ["Separator", "rule"],
+		// A pop-up's divider (story 0227-815) is the same separator.
+		".classicyPopUpMenuList > .classicySeparatorHorizontal": [
+			"Separator",
+			"rule",
+		],
 		":is(.classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem).disabled > p":
 			[".classicyMenuItem.disabled > p", "dim"],
 		".classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)": [

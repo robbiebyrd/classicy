@@ -33,6 +33,11 @@ export type ClassicyListBoxOption = {
 	icon?: string;
 	/** Dimmed and unselectable; skipped by Shift-range selection. */
 	disabled?: boolean;
+	/**
+	 * How many levels the row is indented, one icon's width each (Find
+	 * File's path pane: a disk, its folders, the item). Defaults to 0.
+	 */
+	depth?: number;
 };
 
 /** `single` keeps at most one value selected; `multi` follows the Mac conventions. */
@@ -279,6 +284,11 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 							if (!disabled && !o.disabled) onActivateFunc?.(o.value);
 						}}
 						onFocus={() => setActiveId(o.value)}
+						style={
+							o.depth
+								? ({ "--classicy-listbox-depth": o.depth } as CSSProperties)
+								: undefined
+						}
 					>
 						{o.icon && (
 							<ClassicyIconImage

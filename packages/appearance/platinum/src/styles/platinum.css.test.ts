@@ -773,6 +773,17 @@ describe("platinum.scss (compiled)", () => {
 				color: "var(--color-system-05)",
 			});
 		});
+
+		// Story 0227-815: a divider between a pop-up's groups (Find File's
+		// location and date pop-ups) is the menus' etched divider.
+		it("draws a divider in an open pop-up as the menus' divider", () =>
+			expect(
+				rule(`${P} .classicyPopUpMenuList > .classicySeparatorHorizontal`)
+					.props,
+			).toEqual({
+				"border-top-color": "var(--color-system-05)",
+				"border-bottom-color": "var(--color-white)",
+			}));
 	});
 
 	// Story 0194-5bs, fix rounds 3 and 4: Platinum's slider drawn pixel for

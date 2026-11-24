@@ -9,6 +9,7 @@ import classNames from "classnames";
 import {
 	type ChangeEvent,
 	type CSSProperties,
+	Fragment,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	useCallback,
@@ -37,6 +38,7 @@ import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
+import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
 
@@ -51,6 +53,12 @@ export type ClassicyPopUpMenuOption = {
 	label: string;
 	/** Optional small icon (URL or data URI) drawn before the label in the menu. */
 	icon?: string;
+	/**
+	 * Draw a divider above this item in the open menu, starting a new group
+	 * (HIG7 p.83; Find File's location and date pop-ups). Ignored for the
+	 * first item.
+	 */
+	dividerBefore?: boolean;
 };
 
 /** The `<optgroup>` equivalent: a titled, non-selectable run of options. */
@@ -690,45 +698,47 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 									const { option: o, flatIndex: index, grouped } = row;
 									const isSelected = o.value === selectedItem;
 									return (
-										<div
-											key={id + o.value}
-											id={optionId(index)}
-											role="option"
-											tabIndex={-1}
-											aria-selected={isSelected}
-											className={classNames(
-												"classicyPopUpMenuListItem",
-												grouped && "classicyPopUpMenuListItemGrouped",
-												index === highlight &&
-													"classicyPopUpMenuListItemHighlight",
-											)}
-											onMouseEnter={() => setHighlight(index)}
-											onClick={() => commitIndex(index)}
-											onKeyDown={(e) => {
-												if (e.key === "Enter" || e.key === " ") {
-													e.preventDefault();
-													commitIndex(index);
-												}
-											}}
-										>
-											<span
+										<Fragment key={id + o.value}>
+											{o.dividerBefore && rowIndex > 0 && <ClassicySeparator />}
+											<div
+												id={optionId(index)}
+												role="option"
+												tabIndex={-1}
+												aria-selected={isSelected}
 												className={classNames(
-													"classicyPopUpMenuCheck",
-													classicyStateClasses({ checked: isSelected }),
+													"classicyPopUpMenuListItem",
+													grouped && "classicyPopUpMenuListItemGrouped",
+													index === highlight &&
+														"classicyPopUpMenuListItemHighlight",
 												)}
-												aria-hidden={true}
-											/>
-											{o.icon && (
-												<ClassicyIconImage
-													className="classicyPopUpMenuListItemIcon"
-													src={o.icon}
-													alt=""
+												onMouseEnter={() => setHighlight(index)}
+												onClick={() => commitIndex(index)}
+												onKeyDown={(e) => {
+													if (e.key === "Enter" || e.key === " ") {
+														e.preventDefault();
+														commitIndex(index);
+													}
+												}}
+											>
+												<span
+													className={classNames(
+														"classicyPopUpMenuCheck",
+														classicyStateClasses({ checked: isSelected }),
+													)}
+													aria-hidden={true}
 												/>
-											)}
-											<span className="classicyPopUpMenuListItemLabel">
-												{o.label}
-											</span>
-										</div>
+												{o.icon && (
+													<ClassicyIconImage
+														className="classicyPopUpMenuListItemIcon"
+														src={o.icon}
+														alt=""
+													/>
+												)}
+												<span className="classicyPopUpMenuListItemLabel">
+													{o.label}
+												</span>
+											</div>
+										</Fragment>
 									);
 								})}
 							</div>

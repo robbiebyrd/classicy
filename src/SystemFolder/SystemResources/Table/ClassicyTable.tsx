@@ -120,6 +120,13 @@ type ClassicyTableProps<T> = {
 	onActivateRow?: (id: string, row: T) => void;
 	/** Initial sort column (ascending unless `desc`). Unsorted when omitted. */
 	defaultSort?: { columnId: string; desc?: boolean };
+	/**
+	 * Called with the sort after a header click changes it (`undefined` when
+	 * unsorted), so a menu can show it (Find File's View menu).
+	 */
+	onSortChange?: (
+		sort: { columnId: string; desc: boolean } | undefined,
+	) => void;
 	/** The header stays pinned while the container scrolls. Defaults to `true`. */
 	stickyHeader?: boolean;
 	/** Extra class(es) for the scrolling container. */
@@ -226,6 +233,7 @@ export function ClassicyTable<T>({
 	onSelectionChange,
 	onActivateRow,
 	defaultSort,
+	onSortChange,
 	stickyHeader = true,
 	className,
 	style,
@@ -243,6 +251,18 @@ export function ClassicyTable<T>({
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
 	);
+	// Reported after the change commits, never for the sort it starts with.
+	const onSortChangeRef = useRef(onSortChange);
+	onSortChangeRef.current = onSortChange;
+	const reportedSortingRef = useRef(sorting);
+	useEffect(() => {
+		if (reportedSortingRef.current === sorting) return;
+		reportedSortingRef.current = sorting;
+		const first = sorting[0];
+		onSortChangeRef.current?.(
+			first ? { columnId: first.id, desc: first.desc } : undefined,
+		);
+	}, [sorting]);
 	const [internalExpanded, setInternalExpanded] = useState<string[]>([]);
 	const expandedIds = expanded ?? internalExpanded;
 	const expandedState = useMemo<ExpandedState>(

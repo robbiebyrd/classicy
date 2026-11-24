@@ -133,6 +133,18 @@ $popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
     }
   }
 
+  // A divider between groups of items (Find File's location and date
+  // pop-ups): a menu's divider (_Menu.scss), a whole item slot with its
+  // dimmed line at the middle row, inside the list's frame like the items.
+  .classicyPopUpMenuList > .classicySeparatorHorizontal {
+    width: auto;
+    height: var(--window-border-size);
+    margin: var(--menu-item-divider-top) var(--window-border-size) calc(var(--menu-item-height) - var(--menu-item-divider-top) - var(--window-border-size));
+    border: 0;
+    background-image: none;
+    @include d.classicy-dither-line("--color-theme-06", $rule-x, $rule-y);
+  }
+
   .classicyPopUpMenuListItemGrouped {
     padding-left: var(--menu-item-text-inset);
   }
