@@ -31,6 +31,7 @@ import {
 	type ClassicyScrollAreaHeadSlot,
 } from "./ClassicyScrollAreaHead.internal";
 import {
+	CLASSICY_SCROLL_LINE_STEP,
 	type ClassicyScrollAxisMetrics,
 	type ClassicyScrollBarPolicy,
 	type ClassicyScrollBarsShown,
@@ -43,7 +44,7 @@ import {
 import { useClassicyScrollPatternOrigin } from "./ClassicyScrollPatternOrigin.internal";
 
 /** The distance one press of a scroll arrow scrolls, when not given. */
-const DEFAULT_LINE_STEP = 16;
+const DEFAULT_LINE_STEP = CLASSICY_SCROLL_LINE_STEP;
 
 export type ClassicyScrollBarOrientation = "vertical" | "horizontal";
 

@@ -8,6 +8,13 @@
  * (but never 0 once the content has scrolled at all).
  */
 
+/**
+ * The distance one press of a scroll arrow scrolls, when a scroll area is
+ * given no `lineStep`; a selection rectangle held past a window's edge
+ * scrolls by it too.
+ */
+export const CLASSICY_SCROLL_LINE_STEP = 16;
+
 /** One axis of a scroll container, in CSS pixels. */
 export type ClassicyScrollAxisMetrics = {
 	/** The content's extent (`scrollHeight`/`scrollWidth`). */

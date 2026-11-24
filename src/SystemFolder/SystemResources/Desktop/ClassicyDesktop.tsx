@@ -94,6 +94,7 @@ import {
 	SYSTEM_DIALOG_WINDOW_IDS,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import { useClassicyDesktopMarquee } from "@/SystemFolder/SystemResources/Desktop/useClassicyDesktopMarquee.internal";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	type ClassicyFileDropDestination,
@@ -105,7 +106,6 @@ import {
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
-import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import {
 	CLASSICY_TRASH_PATH,
 	emptyClassicyTrash,
@@ -179,13 +179,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
 	const [showAbout, setShowAbout] = useState(false);
 
-	const [selectBoxStart, setSelectBoxStart] = useState([0, 0]);
-	const [selectBoxSize, setSelectBoxSize] = useState([0, 0]);
-	const [selectBox, setSelectBox] = useState(false);
-
 	const { showContextMenu } = useClassicyContextualMenu();
-	const rafIdRef = useRef<number | null>(null);
 	const desktopRef = useRef<HTMLDivElement>(null);
+	// The selection rectangle a drag from the bare desktop draws.
+	const desktopMarquee = useClassicyDesktopMarquee(desktopRef);
 	// The elements a package lays a pattern in from a fixed origin
 	// (`layout.patternOrigin.elements`): those outside every window.
 	useClassicyPatternOriginElements(desktopRef);
@@ -369,15 +366,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		}
 	}, [desktopEventDispatch, availableThemes, appearancePackages]);
 
-	// Cancel any pending RAF on unmount to prevent state updates after teardown
-	useEffect(() => {
-		return () => {
-			if (rafIdRef.current !== null) {
-				cancelAnimationFrame(rafIdRef.current);
-			}
-		};
-	}, []);
-
 	// Cancel any pending typeahead timer on unmount
 	useEffect(() => {
 		return () => {
@@ -458,99 +446,21 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				toggleDesktopContextMenu(e);
 			} else {
 				desktopRef.current?.focus();
+				// The rectangle first, so Escape can restore the selection
+				// the press clears; Shift keeps it.
+				if (e.button === 0) desktopMarquee.start(e);
 				clearActives(e);
-				selectionIconElementsRef.current =
-					document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
-				setSelectBox(true);
-				setSelectBoxStart([e.clientX, e.clientY]);
-				setSelectBoxSize([0, 0]);
 			}
 		}
 	};
-
-	const getNormalizedSelectRect = (
-		start: number[],
-		size: number[],
-	): DOMRect => {
-		const x = size[0] < 0 ? start[0] + size[0] : start[0];
-		const y = size[1] < 0 ? start[1] + size[1] : start[1];
-		const w = Math.abs(size[0]);
-		const h = Math.abs(size[1]);
-		return new DOMRect(x, y, w, h);
-	};
-
-	const rectsIntersect = (a: DOMRect, b: DOMRect): boolean => {
-		return (
-			a.left < b.right &&
-			a.right > b.left &&
-			a.top < b.bottom &&
-			a.bottom > b.top
-		);
-	};
-
-	// Cache icon NodeList for the duration of a selection drag
-	const selectionIconElementsRef = useRef<NodeListOf<HTMLDivElement> | null>(
-		null,
-	);
-
-	const getIconsInSelectBox = (
-		boxStart: number[],
-		boxSize: number[],
-	): string[] => {
-		const selectRect = getNormalizedSelectRect(boxStart, boxSize);
-		const selectedIds: string[] = [];
-		const iconElements =
-			selectionIconElementsRef.current ??
-			document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
-		iconElements.forEach((el) => {
-			const iconRect = el.getBoundingClientRect();
-			if (rectsIntersect(selectRect, iconRect)) {
-				const iconId = el.id.replace(/\.shortcut$/, "");
-				selectedIds.push(iconId);
-			}
-		});
-		return selectedIds;
-	};
-
-	const resizeSelectBox = (e: MouseEvent<HTMLDivElement>) => {
-		if (!selectBox) return;
-		const x = e.clientX;
-		const y = e.clientY;
-		if (rafIdRef.current !== null) {
-			cancelAnimationFrame(rafIdRef.current);
-		}
-		rafIdRef.current = requestAnimationFrame(() => {
-			const newSize = [x - selectBoxStart[0], y - selectBoxStart[1]];
-			setSelectBoxSize(newSize);
-
-			const selectedIds = getIconsInSelectBox(selectBoxStart, newSize);
-			desktopEventDispatch({
-				type: "ClassicyDesktopIconSelectBox",
-				iconIds: selectedIds,
-			});
-
-			rafIdRef.current = null;
-		});
-	};
-
-	const clearSelectBox = () => {
-		selectionIconElementsRef.current = null;
-		setSelectBoxSize([0, 0]);
-		setSelectBoxStart([0, 0]);
-		setSelectBox(false);
-	};
-
-	// The pointer stream lost mid-selection (the window blurred, a
-	// pointercancel, the page hidden): the rectangle ends where it is, as a
-	// release would end it, keeping the icons it selected.
-	useClassicyPointerStreamLost(selectBox, clearSelectBox);
 
 	const clearActives = (e: MouseEvent<HTMLDivElement>) => {
-		clearSelectedIcons();
+		if (!e.shiftKey) clearSelectedIcons();
 		desktopEventDispatch({
 			type: "ClassicyDesktopFocus",
 			e: e,
 			menuBar: defaultMenuItems,
+			keepSelection: e.shiftKey,
 		});
 	};
 
@@ -766,30 +676,12 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				{ classicyDesktopSplitArrows: smartScrolling === false },
 				className,
 			)}
-			onMouseMove={resizeSelectBox}
 			onContextMenu={toggleDesktopContextMenu}
-			onMouseUp={clearSelectBox}
 			onMouseDown={startSelectBox}
 			onKeyDown={handleKeyDown}
 			{...{ [CLASSICY_DROP_DESKTOP_ATTRIBUTE]: "" }}
 		>
-			{selectBox && (
-				<div
-					className={"classicyDesktopSelect"}
-					style={{
-						left: Math.min(
-							selectBoxStart[0],
-							selectBoxStart[0] + selectBoxSize[0],
-						),
-						top: Math.min(
-							selectBoxStart[1],
-							selectBoxStart[1] + selectBoxSize[1],
-						),
-						width: Math.abs(selectBoxSize[0]),
-						height: Math.abs(selectBoxSize[1]),
-					}}
-				/>
-			)}
+			{desktopMarquee.marquee}
 			<ClassicyDesktopMenuBar />
 			<Finder />
 			<AppleGuide />

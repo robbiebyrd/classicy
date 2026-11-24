@@ -7,6 +7,7 @@ import {
 	type MouseEvent,
 	type RefObject,
 	useCallback,
+	useEffect,
 	useImperativeHandle,
 	useLayoutEffect,
 	useRef,
@@ -23,6 +24,7 @@ import {
 	listViewIconSize,
 } from "@/SystemFolder/Finder/FinderViewOptions";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import { useClassicyFileBrowserListMarquee } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import {
 	type ClassicyFileBrowserMoveItems,
 	ClassicyFileBrowserViewIcons,
@@ -217,6 +219,27 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		[currentSelection],
 	);
 
+	// The list's own handle on its table's selection, lent to the host's
+	// `selectionApiRef` too: the selection rectangle selects through it.
+	const tableApiRef = useRef<ClassicyTableSelectionApi | null>(null);
+	useEffect(() => {
+		// Only while the list shows: the icon view has no table to select in.
+		if (!selectionApiRef || display !== "list") return;
+		selectionApiRef.current = {
+			selectAll: () => tableApiRef.current?.selectAll(),
+			select: (ids) => tableApiRef.current?.select?.(ids),
+		};
+		return () => {
+			selectionApiRef.current = null;
+		};
+	}, [selectionApiRef, display]);
+	const listMarquee = useClassicyFileBrowserListMarquee({
+		rootRef,
+		enabled: display === "list",
+		getSelection: () => listSelectionRef.current,
+		select: (paths) => tableApiRef.current?.select?.(paths),
+	});
+
 	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (!onDeleteItems || e.defaultPrevented) return;
 		if (e.key !== "Backspace" && e.key !== "Delete") return;
@@ -318,7 +341,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					showInvisible={showInvisible}
 					listViewOptions={listViewOptions}
 					now={now}
-					selectionApiRef={selectionApiRef}
+					selectionApiRef={tableApiRef}
 					selectedPaths={selectedPaths}
 					onSelectionChange={trackListSelection}
 					focusTargetRef={focusTargetRef}
@@ -337,6 +360,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					iconViewOptions={iconViewOptions}
 				/>
 			)}
+			{listMarquee}
 		</div>
 	);
 };

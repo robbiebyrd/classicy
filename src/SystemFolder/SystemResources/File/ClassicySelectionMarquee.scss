@@ -1,0 +1,14 @@
+// The selection rectangle (useClassicyMarqueeSelection.internal.ts): where it
+// sits, never how it looks. The active Appearance Package draws it, on
+// `[data-classicy-part="selection-marquee"]`.
+//
+// Inside its surface, above the icons it passes over (10, ClassicyIcon.scss
+// and ClassicyDesktopIcon.scss) and, on the desktop, below every window
+// (20 and up, ClassicyWindow.scss): the Mac OS 8.1 Finder drew the desktop's
+// rectangle under the windows over it. It never takes the pointer.
+.classicySelectionMarquee {
+  position: absolute;
+  z-index: 15;
+  box-sizing: border-box;
+  pointer-events: none;
+}

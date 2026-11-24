@@ -96,8 +96,14 @@ export type ClassicyTableColumn<T> = {
 
 export type ClassicyTableSelectionMode = "none" | "single" | "multi";
 
-/** Imperative operations a menu command needs, e.g. Edit → Select All. */
-export type ClassicyTableSelectionApi = { selectAll: () => void };
+/**
+ * Imperative operations a menu command needs, e.g. Edit → Select All, and a
+ * selection rectangle (`select`: exactly these rows, in `"multi"` mode).
+ */
+export type ClassicyTableSelectionApi = {
+	selectAll: () => void;
+	select?: (ids: string[]) => void;
+};
 
 type ClassicyTableProps<T> = {
 	/** Column definitions, left to right. The first column drives type-select. */
@@ -393,15 +399,23 @@ export function ClassicyTable<T>({
 		commit(table.getRowModel().rows.map((r) => r.id));
 	}, [selectionMode, commit, table]);
 
+	const select = useCallback(
+		(ids: string[]) => {
+			if (selectionMode !== "multi") return;
+			commit(ids);
+		},
+		[selectionMode, commit],
+	);
+
 	// Assigned in an effect rather than during render so a parent that reads
 	// the handle in its own effect always sees the current closure.
 	useEffect(() => {
 		if (!selectionApiRef) return;
-		selectionApiRef.current = { selectAll };
+		selectionApiRef.current = { selectAll, select };
 		return () => {
 			selectionApiRef.current = null;
 		};
-	}, [selectionApiRef, selectAll]);
+	}, [selectionApiRef, selectAll, select]);
 
 	// Selection semantics over the CURRENT visual (sorted) order. Clicks and
 	// the keyboard (arrows, Home/End, type-select) all select through here.

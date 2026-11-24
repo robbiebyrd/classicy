@@ -22,6 +22,7 @@ import {
 	asFinderDate,
 	formatFinderDate,
 } from "@/SystemFolder/Finder/FinderViewOptions";
+import { isClassicyFileBrowserListBlank } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
@@ -347,9 +348,20 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 								row._path
 									? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }
 									: {})}
-								onMouseDown={(e) =>
-									row._path && startRowDrag(e, row._path, expansion.emitDrag)
-								}
+								onMouseDown={(e) => {
+									// A press beside the icon and name starts the
+									// browser's selection rectangle, not a drag.
+									if (
+										e.target instanceof Element &&
+										isClassicyFileBrowserListBlank(
+											e.target,
+											e.clientX,
+											e.clientY,
+										)
+									)
+										return;
+									if (row._path) startRowDrag(e, row._path, expansion.emitDrag);
+								}}
 								style={{
 									paddingLeft: `calc(var(--window-control-size) * ${expansion.depth})`,
 								}}

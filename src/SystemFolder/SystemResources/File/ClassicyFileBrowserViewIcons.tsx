@@ -5,6 +5,8 @@ import {
 	type FC as FunctionalComponent,
 	memo,
 	type RefObject,
+	useCallback,
+	useEffect,
 	useLayoutEffect,
 	useRef,
 	useState,
@@ -18,6 +20,10 @@ import {
 	iconViewIconSize,
 } from "@/SystemFolder/Finder/FinderViewOptions";
 import type { ClassicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+import {
+	classicyFileBrowserScroller,
+	isClassicyFileBrowserBackground,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import {
 	cleanupIcon,
 	iconGridLattice,
@@ -35,6 +41,10 @@ import {
 	isClassicyTrashFolder,
 	useClassicyTrashIcon,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
+import {
+	type ClassicyMarqueeItem,
+	useClassicyMarqueeSelection,
+} from "@/SystemFolder/SystemResources/File/useClassicyMarqueeSelection.internal";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 
 export type ClassicyFileBrowserViewIconsProps = {
@@ -124,6 +134,75 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			const resolvedHolderRef = holderRef ?? internalHolderRef;
 
 			const [items, setItems] = useState<iconType[]>([]);
+
+			// The selected items' paths. The view keeps the selection, not
+			// each icon, so a selection rectangle can select many at once.
+			const [selected, setSelected] = useState<ReadonlySet<string>>(
+				() => new Set(),
+			);
+			const selectedRef = useRef(selected);
+			selectedRef.current = selected;
+			const setItemSelected = useCallback(
+				(itemPath: string, isSelected: boolean) =>
+					setSelected((prev) => {
+						if (prev.has(itemPath) === isSelected) return prev;
+						const next = new Set(prev);
+						if (isSelected) next.add(itemPath);
+						else next.delete(itemPath);
+						return next;
+					}),
+				[],
+			);
+			// An item that left the folder leaves the selection.
+			useEffect(() => {
+				setSelected((prev) => {
+					const paths = new Set(items.map((item) => item.filePath));
+					const kept = [...prev].filter((p) => paths.has(p));
+					return kept.length === prev.size ? prev : new Set(kept);
+				});
+			}, [items]);
+
+			// Selection by dragging a rectangle from empty space, over the
+			// icons' shapes and labels, scrolling the window past its edges.
+			const { start: startMarquee, marquee } = useClassicyMarqueeSelection({
+				surfaceRef: resolvedHolderRef,
+				getItems: () =>
+					Array.from(
+						resolvedHolderRef.current?.querySelectorAll<HTMLElement>(
+							":scope > .classicyIcon[data-classicy-file-path]",
+						) ?? [],
+						(el): ClassicyMarqueeItem => ({
+							id: el.getAttribute("data-classicy-file-path") ?? "",
+							image: el.querySelector<HTMLImageElement>(
+								".classicyIconMask img",
+							),
+							label: el.querySelector("p"),
+						}),
+					),
+				getSelection: () => [...selectedRef.current],
+				onSelect: (paths) => setSelected(new Set(paths)),
+				getScroller: () =>
+					classicyFileBrowserScroller(resolvedHolderRef.current),
+			});
+			// A press on empty space: the icons' holder, or the window
+			// contents around it (below the holder once they scroll).
+			useEffect(() => {
+				const holder = resolvedHolderRef.current;
+				if (!holder) return;
+				const area = classicyFileBrowserScroller(holder) ?? holder;
+				const onDown = (e: MouseEvent) => {
+					if (e.button !== 0 || e.defaultPrevented) return;
+					const target = e.target;
+					if (
+						!(target instanceof Element) ||
+						!isClassicyFileBrowserBackground(target, holder, area)
+					)
+						return;
+					startMarquee(e);
+				};
+				area.addEventListener("mousedown", onDown);
+				return () => area.removeEventListener("mousedown", onDown);
+			}, [resolvedHolderRef, startMarquee]);
 
 			// The desktop-icon metrics, read from the desktop once per active
 			// theme rather than once per icon: the layout effect re-runs on every
@@ -305,8 +384,18 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					ref={resolvedHolderRef}
 				>
 					{items.map((item) => {
-						return <ClassicyIcon {...item} key={item.name} />;
+						return (
+							<ClassicyIcon
+								{...item}
+								key={item.name}
+								selected={selected.has(item.filePath)}
+								onSelectedChange={(isSelected) =>
+									setItemSelected(item.filePath, isSelected)
+								}
+							/>
+						);
 					})}
+					{marquee}
 				</div>
 			);
 		},

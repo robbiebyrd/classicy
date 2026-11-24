@@ -17,7 +17,8 @@
 		"FileBrowser": [
 			"classicyFileDragGhost",
 			"classicyFileDragging",
-			"classicyFileDropTarget"
+			"classicyFileDropTarget",
+			"classicySelectionMarquee"
 		],
 		"MenuItem": ["classicyMenuWrapper"],
 		"PixelArt": [
@@ -628,7 +629,8 @@
 			"scroll-corner",
 			"scroll-drag-outline",
 			"menu-scroll-up",
-			"menu-scroll-down"
+			"menu-scroll-down",
+			"selection-marquee"
 		]
 	}
 }

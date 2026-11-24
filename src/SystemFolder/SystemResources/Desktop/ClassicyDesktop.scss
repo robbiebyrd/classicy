@@ -50,11 +50,8 @@
   // arrows, drawn by the Platinum package.
 }
 
-.classicyDesktopSelect {
-  position: absolute;
-  border: var(--window-border-size) dotted var(--color-black);
-  outline: var(--window-border-size) dotted var(--color-black);
-}
+// The desktop's selection rectangle is a `classicySelectionMarquee`
+// (ClassicySelectionMarquee.scss), drawn by the Appearance Package.
 
 // Full-screen overlay that centers a modal dialog (Empty Trash, error dialogs).
 .classicyDesktopDialogOverlay {

@@ -98,6 +98,18 @@ interface ClassicyIconProps {
 		point: [number, number],
 		outlineTopLeft: [number, number],
 	) => boolean;
+	/**
+	 * Whether the icon is selected, for a container that keeps the
+	 * selection itself (a file browser's icon view, whose selection
+	 * rectangle selects many at once). Left out, the icon keeps its own.
+	 */
+	selected?: boolean;
+	/**
+	 * Called with the selection a click, drag or open asks for (a click
+	 * toggles it). With `selected` set the icon shows only what `selected`
+	 * says, so the container applies it.
+	 */
+	onSelectedChange?: (selected: boolean) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/**
@@ -137,8 +149,10 @@ export const snapToGrid = (
  * `snapTo` (with `snapOrigin`) to round drops onto a grid. A single click
  * toggles the selected (highlighted) look; double-click or Enter/Space calls
  * `onClickFunc`. Position and selection are local state — nothing is written
- * to the store. Size follows the theme's `--desktop-icon-size` unless `size`
- * is set.
+ * to the store — unless the container passes `selected` (and
+ * `onSelectedChange`) to keep the selection itself, as the file browser's
+ * icon view does. Size follows the theme's `--desktop-icon-size` unless
+ * `size` is set.
  *
  * ```tsx
  * <div ref={holderRef} style={{ position: "relative", height: 200 }}>
@@ -163,12 +177,21 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	dropFolderPath,
 	filePath,
 	onFileDrag,
+	selected,
+	onSelectedChange,
 	className,
 	style,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
 	const [dragging, setDragging] = useState<boolean>(false);
-	const [active, setActive] = useState<boolean>(false);
+	const [ownActive, setOwnActive] = useState<boolean>(false);
+	// Selected: the container's say when it keeps the selection, else the
+	// icon's own.
+	const active = selected ?? ownActive;
+	const setActive = (next: boolean) => {
+		if (selected === undefined) setOwnActive(next);
+		onSelectedChange?.(next);
+	};
 
 	// Whether the pointer actually moved the icon between mousedown and mouseup.
 	// A ref, not state: it must be readable inside the same mouseup that clears

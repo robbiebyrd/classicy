@@ -1,5 +1,6 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
+import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	losePointerStream,
@@ -65,6 +66,8 @@ describe("ClassicyDesktop selection rectangle when the pointer stream is lost", 
 	it.each(POINTER_STREAM_LOSSES)("ends on a %s", (loss) => {
 		renderDesktop();
 		fireEvent.mouseDown(desktop(), { button: 0, clientX: 10, clientY: 10 });
+		// Drawn once the pointer has traveled past the threshold.
+		fireEvent.mouseMove(desktop(), { clientX: 40, clientY: 40 });
 		expect(selectBox()).not.toBeNull();
 		losePointerStream(loss);
 		expect(selectBox()).toBeNull();
@@ -85,5 +88,130 @@ describe("ClassicyDesktop selection rectangle when the pointer stream is lost", 
 		expect(live.size).toBe(before + 3);
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+// Selection by a rectangle over the desktop icons (story 0228-e9l): the
+// icons it touches, by their image or label, are selected in the store.
+describe("ClassicyDesktop selection rectangle over the icons", () => {
+	const icon = (appId: string, label: string) => ({
+		appId,
+		appName: label,
+		label,
+		icon: "/i.png",
+		kind: "app_shortcut",
+		location: [0, 0] as [number, number],
+		noLaunch: true,
+	});
+	const boxes = new Map<string, [number, number, number, number]>();
+
+	beforeEach(() => {
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Desktop.icons = [
+						icon("Alpha.app", "Alpha"),
+						icon("Beta.app", "Beta"),
+					];
+				}),
+			);
+		});
+		// jsdom lays nothing out: the desktop fills 1024 x 768, Alpha's image
+		// is at (900, 40) and Beta's at (900, 120), each label 14 px below.
+		boxes.clear();
+		boxes.set("#classicyDesktop", [0, 0, 1024, 768]);
+		boxes.set('[id="Alpha.app.shortcut"] img', [900, 40, 32, 32]);
+		boxes.set('[id="Alpha.app.shortcut"] p', [890, 74, 52, 12]);
+		boxes.set('[id="Beta.app.shortcut"] img', [900, 120, 32, 32]);
+		boxes.set('[id="Beta.app.shortcut"] p', [890, 154, 52, 12]);
+		vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+			function (this: Element) {
+				for (const [selector, [x, y, width, height]] of boxes)
+					if (this.matches(selector))
+						return DOMRect.fromRect({ x, y, width, height });
+				return DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
+			},
+		);
+	});
+
+	const selected = () =>
+		useAppManager.getState().System.Manager.Desktop.selectedIcons ?? [];
+	const select = (ids: string[]) =>
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Desktop.selectedIcons = ids;
+				}),
+			);
+		});
+	const move = (x: number, y: number) =>
+		fireEvent.mouseMove(document, { clientX: x, clientY: y });
+	const press = (x: number, y: number, init: MouseEventInit = {}) =>
+		fireEvent.mouseDown(desktop(), {
+			button: 0,
+			clientX: x,
+			clientY: y,
+			...init,
+		});
+
+	it("selects the icons it touches, live, and draws the package's part", () => {
+		renderDesktop();
+		select(["Beta.app"]);
+		press(860, 20);
+		expect(selected()).toEqual([]);
+		move(861, 21);
+		expect(selectBox()).toBeNull();
+		move(910, 60);
+		const part = selectBox() as HTMLElement;
+		expect(part.getAttribute("data-classicy-part")).toBe("selection-marquee");
+		expect(part.classList).toContain("classicySelectionMarquee");
+		expect(selected()).toEqual(["Alpha.app"]);
+		// Down to Beta's label only.
+		move(895, 160);
+		expect(selected()).toEqual(["Alpha.app", "Beta.app"]);
+		fireEvent.mouseUp(document, { clientX: 895, clientY: 160 });
+		expect(selectBox()).toBeNull();
+		expect(selected()).toEqual(["Alpha.app", "Beta.app"]);
+	});
+
+	it("keeps the selection with Shift and toggles what it touches", () => {
+		renderDesktop();
+		select(["Alpha.app"]);
+		press(860, 20, { shiftKey: true });
+		expect(selected()).toEqual(["Alpha.app"]);
+		move(895, 160);
+		expect(selected()).toEqual(["Beta.app"]);
+	});
+
+	it("restores the selection from before the press on Escape", () => {
+		renderDesktop();
+		select(["Beta.app"]);
+		press(860, 20);
+		move(910, 60);
+		expect(selected()).toEqual(["Alpha.app"]);
+		fireEvent.keyDown(desktop(), { key: "Escape" });
+		expect(selectBox()).toBeNull();
+		expect(selected()).toEqual(["Beta.app"]);
+	});
+
+	it("leaves a press on an icon to the icon: no rectangle", () => {
+		renderDesktop();
+		const alpha = document.getElementById("Alpha.app.shortcut") as HTMLElement;
+		fireEvent.mouseDown(alpha, { button: 0, clientX: 910, clientY: 50 });
+		move(980, 200);
+		expect(selectBox()).toBeNull();
+		expect(selected()).toEqual(["Alpha.app"]);
+		fireEvent.mouseUp(alpha, { clientX: 980, clientY: 200 });
+	});
+
+	it("leaves the keyboard on the desktop, acting on the selection it made", () => {
+		renderDesktop();
+		press(860, 20);
+		move(910, 60);
+		fireEvent.mouseUp(document, { clientX: 910, clientY: 60 });
+		expect(document.activeElement).toBe(desktop());
+		expect(selected()).toEqual(["Alpha.app"]);
+		fireEvent.keyDown(desktop(), { key: "ArrowDown" });
+		expect(selected()).toEqual(["Beta.app"]);
 	});
 });

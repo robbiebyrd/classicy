@@ -163,6 +163,45 @@ export function drawClassicyDragOutline(
 	return { canvas, left, top };
 }
 
+/**
+ * An icon image's opaque pixels at its on-screen size, as the drag outline
+ * reads them (alpha above half): row-major, 1 = part of the shape, or null
+ * when there is no 2D canvas (jsdom), the image has no size, or it taints
+ * the canvas (a cross-origin icon served without CORS). A null mask means
+ * the image's box stands for its shape, as the outline falls back to it.
+ */
+export function readClassicyIconOpaqueMask(
+	image: CanvasImageSource,
+	width: number,
+	height: number,
+): Uint8Array | null {
+	if (width <= 0 || height <= 0 || typeof document === "undefined") {
+		return null;
+	}
+	const canvas = document.createElement("canvas");
+	canvas.width = width;
+	canvas.height = height;
+	let ctx: CanvasRenderingContext2D | null = null;
+	try {
+		ctx = canvas.getContext("2d", { willReadFrequently: true });
+	} catch {
+		return null;
+	}
+	if (!ctx) return null;
+	ctx.imageSmoothingEnabled = false;
+	try {
+		ctx.drawImage(image, 0, 0, width, height);
+		const { data } = ctx.getImageData(0, 0, width, height);
+		const mask = new Uint8Array(width * height);
+		for (let i = 0; i < mask.length; i++) {
+			if (data[i * 4 + 3] > OPAQUE_ALPHA) mask[i] = 1;
+		}
+		return mask;
+	} catch {
+		return null;
+	}
+}
+
 function fillBox(
 	mask: Uint8Array,
 	width: number,
