@@ -18,16 +18,23 @@
  *   keeping them all until the end, then the window: about 100 ms. Closing
  *   draws the same steps the other way, from the window's frame toward the
  *   icon, after the window is gone.
- * - Opening zooms to the window's content area (below its title bar);
- *   closing starts from its whole frame, as the 8.1 Finder's rectangles did.
+ * - Opening zooms to the window's content area (inside its frame, below its
+ *   title bar); closing starts from its whole frame, as the 8.1 Finder's
+ *   rectangles did.
  * - Launching an application from its icon zooms from the icon to the whole
- *   screen (the desktop), and only when the application was not running.
+ *   screen (the desktop), and only when the application was not running; the
+ *   application's windows are drawn after it.
+ * - The steps are paced by display frames (`requestAnimationFrame`): at most
+ *   one a frame and none before its tick is due, as `ZoomRects` drew one a
+ *   tick, so a frame the page is late to draw delays the rest without
+ *   skipping or bunching any.
  *
- * Each Appearance Package declares the numbers as its themes' `zoomRects`
- * knobs (`enabled`, `steps`, `growthPercent`, `firstStep`, `trail`, `rate`,
- * emitted as `--zoom-rects-*`) and draws the rectangles, the
- * `data-classicy-part="zoom-rect"` elements, in its stylesheet. Users who
- * prefer reduced motion see none.
+ * A package opts in: it sets its themes' `zoomRects.enabled` knob to 1 and
+ * draws the rectangles, the `data-classicy-part="zoom-rect"` elements, in its
+ * stylesheet; a package that sets neither has no zoom. The path and pace are
+ * the structural knobs `steps`, `growthPercent`, `firstStep`, `trail` and
+ * `rate` (on the core floor at Mac OS 8.1's values), emitted as
+ * `--zoom-rects-*`. Users who prefer reduced motion see none.
  *
  * The rectangles are drawn in a layer the core appends to the desktop (the
  * Classicy screen), outside React, so a zoom never re-renders anything.
@@ -39,6 +46,13 @@ import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import { beginClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/ClassicyZoomSources.internal";
+
+export {
+	CLASSICY_ZOOM_SOURCE_TTL_MS,
+	noteClassicyWindowZoomSource,
+	takeClassicyWindowZoomSource,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomSources.internal";
 
 /** A box in viewport (client) pixels, as `getBoundingClientRect` gives it. */
 export type ClassicyZoomRect = {
@@ -83,9 +97,6 @@ export const CLASSICY_ZOOM_RECTS_LAYER_CLASS = "classicyZoomRects";
 export const CLASSICY_ZOOM_RECT_CLASS = "classicyZoomRect";
 /** The `data-classicy-part` a package draws. */
 export const CLASSICY_ZOOM_RECT_PART = "zoom-rect";
-
-/** How long an open's source waits for its window (ms). */
-export const CLASSICY_ZOOM_SOURCE_TTL_MS = 1000;
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -154,16 +165,19 @@ const clampInteger = (value: number, min: number, max: number): number =>
 
 /**
  * The zoom the theme on `el` (else the desktop) declares, or `null` when its
- * package turns it off (`zoomRects.enabled` 0). `growthPercent` (each step's
- * length over the last's, in percent: 140) becomes `growth` (1.4). Values out
- * of range are brought into it: 1–64 steps, a first step before the last, a
- * growth above 0 (else equal steps), a rate of 1–240 steps a second.
+ * package has not opted in: `zoomRects.enabled` is a package's own knob, not
+ * on the core floor, read with a fallback of 0, so a package that does not
+ * set it to 1 (and so draws no rectangles) has no zoom. `growthPercent`
+ * (each step's length over the last's, in percent: 140) becomes `growth`
+ * (1.4). Values out of range are brought into it: 1–64 steps, a first step
+ * before the last, a growth above 0 (else equal steps), a rate of 1–240
+ * steps a second.
  */
 export const readClassicyZoomRectsSettings = (
 	el?: Element | null,
 ): ClassicyZoomRectsSettings | null => {
+	if (readClassicyThemeVar("--zoom-rects-enabled", 0, el) <= 0) return null;
 	const read = (name: string) => readClassicyThemeVar(name, undefined, el);
-	if (read("--zoom-rects-enabled") <= 0) return null;
 	const steps = clampInteger(read("--zoom-rects-steps"), 1, 64);
 	const growth = read("--zoom-rects-growth-percent") / 100;
 	return {
@@ -199,73 +213,55 @@ export const classicyZoomOriginOf = (
 	};
 };
 
+const CONTENT_PARTS = [
+	":scope > .classicyWindowHeader",
+	":scope > .classicyWindowContents",
+	':scope > [data-classicy-part="window-menu-bar"]',
+	":scope > .classicyWindowPlacardBar",
+].join(", ");
+
 /**
- * The box a window opens into: its content area, inside its frame and below
- * its title bar (the 8.1 Finder's rectangles end there).
+ * The box a window opens into: its content area, the window's own menu bar,
+ * header, contents (scroll bars included) and placard, inside its frame and
+ * below its title bar, where the 8.1 Finder's rectangles ended (the window's
+ * content region, `[45,89,421,249)` for a window whose frame was
+ * `[40,68,427,255)`). A window with none of those parts drawn gives the
+ * inside of its border below its title bar.
  */
 export const classicyWindowContentRect = (el: Element): ClassicyZoomRect => {
+	let left = Number.POSITIVE_INFINITY;
+	let top = Number.POSITIVE_INFINITY;
+	let right = Number.NEGATIVE_INFINITY;
+	let bottom = Number.NEGATIVE_INFINITY;
+	for (const part of el.querySelectorAll(CONTENT_PARTS)) {
+		const box = part.getBoundingClientRect();
+		if (box.width <= 0 || box.height <= 0) continue;
+		left = Math.min(left, box.left);
+		top = Math.min(top, box.top);
+		right = Math.max(right, box.left + box.width);
+		bottom = Math.max(bottom, box.top + box.height);
+	}
+	if (right > left && bottom > top) {
+		return { left, top, width: right - left, height: bottom - top };
+	}
 	const box = el.getBoundingClientRect();
-	const left = box.left + el.clientLeft;
-	const top = box.top + el.clientTop;
+	const inLeft = box.left + el.clientLeft;
+	const inTop = box.top + el.clientTop;
 	const titleBar = el
 		.querySelector(":scope > .classicyWindowTitleBar")
 		?.getBoundingClientRect();
 	const contentTop =
-		titleBar && titleBar.bottom > top && titleBar.bottom < top + el.clientHeight
+		titleBar &&
+		titleBar.bottom > inTop &&
+		titleBar.bottom < inTop + el.clientHeight
 			? titleBar.bottom
-			: top;
+			: inTop;
 	return {
-		left,
+		left: inLeft,
 		top: contentTop,
 		width: el.clientWidth,
-		height: Math.max(0, top + el.clientHeight - contentTop),
+		height: Math.max(0, inTop + el.clientHeight - contentTop),
 	};
-};
-
-const pendingSources = new Map<
-	string,
-	{ origin: ClassicyZoomOrigin; at: number }
->();
-const sourceKey = (appId: string, windowId: string) =>
-	`${appId}\u0000${windowId}`;
-
-/**
- * Records where the window `windowId` of `appId` is being opened from, so it
- * zooms out of that icon when it opens. Call it just before the dispatch that
- * opens the window. The window takes it when it opens, within
- * `CLASSICY_ZOOM_SOURCE_TTL_MS`; a window already open ignores it. No origin
- * records nothing.
- */
-export const noteClassicyWindowZoomSource = (
-	appId: string,
-	windowId: string,
-	origin: ClassicyZoomOrigin | undefined,
-): void => {
-	if (!origin) return;
-	pendingSources.set(sourceKey(appId, windowId), { origin, at: Date.now() });
-};
-
-/**
- * The origin recorded for a window by `noteClassicyWindowZoomSource`, once:
- * it is forgotten as it is read. Undefined when none was recorded, or it is
- * older than `CLASSICY_ZOOM_SOURCE_TTL_MS`.
- */
-export const takeClassicyWindowZoomSource = (
-	appId: string,
-	windowId: string,
-): ClassicyZoomOrigin | undefined => {
-	const key = sourceKey(appId, windowId);
-	const entry = pendingSources.get(key);
-	pendingSources.delete(key);
-	if (!entry || Date.now() - entry.at > CLASSICY_ZOOM_SOURCE_TTL_MS) {
-		return undefined;
-	}
-	return entry.origin;
-};
-
-/** Forgets every recorded source (tests). */
-export const clearClassicyWindowZoomSources = (): void => {
-	pendingSources.clear();
 };
 
 const ICON_SELECTOR = [
@@ -327,7 +323,11 @@ export const findClassicyZoomIcon = (
 
 /** A running zoom. */
 export type ClassicyZoomRectsHandle = {
-	/** How long it runs, from the first rectangle to the last erase (ms). */
+	/**
+	 * How long it runs at its pace, from the first rectangle to the last
+	 * erase (ms): one step a tick (`1000 / rate` ms) per rectangle. A page
+	 * late to draw a frame stretches it.
+	 */
 	durationMs: number;
 	/** Ends it now, erasing its rectangles (no `onEnd`). */
 	cancel: () => void;
@@ -347,12 +347,31 @@ export type ClassicyZoomRectsPlay = {
 	onEnd?: () => void;
 };
 
+/** A frame scheduler: the display's, else a timer at the step's pace. */
+const requestFrame = (
+	callback: (time: number) => void,
+	fallbackMs: number,
+): (() => void) => {
+	if (typeof requestAnimationFrame === "function") {
+		const id = requestAnimationFrame(callback);
+		return () => cancelAnimationFrame(id);
+	}
+	const id = setTimeout(() => callback(performance.now()), fallbackMs);
+	return () => clearTimeout(id);
+};
+
 /**
- * Draws a zoom on `desktop`: the first rectangle at once, one more each step
- * (`1000 / rate` ms), each older than `trail` erased as the next is drawn,
- * and all of them erased one step after the last, when `onEnd` runs. Returns
- * null, drawing nothing, when the package turns the zoom off, the user
- * prefers reduced motion, or the boxes have no size.
+ * Draws a zoom on `desktop`. The first rectangle is drawn at once (with the
+ * window's box known), and the frame that shows it starts the clock; then
+ * each display frame draws the next rectangle once its tick is due
+ * (`1000 / rate` ms after the one before, within a quarter of a tick, so a
+ * frame a little early still takes it), never more than one a frame, each
+ * older than `trail` erased as the next is drawn, and all of them erased a
+ * tick after the last, when `onEnd` runs. At 60 Hz that is one rectangle a
+ * frame; on a faster display some frames draw none; a late frame delays
+ * the rest instead of skipping one. Returns null, drawing nothing, when the
+ * package has not opted in, the user prefers reduced motion, the page is
+ * hidden (no frames come), or the boxes have no size.
  */
 export const playClassicyZoomRects = ({
 	desktop,
@@ -363,6 +382,8 @@ export const playClassicyZoomRects = ({
 	onEnd,
 }: ClassicyZoomRectsPlay): ClassicyZoomRectsHandle | null => {
 	if (classicyPrefersReducedMotion()) return null;
+	const doc = desktop.ownerDocument;
+	if (doc.visibilityState === "hidden") return null;
 	const settings =
 		given === undefined ? readClassicyZoomRectsSettings(desktop) : given;
 	if (!settings) return null;
@@ -377,8 +398,8 @@ export const playClassicyZoomRects = ({
 	const rects = computeClassicyZoomRects(icon, windowBox, direction, settings);
 	if (rects.length === 0) return null;
 	const stepMs = 1000 / settings.rate;
+	const slack = stepMs / 4;
 
-	const doc = desktop.ownerDocument;
 	const desktopBox = desktop.getBoundingClientRect();
 	const originX = desktopBox.left + desktop.clientLeft - desktop.scrollLeft;
 	const originY = desktopBox.top + desktop.clientTop - desktop.scrollTop;
@@ -409,30 +430,38 @@ export const playClassicyZoomRects = ({
 		}
 	};
 
+	// Step n is due `n` ticks after the frame that shows the first.
+	let shownAt: number | undefined;
 	let step = 0;
-	let timer: ReturnType<typeof setTimeout> | undefined;
+	let cancelFrame: (() => void) | undefined;
+	let done = false;
 	const finish = () => {
-		timer = undefined;
+		done = true;
+		cancelFrame?.();
+		cancelFrame = undefined;
 		layer.remove();
 	};
-	const tick = () => {
-		step += 1;
-		if (step < rects.length) {
+	const frame = (time: number) => {
+		cancelFrame = undefined;
+		if (shownAt === undefined) shownAt = time;
+		else if (time >= shownAt + (step + 1) * stepMs - slack) {
+			step += 1;
+			if (step >= rects.length) {
+				finish();
+				onEnd?.();
+				return;
+			}
 			draw(rects[step]);
-			timer = setTimeout(tick, stepMs);
-			return;
 		}
-		finish();
-		onEnd?.();
+		cancelFrame = requestFrame(frame, stepMs);
 	};
 	draw(rects[0]);
-	timer = setTimeout(tick, stepMs);
+	cancelFrame = requestFrame(frame, stepMs);
 
 	return {
 		durationMs: rects.length * stepMs,
 		cancel: () => {
-			if (timer !== undefined) clearTimeout(timer);
-			finish();
+			if (!done) finish();
 		},
 	};
 };
@@ -440,18 +469,34 @@ export const playClassicyZoomRects = ({
 /**
  * The zoom of an application launched from its icon: from the icon out to
  * the whole desktop (the 8.1 Finder zoomed to the screen, and only when the
- * application was not already running: callers check that). Null when it
- * draws nothing.
+ * application was not already running: callers check that,
+ * `withClassicyLaunchZoom`). The windows of `appIds` that open while it runs
+ * are drawn when it ends (8.1 drew the application's window after it).
+ * Null when it draws nothing.
  */
 export const playClassicyLaunchZoom = (
 	origin: ClassicyZoomOrigin | undefined,
+	appIds: string[] = [],
 ): ClassicyZoomRectsHandle | null => {
 	const desktop = origin?.desktop;
 	if (!origin || !desktop?.isConnected) return null;
-	return playClassicyZoomRects({
+	const end = beginClassicyLaunchZoom(appIds);
+	const zoom = playClassicyZoomRects({
 		desktop,
 		icon: origin.rect,
 		window: toZoomRect(desktop.getBoundingClientRect()),
 		direction: "open",
+		onEnd: end,
 	});
+	if (!zoom) {
+		end();
+		return null;
+	}
+	return {
+		durationMs: zoom.durationMs,
+		cancel: () => {
+			zoom.cancel();
+			end();
+		},
+	};
 };

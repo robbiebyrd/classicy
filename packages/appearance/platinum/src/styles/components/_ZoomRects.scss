@@ -1,28 +1,18 @@
 // The zoom rectangles: the core's `zoom-rect` part (ClassicyZoomRects.ts),
 // drawn as the Mac OS 8.1 Finder drew them from an icon to its window and
-// back (Infinite Mac captures, story 0230-n6c): a two-pixel frame of the 50%
-// checker drawn in XOR, the Drag Manager's "gray dithered rectangles", the
-// selection rectangle's pen.
-//
-// The inversion is `difference` with white, exact in black and white; a
-// color inverts as RGB does (QuickDraw's XOR inverted a palette index). The
-// checker is laid from the desktop's corner, which the core publishes on
-// each rectangle (`--classicy-pattern-origin-x` / `-y`), as QuickDraw laid
-// it from the screen's.
+// back (Infinite Mac captures, story 0230-n6c,
+// `resources/screenshots/zoom-rects/mac-os-8.1/`): a two-pixel frame of the
+// 50% checker drawn in XOR, the Drag Manager's "gray dithered rectangles",
+// the selection rectangle's pen (`platinum-xor-checker-frame`).
 //
 // Knobs: `zoomRects.width`, the pen (2), and `zoomRects.tileSize`, the
-// checker's tile (2, for one-pixel cells). The path and pace are the same
-// family's structural knobs, read by the core.
+// checker's tile (2, for one-pixel cells); `zoomRects.enabled` (1) opts
+// Platinum in, and the path and pace are the same family's structural
+// knobs, read by the core.
+@use "../mixins";
+
 @mixin zoomRects {
   [data-classicy-part="zoom-rect"] {
-    padding: var(--zoom-rects-width);
-    background: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0)
-      var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y) / var(--zoom-rects-tile-size)
-      var(--zoom-rects-tile-size);
-    mask:
-      linear-gradient(var(--color-black), var(--color-black)) content-box,
-      linear-gradient(var(--color-black), var(--color-black));
-    mask-composite: exclude;
-    mix-blend-mode: difference;
+    @include mixins.platinum-xor-checker-frame(var(--zoom-rects-width), var(--zoom-rects-tile-size));
   }
 }

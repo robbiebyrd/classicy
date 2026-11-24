@@ -444,7 +444,13 @@ describe("platinum.scss (compiled)", () => {
 		const marquee = rule(`${P} [data-classicy-part=selection-marquee]`).props;
 		expect(marquee.padding).toBe("var(--selection-marquee-width)");
 		expect(marquee.background).toBe(
-			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y)/var(--selection-marquee-tile-size) var(--selection-marquee-tile-size)",
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0)",
+		);
+		expect(marquee["background-position"]).toBe(
+			"var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y)",
+		);
+		expect(marquee["background-size"]).toBe(
+			"var(--selection-marquee-tile-size) var(--selection-marquee-tile-size)",
 		);
 		expect(marquee["mask-composite"]).toBe("exclude");
 		expect(marquee["mix-blend-mode"]).toBe("difference");
@@ -462,7 +468,13 @@ describe("platinum.scss (compiled)", () => {
 		const zoom = rule(`${P} [data-classicy-part=zoom-rect]`).props;
 		expect(zoom.padding).toBe("var(--zoom-rects-width)");
 		expect(zoom.background).toBe(
-			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y)/var(--zoom-rects-tile-size) var(--zoom-rects-tile-size)",
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0)",
+		);
+		expect(zoom["background-position"]).toBe(
+			"var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y)",
+		);
+		expect(zoom["background-size"]).toBe(
+			"var(--zoom-rects-tile-size) var(--zoom-rects-tile-size)",
 		);
 		expect(zoom["mask-composite"]).toBe("exclude");
 		expect(zoom["mix-blend-mode"]).toBe("difference");
@@ -2032,6 +2044,7 @@ describe("the moved Platinum mixin files", () => {
 			"mixin platinum-depressable-box-shadow-active",
 			"mixin platinum-halftone",
 			"mixin platinum-title-bar-stripes",
+			"mixin platinum-xor-checker-frame",
 		]);
 		expect(declared("_scrollbars.scss")).toEqual([
 			"mixin platinum-scrollbar-glyph-up",

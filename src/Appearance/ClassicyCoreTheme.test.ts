@@ -57,7 +57,10 @@ const LOOK_ONLY = [
 	// The selection rectangle's pen and checker (_SelectionMarquee.scss).
 	"selectionMarquee.width",
 	"selectionMarquee.tileSize",
-	// The zoom rectangles' pen and checker (_ZoomRects.scss).
+	// The zoom rectangles' pen and checker (_ZoomRects.scss), and their
+	// opt-in, a package's own (ClassicyZoomRects.ts reads it with a fallback
+	// of 0, so a package that draws no rectangles has no zoom).
+	"zoomRects.enabled",
 	"zoomRects.width",
 	"zoomRects.tileSize",
 ];
@@ -126,7 +129,7 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)
 			.sort();
-		expect(structural).toHaveLength(91);
+		expect(structural).toHaveLength(90);
 		const knobs = leaves(CLASSICY_CORE_MEASUREMENT_DEFAULTS)
 			.filter((path) => !CORE_FIVE.includes(path.split(".")[0]))
 			.sort();

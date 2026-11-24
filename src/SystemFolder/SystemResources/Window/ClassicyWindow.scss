@@ -559,10 +559,11 @@
 }
 
 // While a window zooms open out of an icon (ClassicyZoomRects.ts) it is laid
-// out but not drawn, and takes no pointer, until the last rectangle is
-// erased, as the Finder drew the window after its rectangles. It still takes
-// the keyboard focus its opening gives it.
+// out but not drawn until the last rectangle is erased, as the Finder drew
+// the window after its rectangles. It still takes the pointer and the
+// keyboard focus its opening gives it: a click made during the zoom lands on
+// the new window, never on what lies under it, as the Mac queued it for the
+// window drawn next.
 .classicyWindowZoomHidden {
   opacity: 0;
-  pointer-events: none;
 }

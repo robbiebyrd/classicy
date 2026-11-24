@@ -325,6 +325,7 @@
 				"tileSize": 2
 			},
 			"zoomRects": {
+				"enabled": 1,
 				"firstStep": 0,
 				"trail": 4,
 				"width": 1,

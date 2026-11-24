@@ -76,8 +76,10 @@ import { withClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/Cl
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import {
 	type ClassicyZoomOrigin,
+	classicyZoomOriginForPath,
 	noteClassicyWindowZoomSource,
 } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
+import { skipClassicyWindowCloseZoom } from "@/SystemFolder/SystemResources/Window/ClassicyZoomSources.internal";
 
 type FinderWindowProps = {
 	appId: string;
@@ -85,11 +87,11 @@ type FinderWindowProps = {
 	dir: ClassicyFileSystemEntry;
 	idx: number;
 	closeFolder: (path: string) => void;
-	closeAllFolders: () => void;
+	closeAllFolders: (from?: string) => void;
 	closeWindow: (windowId: string, appCleanupAction: ActionMessage) => void;
 	setFolderView: (path: string, viewType: "icons" | "list") => void;
-	openFolder: (path: string) => void;
-	openFile: (path: string) => void;
+	openFolder: (path: string, origin?: ClassicyZoomOrigin) => void;
+	openFile: (path: string, origin?: ClassicyZoomOrigin) => void;
 	getHeaderString: (dir: ClassicyFileSystemEntryMetadata) => string;
 	fs: ClassicyFileSystem;
 	disableBalloonHelp: boolean;
@@ -184,7 +186,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 					),
 					closeAllWindowsMenuItemHelper(
 						`${appId}_${op}_file_closews`,
-						closeAllFolders,
+						// From this window: it alone zooms back to its icon.
+						() => closeAllFolders(op),
 					),
 					{ id: "spacer" },
 					{
@@ -506,12 +509,25 @@ export const Finder = () => {
 		[desktopEventDispatch],
 	);
 
-	const closeAllFolders = useCallback(() => {
-		const paths: string[] = finderData.openPaths ?? [];
-		paths.forEach((path) => {
-			closeWindow(path, { type: "ClassicyAppFinderCloseFolder", path });
-		});
-	}, [closeWindow, finderData.openPaths]);
+	// Close All: every folder window goes at once and only the one it was
+	// chosen from (else the focused one) zooms back to its icon, as Mac OS
+	// 8.1's Option-click on a close box erased every window and zoomed the
+	// clicked one alone (Infinite Mac, story 0230-n6c).
+	const closeAllFolders = useCallback(
+		(from?: string) => {
+			const paths: string[] = finderData.openPaths ?? [];
+			const zooming =
+				from ??
+				paths.find(
+					(path) => getAppWindow({ windows: finderWindows }, path)?.focused,
+				);
+			paths.forEach((path) => {
+				if (path !== zooming) skipClassicyWindowCloseZoom(appId, path);
+				closeWindow(path, { type: "ClassicyAppFinderCloseFolder", path });
+			});
+		},
+		[closeWindow, finderData.openPaths, finderWindows],
+	);
 
 	const openPreferences = useCallback(() => {
 		desktopEventDispatch({ type: "ClassicyAppFinderPreferencesOpen" });
@@ -614,11 +630,27 @@ export const Finder = () => {
 				{
 					id: "finder_trash_open",
 					title: "Open",
-					onClickFunc: () =>
+					// Opened from its icon, like a double-click: 8.1's contextual
+					// Open zoomed from the icon (Infinite Mac, story 0230-n6c).
+					onClickFunc: () => {
+						const trash = getAppWindow(
+							useAppManager.getState().System.Manager.Applications.apps[appId],
+							CLASSICY_TRASH_PATH,
+						);
+						if (!trash || trash.closed) {
+							noteClassicyWindowZoomSource(
+								appId,
+								CLASSICY_TRASH_PATH,
+								typeof document === "undefined"
+									? undefined
+									: classicyZoomOriginForPath(document, CLASSICY_TRASH_PATH),
+							);
+						}
 						desktopEventDispatch({
 							type: "ClassicyAppFinderOpenFolder",
 							path: CLASSICY_TRASH_PATH,
-						}),
+						});
+					},
 				},
 				{
 					id: "finder_trash_empty",

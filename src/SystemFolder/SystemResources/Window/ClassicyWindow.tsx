@@ -70,11 +70,16 @@ import {
 import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 import {
+	type ClassicyZoomOrigin,
 	classicyWindowContentRect,
 	findClassicyZoomIcon,
 	playClassicyZoomRects,
 	takeClassicyWindowZoomSource,
 } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
+import {
+	takeClassicyWindowCloseZoomSkip,
+	waitForClassicyLaunchZoom,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomSources.internal";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -1106,31 +1111,71 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// Zoom rectangles (ClassicyZoomRects.ts). Opening: a window that becomes
 	// open (mounting open, or closed → open) takes the source an icon left
 	// for it (`noteClassicyWindowZoomSource`) and, when a zoom draws, stays
-	// laid out but undrawn (`classicyWindowZoomHidden`) until its last
-	// rectangle is erased. Measured in a layout effect, so the window never
-	// shows before its rectangles. A window that was already open takes none
-	// (the 7.5 Finder drew none for a folder whose window was open).
+	// laid out but undrawn (`classicyWindowZoomHidden`: transparent, still
+	// taking the pointer and the keyboard, as the Mac queued the clicks and
+	// keys made during the zoom for the window) until its last rectangle is
+	// erased. Measured in a layout effect, so the window never shows before
+	// its rectangles. A window that was already open takes none (the 7.5
+	// Finder drew none for a folder whose window was open). With no source
+	// of its own, a window of an application whose launch zoom runs waits
+	// for it (8.1 drew the launched application's window after its zoom).
+	// The zoom ends early when the window closes, unmounts or opens again;
+	// an effect torn down and run again at once (StrictMode) starts the same
+	// zoom over.
 	const [zoomHidden, setZoomHidden] = useState(false);
 	const zoomWasOpenRef = useRef(false);
+	const zoomInterruptedRef = useRef<
+		{ origin: ClassicyZoomOrigin } | { launch: true } | null
+	>(null);
 	useLayoutEffect(() => {
 		const open = !ws.closed;
 		const opened = open && !zoomWasOpenRef.current;
 		zoomWasOpenRef.current = open;
-		if (!opened) return;
-		const origin = takeClassicyWindowZoomSource(appId, id);
+		const interrupted = zoomInterruptedRef.current;
+		zoomInterruptedRef.current = null;
+		if (!open) return;
+		const origin = opened
+			? takeClassicyWindowZoomSource(appId, id)
+			: interrupted && "origin" in interrupted
+				? interrupted.origin
+				: undefined;
 		const el = windowRef.current;
-		if (!origin || !el) return;
+		if (!el) return;
+		if (!origin) {
+			if (!opened && !(interrupted && "launch" in interrupted)) return;
+			const stopWaiting = waitForClassicyLaunchZoom(appId, () =>
+				setZoomHidden(false),
+			);
+			if (!stopWaiting) return;
+			setZoomHidden(true);
+			return () => {
+				stopWaiting();
+				zoomInterruptedRef.current = { launch: true };
+				setZoomHidden(false);
+			};
+		}
 		const desktop =
 			origin.desktop ?? el.closest<HTMLElement>(".classicyDesktop");
 		if (!desktop) return;
+		let ended = false;
 		const zoom = playClassicyZoomRects({
 			desktop,
 			icon: origin.rect,
 			window: classicyWindowContentRect(el),
 			direction: "open",
-			onEnd: () => setZoomHidden(false),
+			onEnd: () => {
+				ended = true;
+				setZoomHidden(false);
+			},
 		});
-		if (zoom) setZoomHidden(true);
+		if (!zoom) return;
+		setZoomHidden(true);
+		return () => {
+			if (ended) return;
+			zoom.cancel();
+			zoomInterruptedRef.current = { origin };
+			setZoomHidden(false);
+		};
 	}, [ws.closed, appId, id]);
 
 	// Closing: the root element leaves the DOM (the record closed, or the
@@ -1161,6 +1206,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					id,
 				);
 				if (!record?.closed) return;
+				if (takeClassicyWindowCloseZoomSkip(appId, id)) return;
 				const icon = findClassicyZoomIcon(desktop, path);
 				if (!icon) return;
 				playClassicyZoomRects({

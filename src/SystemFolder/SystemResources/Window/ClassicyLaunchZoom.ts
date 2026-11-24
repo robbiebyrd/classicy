@@ -20,9 +20,10 @@ const openClassicyAppIds = (): Set<string> => {
  * Runs `open` (a dispatch that opens an item: an application, or a document
  * in its application) and, when it started an application that was not
  * running, zooms from the item's icon out to the whole desktop, as the 8.1
- * Finder did. Opening a document in an application already running draws
- * nothing (measured in Infinite Mac, story 0230-n6c). No origin, no zoom.
- * Returns the zoom, or null.
+ * Finder did, the started application's windows drawn when the zoom ends.
+ * Opening a document in an application already running draws nothing
+ * (measured in Infinite Mac, story 0230-n6c). No origin, no zoom. Returns
+ * the zoom, or null.
  */
 export const withClassicyLaunchZoom = (
 	origin: ClassicyZoomOrigin | undefined,
@@ -34,8 +35,6 @@ export const withClassicyLaunchZoom = (
 	}
 	const before = openClassicyAppIds();
 	open();
-	for (const id of openClassicyAppIds()) {
-		if (!before.has(id)) return playClassicyLaunchZoom(origin);
-	}
-	return null;
+	const started = [...openClassicyAppIds()].filter((id) => !before.has(id));
+	return started.length > 0 ? playClassicyLaunchZoom(origin, started) : null;
 };

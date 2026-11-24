@@ -1,28 +1,18 @@
 // The zoom rectangles: the core's `zoom-rect` part (ClassicyZoomRects.ts),
 // drawn as the System 7.5 Finder drew them from an icon to its window and
-// back (Infinite Mac captures, story 0230-n6c): a one-pixel frame of the 50%
-// checker drawn in XOR. Mac OS 8's frame is two pixels. The 7.5 Finder drew
-// every step of the path and kept four at a time: the `zoomRects` knobs
-// `firstStep` 0 and `trail` 4, read by the core.
-//
-// The inversion is `difference` with white, exact in the 1-bit theme; a color
-// inverts as RGB does (QuickDraw's XOR inverted a palette index). The checker
-// is laid from the desktop's corner, which the core publishes on each
-// rectangle (`--classicy-pattern-origin-x` / `-y`), as QuickDraw laid it
-// from the screen's.
+// back (Infinite Mac captures, story 0230-n6c, Platinum's
+// `resources/screenshots/zoom-rects/system-7.5/`): a one-pixel frame of the
+// 50% checker drawn in XOR (`xor-checker-frame`, the selection rectangle's
+// pen). Mac OS 8's frame is two pixels. The 7.5 Finder drew every step of
+// the path and kept four at a time: the `zoomRects` knobs `firstStep` 0 and
+// `trail` 4, read by the core; `enabled` 1 opts System 7 in.
 //
 // Knobs: `zoomRects.width`, the pen (1), and `zoomRects.tileSize`, the
 // checker's tile (2, for one-pixel cells).
+@use "../checkerFrame";
+
 @mixin zoom-rects {
   [data-classicy-part="zoom-rect"] {
-    padding: var(--zoom-rects-width);
-    background: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0)
-      var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y) / var(--zoom-rects-tile-size)
-      var(--zoom-rects-tile-size);
-    mask:
-      linear-gradient(var(--color-black), var(--color-black)) content-box,
-      linear-gradient(var(--color-black), var(--color-black));
-    mask-composite: exclude;
-    mix-blend-mode: difference;
+    @include checkerFrame.xor-checker-frame(var(--zoom-rects-width), var(--zoom-rects-tile-size));
   }
 }

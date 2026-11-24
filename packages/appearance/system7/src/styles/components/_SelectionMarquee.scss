@@ -3,29 +3,16 @@
 // browser, drawn as the System 7.5 Finder drew it (Infinite Mac captures,
 // story 0228-e9l): a one-pixel frame of the 50% checker drawn in XOR, so it
 // inverts the pixels it covers where x + y is odd on the screen (black over a
-// white window). Mac OS 8's frame is two pixels.
-//
-// The inversion is `difference` with white, exact in the 1-bit theme. In
-// color QuickDraw's XOR inverted the pixel's palette index, which no blend
-// reproduces (over the desktop pattern's #AAAAAA cells it drew #CCCCCC), so
-// a color there inverts as RGB does. The checker is laid from the desktop's
-// corner, which the core publishes on the part (`--classicy-pattern-origin-x`
-// / `-y`), as QuickDraw laid it from the screen's: its white cells at odd
-// x + y on the desktop. A side cut at a window's edge is clipped by the
-// core's clip box, never framed.
+// white window; `xor-checker-frame`, shared with the zoom rectangles). Mac
+// OS 8's frame is two pixels. A side cut at a window's edge is clipped by
+// the core's clip box, never framed.
 //
 // Knobs: `selectionMarquee.width`, the pen (1), and `selectionMarquee.tileSize`,
 // the checker's tile (2, for one-pixel cells).
+@use "../checkerFrame";
+
 @mixin selection-marquee {
   [data-classicy-part="selection-marquee"] {
-    padding: var(--selection-marquee-width);
-    background: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0)
-      var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y) / var(--selection-marquee-tile-size)
-      var(--selection-marquee-tile-size);
-    mask:
-      linear-gradient(var(--color-black), var(--color-black)) content-box,
-      linear-gradient(var(--color-black), var(--color-black));
-    mask-composite: exclude;
-    mix-blend-mode: difference;
+    @include checkerFrame.xor-checker-frame(var(--selection-marquee-width), var(--selection-marquee-tile-size));
   }
 }

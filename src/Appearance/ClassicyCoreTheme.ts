@@ -25,7 +25,7 @@ const deepFreeze = <T>(value: T): Readonly<T> => {
  * The measurements every theme is completed with, whatever its package
  * (`classicyThemeMeasurementDefaults` merges the registered package's own
  * values over these): the core five families (`CLASSICY_DEFAULT_THEME_METRICS`)
- * and every structural knob, the 91 knobs a base stylesheet (`classicy.base`),
+ * and every structural knob, the 90 knobs a base stylesheet (`classicy.base`),
  * component code (the `zoomRects` path and pace) or the SCSS vocabulary
  * (`dither.tileSize`) reads ("Structural: yes", AGENT-REFERENCE §8). The 22
  * look-only knobs, read only by Platinum's own partials, are Platinum's and
@@ -156,9 +156,10 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		dither: { tileSize: 0 },
 		// The zoom rectangles' path and pace (ClassicyZoomRects.ts): Mac OS
 		// 8.1's, the six steps nearest the window of an 11-step path, each
-		// 1.4 times the last, one a tick, all kept to the end.
+		// 1.4 times the last, one a tick, all kept to the end. Not `enabled`:
+		// a package opts in with its own knob (read with a fallback of 0), as
+		// it must also draw the rectangles.
 		zoomRects: {
-			enabled: 1,
 			steps: 11,
 			growthPercent: 140,
 			firstStep: 5,

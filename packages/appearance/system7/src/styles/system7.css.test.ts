@@ -174,7 +174,7 @@ describe("system7.scss (compiled)", () => {
 		const marquee = rule("[data-classicy-part=selection-marquee]");
 		expect(marquee).toMatch(/padding: var\(--selection-marquee-width\);/);
 		expect(marquee).toMatch(
-			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\) ?\/ ?var\(--selection-marquee-tile-size\) var\(--selection-marquee-tile-size\);/,
+			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\);\s*background-position: var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\);\s*background-size: var\(--selection-marquee-tile-size\) var\(--selection-marquee-tile-size\);/,
 		);
 		expect(marquee).toMatch(/mask-composite: exclude;/);
 		expect(marquee).toMatch(/mix-blend-mode: difference;/);
@@ -187,16 +187,18 @@ describe("system7.scss (compiled)", () => {
 	// Story 0230-n6c: the System 7.5 Finder's zoom rectangles, a one-pixel
 	// XOR checker frame (Mac OS 8's is two); 7.5 drew every step of the
 	// path from the icon and kept four at a time, so System 7 overrides the
-	// core floor's (Mac OS 8.1's) first step and trail.
+	// core floor's (Mac OS 8.1's) first step and trail, and opts in.
 	it("draws the zoom rectangles as a one-pixel XOR checker frame, every step, four kept", () => {
 		const zoom = rule("[data-classicy-part=zoom-rect]");
 		expect(zoom).toMatch(/padding: var\(--zoom-rects-width\);/);
 		expect(zoom).toMatch(
-			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\) ?\/ ?var\(--zoom-rects-tile-size\) var\(--zoom-rects-tile-size\);/,
+			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\);\s*background-position: var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\);\s*background-size: var\(--zoom-rects-tile-size\) var\(--zoom-rects-tile-size\);/,
 		);
 		expect(zoom).toMatch(/mask-composite: exclude;/);
 		expect(zoom).toMatch(/mix-blend-mode: difference;/);
+		// The zoom is opt-in: System 7 sets `enabled` itself (no floor value).
 		expect(system7JsonSource.defaults.measurements.zoomRects).toEqual({
+			enabled: 1,
 			firstStep: 0,
 			trail: 4,
 			width: 1,

@@ -7,7 +7,6 @@ import {
 	classicyZoomFraction,
 	classicyZoomOriginForPath,
 	classicyZoomOriginOf,
-	clearClassicyWindowZoomSources,
 	computeClassicyZoomRects,
 	findClassicyZoomIcon,
 	noteClassicyWindowZoomSource,
@@ -16,6 +15,13 @@ import {
 	readClassicyZoomRectsSettings,
 	takeClassicyWindowZoomSource,
 } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
+import {
+	beginClassicyLaunchZoom,
+	resetClassicyZoomSourcesForTests,
+	skipClassicyWindowCloseZoom,
+	takeClassicyWindowCloseZoomSkip,
+	waitForClassicyLaunchZoom,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomSources.internal";
 
 // Mac OS 8.1's zoom (the core floor's and Platinum's knobs) and System 7.5's.
 const PLATINUM: ClassicyZoomRectsSettings = {
@@ -31,6 +37,29 @@ const SYSTEM7: ClassicyZoomRectsSettings = {
 	trail: 4,
 };
 const TICK = 1000 / 60;
+
+// The display's frames, run by hand: `frame(t)` runs every callback
+// requested before it with the frame time `t`.
+const stubFrames = () => {
+	let next = 0;
+	const queue = new Map<number, (time: number) => void>();
+	vi.stubGlobal("requestAnimationFrame", (cb: (time: number) => void) => {
+		next += 1;
+		queue.set(next, cb);
+		return next;
+	});
+	vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+		queue.delete(id);
+	});
+	return {
+		frame: (time: number) => {
+			const due = [...queue.values()];
+			queue.clear();
+			for (const cb of due) cb(time);
+		},
+		pending: () => queue.size,
+	};
+};
 
 const box = (left: number, top: number, width: number, height: number) =>
 	({
@@ -83,15 +112,18 @@ const CONTENT: ClassicyZoomRect = {
 	height: 160,
 };
 
+let frames: ReturnType<typeof stubFrames>;
+
 beforeEach(() => {
 	stubMotion(false);
+	frames = stubFrames();
 });
 
 afterEach(() => {
 	vi.useRealTimers();
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	clearClassicyWindowZoomSources();
+	resetClassicyZoomSourcesForTests();
 	document.body.replaceChildren();
 });
 
@@ -157,12 +189,20 @@ describe("the zoom path", () => {
 });
 
 describe("readClassicyZoomRectsSettings", () => {
-	it("reads Mac OS 8.1's zoom from the core floor where no theme sets one", () => {
-		expect(readClassicyZoomRectsSettings(document.body)).toEqual(PLATINUM);
+	it("is off where no package opts in: enabled is not on the core floor", () => {
+		expect(readClassicyZoomRectsSettings(document.body)).toBeNull();
+	});
+
+	it("reads Mac OS 8.1's path and pace from the core floor once a package opts in", () => {
+		const el = document.createElement("div");
+		el.style.setProperty("--zoom-rects-enabled", "1px");
+		document.body.append(el);
+		expect(readClassicyZoomRectsSettings(el)).toEqual(PLATINUM);
 	});
 
 	it("reads a theme's knobs, and null when the package turns the zoom off", () => {
 		const el = document.createElement("div");
+		el.style.setProperty("--zoom-rects-enabled", "1px");
 		el.style.setProperty("--zoom-rects-first-step", "0px");
 		el.style.setProperty("--zoom-rects-trail", "4px");
 		document.body.append(el);
@@ -173,6 +213,7 @@ describe("readClassicyZoomRectsSettings", () => {
 
 	it("brings values into range", () => {
 		const el = document.createElement("div");
+		el.style.setProperty("--zoom-rects-enabled", "1px");
 		el.style.setProperty("--zoom-rects-steps", "500px");
 		el.style.setProperty("--zoom-rects-first-step", "900px");
 		el.style.setProperty("--zoom-rects-rate", "1000px");
@@ -186,8 +227,10 @@ describe("readClassicyZoomRectsSettings", () => {
 });
 
 describe("playClassicyZoomRects", () => {
-	it("draws one rectangle a tick, keeps them all, and erases them a tick after the last", () => {
-		vi.useFakeTimers();
+	const parts = (desktop: HTMLElement) =>
+		desktop.querySelectorAll<HTMLElement>('[data-classicy-part="zoom-rect"]');
+
+	it("draws one rectangle a frame at 60 Hz, keeps them all, and erases them a tick after the last", () => {
 		const desktop = makeDesktop();
 		const onEnd = vi.fn();
 		const zoom = playClassicyZoomRects({
@@ -199,23 +242,71 @@ describe("playClassicyZoomRects", () => {
 			onEnd,
 		});
 		expect(zoom?.durationMs).toBeCloseTo(6 * TICK);
-		const parts = () =>
-			desktop.querySelectorAll<HTMLElement>('[data-classicy-part="zoom-rect"]');
-		// The first at once, before any timer.
-		expect(parts()).toHaveLength(1);
+		// The first at once, with the window's box known, before any frame.
+		expect(parts(desktop)).toHaveLength(1);
+		// The frame that shows it starts the clock.
+		frames.frame(1000);
+		expect(parts(desktop)).toHaveLength(1);
 		for (let n = 2; n <= 6; n++) {
-			vi.advanceTimersByTime(TICK);
-			expect(parts()).toHaveLength(n);
+			frames.frame(1000 + (n - 1) * TICK);
+			expect(parts(desktop)).toHaveLength(n);
 		}
 		expect(onEnd).not.toHaveBeenCalled();
-		vi.advanceTimersByTime(TICK);
-		expect(parts()).toHaveLength(0);
+		frames.frame(1000 + 6 * TICK);
+		expect(parts(desktop)).toHaveLength(0);
 		expect(desktop.querySelector(".classicyZoomRects")).toBeNull();
 		expect(onEnd).toHaveBeenCalledTimes(1);
+		expect(frames.pending()).toBe(0);
+	});
+
+	it("draws none faster than a tick on a 120 Hz display", () => {
+		const desktop = makeDesktop();
+		playClassicyZoomRects({
+			desktop,
+			icon: ICON,
+			window: CONTENT,
+			direction: "open",
+			settings: PLATINUM,
+		});
+		const counts: number[] = [];
+		for (let f = 0; f <= 12; f++) {
+			frames.frame(f * (1000 / 120));
+			counts.push(parts(desktop).length);
+		}
+		// One step every other frame: 1/60 s a step, as at 60 Hz.
+		expect(counts).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 0]);
+	});
+
+	it("draws one step a frame after a late frame, never skipping or bunching them", () => {
+		const desktop = makeDesktop();
+		const onEnd = vi.fn();
+		playClassicyZoomRects({
+			desktop,
+			icon: ICON,
+			window: CONTENT,
+			direction: "open",
+			settings: PLATINUM,
+			onEnd,
+		});
+		frames.frame(0);
+		frames.frame(TICK);
+		expect(parts(desktop)).toHaveLength(2);
+		// The page is busy for three ticks: the next frame draws one step.
+		frames.frame(4 * TICK);
+		expect(parts(desktop)).toHaveLength(3);
+		frames.frame(5 * TICK);
+		expect(parts(desktop)).toHaveLength(4);
+		frames.frame(6 * TICK);
+		frames.frame(7 * TICK);
+		expect(parts(desktop)).toHaveLength(6);
+		expect(onEnd).not.toHaveBeenCalled();
+		// It ends at the next frame, two ticks later than an idle page's.
+		frames.frame(8 * TICK);
+		expect(onEnd).toHaveBeenCalledTimes(1);
+		expect(parts(desktop)).toHaveLength(0);
 	});
 
 	it("keeps a trail of four under System 7.5, erasing each older one", () => {
-		vi.useFakeTimers();
 		const desktop = makeDesktop();
 		const onEnd = vi.fn();
 		playClassicyZoomRects({
@@ -226,34 +317,49 @@ describe("playClassicyZoomRects", () => {
 			settings: SYSTEM7,
 			onEnd,
 		});
-		const counts = [
-			desktop.querySelectorAll('[data-classicy-part="zoom-rect"]').length,
-		];
+		frames.frame(0);
+		const counts = [parts(desktop).length];
 		for (let i = 1; i < 11; i++) {
-			vi.advanceTimersByTime(TICK);
-			counts.push(
-				desktop.querySelectorAll('[data-classicy-part="zoom-rect"]').length,
-			);
+			frames.frame(i * TICK);
+			counts.push(parts(desktop).length);
 		}
 		expect(counts).toEqual([1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4]);
 		// The newest four, the oldest erased.
-		const widths = [
-			...desktop.querySelectorAll<HTMLElement>(
-				'[data-classicy-part="zoom-rect"]',
-			),
-		].map((el) => rectOf(el).width);
+		const widths = [...parts(desktop)].map((el) => rectOf(el).width);
 		expect(widths).toEqual(
 			computeClassicyZoomRects(ICON, CONTENT, "open", SYSTEM7)
 				.slice(7)
 				.map((r) => r.width),
 		);
-		vi.advanceTimersByTime(TICK);
+		frames.frame(11 * TICK);
 		expect(onEnd).toHaveBeenCalledTimes(1);
 		expect(desktop.querySelector(".classicyZoomRects")).toBeNull();
 	});
 
+	it("paces by a timer at its rate where the page has no display frames", () => {
+		vi.stubGlobal("requestAnimationFrame", undefined);
+		vi.useFakeTimers({
+			toFake: ["setTimeout", "clearTimeout", "performance", "Date"],
+		});
+		const desktop = makeDesktop();
+		const onEnd = vi.fn();
+		playClassicyZoomRects({
+			desktop,
+			icon: ICON,
+			window: CONTENT,
+			direction: "open",
+			settings: PLATINUM,
+			onEnd,
+		});
+		vi.advanceTimersByTime(TICK + 1);
+		expect(parts(desktop)).toHaveLength(1);
+		vi.advanceTimersByTime(5 * TICK);
+		expect(parts(desktop)).toHaveLength(6);
+		vi.advanceTimersByTime(TICK);
+		expect(onEnd).toHaveBeenCalledTimes(1);
+	});
+
 	it("places the rectangles on the desktop and publishes the desktop's corner for the pattern", () => {
-		vi.useFakeTimers();
 		const desktop = makeDesktop();
 		vi.spyOn(desktop, "getBoundingClientRect").mockReturnValue(
 			box(100, 50, 640, 480),
@@ -289,6 +395,7 @@ describe("playClassicyZoomRects", () => {
 	it("draws nothing for a user who prefers reduced motion", () => {
 		stubMotion(true);
 		const desktop = makeDesktop();
+		desktop.style.setProperty("--zoom-rects-enabled", "1px");
 		const onEnd = vi.fn();
 		const zoom = playClassicyZoomRects({
 			desktop,
@@ -302,9 +409,23 @@ describe("playClassicyZoomRects", () => {
 		expect(onEnd).not.toHaveBeenCalled();
 	});
 
-	it("draws nothing when the package turns it off, or a box has no size", () => {
+	it("draws nothing on a hidden page, where no frame would come", () => {
 		const desktop = makeDesktop();
-		desktop.style.setProperty("--zoom-rects-enabled", "0px");
+		vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+		expect(
+			playClassicyZoomRects({
+				desktop,
+				icon: ICON,
+				window: CONTENT,
+				direction: "open",
+				settings: PLATINUM,
+			}),
+		).toBeNull();
+		expect(desktop.childElementCount).toBe(0);
+	});
+
+	it("draws nothing for a package that has not opted in, or a box with no size", () => {
+		const desktop = makeDesktop();
 		expect(
 			playClassicyZoomRects({
 				desktop,
@@ -313,7 +434,7 @@ describe("playClassicyZoomRects", () => {
 				direction: "open",
 			}),
 		).toBeNull();
-		desktop.style.removeProperty("--zoom-rects-enabled");
+		desktop.style.setProperty("--zoom-rects-enabled", "1px");
 		expect(
 			playClassicyZoomRects({
 				desktop,
@@ -325,8 +446,7 @@ describe("playClassicyZoomRects", () => {
 		expect(desktop.childElementCount).toBe(0);
 	});
 
-	it("is ended by cancel, with no onEnd", () => {
-		vi.useFakeTimers();
+	it("is ended by cancel, with no onEnd and no frame left", () => {
 		const desktop = makeDesktop();
 		const onEnd = vi.fn();
 		const zoom = playClassicyZoomRects({
@@ -337,20 +457,22 @@ describe("playClassicyZoomRects", () => {
 			settings: PLATINUM,
 			onEnd,
 		});
+		frames.frame(0);
 		zoom?.cancel();
 		expect(desktop.childElementCount).toBe(0);
-		vi.advanceTimersByTime(1000);
+		expect(frames.pending()).toBe(0);
+		frames.frame(1000);
 		expect(onEnd).not.toHaveBeenCalled();
 	});
 });
 
 describe("playClassicyLaunchZoom", () => {
 	it("zooms from the icon out to the whole desktop", () => {
-		vi.useFakeTimers();
 		const desktop = makeDesktop();
+		desktop.style.setProperty("--zoom-rects-enabled", "1px");
 		const zoom = playClassicyLaunchZoom({ rect: ICON, desktop });
 		expect(zoom).not.toBeNull();
-		for (let i = 0; i < 5; i++) vi.advanceTimersByTime(TICK);
+		for (let f = 0; f <= 5; f++) frames.frame(f * TICK);
 		const rects = [
 			...desktop.querySelectorAll<HTMLElement>(
 				'[data-classicy-part="zoom-rect"]',
@@ -366,9 +488,28 @@ describe("playClassicyLaunchZoom", () => {
 		);
 	});
 
-	it("draws nothing with no origin or no desktop", () => {
-		expect(playClassicyLaunchZoom(undefined)).toBeNull();
+	it("holds the launched applications' windows until it ends", () => {
+		const desktop = makeDesktop();
+		desktop.style.setProperty("--zoom-rects-enabled", "1px");
+		playClassicyLaunchZoom({ rect: ICON, desktop }, ["Zoomer.app"]);
+		const woken = vi.fn();
+		expect(waitForClassicyLaunchZoom("Other.app", woken)).toBeNull();
+		expect(waitForClassicyLaunchZoom("Zoomer.app", woken)).not.toBeNull();
+		for (let f = 0; f <= 5; f++) frames.frame(f * TICK);
+		expect(woken).not.toHaveBeenCalled();
+		frames.frame(6 * TICK);
+		expect(woken).toHaveBeenCalledTimes(1);
+		expect(waitForClassicyLaunchZoom("Zoomer.app", woken)).toBeNull();
+	});
+
+	it("draws nothing, and holds no window, with no origin, no desktop or no opt-in", () => {
+		expect(playClassicyLaunchZoom(undefined, ["A.app"])).toBeNull();
 		expect(playClassicyLaunchZoom({ rect: ICON, desktop: null })).toBeNull();
+		const desktop = makeDesktop();
+		expect(
+			playClassicyLaunchZoom({ rect: ICON, desktop }, ["A.app"]),
+		).toBeNull();
+		expect(waitForClassicyLaunchZoom("A.app", vi.fn())).toBeNull();
 	});
 });
 
@@ -402,6 +543,36 @@ describe("the open's source", () => {
 		expect(
 			takeClassicyWindowZoomSource("Finder.app", "HD:Docs"),
 		).toBeUndefined();
+	});
+
+	it("skips a window's close zoom once, within the time a source waits", () => {
+		vi.useFakeTimers();
+		skipClassicyWindowCloseZoom("Finder.app", "HD:Docs");
+		expect(takeClassicyWindowCloseZoomSkip("Finder.app", "HD:Other")).toBe(
+			false,
+		);
+		expect(takeClassicyWindowCloseZoomSkip("Finder.app", "HD:Docs")).toBe(true);
+		expect(takeClassicyWindowCloseZoomSkip("Finder.app", "HD:Docs")).toBe(
+			false,
+		);
+		skipClassicyWindowCloseZoom("Finder.app", "HD:Docs");
+		vi.advanceTimersByTime(CLASSICY_ZOOM_SOURCE_TTL_MS + 1);
+		expect(takeClassicyWindowCloseZoomSkip("Finder.app", "HD:Docs")).toBe(
+			false,
+		);
+	});
+
+	it("wakes every window waiting on a launch once, and stops waiting on request", () => {
+		const end = beginClassicyLaunchZoom(["A.app"]);
+		const first = vi.fn();
+		const second = vi.fn();
+		waitForClassicyLaunchZoom("A.app", first);
+		const stop = waitForClassicyLaunchZoom("A.app", second);
+		stop?.();
+		end();
+		end();
+		expect(first).toHaveBeenCalledTimes(1);
+		expect(second).not.toHaveBeenCalled();
 	});
 });
 
@@ -476,7 +647,31 @@ describe("icons and windows", () => {
 		expect(classicyZoomOriginForPath(win, "HD")).toBeUndefined();
 	});
 
-	it("opens a window into its content, below the title bar and inside the frame", () => {
+	it("opens a window into its content area: header, contents and scroll bars, inside the frame", () => {
+		// The 8.1 Developer window (Infinite Mac): frame [40,68,427,255),
+		// title bar to y 89, the content region the rectangles ended at
+		// [45,89,421,249): the header ("27 items") and the contents with
+		// their scroll bars.
+		const win = document.createElement("div");
+		const part = (cls: string, rect: DOMRect) => {
+			const el = document.createElement("div");
+			el.className = cls;
+			win.append(el);
+			vi.spyOn(el, "getBoundingClientRect").mockReturnValue(rect);
+			return el;
+		};
+		part("classicyWindowTitleBar", box(41, 69, 385, 20));
+		part("classicyWindowHeader", box(45, 89, 376, 12));
+		part("classicyWindowContents", box(45, 101, 376, 148));
+		part("classicyWindowResizer", box(405, 233, 16, 16));
+		document.body.append(win);
+		vi.spyOn(win, "getBoundingClientRect").mockReturnValue(
+			box(40, 68, 387, 187),
+		);
+		expect(classicyWindowContentRect(win)).toEqual(CONTENT);
+	});
+
+	it("falls back to the inside of the border below the title bar", () => {
 		const win = document.createElement("div");
 		const bar = document.createElement("div");
 		bar.className = "classicyWindowTitleBar";
