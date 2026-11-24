@@ -27,7 +27,9 @@ const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
 createRoot(rootElement).render(
 	<StrictMode>
-		<Classicy>
+		{/* themeLinks: open the theme links its Appearance Manager's Copy
+		    Theme Link makes (#classicy-theme=…), after asking. */}
+		<Classicy themeLinks>
 			<Browser />
 			<BlueBox />
 			<Demo />

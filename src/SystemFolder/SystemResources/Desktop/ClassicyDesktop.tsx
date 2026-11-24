@@ -93,6 +93,7 @@ import {
 	classicySpecialMenuItems,
 	SYSTEM_DIALOG_WINDOW_IDS,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
+import { useClassicyThemeLinkImport } from "@/SystemFolder/SystemResources/Desktop/ClassicyThemeLinkImport.internal";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
@@ -158,6 +159,15 @@ export interface ClassicyDesktopProps {
 	 * or `false` to hide it.
 	 */
 	controlStrip?: boolean | ClassicyControlStripProps;
+	/**
+	 * Open the theme link in the page's address (`#classicy-theme=…`, which
+	 * the Appearance Manager's Copy Theme Link makes), and offer Copy Theme
+	 * Link. Off by default: the host decides whether its URLs import themes.
+	 * A link is validated as a theme file is, the theme is added only when the
+	 * user agrees in an alert (and in a second one before a remote desktop
+	 * picture is used), and the link is then removed from the address.
+	 */
+	themeLinks?: boolean;
 	/** Extra class names, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
@@ -173,9 +183,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip = true,
+	themeLinks = false,
 	className,
 	style,
 }) => {
+	const themeLinkAlert = useClassicyThemeLinkImport(themeLinks);
 	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
 	const [showAbout, setShowAbout] = useState(false);
 
@@ -885,6 +897,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					/>
 				</div>
 			) : null}
+			{themeLinkAlert}
 			{children}
 			<ClassicyBootSequence
 				startupScreen={startupScreen}
@@ -935,6 +948,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip,
+	themeLinks,
 	className,
 	style,
 }) => {
@@ -953,6 +967,7 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 					startupWordmark={startupWordmark}
 					bootScreen={bootScreen}
 					controlStrip={controlStrip}
+					themeLinks={themeLinks}
 					className={className}
 					style={style}
 				>
