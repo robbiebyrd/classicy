@@ -90,6 +90,7 @@ export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideKeyboardShortcuts"
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
 export * from "./SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcher";
+export * from "./SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcherChordConflicts";
 export * from "./SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcherContext";
 export * from "./SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcherCycle";
 export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
