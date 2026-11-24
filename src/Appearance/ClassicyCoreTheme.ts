@@ -149,7 +149,10 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		progressBar: { stripeWidth: 10 },
 		boot: { halftoneTile: 4 },
 		helpButton: { glyphSize: 14 },
-		menu: { popUpMaxHeight: 300 },
+		// `markPixel`: the grid of Platinum's menu marks (_marks.scss), on
+		// the floor so a theme of another package drawn under Platinum still
+		// draws its checks and diamond (story 0225-ci7, review K1).
+		menu: { popUpMaxHeight: 300, markPixel: 1 },
 		table: { resizerWidth: 15 },
 		stripMenu: { overlap: 3 },
 		// The dither vocabulary's switch (`_dither.scss`): 0 is plain ink.

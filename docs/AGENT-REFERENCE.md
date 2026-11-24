@@ -4886,13 +4886,13 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 85 of the 106 are
+  overriding the knob's value, never the base CSS. 86 of the 106 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
   table, so the floor and the column cannot drift). Two of the rest are
-  the optional `fileBrowserList` knobs (below). The other 19 are
+  the optional `fileBrowserList` knobs (below). The other 18 are
   look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
   `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`, `_marks.scss`), they are not in the floor and come only from
+  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`), they are not in the floor and come only from
   Platinum's `platinum.json`. A package with stylesheets of its own may
   ignore them, unless it `@use`s Platinum's published mixins
   (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
@@ -5084,7 +5084,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `helpButton.glyphSize` | `--help-button-glyph-size` | 14 | — | yes | ClassicyHelpButton.scss |
 | `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | no | _QuickTimeMovieEmbed.scss |
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
-| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | no | _marks.scss (Charcoal's menu check and diamond) |
+| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | yes | _marks.scss (Charcoal's menu check and diamond; on the floor so a theme of another package drawn under Platinum keeps its marks) |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
