@@ -49,12 +49,17 @@ describe("floating windows of two extensions", () => {
 		});
 		const z = (id: string) =>
 			Number(document.getElementById(`${id}_f`)?.style.zIndex);
-		expect(z("ExtB.app")).toBe(354);
-		expect(z("ExtA.app")).toBe(353);
+		expect(z("ExtB.app")).toBe(2);
+		expect(z("ExtA.app")).toBe(1);
 		const a = document.getElementById("ExtA.app_f") as HTMLElement;
 		fireEvent.mouseUp(a);
 		fireEvent.click(a);
-		expect(z("ExtA.app")).toBe(354);
-		expect(z("ExtB.app")).toBe(353);
+		expect(z("ExtA.app")).toBe(2);
+		expect(z("ExtB.app")).toBe(1);
+		// Both live in the one shared layer.
+		expect(a.parentElement?.id).toBe("classicy-floating-layer");
+		expect(document.getElementById("ExtB.app_f")?.parentElement).toBe(
+			a.parentElement,
+		);
 	});
 });

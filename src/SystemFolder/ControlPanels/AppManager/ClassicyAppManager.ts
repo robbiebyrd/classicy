@@ -70,9 +70,11 @@ export interface ClassicyStoreSystemApp {
 	open: boolean;
 	data?: Record<string, unknown>;
 	focused?: boolean;
-	// Wall-clock (Date.now) of the app's most recent focus. The only cross-app
-	// recency signal in the store — window zOrder is per-app. Used to pick the
-	// successor that inherits the menu bar when the front app quits.
+	// Wall-clock (Date.now) of the app's most recent focus: the app-level
+	// recency signal. Used to pick the successor that inherits the menu bar when
+	// the front app quits, and the front app while an extension holds the focus
+	// flag. (A window's `zOrder` is strictly increasing across apps too, but it
+	// ranks windows, not apps.)
 	lastFocusedAt?: number;
 	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;

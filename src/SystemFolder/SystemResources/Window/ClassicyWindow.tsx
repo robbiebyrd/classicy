@@ -563,18 +563,35 @@ const withoutStateOwnedStyle = withoutZIndex;
 const mountedWindowKeys = new Map<string, number>();
 
 /**
- * The z-index of a floating extension window (Apple Guide's), `rank`th from
- * the bottom of `count` by recency. The band is 351-354, under the Control
- * Strip (355) and every system layer above it, and over the palettes (350).
- * `rank` and `count` span every extension's floating windows: the top one
- * takes 354 and each one below the level beneath it. Integers leave only four
- * levels, so windows past the fourth share 351, where the DOM order decides:
- * Apple Guide renders its topics by recency (`AppleGuide.tsx`), so the order
- * holds for any number of them, and a click always raises the clicked window
- * to the top.
+ * The shared stacking context of every extension's floating windows (Apple
+ * Guide's topics), created on first use under the desktop root: a full-size,
+ * pointer-transparent layer at z-index 354, above the palettes (350) and under the Control Strip
+ * (355) and the modal bands (360 and up). The floating windows portal into it
+ * and stack there by recency with z-indices 1..N, so any number of them (of
+ * any number of extensions) order correctly and none is ever moved in the DOM
+ * (moving a node resets its scroll offsets, blurs its focus and can drop the
+ * click in flight).
  */
-const floatingZIndex = (rank: number, count: number): number =>
-	351 + Math.max(0, Math.min(3, 3 - (count - 1 - rank)));
+const FLOATING_LAYER_ID = "classicy-floating-layer";
+const floatingLayerOf = (root: HTMLElement): HTMLElement => {
+	const existing = root.querySelector<HTMLElement>(`#${FLOATING_LAYER_ID}`);
+	if (existing) return existing;
+	const layer = document.createElement("div");
+	layer.id = FLOATING_LAYER_ID;
+	Object.assign(layer.style, {
+		position: "absolute",
+		left: "0",
+		top: "0",
+		width: "100%",
+		height: "100%",
+		zIndex: "354",
+		// The layer spans the desktop (percentage sizes of its windows resolve
+		// against it) but must not catch the pointer: its windows opt back in.
+		pointerEvents: "none",
+	});
+	root.appendChild(layer);
+	return layer;
+};
 
 /**
  * A Mac OS 8 Platinum window (HIGOS8 Ch.5, p.99): title bar with close box on
@@ -657,7 +674,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const isFrontApp = !!currentApp?.focused || frontAppId === appId;
 	// A floating extension window (Apple Guide's) draws above the front app's
 	// windows, and floating windows stack among themselves by recency: its rank
-	// among the app's open floating windows by `zOrder`, and how many there are.
+	// among every extension's open floating windows by `zOrder`, and how many
+	// there are.
 	const isFloatingWindow = isFloatingExtensionWindow(
 		currentApp ?? { extension: false },
 		appMenu,
@@ -2007,16 +2025,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
 			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
-			// Above the active document band (300) and the palettes' (350), below
-			// the Control Strip (355) and the modal bands (360 and up): see
-			// `floatingZIndex`.
+			// Inside the floating layer (354, above the palettes and under the
+			// Control Strip): the window's recency rank among every extension's
+			// floating windows. See `floatingLayerOf`.
 			...(floatingRank >= 0
-				? { zIndex: floatingZIndex(floatingRank, floatingCount) }
+				? { zIndex: floatingRank + 1, pointerEvents: "auto" as const }
 				: {}),
 		}),
 		[
 			floatingRank,
-			floatingCount,
 			size[0],
 			size[1],
 			ws.collapsed,
@@ -2286,6 +2303,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			</>,
 			desktopRoot,
 		);
+	}
+
+	// A floating window draws in the shared floating layer, not in place.
+	if (isFloatingWindow && desktopRoot && !ws.closed) {
+		return createPortal(windowContent, floatingLayerOf(desktopRoot));
 	}
 
 	return <>{windowContent}</>;
