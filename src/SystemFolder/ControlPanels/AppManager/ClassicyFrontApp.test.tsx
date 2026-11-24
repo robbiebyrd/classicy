@@ -296,4 +296,83 @@ describe("the front application", () => {
 		});
 		expect(apps().focusedAppId).toBe("Calculator.app");
 	});
+
+	// An extension that publishes menus is the front app (rule a). Its own
+	// dialog or alert must not hand the front to another app, and closing the
+	// dialog must give its menu window the focus back.
+	it("an extension with a menu window stays the front app under its own dialog, and gets its window back", () => {
+		const extMenu = fileMenu("Ext");
+		set((d) => {
+			d.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
+				"Calculator.app": app("Calculator.app", { lastFocusedAt: 5 }),
+				"Ext.app": app("Ext.app", {
+					extension: true,
+					focused: true,
+					windows: {
+						w: win("w", { focused: true, menuBar: extMenu }),
+						dlg: win("dlg", { modal: true, menuBar: [] }),
+					},
+				}),
+			};
+			d.System.Manager.Applications.focusedAppId = "Ext.app";
+			d.System.Manager.Desktop.appMenu = extMenu;
+		});
+		expect(front()).toBe("Ext.app");
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: "Ext.app" },
+				window: { id: "dlg", menuBar: [] },
+			});
+		});
+		// Under its dialog it is still the front app.
+		expect(front()).toBe("Ext.app");
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowDestroy",
+				app: { id: "Ext.app" },
+				window: { id: "dlg" },
+			});
+		});
+		expect(apps().focusedAppId).toBe("Ext.app");
+		expect(apps().apps["Ext.app"].windows.w.focused).toBe(true);
+		expect(front()).toBe("Ext.app");
+		expect(useAppManager.getState().System.Manager.Desktop.appMenu).toBe(
+			extMenu,
+		);
+	});
+
+	it("a menuless extension's dialog still leaves the front where it is and hands focus back when destroyed", () => {
+		set((d) => {
+			d.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
+				"Calculator.app": app("Calculator.app", {
+					focused: true,
+					lastFocusedAt: 5,
+				}),
+				"Ext.app": app("Ext.app", {
+					extension: true,
+					windows: { dlg: win("dlg", { modal: true, menuBar: [] }) },
+				}),
+			};
+			d.System.Manager.Applications.focusedAppId = "Calculator.app";
+		});
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: "Ext.app" },
+				window: { id: "dlg", menuBar: [] },
+			});
+		});
+		expect(front()).toBe("Calculator.app");
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowDestroy",
+				app: { id: "Ext.app" },
+				window: { id: "dlg" },
+			});
+		});
+		expect(apps().focusedAppId).toBe("Calculator.app");
+	});
 });

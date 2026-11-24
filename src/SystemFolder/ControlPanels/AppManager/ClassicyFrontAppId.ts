@@ -1,6 +1,7 @@
 import type {
 	ClassicyStoreSystemApp,
 	ClassicyStoreSystemAppManager,
+	ClassicyStoreSystemAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -24,11 +25,24 @@ export const isFloatingExtensionWindow = (
 	modal?: boolean,
 ): boolean => app.extension === true && !modal && !menuBar?.length;
 
-/** An extension whose focused window publishes menus (see above). */
-const extensionHoldsBar = (app: ClassicyStoreSystemApp): boolean =>
-	listAppWindows(app).some(
-		(w) => w.focused && !w.closed && (w.menuBar?.length ?? 0) > 0,
+const hasMenus = (w: ClassicyStoreSystemAppWindow): boolean =>
+	(w.menuBar?.length ?? 0) > 0;
+
+/**
+ * An extension that holds the bar: its focused window publishes menus, or the
+ * focused window is its own modal (a dialog or alert) while it has another
+ * open window that does, so it stays the front application under its dialog.
+ * A menuless extension's modal leaves the front where it is.
+ */
+const extensionHoldsBar = (app: ClassicyStoreSystemApp): boolean => {
+	const open = listAppWindows(app).filter((w) => !w.closed);
+	return open.some(
+		(w) =>
+			w.focused &&
+			(hasMenus(w) ||
+				(w.modal === true && open.some((o) => !o.modal && hasMenus(o)))),
 	);
+};
 
 /**
  * The front application: the app whose menus the menu bar shows and whose
