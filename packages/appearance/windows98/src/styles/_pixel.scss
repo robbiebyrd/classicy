@@ -23,6 +23,18 @@ $px: var(--pixel-unit);
   @return calc(#{$px} * #{$n});
 }
 
+// A grid coordinate `$n` placed `$d` (a length, or 0) along: `$d` alone at
+// 0, `px($n)` alone with no offset, else their sum.
+@function offset($n, $d) {
+  @if $d == 0 {
+    @return px($n);
+  }
+  @if $n == 0 {
+    @return $d;
+  }
+  @return calc(#{$d} + #{px($n)});
+}
+
 // One `classicy-px-rect` layer per `(x y w h)` in grid pixels (a bare
 // `(x y)` is one pixel), inked in `$ink`, from the element's top-left
 // corner, or offset by `$dx`, `$dy` (lengths) to place the art inside a
@@ -36,14 +48,11 @@ $px: var(--pixel-unit);
       $w: list.nth($rect, 3);
       $h: list.nth($rect, 4);
     }
-    $x: px(list.nth($rect, 1));
-    $y: px(list.nth($rect, 2));
-    @if $dx != 0 {
-      $x: calc(#{$dx} + #{$x});
-    }
-    @if $dy != 0 {
-      $y: calc(#{$dy} + #{$y});
-    }
+    // A rect at 0 takes the offset alone: `calc(<length> + 0)` (a
+    // unitless zero added to a length) is invalid CSS and would drop the
+    // whole declaration.
+    $x: offset(list.nth($rect, 1), $dx);
+    $y: offset(list.nth($rect, 2), $dy);
     $layers: list.append(
       $layers,
       layout.classicy-px-rect($ink, $x, $y, px($w), px($h)),

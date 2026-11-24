@@ -50,6 +50,7 @@
 // every glyph a stack of one-pixel rectangles on the `--pixel-unit` grid
 // (`pixel-art`, `runs`, ../_pixel.scss), every color a token or a package
 // color with a token fallback.
+@use "sass:list";
 @use "../bevels" as b;
 @use "../pixel" as *;
 
@@ -136,6 +137,28 @@ $grip: (
 $grip-hilight: runs($grip, "w");
 $grip-shadow: runs($grip, "s");
 
+// `$rects` moved `$dx`, `$dy` grid pixels: the art placed inside its button
+// by its coordinates (numbers, so each lands as one `px()` length), rather
+// than by `pixel-art`'s length offsets, which add a length to a rect's bare
+// `0` at the art's own edge, a sum no browser takes.
+@function shift($rects, $dx, $dy) {
+  $moved: ();
+  @each $rect in $rects {
+    $w: 1;
+    $h: 1;
+    @if list.length($rect) > 2 {
+      $w: list.nth($rect, 3);
+      $h: list.nth($rect, 4);
+    }
+    $moved: list.append(
+      $moved,
+      (list.nth($rect, 1) + $dx) (list.nth($rect, 2) + $dy) $w $h,
+      $separator: comma
+    );
+  }
+  @return $moved;
+}
+
 // A caption button: raised ButtonFace with its mark `$art` at grid (`$x`,
 // `$y`); pressed (the mouse down on it), the bevel turns and the mark steps
 // one grid pixel down and right; disabled, the mark is embossed (GrayText
@@ -143,23 +166,42 @@ $grip-shadow: runs($grip, "s");
 // The `disabled` state class is the vocabulary's; the title bar draws a box
 // only for an action the window has, so today no box carries it.
 @mixin caption-button($art, $x, $y) {
-  background: pixel-art(b.$text, $art, px($x), px($y)), b.$face;
+  background: pixel-art(b.$text, shift($art, $x, $y)), b.$face;
 
   @include b.raised;
 
   &:active {
-    background: pixel-art(b.$text, $art, px($x + 1), px($y + 1)), b.$face;
+    background: pixel-art(b.$text, shift($art, $x + 1, $y + 1)), b.$face;
 
     @include b.pressed;
   }
 
   &.disabled {
     background:
-      pixel-art(b.$gray-text, $art, px($x), px($y)),
-      pixel-art(b.$hilight, $art, px($x + 1), px($y + 1)),
+      pixel-art(b.$gray-text, shift($art, $x, $y)),
+      pixel-art(b.$hilight, shift($art, $x + 1, $y + 1)),
       b.$face;
 
     @include b.raised;
+  }
+}
+
+// The caption's buttons: the three faces, each with its mark at its Windows
+// position. Under `.classicyWindow` only: the standalone frame draws none
+// (ClassicyWindowFrame passes no handlers), so it carries no faces.
+@mixin caption-buttons {
+  .classicyWindowTitleBar {
+    .classicyWindowCloseBox {
+      @include caption-button($close, 4, 3);
+    }
+
+    .classicyWindowZoomBox {
+      @include caption-button($maximize, 3, 2);
+    }
+
+    .classicyWindowCollapseBox {
+      @include caption-button($minimize, 4, 9);
+    }
   }
 }
 
@@ -228,18 +270,6 @@ $grip-shadow: runs($grip, "s");
       &:focus-visible {
         @include b.focus-rect(b.$b2);
       }
-    }
-
-    .classicyWindowCloseBox {
-      @include caption-button($close, 4, 3);
-    }
-
-    .classicyWindowZoomBox {
-      @include caption-button($maximize, 3, 2);
-    }
-
-    .classicyWindowCollapseBox {
-      @include caption-button($minimize, 4, 9);
     }
 
     // The window's small icon, 16 x 16, centered on the caption's height.
@@ -363,6 +393,8 @@ $grip-shadow: runs($grip, "s");
     @include b.window-frame;
 
     @include title-bar;
+
+    @include caption-buttons;
 
     // The client area: the caption and its gap above, then the sunken
     // client edge (two rings of padding under `b.sunken`, so the viewport

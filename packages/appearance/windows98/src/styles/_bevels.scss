@@ -20,10 +20,12 @@
 //   GrayText          --color-system-05
 //   InfoWindow/Text   --package-color-tooltip-face / -text
 //   ActiveTitle…      --package-color-title-bar-*
+// One ring, two rings, and each negated (a Sass name starting with `-`
+// would be private to this module, so the negatives are `$neg-*`).
 $b: var(--window-border-size);
 $b2: calc(#{$b} + #{$b});
-$-b: calc(#{$b} * -1);
-$-b2: calc(#{$b2} * -1);
+$neg-b: calc(#{$b} * -1);
+$neg-b2: calc(#{$b2} * -1);
 
 $hilight: var(--color-system-01);
 $light: var(--color-system-02);
@@ -39,18 +41,18 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
 // Push buttons, scroll-bar arrows and thumbs, tabs, title-bar buttons.
 @mixin raised {
   box-shadow:
-    inset $-b $-b $dkshadow,
+    inset $neg-b $neg-b $dkshadow,
     inset $b $b $hilight,
-    inset $-b2 $-b2 $shadow,
+    inset $neg-b2 $neg-b2 $shadow,
     inset $b2 $b2 $light;
 }
 
 // The same control while the mouse is down: the rings swap sides.
 @mixin pressed {
   box-shadow:
-    inset $-b $-b $hilight,
+    inset $neg-b $neg-b $hilight,
     inset $b $b $dkshadow,
-    inset $-b2 $-b2 $light,
+    inset $neg-b2 $neg-b2 $light,
     inset $b2 $b2 $shadow;
 }
 
@@ -63,9 +65,9 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
 // Edit fields, list boxes, checkboxes, document areas (WS_EX_CLIENTEDGE).
 @mixin sunken {
   box-shadow:
-    inset $-b $-b $hilight,
+    inset $neg-b $neg-b $hilight,
     inset $b $b $shadow,
-    inset $-b2 $-b2 $light,
+    inset $neg-b2 $neg-b2 $light,
     inset $b2 $b2 $dkshadow;
 }
 
@@ -74,25 +76,25 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
 // button's.
 @mixin window-frame {
   box-shadow:
-    inset $-b $-b $dkshadow,
+    inset $neg-b $neg-b $dkshadow,
     inset $b $b $light,
-    inset $-b2 $-b2 $shadow,
+    inset $neg-b2 $neg-b2 $shadow,
     inset $b2 $b2 $hilight;
 }
 
 // Group boxes: an engraved two-pixel line, shadow over highlight.
 @mixin etched {
   box-shadow:
-    inset $-b $-b $hilight,
+    inset $neg-b $neg-b $hilight,
     inset $b $b $shadow,
-    inset $-b2 $-b2 $shadow,
+    inset $neg-b2 $neg-b2 $shadow,
     inset $b2 $b2 $hilight;
 }
 
 // A one-ring raised edge (status-bar panes, the menu bar's bottom edge).
 @mixin raised-thin {
   box-shadow:
-    inset $-b $-b $shadow,
+    inset $neg-b $neg-b $shadow,
     inset $b $b $hilight;
 }
 
