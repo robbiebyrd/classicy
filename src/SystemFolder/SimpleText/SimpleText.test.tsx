@@ -1,6 +1,13 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { produce } from "immer";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -282,6 +289,140 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 				.sort((a, b) => (b.zOrder ?? 0) - (a.zOrder ?? 0))[0];
 			expect(front?.id).toBe(docWindowId);
 			expect(simpleText().lastAccessedWindowId).toBe(docWindowId);
+		});
+	});
+
+	// Mac OS 8.1's SimpleText (Infinite Mac, 2026-11-24): closing a window,
+	// or quitting, with unsaved text shows a caution alert, "Save changes to
+	// the document “untitled” before closing?", buttons Don’t Save, Cancel and
+	// Save (the default), for a close and for a Quit alike; Cancel keeps the
+	// window, and keeps SimpleText running (story 0226-a6f, N2).
+	describe("Save changes before closing", () => {
+		const simpleText = () =>
+			useAppManager.getState().System.Manager.Applications.apps[SIMPLE_TEXT.id];
+		const SAVE_PROMPT =
+			"Save changes to the document “Untitled” before closing?";
+		const alert = () => screen.queryByRole("alertdialog");
+		const closeBoxOf = (title: string) => {
+			const win = windowTitled(title)?.closest(".classicyWindow");
+			const box = win?.querySelector(".classicyWindowCloseBox");
+			if (!box) throw new Error(`no close box on ${title}`);
+			return box;
+		};
+		const typeIntoUntitled = async () => {
+			renderDesktop();
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("Untitled")).toBeInTheDocument());
+			const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
+			fireEvent.change(textbox, { target: { value: "unsaved words" } });
+			expect(textbox.value).toBe("unsaved words");
+		};
+		const quitFromFileMenu = () => {
+			const quitItem = (
+				useAppManager.getState().System.Manager.Desktop.appMenu ?? []
+			)
+				.flatMap((menu) => menu.menuChildren ?? [])
+				.find((item) => item.id === `${SIMPLE_TEXT.id}_quit`);
+			if (!quitItem?.onClickFunc) throw new Error("no Quit item");
+			act(() => quitItem.onClickFunc?.());
+		};
+
+		it("asks on closing a window with unsaved text, in Mac OS 8.1's words and order", async () => {
+			await typeIntoUntitled();
+			fireEvent.click(closeBoxOf("Untitled"));
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			expect(
+				within(alert() as HTMLElement).getByText(SAVE_PROMPT),
+			).toBeInTheDocument();
+			const buttons = within(alert() as HTMLElement).getAllByRole("button");
+			expect(buttons.map((b) => b.textContent?.trim())).toEqual([
+				"Don’t Save",
+				"Cancel",
+				"Save",
+			]);
+			expect(buttons[2].getAttribute("data-classicy-role")).toBe("default");
+			expect(buttons[1].getAttribute("data-classicy-role")).toBe("cancel");
+
+			// Cancel keeps the window and its text.
+			fireEvent.click(buttons[1]);
+			await waitFor(() => expect(alert()).not.toBeInTheDocument());
+			expect(screen.getByDisplayValue("unsaved words")).toBeInTheDocument();
+
+			// Don’t Save closes it, the text with it.
+			fireEvent.click(closeBoxOf("Untitled"));
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			fireEvent.click(within(alert() as HTMLElement).getByText("Don’t Save"));
+			await waitFor(() =>
+				expect(
+					screen.queryByDisplayValue("unsaved words"),
+				).not.toBeInTheDocument(),
+			);
+		});
+
+		it("closes a window with nothing unsaved without asking", async () => {
+			renderDesktop();
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("Untitled")).toBeInTheDocument());
+			const untitledId = listAppWindows(simpleText()).find((w) => !w.closed)
+				?.id as string;
+			fireEvent.click(closeBoxOf("Untitled"));
+			await waitFor(() =>
+				expect(getAppWindow(simpleText(), untitledId)?.closed).toBe(true),
+			);
+			expect(alert()).not.toBeInTheDocument();
+		});
+
+		it("saves an edited file and closes it on Save", async () => {
+			renderDesktop();
+			openFileInSimpleText(READ_ME);
+			await waitFor(() =>
+				expect(windowTitled("Read Me.txt")).toBeInTheDocument(),
+			);
+			fireEvent.change(screen.getByRole("textbox"), {
+				target: { value: "SAVED ON CLOSE" },
+			});
+			fireEvent.click(closeBoxOf("Read Me.txt"));
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			expect(
+				within(alert() as HTMLElement).getByText(
+					"Save changes to the document “Read Me.txt” before closing?",
+				),
+			).toBeInTheDocument();
+			fireEvent.click(within(alert() as HTMLElement).getByText("Save"));
+			await waitFor(() =>
+				expect(windowTitled("Read Me.txt")).not.toBeInTheDocument(),
+			);
+			expect(new ClassicyFileSystem().resolve(READ_ME)?._data).toBe(
+				"SAVED ON CLOSE",
+			);
+		});
+
+		it("asks before quitting; Cancel keeps SimpleText running", async () => {
+			await typeIntoUntitled();
+			quitFromFileMenu();
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			expect(
+				within(alert() as HTMLElement).getByText(SAVE_PROMPT),
+			).toBeInTheDocument();
+			fireEvent.click(within(alert() as HTMLElement).getByText("Cancel"));
+			await waitFor(() => expect(alert()).not.toBeInTheDocument());
+			expect(simpleText().open).toBe(true);
+			expect(screen.getByDisplayValue("unsaved words")).toBeInTheDocument();
+
+			// Quit again, Don’t Save: SimpleText quits.
+			quitFromFileMenu();
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			fireEvent.click(within(alert() as HTMLElement).getByText("Don’t Save"));
+			await waitFor(() => expect(simpleText().open).toBe(false));
+		});
+
+		it("quits at once with nothing unsaved", async () => {
+			renderDesktop();
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("Untitled")).toBeInTheDocument());
+			quitFromFileMenu();
+			await waitFor(() => expect(simpleText().open).toBe(false));
+			expect(alert()).not.toBeInTheDocument();
 		});
 	});
 });
