@@ -170,7 +170,7 @@ package.
 - [React95](https://storybook.react95.io/) and
   [windows98-ui](https://windows98-ui.netlify.app): component galleries to
   compare states against.
-- [Chicago95](https://github.com/npjg/Chicago95) (Nathanael Gentry and
+- [Chicago95](https://github.com/grassmunk/Chicago95) (grassmunk and
   contributors): a Windows 95 desktop theme for Linux with a large body of
   Windows 9x-era imagery (icons, cursors, wallpapers, the boot and
   shutdown screens), fonts and sounds, and the metrics behind them. The
