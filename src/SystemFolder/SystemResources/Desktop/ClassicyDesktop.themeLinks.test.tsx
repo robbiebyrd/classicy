@@ -441,6 +441,44 @@ describe("ClassicyDesktop themeLinks", {
 		expect(await findAlert(/Ocean/)).toBeInTheDocument();
 	});
 
+	it("holds the alert through a pre-boot screen and then the startup screen", async () => {
+		const url = await linkTo(oceanTheme());
+		visit(url);
+		const { container } = render(
+			<Classicy
+				controlStrip={false}
+				themeLinks
+				startupDuration={1000}
+				preBootScreen={(powerOn) => (
+					<button type="button" onClick={powerOn}>
+						Power On
+					</button>
+				)}
+			/>,
+		);
+		await settle();
+		expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+		// Power On hands over from the pre-boot screen to the startup screen
+		// in one commit: the alert must not show in between.
+		fireEvent.click(screen.getByRole("button", { name: "Power On" }));
+		expect(container.querySelector(".classicyStartupScreen")).not.toBeNull();
+		await settle();
+		expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+		fireEvent.keyDown(document.activeElement ?? document.body, {
+			key: "Enter",
+		});
+		expect(container.querySelector(".classicyStartupScreen")).not.toBeNull();
+		expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+		expect(window.location.href).toBe(url);
+		// Only once the startup screen has ended.
+		const alert = await findAlert(/Ocean/);
+		expect(container.querySelector(".classicyStartupScreen")).toBeNull();
+		expect(window.location.href).toBe(url);
+		press(alert, "Add Theme");
+		await noAlert();
+		expect(appearance().activeTheme.name).toBe("Ocean");
+	});
+
 	it("shows an error's link-chosen text without control or format characters", async () => {
 		const file = JSON.parse(compactClassicyThemeFile(oceanTheme()));
 		file.theme.package = "ir\u202Eix\u200B";

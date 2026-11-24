@@ -4535,14 +4535,19 @@ Identity rules (`assignImportedClassicyThemeIdentity`):
   overwrite an existing theme or hide behind a preset ChangeTheme finds
   first, and re-importing the same file adds a second entry.
 - The name is kept unless a theme already has it (case-insensitive, the
-  active package's presets included); then it is named as the Mac OS
+  active package's presets included); then it is named as the Mac OS 8.1
   Finder names a duplicate (Mac OS 9 Help, "Duplicating items in the
-  Finder": "with the word 'copy' at the end"): `" copy"` appended to the
-  whole name, then `" copy 1"`, `" copy 2"`, … while that is taken too
-  (`"Azul"` → `"Azul copy"` → `"Azul copy 1"`). A number the name already
-  ends with is part of the name and never counted up (`"System 7"` →
-  `"System 7 copy"`). The name, never the suffix, is shortened to keep
-  within 64 characters.
+  Finder": "with the word 'copy' at the end"; the numbering observed in
+  8.1 on Infinite Mac in the story's re-review): `" copy"` on the name,
+  then `" copy 1"`, `" copy 2"`, … while that is taken too (`"Azul"` →
+  `"Azul copy"` → `"Azul copy 1"`). A copy of a copy continues the
+  numbering: a name ending in `" copy"` or `" copy <n>"` (any case) loses
+  that suffix first, so with `"zed"` and `"zed copy"` to `"zed copy 3"`
+  taken, `"zed copy 1"` imports as `"zed copy 4"` and `"zed copy"` then as
+  `"zed copy 5"` (the Finder's own results), never `"… copy copy"`. Any
+  other number the name ends with is part of the name and never counted up
+  (`"System 7"` → `"System 7 copy"`). The name, never the suffix, is
+  shortened to keep within 64 characters.
 
 An imported theme is a custom theme, so edits modify it in place (no fork).
 Like every `ClassicyDesktop*` action it is unreachable to untrusted

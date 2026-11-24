@@ -368,19 +368,50 @@ describe("assignImportedClassicyThemeIdentity", () => {
 		]);
 	});
 
-	it("keeps a name ending in a number apart from a numbered copy", () => {
-		const existing = [
-			...builtIns,
-			named("a", "Bondi copy"),
-			named("b", "Bondi copy 1"),
-		];
+	// The Mac OS 8.1 Finder, observed on Infinite Mac in story 0232-tj2's
+	// re-review: duplicating "zed" four times made "zed copy", "zed copy 1",
+	// "zed copy 2", "zed copy 3"; then duplicating "zed copy 1" made "zed
+	// copy 4" and duplicating "zed copy" made "zed copy 5".
+	const importInto = (existing: ClassicyTheme[], name: string) => {
+		const out = assignImportedClassicyThemeIdentity(named("x", name), existing);
+		existing.push(out);
+		return out.name;
+	};
+
+	it("numbers four imports of one name as the Finder numbers four duplicates", () => {
+		const existing = [named("zed", "zed")];
 		expect(
-			assignImportedClassicyThemeIdentity(named("x", "Bondi copy 1"), existing)
-				.name,
-		).toBe("Bondi copy 1 copy");
+			["zed", "zed", "zed", "zed"].map((n) => importInto(existing, n)),
+		).toEqual(["zed copy", "zed copy 1", "zed copy 2", "zed copy 3"]);
+	});
+
+	it("continues the numbering for a copy of a copy, as the Finder does", () => {
+		const existing = [named("zed", "zed")];
+		for (let i = 0; i < 4; i++) importInto(existing, "zed");
+		expect(importInto(existing, "zed copy 1")).toBe("zed copy 4");
+		expect(importInto(existing, "zed copy")).toBe("zed copy 5");
+		// Never a copy suffix stacked on another.
+		expect(existing.map((t) => t.name).join("|")).not.toMatch(
+			/copy( \d+)? copy/,
+		);
+	});
+
+	it("starts a copy of a copy from the base name's first free copy", () => {
+		// A theme named "Bondi copy 1", imported where only it exists, takes
+		// the base name's first free copy name by the same rule: "Bondi copy".
 		expect(
-			assignImportedClassicyThemeIdentity(named("x", "Bondi"), existing).name,
-		).toBe("Bondi copy 2");
+			assignImportedClassicyThemeIdentity(named("x", "Bondi copy 1"), [
+				...builtIns,
+				named("b", "Bondi copy 1"),
+			]).name,
+		).toBe("Bondi copy");
+		// The suffix is matched without regard to case, like the names.
+		expect(
+			assignImportedClassicyThemeIdentity(named("x", "Bondi COPY"), [
+				...builtIns,
+				named("a", "Bondi copy"),
+			]).name,
+		).toBe("Bondi copy 1");
 	});
 
 	it("appends -2, -3 … when the id is taken by a differently named theme", () => {
