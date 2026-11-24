@@ -22,8 +22,9 @@ import {
 	closeWindowMenuItemHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
-import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
+import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { useResolvedMediaSource } from "@/SystemFolder/SystemResources/File/useResolvedMediaSource";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
@@ -32,6 +33,7 @@ import {
 	isMoviePlayerData,
 	MoviePlayerAppInfo,
 	type MoviePlayerOpenFile,
+	moviePlayerWindowId,
 } from "./MoviePlayerUtils";
 
 /** Handled by the Movie Player reducer (`MoviePlayerContext.tsx`). A literal,
@@ -139,8 +141,16 @@ export const MoviePlayer: FunctionalComponent = () => {
 	const appOpen = useAppManager(
 		(s) => s.System.Manager.Applications.apps[appId]?.open,
 	);
+	// Set from a launch (open after not open) until its windows have
+	// registered: a Quit and a relaunch in one tick never render the app
+	// closed, so the launch itself starts the sample check again.
+	const launching = useAppManager(
+		(s) => s.System.Manager.Applications.apps[appId]?.launching === true,
+	);
 
-	const fs = useMemo(() => new ClassicyFileSystem(), []);
+	// The desktop's file system (its storage key: fileSystemStorageKey).
+	const getFileSystem = useClassicyFileSystemAccessor();
+	const fs = useMemo(() => getFileSystem(), [getFileSystem]);
 
 	const rawAppData = appData ?? {};
 	const movieData = isMoviePlayerData(rawAppData) ? rawAppData : null;
@@ -156,7 +166,14 @@ export const MoviePlayer: FunctionalComponent = () => {
 	// reload the demo.
 	const hasCheckedInitialLoadRef = useRef(false);
 	useEffect(() => {
-		if (!appOpen || hasCheckedInitialLoadRef.current) return;
+		// A quit ends the check: a later launch is a launch, and loads the
+		// demo again when it opens no document (story 0226-a6f).
+		if (!appOpen) {
+			hasCheckedInitialLoadRef.current = false;
+			return;
+		}
+		if (launching) hasCheckedInitialLoadRef.current = false;
+		if (hasCheckedInitialLoadRef.current) return;
 		hasCheckedInitialLoadRef.current = true;
 		if (!movieData?.openFiles || movieData.openFiles.length === 0) {
 			desktopEventDispatch({
@@ -174,6 +191,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 		}
 	}, [
 		appOpen,
+		launching,
 		movieData?.openFiles,
 		desktopEventDispatch,
 		defaultDocumentIcon,
@@ -194,7 +212,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 		() =>
 			openDocuments.map((doc) => ({
 				doc,
-				windowId: `${appId}_MoviePlayer_${doc.key}`,
+				windowId: moviePlayerWindowId(doc.key),
 			})),
 		[openDocuments],
 	);

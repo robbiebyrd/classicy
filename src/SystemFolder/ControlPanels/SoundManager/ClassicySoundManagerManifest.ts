@@ -9,4 +9,6 @@ export const SOUND_MANAGER_APP_ID = "SoundManager.app";
 registerApp({
 	id: SOUND_MANAGER_APP_ID,
 	description: "Control panel for alert sounds and system volume.",
+	// Not an application: Recent Applications never lists it.
+	controlPanel: true,
 });

@@ -422,3 +422,36 @@ describe("classicyQuickTimePictureViewerEventHandler — auto-load when unregist
 		expect(getOpenFiles(result)[0].url).toBe(doc.url);
 	});
 });
+
+// Story 0226-a6f (found in its re-review): a document given as a path string
+// is known by that path, so a second one is not taken for the first.
+describe("classicyQuickTimePictureViewerEventHandler — path-string documents", () => {
+	const A = "Macintosh HD:Documents:A.jpg";
+	const B = "Macintosh HD:Documents:B.jpg";
+	const open = (ds: ClassicyStore, document: unknown) =>
+		classicyQuickTimePictureViewerEventHandler(ds, {
+			type: "ClassicyAppPictureViewerOpenDocument",
+			document: document as never,
+		});
+
+	it("opens a second path string while another is open", () => {
+		const result = open(open(makeStoreWithPictureViewer(), A), B);
+		expect(getRawOpenFiles(result)).toEqual([A, B]);
+	});
+
+	it("still skips a path string already open", () => {
+		const result = open(open(makeStoreWithPictureViewer(), A), A);
+		expect(getRawOpenFiles(result)).toEqual([A]);
+	});
+
+	it("opens a list of path strings once each", () => {
+		const result = classicyQuickTimePictureViewerEventHandler(
+			makeStoreWithPictureViewer(),
+			{
+				type: "ClassicyAppPictureViewerOpenDocuments",
+				documents: [A, B, A] as never,
+			},
+		);
+		expect(getRawOpenFiles(result)).toEqual([A, B]);
+	});
+});

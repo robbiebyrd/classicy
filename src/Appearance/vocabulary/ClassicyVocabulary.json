@@ -97,6 +97,7 @@
 			"ThemeFileRow",
 			"ThemeLinkStatus"
 		],
+		"AppleMenuOptions": [],
 		"Assistant": [
 			"AccessoryIcon",
 			"AccessoryIconLg",
@@ -311,6 +312,35 @@
 			"Well",
 			"WellViewport"
 		],
+		"FindFile": [
+			"Busy",
+			"Buttons",
+			"ButtonsSpacer",
+			"ChannelIcon",
+			"ChannelList",
+			"ChannelName",
+			"Channels",
+			"Criteria",
+			"Criterion",
+			"CriterionKey",
+			"Form",
+			"Location",
+			"Operator",
+			"OperatorText",
+			"Path",
+			"Progress",
+			"ResultIcon",
+			"ResultName",
+			"Results",
+			"ResultsList",
+			"ResultsSplit",
+			"Size",
+			"SizeUnit",
+			"Status",
+			"Text",
+			"Value",
+			"Words"
+		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
 		"HyperCard": [
@@ -507,7 +537,8 @@
 			"HeaderSticky",
 			"Row",
 			"SortArrow",
-			"SortArrowAscending"
+			"SortArrowAscending",
+			"Spacer"
 		],
 		"Tabs": [],
 		"TextEditor": [

@@ -34,6 +34,7 @@ import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyScrollAreaHead } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollAreaHead.internal";
+import { useClassicyTableWindow } from "@/SystemFolder/SystemResources/Table/useClassicyTableWindow.internal";
 
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
@@ -126,6 +127,13 @@ type ClassicyTableProps<T> = {
 	onActivateRow?: (id: string, row: T) => void;
 	/** Initial sort column (ascending unless `desc`). Unsorted when omitted. */
 	defaultSort?: { columnId: string; desc?: boolean };
+	/**
+	 * Called with the sort after a header click changes it (`undefined` when
+	 * unsorted), so a menu can show it (Find File's View menu).
+	 */
+	onSortChange?: (
+		sort: { columnId: string; desc: boolean } | undefined,
+	) => void;
 	/** The header stays pinned while the container scrolls. Defaults to `true`. */
 	stickyHeader?: boolean;
 	/** Extra class(es) for the scrolling container. */
@@ -181,6 +189,18 @@ type ClassicyTableProps<T> = {
 	 * the list.
 	 */
 	headerPlacement?: "inList" | "aboveList";
+	/**
+	 * Draw only the rows its scroll area shows, and a few either side, for a
+	 * long list (Find File's Items Found): two spacer rows hold the others'
+	 * height. Every row must be one height. Takes effect when the table
+	 * scrolls its own rows (`scrollable`). Defaults to `false`.
+	 */
+	windowed?: boolean;
+	/**
+	 * Told, after each commit that changes them, the ids of the rows drawn, in
+	 * the visual order: with `windowed`, the ones in or near view; else all.
+	 */
+	onRowsShown?: (ids: readonly string[]) => void;
 };
 
 type SortingState = { id: string; desc: boolean }[];
@@ -232,6 +252,7 @@ export function ClassicyTable<T>({
 	onSelectionChange,
 	onActivateRow,
 	defaultSort,
+	onSortChange,
 	stickyHeader = true,
 	className,
 	style,
@@ -244,11 +265,25 @@ export function ClassicyTable<T>({
 	containerRef: externalContainerRef,
 	scrollable = true,
 	headerPlacement = "inList",
+	windowed = false,
+	onRowsShown,
 }: ClassicyTableProps<T>): ReactElement {
 	const arrowUpIcon = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
 	);
+	// Reported after the change commits, never for the sort it starts with.
+	const onSortChangeRef = useRef(onSortChange);
+	onSortChangeRef.current = onSortChange;
+	const reportedSortingRef = useRef(sorting);
+	useEffect(() => {
+		if (reportedSortingRef.current === sorting) return;
+		reportedSortingRef.current = sorting;
+		const first = sorting[0];
+		onSortChangeRef.current?.(
+			first ? { columnId: first.id, desc: first.desc } : undefined,
+		);
+	}, [sorting]);
 	const [internalExpanded, setInternalExpanded] = useState<string[]>([]);
 	const expandedIds = expanded ?? internalExpanded;
 	const expandedState = useMemo<ExpandedState>(
@@ -345,6 +380,43 @@ export function ClassicyTable<T>({
 		onSortingChange: setSorting,
 		columnResizeMode: "onChange",
 	});
+
+	// The rows drawn: all of them, or a window of them (`windowed`).
+	const viewportRef = useRef<HTMLElement | null>(null);
+	const bodyRef = useRef<HTMLTableSectionElement | null>(null);
+	const visualRows = table.getRowModel().rows;
+	const rowWindow = useClassicyTableWindow(
+		windowed && scrollable,
+		visualRows.length,
+		viewportRef,
+		bodyRef,
+	);
+	const drawnRows = rowWindow
+		? visualRows.slice(rowWindow.start, rowWindow.end)
+		: visualRows;
+	// A windowed table tells `onRowsShown` the rows it draws, when they
+	// change: compared id by id (no joined string), only while windowed and
+	// asked for.
+	const onRowsShownRef = useRef(onRowsShown);
+	onRowsShownRef.current = onRowsShown;
+	const reportedRowsRef = useRef<readonly string[] | undefined>(undefined);
+	useEffect(() => {
+		if (!rowWindow || !onRowsShownRef.current) return;
+		const reported = reportedRowsRef.current;
+		if (
+			reported !== undefined &&
+			reported.length === drawnRows.length &&
+			drawnRows.every((row, i) => row.id === reported[i])
+		) {
+			return;
+		}
+		const ids = drawnRows.map((row) => row.id);
+		reportedRowsRef.current = ids;
+		onRowsShownRef.current(ids);
+	});
+	// Rows numbered for assistive technology when windowed: the header rows
+	// first, then each body row by its place in the whole list.
+	const headerRowCount = table.getHeaderGroups().length;
 
 	// A column resize runs inside TanStack, on its own document listeners,
 	// with no cancel API: a lost pointer stream (blur, pointercancel, a hidden
@@ -470,6 +542,13 @@ export function ClassicyTable<T>({
 			const el = containerRef.current?.querySelector(
 				`[data-row-id="${CSS.escape(rowId)}"]`,
 			);
+			// A windowed list may not draw it yet: scroll to its place.
+			if (!el && rowWindow) {
+				rowWindow.reveal(
+					table.getRowModel().rows.findIndex((r) => r.id === rowId),
+				);
+				return;
+			}
 			try {
 				el?.scrollIntoView({ block: "nearest" });
 			} catch {
@@ -636,8 +715,12 @@ export function ClassicyTable<T>({
 
 	// The header row, drawn in the table's own header and, above the list,
 	// in the detached copy too.
-	const headerRows = table.getHeaderGroups().map((headerGroup) => (
-		<tr key={headerGroup.id} className="classicyTableHeaderGroup">
+	const headerRows = table.getHeaderGroups().map((headerGroup, groupIndex) => (
+		<tr
+			key={headerGroup.id}
+			className="classicyTableHeaderGroup"
+			aria-rowindex={rowWindow ? groupIndex + 1 : undefined}
+		>
 			{headerGroup.headers.map((header) => {
 				const isSorted = sorting.length > 0 && header.id === sorting[0].id;
 				return (
@@ -713,7 +796,11 @@ export function ClassicyTable<T>({
 	));
 
 	const tableElement = (
-		<table ref={tableRef} className="classicyTable">
+		<table
+			ref={tableRef}
+			className="classicyTable"
+			aria-rowcount={rowWindow ? headerRowCount + visualRows.length : undefined}
+		>
 			<thead
 				className={classNames(
 					"classicyTableHeader",
@@ -726,11 +813,26 @@ export function ClassicyTable<T>({
 			>
 				{headerRows}
 			</thead>
-			<tbody className="classicyTableContent">
-				{table.getRowModel().rows.map((row) => (
+			<tbody ref={bodyRef} className="classicyTableContent">
+				{rowWindow && rowWindow.before > 0 && (
+					// biome-ignore lint/a11y/noAriaHiddenOnFocusable: a spacer row holds no content and is never focused: it only keeps the height of rows not drawn
+					<tr
+						aria-hidden="true"
+						className="classicyTableSpacer"
+						style={{ height: rowWindow.before }}
+					>
+						<td colSpan={columns.length} />
+					</tr>
+				)}
+				{drawnRows.map((row, drawnIndex) => (
 					<tr
 						key={row.id}
 						data-row-id={row.id}
+						aria-rowindex={
+							rowWindow
+								? headerRowCount + rowWindow.start + drawnIndex + 1
+								: undefined
+						}
 						data-selected={effectiveSelected.includes(row.id) || undefined}
 						className={classNames(
 							"classicyTableRow",
@@ -777,6 +879,16 @@ export function ClassicyTable<T>({
 						})}
 					</tr>
 				))}
+				{rowWindow && rowWindow.after > 0 && (
+					// biome-ignore lint/a11y/noAriaHiddenOnFocusable: a spacer row holds no content and is never focused: it only keeps the height of rows not drawn
+					<tr
+						aria-hidden="true"
+						className="classicyTableSpacer"
+						style={{ height: rowWindow.after }}
+					>
+						<td colSpan={columns.length} />
+					</tr>
+				)}
 			</tbody>
 		</table>
 	);
@@ -886,6 +998,8 @@ export function ClassicyTable<T>({
 			)}
 			style={containerStyle}
 			ref={setContainerRef}
+			viewportRef={viewportRef}
+			onScroll={rowWindow?.onScroll}
 			tabIndex={tabIndex}
 			onKeyDown={handleKeyDown}
 			head={detachedHeader ?? undefined}

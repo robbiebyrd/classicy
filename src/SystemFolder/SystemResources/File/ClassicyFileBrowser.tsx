@@ -42,6 +42,15 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import type { ClassicyZoomOrigin } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
+/**
+ * Items to select, in the view shown, whenever `key` changes: the Finder's
+ * reveal (Find File's Open Enclosing Folder). The first is scrolled into view.
+ */
+export type ClassicyFileBrowserReveal = {
+	paths: readonly string[];
+	key: string | number;
+};
+
 /** Commands a host (e.g. a window's menu) can run on a file browser. */
 export type ClassicyFileBrowserCommands = {
 	/** Paths of the selected items: highlighted icons, or selected list rows. */
@@ -139,6 +148,13 @@ type ClassicyFileBrowserProps = {
 	) => ClassicyMenuItem[] | undefined;
 	/** Receives `{ selectedPaths() }`, for menu commands that act on the selection. */
 	commandsRef?: RefObject<ClassicyFileBrowserCommands | null>;
+	/**
+	 * Select these items, alone, whenever `reveal.key` changes, in the view
+	 * shown (its own selection, as a selection rectangle sets it), and
+	 * scroll the first into view (the Finder's reveal). Clicks and keys then
+	 * change the selection by the view's usual rules.
+	 */
+	reveal?: ClassicyFileBrowserReveal;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -204,6 +220,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	onDeleteItems,
 	itemContextMenu,
 	commandsRef,
+	reveal,
 	className,
 	style,
 }) => {
@@ -252,6 +269,39 @@ export const ClassicyFileBrowser: FunctionalComponent<
 			selectionApiRef.current = null;
 		};
 	}, [selectionApiRef, display]);
+	// A reveal (the Finder's: Find File's Open Enclosing Folder) selects its
+	// items through the shown view's own selection, as a selection rectangle
+	// does, then brings the first into view once it has drawn. A passive
+	// effect, so the view (a child) has lent its handle, and an icon view
+	// mounting with the reveal has run its own effects first. The view may
+	// draw the item a commit later (the icon view lays its icons out in a
+	// layout effect), so the scroll waits for this browser's next render,
+	// which the reveal asks for.
+	const revealKey = reveal?.key;
+	const revealPathsRef = useRef(reveal?.paths);
+	revealPathsRef.current = reveal?.paths;
+	const pendingScrollRef = useRef<string | undefined>(undefined);
+	const [, setRevealCount] = useState(0);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a reveal applies when its key changes, not when the parent hands over a new paths array or the display changes
+	useEffect(() => {
+		const paths = revealPathsRef.current;
+		if (revealKey === undefined || !paths) return;
+		const next = [...paths];
+		(display === "list" ? tableApiRef : iconsApiRef).current?.select?.(next);
+		pendingScrollRef.current = next[0];
+		setRevealCount((n) => n + 1);
+	}, [revealKey]);
+	useLayoutEffect(() => {
+		const first = pendingScrollRef.current;
+		if (first === undefined) return;
+		const target = Array.from(
+			rootRef.current?.querySelectorAll(`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`) ??
+				[],
+		).find((el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) === first);
+		if (!target) return;
+		pendingScrollRef.current = undefined;
+		target.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+	});
 	// The icon view's keyboard target is its icons' holder (the list's is
 	// its list box, which the table hands the ref itself).
 	useLayoutEffect(() => {

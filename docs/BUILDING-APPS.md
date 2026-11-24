@@ -1124,6 +1124,79 @@ Call `reconcileClassicyState()` again when the remote copy may have changed
 (a sign-in), and `flushClassicyState()` to save before signing out
 (AGENT-REFERENCE §7, "Mirroring the desktop state").
 
+### Making your content findable: search sources
+
+The Finder's File ▸ Find… (⌥F) opens **Find File**, which searches the file
+system by name, kind, dates, size, label and more. To let users find your
+own content there too (an archive, a catalog, a remote API), register a
+**search source**. Find File then shows a Search Internet tab, after Mac OS
+8.5's Sherlock: the words typed, your source as a channel with an On box,
+and Search.
+
+```ts
+// At module scope (or in an effect, keeping the returned unregister).
+import { dispatch, registerClassicyFindSource } from '@classicy/classicy'
+
+registerClassicyFindSource({
+    id: 'tv-archive',
+    name: 'TV Archive',
+    search: async (words, { signal }) => {
+        // Pass `signal` on: a new search, Stop or Quit aborts this one.
+        const res = await fetch(`/api/search?q=${encodeURIComponent(words)}`, { signal })
+        const hits: { title: string; url: string }[] = await res.json()
+        return hits.map((hit) => ({
+            name: hit.title,
+            kind: 'broadcast',          // the results' Kind column
+            open: () => dispatch({
+                type: 'ClassicyDesktopOpenUrl',
+                url: hit.url,
+                disposition: 'browser-new',
+            }),
+        }))
+    },
+})
+```
+
+- `search` must return a promise. Each source switched on is asked at once,
+  and the results window lists each source's results under its name (the
+  Site column) as they arrive.
+- A source that throws or rejects only loses its own results: the error goes
+  to `classicyLog` (`"ClassicyFindFile"`, level `error`), and the other
+  sources' results still show. Results without a `name`, a `kind` and an
+  `open` function are dropped with a warning.
+- Once the search's `signal` aborts, whatever your source returns is
+  ignored; stop the work you started (a `fetch` given the signal does). A
+  source that has not answered within 30 seconds is given up (its signal
+  aborts, a warning is logged); set `timeoutMs` on the source for another
+  bound.
+- Not on the Internet? Name the tab, the list and the results' column in
+  your own words when you register: `registerClassicyFindSource(source, {
+  labels: { tab: 'Search Archive', sites: 'Collections', site: 'Collection' } })`.
+  Without labels they keep Sherlock's "Search Internet", "Search Sites" and
+  "Site"; with several sources, the first registered with labels names them.
+  Registering a source again replaces its labels too.
+- `open()` runs when the user opens a result: open a window of your app,
+  a URL (`ClassicyDesktopOpenUrl`, trusted from your code), or a file
+  (`openClassicyFileSystemPath(fs, path, dispatch)`, the Finder's way, which
+  also records a Recent Document). It may return a promise; one that
+  rejects is logged like a throw.
+- Re-registering the same `id` replaces the source; the call returns the
+  unregister. `useClassicyFindSources()` lists the sources in a component.
+- With no source registered, Find File is Mac OS 8.1's window, with no tabs.
+  Both Appearance Packages show the tab once one is.
+- Your own files are found by Find File without a source: it searches the
+  desktop's file system (`fileSystemStorageKey`). A file whose bytes live
+  behind a `_url` is found without a request; its size is read (a HEAD
+  request) only when Items Found draws its row or a size row asks, a few at
+  a time. Record `_size` on such files to spare the requests. Its contents
+  are never fetched for the contents criterion (Option), which reads
+  `_data` only, and at most its first 5 MiB (the localStorage quota the
+  tree lives in).
+
+The example app registers one (`example/src/Applications/FindSources/`).
+Full reference: [AGENT-REFERENCE §11, "Find File and search
+sources"](AGENT-REFERENCE.md#find-file-and-search-sources).
+
 ---
 
 ## 12. Dialogs and alerts

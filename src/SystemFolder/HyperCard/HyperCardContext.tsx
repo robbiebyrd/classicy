@@ -12,6 +12,7 @@ import type {
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { registerClassicyAppQuitHandler } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppQuitHandlers.internal";
 import { updateAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	consumeEffects,
@@ -41,6 +42,9 @@ import {
 } from "@/SystemFolder/HyperCard/HyperCardUtils";
 
 const { id: APP_ID } = HyperCardAppInfo;
+
+/** HyperCard's one window, where every stack shows (HyperCard.tsx). */
+const HYPERCARD_MAIN_WINDOW_ID = "hypercard_main";
 
 function getData(ds: ClassicyStore): HyperCardData | undefined {
 	const app = ds.System.Manager.Applications.apps[APP_ID];
@@ -99,7 +103,15 @@ export const classicyHyperCardEventHandler = (
 				stack?.name;
 			if (!stack || !stackId) break;
 
-			openApp(ds, APP_ID, HyperCardAppInfo.name, HyperCardAppInfo.icon);
+			// A document open: the stack shows in HyperCard's one window, so
+			// that window (and no other the user closed) reopens; a stack
+			// opened from a file is remembered under Recent Documents.
+			openApp(ds, APP_ID, HyperCardAppInfo.name, HyperCardAppInfo.icon, {
+				windows: [HYPERCARD_MAIN_WINDOW_ID],
+				...(typeof action.stackSource === "string"
+					? { document: action.stackSource }
+					: {}),
+			});
 			data.activeStackId = stackId;
 
 			// Fit the (possibly already-mounted) window to this stack's card
@@ -108,7 +120,7 @@ export const classicyHyperCardEventHandler = (
 			// initialSize used when a stack is preloaded at mount.
 			updateAppWindow(
 				ds.System.Manager.Applications.apps[APP_ID],
-				"hypercard_main",
+				HYPERCARD_MAIN_WINDOW_ID,
 				{ size: [(stack.size?.[0] ?? 420) + 4, 0] },
 			);
 
@@ -242,7 +254,11 @@ export const classicyHyperCardEventHandler = (
 				const files = data.openFiles ?? [];
 				if (!files.includes(path)) data.openFiles = [...files, path];
 			}
-			openApp(ds, APP_ID, HyperCardAppInfo.name, HyperCardAppInfo.icon);
+			// The stack is read asynchronously (HyperCard.tsx), and opens with
+			// OpenStack; until then only HyperCard's window comes forward.
+			openApp(ds, APP_ID, HyperCardAppInfo.name, HyperCardAppInfo.icon, {
+				windows: [HYPERCARD_MAIN_WINDOW_ID],
+			});
 			break;
 		}
 
@@ -292,6 +308,17 @@ export const classicyHyperCardEventHandler = (
 // SetVariable, OpenFileConsumed, OpenFileFailed) are internal plumbing
 // between the component and the reducer; only the user-meaningful actions
 // are documented here — a deliberate scoping, not an omission.
+// Quit closes the stacks, as it closes an app's data.openFiles documents: a
+// later launch shows HyperCard's empty window, never a stack it had open
+// (story 0226-a6f). An edit session stays, as a stack's unsaved draft: the
+// Quit asked about it first (HyperCard.tsx), and reopening the stack resumes it.
+registerClassicyAppQuitHandler(HyperCardAppInfo.id, (app) => {
+	if (!isHyperCardData(app.data ?? {})) return;
+	const data = app.data as unknown as HyperCardData;
+	data.openStacks = {};
+	delete data.activeStackId;
+});
+
 registerApp({
 	id: HyperCardAppInfo.id,
 	description: "HyperCard stack player: opens and runs .stack documents.",

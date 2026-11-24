@@ -68,6 +68,10 @@ import {
 	ClassicyFloatingLayerContext,
 	classicyFallbackFloatingLayer,
 } from "@/SystemFolder/SystemResources/Window/ClassicyFloatingLayer";
+import {
+	isClassicyWindowMounted,
+	markClassicyWindowMounted,
+} from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
@@ -588,10 +592,6 @@ interface ClassicyWindowProps {
  * spread after this result.
  */
 const withoutStateOwnedStyle = withoutZIndex;
-
-// Mounted document windows by app + window id, so an unmount can tell whether
-// the same window has mounted again before its deferred close runs.
-const mountedWindowKeys = new Map<string, number>();
 
 /**
  * A Mac OS 8 Platinum window (HIGOS8 Ch.5, p.99): title bar with close box on
@@ -1340,16 +1340,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// is mounted again by then — StrictMode's phantom teardown remounts
 	// synchronously, and a remount (same instance or a new one) must not have
 	// its record closed out from under it.
+	//
+	// The mount itself is counted in one registry, by app and window id
+	// (`ClassicyMountedWindows.internal.ts`), which openApp reads too: it
+	// reopens only a window that is on screen to draw, and one that is not
+	// reopens itself when it mounts (ClassicyWindowOpen).
 	useEffect(() => {
-		if (modal) return;
-		const key = `${appId}\u0000${id}`;
-		mountedWindowKeys.set(key, (mountedWindowKeys.get(key) ?? 0) + 1);
+		const release = markClassicyWindowMounted(appId, id);
+		if (modal) return release;
 		return () => {
-			const remaining = (mountedWindowKeys.get(key) ?? 1) - 1;
-			if (remaining > 0) mountedWindowKeys.set(key, remaining);
-			else mountedWindowKeys.delete(key);
+			release();
 			setTimeout(() => {
-				if (mountedWindowKeys.has(key)) return;
+				if (isClassicyWindowMounted(appId, id)) return;
 				if (typeof useAppManager.getState !== "function") return;
 				const record = getAppWindow(
 					useAppManager.getState().System.Manager.Applications.apps[appId],

@@ -5,12 +5,17 @@ import {
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { SIMPLE_TEXT_APP_ID } from "@/SystemFolder/SimpleText/SimpleTextManifest";
+import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
 	useClassicyEditMenu,
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	registerClassicyAppQuitGuard,
+	requestClassicyAppQuit,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppQuit";
 import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -46,6 +51,8 @@ type UntitledDoc = {
 	id: string;
 	content: string;
 	type: SimpleTextFileType;
+	/** Typed in: closing or quitting asks to save it first. */
+	unsaved?: boolean;
 };
 
 // Identifies the document a Save / Save As… dialog is acting on.
@@ -104,6 +111,10 @@ export const SimpleText = () => {
 	// Untitled (never-saved) documents.
 	const [untitledDocs, setUntitledDocs] = useState<UntitledDoc[]>([]);
 
+	// Files edited since they were opened or last saved: closing or quitting
+	// asks to save them first, as an untitled document typed in does.
+	const [unsavedPaths, setUnsavedPaths] = useState<Record<string, true>>({});
+
 	const [showOpenDialog, setShowOpenDialog] = useState(false);
 	const keepsFitsBars = useClassicyFitsScrollBars();
 	const [saveTarget, setSaveTarget] = useState<SaveTarget | null>(null);
@@ -136,6 +147,14 @@ export const SimpleText = () => {
 		}
 	}, [appState?.open, openFiles.length, untitledDocs.length, makeUntitled]);
 
+	// Quitting discards the untitled documents, as quitting SimpleText did: a
+	// later launch by a document shows that document alone, and a plain one
+	// a fresh Untitled window (found during story 0226-a6f).
+	const quit = appState !== undefined && !appState.open;
+	useEffect(() => {
+		if (quit) setUntitledDocs([]);
+	}, [quit]);
+
 	// Keep a working-content entry for every open path, seeding new ones from the
 	// file system and pruning ones that were closed. Existing entries are left
 	// untouched so in-progress edits survive unrelated file-system rebuilds.
@@ -158,14 +177,26 @@ export const SimpleText = () => {
 		});
 	}, [openFilesKey, fs]);
 
+	// A closed file's edits go with it: reopened, it is read from disk.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: openFilesKey is the stable invalidation key for the openFiles array
+	useEffect(() => {
+		setUnsavedPaths((prev) => {
+			const kept = Object.keys(prev).filter((path) => openFiles.includes(path));
+			return kept.length === Object.keys(prev).length
+				? prev
+				: Object.fromEntries(kept.map((path) => [path, true as const]));
+		});
+	}, [openFilesKey]);
+
 	const setUntitledContent = useCallback((id: string, content: string) => {
 		setUntitledDocs((prev) =>
-			prev.map((d) => (d.id === id ? { ...d, content } : d)),
+			prev.map((d) => (d.id === id ? { ...d, content, unsaved: true } : d)),
 		);
 	}, []);
 
 	const setPathDocContent = useCallback((path: string, content: string) => {
 		setPathContent((prev) => ({ ...prev, [path]: content }));
+		setUnsavedPaths((prev) => (prev[path] ? prev : { ...prev, [path]: true }));
 	}, []);
 
 	const closeWindow = useClassicyWindowClose(appId);
@@ -202,16 +233,17 @@ export const SimpleText = () => {
 	// Write a path-backed document's current text straight back to its entry,
 	// preserving the entry's other metadata (unlike a full writeFile) and
 	// stamping Date Modified. Refuses locked documents and reports a write that
-	// the file system rejects (e.g. the path no longer resolves).
+	// the file system rejects (e.g. the path no longer resolves). True when
+	// the text is on disk.
 	const saveExisting = useCallback(
-		(path: string) => {
+		(path: string): boolean => {
 			const entry = fs.resolve(path);
 			if (entry?._readOnly || entry?._system) {
 				desktopEventDispatch({
 					type: "ClassicyDesktopShowErrorDialog",
 					message: "This document is locked and cannot be saved.",
 				});
-				return;
+				return false;
 			}
 			const wrote = fs.setMetadata(path, {
 				_data: pathContent[path] ?? "",
@@ -223,7 +255,14 @@ export const SimpleText = () => {
 					message:
 						"This document could not be saved. It may have been moved or deleted.",
 				});
+				return false;
 			}
+			setUnsavedPaths((prev) => {
+				if (!prev[path]) return prev;
+				const { [path]: _saved, ...rest } = prev;
+				return rest;
+			});
+			return true;
 		},
 		[fs, pathContent, dateTime, desktopEventDispatch],
 	);
@@ -241,12 +280,96 @@ export const SimpleText = () => {
 		[saveExisting],
 	);
 
+	// --- Save changes before closing (Mac OS 8.1's SimpleText) --------------
+	// Closing a window, or quitting, with unsaved text asks first:
+	// "Save changes to the document “…” before closing?" with Don’t Save,
+	// Cancel and Save (the default), the wording and order of SimpleText's
+	// alert on Mac OS 8.1, for a close and for a Quit alike. Cancel keeps the
+	// document open, and stops a Quit. Save on an untitled document goes
+	// through the Save dialog; cancelling that cancels the close too.
+	const [saveAlert, setSaveAlert] = useState<{
+		target: SaveTarget;
+		title: string;
+	} | null>(null);
+	const saveAlertResolveRef = useRef<((proceed: boolean) => void) | null>(null);
+	// The document whose Save dialog the alert's Save opened: only that save
+	// answers the alert (a Save As… chosen from the menu meanwhile does not).
+	const alertSaveTargetRef = useRef<SaveTarget | null>(null);
+	// The document the alert is asking about.
+	const saveAlertTargetRef = useRef<SaveTarget | null>(null);
+
+	const settleSaveAlert = useCallback((proceed: boolean) => {
+		const resolve = saveAlertResolveRef.current;
+		saveAlertResolveRef.current = null;
+		alertSaveTargetRef.current = null;
+		saveAlertTargetRef.current = null;
+		setSaveAlert(null);
+		resolve?.(proceed);
+	}, []);
+
+	// Quit from code (a direct ClassicyAppClose) while the alert is up: the
+	// documents it asks about are gone, so it is answered Cancel and removed
+	// (a quit request waiting on it resolves false), and a Save dialog it
+	// opened closes. Left up, it came back with the next launch, and
+	// answering it quit that fresh SimpleText.
+	useEffect(() => {
+		if (!quit) return;
+		if (saveAlertResolveRef.current) settleSaveAlert(false);
+		setSaveTarget(null);
+	}, [quit, settleSaveAlert]);
+
+	const isUnsaved = useCallback(
+		(target: SaveTarget): boolean =>
+			target.kind === "untitled"
+				? untitledDocs.some((d) => d.id === target.id && d.unsaved === true)
+				: unsavedPaths[target.path] === true,
+		[untitledDocs, unsavedPaths],
+	);
+
+	/** True (now, or once answered) when `doc` may close: saved, or the user said so. */
+	const confirmClose = useCallback(
+		(doc: {
+			target: SaveTarget;
+			title: string;
+		}): boolean | Promise<boolean> => {
+			if (!isUnsaved(doc.target)) return true;
+			// One alert at a time: a second close while one is up waits on none.
+			if (saveAlertResolveRef.current) return false;
+			return new Promise<boolean>((resolve) => {
+				saveAlertResolveRef.current = resolve;
+				saveAlertTargetRef.current = doc.target;
+				setSaveAlert({ target: doc.target, title: doc.title });
+			});
+		},
+		[isUnsaved],
+	);
+
 	// Called by the save dialog after it has already written the file through
-	// the volume. Make the new file visible everywhere and open it as a document.
+	// the volume. Make the new file visible everywhere and open it as a document
+	// (unless the save answered "Save changes…?": the window then closes, or
+	// the Quit goes on).
 	const handleSaved = useCallback(
 		(saved: ClassicyFileSaveResult) => {
 			const target = saveTarget;
 			setSaveTarget(null);
+			const answersAlert =
+				saveAlertResolveRef.current !== null &&
+				target !== null &&
+				alertSaveTargetRef.current !== null &&
+				sameTarget(alertSaveTargetRef.current, target);
+			if (answersAlert) {
+				fs.flushNow();
+				desktopEventDispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
+				if (target?.kind === "untitled") {
+					setUntitledDocs((prev) =>
+						prev.map((d) =>
+							d.id === target.id ? { ...d, unsaved: false } : d,
+						),
+					);
+				}
+				settleSaveAlert(true);
+				return;
+			}
 
 			const fullPath = [...saved.path, saved.fileName].join(fs.separator);
 
@@ -266,8 +389,18 @@ export const SimpleText = () => {
 			if (target?.kind === "untitled") {
 				setUntitledDocs((prev) => prev.filter((d) => d.id !== target.id));
 			}
+			// A Save As… of the document the alert asks about, chosen from the
+			// menu while it was up: the document is saved, and reopened as its
+			// file as Save As does, which answers the alert as Save.
+			if (
+				saveAlertResolveRef.current &&
+				target &&
+				saveAlertTargetRef.current &&
+				sameTarget(saveAlertTargetRef.current, target)
+			)
+				settleSaveAlert(true);
 		},
-		[saveTarget, fs, desktopEventDispatch],
+		[saveTarget, fs, desktopEventDispatch, settleSaveAlert],
 	);
 
 	const closeUntitled = useCallback((id: string) => {
@@ -340,7 +473,8 @@ export const SimpleText = () => {
 			(doc): OpenDoc => ({
 				key: `untitled:${doc.id}`,
 				windowId: doc.id,
-				title: "Untitled",
+				// Mac OS 8.1's SimpleText names a new document "untitled".
+				title: "untitled",
 				content: doc.content,
 				type: doc.type,
 				target: { kind: "untitled", id: doc.id },
@@ -348,29 +482,95 @@ export const SimpleText = () => {
 		),
 	];
 
+	// Close a document now (its window, then its file or untitled state).
+	const closeDocNow = useCallback(
+		(doc: OpenDoc) => {
+			if (doc.target.kind === "untitled") {
+				// An untitled doc has no file to clean up — just close its window.
+				desktopEventDispatch({
+					type: "ClassicyWindowClose",
+					app: { id: appId },
+					window: { id: doc.windowId },
+				});
+				closeUntitled(doc.target.id);
+			} else {
+				closeWindow(doc.windowId, {
+					type: CLOSE_FILE,
+					app: { id: appId },
+					path: doc.target.path,
+				});
+			}
+		},
+		[desktopEventDispatch, closeUntitled, closeWindow],
+	);
+
+	// Quit (SimpleText's quit guard, run by requestClassicyAppQuit): ask
+	// about each unsaved document, front window first, each coming to the
+	// front as it is asked about and closing once answered (Save or Don’t
+	// Save), as the Mac closed each window in turn; Cancel on any stops the
+	// Quit and leaves the documents not yet answered open.
+	const docsRef = useRef(docs);
+	docsRef.current = docs;
+	const quitGuardRef = useRef<() => Promise<boolean>>(async () => true);
+	quitGuardRef.current = async () => {
+		const windows =
+			useAppManager.getState().System.Manager.Applications.apps[appId]?.windows;
+		const unsaved = docsRef.current
+			.filter((doc) => isUnsaved(doc.target))
+			.sort(
+				(a, b) =>
+					(windows?.[b.windowId]?.zOrder ?? 0) -
+					(windows?.[a.windowId]?.zOrder ?? 0),
+			);
+		for (const doc of unsaved) {
+			desktopEventDispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: appId },
+				window: { id: doc.windowId },
+			});
+			if (!(await confirmClose(doc))) return false;
+			closeDocNow(doc);
+		}
+		return true;
+	};
+	useEffect(
+		() => registerClassicyAppQuitGuard(appId, () => quitGuardRef.current()),
+		[],
+	);
+	const quitAsking = useCallback(() => {
+		void requestClassicyAppQuit(appId);
+	}, []);
+
+	// A reload or closing the browser tab would lose unsaved text with no
+	// alert of SimpleText's to ask: the browser's own confirmation asks
+	// instead, while any document is unsaved.
+	const anyUnsaved =
+		untitledDocs.some((d) => d.unsaved === true) ||
+		Object.keys(unsavedPaths).length > 0;
+	useEffect(() => {
+		if (!anyUnsaved) return;
+		const ask = (event: BeforeUnloadEvent) => {
+			event.preventDefault();
+			// Older browsers show the confirmation only when this is set.
+			event.returnValue = "";
+		};
+		window.addEventListener("beforeunload", ask);
+		return () => window.removeEventListener("beforeunload", ask);
+	}, [anyUnsaved]);
+
 	// --- Menus -------------------------------------------------------------
 
 	const buildAppMenu = useCallback(
 		(doc: OpenDoc): ClassicyMenuItem[] => {
 			const isMarkdown = doc.type === ClassicyFileSystemEntryFileType.Markdown;
+			const closeNow = () => closeDocNow(doc);
 			const closeThis = () => {
-				if (doc.target.kind === "untitled") {
-					const { id } = doc.target;
-					// An untitled doc has no file to clean up — just close its window.
-					desktopEventDispatch({
-						type: "ClassicyWindowClose",
-						app: { id: appId },
-						window: { id: doc.windowId },
+				const proceed = confirmClose(doc);
+				if (proceed === true) closeNow();
+				else if (proceed !== false)
+					void proceed.then((ok) => {
+						if (ok) closeNow();
 					});
-					closeUntitled(id);
-				} else {
-					const { path } = doc.target;
-					closeWindow(doc.windowId, {
-						type: CLOSE_FILE,
-						app: { id: appId },
-						path,
-					});
-				}
 			};
 
 			return [
@@ -401,7 +601,11 @@ export const SimpleText = () => {
 							onClickFunc: () => setSaveTarget(doc.target),
 						},
 						{ id: "spacer" },
-						quitMenuItemHelper(appId, appName, appIcon),
+						// Quit asks about each unsaved document first.
+						{
+							...quitMenuItemHelper(appId, appName, appIcon),
+							onClickFunc: quitAsking,
+						},
 					],
 				},
 				editMenu,
@@ -427,9 +631,9 @@ export const SimpleText = () => {
 			newFile,
 			saveDoc,
 			toggleType,
-			closeWindow,
-			closeUntitled,
-			desktopEventDispatch,
+			closeDocNow,
+			confirmClose,
+			quitAsking,
 			editMenu,
 			aboutMenuItem,
 			appIcon,
@@ -451,7 +655,13 @@ export const SimpleText = () => {
 						onClickFunc: () => setShowOpenDialog(true),
 					},
 					{ id: "spacer" },
-					quitMenuItemHelper(appId, appName, appIcon),
+					// The same Quit as a document window's (the quit request,
+					// which asks about unsaved documents), so ⌥Q and File ▸
+					// Quit are one command with or without a window.
+					{
+						...quitMenuItemHelper(appId, appName, appIcon),
+						onClickFunc: quitAsking,
+					},
 				],
 			},
 			editMenu,
@@ -461,7 +671,7 @@ export const SimpleText = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[newFile, editMenu, aboutMenuItem, appIcon],
+		[newFile, quitAsking, editMenu, aboutMenuItem, appIcon],
 	);
 
 	// --- Dialog inputs -----------------------------------------------------
@@ -525,6 +735,7 @@ export const SimpleText = () => {
 					initialSize={[400, 350]}
 					initialPosition={[200 + idx * 30, 100 + idx * 30]}
 					appMenu={buildAppMenu(doc)}
+					onBeforeClose={() => confirmClose(doc)}
 					onCloseFunc={() => {
 						if (doc.target.kind === "untitled") {
 							closeUntitled(doc.target.id);
@@ -597,8 +808,64 @@ export const SimpleText = () => {
 				defaultFileName={saveDefaultName}
 				formats={saveFormats}
 				onSaveFunc={handleSaved}
-				onCancelFunc={() => setSaveTarget(null)}
+				onCancelFunc={() => {
+					const target = saveTarget;
+					setSaveTarget(null);
+					// Cancelling the Save dialog a "Save changes…?" Save opened
+					// cancels the close (or the Quit).
+					if (
+						saveAlertResolveRef.current &&
+						target &&
+						alertSaveTargetRef.current &&
+						sameTarget(alertSaveTargetRef.current, target)
+					)
+						settleSaveAlert(false);
+				}}
 			/>
+			{saveAlert ? (
+				<ClassicyAlert
+					id={`${appId}_save_changes`}
+					appId={appId}
+					alertType={"caution"}
+					movable={true}
+					// Mac OS 8.1's SimpleText asks in a movable modal dialog box
+					// (gray title bar), not a movable alert box (red highlights).
+					dialogBox={true}
+					label={`Save changes to the document “${saveAlert.title}” before closing?`}
+					defaultButtonId={"save"}
+					buttons={[
+						{
+							id: "dont-save",
+							label: "Don’t Save",
+							role: "normal",
+							onClick: () => settleSaveAlert(true),
+						},
+						{
+							id: "cancel",
+							label: "Cancel",
+							role: "cancel",
+							onClick: () => settleSaveAlert(false),
+						},
+						{
+							id: "save",
+							label: "Save",
+							role: "default",
+							onClick: () => {
+								const { target } = saveAlert;
+								if (target.kind === "path") {
+									settleSaveAlert(saveExisting(target.path));
+									return;
+								}
+								// An untitled document has nowhere to go yet: the Save
+								// dialog answers (handleSaved, or its Cancel).
+								alertSaveTargetRef.current = target;
+								setSaveAlert(null);
+								setSaveTarget(target);
+							},
+						},
+					]}
+				/>
+			) : null}
 			{aboutWindow}
 		</ClassicyApp>
 	);

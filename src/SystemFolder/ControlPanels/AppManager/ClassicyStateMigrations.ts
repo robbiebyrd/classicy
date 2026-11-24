@@ -18,6 +18,7 @@ import type {
 	ClassicyStoreSystemApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { normalizeClassicyRecentItems } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 
 /**
  * Bring a desktop state of any earlier shape up to the current one.
@@ -66,6 +67,8 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   A value no registered wallpaper matches is left alone and still renders
  *   (`resolveClassicyWallpaper` passes `data:` and remote URLs through); it is
  *   only matched once its package has registered.
+ * - Recent Items (story 0226-a6f): a malformed stored `Desktop.recentItems`
+ *   is normalized (`migrateRecentItems`).
  * - Every window's gesture flags (`resizing`, `dragging`, `moving`) are
  *   dropped (`stripWindowGestureFlags`). They belong to a gesture in
  *   progress, which a load ends; `sanitizeStateForPersistence` drops them on
@@ -73,17 +76,46 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   stale `dragging` never makes a window follow the pointer.
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
-	return migrateThemeWallpapers(
-		migrateThemeFontSizes(
-			migrateAppearancePackage(
-				migrateThemeSoundPack(
-					migrateThemeMetrics(
-						stripWindowGestureFlags(migrateAppWindows(state)),
+	return migrateRecentItems(
+		migrateThemeWallpapers(
+			migrateThemeFontSizes(
+				migrateAppearancePackage(
+					migrateThemeSoundPack(
+						migrateThemeMetrics(
+							stripWindowGestureFlags(migrateAppWindows(state)),
+						),
 					),
 				),
 			),
 		),
 	);
+}
+
+/**
+ * A stored `Desktop.recentItems` that is not a valid Recent Items state (a
+ * count out of 0–99, an item that is not one, more items than the counts,
+ * items kept while tracking is off) as `normalizeClassicyRecentItems` reads
+ * it. Copy-on-write; a valid value, or none (the load merge supplies the
+ * defaults), is left as it is, so the step is idempotent.
+ */
+function migrateRecentItems(state: ClassicyStore): ClassicyStore {
+	const desktop = state?.System?.Manager?.Desktop;
+	if (!desktop || typeof desktop !== "object" || !("recentItems" in desktop))
+		return state;
+	const normalized = normalizeClassicyRecentItems(desktop.recentItems);
+	if (JSON.stringify(normalized) === JSON.stringify(desktop.recentItems))
+		return state;
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Desktop: { ...desktop, recentItems: normalized },
+			},
+		},
+	};
 }
 
 /** The window flags that only a gesture in progress sets. */

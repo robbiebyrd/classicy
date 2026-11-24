@@ -126,6 +126,35 @@ export function getClassicyFileSystemVersion(storageKey: string): number {
 }
 
 /**
+ * The entry at `path` in the live tree for `storageKey`, read without
+ * building a `ClassicyFileSystem` (so without touching localStorage): for
+ * reducers, which may ask whether a path names something but hold no file
+ * system. Undefined when nothing is there, when no file system for that key
+ * exists yet, or for a path with a forbidden segment (as `resolve`).
+ */
+export function peekClassicyFileSystemEntry(
+	path: string,
+	storageKey: string = "classicyStorage",
+	separator: string = ":",
+): ClassicyFileSystemEntry | undefined {
+	const shared = sharedTrees.get(storageKey);
+	if (!shared || typeof path !== "string") return undefined;
+	const segments = path.split(separator).filter((v) => v !== "");
+	if (
+		segments.length === 0 ||
+		segments.some((segment) => FORBIDDEN_PATH_SEGMENTS.has(segment))
+	) {
+		return undefined;
+	}
+	let entry: ClassicyFileSystemEntry | undefined = shared.tree;
+	for (const segment of segments) {
+		if (!entry || !Object.hasOwn(entry, segment)) return undefined;
+		entry = entry[segment] as ClassicyFileSystemEntry | undefined;
+	}
+	return entry && typeof entry === "object" ? entry : undefined;
+}
+
+/**
  * Forget every shared tree, so the next `ClassicyFileSystem` reads its
  * storage afresh. For tests, which reset localStorage between cases.
  */
@@ -667,7 +696,17 @@ export class ClassicyFileSystem {
 		return item;
 	}
 
-	async size(path: ClassicyPathOrFileSystemEntry): Promise<number> {
+	/**
+	 * The item's size in bytes, or -1 when it cannot be known: its decoded
+	 * `_data`, its recorded `_size`, a HEAD request for its `_url` (8 s at
+	 * most; cached onto the entry when it answers, never when it fails), a
+	 * folder's total. `signal` ends a HEAD request early (a search
+	 * superseded, a window closed): the size is then -1, and nothing is cached.
+	 */
+	async size(
+		path: ClassicyPathOrFileSystemEntry,
+		options?: { signal?: AbortSignal },
+	): Promise<number> {
 		const entry = typeof path === "string" ? this.resolve(path) : path;
 
 		if (!entry) return -1;
@@ -702,11 +741,34 @@ export class ClassicyFileSystem {
 		}
 
 		if (typeof entry._url === "string") {
+			const caller = options?.signal;
+			if (caller?.aborted) return -1;
+			const timeout = AbortSignal.timeout(8000);
+			// The caller's signal and the timeout, whichever ends first
+			// (`AbortSignal.any` is too new for the oldest browsers supported).
+			let both: AbortController | undefined;
+			let release = () => {};
+			if (caller) {
+				const combined = new AbortController();
+				both = combined;
+				const end = (reason: unknown) => {
+					if (!combined.signal.aborted) combined.abort(reason);
+				};
+				const onCaller = () => end(caller.reason);
+				const onTimeout = () => end(timeout.reason);
+				caller.addEventListener("abort", onCaller, { once: true });
+				timeout.addEventListener("abort", onTimeout, { once: true });
+				release = () => {
+					caller.removeEventListener("abort", onCaller);
+					timeout.removeEventListener("abort", onTimeout);
+				};
+			}
 			try {
 				const response = await fetch(entry._url, {
 					method: "HEAD",
-					signal: AbortSignal.timeout(8000),
+					signal: both?.signal ?? timeout,
 				});
+				if (caller?.aborted) return -1;
 				const contentLength = response.headers.get("Content-Length");
 				if (response.ok && contentLength !== null) {
 					const resolvedSize = Number(contentLength);
@@ -716,7 +778,10 @@ export class ClassicyFileSystem {
 					}
 				}
 			} catch {
-				// network error, CORS block, or timeout — fall through to -1, uncached
+				// network error, CORS block, timeout or the caller's abort — fall
+				// through to -1, uncached
+			} finally {
+				release();
 			}
 			return -1;
 		}

@@ -5,6 +5,7 @@ import {
 	type FC as FunctionalComponent,
 	type PropsWithChildren,
 	useEffect,
+	useInsertionEffect,
 	useMemo,
 	useRef,
 } from "react";
@@ -24,6 +25,10 @@ import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/Sound
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
 import {
+	publishClassicyDesktopFileSystemStorageKey,
+	withdrawClassicyDesktopFileSystemStorageKey,
+} from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
+import {
 	ClassicyDefaultFileSystemContext,
 	type ClassicyDefaultFileSystemMode,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
@@ -38,6 +43,11 @@ export type ClassicyAppManagerProviderProps = {
 	defaultState?: DeepPartial<ClassicyStore>;
 	defaultFileSystem?: ClassicyFileSystemTree;
 	defaultFileSystemMode?: ClassicyDefaultFileSystemMode;
+	/** The localStorage key the desktop's file system is kept under (default
+	 *  `"classicyStorage"`): the Finder's, every built-in app's and Recent
+	 *  Items' file system, and any `useClassicyFileSystem()` or
+	 *  `useClassicyFileSystemAccessor()` called without a key of its own. */
+	fileSystemStorageKey?: string;
 	/** One-time corrections applied to a returning visitor's persisted
 	 *  filesystem tree — see ClassicyFileSystemSeedMigrations.ts. */
 	defaultFileSystemSeedMigrations?: ClassicyFileSystemSeedMigration[];
@@ -77,6 +87,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	defaultFileSystem,
 	defaultFileSystemMode,
 	defaultFileSystemSeedMigrations,
+	fileSystemStorageKey,
 	disableSimpleText,
 	disablePDFViewer,
 	disableMoviePlayer,
@@ -111,13 +122,39 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 		);
 	}, [defaultState]);
 
+	// For reducers, which read no context (Recent Items' documents):
+	// published only when the provider commits, and before any child's
+	// layout or passive effect runs (insertion effects run first in a
+	// commit), so a child dispatching as it mounts reads it; a render that
+	// never commits (an error above, a suspended tree) publishes nothing.
+	// Withdrawn when the provider unmounts; a changed key keeps the
+	// provider's place among mounted providers.
+	const fileSystemKeyToken = useRef<symbol>(
+		Symbol("ClassicyAppManagerProvider"),
+	);
+	useInsertionEffect(() => {
+		const token = fileSystemKeyToken.current;
+		return () => withdrawClassicyDesktopFileSystemStorageKey(token);
+	}, []);
+	useInsertionEffect(() => {
+		publishClassicyDesktopFileSystemStorageKey(
+			fileSystemKeyToken.current,
+			fileSystemStorageKey,
+		);
+	}, [fileSystemStorageKey]);
 	const fsContextValue = useMemo(
 		() => ({
+			storageKey: fileSystemStorageKey,
 			defaultFileSystem,
 			mode: defaultFileSystemMode ?? ("merge" as const),
 			seedMigrations: defaultFileSystemSeedMigrations,
 		}),
-		[defaultFileSystem, defaultFileSystemMode, defaultFileSystemSeedMigrations],
+		[
+			fileSystemStorageKey,
+			defaultFileSystem,
+			defaultFileSystemMode,
+			defaultFileSystemSeedMigrations,
+		],
 	);
 
 	const defaultAppsContextValue = useMemo(

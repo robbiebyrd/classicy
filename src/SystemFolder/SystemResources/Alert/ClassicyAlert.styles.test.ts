@@ -42,3 +42,14 @@ describe("ClassicyAlert's label nudge", () => {
 		}
 	});
 });
+
+// The movable alert box's red highlight is look, so it is the package's
+// (Platinum's _Alert.scss); the base sheet holds none, and a package
+// without one (System 7, whose HIG has no movable alert box) draws a
+// movable modal dialog box's title bar.
+describe("ClassicyAlert's base sheet", () => {
+	it("paints no movable alert title bar", () => {
+		expect(css).not.toContain("classicyAlertMovableWindow");
+		expect(css).not.toContain("--color-error");
+	});
+});

@@ -918,6 +918,13 @@ export function sanitizeStateForPersistence(
 		if (screenSaverApp?.data && "active" in screenSaverApp.data) {
 			delete (screenSaverApp.data as Record<string, unknown>).active;
 		}
+		// The item the Finder last revealed (Find File's Open Enclosing
+		// Folder) is selected once, in this session: a reload must not select
+		// it again, and the path is the user's.
+		const finderApp = draft.System.Manager.Applications.apps["Finder.app"];
+		if (finderApp?.data && "reveal" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).reveal;
+		}
 		// The Special menu's confirmation alert belongs to the session that
 		// opened it; a reload must not greet the user with Empty Trash. An
 		// error alert is just as transient, and its message may name an item
@@ -945,6 +952,10 @@ export function sanitizeStateForPersistence(
 			// Hidden by the Application menu's Hide commands: session state, as
 			// Mac OS restores no hidden app (story 0214-c61, ruling R2).
 			delete app.hidden;
+			// Launched for a document: the launch's rule for windows that
+			// mount with it ends with the session (story 0226-a6f).
+			delete app.launching;
+			delete app.launchedFor;
 			for (const [id, w] of Object.entries(app.windows ?? {})) {
 				// A modal window's record lives only while it is mounted (it is
 				// destroyed on unmount, which a reload never runs): an alert open

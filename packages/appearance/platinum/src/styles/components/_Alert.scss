@@ -1,5 +1,12 @@
-// The Platinum movable-alert look (from ClassicyAlert.scss): the red title-bar
-// stripes `.classicyWindowRed` draws, for an alert that is not error-typed.
+// The Platinum movable alert box (HIGOS8 p.61, Figure 3-4): "a movable alert
+// box has red highlights on its title bar, which distinguish it from a
+// movable modal dialog box" — the red stripes `.classicyWindowRed` draws, over
+// a red tint, for an alert that is not error-typed. Every alert type alike:
+// the highlight marks the window as an alert box, the icon gives its type.
+// An alert drawn as a dialog box (`dialogBox`, Mac OS 8.1's SimpleText "Save
+// changes" box) carries no `classicyAlertMovableWindow` and keeps the gray
+// movable modal title bar.
+@use "pkg:@classicy/classicy/scss/color" as c;
 @use "../mixins";
 
 @mixin alert {
@@ -7,6 +14,10 @@
   // Keyed on the class ClassicyAlert puts on a movable alert's window (no
   // `:has()`, which Firefox 113-120 lacks).
   .classicyWindow.classicyAlertMovableWindow {
+    .classicyWindowTitleBar {
+      background-color: c.classicy-tint("--color-error", 80%);
+    }
+
     @include mixins.platinum-title-bar-stripes("-red", $center-size: auto 100%);
   }
 }

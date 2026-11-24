@@ -33,6 +33,7 @@ import "@/SystemFolder/Finder/FinderContext";
 import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { markClassicyWindowMounted } from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
 
 function makeStore(
 	overrides: Partial<{
@@ -303,31 +304,36 @@ describe("openApp", () => {
 		);
 	});
 
-	it("sets open=true and reopens windows for an existing app", () => {
+	it("sets open=true and reopens the windows that are mounted", () => {
 		const ds = makeStore();
+		const closedWindow = (id: string) => ({
+			id,
+			closed: true,
+			size: [400, 300] as [number, number],
+			position: [0, 0] as [number, number],
+			minimumSize: [100, 100] as [number, number],
+		});
 		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
 			open: false,
 			focused: false,
-			windows: windowsRecord({
-				id: "main",
-				closed: true,
-				size: [400, 300],
-				position: [0, 0],
-				minimumSize: [100, 100],
-			}),
+			windows: windowsRecord(closedWindow("main"), closedWindow("doc")),
 			data: {},
 		};
+		const release = markClassicyWindowMounted("Notes.app", "main");
 
 		openApp(ds, "Notes.app", "Notes", "notes-icon.png");
+		release();
 
-		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(true);
-		expect(
-			listAppWindows(ds.System.Manager.Applications.apps["Notes.app"])[0]
-				.closed,
-		).toBe(false);
+		const notes = ds.System.Manager.Applications.apps["Notes.app"];
+		expect(notes.open).toBe(true);
+		expect(getAppWindow(notes, "main")?.closed).toBe(false);
+		// Not on screen to draw (story 0226-a6f, R1): it reopens itself if
+		// and when its ClassicyWindow mounts, never as an open record with
+		// nothing on screen.
+		expect(getAppWindow(notes, "doc")?.closed).toBe(true);
 	});
 });
 

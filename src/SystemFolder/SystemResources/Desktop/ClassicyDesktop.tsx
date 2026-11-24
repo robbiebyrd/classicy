@@ -12,6 +12,8 @@ import { ClassicyControlPanels } from "@/SystemFolder/ControlPanels/ClassicyCont
 import { AppleGuide } from "@/SystemFolder/Extensions/AppleGuide/AppleGuide";
 import { ClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import { Finder } from "@/SystemFolder/Finder/Finder";
+import { classicyFinderFindMenuItem } from "@/SystemFolder/FindFile/ClassicyFinderFindMenuItem.internal";
+import { FindFile } from "@/SystemFolder/FindFile/FindFile";
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 import { PDFViewer } from "@/SystemFolder/PDFViewer/PDFViewer";
 import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
@@ -568,6 +570,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 							trashSelectedDesktopItems();
 						},
 					},
+					{ id: "spacer" },
+					classicyFinderFindMenuItem("finder", desktopEventDispatch),
 				],
 			},
 			{
@@ -764,6 +768,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{desktopMarquee.marquee}
 			<ClassicyDesktopMenuBar />
 			<Finder />
+			<FindFile />
 			<AppleGuide />
 			<ClassicyScreenSaver />
 			{!disableSimpleText && <SimpleText />}

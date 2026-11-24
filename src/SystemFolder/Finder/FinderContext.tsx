@@ -10,6 +10,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	focusWindow,
+	markAppFocused,
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
@@ -36,8 +37,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { CLASSICY_DESKTOP_ITEM_ICON_PREFIX } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { followClassicyRecentDocumentMoves } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
 export const FinderViewTypeSchema = z.enum(["icons", "list"]);
@@ -132,6 +135,12 @@ export const FinderDataSchema = z.looseObject({
 		.describe(
 			"Explicit per-folder view type. A path absent from this map follows the standard views.",
 		),
+	reveal: z
+		.object({ path: z.string(), seq: z.number() })
+		.optional()
+		.describe(
+			"Session only: the item the Finder last revealed (Find File's Open Enclosing Folder). Its folder's window selects it whenever `seq` changes.",
+		),
 });
 
 export type FinderData = z.infer<typeof FinderDataSchema>;
@@ -179,6 +188,21 @@ const openInFinder = (
 	});
 };
 
+/**
+ * Put the Finder in front with `path`'s window focused: at once when the
+ * window is open; otherwise the window mounts (or reopens as it mounts) in
+ * the front app with none of its windows focused, so it takes the focus.
+ */
+const bringFinderWindowForward = (ds: ClassicyStore, path: string) => {
+	const appId = "Finder.app";
+	const win = getAppWindow(ds.System.Manager.Applications.apps[appId], path);
+	if (win && !win.closed) {
+		focusWindow(ds, appId, path);
+	} else {
+		markAppFocused(ds, appId);
+	}
+};
+
 export const classicyFinderEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -192,15 +216,13 @@ export const classicyFinderEventHandler = (
 	switch (action.type) {
 		case "ClassicyAppFinderOpenFolder": {
 			if (!hasPath(action)) break;
-			if (!appData.openPaths) {
-				appData = { ...appData, openPaths: [action.path] };
-				break;
-			}
-
 			appData = {
 				...appData,
-				openPaths: Array.from(new Set([...appData.openPaths, action.path])),
+				openPaths: Array.from(
+					new Set([...(appData.openPaths ?? []), action.path]),
+				),
 			};
+			if (action.focus === true) bringFinderWindowForward(ds, action.path);
 			break;
 		}
 		case "ClassicyAppFinderOpenFolders": {
@@ -221,6 +243,16 @@ export const classicyFinderEventHandler = (
 				...appData,
 				openPaths: existing.filter((p: string) => p !== action.path),
 			};
+			// A reveal belongs to the window it was shown in: reopened later
+			// by hand, the folder selects nothing.
+			const revealed = appData.reveal?.path;
+			if (
+				revealed !== undefined &&
+				revealed.slice(0, revealed.lastIndexOf(":")) === action.path
+			) {
+				const { reveal: _gone, ...rest } = appData;
+				appData = rest;
+			}
 
 			// Sync the window closed state so the desktop icon doesn't show as open
 			updateAppWindow(ds.System.Manager.Applications.apps[appId], action.path, {
@@ -313,6 +345,8 @@ export const classicyFinderEventHandler = (
 			// zoom — all follow it to the new path.
 			const moves = readPathMoves(action);
 			if (moves.length === 0) break;
+			// Recent Documents follows them, as the Mac's aliases did.
+			ds = followClassicyRecentDocumentMoves(ds, moves);
 			const rename = (p: string): string => {
 				for (const { from, to } of moves) {
 					if (p === from) return to;
@@ -346,6 +380,42 @@ export const classicyFinderEventHandler = (
 						}
 					: {}),
 			};
+			break;
+		}
+		case "ClassicyAppFinderRevealItem": {
+			// Find File's Open Enclosing Folder: the item's folder opens in a
+			// Finder window, in front, with the item selected (Mac OS 8.1).
+			if (!hasPath(action)) break;
+			const iconId = `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${action.path}`;
+			if (ds.System.Manager.Desktop.icons.some((i) => i.appId === iconId)) {
+				// An item on the desktop: the Finder comes forward with its
+				// desktop icon selected, and no window opens (8.1).
+				markAppFocused(ds, appId);
+				ds.System.Manager.Desktop.selectedIcons = [iconId];
+				break;
+			}
+			const cut = action.path.lastIndexOf(":");
+			if (cut <= 0) break;
+			const folder = action.path.slice(0, cut);
+			appData = {
+				...appData,
+				openPaths: Array.from(new Set([...(appData.openPaths ?? []), folder])),
+				reveal: { path: action.path, seq: (appData.reveal?.seq ?? 0) + 1 },
+			};
+			bringFinderWindowForward(ds, folder);
+			break;
+		}
+		case "ClassicyAppFinderRevealDone": {
+			// The folder's window has selected the item: the reveal is spent,
+			// so a window mounting again (or reopened) never applies it twice.
+			if (
+				appData.reveal !== undefined &&
+				typeof action.seq === "number" &&
+				appData.reveal.seq === action.seq
+			) {
+				const { reveal: _gone, ...rest } = appData;
+				appData = rest;
+			}
 			break;
 		}
 		case "ClassicyAppFinderEmptyTrash": {
@@ -408,10 +478,16 @@ export const classicyFinderEventHandler = (
 					) {
 						return ds;
 					}
-					ds = classicyAppEventHandler(ds, {
-						type: "ClassicyAppOpen",
-						app: MoviePlayerAppInfo,
-					});
+					// A document open: Movie Player comes forward with only the
+					// movie's window, and Recent Documents remembers the file
+					// (the movie it names is a URL).
+					openApp(
+						ds,
+						MoviePlayerAppInfo.id,
+						MoviePlayerAppInfo.name,
+						MoviePlayerAppInfo.icon,
+						hasPath(action) ? { document: action.path } : { windows: [] },
+					);
 					ds = dispatchToPlugin(ds, "ClassicyAppMoviePlayer", {
 						type: "ClassicyAppMoviePlayerOpenDocument",
 						document: document as { url: string },
@@ -515,6 +591,12 @@ registerApp({
 			description: "Open a Finder window at the given folder path.",
 			params: z.object({
 				path: z.string().describe("Absolute path of the folder to open."),
+				focus: z
+					.boolean()
+					.optional()
+					.describe(
+						"Also bring the Finder and that window to the front, as an open from another application does.",
+					),
 			}),
 		},
 		ClassicyAppFinderOpenFolders: {
@@ -574,6 +656,22 @@ registerApp({
 						}),
 					)
 					.describe("Each moved item's old and new path."),
+			}),
+		},
+		ClassicyAppFinderRevealItem: {
+			description:
+				"Open the folder that holds an item in a Finder window, in front, with the item selected (Find File's Open Enclosing Folder).",
+			params: z.object({
+				path: z.string().describe("Absolute path of the item to reveal."),
+			}),
+		},
+		ClassicyAppFinderRevealDone: {
+			description:
+				"The folder's window has selected the item a reveal named: forget the reveal (sent by the Finder window).",
+			params: z.object({
+				seq: z
+					.number()
+					.describe("The reveal's `seq`, as `data.reveal` holds it."),
 			}),
 		},
 		ClassicyAppFinderEmptyTrash: {

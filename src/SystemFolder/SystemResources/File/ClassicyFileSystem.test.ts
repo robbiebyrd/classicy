@@ -547,6 +547,38 @@ describe("ClassicyFileSystem.size", () => {
 		expect(entry._size).toBeUndefined();
 	});
 
+	it("ends the HEAD request when the caller's signal aborts: -1, nothing cached", async () => {
+		let requestSignal: AbortSignal | undefined;
+		const fetchMock = vi.fn(
+			(_url: unknown, init?: RequestInit) =>
+				new Promise((_resolve, reject) => {
+					requestSignal = init?.signal ?? undefined;
+					init?.signal?.addEventListener("abort", () =>
+						reject(new DOMException("aborted", "AbortError")),
+					);
+				}),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+		const cfs = new ClassicyFileSystem("test-size-url-abort");
+		const entry: ClassicyFileSystemEntry = {
+			_type: ClassicyFileSystemEntryFileType.File,
+			_url: "https://example.com/slow.pdf",
+		};
+		const controller = new AbortController();
+		const size = cfs.size(entry, { signal: controller.signal });
+		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		expect(requestSignal?.aborted).toBe(false);
+		controller.abort();
+		await expect(size).resolves.toBe(-1);
+		expect(requestSignal?.aborted).toBe(true);
+		expect(entry._size).toBeUndefined();
+		// Aborted before it starts: no request at all.
+		await expect(cfs.size(entry, { signal: controller.signal })).resolves.toBe(
+			-1,
+		);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
 	it("returns -1 when the HEAD response has no Content-Length", async () => {
 		const fetchMock = vi.fn().mockResolvedValue({
 			ok: true,

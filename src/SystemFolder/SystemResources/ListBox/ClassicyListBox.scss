@@ -9,12 +9,16 @@
 }
 
 .classicyListBoxOption {
+  // An indented row (`depth`) moves in by one icon's width a level.
+  --classicy-listbox-indent-step: 1.25em;
+
   display: flex;
   align-items: center;
   box-sizing: border-box;
   gap: var(--control-padding);
   height: var(--classicy-listbox-row-height);
   padding: 0 var(--control-padding-loose);
+  padding-left: calc(var(--control-padding-loose) + var(--classicy-listbox-depth, 0) * var(--classicy-listbox-indent-step));
   font-family: var(--ui-font);
   font-size: var(--ui-font-size);
   white-space: nowrap;

@@ -13,7 +13,10 @@ import {
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	useAppManager,
+	useAppManagerDispatch,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
@@ -163,6 +166,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 	ClassicyFileDialogProps
 > = (props) => {
 	const { id, appId, open, volumes, onCancelFunc, className, style } = props;
+	const appManagerDispatch = useAppManagerDispatch();
 	const dialogBodyRef = useRef<HTMLDivElement | null>(null);
 	const mode = props.mode;
 	const title = props.title ?? (mode === "open" ? "Open" : "Save");
@@ -509,6 +513,17 @@ export const ClassicyFileDialog: FunctionalComponent<
 			.map((nid) => nodeIndex.current.get(nid))
 			.filter((s): s is ClassicyFileOpenSelection => s !== undefined);
 		if (selections.length > 0) {
+			// Standard File's Open is a document use: Recent Documents
+			// remembers each chosen file of the Classicy file system (Apple
+			// Menu Options; a volume of the host's own keeps no path).
+			for (const selection of selections) {
+				const path = selection.entry.meta?.classicyPath;
+				if (typeof path === "string")
+					appManagerDispatch({
+						type: "ClassicyDesktopRecentItemsRecordDocument",
+						path,
+					});
+			}
 			props.onOpenFunc(selections);
 		}
 	};

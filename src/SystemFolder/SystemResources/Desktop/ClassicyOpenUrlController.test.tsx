@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	dispatch,
@@ -38,6 +38,28 @@ describe("ClassicyOpenUrlController", () => {
 		await waitFor(() =>
 			expect(openSpy).toHaveBeenCalledWith(
 				"https://example.com/docs",
+				"_blank",
+				"noopener,noreferrer",
+			),
+		);
+	});
+
+	// Found during story 0227-815: Firefox's window.open runs queued tasks
+	// before it returns, so it must not run inside React's commit.
+	it("opens the tab in a task of its own, after React's commit", async () => {
+		render(<ClassicyOpenUrlController />);
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopOpenUrl",
+				url: "https://example.com/later",
+				disposition: "browser-new",
+			});
+		});
+		// The commit, its effects included, is over: no tab yet.
+		expect(openSpy).not.toHaveBeenCalled();
+		await waitFor(() =>
+			expect(openSpy).toHaveBeenCalledWith(
+				"https://example.com/later",
 				"_blank",
 				"noopener,noreferrer",
 			),

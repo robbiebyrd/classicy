@@ -100,7 +100,17 @@ export interface ClassicyAppProps {
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 	/** Render your own windows for queued `openFiles`. When `false`, the app
 	 *  renders one plain window per queued path whose close dispatches
-	 *  `` `ClassicyApp${name}CloseFile` ``. Defaults to `false`. */
+	 *  `` `ClassicyApp${name}CloseFile` ``. Defaults to `false`.
+	 *
+	 *  When `true`, give the window you draw for a queued path the id
+	 *  `` `${id}_file_${path}` `` (`classicyDocumentWindowId`), as SimpleText
+	 *  and PDF Viewer do: a document open then reopens and fronts that window
+	 *  only, and launching the app for a document after a quit shows that
+	 *  window only. And dispatch `` `ClassicyApp${name}CloseFile` `` (with
+	 *  the path) when that window closes, so the path leaves the queue and a
+	 *  later open queues it again. A window under an id of your own whose
+	 *  path stays queued after it closes is reopened by the next open of its
+	 *  document with every other window the app closed, as a plain open. */
 	handlesOwnFiles?: boolean;
 	/** App-level right-click menu: the fallback for any of this app's windows
 	 *  without its own `contextMenu` (a `ClassicyContextualMenuTarget` inside a
@@ -285,6 +295,13 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	// Runtime presence, separate from the persisted app record: Control Strip
 	// modules registered with this app's id show only while it is mounted.
 	useEffect(() => markClassicyAppMounted(id), [id]);
+	// A launch ends once the windows that mount with it have registered:
+	// their effects run before this one, in the commit that opened the app.
+	const launching = appContext?.open === true && appContext.launching === true;
+	useEffect(() => {
+		if (!launching) return;
+		desktopEventDispatch({ type: "ClassicyAppLaunchSettled", app: { id } });
+	}, [launching, desktopEventDispatch, id]);
 
 	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";
 	useEffect(() => {

@@ -377,3 +377,36 @@ describe("classicyDesktopStateEventReducer routes ClassicyAppMoviePlayer* events
 		expect(getOpenFiles(result)[0].url).toBe(doc.url);
 	});
 });
+
+// Story 0226-a6f (found in its re-review): a document given as a path string
+// is known by that path, so a second one is not taken for the first.
+describe("classicyQuickTimeMoviePlayerEventHandler — path-string documents", () => {
+	const A = "Macintosh HD:Documents:A.mov";
+	const B = "Macintosh HD:Documents:B.mov";
+	const open = (ds: ClassicyStore, document: unknown) =>
+		classicyQuickTimeMoviePlayerEventHandler(ds, {
+			type: "ClassicyAppMoviePlayerOpenDocument",
+			document: document as never,
+		});
+
+	it("opens a second path string while another is open", () => {
+		const result = open(open(makeStoreWithMoviePlayer(), A), B);
+		expect(getRawOpenFiles(result)).toEqual([A, B]);
+	});
+
+	it("still skips a path string already open", () => {
+		const result = open(open(makeStoreWithMoviePlayer(), A), A);
+		expect(getRawOpenFiles(result)).toEqual([A]);
+	});
+
+	it("opens a list of path strings once each", () => {
+		const result = classicyQuickTimeMoviePlayerEventHandler(
+			makeStoreWithMoviePlayer(),
+			{
+				type: "ClassicyAppMoviePlayerOpenDocuments",
+				documents: [A, B, A] as never,
+			},
+		);
+		expect(getRawOpenFiles(result)).toEqual([A, B]);
+	});
+});

@@ -77,6 +77,12 @@
     background-color: var(--color-theme-04);
   }
 
+  // A divider between groups of items (Find File's location and date
+  // pop-ups): the menus' etched divider (_Menu.scss, Figure 6-15).
+  .classicyPopUpMenuList > .classicySeparatorHorizontal {
+    @include mixins.platinum-menu-divider;
+  }
+
   // A group's title is grayed like a disabled item.
   .classicyPopUpMenuGroupHeader {
     color: var(--color-system-05);

@@ -11,8 +11,12 @@ import {
 	PictureViewerAppInfo,
 	type PictureViewerData,
 	PictureViewerDataSchema,
+	type PictureViewerOpenFile,
 	PictureViewerOpenFileSchema,
+	pictureViewerDocumentKey,
+	pictureViewerWindowId,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
+import { recordClassicyRecentDocument } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 
 type classicyQuickTimeEvent = {
 	type: string;
@@ -42,30 +46,43 @@ export const classicyQuickTimePictureViewerEventHandler = (
 	const appData = ds.System.Manager.Applications.apps[appId]
 		.data as PictureViewerData;
 
-	const openDocUrls = appData.openFiles.map((of) =>
-		typeof of === "string" ? undefined : of.url,
-	);
+	// Each open document's key: a path string is known by its path, a URL
+	// object by its URL (a path string used to map to nothing, so a second
+	// one was skipped as already open).
+	const openDocKeys = appData.openFiles.map(pictureViewerDocumentKey);
 
 	switch (action.type) {
 		case "ClassicyAppPictureViewerOpenDocument": {
-			if (
-				action.document &&
-				Array.isArray(openDocUrls) &&
-				!openDocUrls.includes(action.document.url)
-			) {
-				appData.openFiles = [...appData.openFiles, action.document];
+			const document = action.document as unknown as
+				| PictureViewerOpenFile
+				| undefined;
+			const key = document && pictureViewerDocumentKey(document);
+			if (document && key !== undefined && !openDocKeys.includes(key)) {
+				appData.openFiles = [...appData.openFiles, document];
+				// A document open: its window opens as it mounts; a
+				// file-system path is remembered under Recent Documents.
 				openApp(
 					ds,
 					PictureViewerAppInfo.id,
 					PictureViewerAppInfo.name,
 					PictureViewerAppInfo.icon,
+					// Its window: a document is a URL object; one given as a path
+					// string (untyped callers) is a file-system path.
+					typeof document === "string"
+						? { document, windows: [pictureViewerWindowId(key)] }
+						: { windows: [pictureViewerWindowId(key)] },
 				);
 			}
 			break;
 		}
 		case "ClassicyAppPictureViewerOpenDocuments": {
 			const docs = action.documents?.filter(
-				(doc) => !openDocUrls.includes(doc.url),
+				(doc, index, all) =>
+					!openDocKeys.includes(pictureViewerDocumentKey(doc)) &&
+					all.findIndex(
+						(other) =>
+							pictureViewerDocumentKey(other) === pictureViewerDocumentKey(doc),
+					) === index,
 			);
 			if (!docs) {
 				break;
@@ -76,7 +93,13 @@ export const classicyQuickTimePictureViewerEventHandler = (
 				PictureViewerAppInfo.id,
 				PictureViewerAppInfo.name,
 				PictureViewerAppInfo.icon,
+				{
+					windows: docs.map((doc) =>
+						pictureViewerWindowId(pictureViewerDocumentKey(doc)),
+					),
+				},
 			);
+			for (const doc of docs) recordClassicyRecentDocument(ds, doc);
 			break;
 		}
 		case "ClassicyAppPictureViewerCloseDocument": {
@@ -99,6 +122,10 @@ export const classicyQuickTimePictureViewerEventHandler = (
 				PictureViewerAppInfo.id,
 				PictureViewerAppInfo.name,
 				PictureViewerAppInfo.icon,
+				{
+					document: action.path,
+					windows: [pictureViewerWindowId(action.path)],
+				},
 			);
 			break;
 		}

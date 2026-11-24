@@ -199,8 +199,10 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   true`) is cascaded to `30 + 10·n` (G18). `ClassicyWindow` always sends one.
 - `ClassicyWindowOpen` focuses a brand-new window, and a window **reopened**
   after being closed this session (`closedThisSession`, set by
-  `ClassicyWindowClose`, stripped in `sanitizeStateForPersistence`). A window
-  re-registering after a reload never steals focus.
+  `ClassicyWindowClose`, stripped in `sanitizeStateForPersistence`), and a
+  closed window reopening as it mounts in the front app while none of its
+  windows is focused (a relaunch). A window re-registering after a reload
+  never steals focus.
 - A non-modal `ClassicyWindow` that unmounts while its record is open
   dispatches `ClassicyWindowClose` on the next tick, unless a window with the
   same app+id has mounted again by then (StrictMode's phantom remount, or a
@@ -730,6 +732,123 @@ its own app hosts (same opt-out), or when it quits; it waits for its second comm
 screen covers the desktop (`useClassicyBooting`, the theme links' hold: Classicy's own power-on and
 startup screens, and a host's `bootScreen` that calls `useClassicyBootScreenActive`). HyperCard stacks cannot
 post (no scriptable action). Details: `docs/AGENT-REFERENCE.md` §4.11.
+
+### Recent Items (Apple Menu Options)
+
+The Apple menu's **Recent Applications** and **Recent Documents** (story
+0226-a6f; Mac OS 8.1 and System 7.5.3 observed on Infinite Mac) are fed by
+the kernel (`src/SystemFolder/SystemResources/RecentItems/`, store-free):
+`openApp` records an app that is really there (its `ClassicyApp` mounted,
+its record held, an `app_shortcut` icon record or an Apple-menu entry;
+never the Finder, an extension, or an app whose manifest
+says `controlPanel: true`), and every document open records through one
+helper, `recordClassicyRecentDocument`, which keeps a path only when it
+names a file of the desktop's file system (`peekClassicyFileSystemEntry`
+under the provider's `fileSystemStorageKey`, default `"classicyStorage"`,
+which every `useClassicyFileSystem()`/accessor without a key of its own
+follows too): the generic
+`ClassicyApp${name}OpenFile` queue, `routeClassicyAppOpenFile`, the Finder's
+QuickTime hand-off, the bundled apps' own open actions, and the Open dialog
+(`ClassicyFileDialog` dispatches `ClassicyDesktopRecentItemsRecordDocument`,
+so any app's Open dialog choice is one; `ClassicyFileInput`'s host files are
+not). `openApp(ds, id, name, icon, { document?, windows? })` reopens only
+windows whose `ClassicyWindow` is mounted (`ClassicyMountedWindows.internal.ts`;
+the rest reopen as they mount), and is a **document open** when either
+option is given: only the document's windows (`${id}_file_${path}`,
+`classicyDocumentWindowId`, plus `windows`) reopen and come to the front;
+a document launch holds the windows mounting with it to that rule
+(`launchedFor`, `mayClassicyWindowReopen`; never a modal or utility window),
+and its end (`ClassicyApp`'s `ClassicyAppLaunchSettled`, `settleAppLaunch`;
+session state) fails open, reopening the mounted windows when none of the
+app's held windows opened (dialogs and palettes do not count). `closeApp` (Quit) empties `data.openFiles` and runs the app's
+quit handler (`ClassicyAppQuitHandlers.internal.ts`: Web Viewer's pages,
+HyperCard's stacks); on relaunch the viewers show their sample again; PDF
+Viewer asks for a document and quits whenever it has none. `ClassicyAppClose`
+quits at once; `requestClassicyAppQuit(appId)` (`ClassicyAppQuit.ts`) runs the
+app's quit guard first (`registerClassicyAppQuitGuard`; SimpleText's and
+HyperCard's File > Quit use it); it never rejects (a guard that throws is a
+logged refusal), and a guard must always settle (one that never does holds
+its own app's requests only, until it is replaced or unregistered). SimpleText asks before closing or quitting
+with unsaved text (Mac OS 8.1's box: Don’t Save, Cancel, Save, in a movable
+modal dialog's frame, `ClassicyAlert`'s `dialogBox`), and registers a
+`beforeunload` handler while text is unsaved. A host names a document window
+`${id}_file_${path}` and dispatches its `CloseFile` on close, or passes its
+window ids to `openApp` (the window-id convention,
+`docs/AGENT-REFERENCE.md` §11). State is
+`System.Manager.Desktop.recentItems` `{ enabled, counts: { application,
+document } (0–99, default 10), items }`, persisted and normalized on load (a
+`migrateClassicyState` step); `ClassicyDesktopRecentItems{SetEnabled,SetCount,
+RecordDocument,Forget,Missing}` are routed before `ClassicyDesktop*` (off
+forgets every item; a host turns it off with a `defaultState` seed of
+`recentItems: { enabled: false }` or that action). Finder's `PathsMoved`
+moves a document's path with it, into the Trash too, where choosing it draws
+the Finder's "original item is in the trash" alert and keeps it. **The Apple
+menu's items after the About section are sorted alphabetically** (HIG7 p.98;
+each divider-delimited group on its own), the Recent entries among them; the
+submenus list the newest items up to the count, alphabetically, without
+icons. A document opens through `openClassicyFileSystemPath`
+(`File/ClassicyFileOpen.ts`, the Finder's way, reusable); a missing one draws
+the Finder's alias alert and is dropped. Hosts add items with
+`registerClassicyRecentItemsSource({ id, kind, list, subscribe? })`, merged
+by time. Recent items carry `ClassicyMenuItem.analyticsPrivate`, so no name
+reaches `track`. The Apple Menu Options control panel (`AppleMenuOptions.app`,
+counts set when a field is left) is part of `ClassicyControlPanels`.
+Details: `docs/AGENT-REFERENCE.md` §11, "Recent Items".
+
+### Find File and search sources
+
+Find File (`FindFile.app`, `src/SystemFolder/FindFile/`, mounted by
+`ClassicyDesktop`; story 0227-815; Mac OS 8.1's, observed on Infinite Mac)
+opens from the Finder's File ▸ Find… (**⌥F**, on every Finder File menu, the
+desktop's too; `ClassicyAppFindFileShowFind`) and the Apple menu. Its rows
+(`ClassicyFindCriteria.ts`: 8.1's twelve criteria and operators, plus
+visibility and name/icon lock when the criterion pop-up opens with Option;
+More Choices adds the first unused criterion, ten at most) are matched by
+`searchClassicyFileSystem` (`ClassicyFindFileSearch.ts`): async, aborted by
+its `AbortSignal`, over the live tree of the desktop's
+`fileSystemStorageKey`, under every disk and the Trash, the Desktop Folder
+or one disk (the location is kept, `data.location`; its pop-up is
+`analyticsPrivate`). Rows needing no read are checked first; a size (`fs.size`
+takes a `signal`) or contents (Option's contents criterion, `_data` only,
+never a `_url` fetch; its first 5 MiB, `CLASSICY_FIND_CONTENTS_LIMIT`,
+inflated chunk by chunk when gzip, else read as text) is read only for an
+item that passed them, at most four reads at once across the session
+(`ClassicyFindLookups.internal.ts`), under the search's signal, yielding
+every 8 ms; "is within N of" follows 8.1 as measured (N
+weeks D−7N−1…D+7N, N months of 31 days D−31N−1…D+31N, days ±N). Invisible
+items are found only by a visibility row, but invisible folders are
+searched (the Trash's items are found); the Desktop Folder counts as
+visible, and "on the desktop" lists it too. Items Found (one window,
+reused; "No items were found." leaves the last results; a failed search
+is a stop alert) lists Name/Size/Kind/Last Modified (Classicy's clock) with
+the name highlighted as the Finder's list draws it, and a path pane
+(`ClassicyListBox` options' `depth`); it is memoized, draws only the rows
+in view (`ClassicyTable`'s `windowed`/`onRowsShown`) and reads a file's
+size as its row is drawn, so a keystroke or an unrelated write redraws
+nothing. Neither window has a title-bar icon (8.1); a running search shows
+the asynchronous arrows and "Items Found:N" beside Stop. Captures:
+`packages/appearance/platinum/resources/screenshots/find-file/`. Open Item
+(⌥O) uses `openClassicyFileSystemPath` (Finder routing, recorded as a recent
+document; a folder now opens in front, `ClassicyAppFinderOpenFolder`'s
+`focus`); Open Enclosing Folder (⌥E) uses `revealClassicyFileSystemPath` →
+`ClassicyAppFinderRevealItem` (the folder's Finder window in front, the item
+selected through `ClassicyFileBrowser`'s `reveal`, `Finder.app`
+`data.reveal`, stripped from persistence and forgotten once shown,
+`ClassicyAppFinderRevealDone`, or when that window closes; a desktop item's
+icon selected),
+refusing an invisible place with 8.1's alert. Closing the last window quits.
+Hosts make their content findable with `registerClassicyFindSource({ id,
+name, icon?, search(words, { signal }) })` (`ClassicyFindSources.ts`):
+results `{ name, kind, icon?, open }`; Find File then shows Sherlock's
+Search Internet tab (both packages: a ruling, System 7.5 had no Sherlock;
+`registerClassicyFindSource(source, { labels: { tab, sites, site } })`
+renames it, its list and the site column); a new search, Stop, Quit or the
+source's `timeoutMs` (30 s) aborts it; a failing source is logged
+(`classicyLog("error", "ClassicyFindFile", …)`) and the others still show;
+each tab dims only for its own search.
+Typed words stay out of analytics (`ClassicyInput`'s `analyticsPrivate`).
+Pop-up options take `dividerBefore` (each package draws its menu divider).
+Details: `docs/AGENT-REFERENCE.md` §11, "Find File and search sources".
 
 ### Contextual Menus
 
