@@ -127,6 +127,10 @@ describe("Help menu — an app that publishes its own Help menu", () => {
 		expect(screen.getByText("About Balloon Help…")).toBeInTheDocument();
 		expect(screen.getByText("Keyboard Shortcuts…")).toBeInTheDocument();
 		expect(screen.getByText("Finder Help Item")).toBeInTheDocument();
+		// The balloon toggle is the bar's alone, listed exactly once.
+		expect(screen.getAllByText(/^(Show|Hide) Balloons?( Help)?$/)).toHaveLength(
+			1,
+		);
 	});
 });
 
