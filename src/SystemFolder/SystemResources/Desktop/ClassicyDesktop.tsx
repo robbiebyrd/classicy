@@ -26,6 +26,10 @@ import {
 	ClassicyContextualMenuProvider,
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import {
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 import {
 	ClassicyFloatingLayer,
@@ -84,7 +88,8 @@ import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/Clas
 import { markClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import {
 	type ArrowDirection,
-	nearestIconInDirection,
+	iconForArrowKey,
+	iconForTabKey,
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import {
@@ -100,6 +105,7 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import { useClassicyThemeLinkImport } from "@/SystemFolder/SystemResources/Desktop/ClassicyThemeLinkImport.internal";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import { useClassicyDesktopMarquee } from "@/SystemFolder/SystemResources/Desktop/useClassicyDesktopMarquee.internal";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	type ClassicyFileDropDestination,
@@ -111,16 +117,18 @@ import {
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
-import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import {
 	CLASSICY_TRASH_PATH,
 	emptyClassicyTrash,
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { moveClassicyFocusOutOf } from "@/SystemFolder/SystemResources/Keyboard/ClassicyTabbable.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyNotificationController } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationController.internal";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
+import { withClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/ClassicyLaunchZoom";
+import type { ClassicyZoomOrigin } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 import "../../../index.css";
 
@@ -200,13 +208,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
 	const [showAbout, setShowAbout] = useState(false);
 
-	const [selectBoxStart, setSelectBoxStart] = useState([0, 0]);
-	const [selectBoxSize, setSelectBoxSize] = useState([0, 0]);
-	const [selectBox, setSelectBox] = useState(false);
-
 	const { showContextMenu } = useClassicyContextualMenu();
-	const rafIdRef = useRef<number | null>(null);
 	const desktopRef = useRef<HTMLDivElement>(null);
+	// The selection rectangle a drag from the bare desktop draws.
+	const desktopMarquee = useClassicyDesktopMarquee(desktopRef);
 	// The elements a package lays a pattern in from a fixed origin
 	// (`layout.patternOrigin.elements`): those outside every window.
 	useClassicyPatternOriginElements(desktopRef);
@@ -388,15 +393,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		}
 	}, [desktopEventDispatch, availableThemes, appearancePackages]);
 
-	// Cancel any pending RAF on unmount to prevent state updates after teardown
-	useEffect(() => {
-		return () => {
-			if (rafIdRef.current !== null) {
-				cancelAnimationFrame(rafIdRef.current);
-			}
-		};
-	}, []);
-
 	// Cancel any pending typeahead timer on unmount
 	useEffect(() => {
 		return () => {
@@ -433,18 +429,45 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				// Delete, or ⌃⌫ (handled here so the menu bar doesn't run it twice).
 				if (trashSelectedDesktopItems()) e.preventDefault();
 			} else if (arrowKeys.includes(e.key)) {
+				// Mac OS 8.1's rules, with nothing selected too
+				// (`iconForArrowKey`).
 				e.preventDefault();
-				const currentId = selectedIcons[0];
-				if (!currentId) return;
-				const nextId = nearestIconInDirection(
+				const nextId = iconForArrowKey(
 					desktopIcons,
-					currentId,
+					selectedIcons,
 					e.key as ArrowDirection,
 				);
 				if (nextId) {
 					selectIconFromKeyboard(nextId);
 					document.getElementById(`${nextId}.shortcut`)?.focus();
 				}
+			} else if (
+				e.key === "Tab" &&
+				!e.altKey &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				desktopIcons.length > 0
+			) {
+				// Tab and Shift-Tab select by name, as the 8.1 Finder's did
+				// (`iconForTabKey`); past the last (first) name the keyboard
+				// leaves the icons for the page's next (previous) stop, where
+				// 8.1 wrapped (no keyboard trap, WCAG 2.2 SC 2.1.2).
+				const nextId = iconForTabKey(typeaheadIcons, selectedIcons, e.shiftKey);
+				if (nextId) {
+					e.preventDefault();
+					selectIconFromKeyboard(nextId);
+					document.getElementById(`${nextId}.shortcut`)?.focus();
+				} else if (
+					moveClassicyFocusOutOf(
+						Array.from(
+							desktopRef.current?.querySelectorAll<HTMLElement>(
+								":scope > .classicyDesktopIcon",
+							) ?? [],
+						),
+						e.shiftKey,
+					)
+				)
+					e.preventDefault();
 			} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 				e.preventDefault();
 				if (typePrefixTimerRef.current !== null) {
@@ -474,102 +497,30 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const startSelectBox = (e: MouseEvent<HTMLDivElement>) => {
 		if ("id" in e.target && e.target.id === "classicyDesktop") {
 			if (e.button > 1) {
+				// A right-press is the contextual-menu click, as a
+				// Control-press is (HIGOS8 p.93): it deselects too.
+				if (e.button === 2) clearActives(e);
 				toggleDesktopContextMenu(e);
 			} else {
 				desktopRef.current?.focus();
+				// The rectangle first, so Escape can restore the selection
+				// the press clears; Shift keeps it. A Control-press is the
+				// contextual-menu click (8.1): no rectangle, the menu.
+				const controlPress = isClassicyControlPress(e);
+				if (e.button === 0 && !controlPress) desktopMarquee.start(e);
 				clearActives(e);
-				selectionIconElementsRef.current =
-					document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
-				setSelectBox(true);
-				setSelectBoxStart([e.clientX, e.clientY]);
-				setSelectBoxSize([0, 0]);
+				if (controlPress) openClassicyControlPressContextMenu(e.nativeEvent);
 			}
 		}
 	};
-
-	const getNormalizedSelectRect = (
-		start: number[],
-		size: number[],
-	): DOMRect => {
-		const x = size[0] < 0 ? start[0] + size[0] : start[0];
-		const y = size[1] < 0 ? start[1] + size[1] : start[1];
-		const w = Math.abs(size[0]);
-		const h = Math.abs(size[1]);
-		return new DOMRect(x, y, w, h);
-	};
-
-	const rectsIntersect = (a: DOMRect, b: DOMRect): boolean => {
-		return (
-			a.left < b.right &&
-			a.right > b.left &&
-			a.top < b.bottom &&
-			a.bottom > b.top
-		);
-	};
-
-	// Cache icon NodeList for the duration of a selection drag
-	const selectionIconElementsRef = useRef<NodeListOf<HTMLDivElement> | null>(
-		null,
-	);
-
-	const getIconsInSelectBox = (
-		boxStart: number[],
-		boxSize: number[],
-	): string[] => {
-		const selectRect = getNormalizedSelectRect(boxStart, boxSize);
-		const selectedIds: string[] = [];
-		const iconElements =
-			selectionIconElementsRef.current ??
-			document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
-		iconElements.forEach((el) => {
-			const iconRect = el.getBoundingClientRect();
-			if (rectsIntersect(selectRect, iconRect)) {
-				const iconId = el.id.replace(/\.shortcut$/, "");
-				selectedIds.push(iconId);
-			}
-		});
-		return selectedIds;
-	};
-
-	const resizeSelectBox = (e: MouseEvent<HTMLDivElement>) => {
-		if (!selectBox) return;
-		const x = e.clientX;
-		const y = e.clientY;
-		if (rafIdRef.current !== null) {
-			cancelAnimationFrame(rafIdRef.current);
-		}
-		rafIdRef.current = requestAnimationFrame(() => {
-			const newSize = [x - selectBoxStart[0], y - selectBoxStart[1]];
-			setSelectBoxSize(newSize);
-
-			const selectedIds = getIconsInSelectBox(selectBoxStart, newSize);
-			desktopEventDispatch({
-				type: "ClassicyDesktopIconSelectBox",
-				iconIds: selectedIds,
-			});
-
-			rafIdRef.current = null;
-		});
-	};
-
-	const clearSelectBox = () => {
-		selectionIconElementsRef.current = null;
-		setSelectBoxSize([0, 0]);
-		setSelectBoxStart([0, 0]);
-		setSelectBox(false);
-	};
-
-	// The pointer stream lost mid-selection (the window blurred, a
-	// pointercancel, the page hidden): the rectangle ends where it is, as a
-	// release would end it, keeping the icons it selected.
-	useClassicyPointerStreamLost(selectBox, clearSelectBox);
 
 	const clearActives = (e: MouseEvent<HTMLDivElement>) => {
-		clearSelectedIcons();
+		if (!e.shiftKey) clearSelectedIcons();
 		desktopEventDispatch({
 			type: "ClassicyDesktopFocus",
 			e: e,
 			menuBar: defaultMenuItems,
+			keepSelection: e.shiftKey,
 		});
 	};
 
@@ -739,8 +690,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		[currentTheme, layoutVars, assetVars, style],
 	);
 
+	// The icon's zoom origin: a folder's window zooms out of it (the icon
+	// left the source), an application a file starts zooms to the desktop.
 	const openDesktopItem = useCallback(
-		(path: string) => {
+		(path: string, origin?: ClassicyZoomOrigin) => {
 			const entry = getFileSystem().resolve(path);
 			if (!entry) return;
 			if (
@@ -749,11 +702,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			) {
 				desktopEventDispatch({ type: "ClassicyAppFinderOpenFolder", path });
 			} else {
-				desktopEventDispatch({
-					type: "ClassicyAppFinderOpenFile",
-					file: entry,
-					path,
-				});
+				withClassicyLaunchZoom(origin, () =>
+					desktopEventDispatch({
+						type: "ClassicyAppFinderOpenFile",
+						file: entry,
+						path,
+					}),
+				);
 			}
 		},
 		[getFileSystem, desktopEventDispatch],
@@ -785,32 +740,14 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				{ classicyDesktopSplitArrows: smartScrolling === false },
 				className,
 			)}
-			onMouseMove={resizeSelectBox}
 			onContextMenu={toggleDesktopContextMenu}
-			onMouseUp={clearSelectBox}
 			onMouseDown={startSelectBox}
 			onKeyDown={handleKeyDown}
 			{...{ [CLASSICY_DROP_DESKTOP_ATTRIBUTE]: "" }}
 		>
 			{/* The one floating layer (extension windows float in it). */}
 			<ClassicyFloatingLayer />
-			{selectBox && (
-				<div
-					className={"classicyDesktopSelect"}
-					style={{
-						left: Math.min(
-							selectBoxStart[0],
-							selectBoxStart[0] + selectBoxSize[0],
-						),
-						top: Math.min(
-							selectBoxStart[1],
-							selectBoxStart[1] + selectBoxSize[1],
-						),
-						width: Math.abs(selectBoxSize[0]),
-						height: Math.abs(selectBoxSize[1]),
-					}}
-				/>
-			)}
+			{desktopMarquee.marquee}
 			<ClassicyDesktopMenuBar />
 			<Finder />
 			<AppleGuide />

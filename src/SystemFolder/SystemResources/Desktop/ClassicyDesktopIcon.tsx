@@ -16,6 +16,11 @@ import {
 	useClassicyBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import {
+	isClassicyContextualPress,
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
 import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import { takeClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
@@ -47,6 +52,12 @@ import {
 	useState,
 } from "react";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { withClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/ClassicyLaunchZoom";
+import {
+	type ClassicyZoomOrigin,
+	classicyZoomOriginOf,
+	noteClassicyWindowZoomSource,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 interface ClassicyDesktopIconProps {
 	/**
@@ -125,9 +136,11 @@ interface ClassicyDesktopIconProps {
 	/**
 	 * Open a file-backed icon's item (a folder in Finder, a file in its app).
 	 * Called with `filePath` when a non-drive file-backed icon is opened, in
-	 * addition to `onClickFunc`/`event`. `ClassicyDesktop` supplies it.
+	 * addition to `onClickFunc`/`event`, and the icon's zoom origin (its
+	 * image's box and desktop, `classicyZoomOriginOf`). `ClassicyDesktop`
+	 * supplies it.
 	 */
-	onOpenFilePath?: (path: string) => void;
+	onOpenFilePath?: (path: string, origin?: ClassicyZoomOrigin) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/**
@@ -219,6 +232,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			]);
 			const [dragging, setDragging] = useState<boolean>(false);
 			const didDragRef = useRef(false);
+			// Whether the current press became a Finder (file) drag: the click
+			// ending it over the icon is no click, so a selection dragged
+			// together stays selected (Mac OS 8.1). Cleared at each press.
+			const fileDraggedRef = useRef(false);
 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
@@ -306,8 +323,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const clickFocus = (e: MouseEvent<HTMLDivElement>) => {
 				e.stopPropagation();
-				if (didDragRef.current) {
+				// The click ending a drag is no click; a keyboard's or a
+				// script's (`detail` 0) never is a drag's.
+				if ((didDragRef.current || fileDraggedRef.current) && e.detail > 0) {
 					didDragRef.current = false;
+					fileDraggedRef.current = false;
 					selectedOnPressRef.current = false;
 					return;
 				}
@@ -355,11 +375,18 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const launchIcon = () => {
 				// A double-click or Enter/Space.
 				appearance.emit("open", withClassicyAppearanceInput());
+				// Zoom rectangles (ClassicyZoomRects.ts): a Finder folder's
+				// window not open yet zooms out of this icon when it opens.
+				const origin = classicyZoomOriginOf(iconRef.current);
+				if (typeof finderFolderPath === "string" && !finderPathWindowOpen) {
+					noteClassicyWindowZoomSource("Finder.app", finderFolderPath, origin);
+				}
 				if (onClickFunc) {
 					onClickFunc();
 				}
 				if (filePath !== undefined && draggedAsFile(kind, filePath)) {
-					onOpenFilePath?.(filePath);
+					if (origin) onOpenFilePath?.(filePath, origin);
+					else onOpenFilePath?.(filePath);
 				}
 				if (event && eventData) {
 					desktopEventDispatch({
@@ -369,15 +396,18 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				}
 				track("open", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				if (!noLaunch) {
-					desktopEventDispatch({
-						type: "ClassicyDesktopIconOpen",
-						iconId: id,
-						app: {
-							id: appId,
-							name: appName,
-							icon: icon,
-						},
-					});
+					// An application this starts zooms out of its icon.
+					withClassicyLaunchZoom(origin, () =>
+						desktopEventDispatch({
+							type: "ClassicyDesktopIconOpen",
+							iconId: id,
+							app: {
+								id: appId,
+								name: appName,
+								icon: icon,
+							},
+						}),
+					);
 				}
 			};
 
@@ -463,6 +493,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 				track("move", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				didDragRef.current = false;
+				fileDraggedRef.current = false;
 
 				// If icon is not already selected, select just this one for the drag
 				selectedOnPressRef.current = !isSelected;
@@ -473,6 +504,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					});
 					selectReportedRef.current = true;
 					appearance.emit("select", withClassicyAppearanceInput());
+				}
+
+				// The contextual-menu click (a Control-press or a right-press,
+				// HIGOS8 p.93): selected as above, never dragged, and the menu
+				// (`ClassicyContextualPress.internal.ts`; Mac OS 8.1).
+				if (isClassicyContextualPress(e)) {
+					if (isClassicyControlPress(e))
+						openClassicyControlPressContextMenu(e.nativeEvent);
+					return;
 				}
 
 				if (draggedAsFile(kind, filePath)) {
@@ -518,12 +558,19 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: [];
 				});
 				const start: [number, number] = [e.clientX, e.clientY];
+				const dragCallbacks = classicyFileDragAppearanceCallbacks(
+					appearance.emit,
+				);
 				const abandon = startClassicyFileDrag({
 					start: { clientX: start[0], clientY: start[1] },
 					parts,
 					source: iconRef.current,
 					// The outline drags, not the icon: `dragging` stays off.
-					...classicyFileDragAppearanceCallbacks(appearance.emit),
+					...dragCallbacks,
+					onStart: () => {
+						fileDraggedRef.current = true;
+						dragCallbacks.onStart();
+					},
 					onDrop: (target, point) => {
 						if (!target) return;
 						track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
@@ -584,7 +631,13 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
 						if (e.defaultPrevented) return;
 						e.preventDefault();
-						clickFocus(e); // selects the icon and stops propagation
+						// Selects an unselected icon alone; a selection the icon is
+						// in is kept, as Mac OS 8.1's contextual click keeps it.
+						// Either way the event stops here.
+						if (isSelected) {
+							e.stopPropagation();
+							iconRef.current?.focus({ preventScroll: true });
+						} else clickFocus(e);
 						if (contextMenu && contextMenu.length > 0) {
 							showContextMenu(contextMenu, [e.clientX, e.clientY]);
 						}
@@ -618,7 +671,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							}
 						>
 							<div className={"classicyDesktopIconMask"}>
-								<img src={iconImage} alt={identity.name} />
+								{/* Not natively draggable: Firefox would start an HTML
+								    drag of the image and stop the icon's mousemoves. */}
+								<img src={iconImage} alt={identity.name} draggable={false} />
 							</div>
 						</div>
 						{isAlias && (
@@ -633,7 +688,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 								}
 							>
 								<div className={"classicyDesktopIconMask"}>
-									<img src={aliasBadge} alt="" aria-hidden="true" />
+									<img
+										src={aliasBadge}
+										alt=""
+										aria-hidden="true"
+										draggable={false}
+									/>
 								</div>
 							</div>
 						)}

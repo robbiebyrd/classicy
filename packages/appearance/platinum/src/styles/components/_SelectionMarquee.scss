@@ -1,0 +1,20 @@
+// The selection rectangle: the core's `selection-marquee` part
+// (useClassicyMarqueeSelection.internal.ts), on the desktop and in a file
+// browser, drawn as the Mac OS 8.1 Finder drew it (Infinite Mac captures,
+// story 0228-e9l): a two-pixel frame of the 50% checker drawn in XOR, so it
+// inverts the pixels it covers where x + y is odd on the screen, black over a
+// white window, white over a selected (black) label
+// (`platinum-xor-checker-frame`, shared with the zoom rectangles). Over the
+// desktop's #B3B3DA QuickDraw drew #5454B3; a color here inverts as RGB
+// does. A side cut at a window's edge is clipped by the core's clip box,
+// never framed.
+//
+// Knobs: `selectionMarquee.width`, the pen (2), and `selectionMarquee.tileSize`,
+// the checker's tile (2, for one-pixel cells).
+@use "../mixins";
+
+@mixin selectionMarquee {
+  [data-classicy-part="selection-marquee"] {
+    @include mixins.platinum-xor-checker-frame(var(--selection-marquee-width), var(--selection-marquee-tile-size));
+  }
+}

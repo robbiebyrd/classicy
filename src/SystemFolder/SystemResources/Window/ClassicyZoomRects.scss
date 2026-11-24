@@ -1,0 +1,23 @@
+// Zoom rectangles (ClassicyZoomRects.ts): where they sit, never how they
+// look. The active Appearance Package draws each one, on
+// `[data-classicy-part="zoom-rect"]`.
+//
+// The layer covers the desktop (the Classicy screen) and makes no stacking
+// context (no z-index, opacity, transform or isolation), so each rectangle
+// stacks in the desktop's own context and blends with what lies under it.
+.classicyZoomRects {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+// Over every window, the menu bar, the Control Strip and contextual menus
+// (the Drag Manager's ZoomRects drew on the whole screen), under open
+// pull-down menus (5000) and dialogs' scrims. It never takes the pointer.
+.classicyZoomRect {
+  position: absolute;
+  z-index: 1000;
+  box-sizing: border-box;
+  pointer-events: none;
+}

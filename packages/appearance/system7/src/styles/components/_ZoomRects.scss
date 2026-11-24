@@ -1,0 +1,18 @@
+// The zoom rectangles: the core's `zoom-rect` part (ClassicyZoomRects.ts),
+// drawn as the System 7.5 Finder drew them from an icon to its window and
+// back (Infinite Mac captures, story 0230-n6c, Platinum's
+// `resources/screenshots/zoom-rects/system-7.5/`): a one-pixel frame of the
+// 50% checker drawn in XOR (`xor-checker-frame`, the selection rectangle's
+// pen). Mac OS 8's frame is two pixels. The 7.5 Finder drew every step of
+// the path and kept four at a time: the `zoomRects` knobs `firstStep` 0 and
+// `trail` 4, read by the core; `enabled` 1 opts System 7 in.
+//
+// Knobs: `zoomRects.width`, the pen (1), and `zoomRects.tileSize`, the
+// checker's tile (2, for one-pixel cells).
+@use "../checkerFrame";
+
+@mixin zoom-rects {
+  [data-classicy-part="zoom-rect"] {
+    @include checkerFrame.xor-checker-frame(var(--zoom-rects-width), var(--zoom-rects-tile-size));
+  }
+}

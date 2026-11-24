@@ -247,6 +247,20 @@
 			},
 			"dither": {
 				"tileSize": 0
+			},
+			"selectionMarquee": {
+				"width": 2,
+				"tileSize": 2
+			},
+			"zoomRects": {
+				"enabled": 1,
+				"steps": 11,
+				"growthPercent": 140,
+				"firstStep": 5,
+				"trail": 0,
+				"rate": 60,
+				"width": 2,
+				"tileSize": 2
 			}
 		},
 		"desktop": {

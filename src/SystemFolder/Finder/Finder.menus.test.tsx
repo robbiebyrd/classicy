@@ -6,6 +6,7 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { FinderData } from "@/SystemFolder/Finder/FinderContext";
+import { findMenuItemByShortcut } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 
@@ -170,10 +171,21 @@ describe("Finder folder-window menu bar", () => {
 		expect(selectAll).toHaveBeenCalledTimes(1);
 	});
 
-	it("disables Select All outside the list view and re-enables it inside", async () => {
+	it("offers Select All in both views (story 0228-e9l: the icon view keeps a selection)", async () => {
 		await openDocuments();
-		// No stored entry: the window opens in list, so the command is live.
-		expect(editItem("Select All")?.disabled).toBe(false);
+		// No stored entry: the window opens in list.
+		expect(editItem("Select All")).toBeDefined();
+		expect(editItem("Select All")?.disabled).toBeFalsy();
+		// The browser's own key, as every editing command: the app-wide
+		// dispatcher leaves it to the focused view (or a text field).
+		expect(editItem("Select All")?.keyboardShortcut).toBe("⌘A");
+		expect(editItem("Select All")?.nativeShortcut).toBe(true);
+		expect(
+			findMenuItemByShortcut(
+				[editItem("Select All") as ClassicyMenuItem],
+				new KeyboardEvent("keydown", { key: "a", metaKey: true }),
+			),
+		).toBeUndefined();
 
 		act(() => {
 			dispatch({
@@ -183,19 +195,9 @@ describe("Finder folder-window menu bar", () => {
 			});
 		});
 		await waitFor(() => {
-			expect(editItem("Select All")?.disabled).toBe(true);
+			expect(editItem("Select All")).toBeDefined();
 		});
-
-		act(() => {
-			dispatch({
-				type: "ClassicyAppFinderSetFolderView",
-				path: DOCUMENTS_PATH,
-				viewType: "list",
-			});
-		});
-		await waitFor(() => {
-			expect(editItem("Select All")?.disabled).toBe(false);
-		});
+		expect(editItem("Select All")?.disabled).toBeFalsy();
 	});
 });
 

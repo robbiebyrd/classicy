@@ -7,6 +7,7 @@ import {
 	type MouseEvent,
 	type RefObject,
 	useCallback,
+	useEffect,
 	useImperativeHandle,
 	useLayoutEffect,
 	useRef,
@@ -24,6 +25,10 @@ import {
 } from "@/SystemFolder/Finder/FinderViewOptions";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
+	ClassicyFileBrowserListMarqueeContext,
+	useClassicyFileBrowserListMarquee,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
+import {
 	type ClassicyFileBrowserMoveItems,
 	ClassicyFileBrowserViewIcons,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
@@ -35,6 +40,7 @@ import {
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import type { ClassicyZoomOrigin } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 /** Commands a host (e.g. a window's menu) can run on a file browser. */
 export type ClassicyFileBrowserCommands = {
@@ -51,10 +57,18 @@ type ClassicyFileBrowserProps = {
 	appId: string;
 	/** `"icons"` (free-form icon view) or `"list"` (sortable list view). Defaults to `"icons"`. */
 	display?: "icons" | "list";
-	/** Called with a folder's full path when it is opened (double-click; Return in the list view). */
-	dirOnClickFunc?: (path: string) => void;
-	/** Called with a file's full path when it is opened (double-click; Return in the list view). */
-	fileOnClickFunc?: (path: string) => void;
+	/**
+	 * Called with a folder's full path when it is opened (double-click; Return
+	 * in the list view), and the zoom origin of the item it was opened from
+	 * (its icon's box and desktop), for a window it opens to zoom out of it
+	 * (`noteClassicyWindowZoomSource`).
+	 */
+	dirOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
+	/**
+	 * Called with a file's full path when it is opened (double-click; Return
+	 * in the list view), and the item's zoom origin, as `dirOnClickFunc`.
+	 */
+	fileOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
 	/**
 	 * When set, files whose `_createdOn` is after this moment are hidden from
 	 * the listing. Pass the current Classicy date/time to hide "future" files.
@@ -82,7 +96,11 @@ type ClassicyFileBrowserProps = {
 	/** The in-world "now" for relative dates, already converted to the
 	 *  virtual clock's local frame. Omitted means real time. List view only. */
 	now?: Date;
-	/** Receives the list view's `{ selectAll }` handle (e.g. for Select All). List view only. */
+	/**
+	 * Receives the browser's `{ selectAll, select }` handle on the selection
+	 * of the view it shows (the list's rows or the icon view's icons), e.g.
+	 * for Edit → Select All.
+	 */
 	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
 	/** Controlled selection by row path. Omit for uncontrolled. List view only. */
 	selectedPaths?: string[];
@@ -90,9 +108,10 @@ type ClassicyFileBrowserProps = {
 	onSelectionChange?: (paths: string[]) => void;
 	/**
 	 * Receives the element keyboard navigation acts on — the list view's
-	 * focusable list box — so a hosting window can focus it (pass the same ref
-	 * as ClassicyWindow's `initialFocusRef`). The icon view has no single
-	 * keyboard target, so the ref stays `null` there.
+	 * focusable list box, or the icon view's icons' holder (focusable from
+	 * code only) — so a hosting window can focus it (pass the same ref as
+	 * ClassicyWindow's `initialFocusRef`): Select All, Delete and the arrow
+	 * keys then act on the browser without a click first.
 	 */
 	focusTargetRef?: RefObject<HTMLDivElement | null>;
 	/**
@@ -217,8 +236,61 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		[currentSelection],
 	);
 
+	// The views' own handles on their selections (the list's table, the
+	// icon view's), lent to the host's `selectionApiRef`: Select All and the
+	// list's selection rectangle select through them.
+	const tableApiRef = useRef<ClassicyTableSelectionApi | null>(null);
+	const iconsApiRef = useRef<ClassicyTableSelectionApi | null>(null);
+	useEffect(() => {
+		if (!selectionApiRef) return;
+		const view = display === "list" ? tableApiRef : iconsApiRef;
+		selectionApiRef.current = {
+			selectAll: () => view.current?.selectAll(),
+			select: (ids) => view.current?.select?.(ids),
+		};
+		return () => {
+			selectionApiRef.current = null;
+		};
+	}, [selectionApiRef, display]);
+	// The icon view's keyboard target is its icons' holder (the list's is
+	// its list box, which the table hands the ref itself).
+	useLayoutEffect(() => {
+		if (!focusTargetRef || display !== "icons") return;
+		const holder = holderRef.current;
+		focusTargetRef.current = holder;
+		return () => {
+			if (focusTargetRef.current === holder) focusTargetRef.current = null;
+		};
+	}, [focusTargetRef, display]);
+	const listMarquee = useClassicyFileBrowserListMarquee({
+		rootRef,
+		enabled: display === "list",
+		getSelection: () => listSelectionRef.current,
+		select: (paths) => tableApiRef.current?.select?.(paths),
+	});
+
 	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-		if (!onDeleteItems || e.defaultPrevented) return;
+		if (e.defaultPrevented) return;
+		// Select All on the browser's own key (⌘A, or Ctrl-A where that is the
+		// browser's): every icon or row, as the Edit menu's Select All, which
+		// is marked native and so leaves the key to the view with focus. In a
+		// text field the browser selects the field's text instead. (The list
+		// view's table takes the key itself when it has focus.)
+		if (
+			(e.metaKey || e.ctrlKey) &&
+			!e.altKey &&
+			!e.shiftKey &&
+			e.key.toLowerCase() === "a"
+		) {
+			const field = (e.target as HTMLElement).closest(
+				"input, textarea, [contenteditable='true']",
+			);
+			if (field) return;
+			e.preventDefault();
+			(display === "list" ? tableApiRef : iconsApiRef).current?.selectAll();
+			return;
+		}
+		if (!onDeleteItems) return;
 		if (e.key !== "Backspace" && e.key !== "Delete") return;
 		if (e.altKey || e.shiftKey) return;
 		const target = e.target as HTMLElement;
@@ -292,37 +364,39 @@ export const ClassicyFileBrowser: FunctionalComponent<
 			onContextMenu={onContextMenu}
 		>
 			{display === "list" ? (
-				<ClassicyFileBrowserViewTable
-					onMoveItems={onMoveItems}
-					fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
-					dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
-					fs={fs}
-					path={path}
-					appId={appId}
-					// The literal `18` fallback is deliberate: with no options passed
-					// the component renders as it always has (whatever the theme's
-					// base), unless the look gives the medium step its own size.
-					iconSize={
-						listViewOptions
-							? listViewIconSize(
-									desktopIconSize,
-									listViewOptions.iconSize,
-									packageListIconSize,
-								)
-							: packageListIconSize > 0
-								? packageListIconSize
-								: 18
-					}
-					holderRef={holderRef}
-					hideFilesCreatedAfter={hideFilesCreatedAfter}
-					showInvisible={showInvisible}
-					listViewOptions={listViewOptions}
-					now={now}
-					selectionApiRef={selectionApiRef}
-					selectedPaths={selectedPaths}
-					onSelectionChange={trackListSelection}
-					focusTargetRef={focusTargetRef}
-				/>
+				<ClassicyFileBrowserListMarqueeContext.Provider value={true}>
+					<ClassicyFileBrowserViewTable
+						onMoveItems={onMoveItems}
+						fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
+						dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
+						fs={fs}
+						path={path}
+						appId={appId}
+						// The literal `18` fallback is deliberate: with no options passed
+						// the component renders as it always has (whatever the theme's
+						// base), unless the look gives the medium step its own size.
+						iconSize={
+							listViewOptions
+								? listViewIconSize(
+										desktopIconSize,
+										listViewOptions.iconSize,
+										packageListIconSize,
+									)
+								: packageListIconSize > 0
+									? packageListIconSize
+									: 18
+						}
+						holderRef={holderRef}
+						hideFilesCreatedAfter={hideFilesCreatedAfter}
+						showInvisible={showInvisible}
+						listViewOptions={listViewOptions}
+						now={now}
+						selectionApiRef={tableApiRef}
+						selectedPaths={selectedPaths}
+						onSelectionChange={trackListSelection}
+						focusTargetRef={focusTargetRef}
+					/>
+				</ClassicyFileBrowserListMarqueeContext.Provider>
 			) : (
 				<ClassicyFileBrowserViewIcons
 					onMoveItems={onMoveItems}
@@ -335,8 +409,10 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					hideFilesCreatedAfter={hideFilesCreatedAfter}
 					showInvisible={showInvisible}
 					iconViewOptions={iconViewOptions}
+					selectionApiRef={iconsApiRef}
 				/>
 			)}
+			{listMarquee}
 		</div>
 	);
 };

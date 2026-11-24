@@ -29,14 +29,18 @@ import {
 const CORE_FIVE = ["window", "control", "button", "groupBox", "layout"];
 
 // The knobs off the floor (AGENT-REFERENCE §8, "Structural: no"): only the
-// optional ones the file browser's list view reads with a fallback (HIGOS8
-// Figure 2-24), since a floor value would size every package's list. Every
-// knob Platinum's own partials read without a fallback is on the floor too,
-// since story 0225-ci7: `ChangeTheme` may draw any package's theme under
-// Platinum (ClassicyPlatinumKnobReads.test.ts).
+// optional ones, read with a fallback: the file browser's list view's (HIGOS8
+// Figure 2-24), since a floor value would size every package's list, and the
+// zoom rectangles' opt-in, a package's own (ClassicyZoomRects.ts reads it
+// with a fallback of 0, so a package that draws no rectangles has no zoom;
+// story 0230-n6c). Every knob Platinum's own partials read without a
+// fallback is on the floor too, since story 0225-ci7: `ChangeTheme` may draw
+// any package's theme under Platinum (ClassicyPlatinumKnobReads.test.ts),
+// the selection and zoom rectangles' pens and checkers included.
 const LOOK_ONLY = [
 	"fileBrowserList.mediumIconSize",
 	"fileBrowserList.rowPadding",
+	"zoomRects.enabled",
 ];
 
 const platinumMeasurements = platinumJson.defaults.measurements as Record<
@@ -98,12 +102,12 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 
 	it("holds exactly the knobs AGENT-REFERENCE §8 marks structural", () => {
 		const documented = documentedKnobs();
-		expect(documented.size).toBe(107);
+		expect(documented.size).toBe(117);
 		const structural = [...documented]
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)
 			.sort();
-		expect(structural).toHaveLength(105);
+		expect(structural).toHaveLength(114);
 		const knobs = leaves(CLASSICY_CORE_MEASUREMENT_DEFAULTS)
 			.filter((path) => !CORE_FIVE.includes(path.split(".")[0]))
 			.sort();

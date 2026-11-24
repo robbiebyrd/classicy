@@ -11,6 +11,7 @@ import {
 	memo,
 	type RefObject,
 	useCallback,
+	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -22,6 +23,10 @@ import {
 	asFinderDate,
 	formatFinderDate,
 } from "@/SystemFolder/Finder/FinderViewOptions";
+import {
+	ClassicyFileBrowserListMarqueeContext,
+	isClassicyFileBrowserListBlank,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
@@ -50,6 +55,10 @@ import {
 	type ClassicyTableSelectionApi,
 } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
+import {
+	type ClassicyZoomOrigin,
+	classicyZoomOriginForPath,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 /**
  * A directory-list row. Mirrors the file-system metadata but adds `subRows`,
@@ -80,8 +89,8 @@ type ClassicyFileBrowserViewTableProps = {
 	path: string;
 	appId: string;
 	iconSize?: number;
-	dirOnClickFunc?: (path: string) => void;
-	fileOnClickFunc?: (path: string) => void;
+	dirOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
+	fileOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
 	/** List entries marked `_invisible`. Defaults to true. */
@@ -222,14 +231,23 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// Takes the row's own full path rather than rebuilding one from the
 			// table's `path` prop: disclosed rows can sit several levels below it,
 			// and rebuilding would drop the intervening directories.
+			//
+			// The row's icon is its zoom origin, for a window it opens: the
+			// row the table activated, found by its path in this list (in the
+			// document, for a table given no container ref).
 			const openFileOrFolder = (
 				properties: ClassicyFileSystemEntryMetadata,
 				entryPath: string,
 			) => {
-				if (properties._type === "directory") {
-					return dirOnClickFunc(entryPath);
-				}
-				return fileOnClickFunc(entryPath);
+				const scope =
+					focusTargetRef?.current ??
+					(typeof document === "undefined" ? null : document);
+				const origin = scope
+					? classicyZoomOriginForPath(scope, entryPath)
+					: undefined;
+				const open =
+					properties._type === "directory" ? dirOnClickFunc : fileOnClickFunc;
+				return origin ? open(entryPath, origin) : open(entryPath);
 			};
 
 			// Folder sizes resolve asynchronously; cache them by path so a rebuild of
@@ -332,6 +350,11 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				};
 			}, [data, fs, sizes, computeFolderSizes]);
 
+			// Inside a ClassicyFileBrowser, which starts its selection
+			// rectangle from a press beside a row's icon and name.
+			const marqueeBesideNames = useContext(
+				ClassicyFileBrowserListMarqueeContext,
+			);
 			const columns = useMemo<ClassicyTableColumn<FileRow>[]>(() => {
 				const cols: ClassicyTableColumn<FileRow>[] = [
 					{
@@ -347,9 +370,25 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 								row._path
 									? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }
 									: {})}
-								onMouseDown={(e) =>
-									row._path && startRowDrag(e, row._path, expansion.emitDrag)
-								}
+								onMouseDown={(e) => {
+									// A press beside the icon and name starts the
+									// browser's selection rectangle, not a drag
+									// (alone, with no browser around it, it drags),
+									// and a Control-press is the browser's
+									// contextual-menu click, never a drag.
+									if (
+										marqueeBesideNames &&
+										(e.ctrlKey ||
+											(e.target instanceof Element &&
+												isClassicyFileBrowserListBlank(
+													e.target,
+													e.clientX,
+													e.clientY,
+												)))
+									)
+										return;
+									if (row._path) startRowDrag(e, row._path, expansion.emitDrag);
+								}}
 								style={{
 									paddingLeft: `calc(var(--window-control-size) * ${expansion.depth})`,
 								}}
@@ -385,6 +424,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 									width={iconSize}
 									alt={row._path}
 									className={"classicyFileBrowserViewTableRowIcon"}
+									// Firefox would start an HTML drag of the image
+									// and stop the row drag's mousemoves.
+									draggable={false}
 									selectable
 									selected={expansion.selected === true}
 								/>
@@ -488,6 +530,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				relativeDates,
 				computeFolderSizes,
 				startRowDrag,
+				marqueeBesideNames,
 			]);
 
 			return (

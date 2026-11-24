@@ -289,7 +289,10 @@ export const classicyDesktopEventHandler = (
 				(action.e.target as Record<string, unknown>).id === "classicyDesktop"
 			) {
 				markAppFocused(ds, "Finder.app");
-				ds.System.Manager.Desktop.selectedIcons = [];
+				// A Shift-press keeps the selection: the rectangle it starts
+				// toggles icons against it.
+				if (action.keepSelection !== true)
+					ds.System.Manager.Desktop.selectedIcons = [];
 				ds.System.Manager.Desktop.selectBox.active = true;
 				ds.System.Manager.Desktop.selectBox.start = [
 					action.e.clientX,

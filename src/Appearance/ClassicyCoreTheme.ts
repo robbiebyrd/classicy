@@ -25,16 +25,19 @@ const deepFreeze = <T>(value: T): Readonly<T> => {
  * The measurements every theme is completed with, whatever its package
  * (`classicyThemeMeasurementDefaults` merges the registered package's own
  * values over these): the core five families (`CLASSICY_DEFAULT_THEME_METRICS`)
- * and every structural knob ("Structural: yes", AGENT-REFERENCE §8), the 105
- * knobs a base stylesheet (`classicy.base`), component code or the SCSS
- * vocabulary (`dither.tileSize`) reads, and those Platinum's own partials
- * read without a fallback: `ChangeTheme` may draw any package's theme under
- * Platinum, whose sheet then reads that theme's variables (story 0225-ci7:
- * the menu marks' grid, the checkbox's, the slider, the menu frame, the
- * scroll-bar grip, the windoid texture, the Control Strip's bevel and the
- * QuickTime caption's shadow). Only Platinum's two optional
- * `fileBrowserList` knobs, which the file browser reads with a fallback,
- * stay in its `platinum.json` alone. Frozen all the way down.
+ * and every structural knob ("Structural: yes", AGENT-REFERENCE §8), the 114
+ * knobs a base stylesheet (`classicy.base`), component code (the `zoomRects`
+ * path and pace) or the SCSS vocabulary (`dither.tileSize`) reads, and those
+ * Platinum's own partials read without a fallback: `ChangeTheme` may draw
+ * any package's theme under Platinum, whose sheet then reads that theme's
+ * variables (story 0225-ci7: the menu marks' grid, the checkbox's, the
+ * slider, the menu frame, the scroll-bar grip, the windoid texture, the
+ * Control Strip's bevel and the QuickTime caption's shadow; stories 0228-e9l
+ * and 0230-n6c: the selection and zoom rectangles' pens and checkers). Only
+ * Platinum's three optional knobs stay in its `platinum.json` alone: the two
+ * `fileBrowserList` knobs, which the file browser reads with a fallback, and
+ * `zoomRects.enabled`, the zoom rectangles' opt-in, a package's own (read
+ * with a fallback of 0). Frozen all the way down.
  */
 export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasurements> =
 	deepFreeze({
@@ -190,6 +193,27 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		},
 		// The dither vocabulary's switch (`_dither.scss`): 0 is plain ink.
 		dither: { tileSize: 0 },
+		// The selection rectangle's pen and checker, Platinum's
+		// (_SelectionMarquee.scss), on the floor for 0225-ci7's reason: a
+		// theme of another package drawn under Platinum still draws it
+		// (story 0228-e9l).
+		selectionMarquee: { width: 2, tileSize: 2 },
+		// The zoom rectangles' path and pace (ClassicyZoomRects.ts): Mac OS
+		// 8.1's, the six steps nearest the window of an 11-step path, each
+		// 1.4 times the last, one a tick, all kept to the end; and their pen
+		// and checker, Platinum's (_ZoomRects.scss), for the same reason as
+		// the selection rectangle's. Not `enabled`: a package opts in with
+		// its own knob (read with a fallback of 0), as it must also draw the
+		// rectangles (story 0230-n6c).
+		zoomRects: {
+			steps: 11,
+			growthPercent: 140,
+			firstStep: 5,
+			trail: 0,
+			rate: 60,
+			width: 2,
+			tileSize: 2,
+		},
 	});
 
 /**

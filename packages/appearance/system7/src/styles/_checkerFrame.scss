@@ -1,0 +1,21 @@
+// A frame of the 50% checker drawn in XOR, `$width` wide, its cells
+// `$tile-size` / 2 on a side: the System 7.5 Finder's dotted pens, the
+// selection rectangle (`components/_SelectionMarquee.scss`) and the zoom
+// rectangles (`components/_ZoomRects.scss`). The inversion is `difference`
+// with white, exact in the 1-bit theme (in color QuickDraw's XOR inverted
+// the pixel's palette index, which no blend reproduces: over the desktop
+// pattern's #AAAAAA cells it drew #CCCCCC, so a color inverts as RGB does).
+// The checker is laid from the corner the core publishes on the part
+// (`--classicy-pattern-origin-x` / `-y`), the desktop's, as QuickDraw laid
+// the pattern from the screen's: its white cells at odd x + y.
+@mixin xor-checker-frame($width, $tile-size) {
+  padding: $width;
+  background: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0);
+  background-position: var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y);
+  background-size: $tile-size $tile-size;
+  mask:
+    linear-gradient(var(--color-black), var(--color-black)) content-box,
+    linear-gradient(var(--color-black), var(--color-black));
+  mask-composite: exclude;
+  mix-blend-mode: difference;
+}

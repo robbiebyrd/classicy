@@ -72,7 +72,14 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import { withClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/ClassicyLaunchZoom";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import {
+	type ClassicyZoomOrigin,
+	classicyZoomOriginForPath,
+	noteClassicyWindowZoomSource,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
+import { skipClassicyWindowCloseZoom } from "@/SystemFolder/SystemResources/Window/ClassicyZoomSources.internal";
 
 type FinderWindowProps = {
 	appId: string;
@@ -80,11 +87,11 @@ type FinderWindowProps = {
 	dir: ClassicyFileSystemEntry;
 	idx: number;
 	closeFolder: (path: string) => void;
-	closeAllFolders: () => void;
+	closeAllFolders: (from?: string) => void;
 	closeWindow: (windowId: string, appCleanupAction: ActionMessage) => void;
 	setFolderView: (path: string, viewType: "icons" | "list") => void;
-	openFolder: (path: string) => void;
-	openFile: (path: string) => void;
+	openFolder: (path: string, origin?: ClassicyZoomOrigin) => void;
+	openFile: (path: string, origin?: ClassicyZoomOrigin) => void;
 	getHeaderString: (dir: ClassicyFileSystemEntryMetadata) => string;
 	fs: ClassicyFileSystem;
 	aboutMenuItem: ClassicyMenuItem;
@@ -137,8 +144,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	// window's Select All drive whichever table mounted last.
 	const selectionApiRef = useRef<ClassicyTableSelectionApi | null>(null);
 	// #270: likewise one keyboard target per window — the list view's list
-	// box (null in icon view). The window focuses it whenever it becomes the
-	// focused window, so arrows/Return work without clicking the list first.
+	// box, or the icon view's icons' holder (story 0228-e9l). The window
+	// focuses it whenever it becomes the focused window, so the arrow keys,
+	// Tab, Return and Select All work without a click first.
 	const focusTargetRef = useRef<HTMLDivElement | null>(null);
 	const windowFocused = useAppManager(
 		(state) =>
@@ -148,8 +156,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 
 	// Switching View as Icons/List swaps the browser's content but is no
 	// window-focus transition, so ClassicyWindow won't refocus on its own.
-	// Hand the freshly mounted list box focus when this window is the focused
-	// one and focus isn't already on something else inside it.
+	// Hand the freshly mounted list box (or icons' holder) focus when this
+	// window is the focused one and focus isn't already on something else
+	// inside it.
 	const prevViewTypeRef = useRef(viewType);
 	useEffect(() => {
 		if (prevViewTypeRef.current === viewType) return;
@@ -173,7 +182,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 					),
 					closeAllWindowsMenuItemHelper(
 						`${appId}_${op}_file_closews`,
-						closeAllFolders,
+						// From this window: it alone zooms back to its icon.
+						() => closeAllFolders(op),
 					),
 					{ id: "spacer" },
 					{
@@ -208,9 +218,13 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 						id: `${appId}_${op}_edit_select_all`,
 						title: "Select All",
 						keyboardShortcut: "⌘A",
-						// Icons-view selection is a separate slice; until it exists the
-						// command has nothing to act on there.
-						disabled: viewType !== "list",
+						// The browser's own key, as every editing command keeps
+						// (`useClassicyEditMenu`): the app-wide dispatcher leaves
+						// it alone, so a text field selects its text, and the
+						// file browser with focus takes it for its icons or rows.
+						nativeShortcut: true,
+						// Either view: the browser's handle selects every row or
+						// every icon.
 						onClickFunc: () => selectionApiRef.current?.selectAll(),
 					},
 					{ id: "spacer" },
@@ -259,7 +273,6 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			setFolderView,
 			aboutMenuItem,
 			openPreferences,
-			viewType,
 			inTrash,
 			trashItems,
 			restoreItems,
@@ -285,6 +298,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			initialSize={[425, 300]}
 			initialPosition={[50 + idx * 50, 50 + idx * 50]}
 			header={<span>{getHeaderString(dir)}</span>}
+			// Closing zooms back to the folder's icon.
+			zoomIconPath={op}
 			onCloseFunc={closeFolder}
 			appMenu={appMenu}
 			initialFocusRef={focusTargetRef}
@@ -414,13 +429,16 @@ export const Finder = () => {
 	// callback (passed to every folder window) is stable across data changes.
 	const finderWindows = appState.windows;
 	const openFolder = useCallback(
-		(path: string) => {
+		(path: string, origin?: ClassicyZoomOrigin) => {
+			const ws = getAppWindow({ windows: finderWindows }, path);
+			// Opened from an icon, a window that is not open yet zooms out of
+			// it; an open one only comes to the front (7.5 drew no zoom).
+			if (!ws || ws.closed) noteClassicyWindowZoomSource(appId, path, origin);
 			desktopEventDispatch({
 				type: "ClassicyAppFinderOpenFolder",
 				path,
 			});
 
-			const ws = getAppWindow({ windows: finderWindows }, path);
 			if (ws) {
 				desktopEventDispatch({
 					type: "ClassicyWindowOpen",
@@ -442,13 +460,16 @@ export const Finder = () => {
 	);
 
 	const openFile = useCallback(
-		(path: string) => {
+		(path: string, origin?: ClassicyZoomOrigin) => {
 			const file = fs.resolve(path);
-			desktopEventDispatch({
-				type: "ClassicyAppFinderOpenFile",
-				file,
-				path,
-			});
+			// An application this open starts zooms out of the item's icon.
+			withClassicyLaunchZoom(origin, () =>
+				desktopEventDispatch({
+					type: "ClassicyAppFinderOpenFile",
+					file,
+					path,
+				}),
+			);
 		},
 		[fs, desktopEventDispatch],
 	);
@@ -463,12 +484,25 @@ export const Finder = () => {
 		[desktopEventDispatch],
 	);
 
-	const closeAllFolders = useCallback(() => {
-		const paths: string[] = finderData.openPaths ?? [];
-		paths.forEach((path) => {
-			closeWindow(path, { type: "ClassicyAppFinderCloseFolder", path });
-		});
-	}, [closeWindow, finderData.openPaths]);
+	// Close All: every folder window goes at once and only the one it was
+	// chosen from (else the focused one) zooms back to its icon, as Mac OS
+	// 8.1's Option-click on a close box erased every window and zoomed the
+	// clicked one alone (Infinite Mac, story 0230-n6c).
+	const closeAllFolders = useCallback(
+		(from?: string) => {
+			const paths: string[] = finderData.openPaths ?? [];
+			const zooming =
+				from ??
+				paths.find(
+					(path) => getAppWindow({ windows: finderWindows }, path)?.focused,
+				);
+			paths.forEach((path) => {
+				if (path !== zooming) skipClassicyWindowCloseZoom(appId, path);
+				closeWindow(path, { type: "ClassicyAppFinderCloseFolder", path });
+			});
+		},
+		[closeWindow, finderData.openPaths, finderWindows],
+	);
 
 	const openPreferences = useCallback(() => {
 		desktopEventDispatch({ type: "ClassicyAppFinderPreferencesOpen" });
@@ -571,11 +605,27 @@ export const Finder = () => {
 				{
 					id: "finder_trash_open",
 					title: "Open",
-					onClickFunc: () =>
+					// Opened from its icon, like a double-click: 8.1's contextual
+					// Open zoomed from the icon (Infinite Mac, story 0230-n6c).
+					onClickFunc: () => {
+						const trash = getAppWindow(
+							useAppManager.getState().System.Manager.Applications.apps[appId],
+							CLASSICY_TRASH_PATH,
+						);
+						if (!trash || trash.closed) {
+							noteClassicyWindowZoomSource(
+								appId,
+								CLASSICY_TRASH_PATH,
+								typeof document === "undefined"
+									? undefined
+									: classicyZoomOriginForPath(document, CLASSICY_TRASH_PATH),
+							);
+						}
 						desktopEventDispatch({
 							type: "ClassicyAppFinderOpenFolder",
 							path: CLASSICY_TRASH_PATH,
-						}),
+						});
+					},
 				},
 				{
 					id: "finder_trash_empty",

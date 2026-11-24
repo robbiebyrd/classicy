@@ -130,3 +130,11 @@
 .classicyFileBrowserFill:not(.classicyFileBrowserFillList) {
   width: 100%;
 }
+
+// The icon view's holder takes focus only from code (a press on its empty
+// space, so Select All and Delete reach the icons; story 0228-e9l), never by
+// Tab: no focus ring around the window's contents. The icons and the list
+// draw their own.
+.classicyFileBrowserFill:focus {
+  outline: none;
+}

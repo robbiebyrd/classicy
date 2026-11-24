@@ -18,7 +18,11 @@ import {
 	useAppManagerDispatch,
 	useClassicyAsset,
 } from "@classicy/classicy";
-import { StoryApp } from "@sb/helpers";
+import {
+	dragClassicySelectionRectangle,
+	dragClassicySelectionRectanglePastEdge,
+	StoryApp,
+} from "@sb/helpers";
 import { system7Parameters, WithTheme } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactElement, useEffect } from "react";
@@ -266,6 +270,32 @@ export const FinderFolders: Story = {
 /** The same windows under System 7 Color: the color icons. */
 export const FinderFoldersColor: Story = {
 	render: () => themed(true, <FinderFolderWindows />),
+};
+
+/**
+ * The selection rectangle in a Finder window (story 0228-e9l): a drag from
+ * the empty space above the startup disk's first icon to the middle of its
+ * second, the button still held. System 7 draws the 7.5 Finder's: a one-pixel
+ * frame of the 50% checker in XOR.
+ */
+export const FinderSelectionRectangle: Story = {
+	render: () => <FinderFolderWindows />,
+	play: dragClassicySelectionRectangle,
+};
+
+/** The same rectangle under System 7 Color. */
+export const FinderSelectionRectangleColor: Story = {
+	render: () => themed(true, <FinderFolderWindows />),
+	play: dragClassicySelectionRectangle,
+};
+
+/**
+ * The rectangle held past the bottom edge of the first window's contents:
+ * clipped there, its sides running to the edge.
+ */
+export const FinderSelectionRectanglePastEdge: Story = {
+	render: () => <FinderFolderWindows />,
+	play: dragClassicySelectionRectanglePastEdge,
 };
 
 /** The list-view window, and the item the story selects in it. */
