@@ -381,16 +381,18 @@ describe("the Application Switcher", () => {
 		describe("wrapping (re-review I-R1)", () => {
 			// A laid-out desktop for jsdom: the floating layer is the desktop,
 			// `desktopHeight` tall. The palette sits where its style puts it and
-			// is laid out as its stylesheet lays it: a 16-pixel frame above its
-			// buttons (24 pixels each, 112 wide), a 4-pixel frame at either side
-			// and none below, the buttons in one column, or in columns of
-			// `--application-switcher-lines` when it wraps. So the palette's
-			// size is measured from its shape, not fixed.
+			// is laid out as its stylesheet lays it: `frameAbove` pixels of frame
+			// above its buttons (`buttonHeight` tall, 112 wide), a 4-pixel frame
+			// at either side and none below, the buttons in one column, or in
+			// columns of `--application-switcher-lines` when it wraps. So the
+			// palette's size is measured from its shape, not fixed.
 			let desktopHeight = 600;
 			const BUTTON = 24;
 			const BUTTON_WIDTH = 112;
 			const SIDE_FRAME = 4;
 			const FRAME_ABOVE = 16;
+			let buttonHeight = BUTTON;
+			let frameAbove = FRAME_ABOVE;
 			const rect = (left: number, top: number, width: number, height: number) =>
 				({
 					top,
@@ -403,18 +405,33 @@ describe("the Application Switcher", () => {
 					bottom: top + height,
 					toJSON: () => ({}),
 				}) as DOMRect;
-			const observers: (() => void)[] = [];
+			// What each live observer watches, so a test resizes one thing.
+			type Observed = { target: Element; observer: object; run: () => void };
+			const observed: Observed[] = [];
+			const resize = (which: (target: Element) => boolean) =>
+				act(() => {
+					for (const o of observed.filter((o) => which(o.target))) o.run();
+				});
+			const isLayer = (target: Element) =>
+				target.id === "classicy-floating-layer";
+			const isButton = (target: Element) =>
+				target.classList.contains("classicyApplicationSwitcherButton");
 			beforeEach(() => {
 				desktopHeight = 600;
-				observers.length = 0;
+				buttonHeight = BUTTON;
+				frameAbove = FRAME_ABOVE;
+				observed.length = 0;
 				vi.stubGlobal(
 					"ResizeObserver",
 					class {
 						constructor(private callback: () => void) {}
-						observe() {
-							observers.push(this.callback);
+						observe(target: Element) {
+							observed.push({ target, observer: this, run: this.callback });
 						}
-						disconnect() {}
+						disconnect() {
+							for (let i = observed.length - 1; i >= 0; i--)
+								if (observed[i].observer === this) observed.splice(i, 1);
+						}
 					},
 				);
 				// The buttons' grid: how many there are, and how many a column holds.
@@ -448,20 +465,17 @@ describe("the Application Switcher", () => {
 								left,
 								top,
 								SIDE_FRAME + BUTTON_WIDTH * columns + SIDE_FRAME,
-								FRAME_ABOVE + BUTTON * Math.min(perColumn, count),
+								frameAbove + buttonHeight * Math.min(perColumn, count),
 							);
 						}
-						if (
-							win &&
-							this.classList.contains("classicyApplicationSwitcherButton")
-						) {
+						if (win && isButton(this)) {
 							const { perColumn } = grid(win);
 							const i = [...(this.parentElement?.children ?? [])].indexOf(this);
 							return rect(
 								left + SIDE_FRAME + BUTTON_WIDTH * Math.floor(i / perColumn),
-								top + FRAME_ABOVE + BUTTON * (i % perColumn),
+								top + frameAbove + buttonHeight * (i % perColumn),
 								BUTTON_WIDTH,
-								BUTTON,
+								buttonHeight,
 							);
 						}
 						return original.call(this);
@@ -548,24 +562,70 @@ describe("the Application Switcher", () => {
 				render(<ClassicyApplicationSwitcher />);
 				tearOff([300, 200]);
 				expect(lines()).toBe("");
-				expect(observers.length).toBeGreaterThan(0);
+				expect(observed.some((o) => isLayer(o.target))).toBe(true);
 				// The desktop shrinks to two buttons' room, then grows back.
 				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON * 2;
-				act(() => {
-					for (const run of observers) run();
-				});
+				resize(isLayer);
 				expect(list().classList).toContain(
 					"classicyApplicationSwitcherWrapped",
 				);
 				expect(lines()).toBe("2");
 				desktopHeight = 600;
-				act(() => {
-					for (const run of observers) run();
-				});
+				resize(isLayer);
 				expect(lines()).toBe("");
 				expect(list().classList).not.toContain(
 					"classicyApplicationSwitcherWrapped",
 				);
+			});
+
+			// Re-review M-R4: a metric edit (the buttons' padding, an icon size),
+			// a theme switch or a font that loads late resizes the buttons with
+			// nothing else changing.
+			it("measures again when its buttons resize", () => {
+				// Room for exactly its three buttons below the menu bar and frame.
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON * 3;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(lines()).toBe("");
+				// Taller buttons: one fits a column now.
+				buttonHeight = 40;
+				resize(isButton);
+				expect(list().classList).toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+				expect(lines()).toBe("1");
+				// Back to their size: one column again.
+				buttonHeight = BUTTON;
+				resize(isButton);
+				expect(lines()).toBe("");
+				expect(list().classList).not.toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+			});
+
+			it("measures again when the theme changes the frame around its buttons", () => {
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON * 3;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(lines()).toBe("");
+				// A thicker frame (a Metrics tab edit), the buttons as they were and
+				// no observer told: two buttons fit a column now.
+				const theme =
+					useAppManager.getState().System.Manager.Appearance.activeTheme;
+				frameAbove = FRAME_ABOVE + 1;
+				act(() => {
+					dispatch({
+						type: "ClassicyDesktopChangeMetric",
+						metricKey: "windowBorderSize",
+						value: 3,
+					});
+				});
+				expect(
+					useAppManager.getState().System.Manager.Appearance.activeTheme,
+				).not.toBe(theme);
+				expect(lines()).toBe("2");
 			});
 		});
 

@@ -2300,8 +2300,10 @@ wrap into another column (another row, horizontal): the line comes from the
 desktop's capacity (its height from the menu bar's underside, no more than a
 window's maximum height, or its width), less the palette's own frame
 (`classicyAppSwitcherPaletteLines`), measured when the palette registers,
-when the desktop resizes and when its buttons, options or collapse state
-change, never on a move, so a palette dragged partly past an edge keeps its
+when the desktop or a button resizes (a metric edit, a theme switch, a font
+that loads late), when the theme changes (the frame and the menu bar's
+height) and when its buttons, options or collapse state change, never on a
+move, so a palette dragged partly past an edge keeps its
 shape and clips like any window. 8.5's palette with more applications than
 its screen holds was not observed (the emulator hung while they were
 launched); Classicy wraps only a line the desktop cannot hold at all. Like 8.5's, the switcher shows no icon in the startup

@@ -86,7 +86,10 @@ export const classicyAppSwitcherPaletteLines = (
  * can hold, not from where the palette sits: the desktop's height from the
  * menu bar's underside to its bottom (no taller than a window's maximum
  * height), its width when horizontal. Measured once the palette is laid
- * out, and again when the desktop resizes or the buttons, the options or the
+ * out, and again when the desktop resizes, when a button resizes (a metric
+ * edit such as the buttons' padding or an icon size, a theme switch, a font
+ * that loads late), when the theme changes (the frame around the buttons
+ * and the menu bar with it), and when the buttons, the options or the
  * collapse state change; never on a move, so a palette dragged partly past
  * an edge keeps its shape and clips like any window. `undefined` while every
  * button fits in one line. Mac OS 8.5's palette with more applications than
@@ -164,6 +167,15 @@ const useClassicyPaletteLines = (
 		if (typeof ResizeObserver === "undefined") return;
 		const observer = new ResizeObserver(measure);
 		observer.observe(layer);
+		// A button's size changes with nothing else here changing: a metric
+		// or theme edit, or the names' font arriving after the first measure.
+		// A wrap may stretch buttons to their column's or row's largest, but
+		// never changes the largest one the count reads, so the measure a wrap
+		// sets off gives the same count and settles.
+		for (const button of palette.querySelectorAll(
+			".classicyApplicationSwitcherButton",
+		))
+			observer.observe(button);
 		return () => observer.disconnect();
 	}, [count, horizontal, ...deps]);
 	return lines;
@@ -245,6 +257,9 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 				APPLICATION_SWITCHER_PALETTE_ID,
 			)?.collapsed === true,
 	);
+	// The theme sets the frame around the buttons and the menu bar's height,
+	// both part of the room a line has.
+	const theme = useAppManager((s) => s.System.Manager.Appearance.activeTheme);
 	// More applications than the desktop can hold in a line wrap into
 	// another column (another row, horizontal), so every button can be
 	// brought onto it; a move never reshapes the palette.
@@ -254,6 +269,7 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 		large,
 		showNames,
 		entries.map((e) => e.name).join("\n"),
+		theme,
 	]);
 
 	return (
