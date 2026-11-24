@@ -161,12 +161,24 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 		}
 	}, [entries, player, presenting]);
 
-	// An app coming to the front takes its marks down.
+	// An app coming to the front takes its marks down, unless it was the
+	// alert that brought it there: with no app in front, the alert opens as
+	// a window of the Finder or of the first shown application, which may be
+	// the notifying app itself, and opening a window focuses its app. That is
+	// the Notification Manager's doing, not the user's (Mac OS's alert never
+	// changed the front process), so the app is treated as one that was in
+	// front when it posted: its requests stay until it comes forward again.
+	// `alertActivation` is set below, after this effect in each commit.
 	const lastFocused = useRef(focusedAppId);
+	const alertActivation = useRef<string | undefined>(undefined);
 	useEffect(() => {
 		const before = lastFocused.current;
 		lastFocused.current = focusedAppId;
 		if (!focusedAppId || focusedAppId === before) return;
+		if (alertActivation.current === focusedAppId) {
+			alertActivation.current = undefined;
+			return;
+		}
 		removeClassicyNotificationsWhere(
 			(n) => n.appId === focusedAppId && n.removeOnActivate,
 		);
@@ -218,6 +230,17 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 			setOwner({ id: alerting.id, appId: ownerAppId });
 		}
 	}, [alerting, owner, ownerAppId]);
+
+	// The alert is about to bring its owner forward when the owner is not in
+	// front: the focus change that follows is the alert's (see above).
+	useEffect(() => {
+		alertActivation.current =
+			alerting?.message !== undefined &&
+			ownerAppId !== undefined &&
+			ownerAppId !== focusedAppId
+				? ownerAppId
+				: undefined;
+	}, [alerting, ownerAppId, focusedAppId]);
 
 	// No wrapper: the alert's own modal scrim blocks the desktop while it
 	// shows, and nothing is left over the desktop when it cannot show.
