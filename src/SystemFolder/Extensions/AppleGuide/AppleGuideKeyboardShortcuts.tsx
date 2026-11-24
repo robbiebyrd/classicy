@@ -4,6 +4,7 @@ import {
 	classicyAppIdentityFrom,
 	useClassicyAppIdentityOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
+import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { registerAppleGuideTopic } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
@@ -85,38 +86,87 @@ const WhyPage: FunctionalComponent = () => (
 	</>
 );
 
-/** The app whose menus the bar shows: the focused non-extension app, else Finder. */
-function useFrontApp() {
-	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
-	const overrides = useClassicyAppIdentityOverrides();
-	return useMemo(() => {
-		const list = Object.values(apps);
-		const front =
-			list.find((a) => a.focused === true && !a.extension) ??
-			apps["Finder.app"] ??
-			list[0];
-		return {
-			id: front?.id,
-			name: front
-				? classicyAppIdentityFrom(overrides, front.id, front).name
-				: "Finder",
-		};
-	}, [apps, overrides]);
+type FrontApp = {
+	id: string;
+	name: string;
+	icon: string;
+	entries: ClassicyShortcutEntry[];
+	entriesSource?: ClassicyMenuItem[];
+};
+
+// The front application and its equivalents, as of the last store change that
+// had a front application. While the Apple Guide window itself is focused (an
+// extension, which never counts as the front app) its window publishes an
+// empty menu bar, so `Desktop.appMenu` is no longer the front app's: this
+// holds what it was when the topic opened, and follows the front app after.
+let lastFront: FrontApp = {
+	id: "Finder.app",
+	name: "Finder",
+	icon: "",
+	entries: [],
+};
+
+type FrontSource = {
+	apps: ClassicyStore["System"]["Manager"]["Applications"]["apps"];
+	focusedAppId: string | undefined;
+	appMenu: ClassicyMenuItem[] | undefined;
+};
+
+function trackFront({ apps, focusedAppId, appMenu }: FrontSource): FrontApp {
+	const front = focusedAppId ? apps[focusedAppId] : undefined;
+	if (!front || front.extension) return lastFront;
+	if (
+		lastFront.id === front.id &&
+		lastFront.name === front.name &&
+		lastFront.entriesSource === appMenu
+	) {
+		return lastFront;
+	}
+	lastFront = {
+		id: front.id,
+		name: front.name,
+		icon: front.icon,
+		entries: collectShortcutEntries(appMenu),
+		entriesSource: appMenu,
+	};
+	return lastFront;
+}
+
+useAppManager.subscribe((s) =>
+	trackFront({
+		apps: s.System.Manager.Applications.apps,
+		focusedAppId: s.System.Manager.Applications.focusedAppId,
+		appMenu: s.System.Manager.Desktop.appMenu,
+	}),
+);
+trackFront({
+	apps: useAppManager.getState().System.Manager.Applications.apps,
+	focusedAppId:
+		useAppManager.getState().System.Manager.Applications.focusedAppId,
+	appMenu: useAppManager.getState().System.Manager.Desktop.appMenu,
+});
+
+/** The front application, re-read on every change of the apps or the bar's menus. */
+function useFrontApp(): FrontApp {
+	useAppManager((s) => s.System.Manager.Applications.apps);
+	useAppManager((s) => s.System.Manager.Applications.focusedAppId);
+	useAppManager((s) => s.System.Manager.Desktop.appMenu);
+	return lastFront;
 }
 
 /** Page 2: the frontmost app's equivalents, read from the store's live menus. */
 const FrontAppPage: FunctionalComponent = () => {
 	const front = useFrontApp();
-	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
-	const entries = useMemo(() => collectShortcutEntries(appMenu), [appMenu]);
+	const overrides = useClassicyAppIdentityOverrides();
+	const name = classicyAppIdentityFrom(overrides, front.id, front).name;
 	return (
 		<>
 			<p>
-				In <strong>{front.name}</strong>, the front application:
+				In <strong>{name}</strong>, the front application:
 			</p>
 			<ShortcutList
-				entries={entries}
-				empty={`${front.name} has no keyboard equivalents.`}
+				entries={front.entries}
+				empty={`${name} has no keyboard equivalents.`}
 			/>
 		</>
 	);

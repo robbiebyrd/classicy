@@ -44,7 +44,11 @@ function setFront(appId: string, name: string, appMenu: ClassicyMenuItem[]) {
 					...s.System,
 					Manager: {
 						...s.System.Manager,
-						Applications: { ...s.System.Manager.Applications, apps },
+						Applications: {
+							...s.System.Manager.Applications,
+							apps,
+							focusedAppId: appId,
+						},
 						Desktop: { ...s.System.Manager.Desktop, appMenu },
 					},
 				},
@@ -91,6 +95,47 @@ describe("Keyboard Shortcuts topic", () => {
 		expect(container.textContent).toContain("Do Beta");
 		expect(container.textContent).toContain("⌥B");
 		expect(container.textContent).not.toContain("Do Alpha");
+	});
+
+	it("keeps the app that was in front while the Apple Guide window holds focus", () => {
+		setFront("Alpha.app", "Alpha", menuFor("Do Alpha", "⌃A"));
+		// The guide window takes focus and publishes an empty menu bar.
+		act(() => {
+			useAppManager.setState((s) => {
+				const apps = { ...s.System.Manager.Applications.apps };
+				for (const id of Object.keys(apps)) {
+					apps[id] = { ...apps[id], focused: false };
+				}
+				apps["AppleGuide.app"] = {
+					id: "AppleGuide.app",
+					name: "Apple Guide",
+					icon: "",
+					windows: {},
+					open: true,
+					focused: true,
+					extension: true,
+					data: {},
+				};
+				return {
+					...s,
+					System: {
+						...s.System,
+						Manager: {
+							...s.System.Manager,
+							Applications: {
+								...s.System.Manager.Applications,
+								apps,
+								focusedAppId: "AppleGuide.app",
+							},
+							Desktop: { ...s.System.Manager.Desktop, appMenu: [] },
+						},
+					},
+				};
+			});
+		});
+		const { container } = render(<>{page(1)}</>);
+		expect(screen.getByText("Alpha")).toBeInTheDocument();
+		expect(container.textContent).toContain("Do Alpha");
 	});
 
 	it("says so when the front app has none", () => {
