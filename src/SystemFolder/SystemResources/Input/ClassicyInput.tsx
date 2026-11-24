@@ -254,12 +254,15 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 				read();
 				readNextFrame();
 			};
+			// Not `input`: read while the browser is still inserting, a state
+			// set there renders the field with the value it had before (React
+			// has yet to hear the change), and the text typed over a selection
+			// is lost. The value is read once committed (below) instead.
 			const events = [
 				"select",
 				"selectionchange",
 				"keyup",
 				"click",
-				"input",
 				"scroll",
 				"focus",
 				"blur",
