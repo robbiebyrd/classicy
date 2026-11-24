@@ -1169,7 +1169,9 @@ last):
   whose frame was `[40,68,427,255)`, `mac-os-8.1/open-from-window/`). Mac OS
   8.1 (Platinum, `firstStep` 5) draws the six steps nearest the window and
   keeps them all (`trail` 0): 100 ms at 60 Hz. System 7.5 (`firstStep` 0,
-  `trail` 4) draws all 11, erasing each four steps after it is drawn: 183 ms.
+  `trail` 4) draws all 11, erasing each four steps after it is drawn: 183 ms
+  (widths 39, 43, 47, 55, 64, 75, 95, 119, 156, 205, 275, the last six
+  8.1's, `system-7.5/open-from-window/`).
   Until then the window is laid out but transparent
   (`classicyWindowZoomHidden`: `opacity: 0`), as the Finder drew it after its
   rectangles; it is in the store, focused and given the keyboard as soon as
@@ -1188,7 +1190,11 @@ last):
   hidden page draws no zoom.
 - **Closing** (a window with `zoomIconPath`) draws the same steps the other
   way, `steps` … `firstStep + 1`, from the window's whole box (its frame and
-  title bar) toward the icon, after the window is gone. The icon is the one
+  title bar) toward the icon, after the window is gone (8.1: widths 387,
+  286, 213, 161, 124, 98 from the frame `[40,68,427,255)`,
+  `mac-os-8.1/close-to-window-icon/`, and the same steps to a desktop icon,
+  `mac-os-8.1/close-to-desktop-icon/`; 7.5 the same way with its trail of
+  four, `system-7.5/close-to-window-icon/`). The icon is the one
   for `zoomIconPath`, else the nearest enclosing folder's or drive's that
   shows (`findClassicyZoomIcon`; 8.1 zoomed a window whose parent window was
   closed to the disk's icon, `mac-os-8.1/close-after-parent/`): a desktop
@@ -1274,8 +1280,10 @@ core reads it with a fallback of 0, `readClassicyZoomRectsSettings`) **and**
 draws the part in its stylesheet. A package that sets neither (a host's own
 package written before this release, Storybook's probe) has no zoom: no
 rectangles and no hidden window. Platinum and System 7 opt in and draw it in
-`_ZoomRects.scss`: Platinum Mac OS 8.1's two-pixel frame, System 7 the 7.5
-Finder's one-pixel frame, both the 50% checker in XOR laid from the desktop
+`_ZoomRects.scss`: Platinum Mac OS 8.1's two-pixel frame
+(`mac-os-8.1/style/`), System 7 the 7.5 Finder's one-pixel frame
+(`system-7.5/style/`, four kept at a time), both the 50% checker in XOR
+laid from the desktop
 (`mix-blend-mode: difference`, the selection rectangle's pen:
 `platinum-xor-checker-frame` in Platinum's `_mixins.scss`, System 7's
 `xor-checker-frame` in `_checkerFrame.scss`), sized by the look-only knobs
@@ -1295,7 +1303,8 @@ step a tick. The Finder's own icon box was a few pixels larger than the icon
 (7.5's first rectangle, 39 × 34 around a 32 × 32 icon); Classicy starts from
 the icon image's box. 8.1's desktop icons started their zoom from a box
 offset from where the icon was drawn (Infinite Mac lays the disks out for
-its screen size); Classicy starts from the icon. Whether 8.1 zoomed from an
+its screen size; `mac-os-8.1/open-from-desktop/`); Classicy starts from the
+icon. Whether 8.1 zoomed from an
 already-open folder's icon was captured only in 7.5 (none).
 
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
