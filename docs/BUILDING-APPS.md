@@ -1112,9 +1112,13 @@ registerClassicyStateAdapter({
 
 The desktop draws nothing until the boot reconcile settles, for at most each
 adapter's `reconcileTimeoutMs`; errors, timeouts and invalid states keep the
-local state. Call `reconcileClassicyState()` again when the remote copy may
-have changed (a sign-in), and `flushClassicyState()` to save before signing
-out (AGENT-REFERENCE §7, "Mirroring the desktop state").
+local state, and an adapter that reconciles takes no snapshot until a
+reconcile with it succeeds (it is retried), so a failed boot never pushes a
+device's defaults over the account's copy. The menu bar clock's minute tick
+sends nothing. `onSnapshot` must throw when it did not store the snapshot.
+Call `reconcileClassicyState()` again when the remote copy may have changed
+(a sign-in), and `flushClassicyState()` to save before signing out
+(AGENT-REFERENCE §7, "Mirroring the desktop state").
 
 ---
 

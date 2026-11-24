@@ -793,25 +793,37 @@ of `ClassicyStateSync.internal.ts`): `registerClassicyStateAdapter({ id,
 onSnapshot?, reconcile?(local, { signal }) }, { snapshotDebounceMs?,
 reconcileTimeoutMs? })`. A snapshot's `state` is `sanitizeStateForPersistence`'s
 JSON, the bytes localStorage holds (no field list, so a new persisted field
-travels; never built-in themes or session state), with a sha256 `hash` and
-a `seq` that grows by one per new hash, stored at
-`classicyDesktopState:seq`/`:hash`; one shared timer at the shortest debounce
-(default 500 ms) sends it, skipping a hash the adapter already has, and
-`pagehide` sends a waiting one. `ClassicyDesktop` runs the page's first
-reconcile on its first client mount and draws its shell until it settles
-(`useClassicyStateSyncGate`), each adapter bounded by `reconcileTimeoutMs`
-(default 5000 ms, then its `signal` aborts and local wins); snapshots wait
-for it. A `replace` goes through the localStorage load path itself
-(`adoptPersistedClassicyState` in `ClassicyAppManagerUtils.tsx`:
-`readPersistedClassicyState`, then the active-theme refresh and drawn
-package's defaults), is saved at once and applied, keeping the session's
-`availableThemes`; the desktop's subtree is keyed on the adoption epoch, so
-a later `reconcileClassicyState()` (a sign-in) remounts it as a restart.
-`flushClassicyState()` saves now. Reset PRAM (`resetClassicyPersistedState`)
-stops saving, hands adapters a first session's snapshot (bounded, 5000 ms),
-and marks the next boot (`classicyDesktopState:reset`) to skip its reconcile.
-Nothing runs without a `window`. Details: `docs/AGENT-REFERENCE.md` §7,
-"Mirroring the desktop state"; the example's `?stateSync=<account>` mock.
+travels; never built-in themes or session state), with its sha256 `hash`,
+the building `version`, and a `seq`; whether to send and `seq` follow a key
+that leaves `DateAndTime.dateTime` out plus the page's clock edits, so the
+menu bar clock's minute tick (noted by the widget,
+`DateAndTimeManager/ClassicyClockTick.internal.ts`) or a host clock running
+at real speed is no change. One shared timer at the shortest debounce
+(default 500 ms) sends it, one delivery per adapter at a time (the latest
+after), skipping a key the adapter has; `pagehide` sends a waiting one and
+makes the pending localStorage write. `ClassicyDesktop` runs the page's
+first reconcile on its first client mount and draws its shell until it
+settles (`useClassicyStateSyncGate`), each adapter bounded by
+`reconcileTimeoutMs` (default 5000 ms, then its `signal` aborts and local
+wins). An adapter that reconciles takes no snapshot until a reconcile with
+it succeeds (retried after 10 s, doubling to 5 min), so a failed boot never
+pushes a fresh or stale desktop over the account's copy. A `replace` goes
+through the localStorage load path itself (`adoptPersistedClassicyState` in
+`ClassicyAppManagerUtils.tsx`: `readPersistedClassicyState` with its
+container-kind check, then the active-theme refresh and drawn package's
+defaults), is saved at once and applied in one synchronous step with the
+desktop's remount (the gate closes, the store is replaced, the epoch key
+moves), keeping the session's `availableThemes` and the browser's
+`fsVersion`, and is not sent back to its source; a later
+`reconcileClassicyState()` (a sign-in) is a restart. `flushClassicyState()`
+saves now. Reset PRAM (`resetClassicyPersistedState`; its alert names the
+other computers when an adapter takes snapshots, `useClassicyStateMirrored`)
+shows the wristwatch, ignores a second click, stops saving, hands snapshot
+adapters a first session's state with the provider's seed
+(`rememberClassicyDefaultStateSeed`; bounded, 5000 ms), and marks the next
+boot (`classicyDesktopState:reset`) to skip its reconcile. Nothing runs
+without a `window`. Details: `docs/AGENT-REFERENCE.md` §7, "Mirroring the
+desktop state"; the example's `?stateSync=<account>` mock.
 
 ### Untrusted Action Allowlist
 

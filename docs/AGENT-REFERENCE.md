@@ -3024,9 +3024,10 @@ import {
 
 registerClassicyStateAdapter({
     id: 'my-backend',
-    // debounced: the saved state + sha256 hash + persisted seq
-    onSnapshot: async (snapshot) => { /* { state, hash, seq, storageKey: "classicyDesktopState", timestamp } */ },
-    // two-way boot sync, bounded; errors, timeouts and invalid states keep local
+    // debounced, one at a time: { state, hash, seq, storageKey: "classicyDesktopState", version, timestamp }
+    // must throw or reject when it did not store the snapshot
+    onSnapshot: async (snapshot) => { /* … */ },
+    // at boot and on reconcileClassicyState(); bounded; errors, timeouts and invalid states keep local
     reconcile: async (local, { signal }) => ({ action: 'useLocal' }),  // or { action: 'replace', state }
 }, { snapshotDebounceMs: 500, reconcileTimeoutMs: 5000 })
 ```
@@ -3043,68 +3044,123 @@ localStorage stays the primary store either way.
   `{ id, package, defaults? }`) or session state (the shortcut registry,
   parade icons, dialogs, hidden apps, window gesture flags, HyperCard's
   runtime and undo, the screen saver's `active`, the Browser's history).
-  `hash` is the sha256 hex of that JSON. `seq` is one more each time the
-  saved state's hash changes, stored in `localStorage["classicyDesktopState:seq"]`
-  (with `:hash`), so it only grows, across reloads and tabs; it orders one
-  browser's states, not two devices'.
+  `hash` is the sha256 hex of that JSON. `version` is the
+  `@classicy/classicy` version that built it, so a backend can refuse to
+  let an older build's copy replace a newer one's.
+- **What counts as a change.** The saved state holds the virtual clock
+  (`DateAndTime.dateTime`), which the menu bar clock writes once a minute.
+  That tick is not a change: whether to send, and `seq`, follow a key that
+  leaves `dateTime` out (the sha256 of the saved state without it) plus the
+  clock edits this page saw. A write of the clock is an edit unless it is
+  the menu bar clock's tick (it notes each one,
+  `ClassicyClockTick.internal.ts`) or moves the virtual clock with the real
+  one, within 1 s (a host running the clock itself). So an idle desktop
+  sends nothing; a snapshot sent for any other reason carries the clock as
+  it is.
+- **`seq`** is the version of the saved state in this browser: one more
+  each time it changes as above, stored in
+  `localStorage["classicyDesktopState:seq"]` (with `:seqContent`), the
+  larger of the stored and remembered value, so it grows across reloads
+  and follows another tab's. Gaps are normal (the local snapshot handed to
+  `reconcile`, another tab's snapshots, changes the debounce coalesced);
+  two tabs reading the same value may give two different states the same
+  number; clearing the site's data starts it again at 1. It orders one
+  browser's states, never two devices'.
 - **When.** One shared timer, the shortest registered `snapshotDebounceMs`
-  (default 500 ms; finite, at least 0) after the last store change; the
-  localStorage write keeps its own 500 ms. A snapshot with the hash last
-  handed to that adapter is skipped, so session-only changes send nothing
-  (the clock's once-a-minute tick and every window move do change the saved
-  state); a delivery that throws or rejects is logged (`error`,
-  `ClassicyStateAdapter`) and forgotten, so the next change sends again. A
-  snapshot still waiting when the page hides (`pagehide`) is sent then,
-  best-effort. Snapshots wait while a reconcile runs and, when an adapter
-  implements `reconcile`, until the page's first one settles: sent first,
-  the local state would overwrite the copy that reconcile is about to read.
+  (default 500 ms) after the last store change; the localStorage write
+  keeps its own 500 ms. An adapter is never handed the key it has (a
+  delivery that throws or rejects is logged, `error`, `ClassicyStateAdapter`,
+  and forgotten, so the next change sends again), and gets one delivery at
+  a time: a snapshot due while one is under way waits, and only the latest
+  is sent when it ends, so an older state never lands after a newer one.
+  A snapshot still waiting when the page hides (`pagehide`) is sent then,
+  best-effort, and the pending localStorage write is made with it, so the
+  backend never gets a state this browser did not save. An `onSnapshot`
+  that cannot store (offline, signed out) must throw or reject: resolving
+  tells Classicy the backend has it.
 - **Boot reconcile.** `ClassicyDesktop` runs the page's first reconcile when
   it first mounts in the browser, after the local load and migration, and
   draws only its empty shell (as on the server) until it settles. Each
   adapter implementing `reconcile`, in registration order, is offered the
   local snapshot and `{ signal }`, and has `reconcileTimeoutMs` to answer
-  (default 5000 ms; finite and above 0, else the default with a warning);
-  then its `signal` aborts, a late answer is ignored and the next adapter is
-  asked, so the desktop waits at most the sum of those timeouts. The first
-  valid `replace` wins: its `state` goes through the localStorage load path
-  itself, as JSON (no `__proto__` key survives), the same shape check, merged
-  over the defaults, `migrateClassicyState` (a state an older build saved is
-  upgraded as it would be on load), the built-in active theme refreshed from
-  the code and the drawn package's defaults in place of another's; then it
-  is saved to localStorage at once and applied. The session's
-  `availableThemes` are kept (they come from the code and the host), and a
-  provider's `defaultState` no longer seeds (`wasHydratedFromStorage()` is
-  true). An error, a timeout or a state without the saved shape keeps the
-  local state with a `classicyLog` warning.
+  (default 5000 ms; finite, above 0 and at most 2^31 − 1, else the default
+  with a warning); then its `signal` aborts, a late answer is ignored and
+  the next adapter is asked, so the desktop waits at most the sum of those
+  timeouts. The first valid `replace` wins: its `state` goes through the
+  localStorage load path itself, as JSON (no `__proto__` key survives), the
+  same shape check (every container the default state holds must be a
+  container of the same kind, every app record an object, before and after
+  the merge), merged over the defaults, `migrateClassicyState` (a state an
+  older build saved is upgraded as it would be on load), the built-in active
+  theme refreshed from the code and the drawn package's defaults in place of
+  another's; then it is saved to localStorage at once and applied. The
+  session's `availableThemes` and this browser's `Desktop.fsVersion` (a
+  file-system reload epoch) are kept, and a provider's `defaultState` no
+  longer seeds (`wasHydratedFromStorage()` is true). The adapters after the
+  winner are not asked; they take the adopted state as their next snapshot,
+  and the winner is not sent back what it just handed over. An error, a
+  timeout or a state without the saved shape keeps the local state with a
+  `classicyLog` warning.
+- **No snapshot before a successful reconcile.** An adapter implementing
+  `reconcile` takes no snapshot (and `flushClassicyState()` counts it as not
+  taken) until a reconcile with it has succeeded in this page, a `useLocal`
+  or an adopted `replace`; until then the local state may be a new device's
+  defaults or an old device's stale desktop, and sent, it would replace the
+  account's copy on every device that trusts it. This holds whether or not
+  the page loaded a saved state of its own: a saved state can be as stale
+  as none. A failed one (error, timeout, invalid state) is asked again
+  10 s later (`CLASSICY_STATE_RECONCILE_RETRY_MS`), each failure in a row
+  doubling the wait up to 5 minutes (`CLASSICY_STATE_RECONCILE_RETRY_MAX_MS`),
+  and by every `reconcileClassicyState()`; a retry is a later reconcile (a
+  `replace` is adopted as a restart, below), and its success sends the
+  snapshot held meanwhile. A later reconcile that fails holds the adapter
+  again. An invalid copy is never overwritten from this device: the host
+  repairs or removes it. An adapter registered once the page's first
+  reconcile has started is asked on its own at once. Snapshots of every
+  adapter also wait while any reconcile runs, and until the page's first one
+  settles when one will run.
 - **Later reconciles.** `reconcileClassicyState()` runs one again, when the
   remote copy may have changed under the page (a user signing in): it
   resolves true iff the state was replaced, never rejects, and concurrent
-  calls share one run. The desktop stays drawn meanwhile; an adopted state
-  remounts its subtree, as a restart, so every app registers again (its
-  windows, icons, menus and shortcuts) under the new state.
+  calls share one run. The desktop stays drawn meanwhile. An adopted state
+  is a restart: the gate closes, the store is replaced and the desktop's
+  subtree is keyed anew in one synchronous step, so the mounted tree never
+  renders or runs an effect against the adopted state; the new tree's apps
+  register again (their windows, icons, menus and shortcuts). Host apps
+  inside the desktop lose their component state then; a host that wants to
+  avoid it reconciles before it mounts the desktop after a sign-in. Edits
+  made while a later reconcile runs are part of no snapshot yet, and a
+  `replace` drops them.
 - **`flushClassicyState()`** saves now: writes localStorage and hands each
   adapter the current snapshot, canceling the pending debounce (after a
-  reconcile that runs), resolving true when every delivery succeeded. For a
-  host about to sign the user out or leave; it waits as long as the
-  adapters do.
-- **Special ▸ Reset PRAM** with adapters registered stops saving, removes the
-  saved state, hands each `onSnapshot` a snapshot of a first session's state
-  (so the backend's copy resets too, as Drive Setup's Initialize hands the
-  file-system adapters the erased tree), waits for them for at most
-  5000 ms, then reloads; the boot after it skips its reconcile, once
-  (`localStorage["classicyDesktopState:reset"]`), so a provider's
-  `defaultState` seeds as on a first session. With none it reloads at once,
-  as before.
+  reconcile that runs), resolving true when every adapter took it (or had
+  it); false when one failed or has no successful reconcile yet. For a host
+  about to sign the user out or leave; it waits as long as the adapters do.
+- **Special ▸ Reset PRAM**, when an adapter takes snapshots, says in its
+  alert that the settings are cleared "on this computer and on every other
+  computer that shares them" (a caution alert says what the action does in
+  the user's words: HIG7 pp.195, 310–311; HIGOS8 1997 pp.62–63). On Reset it
+  shows the wristwatch (HIG7 p.270), stops saving, removes the saved state,
+  hands every such adapter a snapshot of a first session's state, a
+  provider's `defaultState` seed included (so the backend's copy resets
+  too, as Drive Setup's Initialize hands the file-system adapters the erased
+  tree), waits for them for at most 5000 ms, then reloads; the boot after it
+  skips its reconcile, once (`localStorage["classicyDesktopState:reset"]`),
+  and sends its state. A second Reset meanwhile does nothing. With no
+  adapter taking snapshots it reloads at once as before and marks nothing: a
+  reconcile-only adapter's copy is read-only to Classicy, and comes back.
 - **Servers.** Without a `window` nothing is scheduled or read: a store
   change sends nothing, `reconcileClassicyState()` resolves false without
   asking anyone, and `flushClassicyState()` resolves true.
 
 The example app shows one (`example/src/stateSync/mockStateAdapter.ts`, the
-shape of a production adapter: pushes deduplicated by hash, the account's
-copy winning at boot) against a mock backend its dev and preview servers
-run (`example/mockStateServer.ts`, in memory): open it in two browser
-profiles with the same `?stateSync=<account>`, and a theme or window layout
-changed in one is there in the other after a reload.
+shape of a production adapter: pushes deduplicated by hash, sent with
+`keepalive` when under 60 KiB, since the Fetch standard caps in-flight
+`keepalive` bodies at 64 KiB in all and fails a larger one, and the
+account's copy winning in reconcile) against a mock backend its dev and
+preview servers run (`example/mockStateServer.ts`, in memory): open it in two
+browser profiles with the same `?stateSync=<account>`, and a theme or window
+layout changed in one is there in the other after a reload.
 
 ---
 
