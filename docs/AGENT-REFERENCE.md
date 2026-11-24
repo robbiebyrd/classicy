@@ -5900,8 +5900,8 @@ followed by a mute in one batch still plays), and `ClassicySoundLoad` only
 records the pack to play (`packId`, `pack`, `sprites`, `fallbackPackId`).
 `ClassicySoundManagerProvider` builds the players in an effect
 (`buildClassicySoundPlayers`, one Howl per pack, kept across StrictMode's
-rehearsal unmount and unloaded, if the player has `unload`, a tick after a
-real unmount; they reach the state as `soundPlayer`/`fallbackPlayer`
+rehearsal unmount and unloaded, if the player has `unload`
+(`unloadClassicySoundPlayer`), a tick after a real unmount; they reach the state as `soundPlayer`/`fallbackPlayer`
 through `ClassicySoundSetPlayers`), sets each new player's gain, then runs
 each queued command once on the state's players (`runClassicySoundCommand`,
 then `ClassicySoundCommandsRun { through }`), so an alert keeps system gain
