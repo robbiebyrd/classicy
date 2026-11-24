@@ -111,6 +111,7 @@ import {
 	emptyClassicyTrash,
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { openClassicyControlPressContextMenu } from "@/SystemFolder/SystemResources/File/useClassicyMarqueeSelection.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
@@ -447,9 +448,12 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			} else {
 				desktopRef.current?.focus();
 				// The rectangle first, so Escape can restore the selection
-				// the press clears; Shift keeps it.
-				if (e.button === 0) desktopMarquee.start(e);
+				// the press clears; Shift keeps it. A Control-press is the
+				// contextual-menu click (8.1): no rectangle, the menu.
+				if (e.button === 0 && !e.ctrlKey) desktopMarquee.start(e);
 				clearActives(e);
+				if (e.button === 0 && e.ctrlKey)
+					openClassicyControlPressContextMenu(e.nativeEvent);
 			}
 		}
 	};

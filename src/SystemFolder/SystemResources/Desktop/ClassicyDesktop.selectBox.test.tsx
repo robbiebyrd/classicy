@@ -204,6 +204,44 @@ describe("ClassicyDesktop selection rectangle over the icons", () => {
 		fireEvent.mouseUp(alpha, { clientX: 980, clientY: 200 });
 	});
 
+	it("takes a Control-press as the contextual-menu click: no rectangle, deselected, the desktop's menu", async () => {
+		renderDesktop();
+		select(["Beta.app"]);
+		const menus = vi.fn();
+		desktop().addEventListener("contextmenu", menus);
+		press(860, 20, { ctrlKey: true });
+		expect(selected()).toEqual([]);
+		move(910, 60);
+		expect(selectBox()).toBeNull();
+		expect(selected()).toEqual([]);
+		// No macOS browser here to fire one: the press asks for the menu.
+		await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+		expect(menus).toHaveBeenCalledTimes(1);
+		expect(
+			document.querySelector(".classicyContextMenuWrapper"),
+		).not.toBeNull();
+		fireEvent.mouseUp(document, { clientX: 910, clientY: 60 });
+	});
+
+	it("holds the arrow keys and type-ahead off while the rectangle lasts", () => {
+		renderDesktop();
+		press(860, 20);
+		move(910, 60);
+		expect(selected()).toEqual(["Alpha.app"]);
+		fireEvent.keyDown(desktop(), { key: "ArrowDown" });
+		fireEvent.keyDown(desktop(), { key: "b" });
+		expect(selected()).toEqual(["Alpha.app"]);
+		// The rectangle still selects what it touches.
+		move(895, 160);
+		expect(selected()).toEqual(["Alpha.app", "Beta.app"]);
+		move(910, 60);
+		expect(selected()).toEqual(["Alpha.app"]);
+		fireEvent.mouseUp(document, { clientX: 910, clientY: 60 });
+		// Over: the keys act again.
+		fireEvent.keyDown(desktop(), { key: "ArrowDown" });
+		expect(selected()).toEqual(["Beta.app"]);
+	});
+
 	it("leaves the keyboard on the desktop, acting on the selection it made", () => {
 		renderDesktop();
 		press(860, 20);
