@@ -78,6 +78,20 @@ describe("Help menu — About Balloon Help", () => {
 	});
 });
 
+describe("Help menu — Keyboard Shortcuts", () => {
+	it("opens the Keyboard Shortcuts topic", async () => {
+		render(<ClassicyDesktopMenuBar />);
+
+		await userEvent.click(screen.getByText("Help"));
+		await userEvent.click(screen.getByText("Keyboard Shortcuts…"));
+		completeMenuItemFlash("help-keyboard-shortcuts");
+
+		await waitFor(() =>
+			expect(appleGuideData().openTopics).toContain("keyboard-shortcuts"),
+		);
+	});
+});
+
 /**
  * Seed an open+focused app plus its Help items.
  *

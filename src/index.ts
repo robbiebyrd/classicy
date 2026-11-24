@@ -83,6 +83,7 @@ export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 export * from "./SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuide";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideKeyboardShortcuts";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
 export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";

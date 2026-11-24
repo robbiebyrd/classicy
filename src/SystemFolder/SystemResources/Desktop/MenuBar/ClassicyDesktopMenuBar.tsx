@@ -30,6 +30,10 @@ import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+import {
+	BALLOON_HELP_SHORTCUT,
+	KEYBOARD_SHORTCUTS_TOPIC_ID,
+} from "@/SystemFolder/Extensions/AppleGuide/AppleGuideKeyboardShortcuts";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import {
 	appSwitcherAppsFrom,
@@ -143,7 +147,7 @@ const stripAboutItem = (
  * <focused app>" when that app publishes an About item — the item is moved
  * out of the app's own menus), the focused window's `appMenu`, the standard
  * Help menu (always the rightmost: About Balloon Help…, Show/Hide Balloons
- * ⌥H, then the focused app's `useClassicyHelpMenu` items), then, at the far
+ * ⌥H, Keyboard Shortcuts…, then the focused app's `useClassicyHelpMenu` items), then, at the far
  * right, menu bar extensions (`ClassicyMenuBarExtension`), the clock and the
  * App Switcher. Menus are sticky (HIGOS8 p.92): a click leaves one open, and
  * it closes after 15 seconds idle or on a click outside the bar.
@@ -325,9 +329,15 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				// Real working equivalent — Option-H rather than a ⌘ combo, since
 				// the browser reserves most ⌘/Ctrl+letter chords. Fires whether or
 				// not the Help menu is dropped down.
-				keyboardShortcut: "⌥H",
+				keyboardShortcut: BALLOON_HELP_SHORTCUT,
 				event: "ClassicyDesktopSetBalloonHelp",
 				eventData: { disableBalloonHelp: !disableBalloonHelp },
+			},
+			{
+				id: "help-keyboard-shortcuts",
+				title: "Keyboard Shortcuts…",
+				event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
+				eventData: { topicId: KEYBOARD_SHORTCUTS_TOPIC_ID },
 			},
 		];
 		const appHelpMenu = focusedMenuApp?.id
