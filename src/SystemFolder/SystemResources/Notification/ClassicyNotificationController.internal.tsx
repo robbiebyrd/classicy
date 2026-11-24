@@ -6,7 +6,10 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import type { ClassicyStoreSystemAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import { classicyAlertVolumeSoundAction } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { listClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
@@ -84,16 +87,39 @@ const isShownApplication = (app: ClassicyAppPresence) =>
 	isShown(app) && app.extension !== true;
 
 /**
+ * The app an alert opening now should belong to: the front application
+ * (`frontAppIdOf`: an extension's floating window, Apple Guide's, never
+ * replaces it), except while the app holding the focus has a modal window
+ * focused, a dialog an extension put up over the front app among them. The
+ * alert then stacks over that dialog as the same app's window, so answering
+ * it hands the focus back to the dialog (`ClassicyWindowDestroy`'s order:
+ * the extension's open modal first) rather than to the front app under it.
+ */
+const alertHostAppIdOf = (
+	applications: Pick<ClassicyStoreSystemAppManager, "apps" | "focusedAppId">,
+): string | undefined => {
+	const front = frontAppIdOf(applications);
+	const { focusedAppId } = applications;
+	if (!focusedAppId || focusedAppId === front) return front;
+	const focused = applications.apps[focusedAppId];
+	const holdsModal =
+		focused !== undefined &&
+		listAppWindows(focused).some((w) => !w.closed && w.focused && w.modal);
+	return holdsModal ? focusedAppId : front;
+};
+
+/**
  * The app whose window the alert is, so it never activates another: the
- * front app when it is shown, else the Finder, else the first shown
- * application; `undefined` when no app is shown (the alert waits).
+ * preferred host (`alertHostAppIdOf`) when it is shown, else the Finder,
+ * else the first shown application; `undefined` when no app is shown (the
+ * alert waits).
  */
 const alertHost = (
-	focusedAppId: string | undefined,
+	preferred: string | undefined,
 	shown: ReadonlySet<string>,
 	shownApplications: readonly string[],
 ): string | undefined => {
-	if (focusedAppId && shown.has(focusedAppId)) return focusedAppId;
+	if (preferred && shown.has(preferred)) return preferred;
 	if (shown.has("Finder.app")) return "Finder.app";
 	return shownApplications[0];
 };
@@ -113,7 +139,10 @@ const alertHost = (
  *   once the request has been presented.
  * - Removal: a request whose app comes to the front (`removeOnActivate`) or
  *   quits is removed, as Inside Macintosh asks of an application and as the
- *   Notification Manager flushed a quitting application's requests.
+ *   Notification Manager flushed a quitting application's requests. "The
+ *   front" is the front application (`useFrontAppId`), so a click from a
+ *   floating extension window (Apple Guide) back to the app in front, or an
+ *   extension's dialog handing the focus back, brings nothing forward.
  */
 export const ClassicyNotificationController: FunctionalComponent = () => {
 	const entries = useSyncExternalStore(
@@ -122,8 +151,17 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 		getClassicyNotificationEntries,
 	);
 	const player = useSoundDispatch();
+	// The front application, not the raw `focusedAppId`: an extension that
+	// holds the focus flag with a floating window (Apple Guide) or with its
+	// own dialog is never in front.
+	const frontAppId = useAppManager((s) =>
+		frontAppIdOf(s.System.Manager.Applications),
+	);
 	const focusedAppId = useAppManager(
 		(s) => s.System.Manager.Applications.focusedAppId,
+	);
+	const preferredHost = useAppManager((s) =>
+		alertHostAppIdOf(s.System.Manager.Applications),
 	);
 	const openApps = useAppManager((s) =>
 		appIdsKey(s.System.Manager.Applications.apps, isOpen),
@@ -171,20 +209,20 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 	// when the user answers the alert (below), and the app's other requests
 	// stay until it comes forward again. `alertActivation` is set below,
 	// after this effect in each commit.
-	const lastFocused = useRef(focusedAppId);
+	const lastFront = useRef(frontAppId);
 	const alertActivation = useRef<string | undefined>(undefined);
 	useEffect(() => {
-		const before = lastFocused.current;
-		lastFocused.current = focusedAppId;
-		if (!focusedAppId || focusedAppId === before) return;
-		if (alertActivation.current === focusedAppId) {
+		const before = lastFront.current;
+		lastFront.current = frontAppId;
+		if (!frontAppId || frontAppId === before) return;
+		if (alertActivation.current === frontAppId) {
 			alertActivation.current = undefined;
 			return;
 		}
 		removeClassicyNotificationsWhere(
-			(n) => n.appId === focusedAppId && n.removeOnActivate,
+			(n) => n.appId === frontAppId && n.removeOnActivate,
 		);
-	}, [focusedAppId]);
+	}, [frontAppId]);
 
 	// A quitting app's requests go with it.
 	const lastOpen = useRef(openApps);
@@ -222,7 +260,7 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 	const ownerAppId =
 		alerting && owner?.id === alerting.id && shown.has(owner.appId)
 			? owner.appId
-			: alertHost(focusedAppId, shown, shownApplications);
+			: alertHost(preferredHost, shown, shownApplications);
 	useEffect(() => {
 		if (
 			alerting &&
@@ -233,16 +271,19 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 		}
 	}, [alerting, owner, ownerAppId]);
 
-	// The alert is about to bring its owner forward when the owner is not in
-	// front: the focus change that follows is the alert's (see above).
+	// The alert is about to bring its owner forward when the owner is
+	// neither in front nor holding the focus: the change of front that
+	// follows is the alert's (see above). An extension that hosts it over its
+	// own dialog already holds the focus, and is never brought to the front.
 	useEffect(() => {
 		alertActivation.current =
 			alerting?.message !== undefined &&
 			ownerAppId !== undefined &&
+			ownerAppId !== frontAppId &&
 			ownerAppId !== focusedAppId
 				? ownerAppId
 				: undefined;
-	}, [alerting, ownerAppId, focusedAppId]);
+	}, [alerting, ownerAppId, frontAppId, focusedAppId]);
 
 	// No wrapper: the alert's own modal scrim blocks the desktop while it
 	// shows, and nothing is left over the desktop when it cannot show.

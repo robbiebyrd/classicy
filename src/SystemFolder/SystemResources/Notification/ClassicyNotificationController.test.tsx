@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	type ClassicyStore,
 	type ClassicyStoreSystemApp,
+	type ClassicyStoreSystemAppWindow,
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
@@ -12,6 +13,7 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { holdClassicyStartup } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupHold.internal";
@@ -547,6 +549,140 @@ describe("the alert's owner", () => {
 		notify({ appId: "Mail.app", message: "Hi" });
 		expect(document.querySelector(".classicyDesktopDialogOverlay")).toBeNull();
 		expect(document.querySelector(".classicyWindowModalScrim")).not.toBeNull();
+	});
+});
+
+// Stories 0225-ci7 and 0233-c79 together: the controller reads the front
+// application (`frontAppIdOf`), which an extension holding the focus flag
+// never is (Apple Guide's floating windows; an extension's own dialog).
+describe("the front application, not the focus flag", () => {
+	const win = (
+		id: string,
+		extra: Partial<ClassicyStoreSystemAppWindow> = {},
+	): ClassicyStoreSystemAppWindow => ({
+		id,
+		closed: false,
+		size: [100, 100],
+		position: [0, 0],
+		minimumSize: [10, 10],
+		...extra,
+	});
+
+	const applications = () =>
+		useAppManager.getState().System.Manager.Applications;
+
+	// Calc is the front app; Apple Guide holds the focus flag with an open,
+	// menuless topic window (a floating window), as a save from before the
+	// floating model left it, or as an extension's launch does
+	// (`ClassicyAppOpen` focuses the app it opens).
+	const guideHoldsTheFlag = () =>
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
+				"Calc.app": app("Calc.app", {
+					lastFocusedAt: 5,
+					windows: { main: win("main") },
+				}),
+				"Mail.app": app("Mail.app", { lastFocusedAt: 3 }),
+				"AppleGuide.app": app("AppleGuide.app", {
+					extension: true,
+					focused: true,
+					lastFocusedAt: 9,
+					windows: { topic: win("topic", { focused: true, menuBar: [] }) },
+				}),
+			};
+			draft.System.Manager.Applications.focusedAppId = "AppleGuide.app";
+		});
+
+	it("hosts an alert posted while Apple Guide holds the focus flag in the front app", () => {
+		guideHoldsTheFlag();
+		renderController();
+		const id = notify({ appId: "Mail.app", message: "Mail." });
+		expect(alertOwner(id)).toBe("Calc.app");
+		expect(visibleAlertTexts()).toEqual(["Mail."]);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(alertTexts()).toEqual([]);
+		// Answered over the front app, which is not the requesting app: the
+		// request stays until Mail comes forward.
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([id]);
+	});
+
+	it("keeps the front app's requests when the focus comes back to it from the guide", () => {
+		guideHoldsTheFlag();
+		renderController();
+		const id = notify({ appId: "Calc.app" });
+		// A click in Calc's window, from the guide: Calc was in front all along.
+		act(() =>
+			dispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: "Calc.app" },
+				window: { id: "main" },
+			}),
+		);
+		expect(focused()).toBe("Calc.app");
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([id]);
+		// Coming forward again, after another app, takes it down.
+		act(() => dispatch({ type: "ClassicyAppFocus", app: { id: "Mail.app" } }));
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([id]);
+		act(() => dispatch({ type: "ClassicyAppFocus", app: { id: "Calc.app" } }));
+		expect(listClassicyNotifications()).toEqual([]);
+	});
+
+	it("stacks over an extension's dialog and hands the focus back to the dialog when answered", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
+				"Calc.app": app("Calc.app", {
+					focused: true,
+					lastFocusedAt: 5,
+					windows: { main: win("main", { focused: true }) },
+				}),
+				"Mail.app": app("Mail.app", { lastFocusedAt: 3 }),
+				"Ext.app": app("Ext.app", {
+					extension: true,
+					windows: { dlg: win("dlg", { modal: true, menuBar: [] }) },
+				}),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Calc.app";
+		});
+		renderController();
+		const calcRequest = notify({ appId: "Calc.app" });
+		// A menuless extension puts up its dialog over Calc: it takes the
+		// focus (and the keyboard), while Calc stays the front app.
+		act(() =>
+			dispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: "Ext.app" },
+				window: { id: "dlg", menuBar: [] },
+			}),
+		);
+		expect(focused()).toBe("Ext.app");
+		expect(frontAppIdOf(applications())).toBe("Calc.app");
+		const id = notify({ appId: "Mail.app", message: "Mail." });
+		// The alert is the extension's, over its dialog, not Calc's under it.
+		expect(alertOwner(id)).toBe("Ext.app");
+		expect(visibleAlertTexts()).toEqual(["Mail."]);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(alertTexts()).toEqual([]);
+		// RR5-1's order: the dialog still up gets the focus back.
+		expect(focused()).toBe("Ext.app");
+		expect(applications().apps["Ext.app"].windows.dlg.focused).toBe(true);
+		expect(applications().apps["Calc.app"].windows.main.focused).not.toBe(true);
+		expect(frontAppIdOf(applications())).toBe("Calc.app");
+		// The dialog goes, and the focus returns to Calc, which never left the
+		// front: its own request stays.
+		act(() =>
+			dispatch({
+				type: "ClassicyWindowDestroy",
+				app: { id: "Ext.app" },
+				window: { id: "dlg" },
+			}),
+		);
+		expect(focused()).toBe("Calc.app");
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([
+			calcRequest,
+			id,
+		]);
 	});
 });
 
