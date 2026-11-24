@@ -134,10 +134,11 @@ const DEFAULT_MINIMUM_SIZE: [
 const themeMenuBarHeight = (
 	theme: ClassicyTheme | undefined,
 	layout: ClassicyAppearanceLayout,
+	packageId: string | undefined,
 ): number | undefined => {
 	if (!theme) return undefined;
 	const vars: Record<string, string> = {
-		...(getThemeVars(theme) as Record<string, string>),
+		...(getThemeVars(theme, packageId) as Record<string, string>),
 		...classicyLayoutThemeVars(layout),
 	};
 	const value = Number.parseFloat(vars["--menu-bar-height"]);
@@ -744,10 +745,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const activeTheme = useAppManager(
 		(state) => state.System.Manager.Appearance?.activeTheme,
 	);
+	// The package drawing it (story 0235-xgi): its knobs, whatever the theme's.
+	const packageId = useAppManager(
+		(state) => state.System.Manager.Appearance?.packageId,
+	);
 	const [menuBarHeight, setMenuBarHeight] = useState(() =>
 		readClassicyThemeVar(
 			"--menu-bar-height",
-			themeMenuBarHeight(activeTheme, layout),
+			themeMenuBarHeight(activeTheme, layout, packageId),
 		),
 	);
 	const menuBarPlacement = layout.menuBar.placement;
@@ -756,11 +761,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		setMenuBarHeight(
 			readClassicyThemeVar(
 				"--menu-bar-height",
-				themeMenuBarHeight(activeTheme, layout),
+				themeMenuBarHeight(activeTheme, layout, packageId),
 				windowRef.current,
 			),
 		);
-	}, [activeTheme, menuBarPlacement]);
+	}, [activeTheme, packageId, menuBarPlacement]);
 
 	// A modal of type "error" (an alert) or with `movable={false}` cannot be
 	// moved (a fixed modal dialog box); every other modal can (a movable one).

@@ -1,4 +1,5 @@
 import {
+	setClassicyDrawnPackageLookup,
 	setClassicyPackageColorFamiliesLookup,
 	setClassicyPackageMeasurementsLookup,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
@@ -188,6 +189,12 @@ setClassicyPackageMeasurementsLookup(
 			(id === undefined ? undefined : registry.get(id)) ??
 			registry.get(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)
 		)?.defaults.measurements,
+);
+
+// The package a stored id draws as (`classicyDrawnThemeMeasurements`): a
+// theme drawn by another package is completed from that package's knobs.
+setClassicyDrawnPackageLookup(
+	(id) => getRegisteredClassicyAppearancePackageOrDefault(id)?.id,
 );
 
 // Package color families (`classicyThemeColorFamilyDefaults`): the theme's

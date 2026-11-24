@@ -35,8 +35,10 @@ const CORE_FIVE = ["window", "control", "button", "groupBox", "layout"];
 // with a fallback of 0, so a package that draws no rectangles has no zoom;
 // story 0230-n6c). Every knob Platinum's own partials read without a
 // fallback is on the floor too, since story 0225-ci7: `ChangeTheme` may draw
-// any package's theme under Platinum (ClassicyPlatinumKnobReads.test.ts),
-// the selection and zoom rectangles' pens and checkers included.
+// any package's theme under Platinum, the selection and zoom rectangles'
+// pens and checkers included. Since story 0235-xgi a theme drawn under
+// another package is also completed from that package's own defaults
+// (ClassicyPackageKnobReads.test.ts); the floor keeps them all the same.
 const LOOK_ONLY = [
 	"fileBrowserList.mediumIconSize",
 	"fileBrowserList.rowPadding",

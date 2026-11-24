@@ -650,16 +650,18 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	// registry: re-read when wallpapers register or the active package changes
 	// (the tree's identity changes with both).
 	const wallpapers = useClassicyAssetTree("wallpapers");
-	// biome-ignore lint/correctness/useExhaustiveDependencies: wallpapers is the registry's change signal for getThemeVars' wallpaper lookup
-	const currentTheme = useMemo(
-		() => getThemeVars(activeTheme),
-		[activeTheme, wallpapers],
-	);
-	const assetVars = useClassicyAssetVars();
 	// The resolved id, not the stored one: an id whose package is not (yet)
 	// registered renders as the default package, else the first registered
 	// one, so the CSS scope and the JS agree.
 	const appearancePackageId = useActiveClassicyAppearancePackage().id;
+	// Drawn by the active package: a theme of another package takes that
+	// package's knobs (story 0235-xgi).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: wallpapers is the registry's change signal for getThemeVars' wallpaper lookup
+	const currentTheme = useMemo(
+		() => getThemeVars(activeTheme, appearancePackageId),
+		[activeTheme, appearancePackageId, wallpapers],
+	);
+	const assetVars = useClassicyAssetVars();
 	const storedPackageId = useAppManager(
 		(s) => s.System.Manager.Appearance.packageId,
 	);

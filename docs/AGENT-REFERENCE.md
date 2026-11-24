@@ -1619,7 +1619,11 @@ no look, so the zoom is opt-in: a package that wants it sets its themes'
 core reads it with a fallback of 0, `readClassicyZoomRectsSettings`) **and**
 draws the part in its stylesheet. A package that sets neither (a host's own
 package written before this release, Storybook's probe) has no zoom: no
-rectangles and no hidden window. Platinum and System 7 opt in and draw it in
+rectangles and no hidden window. The opt-in follows the drawing package
+(story 0235-xgi, §8, "A theme drawn under another package"): a theme that
+carries its own package's `enabled: 1` draws no zoom under a package that
+has not opted in, and only a theme's own edit (0, say) overrides the
+drawing package's value. Platinum and System 7 opt in and draw it in
 `_ZoomRects.scss`: Platinum Mac OS 8.1's two-pixel frame
 (`mac-os-8.1/style/`), System 7 the 7.5 Finder's one-pixel frame
 (`system-7.5/style/`, four kept at a time), both the 50% checker in XOR
@@ -4103,8 +4107,10 @@ package's `defaults` and `presets`, in registration order), and
 `getTheme(id, overrides?)` returns the one with that id (the first one for
 an unknown id), a deep-merged clone when given `overrides`; with no package
 registered both serve the core's own `CLASSICY_CORE_DEFAULT_THEME` (no
-wallpaper, the core floor's measurements). `getThemeVars(theme)` returns the
-CSS custom-property map. Platinum's SCSS is importable via
+wallpaper, the core floor's measurements). `getThemeVars(theme,
+drawnPackageId?)` returns the CSS custom-property map (`drawnPackageId`, the
+package drawing the theme, completes its knobs from that package's defaults;
+§8, "A theme drawn under another package"). Platinum's SCSS is importable via
 `@classicy/appearance-platinum/scss/*` (`mixins`, `scrollbars`, `assets`; the
 `platinum-*` mixins), the state vocabulary via `@classicy/classicy/scss/vocabulary`
 (§4.0.1), and the layout helpers and package wrapper via
@@ -5858,11 +5864,11 @@ edit on a built-in theme forks its package's Custom theme (above).
 |---|---|---|
 | Themes | `useThemesTab({ packageIcon?, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile, copyThemeLink?, copiedThemeName? })` | "The current Appearance Package is <name>" with `packageIcon` (the active package's `icon`, from `useActiveClassicyAppearancePackage().icon`), else the generic package glyph (the icon tree's `system.extension`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); Copy Theme Link and its status line, only with `copyThemeLink` (the panel passes it while a desktop has `themeLinks` on; "Theme links" above); the scrolling and collapse checkboxes |
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
-| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
+| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing the value `getThemeVars` draws under the active package (`classicyDrawnThemeMeasurements(theme, pkg.id)`: `measurements.<family>.<key>`, or, when the theme lacks it, the package's defaults over the core floor, H-R29c; for a theme of another package, the active package's value wherever the theme carries no edit of its own, story 0235-xgi), and the knob's `default` only when none has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (None first, which stores `""`: no picture, the desktop's solid color; then the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`). `bg` is the resolved picture, `""` for none (the picker reads None and the preview shows the desktop color) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies? })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
-| Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
+| Metrics | `useMetricsTab({ theme, packageId?, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, showing the value drawn under `packageId` (the active package; `withDrawnThemeMetrics`, so a theme of another package shows that package's metric wherever it carries no edit of its own, story 0235-xgi), grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
 | Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.5, and a call without it works as in 3.1) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
 `appearanceThemeEditNotice(themeName, editingCustomTheme, change)` returns
@@ -5874,7 +5880,8 @@ text queries to the visible `tabpanel`.
 ### CSS custom properties
 
 The active theme is materialized as CSS custom properties by
-`getThemeVars(theme)` and applied inline on the desktop root by
+`getThemeVars(theme, packageId)` (the active package's id: a theme of another
+package takes that package's knobs) and applied inline on the desktop root by
 `ClassicyDesktop` — so they are available to (and only to) elements rendered
 inside the desktop. **Style your own components with these variables**, never
 hard-coded colors/sizes, and they will follow theme changes automatically:
@@ -6067,11 +6074,12 @@ literals.
   another package drawn under Platinum emitted none of them; the
   rectangles' four (stories 0228-e9l and 0230-n6c) are on the floor for the
   same reason.
-  `ClassicyPlatinumKnobReads.test.ts` checks that every variable Platinum's
-  sheet reads without a fallback is emitted by every registered package's
-  themes and by a package declaring only the core five. A package with
-  stylesheets of its own may ignore them; its themes emit them anyway. The
-  other three are optional: the two `fileBrowserList` knobs (below) and
+  Since story 0235-xgi a theme drawn under another package is completed
+  from the drawing package's own defaults ("A theme drawn under another
+  package", below), which supplies those knobs whatever the floor holds;
+  they stay on the floor so no theme's emitted variables change. A package
+  with stylesheets of its own may ignore them; its themes emit them anyway.
+  The other three are optional: the two `fileBrowserList` knobs (below) and
   `zoomRects.enabled`, the zoom rectangles' opt-in (§4.1, "Zoom
   rectangles"), which the core reads with a fallback of 0 so a package
   that does not set it, and draws no rectangles, has no zoom.
@@ -6137,11 +6145,12 @@ literals.
   row's (rows step by `desktop.iconSize` plus it, so the pitch follows an
   edited icon size; the metrics' `rowPitch`), and `top`, the first row's
   top for a top origin and the highest a bottom origin's row goes (the
-  metrics' `top`). Each is read from the theme completed by its package's
-  defaults (`withDefaultThemeMetrics(theme,
-  classicyThemeMeasurementDefaults(theme.package))`, as `getThemeVars`
-  reads every knob), so a saved Custom theme, which persistence stores
-  without the values equal to those defaults, keeps its package's rows.
+  metrics' `top`). Each is read from the measurements the theme draws with
+  under the drawing package (`classicyDrawnThemeMeasurements(theme,
+  packageId)`, as `getThemeVars` reads every knob), so a saved Custom
+  theme, which persistence stores without the values equal to its
+  package's defaults, keeps its package's rows, and a theme of another
+  package takes the drawing package's.
   Each counts when that value is a finite number of zero or more; unset in
   the theme and in its package, rows step by `cell + padding` from
   `4 × padding`, as columns always do, so Platinum, which sets neither,
@@ -6368,12 +6377,55 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
 - **Who fills what (H-R17).** The state migration (`migrateClassicyState`)
   runs before a host can register its package, so it fills only the core
   five. Knob families are filled at read time: `getThemeVars` completes the
-  theme from `classicyThemeMeasurementDefaults(theme.package)` before it
-  walks it, so a theme that reaches it unmigrated (a preview, a story, a
-  test) never emits `undefined` or `NaNpx`. The Options tab shows a knob's
-  default when the theme lacks the key. Theme export, Platinum's
-  registration of its presets, `ClassicyDesktopLoadThemes` and package
-  activation fill from the theme's own package as well.
+  theme from the drawing package's defaults before it walks it (below), so
+  a theme that reaches it unmigrated (a preview, a story, a test) never
+  emits `undefined` or `NaNpx`. The Options and Metrics tabs show the value
+  drawn when the theme lacks the key. Theme export, Platinum's registration
+  of its presets, `ClassicyDesktopLoadThemes` and package activation fill
+  from the theme's own package (theme data, never the drawing package's).
+- **A theme drawn under another package** (story 0235-xgi). `ChangeTheme`
+  may activate another package's theme (a reload keeps it), and a preset or
+  Custom theme stays active when a registry change alters what draws (a
+  host dropping a package; `ClassicyDesktopChangeAppearancePackage` itself
+  activates the new package's own theme), so the drawing package's
+  stylesheet reads
+  a theme its package never completed (a Platinum theme under System 7
+  lacked 156 of the variables System 7's sheet reads without a fallback).
+  `getThemeVars(theme, drawnPackageId?)` takes the package drawing the
+  theme (`ClassicyDesktop` passes the resolved `Appearance.packageId`;
+  `ClassicyWindow`'s menu-bar height, the desktop Clean Up
+  (`classicyDesktopIconMetrics(theme, drawnPackageId?)`, from the draft's
+  `packageId`) and the Options and Metrics tabs pass it too) and completes
+  the measurements with `classicyDrawnThemeMeasurements(theme,
+  drawnPackageId)` (`withDrawnThemeMetrics` for a whole theme). Under the
+  theme's own package, or with no `drawnPackageId`, that is
+  `withDefaultThemeMetrics(theme, classicyThemeMeasurementDefaults(theme.package))`,
+  as before. Under another package it is, key by key: the core floor, then
+  the drawing package's defaults, then the theme's own values, meaning every
+  value that differs from its own package's default, the core five
+  included. So a Platinum theme under System 7 draws System 7's knobs
+  (`--window-control-size` 11, `--window-scrollbar-size` 16,
+  `--title-bar-box-gap`, Standard File's layout) and the reverse draws
+  Platinum's, while an edit the theme carries wins under every package. A
+  value equal to its package's default is no edit, as persistence has it:
+  under another package it follows that package's default, so an opt-in
+  follows the drawing package too (a theme carrying its package's
+  `zoomRects.enabled: 1` draws no zoom under a package that has not opted
+  in; one that set it to 0 keeps it off everywhere). A theme whose package
+  is not registered keeps all its values, since nothing tells its edits
+  from its package's defaults (persistence keeps them all too). Nothing of
+  the drawing package's is written to the theme, so persisted state still
+  holds the theme's own values alone, and a theme and its stored copy draw
+  the same. Package colors are not completed this way: they are the
+  theme's palette (`classicyThemeColorFamilyDefaults(theme.package)`), and
+  every read of one carries a `--color-*` fallback. Render code that reads
+  the desktop's live variables (`readClassicyThemeVar`,
+  `readClassicyDesktopIconMetrics`) already gets the drawn values.
+  `ClassicyPackageKnobReads.test.ts` draws every registered package's themes
+  (and their stored copies, and a package declaring only the core five)
+  under every registered package and requires every variable the drawing
+  package's sheet and the core's base sheets read without a fallback, and
+  every knob the drawing package declares; it pins the values above too.
 - **Persistence.** `sanitizeStateForPersistence` stores each theme without
   the package-family values equal to its package's defaults
   (`withoutDefaultThemeMeasurements(theme, defaults)`), and drops a family
@@ -6803,7 +6855,8 @@ the variable instead of hard-coding the number:
   not emit, so pass an explicit fallback for a package-only variable.
 - **Cost.** Each call forces a style read. Read once per gesture, theme or
   layout pass, never per render or `mousemove`, and never from a reducer:
-  reducers compute from `getThemeVars(theme)`.
+  reducers compute from `getThemeVars(theme, packageId)` (the draft's
+  `Appearance.packageId`).
 - **Readers.** `ClassicyWindow` passes its own element as `el`, so it reads
   the desktop it is in (custom properties inherit) even with several desktops
   on a page. It reads `--menu-bar-height` (once per active theme and

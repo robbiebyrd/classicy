@@ -14,8 +14,8 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import {
 	classicyMeasurementVarName,
-	classicyThemeMeasurementDefaults,
 	isReservedClassicyThemeVar,
+	withDrawnThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	type ClassicyThemeMetricFamilyTarget,
@@ -84,31 +84,25 @@ const knobFamilySchema = (
 // render or remount of the tab.
 const warnedPackages = new Set<string>();
 
-// The theme's value for each knob. When the theme lacks it (it predates the
-// knob, or persistence dropped a value equal to the package default, H-R17;
-// the reducer creates the key on the first edit), the value getThemeVars
-// draws: the theme's package defaults over the core floor
-// (`classicyThemeMeasurementDefaults`, H-R29c). Only a knob with no
-// measurement default anywhere shows its own `default`.
+// The value getThemeVars draws for each knob under the active package
+// (`classicyDrawnThemeMeasurements`, story 0235-xgi): the theme's own value,
+// else (it predates the knob, or persistence dropped a value equal to the
+// package default, H-R17; the reducer creates the key on the first edit) the
+// drawing package's defaults over the core floor (H-R29c). A theme of
+// another package shows the active package's value where it carries no
+// edit of its own. Only a knob with no measurement default anywhere shows
+// its own `default`.
 const knobFamilyValues = (
 	theme: ClassicyTheme,
+	packageId: string,
 	family: string,
 	knobs: readonly EditableKnob[],
 ): Record<string, number> => {
-	const defaults: Readonly<Record<string, unknown>> | undefined =
-		classicyThemeMeasurementDefaults(theme.package)[family];
+	const drawn = withDrawnThemeMetrics(theme, packageId);
 	return Object.fromEntries(
 		knobs.map(({ key, knob }) => {
-			const value = getThemeMetricFamily(theme, { family, key });
-			if (Number.isFinite(value)) return [key, value];
-			const drawn =
-				defaults && Object.hasOwn(defaults, key) ? defaults[key] : undefined;
-			return [
-				key,
-				typeof drawn === "number" && Number.isFinite(drawn)
-					? drawn
-					: knob.default,
-			];
+			const value = getThemeMetricFamily(drawn, { family, key });
+			return [key, Number.isFinite(value) ? value : knob.default];
 		}),
 	);
 };
@@ -213,7 +207,7 @@ export const useOptionsTab = ({
 									>
 										<ClassicySchemaForm
 											schema={schema}
-											values={knobFamilyValues(theme, family, knobs)}
+											values={knobFamilyValues(theme, pkg.id, family, knobs)}
 											idPrefix={familyIdPrefix(family)}
 											onChange={([key], value) => {
 												if (typeof value === "number")
@@ -227,6 +221,6 @@ export const useOptionsTab = ({
 					</div>
 				),
 		}),
-		[families, pkg.name, theme, editingCustomTheme, changeMetric],
+		[families, pkg.id, pkg.name, theme, editingCustomTheme, changeMetric],
 	);
 };

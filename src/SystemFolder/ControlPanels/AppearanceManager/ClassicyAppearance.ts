@@ -15,9 +15,8 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import { classicyThemeDerivations } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import {
+	classicyDrawnThemeMeasurements,
 	classicyMeasurementVars,
-	classicyThemeMeasurementDefaults,
-	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -238,16 +237,21 @@ export type ClassicyTheme = {
 const classicyDesktopPictureVar = (src: string): string =>
 	src ? `url("${src}")` : "none";
 
-export const getThemeVars = (theme: ClassicyTheme) => {
-	// Completed first, key by key, from the theme's package defaults over
-	// Platinum's (H-R2): themes reach here unmigrated (previews, stories,
-	// tests, a theme saved before a family existed), and a missing knob
-	// would leave a base stylesheet reading an unset variable. Copy-on-write,
-	// so a complete theme costs no allocation.
-	const m = withDefaultThemeMetrics(
-		theme,
-		classicyThemeMeasurementDefaults(theme.package),
-	).measurements;
+/**
+ * The CSS variables `theme` draws with. `drawnPackageId` is the package
+ * drawing it (the store's `Appearance.packageId`; `ClassicyDesktop` passes
+ * the resolved id): a theme of another package is completed from that
+ * package's knobs (`classicyDrawnThemeMeasurements`, story 0235-xgi). Left
+ * out, the theme's own package draws it.
+ */
+export const getThemeVars = (theme: ClassicyTheme, drawnPackageId?: string) => {
+	// Completed first, key by key, from the core floor and the drawing
+	// package's defaults (the theme's own package's unless another draws it;
+	// H-R2): themes reach here unmigrated (previews, stories, tests, a theme
+	// saved before a family existed), and a missing knob would leave a
+	// stylesheet reading an unset variable. Copy-on-write, so a complete
+	// theme under its own package costs no allocation.
+	const m = classicyDrawnThemeMeasurements(theme, drawnPackageId);
 	const border = m.window.borderSize;
 	const colorFamilyDefaults = classicyThemeColorFamilyDefaults(theme.package);
 	return {

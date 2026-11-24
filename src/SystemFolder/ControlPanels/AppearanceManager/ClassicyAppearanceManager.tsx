@@ -573,6 +573,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const metricsTab = useMetricsTab({
 		theme: appearanceState.activeTheme,
+		packageId: activePackage.id,
 		editingCustomTheme: isCustomThemeActive(appearanceState),
 		changeMetric,
 	});
