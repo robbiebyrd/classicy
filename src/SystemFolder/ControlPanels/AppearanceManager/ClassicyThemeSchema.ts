@@ -271,6 +271,21 @@ export const ClassicyThemeSchema = z.object({
 				}
 			}
 		}),
+	// The explicit-edit record (story 0235-xgi): family → measurement keys
+	// whose value is the theme's own even though it equals its package's
+	// default. Names as the measurements' own; each key at most once.
+	measurementPins: z
+		.record(
+			z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR),
+			z
+				.array(z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR))
+				.min(1)
+				.max(256)
+				.refine((keys) => new Set(keys).size === keys.length, {
+					error: "must name each key once",
+				}),
+		)
+		.optional(),
 	desktop: z.object({
 		iconSize: size(512),
 		iconFontSize: fontSize,

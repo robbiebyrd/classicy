@@ -1,9 +1,10 @@
 import "@classicy/appearance-platinum";
 import "@classicy/appearance-system7";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { compile, NodePackageImporter } from "sass";
 import { afterAll, describe, expect, it } from "vitest";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	getClassicyAppearancePackage,
 	listClassicyAppearancePackages,
@@ -42,10 +43,20 @@ import {
 const REPO = path.resolve(import.meta.dirname, "../..");
 
 // Each workspace Appearance Package's stylesheet, by package id.
-const PACKAGE_SHEETS: Readonly<Record<string, string>> = {
-	platinum: "packages/appearance/platinum/src/styles/platinum.scss",
-	system7: "packages/appearance/system7/src/styles/system7.scss",
-};
+// Each workspace Appearance Package's stylesheet, by package id: every
+// `packages/appearance/<id>/` holds `src/styles/<id>.scss` (asserted below),
+// so a new package's sheet is read without editing this list.
+const WORKSPACE_PACKAGES = readdirSync(path.join(REPO, "packages/appearance"), {
+	withFileTypes: true,
+})
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => entry.name);
+const PACKAGE_SHEETS: Readonly<Record<string, string>> = Object.fromEntries(
+	WORKSPACE_PACKAGES.map((id) => [
+		id,
+		`packages/appearance/${id}/src/styles/${id}.scss`,
+	]),
+);
 
 // Every `var(--name)` with no fallback.
 const NO_FALLBACK = /var\((--[\w-]+)\)/g;
@@ -149,9 +160,14 @@ const neededBy = (drawn: string): string[] => {
 };
 
 describe("a theme drawn under any registered package (0235-xgi)", () => {
-	it("registers every workspace package and the bare stand-in", () => {
+	it("registers every workspace package and the bare stand-in, and reads each workspace package's sheet", () => {
+		expect(WORKSPACE_PACKAGES).toEqual(
+			expect.arrayContaining(["platinum", "system7"]),
+		);
+		for (const file of Object.values(PACKAGE_SHEETS))
+			expect(existsSync(path.join(REPO, file)), file).toBe(true);
 		expect(drawingPackages).toEqual(
-			expect.arrayContaining(["platinum", "system7", BARE]),
+			expect.arrayContaining([...WORKSPACE_PACKAGES, BARE]),
 		);
 		// The sheets read their own knobs without a fallback: the slider's
 		// and the menu marks' grid in Platinum's (0225-ci7), the title bar's
@@ -208,24 +224,80 @@ describe("what wins (0235-xgi)", () => {
 	const system7 = getClassicyAppearancePackage("system7")
 		?.defaults as ClassicyTheme;
 
-	it("an unedited theme of another package draws the drawing package's own knob values", () => {
+	// The built-in a package completes another package's theme from: the one
+	// its `foreignThemeDefaults` names (System 7: its color preset), else its
+	// defaults (Platinum and the bare package). Fix round 1, review I1.
+	const foreignReference = (id: string): ClassicyTheme => {
+		const pkg = getClassicyAppearancePackage(id);
+		const ref = pkg?.foreignThemeDefaults;
+		return (
+			(ref === undefined
+				? undefined
+				: [pkg?.defaults, ...(pkg?.presets ?? [])].find(
+						(theme) => theme?.id === ref,
+					)) ?? (pkg?.defaults as ClassicyTheme)
+		);
+	};
+
+	it("names System 7's color preset for foreign themes, and nothing for Platinum", () => {
+		expect(getClassicyAppearancePackage("system7")?.foreignThemeDefaults).toBe(
+			"system7-color",
+		);
+		expect(
+			getClassicyAppearancePackage("platinum")?.foreignThemeDefaults,
+		).toBeUndefined();
+		expect(foreignReference("platinum").id).toBe("default");
+	});
+
+	it("refuses a foreignThemeDefaults that names none of the package's built-ins", () => {
+		const id = "foreign-reference-probe";
+		const probe = { ...bare, id, package: id };
+		const base: ClassicyAppearancePackage = {
+			id,
+			name: "Probe",
+			css: "",
+			defaults: probe,
+			presets: [probe, { ...probe, id: `${id}-color` }],
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		};
+		try {
+			registerClassicyAppearancePackage({
+				...base,
+				foreignThemeDefaults: "nope",
+			});
+			expect(getClassicyAppearancePackage(id)).toBeUndefined();
+			registerClassicyAppearancePackage({
+				...base,
+				foreignThemeDefaults: `${id}-color`,
+			});
+			expect(getClassicyAppearancePackage(id)?.foreignThemeDefaults).toBe(
+				`${id}-color`,
+			);
+		} finally {
+			unregisterClassicyAppearancePackage(id);
+		}
+	});
+
+	it("an unedited theme of another package draws the drawing package's foreign reference's knob values", () => {
 		const unedited = themes.filter(isUnedited);
 		// Platinum's 21 built-ins, System 7's defaults and the bare theme, and
 		// their stored copies.
 		expect(unedited.length).toBeGreaterThan(40);
 		for (const drawn of drawingPackages) {
-			const expected = knobVars(
-				getClassicyAppearancePackage(drawn)?.defaults as ClassicyTheme,
-				drawn,
-			);
-			for (const theme of unedited) {
+			const expected = knobVars(foreignReference(drawn), drawn);
+			for (const theme of unedited.filter((t) => t.package !== drawn)) {
 				expect(
 					knobVars(theme, drawn),
 					`${theme.package}/${theme.id} under ${drawn}`,
 				).toEqual(expected);
 			}
 		}
-		// So a Platinum theme under System 7 keeps System 7's core five too.
+		// So a Platinum theme under System 7 keeps System 7's core five too,
+		// and its color look, not the 1-bit one.
 		const vars = getThemeVars(platinumDefault, "system7") as Record<
 			string,
 			string
@@ -234,6 +306,23 @@ describe("what wins (0235-xgi)", () => {
 		expect(vars["--window-scrollbar-size"]).toBe("16px");
 		expect(vars["--window-utility-title-bar-height"]).toBe("13px");
 		expect(vars["--title-bar-box-gap"]).toBe("1px");
+		const color = getThemeVars(foreignReference("system7")) as Record<
+			string,
+			string
+		>;
+		for (const [name, value] of [
+			["--dither-tile-size", "0px"],
+			["--scroll-bar-bevel", "1px"],
+			["--scroll-bar-grip", "6px"],
+			["--box-bevel", "1px"],
+			["--dialog-frame-bevel", "1px"],
+			["--icon-selection-invert", "0px"],
+			["--menu-bar-title-art-invert", "0px"],
+			["--menu-item-hidden-icon-opacity", "53px"],
+		] as const) {
+			expect(color[name], name).toBe(value);
+			expect(vars[name], name).toBe(value);
+		}
 		const reverse = getThemeVars(system7, "platinum") as Record<string, string>;
 		expect(reverse["--window-control-size"]).toBe("12px");
 		expect(reverse["--window-scrollbar-size"]).toBe("17px");

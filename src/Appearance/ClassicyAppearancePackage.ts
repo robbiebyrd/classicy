@@ -386,6 +386,15 @@ export type ClassicyAppearancePackage = {
 	defaults: ClassicyTheme;
 	/** Built-in themes offered with the package (Platinum's 21). */
 	presets?: ClassicyTheme[];
+	/**
+	 * The id of the built-in theme (`defaults` or one of `presets`) whose
+	 * measurements complete a theme of another package while this package
+	 * draws it (`classicyDrawnThemeMeasurements`, story 0235-xgi): its knobs
+	 * fill every key the foreign theme carries no edit of. Absent, the
+	 * package's `defaults`. System 7 names its color preset, so a color theme
+	 * of another package draws System 7's color look, not its 1-bit one.
+	 */
+	foreignThemeDefaults?: string;
 	/** UI metadata per measurements family/key. */
 	knobs?: ClassicyAppearanceKnobs;
 	/** UI metadata per color family/key (`defaults.color.families`). */

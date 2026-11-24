@@ -21,9 +21,9 @@ import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceMana
  * checked, so a field that was already invalid (a relative wallpaper set by
  * `ClassicyDesktopChangeBackground`, say) never blocks an unrelated write.
  *
- * Metrics are not options: `measurements.*` goes through
- * `ClassicyDesktopChangeMetric`, and a theme's identity (`id`, `name`,
- * `package`) is never an option.
+ * Metrics are not options: `measurements.*` and its explicit-edit record
+ * (`measurementPins`) go through `ClassicyDesktopChangeMetric`, and a
+ * theme's identity (`id`, `name`, `package`) is never an option.
  */
 
 /** One path segment: a letter, then letters and digits. */
@@ -34,12 +34,16 @@ const RESERVED_ROOTS: readonly string[] = [
 	"name",
 	"package",
 	"measurements",
+	// The explicit-edit record: written by ClassicyDesktopChangeMetric
+	// alone (story 0235-xgi).
+	"measurementPins",
 ];
 
 /**
  * Splits an option path into its segments: 2–4 identifiers
  * (`CLASSICY_APPEARANCE_OPTION_SEGMENT`), none of `__proto__`, `constructor`
- * or `prototype`, and not rooted at `id`, `name`, `package` or `measurements`.
+ * or `prototype`, and not rooted at `id`, `name`, `package`, `measurements`
+ * or `measurementPins`.
  * Anything else is `undefined`.
  */
 export const parseClassicyAppearanceOptionPath = (

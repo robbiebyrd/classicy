@@ -220,6 +220,18 @@ export type ClassicyTheme = {
 	color: ClassicyThemeColors;
 	typography: ClassicyThemeTypography;
 	measurements: ClassicyThemeMeasurements;
+	/**
+	 * The explicit-edit record (story 0235-xgi): family → keys whose value
+	 * the user set while another package drew the theme, to the value the
+	 * theme's own package defaults to. Such a value is otherwise no edit (it
+	 * follows the drawing package's), so the record keeps it the theme's own
+	 * for drawing and persistence (`classicyDrawnThemeMeasurements`,
+	 * `withoutDefaultThemeMeasurements`). Written only by
+	 * `ClassicyDesktopChangeMetric` under another package
+	 * (`updateClassicyMeasurementPin`); absent on every theme a host drawing
+	 * only its own package's themes ever has.
+	 */
+	measurementPins?: Record<string, string[]>;
 	desktop: ClassicyThemeDesktop;
 	sound: ClassicyThemeSound;
 	/**

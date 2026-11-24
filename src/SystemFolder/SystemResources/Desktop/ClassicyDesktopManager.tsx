@@ -32,6 +32,10 @@ import {
 	CLASSICY_THEME_FONT_SIZE_MIN,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import {
+	classicyThemeMetricPath,
+	updateClassicyMeasurementPin,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementPins";
+import {
 	isValidThemeMetricFamily,
 	setThemeMetric,
 	setThemeMetricFamily,
@@ -473,11 +477,23 @@ export const classicyDesktopEventHandler = (
 		// bounds), creating a declared knob a theme does not carry yet.
 		case "ClassicyDesktopChangeMetric": {
 			const appearance = ds.System.Manager.Appearance;
+			// An edit to the theme's own package default while another package
+			// draws it is recorded (`updateClassicyMeasurementPin`, story
+			// 0235-xgi), so it draws and persists as the theme's own; the record
+			// changing makes it an edit, which forks a built-in.
 			if (hasThemeMetricChange(action)) {
 				const target = action;
-				editActiveClassicyTheme(appearance, (theme) =>
-					setThemeMetric(theme, target, target.value),
-				);
+				const path = classicyThemeMetricPath(target.metricKey);
+				editActiveClassicyTheme(appearance, (theme) => {
+					setThemeMetric(theme, target, target.value);
+					if (path)
+						updateClassicyMeasurementPin(
+							theme,
+							path.family,
+							path.key,
+							appearance.packageId,
+						);
+				});
 				break;
 			}
 			if (!hasThemeMetricFamilyChange(action)) break;
@@ -501,6 +517,13 @@ export const classicyDesktopEventHandler = (
 			let written = false;
 			editActiveClassicyTheme(appearance, (theme) => {
 				written = setThemeMetricFamily(theme, target, target.value, knobs);
+				if (written)
+					updateClassicyMeasurementPin(
+						theme,
+						target.family,
+						target.key,
+						appearance.packageId,
+					);
 			});
 			if (!written) {
 				// Only a family carried as something other than an object

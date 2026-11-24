@@ -1,5 +1,6 @@
 import {
 	setClassicyDrawnPackageLookup,
+	setClassicyForeignPackageMeasurementsLookup,
 	setClassicyPackageColorFamiliesLookup,
 	setClassicyPackageMeasurementsLookup,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
@@ -196,6 +197,19 @@ setClassicyPackageMeasurementsLookup(
 setClassicyDrawnPackageLookup(
 	(id) => getRegisteredClassicyAppearancePackageOrDefault(id)?.id,
 );
+
+// The theme a package completes another package's theme from while it
+// draws it: its `foreignThemeDefaults` built-in, else its defaults.
+setClassicyForeignPackageMeasurementsLookup((id) => {
+	const pkg = registry.get(id);
+	if (!pkg) return undefined;
+	const ref = pkg.foreignThemeDefaults;
+	const theme =
+		ref === undefined || ref === pkg.defaults.id
+			? pkg.defaults
+			: (pkg.presets?.find((t) => t.id === ref) ?? pkg.defaults);
+	return theme.measurements;
+});
 
 // Package color families (`classicyThemeColorFamilyDefaults`): the theme's
 // own package only, never another's. A missing id is the default package's,

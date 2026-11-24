@@ -4166,6 +4166,7 @@ registerClassicyAppearancePackage({
 | `css` | The compiled stylesheet: exactly one `@layer classicy.package { … }` block, every rule scoped under `.classicyDesktop[data-classicy-appearance="<id>"]` |
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
+| `foreignThemeDefaults` | Optional id of the built-in (`defaults` or a preset) whose measurements complete another package's theme while this package draws it; absent, `defaults`. System 7 names `system7-color` (§8, "A theme drawn under another package") |
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
 | `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, desktop.iconGridOrigin, scrollBar?, slider?, fileDialog?, fileBrowser? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
@@ -6388,44 +6389,96 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
   Custom theme stays active when a registry change alters what draws (a
   host dropping a package; `ClassicyDesktopChangeAppearancePackage` itself
   activates the new package's own theme), so the drawing package's
-  stylesheet reads
-  a theme its package never completed (a Platinum theme under System 7
-  lacked 156 of the variables System 7's sheet reads without a fallback).
-  `getThemeVars(theme, drawnPackageId?)` takes the package drawing the
-  theme (`ClassicyDesktop` passes the resolved `Appearance.packageId`;
-  `ClassicyWindow`'s menu-bar height, the desktop Clean Up
-  (`classicyDesktopIconMetrics(theme, drawnPackageId?)`, from the draft's
-  `packageId`) and the Options and Metrics tabs pass it too) and completes
-  the measurements with `classicyDrawnThemeMeasurements(theme,
-  drawnPackageId)` (`withDrawnThemeMetrics` for a whole theme). Under the
-  theme's own package, or with no `drawnPackageId`, that is
-  `withDefaultThemeMetrics(theme, classicyThemeMeasurementDefaults(theme.package))`,
-  as before. Under another package it is, key by key: the core floor, then
-  the drawing package's defaults, then the theme's own values, meaning every
-  value that differs from its own package's default, the core five
-  included. So a Platinum theme under System 7 draws System 7's knobs
-  (`--window-control-size` 11, `--window-scrollbar-size` 16,
-  `--title-bar-box-gap`, Standard File's layout) and the reverse draws
-  Platinum's, while an edit the theme carries wins under every package. A
-  value equal to its package's default is no edit, as persistence has it:
-  under another package it follows that package's default, so an opt-in
-  follows the drawing package too (a theme carrying its package's
-  `zoomRects.enabled: 1` draws no zoom under a package that has not opted
-  in; one that set it to 0 keeps it off everywhere). A theme whose package
-  is not registered keeps all its values, since nothing tells its edits
-  from its package's defaults (persistence keeps them all too). Nothing of
-  the drawing package's is written to the theme, so persisted state still
-  holds the theme's own values alone, and a theme and its stored copy draw
-  the same. Package colors are not completed this way: they are the
-  theme's palette (`classicyThemeColorFamilyDefaults(theme.package)`), and
-  every read of one carries a `--color-*` fallback. Render code that reads
-  the desktop's live variables (`readClassicyThemeVar`,
-  `readClassicyDesktopIconMetrics`) already gets the drawn values.
-  `ClassicyPackageKnobReads.test.ts` draws every registered package's themes
-  (and their stored copies, and a package declaring only the core five)
-  under every registered package and requires every variable the drawing
-  package's sheet and the core's base sheets read without a fallback, and
-  every knob the drawing package declares; it pins the values above too.
+  stylesheet reads a theme its package never completed (a Platinum theme
+  under System 7 lacked 156 of the variables System 7's sheet reads without
+  a fallback).
+  - **Who passes the drawing package.** `getThemeVars(theme,
+    drawnPackageId?)` takes the package drawing the theme, and so do
+    `classicyDesktopIconMetrics(theme, drawnPackageId?)` and
+    `readClassicyDesktopIconMetrics(theme, el?, drawnPackageId?)`.
+    `ClassicyDesktop` passes the resolved `Appearance.packageId`;
+    `ClassicyWindow`'s menu-bar height, the desktop Clean Up (from the
+    draft's `packageId`), the file browser's icon view, the Options and
+    Metrics tabs and Storybook's plain frame pass it too. The measurements
+    are completed with `classicyDrawnThemeMeasurements(theme,
+    drawnPackageId)` (`withDrawnThemeMetrics` for a whole theme).
+  - **The completion order.** Under the theme's own package, or with no
+    `drawnPackageId`, it is `withDefaultThemeMetrics(theme,
+    classicyThemeMeasurementDefaults(theme.package))`, as before. Under
+    another package it is, key by key:
+    1. the core floor;
+    2. the drawing package's defaults;
+    3. the measurements of the built-in theme the drawing package names
+       for foreign themes, `ClassicyAppearancePackage.foreignThemeDefaults`
+       (the id of its defaults or of a preset; absent, its defaults;
+       `classicyForeignThemeMeasurementDefaults(packageId)`). System 7
+       names its color preset, `system7-color`, so a Platinum theme under
+       System 7 draws System 7's color look (bevelled boxes, scroll-bar
+       grips, no 1-bit dither), not its black-and-white one. Platinum
+       names none. The registry refuses an id that names none of the
+       package's built-ins;
+    4. the theme's own values: every value that differs from its own
+       package's default (the core five included), and every value its
+       explicit-edit record names (below).
+  - **What that draws.** A Platinum theme under System 7 draws System 7's
+    knobs (`--window-control-size` 11, `--window-scrollbar-size` 16,
+    `--title-bar-box-gap`, Standard File's layout), and the reverse draws
+    Platinum's. An edit the theme carries wins under every package. A value
+    equal to its package's default, and not in the record, follows the
+    drawing package's (as persistence has it), so an opt-in follows the
+    drawing package too: a theme carrying its package's
+    `zoomRects.enabled: 1` draws no zoom under a package that has not opted
+    in, and one that set it to 0 keeps it off everywhere.
+  - **The explicit-edit record** (`ClassicyTheme.measurementPins`, family →
+    keys; fix round 1). Without it, a value the user sets to the theme's own
+    package default while another package draws (Control Size 12 on a
+    Platinum theme under System 7, which draws 11) would change nothing
+    drawn. Five editable knobs differ between the shipped packages:
+    `window.controlSize`, `window.scrollbarSize`,
+    `window.utilityTitleBarHeight` and `button.minWidth` (Metrics), and
+    `menuFrame.shadowStart` (Platinum's Options).
+    - **Written.** `ClassicyDesktopChangeMetric` (either form) records such
+      a value (`updateClassicyMeasurementPin`, `ClassicyThemeMeasurementPins.ts`)
+      and clears the key when a later edit moves it off the default or is
+      made under the theme's own package. The record changing is an edit,
+      so a built-in forks into its Custom theme as for any edit.
+    - **Honored.** Drawing and `withoutDefaultThemeMeasurements` (so
+      persistence) keep a recorded leaf. Theme files carry it
+      (`ClassicyThemeSchema`: camelCase families, each an array of
+      camelCase keys named once). `migrateClassicyState` normalizes a
+      malformed one (`withValidClassicyMeasurementPins`).
+    - **Off-limits to options.** `ClassicyDesktopChangeAppearanceOption`
+      cannot write it: `measurementPins` is a reserved root, like
+      `measurements`.
+    - **Never written for a single-package host.** A host that draws only
+      its own package's themes never writes the record, so its persisted
+      bytes are what they were
+      (`ClassicyThemeMeasurementPins.platinumOnly.test.ts` compares them
+      with the build's before the record).
+  - **A theme whose package is not registered** keeps all its values,
+    since nothing tells its edits from its package's defaults (persistence
+    keeps them all too). The visible effect: its core five and every knob
+    it carries win over the drawing package's. A theme naming an
+    unregistered package, or a saved Platinum Custom on a host that
+    registers only System 7, draws with Control Size 12, scroll bar 17 and
+    `dither.tileSize` 0 under System 7; the drawing package supplies only
+    the knobs it lacks.
+  - **Not completed this way.** Nothing of the drawing package's is written
+    to the theme, so persisted state holds the theme's own values alone,
+    and a theme and its stored copy draw the same. Package colors are not
+    completed this way: they are the theme's palette
+    (`classicyThemeColorFamilyDefaults(theme.package)`), and every read of
+    one carries a `--color-*` fallback. Render code that reads the
+    desktop's live variables (`readClassicyThemeVar`) already gets the
+    drawn values.
+  - **The test.** `ClassicyPackageKnobReads.test.ts` reads every workspace
+    package's stylesheet (`packages/appearance/<id>/src/styles/<id>.scss`).
+    It draws every registered package's themes (and their stored copies,
+    and a package declaring only the core five) under every registered
+    package. It requires every variable the drawing package's sheet and the
+    core's base sheets read without a fallback, and every knob the drawing
+    package declares, and an unedited foreign theme to draw the drawing
+    package's foreign reference.
 - **Persistence.** `sanitizeStateForPersistence` stores each theme without
   the package-family values equal to its package's defaults
   (`withoutDefaultThemeMeasurements(theme, defaults)`), and drops a family
@@ -6433,7 +6486,9 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
   a later change to a package's knob defaults reaches existing users. A
   theme whose package is not registered when state is saved (Platinum's
   included, before Platinum registers) is stored whole, so an edit that
-  happens to equal another package's value is never lost.
+  happens to equal another package's value is never lost. A leaf the
+  theme's explicit-edit record (`measurementPins`) names is kept even when
+  it equals the default.
 
 **Derived metrics** are computed by `getThemeVars` from those inputs, so a
 theme that changes an input gets them for free (never stored in JSON):

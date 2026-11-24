@@ -39,6 +39,39 @@ export const getClassicyPackageMeasurements = (
 	packageId: string | undefined,
 ): unknown => lookup(packageId);
 
+// The measurements of the built-in theme a registered package completes a
+// foreign theme from (`ClassicyAppearancePackage.foreignThemeDefaults`, else
+// its defaults), by package id; set by the registry too (story 0235-xgi).
+
+/** A registered package's foreign-theme reference measurements, or
+ * `undefined` for an unregistered id. */
+export type ClassicyForeignPackageMeasurementsLookup = (
+	packageId: string,
+) => unknown;
+
+let foreignMeasurementsLookup: ClassicyForeignPackageMeasurementsLookup = () =>
+	undefined;
+
+/**
+ * Sets the foreign-theme reference lookup. Called once, by
+ * ClassicyAppearancePackageRegistry.
+ * @internal
+ */
+export const setClassicyForeignPackageMeasurementsLookup = (
+	next: ClassicyForeignPackageMeasurementsLookup,
+): void => {
+	foreignMeasurementsLookup = next;
+};
+
+/**
+ * The measurements of the theme `packageId` completes a foreign theme from,
+ * or `undefined` while that package is not registered.
+ * @internal
+ */
+export const getClassicyForeignPackageMeasurements = (
+	packageId: string,
+): unknown => foreignMeasurementsLookup(packageId);
+
 // The package that draws for a stored `Appearance.packageId`
 // (`classicyDrawnThemeMeasurements`, story 0235-xgi): resolved as the
 // desktop resolves it (`getRegisteredClassicyAppearancePackageOrDefault`),

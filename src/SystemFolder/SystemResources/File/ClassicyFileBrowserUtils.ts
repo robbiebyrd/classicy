@@ -65,9 +65,11 @@ export const getGridPosition = (
 /**
  * The desktop-icon metrics as the desktop draws them: `--desktop-icon-size`,
  * `--desktop-icon-padding` and `--desktop-icon-cell` read from
- * `#classicyDesktop`, each falling back to `theme`'s own value
- * (`classicyDesktopIconMetrics`) before the desktop mounts or with no DOM.
- * The two agree whenever the desktop's inline variables are the theme's.
+ * `#classicyDesktop`, each falling back to `theme`'s value as
+ * `drawnPackageId` draws it (`classicyDesktopIconMetrics`, the store's
+ * `Appearance.packageId`; story 0235-xgi) before the desktop mounts or with
+ * no DOM. The two agree whenever the desktop's inline variables are the
+ * theme's.
  *
  * Render and handler code only — never a reducer path. Each call forces a
  * style read: read once per layout pass or theme and pass the result on.
@@ -75,8 +77,9 @@ export const getGridPosition = (
 export const readClassicyDesktopIconMetrics = (
 	theme: ClassicyTheme,
 	el?: Element | null,
+	drawnPackageId?: string,
 ): ClassicyDesktopIconMetrics => {
-	const fromTheme = classicyDesktopIconMetrics(theme);
+	const fromTheme = classicyDesktopIconMetrics(theme, drawnPackageId);
 	return {
 		size: readClassicyThemeVar("--desktop-icon-size", fromTheme.size, el),
 		padding: readClassicyThemeVar(
