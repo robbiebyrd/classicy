@@ -99,9 +99,10 @@ type ClassicyFileBrowserProps = {
 	onSelectionChange?: (paths: string[]) => void;
 	/**
 	 * Receives the element keyboard navigation acts on — the list view's
-	 * focusable list box — so a hosting window can focus it (pass the same ref
-	 * as ClassicyWindow's `initialFocusRef`). The icon view has no single
-	 * keyboard target, so the ref stays `null` there.
+	 * focusable list box, or the icon view's icons' holder (focusable from
+	 * code only) — so a hosting window can focus it (pass the same ref as
+	 * ClassicyWindow's `initialFocusRef`): Select All, Delete and the arrow
+	 * keys then act on the browser without a click first.
 	 */
 	focusTargetRef?: RefObject<HTMLDivElement | null>;
 	/**
@@ -242,6 +243,16 @@ export const ClassicyFileBrowser: FunctionalComponent<
 			selectionApiRef.current = null;
 		};
 	}, [selectionApiRef, display]);
+	// The icon view's keyboard target is its icons' holder (the list's is
+	// its list box, which the table hands the ref itself).
+	useLayoutEffect(() => {
+		if (!focusTargetRef || display !== "icons") return;
+		const holder = holderRef.current;
+		focusTargetRef.current = holder;
+		return () => {
+			if (focusTargetRef.current === holder) focusTargetRef.current = null;
+		};
+	}, [focusTargetRef, display]);
 	const listMarquee = useClassicyFileBrowserListMarquee({
 		rootRef,
 		enabled: display === "list",

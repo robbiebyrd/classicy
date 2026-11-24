@@ -189,6 +189,9 @@ export function useClassicyFileBrowserListMarquee({
 			}
 			// The keyboard to the list (a press on a row focuses it already;
 			// one below the rows does not), for its arrows and Select All.
+			// The browser's own focus would follow this handler and land on
+			// the nearest focusable ancestor, so it is prevented.
+			e.preventDefault();
 			root
 				.querySelector<HTMLElement>(".classicyTableContainer")
 				?.focus({ preventScroll: true });

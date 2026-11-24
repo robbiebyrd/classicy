@@ -371,6 +371,145 @@ describe("ClassicyFileBrowser icon view selection rectangle", () => {
 		t.release(40, 230);
 	});
 
+	it("keeps the browser's own focus off a press on empty space, so the keyboard stays on the icons", async () => {
+		const t = await setup("marquee-icons-focus-default");
+		// Below the holder, in the window contents, and on the holder itself:
+		// the browser's default focus would follow the handler and put the
+		// keyboard on the nearest focusable ancestor (the desktop).
+		for (const target of [t.viewport, t.holder]) {
+			const notPrevented = fireEvent.mouseDown(target, {
+				button: 0,
+				clientX: 300,
+				clientY: 190,
+			});
+			t.release(300, 190);
+			expect(notPrevented).toBe(false);
+			expect(document.activeElement).toBe(t.holder);
+		}
+	});
+
+	it("leaves the browser's own focus to a text field in the window contents", async () => {
+		const t = await setup("marquee-icons-focus-field");
+		const field = document.createElement("input");
+		t.viewport.append(field);
+		expect(fireEvent.mouseDown(field, { button: 0 })).toBe(true);
+		field.remove();
+	});
+
+	it("moves the selection with the arrow keys as the 8.1 Finder does, from the keyboard a press put on the icons", async () => {
+		const t = await setup("marquee-icons-arrows");
+		// Lay the icons out as two rows: apple and mango, then zebra under
+		// apple.
+		const place = {
+			[PATHS[0]]: [20, 20],
+			[PATHS[1]]: [120, 20],
+			[PATHS[2]]: [20, 120],
+		};
+		for (const [path, [x, y]] of Object.entries(place)) {
+			t.icon(path).style.left = `${x}px`;
+			t.icon(path).style.top = `${y}px`;
+		}
+		const key = (k: string) =>
+			fireEvent.keyDown(document.activeElement as Element, { key: k });
+		// Nothing selected: Right and Down select the last icon in reading
+		// order, Left and Up the first.
+		fireEvent.mouseDown(t.viewport, { button: 0, clientX: 300, clientY: 190 });
+		t.release(300, 190);
+		expect(document.activeElement).toBe(t.holder);
+		key("ArrowRight");
+		expect(t.selected()).toEqual([PATHS[2]]);
+		expect(document.activeElement).toBe(t.icon(PATHS[2]));
+		fireEvent.mouseDown(t.viewport, { button: 0, clientX: 300, clientY: 190 });
+		t.release(300, 190);
+		key("ArrowUp");
+		expect(t.selected()).toEqual([PATHS[0]]);
+		// From one icon, the nearest that way; nothing that way keeps it.
+		key("ArrowRight");
+		expect(t.selected()).toEqual([PATHS[1]]);
+		expect(document.activeElement).toBe(t.icon(PATHS[1]));
+		key("ArrowRight");
+		expect(t.selected()).toEqual([PATHS[1]]);
+		key("ArrowLeft");
+		expect(t.selected()).toEqual([PATHS[0]]);
+		key("ArrowDown");
+		expect(t.selected()).toEqual([PATHS[2]]);
+		// From several: Right and Down from the one selected last, Left and
+		// Up from the one selected first.
+		t.click(PATHS[2]);
+		t.click(PATHS[1], { shiftKey: true });
+		t.holder.focus();
+		key("ArrowUp");
+		expect(t.selected()).toEqual([PATHS[0]]);
+		// Nothing that way from it: the selection stays as it is.
+		t.click(PATHS[1]);
+		t.click(PATHS[2], { shiftKey: true });
+		t.holder.focus();
+		key("ArrowUp");
+		expect(t.selected()).toEqual([PATHS[1], PATHS[2]]);
+		t.click(PATHS[1]);
+		t.click(PATHS[0], { shiftKey: true });
+		t.holder.focus();
+		key("ArrowDown");
+		expect(t.selected()).toEqual([PATHS[2]]);
+	});
+
+	it("hands its icons' holder to focusTargetRef (the list box in list view), for the window to focus", async () => {
+		const fs = makeFs("marquee-icons-focus-target");
+		const focusTargetRef = createRef<HTMLDivElement>();
+		const browser = (display: "icons" | "list") => (
+			<ClassicyFileBrowser
+				fs={fs}
+				path="Documents"
+				appId="Finder.app"
+				display={display}
+				focusTargetRef={focusTargetRef}
+			/>
+		);
+		const view = render(browser("icons"));
+		const holder = () =>
+			view.container.querySelector(
+				".classicyFileBrowserFill .classicyFileBrowserFill",
+			);
+		await waitFor(() =>
+			expect(view.container.querySelectorAll(".classicyIcon")).toHaveLength(3),
+		);
+		expect(focusTargetRef.current).toBe(holder());
+		view.rerender(browser("list"));
+		await waitFor(() =>
+			expect(
+				view.container.querySelectorAll("tr.classicyTableRow"),
+			).toHaveLength(3),
+		);
+		expect(focusTargetRef.current).toBe(
+			view.container.querySelector(".classicyTableContainer"),
+		);
+		view.rerender(browser("icons"));
+		await waitFor(() =>
+			expect(view.container.querySelectorAll(".classicyIcon")).toHaveLength(3),
+		);
+		expect(focusTargetRef.current).toBe(holder());
+		view.unmount();
+		expect(focusTargetRef.current).toBeNull();
+	});
+
+	it("leaves the arrow keys to a text field inside the browser", async () => {
+		const t = await setup("marquee-icons-arrows-field");
+		t.click(PATHS[0]);
+		const field = document.createElement("input");
+		t.holder.append(field);
+		const key = new KeyboardEvent("keydown", {
+			key: "ArrowRight",
+			bubbles: true,
+			cancelable: true,
+		});
+		act(() => {
+			field.dispatchEvent(key);
+		});
+		expect(key.defaultPrevented).toBe(false);
+		expect(t.selected()).toEqual([PATHS[0]]);
+		field.remove();
+	});
+
 	it("takes a Control-press on an icon as the contextual-menu click (8.1): selected as a press, no drag, the menu, no click after", async () => {
 		const onMoveItems = vi.fn();
 		const t = await setup("marquee-icons-control-icon", { onMoveItems });
@@ -427,11 +566,12 @@ describe("ClassicyFileBrowser icon view selection rectangle", () => {
 		});
 		expect(t.selected()).toEqual([PATHS[0], PATHS[1]]);
 		fireEvent.mouseUp(document, { button: 2 });
-		fireEvent.mouseDown(t.viewport, {
+		const notPrevented = fireEvent.mouseDown(t.viewport, {
 			button: 2,
 			clientX: 300,
 			clientY: 190,
 		});
+		expect(notPrevented).toBe(false);
 		expect(document.activeElement).toBe(t.holder);
 		expect(t.selected()).toEqual([]);
 		t.move(130, 30);
@@ -823,6 +963,23 @@ describe("ClassicyFileBrowser list view selection rectangle", () => {
 		expect(t.selected()).toEqual([PATHS[2]]);
 		fireEvent.keyDown(t.list, { key: "ArrowUp" });
 		expect(t.selected()).toEqual([PATHS[1]]);
+	});
+
+	it("keeps the browser's own focus off a press below the rows or beside a name", async () => {
+		const t = await setup("marquee-list-focus-default");
+		expect(
+			fireEvent.mouseDown(t.viewport, { button: 0, clientX: 50, clientY: 150 }),
+		).toBe(false);
+		t.release(50, 150);
+		expect(document.activeElement).toBe(t.list);
+		expect(
+			fireEvent.mouseDown(t.row(PATHS[0]), {
+				button: 0,
+				clientX: 200,
+				clientY: 25,
+			}),
+		).toBe(false);
+		t.release(200, 25);
 	});
 
 	it("takes the contextual-menu click on a row (8.1): selected as a press, no drag, the menu, no Control-click toggle", async () => {
