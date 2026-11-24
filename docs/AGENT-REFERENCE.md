@@ -3254,7 +3254,17 @@ pixel art in `currentColor` (`_marks.scss`, the grid knob
 `menu.markPixel`; from Mac OS 8.1 captures, story 0225-ci7: the bundled
 Charcoal has neither glyph, so a font glyph fell back to whatever font the
 browser found), on the title's baseline at the mark column's left edge
-(a 9 × 8 check, a 7 × 7 diamond, the palette's check after a space). It
+(a 9 × 8 check, a 7 × 7 diamond, the palette's check after a space). The
+checkbox's check is not Charcoal's but the Appearance Manager's own
+shaded bitmap, black with #555555, #777777 and #AAAAAA (the gray ramp,
+each with its core fallback), drawn from the box's inner corner over a
+13 × 9 area that reaches two pixels past the box's right side, on the same
+grid, pressed and dimmed as HIGOS8 Figure 2-8 (p.28) draws them; the X
+and the mixed dash keep their glyphs. The Mac OS 8.1 captures are
+committed in `packages/appearance/platinum/resources/screenshots/mac-os-8.1/` (never
+published): `platinum-81-appmenu-notification.png`,
+`platinum-81-finder-view-menu.png`, `platinum-81-popup-font.png` and
+`platinum-81-finder-preferences.png` (the checkbox). It
 uses the font's – ▸ ▾ ✕ and
 writes them as escapes with `string.unquote('"\\2013"')`, because Sass
 decodes a quoted escape and prepends `@charset`; that keeps the Sass output
@@ -4828,7 +4838,10 @@ change), the way it declares measurement families. They are additive, 3.5.
   `defaults.color.families` only (the presets are filled when it
   registers). Its slider reads them (the channel's #222222 border and
   #AAAAAA etch and fill, the tick's #888888 shadow, the ghost's grays), so
-  it draws Figs. 2-18 and 2-19 at rest, and Fig. 2-17's ghost in the figure's own grays. **System 7** declares
+  it draws Figs. 2-18 and 2-19 at rest, and Fig. 2-17's ghost in the figure's own grays;
+  so does its checkbox check (Fig. 2-8's #444444, #555555, #777777,
+  #888888 and #AAAAAA, the new steps 5 and 7 falling back to
+  `--color-system-06` and `-05`). **System 7** declares
   `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
   `controlStrip.face` / `darkEdge` / `shadow` / `pressedFace` (#CCCCCC /
   #444444 / #AAAAAA / #888888; white / black / black / white, the 1-bit
@@ -5093,7 +5106,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `helpButton.glyphSize` | `--help-button-glyph-size` | 14 | — | yes | ClassicyHelpButton.scss |
 | `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | no | _QuickTimeMovieEmbed.scss |
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
-| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | yes | _marks.scss (Charcoal's menu check and diamond; on the floor so a theme of another package drawn under Platinum keeps its marks) |
+| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | yes | _marks.scss (Charcoal's menu check and diamond, and the checkbox's check; on the floor so a theme of another package drawn under Platinum keeps its marks) |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
@@ -5769,8 +5782,9 @@ the list ends at these 44 sites over 12 files, the sites kept on purpose
   or difference halved; Firefox centers the box, so its translation is half
   the box's overhang of the channel), geometry, not a role (H-R21).
 - Platinum's `_marks.scss`, the one `menu-mark-pixel × n` in its `px()`
-  helper: Charcoal 12's menu check and diamond, pixel for pixel from Mac
-  OS 8.1 (story 0225-ci7), one-pixel rectangles on the art's grid inside
+  helper: Charcoal 12's menu check and diamond and the Appearance
+  Manager's checkbox check, pixel for pixel from Mac OS 8.1 and HIGOS8
+  Figure 2-8 (story 0225-ci7), one-pixel rectangles on the art's grid inside
   `classicy-px-rect` (H-R7), as System 7's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks

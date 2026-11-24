@@ -486,6 +486,220 @@ describe("platinum.scss (compiled)", () => {
 		expect(rule(`${P} .classicyMenuItemCheck`).props.display).toBe("block");
 	});
 
+	// Story 0225-ci7, fix round 2: the checkbox's check is the Appearance
+	// Manager's own bitmap, as HIGOS8 Figure 2-8 (1997, p.28,
+	// resources/Apple_HIGOS8_1997_Guidelines.pdf) prints it and Mac OS 8.1
+	// draws it (resources/screenshots/mac-os-8.1/platinum-81-finder-
+	// preferences.png). The figure's boxes, row by row (its inline images 9
+	// to 14, in gray levels): the art is every pixel where a checked box
+	// differs from the unchecked box of the same state, the columns past the
+	// box (12 and 13, page white elsewhere) included, one pixel up and left
+	// (the art's origin is the box's inner corner).
+	describe("the checkbox's check", () => {
+		const FIGURE_2_8 = {
+			// Inline image 9.
+			unchecked: [
+				"000000000000000000000000",
+				"00FFFFFFFFFFFFFFFFFFDD00",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00DD88888888888888888800",
+				"000000000000000000000000",
+			],
+			// Inline image 13.
+			checked: [
+				"000000000000000000000000FFFF",
+				"00FFFFFFFFFFFFFFFFFFDD0000FF",
+				"00FFDDDDDDDDDDDDDDDD000077AA",
+				"00FFDDDDDDDDDDDDDD000000AAFF",
+				"00FFDDDDDDDDDDDD00005500FFFF",
+				"00FF0000DDDDDD0000777700FFFF",
+				"00FFDD0000DD000077AA8800FFFF",
+				"00FFDDAA00000077AADD8800FFFF",
+				"00FFDDDDAA0077AADDDD8800FFFF",
+				"00FFDDDDDD77AADDDDDD8800FFFF",
+				"00DD88888888888888888800FFFF",
+				"000000000000000000000000FFFF",
+			],
+			// Inline image 10.
+			uncheckedPressed: [
+				"000000000000000000000000",
+				"005555555555555555557700",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"007799999999999999999900",
+				"000000000000000000000000",
+			],
+			// Inline image 12.
+			checkedPressed: [
+				"000000000000000000000000FFFF",
+				"00555555555555555555770000FF",
+				"0055777777777777777700005577",
+				"00557777777777777700000077FF",
+				"005577777777777700004400FFFF",
+				"005500007777770000445500FFFF",
+				"005577000077000044559900FFFF",
+				"005577550000004455779900FFFF",
+				"005577775500445577779900FFFF",
+				"005577777744557777779900FFFF",
+				"007799999999999999999900FFFF",
+				"000000000000000000000000FFFF",
+			],
+			// Inline image 11.
+			uncheckedDimmed: [
+				"888888888888888888888888",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"888888888888888888888888",
+			],
+			// Inline image 14.
+			checkedDimmed: [
+				"888888888888888888888888FF",
+				"88DDDDDDDDDDDDDDDDDDDD8888",
+				"88DDDDDDDDDDDDDDDDDD8888FF",
+				"88DDDDDDDDDDDDDDDD888888FF",
+				"88DDDDDDDDDDDDDD8888DD88FF",
+				"88DD8888DDDDDD8888DDDD88FF",
+				"88DDDD8888DD8888DDDDDD88FF",
+				"88DDDDDD888888DDDDDDDD88FF",
+				"88DDDDDDDD88DDDDDDDDDD88FF",
+				"88DDDDDDDDDDDDDDDDDDDD88FF",
+				"88DDDDDDDDDDDDDDDDDDDD88FF",
+				"888888888888888888888888FF",
+			],
+		};
+		const ROWS = (rows: string[]) => rows.map((row) => row.match(/../g) ?? []);
+		// The art the figure implies: `checked` over `unchecked`, past the
+		// box only where the figure is not page white.
+		const expected = (checked: string[], unchecked: string[]) => {
+			const on = ROWS(checked);
+			const off = ROWS(unchecked);
+			const art = new Map<string, string>();
+			for (const [y, row] of on.entries())
+				for (const [x, level] of row.entries()) {
+					const past = x >= off[y].length;
+					if (past ? level !== "FF" : level !== off[y][x])
+						art.set(`${x - 1},${y - 1}`, level);
+				}
+			return art;
+		};
+		// The ramp step each figure level is, as `_marks.scss` reads it.
+		const INK: Record<string, string> = {
+			"00": "var(--color-black)",
+			"44": "var(--package-color-gray-ramp-step4, var(--color-system-06))",
+			"55": "var(--package-color-gray-ramp-step5, var(--color-system-06))",
+			"77": "var(--package-color-gray-ramp-step7, var(--color-system-05))",
+			"88": "var(--package-color-gray-ramp-step8, var(--color-system-05))",
+			AA: "var(--package-color-gray-ramp-step-a, var(--color-system-04))",
+		};
+		const grid = (n: string) => {
+			if (n === "0") return 0;
+			if (n === "var(--menu-mark-pixel)") return 1;
+			const m = n.match(/^calc\(var\(--menu-mark-pixel\) \* (\d+)\)$/);
+			if (!m) throw new Error(`not a grid length: ${n}`);
+			return Number(m[1]);
+		};
+		// The layers' pixels, by ink: `linear-gradient(ink, ink) x y / w h`.
+		const pixels = (background: string) => {
+			const art = new Map<string, string>();
+			for (const layer of background.split(" no-repeat")) {
+				const text = layer.replace(/^,\s*/, "");
+				if (!text) continue;
+				expect(text.startsWith("linear-gradient(")).toBe(true);
+				let depth = 0;
+				let close = -1;
+				for (let i = "linear-gradient".length; i < text.length; i++) {
+					if (text[i] === "(") depth++;
+					else if (text[i] === ")" && --depth === 0) {
+						close = i;
+						break;
+					}
+				}
+				const inks = text.slice("linear-gradient(".length, close);
+				const ink = inks.slice(0, (inks.length - 2) / 2);
+				expect(inks).toBe(`${ink}, ${ink}`);
+				const [place, size] = text
+					.slice(close + 1)
+					.trim()
+					.split(/\s*\/\s*/);
+				const [x, y] = place.split(/ (?![^(]*\))/).map(grid);
+				const [w, h] = size.split(/ (?![^(]*\))/).map(grid);
+				for (let dy = 0; dy < h; dy++)
+					for (let dx = 0; dx < w; dx++) {
+						const key = `${x + dx},${y + dy}`;
+						expect(art.has(key), key).toBe(false);
+						art.set(key, ink);
+					}
+			}
+			return art;
+		};
+		const asInks = (art: Map<string, string>) =>
+			new Map([...art].map(([key, level]) => [key, INK[level]]));
+		const CHECK = `${P} .classicyCheckbox:checked:not(.mixed):not(.classicyCheckboxX)`;
+
+		it("draws Figure 2-8's checked box, past the box's right side", () => {
+			const { props } = rule(`${CHECK}::after`);
+			expect(props.content).toBe('""');
+			expect(props.display).toBe("block");
+			expect(props.width).toBe("calc(var(--menu-mark-pixel) * 13)");
+			expect(props.height).toBe("calc(var(--menu-mark-pixel) * 9)");
+			const want = expected(FIGURE_2_8.checked, FIGURE_2_8.unchecked);
+			expect(want.size).toBe(34);
+			expect(pixels(props.background)).toEqual(asInks(want));
+		});
+
+		it("draws the pressed and dimmed checks as the figure does", () => {
+			expect(pixels(rule(`${CHECK}:active::after`).props.background)).toEqual(
+				asInks(
+					expected(FIGURE_2_8.checkedPressed, FIGURE_2_8.uncheckedPressed),
+				),
+			);
+			expect(pixels(rule(`${CHECK}:disabled::after`).props.background)).toEqual(
+				asInks(expected(FIGURE_2_8.checkedDimmed, FIGURE_2_8.uncheckedDimmed)),
+			);
+			// Dimmed, only the black pixels, in #888888: the shading goes.
+			const black = [
+				...expected(FIGURE_2_8.checked, FIGURE_2_8.unchecked),
+			].filter(([, level]) => level === "00");
+			expect([
+				...expected(
+					FIGURE_2_8.checkedDimmed,
+					FIGURE_2_8.uncheckedDimmed,
+				).keys(),
+			]).toEqual(black.map(([key]) => key));
+		});
+
+		it("leaves the X and the mixed dash their glyphs", () => {
+			expect(
+				rule(`${P} .classicyCheckbox.classicyCheckboxX:checked:after`).props
+					.content,
+			).toBe('"\\00D7"');
+			const mixed = rule(`${P} .classicyCheckbox.mixed:after`).props;
+			expect(mixed.content).toBe('"-"');
+			expect(mixed.background).toBeUndefined();
+		});
+	});
+
 	it("scopes the desktop scrollbars", () => {
 		expect(flat).toContain(`${P} *::-webkit-scrollbar {`);
 		expect(flat).toContain(`${P}.classicyDesktopSplitArrows`);
@@ -877,7 +1091,11 @@ describe("platinum.scss (compiled)", () => {
 		const RAMP_FALLBACK: Record<string, string> = {
 			"--package-color-gray-ramp-step2": "--color-system-07",
 			"--package-color-gray-ramp-step4": "--color-system-06",
+			// The checkbox check's shading (story 0225-ci7, _marks.scss), new
+			// reads, with the core token nearest each.
+			"--package-color-gray-ramp-step5": "--color-system-06",
 			"--package-color-gray-ramp-step6": "--color-system-05",
+			"--package-color-gray-ramp-step7": "--color-system-05",
 			"--package-color-gray-ramp-step8": "--color-system-05",
 			"--package-color-gray-ramp-step-a": "--color-system-04",
 			"--package-color-gray-ramp-step-b": "--color-system-03",

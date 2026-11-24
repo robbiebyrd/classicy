@@ -1,9 +1,20 @@
 // The Platinum checkbox look (from ClassicyCheckbox.scss): the face, the
-// beveled box border, the checkmark, dash and X glyphs, then the pressed,
-// disabled, focus and default overrides, in their original order. The size,
-// margin and holder stay in the base sheet.
+// beveled box border, the checkmark (a bitmap) and the dash and X glyphs,
+// then the pressed, disabled, focus and default overrides, in their
+// original order. The size, margin and holder stay in the base sheet.
 @use "sass:string";
+@use "../marks";
 @use "../mixins";
+
+// A glyph mark (the localization X, the mixed dash), centered in the box.
+@mixin glyph-mark {
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+  line-height: var(--ui-font-size-caption);
+  display: flex;
+  justify-content: center;
+  text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
+}
 
 @mixin checkbox {
   .classicyCheckbox {
@@ -11,16 +22,21 @@
     background: var(--color-system-03);
 
     // HIGOS8 Ch.2 "Checkboxes" (p.28): the checkmark is the standard on-state
-    // mark. (The "X" is only a localization opt-in, see .classicyCheckboxX.)
-    &:checked {
-      &:after {
-        font-family: var(--ui-font), sans-serif;
-        font-size: var(--ui-font-size);
-        line-height: var(--ui-font-size-caption);
-        display: flex;
-        justify-content: center;
-        content: string.unquote('"\\2713"');
-        text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
+    // mark (the "X" is only a localization opt-in, see .classicyCheckboxX),
+    // drawn as the Appearance Manager's own bitmap (Figure 2-8; Mac OS 8.1,
+    // `_marks.scss`), pressed and dimmed as the figure draws them.
+    // The X and the mixed dash keep their glyphs (below).
+    &:checked:not(.mixed):not(.classicyCheckboxX) {
+      &::after {
+        @include marks.checkbox-check;
+      }
+
+      &:active::after {
+        @include marks.checkbox-check-pressed;
+      }
+
+      &:disabled::after {
+        @include marks.checkbox-check-dimmed;
       }
     }
 
@@ -72,6 +88,7 @@
   // is not culturally acceptable, the familiar "X" may be used instead.
   .classicyCheckbox.classicyCheckboxX {
     &:checked:after {
+      @include glyph-mark;
       font-size: var(--checkbox-x-mark-font-size);
       line-height: var(--checkbox-x-mark-line-height);
       content: string.unquote('"\\00D7"');
@@ -81,12 +98,7 @@
   // The mixed state is a distinct third state: it shows its dash whether or
   // not it is also checked.
   .classicyCheckbox.mixed:after {
-    font-family: var(--ui-font), sans-serif;
-    font-size: var(--ui-font-size);
-    line-height: var(--ui-font-size-caption);
-    display: flex;
-    justify-content: center;
+    @include glyph-mark;
     content: '-';
-    text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
   }
 }
