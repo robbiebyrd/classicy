@@ -112,9 +112,12 @@ export function iconForArrowKey(
 /**
  * The icon Tab (or Shift-Tab, `backward`) selects, as the Mac OS 8.1 Finder
  * chose it on the desktop and in an icon-view window (Infinite Mac; story
- * 0228-e9l): the next (previous) icon by display name after the icon
- * selected last, wrapping from the last name to the first and back; with
- * nothing selected, the first (last) name. Null when there are no icons.
+ * 0228-e9l): the next (previous) icon by the name it shows after the icon
+ * selected last; with nothing selected, the first (last) name. Null past the
+ * ends, Tab at the last name and Shift-Tab at the first, and with no icons:
+ * there the keyboard leaves the icons (the caller moves it on,
+ * `moveClassicyFocusOutOf`). 8.1, which owned the screen, wrapped to the
+ * other end; in a page that would trap the keyboard (WCAG 2.2 SC 2.1.2).
  */
 export function iconForTabKey(
 	icons: KeyNavIcon[],
@@ -129,7 +132,6 @@ export function iconForTabKey(
 	const from = selected.filter((id) => ids.has(id)).at(-1);
 	if (from === undefined)
 		return (backward ? byName[byName.length - 1] : byName[0]).appId;
-	const at = byName.findIndex((i) => i.appId === from);
-	const step = backward ? byName.length - 1 : 1;
-	return byName[(at + step) % byName.length].appId;
+	const next = byName.findIndex((i) => i.appId === from) + (backward ? -1 : 1);
+	return byName[next]?.appId ?? null;
 }

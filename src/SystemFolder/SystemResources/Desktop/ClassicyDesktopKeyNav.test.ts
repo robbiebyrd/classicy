@@ -223,22 +223,25 @@ describe("iconForTabKey (Mac OS 8.1)", () => {
 		expect(iconForTabKey(desk81, [], true)).toBe("trash");
 	});
 
-	it("goes to the next or previous name, wrapping at the ends", () => {
+	it("goes to the next or previous name, and past the ends to none, where the keyboard leaves", () => {
 		// e3-tab2, e3-tab3: Macintosh HD, The Outside World; e3-shifttab:
-		// back to Macintosh HD; f1: Tab from Trash wraps to Infinite HD; f3:
-		// Shift-Tab from Infinite HD wraps to Trash.
+		// back to Macintosh HD.
 		expect(iconForTabKey(desk81, ["infinite"], false)).toBe("machd");
 		expect(iconForTabKey(desk81, ["machd"], false)).toBe("outside");
 		expect(iconForTabKey(desk81, ["outside"], true)).toBe("machd");
-		expect(iconForTabKey(desk81, ["trash"], false)).toBe("infinite");
-		expect(iconForTabKey(desk81, ["infinite"], true)).toBe("trash");
+		// 8.1 wrapped (f1: Tab from Trash to Infinite HD; f3: Shift-Tab from
+		// Infinite HD to Trash); in a page that traps the keyboard (WCAG 2.2
+		// SC 2.1.2), so past the ends there is no icon and the caller moves
+		// the keyboard out of the icons.
+		expect(iconForTabKey(desk81, ["trash"], false)).toBeNull();
+		expect(iconForTabKey(desk81, ["infinite"], true)).toBeNull();
 	});
 
 	it("goes from the icon selected last, by the name it shows", () => {
-		// f5, f6: Macintosh HD then Trash selected: Tab Infinite HD,
-		// Shift-Tab The Outside World; f7: Trash then Macintosh HD, Tab:
-		// The Outside World.
-		expect(iconForTabKey(desk81, ["machd", "trash"], false)).toBe("infinite");
+		// f6: Macintosh HD then Trash selected: Shift-Tab The Outside World
+		// (f5: Tab wrapped to Infinite HD; here it leaves); f7: Trash then
+		// Macintosh HD, Tab: The Outside World.
+		expect(iconForTabKey(desk81, ["machd", "trash"], false)).toBeNull();
 		expect(iconForTabKey(desk81, ["machd", "trash"], true)).toBe("outside");
 		expect(iconForTabKey(desk81, ["trash", "machd"], false)).toBe("outside");
 		// A label wins over the app's name.

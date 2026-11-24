@@ -116,6 +116,7 @@ import {
 	emptyClassicyTrash,
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { moveClassicyFocusOutOf } from "@/SystemFolder/SystemResources/Keyboard/ClassicyTabbable.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
@@ -427,13 +428,25 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				desktopIcons.length > 0
 			) {
 				// Tab and Shift-Tab select by name, as the 8.1 Finder's did
-				// (`iconForTabKey`), in place of the browser's focus order.
-				e.preventDefault();
+				// (`iconForTabKey`); past the last (first) name the keyboard
+				// leaves the icons for the page's next (previous) stop, where
+				// 8.1 wrapped (no keyboard trap, WCAG 2.2 SC 2.1.2).
 				const nextId = iconForTabKey(typeaheadIcons, selectedIcons, e.shiftKey);
 				if (nextId) {
+					e.preventDefault();
 					selectIconFromKeyboard(nextId);
 					document.getElementById(`${nextId}.shortcut`)?.focus();
-				}
+				} else if (
+					moveClassicyFocusOutOf(
+						Array.from(
+							desktopRef.current?.querySelectorAll<HTMLElement>(
+								":scope > .classicyDesktopIcon",
+							) ?? [],
+						),
+						e.shiftKey,
+					)
+				)
+					e.preventDefault();
 			} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 				e.preventDefault();
 				if (typePrefixTimerRef.current !== null) {

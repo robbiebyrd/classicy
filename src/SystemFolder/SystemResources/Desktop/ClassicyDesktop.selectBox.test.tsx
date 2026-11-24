@@ -299,9 +299,10 @@ describe("ClassicyDesktop selection rectangle over the icons", () => {
 		expect(fromNothing({ key: "ArrowDown" })).toEqual(["Gamma.app"]);
 		expect(fromNothing({ key: "ArrowLeft" })).toEqual(["Beta.app"]);
 		expect(fromNothing({ key: "ArrowUp" })).toEqual(["Beta.app"]);
-		// Tab: the first name, then the next, wrapping; Shift-Tab: the last
-		// name, then back. The keyboard follows, and the browser's own Tab
-		// does not run.
+		// Tab: the first name, then the next; Shift-Tab: the last name, then
+		// back. The keyboard follows, and the browser's own Tab does not run.
+		// Past the last name the keyboard leaves the icons instead of
+		// wrapping as 8.1 did (ClassicyDesktop.keyboardTrap.test.tsx).
 		const tab = (init: KeyboardEventInit = {}) =>
 			fireEvent.keyDown(document.activeElement as Element, {
 				key: "Tab",
@@ -314,7 +315,7 @@ describe("ClassicyDesktop selection rectangle over the icons", () => {
 		tab();
 		expect(selected()).toEqual(["Gamma.app"]);
 		tab();
-		expect(selected()).toEqual(["Alpha.app"]);
+		expect(selected()).toEqual(["Gamma.app"]);
 		expect(fromNothing({ key: "Tab", shiftKey: true })).toEqual(["Gamma.app"]);
 		tab({ shiftKey: true });
 		expect(selected()).toEqual(["Beta.app"]);

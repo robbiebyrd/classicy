@@ -63,6 +63,7 @@ import {
 	ClassicyIcon,
 	type ClassicyIconSelectionGesture,
 } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
+import { moveClassicyFocusOutOf } from "@/SystemFolder/SystemResources/Keyboard/ClassicyTabbable.internal";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 
 const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
@@ -375,7 +376,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			// the Mac OS 8.1 Finder, the same as on the desktop
 			// (`iconForArrowKey`, `iconForTabKey`): an arrow selects the
 			// nearest icon that way, Tab and Shift-Tab the next or previous
-			// by name, and with nothing selected the first or last. The
+			// by name, and with nothing selected the first or last; past the
+			// last (first) name Tab (Shift-Tab) leaves the icons. The
 			// keyboard goes to the icon selected, scrolling it into view.
 			const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 				if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
@@ -395,7 +397,6 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					),
 				);
 				if (icons.length === 0) return;
-				e.preventDefault();
 				const pathOf = (el: Element) =>
 					el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) ?? "";
 				const nav = icons.map(
@@ -412,6 +413,14 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				const next = tab
 					? iconForTabKey(nav, selection, e.shiftKey)
 					: iconForArrowKey(nav, selection, e.key as ArrowDirection);
+				// Past the last (first) name, Tab (Shift-Tab) leaves the icons
+				// for the page's next (previous) stop: no keyboard trap.
+				if (tab && !next) {
+					if (moveClassicyFocusOutOf(icons, e.shiftKey, holder))
+						e.preventDefault();
+					return;
+				}
+				e.preventDefault();
 				if (!next) return;
 				updateSelection(() => new Set([next]));
 				icons.find((el) => pathOf(el) === next)?.focus();

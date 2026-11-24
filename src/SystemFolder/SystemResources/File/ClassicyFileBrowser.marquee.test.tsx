@@ -453,8 +453,13 @@ describe("ClassicyFileBrowser icon view selection rectangle", () => {
 		expect(t.selected()).toEqual([PATHS[2]]);
 	});
 
-	it("selects by name with Tab and Shift-Tab, wrapping, as the 8.1 Finder does (the desktop's rule)", async () => {
+	it("selects by name with Tab and Shift-Tab as the 8.1 Finder does, and leaves at the ends (no keyboard trap)", async () => {
 		const t = await setup("marquee-icons-tab");
+		// The page's stops before and after the browser.
+		const hostBefore = document.createElement("button");
+		const hostAfter = document.createElement("button");
+		t.container.before(hostBefore);
+		t.container.after(hostAfter);
 		// Zebra first in reading order, then apple, then mango.
 		const place = {
 			[PATHS[2]]: [20, 20],
@@ -486,13 +491,27 @@ describe("ClassicyFileBrowser icon view selection rectangle", () => {
 		expect(t.selected()).toEqual([PATHS[1]]);
 		tab();
 		expect(t.selected()).toEqual([PATHS[2]]);
-		tab();
-		expect(t.selected()).toEqual([PATHS[0]]);
-		tab(true);
+		// At the last name: the keyboard leaves for the page's next stop,
+		// the selection kept (8.1 wrapped to the first name).
+		expect(tab()).toBe(false);
+		expect(document.activeElement).toBe(hostAfter);
 		expect(t.selected()).toEqual([PATHS[2]]);
+		// Back in at the DOM-last icon: Shift-Tab goes back by name, then
+		// leaves at the first name for the page's previous stop.
+		t.icon(PATHS[2]).focus();
+		tab(true);
+		expect(t.selected()).toEqual([PATHS[1]]);
+		tab(true);
+		expect(t.selected()).toEqual([PATHS[0]]);
+		expect(tab(true)).toBe(false);
+		expect(document.activeElement).toBe(hostBefore);
+		expect(t.selected()).toEqual([PATHS[0]]);
+		// With nothing selected, Shift-Tab selects the last name.
 		press();
 		tab(true);
 		expect(t.selected()).toEqual([PATHS[2]]);
+		hostBefore.remove();
+		hostAfter.remove();
 		// The arrow keys with nothing selected go by place, not name.
 		press();
 		fireEvent.keyDown(t.holder, { key: "ArrowUp" });
