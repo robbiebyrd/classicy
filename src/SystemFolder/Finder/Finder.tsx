@@ -139,6 +139,16 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	reveal,
 }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
+	// Once the browser has selected a revealed item (its layout effect runs
+	// first), the reveal is spent: this window never applies it again.
+	const revealKey = reveal?.key;
+	useEffect(() => {
+		if (typeof revealKey !== "number") return;
+		desktopEventDispatch({
+			type: "ClassicyAppFinderRevealDone",
+			seq: revealKey,
+		});
+	}, [revealKey, desktopEventDispatch]);
 	// The browser's selection, for File ▸ Move To Trash and Restore.
 	const commandsRef = useRef<ClassicyFileBrowserCommands | null>(null);
 	const inTrash = isInClassicyTrash(fs, op);

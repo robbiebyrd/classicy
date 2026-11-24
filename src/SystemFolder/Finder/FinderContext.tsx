@@ -243,6 +243,16 @@ export const classicyFinderEventHandler = (
 				...appData,
 				openPaths: existing.filter((p: string) => p !== action.path),
 			};
+			// A reveal belongs to the window it was shown in: reopened later
+			// by hand, the folder selects nothing.
+			const revealed = appData.reveal?.path;
+			if (
+				revealed !== undefined &&
+				revealed.slice(0, revealed.lastIndexOf(":")) === action.path
+			) {
+				const { reveal: _gone, ...rest } = appData;
+				appData = rest;
+			}
 
 			// Sync the window closed state so the desktop icon doesn't show as open
 			updateAppWindow(ds.System.Manager.Applications.apps[appId], action.path, {
@@ -393,6 +403,19 @@ export const classicyFinderEventHandler = (
 				reveal: { path: action.path, seq: (appData.reveal?.seq ?? 0) + 1 },
 			};
 			bringFinderWindowForward(ds, folder);
+			break;
+		}
+		case "ClassicyAppFinderRevealDone": {
+			// The folder's window has selected the item: the reveal is spent,
+			// so a window mounting again (or reopened) never applies it twice.
+			if (
+				appData.reveal !== undefined &&
+				typeof action.seq === "number" &&
+				appData.reveal.seq === action.seq
+			) {
+				const { reveal: _gone, ...rest } = appData;
+				appData = rest;
+			}
 			break;
 		}
 		case "ClassicyAppFinderEmptyTrash": {
@@ -640,6 +663,15 @@ registerApp({
 				"Open the folder that holds an item in a Finder window, in front, with the item selected (Find File's Open Enclosing Folder).",
 			params: z.object({
 				path: z.string().describe("Absolute path of the item to reveal."),
+			}),
+		},
+		ClassicyAppFinderRevealDone: {
+			description:
+				"The folder's window has selected the item a reveal named: forget the reveal (sent by the Finder window).",
+			params: z.object({
+				seq: z
+					.number()
+					.describe("The reveal's `seq`, as `data.reveal` holds it."),
 			}),
 		},
 		ClassicyAppFinderEmptyTrash: {
