@@ -12,6 +12,7 @@ import {
 	CLASSICY_PART_ATTRIBUTE,
 	CLASSICY_STATE,
 } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -56,6 +57,30 @@ export const classicyAppSwitcherTearOffOutline = (
 	height,
 });
 
+/**
+ * Where a palette torn off with the outline at `outline` (viewport
+ * coordinates) opens, in desktop coordinates: the outline's top-left corner
+ * relative to `desktop`, kept on the desktop so the stored position is one
+ * the palette draws at: no further left than the desktop's left edge or up
+ * than the menu bar's underside (`menuBarHeight`, the floor every window
+ * keeps), and no further right or down than leaves the outline's box on the
+ * desktop (a desktop smaller than the box keeps the floor).
+ */
+export const classicyAppSwitcherTearOffPosition = (
+	outline: ClassicyAppSwitcherTearOffOutline,
+	desktop: Pick<DOMRect, "left" | "top" | "width" | "height">,
+	menuBarHeight: number,
+): [number, number] => {
+	const x = outline.left - desktop.left;
+	const y = outline.top - desktop.top;
+	const maxX = Math.max(0, desktop.width - outline.width);
+	const maxY = Math.max(menuBarHeight, desktop.height - outline.height);
+	return [
+		Math.round(Math.min(Math.max(x, 0), maxX)),
+		Math.round(Math.min(Math.max(y, menuBarHeight), maxY)),
+	];
+};
+
 const SWITCHER_SELECTOR = `[${CLASSICY_PART_ATTRIBUTE.part}="switcher"]`;
 
 /**
@@ -96,6 +121,7 @@ export const ClassicyAppSwitcherTearOff: FunctionalComponent<{
 		let pulledOpen = false;
 		let current: ClassicyAppSwitcherTearOffOutline | null = null;
 		let stopWatching: (() => void) | null = null;
+		let stopSwallowing: (() => void) | null = null;
 
 		const switcherItem = () =>
 			navRef.current?.querySelector<HTMLElement>(SWITCHER_SELECTOR) ?? null;
@@ -150,22 +176,52 @@ export const ClassicyAppSwitcherTearOff: FunctionalComponent<{
 					: null,
 			);
 		};
+		// The click the browser sends after a tear-off's release (at the press's
+		// and release's common ancestor), swallowed once in the capture phase.
+		const swallowClick = () => {
+			const swallow = (e: MouseEvent) => {
+				e.preventDefault();
+				e.stopPropagation();
+				stop();
+			};
+			const stop = () => {
+				document.removeEventListener("click", swallow, true);
+				stopSwallowing = null;
+			};
+			stopSwallowing?.();
+			document.addEventListener("click", swallow, true);
+			stopSwallowing = stop;
+			// A click comes in the release's own task, or not at all.
+			setTimeout(stop, 0);
+		};
 		const onUp = (e: MouseEvent) => {
 			if (!tracking) return;
 			const at = current;
 			end();
 			if (!at) return;
+			// The release is the tear-off's: nothing under the pointer sees it or
+			// the click after it, so a window there never comes forward (Mac OS
+			// 8.5 never switches applications on a tear-off; HIG7 p.93). This
+			// listener is on the document in the capture phase, ahead of every
+			// element's own (React's root listeners included).
 			e.preventDefault();
+			e.stopPropagation();
+			swallowClick();
 			closeAll();
-			const desktop = navRef.current
-				?.closest(".classicyDesktop")
-				?.getBoundingClientRect();
+			const desktopEl = navRef.current?.closest(".classicyDesktop") ?? null;
+			const desktop = desktopEl?.getBoundingClientRect() ?? {
+				left: 0,
+				top: 0,
+				width: window.innerWidth,
+				height: window.innerHeight,
+			};
 			dispatch({
 				type: APPLICATION_SWITCHER_TEAR_OFF,
-				position: [
-					at.left - (desktop?.left ?? 0),
-					at.top - (desktop?.top ?? 0),
-				],
+				position: classicyAppSwitcherTearOffPosition(
+					at,
+					desktop,
+					readClassicyThemeVar("--menu-bar-height", undefined, desktopEl),
+				),
 			});
 		};
 		const onKey = (e: KeyboardEvent) => {
@@ -188,6 +244,7 @@ export const ClassicyAppSwitcherTearOff: FunctionalComponent<{
 		return () => {
 			document.removeEventListener("mousedown", onDown, true);
 			end();
+			stopSwallowing?.();
 		};
 	}, [enabled, navRef, dispatch, closeAll]);
 

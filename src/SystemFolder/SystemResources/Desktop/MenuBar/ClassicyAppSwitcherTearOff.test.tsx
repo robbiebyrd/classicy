@@ -5,14 +5,22 @@ import {
 	type ClassicyStoreSystemApp,
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import {
 	APPLICATION_SWITCHER_APP_ID,
 	type ClassicyApplicationSwitcherData,
 } from "@/SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcherContext";
+import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import {
 	CLASSICY_APP_SWITCHER_TEAR_OFF_DISTANCE,
 	classicyAppSwitcherTearOffOutline,
+	classicyAppSwitcherTearOffPosition,
 } from "./ClassicyAppSwitcherTearOff.internal";
 import { ClassicyDesktopMenuBar } from "./ClassicyDesktopMenuBar";
 
@@ -223,6 +231,122 @@ describe("tearing off the Application menu", () => {
 			fireEvent.mouseUp(document.body);
 		});
 		expect(switcherData()?.paletteOpen).toBeFalsy();
+	});
+
+	it("keeps a palette torn off near an edge on the desktop", () => {
+		const desktop = { left: 0, top: 0, width: 800, height: 600 };
+		const outlineAt = (left: number, top: number) => ({
+			left,
+			top,
+			width: 120,
+			height: 90,
+		});
+		// Inside: kept as dropped.
+		expect(
+			classicyAppSwitcherTearOffPosition(outlineAt(200, 150), desktop, 20),
+		).toEqual([200, 150]);
+		// Past the left edge, above the menu bar, past the right and bottom.
+		expect(
+			classicyAppSwitcherTearOffPosition(outlineAt(-84, 5), desktop, 20),
+		).toEqual([0, 20]);
+		expect(
+			classicyAppSwitcherTearOffPosition(outlineAt(750, 580), desktop, 20),
+		).toEqual([680, 510]);
+		// A desktop offset in the page, and one smaller than the outline.
+		expect(
+			classicyAppSwitcherTearOffPosition(
+				outlineAt(90, 70),
+				{ left: 100, top: 50, width: 800, height: 600 },
+				20,
+			),
+		).toEqual([0, 20]);
+		expect(
+			classicyAppSwitcherTearOffPosition(
+				outlineAt(30, 30),
+				{ left: 0, top: 0, width: 100, height: 60 },
+				20,
+			),
+		).toEqual([0, 20]);
+	});
+
+	it("stores an on-screen position for a palette dropped past the desktop's left edge", () => {
+		render(<ClassicyDesktopMenuBar />);
+		fireEvent.click(switcher());
+		fireEvent.mouseDown(switcher().querySelector("li") as HTMLElement, {
+			button: 0,
+		});
+		move(8, 500);
+		// The outline hangs past the left edge, where the pointer put it.
+		expect(outline()?.style.left).toBe("-52px");
+		act(() => {
+			fireEvent.mouseUp(document.body, { clientX: 8, clientY: 500 });
+		});
+		expect(switcherData()?.paletteAt).toEqual([0, 410]);
+	});
+
+	it("never switches applications: a release over another application's window is the tear-off's", () => {
+		const windowClicks = vi.fn();
+		const view = render(
+			<>
+				<ClassicyDesktopMenuBar />
+				<ClassicyApp id="Notes.app" name="Notes" icon="">
+					<ClassicyWindow
+						id="notes"
+						appId="Notes.app"
+						title="Notes"
+						initialSize={[200, 200]}
+						initialPosition={[400, 300]}
+					>
+						<button type="button" onClick={windowClicks}>
+							Inside
+						</button>
+					</ClassicyWindow>
+				</ClassicyApp>
+			</>,
+		);
+		// Finder in front, the Notes window behind it.
+		act(() => {
+			dispatch({ type: "ClassicyAppFocus", app: { id: "Finder.app" } });
+		});
+		const apps = () => useAppManager.getState().System.Manager.Applications;
+		const notesWindow = () => getAppWindow(apps().apps["Notes.app"], "notes");
+		expect(apps().focusedAppId).toBe("Finder.app");
+		expect(notesWindow()?.focused).toBe(false);
+
+		fireEvent.click(switcher());
+		fireEvent.mouseDown(switcher().querySelector("li") as HTMLElement, {
+			button: 0,
+		});
+		move(500, 400);
+		expect(outline()).not.toBeNull();
+		// Let go over a control inside the Notes window, then the click a
+		// browser sends after the release.
+		const inside = view.getByText("Inside");
+		const release = new MouseEvent("mouseup", {
+			bubbles: true,
+			cancelable: true,
+			button: 0,
+			clientX: 500,
+			clientY: 400,
+		});
+		act(() => {
+			inside.dispatchEvent(release);
+		});
+		act(() => {
+			fireEvent.click(inside);
+		});
+		expect(release.defaultPrevented).toBe(true);
+		expect(switcherData()?.paletteOpen).toBe(true);
+		expect(windowClicks).not.toHaveBeenCalled();
+		expect(apps().focusedAppId).toBe("Finder.app");
+		expect(frontAppIdOf(apps())).toBe("Finder.app");
+		expect(notesWindow()?.focused).toBe(false);
+
+		// Swallowed once: the next click in the window is the window's.
+		act(() => {
+			fireEvent.click(inside);
+		});
+		expect(windowClicks).toHaveBeenCalledTimes(1);
 	});
 
 	it("ignores a press anywhere else in the bar", () => {
