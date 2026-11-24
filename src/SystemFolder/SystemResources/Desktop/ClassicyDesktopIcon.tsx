@@ -219,6 +219,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			]);
 			const [dragging, setDragging] = useState<boolean>(false);
 			const didDragRef = useRef(false);
+			// Whether the current press became a Finder (file) drag: the click
+			// ending it over the icon is no click, so a selection dragged
+			// together stays selected (Mac OS 8.1). Cleared at each press.
+			const fileDraggedRef = useRef(false);
 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
@@ -306,8 +310,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const clickFocus = (e: MouseEvent<HTMLDivElement>) => {
 				e.stopPropagation();
-				if (didDragRef.current) {
+				if (didDragRef.current || fileDraggedRef.current) {
 					didDragRef.current = false;
+					fileDraggedRef.current = false;
 					selectedOnPressRef.current = false;
 					return;
 				}
@@ -463,6 +468,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 				track("move", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				didDragRef.current = false;
+				fileDraggedRef.current = false;
 
 				// If icon is not already selected, select just this one for the drag
 				selectedOnPressRef.current = !isSelected;
@@ -518,12 +524,19 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: [];
 				});
 				const start: [number, number] = [e.clientX, e.clientY];
+				const dragCallbacks = classicyFileDragAppearanceCallbacks(
+					appearance.emit,
+				);
 				const abandon = startClassicyFileDrag({
 					start: { clientX: start[0], clientY: start[1] },
 					parts,
 					source: iconRef.current,
 					// The outline drags, not the icon: `dragging` stays off.
-					...classicyFileDragAppearanceCallbacks(appearance.emit),
+					...dragCallbacks,
+					onStart: () => {
+						fileDraggedRef.current = true;
+						dragCallbacks.onStart();
+					},
 					onDrop: (target, point) => {
 						if (!target) return;
 						track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });

@@ -432,6 +432,32 @@ describe("ClassicyFileBrowser icon view selection rectangle", () => {
 			expect(t.onMoveItems.mock.calls[0][0]).toEqual([PATHS[2]]);
 		});
 
+		it("keeps the selection after a short drag let go over the pressed icon: no click after a drag (8.1)", async () => {
+			const t = await selectTwo("marquee-icons-group-nudge");
+			const restore = dropOn(
+				t.container.querySelector(
+					"[data-classicy-drop-folder='Documents']",
+				) as Element,
+			);
+			try {
+				fireEvent.mouseDown(t.icon(PATHS[0]), {
+					button: 0,
+					clientX: 30,
+					clientY: 30,
+				});
+				fireEvent.mouseMove(document, { clientX: 36, clientY: 30 });
+				fireEvent.mouseUp(t.icon(PATHS[0]), { clientX: 36, clientY: 30 });
+			} finally {
+				restore();
+			}
+			// Pressed and let go on the same icon: the browser clicks it.
+			fireEvent.click(t.icon(PATHS[0]), { detail: 1 });
+			expect(t.selected()).toEqual([PATHS[0], PATHS[1]]);
+			// The next click is a click again.
+			t.click(PATHS[1]);
+			expect(t.selected()).toEqual([PATHS[1]]);
+		});
+
 		it("moves the selection's other icons as far, let go in its own folder", async () => {
 			const t = await selectTwo("marquee-icons-group-rearrange");
 			const at = (path: string) => [

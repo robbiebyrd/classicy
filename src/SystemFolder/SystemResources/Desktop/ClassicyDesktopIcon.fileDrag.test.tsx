@@ -174,6 +174,82 @@ describe("ClassicyDesktopIcon — file-backed icons", () => {
 		expect(location(ITEM_ID)).toEqual([100, 100]);
 	});
 
+	describe("a selection of two", () => {
+		const OTHER = "HD:Desktop Folder:Notes.txt";
+		const OTHER_ID = `classicy-desktop-item:${OTHER}`;
+		const THIRD = "HD:Desktop Folder:Memo.txt";
+		const THIRD_ID = `classicy-desktop-item:${THIRD}`;
+		const selectedIcons = () =>
+			useAppManager.getState().System.Manager.Desktop.selectedIcons;
+		const renderTwo = () => {
+			seedIcons(
+				[
+					{
+						appId: ITEM_ID,
+						kind: "file",
+						filePath: PLAN,
+						location: [100, 100],
+					},
+					{
+						appId: OTHER_ID,
+						kind: "file",
+						filePath: OTHER,
+						location: [100, 200],
+					},
+					{
+						appId: THIRD_ID,
+						kind: "file",
+						filePath: THIRD,
+						location: [100, 300],
+					},
+				],
+				[ITEM_ID, OTHER_ID],
+			);
+			const view = render(
+				<>
+					<ClassicyDesktopIcon
+						appId={ITEM_ID}
+						appName="Plan.txt"
+						icon="/p.png"
+						kind="file"
+						filePath={PLAN}
+					/>
+					<ClassicyDesktopIcon
+						appId={OTHER_ID}
+						appName="Notes.txt"
+						icon="/p.png"
+						kind="file"
+						filePath={OTHER}
+					/>
+					<ClassicyDesktopIcon
+						appId={THIRD_ID}
+						appName="Memo.txt"
+						icon="/p.png"
+						kind="file"
+						filePath={THIRD}
+					/>
+				</>,
+			);
+			const icons = view.container.querySelectorAll(".classicyDesktopIcon");
+			return { ...view, plan: icons[0], third: icons[2] };
+		};
+
+		it("stays selected after a short drag let go over the pressed icon: no click after a drag (8.1)", () => {
+			const t = renderTwo();
+			const desktop = document.createElement("div");
+			desktop.setAttribute("data-classicy-drop-desktop", "");
+			dragTo(t.plan, [10, 10], [16, 10], desktop);
+			// Pressed and let go on the same icon: the browser clicks it.
+			fireEvent.click(t.plan, { detail: 1 });
+			expect(selectedIcons()).toEqual([ITEM_ID, OTHER_ID]);
+			// The next click is a click again.
+			fireEvent.mouseDown(t.plan, { button: 0, clientX: 10, clientY: 10 });
+			fireEvent.mouseUp(document, { clientX: 10, clientY: 10 });
+			fireEvent.click(t.plan, { detail: 1 });
+			expect(selectedIcons()).toEqual([ITEM_ID]);
+		});
+	});
+
 	it("opens its item through onOpenFilePath, and never launches an app", () => {
 		const onOpen = vi.fn();
 		const { container } = render(

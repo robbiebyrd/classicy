@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	ClassicyIcon,
@@ -82,5 +83,44 @@ describe("ClassicyIcon consumer style", () => {
 			.closest(".classicyIcon") as HTMLElement;
 		expect(icon.style.zIndex).toBe("");
 		expect(icon.style.opacity).toBe("0.5");
+	});
+});
+
+describe("ClassicyIcon: the click after a drag", () => {
+	// Held in a container, so it drags by itself (no Finder drag).
+	const renderHeld = () => {
+		const holder = createRef<HTMLDivElement>();
+		const view = render(
+			<div ref={holder}>
+				<ClassicyIcon
+					appId={"Test.app"}
+					name={"thing.pdf"}
+					icon={"data:image/gif;base64,R0lGODlhAQABAAAAACw="}
+					initialPosition={[50, 50]}
+					holder={holder}
+				/>
+			</div>,
+		);
+		const icon = screen
+			.getByRole("img")
+			.closest(".classicyIcon") as HTMLElement;
+		return { ...view, icon };
+	};
+	const click = (icon: HTMLElement, init: MouseEventInit = {}) => {
+		fireEvent.mouseDown(icon, { button: 0, ...init });
+		fireEvent.mouseUp(icon, init);
+		fireEvent.click(icon, { detail: 1, ...init });
+	};
+
+	it("keeps an icon it dragged selected: the click ending a drag is no click", () => {
+		const { icon } = renderHeld();
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 90, clientY: 90 });
+		fireEvent.mouseUp(icon, { clientX: 90, clientY: 90 });
+		fireEvent.click(icon, { detail: 1 });
+		expect(icon.classList).toContain("selected");
+		// The next click is a click again: it toggles.
+		click(icon);
+		expect(icon.classList).not.toContain("selected");
 	});
 });

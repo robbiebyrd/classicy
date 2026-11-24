@@ -133,7 +133,8 @@ interface ClassicyIconProps {
 	 * modifiers, for the container to apply its own rules (the file
 	 * browser's icon view: a click selects the icon alone, Shift or Command
 	 * toggles it, a press on an unselected icon selects it alone so its drag
-	 * carries it alone). Given, a click no longer toggles the icon by itself.
+	 * carries it alone). Given, a click no longer toggles the icon by itself,
+	 * and the click ending a drag is not reported.
 	 */
 	onSelectionGesture?: (gesture: ClassicyIconSelectionGesture) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
@@ -180,8 +181,8 @@ export const snapToGrid = (
  * The icon is absolutely positioned at `initialPosition` inside a positioned
  * container; pass that container as `holder` to make it draggable, and
  * `snapTo` (with `snapOrigin`) to round drops onto a grid. A single click
- * toggles the selected (highlighted) look; double-click or Enter/Space calls
- * `onClickFunc`. Position and selection are local state — nothing is written
+ * toggles the selected (highlighted) look (the click ending a drag does
+ * not); double-click or Enter/Space calls `onClickFunc`. Position and selection are local state — nothing is written
  * to the store — unless the container passes `selected` (and
  * `onSelectedChange`) to keep the selection itself, as the file browser's
  * icon view does. Size follows the theme's `--desktop-icon-size` unless
@@ -233,6 +234,10 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	// A ref, not state: it must be readable inside the same mouseup that clears
 	// it, and it never affects what is rendered.
 	const movedWhileDragging = useRef<boolean>(false);
+	// Whether the current press became a Finder drag. The click that ends it,
+	// when it is let go over the icon, is no click (Mac OS 8.1 keeps a
+	// selection it dragged): set when the drag starts, cleared at each press.
+	const pressDraggedRef = useRef<boolean>(false);
 
 	const iconRef = useRef<HTMLDivElement>(null);
 	const appearance = useClassicyAppearance(
@@ -251,6 +256,11 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const analyticsArgs = { type: "ClassicyIcon", appId, name, icon, label };
 
 	const toggleFocus = (e: MouseEvent<HTMLDivElement>) => {
+		// The click ending a drag: the press was a drag, not a click.
+		if (pressDraggedRef.current) {
+			pressDraggedRef.current = false;
+			return;
+		}
 		track("focus", analyticsArgs);
 		if (onSelectionGesture) {
 			// The container's rules: a plain click selects, a modified one
@@ -293,6 +303,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		if (snapTo && movedWhileDragging.current) {
 			setPosition((p) => snapToGrid(p, snapTo, snapOrigin));
 		}
+		// The icon itself was dragged: the click that may follow is no click.
+		if (movedWhileDragging.current) pressDraggedRef.current = true;
 		movedWhileDragging.current = false;
 		setDragging(false);
 		if (dragEmittedRef.current) {
@@ -318,6 +330,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	}, [moveBy, snapTo, snapOrigin]);
 
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
+		pressDraggedRef.current = false;
 		if (e.button === 0)
 			onSelectionGesture?.({
 				type: "press",
@@ -327,6 +340,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		if (onFileDrag) {
 			if (e.button !== 0) return;
 			const el = iconRef.current;
+			const dragCallbacks = classicyFileDragAppearanceCallbacks(
+				appearance.emit,
+			);
 			const abandon = startClassicyFileDrag({
 				start: { clientX: e.clientX, clientY: e.clientY },
 				parts: fileDragParts?.() ?? [
@@ -334,7 +350,11 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				],
 				source: el,
 				// The outline drags, not the icon: `dragging` stays off.
-				...classicyFileDragAppearanceCallbacks(appearance.emit),
+				...dragCallbacks,
+				onStart: () => {
+					pressDraggedRef.current = true;
+					dragCallbacks.onStart();
+				},
 				onDrop: (target, point, outlineTopLeft) => {
 					const travel: [number, number] = [
 						point[0] - e.clientX,
