@@ -327,19 +327,19 @@ export const classicyWindowEventHandler = (
 			// skipping utility palettes). Removal happens first so the destroyed
 			// window can never select itself.
 			if (heldFocus) {
-				// An extension that has a window with menus gets that window back
-				// (it stays the front application); one without hands focus on to
-				// the front application.
+				// An extension hands focus back to the dialog still open under the
+				// closed window (its most recent open modal), else to its own menu
+				// window (it stays the front application), else to the front
+				// application.
 				const owner = ds.System.Manager.Applications.apps[action.app.id];
-				const menuWindow = owner?.extension
-					? mostRecentAppWindow(
-							listAppWindows(owner).filter(
-								(w) => !w.closed && (w.menuBar?.length ?? 0) > 0,
-							),
-						)
-					: undefined;
-				if (menuWindow) {
-					ds = focusWindow(ds, action.app.id, menuWindow.id);
+				const open = owner?.extension
+					? listAppWindows(owner).filter((w) => !w.closed)
+					: [];
+				const successor =
+					mostRecentAppWindow(open.filter((w) => w.modal)) ??
+					mostRecentAppWindow(open.filter((w) => (w.menuBar?.length ?? 0) > 0));
+				if (successor) {
+					ds = focusWindow(ds, action.app.id, successor.id);
 				} else {
 					const target = owner?.extension
 						? (frontAppIdOf(ds.System.Manager.Applications) ?? action.app.id)

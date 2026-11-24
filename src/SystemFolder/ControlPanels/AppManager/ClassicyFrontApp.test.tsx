@@ -375,4 +375,65 @@ describe("the front application", () => {
 		});
 		expect(apps().focusedAppId).toBe("Calculator.app");
 	});
+
+	// A dialog with an alert over it: destroying the alert hands focus back to
+	// the dialog still open (RR5-1), for an extension with and without a menu
+	// window.
+	const dialogWithAlert = (withMenuWindow: boolean) => {
+		const extMenu = fileMenu("Ext");
+		set((d) => {
+			d.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
+				"Calculator.app": app("Calculator.app", {
+					focused: !withMenuWindow,
+					lastFocusedAt: 5,
+				}),
+				"Ext.app": app("Ext.app", {
+					extension: true,
+					focused: withMenuWindow,
+					windows: {
+						...(withMenuWindow
+							? { w: win("w", { focused: true, menuBar: extMenu }) }
+							: {}),
+						dlg: win("dlg", { modal: true, menuBar: [] }),
+						alert: win("alert", { modal: true, menuBar: [] }),
+					},
+				}),
+			};
+			d.System.Manager.Applications.focusedAppId = withMenuWindow
+				? "Ext.app"
+				: "Calculator.app";
+		});
+		for (const id of ["dlg", "alert"]) {
+			act(() => {
+				dispatch({
+					type: "ClassicyWindowFocus",
+					app: { id: "Ext.app" },
+					window: { id, menuBar: [] },
+				});
+			});
+		}
+		act(() => {
+			dispatch({
+				type: "ClassicyWindowDestroy",
+				app: { id: "Ext.app" },
+				window: { id: "alert" },
+			});
+		});
+	};
+
+	it("destroying an alert over a menuless extension's dialog keeps focus on the dialog", () => {
+		dialogWithAlert(false);
+		expect(apps().focusedAppId).toBe("Ext.app");
+		expect(apps().apps["Ext.app"].windows.dlg.focused).toBe(true);
+		expect(front()).toBe("Calculator.app");
+	});
+
+	it("destroying an alert over a menu-window extension's dialog keeps focus on the dialog, not its menu window", () => {
+		dialogWithAlert(true);
+		expect(apps().focusedAppId).toBe("Ext.app");
+		expect(apps().apps["Ext.app"].windows.dlg.focused).toBe(true);
+		expect(apps().apps["Ext.app"].windows.w.focused).toBe(false);
+		expect(front()).toBe("Ext.app");
+	});
 });
