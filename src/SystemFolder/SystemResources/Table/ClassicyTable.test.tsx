@@ -178,6 +178,61 @@ describe("ClassicyTable", () => {
 		expect(onSelection).toHaveBeenLastCalledWith(["rubber"]);
 	});
 
+	// The focus item (Windows' LVIS_FOCUSED, the Mac list's cursor): one row
+	// always carries `focused`, the first until a key or click moves the
+	// cursor, so a package can ring it under the list's :focus without :has().
+	it("marks the cursor row `focused`: the first row, then the row arrowed to or clicked", () => {
+		const { container } = render(
+			<ClassicyTable columns={columns} rows={albums} getRowId={(a) => a.id} />,
+		);
+		const focusedTitles = () =>
+			[...container.querySelectorAll("tbody tr.focused td:first-child")].map(
+				(td) => td.textContent,
+			);
+		expect(focusedTitles()).toEqual(["Rubber Soul"]);
+		const box = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		fireEvent.keyDown(box, { key: "ArrowDown" });
+		expect(focusedTitles()).toEqual(["Rubber Soul"]);
+		fireEvent.keyDown(box, { key: "ArrowDown" });
+		expect(focusedTitles()).toEqual(["Sgt. Pepper"]);
+		expect(
+			container
+				.querySelector("tbody tr.focused")
+				?.classList.contains("selected"),
+		).toBe(true);
+		fireEvent.click(screen.getByText("Abbey Road"));
+		expect(focusedTitles()).toEqual(["Abbey Road"]);
+	});
+
+	it("with a controlled selection and no cursor yet, the first selected row is the focus row", () => {
+		const { container, rerender } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode="multi"
+				selected={["abbey", "pepper"]}
+			/>,
+		);
+		const focusedTitles = () =>
+			[...container.querySelectorAll("tbody tr.focused td:first-child")].map(
+				(td) => td.textContent,
+			);
+		expect(focusedTitles()).toEqual(["Sgt. Pepper"]);
+		rerender(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode="multi"
+				selected={[]}
+			/>,
+		);
+		expect(focusedTitles()).toEqual(["Rubber Soul"]);
+	});
+
 	it("Enter activates the cursor row; double-click activates too", () => {
 		const onActivate = vi.fn();
 		const { container } = render(

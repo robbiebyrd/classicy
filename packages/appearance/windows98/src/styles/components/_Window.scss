@@ -567,9 +567,9 @@ $grip-shadow: runs($grip, "s");
   // active or not, and the client area holding one gives up its client edge
   // and Window white for ButtonFace (a host's `--classicy-window-contents-bg`
   // first, as the modal body takes it); the viewport inherits the color.
-  // The second rule is keyed on `:has()`, as the base sheet keys its own
-  // menu-bar rule: a browser without it keeps the sunken white client area
-  // around a flat inner box.
+  // The holder is known by the class the core sets on it beside the frame,
+  // `classicyWindowContentsWithFrame`, as it marks a holder with a header
+  // (no `:has()`, which Firefox before 121 lacks).
   .classicyWindowContentsFramed {
     box-sizing: border-box;
     padding: 0;
@@ -577,7 +577,7 @@ $grip-shadow: runs($grip, "s");
     box-shadow: none;
   }
 
-  .classicyWindow .classicyWindowContents:has(.classicyWindowContentsFramed) {
+  .classicyWindow .classicyWindowContents.classicyWindowContentsWithFrame {
     padding: 0;
     box-shadow: none;
     background-color: var(--classicy-window-contents-bg, b.$face);

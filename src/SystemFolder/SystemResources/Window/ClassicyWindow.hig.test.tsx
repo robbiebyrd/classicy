@@ -395,11 +395,24 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 	});
 
 	// #203: the content frame carries active/inactive styling.
-	it("applies the content frame class when contentFrame is set", () => {
+	it("applies the content frame class when contentFrame is set, and marks the contents holding it", () => {
 		const { container } = renderWindow({ contentFrame: true });
 		expect(
 			container.querySelector(".classicyWindowContentsFramed"),
 		).not.toBeNull();
+		// The holder's class lets a package style it without `:has()`.
+		expect(
+			container.querySelector(
+				".classicyWindowContents.classicyWindowContentsWithFrame .classicyWindowContentsFramed",
+			),
+		).not.toBeNull();
+	});
+
+	it("marks no contents holder without contentFrame", () => {
+		const { container } = renderWindow({});
+		expect(
+			container.querySelector(".classicyWindowContentsWithFrame"),
+		).toBeNull();
 	});
 
 	// #183: the list header variant is applied to the header region.

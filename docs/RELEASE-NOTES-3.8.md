@@ -91,6 +91,16 @@ or System 7 draw, and a package that reads neither sees nothing new.
   `-Right`, `-Nondirectional`) beside the input's own class. Each lets a
   package key a rule on a class where it would otherwise need `:has()`,
   which Firefox before 121 lacks; Platinum and System 7 read none of them.
+- **The table's focus row, and the framed contents' holder.** One row of a
+  `ClassicyTable` (the Finder's list included) carries `focused`: its
+  keyboard cursor, the row last clicked or arrowed to, else the first
+  selected row, else the first, whether or not the list has focus, so a
+  package can ring Windows' focus item under the list's `:focus` without
+  `:has()`. And a window's `classicyWindowContents` carries
+  `classicyWindowContentsWithFrame` while it holds the modeless-dialog
+  frame (`contentFrame`), beside `classicyWindowContentsWithHeader`, so a
+  package can restyle the holder the same way. Platinum and System 7 read
+  neither.
 - **The Finder list's icon as a mask.** Each row of `ClassicyFileBrowser`'s
   list view (`classicyFileBrowserViewTableRowContainer`) carries
   `--classicy-icon-mask`, `url("…")` of the row's icon, as `ClassicyIcon`

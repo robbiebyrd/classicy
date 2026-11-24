@@ -690,6 +690,20 @@ export function ClassicyTable<T>({
 		</tr>
 	));
 
+	// The focus row, Windows' focus item and the Mac list's cursor: the row the
+	// keyboard continues from (`cursorId`) while it is listed, else the first
+	// selected row (a controlled `selected` with no cursor yet), else the
+	// first row, so a focused list always has one. Emitted as the vocabulary
+	// state `focused` on its row, whether or not the list has focus; a
+	// package keys the dotted focus rectangle on it under the list's
+	// `:focus` (Windows 98 does; Platinum and System 7 read it not at all).
+	const visualRows = table.getRowModel().rows;
+	const focusRowId =
+		(cursorId !== undefined && visualRows.some((r) => r.id === cursorId)
+			? cursorId
+			: undefined) ??
+		visualRows.find((r) => effectiveSelected.includes(r.id))?.id ??
+		visualRows[0]?.id;
 	const tableElement = (
 		<table ref={tableRef} className="classicyTable">
 			<thead
@@ -705,7 +719,7 @@ export function ClassicyTable<T>({
 				{headerRows}
 			</thead>
 			<tbody className="classicyTableContent">
-				{table.getRowModel().rows.map((row) => (
+				{visualRows.map((row) => (
 					<tr
 						key={row.id}
 						data-row-id={row.id}
@@ -714,6 +728,7 @@ export function ClassicyTable<T>({
 							"classicyTableRow",
 							classicyStateClasses({
 								selected: effectiveSelected.includes(row.id),
+								focused: row.id === focusRowId,
 							}),
 							rowClassName?.(row.original, effectiveSelected.includes(row.id)),
 						)}

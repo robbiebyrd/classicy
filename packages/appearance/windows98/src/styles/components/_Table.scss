@@ -12,14 +12,17 @@
 // arrow came with Windows XP), so the base's arrow image is not drawn and
 // `aria-sort` carries the order; a column resize leaves the bevel alone.
 // The rows stand contiguous (no white rule between them); a selected row is
-// Hilight with HilightText across the row (LVS_EX_FULLROWSELECT), the row
-// that has the keyboard ringed by the dotted focus rectangle in HilightText
-// a pixel inside; the list's own focus ring (the base's) is not drawn. A
+// Hilight with HilightText across the row (LVS_EX_FULLROWSELECT), and the
+// focus item, the one row the core marks `focused` (its keyboard cursor:
+// the row last clicked or arrowed to, else the first selected, else the
+// first), is ringed by the dotted focus rectangle a pixel inside while the
+// list has focus, in HilightText over a selected row and WindowText over a
+// white one; the list's own focus ring (the base's) is not drawn. So a
 // focused list with nothing selected rings its first row (the Finder's,
-// the first row's name) in WindowText: Windows' list view always keeps a
-// focus item, the first until one is selected, and it is the row Down Arrow
-// and Home select here (WIG Ch.14 "The User's Point of Focus" (p.327);
-// App. C "Accessibility" (p.365): the keyboard focus is always indicated). The
+// the first row's name): Windows' list view always keeps a focus item, the
+// first until one is selected, and it is the row Down Arrow and Home select
+// here (WIG Ch.14 "The User's Point of Focus" (p.327); App. C
+// "Accessibility" (p.365): the keyboard focus is always indicated). The
 // Finder's list (Explorer's details view) has the window's client edge for
 // its frame (_Window.scss) and no second one, and selects the name alone:
 // the label Hilight under HilightText with the focus rectangle on it, the
@@ -143,20 +146,19 @@ $finder: ".classicyFileBrowserViewTableContainer";
     background: b.$highlight;
   }
 
-  #{$list}:focus :where(.classicyTableRow).selected {
-    outline: b.$b dotted b.$highlight-text;
-    outline-offset: b.$neg-b;
+  // The focus item: the dotted rectangle around the row the core marks
+  // `focused` while the list has focus, WindowText on a white row and
+  // HilightText on a selected one (LVIS_FOCUSED, drawn on the one focus item
+  // and not on every selected row). With nothing selected that is the first
+  // row, as Windows' list view keeps its focus item on the first item until
+  // one is selected (the row Down Arrow and Home select; WIG Ch.14 "The
+  // User's Point of Focus" (p.327), App. C "Accessibility" (p.365)).
+  #{$list}:focus :where(.classicyTableRow).focused {
+    @include b.focus-rect(b.$b);
   }
 
-  // A focused list with nothing selected: the dotted rectangle around the
-  // first row, in WindowText on the white row, as Windows' list view keeps
-  // its focus item on the first item until one is selected (the row Down
-  // Arrow and Home select; WIG Ch.14 "The User's Point of Focus" (p.327),
-  // App. C "Accessibility" (p.365)). `:has()` stands alone in its selector,
-  // so a browser without it (Firefox before 121) drops this rule only.
-  #{$list}:focus:not(:has(.classicyTableRow.selected))
-    .classicyTableContent > .classicyTableRow:first-child {
-    @include b.focus-rect(b.$b);
+  #{$list}:focus :where(.classicyTableRow).focused.selected {
+    outline-color: b.$highlight-text;
   }
 
   .classicyTableCellSorted {
@@ -176,17 +178,16 @@ $finder: ".classicyFileBrowserViewTableContainer";
     background: b.$highlight;
   }
 
-  #{$finder}:focus :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
-    outline: b.$b dotted b.$highlight-text;
-    outline-offset: b.$neg-b;
+  // The Finder's focus item: the focus rectangle on the `focused` row's name
+  // alone, as Explorer's details view rings its focus item's label,
+  // WindowText on a white name and HilightText on a selected one; with
+  // nothing selected, the first row's name (as above).
+  #{$finder}:focus :where(.classicyFileBrowserViewTableRow).focused .classicyFileBrowserViewTableRowIconLabel {
+    @include b.focus-rect(b.$b);
   }
 
-  // The Finder's list with nothing selected: the first row's name ringed,
-  // as Explorer's details view keeps its focus item (the rule above, on the
-  // name alone; `:has()` alone in its selector, as above).
-  #{$finder}:focus:not(:has(.classicyTableRow.selected))
-    .classicyTableContent > .classicyTableRow:first-child .classicyFileBrowserViewTableRowIconLabel {
-    @include b.focus-rect(b.$b);
+  #{$finder}:focus :where(.classicyFileBrowserViewTableRow).focused.selected .classicyFileBrowserViewTableRowIconLabel {
+    outline-color: b.$highlight-text;
   }
 
   // The selected item's icon blended with the highlight: Explorer's

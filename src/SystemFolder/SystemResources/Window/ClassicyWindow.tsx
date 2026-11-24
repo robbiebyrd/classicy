@@ -1960,6 +1960,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		scrollable === true ? "" : "classicyWindowNoScroll",
 		modal === true ? "classicyWindowContentsModal" : "classicyWindowContents",
 		header ? "classicyWindowContentsWithHeader" : "",
+		// The contents holding the modeless-dialog frame (`contentFrame`), so a
+		// package can style the holder without `:has()` (Firefox before 121).
+		contentFrame ? "classicyWindowContentsWithFrame" : "",
 		classicyStateClasses({ collapsed: ws.collapsed }),
 	];
 	const contentsStyle = backgroundColor
