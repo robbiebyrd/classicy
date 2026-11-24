@@ -7,6 +7,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { ClassicyControlPanels } from "@/SystemFolder/ControlPanels/ClassicyControlPanels";
 import { AppleGuide } from "@/SystemFolder/Extensions/AppleGuide/AppleGuide";
 import { ClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
@@ -240,9 +241,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const systemDialog = useAppManager(
 		(s) => s.System.Manager.Desktop.systemDialog ?? null,
 	);
-	const focusedAppId = useAppManager(
-		(s) => s.System.Manager.Applications.focusedAppId,
-	);
+	const focusedAppId = useFrontAppId();
 	const finderHasOpenWindow = useAppManager((s) =>
 		listAppWindows(s.System.Manager.Applications.apps["Finder.app"]).some(
 			(w) => !w.closed,

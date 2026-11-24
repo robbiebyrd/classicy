@@ -157,7 +157,15 @@ export interface ClassicyStoreSystemKeyboardManager
 	/** Extension globals: canonical chord → dispatched action. Unique; first-wins. */
 	global: Record<
 		string,
-		{ appId: string; event: string; eventData?: Record<string, unknown> }
+		{
+			appId: string;
+			event: string;
+			eventData?: Record<string, unknown>;
+			/** The chord as the extension spelled it, for display. */
+			shortcut?: string;
+			/** What the chord does, for the Keyboard Shortcuts topic. */
+			title?: string;
+		}
 	>;
 }
 
@@ -496,6 +504,12 @@ export const classicyShortcutEventHandler = (
 						appId: String(action.appId ?? ""),
 						event: action.event,
 						eventData: action.eventData as Record<string, unknown> | undefined,
+						...(typeof action.shortcut === "string"
+							? { shortcut: action.shortcut }
+							: {}),
+						...(typeof action.title === "string"
+							? { title: action.title }
+							: {}),
 					};
 				}
 			}

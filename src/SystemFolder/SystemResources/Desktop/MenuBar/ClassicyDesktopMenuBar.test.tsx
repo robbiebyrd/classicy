@@ -547,11 +547,13 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 		]);
 	});
 
-	it("dims Hide and Hide Others while an extension holds focus (no front app)", () => {
+	it("keeps the front application while an extension holds focus", () => {
 		setStore((draft) => {
 			draft.System.Manager.Applications.apps = {
 				"Finder.app": app("Finder.app", "Finder"),
-				"SimpleText.app": app("SimpleText.app", "SimpleText"),
+				"SimpleText.app": app("SimpleText.app", "SimpleText", {
+					lastFocusedAt: 5,
+				}),
 				"Guide.app": app("Guide.app", "Guide", {
 					focused: true,
 					extension: true,
@@ -560,16 +562,18 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 			draft.System.Manager.Applications.focusedAppId = "Guide.app";
 		});
 		render(<ClassicyDesktopMenuBar />);
+		// The extension's window floats over SimpleText, the app last in use:
+		// the bar's front application (story 0233-c79).
 		const [hide, hideOthers] = items();
 		expect(hide.slice(0, 3)).toEqual([
 			"app-switcher_hide",
-			"Hide Finder",
-			true,
+			"Hide SimpleText",
+			false,
 		]);
 		expect(hideOthers.slice(0, 3)).toEqual([
 			"app-switcher_hide-others",
 			"Hide Others",
-			true,
+			false,
 		]);
 	});
 });

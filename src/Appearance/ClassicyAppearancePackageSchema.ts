@@ -332,6 +332,13 @@ export const ClassicyAppearancePackageSchema = z
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
 		sounds: z.array(ClassicySoundPackSchema).optional(),
+		helpMenu: z
+			.object({ aboutTitle: z.string().min(1).optional() })
+			.strict()
+			.optional()
+			.describe(
+				'The standard Help menu\'s wording: aboutTitle is its first item (Mac OS 8: "About Help", HIGOS8 Figure 4-2; System 7: "About Balloon Help…", HIGOS7 Figure 4-88).',
+			),
 		defaultScreenSaver: z
 			.string()
 			.min(1)

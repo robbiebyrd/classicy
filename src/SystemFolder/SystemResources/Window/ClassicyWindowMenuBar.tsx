@@ -9,6 +9,7 @@ import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentit
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { withClassicyAppIdentityAboutItem } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import { useClassicyStandardHelpMenu } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyStandardHelpMenu";
 import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
@@ -43,8 +44,8 @@ export type ClassicyWindowMenuBarProps = {
  * bar's flex and `order` rules come from the screen bar's stylesheet, which
  * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
  *
- * Only the app's menus have a home here. The Apple, Help and App Switcher
- * menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
+ * The bar ends with the standard Help menu (`useClassicyStandardHelpMenu`),
+ * the same one the screen bar draws. The Apple and App Switcher menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
  * portals into the screen bar's extensions list) are not shown in window
  * placement. The headless screen bar reserves no band: the desktop root's
  * `--menu-bar-height` is `0px` in this placement (`classicyLayoutThemeVars`),
@@ -79,11 +80,25 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		(state) => state.System.Manager.Applications.apps[appId]?.name,
 	);
 	const overrides = useClassicyAppIdentityOverrides();
+	// The standard Help menu closes the bar here as it does the screen bar's:
+	// About, Show/Hide Balloons, Keyboard Shortcuts and the app's own help
+	// items, with a "Help" the app publishes folded into it. The app's About
+	// stays in its own menus (no Apple menu to hoist it into).
+	const { helpItem, appMenu } = useClassicyStandardHelpMenu({
+		appMenu: menuItems,
+		appId,
+	});
 	const items = useMemo(
-		() =>
-			withClassicyAppIdentityAboutItem(menuItems, appId, appName, overrides) ??
-			[],
-		[menuItems, appId, appName, overrides],
+		() => [
+			...(withClassicyAppIdentityAboutItem(
+				appMenu,
+				appId,
+				appName,
+				overrides,
+			) ?? []),
+			helpItem,
+		],
+		[appMenu, helpItem, appId, appName, overrides],
 	);
 	return (
 		<div

@@ -26,6 +26,12 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 export type ClassicyGlobalShortcut = {
 	/** The chord, in any `parseKeyboardShortcut` spelling (e.g. `"⌃⌘S"`). */
 	shortcut: string;
+	/**
+	 * What the chord does, in a few words ("Toggle Screen Saver"). Optional:
+	 * the Keyboard Shortcuts topic lists the chord under the extension's own
+	 * name without it.
+	 */
+	title?: string;
 	/** Action type dispatched when the chord fires. */
 	event: string;
 	/** Extra fields spread into the dispatched action. */
@@ -297,6 +303,8 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 				scope: "global",
 				appId: id,
 				chord,
+				shortcut: gs.shortcut,
+				...(gs.title ? { title: gs.title } : {}),
 				event: gs.event,
 				eventData: gs.eventData,
 			});

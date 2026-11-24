@@ -26,6 +26,7 @@ export type ClassicyAppSwitcherEntry = {
 export function appSwitcherAppsFrom(
 	apps: Record<string, ClassicyStoreSystemApp>,
 	overrides: ClassicyAppIdentityOverrides = CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+	frontAppId?: string,
 ): ClassicyAppSwitcherEntry[] {
 	return Object.values(apps)
 		.filter((a) => (a.open || a.focused) && !a.extension)
@@ -35,7 +36,9 @@ export function appSwitcherAppsFrom(
 				id: a.id,
 				name,
 				icon,
-				focused: a.focused,
+				// With a front app given (`frontAppIdOf`) it alone is focused, so an
+				// extension's window holding focus leaves the title on the app in use.
+				focused: frontAppId === undefined ? a.focused : a.id === frontAppId,
 				open: a.open,
 				...(a.hidden ? { hidden: true } : {}),
 			};

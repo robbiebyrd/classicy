@@ -88,7 +88,10 @@ export function focusWindow(
 		win.zOrder = Math.max(Date.now(), topZOrder + 1);
 		app.lastAccessedWindowId = windowId;
 		const menu = menuBar ?? win.menuBar;
-		if (menu) {
+		// An extension's window that publishes no menus (Apple Guide) floats
+		// over the application in use and leaves the bar to it.
+		const leavesBarAlone = app.extension === true && !menu?.length;
+		if (menu && !leavesBarAlone) {
 			ds.System.Manager.Desktop.appMenu = menu;
 		}
 	}

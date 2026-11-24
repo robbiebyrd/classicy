@@ -2,12 +2,12 @@ import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { collectShortcutEntries } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideKeyboardShortcuts";
+import { getAppleGuideTopic } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import {
 	BALLOON_HELP_SHORTCUT,
-	collectShortcutEntries,
 	KEYBOARD_SHORTCUTS_TOPIC_ID,
-} from "@/SystemFolder/Extensions/AppleGuide/AppleGuideKeyboardShortcuts";
-import { getAppleGuideTopic } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
+} from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyStandardHelpMenu";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const menuFor = (title: string, shortcut: string): ClassicyMenuItem[] => [
@@ -99,13 +99,56 @@ describe("Keyboard Shortcuts topic", () => {
 
 	it("keeps the app that was in front while the Apple Guide window holds focus", () => {
 		setFront("Alpha.app", "Alpha", menuFor("Do Alpha", "⌃A"));
-		// The guide window takes focus and publishes an empty menu bar.
+		// The guide window takes focus; it publishes no menus, so (data level,
+		// `focusWindow`) the bar's menus stay Alpha's.
 		act(() => {
 			useAppManager.setState((s) => {
 				const apps = { ...s.System.Manager.Applications.apps };
 				for (const id of Object.keys(apps)) {
 					apps[id] = { ...apps[id], focused: false };
 				}
+				apps["Alpha.app"] = { ...apps["Alpha.app"], lastFocusedAt: 10 };
+				apps["AppleGuide.app"] = {
+					id: "AppleGuide.app",
+					name: "Apple Guide",
+					icon: "",
+					windows: {},
+					open: true,
+					focused: true,
+					extension: true,
+					data: {},
+				};
+				return {
+					...s,
+					System: {
+						...s.System,
+						Manager: {
+							...s.System.Manager,
+							Applications: {
+								...s.System.Manager.Applications,
+								apps,
+								focusedAppId: "AppleGuide.app",
+							},
+						},
+					},
+				};
+			});
+		});
+		const { container } = render(<>{page(1)}</>);
+		expect(screen.getByText("Alpha")).toBeInTheDocument();
+		expect(container.textContent).toContain("Do Alpha");
+	});
+
+	it("names Finder, not a quit app, when the guide holds focus and no app is open", () => {
+		setFront("Alpha.app", "Alpha", menuFor("Do Alpha", "⌃A"));
+		act(() => {
+			useAppManager.setState((s) => {
+				const apps = { ...s.System.Manager.Applications.apps };
+				apps["Alpha.app"] = {
+					...apps["Alpha.app"],
+					open: false,
+					focused: false,
+				};
 				apps["AppleGuide.app"] = {
 					id: "AppleGuide.app",
 					name: "Apple Guide",
@@ -133,9 +176,94 @@ describe("Keyboard Shortcuts topic", () => {
 				};
 			});
 		});
+		render(<>{page(1)}</>);
+		expect(screen.getByText("Finder")).toBeInTheDocument();
+		expect(screen.queryByText("Alpha")).not.toBeInTheDocument();
+	});
+
+	it("marks the editing commands as the browser's own", () => {
+		setFront("Edit.app", "Edit", [
+			{
+				id: "e",
+				title: "Edit",
+				menuChildren: [
+					{
+						id: "undo",
+						title: "Undo",
+						keyboardShortcut: "⌘Z",
+						nativeShortcut: true,
+					},
+				],
+			},
+		]);
 		const { container } = render(<>{page(1)}</>);
-		expect(screen.getByText("Alpha")).toBeInTheDocument();
-		expect(container.textContent).toContain("Do Alpha");
+		expect(container.textContent).toContain(
+			"Undo (Edit menu), the browser’s own",
+		);
+		expect(container.textContent).toMatch(/⌘Z|Ctrl\+Z/);
+		expect(
+			collectShortcutEntries(
+				useAppManager.getState().System.Manager.Desktop.appMenu,
+			)[0].native,
+		).toBe(true);
+	});
+
+	it("page 1 explains the editing commands keep the browser's keys", () => {
+		const { container } = render(<>{page(0)}</>);
+		expect(container.textContent).toContain("keep the browser’s own keys");
+	});
+
+	it("decodes entities in item titles", () => {
+		expect(
+			collectShortcutEntries([
+				{
+					id: "f",
+					title: "File",
+					menuChildren: [
+						{ id: "s", title: "Save As&hellip;", keyboardShortcut: "⌥S" },
+					],
+				},
+			])[0].title,
+		).toBe("Save As…");
+	});
+
+	it("lists extension global shortcuts on the system page", () => {
+		act(() => {
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Keyboard: {
+							...s.System.Manager.Keyboard,
+							global: {
+								"control+space": {
+									appId: "Ext.app",
+									event: "X",
+									shortcut: "⌃Space",
+									title: "Do The Thing",
+								},
+							},
+						},
+					},
+				},
+			}));
+		});
+		const { container } = render(<>{page(2)}</>);
+		expect(container.textContent).toContain("Do The Thing");
+		act(() => {
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Keyboard: { ...s.System.Manager.Keyboard, global: {} },
+					},
+				},
+			}));
+		});
 	});
 
 	it("says so when the front app has none", () => {
@@ -149,7 +277,7 @@ describe("Keyboard Shortcuts topic", () => {
 	it("lists the system equivalents whichever app is in front", () => {
 		setFront("Alpha.app", "Alpha", []);
 		const { container } = render(<>{page(2)}</>);
-		expect(container.textContent).toContain("Show or Hide Balloons");
+		expect(container.textContent).toContain("Hide Balloons");
 		expect(container.textContent).toContain(BALLOON_HELP_SHORTCUT);
 		expect(container.textContent).not.toContain("Do Alpha");
 	});

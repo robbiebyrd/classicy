@@ -83,7 +83,7 @@ describe("Help menu — Keyboard Shortcuts", () => {
 		render(<ClassicyDesktopMenuBar />);
 
 		await userEvent.click(screen.getByText("Help"));
-		await userEvent.click(screen.getByText("Keyboard Shortcuts…"));
+		await userEvent.click(screen.getByText("Keyboard Shortcuts"));
 		completeMenuItemFlash("help-keyboard-shortcuts");
 
 		await waitFor(() =>
@@ -125,7 +125,7 @@ describe("Help menu — an app that publishes its own Help menu", () => {
 		expect(screen.getAllByText("Help")).toHaveLength(1);
 		await userEvent.click(screen.getByText("Help"));
 		expect(screen.getByText("About Balloon Help…")).toBeInTheDocument();
-		expect(screen.getByText("Keyboard Shortcuts…")).toBeInTheDocument();
+		expect(screen.getByText("Keyboard Shortcuts")).toBeInTheDocument();
 		expect(screen.getByText("Finder Help Item")).toBeInTheDocument();
 		// The balloon toggle is the bar's alone, listed exactly once.
 		expect(screen.getAllByText(/^(Show|Hide) Balloons?( Help)?$/)).toHaveLength(
@@ -179,6 +179,8 @@ function seedAppWithHelp(
 						Applications: {
 							...s.System.Manager.Applications,
 							apps,
+							// The real focus reducers set both the flag and the id.
+							...(focused ? { focusedAppId: appId } : {}),
 						},
 						Desktop: {
 							...s.System.Manager.Desktop,

@@ -6,6 +6,8 @@ import {
 	APPLE_GUIDE_APP_NAME,
 	isAppleGuideData,
 } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+// Registers the Keyboard Shortcuts topic the Help menu offers.
+import "@/SystemFolder/Extensions/AppleGuide/AppleGuideKeyboardShortcuts";
 import { AppleGuideWindow } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 

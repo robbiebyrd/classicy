@@ -3,6 +3,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import {
 	canonicalChordsFromEvent,
 	findMenuItemByShortcut,
@@ -22,9 +23,9 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 export const useClassicyShortcutDispatcher = (
 	combinedMenu: ClassicyMenuItem[],
 ): void => {
-	const focusedAppId = useAppManager(
-		(s) => s.System.Manager.Applications.focusedAppId,
-	);
+	// The front app, not the focused one: an extension's window (Apple Guide)
+	// never takes the app keyboard scope.
+	const focusedAppId = useFrontAppId();
 	const keyboard = useAppManager((s) => s.System.Manager.Keyboard);
 	const dispatch = useAppManagerDispatch();
 
