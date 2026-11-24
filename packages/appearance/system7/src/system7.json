@@ -1082,6 +1082,9 @@
 		},
 		"fileBrowser": {
 			"listColumnTitles": "aboveList"
+		},
+		"applicationSwitcher": {
+			"palette": "none"
 		}
 	},
 	"knobs": {},

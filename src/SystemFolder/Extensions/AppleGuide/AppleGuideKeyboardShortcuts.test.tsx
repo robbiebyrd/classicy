@@ -68,10 +68,10 @@ describe("Keyboard Shortcuts topic", () => {
 		setFront("Finder.app", "Finder", []);
 	});
 
-	it("is registered with three pages", () => {
+	it("is registered with four pages, the last on switching applications", () => {
 		const topic = getAppleGuideTopic(KEYBOARD_SHORTCUTS_TOPIC_ID);
 		expect(topic?.title).toBe("Keyboard Shortcuts");
-		expect(topic?.pages).toHaveLength(3);
+		expect(topic?.pages).toHaveLength(4);
 	});
 
 	it("explains why Control and Option stand in for Command", () => {

@@ -16,6 +16,7 @@ import "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupManifest";
 import "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+import "@/SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcherContext";
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import "@/SystemFolder/Finder/FinderContext";
 // HyperCard.app spans two modules and its description is first-wins, so the

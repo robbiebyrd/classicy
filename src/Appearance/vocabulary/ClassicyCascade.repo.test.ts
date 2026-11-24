@@ -325,7 +325,43 @@ describe("cross-file overrides do not depend on import order", () => {
 		"a help button in a small or medium toolbar is icon-only, so square, and the toolbar's three-class square rule sets its width and padding over both";
 	const HELP_SQUARE =
 		"a help button is square only in a toolbar (it never passes `square`, so isSquare needs the toolbar context), and every toolbar size's three-class square rule sets its width over both";
+	const PALETTE_BUTTONS =
+		"the Application Switcher palette's buttons are drawn only by ClassicyApplicationSwitcherPalette, inside its own button group, never in a ClassicyButtonToolbar or the Control Strip";
+	const PALETTE_WINDOW =
+		"the Application Switcher's palette is a utility window: it never draws a window menu bar (ClassicyWindow's showsMenuBar excludes utility windows) and passes no header";
+	const PALETTE =
+		".classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton";
+	const HORIZONTAL =
+		".classicyWindow.classicyWindowUtility.classicyApplicationSwitcherHorizontal > .classicyWindowContents";
 	const TIES_THAT_NEVER_MEET: Record<string, string> = {
+		[tieKey(
+			PALETTE,
+			".classicyButtonToolbarSizeMedium .classicyBevelButton.classicyBevelButtonSquare",
+		)]: PALETTE_BUTTONS,
+		[tieKey(
+			PALETTE,
+			".classicyButtonToolbarSizeSmall .classicyBevelButton.classicyBevelButtonSquare",
+		)]: PALETTE_BUTTONS,
+		[tieKey(
+			PALETTE,
+			".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
+		)]: PALETTE_BUTTONS,
+		[tieKey(
+			".classicyWindow.classicyWindow.classicyWindowWithMenuBar .classicyWindowContentsWithHeader",
+			HORIZONTAL,
+		)]: PALETTE_WINDOW,
+		[tieKey(
+			".classicyWindow.classicyWindow:has(> .classicyWindowMenuBar) .classicyWindowContentsWithHeader",
+			HORIZONTAL,
+		)]: PALETTE_WINDOW,
+		[tieKey(
+			HORIZONTAL,
+			".classicyWindow.classicyWindowWithMenuBar .classicyWindowContents:not(.classicyWindowContentsWithHeader)",
+		)]: PALETTE_WINDOW,
+		[tieKey(
+			HORIZONTAL,
+			".classicyWindow:has(> .classicyWindowMenuBar) .classicyWindowContents:not(.classicyWindowContentsWithHeader)",
+		)]: PALETTE_WINDOW,
 		[tieKey(
 			".classicyWindow .classicyWindowTitleBar .classicyWindowControlBox",
 			".classicyWindowFrame .classicyWindowTitleBar .classicyWindowControlBox",

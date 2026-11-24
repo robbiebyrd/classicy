@@ -243,8 +243,9 @@ describe("platinum.scss (compiled)", () => {
 	// the dimmed image (`classicyIconDimmedImage`). 0.46 puts black at #777777
 	// on the menu's #DDDDDD, as the rule does.
 	it("dims a hidden application's icon by opacity only when the core drew no dimmed image", () => {
+		// The Application Switcher's palette shares the rule (story 0231-8c6).
 		expect(css).toMatch(
-			/\.classicyDesktopMenuAppHidden > p > img:not\(\.classicyIconDimmedImage\) \{\s*opacity: 0\.46;\s*\}/,
+			/\.classicyDesktopMenuAppHidden > p > img:not\(\.classicyIconDimmedImage\),\s*[^{]*\.classicyApplicationSwitcherHidden \.classicyApplicationSwitcherIcon:not\(\.classicyIconDimmedImage\) \{\s*opacity: 0\.46;\s*\}/,
 		);
 		expect(css).not.toMatch(/\.classicyDesktopMenuAppHidden > p > img \{/);
 	});
@@ -1275,6 +1276,31 @@ describe("platinum.scss (compiled)", () => {
 			expect(body, selectors).not.toMatch(
 				/(^|\n)(width|height|top|position|display|content):/,
 			);
+	});
+
+	// A titled windoid (the Application Switcher's palette, Mac OS 8.5's
+	// `platinum-85-switcher-palette.png`): the texture on both sides of the
+	// title, over the untitled windoid's bare side bands by order at equal
+	// specificity; and a hidden application's icon in the palette dimmed as
+	// in the Application menu, for an icon a canvas cannot read.
+	it("textures a titled windoid's side bands and dims a hidden app in the palette", () => {
+		const utility = `${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle`;
+		const titled = `${P} .classicyWindow.classicyWindowUtility .classicyWindowTitleBarUtilityTitle .classicyWindowTitle`;
+		const bands = (prefix: string) =>
+			`${prefix} .classicyWindowTitleLeft, ${prefix} .classicyWindowTitleRight`;
+		const sides = rule(bands(titled));
+		expect(sides.props["background-image"]).toBe(
+			"var(--classicy-art-window-utility-texture)",
+		);
+		expect(sides.props["background-size"]).toBe(
+			"var(--utility-title-bar-texture-width) var(--utility-title-bar-texture-height)",
+		);
+		expect(sides.at).toBeGreaterThan(rule(bands(utility)).at);
+		expect(
+			rule(
+				`${P} .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage), ${P} .classicyApplicationSwitcherHidden .classicyApplicationSwitcherIcon:not(.classicyIconDimmedImage)`,
+			).props.opacity,
+		).toBe("0.46");
 	});
 
 	// The inactive window's scroll-bar rules targeted the window root, which

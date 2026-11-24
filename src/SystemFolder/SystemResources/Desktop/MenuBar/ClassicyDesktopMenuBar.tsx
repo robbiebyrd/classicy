@@ -31,6 +31,7 @@ import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
+import { ClassicyAppSwitcherTearOff } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherTearOff.internal";
 import {
 	appSwitcherAppsFrom,
 	appSwitcherEntryMark,
@@ -523,6 +524,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "extensions" }}
 				/>
 			</ClassicyMenu>
+			{/* Dragging past the Application menu's bottom tears it off into
+			    the Application Switcher's palette (Mac OS 8.5). */}
+			<ClassicyAppSwitcherTearOff navRef={navRef} />
 		</nav>
 	);
 };

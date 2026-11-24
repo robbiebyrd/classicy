@@ -32,6 +32,34 @@ describe("appSwitcherAppsFrom", () => {
 		expect(result.map((a) => a.id)).toEqual(["Finder.app", "TV.app"]);
 	});
 
+	it("lists them alphabetically by the name shown, as Mac OS 8.5's Application menu and palette do", () => {
+		const apps = {
+			"Notes.app": app("Notes.app"),
+			"Finder.app": app("Finder.app", { focused: true }),
+			"calc.app": app("calc.app", { name: "calculator" }),
+			"Zed.app": app("Zed.app"),
+		};
+		expect(appSwitcherAppsFrom(apps).map((a) => a.name)).toEqual([
+			"calculator",
+			"Finder",
+			"Notes",
+			"Zed",
+		]);
+		// A package's display name decides the place.
+		expect(
+			appSwitcherAppsFrom(apps, { "Zed.app": { name: "Alpha" } }).map(
+				(a) => a.id,
+			),
+		).toEqual(["Zed.app", "calc.app", "Finder.app", "Notes.app"]);
+		// Equal names keep the ids' order, whatever the store's key order.
+		expect(
+			appSwitcherAppsFrom({
+				"b.app": app("b.app", { name: "Same" }),
+				"a.app": app("a.app", { name: "Same" }),
+			}).map((a) => a.id),
+		).toEqual(["a.app", "b.app"]);
+	});
+
 	it("excludes closed, unfocused apps", () => {
 		const result = appSwitcherAppsFrom({
 			"TV.app": app("TV.app", { open: false }),

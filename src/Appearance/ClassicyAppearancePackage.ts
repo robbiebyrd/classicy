@@ -195,6 +195,21 @@ export type ClassicyAppearanceLayout = {
 		 */
 		listColumnTitles?: "inList" | "aboveList";
 	};
+	/**
+	 * The Application Switcher (`ApplicationSwitcher.app`). Optional, as is
+	 * each key.
+	 */
+	applicationSwitcher?: {
+		/**
+		 * `"tearOff"` (the default, Mac OS 8.5): dragging past the bottom of
+		 * the Application menu tears it off into the floating palette of the
+		 * open applications. `"none"` (System 7.5, which had no palette): the
+		 * menu does not tear off and the palette is not drawn, though its
+		 * state is kept for a package that draws it. The keyboard chord is
+		 * behavior every package shares.
+		 */
+		palette?: "tearOff" | "none";
+	};
 };
 
 /**

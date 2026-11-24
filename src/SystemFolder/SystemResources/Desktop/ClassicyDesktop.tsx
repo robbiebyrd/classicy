@@ -10,6 +10,7 @@ import {
 import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { ClassicyControlPanels } from "@/SystemFolder/ControlPanels/ClassicyControlPanels";
 import { AppleGuide } from "@/SystemFolder/Extensions/AppleGuide/AppleGuide";
+import { ClassicyApplicationSwitcher } from "@/SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcher";
 import { ClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import { Finder } from "@/SystemFolder/Finder/Finder";
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
@@ -815,6 +816,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			<Finder />
 			<AppleGuide />
 			<ClassicyScreenSaver />
+			<ClassicyApplicationSwitcher />
 			{!disableSimpleText && <SimpleText />}
 			{!disablePDFViewer && <PDFViewer />}
 			{!disableHyperCard && <HyperCard />}

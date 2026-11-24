@@ -94,6 +94,19 @@
 			"ThemeFileRow",
 			"ThemeLinkStatus"
 		],
+		"ApplicationSwitcher": [
+			"Button",
+			"Buttons",
+			"Hidden",
+			"Horizontal",
+			"Icon",
+			"LargeIcons",
+			"Name",
+			"NoNames",
+			"Palette",
+			"ShortcutPage",
+			"TearOffOutline"
+		],
 		"Assistant": [
 			"AccessoryIcon",
 			"AccessoryIconLg",
@@ -579,6 +592,7 @@
 			"Title",
 			"TitleBar",
 			"TitleBarModal",
+			"TitleBarUtilityTitle",
 			"TitleCenter",
 			"TitleLeft",
 			"TitleRight",

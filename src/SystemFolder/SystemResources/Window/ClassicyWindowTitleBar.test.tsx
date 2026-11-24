@@ -196,4 +196,63 @@ describe("ClassicyWindowTitleBar", () => {
 		expect(onClose.mock.calls).toEqual([[], []]);
 		expect(onZoom.mock.calls).toEqual([[], []]);
 	});
+
+	it("gives a zoom box with onZoomKeys the Option and Shift keys held, by click and by key, instead of onZoom", () => {
+		const onZoom = vi.fn();
+		const onZoomKeys = vi.fn();
+		const { container } = render(
+			<ClassicyWindowTitleBar
+				title="T"
+				variant="utility"
+				onZoom={onZoom}
+				onZoomKeys={onZoomKeys}
+			/>,
+		);
+		const zoom = container.querySelector(".classicyWindowZoomBox");
+		if (!zoom) throw new Error("zoom box not rendered");
+		fireEvent.click(zoom);
+		fireEvent.click(zoom, { altKey: true });
+		fireEvent.click(zoom, { altKey: true, shiftKey: true });
+		fireEvent.keyDown(zoom, { key: "Enter", altKey: true });
+		expect(onZoomKeys.mock.calls).toEqual([
+			[{ option: false, shift: false }],
+			[{ option: true, shift: false }],
+			[{ option: true, shift: true }],
+			[{ option: true, shift: false }],
+		]);
+		expect(onZoom).not.toHaveBeenCalled();
+	});
+
+	it("draws a utility bar's title only with utilityTitle, between its bands and with no proxy icon", () => {
+		const untitled = render(
+			<ClassicyWindowTitleBar
+				title="Applications"
+				icon="/i.png"
+				variant="utility"
+			/>,
+		);
+		expect(untitled.container.textContent).toBe("");
+		expect(
+			untitled.container.querySelector(".classicyWindowTitleBarUtilityTitle"),
+		).toBeNull();
+		untitled.unmount();
+		const titled = render(
+			<ClassicyWindowTitleBar
+				title="Applications"
+				icon="/i.png"
+				variant="utility"
+				utilityTitle
+			/>,
+		);
+		const bar = titled.container.querySelector(
+			".classicyWindowTitleBar",
+		) as HTMLElement;
+		expect(bar.classList).toContain("classicyWindowTitleBarUtilityTitle");
+		expect(bar.querySelector(".classicyWindowTitleText")?.textContent).toBe(
+			"Applications",
+		);
+		expect(bar.querySelector(".classicyWindowTitleLeft")).not.toBeNull();
+		expect(bar.querySelector(".classicyWindowTitleRight")).not.toBeNull();
+		expect(bar.querySelector(".classicyWindowIcon")).toBeNull();
+	});
 });
