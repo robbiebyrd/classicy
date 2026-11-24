@@ -701,8 +701,10 @@ window under it comes forward), and the stored position is kept on the
 desktop (`classicyAppSwitcherTearOffPosition`). Platinum draws it as 8.5
 does (`components/_ApplicationSwitcher.scss`: 1-px frame, 12-row bar of
 raised dots, packed buttons in a sunken well, names at
-`--ui-font-size-small`); more apps than the desktop holds wrap into another
-column (`classicyAppSwitcherPaletteLines`); hidden apps' buttons and menu
+`--ui-font-size-small`); more apps than a column the desktop can hold wrap
+into another column (`classicyAppSwitcherPaletteLines`, from the desktop's
+capacity, never the palette's place: a move never reshapes it, and a
+palette dragged past an edge clips like any window); hidden apps' buttons and menu
 rows carry `aria-description` "Hidden"; it shows no icon in the startup
 parade (`bootIcon={false}`, which an extension may now pass; 8.5's has
 none, `platinum-85-startup-parade.png`). The menu's alphabetical order is

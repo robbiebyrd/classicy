@@ -473,7 +473,11 @@ interface ClassicyStore {
 
 Note: the app slice is `System.Manager.Applications` (not `.App`). Each app is
 `{ id, name, icon, windows, open, focused?, data?: Record<string, unknown>, ... }` —
-`data` is your app's private state bag, written by your event handler.
+`data` is your app's private state bag, written by your event handler. An
+extension's record also carries `extension: true` and, when its `ClassicyApp`
+passes `bootIcon={false}`, `noBootParade: true` (the startup screen leaves it
+out of the parade; `ClassicyAppLoad` sets or clears it on every mount, so it
+is never stale).
 
 `windows` is a `Record<windowId, ClassicyStoreSystemAppWindow>` (exported alias
 `ClassicyStoreSystemAppWindows`; each entry's `id` equals its key). Read and
@@ -547,6 +551,7 @@ Common built-in actions:
 | Action | Payload | Effect |
 |---|---|---|
 | `ClassicyAppOpen` | `{ app: { id, name, icon } }` | Open an app |
+| `ClassicyAppLoad` | `{ app: { id, name, icon }, contextMenu?, extension?, bootParade? }` | Register or refresh an app's record (`ClassicyApp` sends it on mount; `name`, `icon`, `contextMenu` and the extension flags are code-derived, refreshed on every load). `bootParade: false` on an extension (`ClassicyApp`'s `bootIcon={false}`) sets the record's `noBootParade`, which keeps it out of the startup parade; a load without it clears the field, and a non-extension never takes it |
 | `ClassicyAppClose` | `{ app: { id } }` | Close an app |
 | `ClassicyAppFocus` | `{ app: { id } }` | Focus an app (and show it, when hidden) |
 | `ClassicyAppHide` | `{ app: { id } }` | Hide an open app (the Application menu's Hide <app>, HIG7 p.127): `apps[id].hidden` (session state: `sanitizeStateForPersistence` drops it, so a reload shows every app; `closeApp` clears it), its `ClassicyApp` container `hidden`, its windows mounted, a portaled modal and its scrim `display: none`; any focus (`focusApp`, `focusWindow`, a window opening, the desktop focusing the Finder: `markAppFocused`) shows it; the next shown app (the most recently focused, Finder last) takes the menu bar. No-op for an extension, a closed app or the last shown app |
@@ -1767,12 +1772,16 @@ default is prevented in the capture phase), and a switch from it releases a
 focus left in another application or on a palette button, so typed keys,
 Enter and Space included, reach the application switched to. A hidden
 application's button, like its Application menu row, has the accessible
-description "Hidden". More applications than the desktop has room for wrap
-into another column (another row, horizontal), the palette measuring the
-line from where it sits (`classicyAppSwitcherPaletteLines`): 8.5's palette
-with more applications than its screen holds was not observed (the
-emulator hung while they were launched), and Classicy keeps every button
-on the desktop. Like 8.5's, the switcher shows no icon in the startup
+description "Hidden". More applications than a column the desktop can hold
+wrap into another column (another row, horizontal): the line comes from the
+desktop's capacity (its height from the menu bar's underside, no more than a
+window's maximum height, or its width), less the palette's own frame
+(`classicyAppSwitcherPaletteLines`), measured when the palette registers,
+when the desktop resizes and when its buttons, options or collapse state
+change, never on a move, so a palette dragged partly past an edge keeps its
+shape and clips like any window. 8.5's palette with more applications than
+its screen holds was not observed (the emulator hung while they were
+launched); Classicy wraps only a line the desktop cannot hold at all. Like 8.5's, the switcher shows no icon in the startup
 parade (`platinum-85-startup-parade.png`; `bootIcon={false}`). While a modal window is
 open its buttons are dimmed and do nothing, as 8.5's are under a dialog
 (`platinum-85-switcher-modal.png`); 8.5 draws the palette above the dialog,

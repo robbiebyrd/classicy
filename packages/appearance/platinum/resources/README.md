@@ -38,7 +38,7 @@ as #DDDDDD. They are the references for the Application Switcher
 | File | Shows |
 | --- | --- |
 | `platinum-85-appmenu-order.png` | The Application menu with Calculator, Finder, Note Pad and Stickies open: alphabetical |
-| `platinum-85-startup-parade.png` | The last frame of the startup screen, its parade of twelve extension icons complete: none is the Application Switcher's, so the switcher keeps out of Classicy's parade (story 0231-8c6) |
+| `platinum-85-startup-parade.png` | The last frame of the startup screen before the Finder's menu bar is drawn (the boot recorded every 100 ms, a frame kept whenever the parade's strip changed and the latest one before the bar): the progress bar full and the parade complete, twelve extension icons, none the Application Switcher's, so the switcher keeps out of Classicy's parade (story 0231-8c6) |
 | `platinum-85-tearoff-outline.png`, `…-outline-2.png` | Dragging past the menu's bottom: a dotted outline of the menu, centered on the pointer, its bottom at the pointer, the menu still drawn |
 | `platinum-85-tearoff-palette.png` | Let go: the palette where the outline was |
 | `platinum-85-switcher-palette.png` | The palette: a utility window titled "Applications", close box, zoom and collapse boxes, a bevel button per application with its small icon and name, the front application's held down |
