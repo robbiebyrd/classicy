@@ -4,12 +4,10 @@ import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
-	useEffect,
 	useState,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyBootScreenActive } from "@/SystemFolder/SystemResources/Boot/ClassicyBootScreenActive";
-import { holdClassicyStartup } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupHold.internal";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 import {
 	hasShownStartupScreenThisSession,
@@ -70,7 +68,8 @@ export const ClassicyBootSequence: FunctionalComponent<
 			: "startup",
 	);
 	// The power-on screen covers the desktop until powerOn (the startup
-	// screen, if any, then covers it itself).
+	// screen, if any, then covers it itself): theme-link alerts and
+	// notifications wait meanwhile.
 	useClassicyBootScreenActive(phase === "powerOn" && !!preBootScreen);
 
 	const powerOn = () => {
@@ -82,14 +81,6 @@ export const ClassicyBootSequence: FunctionalComponent<
 		}
 		setPhase("startup");
 	};
-
-	// While the power-on overlay shows, notifications wait, as they do for
-	// the startup screen after it.
-	const poweringOn = phase === "powerOn" && Boolean(preBootScreen);
-	useEffect(
-		() => (poweringOn ? holdClassicyStartup() : undefined),
-		[poweringOn],
-	);
 
 	if (phase === "powerOn" && preBootScreen) {
 		// Plain overlay: the consumer owns the content (window frame, focus,

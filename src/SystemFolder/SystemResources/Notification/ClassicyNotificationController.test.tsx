@@ -16,7 +16,7 @@ import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAp
 import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
-import { holdClassicyStartup } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupHold.internal";
+import { useClassicyBootScreenActive } from "@/SystemFolder/SystemResources/Boot/ClassicyBootScreenActive";
 import {
 	ClassicyNotificationController,
 	classicyNotificationAlertWindowId,
@@ -252,19 +252,31 @@ describe("the sound", () => {
 		expect(players.reduce((n, p) => n + p.play.mock.calls.length, 0)).toBe(1);
 	});
 
-	it("waits for Classicy's startup screen to go, as the system did (p. 5-10)", () => {
-		renderController();
-		let release = () => {};
-		act(() => {
-			release = holdClassicyStartup();
-		});
+	it("waits while a boot screen covers the desktop, as the system did (p. 5-10)", () => {
+		// The hold Classicy's power-on and startup screens set, and a host's
+		// own boot screen too (ClassicyBootScreenActive.ts).
+		const BootScreen = ({ covering }: { covering: boolean }) => {
+			useClassicyBootScreenActive(covering);
+			return null;
+		};
+		const { rerender } = render(
+			<ClassicySoundManagerProvider>
+				<BootScreen covering />
+				<ClassicyNotificationController />
+			</ClassicySoundManagerProvider>,
+		);
 		const onResponse = vi.fn();
 		notify({ appId: "Mail.app", sound: true, message: "Hi" });
 		notify({ appId: "Mail.app", onResponse });
 		expect(player().play).not.toHaveBeenCalled();
 		expect(alertTexts()).toEqual([]);
 		expect(onResponse).not.toHaveBeenCalled();
-		act(() => release());
+		rerender(
+			<ClassicySoundManagerProvider>
+				<BootScreen covering={false} />
+				<ClassicyNotificationController />
+			</ClassicySoundManagerProvider>,
+		);
 		expect(player().play).toHaveBeenCalledTimes(1);
 		expect(alertTexts()).toEqual(["Hi"]);
 		expect(onResponse).toHaveBeenCalledTimes(1);

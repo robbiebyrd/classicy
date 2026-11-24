@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import { registerClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyBooting } from "@/SystemFolder/SystemResources/Boot/ClassicyBootScreenActive";
 import { ClassicyBootSequence } from "@/SystemFolder/SystemResources/Boot/ClassicyBootSequence";
-import { useClassicyStartupShowing } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupHold.internal";
 
 const mockPlayer = vi.hoisted(() => vi.fn());
 
@@ -57,12 +57,13 @@ describe("ClassicyBootSequence", () => {
 		vi.useRealTimers();
 	});
 
-	// Story 0225-ci7: notifications wait for Classicy's own startup screens
-	// (Inside Macintosh: Processes, p. 5-10).
-	it("holds notifications while the power-on overlay, then the startup screen, shows", () => {
+	// Stories 0225-ci7 and 0232-tj2: notifications (Inside Macintosh:
+	// Processes, p. 5-10) and theme-link alerts wait for Classicy's own
+	// startup screens, through the one boot hold both read.
+	it("holds notifications and theme links while the power-on overlay, then the startup screen, shows", () => {
 		let showing: boolean[] = [];
 		const Probe = () => {
-			showing = [...showing, useClassicyStartupShowing()];
+			showing = [...showing, useClassicyBooting()];
 			return null;
 		};
 		render(

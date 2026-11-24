@@ -14,7 +14,7 @@ import { classicyAlertVolumeSoundAction } from "@/SystemFolder/ControlPanels/Sou
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { listClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
-import { useClassicyStartupShowing } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupHold.internal";
+import { useClassicyBooting } from "@/SystemFolder/SystemResources/Boot/ClassicyBootScreenActive";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import {
 	completeClassicyNotificationAlert,
@@ -179,11 +179,13 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 	// queued before the desktop mounted would otherwise sound with defaults.
 	const [mounted, setMounted] = useState(false);
 	useEffect(() => setMounted(true), []);
-	// And for Classicy's own startup screen (or power-on overlay) to go, as
-	// the system notified the user "after the startup process completes"
-	// (p. 5-10). A host's own `bootScreen` owns its timing, and holds nothing.
-	const startupShowing = useClassicyStartupShowing();
-	const presenting = mounted && !startupShowing;
+	// And for the boot to end, as the system notified the user "after the
+	// startup process completes" (p. 5-10): no boot screen covers the desktop
+	// (`useClassicyBootScreenActive`, the hold a theme link's alerts wait on
+	// too), whether Classicy's own power-on and startup screens or a host's
+	// `bootScreen` that calls it.
+	const booting = useClassicyBooting();
+	const presenting = mounted && !booting;
 
 	// The sound, then (with no alert) the response, for each new request.
 	useEffect(() => {

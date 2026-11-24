@@ -2,10 +2,14 @@ import { useEffect, useSyncExternalStore } from "react";
 
 // Whether a boot screen covers the desktop: the pre-boot (power-on) screen
 // and the startup screen while they show, and a host's own `bootScreen` that
-// says so. Things that must not happen unseen behind it wait for it: the
-// desktop holds a theme link's alerts (ClassicyThemeLinkImport.internal.tsx)
-// until the boot is over, since an alert under the boot screen would take
-// keystrokes the user meant for the boot screen.
+// says so. Things that must not happen unseen behind it wait for it:
+// - the desktop holds a theme link's alerts (ClassicyThemeLinkImport.internal.tsx)
+//   until the boot is over, since an alert under the boot screen would take
+//   keystrokes the user meant for the boot screen;
+// - the Notification Manager presents nothing, sound, alert or response,
+//   until then (ClassicyNotificationController.internal.tsx), as the system
+//   notified the user "after the startup process completes" (Inside
+//   Macintosh: Processes, p. 5-10).
 //
 // A count, not a flag: the pre-boot screen hands over to the startup screen
 // in one commit, and a page may hold several desktops.
@@ -32,7 +36,7 @@ const change = (delta: number) => {
  * true and it is mounted. `ClassicyBootSequence` and `ClassicyStartupScreen`
  * call it; a host's own `bootScreen` (`ClassicyDesktop`'s prop) should too,
  * with its own visibility, or the desktop cannot tell when it ends and
- * shows what it holds (a theme link's alerts) at once.
+ * shows what it holds (a theme link's alerts, notifications) at once.
  */
 export const useClassicyBootScreenActive = (covering: boolean): void => {
 	useEffect(() => {

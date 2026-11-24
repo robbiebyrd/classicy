@@ -15,7 +15,6 @@ import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyBootScreenActive } from "@/SystemFolder/SystemResources/Boot/ClassicyBootScreenActive";
-import { holdClassicyStartup } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupHold.internal";
 import {
 	hasShownStartupScreenThisSession,
 	markStartupScreenShownThisSession,
@@ -69,8 +68,8 @@ export const ClassicyStartupScreen: FunctionalComponent<
 	);
 	const [progress, setProgress] = useState(0);
 	const player = useSoundDispatch();
-	// Covering the desktop: what waits for the boot (a theme link's alerts)
-	// waits while it shows.
+	// Covering the desktop: what waits for the boot (a theme link's alerts,
+	// notifications) waits while it shows.
 	useClassicyBootScreenActive(visible);
 
 	// Both parade sources register during mount, before the splash covers the
@@ -125,9 +124,6 @@ export const ClassicyStartupScreen: FunctionalComponent<
 		0,
 		Math.min(paradeEntries.length, Math.floor(elapsed / revealInterval)),
 	);
-
-	// While it shows, notifications wait (ClassicyStartupHold.internal.ts).
-	useEffect(() => (visible ? holdClassicyStartup() : undefined), [visible]);
 
 	useEffect(() => {
 		if (!visible) return;

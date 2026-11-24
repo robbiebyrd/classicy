@@ -52,9 +52,11 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 //      current.
 //
 // No alert shows while a boot screen covers the desktop (the pre-boot and
-// startup screens, ClassicyBootScreenActive.ts): one there would take the
-// focus, and the keystrokes the user meant for the boot screen. The link is
-// read and held meanwhile, and stays in the address.
+// startup screens, and a host's boot screen that says so:
+// ClassicyBootScreenActive.ts, the hold the Notification Manager waits on
+// too): one there would take the focus, and the keystrokes the user meant
+// for the boot screen. The link is read and held meanwhile, and stays in
+// the address.
 //
 // Whatever the answer, the fragment is removed (history.replaceState) once
 // the alert closes, so a reload does not ask again. A page with several

@@ -1412,7 +1412,7 @@ plain integers (`0xRRGGBB`).
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
-| `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`), `themeLinks? (false)` | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `themeLinks` opens the theme link in the page's address after asking, and offers Copy Theme Link (§8 "Theme links"); `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session, and call `useClassicyBootScreenActive(visible)` from it so the desktop holds a theme link's alerts until it ends); `controlStrip={false}` hides the strip |
+| `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`), `themeLinks? (false)` | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `themeLinks` opens the theme link in the page's address after asking, and offers Copy Theme Link (§8 "Theme links"); `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session, and call `useClassicyBootScreenActive(visible)` from it so the desktop holds a theme link's alerts and the Notification Manager's requests until it ends); `controlStrip={false}` hides the strip |
 | `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
@@ -1651,10 +1651,14 @@ blinking icon, the sound, then the alert.
   that plays the sound, shows the alert, calls `onResponse` and removes
   requests; a request posted before it mounts is presented once it does,
   and each request's sound and alert are presented once, across remounts.
-  While Classicy's own startup screen (or the power-on overlay before it)
-  covers the desktop, presentation waits, as the system notified the user
-  "after the startup process completes" (p. 5-10); a host's own
-  `bootScreen` owns its timing and holds nothing, so post after it ends.
+  While a boot screen covers the desktop, presentation waits (sound, alert
+  and response), as the system notified the user "after the startup
+  process completes" (p. 5-10): Classicy's own startup screen and the
+  power-on overlay before it, and a host's own `bootScreen` that calls
+  `useClassicyBootScreenActive(visible)`. It is the same hold a theme
+  link's alerts wait on (§8 "Theme links"; `Boot/ClassicyBootScreenActive.ts`,
+  read with `useClassicyBooting()`); a host boot screen that does not call
+  it holds nothing.
   Under a package whose `layout.menuBar.placement` is `"window"` there is no
   Apple or Application menu, so the mark and the icon are not drawn; the
   sound and the alert still are.
@@ -4841,7 +4845,8 @@ https://host/page#classicy-theme=<base64url(deflate(theme file JSON))>
   they cover the desktop with `useClassicyBootScreenActive(covering)`
   (`Boot/ClassicyBootScreenActive.ts`; `useClassicyBooting()` reads it); a
   host's own `bootScreen` should call it too, with its own visibility, or
-  the desktop cannot tell when it ends and asks at once.
+  the desktop cannot tell when it ends and asks at once. The Notification
+  Manager waits on the same hold (§4.11).
 
   Once the alert closes, whatever the answer, the link is removed from the
   address (`history.replaceState` with `withoutClassicyThemeLink(href)`),
