@@ -20,11 +20,12 @@
 // - the track: a #BBBBBB face, its top row #888888 but for its last pixel,
 //   its bottom row and last column #DDDDDD.
 //
-// One pixel is the bar's own grid knob (`progressBar.pixel`). A taller bar
-// (`--progress-height`, 16 under Platinum) keeps the top four and bottom
-// five rows and stretches the highlight row between them; the startup
-// screen's bar is 8.5's 160 x 12 (`progressBar.startupWidth`,
-// `progressBar.startupHeight`).
+// One pixel is the bar's own grid knob (`progressBar.pixel`). The bar is
+// `--progress-height` tall, `window.controlSize`: 12 under Platinum, 8.5's
+// height and the startup bar's. Only a user-raised Control Size makes a
+// taller bar, which keeps the top four and bottom five rows and stretches
+// the highlight row between them; the startup screen's bar is 8.5's 160 x 12
+// (`progressBar.startupWidth`, `progressBar.startupHeight`).
 // Firefox draws the fill as `::-moz-progress-bar` and the track as the
 // element's own face; Chromium as `::-webkit-progress-value` over
 // `::-webkit-progress-bar`.

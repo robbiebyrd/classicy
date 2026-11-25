@@ -88,6 +88,10 @@ const ink = (value: string): string | undefined => {
 const length = (value: string, full: number): number => {
 	const expression = value
 		.replaceAll("var(--progress-bar-pixel)", `${knobs.pixel}`)
+		.replaceAll(
+			"var(--window-border-size)",
+			`${platinum.defaults.measurements.window.borderSize}`,
+		)
 		.replaceAll("100%", `${full}`)
 		.replaceAll("calc", "")
 		.replaceAll("px", "");
@@ -167,26 +171,93 @@ const paintBackground = (
 	}
 };
 
-/** The startup bar filled `fill` of its 158 pixels, its well included:
- * 162 x 14 over the panel's `face`. */
-const drawBar = (fill: number, face: string): Grid => {
-	const W = knobs.startupWidth + 2;
-	const H = knobs.startupHeight + 2;
-	const out = grid(W, H);
-	paintBackground(rule(BAR).background, out, 0, 0, W, H);
-	const progress = rule(`${BAR} progress[value]`);
-	expect(progress.border).toBe(
-		"var(--progress-bar-pixel) solid var(--color-black)",
+/** The four sides (top, right, bottom, left) of a `padding` or `inset`. */
+const sides = (value: string): [number, number, number, number] => {
+	const v = splitTop(value, " ").map((part) => length(part, 0));
+	const [t, r = t, b = t, l = r] = v;
+	return [t, r, b, l];
+};
+
+/** The base sheet's `progress[value]` rule: what Platinum's must override. */
+const baseCss = compile(
+	path.join(
+		CORE_SRC,
+		"SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar.scss",
+	),
+).css.replace(/\n\s+/g, "\n");
+const baseProgress = (() => {
+	const head = "\n.classicyProgress progress[value] {\n";
+	const at = `\n${baseCss}`.indexOf(head);
+	const body = `\n${baseCss}`.slice(
+		at + head.length,
+		`\n${baseCss}`.indexOf("\n}", at),
 	);
-	for (let y = 1; y < H - 1; y++)
-		for (let x = 1; x < W - 1; x++) out[y][x] = hex(colors.black);
-	const iw = knobs.startupWidth - 2;
-	const ih = knobs.startupHeight - 2;
+	return Object.fromEntries(
+		body
+			.split(";\n")
+			.map((line) =>
+				line.split(":").map((part) => part.trim().replace(/;$/, "")),
+			)
+			.filter(([name]) => name),
+	) as Record<string, string>;
+})();
+
+/** The startup bar filled `fill` of its 158 pixels, its well included,
+ * over the panel's `face`. Every box is placed from the compiled rules: the
+ * indicator's padding (the well), the progress element's border (the
+ * frame), padding and box-sizing (where the track and the fill start), the
+ * base sheet's value where Platinum's sheet declares none. */
+const drawBar = (fill: number, face: string): Grid => {
+	const indicator = rule(BAR);
+	const progress = rule(`${BAR} progress[value]`);
+	// The native bar is never drawn: the pseudo-elements are the bar.
+	expect(progress.appearance).toBe("none");
+	const [wellTop, wellRight, wellBottom, wellLeft] = sides(
+		indicator.padding ?? "0",
+	);
+	const [padTop, padRight, padBottom, padLeft] = sides(
+		progress.padding ?? baseProgress.padding,
+	);
+	const [borderWidth, borderStyle, borderColor] = splitTop(
+		progress.border,
+		" ",
+	);
+	expect(borderStyle).toBe("solid");
+	const frame = length(borderWidth, 0);
+	// `width`/`height` set the border box only when the rule says so (the
+	// indicator is `max-content`, so the well grows with a content box).
+	const borderBox = progress["box-sizing"] === "border-box";
+	const extraX = borderBox ? 0 : frame + frame + padLeft + padRight;
+	const extraY = borderBox ? 0 : frame + frame + padTop + padBottom;
+	const fw = knobs.startupWidth + extraX;
+	const fh = knobs.startupHeight + extraY;
+	const W = wellLeft + fw + wellRight;
+	const H = wellTop + fh + wellBottom;
+	const out = grid(W, H);
+	paintBackground(indicator.background, out, 0, 0, W, H);
+	for (let y = wellTop; y < wellTop + fh; y++)
+		for (let x = wellLeft; x < wellLeft + fw; x++) out[y][x] = ink(borderColor);
+	// The element's own face (Firefox's track) inside the frame, then the
+	// pseudo-elements in its content box.
+	const cx = wellLeft + frame;
+	const cy = wellTop + frame;
+	paintBackground(
+		progress.background,
+		out,
+		cx,
+		cy,
+		fw - frame - frame,
+		fh - frame - frame,
+	);
+	const ox = cx + padLeft;
+	const oy = cy + padTop;
+	const iw = fw - frame - frame - padLeft - padRight;
+	const ih = fh - frame - frame - padTop - padBottom;
 	paintBackground(
 		rule(`${BAR} progress[value]::-webkit-progress-bar`).background,
 		out,
-		2,
-		2,
+		ox,
+		oy,
 		iw,
 		ih,
 	);
@@ -197,9 +268,9 @@ const drawBar = (fill: number, face: string): Grid => {
 		const [dx, , , , color] = splitTop(shadow, " ");
 		const shift = length(dx, 0);
 		for (let x = Math.max(0, shift); x < Math.min(iw, fill + shift); x++)
-			for (let y = 0; y < ih; y++) out[2 + y][2 + x] = ink(color);
+			for (let y = 0; y < ih; y++) out[oy + y][ox + x] = ink(color);
 	}
-	if (fill > 0) paintBackground(value.background, out, 2, 2, fill, ih);
+	if (fill > 0) paintBackground(value.background, out, ox, oy, fill, ih);
 	return out.map((row) => row.map((c) => c ?? face));
 };
 
@@ -226,6 +297,20 @@ describe("Platinum's progress bar (Mac OS 8.5)", () => {
 			width: "var(--progress-bar-startup-width)",
 			height: "var(--progress-bar-startup-height)",
 		});
+	});
+
+	// The box model the drawing above reads, pinned too (integration review
+	// G round 5, finding 10): the well's one pixel around the frame, the
+	// native bar off, the frame inside the element's box, and no base
+	// padding (`0 var(--window-border-size)`) between the frame and the fill.
+	it("lays the bar's boxes out as 8.5's: well, frame, then the fill", () => {
+		expect(rule(BAR)["box-sizing"]).toBe("border-box");
+		expect(rule(BAR).padding).toBe("var(--progress-bar-pixel)");
+		const progress = rule(`${BAR} progress[value]`);
+		expect(progress.appearance).toBe("none");
+		expect(progress["box-sizing"]).toBe("border-box");
+		expect(progress.padding).toBe("0");
+		expect(baseProgress.padding).toBe("0 var(--window-border-size)");
 	});
 
 	it("draws Firefox's fill and track as Chromium's", () => {
