@@ -25,6 +25,7 @@ import {
 } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
 import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import { classicyHelpAnchorConfig } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import {
 	CLASSICY_CONTROL_STRIP_MODULE_IDS,
 	registerClassicyControlStripModule,
@@ -39,6 +40,7 @@ import {
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import {
 	CLASSICY_TASKBAR_PROPERTIES_CLEAR_TEXT,
+	CLASSICY_TASKBAR_PROPERTIES_HELP,
 	CLASSICY_TASKBAR_PROPERTIES_OPTIONS,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarProperties.internal";
 
@@ -286,6 +288,36 @@ describe("ClassicyControlStripManager under a taskbar", () => {
 		fireEvent.click(checkbox("Always on top"));
 		fireEvent.click(button("Cancel"));
 		expect(taskbar()?.alwaysOnTop).toBe(true);
+	});
+
+	it("gives the keyboard to its selected tab, ESC cancelling and ENTER being OK", () => {
+		renderOpen();
+		const tab = screen.getByRole("tab", { name: "Taskbar Options" });
+		expect(document.activeElement).toBe(tab);
+		fireEvent.click(checkbox("Auto hide"));
+		tab.focus();
+		fireEvent.keyDown(tab, { key: "Escape" });
+		expect(taskbar()?.autoHide).toBeUndefined();
+		expect(
+			getAppWindow(
+				useAppManager.getState().System.Manager.Applications.apps[
+					CONTROL_STRIP_MANAGER_APP_ID
+				],
+				"ControlStripManager_taskbar",
+			)?.closed ?? true,
+		).toBe(true);
+	});
+
+	it("describes its check boxes for What's This?", () => {
+		renderOpen();
+		for (const { key, label } of CLASSICY_TASKBAR_PROPERTIES_OPTIONS) {
+			const holder = checkbox(label).closest(
+				".classicyCheckboxHolder",
+			) as Element;
+			expect(classicyHelpAnchorConfig(holder)).toEqual({
+				content: CLASSICY_TASKBAR_PROPERTIES_HELP[key],
+			});
+		}
 	});
 
 	it("clears Start ▸ Documents and the Run history", () => {

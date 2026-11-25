@@ -272,7 +272,13 @@ const NOTES = "Macintosh HD:Documents:Notes.txt";
 const LETTER_TEXT = "Dear reader,\n\nThis is a letter.";
 const STYLED = "Macintosh HD:Documents:Styled.md";
 
-const useNotepadLayout = () => {
+const useNotepadLayout = (
+	documentLayout: Record<string, unknown> = {
+		...windows98.layout.document,
+		// Its own test below: the others find windows by the document's name.
+		titleAppName: false,
+	},
+) => {
 	registerClassicyAppearancePackage({
 		id: NOTEPAD,
 		name: "Notepad Probe",
@@ -289,7 +295,7 @@ const useNotepadLayout = () => {
 				restoreViewState: windows98.layout.window.restoreViewState,
 			},
 			menu: { standardShortcuts: windows98.layout.menu.standardShortcuts },
-			document: windows98.layout.document,
+			document: documentLayout,
 		} as never,
 	});
 	useAppManager.setState(
@@ -482,6 +488,16 @@ describe("SimpleText under Notepad's keys", {
 			expect(screen.queryByText("Letter.txt")).not.toBeInTheDocument(),
 		);
 		expect(promptOf()).toBeNull();
+	});
+
+	it("titles a document window '<document> - <application>' under document.titleAppName", async () => {
+		unregisterClassicyAppearancePackage(NOTEPAD);
+		useNotepadLayout(windows98.layout.document);
+		renderDesktop();
+		openSimpleText();
+		await waitFor(() =>
+			expect(screen.getByText("Untitled - SimpleText")).toBeInTheDocument(),
+		);
 	});
 
 	it("asks about an untitled document holding text, and its Yes goes through Save As…", async () => {

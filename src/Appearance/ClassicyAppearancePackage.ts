@@ -1165,6 +1165,25 @@ export type ClassicyAppearanceLayout = {
 		 * `pointercancel`, the page is hidden) or `hideContextMenu` drops it.
 		 */
 		openOn?: "event" | "release";
+		/**
+		 * Whether a menu gets the leading Help item when the caller's
+		 * options leave it unsaid (`ClassicyContextualMenuOptions.helpItem`).
+		 * Absent or `true` (Mac OS 8: HIGOS8 p.93, every contextual menu
+		 * leads with Help): a disabled Help item is put first when the items
+		 * hold none. `false` (Windows; WIG Ch.7 "Pop-up Menus", pp.100-101,
+		 * and shell32's own item menus, which hold no Help item): the items
+		 * open as given. A caller's explicit `helpItem` wins either way.
+		 */
+		helpItem?: boolean;
+		/**
+		 * Where a menu opens when the caller's options leave it unsaid
+		 * (`ClassicyContextualMenuOptions.placement`). Absent or `"click"`
+		 * (HIGOS8 "Contextual Menus"): 1 px below and right of the click.
+		 * `"corner"` (Windows: `TrackPopupMenu` puts the menu's top-left
+		 * corner at the point WM_CONTEXTMENU carries, the pointer's hot
+		 * spot): at the click itself. A caller's explicit `placement` wins.
+		 */
+		placement?: "click" | "corner";
 	};
 	/**
 	 * How a document's app treats its documents' windows. Optional, as is
@@ -1197,6 +1216,16 @@ export type ClassicyAppearanceLayout = {
 		 * `ClassicyAppFinderOpenFolder`).
 		 */
 		reopenActivates?: boolean;
+		/**
+		 * Whether a document window's title names its application after the
+		 * document (WIG Ch.6 "Title Text", pp.78-79, Figure 6.6: "document
+		 * name - application name", as Windows 98's Notepad titles
+		 * "Untitled - Notepad"). Absent or `false` (Mac OS 8 and System 7):
+		 * the document's name alone. `true`: "<document> - <app display
+		 * name>" (SimpleText's document windows, the taskbar buttons
+		 * following).
+		 */
+		titleAppName?: boolean;
 	};
 	/**
 	 * The Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16,

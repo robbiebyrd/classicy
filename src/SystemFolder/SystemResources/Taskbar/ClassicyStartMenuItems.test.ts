@@ -325,6 +325,45 @@ describe("classicyStartMenuItems", () => {
 			expect(child(settings(), "Control Panel").image).toBe(
 				"control-panel.png",
 			);
+			// The toggle draws the Help icon, as every item of Explorer's
+			// cascading menus draws one.
+			expect(child(settings(), "Hide Balloons").image).toBe("help.png");
+		});
+
+		it("adds Taskbar & Start Menu... while the Control Strip control panel is mounted, by its display name", () => {
+			const withPanel = (over: Partial<ClassicyStartMenuItemsInput> = {}) =>
+				settings({
+					systemMenu: [
+						ABOUT,
+						appleEntry("ControlStripManager.app", "Control Strip"),
+						appleEntry("Sound.app", "Sound"),
+					],
+					mountedApps: new Set(["ControlStripManager.app", "Sound.app"]),
+					...over,
+				});
+			expect(titles(withPanel())).toEqual([
+				"Control Panel",
+				"Control Strip...",
+				"—",
+				"Hide Balloons",
+			]);
+			const renamed: ClassicyAppIdentityOverrides = {
+				"ControlStripManager.app": { name: "Taskbar & Start Menu" },
+			};
+			const item = child(
+				withPanel({ overrides: renamed }),
+				"Taskbar & Start Menu...",
+			);
+			expect(item).toMatchObject({
+				id: "start-menu_taskbar",
+				image: "ControlStripManager.app.png",
+				event: "ClassicyAppOpen",
+				eventData: { app: { id: "ControlStripManager.app" } },
+			});
+			// Not mounted: no item.
+			expect(
+				titles(withPanel({ mountedApps: new Set(["Sound.app"]) })),
+			).toEqual(["Control Panel", "—", "Hide Balloons"]);
 		});
 
 		it("lists the Apple menu's entries for mounted apps Applications does not list, sorted", () => {

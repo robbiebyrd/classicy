@@ -188,6 +188,33 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
       color: var(--package-color-desktop-text, var(--color-white));
       text-shadow: $label-shadow-offset $label-shadow-offset 0 var(--color-black);
       background: transparent;
+      // The list view's label (comctl32 LVS_ICON): wrapped within the icon
+      // spacing (the 75 px cell, Wine `sysparams.c`), a word wider than it
+      // broken between characters (DT_WORDBREAK | DT_EDITCONTROL), and,
+      // unless the icon has the focus, two lines at most, the second ending
+      // in an ellipsis (DT_END_ELLIPSIS; Wine `LISTVIEW_GetItemMetrics`), so
+      // a large scheme's label never runs off the desktop's left edge or
+      // over the icon below.
+      width: max-content;
+      max-width: calc(var(--desktop-icon-cell) + var(--desktop-icon-padding));
+      overflow-wrap: anywhere;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      // Its own height, below the icon's cell as before (clipping would
+      // otherwise let the column shrink it).
+      flex-shrink: 0;
+    }
+  }
+
+  // The focus icon's label is drawn whole, over its neighbors.
+  .classicyDesktopIcon:focus {
+    z-index: 11;
+
+    p {
+      -webkit-line-clamp: unset;
+      overflow: visible;
     }
   }
 

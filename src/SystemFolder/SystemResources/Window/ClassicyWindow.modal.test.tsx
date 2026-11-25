@@ -912,6 +912,22 @@ describe("ClassicyWindow's What's This? box (C8)", () => {
 		render(dialog());
 		expect(helpBox()).toBeNull();
 	});
+
+	// A property sheet (WIG Ch.8 "Property Sheets", p.145) is modeless and
+	// carries the box: `contextHelp`.
+	it("draws the box on a modeless window with contextHelp and described content", () => {
+		useWhatsThis();
+		const { unmount } = render(dialog({ modal: false, contextHelp: true }));
+		expect(helpBox()).not.toBeNull();
+		unmount();
+		render(dialog({ modal: false, contextHelp: true }, false));
+		expect(helpBox()).toBeNull();
+	});
+
+	it("draws none for contextHelp under Platinum's layout", () => {
+		render(dialog({ modal: false, contextHelp: true }));
+		expect(helpBox()).toBeNull();
+	});
 });
 
 // `layout.window.utilityTitle` (Windows 98's tool windows, whose small

@@ -261,6 +261,31 @@ describe("windows98.scss (compiled)", () => {
 		);
 	});
 
+	// A desktop icon's label is the list view's (comctl32 LVS_ICON): wrapped
+	// within the 75 px icon spacing, a long word broken between characters,
+	// two lines at most with an ellipsis unless the icon has the focus, whose
+	// label is drawn whole over its neighbors; a large scheme's label stays
+	// on the desktop.
+	it("wraps a desktop icon's label within the icon spacing, two lines unless focused", () => {
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		const label = block("] .classicyDesktopIcon p");
+		expect(label).toContain("width: max-content");
+		expect(label).toContain(
+			"max-width: calc(var(--desktop-icon-cell) + var(--desktop-icon-padding))",
+		);
+		expect(label).toContain("overflow-wrap: anywhere");
+		expect(label).toContain("-webkit-line-clamp: 2");
+		expect(label).toContain("overflow: hidden");
+		expect(label).toContain("flex-shrink: 0");
+		expect(block("] .classicyDesktopIcon:focus")).toContain("z-index: 11");
+		const focused = block("] .classicyDesktopIcon:focus p");
+		expect(focused).toContain("-webkit-line-clamp: unset");
+		expect(focused).toContain("overflow: visible");
+	});
+
 	// The cursors and the font (L3-C): the size grip shows Windows' diagonal
 	// size cursor (`resizeNwse`, USER.EXE's IDC_SIZENWSE) at its hotspot, where
 	// the base reads the Mac grow box's `resizeLr` (Windows' horizontal one),

@@ -159,6 +159,8 @@ export const SimpleText = () => {
 	// (`menu.standardShortcuts`; WIG Appendix B Table B.2, p.358).
 	const layout = useClassicyAppearanceLayout();
 	const confirmsUnsaved = layout.document?.confirmUnsavedClose === true;
+	// "Untitled - Notepad" (`document.titleAppName`; WIG Figure 6.6).
+	const titleAppName = layout.document?.titleAppName === true;
 	const standardShortcuts = layout.menu?.standardShortcuts === "windows";
 	// The name the message box is titled with: the app as the package shows
 	// it (Notepad's MessageBox caption is the application's name).
@@ -759,7 +761,7 @@ export const SimpleText = () => {
 				<ClassicyWindow
 					key={doc.key}
 					id={doc.windowId}
-					title={doc.title}
+					title={titleAppName ? `${doc.title} - ${shownName}` : doc.title}
 					appId={appId}
 					initialSize={[400, 350]}
 					initialPosition={[200 + idx * 30, 100 + idx * 30]}

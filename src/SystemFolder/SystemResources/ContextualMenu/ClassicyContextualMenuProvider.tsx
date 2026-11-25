@@ -82,7 +82,9 @@ const withHelpItem = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
  * and right of the click and gets the HIG's leading Help item (HIGOS8 p.93) —
  * a disabled placeholder when the caller supplied none — unless the caller's
  * `ClassicyContextualMenuOptions` say otherwise (the Windows shell's window
- * pop-up menu).
+ * pop-up menu), or the package's `layout.contextMenu` does for a call that
+ * leaves them unsaid (`helpItem: false`, no Help item; `placement:
+ * "corner"`, the menu's corner at the click: Windows 98's pop-up menus).
  *
  * Under the package's `layout.keyboard.contextMenuKey` (Windows) it also
  * opens them from the keyboard: Shift+F10 and the Application key send the
@@ -129,6 +131,11 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 	const layout = useClassicyAppearanceLayout();
 	useClassicyContextMenuKey(layout.keyboard?.contextMenuKey === true);
 	const onRelease = classicyContextMenuOpensOnRelease(layout);
+	// What a call that leaves them unsaid gets: the package's
+	// `contextMenu.helpItem` and `placement` (absent, Mac OS 8's Help item
+	// and 1 px offset).
+	const defaultHelpItem = layout.contextMenu?.helpItem !== false;
+	const defaultPlacement = layout.contextMenu?.placement ?? "click";
 	const contextHelp = layout.balloonHelp?.contextHelp === "whatsThis";
 	useClassicyContextHelpKeys(contextHelp);
 	const bundledAccessKey = useClassicyBundledAccessKeys();
@@ -177,10 +184,12 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 			options?: ClassicyContextualMenuOptions,
 		) => {
 			contextMenuRequests += 1;
+			const placement = options?.placement ?? defaultPlacement;
 			const offset: [number, number] =
-				options?.placement === "corner" ? [0, 0] : clickOffset;
+				placement === "corner" ? [0, 0] : clickOffset;
+			const helpItem = options?.helpItem ?? defaultHelpItem;
 			const menu: OpenContextMenu = {
-				items: options?.helpItem === false ? items : withHelpItem(items),
+				items: helpItem === false ? items : withHelpItem(items),
 				position: [clickAt[0] + offset[0], clickAt[1] + offset[1]],
 				focusFirstItem: options?.focusFirstItem === true,
 				keyboard: options?.keyboard === true,
@@ -199,7 +208,7 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 			}
 			setOpenMenu(menu);
 		},
-		[onRelease, dropHeldMenu],
+		[onRelease, dropHeldMenu, defaultHelpItem, defaultPlacement],
 	);
 
 	const hideContextMenu = useCallback(() => {

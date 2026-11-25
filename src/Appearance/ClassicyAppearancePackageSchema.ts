@@ -220,12 +220,17 @@ export const ClassicyAppearanceLayoutSchema = z
 			})
 			.optional(),
 		contextMenu: z
-			.object({ openOn: z.enum(["event", "release"]).optional() })
+			.object({
+				openOn: z.enum(["event", "release"]).optional(),
+				helpItem: z.boolean().optional(),
+				placement: z.enum(["click", "corner"]).optional(),
+			})
 			.optional(),
 		document: z
 			.object({
 				confirmUnsavedClose: z.boolean().optional(),
 				reopenActivates: z.boolean().optional(),
+				titleAppName: z.boolean().optional(),
 			})
 			.optional(),
 		mouse: z.enum(["mac", "windows"]).optional(),

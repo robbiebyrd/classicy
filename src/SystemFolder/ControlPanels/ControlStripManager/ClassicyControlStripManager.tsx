@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
 	useClassicyAppIdentity,
 	useClassicyAppIdentityOverrides,
@@ -37,7 +37,10 @@ import {
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
 import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
-import { ClassicyTaskbarProperties } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarProperties.internal";
+import {
+	ClassicyTaskbarProperties,
+	classicyTaskbarPropertiesFocus,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarProperties.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const APP_ID = CONTROL_STRIP_MANAGER_APP_ID;
@@ -66,6 +69,11 @@ export const CLASSICY_TASKBAR_PROPERTIES_TITLE = "Taskbar Properties";
  */
 export function ClassicyControlStripManager() {
 	const dispatch = useAppManagerDispatch();
+	const taskbarRootRef = useRef<HTMLDivElement | null>(null);
+	const taskbarFocusRef = useMemo(
+		() => classicyTaskbarPropertiesFocus(taskbarRootRef),
+		[],
+	);
 	const appIcon =
 		useClassicyAsset("icons", "controlPanels.controlStripManager.app") ?? "";
 
@@ -154,8 +162,11 @@ export function ClassicyControlStripManager() {
 					initialPosition={["center", "center"]}
 					modal={false}
 					backgroundColor="var(--color-system-03)"
+					initialFocusRef={taskbarFocusRef}
+					contextHelp={true}
 				>
 					<ClassicyTaskbarProperties
+						rootRef={taskbarRootRef}
 						onClose={() =>
 							windowClose(
 								TASKBAR_WINDOW_ID,

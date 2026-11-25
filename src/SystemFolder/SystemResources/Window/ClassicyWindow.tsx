@@ -837,6 +837,16 @@ interface ClassicyWindowProps {
 	 * initial target instead. Opt-in: omitted, nothing is focused.
 	 */
 	initialFocusRef?: RefObject<HTMLElement | null>;
+	/**
+	 * A modeless window that offers context-sensitive Help as a dialog does:
+	 * under a package whose layout says `balloonHelp.contextHelp`
+	 * "whatsThis" (Windows 98) it draws the "?" caption box while its
+	 * content holds a described control, as a modal does (a property sheet,
+	 * WIG Ch.8 "Property Sheets", p.145: Explorer's Properties and Taskbar
+	 * Properties carry the "?" box). Absent or `false`, only a modal that is
+	 * not an alert does; under any other package nothing changes.
+	 */
+	contextHelp?: boolean;
 	/** Extra class names, merged onto the root `.classicyWindow` after the component's own. */
 	className?: string;
 	/**
@@ -934,6 +944,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	placard,
 	backgroundColor,
 	initialFocusRef,
+	contextHelp = false,
 	className,
 	style,
 }) => {
@@ -1185,10 +1196,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// content holds a described control, checked after every commit (the
 	// anchors register in their own effects, which run first). Its press
 	// starts the mode over this window. Absent the key nothing is checked.
+	// A modeless window with `contextHelp` (a property sheet) offers it too.
 	const offersHelpBox =
 		layout.balloonHelp?.contextHelp === "whatsThis" &&
-		modal === true &&
-		alertType === undefined;
+		((modal === true && alertType === undefined) || contextHelp);
 	const [hasHelpContent, setHasHelpContent] = useState(false);
 	useEffect(() => {
 		if (!offersHelpBox) return;

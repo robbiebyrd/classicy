@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -1003,6 +1004,90 @@ describe("ClassicyContextualMenuProvider — menus at button 2's release (layout
 		fireEvent.click(screen.getByText("hide-show-b"));
 		fireEvent.mouseUp(first, { button: 2 });
 		expect(openMenu() ?? "").not.toContain("Alpha One");
+	});
+});
+
+// Under a package whose layout says `contextMenu.helpItem: false` and
+// `placement: "corner"` (Windows 98: shell32's item menus hold no Help item,
+// and TrackPopupMenu puts the menu's corner at WM_CONTEXTMENU's point) a call
+// that leaves them unsaid opens the items as given at the click; a caller's
+// own options still win, and with neither key it opens as Mac OS 8's.
+describe("ClassicyContextualMenuProvider — the package's Help item and placement (layout.contextMenu)", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	// A fresh id each time: a package's resolved layout is kept by its id.
+	let registered = 0;
+	const useLayout = (contextMenu: Record<string, unknown>) => {
+		registered += 1;
+		const id = `windows-menus-${registered}`;
+		registerClassicyAppearancePackage({
+			id,
+			name: "Windows menus",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: `${id}-default`,
+				package: id,
+			},
+			layout: { ...CLASSICY_DEFAULT_APPEARANCE_LAYOUT, contextMenu } as never,
+		});
+	};
+	const OptionsTrigger = ({
+		options,
+	}: {
+		options?: ClassicyContextualMenuOptions;
+	}) => {
+		const { showContextMenu } = useClassicyContextualMenu();
+		return (
+			<button
+				type="button"
+				onClick={() => showContextMenu(menuA, [100, 100], options)}
+			>
+				open
+			</button>
+		);
+	};
+	const open = (options?: ClassicyContextualMenuOptions) => {
+		render(
+			<ClassicyContextualMenuProvider>
+				<OptionsTrigger options={options} />
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.click(screen.getByText("open"));
+	};
+	const titles = () =>
+		Array.from(
+			document.querySelectorAll<HTMLElement>(".classicyContextMenu > li"),
+		).map((li) => li.textContent);
+	const left = () =>
+		document.querySelector<HTMLElement>(".classicyContextMenuWrapper")?.style
+			.left;
+
+	it("leads with Help 1 px off the click with neither key", () => {
+		useLayout({});
+		open();
+		expect(titles()).toEqual(["Help", "Alpha One"]);
+		expect(left()).toBe("101px");
+	});
+
+	it("opens the items as given at the click under helpItem false and placement corner", () => {
+		useLayout({ helpItem: false, placement: "corner" });
+		open();
+		expect(titles()).toEqual(["Alpha One"]);
+		expect(left()).toBe("100px");
+	});
+
+	it("lets the caller's own options win", () => {
+		useLayout({ helpItem: false, placement: "corner" });
+		open({ helpItem: true, placement: "click" });
+		expect(titles()).toEqual(["Help", "Alpha One"]);
+		expect(left()).toBe("101px");
+	});
+
+	it("takes Windows 98's declared keys", () => {
+		expect(windows98Layout.contextMenu).toMatchObject({
+			helpItem: false,
+			placement: "corner",
+		});
 	});
 });
 

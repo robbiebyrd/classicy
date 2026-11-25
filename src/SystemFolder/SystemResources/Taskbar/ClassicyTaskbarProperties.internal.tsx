@@ -1,9 +1,18 @@
 import "./ClassicyTaskbarProperties.scss";
-import { type FC as FunctionalComponent, useState } from "react";
+import {
+	type FC as FunctionalComponent,
+	type RefObject,
+	useRef,
+	useState,
+} from "react";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	classicyCheckboxHolderById,
+	useClassicyWhatsThisHelp,
+} from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyWhatsThisHelp.internal";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
@@ -15,6 +24,7 @@ import {
 	resetClassicyRecentDocuments,
 	useClassicyRecentDocuments,
 } from "@/SystemFolder/SystemResources/File/ClassicyRecentDocuments.internal";
+import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
 /**
@@ -67,9 +77,38 @@ const sameOptions = (
  * The sheet's content: its pages and its buttons. `onClose` closes the
  * window (OK, after storing; Cancel).
  */
+/**
+ * What's This? on each Taskbar Options check box: Windows 98 SE's help text
+ * for them (explorer.exe's), shown by the sheet's "?" box.
+ */
+export const CLASSICY_TASKBAR_PROPERTIES_HELP: Readonly<
+	Record<(typeof CLASSICY_TASKBAR_PROPERTIES_OPTIONS)[number]["key"], string>
+> = {
+	alwaysOnTop:
+		"Ensures that the taskbar is always visible, even when you run a program in a full-sized window.",
+	autoHide:
+		"Hides the taskbar. To display the taskbar, point to the area of your screen where the taskbar is located.",
+	smallStartMenuIcons: "Reduces the size of the Start menu.",
+	showClock: "Displays a clock on the taskbar.",
+};
+
+const TASKBAR_PROPERTIES_WHATS_THIS = CLASSICY_TASKBAR_PROPERTIES_OPTIONS.map(
+	({ key }) => ({
+		find: classicyCheckboxHolderById(`TaskbarProperties_${key}`),
+		help: { content: CLASSICY_TASKBAR_PROPERTIES_HELP[key] },
+	}),
+);
+
 export const ClassicyTaskbarProperties: FunctionalComponent<{
 	onClose: () => void;
-}> = ({ onClose }) => {
+	/**
+	 * The sheet's root, for its window's `initialFocusRef`
+	 * (`classicyTaskbarPropertiesFocus`). Absent, a ref of its own.
+	 */
+	rootRef?: RefObject<HTMLDivElement | null>;
+}> = ({ onClose, rootRef }) => {
+	const ownRootRef = useRef<HTMLDivElement | null>(null);
+	const root = rootRef ?? ownRootRef;
 	const dispatch = useAppManagerDispatch();
 	const stored = classicyTaskbarOptions(
 		useAppManager((s) => s.System.Manager.Desktop.taskbar),
@@ -93,8 +132,17 @@ export const ClassicyTaskbarProperties: FunctionalComponent<{
 		dispatch({ type: "ClassicyDesktopTaskbarClearHistory" });
 	};
 
+	const ok = () => {
+		apply();
+		onClose();
+	};
+	// Each check box's What's This? help, for the sheet's "?" box.
+	useClassicyWhatsThisHelp(root, TASKBAR_PROPERTIES_WHATS_THIS);
+	// ENTER is OK and ESC Cancel, as in any property sheet.
+	useKeyboardEquivalents({ onDefault: ok, onCancel: onClose, targetRef: root });
+
 	return (
-		<div className="classicyTaskbarProperties">
+		<div ref={root} className="classicyTaskbarProperties">
 			<ClassicyTabs
 				tabs={[
 					{
@@ -133,13 +181,7 @@ export const ClassicyTaskbarProperties: FunctionalComponent<{
 				]}
 			/>
 			<div className="classicyTaskbarPropertiesButtons">
-				<ClassicyButton
-					isDefault={true}
-					onClickFunc={() => {
-						apply();
-						onClose();
-					}}
-				>
+				<ClassicyButton isDefault={true} onClickFunc={ok}>
 					OK
 				</ClassicyButton>
 				<ClassicyButton onClickFunc={onClose}>Cancel</ClassicyButton>
@@ -150,3 +192,19 @@ export const ClassicyTaskbarProperties: FunctionalComponent<{
 		</div>
 	);
 };
+
+/**
+ * The element the sheet's window gives the keyboard when it is focused: its
+ * selected tab, as a property sheet's (comctl32 PropertySheet), so ENTER and
+ * ESC reach OK and Cancel without a click first.
+ */
+export const classicyTaskbarPropertiesFocus = (
+	root: RefObject<HTMLDivElement | null>,
+): RefObject<HTMLElement | null> => ({
+	get current(): HTMLElement | null {
+		return (
+			root.current?.querySelector<HTMLElement>('[role="tab"][tabindex="0"]') ??
+			null
+		);
+	},
+});

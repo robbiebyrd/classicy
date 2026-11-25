@@ -124,12 +124,45 @@ export type ClassicyWindowMenuBarProps = {
  * its About item and its own Help menus taken out, then a last "Help" menu
  * (part `help`) holding the system's Help items, the app's registered items
  * (`useClassicyHelpMenu`), the items of its own Help menus, and, after a
- * divider, "About <display name>" when the app has an About item. The
+ * divider, "About <display name>" when the app has an About item; the
+ * app's Quit item reads "Exit" (`withClassicyExitItem`). The
  * headless screen bar reserves no band: the desktop root's
  * `--menu-bar-height` is `0px` in this placement (`classicyLayoutThemeVars`),
  * so window geometry (`windowViewportFloor` in `ClassicyWindow.tsx`) lets a
  * window be placed, zoomed, dragged or resized up to the screen's top edge.
  */
+/**
+ * Under a taskbar, the app's Quit item (`quitMenuItemHelper`, id
+ * `<appId>_quit`, titled "Quit") reads "Exit", Windows' last File command
+ * (WIG Ch.7 "The File Menu", p.98; its access key X, Appendix B Table B.5),
+ * keeping its handler. An item the app titled otherwise is drawn as stored.
+ */
+export const withClassicyExitItem = (
+	menus: ClassicyMenuItem[],
+	appId: string,
+	accessKey?: string,
+): ClassicyMenuItem[] =>
+	menus.map((item) => {
+		if (item.id === `${appId}_quit` && item.title === "Quit") {
+			const { accessKey: _quitKey, ...rest } = item;
+			return {
+				...rest,
+				title: "Exit",
+				...(accessKey !== undefined ? { accessKey } : {}),
+			};
+		}
+		return item.menuChildren
+			? {
+					...item,
+					menuChildren: withClassicyExitItem(
+						item.menuChildren,
+						appId,
+						accessKey,
+					),
+				}
+			: item;
+	});
+
 export const ClassicyWindowMenuBar: FunctionalComponent<
 	ClassicyWindowMenuBarProps
 > = ({ appId, windowId, menuItems, className, style }) => (
@@ -223,7 +256,7 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 			);
 		}
 		return [
-			...menus,
+			...withClassicyExitItem(menus, appId, ak("x")),
 			{
 				id: `${appId}_${windowId}_help-menu`,
 				title: "Help",

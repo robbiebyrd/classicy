@@ -1677,8 +1677,12 @@ describe("the Windows 98 appearance package", () => {
 				keyboard: "windows",
 				iconNavigation: "roving",
 			},
-			contextMenu: { openOn: "release" },
-			document: { confirmUnsavedClose: true, reopenActivates: true },
+			contextMenu: { openOn: "release", helpItem: false, placement: "corner" },
+			document: {
+				confirmUnsavedClose: true,
+				reopenActivates: true,
+				titleAppName: true,
+			},
 			mouse: "windows",
 			input: { escapeCancels: true },
 			taskbar: {
@@ -1716,6 +1720,7 @@ describe("the Windows 98 appearance package", () => {
 		expect(layout?.document).toEqual({
 			confirmUnsavedClose: true,
 			reopenActivates: true,
+			titleAppName: true,
 		});
 		expect(layout?.window.restoreViewState).toBe(true);
 		expect(layout?.menu?.standardShortcuts).toBe("windows");

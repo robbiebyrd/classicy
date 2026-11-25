@@ -11479,11 +11479,14 @@
 			"iconNavigation": "roving"
 		},
 		"contextMenu": {
-			"openOn": "release"
+			"openOn": "release",
+			"helpItem": false,
+			"placement": "corner"
 		},
 		"document": {
 			"confirmUnsavedClose": true,
-			"reopenActivates": true
+			"reopenActivates": true,
+			"titleAppName": true
 		},
 		"mouse": "windows",
 		"input": {

@@ -17,6 +17,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { classicyWindowPagePath } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyWindowClose } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	classicyCheckboxHolderById,
+	useClassicyWhatsThisHelp,
+} from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyWhatsThisHelp.internal";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import {
@@ -180,6 +184,13 @@ const sizeText = (size: number | null | undefined): string =>
  * system, free space and capacity, and the Recycle Bin's settings have no
  * Classicy data and are not shown.
  */
+/** What's This? on the Read-only check box (shell32's help text). */
+export const CLASSICY_PROPERTIES_READ_ONLY_HELP =
+	"Specifies whether this item is read-only, which means that it cannot be changed or accidentally deleted.";
+/** What's This? on the Hidden check box (shell32's help text). */
+export const CLASSICY_PROPERTIES_HIDDEN_HELP =
+	"Specifies whether this item is hidden, which means you cannot see or use it unless you know its name.";
+
 export const ClassicyFilePropertiesWindow: FunctionalComponent<
 	ClassicyFilePropertiesWindowProps
 > = ({
@@ -334,6 +345,37 @@ export const ClassicyFilePropertiesWindow: FunctionalComponent<
 		onCancel: cancel,
 		targetRef: contentRef,
 	});
+	// The attributes' What's This? help (Windows 98 SE's shell32 text), for
+	// the sheet's "?" box (`contextHelp`).
+	const whatsThis = useMemo(
+		() => [
+			{
+				find: classicyCheckboxHolderById(`${windowId}-read-only`),
+				help: { content: CLASSICY_PROPERTIES_READ_ONLY_HELP },
+			},
+			{
+				find: classicyCheckboxHolderById(`${windowId}-hidden`),
+				help: { content: CLASSICY_PROPERTIES_HIDDEN_HELP },
+			},
+		],
+		[windowId],
+	);
+	useClassicyWhatsThisHelp(contentRef, whatsThis);
+	// The keyboard starts on the sheet's selected tab, as a property sheet's
+	// does (comctl32 PropertySheet), so ENTER and ESC reach OK and Cancel at
+	// once, without a click into the sheet first.
+	const initialFocusRef = useMemo(
+		() => ({
+			get current(): HTMLElement | null {
+				return (
+					contentRef.current?.querySelector<HTMLElement>(
+						'[role="tab"][tabindex="0"]',
+					) ?? null
+				);
+			},
+		}),
+		[],
+	);
 
 	// Every item gone (emptied from the Trash): the sheet goes too.
 	const gone = targetAppId === undefined && items.length === 0;
@@ -500,6 +542,8 @@ export const ClassicyFilePropertiesWindow: FunctionalComponent<
 			modal={false}
 			initialSize={[360, 0]}
 			initialPosition={[80 + index * 24, 60 + index * 24]}
+			initialFocusRef={initialFocusRef}
+			contextHelp={true}
 			// The id holds a path, which never reaches analytics.
 			analyticsPath={classicyWindowPagePath(appId, "properties")}
 			onCloseFunc={() =>

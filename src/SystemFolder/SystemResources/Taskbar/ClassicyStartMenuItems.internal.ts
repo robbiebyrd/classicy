@@ -107,6 +107,11 @@ export type ClassicyStartMenuItemsInput = {
 
 const SPACER: ClassicyMenuItem = { id: "spacer" };
 
+/** The Control Strip control panel's app id (its manifest module's
+ * `CONTROL_STRIP_MANAGER_APP_ID`, not imported: that module registers the
+ * app's manifest when it loads). */
+const TASKBAR_PANEL_APP_ID = "ControlStripManager.app";
+
 /** Display names in the order Windows lists a menu folder's shortcuts. */
 const byTitle = (a: ClassicyMenuItem, b: ClassicyMenuItem): number =>
 	(a.title ?? "").localeCompare(b.title ?? "", undefined, {
@@ -232,9 +237,12 @@ const shellDialogItem = (
  * 3. **Programs ▸**: `programItems`, or a disabled "(Empty)".
  * 4. **Documents ▸**: `documentItems`, or a disabled "(Empty)" (E2).
  * 5. **Settings ▸**: **Control Panel ▸** (`controlPanelItems`, or "(Empty)"),
- *    a divider, then the system Help menu's **Show Balloons** / **Hide
+ *    **Taskbar & Start Menu...** (the Control Strip control panel's entry,
+ *    by its display name, while it is mounted; Windows 98's own item), a
+ *    divider, then the system Help menu's **Show Balloons** / **Hide
  *    Balloons** toggle (⌥H, which the headless screen bar dispatches; the
- *    item only shows it), so the toggle stays reachable with no window open.
+ *    item only shows it), drawn with `images.help`, so the toggle stays
+ *    reachable with no window open.
  * 6. **Help**: the Help Topics browser (`helpTopics`), else Apple Guide's
  *    About Balloon Help topic.
  * 7. **Run...**: the Run dialog (E2).
@@ -301,6 +309,12 @@ export const classicyStartMenuItems = (
 	const balloons = classicySystemHelpItems(disableBalloonHelp).find(
 		(item) => item.event === BALLOON_HELP_EVENT,
 	);
+	// Windows 98's Settings ▸ Taskbar & Start Menu..., the taskbar's own
+	// properties (the Control Strip control panel, as Windows 98 names it),
+	// beside its entry in Control Panel.
+	const taskbarPanel = controlPanels.find(
+		(item) => item.id === `${controlPanelId}_${TASKBAR_PANEL_APP_ID}`,
+	);
 	items.push({
 		id: `${CLASSICY_START_MENU_ITEM_PREFIX}settings`,
 		title: "Settings",
@@ -315,12 +329,24 @@ export const classicyStartMenuItems = (
 						? controlPanels
 						: [emptyItem(controlPanelId)],
 			},
+			...(taskbarPanel
+				? [
+						{
+							...taskbarPanel,
+							id: `${CLASSICY_START_MENU_ITEM_PREFIX}taskbar`,
+							title: `${taskbarPanel.title}...`,
+						},
+					]
+				: []),
 			...(balloons
 				? [
 						SPACER,
 						{
 							...balloons,
 							id: `${CLASSICY_START_MENU_ITEM_PREFIX}balloons`,
+							// Every item of Explorer's own cascading menus
+							// draws its small icon.
+							image: images.help,
 						},
 					]
 				: []),

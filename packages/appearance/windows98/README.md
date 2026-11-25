@@ -70,7 +70,8 @@ and `nodenext` resolution).
     the browser lets the key through): About This Computer; Programs, the
     applications in the Applications folder; Documents, the documents you
     opened this session (the last 15, by name); Settings, holding Control
-    Panel (the control panels) and Show Balloons or Hide Balloons; Help;
+    Panel (the control panels), Taskbar & Start Menu... and Show Balloons
+    or Hide Balloons; Help;
     Run...; Empty Trash… and Reset PRAM…; then Log Off <name>... (when the
     host passes `userName` to the desktop) and Shut Down.... Its banner
     reads "Windows 98" under every scheme. There is no Favorites or Find:
@@ -131,7 +132,9 @@ and `nodenext` resolution).
     strip, and slides back when the pointer reaches that edge), Show small
     icons in Start menu (small icons and no banner) and Show Clock, applied
     on OK or Apply; its Start Menu Programs page's Clear empties Start ▸
-    Documents and the Run history.
+    Documents and the Run history. Like a file's Properties sheet, it
+    starts on its selected tab (ENTER is OK, ESC Cancel) and carries the
+    "?" caption box, whose What's This? describes each check box.
   - **Drag the taskbar** by an empty part of it to the top, left or right
     edge of the screen, or back to the bottom; at a side its buttons stack.
     Windows, maximized windows, desktop icons and menus keep clear of it
@@ -225,7 +228,10 @@ and `nodenext` resolution).
   application's commands with their keys, a Change… button for each and
   Reset; the Mac packages list no such panel and keep every application's
   own keys), an empty submenu showing a dimmed
-  "(Empty)", desktop icons from the top left, as Windows laid them, a
+  "(Empty)", desktop icons from the top left, as Windows laid them, their
+  labels wrapped within the 75-pixel icon spacing, two lines at most with
+  an ellipsis unless the icon has the focus (so a large scheme's labels
+  stay on the screen), a
   window's scroll bars kept where its content fits, a dragged scroll box
   that snaps back, the document with it, when the pointer strays well away
   from its bar (more than eight bar widths to the side or two past its
@@ -279,7 +285,8 @@ and `nodenext` resolution).
   conventions too: a right-click on an unselected desktop icon or list row
   selects it first, and one on a selected item keeps the whole selection,
   which its menu then acts on; a pop-up menu opens when the right button
-  comes up; a list, a table, the Finder's list view and a tree select a row
+  comes up, its top-left corner at the pointer, with no Help item at its
+  head (Mac OS 8's contextual menus lead with one); a list, a table, the Finder's list view and a tree select a row
   as the left button goes down, so a file dragged before it was selected is
   drawn selected; dragging across a list's rows selects them (the list
   scrolls while the pointer is past its top or bottom); Ctrl+Shift-click
@@ -343,7 +350,10 @@ and `nodenext` resolution).
   ("The text in the Letter.txt file has changed." / "Do you want to save the
   changes?", or "the Untitled file" for a new one): Yes saves it (a new one
   through Save As) and closes, No closes without saving, Cancel keeps it
-  open; its close box, File ▸ Close and Quit all ask, Quit once for each
+  open; its document windows are titled "Untitled - Notepad", the
+  document then the program, as Notepad's are, and every program's File
+  menu ends with Exit where Mac OS has Quit; its close box, File ▸ Close
+  and Exit all ask, Exit once for each
   changed document. Opening a document or folder that is already open
   brings its own window to the front, from Finder or the desktop. A
   plain-text document comes back with the caret and the scroll position it

@@ -37,7 +37,10 @@ import {
 	resetClassicyWhatsThisForTests,
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
+import {
+	ClassicyWindowMenuBar,
+	withClassicyExitItem,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 describe("ClassicyWindowMenuBar", () => {
@@ -241,6 +244,16 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 			usePackage(TEST_MIRROR_PACKAGE_ID);
 		});
 
+		it("keeps the app's Quit item titled Quit", () => {
+			const menu = finderMenu();
+			(menu[0].menuChildren as ClassicyMenuItem[]).push({
+				id: `${APP}_quit`,
+				title: "Quit",
+			});
+			renderBar(menu);
+			expect(rowTitle(`${APP}_quit`)).toBe("Quit");
+		});
+
 		it("draws the window's menus as given, its own Help included", () => {
 			const { container } = renderBar();
 			expect(titles(container)).toEqual(["File", "Help"]);
@@ -287,6 +300,27 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 			expect(
 				document.getElementById(`${APP}_${WINDOW}_help_balloon`),
 			).toBeNull();
+		});
+
+		it("titles the app's Quit item Exit, keeping its event; an item titled otherwise stays", () => {
+			const quit = {
+				id: `${APP}_quit`,
+				title: "Quit",
+				event: "ClassicyAppClose",
+				eventData: { app: { id: APP } },
+			};
+			const menu = finderMenu();
+			(menu[0].menuChildren as ClassicyMenuItem[]).push({ id: "spacer" }, quit);
+			renderBar(menu);
+			expect(rowTitle(`${APP}_quit`)).toBe("Exit");
+			expect(
+				withClassicyExitItem([{ ...quit, title: "Leave" }], APP)[0].title,
+			).toBe("Leave");
+			expect(withClassicyExitItem([quit], APP, "x")[0]).toEqual({
+				...quit,
+				title: "Exit",
+				accessKey: "x",
+			});
 		});
 
 		it("keeps the About item's handler", async () => {

@@ -14,7 +14,12 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { ClassicyFilePropertiesWindow } from "@/SystemFolder/Finder/ClassicyFilePropertiesWindow";
+import {
+	CLASSICY_PROPERTIES_HIDDEN_HELP,
+	CLASSICY_PROPERTIES_READ_ONLY_HELP,
+	ClassicyFilePropertiesWindow,
+} from "@/SystemFolder/Finder/ClassicyFilePropertiesWindow";
+import { classicyHelpAnchorConfig } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 // Finder's reducer, which the sheet's close and a rename's PathsMoved reach.
 import "@/SystemFolder/Finder/FinderContext";
 import { classicyPropertiesSize } from "@/SystemFolder/SystemResources/File/ClassicyFileProperties";
@@ -115,6 +120,44 @@ describe("ClassicyFilePropertiesWindow", () => {
 		expect(fs.resolve(NOTES)._invisible).toBe(true);
 		// Apply keeps the sheet open.
 		expect(sheets()).toHaveLength(1);
+	});
+
+	it("gives the keyboard to its General tab, so ESC cancels at once", () => {
+		const fs = seed();
+		openSheet([NOTES]);
+		render(
+			<ClassicyFilePropertiesWindow
+				appId={"Finder.app"}
+				fs={fs}
+				paths={[NOTES]}
+			/>,
+		);
+		const tab = screen.getByRole("tab", { name: "General" });
+		expect(document.activeElement).toBe(tab);
+		fireEvent.keyDown(tab, { key: "Escape" });
+		expect(sheets()).toEqual([]);
+	});
+
+	it("describes its attributes for What's This?", () => {
+		const fs = seed();
+		openSheet([NOTES]);
+		render(
+			<ClassicyFilePropertiesWindow
+				appId={"Finder.app"}
+				fs={fs}
+				paths={[NOTES]}
+			/>,
+		);
+		const holder = (name: string) =>
+			screen
+				.getByRole("checkbox", { name })
+				.closest(".classicyCheckboxHolder") as Element;
+		expect(classicyHelpAnchorConfig(holder("Read-only"))).toEqual({
+			content: CLASSICY_PROPERTIES_READ_ONLY_HELP,
+		});
+		expect(classicyHelpAnchorConfig(holder("Hidden"))).toEqual({
+			content: CLASSICY_PROPERTIES_HIDDEN_HELP,
+		});
 	});
 
 	it("closes on Cancel without writing, and on OK after writing", async () => {
