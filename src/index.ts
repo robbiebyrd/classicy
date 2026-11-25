@@ -212,6 +212,7 @@ export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserIconSelect
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
+export * from "./SystemFolder/SystemResources/File/ClassicyFileClipboard";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileDrag";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileMove";

@@ -15,7 +15,14 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import {
+	clearClassicyFileClipboard,
+	getClassicyFileClipboard,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
+import { classicyPasteItems } from "@/SystemFolder/SystemResources/File/ClassicyFileCommands.internal";
 import { CLASSICY_DESKTOP_ITEM_ICON_PREFIX } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -26,19 +33,24 @@ const itemMenus: Record<
 	string,
 	(path: string, selected: string[]) => ClassicyMenuItem[] | undefined
 > = {};
+// And the drop handler (`onMoveItems`), by the window's path.
+const moveHandlers: Record<string, ClassicyFileBrowserMoveItems> = {};
 
 vi.mock("@/SystemFolder/SystemResources/File/ClassicyFileBrowser", () => ({
 	ClassicyFileBrowser: ({
 		path,
 		itemContextMenu,
+		onMoveItems,
 	}: {
 		path: string;
 		itemContextMenu: (
 			path: string,
 			selected: string[],
 		) => ClassicyMenuItem[] | undefined;
+		onMoveItems: ClassicyFileBrowserMoveItems;
 	}) => {
 		itemMenus[path] = itemContextMenu;
+		moveHandlers[path] = onMoveItems;
 		return null;
 	},
 }));
@@ -124,11 +136,14 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
 
 		const menu = itemMenus[DOCUMENTS](`${DOCUMENTS}:Projects`, []) ?? [];
-		// Windows 98 SE Explorer's item menu (shell32.dll): Open, then Create
-		// Shortcut, Delete and Rename (the audit's 1.21, 5.39, 10.3 and 10.6),
-		// Properties last (2.2).
+		// Windows 98 SE Explorer's item menu (shell32.dll): Open, then Cut and
+		// Copy (5.28), then Create Shortcut, Delete and Rename (the audit's
+		// 1.21, 5.39, 10.3 and 10.6), Properties last (2.2).
 		expect(titles(menu)).toEqual([
 			"Open",
+			"—",
+			"Cut",
+			"Copy",
 			"—",
 			"Create Shortcut",
 			"Delete",
@@ -162,7 +177,15 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 			metadata: { _trashed: true, _trashedFrom: DOCUMENTS },
 		});
 		const menu = itemMenus.Trash("Trash:Old", []) ?? [];
-		expect(titles(menu)).toEqual(["Open", "Restore", "—", "Properties"]);
+		// Windows 98's Recycle Bin items take Cut, not Copy (5.28).
+		expect(titles(menu)).toEqual([
+			"Open",
+			"Restore",
+			"—",
+			"Cut",
+			"—",
+			"Properties",
+		]);
 		expect(menu[0].isDefault).toBe(true);
 	});
 
@@ -175,6 +198,9 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 			const icon = desktopIcon(NOTES);
 			expect(titles(icon?.contextMenu)).toEqual([
 				"Open",
+				"—",
+				"Cut",
+				"Copy",
 				"—",
 				"Create Shortcut",
 				"Delete",
@@ -468,6 +494,9 @@ describe("Explorer's Create Shortcut and verbs in Finder's item menus", () => {
 					"Open",
 					"Print",
 					"—",
+					"Cut",
+					"Copy",
+					"—",
 					"Create Shortcut",
 					"Delete",
 					"Rename",
@@ -582,5 +611,165 @@ describe("Finder's property sheets and Open With", () => {
 		expect(itemMenus[DOCUMENTS](`${DOCUMENTS}:Projects`, [])?.[0]?.title).toBe(
 			"Open",
 		);
+	});
+});
+
+// The remaining chapters' audit's 5.28 (WIG Ch.5 "Command Method",
+// pp.59-61): an item's Cut and Copy, on the items the menu acts on; a Trash
+// item's Cut, whose Paste takes it out.
+describe("Explorer's Cut and Copy in Finder's item menus", () => {
+	let restore: () => void;
+	beforeEach(() => {
+		restore = activateTestWindowsKeysPackage();
+	});
+	afterEach(() => {
+		restore();
+		clearClassicyFileClipboard();
+	});
+
+	it("cuts and copies the selection holding the item, dimming what cannot", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS}:One.txt`, "1");
+		fs.writeFile(`${DOCUMENTS}:Two.txt`, "2");
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+		const targets = [`${DOCUMENTS}:One.txt`, `${DOCUMENTS}:Two.txt`];
+		const menu = itemMenus[DOCUMENTS](targets[0], targets) ?? [];
+		const item = (title: string) => menu.find((i) => i.title === title);
+		expect(item("Cut")?.disabled).toBe(false);
+		expect(item("Cut")?.keyboardShortcut).toBeUndefined();
+		act(() => item("Cut")?.onClickFunc?.());
+		expect(getClassicyFileClipboard()).toMatchObject({
+			op: "cut",
+			paths: targets,
+		});
+		act(() => item("Copy")?.onClickFunc?.());
+		expect(getClassicyFileClipboard()).toMatchObject({
+			op: "copy",
+			paths: targets,
+		});
+		// A read-only item copies but cannot be cut.
+		fs.setMetadata(`${DOCUMENTS}:One.txt`, { _readOnly: true });
+		const locked = itemMenus[DOCUMENTS](`${DOCUMENTS}:One.txt`, []) ?? [];
+		expect(locked.find((i) => i.title === "Cut")?.disabled).toBe(true);
+		expect(locked.find((i) => i.title === "Copy")?.disabled).toBe(false);
+	});
+
+	it("cuts a Trash item, whose Paste takes it out of the Trash", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.mkDir(`${DOCUMENTS}:Gone`);
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: "Trash" });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus.Trash).toBeDefined());
+		fs.move(`${DOCUMENTS}:Gone`, "Trash", {
+			metadata: { _trashed: true, _trashedFrom: DOCUMENTS },
+		});
+		const menu = itemMenus.Trash("Trash:Gone", []) ?? [];
+		expect(menu.some((i) => i.title === "Copy")).toBe(false);
+		act(() => menu.find((i) => i.title === "Cut")?.onClickFunc?.());
+		act(() => {
+			classicyPasteItems(
+				new ClassicyFileSystem(),
+				{ kind: "folder", path: DOCUMENTS },
+				dispatch,
+			);
+		});
+		const back = new ClassicyFileSystem().resolve(`${DOCUMENTS}:Gone`);
+		expect(back).toBeDefined();
+		expect(back._trashed).toBeUndefined();
+		expect(back._trashedFrom).toBeUndefined();
+		fs.rmDir(`${DOCUMENTS}:Gone`);
+	});
+});
+
+// The remaining chapters' audit's 5.31 (WIG Ch.5 "Direct Manipulation
+// Method", p.62: "the user can drop an object in an inactive window. This
+// action activates the window"): under `layout.transfer.activateDropWindow`
+// a drop that moved something into an inactive Finder window focuses it.
+describe("a drop into an inactive Finder window", () => {
+	const ARCHIVE = "Macintosh HD:Archive";
+	let restore: () => void = () => {};
+	let windowRoot: HTMLElement;
+	afterEach(() => {
+		restore();
+		restore = () => {};
+		windowRoot?.remove();
+	});
+
+	const finderWindow = (id: string) =>
+		getAppWindow(
+			useAppManager.getState().System.Manager.Applications.apps["Finder.app"],
+			id,
+		);
+	const setUp = async () => {
+		const fs = new ClassicyFileSystem();
+		fs.mkDir(ARCHIVE);
+		fs.writeFile(`${ARCHIVE}:Dropped.txt`, "d");
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: ARCHIVE });
+		render(<Finder />);
+		await waitFor(() => expect(moveHandlers[DOCUMENTS]).toBeDefined());
+		// The window records ClassicyWindow would register, Archive in front.
+		for (const id of [DOCUMENTS, ARCHIVE])
+			act(() =>
+				dispatch({
+					type: "ClassicyWindowOpen",
+					app: { id: "Finder.app" },
+					window: {
+						id,
+						position: [10, 10],
+						size: [200, 200],
+						minimumSize: [100, 100],
+					},
+				}),
+			);
+		// Documents' window as the DOM holds it: inactive, its browser's
+		// root marked with its folder.
+		windowRoot = document.createElement("div");
+		windowRoot.className = "classicyWindow";
+		windowRoot.id = `Finder.app_${DOCUMENTS}`;
+		const fill = document.createElement("div");
+		fill.className = "classicyFileBrowserFill";
+		fill.setAttribute("data-classicy-drop-folder", DOCUMENTS);
+		windowRoot.append(fill);
+		document.body.append(windowRoot);
+		return { fs, fill };
+	};
+
+	it("activates it under the key", async () => {
+		restore = activateTestWindowsKeysPackage({
+			transfer: { activateDropWindow: true },
+		});
+		const { fs, fill } = await setUp();
+		expect(finderWindow(DOCUMENTS)?.focused).toBe(false);
+		act(() =>
+			moveHandlers[DOCUMENTS](
+				[`${ARCHIVE}:Dropped.txt`],
+				{ kind: "folder", path: DOCUMENTS },
+				[0, 0],
+				{ destination: { kind: "folder", path: DOCUMENTS }, element: fill },
+			),
+		);
+		expect(fs.resolve(`${DOCUMENTS}:Dropped.txt`)).toBeDefined();
+		expect(finderWindow(DOCUMENTS)?.focused).toBe(true);
+		fs.rmDir(`${DOCUMENTS}:Dropped.txt`);
+		fs.rmDir(ARCHIVE);
+	});
+
+	it("leaves it inactive without the key, as Mac OS 8's Finder does", async () => {
+		const { fs, fill } = await setUp();
+		act(() =>
+			moveHandlers[DOCUMENTS](
+				[`${ARCHIVE}:Dropped.txt`],
+				{ kind: "folder", path: DOCUMENTS },
+				[0, 0],
+				{ destination: { kind: "folder", path: DOCUMENTS }, element: fill },
+			),
+		);
+		expect(fs.resolve(`${DOCUMENTS}:Dropped.txt`)).toBeDefined();
+		expect(finderWindow(DOCUMENTS)?.focused).toBe(false);
+		fs.rmDir(`${DOCUMENTS}:Dropped.txt`);
+		fs.rmDir(ARCHIVE);
 	});
 });

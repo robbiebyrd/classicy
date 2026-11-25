@@ -43,7 +43,9 @@
 //   An icon drawing its pre-rendered selected image
 //   (`registerClassicySelectedIconImages`) takes no layer. The mask pair is
 //   exactly the icon's box, with no fringe: the base's black outline through
-//   the outer mask is Platinum's.
+//   the outer mask is Platinum's. A Desktop Folder item cut and waiting for
+//   a Paste (`classicyFileCut`, LVIS_CUT) is blended with the Background
+//   the same way, unless selected.
 // - An icon whose window is open looks like any other (Windows marks no
 //   opened icon; the base's inverted shape is Mac OS's), and a folder under
 //   a drag is drawn selected, as the shell highlighted a drop target, where
@@ -179,6 +181,15 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     p {
       @include label-selected;
     }
+  }
+
+  // A Desktop Folder item cut and waiting for a Paste (Explorer's Cut,
+  // LVIS_CUT; WIG Ch.5 "Command Method Transfers" (p.66)): the image
+  // blended 50% with the desktop's Background, its own field, a two-pixel
+  // checker in the selection layer, clipped by its mask (the shortcut
+  // overlay's too); selected, the highlight's blend stands.
+  .classicyDesktopIcon.classicyFileCut .classicyDesktopIconMaskOuter::after {
+    background: repeating-conic-gradient(var(--desktop-background-color) 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
   }
 
   // The focus icon (LVIS_FOCUSED): one dotted rectangle, on the label of the

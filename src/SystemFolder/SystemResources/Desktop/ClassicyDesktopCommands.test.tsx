@@ -25,6 +25,11 @@ import {
 	resetClassicyDesktopIconRenameForTests,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconRename.internal";
 import {
+	clearClassicyFileClipboard,
+	getClassicyFileClipboard,
+	setClassicyFileClipboard,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
+import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
 	classicyDesktopItemIconAction,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
@@ -69,6 +74,7 @@ afterEach(() => {
 	restorePackage?.();
 	restorePackage = null;
 	resetClassicyDesktopIconRenameForTests();
+	clearClassicyFileClipboard();
 });
 
 describe("useClassicyDesktopCommands", () => {
@@ -102,7 +108,29 @@ describe("useClassicyDesktopCommands", () => {
 			keyboardShortcut: "⌦",
 			nativeShortcut: true,
 		});
-		expect(titles(edit.menuChildren)).toEqual([["Select All", "a"]]);
+		// Explorer's Edit menu (shell32.dll; 5.28): Cut Ctrl+X, Copy Ctrl+C,
+		// Paste Ctrl+V, Paste Shortcut, then Select All; the transfer keys
+		// native (the hook takes them on the desktop itself), Paste and Paste
+		// Shortcut dimmed with nothing to paste.
+		expect(titles(edit.menuChildren)).toEqual([
+			["Cut", "t"],
+			["Copy", "C"],
+			["Paste", "P"],
+			["Paste Shortcut", "S"],
+			"—",
+			["Select All", "a"],
+		]);
+		for (const [title, shortcut] of [
+			["Cut", "⌘X"],
+			["Copy", "⌘C"],
+			["Paste", "⌘V"],
+		])
+			expect(child(edit.menuChildren, title)).toMatchObject({
+				keyboardShortcut: shortcut,
+				nativeShortcut: true,
+			});
+		expect(child(edit.menuChildren, "Paste")?.disabled).toBe(true);
+		expect(child(edit.menuChildren, "Paste Shortcut")?.disabled).toBe(true);
 		expect(titles(view.menuChildren)).toEqual([
 			["Arrange Icons", "I"],
 			["Line Up Icons", "U"],
@@ -117,10 +145,18 @@ describe("useClassicyDesktopCommands", () => {
 			["Arrange Icons", "I"],
 			["Line Up Icons", "U"],
 			"—",
+			["Paste", "P"],
+			["Paste Shortcut", "S"],
+			"—",
 			["New", "w"],
 			"—",
 			["Properties", "r"],
 		]);
+		// The white space's Paste shows no key (Explorer's pop-up menus show
+		// none).
+		expect(
+			child(commands.whiteSpaceMenu?.([10, 10]), "Paste")?.keyboardShortcut,
+		).toBeUndefined();
 	});
 
 	it("lists the mounted apps' document types in New", () => {
@@ -466,6 +502,195 @@ describe("useClassicyDesktopCommands", () => {
 				),
 			).map((c) => c.join(","));
 			expect(cells).toContain(lined?.join(","));
+		});
+
+		// The remaining chapters' audit's 5.28 (WIG Ch.5 "Command Method",
+		// pp.59-61): the desktop's Cut, Copy, Paste and Paste Shortcut, on the
+		// selected Desktop Folder items and into the Desktop Folder.
+		describe("Cut, Copy and Paste", () => {
+			const edit = (title: string) =>
+				child(commands.barMenu?.[1].menuChildren, title);
+			const whiteSpace = (title: string, at: [number, number]) =>
+				child(commands.whiteSpaceMenu?.(at), title);
+			const iconOf = (path: string) =>
+				desktop().icons.find(
+					(i) => i.appId === `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`,
+				);
+
+			it("copies the selection, and pastes it as Copy of, at the next free cell, selected, again and again", () => {
+				useWindowsLayout();
+				render(<Harness />);
+				const a = seedItem("a.txt");
+				select([a]);
+				act(() => edit("Copy")?.onClickFunc?.());
+				expect(getClassicyFileClipboard()).toMatchObject({
+					op: "copy",
+					paths: [`${DESKTOP_FOLDER}:a.txt`],
+				});
+				// The bar's Paste follows the clipboard.
+				expect(edit("Paste")?.disabled).toBe(false);
+				expect(edit("Paste Shortcut")?.disabled).toBe(false);
+				const freeCell = classicyDesktopFreeIconLocation(
+					useAppManager.getState().System.Manager.Appearance.activeTheme,
+					desktop().icons,
+				);
+				act(() => edit("Paste")?.onClickFunc?.());
+				const copy = `${DESKTOP_FOLDER}:Copy of a.txt`;
+				expect(new ClassicyFileSystem().resolve(copy)?._data).toBe("x");
+				expect(iconOf(copy)?.location).toEqual(freeCell);
+				expect(desktop().selectedIcons).toEqual([
+					`${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${copy}`,
+				]);
+				// A Copy stays on the clipboard: Paste again.
+				act(() => edit("Paste")?.onClickFunc?.());
+				expect(
+					new ClassicyFileSystem().resolve(
+						`${DESKTOP_FOLDER}:Copy (2) of a.txt`,
+					),
+				).toBeDefined();
+				expect(getClassicyFileClipboard()?.op).toBe("copy");
+			});
+
+			it("pastes a Cut at the white space's point, moving it out of its folder and emptying the clipboard", () => {
+				useWindowsLayout();
+				render(<Harness />);
+				const fs = new ClassicyFileSystem();
+				fs.writeFile("Macintosh HD:Plan.txt", "plan");
+				setClassicyFileClipboard("cut", ["Macintosh HD:Plan.txt"]);
+				act(() => whiteSpace("Paste", [140, 90])?.onClickFunc?.());
+				const moved = `${DESKTOP_FOLDER}:Plan.txt`;
+				expect(fs.resolve("Macintosh HD:Plan.txt")).toBeUndefined();
+				expect(fs.resolve(moved)?._data).toBe("plan");
+				expect(iconOf(moved)?.location).toEqual([140, 90]);
+				expect(desktop().selectedIcons).toEqual([
+					`${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${moved}`,
+				]);
+				expect(getClassicyFileClipboard()).toBeNull();
+				// Nothing left to paste: both dim.
+				expect(whiteSpace("Paste", [0, 0])?.disabled).toBe(true);
+				expect(whiteSpace("Paste Shortcut", [0, 0])?.disabled).toBe(true);
+			});
+
+			it("dims Paste Shortcut after a Cut, and makes shortcuts after a Copy", () => {
+				useWindowsLayout();
+				render(<Harness />);
+				const fs = new ClassicyFileSystem();
+				fs.writeFile("Macintosh HD:Plan.txt", "plan");
+				setClassicyFileClipboard("cut", ["Macintosh HD:Plan.txt"]);
+				expect(whiteSpace("Paste", [0, 0])?.disabled).toBe(false);
+				expect(whiteSpace("Paste Shortcut", [0, 0])?.disabled).toBe(true);
+				setClassicyFileClipboard("copy", ["Macintosh HD:Plan.txt"]);
+				act(() => whiteSpace("Paste Shortcut", [60, 70])?.onClickFunc?.());
+				const shortcut = `${DESKTOP_FOLDER}:Shortcut to Plan.txt`;
+				expect(fs.resolve(shortcut)).toMatchObject({
+					_type: "file_shortcut",
+					_targetPath: "Macintosh HD:Plan.txt",
+				});
+				expect(iconOf(shortcut)?.location).toEqual([60, 70]);
+				expect(desktop().selectedIcons).toEqual([
+					`${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${shortcut}`,
+				]);
+				// The original stays, and so does the clipboard.
+				expect(fs.resolve("Macintosh HD:Plan.txt")).toBeDefined();
+				expect(getClassicyFileClipboard()?.op).toBe("copy");
+			});
+
+			it("cuts only Desktop Folder items, never a drive or the Trash", () => {
+				useWindowsLayout();
+				render(<Harness />);
+				const a = seedItem("a.txt");
+				act(() =>
+					dispatch({
+						type: "ClassicyDesktopIconAdd",
+						app: { id: "Trash", name: "Trash", icon: "" },
+						kind: "trash",
+						filePath: "Trash",
+						noLaunch: true,
+					}),
+				);
+				select(["Trash"]);
+				act(() => edit("Cut")?.onClickFunc?.());
+				expect(getClassicyFileClipboard()).toBeNull();
+				select([a, "Trash"]);
+				act(() => edit("Cut")?.onClickFunc?.());
+				expect(getClassicyFileClipboard()).toEqual({
+					op: "cut",
+					paths: [`${DESKTOP_FOLDER}:a.txt`],
+					storageKey: "classicyStorage",
+				});
+			});
+
+			it("takes Ctrl+X, Ctrl+C and Ctrl+V on the desktop and its icons, never in a field or a window", () => {
+				useWindowsLayout();
+				const root = document.createElement("div");
+				root.id = "classicyDesktop";
+				const icon = document.createElement("div");
+				icon.className = "classicyDesktopIcon";
+				const field = document.createElement("input");
+				const win = document.createElement("div");
+				win.className = "classicyWindow";
+				const inWindow = document.createElement("div");
+				inWindow.className = "classicyDesktopIcon";
+				win.append(inWindow);
+				root.append(icon, field, win);
+				document.body.append(root);
+				try {
+					render(<Harness />);
+					const a = seedItem("a.txt");
+					select([a]);
+					const key = (target: Element, letter: string) => {
+						const event = new KeyboardEvent("keydown", {
+							key: letter,
+							code: `Key${letter.toUpperCase()}`,
+							ctrlKey: true,
+							bubbles: true,
+							cancelable: true,
+						});
+						act(() => {
+							target.dispatchEvent(event);
+						});
+						return event.defaultPrevented;
+					};
+					expect(key(field, "c")).toBe(false);
+					expect(key(inWindow, "c")).toBe(false);
+					expect(getClassicyFileClipboard()).toBeNull();
+					expect(key(icon, "c")).toBe(true);
+					expect(getClassicyFileClipboard()?.op).toBe("copy");
+					expect(key(root, "x")).toBe(true);
+					expect(getClassicyFileClipboard()?.op).toBe("cut");
+					setClassicyFileClipboard("copy", [`${DESKTOP_FOLDER}:a.txt`]);
+					expect(key(root, "v")).toBe(true);
+					expect(
+						new ClassicyFileSystem().resolve(`${DESKTOP_FOLDER}:Copy of a.txt`),
+					).toBeDefined();
+				} finally {
+					root.remove();
+				}
+			});
+
+			it("takes no key without Explorer's commands", () => {
+				const root = document.createElement("div");
+				root.id = "classicyDesktop";
+				document.body.append(root);
+				try {
+					render(<Harness />);
+					const a = seedItem("a.txt");
+					select([a]);
+					const event = new KeyboardEvent("keydown", {
+						key: "c",
+						ctrlKey: true,
+						bubbles: true,
+						cancelable: true,
+					});
+					act(() => {
+						root.dispatchEvent(event);
+					});
+					expect(event.defaultPrevented).toBe(false);
+					expect(getClassicyFileClipboard()).toBeNull();
+				} finally {
+					root.remove();
+				}
+			});
 		});
 	});
 });

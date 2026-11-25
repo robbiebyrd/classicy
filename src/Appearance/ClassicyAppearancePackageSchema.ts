@@ -128,6 +128,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			extensions: z.enum(["shown", "hideRegistered"]).optional(),
 		})
 		.optional(),
+	transfer: z.object({ activateDropWindow: z.boolean().optional() }).optional(),
 	fileList: z.object({ foldersFirst: z.boolean().optional() }).optional(),
 	tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),
 	balloonHelp: z

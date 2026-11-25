@@ -118,6 +118,105 @@ export type ClassicyFileSystemMoveResult =
 	| { ok: true; path: string }
 	| { ok: false; reason: ClassicyFileSystemMoveRefusal };
 
+/** Why `ClassicyFileSystem.copy` refused a copy (see its documentation). */
+export type ClassicyFileSystemCopyRefusal =
+	| "missing"
+	| "not-a-folder"
+	| "into-itself"
+	| "locked"
+	| "exists";
+
+/** The outcome of `ClassicyFileSystem.copy`: the copy's path, or why not. */
+export type ClassicyFileSystemCopyResult =
+	| { ok: true; path: string }
+	| { ok: false; reason: ClassicyFileSystemCopyRefusal };
+
+/**
+ * Metadata a copy never takes from its original
+ * (`ClassicyFileSystem.copy`): the Trash's markers (a copy is no trashed
+ * item) and a seeded placeholder's mark (a copy is a user's file, which no
+ * derived app's entry gives way to).
+ */
+export const CLASSICY_COPY_DROPPED_METADATA: readonly string[] = Object.freeze([
+	"_trashed",
+	"_trashedFrom",
+	"_trashedName",
+	"_trashedLocation",
+	"_placeholder",
+]);
+
+/**
+ * The name a copy of `name` takes among `taken` (a folder's names): `name`
+ * itself when it is free, else Windows 95's "Copy of <name>", then "Copy
+ * (2) of <name>", "Copy (3) of <name>"… (shell32.dll's "Copy () of "
+ * template; WIG Ch.10 "System Naming Conventions", p.210, wrote "Copy 2 of
+ * Sample"), the first that is free, names compared without case.
+ */
+export const classicyFirstFreeCopyName = (
+	taken: Iterable<string>,
+	name: string,
+): string => {
+	const folded = new Set<string>();
+	for (const key of taken) folded.add(foldClassicyFileSystemName(key));
+	if (!folded.has(foldClassicyFileSystemName(name))) return name;
+	for (let n = 1; ; n++) {
+		const candidate = n === 1 ? `Copy of ${name}` : `Copy (${n}) of ${name}`;
+		if (!folded.has(foldClassicyFileSystemName(candidate))) return candidate;
+	}
+};
+
+/**
+ * A deep copy of a metadata value, or the value itself where
+ * `structuredClone` refuses it (a `_badge`'s React element, which nothing
+ * edits in place).
+ */
+const cloneValue = (value: unknown): unknown => {
+	try {
+		return structuredClone(value);
+	} catch {
+		return value;
+	}
+};
+
+/**
+ * A copy of `entry` for `ClassicyFileSystem.copy`: every entry in it (the
+ * entry and each one inside, all the way down) a new object stamped with
+ * `createdOn`, the entries a derived overlay generated (`_derived`) left
+ * out, as they are the overlay's, not the folder's, and the entry itself
+ * without `CLASSICY_COPY_DROPPED_METADATA`. A value that is no entry (a
+ * string, a number, a metadata array or object) is copied as it is, an
+ * object or array deeply, so the copy shares nothing it could be edited
+ * through.
+ */
+const copyClassicyFileSystemEntry = (
+	entry: ClassicyFileSystemEntry,
+	createdOn: string,
+	root: boolean,
+): ClassicyFileSystemEntry => {
+	const copy: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(entry)) {
+		if (root && CLASSICY_COPY_DROPPED_METADATA.includes(key)) continue;
+		if (
+			!key.startsWith("_") &&
+			value !== null &&
+			typeof value === "object" &&
+			!Array.isArray(value)
+		) {
+			if ((value as ClassicyFileSystemEntry)._derived === true) continue;
+			copy[key] = copyClassicyFileSystemEntry(
+				value as ClassicyFileSystemEntry,
+				createdOn,
+				false,
+			);
+			continue;
+		}
+		copy[key] =
+			value !== null && typeof value === "object" ? cloneValue(value) : value;
+	}
+	copy._createdOn = createdOn;
+	return copy as ClassicyFileSystemEntry;
+};
+
 /**
  * One live tree per storage key, shared by every `ClassicyFileSystem` built for
  * that key — so a change made through one (a Finder drag, a Save dialog's New
@@ -136,7 +235,7 @@ const treeListeners = new Map<string, Set<() => void>>();
 
 /**
  * Be told whenever the tree stored under `storageKey` changes (every journaled
- * mutation: write, mkdir, rmdir, meta, move, load). Returns an unsubscribe
+ * mutation: write, mkdir, rmdir, meta, move, copy, load). Returns an unsubscribe
  * function. Shaped for `useSyncExternalStore`, with
  * `getClassicyFileSystemVersion` as the snapshot.
  */
@@ -1028,6 +1127,123 @@ export class ClassicyFileSystem {
 		this.notifyMutation("move", fromParts.join(this.separator), {
 			to: newPath,
 			...(Object.keys(setMetadata).length > 0 ? { metadata: setMetadata } : {}),
+			...(unsetMetadata.length > 0 ? { unsetMetadata } : {}),
+		});
+		return { ok: true, path: newPath };
+	}
+
+	/**
+	 * Copy the entry at `fromPath` into the folder (or drive) at
+	 * `toFolderPath`: Windows Explorer's Copy and Paste (WIG Ch.5 "Command
+	 * Method", pp.59-61; Finder's, under `layout.finder.commands`
+	 * "windows"). The copy is deep (a folder's contents come with it, less
+	 * the entries a derived overlay generated), each entry in it a new one
+	 * created now (`_createdOn`), every other field as the original holds it
+	 * (`_modifiedOn`, `_readOnly` and `_icon` included), less the Trash's
+	 * markers and a placeholder's mark (`CLASSICY_COPY_DROPPED_METADATA`).
+	 * It takes the original's name, as stored, when the destination holds no
+	 * entry of that name in any case, else the first free of "Copy of
+	 * <name>", "Copy (2) of <name>"… (`classicyFirstFreeCopyName`), so a copy
+	 * never replaces anything; `options.name` names it instead. Journaled as
+	 * one 'copy' mutation: `path` the original's, `to` the copy's, `metadata`
+	 * the `_createdOn` every entry of the copy took, `unsetMetadata` the
+	 * dropped keys the original held. Both paths find their entries whatever
+	 * their case, and the journal and the returned path spell every name as
+	 * stored. Nothing changes when the copy is refused:
+	 *
+	 * - `missing`: the original or the destination does not exist, or
+	 *   `options.name` is no usable name (empty, a leading `_`, the
+	 *   separator);
+	 * - `not-a-folder`: the destination is a file;
+	 * - `into-itself`: a folder copied into itself or one of its own folders;
+	 * - `locked`: a drive, a system file or an entry a derived overlay
+	 *   generated (an item of the Applications, Extensions or Control Strip
+	 *   Modules folders, rebuilt from the app store), or a read-only, system
+	 *   (the Trash) or derived destination;
+	 * - `exists`: `options.name` is taken in the destination, in any case.
+	 */
+	copy(
+		fromPath: string,
+		toFolderPath: string,
+		options: { name?: string } = {},
+	): ClassicyFileSystemCopyResult {
+		const typedFromParts = this.pathArray(fromPath);
+		const typedToParts = this.pathArray(toFolderPath);
+		if (
+			typedFromParts === null ||
+			typedToParts === null ||
+			typedFromParts.length < 1 ||
+			typedToParts.length < 1
+		) {
+			return { ok: false, reason: "missing" };
+		}
+		// Every name as the tree stores it (a missing one stays as typed, and
+		// resolves to nothing below).
+		const fromParts = this.storedParts(typedFromParts).keys;
+		const toParts = this.storedParts(typedToParts).keys;
+		const entry = this.resolve(fromParts.join(this.separator));
+		const target = this.resolve(toParts.join(this.separator));
+		if (!entry || !target) return { ok: false, reason: "missing" };
+		if (
+			target._type !== ClassicyFileSystemEntryFileType.Directory &&
+			target._type !== ClassicyFileSystemEntryFileType.Drive
+		) {
+			return { ok: false, reason: "not-a-folder" };
+		}
+		if (
+			toParts.length >= fromParts.length &&
+			fromParts.every((part, i) => toParts[i] === part)
+		) {
+			return { ok: false, reason: "into-itself" };
+		}
+		if (
+			entry._type === ClassicyFileSystemEntryFileType.Drive ||
+			entry._system === true ||
+			entry._derived === true ||
+			target._readOnly === true ||
+			target._system === true ||
+			target._derived === true
+		) {
+			return { ok: false, reason: "locked" };
+		}
+		const oldName = fromParts[fromParts.length - 1];
+		let name: string;
+		if (options.name !== undefined) {
+			name = options.name;
+			if (
+				name === "" ||
+				name.startsWith("_") ||
+				name.includes(this.separator) ||
+				FORBIDDEN_PATH_SEGMENTS.has(name)
+			) {
+				return { ok: false, reason: "missing" };
+			}
+			if (classicyFileSystemEntryKey(target, name) !== undefined) {
+				return { ok: false, reason: "exists" };
+			}
+		} else {
+			name = classicyFirstFreeCopyName(
+				Object.keys(target).filter(
+					(key) =>
+						!key.startsWith("_") &&
+						target[key] !== null &&
+						typeof target[key] === "object",
+				),
+				oldName,
+			);
+		}
+		const createdOn = new Date().toISOString();
+		target[name] = copyClassicyFileSystemEntry(entry, createdOn, true);
+		const unsetMetadata = CLASSICY_COPY_DROPPED_METADATA.filter((key) =>
+			Object.hasOwn(entry, key),
+		);
+		const newPath = [...toParts, name].join(this.separator);
+		this.notifyMutation("copy", fromParts.join(this.separator), {
+			to: newPath,
+			// Stored as the ISO string `writeFile` stores, as persisted.
+			metadata: {
+				_createdOn: createdOn,
+			} as unknown as Partial<ClassicyFileSystemEntryMetadata>,
 			...(unsetMetadata.length > 0 ? { unsetMetadata } : {}),
 		});
 		return { ok: true, path: newPath };

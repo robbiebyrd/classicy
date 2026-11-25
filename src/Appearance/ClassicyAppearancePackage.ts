@@ -368,8 +368,14 @@ export type ClassicyAppearanceLayout = {
 		 * Ch.5 "Properties" (p.51)): it opens the item's property sheet
 		 * (`ClassicyFilePropertiesWindow`), as Alt+Enter and an Alt
 		 * double-click do, and the empty desktop's opens the Appearance
-		 * control panel on its Desktop tab. `"mac"` and absent keep Mac OS
-		 * 8's menus byte for byte.
+		 * control panel on its Desktop tab. Cut, Copy, Paste and Paste
+		 * Shortcut (WIG Ch.5 "Command Method" (pp.59-61)) sit in the item
+		 * menus, the Edit menus and the white spaces' menus, and Ctrl+X,
+		 * Ctrl+C and Ctrl+V take them in a folder view and on the desktop:
+		 * the file clipboard (`File/ClassicyFileClipboard.ts`) holds the
+		 * items, a Paste moving a Cut's or copying a Copy's ("Copy of
+		 * <name>", `fs.copy`), a cut item drawn `classicyFileCut` until then.
+		 * `"mac"` and absent keep Mac OS 8's menus byte for byte.
 		 */
 		commands?: "mac" | "windows";
 	};
@@ -416,6 +422,24 @@ export type ClassicyAppearanceLayout = {
 		 * the extension; Finder Preferences offers the check box.
 		 */
 		extensions?: "shown" | "hideRegistered";
+	};
+	/**
+	 * How items are transferred, by the Finder's drags and its Cut, Copy and
+	 * Paste (WIG Ch.5 "Transfer Operations", pp.59-68). Optional, as is
+	 * each key.
+	 */
+	transfer?: {
+		/**
+		 * Whether a drop activates the window it lands in. Absent or `false`
+		 * (Mac OS 8's Finder): a drag moves the items into an inactive
+		 * window, which stays inactive. `true` (WIG Ch.5 "Direct
+		 * Manipulation Method" (p.62): "the user can drop an object in an
+		 * inactive window. This action activates the window"; Windows 98):
+		 * after a drop moved something into a Finder window that is not the
+		 * active one, it is focused (`activateClassicyDropWindow`,
+		 * `File/ClassicyFileMove.ts`).
+		 */
+		activateDropWindow?: boolean;
 	};
 	/**
 	 * How the file browser (`ClassicyFileBrowser`, the Finder's windows)

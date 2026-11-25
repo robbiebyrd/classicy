@@ -55,18 +55,30 @@ import type {
 	ClassicyFileBrowserArrangeKey,
 	ClassicyFileBrowserMoveItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import { useClassicyFileClipboard } from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
 import {
 	type ClassicyNewItemKind,
 	classicyArrangeIconsMenuItem,
+	classicyCanCopy,
+	classicyCanCut,
 	classicyCanMakeItemIn,
+	classicyCanPaste,
 	classicyCanRename,
+	classicyCopyItems,
+	classicyCopyMenuItem,
 	classicyCreateShortcutMenuItem,
 	classicyCreateShortcuts,
+	classicyCutItems,
+	classicyCutMenuItem,
 	classicyDeleteConfirmation,
 	classicyDeleteMenuItem,
 	classicyLineUpIconsMenuItem,
 	classicyNewItemPath,
 	classicyNewMenuItem,
+	classicyPasteItems,
+	classicyPasteMenuItem,
+	classicyPasteShortcutMenuItem,
+	classicyPasteShortcuts,
 	classicyRenameMenuItem,
 	classicyVerbMenuItems,
 	createClassicyDesktopShortcuts,
@@ -75,6 +87,7 @@ import {
 	useClassicyFileVerbs,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileCommands.internal";
 import {
+	activateClassicyDropWindow,
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
 	classicyDesktopDropLocation,
 	classicyDesktopFolderPath,
@@ -185,6 +198,29 @@ type FinderWindowProps = {
 	 * selected.
 	 */
 	showProperties: (paths: string[]) => void;
+	/**
+	 * Explorer's Cut and Copy of the items at `paths` (the file clipboard,
+	 * `ClassicyFileClipboard.ts`): Edit ▸ Cut and Copy, Ctrl+X and Ctrl+C in
+	 * the window.
+	 */
+	cutItems: (paths: string[]) => void;
+	copyItems: (paths: string[]) => void;
+	/**
+	 * Explorer's Paste and Paste Shortcut into `folder`: the file
+	 * clipboard's items moved (a Cut) or copied, or shortcuts to them made,
+	 * placed (the first at the client point `at`, a white-space menu's) and
+	 * selected in the window's browser (`commands`).
+	 */
+	pasteItems: (
+		folder: string,
+		commands: ClassicyFileBrowserCommands | null,
+		at?: [number, number],
+	) => void;
+	pasteShortcuts: (
+		folder: string,
+		commands: ClassicyFileBrowserCommands | null,
+		at?: [number, number],
+	) => void;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -220,6 +256,10 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	newItem,
 	createShortcuts,
 	showProperties,
+	cutItems,
+	copyItems,
+	pasteItems,
+	pasteShortcuts,
 }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
 	// The bundled menus' access keys under a package that has them (WIG
@@ -264,6 +304,30 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	// Details, Arrange Icons ▸ and Line Up Icons, acting on the browser's
 	// selection, and the same view commands, with New, on the white space.
 	const canMakeHere = windowsCommands && classicyCanMakeItemIn(fs, op);
+	// Paste and Paste Shortcut (5.28) dim while the file clipboard holds
+	// nothing this folder takes (live: the menus follow a Cut or Copy).
+	const clipboard = useClassicyFileClipboard();
+	const canPaste =
+		windowsCommands && clipboard !== null && classicyCanPaste(fs, op);
+	const canPasteShortcut =
+		canPaste && classicyCanPaste(fs, op, { shortcut: true });
+	const pasteMenuItems = useCallback(
+		(idPrefix: string, at?: [number, number]): ClassicyMenuItem[] => [
+			classicyPasteMenuItem(
+				idPrefix,
+				ak,
+				() => pasteItems(op, commandsRef.current, at),
+				{ disabled: !canPaste, shortcut: at === undefined },
+			),
+			classicyPasteShortcutMenuItem(
+				idPrefix,
+				ak,
+				() => pasteShortcuts(op, commandsRef.current, at),
+				{ disabled: !canPasteShortcut },
+			),
+		],
+		[ak, op, pasteItems, pasteShortcuts, canPaste, canPasteShortcut],
+	);
 	const offeredArrangements: ClassicyFileBrowserArrangeKey[] =
 		viewType === "icons"
 			? ["name", "kind", "size", "modified"]
@@ -325,6 +389,10 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 						},
 						{ id: "spacer" },
 						...windowsArrangeItems(`${appId}_${op}_ws`),
+						// Explorer's Paste and Paste Shortcut (5.28), into the
+						// window's folder, the first item where the menu opened.
+						{ id: "spacer" },
+						...pasteMenuItems(`${appId}_${op}_ws`, at),
 						...(canMakeHere
 							? [
 									{ id: "spacer" },
@@ -336,6 +404,14 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 									),
 								]
 							: []),
+						// Explorer's Properties, last (2.2): the folder's sheet.
+						{ id: "spacer" },
+						{
+							id: `${appId}_${op}_ws_properties`,
+							title: CLASSICY_PROPERTIES_TITLE,
+							...(ak("r") !== undefined ? { accessKey: ak("r") } : {}),
+							onClickFunc: () => showProperties([op]),
+						},
 					]
 				: undefined,
 		[
@@ -348,6 +424,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			canMakeHere,
 			creatableTypes,
 			newItem,
+			pasteMenuItems,
+			showProperties,
 		],
 	);
 	const windowsItemContextMenu = useCallback(
@@ -484,6 +562,27 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				title: "Edit",
 				accessKey: ak("e"),
 				menuChildren: [
+					// Explorer's Edit menu (Windows 98 SE, shell32.dll; 5.28):
+					// Cut Ctrl+X, Copy Ctrl+C, Paste Ctrl+V and Paste Shortcut on
+					// the window's selection and folder, before Select All.
+					...(windowsCommands
+						? [
+								classicyCutMenuItem(
+									`${appId}_${op}_edit`,
+									ak,
+									() => cutItems(commandsRef.current?.selectedPaths() ?? []),
+									{ shortcut: true },
+								),
+								classicyCopyMenuItem(
+									`${appId}_${op}_edit`,
+									ak,
+									() => copyItems(commandsRef.current?.selectedPaths() ?? []),
+									{ disabled: inTrash, shortcut: true },
+								),
+								...pasteMenuItems(`${appId}_${op}_edit`),
+								{ id: "spacer" },
+							]
+						: []),
 					{
 						id: `${appId}_${op}_edit_select_all`,
 						title: "Select All",
@@ -584,6 +683,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			windowsArrangeItems,
 			createShortcuts,
 			showProperties,
+			cutItems,
+			copyItems,
+			pasteMenuItems,
 		],
 	);
 
@@ -640,6 +742,18 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				onPropertiesItems={
 					windowsCommands
 						? (paths) => showProperties(paths.length > 0 ? paths : [op])
+						: undefined
+				}
+				// Explorer's Ctrl+X, Ctrl+C and Ctrl+V (5.28): the selection
+				// cut or copied, the clipboard pasted into the window's folder.
+				onClipboardCommand={
+					windowsCommands
+						? (command, paths) => {
+								if (command === "cut") cutItems(paths);
+								else if (command === "copy") {
+									if (!inTrash) copyItems(paths);
+								} else pasteItems(op, commandsRef.current);
+							}
 						: undefined
 				}
 			/>
@@ -980,9 +1094,12 @@ export const Finder = () => {
 	// Finder drags: move dragged items into a folder, a drive or the desktop
 	// (its Desktop Folder), with icons dropped on the desktop placed where
 	// their outline was let go.
+	// A drop that moved something into an inactive Finder window activates
+	// it under `layout.transfer.activateDropWindow` (5.31; WIG Ch.5 "Direct
+	// Manipulation Method", p.62).
 	const onMoveItems = useCallback<ClassicyFileBrowserMoveItems>(
-		(paths, destination, outlineTopLeft) => {
-			moveClassicyFileSystemItems(
+		(paths, destination, outlineTopLeft, target) => {
+			const moves = moveClassicyFileSystemItems(
 				fs,
 				paths,
 				destination,
@@ -991,6 +1108,8 @@ export const Finder = () => {
 					desktopLocation: classicyDesktopDropLocation(outlineTopLeft),
 				},
 			);
+			if (moves.length > 0)
+				activateClassicyDropWindow(target, desktopEventDispatch);
 		},
 		[fs, desktopEventDispatch],
 	);
@@ -1153,6 +1272,67 @@ export const Finder = () => {
 		},
 		[fs, desktopEventDispatch],
 	);
+	// Explorer's Cut, Copy, Paste and Paste Shortcut of files (5.28; WIG
+	// Ch.5 "Command Method", pp.59-61): the file clipboard
+	// (`ClassicyFileClipboard.ts`) holds the items; a Paste into a folder
+	// moves a Cut's (emptying it) or copies a Copy's (keeping it), the
+	// pasted items placed and selected; Paste Shortcut makes shortcuts to a
+	// Copy's.
+	const cutItems = useCallback(
+		(paths: string[]) => {
+			classicyCutItems(fs, paths);
+		},
+		[fs],
+	);
+	const copyItems = useCallback(
+		(paths: string[]) => {
+			classicyCopyItems(fs, paths);
+		},
+		[fs],
+	);
+	const pasteItems = useCallback(
+		(
+			folder: string,
+			commands: ClassicyFileBrowserCommands | null,
+			at?: [number, number],
+		) => {
+			classicyPasteItems(
+				fs,
+				{ kind: "folder", path: folder },
+				desktopEventDispatch,
+				{ commands, at },
+			);
+		},
+		[fs, desktopEventDispatch],
+	);
+	const pasteShortcuts = useCallback(
+		(
+			folder: string,
+			commands: ClassicyFileBrowserCommands | null,
+			at?: [number, number],
+		) => {
+			classicyPasteShortcuts(
+				fs,
+				{ kind: "folder", path: folder },
+				desktopEventDispatch,
+				{ commands, at },
+			);
+		},
+		[fs, desktopEventDispatch],
+	);
+	// An item's Cut and Copy (Windows 98 SE's item menu, shell32.dll: after
+	// Open and the verbs), on the items the menu acts on.
+	const transferItems = useCallback(
+		(targets: () => string[]): ClassicyMenuItem[] => [
+			classicyCutMenuItem("finder_item", ak, () => cutItems(targets()), {
+				disabled: !targets().some((target) => classicyCanCut(fs, target)),
+			}),
+			classicyCopyMenuItem("finder_item", ak, () => copyItems(targets()), {
+				disabled: !targets().some((target) => classicyCanCopy(fs, target)),
+			}),
+		],
+		[fs, ak, cutItems, copyItems],
+	);
 	// The item's handler's verbs, after Open (10.6; WIG Ch.10 "Registering
 	// Commands", pp.200-201): those of the app that opens the item's type,
 	// run on each target that app opens too.
@@ -1275,6 +1455,11 @@ export const Finder = () => {
 						...(ak("e") !== undefined ? { accessKey: ak("e") } : {}),
 						onClickFunc: () => restoreItems(targets),
 					},
+					// Windows 98's Recycle Bin items take Cut (a Paste takes
+					// them out), not Copy (5.28).
+					...(windowsCommands
+						? [{ id: "spacer" }, transferItems(() => targets)[0]]
+						: []),
 					...properties,
 				];
 			}
@@ -1287,6 +1472,9 @@ export const Finder = () => {
 				return [
 					...open,
 					...verbItems(path, () => targets),
+					{ id: "spacer" },
+					// Explorer's Cut and Copy (5.28).
+					...transferItems(() => targets),
 					{ id: "spacer" },
 					classicyCreateShortcutMenuItem("finder_item", ak, () =>
 						createShortcuts(targets, commands),
@@ -1321,6 +1509,7 @@ export const Finder = () => {
 			createShortcuts,
 			openTitle,
 			propertiesItem,
+			transferItems,
 		],
 	);
 	// A desktop file or folder icon's menu under Explorer's commands
@@ -1361,6 +1550,10 @@ export const Finder = () => {
 				},
 				...verbItems(path, targets),
 				{ id: "spacer" },
+				// Explorer's Cut and Copy (5.28), for the desktop's selected
+				// items when this is one.
+				...transferItems(targets),
+				{ id: "spacer" },
 				// Explorer's Create Shortcut, Delete and Rename (Windows 98 SE,
 				// shell32.dll), for the desktop's selected items when this is
 				// one.
@@ -1380,7 +1573,16 @@ export const Finder = () => {
 				propertiesItem(targets),
 			];
 		},
-		[trashItems, ak, fs, verbItems, createShortcuts, openTitle, propertiesItem],
+		[
+			trashItems,
+			ak,
+			fs,
+			verbItems,
+			createShortcuts,
+			openTitle,
+			propertiesItem,
+			transferItems,
+		],
 	);
 
 	// Mirror the Desktop Folder onto the desktop: an icon for each item in it,
@@ -1495,6 +1697,10 @@ export const Finder = () => {
 							newItem={newItem}
 							createShortcuts={createShortcuts}
 							showProperties={showProperties}
+							cutItems={cutItems}
+							copyItems={copyItems}
+							pasteItems={pasteItems}
+							pasteShortcuts={pasteShortcuts}
 						/>
 					))
 				: null}

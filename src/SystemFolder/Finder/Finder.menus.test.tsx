@@ -9,6 +9,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { FinderData } from "@/SystemFolder/Finder/FinderContext";
 import type { ClassicyFileBrowserCommands } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
+import {
+	clearClassicyFileClipboard,
+	getClassicyFileClipboard,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import system7 from "../../../packages/appearance/system7/src/system7.json";
@@ -49,6 +53,11 @@ const capturedBackgroundMenuByPath: Record<
 	string,
 	((at: [number, number]) => ClassicyMenuItem[] | undefined) | undefined
 > = {};
+// The browser's Ctrl+X, Ctrl+C and Ctrl+V handler (Explorer's commands).
+const capturedClipboardCommandByPath: Record<
+	string,
+	((command: "cut" | "copy" | "paste", paths: string[]) => void) | undefined
+> = {};
 
 vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 	ClassicyWindow: ({
@@ -75,6 +84,7 @@ vi.mock("@/SystemFolder/SystemResources/File/ClassicyFileBrowser", () => ({
 		focusTargetRef,
 		commandsRef,
 		backgroundContextMenu,
+		onClipboardCommand,
 	}: {
 		path: string;
 		selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
@@ -83,11 +93,16 @@ vi.mock("@/SystemFolder/SystemResources/File/ClassicyFileBrowser", () => ({
 		backgroundContextMenu?: (
 			at: [number, number],
 		) => ClassicyMenuItem[] | undefined;
+		onClipboardCommand?: (
+			command: "cut" | "copy" | "paste",
+			paths: string[],
+		) => void;
 	}) => {
 		capturedSelectionRefByPath[path] = selectionApiRef;
 		capturedFocusTargetRefByPath[path] = focusTargetRef;
 		capturedCommandsRefByPath[path] = commandsRef;
 		capturedBackgroundMenuByPath[path] = backgroundContextMenu;
+		capturedClipboardCommandByPath[path] = onClipboardCommand;
 		return <div data-testid={`classicy-file-browser-${path}`} />;
 	},
 }));
@@ -129,6 +144,10 @@ afterEach(() => {
 	for (const key of Object.keys(capturedFocusTargetRefByPath)) {
 		delete capturedFocusTargetRefByPath[key];
 	}
+	for (const key of Object.keys(capturedClipboardCommandByPath)) {
+		delete capturedClipboardCommandByPath[key];
+	}
+	clearClassicyFileClipboard();
 	dispatch({ type: "ClassicyAppFinderPreferencesClose" });
 	dispatch({ type: "ClassicyAppFinderCloseFolder", path: DOCUMENTS_PATH });
 });
@@ -364,7 +383,44 @@ describe("Finder folder-window menus under Explorer's commands", () => {
 			);
 			expect(
 				titlesOf(capturedBackgroundMenuByPath[DOCUMENTS_PATH]?.([1, 2])),
-			).toEqual(["View", "—", "Arrange Icons", "Line Up Icons", "—", "New"]);
+			).toEqual([
+				"View",
+				"—",
+				"Arrange Icons",
+				"Line Up Icons",
+				"—",
+				"Paste",
+				"Paste Shortcut",
+				"—",
+				"New",
+				"—",
+				"Properties",
+			]);
+			// Explorer's Edit menu (5.28): Cut, Copy, Paste and Paste Shortcut
+			// before Select All, the transfer keys native (the browser takes
+			// them), Paste dimmed with nothing to paste.
+			expect(titlesOf(menuNamed("Edit")?.menuChildren)).toEqual([
+				"Cut",
+				"Copy",
+				"Paste",
+				"Paste Shortcut",
+				"—",
+				"Select All",
+				"—",
+				"Preferences…",
+			]);
+			for (const [title, shortcut] of [
+				["Cut", "⌘X"],
+				["Copy", "⌘C"],
+				["Paste", "⌘V"],
+			])
+				expect(editItem(title)).toMatchObject({
+					keyboardShortcut: shortcut,
+					nativeShortcut: true,
+				});
+			expect(editItem("Paste")?.disabled).toBe(true);
+			expect(editItem("Paste Shortcut")?.disabled).toBe(true);
+			expect(capturedClipboardCommandByPath[DOCUMENTS_PATH]).toBeDefined();
 		} finally {
 			restore();
 		}
@@ -462,6 +518,13 @@ describe("Finder folder-window menus under Explorer's commands", () => {
 			"View as List",
 		]);
 		expect(capturedBackgroundMenuByPath[DOCUMENTS_PATH]).toBeUndefined();
+		// No Cut, Copy or Paste of files, and no keys for them (5.28).
+		expect(titlesOf(menuNamed("Edit")?.menuChildren)).toEqual([
+			"Select All",
+			"—",
+			"Preferences…",
+		]);
+		expect(capturedClipboardCommandByPath[DOCUMENTS_PATH]).toBeUndefined();
 	});
 
 	it("keeps System 7's too", async () => {
@@ -484,8 +547,169 @@ describe("Finder folder-window menus under Explorer's commands", () => {
 				"View as List",
 			]);
 			expect(capturedBackgroundMenuByPath[DOCUMENTS_PATH]).toBeUndefined();
+			expect(titlesOf(menuNamed("Edit")?.menuChildren)).toEqual([
+				"Select All",
+				"—",
+				"Preferences…",
+			]);
+			expect(capturedClipboardCommandByPath[DOCUMENTS_PATH]).toBeUndefined();
 		} finally {
 			restore();
 		}
+	});
+
+	// The remaining chapters' audit's 5.28 (WIG Ch.5 "Command Method",
+	// pp.59-61; "Command Method Transfers", p.66): Explorer's Cut, Copy,
+	// Paste and Paste Shortcut in the folder window, on its browser's
+	// selection and into its folder.
+	describe("Cut, Copy and Paste", () => {
+		const paste = (title: "Paste" | "Paste Shortcut", at: [number, number]) =>
+			capturedBackgroundMenuByPath[DOCUMENTS_PATH]?.(at)?.find(
+				(i) => i.title === title,
+			);
+
+		it("copies the selection and pastes Copy of into the folder, placed at the menu's point and selected, again and again", async () => {
+			const restore = activateTestWindowsKeysPackage();
+			const { ClassicyFileSystem } = await import(
+				"@/SystemFolder/SystemResources/File/ClassicyFileSystem"
+			);
+			const fs = new ClassicyFileSystem();
+			fs.writeFile(`${DOCUMENTS_PATH}:Plan.txt`, "a");
+			try {
+				await openDocuments();
+				const commands = fakeCommands([`${DOCUMENTS_PATH}:Plan.txt`]);
+				act(() => editItem("Copy")?.onClickFunc?.());
+				expect(getClassicyFileClipboard()).toMatchObject({
+					op: "copy",
+					paths: [`${DOCUMENTS_PATH}:Plan.txt`],
+				});
+				// The menus follow the clipboard.
+				await waitFor(() => expect(editItem("Paste")?.disabled).toBe(false));
+				expect(paste("Paste Shortcut", [0, 0])?.disabled).toBe(false);
+				act(() => paste("Paste", [30, 40])?.onClickFunc?.());
+				const copy = `${DOCUMENTS_PATH}:Copy of Plan.txt`;
+				expect(fs.resolve(copy)?._data).toBe("a");
+				expect(commands.place).toHaveBeenCalledWith(copy, [30, 40]);
+				expect(commands.select).toHaveBeenCalledWith([copy]);
+				// A Copy stays on the clipboard: Paste again, from the bar.
+				act(() => editItem("Paste")?.onClickFunc?.());
+				expect(
+					fs.resolve(`${DOCUMENTS_PATH}:Copy (2) of Plan.txt`),
+				).toBeDefined();
+				expect(fs.resolve(`${DOCUMENTS_PATH}:Plan.txt`)).toBeDefined();
+			} finally {
+				for (const name of [
+					"Plan.txt",
+					"Copy of Plan.txt",
+					"Copy (2) of Plan.txt",
+				])
+					fs.rmDir(`${DOCUMENTS_PATH}:${name}`);
+				restore();
+			}
+		});
+
+		it("cuts an item, pastes it into the folder, moving it and emptying the clipboard", async () => {
+			const restore = activateTestWindowsKeysPackage();
+			const { ClassicyFileSystem } = await import(
+				"@/SystemFolder/SystemResources/File/ClassicyFileSystem"
+			);
+			const fs = new ClassicyFileSystem();
+			fs.writeFile("Macintosh HD:Loose.txt", "l");
+			try {
+				await openDocuments();
+				const commands = fakeCommands(["Macintosh HD:Loose.txt"]);
+				act(() => editItem("Cut")?.onClickFunc?.());
+				expect(getClassicyFileClipboard()?.op).toBe("cut");
+				// Paste Shortcut follows a Copy only.
+				await waitFor(() => expect(editItem("Paste")?.disabled).toBe(false));
+				expect(editItem("Paste Shortcut")?.disabled).toBe(true);
+				act(() => paste("Paste", [5, 6])?.onClickFunc?.());
+				const moved = `${DOCUMENTS_PATH}:Loose.txt`;
+				expect(fs.resolve("Macintosh HD:Loose.txt")).toBeUndefined();
+				expect(fs.resolve(moved)?._data).toBe("l");
+				expect(commands.place).toHaveBeenCalledWith(moved, [5, 6]);
+				expect(commands.select).toHaveBeenCalledWith([moved]);
+				expect(getClassicyFileClipboard()).toBeNull();
+			} finally {
+				fs.rmDir(`${DOCUMENTS_PATH}:Loose.txt`);
+				fs.rmDir("Macintosh HD:Loose.txt");
+				restore();
+			}
+		});
+
+		it("makes a shortcut to each copied item with Paste Shortcut", async () => {
+			const restore = activateTestWindowsKeysPackage();
+			const { ClassicyFileSystem } = await import(
+				"@/SystemFolder/SystemResources/File/ClassicyFileSystem"
+			);
+			const fs = new ClassicyFileSystem();
+			fs.writeFile("Macintosh HD:Target.txt", "t");
+			const shortcut = `${DOCUMENTS_PATH}:Shortcut to Target.txt`;
+			try {
+				await openDocuments();
+				const commands = fakeCommands(["Macintosh HD:Target.txt"]);
+				act(() => editItem("Copy")?.onClickFunc?.());
+				act(() => paste("Paste Shortcut", [7, 8])?.onClickFunc?.());
+				expect(fs.resolve(shortcut)).toMatchObject({
+					_type: "file_shortcut",
+					_targetPath: "Macintosh HD:Target.txt",
+				});
+				expect(commands.place).toHaveBeenCalledWith(shortcut, [7, 8]);
+				expect(commands.select).toHaveBeenCalledWith([shortcut]);
+				expect(getClassicyFileClipboard()?.op).toBe("copy");
+			} finally {
+				fs.rmDir(shortcut);
+				fs.rmDir("Macintosh HD:Target.txt");
+				restore();
+			}
+		});
+
+		it("runs Ctrl+X, Ctrl+C and Ctrl+V from the browser on its selection and folder", async () => {
+			const restore = activateTestWindowsKeysPackage();
+			const { ClassicyFileSystem } = await import(
+				"@/SystemFolder/SystemResources/File/ClassicyFileSystem"
+			);
+			const fs = new ClassicyFileSystem();
+			fs.writeFile(`${DOCUMENTS_PATH}:Keys.txt`, "k");
+			try {
+				await openDocuments();
+				const commands = fakeCommands([]);
+				const onKey = capturedClipboardCommandByPath[DOCUMENTS_PATH];
+				act(() => onKey?.("cut", [`${DOCUMENTS_PATH}:Keys.txt`]));
+				expect(getClassicyFileClipboard()?.op).toBe("cut");
+				act(() => onKey?.("copy", [`${DOCUMENTS_PATH}:Keys.txt`]));
+				expect(getClassicyFileClipboard()?.op).toBe("copy");
+				act(() => onKey?.("paste", []));
+				expect(fs.resolve(`${DOCUMENTS_PATH}:Copy of Keys.txt`)).toBeDefined();
+				expect(commands.select).toHaveBeenCalledWith([
+					`${DOCUMENTS_PATH}:Copy of Keys.txt`,
+				]);
+			} finally {
+				fs.rmDir(`${DOCUMENTS_PATH}:Keys.txt`);
+				fs.rmDir(`${DOCUMENTS_PATH}:Copy of Keys.txt`);
+				restore();
+			}
+		});
+
+		it("opens the folder's own sheet from the white space's Properties", async () => {
+			const restore = activateTestWindowsKeysPackage();
+			try {
+				await openDocuments();
+				const properties = capturedBackgroundMenuByPath[DOCUMENTS_PATH]?.([
+					0, 0,
+				])?.at(-1);
+				expect(properties?.title).toBe("Properties");
+				act(() => properties?.onClickFunc?.());
+				expect((finderData() as { properties?: unknown }).properties).toEqual([
+					{ key: DOCUMENTS_PATH, paths: [DOCUMENTS_PATH] },
+				]);
+			} finally {
+				dispatch({
+					type: "ClassicyAppFinderPropertiesClose",
+					key: DOCUMENTS_PATH,
+				});
+				restore();
+			}
+		});
 	});
 });

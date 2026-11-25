@@ -3,9 +3,14 @@ import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceL
 import type { ClassicyActionTrust } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
-import type { ClassicyFileDropDestination } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import {
+	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	type ClassicyFileDropDestination,
+	type ClassicyFileDropTarget,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
 	CLASSICY_WINDOWS_RENAME_TITLE,
 	classicyFileNameRefusal,
@@ -13,6 +18,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileNames";
 import type {
 	ClassicyFileSystem,
+	ClassicyFileSystemCopyRefusal,
 	ClassicyFileSystemMoveRefusal,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -150,7 +156,28 @@ export type ClassicyFileMoveOptions = {
 	desktopLocation?: [number, number];
 	/** Pixels between successive dropped icons on the desktop. */
 	desktopStep?: number;
+	/**
+	 * For a desktop destination without `desktopLocation`: where each item's
+	 * icon goes, asked as each is placed (`index` its place among the items
+	 * moved or copied), so a caller may give each the desktop's next free
+	 * cell (Explorer's Paste from the keyboard). Undefined lays the desktop
+	 * out afresh, as an icon added with no location does.
+	 */
+	desktopLocationFor?: (index: number) => [number, number] | undefined;
 };
+
+/** Where `index`'s icon goes on the desktop, by the options. */
+const desktopIconLocation = (
+	{
+		desktopLocation,
+		desktopStep = 72,
+		desktopLocationFor,
+	}: ClassicyFileMoveOptions,
+	index: number,
+): [number, number] | undefined =>
+	desktopLocation
+		? [desktopLocation[0], desktopLocation[1] + index * desktopStep]
+		: desktopLocationFor?.(index);
 
 /**
  * Move `paths` into `destination`:
@@ -170,7 +197,7 @@ export function moveClassicyFileSystemItems(
 	paths: string[],
 	destination: ClassicyFileDropDestination,
 	dispatch: Dispatch,
-	{ desktopLocation, desktopStep = 72 }: ClassicyFileMoveOptions = {},
+	options: ClassicyFileMoveOptions = {},
 ): { from: string; to: string }[] {
 	if (
 		destination.kind === "folder" &&
@@ -212,10 +239,11 @@ export function moveClassicyFileSystemItems(
 		dispatch({ type: "ClassicyAppFinderPathsMoved", moves });
 		if (destination.kind === "desktop") {
 			moves.forEach(({ to }, index) => {
-				const location: [number, number] | undefined = desktopLocation
-					? [desktopLocation[0], desktopLocation[1] + index * desktopStep]
-					: undefined;
-				const action = classicyDesktopItemIconAction(fs, to, location);
+				const action = classicyDesktopItemIconAction(
+					fs,
+					to,
+					desktopIconLocation(options, index),
+				);
 				if (action) dispatch(action);
 			});
 		}
@@ -232,6 +260,132 @@ export function moveClassicyFileSystemItems(
 		});
 	}
 	return moves;
+}
+
+const copyRefusalMessage = (
+	reason: ClassicyFileSystemCopyRefusal,
+	name: string,
+	folderName: string,
+): string => {
+	switch (reason) {
+		case "exists":
+			return `An item named “${name}” already exists in “${folderName}”. It was not copied.`;
+		case "into-itself":
+			return `“${name}” can’t be copied into itself.`;
+		case "locked":
+			return `“${name}” can’t be copied, because it or “${folderName}” is locked or used by the system software.`;
+		default:
+			return `“${name}” could not be copied.`;
+	}
+};
+
+/**
+ * Copy `paths` into `destination` (Explorer's Paste after a Copy; WIG Ch.5
+ * "Command Method", pp.59-61), as `moveClassicyFileSystemItems` moves them:
+ *
+ * 1. each item is copied with `fs.copy` (refused copies change nothing),
+ *    named as it is, else "Copy of <name>", "Copy (2) of <name>"… where
+ *    the destination holds the name (`classicyFirstFreeCopyName`);
+ * 2. items copied to the desktop (its Desktop Folder, made on first use)
+ *    get their icons, at `desktopLocation` stepping down by `desktopStep`,
+ *    else where `desktopLocationFor` puts each, in the same tick as the
+ *    copy, so they are placed before any view re-renders;
+ * 3. the first refusal is reported in an alert.
+ *
+ * Nothing is dispatched for the originals, which stay where they are.
+ * Returns the copies made, `{ from, to }` (the original's path and the
+ * copy's).
+ */
+export function copyClassicyFileSystemItems(
+	fs: ClassicyFileSystem,
+	paths: string[],
+	destination: ClassicyFileDropDestination,
+	dispatch: Dispatch,
+	options: ClassicyFileMoveOptions = {},
+): { from: string; to: string }[] {
+	const folder =
+		destination.kind === "desktop"
+			? ensureClassicyDesktopFolder(fs)
+			: destination.path;
+	if (!folder) return [];
+	const copies: { from: string; to: string }[] = [];
+	let refusal: { reason: ClassicyFileSystemCopyRefusal; name: string } | null =
+		null;
+	for (const path of paths) {
+		const result = fs.copy(path, folder);
+		if (result.ok) {
+			copies.push({ from: path, to: result.path });
+		} else if (!refusal) {
+			refusal = {
+				reason: result.reason,
+				name: path.split(fs.separator).pop() ?? path,
+			};
+		}
+	}
+	if (destination.kind === "desktop") {
+		copies.forEach(({ to }, index) => {
+			const action = classicyDesktopItemIconAction(
+				fs,
+				to,
+				desktopIconLocation(options, index),
+			);
+			if (action) dispatch(action);
+		});
+	}
+	if (refusal) {
+		const folderName =
+			destination.kind === "desktop"
+				? "the desktop"
+				: (folder.split(fs.separator).pop() ?? folder);
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			message: copyRefusalMessage(refusal.reason, refusal.name, folderName),
+		});
+	}
+	return copies;
+}
+
+/** The Finder's id: its windows are the folder windows a drop activates. */
+const FINDER_APP_ID = "Finder.app";
+
+/**
+ * After a drop into a Finder window that is not the active one, activates
+ * it, as Windows does (WIG Ch.5 "Direct Manipulation Method", p.62: "the
+ * user can drop an object in an inactive window. This action activates the
+ * window"; the remaining chapters' audit's 5.31), under the active
+ * package's `layout.transfer.activateDropWindow` (Windows 98): the window
+ * holding `target`'s element (`.classicyWindow`), when it is not `active`
+ * and is the Finder window (Finder keys its windows by folder path) of the
+ * `.classicyFileBrowserFill` root around the target, its
+ * `data-classicy-drop-folder`, gets `ClassicyWindowFocus`. Call it after
+ * a drop that moved or copied something. Returns whether it focused a
+ * window; without the key, or for a drop on the desktop, a drive, the
+ * Trash icon, the active window or another app's window, it does nothing.
+ */
+export function activateClassicyDropWindow(
+	target: ClassicyFileDropTarget | null | undefined,
+	dispatch: Dispatch,
+): boolean {
+	if (
+		!target ||
+		getClassicyAppearanceLayout().transfer?.activateDropWindow !== true
+	)
+		return false;
+	const windowElement = target.element.closest(".classicyWindow");
+	if (!windowElement || windowElement.classList.contains("active"))
+		return false;
+	const folder = target.element
+		.closest(".classicyFileBrowserFill")
+		?.getAttribute(CLASSICY_DROP_FOLDER_ATTRIBUTE);
+	if (!folder || windowElement.id !== [FINDER_APP_ID, folder].join("_"))
+		return false;
+	const window = getAppWindow(
+		useAppManager.getState().System.Manager.Applications.apps[FINDER_APP_ID],
+		folder,
+	);
+	if (!window) return false;
+	dispatch({ type: "ClassicyWindowFocus", app: { id: FINDER_APP_ID }, window });
+	return true;
 }
 
 const trashRefusalMessage = (

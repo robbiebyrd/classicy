@@ -55,6 +55,7 @@ import {
 	iconImageByType,
 	readClassicyDesktopIconMetrics,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
+import { useClassicyFileCutPaths } from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
 import type {
 	ClassicyFileDropDestination,
 	ClassicyFileDropTarget,
@@ -175,12 +176,15 @@ export type ClassicyFileBrowserViewCommands = {
 /**
  * Called when items are dragged out of a file browser and let go over another
  * folder or the desktop. `outlineTopLeft` is where their outline was released
- * (client px), for placing them on the desktop.
+ * (client px), for placing them on the desktop; `target` is the drop target
+ * itself, its marked element included (Finder activates an inactive window
+ * dropped into, `activateClassicyDropWindow`).
  */
 export type ClassicyFileBrowserMoveItems = (
 	paths: string[],
 	destination: ClassicyFileDropDestination,
 	outlineTopLeft: [number, number],
+	target?: ClassicyFileDropTarget,
 ) => void;
 
 type iconType = {
@@ -241,6 +245,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 		}) => {
 			// How names are shown (`layout.files.extensions`).
 			const shownNames = useClassicyDisplayFileName();
+			// The items cut and waiting for a Paste (Explorer's Cut), drawn so.
+			const cutPaths = useClassicyFileCutPaths(fs.storageKey);
 			const activeTheme = useAppManager(
 				(s) => s.System.Manager.Appearance.activeTheme,
 			);
@@ -665,10 +671,19 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							Math.round(at[1] - rect.top),
 						];
 					} else {
-						const taken = itemsRef.current.map((item) => {
-							const el = iconElement(item.filePath);
-							return el ? iconElementPlace(el) : item.initialPosition;
-						});
+						// The icons drawn, and the places already given to items
+						// not listed yet (several pasted or made at once), so
+						// each new item takes a cell of its own.
+						const taken = [
+							...itemsRef.current.map((item) => {
+								const el = iconElement(item.filePath);
+								return el ? iconElementPlace(el) : item.initialPosition;
+							}),
+							...[...pendingPlacesRef.current].flatMap((pending) => {
+								const given = renamedPlacesRef.current.get(pending);
+								return pending !== itemPath && given ? [given] : [];
+							}),
+						];
 						place = classicyFreeIconCell(
 							taken,
 							lattice.cells(taken.length + 1),
@@ -934,7 +949,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					return false;
 				}
 				if (target && onMoveItems) {
-					onMoveItems(dragged, target.destination, outlineTopLeft);
+					onMoveItems(dragged, target.destination, outlineTopLeft, target);
 				}
 				return true;
 			};
@@ -1203,6 +1218,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 										: undefined
 								}
 								selected={selectedSet.has(item.filePath)}
+								cut={cutPaths.has(item.filePath)}
 								onSelectPress={(e) => selectFromPress(item.filePath, e)}
 								onSelectClick={(e) => selectFromClick(item.filePath, e)}
 								listOption={selectKeys}

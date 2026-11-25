@@ -1,17 +1,33 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
+	clearClassicyFileClipboard,
+	getClassicyFileClipboard,
+	setClassicyFileClipboard,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
+import {
 	classicyArrangeIconsMenuItem,
+	classicyCanCopy,
+	classicyCanCut,
 	classicyCanMakeItemIn,
+	classicyCanPaste,
 	classicyCanRename,
+	classicyCopyItems,
+	classicyCopyMenuItem,
 	classicyCreateShortcutMenuItem,
 	classicyCreateShortcuts,
+	classicyCutItems,
+	classicyCutMenuItem,
 	classicyDeleteConfirmation,
 	classicyDeleteMenuItem,
 	classicyLineUpIconsMenuItem,
 	classicyNewItemPath,
 	classicyNewMenuItem,
 	classicyNewTypeAccessKeys,
+	classicyPasteItems,
+	classicyPasteMenuItem,
+	classicyPasteShortcutMenuItem,
+	classicyPasteShortcuts,
 	classicyPlanShortcuts,
 	classicyRenameMenuItem,
 	classicyShortcutFolderFor,
@@ -350,5 +366,235 @@ describe("verbs", () => {
 				dispatch,
 			).some((i) => "accessKey" in i),
 		).toBe(false);
+	});
+});
+
+// The remaining chapters' audit's 5.28 (WIG Ch.5 "Command Method",
+// pp.59-61; Windows 98 SE's menus, shell32.dll: "Cu&t", "&Copy", "&Paste",
+// "Paste &Shortcut"): Cut, Copy, Paste and Paste Shortcut of files.
+describe("Cut, Copy and Paste", () => {
+	afterEach(() => clearClassicyFileClipboard());
+
+	const fakeCommands = () => ({
+		selectedPaths: () => [],
+		select: vi.fn(),
+		rename: vi.fn(),
+		place: vi.fn(),
+		arrange: vi.fn(),
+		lineUp: vi.fn(),
+		display: () => "icons" as const,
+	});
+
+	it("are shell32's items, the Edit menu's with Ctrl+X, Ctrl+C and Ctrl+V as native keys", () => {
+		const run = () => {};
+		expect(classicyCutMenuItem("m", windowsKeys, run)).toEqual({
+			id: "m_cut",
+			title: "Cut",
+			accessKey: "t",
+			disabled: false,
+			onClickFunc: run,
+		});
+		expect(
+			classicyCopyMenuItem("m", windowsKeys, run, { shortcut: true }),
+		).toMatchObject({
+			title: "Copy",
+			accessKey: "C",
+			keyboardShortcut: "⌘C",
+			nativeShortcut: true,
+		});
+		expect(
+			classicyPasteMenuItem("m", windowsKeys, run, {
+				shortcut: true,
+				disabled: true,
+			}),
+		).toMatchObject({
+			title: "Paste",
+			accessKey: "P",
+			keyboardShortcut: "⌘V",
+			disabled: true,
+		});
+		expect(classicyPasteShortcutMenuItem("m", windowsKeys, run)).toMatchObject({
+			id: "m_paste_shortcut",
+			title: "Paste Shortcut",
+			accessKey: "S",
+		});
+		// No access keys under a package without them.
+		expect(classicyCutMenuItem("m", noKeys, run)).not.toHaveProperty(
+			"accessKey",
+		);
+		expect(
+			classicyCutMenuItem("m", noKeys, run, { shortcut: true }),
+		).toMatchObject({ keyboardShortcut: "⌘X", nativeShortcut: true });
+	});
+
+	it("cut what a Paste could move and copy what it could copy", () => {
+		const fs = freshFs();
+		fs.writeFile(`${FOLDER}:a.txt`, "a");
+		fs.writeFile(`${FOLDER}:locked.txt`, "l", { _readOnly: true });
+		fs.mkDir(`${FOLDER}:RO`);
+		fs.writeFile(`${FOLDER}:RO:in.txt`, "i");
+		fs.setMetadata(`${FOLDER}:RO`, { _readOnly: true });
+		expect(classicyCanCut(fs, `${FOLDER}:a.txt`)).toBe(true);
+		expect(classicyCanCopy(fs, `${FOLDER}:a.txt`)).toBe(true);
+		// A read-only item, or one in a read-only folder, cannot move, but
+		// copies.
+		expect(classicyCanCut(fs, `${FOLDER}:locked.txt`)).toBe(false);
+		expect(classicyCanCopy(fs, `${FOLDER}:locked.txt`)).toBe(true);
+		expect(classicyCanCut(fs, `${FOLDER}:RO:in.txt`)).toBe(false);
+		expect(classicyCanCopy(fs, `${FOLDER}:RO:in.txt`)).toBe(true);
+		// Never a drive, the Trash, or what is not there.
+		for (const path of ["Macintosh HD", "Trash", `${FOLDER}:missing`]) {
+			expect(classicyCanCut(fs, path), path).toBe(false);
+			expect(classicyCanCopy(fs, path), path).toBe(false);
+		}
+	});
+
+	it("takes a Trash item for a Cut, never a Copy", () => {
+		const fs = freshFs();
+		fs.writeFile(`${FOLDER}:old.txt`, "o");
+		fs.move(`${FOLDER}:old.txt`, "Trash", {
+			metadata: { _trashed: true, _trashedFrom: FOLDER },
+		});
+		expect(classicyCanCut(fs, "Trash:old.txt")).toBe(true);
+		expect(classicyCanCopy(fs, "Trash:old.txt")).toBe(false);
+	});
+
+	it("fills the file clipboard with what may be cut or copied, and leaves it with nothing", () => {
+		const fs = freshFs();
+		fs.writeFile(`${FOLDER}:a.txt`, "a");
+		expect(classicyCutItems(fs, [`${FOLDER}:a.txt`, "Macintosh HD"])).toEqual([
+			`${FOLDER}:a.txt`,
+		]);
+		expect(getClassicyFileClipboard()).toEqual({
+			op: "cut",
+			paths: [`${FOLDER}:a.txt`],
+			storageKey: "classicyFileCommandsTest",
+		});
+		expect(classicyCopyItems(fs, ["Macintosh HD"])).toEqual([]);
+		expect(getClassicyFileClipboard()?.op).toBe("cut");
+		expect(classicyCopyItems(fs, [`${FOLDER}:a.txt`])).toEqual([
+			`${FOLDER}:a.txt`,
+		]);
+		expect(getClassicyFileClipboard()?.op).toBe("copy");
+	});
+
+	it("pastes a Copy into a folder as Copy of, placed and selected, and repeats", () => {
+		const fs = freshFs();
+		fs.writeFile(`${FOLDER}:a.txt`, "a");
+		fs.writeFile(`${FOLDER}:b.txt`, "b");
+		classicyCopyItems(fs, [`${FOLDER}:a.txt`, `${FOLDER}:b.txt`]);
+		const commands = fakeCommands();
+		const dispatch = vi.fn();
+		expect(classicyCanPaste(fs, FOLDER)).toBe(true);
+		const made = classicyPasteItems(
+			fs,
+			{ kind: "folder", path: FOLDER },
+			dispatch,
+			{ commands, at: [30, 40] },
+		);
+		expect(made).toEqual([
+			`${FOLDER}:Copy of a.txt`,
+			`${FOLDER}:Copy of b.txt`,
+		]);
+		// The first at the menu's point, the rest to free cells.
+		expect(commands.place.mock.calls).toEqual([
+			[`${FOLDER}:Copy of a.txt`, [30, 40]],
+			[`${FOLDER}:Copy of b.txt`, undefined],
+		]);
+		expect(commands.select).toHaveBeenCalledWith(made);
+		expect(getClassicyFileClipboard()?.op).toBe("copy");
+		expect(
+			classicyPasteItems(fs, { kind: "folder", path: FOLDER }, dispatch),
+		).toEqual([`${FOLDER}:Copy (2) of a.txt`, `${FOLDER}:Copy (2) of b.txt`]);
+	});
+
+	it("pastes a Cut by moving it, telling Finder, and empties the clipboard", () => {
+		const fs = freshFs();
+		fs.mkDir(`${FOLDER}:Into`);
+		fs.writeFile(`${FOLDER}:a.txt`, "a");
+		classicyCutItems(fs, [`${FOLDER}:a.txt`]);
+		const dispatch = vi.fn();
+		expect(
+			classicyPasteItems(
+				fs,
+				{ kind: "folder", path: `${FOLDER}:Into` },
+				dispatch,
+			),
+		).toEqual([`${FOLDER}:Into:a.txt`]);
+		expect(fs.resolve(`${FOLDER}:a.txt`)).toBeUndefined();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppFinderPathsMoved",
+			moves: [{ from: `${FOLDER}:a.txt`, to: `${FOLDER}:Into:a.txt` }],
+		});
+		expect(getClassicyFileClipboard()).toBeNull();
+	});
+
+	it("keeps a Cut pasted into its own folder, where nothing moves", () => {
+		const fs = freshFs();
+		fs.writeFile(`${FOLDER}:a.txt`, "a");
+		classicyCutItems(fs, [`${FOLDER}:a.txt`]);
+		expect(
+			classicyPasteItems(fs, { kind: "folder", path: FOLDER }, vi.fn()),
+		).toEqual([]);
+		expect(getClassicyFileClipboard()?.op).toBe("cut");
+	});
+
+	it("pastes nothing into a folder that takes no items, from another tree, or once the items are gone", () => {
+		const fs = freshFs();
+		fs.writeFile(`${FOLDER}:a.txt`, "a");
+		const dispatch = vi.fn();
+		classicyCopyItems(fs, [`${FOLDER}:a.txt`]);
+		expect(classicyCanPaste(fs, "Trash")).toBe(false);
+		expect(
+			classicyPasteItems(fs, { kind: "folder", path: "Trash" }, dispatch),
+		).toEqual([]);
+		setClassicyFileClipboard("copy", [`${FOLDER}:a.txt`], "another-tree");
+		expect(classicyCanPaste(fs, FOLDER)).toBe(false);
+		expect(
+			classicyPasteItems(fs, { kind: "folder", path: FOLDER }, dispatch),
+		).toEqual([]);
+		setClassicyFileClipboard("copy", [`${FOLDER}:gone.txt`], fs.storageKey);
+		expect(
+			classicyPasteItems(fs, { kind: "folder", path: FOLDER }, dispatch),
+		).toEqual([]);
+		clearClassicyFileClipboard();
+		expect(classicyCanPaste(fs, FOLDER)).toBe(false);
+		expect(dispatch).not.toHaveBeenCalled();
+	});
+
+	it("makes Paste Shortcut's shortcuts after a Copy only, placed and selected", () => {
+		const fs = freshFs();
+		fs.mkDir(`${FOLDER}:Into`);
+		fs.writeFile(`${FOLDER}:a.txt`, "a");
+		classicyCutItems(fs, [`${FOLDER}:a.txt`]);
+		expect(classicyCanPaste(fs, `${FOLDER}:Into`, { shortcut: true })).toBe(
+			false,
+		);
+		expect(
+			classicyPasteShortcuts(
+				fs,
+				{ kind: "folder", path: `${FOLDER}:Into` },
+				vi.fn(),
+			),
+		).toEqual([]);
+		classicyCopyItems(fs, [`${FOLDER}:a.txt`]);
+		expect(classicyCanPaste(fs, `${FOLDER}:Into`, { shortcut: true })).toBe(
+			true,
+		);
+		const commands = fakeCommands();
+		const made = classicyPasteShortcuts(
+			fs,
+			{ kind: "folder", path: `${FOLDER}:Into` },
+			vi.fn(),
+			{ commands, at: [1, 2] },
+		);
+		expect(made).toEqual([`${FOLDER}:Into:Shortcut to a.txt`]);
+		expect(fs.resolve(made[0])).toMatchObject({
+			_type: "file_shortcut",
+			_targetPath: `${FOLDER}:a.txt`,
+		});
+		expect(commands.place).toHaveBeenCalledWith(made[0], [1, 2]);
+		expect(commands.select).toHaveBeenCalledWith(made);
+		expect(getClassicyFileClipboard()?.op).toBe("copy");
 	});
 });

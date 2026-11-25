@@ -898,6 +898,27 @@ keeping it, and Finder Preferences offers the check box (Finder's persisted
 (`fileTypeDisplayName(type, packageId?)`, `useClassicyFileTypeDisplayName`,
 `src/Appearance/ClassicyFileTypeNames.ts`).
 
+Cut, Copy, Paste and Paste Shortcut (5.28; item menus after Open and the verbs,
+a Trash item's Cut alone, a folder window's Edit menu before Select All, the
+white spaces, the desktop's `barMenu` and `whiteSpaceMenu`; Ctrl+X, Ctrl+C and
+Ctrl+V through `ClassicyFileBrowser`'s `onClipboardCommand` and the desktop
+hook's own document listener, never in a text field) fill and paste the file
+clipboard, `File/ClassicyFileClipboard.ts` (`{ op: "cut" | "copy", paths,
+storageKey }`, module state apart from the system clipboard,
+`useClassicyFileClipboard`; Escape after a Cut, or text cut or copied in a
+field, empties it). `classicyPasteItems` moves a Cut's items
+(`moveClassicyFileSystemItems`, emptying it) or copies a Copy's
+(`copyClassicyFileSystemItems` over `fs.copy`, a deep copy journaled as
+`copy`, "Copy of <name>", "Copy (2) of <name>" where the name is taken, so it
+never replaces) into the window's folder or the Desktop Folder, placed (the
+first at the menu's point) and selected; `classicyPasteShortcuts` makes
+shortcuts after a Copy. A cut item carries `classicyFileCut` on its
+`ClassicyIcon` (`cut`), `ClassicyDesktopIcon` and list row container, which
+only Windows 98 draws. `layout.transfer.activateDropWindow` (5.31) makes a drop
+into an inactive Finder window focus it (`activateClassicyDropWindow`,
+`ClassicyFileMove.ts`, from Finder's `onMoveItems`, which now gets the drop
+target); the desktop's `moveDesktopItems` is hand-off C4.
+
 ### Finder Drag and Drop
 
 Finder items (icon and list views) and the desktop's file icons drag as Mac OS
@@ -1018,7 +1039,7 @@ registerClassicyFileSystemAdapter({
 ```
 
 All methods are optional (capability-based). Every mutation flows through
-`writeFile`/`mkDir`/`rmDir`/`load`/`setMetadata` — never mutate `fs.fs` or
+`writeFile`/`mkDir`/`rmDir`/`load`/`setMetadata`/`move`/`copy` — never mutate `fs.fs` or
 entries directly; use `fs.setMetadata(path, patch)` for metadata changes.
 Snapshots carry a sha256 hash and a persisted monotonic `seq` for drift/gap
 detection. At boot, `reconcile` may return

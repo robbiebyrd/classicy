@@ -36,7 +36,10 @@
 // the image drawn ILD_NORMAL; WIG Ch.6 "Activating and Deactivating
 // Windows", p.81; Ch.13 "Highlighting", p.318): a selected row, or the
 // Finder's selected name, ButtonFace under WindowText, the name's icon
-// unblended, and no focus rectangle. The selection rectangle a drag across
+// unblended, and no focus rectangle. A Finder row cut and waiting for a
+// Paste (`classicyFileCut` on its container, LVIS_CUT) has its icon faded
+// to half, a stand-in for the blend with the Window color, as the filter
+// stands in for the selection's. The selection rectangle a drag across
 // the Finder's list below its rows draws (`.classicyFileBrowserSelect`,
 // under `layout.fileBrowser.regionSelect`) is the icon view's, drawn by
 // _Icon.scss: DrawFocusRect's dots XORed over the rows.
@@ -249,6 +252,15 @@ $finder: ".classicyFileBrowserViewTableContainer";
     mask-image: var(--classicy-icon-mask);
     mask-size: 100% 100%;
     mask-repeat: no-repeat;
+  }
+
+  // A row cut and waiting for a Paste (Explorer's Cut, LVIS_CUT; WIG Ch.5
+  // "Command Method Transfers" (p.66)): its icon faded to half, a stand-in
+  // for ILD_BLEND50's blend with the Window color, as the details view's
+  // selected icon takes its dither from the gutter (above) and a bare <img>
+  // takes no layer of its own.
+  .classicyFileBrowserViewTableRowContainer.classicyFileCut .classicyFileBrowserViewTableRowIcon {
+    opacity: 0.5;
   }
 
   // ----- An inactive window's lists ----------------------------------------

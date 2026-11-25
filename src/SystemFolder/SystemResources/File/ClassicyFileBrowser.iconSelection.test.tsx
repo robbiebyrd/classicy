@@ -709,6 +709,10 @@ describe("the icon view under the Windows 98 layout", () => {
 				["D:apple", "D:cherry"],
 				{ kind: "folder", path: "Elsewhere" },
 				expect.any(Array),
+				// The drop target itself, its element included.
+				expect.objectContaining({
+					destination: { kind: "folder", path: "Elsewhere" },
+				}),
 			);
 			expect(outlines.parts).toHaveLength(1);
 			expect(outlines.parts[0].map((part) => part.label?.textContent)).toEqual([

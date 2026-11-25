@@ -75,6 +75,15 @@ interface ClassicyIconProps {
 	 * to `false`.
 	 */
 	invisible?: boolean;
+	/**
+	 * Drawn as an item cut and waiting for a Paste (Explorer's Cut; WIG
+	 * Ch.5 "Command Method Transfers", p.66: "the system displays icons in a
+	 * checkerboard dither to indicate this state"): the root carries
+	 * `classicyFileCut`, which only an Appearance Package's stylesheet draws
+	 * (Windows 98's dither). The file browser's icon view sets it from the
+	 * file clipboard. Defaults to `false`.
+	 */
+	cut?: boolean;
 	/** Explicit icon size in px. Falls back to the theme's desktop icon size. */
 	size?: number;
 	/** Grid pitch. When set, a *dragged* icon rounds to the nearest cell. */
@@ -249,6 +258,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	holder,
 	onClickFunc,
 	invisible = false,
+	cut = false,
 	size,
 	snapTo,
 	snapOrigin,
@@ -571,6 +581,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				"classicyIcon",
 				appearance.className,
 				labelPositionClass(labelPosition),
+				cut && "classicyFileCut",
 				className,
 			)}
 			style={

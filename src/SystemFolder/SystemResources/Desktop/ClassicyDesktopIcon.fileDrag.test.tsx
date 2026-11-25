@@ -9,6 +9,10 @@ import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
+import {
+	clearClassicyFileClipboard,
+	setClassicyFileClipboard,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
 // The Windows-layout package below needs a sound pack registered.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
@@ -175,10 +179,12 @@ describe("ClassicyDesktopIcon — file-backed icons", () => {
 			folder,
 		);
 
-		expect(onMove).toHaveBeenCalledWith([PLAN, other], {
-			kind: "folder",
-			path: "HD:Archive",
-		});
+		expect(onMove).toHaveBeenCalledWith(
+			[PLAN, other],
+			{ kind: "folder", path: "HD:Archive" },
+			// The drop target itself, for activateClassicyDropWindow (5.31).
+			{ destination: { kind: "folder", path: "HD:Archive" }, element: folder },
+		);
 		expect(location(ITEM_ID)).toEqual([100, 100]);
 	});
 
@@ -281,10 +287,13 @@ describe("ClassicyDesktopIcon — a Control-drag of the selection under the Wind
 		} finally {
 			document.elementsFromPoint = original;
 		}
-		expect(onMove).toHaveBeenCalledWith([PLAN, OTHER], {
-			kind: "folder",
-			path: "HD:Archive",
-		});
+		expect(onMove).toHaveBeenCalledWith(
+			[PLAN, OTHER],
+			{ kind: "folder", path: "HD:Archive" },
+			expect.objectContaining({
+				destination: { kind: "folder", path: "HD:Archive" },
+			}),
+		);
 		expect(selected()).toEqual([ITEM_ID, OTHER_ID]);
 	});
 
@@ -297,5 +306,49 @@ describe("ClassicyDesktopIcon — a Control-drag of the selection under the Wind
 		expect(
 			useAppManager.getState().System.Manager.Desktop.selectionAnchor,
 		).toBe(ITEM_ID);
+	});
+});
+
+// Explorer's Cut on the desktop (the remaining chapters' audit's 5.28; WIG
+// Ch.5 "Command Method Transfers", p.66): a Desktop Folder item cut and
+// waiting for a Paste carries `classicyFileCut`, which only a package's
+// stylesheet draws; a drive or the Trash never does.
+describe("ClassicyDesktopIcon — cut", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+	afterEach(() => clearClassicyFileClipboard());
+
+	it("carries classicyFileCut while its item is cut, until the clipboard lets it go", () => {
+		const { container } = render(
+			<>
+				<ClassicyDesktopIcon
+					appId={ITEM_ID}
+					appName="Plan.txt"
+					icon="/p.png"
+					kind="file"
+					filePath={PLAN}
+				/>
+				<ClassicyDesktopIcon
+					appId="d"
+					appName="Disk"
+					icon="/d.png"
+					kind="drive"
+					filePath="HD"
+				/>
+			</>,
+		);
+		const icons = () =>
+			[...container.querySelectorAll(".classicyDesktopIcon")].map((el) =>
+				el.classList.contains("classicyFileCut"),
+			);
+		expect(icons()).toEqual([false, false]);
+		act(() => setClassicyFileClipboard("cut", [PLAN, "HD"]));
+		expect(icons()).toEqual([true, false]);
+		act(() => setClassicyFileClipboard("copy", [PLAN]));
+		expect(icons()).toEqual([false, false]);
+		act(() => setClassicyFileClipboard("cut", [PLAN]));
+		act(() => clearClassicyFileClipboard());
+		expect(icons()).toEqual([false, false]);
 	});
 });

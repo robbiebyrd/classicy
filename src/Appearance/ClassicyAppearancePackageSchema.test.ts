@@ -348,6 +348,35 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// Whether a drop activates its window (the remaining chapters' audit's
+	// 5.31; WIG Ch.5 "Direct Manipulation Method", p.62):
+	// transfer.activateDropWindow, optional, its own group.
+	it("takes an optional transfer.activateDropWindow, and refuses another value", () => {
+		for (const activateDropWindow of [true, false]) {
+			const input = platinumShaped();
+			(input.layout as Record<string, unknown>).transfer = {
+				activateDropWindow,
+			};
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.success, String(activateDropWindow)).toBe(true);
+			expect(result.data?.layout.transfer).toEqual({ activateDropWindow });
+		}
+		const empty = platinumShaped();
+		(empty.layout as Record<string, unknown>).transfer = {};
+		expect(ClassicyAppearancePackageSchema.safeParse(empty).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).transfer = {
+			activateDropWindow: "yes",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"transfer",
+			"activateDropWindow",
+		]);
+	});
+
 	// Which key a Command equivalent answers to (the remaining chapters'
 	// audit's 4.19; WIG Ch.4 "Shortcut Keys", p.28): keyboard.command,
 	// optional, beside contextMenuKey in the keyboard group.

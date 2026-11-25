@@ -8812,6 +8812,9 @@
 			"unregisteredOpen": "openWith",
 			"extensions": "hideRegistered"
 		},
+		"transfer": {
+			"activateDropWindow": true
+		},
 		"fileBrowser": {
 			"keys": "windows",
 			"iconSelection": "view",

@@ -102,7 +102,18 @@ and `nodenext` resolution).
   desktop and in the sheet; a rename keeps it; Finder Preferences' "Hide
   file extensions for known file types" shows them again), and the Type
   column and the sheet naming types as Windows 98 does ("File Folder",
-  "Text Document", "Local Disk", "Shortcut"),
+  "Text Document", "Local Disk", "Shortcut"), Cut, Copy, Paste and Paste
+  Shortcut for files and folders (an item's menu Cut and Copy, an item in
+  the Trash Cut alone; a folder window's Edit menu Cut Ctrl+X, Copy Ctrl+C,
+  Paste Ctrl+V and Paste Shortcut; Paste and Paste Shortcut on a
+  right-click in a folder's or the desktop's white space; the keys
+  themselves in a folder window and on the desktop, a name being edited
+  keeping its own), a cut item drawn dithered until it is pasted, cut or
+  copied again or Escape cancels it, a Paste moving the cut items into the
+  folder or copying the copied ones ("Copy of Plan.txt", "Copy (2) of
+  Plan.txt" when the name is taken), the pasted items selected where the
+  menu was opened, and Paste Shortcut making "Shortcut to Plan.txt", a drop
+  into an inactive folder window activating it,
   an access key on every menu title, menu item, label of a control and
   push button (the first free letter of its text, underlined, unless the
   app gives it one; OK and Cancel take none, as Enter and Esc reach them;

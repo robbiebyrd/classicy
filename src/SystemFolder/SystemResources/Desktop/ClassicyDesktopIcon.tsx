@@ -31,9 +31,11 @@ import {
 	classicyDesktopSpaceSelection,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import { classicyDesktopIconSelectMode } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopSelectBox.internal";
+import { useClassicyFileCut } from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	type ClassicyFileDropDestination,
+	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
@@ -157,11 +159,15 @@ interface ClassicyDesktopIconProps {
 	/**
 	 * Move file-backed desktop icons' items into a folder. Called with the
 	 * paths of every selected file-backed icon when the outline is let go on a
-	 * folder, a drive or a Finder window. `ClassicyDesktop` supplies it.
+	 * folder, a drive or a Finder window, and the drop target itself, its
+	 * marked element included (for `activateClassicyDropWindow`, which
+	 * activates an inactive Finder window a drop lands in under
+	 * `layout.transfer.activateDropWindow`). `ClassicyDesktop` supplies it.
 	 */
 	onMoveFilePaths?: (
 		paths: string[],
 		destination: ClassicyFileDropDestination,
+		target?: ClassicyFileDropTarget,
 	) => void;
 	/**
 	 * Open a file-backed icon's item (a folder in Finder, a file in its app).
@@ -302,6 +308,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			style,
 		}) => {
 			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
+			// A Desktop Folder item cut and waiting for a Paste (Explorer's
+			// Cut): the root carries `classicyFileCut` until the Paste, another
+			// Cut or Copy, or Escape.
+			const isCut = useClassicyFileCut(
+				draggedAsFile(kind, filePath) ? filePath : undefined,
+			);
 			// The icon draws at the theme's desktop icon size: a theme that sets
 			// it to the small-icon size or less draws the leaf's small image.
 			const desktopIconSize = useAppManager(
@@ -836,7 +848,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 								? [i.filePath]
 								: [],
 						);
-						onMoveFilePaths?.(paths, target.destination);
+						onMoveFilePaths?.(paths, target.destination, target);
 					},
 				});
 				endFileDragOnUnmount(abandon);
@@ -962,6 +974,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						"classicyDesktopIcon",
 						appearance.className,
 						isAlias ? "classicyDesktopIconAlias" : "",
+						isCut && "classicyFileCut",
 						className,
 					)}
 					style={{

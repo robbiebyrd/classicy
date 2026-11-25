@@ -1358,6 +1358,7 @@ describe("the Windows 98 appearance package", () => {
 				unregisteredOpen: "openWith",
 				extensions: "hideRegistered",
 			},
+			transfer: { activateDropWindow: true },
 			fileBrowser: {
 				keys: "windows",
 				iconSelection: "view",

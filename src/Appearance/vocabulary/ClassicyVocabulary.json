@@ -15,6 +15,7 @@
 		],
 		"Disclosure": ["classicyDisclosureLabelLeft"],
 		"FileBrowser": [
+			"classicyFileCut",
 			"classicyFileDragGhost",
 			"classicyFileDragging",
 			"classicyFileDropTarget"

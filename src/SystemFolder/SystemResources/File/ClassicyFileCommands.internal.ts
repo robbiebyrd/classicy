@@ -16,10 +16,20 @@ import { classicyDesktopFreeIconLocation } from "@/SystemFolder/SystemResources/
 import type { ClassicyFileBrowserCommands } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import type { ClassicyFileBrowserArrangeKey } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
+	clearClassicyFileClipboard,
+	getClassicyFileClipboard,
+	setClassicyFileClipboard,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
+import type { ClassicyFileDropDestination } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
+	type ClassicyFileMoveOptions,
+	classicyDesktopDropLocation,
 	classicyDesktopFolderPath,
 	classicyDesktopItemIconAction,
+	copyClassicyFileSystemItems,
 	ensureClassicyDesktopFolder,
+	moveClassicyFileSystemItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { classicyFirstFreeName } from "@/SystemFolder/SystemResources/File/ClassicyFileNames";
 import {
@@ -31,7 +41,10 @@ import {
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
-import { isInClassicyTrash } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import {
+	CLASSICY_TRASH_PATH,
+	isInClassicyTrash,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 // Explorer's commands in Finder's menus and the desktop's, under
@@ -416,8 +429,26 @@ const recordedAppIcon = (appId: string): string | undefined =>
 	useAppManager.getState().System.Manager.Applications.apps[appId]?.icon;
 
 /**
+ * The desktop's first free grid cell now (`classicyDesktopFreeIconLocation`
+ * over the store's icons, theme and grid origin): where a new desktop item
+ * goes when no point is given.
+ */
+export const classicyNextFreeDesktopIconLocation = ():
+	| [number, number]
+	| undefined => {
+	const state = useAppManager.getState().System.Manager;
+	return classicyDesktopFreeIconLocation(
+		state.Appearance.activeTheme,
+		state.Desktop.icons,
+		getClassicyAppearanceLayout(state.Appearance.packageId).desktop
+			.iconGridOrigin,
+	);
+};
+
+/**
  * Makes a shortcut to each item at `targetPaths` in the Desktop Folder
- * (created on first use), each icon in the desktop's first free grid cell,
+ * (created on first use), each icon in the desktop's first free grid cell
+ * (the first at the client point `at`, a white-space menu's, when given),
  * then makes the new icons the desktop's selection, as Windows 98 selects
  * the shortcuts it made. Returns the shortcuts' paths.
  */
@@ -425,6 +456,7 @@ export const createClassicyDesktopShortcuts = (
 	fs: ClassicyFileSystem,
 	targetPaths: readonly string[],
 	dispatch: Dispatch,
+	{ at }: { at?: [number, number] } = {},
 ): string[] => {
 	const folder = ensureClassicyDesktopFolder(fs);
 	if (!folder) return [];
@@ -434,13 +466,10 @@ export const createClassicyDesktopShortcuts = (
 			appIcon: recordedAppIcon,
 		});
 		if (!path) continue;
-		const state = useAppManager.getState().System.Manager;
-		const location = classicyDesktopFreeIconLocation(
-			state.Appearance.activeTheme,
-			state.Desktop.icons,
-			getClassicyAppearanceLayout(state.Appearance.packageId).desktop
-				.iconGridOrigin,
-		);
+		const location =
+			at && made.length === 0
+				? classicyDesktopDropLocation(at)
+				: classicyNextFreeDesktopIconLocation();
 		// Placed in the tick the shortcut is made, so the desktop's mirror of
 		// the Desktop Folder finds its icon placed.
 		const action = classicyDesktopItemIconAction(fs, path, location);
@@ -578,4 +607,309 @@ export const useClassicyFileVerbs = (): ((
 			),
 		[fileTypeHandlers, mounted],
 	);
+};
+
+// Explorer's Cut, Copy, Paste and Paste Shortcut of files (WIG Ch.5
+// "Command Method", pp.59-61; "Command Method Transfers", p.66; the
+// remaining chapters' audit's 5.28), in Finder's Edit menu and item menus
+// and the desktop's (`useClassicyDesktopCommands`), under
+// `layout.finder.commands` "windows": the file clipboard
+// (`ClassicyFileClipboard.ts`) holds the items until a Paste moves (a Cut)
+// or copies (a Copy) them into a folder or onto the desktop.
+
+/**
+ * Cut (shell32.dll's "Cu&t", access key t): fills the file clipboard with
+ * the selection, a paste moving it. `shortcut` shows Ctrl+X, as Explorer's
+ * Edit menu does ("Cu&t\tCtrl+X"; an item's pop-up menu shows none), a
+ * native key: the browsers' and the desktop's own handlers run it, outside
+ * a text field.
+ */
+export const classicyCutMenuItem = (
+	id: string,
+	ak: AccessKey,
+	onCut: () => void,
+	{ disabled = false, shortcut = false } = {},
+): ClassicyMenuItem => ({
+	id: `${id}_cut`,
+	title: "Cut",
+	...withKey(ak, "t"),
+	...(shortcut ? { keyboardShortcut: "⌘X", nativeShortcut: true } : {}),
+	disabled,
+	onClickFunc: onCut,
+});
+
+/** Copy (shell32.dll's "&Copy", access key C; Ctrl+C in the Edit menu). */
+export const classicyCopyMenuItem = (
+	id: string,
+	ak: AccessKey,
+	onCopy: () => void,
+	{ disabled = false, shortcut = false } = {},
+): ClassicyMenuItem => ({
+	id: `${id}_copy`,
+	title: "Copy",
+	...withKey(ak, "C"),
+	...(shortcut ? { keyboardShortcut: "⌘C", nativeShortcut: true } : {}),
+	disabled,
+	onClickFunc: onCopy,
+});
+
+/** Paste (shell32.dll's "&Paste", access key P; Ctrl+V in the Edit menu). */
+export const classicyPasteMenuItem = (
+	id: string,
+	ak: AccessKey,
+	onPaste: () => void,
+	{ disabled = false, shortcut = false } = {},
+): ClassicyMenuItem => ({
+	id: `${id}_paste`,
+	title: "Paste",
+	...withKey(ak, "P"),
+	...(shortcut ? { keyboardShortcut: "⌘V", nativeShortcut: true } : {}),
+	disabled,
+	onClickFunc: onPaste,
+});
+
+/**
+ * Paste Shortcut (shell32.dll's "Paste &Shortcut", access key S): a
+ * shortcut to each copied item, made where a Paste would put it.
+ */
+export const classicyPasteShortcutMenuItem = (
+	id: string,
+	ak: AccessKey,
+	onPasteShortcut: () => void,
+	{ disabled = false } = {},
+): ClassicyMenuItem => ({
+	id: `${id}_paste_shortcut`,
+	title: "Paste Shortcut",
+	...withKey(ak, "S"),
+	disabled,
+	onClickFunc: onPasteShortcut,
+});
+
+/**
+ * Whether the item at `path` may be cut: an entry a Paste could move
+ * (`fs.move`'s rule): no drive, system, read-only or derived entry, the
+ * Trash itself or an item of a read-only folder. A Trash item may be (its
+ * Paste takes it out of the Trash, as Windows 98's Recycle Bin items took
+ * Cut).
+ */
+export const classicyCanCut = (
+	fs: ClassicyFileSystem,
+	path: string,
+): boolean => {
+	const entry = fs.resolve(path);
+	return (
+		!!entry &&
+		path !== CLASSICY_TRASH_PATH &&
+		entry._type !== ClassicyFileSystemEntryFileType.Drive &&
+		entry._system !== true &&
+		entry._readOnly !== true &&
+		entry._derived !== true &&
+		fs.resolve(parentOf(fs, path))?._readOnly !== true
+	);
+};
+
+/**
+ * Whether the item at `path` may be copied (`fs.copy`'s rule): no drive,
+ * system or derived entry, nor anything in the Trash (Windows 98's Recycle
+ * Bin items took no Copy).
+ */
+export const classicyCanCopy = (
+	fs: ClassicyFileSystem,
+	path: string,
+): boolean => {
+	const entry = fs.resolve(path);
+	return (
+		!!entry &&
+		path !== CLASSICY_TRASH_PATH &&
+		entry._type !== ClassicyFileSystemEntryFileType.Drive &&
+		entry._system !== true &&
+		entry._derived !== true &&
+		!isInClassicyTrash(fs, path)
+	);
+};
+
+/**
+ * Explorer's Cut: the items of `paths` that may be cut (`classicyCanCut`)
+ * fill the file clipboard, replacing it, and are drawn cut
+ * (`classicyFileCut`) until a Paste, another Cut or Copy, or Escape.
+ * Returns the paths cut; none leaves the clipboard as it was.
+ */
+export const classicyCutItems = (
+	fs: ClassicyFileSystem,
+	paths: readonly string[],
+): string[] => {
+	const kept = paths.filter((path) => classicyCanCut(fs, path));
+	if (kept.length > 0) setClassicyFileClipboard("cut", kept, fs.storageKey);
+	return kept;
+};
+
+/**
+ * Explorer's Copy: the items of `paths` that may be copied
+ * (`classicyCanCopy`) fill the file clipboard, replacing it. Returns the
+ * paths copied; none leaves the clipboard as it was.
+ */
+export const classicyCopyItems = (
+	fs: ClassicyFileSystem,
+	paths: readonly string[],
+): string[] => {
+	const kept = paths.filter((path) => classicyCanCopy(fs, path));
+	if (kept.length > 0) setClassicyFileClipboard("copy", kept, fs.storageKey);
+	return kept;
+};
+
+/** Where a Paste puts its items (`classicyPasteItems`). */
+export type ClassicyPasteOptions = {
+	/**
+	 * A folder window's browser: the pasted items are placed (`place`, the
+	 * first at `at`) and selected in it.
+	 */
+	commands?: ClassicyFileBrowserCommands | null;
+	/**
+	 * The client point a white-space menu was opened at, where the first
+	 * item goes; without it, each goes to the next free cell.
+	 */
+	at?: [number, number];
+};
+
+/** The folder a Paste into `destination` fills, when it may take items. */
+const pasteFolder = (
+	fs: ClassicyFileSystem,
+	destination: ClassicyFileDropDestination,
+): string | undefined => {
+	const folder =
+		destination.kind === "desktop"
+			? ensureClassicyDesktopFolder(fs)
+			: destination.path;
+	return folder !== undefined && classicyCanMakeItemIn(fs, folder)
+		? folder
+		: undefined;
+};
+
+/**
+ * Whether a Paste into `folder` (a folder window's, `undefined` for the
+ * desktop) would take anything: the file clipboard holds items of `fs`'s
+ * tree and the folder takes new items (`classicyCanMakeItemIn`; never the
+ * Trash, a read-only, system or derived folder). `shortcut` asks for Paste
+ * Shortcut, which follows a Copy only.
+ */
+export const classicyCanPaste = (
+	fs: ClassicyFileSystem,
+	folder: string | undefined,
+	{ shortcut = false } = {},
+): boolean => {
+	const clipboard = getClassicyFileClipboard();
+	if (!clipboard || clipboard.storageKey !== fs.storageKey) return false;
+	if (shortcut && clipboard.op !== "copy") return false;
+	return folder === undefined || classicyCanMakeItemIn(fs, folder);
+};
+
+/** The desktop's icon ids for Desktop Folder items. */
+const desktopItemIconIds = (paths: readonly string[]): string[] =>
+	paths.map((path) => `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`);
+
+/** The new items become the selection: on the desktop, or in the window. */
+const selectPasted = (
+	made: readonly string[],
+	destination: ClassicyFileDropDestination,
+	dispatch: Dispatch,
+	{ commands = null, at }: ClassicyPasteOptions,
+): void => {
+	if (made.length === 0) return;
+	if (destination.kind === "desktop") {
+		dispatch({
+			type: "ClassicyDesktopIconSelectBox",
+			iconIds: desktopItemIconIds(made),
+		});
+		return;
+	}
+	// In the tick the items are made, before the view lists them.
+	made.forEach((path, index) => {
+		commands?.place(path, index === 0 ? at : undefined);
+	});
+	commands?.select([...made]);
+};
+
+/**
+ * Explorer's Paste into `destination` (a folder window's folder, or the
+ * desktop's Desktop Folder, made on first use): the file clipboard's
+ * items still in the tree, moved there for a Cut
+ * (`moveClassicyFileSystemItems`, the clipboard emptied once something
+ * moved) or copied for a Copy (`copyClassicyFileSystemItems`, "Copy of
+ * <name>" where the name is taken; the clipboard kept, so pastes repeat).
+ * The pasted items become the selection: on the desktop at the client point
+ * `at` (stepping down) or each in the next free cell; in a window
+ * (`commands`), placed (the first at `at`) and selected. Refusals are told
+ * in an alert, as a drag's are. Returns the pasted items' paths; nothing
+ * when the clipboard is empty, holds another tree's items, or the folder
+ * takes no new items.
+ */
+export const classicyPasteItems = (
+	fs: ClassicyFileSystem,
+	destination: ClassicyFileDropDestination,
+	dispatch: Dispatch,
+	options: ClassicyPasteOptions = {},
+): string[] => {
+	const clipboard = getClassicyFileClipboard();
+	if (!clipboard || clipboard.storageKey !== fs.storageKey) return [];
+	const folder = pasteFolder(fs, destination);
+	if (folder === undefined) return [];
+	const paths = clipboard.paths.filter((path) => fs.resolve(path));
+	if (paths.length === 0) return [];
+	const target: ClassicyFileDropDestination =
+		destination.kind === "desktop"
+			? destination
+			: { kind: "folder", path: folder };
+	const placement: ClassicyFileMoveOptions =
+		destination.kind !== "desktop"
+			? {}
+			: options.at
+				? { desktopLocation: classicyDesktopDropLocation(options.at) }
+				: { desktopLocationFor: classicyNextFreeDesktopIconLocation };
+	const done =
+		clipboard.op === "cut"
+			? moveClassicyFileSystemItems(fs, paths, target, dispatch, placement)
+			: copyClassicyFileSystemItems(fs, paths, target, dispatch, placement);
+	if (clipboard.op === "cut" && done.length > 0) clearClassicyFileClipboard();
+	const made = done.map(({ to }) => to);
+	selectPasted(made, destination, dispatch, options);
+	return made;
+};
+
+/**
+ * Windows 98's Paste Shortcut into `destination` (WIG Ch.5 "The Paste
+ * Link, Paste Shortcut, and Create Shortcut Commands", p.68): after a
+ * Copy, a shortcut to each copied item still in the tree, "Shortcut to
+ * <name>" ("Shortcut (2) to <name>" on a clash), where a Paste would put
+ * it, selected; the clipboard is kept. Returns the shortcuts' paths.
+ */
+export const classicyPasteShortcuts = (
+	fs: ClassicyFileSystem,
+	destination: ClassicyFileDropDestination,
+	dispatch: Dispatch,
+	options: ClassicyPasteOptions = {},
+): string[] => {
+	const clipboard = getClassicyFileClipboard();
+	if (clipboard?.op !== "copy" || clipboard.storageKey !== fs.storageKey)
+		return [];
+	const folder = pasteFolder(fs, destination);
+	if (folder === undefined) return [];
+	const targets = clipboard.paths.filter((path) => fs.resolve(path));
+	if (destination.kind === "desktop")
+		return createClassicyDesktopShortcuts(fs, targets, dispatch, {
+			at: options.at,
+		});
+	const made: string[] = [];
+	for (const target of targets) {
+		const path = classicyFileShortcutPath(fs, target, folder);
+		options.commands?.place(path, made.length === 0 ? options.at : undefined);
+		if (
+			createClassicyFileShortcut(fs, target, folder, {
+				path,
+				appIcon: recordedAppIcon,
+			})
+		)
+			made.push(path);
+	}
+	if (made.length > 0) options.commands?.select(made);
+	return made;
 };

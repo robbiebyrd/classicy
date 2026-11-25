@@ -19,7 +19,9 @@
 //   a 50% dither of the highlight color over the icon's opaque pixels),
 //   drawn as a two-pixel checker layer over the image and clipped by the
 //   icon's own mask. An icon drawing its pre-rendered selected image
-//   (`registerClassicySelectedIconImages`) takes no layer. The mask pair is
+//   (`registerClassicySelectedIconImages`) takes no layer. Cut and waiting
+//   for a Paste (`classicyFileCut`, LVIS_CUT), the image is blended with
+//   the Window color the same way, unless selected. The mask pair is
 //   exactly the icon's box, with no fringe (the base's black outline through
 //   the outer mask is Platinum's). An opened item looks like any other
 //   (Windows marks no opened icon), a folder under a drag is drawn selected,
@@ -176,6 +178,18 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
     p {
       @include label-selected;
     }
+  }
+
+  // Cut and waiting for a Paste (Explorer's Cut, LVIS_CUT; WIG Ch.5
+  // "Command Method Transfers" (p.66): "the system displays icons in a
+  // checkerboard dither to indicate this state"): the image blended 50%
+  // with the Window color, a two-pixel checker of Window over the icon's
+  // opaque pixels in the selection layer, clipped by its mask, as the
+  // highlight's blend is drawn; selected, the highlight's blend (above)
+  // stands, as ILD_SELECTED and ILD_BLEND50 are one blend whose color the
+  // list view picks.
+  .classicyIcon.classicyFileCut .classicyIconMaskOuter::after {
+    background: repeating-conic-gradient(b.$window 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
   }
 
   // The focus item (LVIS_FOCUSED): one dotted rectangle, on the label of the

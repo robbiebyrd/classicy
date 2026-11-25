@@ -41,6 +41,10 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 import {
+	type ClassicyFileClipboardCommand,
+	classicyFileClipboardKey,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
+import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
@@ -210,6 +214,23 @@ type ClassicyFileBrowserProps = {
 	 * and an Alt double-click do what Enter and a double-click do.
 	 */
 	onPropertiesItems?: (paths: string[]) => void;
+	/**
+	 * Explorer's Cut, Copy and Paste from the keyboard (WIG Ch.5 "Shortcut
+	 * Keys for Transfer Operations", pp.67-68; App. B Table B.2: Ctrl+X,
+	 * Ctrl+C, Ctrl+V, `classicyFileClipboardKey`): called with the command
+	 * and the selection's paths (none when nothing is selected) when the key
+	 * is pressed in the view, never in a text field (a name being edited
+	 * keeps the browser's own Cut, Copy and Paste); the key's default is
+	 * prevented. Finder fills and pastes the file clipboard
+	 * (`ClassicyFileClipboard.ts`) under `layout.finder.commands`
+	 * "windows". Without it the keys are not the browser's. Whatever the
+	 * prop, an item cut and waiting for a Paste is drawn cut
+	 * (`classicyFileCut`) in either view.
+	 */
+	onClipboardCommand?: (
+		command: ClassicyFileClipboardCommand,
+		paths: string[],
+	) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -294,6 +315,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	onRenameItem,
 	backgroundContextMenu,
 	onPropertiesItems,
+	onClipboardCommand,
 	className,
 	style,
 }) => {
@@ -386,6 +408,22 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	};
 
 	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		// Explorer's Ctrl+X, Ctrl+C and Ctrl+V on the selection, outside a
+		// text field (a name being edited keeps the browser's own).
+		if (
+			onClipboardCommand &&
+			!e.defaultPrevented &&
+			!(e.target as HTMLElement).closest(
+				"input, textarea, [contenteditable='true']",
+			)
+		) {
+			const command = classicyFileClipboardKey(e.nativeEvent);
+			if (command) {
+				e.preventDefault();
+				onClipboardCommand(command, currentSelection());
+				return;
+			}
+		}
 		// Windows: F2 renames the one selected row (Explorer's Rename), as
 		// the icon view takes it itself.
 		if (

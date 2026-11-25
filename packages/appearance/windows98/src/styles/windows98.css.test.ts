@@ -615,6 +615,33 @@ describe("windows98.scss (compiled)", () => {
 			expect(rule(".classicyIcon:focus-visible")).toContain("outline: none");
 		});
 
+		// WIG Ch.5 "Command Method Transfers" (p.66): "the system displays
+		// icons in a checkerboard dither" while Cut waits for a Paste
+		// (LVIS_CUT; the remaining chapters' audit's 5.28): a window's icon
+		// takes a two-pixel checker of the Window color, a desktop icon of the
+		// Background, in the selection layer the highlight's blend uses, and a
+		// list row's icon is faded to half; the selected blend's rule, more
+		// specific, stands over a selected cut icon.
+		it("dithers a cut icon with its field's color, and fades a cut row's icon", () => {
+			expect(
+				rule(".classicyIcon.classicyFileCut .classicyIconMaskOuter::after"),
+			).toContain(
+				"background: repeating-conic-gradient(var(--color-window-document) 0 25%, transparent 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)",
+			);
+			expect(
+				rule(
+					".classicyDesktopIcon.classicyFileCut .classicyDesktopIconMaskOuter::after",
+				),
+			).toContain(
+				"background: repeating-conic-gradient(var(--desktop-background-color) 0 25%, transparent 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)",
+			);
+			expect(
+				rule(
+					".classicyFileBrowserViewTableRowContainer.classicyFileCut .classicyFileBrowserViewTableRowIcon",
+				),
+			).toContain("opacity: 0.5");
+		});
+
 		// WIG Ch.5 "Region Selection" (p.42); Windows 98 as shipped,
 		// DrawFocusRect's XOR (the audit's 5.14): the desktop's rectangle is
 		// one-pixel white dots under `difference`, inverting what lies under

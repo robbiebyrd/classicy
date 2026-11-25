@@ -29,6 +29,7 @@ import type {
 	ClassicyFileBrowserMoveItems,
 	ClassicyFileBrowserViewCommands,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import { useClassicyFileCutPaths } from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
@@ -258,7 +259,12 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							) {
 								return;
 							}
-							onMoveItems(draggedPaths(), target.destination, outlineTopLeft);
+							onMoveItems(
+								draggedPaths(),
+								target.destination,
+								outlineTopLeft,
+								target,
+							);
 						},
 					});
 					endFileDragOnUnmount(abandon);
@@ -481,6 +487,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// registered type's extension hidden, a rename keeping it).
 			const typeName = useClassicyFileTypeDisplayName();
 			const shownNames = useClassicyDisplayFileName();
+			// The items cut and waiting for a Paste (Explorer's Cut): each row's
+			// container carries `classicyFileCut`.
+			const cutPaths = useClassicyFileCutPaths(fs.storageKey);
 			const commitRename = useCallback(
 				(rowPath: string, typed: string) => {
 					setRenaming(null);
@@ -507,7 +516,12 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							return (
 								// biome-ignore lint/a11y/noStaticElementInteractions: a press here may start a drag; keyboard users move items through the table's own selection
 								<div
-									className={"classicyFileBrowserViewTableRowContainer"}
+									className={classNames(
+										"classicyFileBrowserViewTableRowContainer",
+										row._path !== undefined &&
+											cutPaths.has(row._path) &&
+											"classicyFileCut",
+									)}
 									{...{ [CLASSICY_FILE_PATH_ATTRIBUTE]: row._path }}
 									{...(row._type ===
 										ClassicyFileSystemEntryFileType.Directory && row._path
@@ -676,6 +690,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				commitRename,
 				typeName,
 				shownNames,
+				cutPaths,
 			]);
 
 			return (

@@ -139,6 +139,37 @@ describe("ClassicyIcon — inactive", () => {
 	});
 });
 
+// Explorer's Cut (the remaining chapters' audit's 5.28; WIG Ch.5 "Command
+// Method Transfers", p.66): `cut` draws the item as cut and waiting for a
+// Paste, through `classicyFileCut`, which only a package's stylesheet reads.
+describe("ClassicyIcon — cut", () => {
+	const iconRoot = () =>
+		screen.getByRole("img").closest(".classicyIcon") as HTMLElement;
+	const icon = (cut?: boolean) => (
+		<ClassicyIcon
+			appId={"Test.app"}
+			name={"thing.pdf"}
+			icon={"data:image/gif;base64,R0lGODlhAQABAAAAACw="}
+			cut={cut}
+		/>
+	);
+
+	it("carries classicyFileCut while cut, beside its states", () => {
+		render(icon(true));
+		expect(iconRoot()).toHaveClass("classicyIcon", "classicyFileCut");
+		fireEvent.click(iconRoot());
+		expect(iconRoot()).toHaveClass("selected", "classicyFileCut");
+	});
+
+	it("does not by default, or once the Paste lets it go", () => {
+		const { rerender } = render(icon());
+		expect(iconRoot()).not.toHaveClass("classicyFileCut");
+		rerender(icon(true));
+		rerender(icon(false));
+		expect(iconRoot()).not.toHaveClass("classicyFileCut");
+	});
+});
+
 // The file browser's icon view keeps one selection for its icons: given
 // `selected`, an icon draws what it is told and hands its clicks to
 // `onSelectClick`; without it, a click toggles its own look, as before.

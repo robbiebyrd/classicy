@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	APPEARANCE_MANAGER_APP_ID,
@@ -14,15 +14,28 @@ import { classicyDesktopFreeIconLocation } from "@/SystemFolder/SystemResources/
 import { startClassicyDesktopIconRename } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconRename.internal";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import {
+	classicyFileClipboardKey,
+	useClassicyFileClipboard,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
+import {
 	type ClassicyNewItemKind,
 	classicyArrangeIconsMenuItem,
+	classicyCanPaste,
 	classicyCanRename,
+	classicyCopyItems,
+	classicyCopyMenuItem,
 	classicyCreateShortcutMenuItem,
 	classicyCreateShortcuts,
+	classicyCutItems,
+	classicyCutMenuItem,
 	classicyDeleteMenuItem,
 	classicyLineUpIconsMenuItem,
 	classicyNewItemPath,
 	classicyNewMenuItem,
+	classicyPasteItems,
+	classicyPasteMenuItem,
+	classicyPasteShortcutMenuItem,
+	classicyPasteShortcuts,
 	classicyRenameMenuItem,
 	makeClassicyNewItem,
 	useClassicyCreatableFileTypes,
@@ -53,14 +66,16 @@ export type ClassicyDesktopCommands = {
 	 * The desktop's File, Edit and View menus (ids `finder_file`,
 	 * `finder_edit`, `finder_view`, the ids of the desktop's own), for
 	 * `Desktop.appMenu` and the headless bar's chords: File ▸ Open ⌃O, New ▸,
-	 * Create Shortcut, Delete (Del), Rename and Properties; Edit ▸ Select
-	 * All ⌃A; View ▸ Arrange Icons ▸ and Line Up Icons.
+	 * Create Shortcut, Delete (Del), Rename and Properties; Edit ▸ Cut ⌃X,
+	 * Copy ⌃C, Paste ⌃V, Paste Shortcut and Select All ⌃A; View ▸ Arrange
+	 * Icons ▸ and Line Up Icons.
 	 */
 	barMenu?: ClassicyMenuItem[];
 	/**
 	 * The desktop's white-space menu, opened at the client point `at`:
-	 * Arrange Icons ▸, Line Up Icons, New ▸ (a new item's icon going to
-	 * `at`) and Properties (Display Properties).
+	 * Arrange Icons ▸, Line Up Icons, Paste and Paste Shortcut (the first
+	 * item going to `at`), New ▸ (a new item's icon going to `at`) and
+	 * Properties (Display Properties).
 	 */
 	whiteSpaceMenu?: (at: [number, number]) => ClassicyMenuItem[];
 };
@@ -174,10 +189,24 @@ export const classicyOpenDesktopIcon = (
  *   Appearance control panel opened on its Desktop tab
  *   (`openClassicyAppAtTab`), or brought forward as it stands when open.
  *
- * Windows 98 SE's desktop menu also held Active Desktop ▸, Refresh, Undo,
- * Paste and Paste Shortcut; Refresh has nothing to do in a live tree,
- * Classicy has no file undo, and Paste and Paste Shortcut are another
- * item's (they add to these menus).
+ * - Cut ⌃X and Copy ⌃C: the selected Desktop Folder items into the file
+ *   clipboard (`ClassicyFileClipboard.ts`), a cut item drawn cut until the
+ *   Paste, another Cut or Copy, or Escape.
+ * - Paste ⌃V: the file clipboard's items into the Desktop Folder, moved (a
+ *   Cut, emptying it) or copied ("Copy of <name>" where the name is taken),
+ *   at the white-space menu's point or each in the next free cell, then
+ *   selected; Paste Shortcut, after a Copy, a shortcut to each there.
+ *
+ * While the hook is mounted under the key it also takes the desktop's
+ * Ctrl+X, Ctrl+C and Ctrl+V (`classicyFileClipboardKey`, with the active
+ * package's Command rule): pressed on the desktop itself or a desktop icon,
+ * never in a text field (a name being edited keeps the browser's own) or a
+ * window, and not taken by anything before it, they run Cut, Copy and
+ * Paste above (bubble phase, on the document).
+ *
+ * Windows 98 SE's desktop menu also held Active Desktop ▸, Refresh and
+ * Undo; Refresh has nothing to do in a live tree, and Classicy has no file
+ * undo.
  */
 export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 	const windowsCommands = useClassicyWindowsFinderCommands();
@@ -185,7 +214,39 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 	const dispatch = useAppManagerDispatch();
 	const getFileSystem = useClassicyFileSystemAccessor();
 	const creatableTypes = useClassicyCreatableFileTypes();
+	// The bar's Paste and Paste Shortcut dim while the file clipboard holds
+	// nothing to paste (live: the menu follows a Cut or Copy).
+	const clipboard = useClassicyFileClipboard();
 
+	// Explorer's Ctrl+X, Ctrl+C and Ctrl+V on the desktop (5.28).
+	useEffect(() => {
+		if (!windowsCommands) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.defaultPrevented || !(e.target instanceof Element)) return;
+			const target = e.target;
+			const onDesktop =
+				target.id === "classicyDesktop" ||
+				(target.closest(".classicyDesktopIcon") !== null &&
+					target.closest(".classicyWindow") === null);
+			if (
+				!onDesktop ||
+				target.closest("input, textarea, [contenteditable='true']")
+			)
+				return;
+			const command = classicyFileClipboardKey(e);
+			if (!command) return;
+			e.preventDefault();
+			const fs = getFileSystem();
+			if (command === "cut") classicyCutItems(fs, selectedDeletablePaths());
+			else if (command === "copy")
+				classicyCopyItems(fs, selectedDeletablePaths());
+			else classicyPasteItems(fs, { kind: "desktop" }, dispatch);
+		};
+		document.addEventListener("keydown", onKey);
+		return () => document.removeEventListener("keydown", onKey);
+	}, [windowsCommands, getFileSystem, dispatch]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: clipboard is a trigger: the bar's Paste items read it (through classicyCanPaste) when built
 	return useMemo<ClassicyDesktopCommands>(() => {
 		if (!windowsCommands) return {};
 		const key = (letter: string) =>
@@ -281,6 +342,36 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 			...key("r"),
 			onClickFunc: onProperties,
 		});
+		// Explorer's Cut, Copy, Paste and Paste Shortcut (5.28).
+		const cut = () => {
+			const paths = selectedDeletablePaths();
+			if (paths.length > 0) classicyCutItems(getFileSystem(), paths);
+		};
+		const copy = () => {
+			const paths = selectedDeletablePaths();
+			if (paths.length > 0) classicyCopyItems(getFileSystem(), paths);
+		};
+		const pasteItems = (id: string, at?: [number, number]) => {
+			const fs = getFileSystem();
+			return [
+				classicyPasteMenuItem(
+					id,
+					ak,
+					() => classicyPasteItems(fs, { kind: "desktop" }, dispatch, { at }),
+					{
+						disabled: !classicyCanPaste(fs, undefined),
+						shortcut: at === undefined,
+					},
+				),
+				classicyPasteShortcutMenuItem(
+					id,
+					ak,
+					() =>
+						classicyPasteShortcuts(fs, { kind: "desktop" }, dispatch, { at }),
+					{ disabled: !classicyCanPaste(fs, undefined, { shortcut: true }) },
+				),
+			];
+		};
 		const arrangeItems = (id: string): ClassicyMenuItem[] => [
 			classicyArrangeIconsMenuItem(id, ak, ["name", "kind"], (by) =>
 				dispatch({ type: "ClassicyDesktopIconSort", sortBy: by }),
@@ -319,6 +410,10 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 				title: "Edit",
 				...key("e"),
 				menuChildren: [
+					classicyCutMenuItem("finder_edit", ak, cut, { shortcut: true }),
+					classicyCopyMenuItem("finder_edit", ak, copy, { shortcut: true }),
+					...pasteItems("finder_edit"),
+					{ id: "spacer" },
 					{
 						id: "finder_edit_select_all",
 						title: "Select All",
@@ -338,6 +433,8 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 		const whiteSpaceMenu = (at: [number, number]): ClassicyMenuItem[] => [
 			...arrangeItems("finder_desktop"),
 			{ id: "spacer" },
+			...pasteItems("finder_desktop", at),
+			{ id: "spacer" },
 			classicyNewMenuItem("finder_desktop", ak, creatableTypes, (what) =>
 				newItem(what, at),
 			),
@@ -345,5 +442,5 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 			propertiesItem("finder_desktop", displayProperties),
 		];
 		return { barMenu, whiteSpaceMenu };
-	}, [windowsCommands, ak, dispatch, getFileSystem, creatableTypes]);
+	}, [windowsCommands, ak, dispatch, getFileSystem, creatableTypes, clipboard]);
 };
