@@ -10,6 +10,7 @@ import {
 	CLASSICY_PART_ATTRIBUTE,
 	classicyStateClasses,
 } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { CLASSICY_WHATS_THIS_COMMAND_ATTRIBUTE } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 
@@ -78,9 +79,12 @@ export type ClassicyWindowTitleBarProps = {
 	 * `data-classicy-control="help"` and its box the class
 	 * `classicyWindowHelpBox`; it is named "Help" (`labels.help`) and comes
 	 * last in the DOM, so a package places it with `order` (Windows 98: just
-	 * left of Close). No package's own window passes it yet (plan 0020-w98
-	 * E3: `ClassicyWindow` wires it to What's This? once that mode is
-	 * merged). Without it no box is drawn and the bar renders as before.
+	 * left of Close). Its wrapper also carries `data-classicy-whats-this`, so
+	 * a press on it passes through the What's This? mode. `ClassicyWindow`
+	 * passes it for a dialog with described content under
+	 * `balloonHelp.contextHelp` "whatsThis" (Windows 98), starting the mode
+	 * over the window. Without it no box is drawn and the bar renders as
+	 * before.
 	 */
 	onHelp?: () => void;
 	/** Mouse-down on the title area (the drag handle). */
@@ -387,6 +391,10 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 			<div
 				className={"classicyWindowControlBox"}
 				{...{ [CLASSICY_PART_ATTRIBUTE.control]: "help" }}
+				// The What's This? command (`CLASSICY_WHATS_THIS_COMMAND_ATTRIBUTE`):
+				// while the mode is on, a press here goes through, so the
+				// box's second click ends the mode.
+				{...{ [CLASSICY_WHATS_THIS_COMMAND_ATTRIBUTE]: "" }}
 			>
 				<ClassicyWindowTitleBarControlBox
 					tooltip={buttonTooltips}

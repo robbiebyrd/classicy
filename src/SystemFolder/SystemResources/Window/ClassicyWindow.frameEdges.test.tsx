@@ -560,4 +560,121 @@ describe("ClassicyWindow under window.frameEdges", () => {
 			size: [WIDTH, HEIGHT],
 		});
 	});
+
+	// Hand-off C5 (the remaining chapters' audit's 4.10, 1.18, 4.16): under
+	// `layout.mouse` "windows" only button 1 moves or sizes a window (WIG
+	// Ch.4 "Mouse Actions", pp.24-25), and under `input.escapeCancels`
+	// Escape puts a move or a resize back where the press found it (Ch.4
+	// "Shortcut Keys", p.27). Without the keys every button does, and
+	// Escape changes nothing.
+	describe("the gesture button and Escape (C5)", () => {
+		const ESCAPE_PACKAGE_ID = "test-window-escape";
+		const useWindowsGestures = () => {
+			registerTestTaskbarPackage(
+				{
+					...TEST_FRAME_EDGES_LAYOUT,
+					mouse: "windows",
+					input: { escapeCancels: true },
+				},
+				ESCAPE_PACKAGE_ID,
+			);
+			usePackage(ESCAPE_PACKAGE_ID);
+		};
+		afterEach(() => {
+			unregisterClassicyAppearancePackage(ESCAPE_PACKAGE_ID);
+		});
+		const title = () => part(".classicyWindowTitle");
+		const pressEscape = () =>
+			act(() => {
+				document.dispatchEvent(
+					new KeyboardEvent("keydown", {
+						key: "Escape",
+						bubbles: true,
+						cancelable: true,
+					}),
+				);
+			});
+
+		it("puts a caption move back on Escape", () => {
+			useWindowsGestures();
+			render(sizingWindow());
+			fireEvent.mouseDown(title(), { button: 0, clientX: 100, clientY: 210 });
+			fireEvent.mouseMove(document.body, { clientX: 160, clientY: 290 });
+			expect(record()?.position).toEqual([LEFT + 60, TOP + 80]);
+			pressEscape();
+			expect(record()).toMatchObject({
+				position: [LEFT, TOP],
+				moving: false,
+				dragging: false,
+			});
+			// The pointer moving on, and the release, move nothing.
+			fireEvent.mouseMove(document.body, { clientX: 260, clientY: 390 });
+			fireEvent.mouseUp(document.body, { clientX: 260, clientY: 390 });
+			expect(record()?.position).toEqual([LEFT, TOP]);
+		});
+
+		it("puts a frame-edge resize back on Escape, its inline size too", () => {
+			useWindowsGestures();
+			render(sizingWindow());
+			fireEvent.mouseDown(edgeOf("left"), {
+				button: 0,
+				clientX: LEFT + 1,
+				clientY: 300,
+			});
+			fireEvent.mouseMove(document.body, { clientX: LEFT - 49, clientY: 300 });
+			expect(root().style.width).toBe(`${WIDTH + 50}px`);
+			pressEscape();
+			expect(root().style.width).toBe(`${WIDTH}px`);
+			expect(root().style.left).toBe(`${LEFT}px`);
+			expect(record()).toMatchObject({
+				position: [LEFT, TOP],
+				size: [WIDTH, HEIGHT],
+				resizing: false,
+			});
+			fireEvent.mouseUp(document.body, { clientX: LEFT - 99, clientY: 300 });
+			expect(record()).toMatchObject({
+				position: [LEFT, TOP],
+				size: [WIDTH, HEIGHT],
+			});
+		});
+
+		it("moves and sizes with button 1 only", () => {
+			useWindowsGestures();
+			render(sizingWindow());
+			fireEvent.mouseDown(title(), { button: 1, clientX: 100, clientY: 210 });
+			fireEvent.mouseMove(document.body, { clientX: 160, clientY: 290 });
+			fireEvent.mouseUp(document.body, { clientX: 160, clientY: 290 });
+			expect(record()?.position).toEqual([LEFT, TOP]);
+			fireEvent.mouseDown(part(".classicyWindowResizer"), {
+				button: 2,
+				clientX: RIGHT - 2,
+				clientY: BOTTOM - 2,
+			});
+			fireEvent.mouseMove(document.body, {
+				clientX: RIGHT + 48,
+				clientY: BOTTOM + 48,
+			});
+			fireEvent.mouseUp(document.body, {
+				clientX: RIGHT + 48,
+				clientY: BOTTOM + 48,
+			});
+			expect(record()).toMatchObject({
+				size: [WIDTH, HEIGHT],
+				resizing: false,
+			});
+		});
+
+		it("moves with any button and ignores Escape under the default layout", () => {
+			render(sizingWindow());
+			fireEvent.mouseDown(title(), { button: 1, clientX: 100, clientY: 210 });
+			fireEvent.mouseMove(document.body, { clientX: 160, clientY: 290 });
+			pressEscape();
+			expect(record()?.position).toEqual([LEFT + 60, TOP + 80]);
+			fireEvent.mouseUp(document.body, { clientX: 160, clientY: 290 });
+			expect(record()).toMatchObject({
+				position: [LEFT + 60, TOP + 80],
+				moving: false,
+			});
+		});
+	});
 });

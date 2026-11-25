@@ -67,7 +67,12 @@ import {
 	classicyWindowPageTitle,
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import {
+	classicyHasHelpAnchorWithin,
+	startClassicyWhatsThis,
+} from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { onClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
@@ -78,6 +83,7 @@ import {
 	classicyTaskbarInsetsOf,
 	useClassicyTaskbarInsets,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import { isClassicyGestureButton } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowAlertTypeContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowAlertType.internal";
 import {
@@ -123,6 +129,7 @@ import {
 	classicyWindowSystemMenuItems,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSystemMenu";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
+import { useClassicyWindowViewState } from "@/SystemFolder/SystemResources/Window/ClassicyWindowViewState.internal";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -958,6 +965,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// (`layout.patternOrigin.elements`): this window's.
 	useClassicyPatternOriginElements(windowRef);
 	const layout = useClassicyAppearanceLayout();
+	// The window's scroll position, kept on its record and put back when it
+	// opens again (`window.restoreViewState`, WIG Ch.2 "Persistence", p.12);
+	// both members undefined without the key.
+	const viewState = useClassicyWindowViewState(appId, id);
 	const centering: ClassicyWindowCentering = layout.window.centering ?? "exact";
 	// What the zoom box does under the active package (`layout.window.zoom`,
 	// plan 0020-w98 §5 "Maximize and restore"). `"standard"` (the default,
@@ -1167,6 +1178,29 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	]);
 
 	const contentsRef = useRef<HTMLDivElement | null>(null);
+	// What's This? on dialogs (WIG Ch.8 "Appearance and Behavior", p.145;
+	// Ch.12 "Context-Sensitive Help", p.273): under a layout that declares
+	// `balloonHelp.contextHelp` "whatsThis", a modal that is not an alert
+	// (a message box has no "?" button) draws the "?" caption box while its
+	// content holds a described control, checked after every commit (the
+	// anchors register in their own effects, which run first). Its press
+	// starts the mode over this window. Absent the key nothing is checked.
+	const offersHelpBox =
+		layout.balloonHelp?.contextHelp === "whatsThis" &&
+		modal === true &&
+		alertType === undefined;
+	const [hasHelpContent, setHasHelpContent] = useState(false);
+	useEffect(() => {
+		if (!offersHelpBox) return;
+		const contents = contentsRef.current;
+		const has = contents !== null && classicyHasHelpAnchorWithin(contents);
+		setHasHelpContent((prev) => (prev === has ? prev : has));
+	});
+	const helpBoxShown = offersHelpBox && hasHelpContent;
+	const startWhatsThisHere = useCallback(
+		() => startClassicyWhatsThis(windowRef.current ?? undefined),
+		[],
+	);
 	const pendingSizeRef = useRef<[number, number] | null>(null);
 	const isDraggingRef = useRef(false);
 	const isResizingRef = useRef(false);
@@ -1226,6 +1260,44 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(() =>
 			docUpHandlerRef.current(true),
 		);
+		watchEscapeCancel();
+	};
+	// While a press lasts, Escape takes the move or resize back under a
+	// layout that declares `input.escapeCancels` (WIG Ch.4 "Shortcut Keys",
+	// p.27: ESC cancels "a direct manipulation operation"; Windows' own
+	// move and size loop restores the rect on ESC): the window returns to
+	// the position and size the press found (`gestureStartRef`) and the
+	// gesture ends. Absent the key, nothing listens.
+	const gestureStartRef = useRef<{
+		position: [number, number];
+		recordSize: [number, number];
+		drawnSize: [number, number];
+		inline: { width: string; height: string; left: string; top: string };
+	} | null>(null);
+	const stopEscapeCancelRef = useRef<(() => void) | null>(null);
+	const stopEscapeCancel = () => {
+		stopEscapeCancelRef.current?.();
+		stopEscapeCancelRef.current = null;
+	};
+	const escapeCancelRef = useRef<() => void>(() => {});
+	const watchEscapeCancel = () => {
+		stopEscapeCancel();
+		const el = windowRef.current;
+		gestureStartRef.current = {
+			position: [ws.position[0], ws.position[1]],
+			recordSize: [ws.size[0], ws.size[1]],
+			drawnSize: [size[0], size[1]],
+			inline: {
+				width: el?.style.width ?? "",
+				height: el?.style.height ?? "",
+				left: el?.style.left ?? "",
+				top: el?.style.top ?? "",
+			},
+		};
+		stopEscapeCancelRef.current = onClassicyEscapeCancel(
+			() => escapeCancelRef.current(),
+			layout,
+		);
 	};
 	// A keyboard Move or Size mode in progress (`startKeyboardMode`), or null,
 	// and what its input does, updated every render (as docMoveHandlerRef
@@ -1248,6 +1320,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			document.removeEventListener("mouseup", upHandler);
 			stopWatchingPointerStreamRef.current?.();
 			stopWatchingPointerStreamRef.current = null;
+			stopEscapeCancelRef.current?.();
+			stopEscapeCancelRef.current = null;
 		};
 	}, []);
 
@@ -1744,6 +1818,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// stopChangeWindow), or the pointer stream lost.
 	docUpHandlerRef.current = (lost) => {
 		stopWatchingPointerStream();
+		stopEscapeCancel();
 		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
 		const wasResizing = isResizingRef.current;
@@ -1767,6 +1842,45 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			rect?.left ?? wsPositionRef.current[0],
 			rect?.top ?? wsPositionRef.current[1],
 		]);
+	};
+
+	// Escape during a press (`watchEscapeCancel`): a press not yet a drag
+	// ends; a move puts the window back where the press found it; a resize
+	// puts back the size, the inline geometry and the position. The release
+	// that follows finds no gesture (the refs are cleared) and the window
+	// where it started.
+	escapeCancelRef.current = () => {
+		stopWatchingPointerStream();
+		stopEscapeCancelRef.current = null;
+		const start = gestureStartRef.current;
+		gestureStartRef.current = null;
+		pendingDragRef.current = false;
+		if (!start || (!isDraggingRef.current && !isResizingRef.current)) return;
+		const wasResizing = isResizingRef.current;
+		isDraggingRef.current = false;
+		isResizingRef.current = false;
+		edgeResizeRef.current = null;
+		pendingSizeRef.current = null;
+		if (wasResizing) {
+			const el = windowRef.current;
+			if (el) Object.assign(el.style, start.inline);
+			setSize(start.drawnSize);
+			desktopEventDispatch({
+				type: "ClassicyWindowResize",
+				resizing: false,
+				window: ws,
+				size: start.recordSize,
+				app: { id: appId },
+			});
+		}
+		setDragging(false);
+		setMoving(false, start.position);
+		emit("dragEnd", {
+			kind: wasResizing ? "resize" : "move",
+			lost: false,
+			canceled: true,
+			input: "keyboard",
+		});
 	};
 
 	// Both resize move handlers: the size from the corner opposite the grow
@@ -1848,6 +1962,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const startResizeWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
+		// Under `layout.mouse` "windows" only button 1 sizes (WIG Ch.4
+		// "Mouse Actions", pp.24-25); absent the key, every button, as before.
+		if (!isClassicyGestureButton(e, layout)) return;
 		edgeResizeRef.current = null;
 		track("resize", { type: "ClassicyWindow", ...analyticsArgs });
 		const rect = windowRef?.current?.getBoundingClientRect();
@@ -1904,7 +2021,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const startEdgeResize =
 		(edges: ClassicyWindowSizingEdges) => (e: MouseEvent<HTMLDivElement>) => {
 			e.preventDefault();
-			if (e.button !== 0) return;
+			if (e.button !== 0 || !isClassicyGestureButton(e, layout)) return;
 			const el = windowRef.current;
 			if (!el) return;
 			setActive();
@@ -1955,6 +2072,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// Nor does a maximized window: dragging its caption does nothing in
 		// Windows 95/98, and its frame edges are not drawn.
 		if (maximized) return;
+		// Under `layout.mouse` "windows" only button 1 moves a window (WIG
+		// Ch.4 "Mouse Actions", pp.24-25); absent the key, every button.
+		if (!isClassicyGestureButton(e, layout)) return;
 		// Only arm a potential drag; it becomes a real drag once the pointer
 		// travels past dragThreshold (see promoteDragIfNeeded). A bare click
 		// must not enter drag state so double-click can collapse the window.
@@ -2067,6 +2187,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const wasResizing = isResizingRef.current;
 		// Clear refs so the document-level mouseup handler knows this event
 		// was already handled by the element and skips double-processing.
+		stopEscapeCancel();
 		pendingDragRef.current = false;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
@@ -3759,6 +3880,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				onCollapse={collapsesByBox ? onCollapseBoxClick : undefined}
 				collapseDisabled={collapseBoxDisabled}
 				onCollapseKey={toggleCollapse}
+				// The "?" box, under What's This? (`balloonHelp.contextHelp`
+				// "whatsThis"), on a dialog with described content.
+				onHelp={helpBoxShown ? startWhatsThisHere : undefined}
 				labels={titleBarLabels}
 				onTitleMouseDown={onTitleMouseDown}
 				// Under the system menu only: the icon opens the window pop-up
@@ -3823,6 +3947,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						horizontal={showScrollBars ? "always" : "never"}
 						onOverflowChange={onContentOverflow}
 						onHeadChange={setContentsHasHead}
+						initialScroll={viewState.initialScroll}
+						onScrollSettled={viewState.onScrollSettled}
 					>
 						{contentsInner}
 					</ClassicyScrollArea>

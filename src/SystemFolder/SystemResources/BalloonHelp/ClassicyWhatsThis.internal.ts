@@ -177,6 +177,18 @@ export const findClassicyHelpAnchor = (
 	return null;
 };
 
+/**
+ * Whether any element inside `root` (not `root` itself) is described: a
+ * dialog with something for What's This? to explain, which is when
+ * `ClassicyWindow` draws its "?" caption box.
+ */
+export const classicyHasHelpAnchorWithin = (root: Element): boolean => {
+	for (const el of root.querySelectorAll("*")) {
+		if (anchors.has(el)) return true;
+	}
+	return false;
+};
+
 // ---------------------------------------------------------------------------
 // Swallowing a press
 

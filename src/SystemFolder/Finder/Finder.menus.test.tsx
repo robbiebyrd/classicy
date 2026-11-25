@@ -16,6 +16,7 @@ import {
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import system7 from "../../../packages/appearance/system7/src/system7.json";
+import windows98 from "../../../packages/appearance/windows98/src/windows98.json";
 
 // Captures the `appMenu` each window is handed, keyed by window id. Mocking
 // ClassicyWindow (rather than ClassicyFileBrowser, as Finder.folderView does)
@@ -528,6 +529,29 @@ describe("Finder folder-window menus under Explorer's commands", () => {
 			expect(editItem("Paste")?.disabled).toBe(true);
 			expect(editItem("Paste Shortcut")?.disabled).toBe(true);
 			expect(capturedClipboardCommandByPath[DOCUMENTS_PATH]).toBeDefined();
+		} finally {
+			restore();
+		}
+	});
+
+	// C9 (the remaining chapters' audit's 5.44): under Windows 98's own
+	// layout a folder window's File runs from Open to Properties and Close,
+	// and its Edit carries the file commands.
+	it("gives a folder window Explorer's File and Edit under Windows 98's layout", async () => {
+		const restore = activateTestWindowsKeysPackage(
+			windows98.layout as unknown as Partial<ClassicyAppearanceLayout>,
+		);
+		try {
+			await openDocuments();
+			const file = titlesOf(fileItems());
+			expect(file[0]).toBe("Open");
+			expect(file.slice(-3)).toEqual(["Properties", "—", "Close"]);
+			expect(titlesOf(menuNamed("Edit")?.menuChildren).slice(0, 4)).toEqual([
+				"Cut",
+				"Copy",
+				"Paste",
+				"Paste Shortcut",
+			]);
 		} finally {
 			restore();
 		}

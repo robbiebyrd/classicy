@@ -43,6 +43,7 @@ import {
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import type { ClassicyControlStripEdge } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { onClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
 export type ClassicyControlStripProps = {
@@ -394,6 +395,8 @@ export const ClassicyControlStrip: FunctionalComponent<
 		startWidth: number;
 		/** The module step, read once on the press (G14). */
 		step: number;
+		/** The stored width the press found, put back by Escape. */
+		startStoredWidth: number | null;
 		moved: boolean;
 	} | null>(null);
 	// A tab press or a Control-press on the collapse box watches the pointer
@@ -402,20 +405,31 @@ export const ClassicyControlStrip: FunctionalComponent<
 	// it (the width and position on screen are stored, like a window's move
 	// or resize), except that a tab press that never moved is not taken for
 	// a click.
+	// While it lasts, Escape takes it back under a layout that declares
+	// `input.escapeCancels` (WIG Ch.4 "Shortcut Keys", p.27): the width or
+	// the position the press found is kept and the gesture ends; absent the
+	// key, nothing listens.
 	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	const stopEscapeCancelRef = useRef<(() => void) | null>(null);
 	const stopWatchingPointerStream = useCallback(() => {
 		stopWatchingPointerStreamRef.current?.();
 		stopWatchingPointerStreamRef.current = null;
+		stopEscapeCancelRef.current?.();
+		stopEscapeCancelRef.current = null;
 	}, []);
-	const watchPointerStream = (onLost: () => void) => {
+	const watchPointerStream = (onLost: () => void, onCancel: () => void) => {
 		stopWatchingPointerStream();
 		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(onLost);
+		stopEscapeCancelRef.current = onClassicyEscapeCancel(onCancel);
 	};
 	useEffect(() => stopWatchingPointerStream, [stopWatchingPointerStream]);
 	// The gestures' ends, kept current by the effects that own them below.
 	const endTabDragRef = useRef<(released: boolean) => void>(() => {});
 	// `lost`: ended by the pointer stream being lost, not by a release.
 	const endMoveRef = useRef<(lost: boolean) => void>(() => {});
+	// Escape's ends (`watchPointerStream`'s `onCancel`).
+	const cancelTabDragRef = useRef<() => void>(() => {});
+	const cancelMoveRef = useRef<() => void>(() => {});
 
 	const updateScrollState = useCallback(() => {
 		const el = viewportRef.current;
@@ -472,9 +486,13 @@ export const ClassicyControlStrip: FunctionalComponent<
 			startX: e.clientX,
 			startWidth: viewportRef.current?.clientWidth ?? 0,
 			step: moduleStepOf(viewportRef.current),
+			startStoredWidth: stored?.width ?? null,
 			moved: false,
 		};
-		watchPointerStream(() => endTabDragRef.current(false));
+		watchPointerStream(
+			() => endTabDragRef.current(false),
+			() => cancelTabDragRef.current(),
+		);
 	};
 
 	useEffect(() => {
@@ -509,6 +527,19 @@ export const ClassicyControlStrip: FunctionalComponent<
 			if (drag?.moved) emit("dragEnd", { kind: "resize", lost: !released });
 		};
 		endTabDragRef.current = endTabDrag;
+		// Escape: the press ends with no collapse, and a drag puts the width
+		// it found back.
+		cancelTabDragRef.current = () => {
+			stopWatchingPointerStream();
+			const drag = dragRef.current;
+			dragRef.current = null;
+			if (!drag?.moved) return;
+			dispatch({
+				type: "ClassicyDesktopControlStripSetWidth",
+				width: drag.startStoredWidth,
+			});
+			emit("dragEnd", { kind: "resize", lost: false, canceled: true });
+		};
 		const onUp = () => endTabDrag(true);
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
@@ -522,6 +553,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 		setCollapsed,
 		setWidth,
 		emit,
+		dispatch,
 		stopWatchingPointerStream,
 	]);
 
@@ -571,6 +603,26 @@ export const ClassicyControlStrip: FunctionalComponent<
 			setMovePreview(null);
 		};
 		endMoveRef.current = endMove;
+		// Escape: the strip stays where the press found it.
+		cancelMoveRef.current = () => {
+			stopWatchingPointerStream();
+			const move = moveRef.current;
+			moveRef.current = null;
+			if (!move) return;
+			// The button is still down: the click its release may raise on
+			// the collapse box stays swallowed, as a move's own is.
+			document.addEventListener(
+				"mouseup",
+				() =>
+					setTimeout(() => {
+						suppressCollapseClickRef.current = false;
+					}, 0),
+				{ once: true },
+			);
+			setMovePreview(null);
+			if (move.moved)
+				emit("dragEnd", { kind: "move", lost: false, canceled: true });
+		};
 		const onUp = () => endMove(false);
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
@@ -596,7 +648,10 @@ export const ClassicyControlStrip: FunctionalComponent<
 			moved: false,
 			position: null,
 		};
-		watchPointerStream(() => endMoveRef.current(true));
+		watchPointerStream(
+			() => endMoveRef.current(true),
+			() => cancelMoveRef.current(),
+		);
 	};
 
 	// A Control-click raises a contextual menu on macOS; on the collapse box it

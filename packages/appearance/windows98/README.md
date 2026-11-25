@@ -319,7 +319,25 @@ and `nodenext` resolution).
   and the name) and a Close button, which cancels it (a message box with
   only an OK takes OK), and moves by its caption, error messages included; a
   Yes/No question, which has no Cancel, shows its Close dimmed, and ALT+F4
-  leaves it open, as Windows' message boxes do.
+  leaves it open, as Windows' message boxes do. A window moves and sizes
+  with the left mouse button only, and ESC during a move or a resize puts
+  the window back where it was. A window opened again (a folder, a
+  document) comes back scrolled where it was left. A dialog whose controls
+  have help shows the "?" button beside Close, which starts What's This?.
+- **Its desktop**, which works as Explorer's did. Right-clicking empty
+  desktop shows Arrange Icons, Line Up Icons, Paste, Paste Shortcut, New and
+  Properties, and Ctrl+X, Ctrl+C and Ctrl+V cut, copy and paste its icons'
+  files. The right button draws a selection rectangle too, its menu
+  appearing when the button comes up; Shift adds the icons the rectangle
+  covers to the selection, Ctrl toggles them, and ESC takes the rectangle
+  back. The arrow keys, Home and End move between the icons, Ctrl moves the
+  focus without selecting, and Space selects. A file dragged from the
+  desktop onto a folder is moved, copied with Ctrl, or made a shortcut with
+  Ctrl+Shift (the right button's drag offers the three in a menu), and the
+  folder's window comes forward.
+- **Its Help menus.** Each window's Help menu leads with Help Topics,
+  which opens the Help Topics browser, as Start ▸ Help does, then What's
+  This? (Shift+F1).
 - **Its documents**, kept as Notepad and Explorer kept them. SimpleText
   asks before a changed document closes, with Notepad's own message box
   ("The text in the Letter.txt file has changed." / "Do you want to save the

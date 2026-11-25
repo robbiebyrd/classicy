@@ -29,8 +29,16 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+// Apple Guide's reducer, which Help Topics reaches.
+import "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+import { useClassicyEditMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
+import {
+	isClassicyWhatsThisActive,
+	resetClassicyWhatsThisForTests,
+} from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 describe("ClassicyWindowMenuBar", () => {
 	it("renders the window's menus as a bar", () => {
@@ -353,6 +361,112 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 			expect(rowTitle(`${APP}_about`)).toBe("About Explorer");
 		});
 	});
+
+	// Hand-offs C7 and C8 (the remaining chapters' audit's 12.21, 12.1, 12.2
+	// and B.5): under a taskbar whose layout declares WinHelp's topic window
+	// (`help.topicWindow` "winhelp") and What's This? (`balloonHelp.contextHelp`
+	// "whatsThis"), the window bar's Help leads with Help Topics, which opens
+	// the Help Topics browser, then What's This? (⇧F1 drawn), which starts the
+	// mode over the window; the access keys under `menu.accessKeys`.
+	describe("under a taskbar with WinHelp and What's This?", () => {
+		beforeEach(() => {
+			registerTestTaskbarPackage({
+				...TEST_TASKBAR_LAYOUT,
+				menu: { accessKeys: "auto" },
+				help: { topicWindow: "winhelp" },
+				balloonHelp: { contextHelp: "whatsThis" },
+			});
+			usePackage(TEST_TASKBAR_PACKAGE_ID);
+		});
+		afterEach(() => {
+			resetClassicyWhatsThisForTests();
+		});
+
+		it("leads Help with Help Topics and What's This?, their letters and the drawn chord", () => {
+			renderBar();
+			expect(rows(shellHelpId).slice(0, 3)).toEqual([
+				"help-topics",
+				"help-whats-this",
+				"help-toggle-balloons",
+			]);
+			expect(rowTitle("help-topics")).toBe("Help Topics");
+			expect(document.getElementById("help-about-balloon")).toBeNull();
+			const whatsThis = document.getElementById(
+				"help-whats-this",
+			) as HTMLElement;
+			expect(whatsThis.textContent).toContain("What's This?");
+			expect(whatsThis.textContent).toMatch(/Shift\+F1|⇧F1/);
+			const letter = (id: string) =>
+				document.querySelector(`[id="${id}"] [data-classicy-part="access-key"]`)
+					?.textContent;
+			expect(letter("help-topics")).toBe("H");
+			expect(letter("help-whats-this")).toBe("W");
+		});
+
+		it("opens the Help Topics browser from Help Topics", async () => {
+			act(() =>
+				useAppManager.setState((state) =>
+					produce(state, (draft) => {
+						draft.System.Manager.Applications.apps["AppleGuide.app"] = {
+							id: "AppleGuide.app",
+							name: "Apple Guide",
+							icon: "",
+							windows: {},
+							open: true,
+							data: {},
+						};
+					}),
+				),
+			);
+			renderBar();
+			const item = document.getElementById("help-topics") as HTMLElement;
+			fireEvent.click(item);
+			dispatchAnimationEnd(item);
+			await waitFor(() =>
+				expect(
+					(
+						useAppManager.getState().System.Manager.Applications.apps[
+							"AppleGuide.app"
+						]?.data as { helpTopicsOpen?: boolean } | undefined
+					)?.helpTopicsOpen,
+				).toBe(true),
+			);
+		});
+
+		it("starts What's This? over the bar's window", async () => {
+			const windowRoot = document.createElement("div");
+			windowRoot.className = "classicyWindow";
+			document.body.append(windowRoot);
+			try {
+				render(
+					<ClassicyWindowMenuBar
+						appId={APP}
+						windowId={WINDOW}
+						menuItems={finderMenu()}
+					/>,
+					{ container: windowRoot },
+				);
+				const item = document.getElementById("help-whats-this") as HTMLElement;
+				fireEvent.click(item);
+				dispatchAnimationEnd(item);
+				await waitFor(() => expect(isClassicyWhatsThisActive()).toBe(true));
+				expect(document.documentElement).toHaveClass("classicyWhatsThisMode");
+			} finally {
+				windowRoot.remove();
+			}
+		});
+
+		it("keeps About Balloon Help and adds no What's This? without the keys", () => {
+			registerTestTaskbarPackage();
+			usePackage(TEST_TASKBAR_PACKAGE_ID);
+			renderBar();
+			expect(rows(shellHelpId).slice(0, 2)).toEqual([
+				"help-about-balloon",
+				"help-toggle-balloons",
+			]);
+			expect(document.getElementById("help-whats-this")).toBeNull();
+		});
+	});
 });
 
 // The bar's height and the contents' shrink are keyed twice: on the class
@@ -394,5 +508,134 @@ describe("ClassicyWindowMenuBar.scss", () => {
 					selector.includes("classicyWindowWithMenuBar"),
 			).toBe(false);
 		}
+	});
+});
+
+// C9 (the remaining chapters' audit's 5.44; WIG Ch.5 pp.44-45, 51, 59):
+// under Windows 98's own layout a window bar's bundled Edit menu takes
+// Notepad's form (`edit.menu` "windows") and acts inside its own window
+// alone (`edit.scope` "window"), drawn by the window bar itself.
+describe("a window bar's Edit menu under Windows 98's layout (C9)", () => {
+	const APP = "Notes.app";
+	const PACKAGE_ID = "test-windows98-edit";
+	const Bar = ({ windowId }: { windowId: string }) => {
+		const edit = useClassicyEditMenu(`${APP}_${windowId}`);
+		return (
+			<ClassicyWindowMenuBar
+				appId={APP}
+				windowId={windowId}
+				menuItems={[edit]}
+			/>
+		);
+	};
+	// A window: its root (`active` while it is the active window), its bar
+	// and a field.
+	const Window = ({
+		windowId,
+		active,
+	}: {
+		windowId: string;
+		active: boolean;
+	}) => (
+		<div className={`classicyWindow${active ? " active" : ""}`} id={windowId}>
+			<Bar windowId={windowId} />
+			<input aria-label={`field ${windowId}`} defaultValue="hello world" />
+		</div>
+	);
+	const rowsOf = (menuId: string) =>
+		Array.from(
+			document.querySelectorAll(
+				`[id="${menuId}"] > .classicyMenuWrapper > ul > *`,
+			),
+		).map((row) =>
+			row.tagName === "HR"
+				? "—"
+				: (row.querySelector(":scope > p")?.textContent ?? "").trim(),
+		);
+	const field = (windowId: string) =>
+		screen.getByLabelText(`field ${windowId}`) as HTMLInputElement;
+	const choose = async (windowId: string, id: string) => {
+		const item = document.getElementById(
+			`${APP}_${windowId}_${id}`,
+		) as HTMLElement;
+		fireEvent.click(item);
+		dispatchAnimationEnd(item);
+		await waitFor(() => expect(item).not.toHaveClass("pressed"));
+	};
+
+	beforeEach(() => {
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		registerClassicyAppearancePackage({
+			id: PACKAGE_ID,
+			name: "Windows 98 edit",
+			css: "",
+			defaults: {
+				...getTheme("default"),
+				id: `${PACKAGE_ID}-default`,
+				package: PACKAGE_ID,
+			},
+			layout: windows98.layout as never,
+		});
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: PACKAGE_ID,
+			}),
+		);
+	});
+	afterEach(() => {
+		cleanup();
+		unregisterClassicyAppearancePackage(PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	it("draws Notepad's Edit menu: Undo, Cut, Copy, Paste, Delete with Del, Select All", () => {
+		render(<Window windowId="a" active />);
+		const rows = rowsOf(`${APP}_a_edit`);
+		expect(rows.map((row) => row.replace(/\s.*$/, ""))).toEqual([
+			"Undo",
+			"—",
+			"Cut",
+			"Copy",
+			"Paste",
+			"Delete",
+			"—",
+			"Select",
+		]);
+		expect(rows.join(" ")).not.toContain("Can't Undo");
+		expect(rows[5]).toContain("Del");
+	});
+
+	it("selects in its own window's field only", async () => {
+		const { rerender } = render(
+			<>
+				<Window windowId="a" active />
+				<Window windowId="b" active={false} />
+			</>,
+		);
+		const a = field("a");
+		act(() => {
+			a.focus();
+			a.setSelectionRange(0, 0);
+		});
+		// Window b becomes the active one: its Select All leaves a's field be.
+		rerender(
+			<>
+				<Window windowId="a" active={false} />
+				<Window windowId="b" active />
+			</>,
+		);
+		await choose("b", "select_all");
+		expect([a.selectionStart, a.selectionEnd]).toEqual([0, 0]);
+		// Window a active again: its own Select All selects its field.
+		rerender(
+			<>
+				<Window windowId="a" active />
+				<Window windowId="b" active={false} />
+			</>,
+		);
+		act(() => a.focus());
+		await choose("a", "select_all");
+		expect([a.selectionStart, a.selectionEnd]).toEqual([0, 11]);
 	});
 });

@@ -10,6 +10,7 @@ import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyApp
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	useAppManager,
@@ -144,6 +145,10 @@ const useClassicyStartMenuItems = (userName: string | undefined) => {
 	const dispatch = useAppManagerDispatch();
 	const mountedApps = useClassicyMountedApps();
 	const overrides = useClassicyAppIdentityOverrides();
+	// Start ▸ Help opens the Help Topics browser under WinHelp's topic
+	// window (`help.topicWindow` "winhelp"), else the About Help topic.
+	const helpTopics =
+		useClassicyAppearanceLayout().help?.topicWindow === "winhelp";
 	const about = useClassicyAsset("icons", "system.macos") ?? "";
 	const programs =
 		useClassicyAsset("icons", "system.folders.applications") ?? "";
@@ -190,6 +195,7 @@ const useClassicyStartMenuItems = (userName: string | undefined) => {
 				documents,
 				openDocument,
 				userName,
+				helpTopics,
 			}),
 		[
 			systemMenu,
@@ -211,6 +217,7 @@ const useClassicyStartMenuItems = (userName: string | undefined) => {
 			documents,
 			openDocument,
 			userName,
+			helpTopics,
 		],
 	);
 };

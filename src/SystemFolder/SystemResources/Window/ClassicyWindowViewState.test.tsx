@@ -1,6 +1,12 @@
-import { act, renderHook } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	renderHook,
+} from "@testing-library/react";
 import { produce } from "immer";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // The Windows-layout package below needs a sound pack registered: the core
 // default theme names Platinum's.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
@@ -13,7 +19,21 @@ import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
+import { ClassicyWindow } from "./ClassicyWindow";
 import { useClassicyWindowViewState } from "./ClassicyWindowViewState.internal";
+
+vi.mock(
+	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext",
+	() => ({ useSoundDispatch: () => vi.fn() }),
+);
+
+vi.mock(
+	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
+	() => ({
+		useClassicyAnalytics: () => ({ track: vi.fn(), page: vi.fn() }),
+	}),
+);
+
 import {
 	classicyRestoresViewState,
 	classicyViewStateCaret,
@@ -167,5 +187,75 @@ describe("the view state's store-free rules", () => {
 			caret: 3,
 		});
 		expect(classicyWindowViewStatePatch(ds, { scroll: [1] })).toBeUndefined();
+	});
+});
+
+// Hand-off C6 (the remaining chapters' audit's 2.1): `ClassicyWindow` hands
+// its view state to its content scroll area, so a window opened again comes
+// back at the offsets its record holds, and records new ones once they
+// settle, under Windows 98's `window.restoreViewState`; without it the
+// window opens at the top and records nothing.
+describe("ClassicyWindow's content scroll position (C6)", () => {
+	const scrollBox = {
+		scrollHeight: 1000,
+		clientHeight: 200,
+		scrollWidth: 300,
+		clientWidth: 300,
+	};
+	beforeEach(() => {
+		for (const [key, value] of Object.entries(scrollBox))
+			vi.spyOn(
+				HTMLElement.prototype,
+				key as "scrollHeight",
+				"get",
+			).mockReturnValue(value);
+	});
+	afterEach(() => {
+		cleanup();
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	});
+	const renderWindow = () =>
+		render(
+			<ClassicyWindow
+				id={WINDOW}
+				appId={APP}
+				title="Notes"
+				initialSize={[300, 200]}
+			>
+				<p style={{ height: 1000 }}>notes</p>
+			</ClassicyWindow>,
+		);
+	const viewportOf = (container: HTMLElement) =>
+		container.querySelector(".classicyScrollAreaViewport") as HTMLElement;
+
+	it("opens at the record's offsets and records settled ones under Windows 98's layout", () => {
+		useWindowsLayout();
+		vi.useFakeTimers();
+		const first = renderWindow();
+		const viewport = viewportOf(first.container);
+		expect(viewport.scrollTop).toBe(240);
+		viewport.scrollTop = 480;
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(500);
+		});
+		expect(record()?.scroll).toEqual([0, 480]);
+		first.unmount();
+		const second = renderWindow();
+		expect(viewportOf(second.container).scrollTop).toBe(480);
+	});
+
+	it("opens at the top and records nothing under the default layout", () => {
+		vi.useFakeTimers();
+		const { container } = renderWindow();
+		const viewport = viewportOf(container);
+		expect(viewport.scrollTop).toBe(0);
+		viewport.scrollTop = 480;
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(500);
+		});
+		expect(record()?.scroll).toEqual([0, 240]);
 	});
 });

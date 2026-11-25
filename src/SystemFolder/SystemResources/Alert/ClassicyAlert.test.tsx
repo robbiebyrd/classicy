@@ -36,17 +36,22 @@ const mockPlayer = vi.hoisted(() => vi.fn());
 // the modal renders (and portals to document.body) without a provider tree.
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
-	() => ({
-		useAppManager: (selector: (state: unknown) => unknown) =>
-			selector({
-				System: {
-					// The Desktop slice: the caption buttons' tooltips (a titled
-					// dialog layout's) read balloon help's toggle from it.
-					Manager: { Desktop: {}, Applications: { apps: {} } },
-				},
-			}),
-		useAppManagerDispatch: () => mockDispatch,
-	}),
+	() => {
+		const state = {
+			System: {
+				// The Desktop slice: the caption buttons' tooltips (a titled
+				// dialog layout's) read balloon help's toggle from it.
+				Manager: { Desktop: {}, Applications: { apps: {} } },
+			},
+		};
+		// `getState` too: the window's view state (Windows 98's
+		// `window.restoreViewState`) reads its record once as it mounts.
+		const useAppManager = Object.assign(
+			(selector: (s: unknown) => unknown) => selector(state),
+			{ getState: () => state },
+		);
+		return { useAppManager, useAppManagerDispatch: () => mockDispatch };
+	},
 );
 
 vi.mock(

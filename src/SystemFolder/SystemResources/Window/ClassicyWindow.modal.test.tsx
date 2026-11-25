@@ -24,8 +24,14 @@ import {
 } from "@/Appearance/ClassicyAppearancePackage";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
+import {
+	isClassicyWhatsThisActive,
+	resetClassicyWhatsThisForTests,
+} from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyWindowAlertTypeContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowAlertType.internal";
 import { runClassicyWindowCommand } from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
 import { useClassicyWindowShellKeys } from "@/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal";
 
@@ -814,5 +820,96 @@ describe("ClassicyWindow modal opened in the background", () => {
 		render(<Dialog />);
 		expect(openCalls()[0]?.window).not.toHaveProperty("background");
 		expect(focusInDialog()).toBe(true);
+	});
+});
+
+// Hand-off C8 (the remaining chapters' audit's 12.2, B.5; WIG Ch.8
+// "Appearance and Behavior", p.145; Ch.12 "Context-Sensitive Help", p.273):
+// under `balloonHelp.contextHelp` "whatsThis" (Windows 98) a dialog whose
+// content holds a described control draws the "?" caption box, and its press
+// starts the What's This? mode over the window; a message box, a dialog
+// with nothing described, a document window and every other layout draw
+// none.
+describe("ClassicyWindow's What's This? box (C8)", () => {
+	const WHATS_THIS_PACKAGE_ID = "test-whats-this";
+	const helpBox = () =>
+		document.querySelector<HTMLElement>(
+			'#TestApp_TestWindow [data-classicy-control="help"]',
+		);
+	const useWhatsThis = () => {
+		registerTestTaskbarPackage(
+			{
+				...TEST_DIALOG_CAPTION_LAYOUT,
+				balloonHelp: { contextHelp: "whatsThis" },
+			},
+			WHATS_THIS_PACKAGE_ID,
+		);
+		activePackage.id = WHATS_THIS_PACKAGE_ID;
+	};
+	const dialog = (
+		props: Partial<Parameters<typeof ClassicyWindow>[0]> = {},
+		described = true,
+	) => (
+		<ClassicyWindow
+			id="TestWindow"
+			appId="TestApp"
+			title="Dialog"
+			modal
+			{...props}
+		>
+			{described ? (
+				<ClassicyBalloonHelp content="Names the file.">
+					<span>Name</span>
+				</ClassicyBalloonHelp>
+			) : (
+				<span>Name</span>
+			)}
+		</ClassicyWindow>
+	);
+	beforeEach(() => {
+		mockDispatch.mockClear();
+	});
+	afterEach(() => {
+		resetClassicyWhatsThisForTests();
+		activePackage.id = "platinum";
+		unregisterClassicyAppearancePackage(WHATS_THIS_PACKAGE_ID);
+	});
+
+	it("draws the box on a dialog with described content, and its press starts the mode over the window", () => {
+		useWhatsThis();
+		render(dialog());
+		const wrapper = helpBox() as HTMLElement;
+		expect(wrapper).not.toBeNull();
+		expect(wrapper.hasAttribute("data-classicy-whats-this")).toBe(true);
+		fireEvent.click(
+			wrapper.querySelector(".classicyWindowHelpBox") as HTMLElement,
+		);
+		expect(isClassicyWhatsThisActive()).toBe(true);
+		// The command again ends it.
+		fireEvent.click(
+			wrapper.querySelector(".classicyWindowHelpBox") as HTMLElement,
+		);
+		expect(isClassicyWhatsThisActive()).toBe(false);
+	});
+
+	it("draws none on a dialog with nothing described, a message box or a document window", () => {
+		useWhatsThis();
+		const { unmount } = render(dialog({}, false));
+		expect(helpBox()).toBeNull();
+		unmount();
+		const alert = render(
+			<ClassicyWindowAlertTypeContext.Provider value="caution">
+				{dialog()}
+			</ClassicyWindowAlertTypeContext.Provider>,
+		);
+		expect(helpBox()).toBeNull();
+		alert.unmount();
+		render(dialog({ modal: false }));
+		expect(helpBox()).toBeNull();
+	});
+
+	it("draws none under Platinum's layout", () => {
+		render(dialog());
+		expect(helpBox()).toBeNull();
 	});
 });

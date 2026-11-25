@@ -3,7 +3,10 @@ import {
 	CLASSICY_NO_APP_IDENTITY_OVERRIDES,
 	type ClassicyAppIdentityOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
-import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+import {
+	APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT,
+	APPLE_GUIDE_SHOW_TOPIC_EVENT,
+} from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -386,6 +389,21 @@ describe("classicyStartMenuItems", () => {
 			id: "start-menu_help",
 			event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
 			eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
+		});
+	});
+
+	// Hand-off C7 (the remaining chapters' audit's 12.21): under WinHelp's
+	// topic window (`help.topicWindow` "winhelp", which the Start menu
+	// passes as `helpTopics`) Help opens the Help Topics browser.
+	it("opens the Help Topics browser from Help with helpTopics", () => {
+		const help = child(
+			classicyStartMenuItems(input({ helpTopics: true })),
+			"Help",
+		);
+		expect(help).toMatchObject({
+			id: "start-menu_help",
+			event: APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT,
+			eventData: {},
 		});
 	});
 

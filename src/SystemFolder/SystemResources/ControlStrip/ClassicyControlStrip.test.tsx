@@ -18,6 +18,7 @@ import {
 	waitFor,
 } from "@/__tests__/test-utils";
 import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 // The renaming tests switch back to Platinum, which must be registered.
 import "@classicy/appearance-platinum";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
@@ -1373,6 +1374,44 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 		expect(storedStrip()?.edge).toBeUndefined();
 		expect(strip()).not.toHaveClass("classicyControlStripRight");
 	});
+
+	// Hand-off C5: under `input.escapeCancels` (Windows 98) Escape takes a
+	// Control-drag back (WIG Ch.4 "Shortcut Keys", p.27); without it Escape
+	// does nothing and the release stores where the strip went.
+	it("leaves the strip where it was on Escape under input.escapeCancels, and not without it", () => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		fireEvent.keyDown(document, { key: "Escape" });
+		expect(strip()).toHaveClass("classicyControlStripRight");
+		fireEvent.mouseUp(document);
+		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
+
+		const restore = activateTestWindowsKeysPackage({
+			input: { escapeCancels: true },
+		});
+		try {
+			dispatch({
+				type: "ClassicyDesktopControlStripSetPosition",
+				edge: "left",
+				bottom: 0,
+			});
+			controlPress();
+			fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+			expect(strip()).toHaveClass("classicyControlStripRight");
+			fireEvent.keyDown(document, { key: "Escape" });
+			expect(strip()).not.toHaveClass("classicyControlStripRight");
+			fireEvent.mouseMove(document, { clientX: 700, clientY: 100 });
+			fireEvent.mouseUp(document);
+			// The release's click neither collapses nor moves it.
+			fireEvent.click(collapseBox(), { detail: 1, ctrlKey: true });
+			expect(storedStrip()).toMatchObject({ edge: "left", bottom: 0 });
+			expect(storedStrip()?.collapsed).toBeUndefined();
+		} finally {
+			restore();
+		}
+	});
 });
 
 describe("Control Strip tab when the pointer stream is lost", () => {
@@ -1449,6 +1488,35 @@ describe("Control Strip tab when the pointer stream is lost", () => {
 		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
 		unmount();
 		expect(live.size).toBe(0);
+	});
+
+	// Hand-off C5: Escape puts a tab drag's width back under
+	// `input.escapeCancels`, and the release is no click on the tab.
+	it("puts the width back on Escape under input.escapeCancels, and not without it", () => {
+		register(...testModules());
+		renderStrip();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 160 });
+		fireEvent.keyDown(document, { key: "Escape" });
+		fireEvent.mouseUp(document);
+		expect(storedStrip()?.width).toBe(60);
+
+		const restore = activateTestWindowsKeysPackage({
+			input: { escapeCancels: true },
+		});
+		try {
+			fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+			fireEvent.mouseMove(document, { clientX: 230 });
+			expect(storedStrip()?.width).toBe(120);
+			fireEvent.keyDown(document, { key: "Escape" });
+			expect(storedStrip()?.width).toBe(60);
+			fireEvent.mouseMove(document, { clientX: 300 });
+			fireEvent.mouseUp(document);
+			expect(storedStrip()?.width).toBe(60);
+			expect(storedStrip()?.collapsed).toBeUndefined();
+		} finally {
+			restore();
+		}
 	});
 });
 

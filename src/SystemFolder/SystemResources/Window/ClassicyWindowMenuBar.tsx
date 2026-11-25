@@ -12,6 +12,8 @@ import {
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+import { startClassicyWhatsThis } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import { withClassicyAppIdentityAboutItem } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import {
 	classicyHelpMenuChildren,
@@ -20,6 +22,7 @@ import {
 	splitClassicyAppHelpMenus,
 	stripClassicyAboutItem,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyHelpMenu.internal";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
@@ -27,6 +30,62 @@ import {
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 import { useClassicyMenuCloseOnOutsideMouseDown } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuCloseOnOutsideMouseDown";
 import "./ClassicyWindowMenuBar.scss";
+
+/**
+ * The system part of a window bar's Help menu under a taskbar: the screen
+ * bar's items (`system`, `classicySystemHelpItems`) with About Balloon
+ * Help… replaced by WinHelp's "Help Topics" (no ellipsis, access key H,
+ * Windows 98 SE's "&Help Topics"; WIG Ch.12 "The Help Topics Browser",
+ * p.284; Ch.7 "The Help Menu", p.99), dispatching
+ * `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`, under `helpTopics`, and "What's
+ * This?" (⇧F1 shown, access key W, user.exe's "&What's This?"; WIG Ch.12
+ * p.275) after it under `whatsThis`, starting the mode over the window
+ * (`startWhatsThis`). Shift+F1 itself is the What's This? key hook's, so
+ * the item's chord is only drawn (`nativeShortcut`). Without either flag
+ * `system` is returned as given.
+ */
+export const classicyWindowSystemHelpItems = (
+	system: ClassicyMenuItem[],
+	{
+		helpTopics,
+		whatsThis,
+		ak,
+		startWhatsThis,
+	}: {
+		helpTopics: boolean;
+		whatsThis: boolean;
+		ak: (key: string) => string | undefined;
+		startWhatsThis: () => void;
+	},
+): ClassicyMenuItem[] => {
+	if (!helpTopics && !whatsThis) return system;
+	const key = (letter: string) => {
+		const accessKey = ak(letter);
+		return accessKey !== undefined ? { accessKey } : {};
+	};
+	const whatsThisItem: ClassicyMenuItem = {
+		id: "help-whats-this",
+		title: "What's This?",
+		keyboardShortcut: "⇧F1",
+		nativeShortcut: true,
+		onClickFunc: startWhatsThis,
+		...key("w"),
+	};
+	return system.flatMap((item) => {
+		if (item.id !== "help-about-balloon") return [item];
+		const first: ClassicyMenuItem = helpTopics
+			? {
+					id: "help-topics",
+					title: "Help Topics",
+					event: APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT,
+					// A menu item dispatches its event only with data.
+					eventData: {},
+					...key("h"),
+				}
+			: item;
+		return whatsThis ? [first, whatsThisItem] : [first];
+	});
+};
 
 export type ClassicyWindowMenuBarProps = {
 	/** The owning app's id; with `windowId`, it keys the rendered menu. */
@@ -98,8 +157,16 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		(state) => state.System.Manager.Applications.apps[appId]?.name,
 	);
 	const overrides = useClassicyAppIdentityOverrides();
+	const layout = useClassicyAppearanceLayout();
 	// Under a taskbar no screen bar is drawn, so the window's bar carries Help.
-	const helpInBar = useClassicyAppearanceLayout().taskbar !== undefined;
+	const helpInBar = layout.taskbar !== undefined;
+	// WinHelp's Help Topics in place of About Balloon Help…
+	// (`help.topicWindow` "winhelp"), and What's This? after it
+	// (`balloonHelp.contextHelp` "whatsThis"); absent the keys, the system
+	// items as the screen bar draws them.
+	const helpTopics = layout.help?.topicWindow === "winhelp";
+	const whatsThis = layout.balloonHelp?.contextHelp === "whatsThis";
+	const ak = useClassicyBundledAccessKeys();
 	const disableBalloonHelp = useAppManager(
 		(state) => state.System.Manager.Desktop.disableBalloonHelp,
 	);
@@ -126,7 +193,19 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 			aboutItem ? stripClassicyAboutItem(menuItems, aboutItem) : menuItems,
 		);
 		const helpChildren = classicyHelpMenuChildren(
-			classicySystemHelpItems(disableBalloonHelp),
+			classicyWindowSystemHelpItems(
+				classicySystemHelpItems(disableBalloonHelp),
+				{
+					helpTopics,
+					whatsThis,
+					ak,
+					startWhatsThis: () =>
+						startClassicyWhatsThis(
+							rootRef.current?.closest<HTMLElement>(".classicyWindow") ??
+								undefined,
+						),
+				},
+			),
 			registeredHelpItems,
 			helpMenus,
 		);
@@ -160,6 +239,9 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		overrides,
 		disableBalloonHelp,
 		registeredHelpItems,
+		helpTopics,
+		whatsThis,
+		ak,
 	]);
 	return (
 		<div

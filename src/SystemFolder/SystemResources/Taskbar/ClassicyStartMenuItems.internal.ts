@@ -3,7 +3,10 @@ import {
 	classicyAppIdentityFrom,
 } from "@/Appearance/ClassicyAppIdentity";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+import {
+	APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT,
+	APPLE_GUIDE_SHOW_TOPIC_EVENT,
+} from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { classicySpecialMenuItems } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
@@ -93,6 +96,13 @@ export type ClassicyStartMenuItemsInput = {
 	 * user.
 	 */
 	userName?: string;
+	/**
+	 * Start ▸ Help opens the Help Topics browser
+	 * (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`, WIG Ch.12 "The Help Topics
+	 * Browser", p.284), as the layout's `help.topicWindow` "winhelp" asks;
+	 * absent or false, Apple Guide's About Balloon Help topic.
+	 */
+	helpTopics?: boolean;
 };
 
 const SPACER: ClassicyMenuItem = { id: "spacer" };
@@ -225,7 +235,8 @@ const shellDialogItem = (
  *    a divider, then the system Help menu's **Show Balloons** / **Hide
  *    Balloons** toggle (⌥H, which the headless screen bar dispatches; the
  *    item only shows it), so the toggle stays reachable with no window open.
- * 6. **Help**: Apple Guide's About Balloon Help topic, Classicy's Help Topics.
+ * 6. **Help**: the Help Topics browser (`helpTopics`), else Apple Guide's
+ *    About Balloon Help topic.
  * 7. **Run...**: the Run dialog (E2).
  * 8. A divider, then **Empty Trash…** and **Reset PRAM…**, the Special
  *    menu's (`classicySpecialMenuItems(dispatch, "start")`), Classicy's own,
@@ -320,8 +331,13 @@ export const classicyStartMenuItems = (
 		id: `${CLASSICY_START_MENU_ITEM_PREFIX}help`,
 		title: "Help",
 		image: images.help,
-		event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
-		eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
+		...(input.helpTopics
+			? // A menu item dispatches its event only with data.
+				{ event: APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT, eventData: {} }
+			: {
+					event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
+					eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
+				}),
 	});
 
 	items.push(shellDialogItem("run", "Run...", images.run, "run", dispatch));
