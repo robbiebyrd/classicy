@@ -8,14 +8,17 @@ import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_DRAG_THRESHOLD,
+	findClassicyFileDragAutoScroll,
 	findClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import { traceClassicyDragOutline } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import { CLASSICY_PRESS_REPEAT_INTERVAL_MS } from "@/SystemFolder/SystemResources/LittleArrows/useClassicyPressRepeat.internal";
 import {
 	registerClassicyLogSink,
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { registerClassicyScrollViewport } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollViewportRegistry.internal";
 
 /** Render a mask as rows of "#"/"." for readable assertions. */
 const draw = (mask: Uint8Array, width: number) =>
@@ -489,5 +492,233 @@ describe("startClassicyFileDrag when the pointer stream is lost", () => {
 		setup();
 		losePointerStream("hidden");
 		expect(live.size).toBe(0);
+	});
+});
+
+// Automatic scrolling (WIG Ch.5 p.72, Ch.6 "Automatic Scrolling" p.91;
+// HIG7 p.274): a scroll area holding drop targets scrolls a line at a time
+// while a file drag's pointer rests within a line step of its edge.
+describe("startClassicyFileDrag automatic scrolling", () => {
+	let unregister: (() => void) | null = null;
+	afterEach(() => {
+		unregister?.();
+		unregister = null;
+		document.body.innerHTML = "";
+		document.body.className = "";
+		vi.useRealTimers();
+	});
+
+	const fire = (type: string, x: number, y: number) =>
+		document.dispatchEvent(
+			new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }),
+		);
+
+	/**
+	 * A registered viewport 300 x 200 at the origin over `content` px of
+	 * content each way, holding a folder (a drop target) unless `dropTarget`
+	 * is false.
+	 */
+	const viewportOf = ({
+		content = [300, 1000],
+		dropTarget = true,
+		lineStep = 16,
+	}: {
+		content?: [number, number];
+		dropTarget?: boolean;
+		lineStep?: number;
+	} = {}) => {
+		document.body.innerHTML = `<div id="viewport"><div id="row" ${
+			dropTarget
+				? `${CLASSICY_DROP_FOLDER_ATTRIBUTE}="Macintosh HD:Archive"`
+				: ""
+		}></div></div>`;
+		const viewport = document.getElementById("viewport") as HTMLElement;
+		const row = document.getElementById("row") as HTMLElement;
+		const position = { left: 0, top: 0 };
+		const extents = {
+			scrollWidth: content[0],
+			scrollHeight: content[1],
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		for (const [key, value] of Object.entries(extents)) {
+			Object.defineProperty(viewport, key, { value, configurable: true });
+		}
+		for (const [key, axis] of [
+			["scrollLeft", "left"],
+			["scrollTop", "top"],
+		] as const) {
+			Object.defineProperty(viewport, key, {
+				configurable: true,
+				get: () => position[axis],
+				set: (value: number) => {
+					const max =
+						axis === "left"
+							? extents.scrollWidth - extents.clientWidth
+							: extents.scrollHeight - extents.clientHeight;
+					position[axis] = Math.min(Math.max(value, 0), max);
+				},
+			});
+		}
+		vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(
+			DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 200 }),
+		);
+		const scrollBy = vi.fn((dx: number, dy: number) => {
+			viewport.scrollLeft += dx;
+			viewport.scrollTop += dy;
+		});
+		unregister = registerClassicyScrollViewport(viewport, {
+			lineStep: () => lineStep,
+			scrollBy,
+		});
+		return { viewport, row, scrollBy, position };
+	};
+
+	it("finds the edge band a line step wide, toward an end the viewport can still reach", () => {
+		const { row, position } = viewportOf({ content: [600, 1000] });
+		const at = (x: number, y: number) =>
+			findClassicyFileDragAutoScroll(x, y, { elementsFromPoint: () => [row] });
+		// The middle, and the top and left edges at the start: nothing.
+		expect(at(150, 100)).toBeNull();
+		expect(at(150, 0)).toBeNull();
+		expect(at(5, 100)).toBeNull();
+		// The bottom band (184 to 199) and the right band (284 to 299).
+		expect(at(150, 183)).toBeNull();
+		expect(at(150, 184)).toMatchObject({ dx: 0, dy: 16 });
+		expect(at(150, 199)).toMatchObject({ dx: 0, dy: 16 });
+		expect(at(299, 100)).toMatchObject({ dx: 16, dy: 0 });
+		expect(at(299, 199)).toMatchObject({ dx: 16, dy: 16 });
+		// Past the right and bottom edges: outside the viewport.
+		expect(at(150, 200)).toBeNull();
+		expect(at(300, 100)).toBeNull();
+		// Scrolled to the middle, the top and left bands scroll back.
+		position.top = 400;
+		position.left = 150;
+		expect(at(0, 15)).toMatchObject({ dx: -16, dy: -16 });
+		expect(at(150, 16)).toBeNull();
+		// Within a pixel of the end counts as the end (a zoomed page).
+		position.top = 799.5;
+		expect(at(150, 190)).toBeNull();
+	});
+
+	it("leaves an area that holds no drop target, and one under something else", () => {
+		const { row } = viewportOf({ dropTarget: false });
+		expect(
+			findClassicyFileDragAutoScroll(150, 190, {
+				elementsFromPoint: () => [row],
+			}),
+		).toBeNull();
+		const { row: target } = viewportOf();
+		const over = document.createElement("div");
+		document.body.append(over);
+		// Only the topmost element counts: a window over the area hides it.
+		expect(
+			findClassicyFileDragAutoScroll(150, 190, {
+				elementsFromPoint: () => [over, target],
+			}),
+		).toBeNull();
+		// The dragged item itself is looked through.
+		expect(
+			findClassicyFileDragAutoScroll(150, 190, {
+				exclude: over,
+				elementsFromPoint: () => [over, target],
+			}),
+		).toMatchObject({ dy: 16 });
+	});
+
+	it("scrolls a line per repeat interval while the pointer rests in the band, stopping at the end", () => {
+		vi.useFakeTimers();
+		const { row, scrollBy, position } = viewportOf({ content: [300, 248] });
+		startClassicyFileDrag({
+			start: { clientX: 150, clientY: 100 },
+			parts: [],
+			onDrop: vi.fn(),
+			elementsFromPoint: () => [row],
+		});
+		fire("mousemove", 150, 190);
+		// Not at once: crossing the band on the way elsewhere scrolls nothing.
+		vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS - 1);
+		expect(scrollBy).not.toHaveBeenCalled();
+		vi.advanceTimersByTime(1);
+		expect(scrollBy).toHaveBeenLastCalledWith(0, 16);
+		expect(position.top).toBe(16);
+		vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS * 10);
+		// 48 px of travel: three lines, then the end.
+		expect(scrollBy).toHaveBeenCalledTimes(3);
+		expect(position.top).toBe(48);
+		// Back up into the top band, which can scroll now.
+		fire("mousemove", 150, 5);
+		vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS);
+		expect(scrollBy).toHaveBeenLastCalledWith(0, -16);
+		// The middle: it stops.
+		fire("mousemove", 150, 100);
+		vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS * 5);
+		expect(scrollBy).toHaveBeenCalledTimes(4);
+		fire("mouseup", 150, 100);
+	});
+
+	it("finds the drop target again as the content moves under a still pointer", () => {
+		vi.useFakeTimers();
+		const { row } = viewportOf();
+		const folder = document.createElement("div");
+		folder.setAttribute(CLASSICY_DROP_FOLDER_ATTRIBUTE, "Macintosh HD:Plans");
+		row.append(folder);
+		let hits: Element[] = [row];
+		startClassicyFileDrag({
+			start: { clientX: 150, clientY: 100 },
+			parts: [],
+			onDrop: vi.fn(),
+			elementsFromPoint: () => hits,
+		});
+		fire("mousemove", 150, 190);
+		expect(row).toHaveClass("classicyFileDropTarget");
+		// The scroll brings a folder under the pointer.
+		hits = [folder];
+		vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS);
+		expect(folder).toHaveClass("classicyFileDropTarget");
+		expect(row).not.toHaveClass("classicyFileDropTarget");
+		fire("mouseup", 150, 190);
+	});
+
+	it("stops when the drag ends: released, canceled or lost", () => {
+		vi.useFakeTimers();
+		for (const end of [
+			() => fire("mouseup", 150, 190),
+			() =>
+				document.dispatchEvent(
+					new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+				),
+			() => window.dispatchEvent(new Event("blur")),
+		]) {
+			const { row, scrollBy } = viewportOf();
+			startClassicyFileDrag({
+				start: { clientX: 150, clientY: 100 },
+				parts: [],
+				onDrop: vi.fn(),
+				elementsFromPoint: () => [row],
+			});
+			fire("mousemove", 150, 190);
+			end();
+			vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS * 5);
+			expect(scrollBy).not.toHaveBeenCalled();
+			unregister?.();
+		}
+	});
+
+	it("scrolls nothing before the press becomes a drag", () => {
+		vi.useFakeTimers();
+		const { row, scrollBy } = viewportOf();
+		startClassicyFileDrag({
+			start: { clientX: 150, clientY: 190 },
+			parts: [],
+			onDrop: vi.fn(),
+			onClick: vi.fn(),
+			elementsFromPoint: () => [row],
+		});
+		// In the band, but under the drag threshold.
+		fire("mousemove", 151, 191);
+		vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS * 5);
+		expect(scrollBy).not.toHaveBeenCalled();
+		fire("mouseup", 151, 191);
 	});
 });

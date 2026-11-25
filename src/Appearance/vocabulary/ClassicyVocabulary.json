@@ -458,6 +458,9 @@
 			"ViewportClipped"
 		],
 		"ScrollBar": [
+			"Accessory",
+			"AccessoryEnd",
+			"AccessoryStart",
 			"Arrow",
 			"ArrowEnd",
 			"ArrowStart",
@@ -498,7 +501,7 @@
 		],
 		"SoundManager": ["Content"],
 		"Spinner": ["Default", "Holder", "InputGroup"],
-		"SplitView": ["Divider", "Horizontal", "Pane", "Vertical"],
+		"SplitView": ["Divider", "Horizontal", "Pane", "SplitBox", "Vertical"],
 		"StartupScreen": ["Extensions", "Logo", "Panel", "Progress", "Wordmark"],
 		"Storage": [],
 		"SubMenu": ["FlipLeft"],
@@ -644,6 +647,8 @@
 			"scroll-thumb",
 			"scroll-corner",
 			"scroll-drag-outline",
+			"scroll-accessory-start",
+			"scroll-accessory-end",
 			"menu-scroll-up",
 			"menu-scroll-down",
 			"list-check"

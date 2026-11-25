@@ -43,6 +43,7 @@ import {
 	computeClassicyScrollThumb,
 } from "./ClassicyScrollAreaMetrics";
 import { useClassicyScrollPatternOrigin } from "./ClassicyScrollPatternOrigin.internal";
+import { registerClassicyScrollViewport } from "./ClassicyScrollViewportRegistry.internal";
 
 /** The distance one press of a scroll arrow scrolls, when not given. */
 const DEFAULT_LINE_STEP = 16;
@@ -52,10 +53,18 @@ export type ClassicyScrollBarOrientation = "vertical" | "horizontal";
 /** How dragging the thumb scrolls: the package's `layout.scrollBar.thumbDrag`. */
 type ClassicyScrollThumbDrag = "live" | "onRelease";
 
+/**
+ * Whether a live thumb drag snaps back (`layout.scrollBar.liveSnapBack`),
+ * and the snap-back distance's multiples of the bar's thickness across and
+ * along it (`snapBackScale`), for a theme that sets no distance of its own.
+ */
+type ClassicyScrollSnapBack = { live: boolean; across: number; along: number };
+
 // The theme variable an on-release package sets for how far the pointer may
 // stray from the bar before the drag outline snaps back (System 7's
 // `scrollBar.snapBack` knob). Unset, it is the bar's own thickness, "the
-// width of the scroll box" (HIG7 p.165).
+// width of the scroll box" (HIG7 p.165), times the package's
+// `layout.scrollBar.snapBackScale` across and along the bar.
 const SNAP_BACK_VAR = "--scroll-bar-snap-back";
 
 export interface ClassicyScrollAreaProps
@@ -121,7 +130,26 @@ export interface ClassicyScrollAreaProps
 	 * and with `false` when it unmounts while drawing one.
 	 */
 	onHeadChange?: (present: boolean) => void;
+	/**
+	 * Controls drawn inside a bar, past its arrows, taking their length
+	 * from the bar (WIG Ch.6 "Placing Adjacent Controls", p.92): a split
+	 * view's split box. Per bar, `start` goes before the start arrow (above
+	 * the up arrow, left of the left arrow) and `end` after the end arrow,
+	 * each in a `scroll-accessory-start` or `scroll-accessory-end` part.
+	 * Drawn only while the bar is (its policy decides); none by default.
+	 */
+	barAccessories?: Partial<
+		Record<ClassicyScrollBarOrientation, ClassicyScrollBarAccessories>
+	>;
 }
+
+/** Controls at the ends of one bar (`barAccessories`). */
+export type ClassicyScrollBarAccessories = {
+	/** Before the start arrow: above the up arrow, left of the left arrow. */
+	start?: ReactNode;
+	/** After the end arrow: below the down arrow, right of the right arrow. */
+	end?: ReactNode;
+};
 
 /** What `renderViewport` puts on its scroller. */
 export type ClassicyScrollAreaViewportProps = {
@@ -139,6 +167,10 @@ type BarRefs = {
 };
 
 const NO_THUMB: ClassicyScrollThumb = { length: 0, offset: 0 };
+// A node React draws something for (an accessory's part is left out for
+// none).
+const isDrawn = (node: ReactNode) =>
+	node !== undefined && node !== null && node !== false;
 // An axis not measured yet is taken to fit: at both of its ends.
 const AT_BOTH_ENDS: ClassicyScrollAxisEnds = { start: true, end: true };
 
@@ -281,11 +313,20 @@ const snapClassicyScrollPart = (el: HTMLElement | null) => {
  * snapping back over the thumb (a release there scrolls nothing) while the
  * pointer is more than the theme's `--scroll-bar-snap-back` (else the bar's
  * thickness) from the bar; the keys and the wheel are held off meanwhile,
- * and Escape cancels it. A lost pointer stream ends any of them (an
- * on-release drag scrolling nothing). The
+ * and Escape cancels it. A live drag snaps back the same way when the
+ * package's `layout.scrollBar.liveSnapBack` is set (Windows, WIG Ch.6
+ * "Scroll Box", p.89): past that distance the content returns to where the
+ * drag started, and follows again when the pointer comes back. The
+ * distance where the theme sets none is the bar's thickness times
+ * `layout.scrollBar.snapBackScale`, across and along the bar. A lost
+ * pointer stream ends any of them (an on-release drag scrolling nothing).
+ * `barAccessories` puts controls inside a bar past its arrows (a split
+ * view's split box). The
  * bars are `aria-hidden` and never take focus: the viewport is the
  * scrollable region assistive technology and the keyboard use, as with a
- * native scroll bar.
+ * native scroll bar. The viewport is registered for a file drag, which
+ * scrolls it by a line at a time while the pointer is within a line of
+ * its edge (`startClassicyFileDrag`).
  */
 export const ClassicyScrollArea = forwardRef<
 	HTMLDivElement,
@@ -307,6 +348,7 @@ export const ClassicyScrollArea = forwardRef<
 		renderViewport,
 		head,
 		onHeadChange,
+		barAccessories,
 		className,
 		style,
 		...rootProps
@@ -314,8 +356,14 @@ export const ClassicyScrollArea = forwardRef<
 	ref,
 ) {
 	const windowActive = useContext(ClassicyWindowActiveContext);
+	const scrollBarLayout = useClassicyAppearanceLayout().scrollBar;
 	const thumbDrag: ClassicyScrollThumbDrag =
-		useClassicyAppearanceLayout().scrollBar?.thumbDrag ?? "live";
+		scrollBarLayout?.thumbDrag ?? "live";
+	const snapBack: ClassicyScrollSnapBack = {
+		live: scrollBarLayout?.liveSnapBack === true,
+		across: scrollBarLayout?.snapBackScale?.across ?? 1,
+		along: scrollBarLayout?.snapBackScale?.along ?? 1,
+	};
 	const isInactive = inactive ?? windowActive === false;
 	const verticalPolicy = scrollable ? vertical : "never";
 	const horizontalPolicy = scrollable ? horizontal : "never";
@@ -633,6 +681,21 @@ export const ClassicyScrollArea = forwardRef<
 		[update],
 	);
 
+	// The viewport, for a file drag nearing its edge to scroll it
+	// (`startClassicyFileDrag`): by the area's line step, its bars redrawn.
+	const lineStepRef = useRef(lineStep);
+	lineStepRef.current = lineStep;
+	useEffect(() => {
+		if (!viewportEl || !scrollable) return;
+		return registerClassicyScrollViewport(viewportEl, {
+			lineStep: () => lineStepRef.current,
+			scrollBy: (dx, dy) => {
+				if (dx) scrollBy("horizontal", dx);
+				if (dy) scrollBy("vertical", dy);
+			},
+		});
+	}, [viewportEl, scrollable, scrollBy]);
+
 	// A focused root (a list box that takes the keyboard itself) scrolls its
 	// viewport for the keys a focused scroller takes, unless its own handler
 	// used the key: the browser would scroll an ancestor instead.
@@ -672,6 +735,8 @@ export const ClassicyScrollArea = forwardRef<
 			inactive={isInactive}
 			lineStep={lineStep}
 			thumbDrag={thumbDrag}
+			snapBack={snapBack}
+			accessories={barAccessories?.[orientation]}
 			scrollBy={scrollBy}
 			update={update}
 		/>
@@ -762,6 +827,8 @@ type ClassicyScrollBarProps = {
 	inactive: boolean;
 	lineStep: number;
 	thumbDrag: ClassicyScrollThumbDrag;
+	snapBack: ClassicyScrollSnapBack;
+	accessories?: ClassicyScrollBarAccessories;
 	scrollBy: (orientation: ClassicyScrollBarOrientation, delta: number) => void;
 	update: () => void;
 };
@@ -780,6 +847,8 @@ const ClassicyScrollBar = ({
 	inactive,
 	lineStep,
 	thumbDrag,
+	snapBack,
+	accessories,
 	scrollBy,
 	update,
 }: ClassicyScrollBarProps) => {
@@ -1012,31 +1081,51 @@ const ClassicyScrollBar = ({
 		};
 
 		const onRelease = thumbDrag === "onRelease";
+		// An on-release drag always snaps back; a live one when the package
+		// says so (Windows), else it follows the pointer anywhere (Mac OS 8).
+		const snapsBack = onRelease || snapBack.live;
 		const barEl = refs.bar.current;
 		// Read once per drag (a style read): how far the pointer may stray,
-		// the theme's knob, else the bar's thickness across ("the width of
-		// the scroll box").
+		// the theme's knob on every side, else the bar's thickness across
+		// ("the width of the scroll box") times the package's scale, across
+		// the bar and along it.
 		const thickness = barEl
 			? vertical
 				? barEl.offsetWidth
 				: barEl.offsetHeight
 			: 0;
-		const snapBack = onRelease
-			? readClassicyThemeVar(SNAP_BACK_VAR, thickness, barEl)
-			: Number.POSITIVE_INFINITY;
-		// Within `snapBack` pixels of the bar's own on every side: its box
-		// grown by that much, its right and bottom edges counted out, as
-		// QuickDraw's PtInRect did (the pointer at a pixel's column is
-		// `clientX`, and the bar's last column is its right edge less one).
+		const knob =
+			snapsBack && barEl
+				? readClassicyThemeVar(SNAP_BACK_VAR, Number.NaN, barEl)
+				: Number.NaN;
+		const reach = Number.isFinite(knob)
+			? { across: knob, along: knob }
+			: {
+					across: thickness * snapBack.across,
+					along: thickness * snapBack.along,
+				};
+		const reachX = vertical ? reach.across : reach.along;
+		const reachY = vertical ? reach.along : reach.across;
+		// Within that reach of the bar's own pixels: its box grown by it,
+		// its right and bottom edges counted out, as QuickDraw's PtInRect and
+		// Windows' did (the pointer at a pixel's column is `clientX`, and the
+		// bar's last column is its right edge less one).
 		const nearBar = (ev: MouseEvent) => {
-			if (!barEl || !onRelease) return true;
+			if (!barEl || !snapsBack) return true;
 			const r = barEl.getBoundingClientRect();
 			return (
-				ev.clientX >= r.left - snapBack &&
-				ev.clientX < r.right + snapBack &&
-				ev.clientY >= r.top - snapBack &&
-				ev.clientY < r.bottom + snapBack
+				ev.clientX >= r.left - reachX &&
+				ev.clientX < r.right + reachX &&
+				ev.clientY >= r.top - reachY &&
+				ev.clientY < r.bottom + reachY
 			);
+		};
+		// A live drag snapped back: the content where the drag found it.
+		const scrollToStart = () => {
+			if ((vertical ? el.scrollTop : el.scrollLeft) === startPosition) return;
+			if (vertical) el.scrollTop = startPosition;
+			else el.scrollLeft = startPosition;
+			update();
 		};
 		// Where an on-release drag would scroll to if released now; null
 		// while the outline is snapped back (or nothing has moved).
@@ -1044,6 +1133,13 @@ const ClassicyScrollBar = ({
 
 		const onMove = (ev: MouseEvent) => {
 			if (!onRelease) {
+				// Too far from the bar (a package that snaps a live drag
+				// back): the content goes back to where the drag started
+				// until the pointer returns, as Windows' scroll box does.
+				if (!nearBar(ev)) {
+					scrollToStart();
+					return;
+				}
 				const m = measure(ev);
 				if (m) scrollTo(m);
 				return;
@@ -1117,6 +1213,22 @@ const ClassicyScrollBar = ({
 			aria-hidden="true"
 			onMouseDown={keepFocus}
 		>
+			{isDrawn(accessories?.start) && (
+				<div
+					className="classicyScrollBarAccessory classicyScrollBarAccessoryStart"
+					data-classicy-part="scroll-accessory-start"
+				>
+					{accessories.start}
+				</div>
+			)}
+			{isDrawn(accessories?.end) && (
+				<div
+					className="classicyScrollBarAccessory classicyScrollBarAccessoryEnd"
+					data-classicy-part="scroll-accessory-end"
+				>
+					{accessories.end}
+				</div>
+			)}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: a scroll bar is a pointer affordance; the viewport is the keyboard- and AT-scrollable region */}
 			<div
 				className={classNames(

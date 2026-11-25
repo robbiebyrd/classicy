@@ -13,6 +13,8 @@ import {
 	ClassicyProgressBar,
 	ClassicyRadioInput,
 	ClassicySpinner,
+	ClassicySplitView,
+	type ClassicySplitViewCommands,
 	ClassicyTable,
 	ClassicyTree,
 	ClassicyWindow,
@@ -20,7 +22,7 @@ import {
 import { StoryApp } from "@sb/helpers";
 import { inScheme, windows98Parameters } from "@sb/windows98";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const meta = {
 	title: "Appearance/Windows 98",
@@ -284,4 +286,80 @@ export const Controls: Story = {
 			/>
 		</StoryApp>
 	),
+};
+
+// A long document, so each pane scrolls on its own.
+const readme = (title: string) => (
+	<div style={{ padding: "0.5em" }}>
+		{Array.from({ length: 30 }, (_, i) => (
+			// biome-ignore lint/suspicious/noArrayIndexKey: a fixed list of filler lines
+			<p key={i}>
+				{title}, paragraph {i + 1}.
+			</p>
+		))}
+	</div>
+);
+
+/** A document window the user splits from its split box or View menu. */
+function SplitWindow() {
+	const commandsRef = useRef<ClassicySplitViewCommands>(null);
+	const [split, setSplit] = useState(false);
+	const viewMenu: ClassicyMenuItem[] = [
+		{
+			id: "split-view",
+			title: "View",
+			menuChildren: [
+				split
+					? {
+							id: "split-remove",
+							title: "Remove Split",
+							onClickFunc: () => commandsRef.current?.removeSplit(),
+						}
+					: {
+							id: "split-split",
+							title: "Split",
+							onClickFunc: () => commandsRef.current?.split(),
+						},
+			],
+		},
+	];
+	return (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="windows98-split"
+				appId="storybook.app"
+				title="Readme.txt - WordPad"
+				initialSize={[380, 320]}
+				initialPosition={[80, 40]}
+				appMenu={viewMenu}
+				scrollable={false}
+			>
+				<ClassicySplitView
+					direction="vertical"
+					splittable
+					defaultClosed="leading"
+					onSplitChange={(closed) => setSplit(closed === null)}
+					commandsRef={commandsRef}
+				>
+					{readme("Upper pane")}
+					{readme("Lower pane")}
+				</ClassicySplitView>
+			</ClassicyWindow>
+		</StoryApp>
+	);
+}
+
+/**
+ * Scrolling and splitting (the WIG audit's 6.10, 6.12 and 6.13): the window
+ * opens unsplit, a raised split box above the vertical scroll bar's up arrow
+ * (WIG Ch.6, Figure 6.11). Drag it down to split the window; the split bar
+ * draws in the halftone while it moves, and dragging it back to either end
+ * (or double-clicking it) closes the split. View > Split splits in the
+ * middle and moves the split from the keyboard: the arrow keys move it,
+ * Enter sets it, Esc cancels. Drag a scroll box and move the pointer well
+ * away from its bar: the document snaps back to where the drag began, and
+ * follows again when the pointer returns (p.89).
+ */
+export const Splitting: Story = {
+	render: () => <SplitWindow />,
 };

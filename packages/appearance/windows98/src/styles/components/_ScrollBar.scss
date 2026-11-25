@@ -51,7 +51,15 @@
 // - A split view's divider is the flat ButtonFace splitter bar of Explorer's
 //   panes, the full length of the view, no bevel of its own (the panes beside
 //   it carry the sunken client edge), the dotted focus rectangle when the
-//   keyboard moves it.
+//   keyboard moves it. While it moves (`dragging`: pressed, or the Split
+//   command's keyboard mode), it is the halftone bar Windows draws a moving
+//   split bar with (WIG Ch.6 "Splitting Windows", Figure 6.12; the tracker
+//   PatBlt with the halftone brush, PATINVERT), ButtonFace checked with its
+//   inverse, ButtonDkShadow.
+// - A closed split's split box (WIG Ch.6, p.93, Figure 6.11: at the end of
+//   the scroll bar, "the default size of a size handle, such as the
+//   window's sizing border") is a raised ButtonFace box, the divider's
+//   thickness along the bar and the bar's width across.
 //
 //   Windows color     token
 //   ButtonFace        --color-system-03        the faces, the checker's dark
@@ -84,6 +92,10 @@ $checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) 
 // The same inverted (DSTINVERT): ButtonHilight's cells black, ButtonFace's
 // ButtonDkShadow (the complement of the light gray is the dark one).
 $checker-inverted: repeating-conic-gradient(b.$text 0 25%, b.$dkshadow 0 50%) 0 0 / px(2) px(2);
+
+// The moving split bar: ButtonFace checked with its inverse (the halftone
+// tracker, PATINVERT over the face).
+$split-halftone: repeating-conic-gradient(b.$dkshadow 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
 
 // The proportional thumb's minimum length: half an arrow button.
 $thumb-min: px(8);
@@ -276,5 +288,15 @@ $thumb-min: px(8);
       outline: b.$b dotted b.$text;
       outline-offset: b.$neg-b;
     }
+
+    &.dragging {
+      background: $split-halftone;
+    }
+  }
+
+  // A closed split's split box: a raised ButtonFace box.
+  .classicySplitViewSplitBox {
+    background-color: b.$face;
+    @include b.raised;
   }
 }

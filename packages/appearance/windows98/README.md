@@ -56,7 +56,10 @@ and `nodenext` resolution).
   button or button), keyboard shortcuts spelled as Windows' menus spell
   them (Ctrl+Backspace, Alt+Shift+F), an empty submenu showing a dimmed
   "(Empty)", desktop icons from the top left, as Windows laid them, a
-  window's scroll bars kept where its content fits, and the Open and Save
+  window's scroll bars kept where its content fits, a dragged scroll box
+  that snaps back, the document with it, when the pointer strays well away
+  from its bar (more than eight bar widths to the side or two past its
+  ends) and follows again when the pointer returns, and the Open and Save
   boxes as titled, movable dialogs showing one folder at a time under a
   pop-up that runs the path upward (Windows' Look in), Save As opening with
   the file name selected, dialogs and alerts centered on whole pixels,
@@ -101,7 +104,10 @@ and `nodenext` resolution).
     box, the paged side of the track inverted while the mouse holds it, an
     arrow embossed (disabled) at the end of its travel (the up arrow at the
     top of a document, the down arrow at its bottom), the bars kept in an
-    inactive window and drawn, disabled, where the content fits;
+    inactive window and drawn, disabled, where the content fits; a split
+    view's split box (where an app lets a view be split) a raised box at
+    the end of the scroll bar, and its split bar flat, drawn in the
+    halftone while it moves;
   - the desktop: icons with plain labels that take the highlight when
     selected, a selected icon blended with a 50% dither of the highlight
     (as Explorer drew it) on the desktop, in icon views and in the Finder's

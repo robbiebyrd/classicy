@@ -109,6 +109,24 @@
   order: 30;
 }
 
+// Controls a caller puts inside the bar past its arrows (`barAccessories`:
+// a split view's split box), before the start arrow and after the end one.
+// Each takes its own length along the bar from the track, and the bar's
+// thickness across.
+[data-classicy-part="scroll-accessory-start"] {
+  order: 5;
+}
+
+[data-classicy-part="scroll-accessory-end"] {
+  order: 35;
+}
+
+.classicyScrollBarAccessory {
+  display: flex;
+  flex: none;
+  flex-direction: inherit;
+}
+
 .classicyScrollBarArrow {
   flex: none;
   box-sizing: border-box;

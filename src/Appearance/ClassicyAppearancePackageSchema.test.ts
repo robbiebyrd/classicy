@@ -107,6 +107,39 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// A live thumb drag's snap-back and its distance (the WIG audit's 6.10):
+	// optional, Platinum's and System 7's layouts declaring neither.
+	it("takes optional scrollBar.liveSnapBack and snapBackScale, and refuses bad values", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).scrollBar = {
+			liveSnapBack: true,
+			snapBackScale: { across: 8, along: 2 },
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.scrollBar).toEqual({
+			liveSnapBack: true,
+			snapBackScale: { across: 8, along: 2 },
+		});
+		for (const [scrollBar, key] of [
+			[{ liveSnapBack: "yes" }, "liveSnapBack"],
+			[{ snapBackScale: { across: 8 } }, "snapBackScale"],
+			[{ snapBackScale: { across: -1, along: 2 } }, "snapBackScale"],
+			[{ snapBackScale: { across: 8, along: 65 } }, "snapBackScale"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).scrollBar = scrollBar;
+			const parsed = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(parsed.success, JSON.stringify(scrollBar)).toBe(false);
+			expect(
+				parsed.error?.issues.some(
+					(i) => i.path[1] === "scrollBar" && i.path[2] === key,
+				),
+				JSON.stringify(scrollBar),
+			).toBe(true);
+		}
+	});
+
 	// The menus' time-outs and their keyboard's treatment of dimmed items
 	// (the WIG audit's 7.6 / 14.4, 7.7 and 7.12): optional, so Platinum's
 	// layout, which declares none, still parses, and each kept as given.

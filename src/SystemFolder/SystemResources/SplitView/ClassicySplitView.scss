@@ -25,6 +25,32 @@
   min-height: 0;
 }
 
+// A `splittable` view's closed pane: kept mounted (its scroll position and
+// state survive the reopening), not drawn.
+:where(.classicySplitViewPane).collapsed {
+  display: none;
+}
+
+// The split box of a closed split (`splittable`): at the end of the other
+// pane's scroll bar, inside it (a `scroll-accessory-*` part), as thick along
+// the bar as the divider and as wide as the bar, in the divider's fill; the
+// package draws the rest. Its cursor is the divider's, by the bar it sits in
+// (below).
+.classicySplitViewSplitBox {
+  flex: none;
+  box-sizing: border-box;
+  background-color: var(--color-window-frame);
+  touch-action: none;
+}
+
+.classicyScrollBarVertical .classicySplitViewSplitBox {
+  height: var(--window-padding-size);
+}
+
+.classicyScrollBarHorizontal .classicySplitViewSplitBox {
+  width: var(--window-padding-size);
+}
+
 // The divider wears the window frame edge's clothes: the frame-gray fill and
 // the Platinum bevel border (the Platinum package's), sized to the frame ring
 // so it reads as a movable piece of window chrome rather than a plain rule.
@@ -68,15 +94,31 @@ $cursor-missing: url('data:,');
     row-resize;
 }
 
+// The split box takes the cursor of the divider it opens: in a side-by-side
+// split it sits in a horizontal bar, in a stacked one in a vertical bar.
+.classicyScrollBarHorizontal .classicySplitViewSplitBox {
+  cursor:
+    var(--classicy-cursor-resize-lr, #{$cursor-missing}) var(--classicy-cursor-resize-lr-hotspot, 8 8),
+    col-resize;
+}
+
+.classicyScrollBarVertical .classicySplitViewSplitBox {
+  cursor:
+    var(--classicy-cursor-resize-ud, #{$cursor-missing}) var(--classicy-cursor-resize-ud-hotspot, 8 8),
+    row-resize;
+}
+
 // Mid-drag the cursor tracks the direction of travel (Mac OS 8 window-edge
 // idiom: the bar is the edge, the arrow is where it's headed). The component
 // stamps the direction on the root while a drag is live; matching on the root
-// overrides every divider's own hover cursor, since document.body's inline
-// cursor (set for everywhere else by useClassicyCursor) loses to it.
+// overrides every divider's (and the split box's) own hover cursor, since
+// document.body's inline cursor (set for everywhere else by
+// useClassicyCursor) loses to it.
 @each $dir, $var, $fallback in ('u', resize-u, n-resize), ('d', resize-d, s-resize),
   ('l', resize-l, w-resize), ('r', resize-r, e-resize)
 {
-  .classicySplitView[data-drag-direction='#{$dir}'] .classicySplitViewDivider {
+  .classicySplitView[data-drag-direction='#{$dir}'] .classicySplitViewDivider,
+  .classicySplitView[data-drag-direction='#{$dir}'] .classicySplitViewSplitBox {
     cursor:
       var(--classicy-cursor-#{$var}, #{$cursor-missing}) var(--classicy-cursor-#{$var}-hotspot, 8 8),
       $fallback;

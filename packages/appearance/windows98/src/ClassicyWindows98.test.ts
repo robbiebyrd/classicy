@@ -257,7 +257,7 @@ describe("the Windows 98 appearance package", () => {
 	// shows as a ToolTip below and right of the resting pointer, gone on a
 	// press (`balloonHelp.placement` "pointer", 7.27; WIG Ch.7 "Tooltip
 	// Controls", p.133).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer", async () => {
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
@@ -270,7 +270,11 @@ describe("the Windows 98 appearance package", () => {
 				emptySubmenus: "placeholder",
 			},
 			desktop: { iconGridOrigin: "top-left" },
-			scrollBar: { fitsBars: "shown" },
+			scrollBar: {
+				fitsBars: "shown",
+				liveSnapBack: true,
+				snapBackScale: { across: 8, along: 2 },
+			},
 			fileDialog: {
 				frame: "movable",
 				navigation: "flat",

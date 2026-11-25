@@ -1,4 +1,6 @@
-import { fireEvent } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { act, fireEvent } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -11,6 +13,8 @@ import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage"
 import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import {
 	ClassicySplitView,
+	type ClassicySplitViewCommands,
+	classicySplitViewClosingPane,
 	computeSplitViewSizes,
 } from "@/SystemFolder/SystemResources/SplitView/ClassicySplitView";
 
@@ -654,5 +658,406 @@ describe("ClassicySplitView when the pointer stream is lost", () => {
 		fireEvent.mouseDown(divider, { clientX: 200 });
 		losePointerStream("pointercancel");
 		expect(live.size).toBe(0);
+	});
+});
+
+describe("classicySplitViewClosingPane", () => {
+	it("closes the pane whose end the divider is dragged to, within the handle's thickness", () => {
+		expect(classicySplitViewClosingPane(5, 300, 6)).toBe("leading");
+		expect(classicySplitViewClosingPane(-40, 300, 6)).toBe("leading");
+		expect(classicySplitViewClosingPane(6, 300, 6)).toBeNull();
+		expect(classicySplitViewClosingPane(150, 300, 6)).toBeNull();
+		expect(classicySplitViewClosingPane(293, 300, 6)).toBeNull();
+		expect(classicySplitViewClosingPane(294, 300, 6)).toBe("trailing");
+		expect(classicySplitViewClosingPane(500, 300, 6)).toBe("trailing");
+	});
+});
+
+// A splittable view (WIG Ch.6 "Splitting Windows", pp.92-95; HIG7
+// pp.170-172): stacked, 300 px tall, its handles 6 px thick.
+describe("ClassicySplitView splittable", () => {
+	afterEach(() => {
+		document.body.style.cursor = "";
+	});
+
+	const thick = (el: Element, size = 6) =>
+		vi
+			.spyOn(el, "getBoundingClientRect")
+			.mockReturnValue(
+				DOMRect.fromRect({ x: 0, y: 0, width: 400, height: size }),
+			);
+
+	const renderSplittable = (
+		props: Partial<ComponentProps<typeof ClassicySplitView>> = {},
+	) => {
+		const onResizeCommit = vi.fn();
+		const onSplitChange = vi.fn();
+		const commandsRef = {
+			current: null as ClassicySplitViewCommands | null,
+		};
+		const view = render(
+			<ClassicySplitView
+				direction="vertical"
+				splittable
+				onResizeCommit={onResizeCommit}
+				onSplitChange={onSplitChange}
+				commandsRef={commandsRef}
+				{...props}
+			>
+				<div>Top</div>
+				<div>Bottom</div>
+			</ClassicySplitView>,
+		);
+		const root = mockRootRect(view.container, 400, 300);
+		const panes = () =>
+			[...view.container.querySelectorAll(".classicySplitViewPane")].map(
+				(p) => p as HTMLElement,
+			);
+		const divider = () =>
+			view.container.querySelector(
+				".classicySplitViewDivider",
+			) as HTMLElement | null;
+		const splitBox = () =>
+			view.container.querySelector(
+				".classicySplitViewSplitBox",
+			) as HTMLElement | null;
+		return {
+			...view,
+			root,
+			panes,
+			divider,
+			splitBox,
+			onResizeCommit,
+			onSplitChange,
+			commandsRef,
+		};
+	};
+
+	it("closes the pane the divider is dragged to the end of, reopening it if the pointer leaves the end", () => {
+		const {
+			container,
+			panes,
+			divider,
+			splitBox,
+			onResizeCommit,
+			onSplitChange,
+		} = renderSplittable();
+		thick(divider() as HTMLElement);
+		fireEvent.mouseDown(divider() as HTMLElement, { clientY: 150 });
+		// Past the minimum, the top pane stops at 48 px.
+		fireEvent.mouseMove(document, { clientY: 20 });
+		expect(paneGrows(container)).toEqual(["16", "84"]);
+		expect(panes()[0]).not.toHaveClass("collapsed");
+		// Within the divider's thickness of the top: the top pane closes.
+		fireEvent.mouseMove(document, { clientY: 5 });
+		expect(panes()[0]).toHaveClass("collapsed");
+		expect(divider()).toBeNull();
+		// The bottom pane keeps its vertical bar, the split box at its top.
+		const box = splitBox() as HTMLElement;
+		expect(
+			box.closest('[data-classicy-part="scroll-accessory-start"]'),
+		).not.toBeNull();
+		expect(panes()[1].contains(box)).toBe(true);
+		// Back out of the end, before the release: open again.
+		fireEvent.mouseMove(document, { clientY: 100 });
+		expect(panes()[0]).not.toHaveClass("collapsed");
+		expect(splitBox()).toBeNull();
+		fireEvent.mouseMove(document, { clientY: 2 });
+		fireEvent.mouseUp(document);
+		expect(onSplitChange).toHaveBeenCalledOnce();
+		expect(onSplitChange).toHaveBeenCalledWith("leading");
+		expect(onResizeCommit).not.toHaveBeenCalled();
+		// The split keeps its location before the drag, for reopening.
+		expect(paneGrows(container)).toEqual(["50", "50"]);
+		// The closed pane stays mounted.
+		expect(panes()[0].textContent).toBe("Top");
+	});
+
+	it("closes the trailing pane at the other end, the split box at the end of the leading pane's bar", () => {
+		const { panes, divider, splitBox, onSplitChange } = renderSplittable();
+		thick(divider() as HTMLElement);
+		fireEvent.mouseDown(divider() as HTMLElement, { clientY: 150 });
+		fireEvent.mouseMove(document, { clientY: 294 });
+		fireEvent.mouseUp(document);
+		expect(panes()[1]).toHaveClass("collapsed");
+		expect(onSplitChange).toHaveBeenCalledWith("trailing");
+		const box = splitBox() as HTMLElement;
+		expect(panes()[0].contains(box)).toBe(true);
+		expect(
+			box.closest('[data-classicy-part="scroll-accessory-end"]'),
+		).not.toBeNull();
+	});
+
+	it("opens a closed split by dragging its split box out", () => {
+		const { container, panes, splitBox, onResizeCommit, onSplitChange } =
+			renderSplittable({ defaultClosed: "leading" });
+		expect(panes()[0]).toHaveClass("collapsed");
+		// The remaining pane draws its bar (`always`) for the box.
+		expect(
+			container.querySelectorAll('[data-classicy-part="scrollbar"]'),
+		).toHaveLength(1);
+		const box = splitBox() as HTMLElement;
+		thick(box);
+		fireEvent.mouseDown(box, { clientY: 2 });
+		// Still over the box: closed.
+		fireEvent.mouseMove(document, { clientY: 7 });
+		expect(panes()[0]).toHaveClass("collapsed");
+		fireEvent.mouseMove(document, { clientY: 152 });
+		expect(panes()[0]).not.toHaveClass("collapsed");
+		expect(paneGrows(container)).toEqual(["50", "50"]);
+		const divider = container.querySelector(".classicySplitViewDivider");
+		// The moving divider carries `dragging` until the release.
+		expect(divider).toHaveClass("dragging");
+		fireEvent.mouseUp(document);
+		expect(divider).not.toHaveClass("dragging");
+		expect(onSplitChange).toHaveBeenCalledWith(null);
+		expect(onResizeCommit).toHaveBeenCalledWith([50, 50], { lost: false });
+	});
+
+	it("opens at the minimum from the split box, never smaller", () => {
+		const { container, splitBox } = renderSplittable({
+			defaultClosed: "leading",
+		});
+		const box = splitBox() as HTMLElement;
+		thick(box);
+		fireEvent.mouseDown(box, { clientY: 2 });
+		fireEvent.mouseMove(document, { clientY: 12 });
+		expect(paneGrows(container)).toEqual(["16", "84"]);
+		fireEvent.mouseUp(document);
+	});
+
+	it("reopens where the split last was on a double-click of the split box", () => {
+		const { container, panes, splitBox, onSplitChange } = renderSplittable({
+			defaultClosed: "leading",
+			defaultSizes: [30, 70],
+		});
+		fireEvent.doubleClick(splitBox() as HTMLElement);
+		expect(panes()[0]).not.toHaveClass("collapsed");
+		expect(paneGrows(container)).toEqual(["30", "70"]);
+		expect(onSplitChange).toHaveBeenCalledWith(null);
+	});
+
+	it("closes the smaller pane on a double-click of the divider", () => {
+		const { panes, divider, onSplitChange, commandsRef } = renderSplittable({
+			defaultSizes: [70, 30],
+		});
+		expect(commandsRef.current?.isSplit()).toBe(true);
+		fireEvent.doubleClick(divider() as HTMLElement);
+		expect(panes()[1]).toHaveClass("collapsed");
+		expect(onSplitChange).toHaveBeenCalledWith("trailing");
+		expect(commandsRef.current?.isSplit()).toBe(false);
+	});
+
+	it("removes the split from a command, the smaller pane closing", () => {
+		const { panes, onSplitChange, commandsRef } = renderSplittable({
+			defaultSizes: [40, 60],
+		});
+		act(() => commandsRef.current?.removeSplit());
+		expect(panes()[0]).toHaveClass("collapsed");
+		expect(onSplitChange).toHaveBeenCalledWith("leading");
+		// Already closed: nothing more.
+		act(() => commandsRef.current?.removeSplit());
+		expect(onSplitChange).toHaveBeenCalledOnce();
+	});
+
+	it("needs exactly two panes: three stay split, with a warning", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const { container } = render(
+			<ClassicySplitView splittable defaultClosed="leading">
+				<div>One</div>
+				<div>Two</div>
+				<div>Three</div>
+			</ClassicySplitView>,
+		);
+		expect(warn).toHaveBeenCalled();
+		expect(container.querySelector(".collapsed")).toBeNull();
+		expect(
+			container.querySelectorAll(".classicySplitViewDivider"),
+		).toHaveLength(2);
+	});
+
+	it("ignores defaultClosed and the ends without splittable", () => {
+		const onSplitChange = vi.fn();
+		const { container } = render(
+			<ClassicySplitView
+				direction="vertical"
+				defaultClosed="leading"
+				onSplitChange={onSplitChange}
+			>
+				<div>Top</div>
+				<div>Bottom</div>
+			</ClassicySplitView>,
+		);
+		mockRootRect(container, 400, 300);
+		expect(container.querySelector(".collapsed")).toBeNull();
+		const divider = container.querySelector(
+			".classicySplitViewDivider",
+		) as HTMLElement;
+		thick(divider);
+		fireEvent.mouseDown(divider, { clientY: 150 });
+		fireEvent.mouseMove(document, { clientY: -50 });
+		fireEvent.doubleClick(divider);
+		fireEvent.mouseUp(document);
+		expect(container.querySelector(".collapsed")).toBeNull();
+		expect(container.querySelector(".classicySplitViewSplitBox")).toBeNull();
+		expect(paneGrows(container)).toEqual(["16", "84"]);
+		expect(onSplitChange).not.toHaveBeenCalled();
+	});
+});
+
+// The Split command (WIG Ch.6 "Splitting Windows", p.95): the arrow keys
+// move the split, Enter sets it, Escape cancels.
+describe("ClassicySplitView Split command", () => {
+	const renderWithCommand = (
+		props: Partial<ComponentProps<typeof ClassicySplitView>> = {},
+	) => {
+		const onResizeCommit = vi.fn();
+		const onSplitChange = vi.fn();
+		const commandsRef = {
+			current: null as ClassicySplitViewCommands | null,
+		};
+		const view = render(
+			<>
+				<button type="button">Before</button>
+				<ClassicySplitView
+					direction="vertical"
+					onResizeCommit={onResizeCommit}
+					onSplitChange={onSplitChange}
+					commandsRef={commandsRef}
+					{...props}
+				>
+					<div>Top</div>
+					<div>Bottom</div>
+				</ClassicySplitView>
+			</>,
+		);
+		mockRootRect(view.container, 400, 300);
+		const button = view.getByText("Before");
+		button.focus();
+		const divider = () =>
+			view.container.querySelector(
+				".classicySplitViewDivider",
+			) as HTMLElement | null;
+		return {
+			...view,
+			button,
+			divider,
+			onResizeCommit,
+			onSplitChange,
+			commandsRef,
+		};
+	};
+
+	it("splits a closed view in the middle and moves it from the keyboard until Enter", () => {
+		const {
+			container,
+			button,
+			divider,
+			onResizeCommit,
+			onSplitChange,
+			commandsRef,
+		} = renderWithCommand({ splittable: true, defaultClosed: "leading" });
+		act(() => commandsRef.current?.split());
+		expect(container.querySelector(".collapsed")).toBeNull();
+		expect(paneGrows(container)).toEqual(["50", "50"]);
+		const el = divider() as HTMLElement;
+		expect(document.activeElement).toBe(el);
+		expect(el).toHaveClass("dragging");
+		fireEvent.keyDown(el, { key: "ArrowDown" });
+		fireEvent.keyUp(el, { key: "ArrowDown" });
+		fireEvent.keyDown(el, { key: "ArrowDown" });
+		fireEvent.keyUp(el, { key: "ArrowDown" });
+		expect(paneGrows(container)).toEqual(["52", "48"]);
+		// Not set until Enter.
+		expect(onResizeCommit).not.toHaveBeenCalled();
+		expect(fireEvent.keyDown(el, { key: "Enter" })).toBe(false);
+		expect(onResizeCommit).toHaveBeenCalledOnce();
+		expect(onResizeCommit).toHaveBeenCalledWith([52, 48], { lost: false });
+		expect(onSplitChange).toHaveBeenCalledWith(null);
+		expect(el).not.toHaveClass("dragging");
+		expect(document.activeElement).toBe(button);
+		expect(commandsRef.current?.isSplit()).toBe(true);
+	});
+
+	it("puts the split back as it was on Escape, closed again", () => {
+		const {
+			container,
+			button,
+			divider,
+			onResizeCommit,
+			onSplitChange,
+			commandsRef,
+		} = renderWithCommand({
+			splittable: true,
+			defaultClosed: "trailing",
+			defaultSizes: [30, 70],
+		});
+		act(() => commandsRef.current?.split());
+		const el = divider() as HTMLElement;
+		fireEvent.keyDown(el, { key: "ArrowUp" });
+		expect(fireEvent.keyDown(el, { key: "Escape" })).toBe(false);
+		expect(
+			(container.querySelectorAll(".classicySplitViewPane")[1] as HTMLElement)
+				.classList,
+		).toContain("collapsed");
+		expect(paneGrows(container)).toEqual(["30", "70"]);
+		expect(onResizeCommit).not.toHaveBeenCalled();
+		expect(onSplitChange).not.toHaveBeenCalled();
+		expect(document.activeElement).toBe(button);
+	});
+
+	it("moves an open split where it is, in any split view", () => {
+		const { container, divider, onResizeCommit, commandsRef } =
+			renderWithCommand({ defaultSizes: [40, 60] });
+		act(() => commandsRef.current?.split());
+		expect(paneGrows(container)).toEqual(["40", "60"]);
+		const el = divider() as HTMLElement;
+		fireEvent.keyDown(el, { key: "ArrowUp" });
+		fireEvent.keyDown(el, { key: "Enter" });
+		expect(onResizeCommit).toHaveBeenCalledWith([39, 61], { lost: false });
+		// Outside the command, Enter and Escape are the divider's no more.
+		fireEvent.keyDown(el, { key: "Escape" });
+		expect(paneGrows(container)).toEqual(["39", "61"]);
+		expect(onResizeCommit).toHaveBeenCalledOnce();
+	});
+
+	it("sets the split where it is when focus leaves the divider", () => {
+		const { container, divider, onResizeCommit, commandsRef } =
+			renderWithCommand({ defaultSizes: [40, 60] });
+		act(() => commandsRef.current?.split());
+		const el = divider() as HTMLElement;
+		fireEvent.keyDown(el, { key: "ArrowDown" });
+		act(() => el.blur());
+		expect(onResizeCommit).toHaveBeenCalledWith([41, 59], { lost: false });
+		expect(el).not.toHaveClass("dragging");
+		expect(paneGrows(container)).toEqual(["41", "59"]);
+	});
+});
+
+describe("ClassicySplitView stylesheet", () => {
+	const base = readFileSync(
+		path.join(__dirname, "ClassicySplitView.scss"),
+		"utf8",
+	);
+
+	it("keeps a closed pane mounted but not drawn", () => {
+		expect(base).toMatch(
+			/:where\(\.classicySplitViewPane\)\.collapsed \{\s*display: none;/,
+		);
+	});
+
+	it("sizes the split box as the divider along its bar, with the divider's cursor", () => {
+		expect(base).toMatch(
+			/\.classicyScrollBarVertical \.classicySplitViewSplitBox \{\s*height: var\(--window-padding-size\);/,
+		);
+		expect(base).toMatch(
+			/\.classicyScrollBarHorizontal \.classicySplitViewSplitBox \{\s*width: var\(--window-padding-size\);/,
+		);
+		expect(base).toMatch(
+			/\.classicyScrollBarVertical \.classicySplitViewSplitBox \{\s*cursor:\s*var\(--classicy-cursor-resize-ud/,
+		);
+		expect(base).toMatch(
+			/\.classicyScrollBarHorizontal \.classicySplitViewSplitBox \{\s*cursor:\s*var\(--classicy-cursor-resize-lr/,
+		);
 	});
 });

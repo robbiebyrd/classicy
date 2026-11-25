@@ -1900,6 +1900,8 @@ describe("platinum.scss (compiled)", () => {
 					.border,
 			).toBe(BORDER);
 			expect(rules(".classicySplitViewDivider").props.border).toBe(BORDER);
+			// A closed split's split box wears the divider's border.
+			expect(rules(".classicySplitViewSplitBox").props.border).toBe(BORDER);
 		});
 
 		it.each([

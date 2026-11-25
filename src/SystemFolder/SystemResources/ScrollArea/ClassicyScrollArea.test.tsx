@@ -21,6 +21,7 @@ import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/Classic
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyScrollArea } from "./ClassicyScrollArea";
 import { useClassicyScrollAreaHead } from "./ClassicyScrollAreaHead.internal";
+import { classicyScrollViewportOf } from "./ClassicyScrollViewportRegistry.internal";
 
 type Box = {
 	scrollWidth: number;
@@ -1511,6 +1512,280 @@ describe("ClassicyScrollArea live thumb drag (no declaration)", () => {
 		expect(part(container, "scroll-drag-outline")).toBeUndefined();
 		fireEvent.mouseUp(document);
 	});
+
+	it("follows the pointer however far it strays from the bar (Mac OS 8)", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		for (const [clientX, clientY] of [
+			[2000, 96.5],
+			[-2000, 96.5],
+			[108, 96.5],
+		] as const) {
+			fireEvent.mouseMove(document, { clientX, clientY });
+			expect(viewport.scrollTop, `${clientX}`).toBe(400);
+		}
+		// Far below the bar: the thumb's end of travel.
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 2000 });
+		expect(viewport.scrollTop).toBe(800);
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 2000 });
+		expect(viewport.scrollTop).toBe(800);
+	});
+});
+
+// A package that declares `layout.scrollBar.liveSnapBack` (Windows, WIG
+// Ch.6 "Scroll Box", p.89): a live drag snaps back past the distance.
+const LIVE_SNAP_PACKAGE = "test-live-snap-back";
+const registerLiveSnapPackage = (
+	scrollBar: (typeof CLASSICY_DEFAULT_APPEARANCE_LAYOUT)["scrollBar"],
+) =>
+	registerClassicyAppearancePackage({
+		id: LIVE_SNAP_PACKAGE,
+		name: "Live Snap Back",
+		css: "",
+		defaults: {
+			...getTheme("default"),
+			id: "test-live-snap-back-default",
+			package: LIVE_SNAP_PACKAGE,
+		},
+		layout: { ...CLASSICY_DEFAULT_APPEARANCE_LAYOUT, scrollBar },
+	});
+
+describe("ClassicyScrollArea live thumb drag that snaps back", () => {
+	beforeEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+
+	const pressThumb = (container: HTMLElement) =>
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+
+	it("scrolls back to where the drag started past Windows' rectangle, and follows again on return", () => {
+		// Windows 98's declaration: 8 bars across, 2 along.
+		registerLiveSnapPackage({
+			liveSnapBack: true,
+			snapBackScale: { across: 8, along: 2 },
+		});
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		act(() => {
+			viewport.scrollTop = 37;
+			fireEvent.scroll(viewport);
+		});
+		pressThumb(container);
+		// No outline: the drag is live.
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		expect(part(container, "scroll-drag-outline")).toBeUndefined();
+		const followed = viewport.scrollTop;
+		expect(followed).toBeGreaterThan(37);
+		// The bar is 17 x 200 at (100, 0): grown by 136 across and 34
+		// along, its right and bottom edges counted out (Wine's
+		// point_in_scroll_rect, PtInRect).
+		for (const [clientX, clientY, top] of [
+			[252, 96.5, followed],
+			[253, 96.5, 37],
+			[-36, 96.5, followed],
+			[-37, 96.5, 37],
+			[108, -34, 0],
+			[108, -35, 37],
+			[108, 233, 800],
+			[108, 234, 37],
+			[110, 96.5, followed],
+		] as const) {
+			fireEvent.mouseMove(document, { clientX, clientY });
+			expect(viewport.scrollTop, `${clientX},${clientY}`).toBe(top);
+		}
+		// Snapped back, the thumb is drawn where the content is again.
+		const thumbAtStart = thumbStyle(part(container, "scroll-thumb")).offset;
+		fireEvent.mouseMove(document, { clientX: 400, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(37);
+		expect(thumbStyle(part(container, "scroll-thumb")).offset).not.toBe(
+			thumbAtStart,
+		);
+		// Released out there: the content stays where the drag found it.
+		fireEvent.mouseUp(document, { clientX: 400, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(37);
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(37);
+	});
+
+	it("snaps back past the bar's own thickness each way without a scale", () => {
+		registerLiveSnapPackage({ liveSnapBack: true });
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		pressThumb(container);
+		fireEvent.mouseMove(document, { clientX: 133, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+		fireEvent.mouseMove(document, { clientX: 134, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(0);
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 216 });
+		expect(viewport.scrollTop).toBe(800);
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 217 });
+		expect(viewport.scrollTop).toBe(0);
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 217 });
+	});
+
+	it("takes the theme's own distance on every side over the scale", () => {
+		registerLiveSnapPackage({
+			liveSnapBack: true,
+			snapBackScale: { across: 8, along: 2 },
+		});
+		const sheet = document.createElement("style");
+		sheet.textContent = ".classicyScrollBar { --scroll-bar-snap-back: 20px; }";
+		document.head.append(sheet);
+		try {
+			const { container, viewport } = renderTall();
+			placeBar(container);
+			pressThumb(container);
+			fireEvent.mouseMove(document, { clientX: 136, clientY: 96.5 });
+			expect(viewport.scrollTop).toBe(400);
+			fireEvent.mouseMove(document, { clientX: 137, clientY: 96.5 });
+			expect(viewport.scrollTop).toBe(0);
+			fireEvent.mouseUp(document, { clientX: 137, clientY: 96.5 });
+		} finally {
+			sheet.remove();
+		}
+	});
+
+	it("follows anywhere when the package declares a scale but no live snap-back", () => {
+		registerLiveSnapPackage({ snapBackScale: { across: 1, along: 1 } });
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		pressThumb(container);
+		fireEvent.mouseMove(document, { clientX: 2000, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+		fireEvent.mouseUp(document, { clientX: 2000, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+	});
+
+	it("scales an on-release drag's distance too, where the theme sets none", () => {
+		registerLiveSnapPackage({
+			thumbDrag: "onRelease",
+			snapBackScale: { across: 2, along: 1 },
+		});
+		const { container } = renderTall();
+		placeBar(container);
+		pressThumb(container);
+		const outline = part(container, "scroll-drag-outline");
+		// 34 px right of the bar's last column follows, 35 does not.
+		fireEvent.mouseMove(document, { clientX: 150, clientY: 96.5 });
+		expect(outlineStyle(outline).offset).toBe("84px");
+		fireEvent.mouseMove(document, { clientX: 151, clientY: 96.5 });
+		expect(outlineStyle(outline).offset).toBe("17px");
+		fireEvent.mouseUp(document, { clientX: 151, clientY: 96.5 });
+	});
+});
+
+describe("ClassicyScrollArea bar accessories", () => {
+	const kids = (bar: Element) =>
+		Array.from(bar.children).map(
+			(el) => el.getAttribute("data-classicy-part") ?? el.className,
+		);
+
+	it("draws a control before the start arrow and after the end arrow of its bar", () => {
+		const { container } = renderTall({
+			barAccessories: {
+				vertical: {
+					start: <span id="split-box" />,
+					end: <span id="end-box" />,
+				},
+			},
+		});
+		const bar = part(container, "scrollbar");
+		expect(kids(bar).slice(0, 4)).toEqual([
+			"scroll-accessory-start",
+			"scroll-accessory-end",
+			"scroll-arrow-start",
+			"scroll-track",
+		]);
+		const start = part(container, "scroll-accessory-start");
+		expect(start).toHaveClass(
+			"classicyScrollBarAccessory",
+			"classicyScrollBarAccessoryStart",
+		);
+		expect(start.querySelector("#split-box")).not.toBeNull();
+		const end = part(container, "scroll-accessory-end");
+		expect(end).toHaveClass(
+			"classicyScrollBarAccessory",
+			"classicyScrollBarAccessoryEnd",
+		);
+		expect(end.querySelector("#end-box")).not.toBeNull();
+		// Inside the bar, which assistive technology skips.
+		expect(bar.getAttribute("aria-hidden")).toBe("true");
+	});
+
+	it("draws nothing for an end given no control, or a bar not drawn", () => {
+		const { container } = renderTall({
+			barAccessories: {
+				vertical: { start: null, end: false },
+				horizontal: { start: <span id="never" /> },
+			},
+		});
+		expect(part(container, "scrollbar")).toBeDefined();
+		expect(part(container, "scroll-accessory-start")).toBeUndefined();
+		expect(part(container, "scroll-accessory-end")).toBeUndefined();
+		// The content fits sideways: no horizontal bar, no accessory.
+		expect(container.querySelector("#never")).toBeNull();
+	});
+
+	it("draws no accessory part without the prop", () => {
+		const { container } = renderTall();
+		expect(container.querySelector(".classicyScrollBarAccessory")).toBeNull();
+	});
+
+	it("puts the accessory parts ahead of the start arrow and past the end one", () => {
+		const base = readFileSync(
+			path.join(__dirname, "ClassicyScrollArea.scss"),
+			"utf8",
+		);
+		const order = (name: string) =>
+			Number(
+				new RegExp(
+					`\\[data-classicy-part="${name}"\\] \\{\\s*order: (\\d+);`,
+				).exec(base)?.[1],
+			);
+		expect(order("scroll-accessory-start")).toBeLessThan(
+			order("scroll-arrow-start"),
+		);
+		expect(order("scroll-accessory-end")).toBeGreaterThan(
+			order("scroll-arrow-end"),
+		);
+		expect(base).toMatch(
+			/\.classicyScrollBarAccessory \{\s*display: flex;\s*flex: none;\s*flex-direction: inherit;/,
+		);
+	});
+});
+
+describe("ClassicyScrollArea's viewport registration", () => {
+	it("registers its viewport, scrolling by a line step and redrawing the bars", () => {
+		const { container, viewport, unmount } = renderTall({ lineStep: 24 });
+		const inner = viewport.querySelector("p") as HTMLElement;
+		const found = classicyScrollViewportOf(inner);
+		expect(found?.element).toBe(viewport);
+		expect(found?.entry.lineStep()).toBe(24);
+		act(() => {
+			found?.entry.scrollBy(0, 400);
+		});
+		expect(viewport.scrollTop).toBe(400);
+		expect(thumbStyle(part(container, "scroll-thumb")).offset).toBe("83px");
+		unmount();
+		expect(classicyScrollViewportOf(viewport)).toBeNull();
+	});
+
+	it("registers no viewport that clips instead of scrolling", () => {
+		const { viewport } = renderTall({ scrollable: false });
+		expect(classicyScrollViewportOf(viewport)).toBeNull();
+	});
 });
 
 describe("ClassicyScrollArea vocabulary and stylesheet", () => {
@@ -1536,6 +1811,8 @@ describe("ClassicyScrollArea vocabulary and stylesheet", () => {
 			"scroll-thumb",
 			"scroll-corner",
 			"scroll-drag-outline",
+			"scroll-accessory-start",
+			"scroll-accessory-end",
 		]) {
 			expect(parts).toContain(name);
 		}

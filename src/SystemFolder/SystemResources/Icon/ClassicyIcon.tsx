@@ -247,6 +247,10 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		if (onFileDrag) {
 			if (e.button !== 0) return;
 			const el = iconRef.current;
+			// Where the icons' holder is on screen at the press: the folder's
+			// contents may scroll under the drag (its window auto-scrolls near
+			// an edge, or the wheel turns), carrying the holder with them.
+			const holderAtPress = holder?.current?.getBoundingClientRect();
 			const abandon = startClassicyFileDrag({
 				start: { clientX: e.clientX, clientY: e.clientY },
 				parts: [
@@ -259,10 +263,19 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					if (onFileDrag(target, point, outlineTopLeft)) return;
 					if (positionLocked) return;
 					// Dropped back in its own folder: the icon goes where its
-					// outline was let go, i.e. it moves as far as the pointer did.
+					// outline was let go, i.e. it moves as far as the pointer did
+					// across the contents, less however far they scrolled.
+					const holderNow = holder?.current?.getBoundingClientRect();
+					const scrolled =
+						holderAtPress && holderNow
+							? [
+									holderNow.left - holderAtPress.left,
+									holderNow.top - holderAtPress.top,
+								]
+							: [0, 0];
 					const next: [number, number] = [
-						position[0] + point[0] - e.clientX,
-						position[1] + point[1] - e.clientY,
+						position[0] + point[0] - e.clientX - scrolled[0],
+						position[1] + point[1] - e.clientY - scrolled[1],
 					];
 					setPosition(snapTo ? snapToGrid(next, snapTo, snapOrigin) : next);
 					setFocus(true);

@@ -2408,6 +2408,14 @@ describe("system7.scss (compiled)", () => {
 				/margin-right: calc\(var\(--window-border-size\) \* -1\);/,
 			);
 		});
+
+		// A closed split's split box (ClassicySplitView `splittable`): the
+		// solid black split bar of HIG pp.170-171, Figure 5-41.
+		it("draws a split box as the HIG's solid black split bar", () => {
+			expect(rule(".classicySplitViewSplitBox")).toMatch(
+				/background-color: var\(--color-black\);/,
+			);
+		});
 	});
 
 	// Plan 0018-dbd §3.7: the desktop, its icons, the Control Strip, the tab

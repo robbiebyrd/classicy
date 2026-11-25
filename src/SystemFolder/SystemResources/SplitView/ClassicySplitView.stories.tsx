@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
-import { ClassicySplitView } from "./ClassicySplitView";
+import { useRef, useState } from "react";
+import { ClassicyButton } from "../Button/ClassicyButton";
+import {
+	ClassicySplitView,
+	type ClassicySplitViewCommands,
+	type ClassicySplitViewPane,
+} from "./ClassicySplitView";
 
 const meta = {
 	title: "Controls/SplitView",
@@ -145,4 +150,63 @@ const CommitDemo = () => {
  */
 export const CommitOnRelease: RenderStory = {
 	render: () => <CommitDemo />,
+};
+
+// A long document, so each pane scrolls on its own.
+const chapter = (title: string) => (
+	<div style={paneStyle}>
+		{Array.from({ length: 24 }, (_, i) => (
+			// biome-ignore lint/suspicious/noArrayIndexKey: a fixed list of filler lines
+			<p key={i}>
+				{title}, line {i + 1}.
+			</p>
+		))}
+	</div>
+);
+
+const SplittableDemo = () => {
+	const commandsRef = useRef<ClassicySplitViewCommands>(null);
+	const [closed, setClosed] = useState<ClassicySplitViewPane | null>("leading");
+	return (
+		<div style={{ display: "grid", gap: 8, width: 480 }}>
+			<div style={{ display: "flex", gap: 8 }}>
+				{/* A window's View menu holds these commands. */}
+				<ClassicyButton onClickFunc={() => commandsRef.current?.split()}>
+					Split
+				</ClassicyButton>
+				<ClassicyButton
+					disabled={closed !== null}
+					onClickFunc={() => commandsRef.current?.removeSplit()}
+				>
+					Remove Split
+				</ClassicyButton>
+			</div>
+			<div style={{ height: 320 }}>
+				<ClassicySplitView
+					direction="vertical"
+					splittable
+					defaultClosed="leading"
+					onSplitChange={setClosed}
+					commandsRef={commandsRef}
+				>
+					{chapter("Top pane")}
+					{chapter("Bottom pane")}
+				</ClassicySplitView>
+			</div>
+		</div>
+	);
+};
+
+/**
+ * A view the user splits (WIG Ch.6 "Splitting Windows", pp.92-95; HIG7
+ * pp.170-172): it opens unsplit, the split box at the top of the scroll
+ * bar. Drag the box down to split the view; drag the divider back to the
+ * top or bottom (or double-click it) to close the split, which leaves a
+ * split box where the closed pane was; double-click a split box to reopen
+ * where the split last was. Split (a window's command, here a button)
+ * splits in the middle and moves the split from the keyboard: the arrow
+ * keys move it, Enter sets it, Escape puts it back.
+ */
+export const Splittable: RenderStory = {
+	render: () => <SplittableDemo />,
 };

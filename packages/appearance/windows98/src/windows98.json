@@ -3819,7 +3819,12 @@
 			"iconGridOrigin": "top-left"
 		},
 		"scrollBar": {
-			"fitsBars": "shown"
+			"fitsBars": "shown",
+			"liveSnapBack": true,
+			"snapBackScale": {
+				"across": 8,
+				"along": 2
+			}
 		},
 		"fileDialog": {
 			"frame": "movable",

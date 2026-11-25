@@ -150,7 +150,8 @@ export type ClassicyAppearanceLayout = {
 		 * `scroll-drag-outline`) follows the pointer, and the content scrolls
 		 * when the button comes up; a pointer more than the theme's
 		 * `--scroll-bar-snap-back` (else the bar's thickness, "the width of
-		 * the scroll box") from the bar snaps the outline back over the thumb,
+		 * the scroll box", times `snapBackScale`) from the bar snaps the
+		 * outline back over the thumb,
 		 * and a release there scrolls nothing. Escape cancels the drag; the
 		 * keys and the wheel wait until it ends.
 		 */
@@ -176,6 +177,28 @@ export type ClassicyAppearanceLayout = {
 		 * scrolls; the package positions its pattern by them.
 		 */
 		patternOrigin?: "element" | "window";
+		/**
+		 * Whether a live thumb drag (`thumbDrag` `"live"`) snaps back. Absent
+		 * or `false` (Mac OS 8): the content follows the thumb wherever the
+		 * pointer goes. `true` (Windows; WIG Ch.6 "Scroll Box", p.89): while
+		 * the pointer is farther from the bar than the snap-back distance
+		 * (`snapBackScale`, below), the content returns to where the drag
+		 * started, and follows the pointer again once it comes back; a
+		 * release out there leaves it where it started.
+		 */
+		liveSnapBack?: boolean;
+		/**
+		 * The snap-back distance of a thumb drag, as multiples of the bar's
+		 * thickness: `across` the bar (to either side) and `along` it (past
+		 * either end), for a theme that emits no `--scroll-bar-snap-back`
+		 * (which, when emitted, is the distance on every side, in px). Absent:
+		 * once the thickness each way (HIG p.165's "width of the scroll box").
+		 * Windows: 8 across and 2 along, the rectangle Windows' scroll bar is
+		 * grown by before the thumb snaps back (Wine's `point_in_scroll_rect`,
+		 * which ReactOS shares). Read by an on-release drag and by a live one
+		 * that `liveSnapBack` lets snap back.
+		 */
+		snapBackScale?: { across: number; along: number };
 	};
 	/**
 	 * Where the patterns a package fills its parts with are laid from, by

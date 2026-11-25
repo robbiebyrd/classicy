@@ -58,6 +58,15 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			thumbDrag: z.enum(["live", "onRelease"]).optional(),
 			fitsBars: z.enum(["hidden", "shown"]).optional(),
 			patternOrigin: z.enum(["element", "window"]).optional(),
+			liveSnapBack: z.boolean().optional(),
+			// Multiples of the bar's thickness; 64 bars is farther than any
+			// screen a scroll bar is drawn on.
+			snapBackScale: z
+				.object({
+					across: z.number().min(0).max(64),
+					along: z.number().min(0).max(64),
+				})
+				.optional(),
 		})
 		.optional(),
 	patternOrigin: z

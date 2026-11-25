@@ -329,7 +329,7 @@ describe("windows98.scss (compiled)", () => {
 	// The rules keyed on the hooks of the WIG audit's controls pass: a check
 	// list's check boxes (7.25), an inactive window's selections (6.4 /
 	// 13.8), a meter's zone patterns (14.5) and a ToolTip at the pointer
-	// (7.27).
+	// (7.27); and the split view's (6.12 / 6.13).
 	describe("the controls' hooks", () => {
 		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
 		const rule = (selector: string) => {
@@ -486,6 +486,25 @@ describe("windows98.scss (compiled)", () => {
 					selector.includes(".classicyMeterOptimal ."),
 				),
 			).toBe(false);
+		});
+
+		// WIG Ch.6 "Splitting Windows" (pp.93-94, Figures 6.11 and 6.12): a
+		// closed split's split box is a raised ButtonFace box, and a moving
+		// split bar the halftone tracker, ButtonFace checked with its
+		// inverse (the audit's 6.12 / 6.13).
+		it("draws a split box raised and a moving split bar in the halftone", () => {
+			const box = rule(".classicySplitViewSplitBox");
+			expect(box).toContain("background-color: var(--color-system-03)");
+			expect(box).toMatch(
+				/box-shadow: inset calc\(var\(--window-border-size\) \* -1\) calc\(var\(--window-border-size\) \* -1\) var\(--color-system-07\), inset var\(--window-border-size\) var\(--window-border-size\) var\(--color-system-01\)/,
+			);
+			expect(rule(".classicySplitViewDivider.dragging")).toContain(
+				"background: repeating-conic-gradient(var(--color-system-07) 0 25%, var(--color-system-03) 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)",
+			);
+			// The divider at rest stays flat ButtonFace.
+			expect(rule(".classicySplitViewDivider")).toContain(
+				"background-color: var(--color-system-03)",
+			);
 		});
 
 		// WIG Ch.7 "Tooltip Controls" (p.133); Wine's TOOLTIPS_Show: 20 below
