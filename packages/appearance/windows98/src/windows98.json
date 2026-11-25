@@ -159,6 +159,9 @@
 			"menuItem": {
 				"paddingX": 6
 			},
+			"menuBar": {
+				"titleHeight": 18
+			},
 			"menu": {
 				"popUpMaxHeight": 106
 			},
@@ -357,6 +360,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -553,6 +559,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -753,6 +762,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -951,6 +963,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1151,6 +1166,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -1349,6 +1367,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1551,6 +1572,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -1748,6 +1772,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -1944,6 +1971,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -2146,6 +2176,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -2345,6 +2378,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -2543,6 +2579,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -2745,6 +2784,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -2943,6 +2985,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3143,6 +3188,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -3342,6 +3390,9 @@
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menuBar": {
+					"titleHeight": 18
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -3538,6 +3589,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3739,6 +3793,9 @@
 				},
 				"menuItem": {
 					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
 				},
 				"menu": {
 					"popUpMaxHeight": 106

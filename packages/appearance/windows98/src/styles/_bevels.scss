@@ -91,11 +91,20 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
     inset $b2 $b2 $hilight;
 }
 
-// A one-ring raised edge (status-bar panes, the menu bar's bottom edge).
+// A one-ring raised edge (BDR_RAISEDINNER: a flat toolbar button under the
+// pointer, the Control Strip's cells).
 @mixin raised-thin {
   box-shadow:
     inset $neg-b $neg-b $shadow,
     inset $b $b $hilight;
+}
+
+// A one-ring sunken edge (BDR_SUNKENOUTER: an open menu-bar title), the
+// outer ring of `sunken`.
+@mixin sunken-thin {
+  box-shadow:
+    inset $neg-b $neg-b $hilight,
+    inset $b $b $shadow;
 }
 
 // Disabled text: GrayText with a one-pixel ButtonHilight emboss below right.

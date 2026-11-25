@@ -1,128 +1,127 @@
-// The Windows 98 screen menu bar, included by windows98.scss inside the
-// package wrapper; overrides Desktop/MenuBar/ClassicyDesktopMenuBar.scss,
-// ClassicyMenuBarExtension.scss and the Time and Sound widgets' sheets
-// (structure alone). Windows has no screen menu bar: a menu bar is a flat
-// ButtonFace strip in each window, and the screen's one bar is the taskbar.
-// This bar is both, in Windows' terms, and styled as the taskbar (WIG Ch.3
-// "The Taskbar", Figure 3.1, p.15): a ButtonFace bar `--menu-bar-height`
-// tall (the taskbar's 28 px, near enough) with the taskbar's raised edge
-// along the side facing the desktop, which for a bar docked at the top of
-// the screen is its bottom: ButtonShadow inside ButtonDkShadow, the dark
-// side of DrawEdge's raised edge (a window's own menu bar, which Windows 98
-// draws flat, is _Window.scss's); the Apple title a Start button (a raised
-// ButtonFace button, its label bold, pressed over the 50% ButtonHilight
-// checker while its menu is open, as the Start button is); the
-// application's menu titles flat after it, highlighted Hilight with
-// HilightText while open or tracked by the keyboard, as a window's menu bar
-// highlights an open title, and never under the pointer alone (Windows 98
-// hot-tracks no menu bar); the Application menu the front application's
-// taskbar button, which stands for the active window and so is drawn as
-// Figure 3.1 draws that window's button: pressed over the checker at all
-// times, its label bold (the other windows' buttons, which this bar has
-// not, are raised), pushed to the bar's right end before the tray; the
-// menu bar extensions flat tray icons; the clock a sunken one-ring pane at
-// the far right, the tray's status area (WIG Ch.3 "The Status Area",
-// p.16). The pull-downs hang from the bar's bottom edge, below the raised
-// edge, their left side under their title's (or their right side under its
-// right side where the screen has no room; the core flips them). A hidden
-// application's icon in the Application menu is dimmed.
+// The Windows 98 menu bar, included by windows98.scss inside the package
+// wrapper: a window's own menu bar (ClassicyWindowMenuBar, which reuses the
+// screen bar's `.classicyDesktopMenu` list), and a screen bar a host forces
+// with `placement="screen"`, which this package's layout never draws (the
+// shell puts a bar in each window and the taskbar along the bottom, plan
+// 0020-w98; _Taskbar.scss draws the taskbar's status area). It overrides
+// Desktop/MenuBar/ClassicyDesktopMenuBar.scss, ClassicyMenuBarExtension.scss,
+// the Time and Sound widgets' sheets and Window/ClassicyWindowMenuBar.scss
+// (structure alone). Every rule is scoped under `.classicyWindowMenuBar` or
+// `.classicyDesktopMenuBar`, so none reaches the taskbar's own `clock` and
+// `extensions` parts.
+//
+// A menu bar runs across the top of a window directly below its title bar
+// (WIG Ch.7 "The Menu Bar and Drop-down Menus", p.97, Figure 7.1), drawn as
+// Windows 98's menu code draws it (Wine's `MENU_MenuBarCalcSize`,
+// `MENU_DrawMenuItem` and `DrawMenuBarTemp`; `NC_DoNCPaint` sets the client
+// area one row below the bar):
+//
+// - The band: ButtonFace, one row above the titles, the titles
+//   `--menu-bar-title-height` tall (18: `SM_CYMENU` 19, the 270-twip menu
+//   height plus one, less the row above), and one row below them, 20 px in
+//   all. Wine fills the bar's 19 rows with the menu color and draws the row
+//   below in ButtonFace (`LineTo` at the bar's bottom; the client area
+//   starts after it), so the band is the bar and that row. The band's
+//   height is _Window.scss's (`with-menu-bar`); a screen bar takes it here.
+// - A title: its text in MenuText with one average character
+//   (`--menu-item-padding-x`, 6) on each side, centered on the band.
+//   Nothing under the pointer alone: Windows 98's menu bar tracks no hover
+//   (Wine's `MENU_DrawMenuItem` draws a title only plain or highlighted; the
+//   raised title under the pointer is Explorer's and Internet Explorer's
+//   command bar, os-gui's note on its `.menu-button.highlight`).
+// - Open, or tracked by the keyboard (ALT, then the arrows): sunken, one
+//   ring (BDR_SUNKENOUTER: ButtonShadow at the top and left, ButtonHilight
+//   at the bottom and right) around the title, its text MenuText on the
+//   face and in place (Wine draws the text in the same rectangle whether the
+//   title is highlighted or not). Windows 98 draws no Hilight band on its
+//   menu bar, and no focus rectangle (the sunken ring marks the keyboard's
+//   title). An inactive window's bar is drawn the same: only the caption
+//   shows that a window is not in front (WIG Ch.6 "Activating and
+//   Deactivating Windows", p.80).
+// - Unavailable (every item of its menu is): GrayText embossed by a
+//   ButtonHilight copy one pixel down and right, as an unavailable menu item
+//   is; sunken, when the keyboard reaches it, in GrayText alone (Wine draws a
+//   highlighted grayed title without the emboss).
+// - The pull-down hangs from the title's bottom edge, its left side under
+//   the title's left side (Wine's `MENU_ShowSubPopup`: the popup at the
+//   item rectangle's bottom left), over the band's last row; one the core
+//   flipped (no room on the right) hangs with its right side under the
+//   title's right side instead.
+//
+// A screen bar a host forces is the same flat strip and the same titles, in
+// the base sheet's arrangement (Apple, the application's menus, Help, then
+// the extensions, the clock and the Application menu at the right), with no
+// taskbar dress: the taskbar is ClassicyTaskbar's.
 //
 //   Windows color     token
-//   ButtonFace        --color-system-03   the bar, the buttons' faces
-//   ButtonHilight     --color-system-01   the buttons' top-left ring, the
-//                                         checker's light pixels, the clock
-//                                         pane's bottom-right ring
-//   ButtonLight       --color-system-02   the buttons' inner top-left ring
-//   ButtonShadow      --color-system-05   the buttons' inner bottom-right
-//                                         ring, the clock pane's top-left
-//                                         ring, the bar's edge's inner
-//                                         ring, GrayText
-//   ButtonDkShadow    --color-system-07   the buttons' bottom-right ring,
-//                                         the bar's edge's outer ring
-//   ButtonText        --color-black       the titles' ink
-//   Hilight           --color-highlight   an open or tracked title's band
-//   HilightText       --package-color-selection-text (--color-white)
+//   ButtonFace        --color-system-03   the band, Menu
+//   ButtonHilight     --color-system-01   a sunken title's bottom-right
+//                                         ring, the disabled emboss
+//   ButtonShadow      --color-system-05   a sunken title's top-left ring,
+//                                         GrayText
+//   ButtonText        --color-black       the titles' ink, MenuText
 @use "../bevels" as b;
-@use "../pixel" as *;
+
+// The bars this partial draws.
+$bars: ".classicyWindowMenuBar, .classicyDesktopMenuBar";
 
 // A top-level title: the plain one, and the one a balloon-help anchor wraps.
 $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem";
 
-// The margin a button or pane keeps from the bar's top and bottom edges
-// (the taskbar's 2 px).
-$edge: b.$b2;
-
-// A taskbar button: raised ButtonFace, its label in ButtonText, never
-// highlighted under the pointer.
-@mixin taskbar-button {
-  color: b.$text;
-  background-color: b.$face;
-  @include b.raised;
-
-  &:hover {
-    color: b.$text;
-    background-color: b.$face;
-  }
-}
-
-// A pressed taskbar button: the Start button while its menu is open, and
-// the active window's button at all times (WIG Ch.3 Figure 3.1, p.15: the
-// front "Document" button sunken, the others raised): the pressed bevel
-// over the 50% checker of ButtonHilight and ButtonFace, on the pixel grid,
-// unchanged under the pointer.
-@mixin taskbar-button-pressed {
-  color: b.$text;
-  background-color: b.$face;
-  background-image: repeating-conic-gradient(b.$hilight 0% 25%, b.$face 0% 50%);
-  background-size: px(2) px(2);
-  @include b.pressed;
-
-  &:hover {
-    color: b.$text;
-    background-color: b.$face;
-  }
-}
+// The band: the titles and a row above and below them.
+$band: calc(var(--menu-bar-title-height) + #{b.$b2});
 
 @mixin menu-bar {
+  // A window's bar: the band in ButtonFace, its height the window's
+  // (_Window.scss), the list filling it.
+  .classicyWindowMenuBar {
+    background-color: b.$face;
+  }
+
+  // A forced screen bar: the same band, flat, across the screen.
   .classicyDesktopMenuBar {
     background: b.$face;
   }
 
-  // The bar: ButtonFace, with the taskbar's raised edge along the side
-  // facing the desktop (WIG Ch.3 "The Taskbar", Figure 3.1, p.15: the
-  // taskbar is a raised ButtonFace bar, its edge toward the desktop the
-  // raised one). Docked at the top of the screen, as this bar is, that side
-  // is its bottom, the raised edge's dark side: ButtonShadow inside
-  // ButtonDkShadow (DrawEdge EDGE_RAISED, BF_BOTTOM), two rings inside the
-  // bar's box; the titles' bottom margin (`$edge`) keeps them above it and
-  // the pull-downs hang from the bar's bottom, below it.
-  .classicyDesktopMenu {
+  // The list: ButtonFace with no bevel, rounding or side padding (the base
+  // gives the bar Mac OS 8's), one row of face above and below the titles.
+  // A window's list fills its bar; a screen bar's is the band, since the
+  // layout's window placement zeroes `--menu-bar-height`.
+  :is(#{$bars}) .classicyDesktopMenu {
     box-sizing: border-box;
-    height: var(--menu-bar-height);
-    padding: 0 $edge;
+    height: 100%;
+    padding: b.$b 0;
     border-radius: 0;
     color: b.$text;
     background-color: b.$face;
-    box-shadow:
-      inset 0 b.$neg-b b.$dkshadow,
-      inset 0 b.$neg-b2 b.$shadow;
+    box-shadow: none;
   }
 
-  // A title: a row 2 px in from the bar's top and bottom, 6 px of padding
-  // either side of its text, highlighted while its menu is open or the
-  // keyboard tracks it, plain under the pointer alone (the base sheet
-  // highlights a hovered title; Windows 98's menu bar does not); no focus
-  // rectangle (the band marks the keyboard's title). A title drawn as art
-  // (the Help balloon the default package registers) is a small icon.
-  :is(#{$titles}) {
+  .classicyDesktopMenuBar .classicyDesktopMenu {
+    height: $band;
+  }
+
+  // A balloon-wrapped title's anchor takes the titles' height, so the title
+  // inside it does.
+  :is(#{$bars}) .classicyDesktopMenu > .classicyMenuItemBalloonAnchor {
+    height: 100%;
+  }
+
+  // A title: MenuText with one average character each side, centered on the
+  // titles' row; plain under the pointer (the base highlights a hovered
+  // title). A title drawn as art (the Help balloon the default package
+  // registers, the Apple menu's mark on a forced screen bar) is a small
+  // icon.
+  :is(#{$bars}) :is(#{$titles}) {
     position: relative;
     box-sizing: border-box;
     align-items: center;
-    height: calc(100% - #{$edge} - #{$edge});
-    margin: $edge 0;
+    height: 100%;
+    margin: 0;
     padding: 0 var(--menu-item-padding-x);
     color: b.$text;
     background-color: transparent;
+    box-shadow: none;
     white-space: nowrap;
     cursor: default;
 
@@ -146,33 +145,33 @@ $edge: b.$b2;
       background-color: transparent;
     }
 
+    // Open or tracked by the keyboard: sunken, one ring, the text in place.
     &.open,
     &:focus-visible {
       outline: none;
-      color: b.$highlight-text;
-      background-color: b.$highlight;
+      color: b.$text;
+      background-color: transparent;
+
+      @include b.sunken-thin;
     }
 
-    // A menu whose every item is unavailable has its title in GrayText,
-    // embossed; it never highlights.
+    // Unavailable: GrayText embossed, after the hover rule it shares a
+    // weight with; reached by the keyboard, sunken in GrayText alone.
     &.disabled {
       @include b.disabled-text;
-
-      &:hover,
-      &:focus-visible {
-        color: b.$gray-text;
-        background-color: transparent;
-      }
     }
 
-    // The pull-down hangs from the bar's bottom edge, its left side under
-    // the title's left edge; one the core flipped (no room on the right)
-    // hangs with its right side under the title's right edge instead. The
-    // wrapper is pinned to the title's bottom, the edge margin below it the
-    // bar's.
+    &.disabled:is(.open, :focus-visible) {
+      color: b.$gray-text;
+      text-shadow: none;
+    }
+
+    // The pull-down hangs from the title's bottom edge, its left side under
+    // the title's left edge; one the core flipped hangs with its right side
+    // under the title's right edge instead.
     > .classicyMenuWrapper {
       position: absolute;
-      top: calc(100% + #{$edge});
+      top: 100%;
       right: 0;
       left: 0;
       height: 0;
@@ -192,82 +191,15 @@ $edge: b.$b2;
     }
   }
 
-  // The Apple title is the Start button: raised, its label bold (the title
-  // is its art alone, so the weight waits for a text title), its icon at
-  // its own size; pressed over the checker while the menu is open, which
-  // outranks the raised face's hover rule. Its keyboard focus is Windows'
-  // dotted rectangle inside the bevel, on the raised and the pressed button
-  // alike (the two rules share no property).
-  :is(#{$titles}).classicyDesktopMenuApple {
-    margin-left: 0;
-    padding: 0 var(--menu-item-padding-x);
-    @include taskbar-button;
-
-    // The weight on the title's text alone: on the title itself it would
-    // be inherited by its menu's items, which Windows sets plain.
-    > p {
-      height: auto;
-      font-weight: bold;
-    }
-
-    &.open {
-      @include taskbar-button-pressed;
-    }
-
-    &:focus-visible {
-      @include b.focus-rect(calc(#{b.$b2} + #{b.$b}));
-    }
-  }
-
-  // The Application menu is the front application's taskbar button, the
-  // active window's: its icon and name pressed over the checker at all
-  // times, its label bold, as WIG Ch.3 Figure 3.1 (p.15) draws the active
-  // window's button (the raised face is an inactive window's, which this
-  // bar never shows), open or not. It leads the bar's right group (the auto
-  // margin the base sheet gives the extensions is its), before the tray's
-  // icons and clock. No divider before it (the base sheet's is a Platinum
-  // bar). Two order rules, plain first: a browser without :has() drops the
-  // whole second one.
-  .classicyDesktopMenu > [data-classicy-part="switcher"] {
-    order: 35;
-    margin-left: auto;
-  }
-
-  .classicyDesktopMenu > :has(> [data-classicy-part="switcher"]) {
-    order: 35;
-    margin-left: auto;
-  }
-
-  .classicyDesktopMenu > [data-classicy-part="extensions"] {
-    margin-left: 0;
-  }
-
-  .classicyDesktopMenu > :has(> [data-classicy-part="extensions"]) {
-    margin-left: 0;
-  }
-
-  :is(#{$titles}).classicyDesktopMenuAppSwitcher {
-    margin: $edge 0 $edge auto;
-    padding: 0 var(--menu-item-padding-x);
-    @include taskbar-button-pressed;
-
+  // A forced screen bar's Application menu: a plain title, its icon before
+  // its name (the base draws Platinum's hover band on its ::before).
+  .classicyDesktopMenuBar :is(#{$titles}).classicyDesktopMenuAppSwitcher {
     &::before {
       content: none;
     }
 
-    // The weight on the title's text alone, as the Start button's: on the
-    // title itself its menu's items would inherit it.
-    > p {
-      height: auto;
-      font-weight: bold;
-    }
-
     > p > img {
       margin-right: var(--layout-item-gap);
-    }
-
-    &:focus-visible {
-      @include b.focus-rect(calc(#{b.$b2} + #{b.$b}));
     }
   }
 
@@ -275,21 +207,18 @@ $edge: b.$b2;
   // draws it through the package's dimming rule and marks it
   // `classicyIconDimmedImage`; this half-strength is the fallback for an
   // icon a canvas cannot read (cross-origin, no CORS).
-  .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage) {
+  .classicyDesktopMenuBar .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage) {
     opacity: 0.5;
   }
 
-  // The tray's icons: the menu bar extensions and the Sound widget, flat
-  // small icons on the bar, never highlighted; an extension's menu is a
-  // contextual menu (_Menu.scss). An extension's item carries no state
-  // class (its trigger opens the menu), so the pointer is all to quiet.
-  .classicyDesktopMenuExtensions {
+  // A forced screen bar's extensions: flat small icons on the band, plain
+  // under the pointer; an extension's menu is a contextual menu (_Menu.scss).
+  .classicyDesktopMenuBar .classicyDesktopMenuExtensions {
     height: 100%;
-    margin-left: 0;
     padding: 0 var(--layout-item-gap-half);
   }
 
-  .classicyDesktopMenu .classicyDesktopMenuExtension {
+  .classicyDesktopMenuBar .classicyDesktopMenuExtension {
     height: 100%;
     margin: 0;
     padding: 0;
@@ -302,7 +231,7 @@ $edge: b.$b2;
     }
   }
 
-  .classicyDesktopMenuExtensionTrigger {
+  .classicyDesktopMenuBar .classicyDesktopMenuExtensionTrigger {
     padding: 0 var(--layout-item-gap-half);
     color: b.$text;
 
@@ -312,46 +241,11 @@ $edge: b.$b2;
     }
   }
 
-  // The Sound widget, a title too when a host mounts it on the bar (the
-  // Control Strip holds the sound control): a flat small icon, quiet under
-  // the pointer and the keyboard (as specific as a title's rule and after
-  // it; the quieting rule two classes more than a title's hover).
-  .classicyDesktopMenu .classicyMenuItem.classicyDesktopMenuWidgetSound {
-    padding: 0 var(--layout-item-gap-half);
-    color: b.$text;
-    background-color: transparent;
-
-    img {
-      width: var(--icon-small-size);
-      height: var(--icon-small-size);
-    }
-  }
-
-  :is(#{$titles}).classicyDesktopMenuWidgetSound:is(:hover, :focus-visible) {
-    outline: none;
-    color: b.$text;
-    background-color: transparent;
-  }
-
-  // The clock, in the tray's sunken one-ring pane (ButtonShadow at the top
-  // and left, ButtonHilight at the bottom and right), 2 px in from the bar's
-  // edges; it never highlights.
-  :is(#{$titles}).classicyDesktopMenuTime {
-    box-sizing: border-box;
-    height: calc(100% - #{$edge} - #{$edge});
-    margin: $edge 0;
-    padding: 0 var(--menu-item-padding-x);
-    color: b.$text;
-    background-color: transparent;
-    box-shadow:
-      inset b.$b b.$b b.$shadow,
-      inset b.$neg-b b.$neg-b b.$hilight;
-
-    &:hover,
-    &:focus-visible {
-      outline: none;
-      color: b.$text;
-      background-color: transparent;
-    }
+  // The Sound widget, a title when a host mounts it on a forced screen bar
+  // (the taskbar's status area holds the sound control): its icon small.
+  .classicyDesktopMenuBar .classicyDesktopMenuWidgetSound img {
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+    margin: 0;
   }
 }

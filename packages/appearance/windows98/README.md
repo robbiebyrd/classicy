@@ -129,7 +129,10 @@ and `nodenext` resolution).
     their caption (no icon, no Minimize; an unavailable Close embossed),
     palette windows with Close alone,
     a modeless dialog's frame flattened to a plain ButtonFace box;
-  - menus: the flat menu bar, raised pull-down and contextual menus with an
+  - menus: each window's menu bar a flat 20-pixel band under its title bar,
+    as Windows 98 draws one, its titles plain under the pointer and sunken
+    while their menu is open or the keyboard is on them, an unavailable
+    title embossed; raised pull-down and contextual menus with an
     inverted highlight and embossed dimmed items, etched separators, the
     default item (the command a double-click runs: the Trash icon's Open) in
     bold and a round bullet at the chosen item of an option group (the

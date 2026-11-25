@@ -3,17 +3,19 @@
 // scoped under `.classicyDesktop[data-classicy-appearance="windows98"]`. The
 // look is built element by element, each a components/_<Name>.scss partial
 // exposing one mixin, included inside the wrapper below: the windows, the
-// menus and menu bar, the pop-up menus, the dialogs and alerts, the push
-// buttons, the checkboxes and radio buttons, the text fields and lists, the
-// group boxes, the progress bars, the scroll bars, the desktop and its
-// icons, the tab control, the sliders, the placards and bevel buttons, the
-// ToolTips, the tables, the separators, the little arrows, the Appearance
-// Manager, the Control Strip and the HyperCard editor's handles.
+// menus and menu bars, the taskbar, the pop-up menus, the dialogs and
+// alerts, the push buttons, the checkboxes and radio buttons, the text
+// fields and lists, the group boxes, the progress bars, the scroll bars, the
+// desktop and its icons, the tab control, the sliders, the placards and
+// bevel buttons, the ToolTips, the tables, the separators, the little
+// arrows, the Appearance Manager, the Control Strip and the HyperCard
+// editor's handles.
 @use "pkg:@classicy/classicy/scss/package";
 @use "bevels" as b;
 @use "components/Window";
 @use "components/Menu";
 @use "components/MenuBar";
+@use "components/Taskbar";
 @use "components/PopUpMenu";
 @use "components/Dialog";
 @use "components/Alert";
@@ -42,6 +44,7 @@
   @include Window.window;
   @include Menu.menu;
   @include MenuBar.menu-bar;
+  @include Taskbar.taskbar;
   @include PopUpMenu.pop-up-menu;
   @include Dialog.dialog;
   @include Alert.alert;

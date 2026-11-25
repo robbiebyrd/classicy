@@ -4722,7 +4722,12 @@ it like Platinum (§1); its README lists what it ships.
   21: Windows' edit and combo box height, plus the text's padding),
   `tabControl` (`height`, a tab's, 21; the radius, lift and padding),
   `progressBar` (block width and gap, the stripe, the inset), `tooltip`,
-  `menuItem`, `menu` (`popUpMaxHeight`, 106: a drop-down's
+  `menuItem`, `menuBar` (`titleHeight`, 18: a window menu bar's titles,
+  which the band draws between a row of ButtonFace above and below, 20 px
+  in all, as Wine's `MENU_MenuBarCalcSize` and `NC_DoNCPaint` lay out a
+  menu bar: `SM_CYMENU` 19 and the row under it; the core's derived
+  `--window-menu-bar-height` is 21, and a host's
+  `--classicy-window-menu-bar-height` still wins), `menu` (`popUpMaxHeight`, 106: a drop-down's
   open list eight 13-px rows and its line, the WIG's three to eight items),
   `dialog` (`alertMaxWidth` and `inputMaxWidth`, 415: the core's structural
   family set to the WIG's largest secondary window, 234 dialog base units,
@@ -4819,6 +4824,21 @@ it like Platinum (§1); its README lists what it ships.
   three-ring fixed frame on every modal and on any window that cannot be
   sized (`classicyWindowNoResize`: the control panels, the About windows,
   the Calculator), its drag band and placard corner following,
+  a window's menu bar (`_MenuBar.scss`, every rule scoped under
+  `.classicyWindowMenuBar` or `.classicyDesktopMenuBar`, so none reaches
+  the taskbar's `clock` and `extensions` parts) as the flat 20 px band
+  above, its titles MenuText with one average character
+  (`--menu-item-padding-x`) each side, plain under the pointer (Windows 98's
+  menu bar tracks no hover; the raised title under the pointer is
+  Explorer's command bar), sunken one ring (BDR_SUNKENOUTER: ButtonShadow
+  at the top and left, ButtonHilight at the bottom and right, the text in
+  place) while open or tracked by the keyboard, with no Hilight band or
+  focus rectangle, an unavailable one GrayText embossed (sunken in GrayText
+  alone when the keyboard reaches it), each pull-down hanging from its
+  title's bottom-left corner (Wine's `MENU_DrawMenuItem` and
+  `MENU_ShowSubPopup`; a screen bar a host forces with `placement="screen"`
+  is the same flat strip, with no taskbar dress), the status area's menu
+  bar extensions flat small icons (`_Taskbar.scss`),
   balloon help drawn as a ToolTip with no tail, a message box's buttons
   centered (as MessageBox centers them; a dialog's stay right-aligned), a
   selected icon blended with a 50% dither of the highlight (Explorer's
@@ -4951,8 +4971,9 @@ the open title, a mouse-down outside the bar
 window's bar counts as outside, so only one window's menu is open at a time.
 A switch to window placement closes any menu open on the screen bar. Its
 height is `--classicy-window-menu-bar-height` when a host or package sets it
-(it inherits), else `control size × 1.75`, and the window's contents shrink
-by it. While it draws the bar, the window root carries
+(it inherits), else `control size × 1.75` (Windows 98's stylesheet draws
+Windows' 20 px band instead, its `menuBar.titleHeight` and a row above and
+below; "Windows 98", above), and the window's contents shrink by it. While it draws the bar, the window root carries
 `classicyWindowWithMenuBar`, which keys that sizing; a separate
 `:has(> .classicyWindowMenuBar)` rule repeats it, so a browser without
 `:has()` still fits the window together. Limits of this placement without a

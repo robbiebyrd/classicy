@@ -1,0 +1,29 @@
+// The Windows 98 taskbar, included by windows98.scss inside the package
+// wrapper: it dresses the structure ClassicyTaskbar.scss lays down (WIG Ch.3
+// "The Taskbar", p.15, Figure 3.1; Ch.10 "Taskbar Integration",
+// pp.211-212). The status area's menu bar extensions (the region
+// `ClassicyMenuBarExtension` portals into, `#classicyDesktopMenuExtensions`,
+// which the tray holds beside its notification icons) are flat small icons
+// in a row, each trigger a little apart from the next, in ButtonText.
+//
+//   Windows color     token
+//   ButtonText        --color-black       a trigger's ink
+@use "../bevels" as b;
+
+@mixin taskbar {
+  .classicyTaskbarTray .classicyDesktopMenuExtensions {
+    height: 100%;
+    margin-left: 0;
+    padding: 0 var(--layout-item-gap-half);
+  }
+
+  .classicyTaskbarTray .classicyDesktopMenuExtensionTrigger {
+    padding: 0 var(--layout-item-gap-half);
+    color: b.$text;
+
+    img {
+      width: var(--icon-small-size);
+      height: var(--icon-small-size);
+    }
+  }
+}

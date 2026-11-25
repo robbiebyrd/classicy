@@ -274,6 +274,171 @@ describe("windows98.scss (compiled)", () => {
 		}
 	});
 
+	// Plan 0020-w98 §7, step 17: a window's menu bar is the band Windows 98
+	// draws under the caption (WIG Ch.7 "The Menu Bar and Drop-down Menus",
+	// p.97, Figure 7.1; Wine's `MENU_MenuBarCalcSize`, `DrawMenuBarTemp` and
+	// `NC_DoNCPaint`): ButtonFace, the titles `--menu-bar-title-height` (18)
+	// tall between a row above and a row below, 20 px in all, where the
+	// core's derived `--window-menu-bar-height` is 21; a host's
+	// `--classicy-window-menu-bar-height` still wins, as the base sheet reads
+	// it. The contents below give up the same band.
+	it("draws a window's menu bar as Windows 98's 20 px band", () => {
+		const selectors = selectorsOf(css);
+		const has = (tail: string) =>
+			selectors.some((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		const band =
+			"var(--classicy-window-menu-bar-height, calc(var(--menu-bar-title-height) + calc(var(--window-border-size) + var(--window-border-size))))";
+		for (const root of [
+			".classicyWindow.classicyWindowWithMenuBar",
+			".classicyWindow:has(> .classicyWindowMenuBar)",
+		]) {
+			expect(has(`${root} > .classicyWindowMenuBar`), root).toBe(true);
+			expect(block(`${root} > .classicyWindowMenuBar`)).toContain(
+				`height: ${band}`,
+			);
+			expect(block(`${root} .classicyWindowContents`)).toContain(`- ${band})`);
+			expect(
+				block(
+					`${root} .classicyWindowContents.classicyWindowContentsWithHeader`,
+				),
+			).toContain(`- ${band})`);
+		}
+		expect(css).not.toContain("--window-menu-bar-height");
+		// The list: flat ButtonFace, a row of face above and below the titles,
+		// no side padding; a forced screen bar's list is the same band.
+		const list = block(
+			":is(.classicyWindowMenuBar, .classicyDesktopMenuBar) .classicyDesktopMenu",
+		);
+		expect(list).toContain("padding: var(--window-border-size) 0");
+		expect(list).toContain("background-color: var(--color-system-03)");
+		expect(list).toContain("box-shadow: none");
+		expect(list).toContain("border-radius: 0");
+		expect(block(".classicyDesktopMenuBar .classicyDesktopMenu")).toContain(
+			"height: calc(var(--menu-bar-title-height) + calc(var(--window-border-size) + var(--window-border-size)))",
+		);
+		expect(block("=windows98] .classicyWindowMenuBar")).toContain(
+			"background-color: var(--color-system-03)",
+		);
+	});
+
+	// Its titles, as Wine's `MENU_DrawMenuItem` draws a menu bar's: MenuText
+	// with one average character each side; nothing under the pointer alone
+	// (Windows 98's menu bar tracks no hover; the raised title is Explorer's
+	// command bar, os-gui's note); open or tracked by the keyboard, one
+	// sunken ring (BDR_SUNKENOUTER: ButtonShadow at the top and left,
+	// ButtonHilight at the bottom and right, the bottom-right ring over the
+	// corners as DrawEdge draws it), the text MenuText on the face and in
+	// place, no Hilight band and no focus rectangle; unavailable, GrayText
+	// embossed, and sunken in GrayText alone when the keyboard reaches it;
+	// the pull-down from the title's bottom-left corner.
+	it("draws the menu titles flat, sunken while open, embossed when unavailable", () => {
+		const selectors = selectorsOf(css);
+		const at = (tail: string) =>
+			selectors.findIndex((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		const title =
+			":is(.classicyWindowMenuBar, .classicyDesktopMenuBar) :is(.classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem)";
+		const plain = block(title);
+		expect(plain).toContain("padding: 0 var(--menu-item-padding-x)");
+		expect(plain).toContain("height: 100%");
+		expect(plain).toContain("color: var(--color-black)");
+		expect(plain).toContain("background-color: transparent");
+		expect(plain).toContain("box-shadow: none");
+		const hover = block(`${title}:hover`);
+		expect(hover).toContain("background-color: transparent");
+		expect(hover).toContain("color: var(--color-black)");
+		expect(hover).not.toContain("box-shadow");
+		// The open rule and the keyboard's share one block.
+		expect(at(`${title}.open`)).toBeGreaterThanOrEqual(0);
+		const open = block(`${title}:focus-visible`);
+		expect(open).toContain(
+			"box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-01), inset var(--window-border-size) var(--window-border-size) var(--color-system-05)",
+		);
+		expect(open).toContain("outline: none");
+		expect(open).toContain("color: var(--color-black)");
+		expect(open).toContain("background-color: transparent");
+		// The text stays where it is: the shared rule is the only one keyed on
+		// an open title, and it moves nothing.
+		const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(
+			([, head, body]) => ({ selectors: splitSelectors(head.trim()), body }),
+		);
+		const openRules = rules.filter((rule) =>
+			rule.selectors.some((selector) => selector.includes(`${title}.open`)),
+		);
+		expect(openRules).toHaveLength(1);
+		expect(openRules[0].body).not.toMatch(
+			/\b(top|left|transform|translate|padding):/,
+		);
+		// No Hilight band and no checker on any menu bar title.
+		const titleRules = rules.filter((rule) =>
+			rule.selectors.some((selector) => selector.includes(title)),
+		);
+		expect(titleRules.length).toBeGreaterThan(5);
+		for (const rule of titleRules)
+			expect(rule.body, rule.selectors.join(", ")).not.toMatch(
+				/--color-highlight|--package-color-selection-text|repeating-conic-gradient/,
+			);
+		const disabled = block(`${title}.disabled`);
+		expect(disabled).toContain("color: var(--color-system-05)");
+		expect(disabled).toContain(
+			"text-shadow: var(--window-border-size) var(--window-border-size) 0 var(--color-system-01)",
+		);
+		// After the hover rule of the same weight, so a hovered one stays gray.
+		expect(at(`${title}.disabled`)).toBeGreaterThan(at(`${title}:hover`));
+		const reached = block(`${title}.disabled:is(.open, :focus-visible)`);
+		expect(reached).toContain("color: var(--color-system-05)");
+		expect(reached).toContain("text-shadow: none");
+		const wrapper = block(`${title} > .classicyMenuWrapper`);
+		expect(wrapper).toContain("top: 100%");
+		expect(wrapper).toContain("left: 0");
+	});
+
+	// Every menu bar rule is scoped under a window's bar, a forced screen
+	// bar or the taskbar's status area, so none reaches the taskbar's own
+	// parts (its `clock` and `extensions`), and the taskbar dress the screen
+	// bar wore before the shell (the Apple title as Start, the Application
+	// menu as the pressed task button, the clock's pane) is gone: the
+	// taskbar's look is its own.
+	it("scopes every menu bar rule under a bar or the taskbar's tray", () => {
+		const selectors = selectorsOf(css);
+		const menuBarClass = /\.classicyDesktopMenu(?![A-Za-z]*Bar\b)[A-Za-z]*/;
+		const unscoped = selectors.filter(
+			(selector) =>
+				menuBarClass.test(selector) &&
+				!/(\.classicyDesktopMenuBar|\.classicyWindowMenuBar|\.classicyTaskbarTray)[\s,)]/.test(
+					selector,
+				),
+		);
+		expect(unscoped).toEqual([]);
+		expect(
+			selectors.filter((selector) =>
+				/\[data-classicy-part="?(apple|switcher|extensions|clock)/.test(
+					selector,
+				),
+			),
+		).toEqual([]);
+		expect(
+			selectors.filter((selector) =>
+				/classicyDesktopMenu(Apple|Time)\b/.test(selector),
+			),
+		).toEqual([]);
+		const has = (tail: string) =>
+			selectors.some((selector) => selector.endsWith(tail));
+		expect(has(".classicyTaskbarTray .classicyDesktopMenuExtensions")).toBe(
+			true,
+		);
+		expect(
+			has(".classicyTaskbarTray .classicyDesktopMenuExtensionTrigger img"),
+		).toBe(true);
+	});
+
 	// Plan 0020-w98 §5 (`window.zoom: "maximize"`): a primary window with
 	// Minimize or Maximize alone draws the other `disabled` beside it, as
 	// Windows 95/98 draws the two as a pair (Wine's `NC_DrawCaption`: "In

@@ -43,9 +43,12 @@
 //   diagonal ridges of ButtonHilight over two of ButtonShadow,
 //   `--grow-box-inset` (2) from the corner.
 // - A header strip (the Finder's) as a flat ButtonFace band with an etched
-//   line under it; a window's own menu bar flat ButtonFace, no bevel, as
-//   Windows 98 draws a menu bar (the package's layout places menus on the
-//   screen, so only a host that places a bar in a window sees it).
+//   line under it. A window's own menu bar (each window has one under the
+//   shell's window placement, plan 0020-w98) is the 20 px band Windows 98
+//   draws under the caption, `--menu-bar-title-height` (18) of titles and a
+//   row of ButtonFace above and below them (Wine's `MENU_MenuBarCalcSize`
+//   and `NC_DoNCPaint`); its titles are _MenuBar.scss's, and the contents
+//   below it give up its height.
 // - A dialog (modal), and any window that cannot be sized (the root's
 //   `classicyWindowNoResize`, `resizable={false}`: the control panels, the
 //   About windows, the Calculator), in the same edge and caption but the
@@ -80,8 +83,11 @@
 //   p.83: an outline moves with the pointer). Inactive windows are not
 //   dimmed, filtered or faded anywhere: only the caption's colors change
 //   (WIG Ch.6 "Activating and Deactivating Windows", p.80: nothing but the
-//   title bar's color changes). Collapsed (WindowShade, which Windows has
-//   not) leaves the caption alone.
+//   title bar's color changes). A minimized window (the layout's
+//   `window.collapse: "minimize"`) is not drawn at all: the core hides it
+//   (`classicyWindowMinimized`) and its taskbar button stands for it (WIG
+//   Ch.6 "Minimizing Windows", p.85), so this sheet has no WindowShade
+//   state to draw.
 // - The standalone frame (ClassicyWindowFrame) is the same frame and an
 //   active caption around a ButtonFace body; it draws no boxes and no icon,
 //   so it takes the bar and title alone.
@@ -108,8 +114,10 @@ $title-text-inactive: var(--package-color-title-bar-inactive-text, var(--color-s
 // --- Lengths --------------------------------------------------------------
 // The frame of ButtonFace below the caption; the client edge (two rings);
 // the header strip's height (the core's); a window menu bar's height, a
-// host's or package's `--classicy-window-menu-bar-height` else the theme's,
-// read as the base sheet reads it.
+// host's `--classicy-window-menu-bar-height` (read as the base sheet reads
+// it) else Windows 98's band: the titles' `--menu-bar-title-height` (18)
+// and a row of ButtonFace above and below them, 20 px in all, where the
+// core's derived `--window-menu-bar-height` is 21.
 $title-gap: var(--title-bar-gap);
 $client-edge: b.$b2;
 // The fixed window frame (a dialog's): the two-pixel edge plus one pixel of
@@ -117,7 +125,7 @@ $client-edge: b.$b2;
 // `--window-frame-inset` (4).
 $fixed-frame: calc(#{b.$b2} + #{b.$b});
 $header: var(--control-row-height);
-$menu-bar: var(--classicy-window-menu-bar-height, var(--window-menu-bar-height));
+$menu-bar: var(--classicy-window-menu-bar-height, calc(var(--menu-bar-title-height) + #{b.$b2}));
 
 // --- Art ------------------------------------------------------------------
 // The caption buttons' marks, as Windows 98 drew them (98.css's SVGs trace
@@ -451,11 +459,12 @@ $grip-shadow: runs($grip, "s");
   }
 }
 
-// The contents' heights in a window `$root` that holds its own menu bar
-// (menu-bar placement `window`, which this package's layout asks for: each
-// window carries its own bar under the shell, plan 0020-w98): each less
-// the bar's height, as the base sheet's (ClassicyWindowMenuBar.scss) are,
-// which the rules in `window` outrank from this layer.
+// The bar's band and the contents' heights in a window `$root` that holds
+// its own menu bar (menu-bar placement `window`, which this package's
+// layout asks for: each window carries its own bar under the shell, plan
+// 0020-w98): the bar Windows 98's 20 px band, and the contents each less
+// it, as the base sheet's (ClassicyWindowMenuBar.scss) are less the core's
+// 21, which the rules in `window` outrank from this layer.
 @mixin with-menu-bar($root) {
   #{$root} > .classicyWindowMenuBar {
     height: $menu-bar;
@@ -567,22 +576,6 @@ $grip-shadow: runs($grip, "s");
     height: calc(100% - var(--window-title-bar-height) - #{$title-gap} - #{$header});
   }
 
-  // A window's own menu bar: flat ButtonFace with no bevel or rounding (the
-  // screen bar's look, which the menu reuses, is Mac OS 8's), its menu
-  // filling it.
-  .classicyWindowMenuBar {
-    background-color: b.$face;
-
-    .classicyWindowMenu {
-      height: 100%;
-      padding: 0;
-      border-radius: 0;
-      align-items: center;
-      background-color: b.$face;
-      box-shadow: none;
-    }
-  }
-
   // Keyed twice, in separate rules, as the base sheet keys them: a browser
   // that cannot parse :has() drops only those.
   @each $root in (".classicyWindow.classicyWindowWithMenuBar", ".classicyWindow:has(> .classicyWindowMenuBar)") {
@@ -628,10 +621,12 @@ $grip-shadow: runs($grip, "s");
   // the core draws no zoom box on a modal bar, but draws the collapse box
   // for a `collapsable` modal (the default; every bundled dialog opts out)
   // and the icon unless `hideIcon` (the file dialog passes none). Neither is
-  // drawn here, so under this package a dialog has no WindowShade box (the
-  // title's double-click still collapses it where the desktop's preference
-  // is on). The title keeps its `--title-bar-text-inset` from the caption's
-  // left edge, where the icon stood.
+  // drawn here: under the layout's minimize the core draws no Minimize box
+  // on a dialog either and ignores its collapse, and its caption's
+  // double-click does nothing (`window.titleDoubleClick: "zoom"`), so a
+  // dialog keeps its title and its Close box alone, whichever the layout.
+  // The title keeps its `--title-bar-text-inset` from the caption's left
+  // edge, where the icon stood.
   .classicyWindow .classicyWindowTitleBarModal [data-classicy-control="collapse"],
   .classicyWindow .classicyWindowTitleBarModal .classicyWindowIcon {
     display: none;
@@ -679,11 +674,12 @@ $grip-shadow: runs($grip, "s");
   // with one small button, Close (a palette window's title bar "is shorter
   // but still includes only a Close button", WIG Ch.8 "Palette Windows",
   // p.163, Figure 8.15: the zoom and collapse boxes the core draws for a
-  // `zoomable` or `collapsable` palette, the defaults, are not drawn, so a
-  // palette has no WindowShade box under this package), no title (the core's
-  // windoid draws none), and standard scroll bars, where the base narrows a
-  // windoid's to the frame ring and derives the arrow from that; `inherit`
-  // takes the theme's values back from the desktop root.
+  // `zoomable` or `collapsable` palette, the defaults, are not drawn; under
+  // the layout's minimize and maximize the core draws neither on a palette
+  // either), no title (the core's windoid draws none), and standard scroll
+  // bars, where the base narrows a windoid's to the frame ring and derives
+  // the arrow from that; `inherit` takes the theme's values back from the
+  // desktop root.
   .classicyWindow.classicyWindowUtility {
     --window-scrollbar-size: inherit;
     --window-scrollbar-arrow-size: inherit;
@@ -746,20 +742,6 @@ $grip-shadow: runs($grip, "s");
 
   .classicyWindowPlacardBarDimmed {
     opacity: 1;
-  }
-
-  // Collapsed (WindowShade): the frame around the caption alone, its gap
-  // below gone with the contents.
-  .classicyWindow.collapsed {
-    height: var(--window-title-bar-height);
-
-    .classicyWindowTitleBar {
-      margin-bottom: 0;
-    }
-  }
-
-  .classicyWindow.classicyWindowUtility.collapsed {
-    height: var(--window-utility-title-bar-height);
   }
 
   // Moving or resizing: the checkered band in the frame's place (the base

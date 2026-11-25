@@ -230,6 +230,25 @@ describe("the Windows 98 appearance package", () => {
 		}
 	});
 
+	// A window's menu bar is the band Windows 98 draws under the caption:
+	// 18 px titles (`SM_CYMENU` 19, the 270-twip menu height plus one, less
+	// the row above them) between a row of ButtonFace above and below, 20 px
+	// in all (Wine's `MENU_MenuBarCalcSize` and `NC_DoNCPaint`; plan 0020-w98
+	// §7). The titles' height is the package's `menuBar` knob, in every
+	// theme, which the stylesheet alone reads.
+	it("sets the menu bar's 18 px titles in every theme", async () => {
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements.menuBar, theme.id).toEqual({
+				titleHeight: 18,
+			});
+		await import("./index");
+		for (const theme of getAllThemes())
+			expect(getThemeVars(theme), theme.id).toMatchObject({
+				"--menu-bar-title-height": "18px",
+				"--window-border-size": "1px",
+			});
+	});
+
 	// Windows 98 is the shell (plan 0020-w98): each window carries its own
 	// menu bar and no bar crosses the top of the screen (`menuBar.placement:
 	// "window"`; WIG Ch.7 "The Menu Bar and Drop-down Menus", p.97); a
