@@ -3391,7 +3391,7 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 
 | Registered by Platinum | Notes |
 |---|---|
-| `appleMenu`, `sadMac`, `startupLogo`, `trashEmpty`, `trashFull`, `aliasBadge`, `helpButton`, `aboutLogo` | read by the menu bar, crash screen, startup screen, Finder, desktop icons, `ClassicyHelpButton`, About This Computer |
+| `appleMenu`, `sadMac`, `startupLogo`, `trashEmpty`, `trashFull`, `aliasBadge`, `helpButton`, `aboutLogo` | read by the menu bar, crash screen, startup screen, Finder, desktop icons, `ClassicyHelpButton`, About This Computer. The Trash art (and the generic folder, the core's `folders/directory.png` and Platinum's 16 px `system.folders.directory.small`) is Mac OS 8.5's, its shadow #222222 at a graded alpha (an 8-bit mask, TN1142), where 8.1's 1-bit mask drew it opaque (the 8.5 audit's F10; `platinumIconShadows.test.ts` composites each over its 8.5 capture's background and matches it) |
 | `windowStripes`, `windowStripesRed` | the title-bar pinstripes, gray and red, in their own colors: each stripe band's `background` image (`platinum-title-bar-stripes` in `_mixins.scss`) |
 | `windowUtilityTexture` | the windoid's title-bar texture, tiled 4px × 3px on its center band |
 | `windowGrip`, `windowDither` | the grow-box grip and the control boxes' luminosity dither (images) |
