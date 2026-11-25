@@ -22,6 +22,10 @@ import {
 	windows98WallpaperFile,
 } from "./windows98Wallpapers";
 
+/** Escapes every regular-expression metacharacter in `text`. */
+const escapeRegExp = (text: string): string =>
+	text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Windows 98's wallpapers and desktop patterns (windows98Wallpapers.ts,
 // docs/windows98-asset-inventory.md): each a lossless WebP in ./wallpapers,
 // registered under Windows 98 by its identity filename, offered by the
@@ -146,7 +150,7 @@ describe("Windows 98's wallpapers and desktop patterns", () => {
 			for (const { label, file } of ALL) {
 				const src = resolveClassicyWallpaper(file, "windows98");
 				expect(src, file).toMatch(
-					new RegExp(`${windows98WallpaperFile(file).replace(".", "\\.")}$`),
+					new RegExp(`${escapeRegExp(windows98WallpaperFile(file))}$`),
 				);
 				expect(
 					listClassicyWallpapers("windows98").find((w) => w.name === label),

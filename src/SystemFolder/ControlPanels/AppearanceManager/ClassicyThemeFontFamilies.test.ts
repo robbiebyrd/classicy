@@ -52,12 +52,12 @@ describe("classicyFontFamilyVars", () => {
 		expect(
 			classicyFontFamilyVars(
 				JSON.parse(
-					JSON.stringify({
+					`{"__proto__":{"font":"Arial"},${JSON.stringify({
 						Bad: { font: "Arial" },
 						menu: { font: "Arial; } body { color: red" },
 						message: "Arial",
 						status: { font: "Arial", size: 200, weight: 750 },
-					}).replace("{", '{"__proto__":{"font":"Arial"},'),
+					}).slice(1)}`,
 				),
 			),
 		).toEqual({ "--package-font-status": "Arial" });

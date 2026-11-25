@@ -16,6 +16,10 @@ import { dispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppMan
 import { WINDOWS98_CURSOR_ADDITIONS } from "./windows98AssetAdditions";
 import { WINDOWS98_CURSORS as WINDOWS98_FIRST_CURSORS } from "./windows98Assets";
 
+/** Escapes every regular-expression metacharacter in `text`. */
+const escapeRegExp = (text: string): string =>
+	text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Every role's cursor: lane 3's registration and the roles added beside it
 // (windows98AssetAdditions.ts).
 const WINDOWS98_CURSORS = {
@@ -114,7 +118,7 @@ describe("Windows 98's cursors", () => {
 				const id = /^user-cursor-(\d+)\.png$/.exec(file)?.[1];
 				expect(readme, file).toMatch(
 					new RegExp(
-						`\\| \`${file.replace(".", "\\.")}\` \\| \`user\\.exe\` cursor ${id} \\|`,
+						`\\| \`${escapeRegExp(file)}\` \\| \`user\\.exe\` cursor ${id} \\|`,
 					),
 				);
 			}

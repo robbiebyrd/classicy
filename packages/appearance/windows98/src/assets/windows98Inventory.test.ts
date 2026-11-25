@@ -25,6 +25,10 @@ import {
 	windows98WallpaperFile,
 } from "./windows98Wallpapers";
 
+/** Escapes every regular-expression metacharacter in `text`. */
+const escapeRegExp = (text: string): string =>
+	text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // docs/windows98-asset-inventory.md is the map: each row's decision is what
 // Windows 98 registers for its key, so the two never drift apart, and a key
 // the core adds later fails here until the inventory decides it.
@@ -115,7 +119,7 @@ describe("docs/windows98-asset-inventory.md", () => {
 			const key = code(keyCell) as ClassicySystemArtKey;
 			if (decision === "register")
 				expect(WINDOWS98_SYSTEM_ART[key], key).toMatch(
-					new RegExp(`/${code(file).replace(".", "\\.")}$`),
+					new RegExp(`/${escapeRegExp(code(file))}$`),
 				);
 			else {
 				expect(decision, key).toBe("default");
@@ -133,9 +137,7 @@ describe("docs/windows98-asset-inventory.md", () => {
 				...WINDOWS98_CURSORS,
 				...WINDOWS98_CURSOR_ADDITIONS,
 			}[role];
-			expect(src, role).toMatch(
-				new RegExp(`/${code(file).replace(".", "\\.")}$`),
-			);
+			expect(src, role).toMatch(new RegExp(`/${escapeRegExp(code(file))}$`));
 			expect(registered.join(", "), role).toBe(hotspot);
 		}
 	});
@@ -198,7 +200,7 @@ describe("docs/windows98-asset-inventory.md", () => {
 			expect(override?.icon !== undefined, appId).toBe(!icon.startsWith("—"));
 			if (override?.icon)
 				expect(override.icon, appId).toMatch(
-					new RegExp(`/${codes(icon)[1]?.replace(".", "\\.")}$`),
+					new RegExp(`/${escapeRegExp(String(codes(icon)[1]))}$`),
 				);
 		}
 		// No override for an app the table does not list.
