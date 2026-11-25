@@ -73,4 +73,25 @@ describe("the Application Switcher's stylesheet", () => {
 			"repeat(var(--application-switcher-lines), max-content)",
 		);
 	});
+
+	// Review F3: `height: 100%` on the horizontal list made its content box
+	// as tall as the window's contents, so the margin and border a package
+	// draws its well with (Platinum: a pixel each) overflowed the window by 4
+	// pixels and the well's bottom line was clipped. The contents lay the
+	// list out as a stretched flex item instead: its whole box fits.
+	it("fits the horizontal list, margin and border included, to the window's contents", () => {
+		const inner = declarations(
+			".classicyApplicationSwitcherHorizontal .classicyWindowContentsInner",
+		);
+		expect(inner.display).toBe("flex");
+		expect(inner["flex-direction"]).toBe("row");
+		expect(inner["align-items"]).toBe("stretch");
+		const across = declarations(
+			".classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons",
+		);
+		expect(across["flex-direction"]).toBe("row");
+		// As wide as its buttons, and no percentage height of its own.
+		expect(across.flex).toBe("none");
+		expect(across.height).toBeUndefined();
+	});
 });

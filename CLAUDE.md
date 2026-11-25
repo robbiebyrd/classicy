@@ -884,11 +884,19 @@ does (`components/_ApplicationSwitcher.scss`: 1-px frame, 12-row bar of
 raised dots, packed buttons in a sunken well, names at
 `--ui-font-size-small`); more apps than a column the desktop can hold wrap
 into another column (`classicyAppSwitcherPaletteLines`, from the desktop's
-capacity filled by the buttons' natural sizes, each laid out alone on a
-hidden copy, so the palette's own wrap never changes the count and it
-settles; measured again when the desktop resizes, a button's natural size
-changes or the theme changes, never the palette's place: a move never reshapes it, and a
-palette dragged past an edge clips like any window); hidden apps' buttons and menu
+capacity, no more than the window's maximum height (its computed
+`max-height`, a `calc()` in a browser, resolved by `classicyCssLengthPx`),
+filled by the buttons' natural sizes: their copies' sizes along the line in
+one hidden, unwrapped, content-sized copy of the list, so the palette's own
+wrap never changes the count and it settles; counted when the buttons' list
+mounts (after a reload the window's record exists a render before the
+floating layer draws it), and again when the desktop resizes, a button's
+natural size changes or the theme changes, never the palette's place: a move
+never reshapes it, and a palette dragged past an edge clips like any window;
+across, the contents lay the list out as a stretched flex item, so a
+package's well fits the window; `bin/check-app-switcher-palette.ts --port
+<n> [--browser chromium|firefox]` checks the count, the settle and what the
+window cuts in a browser, in the `ManyApplications` story); hidden apps' buttons and menu
 rows carry `aria-description` "Hidden"; it shows no icon in the startup
 parade (`bootIcon={false}`, which an extension may now pass; 8.5's has
 none, `platinum-85-startup-parade.png`). The menu's alphabetical order is

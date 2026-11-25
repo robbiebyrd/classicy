@@ -78,8 +78,20 @@
 // zoom and collapse boxes at the bottom (`platinum-85-switcher-horizontal.png`).
 .classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons {
   flex-direction: row;
-  // The buttons fill the height the drag bar gives the window.
-  height: 100%;
+  // As wide as its buttons, wherever the palette sits.
+  flex: none;
+}
+
+// The buttons fill the height the drag bar gives the window: the window's
+// contents lay the list out as a flex item, stretched, so its whole box (a
+// package's margin and border around the buttons included) fits the
+// contents. `height: 100%` on the list made its content that tall, and a
+// package's well around it overflowed the window, which clipped its bottom
+// line (Mac OS 8.5 closes the well: `platinum-85-switcher-horizontal.png`).
+.classicyApplicationSwitcherHorizontal .classicyWindowContentsInner {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
 }
 
 // Named down to the utility window, so these beat the windoid's own rules.

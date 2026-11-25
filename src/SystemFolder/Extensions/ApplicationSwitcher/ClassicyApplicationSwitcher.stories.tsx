@@ -30,13 +30,25 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Opens two apps beside the Finder, then shows the palette with `options`. */
+const TWO = ["Notes", "Calendar"];
+const MANY = [
+	"Address Book",
+	"Calendar",
+	"Graphing Calculator",
+	"Mail",
+	"Notes",
+	"Scrapbook",
+	"Stickies",
+];
+
+/** Opens `apps` beside the Finder, then shows the palette with `options`. */
 const Torn: FC<{
 	options?: Pick<
 		ClassicyApplicationSwitcherData,
 		"showNames" | "iconSize" | "orientation"
 	>;
-}> = ({ options }) => {
+	apps?: string[];
+}> = ({ options, apps = TWO }) => {
 	const dispatch = useAppManagerDispatch();
 	// By value, so a re-render with an equal literal changes nothing.
 	const optionsKey = JSON.stringify(options ?? {});
@@ -58,8 +70,13 @@ const Torn: FC<{
 	}, [dispatch, optionsKey]);
 	return (
 		<>
-			<StoryApp id="storybook.notes.app" name="Notes" />
-			<StoryApp id="storybook.calendar.app" name="Calendar" />
+			{apps.map((name) => (
+				<StoryApp
+					key={name}
+					id={`storybook.${name.toLowerCase().replace(/\s+/g, "-")}.app`}
+					name={name}
+				/>
+			))}
 		</>
 	);
 };
@@ -82,4 +99,14 @@ export const Horizontal: Story = {
 	render: () => (
 		<Torn options={{ iconSize: "large", orientation: "horizontal" }} />
 	),
+};
+
+/**
+ * More applications than a short or narrow desktop holds in one line: the
+ * palette wraps into another column (another row, across), by what the
+ * desktop can hold. `bin/check-app-switcher-palette.ts` checks the count,
+ * and that it settles, in a browser.
+ */
+export const ManyApplications: Story = {
+	render: () => <Torn options={{ iconSize: "large" }} apps={MANY} />,
 };

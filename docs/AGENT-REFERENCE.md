@@ -2303,23 +2303,48 @@ Enter and Space included, reach the application switched to. A hidden
 application's button, like its Application menu row, has the accessible
 description "Hidden". More applications than a column the desktop can hold
 wrap into another column (another row, horizontal): the line comes from the
-desktop's capacity (its height from the menu bar's underside, no more than a
-window's maximum height, or its width), less the palette's own frame,
+desktop's capacity (its height from the menu bar's underside, and no more
+than the window's maximum height, its computed `max-height` resolved in
+pixels, `classicyCssLengthPx`: a browser reports it as `calc(100% - 54px)`;
+or its width), less the palette's own frame,
 filled by the buttons' natural sizes (`classicyAppSwitcherPaletteLines`:
 the most per line whose grid fits, each track as large as its largest
 button, the list's gap between; so a line that fits by the sum of its
 buttons stays one line). The stylesheet sizes the wrapped grid's tracks the
 same way (`max-content`), so a wrapped palette never shrinks to the room
-left of where it sits, squeezing its names, and keeps its shape when moved. A natural size is a button's laid out alone, as
-large as its content, on a copy in a hidden list beside the palette's,
-which the palette's own wrap never changes, so the count always settles. It
-is measured when the palette registers, when the desktop resizes, when a
+left of where it sits, squeezing its names, and keeps its shape when moved.
+The natural sizes are read from copies of the buttons, laid out together in
+one hidden, unwrapped copy of the list as large as its content, placed
+beside the palette's list and removed at once: a copy's size along the line
+(its height in a column, its width in a row) is its button's natural size,
+which the palette's own wrap never changes, so the count always settles;
+across the line the copies stretch to the largest, as the list's buttons
+do, so that size is no button's own. The count
+starts when the buttons' list mounts, not when the window's record exists:
+after a reload the record is there from the first render, and the window
+draws a render later, once the desktop's floating layer has committed. It
+is made again when the desktop resizes (from the natural sizes it holds:
+no copy is built), when a
 button resizes and its natural size with it (a metric edit, a theme switch,
-a font that loads late; a resize the wrap alone caused counts nothing),
+a font that loads late; the copy is built only when a button's box is no
+longer what it was when the sizes were last read, and a resize the wrap
+alone caused counts nothing),
 when the theme changes (the frame and the menu bar's height) and when its
 buttons, options or collapse state change, never on a move, so a palette
 dragged partly past an edge keeps its
-shape and clips like any window. 8.5's palette with more applications than
+shape and clips like any window. Across (horizontal), the window's contents
+lay the list out as a stretched flex item, so the list's whole box, a
+package's margin and border around the buttons included, fits the height
+the drag bar gives the window (Platinum's well closes at the bottom, as
+8.5's does). `node bin/check-app-switcher-palette.ts --port <n> [--browser
+chromium|firefox]` checks all of it in a browser, in a served static
+Storybook's `ManyApplications` story (jsdom lays nothing out: the unit tests
+run on a layout model): down a column and across a row, with large and small
+icons, on desktops of several sizes, the palette settles, the window cuts no
+button and no part of the list, the count is the most the desktop holds, and
+the copy it read was hidden, unwrapped and as large as each button alone;
+under System 7 no palette is drawn. Firefox needs a Playwright that has it
+(`$PARITY_PLAYWRIGHT`). 8.5's palette with more applications than
 its screen holds was not observed (the emulator hung while they were
 launched); Classicy wraps only a line the desktop cannot hold at all. Like 8.5's, the switcher shows no icon in the startup
 parade (`platinum-85-startup-parade.png`; `bootIcon={false}`). While a modal window is
@@ -2413,7 +2438,12 @@ direction)`, `classicyAppSwitcherChordDirection(shortcut, event)` (`1`,
 `classicyAppSwitcherChordConflicts(inUse)`; internal (in the `.internal`
 tracker and palette modules, out of the barrel):
 `classicyAppSwitcherTearOffPosition(outline, desktop, menuBarHeight)`,
-`classicyAppSwitcherPaletteLines(room, chromeAfter, naturalSizes, gap?)`.
+`classicyAppSwitcherPaletteLines(space, chrome, naturalSizes, gap?)`
+(`space`: the room the desktop has along the line; `chrome`: the palette's
+own frame along the line, what lies before the first button and after the
+last, together; `gap`: the list's, between tracks),
+`classicyCssLengthPx(value, whole)` (a computed length holding a percentage,
+in pixels).
 
 **Per package.** A package's `layout.applicationSwitcher.palette` (§8,
 "Layout declarations") is `"tearOff"` (the default) or `"none"`. System 7

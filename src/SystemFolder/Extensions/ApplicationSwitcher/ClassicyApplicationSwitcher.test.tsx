@@ -1,6 +1,7 @@
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import { act, fireEvent, render } from "@testing-library/react";
 import { produce } from "immer";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	type ClassicyAppearancePackage,
@@ -22,6 +23,10 @@ import {
 import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import { ClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
+import {
+	ClassicyFloatingLayer,
+	ClassicyFloatingLayerProvider,
+} from "@/SystemFolder/SystemResources/Window/ClassicyFloatingLayer";
 import { ClassicyApplicationSwitcher } from "./ClassicyApplicationSwitcher";
 import {
 	APPLICATION_SWITCHER_APP_ID,
@@ -31,7 +36,10 @@ import {
 	APPLICATION_SWITCHER_TEAR_OFF,
 	type ClassicyApplicationSwitcherData,
 } from "./ClassicyApplicationSwitcherContext";
-import { classicyAppSwitcherPaletteLines } from "./ClassicyApplicationSwitcherPalette.internal";
+import {
+	classicyAppSwitcherPaletteLines,
+	classicyCssLengthPx,
+} from "./ClassicyApplicationSwitcherPalette.internal";
 
 const platinum = getClassicyAppearancePackage(
 	PLATINUM_APPEARANCE_PACKAGE_ID,
@@ -386,6 +394,56 @@ describe("the Application Switcher", () => {
 			expect(classicyAppSwitcherPaletteLines(300, 0, [100, 100, 100], 10)).toBe(
 				2,
 			);
+			// Once between each two tracks, no more and no less (review F5):
+			// three 100s and two gaps of 5 fill 310 exactly, and pass 309.
+			expect(classicyAppSwitcherPaletteLines(310, 0, [100, 100, 100], 5)).toBe(
+				3,
+			);
+			expect(classicyAppSwitcherPaletteLines(309, 0, [100, 100, 100], 5)).toBe(
+				2,
+			);
+			// Lines of two hold one gap: 100 + 5 + 100 fills 205 and passes 204.
+			expect(classicyAppSwitcherPaletteLines(205, 0, [100, 100, 100], 5)).toBe(
+				2,
+			);
+			expect(classicyAppSwitcherPaletteLines(204, 0, [100, 100, 100], 5)).toBe(
+				1,
+			);
+		});
+
+		// Review F2: a browser reports a window's `max-height` as it is
+		// computed, a `calc()` of a percentage and pixels, which
+		// `Number.parseFloat` reads as NaN.
+		it("resolves a computed length that holds a percentage", () => {
+			expect(classicyCssLengthPx("calc(100% - 54px)", 300)).toBe(246);
+			expect(classicyCssLengthPx("250px", 300)).toBe(250);
+			expect(classicyCssLengthPx("50%", 300)).toBe(150);
+			expect(classicyCssLengthPx("calc(-54px + 100%)", 300)).toBe(246);
+			expect(classicyCssLengthPx("calc(100% - (10px + 4px) * 2)", 300)).toBe(
+				272,
+			);
+			expect(classicyCssLengthPx("calc(100% / 4 + 1.5px)", 300)).toBe(76.5);
+			expect(classicyCssLengthPx("min(100%, 200px)", 300)).toBe(200);
+			expect(classicyCssLengthPx("max(50%, 200px, 10px)", 300)).toBe(200);
+			expect(classicyCssLengthPx("clamp(10px, 50%, 100px)", 300)).toBe(100);
+			expect(classicyCssLengthPx("calc(min(100%, 500px) - 54px)", 300)).toBe(
+				246,
+			);
+			expect(classicyCssLengthPx("CALC(100% - 5E1PX)", 300)).toBe(250);
+			// Nothing to resolve: no limit, a sizing keyword, or not a length.
+			for (const none of [
+				"none",
+				"",
+				"max-content",
+				"fit-content(10px)",
+				"calc(100% - ",
+				"calc(100% - 54px) 3px",
+				"calc()",
+				"clamp(1px, 2px)",
+				"calc(1px, 2px)",
+				"100% - 54px)",
+			])
+				expect(classicyCssLengthPx(none, 300)).toBeUndefined();
 		});
 
 		describe("wrapping (re-review I-R1)", () => {
@@ -399,7 +457,9 @@ describe("the Application Switcher", () => {
 			// when it wraps, where a browser may squeeze them: `narrowOnWrap`
 			// pixels off each along the line. So the palette's size is measured
 			// from its shape, not fixed. The buttons' copies the palette lays out
-			// alone, outside its own list, take their natural sizes.
+			// outside its own list take their natural sizes only in a line that
+			// is unwrapped, out of the flow and as large as its content; in any
+			// other they are laid out as the list's own buttons are (review F4).
 			let desktopHeight = 600;
 			let desktopWidth = 800;
 			const BUTTON = 24;
@@ -412,6 +472,37 @@ describe("the Application Switcher", () => {
 			let naturalWidths: Record<string, number> = {};
 			// How often a measure read the desktop's box: each count does once.
 			let desktopReads = 0;
+			// How often the palette's own box was read: each count does once.
+			let paletteReads = 0;
+			// Each hidden copy of the list a measure placed beside it, as it was
+			// while in the document.
+			type Copy = {
+				className: string;
+				lines: string;
+				position: string;
+				width: string;
+				height: string;
+				visibility: string;
+				pointerEvents: string;
+				ariaHidden: string | null;
+				inert: boolean;
+				besideTheList: boolean;
+				buttons: number;
+				ids: number;
+			};
+			let copies: Copy[] = [];
+			// What the stylesheets would compute, which jsdom has none of: an
+			// element's properties, by their CSS names.
+			let computedStyles: (el: Element) => Record<string, string> = () => ({});
+			const NO_STYLES: Record<string, string> = {};
+			/** `styles` for the element `which` names, nothing for any other. */
+			const stylesOf =
+				(
+					which: () => Element | null | undefined,
+					styles: Record<string, string>,
+				) =>
+				(el: Element) =>
+					el === which() ? styles : NO_STYLES;
 			const naturalWidth = (button: Element) =>
 				naturalWidths[button.getAttribute("aria-label") ?? ""] ?? BUTTON_WIDTH;
 			const rect = (left: number, top: number, width: number, height: number) =>
@@ -445,7 +536,64 @@ describe("the Application Switcher", () => {
 				narrowOnWrap = 0;
 				naturalWidths = {};
 				desktopReads = 0;
+				paletteReads = 0;
+				copies = [];
+				computedStyles = () => ({});
 				observed.length = 0;
+				const insertAfter = Element.prototype.after;
+				vi.spyOn(Element.prototype, "after").mockImplementation(function (
+					this: Element,
+					...nodes: (Node | string)[]
+				) {
+					insertAfter.apply(this, nodes);
+					for (const node of nodes)
+						if (
+							node instanceof HTMLElement &&
+							node.classList.contains("classicyApplicationSwitcherButtons")
+						)
+							copies.push({
+								className: node.className,
+								lines: node.style.getPropertyValue(
+									"--application-switcher-lines",
+								),
+								position: node.style.position,
+								width: node.style.width,
+								height: node.style.height,
+								visibility: node.style.visibility,
+								pointerEvents: node.style.pointerEvents,
+								ariaHidden: node.getAttribute("aria-hidden"),
+								inert: node.inert === true,
+								besideTheList:
+									node.isConnected && node.previousElementSibling === this,
+								buttons: node.querySelectorAll(
+									":scope > .classicyApplicationSwitcherButton",
+								).length,
+								ids: node.querySelectorAll("[id]").length + (node.id ? 1 : 0),
+							});
+				});
+				const computed = window.getComputedStyle.bind(window);
+				const camel = (property: string) =>
+					property.replace(/-([a-z])/g, (_, letter: string) =>
+						letter.toUpperCase(),
+					);
+				vi.spyOn(window, "getComputedStyle").mockImplementation(
+					(el: Element, pseudo?: string | null) => {
+						const real = computed(el, pseudo);
+						const set = computedStyles(el);
+						if (Object.keys(set).length === 0) return real;
+						return new Proxy(real, {
+							get(target, key) {
+								if (key === "getPropertyValue")
+									return (property: string) =>
+										set[property] ?? target.getPropertyValue(property);
+								for (const [property, value] of Object.entries(set))
+									if (camel(property) === key) return value;
+								const value = Reflect.get(target, key);
+								return typeof value === "function" ? value.bind(target) : value;
+							},
+						});
+					},
+				);
 				vi.stubGlobal(
 					"ResizeObserver",
 					class {
@@ -501,6 +649,7 @@ describe("the Application Switcher", () => {
 						const left = Number.parseFloat(win?.style.left ?? "") || 0;
 						const top = Number.parseFloat(win?.style.top ?? "") || 0;
 						if (win && this === win) {
+							paletteReads++;
 							const g = grid(win);
 							const buttons = [...(g.list?.children ?? [])];
 							const lines = Math.max(1, Math.ceil(g.count / g.perLine));
@@ -525,10 +674,23 @@ describe("the Application Switcher", () => {
 						}
 						if (win && isButton(this)) {
 							const g = grid(win);
-							// A copy outside the palette's own list: its natural size.
-							if (this.parentElement !== g.list)
+							const parent = this.parentElement as HTMLElement;
+							// A copy outside the palette's own list has its natural
+							// size in an unwrapped line, out of the flow and as large
+							// as its content.
+							if (
+								parent !== g.list &&
+								!parent.classList.contains(
+									"classicyApplicationSwitcherWrapped",
+								) &&
+								parent.style.getPropertyValue(
+									"--application-switcher-lines",
+								) === "" &&
+								parent.style.position === "absolute" &&
+								parent.style.width === "max-content"
+							)
 								return rect(0, 0, naturalWidth(this), buttonHeight);
-							const i = [...(g.list?.children ?? [])].indexOf(this);
+							const i = [...parent.children].indexOf(this);
 							const size = laidOut(this, g);
 							const line = Math.floor(i / g.perLine);
 							const place = i % g.perLine;
@@ -763,6 +925,268 @@ describe("the Application Switcher", () => {
 				);
 				resize(isButton);
 				expect(lines()).toBe("");
+			});
+
+			// Review F4: the count reads its buttons' natural sizes from copies
+			// in one hidden line. Left wrapped, or in the palette's flow, that
+			// line would be laid out as the palette is, and the count would
+			// follow the wrap and the palette's place again (IG-C1).
+			it("reads its buttons' natural sizes from one hidden, unwrapped line as large as its content", () => {
+				desktopHeight = menuBar() + FRAME_ABOVE + 60;
+				narrowOnWrap = 6;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(lines()).toBe("2");
+				// The wrap resized the buttons: the copy is made of a wrapped list.
+				copies = [];
+				expect(list().classList).toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+				resize(isButton);
+				expect(copies).toEqual([
+					{
+						className: "classicyApplicationSwitcherButtons",
+						lines: "",
+						position: "absolute",
+						width: "max-content",
+						height: "auto",
+						visibility: "hidden",
+						pointerEvents: "none",
+						ariaHidden: "true",
+						inert: true,
+						besideTheList: true,
+						buttons: 3,
+						ids: 0,
+					},
+				]);
+				// Removed once read: the palette holds its one list, wrapped.
+				expect(
+					document.querySelectorAll(".classicyApplicationSwitcherButtons"),
+				).toHaveLength(1);
+				expect(lines()).toBe("2");
+			});
+
+			// Review F1: after a reload the window's record exists from the
+			// first render, while the window draws nothing until the desktop's
+			// floating layer has committed, a render later. The count waits for
+			// the buttons' list itself.
+			it("counts its lines after a reload, once the desktop's floating layer has committed, and follows the desktop", () => {
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON * 2;
+				setUp();
+				const first = render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(lines()).toBe("2");
+				first.unmount();
+				expect(observed).toEqual([]);
+				// A reload: the store holds what was persisted, the palette's
+				// record included, and the desktop provides its floating layer.
+				const saved = JSON.parse(JSON.stringify(useAppManager.getState()));
+				act(() => {
+					useAppManager.setState(saved, true);
+				});
+				expect(
+					apps().apps[APPLICATION_SWITCHER_APP_ID].windows[
+						APPLICATION_SWITCHER_PALETTE_ID
+					]?.closed,
+				).toBe(false);
+				render(
+					<ClassicyFloatingLayerProvider>
+						<ClassicyApplicationSwitcher />
+						<ClassicyFloatingLayer />
+					</ClassicyFloatingLayerProvider>,
+				);
+				// Drawn in the desktop's own layer, a render after the record.
+				expect(palette()?.parentElement?.id).toBe("classicy-floating-layer");
+				expect(palette()?.parentElement?.parentElement).not.toBe(document.body);
+				expect(list().classList).toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+				expect(lines()).toBe("2");
+				// And it follows the desktop from then on.
+				expect(observed.filter((o) => isLayer(o.target))).toHaveLength(1);
+				expect(observed.filter((o) => isButton(o.target))).toHaveLength(3);
+				desktopHeight = 600;
+				resize(isLayer);
+				expect(lines()).toBe("");
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON;
+				resize(isLayer);
+				expect(lines()).toBe("1");
+			});
+
+			// Review F2: a window is never taller than its maximum height, the
+			// desktop's less the theme's reserve, 20 pixels less than the room
+			// under the menu bar. A browser reports it as it is computed.
+			it("never counts a column taller than the window may be", () => {
+				// Platinum's palette: a pixel of border and a pixel of padding
+				// around its content box, which the maximum height limits.
+				computedStyles = stylesOf(palette, {
+					"max-height": "calc(100% - 54px)",
+					"box-sizing": "content-box",
+					"padding-top": "1px",
+					"padding-bottom": "1px",
+					"border-top-width": "1px",
+					"border-bottom-width": "1px",
+				});
+				// The frame above, three buttons, and the frame's 2 pixels below.
+				const column = FRAME_ABOVE + BUTTON * 3 + 2;
+				// The window may be exactly that tall: 100% - 54 + 4.
+				desktopHeight = column + 54 - 4;
+				// The room under the menu bar alone holds more.
+				expect(desktopHeight - 1 - menuBar()).toBeGreaterThan(column);
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(lines()).toBe("");
+				// A pixel less, and the window cannot hold the column.
+				desktopHeight -= 1;
+				resize(isLayer);
+				expect(lines()).toBe("2");
+				expect(list().classList).toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+				// A limit on the border box takes the frame out of it.
+				computedStyles = stylesOf(palette, {
+					"max-height": "calc(100% - 54px)",
+					"box-sizing": "border-box",
+					"padding-top": "1px",
+					"padding-bottom": "1px",
+					"border-top-width": "1px",
+					"border-bottom-width": "1px",
+				});
+				desktopHeight = column + 54 - 1;
+				resize(isLayer);
+				expect(lines()).toBe("2");
+				desktopHeight = column + 54;
+				resize(isLayer);
+				expect(lines()).toBe("");
+			});
+
+			// Review F5: the list's gap lies between a line's tracks. Platinum
+			// packs its buttons; the base sheet, which a package with no rules
+			// for the palette draws by, leaves a gap.
+			it("counts the list's gap between its buttons, along the line", () => {
+				computedStyles = stylesOf(list, {
+					"row-gap": "5px",
+					"column-gap": "9px",
+				});
+				// Three buttons and two row gaps fill the room exactly.
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON * 3 + 5 * 2;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(lines()).toBe("");
+				desktopHeight -= 1;
+				resize(isLayer);
+				expect(lines()).toBe("2");
+				// Across, the column gap: three buttons and two of them.
+				desktopHeight = 600;
+				desktopWidth = SIDE_FRAME + BUTTON_WIDTH * 3 + 9 * 2;
+				orient("horizontal");
+				expect(lines()).toBe("");
+				desktopWidth -= 1;
+				resize(isLayer);
+				expect(lines()).toBe("2");
+				// Two buttons and one gap fill a line of two exactly.
+				desktopWidth = SIDE_FRAME + BUTTON_WIDTH * 2 + 9;
+				resize(isLayer);
+				expect(lines()).toBe("2");
+				desktopWidth -= 1;
+				resize(isLayer);
+				expect(lines()).toBe("1");
+			});
+
+			// Review F6: each run of the count watches the desktop and its
+			// buttons, and lets go of them when it ends. An observer left behind
+			// keeps the options it was made under, and counts along the old line.
+			it("watches the desktop once and each button once, and nothing once it is gone", () => {
+				const watched = () => [
+					observed.filter((o) => isLayer(o.target)).length,
+					observed.filter((o) => isButton(o.target)).length,
+				];
+				setUp();
+				const mounted = render(
+					<StrictMode>
+						<ClassicyApplicationSwitcher />
+					</StrictMode>,
+				);
+				tearOff([300, 0]);
+				expect(watched()).toEqual([1, 3]);
+				// Each observed button is one of the palette's own, once.
+				expect(
+					new Set(
+						observed.filter((o) => isButton(o.target)).map((o) => o.target),
+					),
+				).toEqual(new Set(buttons()));
+				orient("horizontal");
+				expect(watched()).toEqual([1, 3]);
+				act(() => {
+					dispatch({
+						type: APPLICATION_SWITCHER_SET_PALETTE,
+						iconSize: "large",
+					});
+				});
+				expect(watched()).toEqual([1, 3]);
+				act(() => {
+					dispatch({
+						type: "ClassicyDesktopChangeMetric",
+						metricKey: "windowBorderSize",
+						value: 3,
+					});
+				});
+				expect(watched()).toEqual([1, 3]);
+				// Taller buttons now, in a row: an observer left from the column
+				// would count them down the line and wrap the row.
+				buttonHeight = 400;
+				resize(isButton);
+				expect(lines()).toBe("");
+				mounted.unmount();
+				expect(watched()).toEqual([0, 0]);
+				expect(observed).toEqual([]);
+			});
+
+			// Review F7: only a button's own change can change a natural size,
+			// so only that reads the hidden copy, and only when a button's box
+			// is no longer what it was when the sizes were last read.
+			it("builds the hidden copy only when a button's natural size may have changed", () => {
+				narrowOnWrap = 6;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(lines()).toBe("");
+				// One count as the list is drawn.
+				expect(copies).toHaveLength(1);
+				// The observers' first notifications find what was counted: the
+				// desktop's box is read once to tell, and nothing is counted.
+				const counted = desktopReads;
+				const framed = paletteReads;
+				resize(isLayer);
+				resize(isButton);
+				expect(copies).toHaveLength(1);
+				expect(desktopReads).toBe(counted + 1);
+				expect(paletteReads).toBe(framed);
+				// A desktop resize counts from the sizes held: no copy.
+				desktopHeight = menuBar() + FRAME_ABOVE + 60;
+				resize(isLayer);
+				expect(lines()).toBe("2");
+				expect(copies).toHaveLength(1);
+				// The wrap squeezed the buttons: one copy finds their natural
+				// sizes as they were, and nothing is counted.
+				const recounted = desktopReads;
+				resize(isButton);
+				expect(copies).toHaveLength(2);
+				expect(desktopReads).toBe(recounted);
+				resize(isButton);
+				expect(copies).toHaveLength(2);
+				// Taller buttons (a metric edit, a late font): read and counted.
+				buttonHeight = 40;
+				resize(isButton);
+				expect(copies).toHaveLength(3);
+				expect(lines()).toBe("1");
+				// No copy is left in the document.
+				expect(
+					document.querySelectorAll(".classicyApplicationSwitcherButtons"),
+				).toHaveLength(1);
 			});
 		});
 

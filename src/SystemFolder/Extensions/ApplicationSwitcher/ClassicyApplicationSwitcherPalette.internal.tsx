@@ -91,8 +91,9 @@ const classicyAppSwitcherLineExtent = (
  * How many buttons a line (a column, or a row when the palette is
  * horizontal) holds on the desktop: the most whose line fits the room the
  * desktop has for a window along it (`space`), less the palette's own frame
- * around the buttons (`chrome`), given each button's natural size along the
- * line (`sizes`, in order) and the list's `gap`; never under one. A line
+ * along the line (`chrome`: what lies before the first button and after the
+ * last, together), given each button's natural size along the line (`sizes`,
+ * in order) and the list's `gap` between tracks; never under one. A line
  * that fits by the sum of its buttons is not wrapped, however large the
  * largest (re-review IG-C1), and buttons not laid out (no size at all) are
  * never wrapped. Where the palette sits never enters it.
@@ -111,16 +112,114 @@ export const classicyAppSwitcherPaletteLines = (
 };
 
 /**
- * Each button's natural size: what it takes laid out alone, in an unwrapped
- * line of the palette's list that is as large as its content
- * (`max-content`), neither stretched to a track's largest nor squeezed to
- * fit, so no wrap of the palette changes it. Measured on copies, in a hidden
- * copy of the list placed beside it (so the package's rules for the list's
- * buttons reach them) and removed at once.
+ * A computed CSS length in pixels, a percentage being of `whole`: a pixel
+ * length, a percentage, or `calc()`, `min()`, `max()` and `clamp()` of them,
+ * which is how a browser serializes a computed `max-height` that holds a
+ * percentage (`calc(100% - 54px)`; `Number.parseFloat` of that is `NaN`).
+ * `undefined` for `none`, a sizing keyword, or anything else it cannot read.
  */
-const classicyAppSwitcherNaturalSizes = (
-	list: HTMLElement,
-): { width: number; height: number }[] => {
+export const classicyCssLengthPx = (
+	value: string,
+	whole: number,
+): number | undefined => {
+	const tokens =
+		value
+			.toLowerCase()
+			.match(
+				/[a-z][a-z-]*\(|[(),]|[-+*/]|(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?(?:px|%)?/g,
+			) ?? [];
+	// Every character but the spaces is part of a token it reads.
+	if (tokens.join("").length !== value.replace(/\s+/g, "").length)
+		return undefined;
+	let at = 0;
+	const unit = (): number => {
+		const token = tokens[at++];
+		if (token === undefined) return Number.NaN;
+		if (token === "-") return -unit();
+		if (token === "+") return unit();
+		if (token.endsWith("(")) {
+			const args = [sum()];
+			while (tokens[at] === ",") {
+				at++;
+				args.push(sum());
+			}
+			if (tokens[at++] !== ")") return Number.NaN;
+			if (token === "min(") return Math.min(...args);
+			if (token === "max(") return Math.max(...args);
+			if (token === "clamp(" && args.length === 3)
+				return Math.max(args[0], Math.min(args[1], args[2]));
+			return (token === "(" || token === "calc(") && args.length === 1
+				? args[0]
+				: Number.NaN;
+		}
+		const number = Number.parseFloat(token);
+		return token.endsWith("%") ? (number / 100) * whole : number;
+	};
+	const product = (): number => {
+		let total = unit();
+		while (tokens[at] === "*" || tokens[at] === "/")
+			total = tokens[at++] === "*" ? total * unit() : total / unit();
+		return total;
+	};
+	const sum = (): number => {
+		let total = product();
+		while (tokens[at] === "+" || tokens[at] === "-")
+			total = tokens[at++] === "+" ? total + product() : total - product();
+		return total;
+	};
+	const length = sum();
+	return at === tokens.length && Number.isFinite(length) ? length : undefined;
+};
+
+/**
+ * The tallest the palette's window may be, border box: its computed
+ * `max-height` (a window's is its container's height less the theme's
+ * reserve, `ClassicyWindow.scss`, which a browser reports as
+ * `calc(100% - 54px)`) resolved against `containerHeight`, with the
+ * window's own padding and border when the limit is on its content box.
+ * `Infinity` when nothing limits it.
+ */
+const classicyAppSwitcherMaxHeight = (
+	palette: HTMLElement,
+	containerHeight: number,
+): number => {
+	const cs = getComputedStyle(palette);
+	const limit = classicyCssLengthPx(cs.maxHeight, containerHeight);
+	if (limit === undefined) return Number.POSITIVE_INFINITY;
+	if (cs.boxSizing === "border-box") return limit;
+	const px = (property: string) =>
+		Number.parseFloat(cs.getPropertyValue(property)) || 0;
+	return (
+		limit +
+		px("padding-top") +
+		px("padding-bottom") +
+		px("border-top-width") +
+		px("border-bottom-width")
+	);
+};
+
+/** The list's own buttons, in order. */
+const classicyAppSwitcherButtonsOf = (list: HTMLElement): HTMLElement[] =>
+	Array.from(
+		list.querySelectorAll<HTMLElement>(
+			":scope > .classicyApplicationSwitcherButton",
+		),
+	);
+
+/**
+ * A hidden copy of the palette's list for reading its buttons' natural
+ * sizes, placed beside the list (so the package's rules for the list and
+ * its buttons reach it) and out of its flow; the caller removes it. The
+ * copy is one unwrapped line as large as its content (`max-content`),
+ * holding a copy of every button, laid out together: each copy's size
+ * along the line (its height in a column, its width in a row) is what that
+ * button takes neither stretched to a wrapped track's largest nor squeezed
+ * to fit, so no wrap of the palette and no place it sits changes it. Across
+ * the line the copies stretch to the largest, as the list's buttons do, so
+ * that size is no button's own. The copies keep their images' sources: a
+ * package may size an icon by its image.
+ */
+const classicyAppSwitcherSizer = (list: HTMLElement): HTMLElement => {
 	const sizer = list.cloneNode(false) as HTMLElement;
 	sizer.classList.remove("classicyApplicationSwitcherWrapped");
 	sizer.removeAttribute("style");
@@ -135,9 +234,7 @@ const classicyAppSwitcherNaturalSizes = (
 		visibility: "hidden",
 		pointerEvents: "none",
 	});
-	for (const button of list.querySelectorAll(
-		":scope > .classicyApplicationSwitcherButton",
-	)) {
+	for (const button of classicyAppSwitcherButtonsOf(list)) {
 		const copy = button.cloneNode(true) as HTMLElement;
 		copy.removeAttribute("id");
 		for (const named of copy.querySelectorAll("[id]"))
@@ -145,135 +242,161 @@ const classicyAppSwitcherNaturalSizes = (
 		sizer.append(copy);
 	}
 	list.after(sizer);
-	try {
-		return Array.from(sizer.children, (copy) => {
-			const box = copy.getBoundingClientRect();
-			return { width: box.width, height: box.height };
-		});
-	} finally {
-		sizer.remove();
-	}
+	return sizer;
 };
 
 /**
  * The line length the palette's buttons wrap at, from how much the desktop
  * can hold, not from where the palette sits: the desktop's height from the
- * menu bar's underside to its bottom (no taller than a window's maximum
- * height), its width when horizontal, filled by the buttons' natural sizes
- * (`classicyAppSwitcherNaturalSizes`), which the palette's own wrap never
- * changes, so a measure always gives the count it gave before for the same
- * buttons, desktop and theme. Measured once the palette is laid out, and
- * again when the desktop resizes, when a button resizes and its natural
- * size with it (a metric edit such as the buttons' padding or an icon size,
- * a theme switch, a font that loads late; a resize the wrap alone caused
- * measures nothing), when the theme changes (the frame around the buttons
- * and the menu bar with it), and when the buttons, the options or the
- * collapse state change; never on a move, so a palette dragged partly past
- * an edge keeps its shape and clips like any window. `undefined` while every
- * button fits in one line. Mac OS 8.5's palette with more applications than
- * the screen holds was not observed (the emulator hung while they were
- * launched): Classicy wraps only a line the desktop cannot hold at all.
+ * menu bar's underside to its bottom, and no more than a window's maximum
+ * height (`classicyAppSwitcherMaxHeight`), or its width when horizontal,
+ * filled by the buttons' natural sizes along the line
+ * (`classicyAppSwitcherSizer`), which the palette's own wrap never changes,
+ * so a count always gives what it gave before for the same buttons, desktop
+ * and theme.
+ *
+ * It counts once `list`, the buttons' list, is mounted: the window draws
+ * nothing while its record is closed or before the desktop's floating layer
+ * has committed, which on a reload is after the record exists, so the list's
+ * element is what the count waits for (review F1). It counts again:
+ *
+ * - when the desktop resizes, from the natural sizes it holds: a desktop's
+ *   size changes none, so no copy is built;
+ * - when a button resizes and its natural size with it (a metric edit such
+ *   as the buttons' padding or an icon size, a theme switch, a font that
+ *   loads late). The copy is built only when a button's box differs from
+ *   what it was when the natural sizes were last read, so the observer's
+ *   first notification reads nothing, and a resize the wrap alone caused
+ *   builds one copy and counts nothing;
+ * - when the theme changes (the frame around the buttons and the menu bar
+ *   with it), and when the buttons, the options or the collapse state
+ *   change (`deps`).
+ *
+ * Never on a move, so a palette dragged partly past an edge keeps its shape
+ * and clips like any window. Each count reads the document once, while the
+ * copy is in it. `undefined` while every button fits in one line. Mac OS
+ * 8.5's palette with more applications than the screen holds was not
+ * observed (the emulator hung while they were launched): Classicy wraps
+ * only a line the desktop cannot hold at all.
  */
 const useClassicyPaletteLines = (
+	list: HTMLElement | null,
 	count: number,
 	horizontal: boolean,
 	deps: readonly unknown[],
 ): number | undefined => {
 	const [lines, setLines] = useState<number | undefined>(undefined);
 	useLayoutEffect(() => {
-		if (typeof document === "undefined") return;
-		const palette = document.getElementById(
-			`${APPLICATION_SWITCHER_APP_ID}_${APPLICATION_SWITCHER_PALETTE_ID}`,
-		);
+		const palette = list?.closest<HTMLElement>(`.${PALETTE_CLASS}`);
+		const contents = list?.closest<HTMLElement>(".classicyWindowContents");
 		const layer = palette?.parentElement;
-		if (!palette || !layer) return;
-		// The natural sizes the last count was made from.
-		let measuredSizes: string | undefined;
-		const measure = (onlyWhenNaturalSizesChange = false) => {
-			const list = palette.querySelector<HTMLElement>(
-				".classicyApplicationSwitcherButtons",
-			);
-			const contents = list?.closest<HTMLElement>(".classicyWindowContents");
-			const first = list?.querySelector<HTMLElement>(
-				":scope > .classicyApplicationSwitcherButton",
-			);
-			if (!list || !contents || !first) return;
-			const natural = classicyAppSwitcherNaturalSizes(list);
-			const sizes = natural.map((box) => (horizontal ? box.width : box.height));
-			const key = sizes.join(",");
-			if (onlyWhenNaturalSizesChange && key === measuredSizes) return;
-			measuredSizes = key;
-			const desktop = layer.getBoundingClientRect();
-			const outer = palette.getBoundingClientRect();
-			const start = first.getBoundingClientRect();
-			// The frame after the last line, from the styles (the box itself
-			// may be cut off at the window's maximum height).
-			const after = (side: "bottom" | "right") =>
-				[palette, contents, list].reduce((sum, el) => {
-					const cs = getComputedStyle(el);
-					return (
-						sum +
-						(Number.parseFloat(cs.getPropertyValue(`border-${side}-width`)) ||
-							0) +
-						(Number.parseFloat(cs.getPropertyValue(`padding-${side}`)) || 0) +
-						(el === palette
-							? 0
-							: Number.parseFloat(cs.getPropertyValue(`margin-${side}`)) || 0)
-					);
-				}, 0);
-			const gap =
-				Number.parseFloat(
-					getComputedStyle(list).getPropertyValue(
-						horizontal ? "column-gap" : "row-gap",
-					),
-				) || 0;
-			const fit = horizontal
-				? classicyAppSwitcherPaletteLines(
-						desktop.width,
-						start.left - outer.left + after("right"),
-						sizes,
-						gap,
-					)
-				: (() => {
-						// A window keeps below the menu bar, and is never taller than
-						// its maximum height (the desktop's, less a reserve).
-						const menuBar = readClassicyThemeVar(
-							"--menu-bar-height",
-							undefined,
-							layer,
+		if (!list || !palette || !contents || !layer) return;
+		const buttons = classicyAppSwitcherButtonsOf(list);
+		const first = buttons[0];
+		if (!first) return;
+		// What the last count was made from: the buttons' natural sizes along
+		// the line, their boxes when those were read, and the desktop's box.
+		let sizes: number[] = [];
+		let boxes = "";
+		let room = "";
+		const boxesNow = () =>
+			buttons
+				.map((button) => {
+					const box = button.getBoundingClientRect();
+					return `${box.width}x${box.height}`;
+				})
+				.join(",");
+		const roomOf = (desktop: DOMRect) => `${desktop.width}x${desktop.height}`;
+		const measure = (
+			from: "effect" | "desktop" | "buttons",
+			desktopNow?: DOMRect,
+		) => {
+			let sizer: HTMLElement | undefined;
+			let fit: number;
+			try {
+				// The copy goes in first, so every read below is of one layout.
+				if (from !== "desktop") {
+					sizer = classicyAppSwitcherSizer(list);
+					const natural = Array.from(sizer.children, (copy) => {
+						const box = copy.getBoundingClientRect();
+						return horizontal ? box.width : box.height;
+					});
+					boxes = boxesNow();
+					// A resize the palette's own wrap caused changes no natural size.
+					if (from === "buttons" && natural.join(",") === sizes.join(","))
+						return;
+					sizes = natural;
+				}
+				const desktop = desktopNow ?? layer.getBoundingClientRect();
+				room = roomOf(desktop);
+				const outer = palette.getBoundingClientRect();
+				const start = first.getBoundingClientRect();
+				// The frame after the last line, from the styles (the box itself
+				// may be cut off at the window's maximum height).
+				const after = (side: "bottom" | "right") =>
+					[palette, contents, list].reduce((sum, el) => {
+						const cs = getComputedStyle(el);
+						return (
+							sum +
+							(Number.parseFloat(cs.getPropertyValue(`border-${side}-width`)) ||
+								0) +
+							(Number.parseFloat(cs.getPropertyValue(`padding-${side}`)) || 0) +
+							(el === palette
+								? 0
+								: Number.parseFloat(cs.getPropertyValue(`margin-${side}`)) || 0)
 						);
-						const maxHeight = Number.parseFloat(
-							getComputedStyle(palette).maxHeight,
-						);
-						const room = desktop.height - menuBar;
-						return classicyAppSwitcherPaletteLines(
-							Number.isFinite(maxHeight) ? Math.min(room, maxHeight) : room,
+					}, 0);
+				const gap =
+					Number.parseFloat(
+						getComputedStyle(list).getPropertyValue(
+							horizontal ? "column-gap" : "row-gap",
+						),
+					) || 0;
+				fit = horizontal
+					? classicyAppSwitcherPaletteLines(
+							desktop.width,
+							start.left - outer.left + after("right"),
+							sizes,
+							gap,
+						)
+					: classicyAppSwitcherPaletteLines(
+							// A window keeps below the menu bar, and is never taller
+							// than its maximum height.
+							Math.min(
+								desktop.height -
+									readClassicyThemeVar("--menu-bar-height", undefined, layer),
+								classicyAppSwitcherMaxHeight(palette, desktop.height),
+							),
 							start.top - outer.top + after("bottom"),
 							sizes,
 							gap,
 						);
-					})();
+			} finally {
+				sizer?.remove();
+			}
 			setLines(fit < count ? fit : undefined);
 		};
-		measure();
+		measure("effect");
 		if (typeof ResizeObserver === "undefined") return;
-		const desktopObserver = new ResizeObserver(() => measure());
+		// An observer's first notification finds what the effect counted.
+		const desktopObserver = new ResizeObserver(() => {
+			const desktop = layer.getBoundingClientRect();
+			if (roomOf(desktop) !== room) measure("desktop", desktop);
+		});
 		desktopObserver.observe(layer);
 		// A button resizes with nothing else here changing when a metric or
-		// theme edit, or the names' font arriving after the first measure,
+		// theme edit, or the names' font arriving after the first count,
 		// changes its natural size; it also resizes when the palette's own
-		// wrap lays it out anew, which changes no natural size and so counts
-		// nothing again.
-		const buttonObserver = new ResizeObserver(() => measure(true));
-		for (const button of palette.querySelectorAll(
-			".classicyApplicationSwitcherButton",
-		))
-			buttonObserver.observe(button);
+		// wrap lays it out anew.
+		const buttonObserver = new ResizeObserver(() => {
+			if (boxesNow() !== boxes) measure("buttons");
+		});
+		for (const button of buttons) buttonObserver.observe(button);
 		return () => {
 			desktopObserver.disconnect();
 			buttonObserver.disconnect();
 		};
-	}, [count, horizontal, ...deps]);
+	}, [list, count, horizontal, ...deps]);
 	return lines;
 };
 
@@ -322,14 +445,9 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 	// (`…-horizontal.png`); with names across the top it has both.
 	const narrow = !horizontal && !showNames && !large;
 	useClassicyPaletteKeepsKeyboardOff();
-	// The window's record exists once it has registered: the first measure.
-	const registered = useAppManager(
-		(s) =>
-			getAppWindow(
-				s.System.Manager.Applications.apps[APPLICATION_SWITCHER_APP_ID],
-				APPLICATION_SWITCHER_PALETTE_ID,
-			) !== undefined,
-	);
+	// The buttons' list, once the window has drawn it: the count waits for
+	// the element, since the window's record exists before it on a reload.
+	const [list, setList] = useState<HTMLElement | null>(null);
 	const collapsed = useAppManager(
 		(s) =>
 			getAppWindow(
@@ -343,8 +461,7 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 	// More applications than the desktop can hold in a line wrap into
 	// another column (another row, horizontal), so every button can be
 	// brought onto it; a move never reshapes the palette.
-	const lines = useClassicyPaletteLines(entries.length, horizontal, [
-		registered,
+	const lines = useClassicyPaletteLines(list, entries.length, horizontal, [
 		collapsed,
 		large,
 		showNames,
@@ -397,6 +514,7 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 		>
 			{/* The window carries the name ("Applications", its aria-label). */}
 			<div
+				ref={setList}
 				className={classNames(
 					"classicyApplicationSwitcherButtons",
 					lines !== undefined && "classicyApplicationSwitcherWrapped",
