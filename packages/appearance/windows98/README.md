@@ -365,6 +365,12 @@ pnpm --filter @classicy/appearance-windows98 build
 `pnpm build:audio` rebuilds the sound pack's sprite sheet from
 `src/assets/sounds/windows98/sprites/`.
 
+`pnpm storybook` shows the package under **Appearance/Windows 98**: its
+schemes and controls, and **Shell**, the Windows shell on a desktop (the
+taskbar, the Start menu, the status area, window menu bars, maximized and
+minimized windows, the system menu, message boxes, Shut Down, Run, Taskbar
+Properties and a docked taskbar), each opened as a user would open it.
+
 ## License
 
 This software is provided free and in the public domain under

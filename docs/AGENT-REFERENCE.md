@@ -5024,6 +5024,30 @@ it like Platinum (§1); its README lists what it ships.
   the two sprites). Storybook registers it only through
   `storybook/.storybook/windows98.ts` (its own stories) or the Package
   toolbar.
+- **Storybook (the shell).** `Appearance/Windows 98/Shell`
+  (`Windows98Shell.stories.tsx`, plan 0020-w98 step 20) draws the shell on
+  the story desktop, each story leaving `parameters.classicy.controlStrip`
+  unset so the status area holds the strip's modules: the taskbar with three
+  windows (one active, one minimized), the Start menu with Programs open, a
+  tray icon's menu and the Sound panel, a window menu bar's Help, a maximized
+  window, the system menu, the three message box types (WIG Figure 8.17),
+  the "Windows 95" and "Rainy Day" schemes, and the extras: the taskbar's
+  menu, Quick Launch with its tooltip, task-band paging, Shut Down, Run,
+  Start ▸ Documents, Log Off (the decorator's `parameters.classicy.userName`
+  is the desktop's `userName`), the flashing task button, the Start and
+  caption-button tooltips, Taskbar Properties, docking left and top, Auto
+  hide and small Start menu icons. `storybook/.storybook/windows98.ts`
+  holds the helpers: `WithActions` (store actions once on mount),
+  `WhenWindowsOpen` (window registry commands and actions, run once every
+  named window is mounted and open), `noteRecentDocuments`, and the play
+  helpers, which act with the events the shell listens for
+  (`openStartMenu(doc, path)`, `openTrayIcon(doc, label, button)`,
+  `openTaskbarMenu`, `chooseMenuItem`, `openWindowMenu(doc, appId,
+  windowId, menuId)`, `hoverForTooltip`, `untilSelector`, `untilElement`,
+  `pressElement`, `clickElement`, `contextClickElement`, `hoverElement`);
+  `Windows98StoryHelpers.test.tsx` covers them. The "?" caption box has no
+  story: no window passes the title bar's `onHelp` until What's This? is
+  wired (E3).
 
 ### Layout declarations
 

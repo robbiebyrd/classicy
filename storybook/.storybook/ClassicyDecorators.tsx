@@ -45,11 +45,13 @@ const ClassicyDesktopFrame = ({
 	themeId,
 	controlStrip,
 	appearancePackage,
+	userName,
 	children,
 }: {
 	themeId: string;
 	controlStrip: boolean;
 	appearancePackage?: string;
+	userName?: string;
 	children: ReactNode;
 }) => {
 	const [ready, setReady] = useState(false);
@@ -82,7 +84,11 @@ const ClassicyDesktopFrame = ({
 
 	if (!ready) return null;
 	return (
-		<Classicy startupScreen={false} controlStrip={controlStrip}>
+		<Classicy
+			startupScreen={false}
+			controlStrip={controlStrip}
+			userName={userName}
+		>
 			{children}
 		</Classicy>
 	);
@@ -306,6 +312,13 @@ const ClassicyStory = ({
 					// Stories that mount their own strip set `controlStrip: false`.
 					controlStrip={context.parameters.classicy?.controlStrip ?? true}
 					appearancePackage={appearancePackage}
+					// The signed-in user's name, for a Windows shell story's Start
+					// ▸ Log Off <name>…; absent, none (the desktop's default).
+					userName={
+						typeof context.parameters.classicy?.userName === "string"
+							? context.parameters.classicy.userName
+							: undefined
+					}
 				>
 					<Story />
 				</ClassicyDesktopFrame>
