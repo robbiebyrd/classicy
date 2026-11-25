@@ -1,9 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { act, cleanup, render } from "@testing-library/react";
+import { produce } from "immer";
+import { createElement } from "react";
+import { afterEach, describe, expect, it } from "vitest";
 import {
 	compileScss,
 	cssRuleLookup,
 	parseCssRules,
 } from "@/__tests__/compiledCss";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 
 // A fixed menu surface is as wide as its items, wherever it is placed: a
 // fixed box is otherwise shrunk to the room left of its `left` edge, so a
@@ -43,15 +49,6 @@ describe("fixed menu surfaces", () => {
 		expect(menu(".classicyContextSubMenu").width).toBe("max-content");
 	});
 
-	// Found with F1: the Apple menu and its submenus took a fifth of the
-	// viewport at the least, wider than their items on a wide screen.
-	it("size the Apple menu by its items, never by the viewport", () =>
-		expect(
-			compileScss(
-				"src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.scss",
-			),
-		).not.toMatch(/\d(\.\d+)?vw\b/));
-
 	it("hang the Application menu from its title's right side, at its items' width", () => {
 		const bar = rule("Desktop/MenuBar/ClassicyDesktopMenuBar.scss")(
 			".classicyDesktopMenuAppSwitcher * ul",
@@ -65,4 +62,161 @@ describe("fixed menu surfaces", () => {
 		expect(
 			rule("PopUpMenu/ClassicyPopUpMenu.scss")(".classicyPopUpMenuList").width,
 		).toBe("max-content"));
+});
+
+// Found with integration review G round 3's F1: the Apple menu and its
+// submenus took a fifth of the viewport at the least (`min-width: 20vw` in
+// the menu bar's sheet), wider than their items on a wide screen. The menu
+// bar's sheet sizes them by no viewport unit and gives them no width of its
+// own, so the shared `.classicySubMenu` rule (`width: max-content`, above)
+// sizes them. A pin on `vw` alone let `20dvw` or `12vmax` back in (round 4,
+// F3).
+describe("the Apple menu's width", () => {
+	const MENU_BAR =
+		"src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.scss";
+	const menuBarCss = compileScss(MENU_BAR);
+
+	/**
+	 * Every length in a viewport unit (CSS Values 4 §6.1: `vw`, `vh`, `vi`,
+	 * `vb`, `vmin`, `vmax`, and their small, large and dynamic forms such as
+	 * `svw`, `lvh` and `dvmax`), in any case, as `.5vw` or `20VW` too.
+	 */
+	const viewportLengths = (css: string) =>
+		css.match(/\d(?:[sld]?v(?:w|h|i|b|min|max))\b/gi) ?? [];
+
+	/** The properties that give a box its width. */
+	const WIDTHS = new Set([
+		"width",
+		"min-width",
+		"max-width",
+		"inline-size",
+		"min-inline-size",
+		"max-inline-size",
+	]);
+
+	/**
+	 * The menu bar as it draws, its Apple menu holding a submenu with a
+	 * submenu of its own: the Apple menu's lists are its pull-down and those
+	 * two.
+	 */
+	const appleMenuLists = () => {
+		act(() => {
+			useAppManager.setState(
+				produce(DefaultAppManagerState, (draft) => {
+					draft.System.Manager.Desktop.systemMenu.push({
+						id: "control-panels",
+						title: "Control Panels",
+						menuChildren: [
+							{
+								id: "control-panel",
+								title: "Appearance",
+								menuChildren: [{ id: "themes", title: "Themes" }],
+							},
+						],
+					});
+				}),
+				true,
+			);
+		});
+		const { container } = render(createElement(ClassicyDesktopMenuBar));
+		const apple = container.querySelector(".classicyDesktopMenuApple");
+		return {
+			apple,
+			lists: Array.from(apple?.querySelectorAll("ul") ?? []),
+		};
+	};
+
+	/**
+	 * Every width the rules of `css` give one of the Apple menu's lists, with
+	 * the menu closed and open: a rule of a selector that matches a list once
+	 * user-action pseudo-classes are taken as held (`:hover`, `:focus`…).
+	 * Selectors of a pseudo-element are left out (they size a generated box,
+	 * not the list).
+	 */
+	const appleListWidths = (css: string) => {
+		const { apple, lists } = appleMenuLists();
+		const states = [
+			() => {},
+			() => {
+				for (const item of [apple, ...(apple?.querySelectorAll("li") ?? [])])
+					item?.classList.add("open");
+			},
+		];
+		const found = new Set<string>();
+		for (const enter of states) {
+			enter();
+			for (const { selectors, body } of parseCssRules(css)) {
+				const widths = body
+					.split(";\n")
+					.map((line) => line.trim().replace(/;$/, ""))
+					.filter((line) => WIDTHS.has(line.split(":")[0].trim()));
+				if (widths.length === 0) continue;
+				for (const selector of selectors) {
+					if (/::|:(?:before|after|first-line|first-letter)\b/.test(selector))
+						continue;
+					const held = selector.replace(
+						/:(?:hover|active|focus-visible|focus-within|focus)\b/g,
+						":not([data-never-set])",
+					);
+					lists.forEach((list, at) => {
+						if (list.matches(held))
+							for (const width of widths)
+								found.add(`list ${at}: ${selector} { ${width} }`);
+					});
+				}
+			}
+		}
+		return { lists, found: [...found] };
+	};
+
+	afterEach(cleanup);
+
+	it("is set by no viewport unit in the menu bar's sheet", () =>
+		expect(viewportLengths(menuBarCss)).toEqual([]));
+
+	it("is given by no rule of the menu bar's sheet, to the menu or any submenu", () => {
+		const { lists, found } = appleListWidths(menuBarCss);
+		expect(lists).toHaveLength(3);
+		expect(found).toEqual([]);
+	});
+
+	it("is the shared submenu rule's, the items' width", () => {
+		const { found } = appleListWidths(
+			compileScss("src/SystemFolder/SystemResources/Menu/ClassicyMenu.scss"),
+		);
+		for (const at of [0, 1, 2])
+			expect(found).toContain(
+				`list ${at}: .classicySubMenu { width: max-content }`,
+			);
+	});
+
+	// The removed rule, in each viewport unit and in other lengths, and
+	// under other selectors that reach the Apple menu's lists: each one put
+	// back in the menu bar's sheet is found.
+	it.each([
+		[".classicyDesktopMenuApple div ul", "min-width: 20vw"],
+		[".classicyDesktopMenuApple div ul", "min-width: 20dvw"],
+		[".classicyDesktopMenuApple div ul", "min-width: 20svw"],
+		[".classicyDesktopMenuApple div ul", "min-width: 20lvw"],
+		[".classicyDesktopMenuApple div ul", "min-width: 12vmax"],
+		[".classicyDesktopMenuApple div ul", "min-width: 12vmin"],
+		[".classicyDesktopMenuApple div ul", "min-width: 20vi"],
+		[".classicyDesktopMenuApple div ul", "min-width: 20dvh"],
+		[".classicyDesktopMenuApple div ul", "min-width: .5VW"],
+		[".classicyDesktopMenuApple ul", "width: calc(10vw + 4em)"],
+	])("finds %s { %s } by its viewport unit and its width", (selector, width) => {
+		const css = `${menuBarCss}\n${selector} {\n  ${width};\n}\n`;
+		expect(viewportLengths(css)).not.toEqual([]);
+		expect(appleListWidths(css).found).not.toEqual([]);
+	});
+
+	it.each([
+		[".classicyDesktopMenuApple ul", "min-width: 16em"],
+		[".classicyDesktopMenuApple.open .classicySubMenu", "max-width: 50%"],
+		[".classicyDesktopMenuApple:hover ul", "inline-size: 12rem"],
+		[".classicyDesktopMenu .classicySubMenu", "min-inline-size: 10em"],
+	])("finds %s { %s } by its width", (selector, width) =>
+		expect(
+			appleListWidths(`${menuBarCss}\n${selector} {\n  ${width};\n}\n`).found,
+		).not.toEqual([]));
 });
