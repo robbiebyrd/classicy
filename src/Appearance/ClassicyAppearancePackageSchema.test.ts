@@ -267,10 +267,9 @@ describe("ClassicyAppearancePackageSchema", () => {
 		] as const) {
 			const ok = platinumShaped();
 			(ok.layout as Record<string, unknown>)[group] = value;
-			expect(
-				ClassicyAppearancePackageSchema.safeParse(ok).success,
-				group,
-			).toBe(true);
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success, group).toBe(
+				true,
+			);
 		}
 		for (const [group, key, value] of [
 			["menu", "keys", "emacs"],
