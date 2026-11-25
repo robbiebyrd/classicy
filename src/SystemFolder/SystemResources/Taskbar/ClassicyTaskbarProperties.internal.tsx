@@ -85,7 +85,9 @@ export const ClassicyTaskbarProperties: FunctionalComponent<{
 	const runHistory = useAppManager(
 		(s) => s.System.Manager.Desktop.taskbar?.runHistory,
 	);
-	const nothingToClear = recent.length === 0 && (runHistory ?? []).length === 0;
+	const nothingToClear =
+		recent.length === 0 &&
+		!(Array.isArray(runHistory) && runHistory.length > 0);
 	const clear = () => {
 		resetClassicyRecentDocuments();
 		dispatch({ type: "ClassicyDesktopTaskbarClearHistory" });

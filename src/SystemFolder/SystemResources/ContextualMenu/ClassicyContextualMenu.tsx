@@ -16,6 +16,7 @@ import {
 	ClassicyMenuPlacementEpoch,
 	useClassicyMenuDesktopResize,
 } from "@/SystemFolder/SystemResources/Menu/useClassicySubmenuPlacement.internal";
+import { getClassicyTaskbarInsets } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import classNames from "classnames";
 import {
@@ -191,7 +192,12 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 			top: y - inkTop,
 			bottom: y + frame.height + inkBottom,
 		});
-		setFromBelowBounds(position[1] > bounds.bottom);
+		// Only a taskbar's band lies below the bounds: with none published (every
+		// package without `layout.taskbar`) no point counts, wherever a host
+		// opened the menu.
+		setFromBelowBounds(
+			getClassicyTaskbarInsets().bottom > 0 && position[1] > bounds.bottom,
+		);
 		let y = position[1];
 		if (inkAt(y).bottom > bounds.bottom) y = position[1] - frame.height;
 		setTop(

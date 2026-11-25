@@ -98,36 +98,35 @@ describe("classicyTaskbarTrayModules", () => {
 		).toEqual(["a", "b", "owned", "c"]);
 	});
 
-	it("leaves out the host's disabled modules and the user's hidden ones", () => {
+	it("leaves out the host's disabled modules", () => {
 		expect(
 			ids(
 				classicyTaskbarTrayModules(all, {
 					mountedApps: none,
 					disabledModules: ["a"],
-					stored: { hiddenModules: ["c"] },
 				}),
 			),
-		).toEqual(["b"]);
+		).toEqual(["b", "c"]);
 	});
 
-	it("shows none while the user has turned the Control Strip off, or the host hides the modules", () => {
-		expect(
-			classicyTaskbarTrayModules(all, {
-				mountedApps: none,
-				stored: { visible: false },
-			}),
-		).toEqual([]);
-		expect(
-			classicyTaskbarTrayModules(all, { mountedApps: none, hide: true }),
-		).toEqual([]);
+	// Under the shell the Control Strip control panel is Taskbar Properties
+	// (E4): nothing there edits the strip's visibility or hidden list, so a
+	// choice stored under Platinum must not empty the status area for good.
+	it("reads neither the strip's visibility nor its hidden modules", () => {
 		expect(
 			ids(
 				classicyTaskbarTrayModules(all, {
 					mountedApps: none,
-					stored: { visible: true },
+					stored: { visible: false, hiddenModules: ["c"] } as never,
 				}),
 			),
 		).toEqual(["a", "b", "c"]);
+	});
+
+	it("shows none while the host hides the modules", () => {
+		expect(
+			classicyTaskbarTrayModules(all, { mountedApps: none, hide: true }),
+		).toEqual([]);
 	});
 });
 
@@ -319,18 +318,10 @@ describe("the tray", () => {
 			expect(labels()).toEqual(["Display", "Volume", "File Sharing"]);
 		});
 
-		it("leaves out a module the user hid, and the host's disabled ones", () => {
+		it("leaves out the host's disabled modules", () => {
 			register(menuModule, contentModule);
 			renderTaskbar({ disabledModules: [...BUILT_INS, "volume"] });
 			expect(labels()).toEqual(["File Sharing"]);
-			act(() =>
-				dispatch({
-					type: "ClassicyDesktopControlStripSetModuleHidden",
-					moduleId: "sharing",
-					hidden: true,
-				}),
-			);
-			expect(labels()).toEqual([]);
 		});
 
 		it("shows a module an app owns only while its app is mounted", () => {
@@ -346,28 +337,26 @@ describe("the tray", () => {
 			expect(labels()).toEqual([]);
 		});
 
-		it("shows no module while the Control Strip is turned off, and keeps the extensions' region", () => {
+		it("keeps its modules when the Control Strip was turned off or a module hidden under another package", () => {
 			register(menuModule);
 			renderTaskbar();
-			act(() =>
+			act(() => {
 				dispatch({
 					type: "ClassicyDesktopControlStripSetVisible",
 					visible: false,
-				}),
-			);
-			expect(icons()).toHaveLength(0);
+				});
+				dispatch({
+					type: "ClassicyDesktopControlStripSetModuleHidden",
+					moduleId: "sharing",
+					hidden: true,
+				});
+			});
+			expect(labels()).toEqual(["File Sharing"]);
 			expect(
 				document.querySelector(
 					".classicyTaskbarTray #classicyDesktopMenuExtensions",
 				),
 			).not.toBeNull();
-			act(() =>
-				dispatch({
-					type: "ClassicyDesktopControlStripSetVisible",
-					visible: true,
-				}),
-			);
-			expect(labels()).toEqual(["File Sharing"]);
 		});
 
 		it("shows no module under hideModules", () => {

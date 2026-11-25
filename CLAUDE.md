@@ -844,8 +844,9 @@ measured height as the taskbar band.
 
 **The status area.** Under a taskbar the strip's modules are its notification icons
 (`ClassicyTaskbarTray.internal.tsx`, WIG Ch.10 pp.211–212): the strip's
-arrangement less `hiddenModules`, none while `controlStrip.visible` is
-`false` or under `hideModules` (`classicyTaskbarTrayModules`); each its own
+arrangement, none under `hideModules` (`classicyTaskbarTrayModules`; the
+strip's `visible` and `hiddenModules` are not read, since under the shell
+the control panel is Taskbar Properties and nothing edits them); each its own
 component keyed `id:revision`, a `button.classicyTaskbarTrayIcon` (`open`
 while its surface is) opening its own `ClassicyBevelButtonPopup`
 (`classicyTaskbarTrayPopup`, flipped above the band). Button 1 opens

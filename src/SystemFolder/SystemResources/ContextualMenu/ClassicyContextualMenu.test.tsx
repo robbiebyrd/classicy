@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 
 // Plan 0020-w98 E1: a contextual menu opened from below the menu bounds'
 // bottom (a point in the Windows shell's taskbar band, which the bounds end
@@ -77,13 +78,29 @@ describe("ClassicyContextualMenu's scroll margin", () => {
 		expect(list.style.maxHeight).toBe(`${MENU.height + 2 - 4}px`);
 	});
 
-	it("keeps no margin for a point below the bounds, so the menu pinned flush is whole", () => {
+	it("keeps no margin for a point in a taskbar band below the bounds, so the menu pinned flush is whole", () => {
+		const owner = {};
+		setClassicyTaskbarBand(28, owner);
+		try {
+			const wrapper = renderAt(window.innerHeight - 10);
+			expect(Number.parseFloat(wrapper.style.top)).toBe(
+				window.innerHeight - 28 - MENU.height,
+			);
+			const list = listOf(wrapper);
+			expect(list).not.toHaveClass("classicyMenuListScrolls");
+			expect(list.style.maxHeight).toBe("");
+		} finally {
+			setClassicyTaskbarBand(0, owner);
+		}
+	});
+
+	it("keeps the margin with no taskbar band, wherever the point lies", () => {
 		const wrapper = renderAt(window.innerHeight + 12);
 		expect(Number.parseFloat(wrapper.style.top)).toBe(
 			window.innerHeight - MENU.height,
 		);
 		const list = listOf(wrapper);
-		expect(list).not.toHaveClass("classicyMenuListScrolls");
-		expect(list.style.maxHeight).toBe("");
+		expect(list).toHaveClass("classicyMenuListScrolls");
+		expect(list.style.maxHeight).toBe(`${MENU.height - 4}px`);
 	});
 });

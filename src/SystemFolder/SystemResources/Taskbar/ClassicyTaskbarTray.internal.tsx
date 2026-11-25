@@ -57,10 +57,15 @@ export const classicyTaskbarTrayPopupId = (moduleId: string): string =>
 /**
  * The modules the tray shows, left to right: the registrations
  * `arrangeClassicyControlStripModules` makes available (their owners
- * mounted, none the host disabled, the user's order first), less the ones
- * the user hid. None while the user has turned the Control Strip off (its
- * control panel's checkbox, `controlStrip.visible: false`) or the host hides
- * the modules (`hide`, `controlStrip={false}`). Pure.
+ * mounted, none the host disabled, the user's order first). None while the
+ * host hides the modules (`hide`, `controlStrip={false}`). The Control
+ * Strip's own visibility and hidden-module list (`controlStrip.visible`,
+ * `hiddenModules`) are not read: under the shell the Control Strip control
+ * panel is Taskbar Properties (plan 0020-w98 E4), so nothing there could
+ * turn a stored choice back, and a strip hidden under Platinum or System 7
+ * would otherwise leave the status area empty for good. Windows 98's
+ * Taskbar Properties offers no per-icon choice either (WIG Ch.10 p.212 has
+ * each owner add and remove its own icon). Pure.
  */
 export function classicyTaskbarTrayModules<
 	T extends ClassicyControlStripModuleRegistration,
@@ -74,21 +79,18 @@ export function classicyTaskbarTrayModules<
 	}: {
 		disabledModules?: readonly string[];
 		stored?: {
-			visible?: boolean;
-			hiddenModules?: readonly string[];
 			moduleOrder?: readonly string[];
 		};
 		mountedApps: ReadonlySet<string>;
 		hide?: boolean;
 	},
 ): T[] {
-	if (hide || stored?.visible === false) return [];
-	const hidden = stored?.hiddenModules ?? [];
+	if (hide) return [];
 	return arrangeClassicyControlStripModules(registrations, {
 		disabledModules,
 		moduleOrder: stored?.moduleOrder,
 		mountedApps,
-	}).filter((r) => !hidden.includes(r.definition.id));
+	});
 }
 
 /**

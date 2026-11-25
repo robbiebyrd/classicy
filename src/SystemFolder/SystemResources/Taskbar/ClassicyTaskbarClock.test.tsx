@@ -268,12 +268,6 @@ describe("the taskbar's clock", () => {
 		});
 
 		it("stays when the status area shows no module", () => {
-			act(() =>
-				dispatch({
-					type: "ClassicyDesktopControlStripSetVisible",
-					visible: false,
-				}),
-			);
 			renderTaskbar();
 			expect(document.querySelector(".classicyTaskbarTrayIcon")).toBeNull();
 			expect(clock()).not.toBeNull();
