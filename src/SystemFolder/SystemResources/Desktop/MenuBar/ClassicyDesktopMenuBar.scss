@@ -205,9 +205,10 @@ $classicy-menu-bar-order: (
 // whose width does not change, so the grip and the clock stay put. The name
 // is hidden but keeps its width, and the icon moves to the middle of the
 // title's contents, on a whole pixel: rounded up, so with an end padding one
-// pixel past the start (Platinum's 7 and 6) or equal to it the icon lands
-// where 8.5's Menu Manager puts it, the title's left plus half its width
-// less the icon's, rounded down (x 584 in the Finder's 555-628 title). The
+// pixel past the start (Platinum's 7 and 6) the icon lands where 8.5's Menu
+// Manager puts it, the title's left plus half its width less the icon's,
+// rounded down (x 584 in the Finder's 555-628 title); with equal paddings
+// only an even content width lands there, an odd one a pixel right. The
 // icon alone (collapsed) swaps in place, as 8.1's icon-only title does.
 :where(.classicyDesktopMenuAppSwitcher).classicyDesktopMenuAppSwitcherRequest:not(.collapsed) {
   .classicyDesktopMenuAppSwitcherName {

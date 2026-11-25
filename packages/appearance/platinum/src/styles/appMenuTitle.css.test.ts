@@ -205,14 +205,18 @@ describe("Platinum's Application menu title geometry (Mac OS 8.5)", () => {
 		});
 		// The clock's readout is the bar's one Tab stop: the grip's keyboard
 		// ring, inside the bar (integration review G round 6, the clock as a
-		// Tab stop).
-		expect(
-			rule(
-				`${BAR} > .classicyMenuItem.classicyDesktopMenuTime > button:focus-visible`,
-			),
-		).toEqual({
-			outline: "var(--color-outline) solid var(--control-frame-width)",
-			"outline-offset": "calc(var(--control-frame-width) * -1)",
+		// Tab stop). The readout's box is its text, so the ring is drawn
+		// beside it, two pixels out on each side, within the item's paddings
+		// (7.5 and 6), never over the ink (round 5, finding 2).
+		const clock = `${BAR} > .classicyMenuItem.classicyDesktopMenuTime > button:focus-visible`;
+		expect(rule(clock)).toEqual({ position: "relative", outline: "none" });
+		expect(rule(`${clock}::after`)).toEqual({
+			content: '""',
+			position: "absolute",
+			inset:
+				"0 calc((var(--control-frame-width) + var(--control-frame-width)) * -1)",
+			border: "var(--control-frame-width) solid var(--color-outline)",
+			"pointer-events": "none",
 		});
 	});
 

@@ -799,13 +799,22 @@ describe("system7.scss (compiled)", () => {
 			expect(clock).toMatch(/padding-right: var\(--menu-bar-clock-end\);/);
 			// Its readout is the bar's one Tab stop: the flat controls' ring,
 			// inside the bar (integration review G round 6).
-			const ring = rule(
-				".classicyDesktopMenu > .classicyMenuItem.classicyDesktopMenuTime > button:focus-visible",
-			);
+			// The readout's box is its text, so the ring is drawn beside it,
+			// three pixels out on each side (one of face), never over the ink
+			// (round 5, finding 2).
+			const focused =
+				".classicyDesktopMenu > .classicyMenuItem.classicyDesktopMenuTime > button:focus-visible";
+			expect(rule(focused)).toMatch(/position: relative;/);
+			expect(rule(focused)).toMatch(/outline: none;/);
+			expect(rule(focused)).not.toMatch(/outline-offset/);
+			const ring = rule(`${focused}::after`);
+			expect(ring).toMatch(/content: "";/);
+			expect(ring).toMatch(/position: absolute;/);
+			expect(ring).toMatch(/inset: 0 calc\(var\(--box-pixel\) \* -3\);/);
 			expect(ring).toMatch(
-				/outline: calc\(var\(--box-pixel\) \* 2\) solid var\(--color-black\);/,
+				/border: calc\(var\(--box-pixel\) \* 2\) solid var\(--color-black\);/,
 			);
-			expect(ring).toMatch(/outline-offset: calc\(var\(--box-pixel\) \* -2\);/);
+			expect(ring).toMatch(/pointer-events: none;/);
 		});
 
 		// The Apple and Help titles are their art, 16 px, in the highlight

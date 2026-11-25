@@ -121,10 +121,6 @@ describe("ClassicyDesktopMenuBar layout — styles", () => {
 		);
 	});
 
-	// The title follows its grip's drag on the bar's custom property, its
-	// name cut with an ellipsis; collapsed, the name is not drawn. jsdom lays
-	// nothing out, so the compiled rules are pinned. Integration review G
-	// round 6, finding 4.
 	// A request's frame of the Notification Manager's blink, as Mac OS 8.5
 	// draws it (the 8.5 audit's F1): the icon alone in the middle of the
 	// title's contents, the name hidden but keeping its width; the icon
@@ -147,6 +143,35 @@ describe("ClassicyDesktopMenuBar layout — styles", () => {
 		);
 	});
 
+	// The clock's readout is a <button> (its keyboard path): the base sheet
+	// takes the native button's chrome away so it draws as the item's text
+	// did, D24's gap before the grip included. jsdom lays nothing out, so the
+	// compiled reset is pinned whole (integration review G round 5, finding 9).
+	it("draws the clock's readout button with no native chrome", () => {
+		expect(rule(".classicyDesktopMenuTime > button")).toEqual({
+			display: "block",
+			margin: "0",
+			padding: "0",
+			border: "0",
+			background: "transparent",
+			color: "inherit",
+			font: "inherit",
+			"letter-spacing": "inherit",
+			"word-spacing": "inherit",
+			"text-align": "inherit",
+			"text-transform": "inherit",
+			"text-indent": "inherit",
+			"text-shadow": "inherit",
+			"white-space": "inherit",
+			cursor: "inherit",
+			appearance: "none",
+		});
+	});
+
+	// The title follows its grip's drag on the bar's custom property, its
+	// name cut with an ellipsis; collapsed, the name is not drawn. jsdom lays
+	// nothing out, so the compiled rules are pinned. Integration review G
+	// round 6, finding 4.
 	it("sizes the Application menu title by the grip's width and cuts or hides its name", () => {
 		expect(rule(".classicyDesktopMenuAppSwitcher").width).toBe(
 			"var(--classicy-app-menu-title-width, auto)",
