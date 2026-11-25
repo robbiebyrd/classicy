@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
@@ -414,6 +414,109 @@ describe("Platinum's system icons' shadows (Mac OS 8.5)", () => {
 			[306, 193],
 			"1-bit",
 		],
+		// Round 6: the rest of the Extensions folder, the Fonts folder, the
+		// System suitcase's sounds and the Finder's generic document and
+		// stationery. The extensions are 1-bit in 8.5; the core drew other art
+		// for them (Mac OS 9's QuickTime, a 3D speaker), now 8.5's.
+		[
+			`${CORE}extension.png`,
+			"generic extension (Apple CMM 2)",
+			"extensions-generic",
+			"FFFFFF",
+			[56, 264],
+			"extensions-generic-buttons",
+			"CCCCCC",
+			[312, 80],
+			"1-bit",
+		],
+		[
+			`${CORE}extensions/quickdraw.png`,
+			"QuickDraw 3D",
+			"extensions-quicktime",
+			"FFFFFF",
+			[56, 92],
+			"extensions-quicktime-buttons",
+			"CCCCCC",
+			[56, 241],
+			"1-bit",
+		],
+		[
+			`${CORE}extensions/quicktime.png`,
+			"QuickTime",
+			"extensions-quicktime",
+			"FFFFFF",
+			[184, 156],
+			"extensions-quicktime-buttons",
+			"CCCCCC",
+			[184, 326],
+			"1-bit",
+		],
+		[
+			`${CORE}extensions/quicktime-mpeg.png`,
+			"QuickTime MPEG Extension",
+			"extensions-quicktime",
+			"FFFFFF",
+			[312, 156],
+			"extensions-quicktime-buttons",
+			"CCCCCC",
+			[312, 326],
+			"1-bit",
+		],
+		[
+			`${CORE}extensions/sound-manager.png`,
+			"Sound Manager",
+			"extensions-sound-manager",
+			"FFFFFF",
+			[312, 106],
+			"extensions-sound-manager-buttons",
+			"CCCCCC",
+			[312, 125],
+			"1-bit",
+		],
+		[
+			`${CORE}folders/suitcase.png`,
+			"font suitcase (Chicago)",
+			"fonts",
+			"FFFFFF",
+			[159, 136],
+			"fonts-buttons",
+			"CCCCCC",
+			[31, 70],
+			"graded",
+		],
+		[
+			`${CORE}files/sound.png`,
+			"sound file (Droplet, in the System suitcase)",
+			"system-suitcase",
+			"FFFFFF",
+			[174, 200],
+			"system-suitcase-buttons",
+			"CCCCCC",
+			[174, 251],
+			"graded",
+		],
+		[
+			`${CORE}files/file.png`,
+			"generic document",
+			"documents",
+			"FFFFFF",
+			[309, 212],
+			"documents-desktop",
+			"9999CC",
+			[468, 290],
+			"graded",
+		],
+		[
+			`${CORE}files/stationary-black.png`,
+			"generic stationery",
+			"documents",
+			"FFFFFF",
+			[367, 129],
+			"documents-desktop",
+			"9999CC",
+			[472, 387],
+			"graded",
+		],
 		// Platinum's own art: the Trash over the desktop and its button view,
 		// the 16 px folder over white (small icons) and the list's sorted column.
 		[
@@ -478,15 +581,19 @@ describe("Platinum's system icons' shadows (Mac OS 8.5)", () => {
 		else expect(alphaLevels(icon)).toBeLessThanOrEqual(2);
 	});
 
+	const ONE_BACKGROUND = [
+		[`${CORE}warn.png`, "empty-trash-alert", "DDDDDD", [156, 100]],
+		[`${CORE}colors/picker-crayon.png`, "color-picker", "FFFFFF", [100, 151]],
+		[`${CORE}colors/picker-hex.png`, "color-picker-2", "FFFFFF", [100, 210]],
+	] as const;
+
 	// Icons 8.5 draws over one background only, where a graded shadow would
 	// show as pixels the art leaves transparent: the caution alert's icon
 	// over the alert's #DDDDDD and the Color Picker's pickers over its white
 	// list. Each draws its capture exactly, 1-bit as 8.5 has it.
-	it.each([
-		[`${CORE}warn.png`, "empty-trash-alert", "DDDDDD", [156, 100]],
-		[`${CORE}colors/picker-crayon.png`, "color-picker", "FFFFFF", [100, 151]],
-		[`${CORE}colors/picker-hex.png`, "color-picker-2", "FFFFFF", [100, 210]],
-	] as const)("%s draws 8.5's capture over its one background", (art, capture, bg, [
+	it.each(
+		ONE_BACKGROUND,
+	)("%s draws 8.5's capture over its one background", (art, capture, bg, [
 		x,
 		y,
 	]) => {
@@ -501,5 +608,125 @@ describe("Platinum's system icons' shadows (Mac OS 8.5)", () => {
 			),
 		).toBe(0);
 		expect(alphaLevels(icon)).toBeLessThanOrEqual(2);
+	});
+
+	// PrintingLib (the Extensions folder) is the core's `printer.png` with a
+	// LIB label: every other pixel is 8.5's, 1-bit, over both backgrounds.
+	it("printer.png is 8.5's PrintingLib but for its LIB label", () => {
+		const icon = png(path.join(ROOT, `${CORE}printer.png`));
+		const label = { x0: 5, x1: 12, y0: 15, y1: 19 };
+		for (const [capture, [ox, oy], bg] of [
+			["extensions-printinglib", [56, 398], "FFFFFF"],
+			["extensions-quicktime-buttons", [56, 155], "CCCCCC"],
+		] as const) {
+			const image = png(path.join(CAPTURES, `${S}${capture}.png`));
+			const [r, g, b] = rgb(bg);
+			for (let y = 0; y < 32; y++)
+				for (let x = 0; x < 32; x++) {
+					if (x >= label.x0 && x <= label.x1 && y >= label.y0 && y <= label.y1)
+						continue;
+					const i = (y * 32 + x) * 4;
+					const j = ((oy + y) * image.width + ox + x) * 4;
+					const a = icon.data[i + 3];
+					const drawn = [r, g, b].map((c, k) =>
+						Math.round((icon.data[i + k] * a + c * (255 - a)) / 255),
+					);
+					expect(drawn).toEqual([
+						image.data[j],
+						image.data[j + 1],
+						image.data[j + 2],
+					]);
+				}
+		}
+		expect(alphaLevels(icon)).toBeLessThanOrEqual(2);
+	});
+
+	// The core icons that keep a 1-bit mask and 8.1's opaque dark pixels
+	// with no 8.5 capture to grade them from (integration review G round 6;
+	// searched on 8.5's disk: the System Folder and its Extensions, Control
+	// Panels, Fonts, Preferences and Apple Menu Items folders, the System
+	// suitcase, Applications, Apple Extras, Assistants, Internet, the
+	// desktop and the Chooser).
+	const NO_85_CAPTURE: Record<string, string> = {
+		// Hardware and volumes this emulator cannot present: a CD-ROM image
+		// mounts as a SCSI disk, drawn with the disk's icon; no floppy drive,
+		// file server, external drive, RAID or ROM disk is attached.
+		"drives/cdrom.png": "hardware",
+		"drives/dvd.png": "hardware",
+		"drives/dvd-audio.png": "hardware",
+		"drives/dvd-video.png": "hardware",
+		"drives/drive-external.png": "hardware",
+		"drives/floppy.png": "hardware",
+		"drives/floppy-mac.png": "hardware",
+		"drives/floppy-pc.png": "hardware",
+		"drives/network-drive.png": "hardware",
+		"drives/raid.png": "hardware",
+		"drives/rom.png": "hardware",
+		// Items 8.5's disk does not hold, most of them later art (Mac OS 9's
+		// LDAP, SSL and Sherlock 2 icons, its locked System Folder).
+		"big-switch-off.png": "not on the disk",
+		"big-switch-on.png": "not on the disk",
+		"comport1.png": "not on the disk",
+		"comport2.png": "not on the disk",
+		"files/file-invisible.png": "not on the disk",
+		"files/file-pc.png": "not on the disk",
+		"files/internationalization.png": "not on the disk",
+		"files/photo.png": "not on the disk",
+		"files/settings-sync.png": "not on the disk",
+		"files/slideshow.png": "not on the disk",
+		"folders/folder-flip.png": "not on the disk",
+		"folders/folder-ldap.png": "not on the disk",
+		"folders/folder-system-protected.png": "not on the disk",
+		"info.png": "not on the disk",
+		"internet.png": "not on the disk",
+		"mac.png": "not on the disk",
+		"mac-wink.png": "not on the disk",
+		"network/file-server.png": "not on the disk",
+		"network/globe.png": "not on the disk",
+		"network/globe-animated.png": "not on the disk",
+		"network/ldap-directory.png": "not on the disk",
+		"network/network-public.png": "not on the disk",
+		"network/ssl.png": "not on the disk",
+		"network/ssl-invalid.png": "not on the disk",
+		"network/usenet.png": "not on the disk",
+		"network/user-directory.png": "not on the disk",
+		"sherlock/search-data.png": "not on the disk",
+		"sherlock/search-files.png": "not on the disk",
+		"sherlock/sherlock.png": "not on the disk",
+		"shockwave.png": "not on the disk",
+		// Not icons: a 306 x 230 picture and a 26 x 22 toolbar button.
+		"quicktime/cc.png": "not an icon",
+		"rich-text-editor/menubar/bold-depressed.png": "not an icon",
+	};
+
+	it("every core icon still 1-bit with 8.1's dark pixels is 8.5's, or has no 8.5 capture", () => {
+		const dir = path.join(ROOT, CORE);
+		const covered = new Set<string>([
+			...ROWS.filter(([art]) => art.startsWith(CORE)).map(([art]) =>
+				art.slice(CORE.length),
+			),
+			...ONE_BACKGROUND.map(([art]) => art.slice(CORE.length)),
+			"printer.png",
+			...Object.keys(NO_85_CAPTURE),
+		]);
+		const flagged = (
+			readdirSync(dir, { recursive: true, encoding: "utf8" }) as string[]
+		)
+			.filter((file) => file.endsWith(".png"))
+			.map((file) => file.split(path.sep).join("/"))
+			.filter((file) => {
+				const icon = png(path.join(dir, file));
+				if (alphaLevels(icon) > 2) return false;
+				for (let i = 0; i < icon.data.length; i += 4) {
+					const [r, g, b, a] = [0, 1, 2, 3].map((k) => icon.data[i + k]);
+					if (a === 255 && r === g && g === b && [0x22, 0x44, 0x55].includes(r))
+						return true;
+				}
+				return false;
+			});
+		expect(flagged.filter((file) => !covered.has(file))).toEqual([]);
+		// The list names only files that are there.
+		for (const file of Object.keys(NO_85_CAPTURE))
+			expect(flagged).toContain(file);
 	});
 });
