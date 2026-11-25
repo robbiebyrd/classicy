@@ -822,13 +822,13 @@ component's root class, never folded into a longer class name and never in a
 
 ```css
 .classicyButton.pressed { … }           /* not .classicyButtonPressed */
-.classicyWindow.active { … }            /* .inactive, .collapsed, .dragging */
+.classicyWindow.active { … }            /* .inactive, .collapsed, .dragging, .expanded */
 .classicyBevelButton.checked.pressed { … }
 ```
 
 | Component (root class) | States it sets |
 |---|---|
-| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed`, `dragging` |
+| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed`, `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all) |
 | `ClassicyButton` | `default` (`isDefault`), `pressed` (`depressed`) |
 | `ClassicyBevelButton` | `checked`, `pressed`, `mixed`, `disabled`, `open` (its menu or panel is showing) |
 | `ClassicyCheckbox`, `ClassicyRadioInput` | `checked`, `mixed`, `disabled`, `default` |
@@ -1032,7 +1032,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `appId` * | `string` | — |
 | `title` | `string` | `""` |
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
-| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true` |
+| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll` |
 | `fitsScrollBars` | `boolean` | the package's `layout.scrollBar.fitsBars` for a resizable, non-utility window, else `false`: keep both bars (`fits`) while the content fits |
 | `modal` | `boolean` | `false` |
 | `movable` | `boolean` | `true` (modal only) |
@@ -3807,7 +3807,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Table | `div.classicyTableContainer` | none (`selected` stays on rows and headers) | select `{ rowId, selected, input }` (⌘A emits nothing); change `{ columnId, desc }` from a sortable header (pointer only: headers are not focusable); dragStart/dragEnd with the detail a cell reports through its context's `emitDrag` (the file browser's list view: a Finder outline drag, below, whose `dragEnd` carries `lost`), pointer only |
 | Link | `a.classicyLink` | disabled | click `{ input }` (never while disabled) |
 | FileInput | `div.classicyFileInputHolder` | none (`error` stays on `.classicyFileInputMessage`) | change `{ fileName }` for an accepted addition (the button or `addFiles`): the first file only of a batch, nothing on a refusal or removal, no `input` |
-| Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` (pointer only) |
+| Window | `div.classicyWindow` | collapsed, active, inactive, dragging, expanded (active: a modal or the front window; dragging: the store's `moving`; expanded: the store's `zoomed`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` (pointer only) |
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
 | MenuItem | `li.classicyMenuItem` | disabled, open, default (the item's `isDefault`) | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
@@ -4306,8 +4306,12 @@ it like Platinum (§1); its README lists what it ships.
   arrows, the slider's thumb) as `classicy-px-rect` layers in units of
   `--pixel-unit` (`px()`, `pixel-art()`, `runs()`), the title bar's
   gradient from `title-bar-gradient`, the title-bar buttons reordered by
-  CSS `order` (Minimize is Classicy's `collapse`, Maximize its `zoom`, Close
-  last after `--title-bar-close-gap`) and shown on inactive windows too,
+  CSS `order` (Minimize is Classicy's `collapse`, Maximize its `zoom`, drawn
+  as Restore while the window carries `expanded`, Close last after
+  `--title-bar-close-gap`) and shown on inactive windows too, the dialog's
+  three-ring fixed frame on every modal and on any window that cannot be
+  sized (`classicyWindowNoResize`: the control panels, the About windows,
+  the Calculator), its drag band and placard corner following,
   balloon help drawn as a ToolTip with no tail, a message box's buttons
   centered (as MessageBox centers them; a dialog's stay right-aligned), a
   selected icon blended with a 50% dither of the highlight (Explorer's

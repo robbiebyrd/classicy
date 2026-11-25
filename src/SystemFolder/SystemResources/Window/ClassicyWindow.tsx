@@ -1502,6 +1502,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			active: front,
 			inactive: !front,
 			dragging: ws.moving,
+			// `expanded` while the window is zoomed (the store's `zoomed`): the
+			// geometry stays inline (#208), but a package may key a rule on the
+			// state. Windows replaces a maximized window's Maximize button with
+			// Restore (WIG Ch.6 "Maximizing Windows" (pp.84–85), "Title Bar
+			// Buttons" (p.80)); Platinum and System 7 read it not at all.
+			expanded: ws.zoomed === true,
 		},
 		windowRef,
 	);
@@ -2032,6 +2038,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// the bar of the second only (its alert keeps the red bar).
 				fixedModal ? "classicyWindowModalFixed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
+				// A window that cannot be sized (`resizable={false}`: no grow box).
+				// Windows gives it the fixed frame, with no sizing border (WIG
+				// Ch.6 "Window Frames" (p.76)), which a package can draw from this
+				// class; Platinum and System 7 read it not at all.
+				resizable ? "" : "classicyWindowNoResize",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 				showsMenuBar ? "classicyWindowWithMenuBar" : "",
 				className,

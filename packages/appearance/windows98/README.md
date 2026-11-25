@@ -53,11 +53,13 @@ and `nodenext` resolution).
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
-    Maximize (zoom) and Close buttons at the right, the gray inactive bar,
-    the sunken client edge, the size grip, dialogs on a flat face with the
-    title and Close alone in their caption (no icon, no Minimize), palette
-    windows with Close alone, a modeless dialog's frame flattened to a plain
-    ButtonFace box;
+    Maximize (zoom; Restore while the window is zoomed) and Close buttons at
+    the right, the gray inactive bar, the sunken client edge, the size grip,
+    the three-ring fixed frame with no sizing border on dialogs and on any
+    window that cannot be sized (the control panels, the About windows, the
+    Calculator), dialogs on a flat face with the title and Close alone in
+    their caption (no icon, no Minimize), palette windows with Close alone,
+    a modeless dialog's frame flattened to a plain ButtonFace box;
   - menus: the flat menu bar, raised pull-down and contextual menus with an
     inverted highlight and embossed dimmed items, etched separators, the
     default item (the command a double-click runs: the Trash icon's Open) in
@@ -150,8 +152,8 @@ drawn on a canvas and shown from a `data:` URL.
 
 - **Mac structure, Windows dress.** Classicy's behavior is shared by every
   package: the menu bar stays at the top of the screen, the collapse box
-  window-shades (it is drawn as Minimize), the zoom box is drawn as Maximize,
-  and the desktop keeps its icons. There is no taskbar and no Start menu.
+  window-shades (it is drawn as Minimize), the zoom box is drawn as Maximize
+  (Restore while the window is zoomed), and the desktop keeps its icons. There is no taskbar and no Start menu.
 - **Every pixel from a token.** The title-bar buttons' marks, the scroll
   arrows, the checkmark, the radio ring, the pop-up and menu arrows and the
   slider's thumb are one-pixel rectangles placed on a grid

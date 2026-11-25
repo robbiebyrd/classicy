@@ -156,6 +156,34 @@ describe("ClassicyWindow appearance", () => {
 		]);
 	});
 
+	// WIG Ch.6 "Maximizing Windows" (pp.84–85): a maximized window's Maximize
+	// button becomes Restore, so the root says while it is zoomed, through the
+	// vocabulary state `expanded`, read by the store's `zoomed` (the geometry
+	// stays inline, #208). Un-zooming takes it off again.
+	it("carries expanded while zoomed, and drops it on un-zoom", () => {
+		renderWindow();
+		expect(root()).not.toHaveClass("expanded");
+		click(part("classicyWindowZoomBox"));
+		expect(root()).toHaveClass("expanded");
+		expect(root().getAttribute("data-probe-state")).toContain("expanded");
+		click(part("classicyWindowZoomBox"));
+		expect(root()).not.toHaveClass("expanded");
+	});
+
+	// A resize clears the zoom flag (the user state is the window's own again),
+	// so the state goes with it.
+	it("drops expanded when a resize starts", () => {
+		renderWindow();
+		click(part("classicyWindowZoomBox"));
+		expect(root()).toHaveClass("expanded");
+		fireEvent.mouseDown(part("classicyWindowResizer"), {
+			clientX: 340,
+			clientY: 250,
+		});
+		fireEvent.mouseUp(root(), { clientX: 340, clientY: 250 });
+		expect(root()).not.toHaveClass("expanded");
+	});
+
 	it("names collapse and resize-start as the cause of their zoom { zoomed: false }", () => {
 		renderWindow();
 		click(part("classicyWindowCollapseBox"));

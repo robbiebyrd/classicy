@@ -119,6 +119,15 @@ System 7 draw, and a package that reads none of them sees nothing new.
   (WIG Ch.7 "Types of Menu Items"); Platinum and System 7 key on
   `.classicyMenuItemCheck.checked` alone, so they draw their check mark at
   a chosen option, and read `default` not at all.
+- **A zoomed window, and one that cannot be sized.** A `ClassicyWindow`'s
+  root carries `expanded` while the window is zoomed (the store's `zoomed`,
+  beside `collapsed`, `active`, `inactive` and `dragging`; the zoom's
+  geometry stays inline, as before), and `classicyWindowNoResize` while it
+  is `resizable={false}` (no grow box), named like `classicyWindowNoScroll`.
+  Windows 98 shows Restore in place of Maximize on a zoomed window and gives
+  a window that cannot be sized the dialog's three-ring fixed frame, with no
+  sizing border (WIG Ch.6 "Maximizing Windows", "Window Frames"); Platinum
+  and System 7 read neither.
 
 ## Upgrade
 

@@ -111,4 +111,27 @@ describe("windows98.scss (compiled)", () => {
 		expect(order("collapse")).toBeLessThan(order("zoom"));
 		expect(order("zoom")).toBeLessThan(order("close"));
 	});
+
+	// The two core window hooks of the WIG audit's second pass (6.7 and 6.1),
+	// each one rule keyed on the class the core sets: a zoomed window's
+	// Maximize box shows Restore, and a window that cannot be sized wears the
+	// dialog's three-ring fixed frame, its drag band and its placard corner
+	// following.
+	it("draws Restore on a zoomed window's zoom box and the fixed frame on a window that cannot be sized", () => {
+		const selectors = selectorsOf(css);
+		const has = (tail: string) =>
+			selectors.some((selector) => selector.endsWith(tail));
+		expect(
+			has(
+				".classicyWindow.expanded .classicyWindowTitleBar .classicyWindowZoomBox",
+			),
+		).toBe(true);
+		expect(has(".classicyWindow.classicyWindowNoResize")).toBe(true);
+		expect(has(".classicyWindow.classicyWindowNoResize.dragging::after")).toBe(
+			true,
+		);
+		expect(
+			has(".classicyWindow.classicyWindowNoResize .classicyWindowPlacardBar"),
+		).toBe(true);
+	});
 });

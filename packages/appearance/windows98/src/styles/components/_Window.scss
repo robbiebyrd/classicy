@@ -21,11 +21,14 @@
 //   apart, Close, each a raised ButtonFace box `--title-bar-button-width` x
 //   `--title-bar-button-height` (16 x 14) with its mark in WindowText, a
 //   two-pixel X, a bar and a box, drawn as pixel art. Pressed, the bevel
-//   turns and the mark steps one pixel down and right. Windows shows the
-//   buttons on an inactive window too (the base hides them). The core draws
-//   a box only for an action the window has and never a disabled one, so
-//   the embossed disabled mark Windows draws has no element to land on and
-//   is not emitted.
+//   turns and the mark steps one pixel down and right. While the window is
+//   zoomed (the root's `expanded` state) the Maximize box shows Restore,
+//   two overlapping windows (WIG Ch.6 "Maximizing Windows", pp.84-85:
+//   "the Maximize button is replaced by the Restore button"). Windows shows
+//   the buttons on an inactive window too (the base hides them). The core
+//   draws a box only for an action the window has and never a disabled one,
+//   so the embossed disabled mark Windows draws has no element to land on
+//   and is not emitted.
 // - `--title-bar-gap` (2) of frame below the caption, then the client area,
 //   sunken two pixels (WS_EX_CLIENTEDGE: `b.sunken`) around its viewport and
 //   scroll bars, white; the size grip in the scroll bars' corner, three
@@ -35,13 +38,18 @@
 //   line under it; a window's own menu bar flat ButtonFace, no bevel, as
 //   Windows 98 draws a menu bar (the package's layout places menus on the
 //   screen, so only a host that places a bar in a window sees it).
-// - A dialog (modal) in the same edge and caption but the fixed window
-//   frame: a window that cannot be resized has no sizing border, its border
-//   coinciding with its edge (WIG Ch.6 "Window Frames", p.76), so its ring
-//   is the two-pixel edge plus one pixel of ButtonFace, three rings
-//   (Windows' dialog frame, SM_CXDLGFRAME 3), where the sizable window's is
-//   four (SM_CXFRAME 4; every bundled modal is `resizable={false}`); its
-//   body ButtonFace with no client edge. Its caption holds the title and
+// - A dialog (modal), and any window that cannot be sized (the root's
+//   `classicyWindowNoResize`, `resizable={false}`: the control panels, the
+//   About windows, the Calculator), in the same edge and caption but the
+//   fixed window frame: a window that cannot be resized has no sizing
+//   border, its border coinciding with its edge (WIG Ch.6 "Window Frames",
+//   p.76), so its ring is the two-pixel edge plus one pixel of ButtonFace,
+//   three rings (Windows' dialog frame, SM_CXDLGFRAME 3), where the sizable
+//   window's is four (SM_CXFRAME 4; every bundled modal is
+//   `resizable={false}`). A non-resizable document window keeps its white,
+//   sunken client area inside that frame (Windows' fixed-border windows,
+//   the Calculator's say, keep theirs); a dialog's body is ButtonFace with
+//   no client edge. A dialog's caption holds the title and
 //   the Close box alone: a secondary window "does not include Maximize or
 //   Minimize buttons" and "the title bar does not include icons" (WIG Ch.8
 //   "Appearance and Behavior", p.145, Figure 8.1), so the collapse box the
@@ -127,6 +135,27 @@ $maximize: runs(
   "x"
 );
 $minimize: runs(("xxxxxx", "xxxxxx"), "x");
+
+// Restore, the Maximize box's mark while the window is zoomed (WIG Ch.6
+// "Maximizing Windows", pp.84-85; "Title Bar Buttons", p.80): two
+// overlapping 6-wide boxes with two-row tops, the back one up and to the
+// right, 8 x 9, placed at (3, 2) as the Maximize box is (98.css's
+// restore.svg traces the same pixels at the same offset), so the picture
+// stands left of center by one pixel as Windows draws it.
+$restore: runs(
+  (
+    "..xxxxxx",
+    "..xxxxxx",
+    "..x....x",
+    "xxxxxx.x",
+    "xxxxxx.x",
+    "x....xxx",
+    "x....x..",
+    "x....x..",
+    "xxxxxx.."
+  ),
+  "x"
+);
 
 // The tool window's 12 x 11 Close button: the X 6 x 5 at (3, 3). It is the
 // palette's only button (WIG Ch.8 "Palette Windows", p.163), so the small
@@ -415,6 +444,14 @@ $grip-shadow: runs($grip, "s");
 
     @include caption-buttons;
 
+    // Zoomed (the core's `expanded` state): the Maximize box shows Restore,
+    // the two overlapping windows, at Maximize's offset (WIG Ch.6
+    // "Maximizing Windows", pp.84-85). After the Maximize rule, and one
+    // class heavier, so it wins.
+    &.expanded .classicyWindowTitleBar .classicyWindowZoomBox {
+      @include caption-button($restore, 3, 2);
+    }
+
     // The client area: the caption and its gap above, then the sunken
     // client edge (two rings of padding under `b.sunken`, so the viewport
     // and the scroll bars sit inside it and its rings show around them),
@@ -510,7 +547,9 @@ $grip-shadow: runs($grip, "s");
     @include with-menu-bar($root);
   }
 
-  // A dialog: the same edge and caption as a window (the base gives a
+  // A dialog, and any window that cannot be sized (the core's
+  // `classicyWindowNoResize`, on a `resizable={false}` window, which draws
+  // no grow box): the same edge and caption as a window (the base gives a
   // modal no frame and pads its caption instead; the caption's padding
   // above covers the modal bar too) in the fixed frame: a window that
   // cannot be resized has no sizing border (WIG Ch.6 "Window Frames",
@@ -518,11 +557,22 @@ $grip-shadow: runs($grip, "s");
   // the edge plus one pixel of ButtonFace, three rings (SM_CXDLGFRAME),
   // against the sizable window's four. Every bundled modal is
   // `resizable={false}`; a resizable modal (none is) would keep the grip the
-  // core draws in a ring one pixel thinner than it is measured from. Its
-  // body ButtonFace with no client edge or rule across the top, and under a
-  // header less the strip's height, as the base sheet's doubled rule has it.
-  .classicyWindow.classicyWindowModal {
+  // core draws in a ring one pixel thinner than it is measured from. The
+  // contents' heights are shares of the content box, so the thinner ring
+  // moves nothing inside; the one length measured from the core's four-ring
+  // `--window-frame-inset` that a non-resizable document window can still
+  // show, the placard bar's corner, is re-measured from the fixed frame
+  // below. A dialog's body ButtonFace with no client edge or rule across
+  // the top, and under a header less the strip's height, as the base
+  // sheet's doubled rule has it.
+  .classicyWindow.classicyWindowModal,
+  .classicyWindow.classicyWindowNoResize {
     padding: $fixed-frame;
+  }
+
+  .classicyWindow.classicyWindowNoResize .classicyWindowPlacardBar {
+    left: calc(#{$fixed-frame} + #{$client-edge});
+    bottom: calc(#{$fixed-frame} + #{$client-edge});
   }
 
   .classicyWindow .classicyWindowTitleBarModal .classicyWindowTitle {
@@ -666,15 +716,17 @@ $grip-shadow: runs($grip, "s");
   }
 
   // Moving or resizing: the checkered band in the frame's place (the base
-  // clears the window's background and hides its children); a dialog's band
-  // is its fixed frame's three rings.
+  // clears the window's background and hides its children); a dialog's
+  // band, and a non-resizable window's, is its fixed frame's three rings.
   .classicyWindow.dragging,
   .classicyWindow.classicyWindowResizing {
     @include drag-band;
   }
 
   .classicyWindow.classicyWindowModal.dragging::after,
-  .classicyWindow.classicyWindowModal.classicyWindowResizing::after {
+  .classicyWindow.classicyWindowModal.classicyWindowResizing::after,
+  .classicyWindow.classicyWindowNoResize.dragging::after,
+  .classicyWindow.classicyWindowNoResize.classicyWindowResizing::after {
     padding: $fixed-frame;
   }
 

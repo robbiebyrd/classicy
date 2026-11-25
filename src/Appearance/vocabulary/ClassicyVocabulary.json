@@ -573,6 +573,7 @@
 			"ModalFront",
 			"ModalScrim",
 			"ModalScrimError",
+			"NoResize",
 			"NoScroll",
 			"PlacardBar",
 			"PlacardBarDimmed",

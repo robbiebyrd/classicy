@@ -4,7 +4,14 @@
 
 // #208: Zoom geometry is computed in JS (standard-state vs user-state and the
 // horizontal/vertical zoom modes) and applied via the window's inline
-// position/size, so zoom has no class — see ClassicyWindow.tsx applyZoom().
+// position/size, so no rule here keys on zoom — see ClassicyWindow.tsx
+// applyZoom(). The root does carry the state `expanded` while zoomed (the
+// store's `zoomed`), for a package that redraws the zoom box as Windows'
+// Restore button (WIG Ch.6 "Maximizing Windows" (pp.84–85)); the base sheet,
+// Platinum and System 7 read it not at all. A window that cannot be sized
+// (`resizable={false}`) carries `classicyWindowNoResize` the same way (WIG
+// Ch.6 "Window Frames" (p.76): no sizing border); the base draws no grow box
+// for it and reads nothing else.
 
 // Layout: the base `.classicyWindow` rule, then its parts, then the window
 // variants, then every state. A state wins because it comes later in this

@@ -394,6 +394,23 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 		);
 	});
 
+	// WIG Ch.6 "Window Frames" (p.76): a window that cannot be sized has no
+	// sizing border, so the root says so (`classicyWindowNoResize`) for a
+	// package to frame it; the core itself draws no grow box for it.
+	it("marks a resizable={false} window classicyWindowNoResize and draws no grow box", () => {
+		const { container } = renderWindow({ resizable: false });
+		const root = container.querySelector(".classicyWindow") as HTMLElement;
+		expect(root.classList.contains("classicyWindowNoResize")).toBe(true);
+		expect(container.querySelector(".classicyWindowResizer")).toBeNull();
+	});
+
+	it("marks a resizable window with neither, and draws its grow box", () => {
+		const { container } = renderWindow();
+		const root = container.querySelector(".classicyWindow") as HTMLElement;
+		expect(root.classList.contains("classicyWindowNoResize")).toBe(false);
+		expect(container.querySelector(".classicyWindowResizer")).not.toBeNull();
+	});
+
 	// #203: the content frame carries active/inactive styling.
 	it("applies the content frame class when contentFrame is set, and marks the contents holding it", () => {
 		const { container } = renderWindow({ contentFrame: true });
