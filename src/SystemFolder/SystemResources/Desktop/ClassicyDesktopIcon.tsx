@@ -21,6 +21,12 @@ import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/Cl
 import { takeClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 import {
+	type ClassicyDesktopIconSelectMode,
+	classicyDesktopFocusIconId,
+	classicyDesktopSpaceSelection,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
+import { classicyDesktopIconSelectMode } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopSelectBox.internal";
+import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	type ClassicyFileDropDestination,
 	startClassicyFileDrag,
@@ -32,6 +38,10 @@ import {
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import {
+	classicyIconsRoveFocus,
+	classicyWindowsSelectionKeys,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import {
@@ -84,7 +94,11 @@ interface ClassicyDesktopIconProps {
 	 * `ClassicyDesktopIconAdd` gives a record without one.
 	 */
 	kind?: string;
-	/** Called when the icon is opened (double-click, or Enter/Space when focused). */
+	/**
+	 * Called when the icon is opened: a double-click, or Enter or Space when
+	 * focused (Enter alone under `layout.selection.keyboard` `"windows"`,
+	 * where Space selects).
+	 */
 	onClickFunc?: () => void;
 	/**
 	 * Action type dispatched when the icon is opened, with `eventData` spread
@@ -170,6 +184,20 @@ const draggedAsFile = (kind: string, filePath: string | undefined) =>
  * `input.escapeCancels`, Escape mid-drag puts a non-file icon (and the
  * selection it carries) back where the press found it.
  *
+ * Under `selection.modifiers: "windows"` (WIG Ch.5 "Selection Adjustment",
+ * pp.38-39; App. A Tables A.2 and A.3) a Control- or ⌘-click toggles the
+ * icon, a Shift-click selects the anchor's rectangle to it, both set that
+ * rectangle to the anchor's state (`ClassicyDesktopIconSelect`); a modified
+ * press on an unselected icon applies at the press, as Table A.3's
+ * "CTRL+Press" selects, and on a selected one at the click, so a drag from
+ * it carries the selection as it is (A.6). Under `selection.keyboard:
+ * "windows"` the icon is an option of the desktop's list box
+ * (`role="option"`, `aria-selected`): Space selects it, Control or ⌘ with
+ * Space toggles it, Shift with Space extends to it, and Enter alone opens
+ * it. Under `selection.iconNavigation: "roving"` only the desktop's focus
+ * icon (`classicyDesktopFocusIconId`: the icon last pressed or moved to,
+ * else the first) is a Tab stop.
+ *
  * Icons whose `kind` is `app_shortcut` or `shortcut` — every icon `ClassicyApp`
  * registers — render the alias arrow over the bottom-left corner and an
  * italic label (`isAliasKind`); system kinds get neither. Swap the arrow art by
@@ -251,6 +279,23 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// Set when Escape took the drag back: the release ending its press
 			// reports no halt (`stopChangeIcon`), and its click selects nothing.
 			const canceledRef = useRef(false);
+			// The press's modified selection (`selection.modifiers` "windows"):
+			// its mode, null for a plain press, and whether the press applied
+			// it (an unselected icon) or left it to the click (a selected one,
+			// so a drag from it carries the selection, A.6). Undefined before
+			// any press, and after the click that ends one.
+			const pressModeRef = useRef<
+				| { mode: ClassicyDesktopIconSelectMode | null; applied: boolean }
+				| undefined
+			>(undefined);
+			// Set when the press's file drag began: the click a release over
+			// the icon ends it with applies no deferred selection.
+			const fileDraggedRef = useRef(false);
+			// Windows' selection keys (`selection.keyboard`): Space selects and
+			// the icon is a list box option. One Tab stop on the desktop
+			// (`selection.iconNavigation` "roving"): the focus icon.
+			const windowsKeys = classicyWindowsSelectionKeys(layout);
+			const roving = classicyIconsRoveFocus(layout);
 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
@@ -280,6 +325,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const isOpen = useAppManager(
 				(s) => !!s.System.Manager.Applications.apps[appId]?.open,
 			);
+			// The desktop's focus icon, its one Tab stop under "roving".
+			const isFocusIcon = useAppManager((s) => {
+				if (!roving) return false;
+				const desktop = s.System.Manager.Desktop;
+				return (
+					classicyDesktopFocusIconId(
+						(desktop.icons ?? []).filter((i) => !i.hidden),
+						desktop.focusIcon,
+					) === appId
+				);
+			});
 			// Only Finder folder icons — drives, and folders in the Desktop
 			// Folder — care about a window: true while the Finder window for this
 			// icon's folder path is registered and not closed.
@@ -338,6 +394,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const clickFocus = (e: MouseEvent<HTMLDivElement>) => {
 				e.stopPropagation();
+				const press = pressModeRef.current;
+				pressModeRef.current = undefined;
 				if (didDragRef.current) {
 					didDragRef.current = false;
 					selectedOnPressRef.current = false;
@@ -346,9 +404,38 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				// Only when selection actually changes, so "focus" means the icon
 				// BECAME selected rather than "an icon was clicked". The dispatch
 				// below stays unconditional -- clicking an already-selected icon
-				// still collapses a multi-icon selection down to this one.
+				// still collapses a multiple selection down to this one.
 				if (!isSelected) {
 					track("focus", { type: "ClassicyDesktopIcon", ...analyticsArgs });
+				}
+				// A modified click under `selection.modifiers` "windows" (the
+				// press's modifiers; a click no press began reads its own):
+				// the press applied it to an unselected icon, the click applies
+				// it to a selected one, unless a file drag took the press.
+				// Never the collapse below.
+				const mode =
+					e.type !== "click"
+						? null
+						: press
+							? press.mode
+							: classicyDesktopIconSelectMode(e, layout);
+				if (mode) {
+					// The press's change, if it made one, is committed and
+					// reported by now; one that changed nothing (a Control-Shift
+					// press by an unselected anchor) must not hide the next.
+					if (press?.applied) selectReportedRef.current = false;
+					if (!press?.applied && !fileDraggedRef.current) {
+						desktopEventDispatch({
+							type: "ClassicyDesktopIconSelect",
+							iconId: appId,
+							mode,
+						});
+						selectReportedRef.current = true;
+						appearance.emit("select", withClassicyAppearanceInput());
+					}
+					selectedOnPressRef.current = false;
+					iconRef.current?.focus({ preventScroll: true });
+					return;
 				}
 				// "select" reports a change of selection: this icon becoming
 				// selected, or a multiple selection collapsing to it -- never a
@@ -539,16 +626,32 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				track("move", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				didDragRef.current = false;
 				canceledRef.current = false;
+				fileDraggedRef.current = false;
+				// Control, ⌘ or Shift under `selection.modifiers` "windows":
+				// an unselected icon takes the modified selection now (WIG App.
+				// A Table A.3, "CTRL+Press": "Selects the object"); a selected
+				// one waits for the click, so a drag carries the selection.
+				const mode = classicyDesktopIconSelectMode(e, layout);
+				pressModeRef.current = { mode, applied: !isSelected };
 
-				// If icon is not already selected, select just this one for the drag
+				// If icon is not already selected, select just this one for the
+				// drag (or, modified, adjust the selection by it).
 				selectedOnPressRef.current = !isSelected;
 				if (!isSelected) {
-					desktopEventDispatch({
-						type: "ClassicyDesktopIconFocus",
-						iconId: appId,
-					});
+					desktopEventDispatch(
+						mode
+							? { type: "ClassicyDesktopIconSelect", iconId: appId, mode }
+							: { type: "ClassicyDesktopIconFocus", iconId: appId },
+					);
 					selectReportedRef.current = true;
 					appearance.emit("select", withClassicyAppearanceInput());
+				} else if (roving && !isFocusIcon) {
+					// A press on a selected icon gives it the focus alone
+					// (comctl32's `LISTVIEW_LButtonDown`: `LISTVIEW_SetItemFocus`).
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconMoveFocus",
+						iconId: appId,
+					});
 				}
 
 				if (draggedAsFile(kind, filePath)) {
@@ -600,12 +703,19 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: [];
 				});
 				const start: [number, number] = [e.clientX, e.clientY];
+				const dragCallbacks = classicyFileDragAppearanceCallbacks(
+					appearance.emit,
+				);
 				const abandon = startClassicyFileDrag({
 					start: { clientX: start[0], clientY: start[1] },
 					parts,
 					source: iconRef.current,
 					// The outline drags, not the icon: `dragging` stays off.
-					...classicyFileDragAppearanceCallbacks(appearance.emit),
+					...dragCallbacks,
+					onStart: () => {
+						fileDraggedRef.current = true;
+						dragCallbacks.onStart();
+					},
 					onDrop: (target, point) => {
 						if (!target) return;
 						track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
@@ -640,11 +750,13 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const isAlias = isAliasKind(kind);
 
 			return (
-				// biome-ignore lint/a11y/useSemanticElements: desktop icon is a draggable div with ref and complex mouse handling incompatible with <button>
+				// biome-ignore lint/a11y/noStaticElementInteractions: the role is spread (a button, or an option of the desktop's list box under Windows' selection keys); desktop icon is a draggable div with ref and complex mouse handling incompatible with <button>
 				<div
 					{...appearance.attrs}
-					role="button"
-					tabIndex={0}
+					{...(windowsKeys
+						? { role: "option", "aria-selected": isSelected }
+						: { role: "button" })}
+					tabIndex={roving && !isFocusIcon ? -1 : 0}
 					ref={iconRef}
 					id={`${id}`}
 					onMouseDown={startDrag}
@@ -658,12 +770,43 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: {})}
 					onClick={clickFocus}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+						// Space is the Select key under Windows' selection keys
+						// (WIG Ch.5 "Keyboard Selection", p.43; comctl32's
+						// `LISTVIEW_KeySelection`): it selects the icon, Control or
+						// ⌘ toggling it, Shift extending to it, and is the icon's
+						// alone (the desktop's type-ahead never sees it); Enter
+						// opens.
+						if (e.key === " " && windowsKeys) {
+							const how = classicyDesktopSpaceSelection(e);
+							if (!how) return;
+							e.preventDefault();
+							e.stopPropagation();
+							const changes =
+								how !== "select" || !isSelected || isMultipleSelection;
+							desktopEventDispatch(
+								how === "select"
+									? { type: "ClassicyDesktopIconFocus", iconId: appId }
+									: {
+											type: "ClassicyDesktopIconSelect",
+											iconId: appId,
+											mode: how,
+										},
+							);
+							if (changes) {
+								selectReportedRef.current = true;
+								appearance.emit("select", withClassicyAppearanceInput());
+							}
+							return;
+						}
 						if (e.key === "Enter" || e.key === " ") {
 							e.preventDefault();
 							launchIcon();
 						}
 					}}
 					onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
+						// A Control-press (a macOS host's secondary click) ends in
+						// this menu, never in a click.
+						pressModeRef.current = undefined;
 						if (e.defaultPrevented) return;
 						e.preventDefault();
 						// Under `selection.secondaryButton` "select" (Windows; WIG

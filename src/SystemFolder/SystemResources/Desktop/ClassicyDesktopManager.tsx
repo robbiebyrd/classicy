@@ -161,6 +161,24 @@ export interface ClassicyStoreSystemDesktopManagerIcon {
 export interface ClassicyStoreSystemDesktopManager
 	extends ClassicyStoreSystemManager {
 	selectedIcons?: string[];
+	/**
+	 * The desktop selection's anchor (WIG Ch.5 "Selection Adjustment",
+	 * pp.38-39): the icon a plain or Control-click last selected, which a
+	 * Shift-click's rectangle starts from (`ClassicyDesktopIconSelect`).
+	 * Written under `layout.selection.modifiers` `"windows"` and by
+	 * `ClassicyDesktopIconSelect`; session state, never persisted
+	 * (`sanitizeStateForPersistence`).
+	 */
+	selectionAnchor?: string | null;
+	/**
+	 * The desktop's focus icon (comctl32's LVIS_FOCUSED; WIG Ch.5
+	 * "Keyboard Selection", p.43): the icon last pressed or moved to, the
+	 * desktop's one Tab stop under `layout.selection.iconNavigation`
+	 * `"roving"` (`classicyDesktopFocusIconId` falls back to the first icon).
+	 * Written under that key and by `ClassicyDesktopIconSelect` and
+	 * `ClassicyDesktopIconMoveFocus`; session state, never persisted.
+	 */
+	focusIcon?: string | null;
 	systemMenu: ClassicyMenuItem[];
 	appMenu: ClassicyMenuItem[];
 	icons: ClassicyStoreSystemDesktopManagerIcon[];
@@ -289,7 +307,11 @@ export const classicyDesktopEventHandler = (
 				(action.e.target as Record<string, unknown>).id === "classicyDesktop"
 			) {
 				markAppFocused(ds, "Finder.app");
-				ds.System.Manager.Desktop.selectedIcons = [];
+				// A Shift or Control rectangle keeps the selection it starts
+				// from (`keepIconSelection`, `classicyDesktopSelectPress`'s
+				// `keep`; WIG Ch.5 "Region Selection", p.42).
+				if (action.keepIconSelection !== true)
+					ds.System.Manager.Desktop.selectedIcons = [];
 				ds.System.Manager.Desktop.selectBox.active = true;
 				ds.System.Manager.Desktop.selectBox.start = [
 					action.e.clientX,

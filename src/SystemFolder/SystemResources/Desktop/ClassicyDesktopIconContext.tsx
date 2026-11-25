@@ -30,10 +30,16 @@ import type {
 	ClassicyBalloonPosition,
 	ClassicyIconBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import {
+	type ClassicyDesktopIconSelectMode,
+	classicyDesktopIconSelection,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import { classicyIconsRoveFocus } from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { classicyWindowsSelectionModifiers } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 /**
  * The desktop-icon grid metrics, in px: the icon `size`, the `padding` around
@@ -327,6 +333,32 @@ const iconGridOrigin = (ds: ClassicyStore) =>
 	getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId).desktop
 		.iconGridOrigin;
 
+const SELECT_MODES: readonly ClassicyDesktopIconSelectMode[] = [
+	"toggle",
+	"range",
+	"addRange",
+];
+
+/**
+ * Records `iconId` as the desktop's anchor (`Desktop.selectionAnchor`, under
+ * `layout.selection.modifiers` `"windows"`) and focus icon
+ * (`Desktop.focusIcon`, under `layout.selection.iconNavigation` `"roving"`)
+ * after a selection that makes it both, a plain click's or an arrow's (WIG
+ * Ch.5 "Selection Adjustment", p.38: the anchor is the first click's
+ * object). Session state, stripped by `sanitizeStateForPersistence`, and
+ * written only under the active package's keys, so a package without them
+ * keeps today's state.
+ */
+const recordAnchorAndFocusIcon = (ds: ClassicyStore, iconId: string) => {
+	const layout = getClassicyAppearanceLayout(
+		ds.System.Manager.Appearance.packageId,
+	);
+	if (classicyWindowsSelectionModifiers(layout))
+		ds.System.Manager.Desktop.selectionAnchor = iconId;
+	if (classicyIconsRoveFocus(layout))
+		ds.System.Manager.Desktop.focusIcon = iconId;
+};
+
 export const classicyDesktopIconEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -357,6 +389,41 @@ export const classicyDesktopIconEventHandler = (
 			if (!hasIconId(action)) break;
 			markAppFocused(ds, "Finder.app");
 			ds.System.Manager.Desktop.selectedIcons = [action.iconId];
+			recordAnchorAndFocusIcon(ds, action.iconId);
+			break;
+		}
+		case "ClassicyDesktopIconSelect": {
+			// A modified click or key on the desktop (5.10; WIG Ch.5
+			// "Selection Adjustment", pp.38-39): Control or ⌘ toggles the
+			// icon, Shift selects the anchor's rectangle to it, both set
+			// that rectangle to the anchor's state
+			// (`classicyDesktopIconSelection`). The icon becomes the focus
+			// icon.
+			if (!hasIconId(action)) break;
+			const mode = action.mode as ClassicyDesktopIconSelectMode;
+			if (!SELECT_MODES.includes(mode)) break;
+			markAppFocused(ds, "Finder.app");
+			const desktop = ds.System.Manager.Desktop;
+			const next = classicyDesktopIconSelection(
+				desktop.icons.filter((icon) => !icon.hidden),
+				desktop.selectedIcons ?? [],
+				desktop.selectionAnchor,
+				action.iconId,
+				mode,
+				classicyDesktopIconMetrics(ds.System.Manager.Appearance.activeTheme)
+					.cell,
+			);
+			desktop.selectedIcons = next.selected;
+			desktop.selectionAnchor = next.anchor;
+			desktop.focusIcon = action.iconId;
+			break;
+		}
+		case "ClassicyDesktopIconMoveFocus": {
+			// Control (⌘, Option) with a navigation key moves the focus icon
+			// alone (5.18's desktop part; WIG Ch.5 "Disjoint Selection",
+			// pp.43-44): the selection stays.
+			if (!hasIconId(action)) break;
+			ds.System.Manager.Desktop.focusIcon = action.iconId;
 			break;
 		}
 		case "ClassicyDesktopIconSelectBox": {

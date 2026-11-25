@@ -250,6 +250,7 @@
 			"DialogContent",
 			"DialogOverlay",
 			"Select",
+			"SelectEmpty",
 			"SplitArrows",
 			"State"
 		],

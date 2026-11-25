@@ -81,8 +81,16 @@ and `nodenext` resolution).
   rectangle in the list view too (dragged from below the last row, the rows
   it touches selected), either view's rectangle adding to the selection with
   Shift and toggling what it touches with Ctrl, scrolling the window when
-  dragged past its edge, and taken back with Escape, dialogs and alerts
-  centered on whole pixels,
+  dragged past its edge, and taken back with Escape, the desktop's icons
+  selected as Explorer's desktop selects them (Ctrl-click adding or removing
+  one icon without losing the rest, Shift-click selecting the icons in the
+  rectangle between the anchor and the icon, Ctrl+Shift-click adding or
+  removing that rectangle, a drag of any selected icon, Ctrl held or not,
+  carrying them all, a selection rectangle drawn with Shift adding to the
+  selection and with Ctrl toggling what it touches, Space selecting the
+  focused icon, Ctrl+Space adding or removing it, Shift+Space extending to
+  it, Enter alone opening, and Tab stopping at one icon of the desktop, the
+  one last clicked or moved to), dialogs and alerts centered on whole pixels,
   so their one-pixel bevels and glyphs stay sharp, trees driven by the bare
   arrow keys as Windows' tree view is (Right expands a folder or goes into
   it, Left collapses it or goes up to its parent, and Ctrl with an arrow,
@@ -124,8 +132,9 @@ and `nodenext` resolution).
     a modeless dialog's frame flattened to a plain ButtonFace box;
   - the Finder's icon view: a label being renamed in the list view's edit
     box (WindowText on white in a one-pixel black border), a drag across
-    empty space (in the list view too) drawing the dotted selection
-    rectangle inverted over what lies under it, as Windows XORed it, and
+    empty space (in the list view too, and on the desktop, over its icons)
+    drawing the dotted selection rectangle inverted over what lies under it,
+    as Windows XORed it, nothing drawn until the pointer moves, and
     the dotted focus rectangle on the focused icon's label alone (in icon
     views and on the desktop), never around every selected label;
   - menus: the flat menu bar, raised pull-down and contextual menus with an

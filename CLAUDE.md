@@ -754,6 +754,31 @@ Space/`role="option"` (`selection.keyboard`), one Tab stop
 selection (`selection.modifiers`, `openItemsFunc`). Finder's item menus
 (icons, list rows, desktop file icons) lead with Open (`isDefault`).
 
+### Desktop Selection
+
+The desktop's icons select as Mac OS 8's did (a click selects one, a press on
+empty space clears and draws `classicyDesktopSelect`) unless the package's
+layout says otherwise, each behind its key (WIG Ch.5 pp.38-43; App. A Tables
+A.2, A.3): `selection.modifiers: "windows"` makes Control/⌘-click toggle,
+Shift-click take the anchor's rectangle and both set it to the anchor's state
+(`ClassicyDesktopIconSelect { iconId, mode: "toggle" | "range" | "addRange" }`,
+`classicyDesktopIconSelection`, `classicyDesktopIconRectRange`), a modified
+press on an unselected icon applying at the press and on a selected one at the
+click, so a drag carries the selection; and makes a Shift or Control rectangle
+keep the selection (`classicyDesktopSelectPress`'s `keep`,
+`classicyDesktopBoxSelection`, `ClassicyDesktopFocus { keepIconSelection }`).
+`selection.keyboard: "windows"` makes Space select (Control/⌘ toggles, Shift
+extends), Enter alone open and the icons `role="option"`;
+`selection.iconNavigation: "roving"` makes the focus icon
+(`classicyDesktopFocusIconId`) the one Tab stop. The anchor and the focus icon
+are session fields (`Desktop.selectionAnchor`, `Desktop.focusIcon`, written
+only under those keys, by `ClassicyDesktopIconSelect` and
+`ClassicyDesktopIconMoveFocus`; stripped by `sanitizeStateForPersistence`).
+The desktop's keys (`classicyDesktopKeyCommand`, `classicyDesktopListboxAttributes`
+in `Desktop/ClassicyDesktopKeyNav.ts`) and the rectangle's wiring
+(`classicyDesktopSelectEmpty` while 0 x 0) are the shell's to wire into
+`ClassicyDesktop` (its hand-offs C2 and C3).
+
 ### Finder Drag and Drop
 
 Finder items (icon and list views) and the desktop's file icons drag as Mac OS

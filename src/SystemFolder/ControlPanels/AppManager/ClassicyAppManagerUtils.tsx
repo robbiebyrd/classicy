@@ -813,6 +813,11 @@ export function sanitizeStateForPersistence(
 		if (draft.System.Manager.Desktop) {
 			draft.System.Manager.Desktop.systemDialog = null;
 			draft.System.Manager.Desktop.errorDialog = null;
+			// The selection's anchor and the focus icon (Windows' layout keys
+			// `selection.modifiers` and `selection.iconNavigation`) belong to
+			// the session that set them, as a list's anchor and focus item do.
+			delete draft.System.Manager.Desktop.selectionAnchor;
+			delete draft.System.Manager.Desktop.focusIcon;
 		}
 		// Boot parade icons are session-only: owners re-register them on every
 		// mount, so persisting them would resurrect icons whose owner removed

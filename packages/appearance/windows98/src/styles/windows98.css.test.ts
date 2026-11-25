@@ -571,6 +571,25 @@ describe("windows98.scss (compiled)", () => {
 			expect(rule(".classicyIcon:focus-visible")).toContain("outline: none");
 		});
 
+		// WIG Ch.5 "Region Selection" (p.42); Windows 98 as shipped,
+		// DrawFocusRect's XOR (the audit's 5.14): the desktop's rectangle is
+		// one-pixel white dots under `difference`, inverting what lies under
+		// them, over the icons (10) and under the windows (20), no outline;
+		// and a press that has not moved draws nothing (5.13).
+		it("XORs the desktop's selection rectangle over the icons, and hides it until the pointer moves", () => {
+			const marquee = rule(".classicyDesktopSelect");
+			expect(marquee).toContain(
+				"border: var(--window-border-size) dotted var(--color-white)",
+			);
+			expect(marquee).toContain("outline: none");
+			expect(marquee).toContain("mix-blend-mode: difference");
+			expect(marquee).toContain("z-index: 11");
+			expect(marquee).not.toContain("--package-color-desktop-text");
+			expect(
+				rule(".classicyDesktopSelect.classicyDesktopSelectEmpty"),
+			).toContain("display: none");
+		});
+
 		// WIG Ch.7 "Tooltip Controls" (p.133); Wine's TOOLTIPS_Show: 20 below
 		// the cursor's hot spot, or 2 above the control.
 		it("puts a ToolTip at the pointer under the cursor, or clear of its control above it", () => {

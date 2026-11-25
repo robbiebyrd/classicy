@@ -1,7 +1,9 @@
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import type { ClassicyDesktopIconSelectMode } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import {
 	classicyContextMenuOpensOnRelease,
 	classicySecondaryButtonSelects,
+	classicyWindowsSelectionModifiers,
 	isClassicyGestureButton,
 } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
@@ -24,9 +26,12 @@ export type ClassicyDesktopSelectPress = {
 	deferMenu: boolean;
 	/**
 	 * With `"select"`: how the rectangle meets the selection the press
-	 * found. `"none"`: it replaces it. `"union"` and `"toggle"` stand for a
-	 * Shift and a Ctrl rectangle (WIG Ch.5 "Region Selection", p.42), which
-	 * this rule does not tell apart: it always answers `"none"`.
+	 * found (`classicyDesktopBoxSelection`). `"none"`: it replaces it.
+	 * `"union"` (Shift): it adds what it covers. `"toggle"` (Control or ⌘):
+	 * it toggles what it covers (WIG Ch.5 "Region Selection", p.42; App. A
+	 * Table A.2, p.351, Table A.3, pp.354-355). Either keeps the selection
+	 * the press found (`clearIcons` false): the desktop dispatches
+	 * `ClassicyDesktopFocus` with `keepIconSelection: true`.
 	 */
 	keep: "none" | "union" | "toggle";
 };
@@ -57,6 +62,14 @@ export type ClassicyDesktopSelectPressEvent = {
  *   `contextmenu` event (`deferMenu`), opened at the release.
  * - `layout.mouse` `"windows"` (WIG Ch.4 "Mouse Actions", pp.24-25): a
  *   button other than 1 and 2 does nothing (`"ignore"`).
+ * - `layout.selection.modifiers` `"windows"` (WIG Ch.5 "Region Selection",
+ *   p.42; App. A Table A.2, p.351: "SHIFT+Press" on white space extends;
+ *   Table A.3, pp.354-355: "CTRL+Press" initiates a disjoint region): a
+ *   rectangle started with Shift keeps the selection and adds to it
+ *   (`keep: "union"`), with Control or ⌘ (Shift or not) keeps it and
+ *   toggles what it covers (`keep: "toggle"`), either button; neither
+ *   clears the icons. Without the key every rectangle replaces the
+ *   selection (`keep: "none"`), as Mac OS 8's did.
  */
 export function classicyDesktopSelectPress(
 	e: ClassicyDesktopSelectPressEvent,
@@ -71,20 +84,21 @@ export function classicyDesktopSelectPress(
 			keep: "none",
 		};
 	}
+	const keep = classicyDesktopBoxKeep(e, layout);
 	if (e.button === 2 && classicySecondaryButtonSelects(layout)) {
 		return {
 			action: "select",
-			clearIcons: true,
+			clearIcons: keep === "none",
 			deferMenu: deferring,
-			keep: "none",
+			keep,
 		};
 	}
 	if (e.button <= 1) {
 		return {
 			action: "select",
-			clearIcons: true,
+			clearIcons: keep === "none",
 			deferMenu: false,
-			keep: "none",
+			keep,
 		};
 	}
 	return {
@@ -93,4 +107,74 @@ export function classicyDesktopSelectPress(
 		deferMenu: deferring,
 		keep: "none",
 	};
+}
+
+/** How a rectangle's press modifiers keep the selection (`keep`). */
+const classicyDesktopBoxKeep = (
+	e: ClassicyDesktopSelectPressEvent,
+	layout: Pick<ClassicyAppearanceLayout, "selection">,
+): ClassicyDesktopSelectPress["keep"] => {
+	if (!classicyWindowsSelectionModifiers(layout)) return "none";
+	if (e.ctrlKey || e.metaKey) return "toggle";
+	return e.shiftKey ? "union" : "none";
+};
+
+/**
+ * The selection a desktop rectangle gives: what it covers (`boxed`, the
+ * icons it touches now) against the selection the press found (`base`),
+ * by the press's `keep` (`classicyDesktopSelectPress`). Pure; the desktop
+ * (`ClassicyDesktop`'s `resizeSelectBox`) dispatches the answer as
+ * `ClassicyDesktopIconSelectBox` on every frame, so the selection shows
+ * live (WIG Ch.5 "Region Selection", p.42).
+ *
+ * - `"none"`: `boxed` alone.
+ * - `"union"` (Shift; App. A Table A.2, p.351): `base` and `boxed`, `base`'s
+ *   icons first.
+ * - `"toggle"` (Control or ⌘; App. A Table A.3, pp.354-355 and its note 4,
+ *   p.356: "The range of objects included are all toggled to the same
+ *   selection state, which is based on the first object included by the
+ *   bounding region"): given `firstCoveredSelected`, whether the first icon
+ *   the rectangle covered in this gesture was in `base`, every covered icon
+ *   takes that icon's toggled state, so the rectangle removes what it
+ *   covers when that icon was selected and adds it when it was not;
+ *   without it, each covered icon toggles on its own (`base` △ `boxed`, as
+ *   comctl32's marquee inverts the items under it, `LISTVIEW_MarqueeHighlight`,
+ *   and as the folder views' rectangle does). An icon the rectangle leaves
+ *   goes back to its state in `base`.
+ */
+export function classicyDesktopBoxSelection(
+	base: readonly string[],
+	boxed: readonly string[],
+	keep: ClassicyDesktopSelectPress["keep"],
+	firstCoveredSelected?: boolean,
+): string[] {
+	if (keep === "none") return [...boxed];
+	const held = new Set(base);
+	const covered = new Set(boxed);
+	const added = boxed.filter((id) => !held.has(id));
+	if (keep === "union") return [...base, ...added];
+	if (firstCoveredSelected === true)
+		return base.filter((id) => !covered.has(id));
+	if (firstCoveredSelected === false) return [...base, ...added];
+	return [...base.filter((id) => !covered.has(id)), ...added];
+}
+
+/**
+ * How a button-1 press on a desktop icon adjusts the desktop's selection
+ * (`ClassicyDesktopIconSelect`'s `mode`), under `layout.selection.modifiers`
+ * `"windows"` (WIG Ch.5 "Selection Adjustment", pp.38-39, summary table,
+ * p.42; App. A Tables A.2, pp.351-353, and A.3, pp.354-356): `"toggle"` with
+ * Control or ⌘, `"range"` with Shift, `"addRange"` with both. `null` with
+ * no modifier, for another button, or without the key, where a modified
+ * click selects the icon alone as a plain one does (Mac OS 8's desktop).
+ */
+export function classicyDesktopIconSelectMode(
+	e: ClassicyDesktopSelectPressEvent,
+	layout: Pick<ClassicyAppearanceLayout, "selection">,
+): ClassicyDesktopIconSelectMode | null {
+	if (e.button !== 0 || !classicyWindowsSelectionModifiers(layout)) return null;
+	const toggle = e.ctrlKey || e.metaKey;
+	if (toggle && e.shiftKey) return "addRange";
+	if (toggle) return "toggle";
+	return e.shiftKey ? "range" : null;
 }

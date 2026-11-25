@@ -13,9 +13,15 @@
 //   Desktop tab is drawn by the base sheet as any wallpaper, so this partial
 //   leaves the face to the theme.
 // - The selection marquee is the one-pixel dotted rectangle the shell XORed
-//   onto the desktop, drawn in the desktop text color (the XOR over the
-//   Background read as a light dotted line), where the base draws a dotted
-//   two-ring box in black.
+//   onto the desktop with DrawFocusRect: white dots under `difference`
+//   invert the pixels beneath them, as the XOR did in 8-bit color (over the
+//   teal Background the dots read 255,127,127, not white; over a label,
+//   its inverse), above the icons it crosses (z-index 11, over their 10)
+//   and below the windows, where the base draws a dotted two-ring box in
+//   black under the icons. A press that has not moved draws nothing
+//   (`classicyDesktopSelectEmpty`, on the outline while it is 0 x 0): the
+//   shell drew the rectangle once the pointer moved (WIG Ch.5 "Region
+//   Selection", p.42).
 // - A desktop icon is the 32 x 32 image over its label, the label in the UI
 //   font (MS Sans Serif 8pt) in the desktop text color
 //   (`--package-color-desktop-text`, white) straight on the Background with
@@ -86,8 +92,15 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
 @mixin desktop {
   // --- The marquee ----------------------------------------------------------
   .classicyDesktopSelect {
-    border: b.$b dotted var(--package-color-desktop-text, var(--color-white));
+    z-index: 11;
+    border: b.$b dotted var(--color-white);
     outline: none;
+    mix-blend-mode: difference;
+  }
+
+  // A press that has not moved yet: no dot under every click.
+  .classicyDesktopSelect.classicyDesktopSelectEmpty {
+    display: none;
   }
 
   // --- Desktop icons ---------------------------------------------------------

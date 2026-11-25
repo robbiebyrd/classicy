@@ -30,6 +30,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
+	sanitizeStateForPersistence,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
@@ -44,6 +45,7 @@ import {
 	iconGridLattice,
 	readClassicyDesktopIconMetrics,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 const platinum = getClassicyAppearancePackage(
 	PLATINUM_APPEARANCE_PACKAGE_ID,
@@ -626,5 +628,187 @@ describe("desktop Clean Up (reducer path)", () => {
 		const styleRead = vi.spyOn(window, "getComputedStyle");
 		readClassicyDesktopIconMetrics(getTheme("default"));
 		expect(styleRead).toHaveBeenCalled();
+	});
+});
+
+// The desktop's modified selection and focus icon (the audit's 5.10 / A.6,
+// 5.17 / B.2, 5.18's desktop part; WIG Ch.5 "Selection Adjustment",
+// pp.38-39, "Keyboard Selection", p.43; App. A Tables A.2 and A.3), under
+// a package declaring Windows 98's layout and under Platinum's.
+describe("the desktop's anchor, focus icon and modified selection", () => {
+	const WINDOWS = "windows-selection";
+	// A 3 × 3 grid, 100 px apart; iconSize 32 makes a 64 px cell.
+	const grid = (): ClassicyStoreSystemDesktopManagerIcon[] =>
+		["A", "B", "C", "D", "E", "F", "G", "H", "I"].map((id, i) => ({
+			appId: id,
+			appName: id,
+			icon: `${id}.png`,
+			kind: "app_shortcut",
+			location: [100 + (i % 3) * 100, 100 + Math.floor(i / 3) * 100] as [
+				number,
+				number,
+			],
+		}));
+	const seedStore = (packageId: string, selected: string[] = []) =>
+		useAppManager.setState(
+			produce(DefaultAppManagerState, (draft) => {
+				draft.System.Manager.Appearance.packageId = packageId;
+				draft.System.Manager.Appearance.activeTheme.package = packageId;
+				draft.System.Manager.Appearance.activeTheme.desktop.iconSize = 32;
+				draft.System.Manager.Desktop.icons = grid();
+				draft.System.Manager.Desktop.selectedIcons = selected;
+			}),
+			true,
+		);
+	const desktop = () => useAppManager.getState().System.Manager.Desktop;
+
+	beforeEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(platinum);
+		registerClassicyAppearancePackage({
+			id: WINDOWS,
+			name: WINDOWS,
+			css: "",
+			defaults: {
+				...getTheme("default"),
+				id: `${WINDOWS}-default`,
+				package: WINDOWS,
+			},
+			layout: windows98.layout as never,
+		});
+	});
+
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(platinum);
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("records no anchor or focus icon for a plain selection without the keys", () => {
+		seedStore(PLATINUM_APPEARANCE_PACKAGE_ID);
+		dispatch({ type: "ClassicyDesktopIconFocus", iconId: "E" });
+		expect(desktop().selectedIcons).toEqual(["E"]);
+		expect("selectionAnchor" in desktop()).toBe(false);
+		expect("focusIcon" in desktop()).toBe(false);
+	});
+
+	it("makes a plain selection the anchor and the focus icon under the Windows layout", () => {
+		seedStore(WINDOWS);
+		dispatch({ type: "ClassicyDesktopIconFocus", iconId: "E" });
+		expect(desktop().selectedIcons).toEqual(["E"]);
+		expect(desktop().selectionAnchor).toBe("E");
+		expect(desktop().focusIcon).toBe("E");
+	});
+
+	it("toggles an icon in and out, moving the anchor and the focus icon", () => {
+		seedStore(WINDOWS);
+		dispatch({ type: "ClassicyDesktopIconFocus", iconId: "A" });
+		dispatch({
+			type: "ClassicyDesktopIconSelect",
+			iconId: "I",
+			mode: "toggle",
+		});
+		expect(desktop().selectedIcons).toEqual(["A", "I"]);
+		expect(desktop().selectionAnchor).toBe("I");
+		expect(desktop().focusIcon).toBe("I");
+		dispatch({
+			type: "ClassicyDesktopIconSelect",
+			iconId: "A",
+			mode: "toggle",
+		});
+		expect(desktop().selectedIcons).toEqual(["I"]);
+		expect(desktop().selectionAnchor).toBe("A");
+		// The desktop's click focuses Finder, as a plain click does.
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps["Finder.app"]
+				.focused,
+		).toBe(true);
+	});
+
+	it("selects the anchor's rectangle with range, replacing the rest, the anchor staying", () => {
+		seedStore(WINDOWS);
+		dispatch({ type: "ClassicyDesktopIconFocus", iconId: "A" });
+		dispatch({
+			type: "ClassicyDesktopIconSelect",
+			iconId: "I",
+			mode: "toggle",
+		});
+		dispatch({ type: "ClassicyDesktopIconSelect", iconId: "E", mode: "range" });
+		// The anchor is I, the last toggled: I's and E's boxes.
+		expect(desktop().selectedIcons).toEqual(["E", "F", "H", "I"]);
+		expect(desktop().selectionAnchor).toBe("I");
+		expect(desktop().focusIcon).toBe("E");
+	});
+
+	it("sets the anchor's rectangle to the anchor's state with addRange, keeping the rest", () => {
+		seedStore(WINDOWS);
+		dispatch({ type: "ClassicyDesktopIconFocus", iconId: "C" });
+		dispatch({
+			type: "ClassicyDesktopIconSelect",
+			iconId: "A",
+			mode: "toggle",
+		});
+		// A is selected, the anchor: A..E joins C.
+		dispatch({
+			type: "ClassicyDesktopIconSelect",
+			iconId: "E",
+			mode: "addRange",
+		});
+		expect(desktop().selectedIcons).toEqual(["C", "A", "B", "D", "E"]);
+		// A toggled out, still the anchor: A..E leaves, C stays.
+		dispatch({
+			type: "ClassicyDesktopIconSelect",
+			iconId: "A",
+			mode: "toggle",
+		});
+		dispatch({
+			type: "ClassicyDesktopIconSelect",
+			iconId: "E",
+			mode: "addRange",
+		});
+		expect(desktop().selectedIcons).toEqual(["C"]);
+		expect(desktop().selectionAnchor).toBe("A");
+	});
+
+	it("leaves hidden icons out of a rectangle, and makes the icon the anchor when there is none", () => {
+		seedStore(WINDOWS);
+		useAppManager.setState(
+			produce(useAppManager.getState(), (draft) => {
+				draft.System.Manager.Desktop.icons[1].hidden = true;
+			}),
+		);
+		dispatch({ type: "ClassicyDesktopIconSelect", iconId: "E", mode: "range" });
+		expect(desktop().selectedIcons).toEqual(["E"]);
+		expect(desktop().selectionAnchor).toBe("E");
+		dispatch({ type: "ClassicyDesktopIconSelect", iconId: "A", mode: "range" });
+		// B is hidden.
+		expect(desktop().selectedIcons).toEqual(["A", "D", "E"]);
+	});
+
+	it("ignores a select with no icon or an unknown mode", () => {
+		seedStore(WINDOWS, ["A"]);
+		dispatch({ type: "ClassicyDesktopIconSelect", mode: "toggle" });
+		dispatch({ type: "ClassicyDesktopIconSelect", iconId: "E", mode: "all" });
+		expect(desktop().selectedIcons).toEqual(["A"]);
+		expect(desktop().focusIcon).toBeUndefined();
+	});
+
+	it("moves the focus icon alone", () => {
+		seedStore(PLATINUM_APPEARANCE_PACKAGE_ID, ["A", "B"]);
+		dispatch({ type: "ClassicyDesktopIconMoveFocus", iconId: "H" });
+		expect(desktop().focusIcon).toBe("H");
+		expect(desktop().selectedIcons).toEqual(["A", "B"]);
+		dispatch({ type: "ClassicyDesktopIconMoveFocus" });
+		expect(desktop().focusIcon).toBe("H");
+	});
+
+	it("never persists the anchor or the focus icon", () => {
+		seedStore(WINDOWS);
+		dispatch({ type: "ClassicyDesktopIconFocus", iconId: "E" });
+		const saved = sanitizeStateForPersistence(useAppManager.getState()).System
+			.Manager.Desktop;
+		expect(saved.selectedIcons).toEqual(["E"]);
+		expect("selectionAnchor" in saved).toBe(false);
+		expect("focusIcon" in saved).toBe(false);
 	});
 });

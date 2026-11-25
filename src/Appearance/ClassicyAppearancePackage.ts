@@ -495,7 +495,14 @@ export type ClassicyAppearanceLayout = {
 		 * second click of a double-click changes no selection; and a
 		 * double-click hands the whole selection as it then stands to
 		 * `onActivateSelection` (`ClassicyListBox`, `ClassicyTable`; the
-		 * Finder opens every selected item), where one is given.
+		 * Finder opens every selected item), where one is given. On the
+		 * desktop (`ClassicyDesktopIcon`, `ClassicyDesktopIconSelect`; WIG
+		 * Ch.5 pp.38-39, 42; App. A Tables A.2 and A.3), a Control- or
+		 * ⌘-click toggles an icon, a Shift-click selects the anchor's
+		 * rectangle to it, both set that rectangle to the anchor's state,
+		 * and a selection rectangle pressed with Shift adds to the
+		 * selection, with Control or ⌘ toggles what it covers
+		 * (`classicyDesktopSelectPress`'s `keep`).
 		 */
 		modifiers?: "mac" | "windows";
 		/**
@@ -541,7 +548,11 @@ export type ClassicyAppearanceLayout = {
 		 * toggles it, Return alone opening it (Space opens an icon under
 		 * `"follow"`), and the view is a list box of options (`role="listbox"`,
 		 * `aria-multiselectable`, each icon `role="option"` with
-		 * `aria-selected`) rather than a set of buttons.
+		 * `aria-selected`) rather than a set of buttons. The desktop's icons
+		 * too (`ClassicyDesktopIcon`): Space selects, Control or ⌘ with it
+		 * toggles, Shift with it extends, Enter alone opens, and Control,
+		 * ⌘ or Option with a navigation key moves the focus icon alone
+		 * (`classicyDesktopKeyCommand`).
 		 */
 		keyboard?: "follow" | "windows";
 		/**
@@ -552,6 +563,10 @@ export type ClassicyAppearanceLayout = {
 		 * one field the arrows move inside): one icon is the view's Tab stop,
 		 * the one last pressed or moved to, else the first in the view's
 		 * order; the rest are reached by the arrows, Home, End and typing.
+		 * The desktop too: its focus icon (`Desktop.focusIcon`,
+		 * `classicyDesktopFocusIconId`) is its one Tab stop, and its arrows,
+		 * Home, End and page keys move from it (`classicyDesktopKeyCommand`;
+		 * App. B Table B.1, p.357).
 		 */
 		iconNavigation?: "each" | "roving";
 	};

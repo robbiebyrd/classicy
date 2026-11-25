@@ -1,9 +1,17 @@
 import { produce } from "immer";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 const PLAN = "HD:Desktop Folder:Plan.txt";
 const ITEM_ID = `classicy-desktop-item:${PLAN}`;
@@ -194,5 +202,100 @@ describe("ClassicyDesktopIcon — file-backed icons", () => {
 		expect(
 			useAppManager.getState().System.Manager.Applications.apps[ITEM_ID],
 		).toBeUndefined();
+	});
+});
+
+// A Control-press on a selected file icon waits for its click to toggle it
+// (`selection.modifiers` "windows", the audit's A.6; WIG App. A Table A.3,
+// "CTRL+Press" on a selected object: none; "CTRL+Click": unselects it), so
+// a drag from it carries the selection, and the release that ends the drag
+// over the icon takes nothing out.
+describe("ClassicyDesktopIcon — a Control-drag of the selection under the Windows layout", () => {
+	const OTHER = "HD:Desktop Folder:Notes.txt";
+	const OTHER_ID = `classicy-desktop-item:${OTHER}`;
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+		registerClassicyAppearancePackage({
+			id: "windows-drag",
+			name: "Windows drag",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-drag-default",
+				package: "windows-drag",
+			},
+			layout: windows98.layout as never,
+		});
+		seedIcons(
+			[
+				{ appId: ITEM_ID, kind: "file", filePath: PLAN, location: [100, 100] },
+				{
+					appId: OTHER_ID,
+					kind: "file",
+					filePath: OTHER,
+					location: [100, 200],
+				},
+			],
+			[ITEM_ID, OTHER_ID],
+		);
+	});
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+	const renderPlan = (onMove = vi.fn()) => {
+		const { container } = render(
+			<ClassicyDesktopIcon
+				appId={ITEM_ID}
+				appName="Plan.txt"
+				icon="/p.png"
+				kind="file"
+				filePath={PLAN}
+				onMoveFilePaths={onMove}
+			/>,
+		);
+		return container.querySelector(".classicyDesktopIcon") as HTMLElement;
+	};
+	const selected = () =>
+		useAppManager.getState().System.Manager.Desktop.selectedIcons;
+
+	it("carries the whole selection and keeps it after the drag", () => {
+		const onMove = vi.fn();
+		const icon = renderPlan(onMove);
+		const folder = document.createElement("div");
+		folder.setAttribute("data-classicy-drop-folder", "HD:Archive");
+		const original = document.elementsFromPoint;
+		document.elementsFromPoint = () => [folder];
+		try {
+			fireEvent.mouseDown(icon, {
+				button: 0,
+				ctrlKey: true,
+				clientX: 10,
+				clientY: 10,
+			});
+			expect(selected()).toEqual([ITEM_ID, OTHER_ID]);
+			fireEvent.mouseMove(document, { clientX: 60, clientY: 60 });
+			fireEvent.mouseUp(document, { clientX: 60, clientY: 60 });
+			// The release lands back over the icon.
+			fireEvent.click(icon, { button: 0, ctrlKey: true });
+		} finally {
+			document.elementsFromPoint = original;
+		}
+		expect(onMove).toHaveBeenCalledWith([PLAN, OTHER], {
+			kind: "folder",
+			path: "HD:Archive",
+		});
+		expect(selected()).toEqual([ITEM_ID, OTHER_ID]);
+	});
+
+	it("takes the icon out of the selection on a Control-click that never dragged", () => {
+		const icon = renderPlan();
+		fireEvent.mouseDown(icon, { button: 0, ctrlKey: true });
+		fireEvent.mouseUp(icon, { button: 0, ctrlKey: true });
+		fireEvent.click(icon, { button: 0, ctrlKey: true });
+		expect(selected()).toEqual([OTHER_ID]);
+		expect(
+			useAppManager.getState().System.Manager.Desktop.selectionAnchor,
+		).toBe(ITEM_ID);
 	});
 });

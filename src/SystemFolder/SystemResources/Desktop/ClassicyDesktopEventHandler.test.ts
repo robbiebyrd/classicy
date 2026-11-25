@@ -512,6 +512,34 @@ describe("classicyDesktopEventHandler — ClassicyDesktopFocus", () => {
 		expect(ds.System.Manager.Desktop.selectBox.start).toEqual([100, 200]);
 	});
 
+	// A Shift or Control rectangle (WIG Ch.5 "Region Selection", p.42; the
+	// audit's 5.11 / A.7) keeps the selection it starts from.
+	it("keeps selectedIcons for a press with keepIconSelection, still starting the box", () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Desktop.selectedIcons = ["icon1", "icon2"];
+
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopFocus",
+			e: { target: { id: "classicyDesktop" }, clientX: 100, clientY: 200 },
+			keepIconSelection: true,
+		});
+
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
+		expect(ds.System.Manager.Desktop.selectedIcons).toEqual(["icon1", "icon2"]);
+		expect(ds.System.Manager.Desktop.selectBox.active).toBe(true);
+		expect(ds.System.Manager.Desktop.selectBox.start).toEqual([100, 200]);
+
+		// Anything but `true` clears, as before.
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopFocus",
+			e: { target: { id: "classicyDesktop" }, clientX: 1, clientY: 2 },
+			keepIconSelection: "yes",
+		});
+		expect(ds.System.Manager.Desktop.selectedIcons).toEqual([]);
+	});
+
 	it("makes no state change when target is not classicyDesktop", () => {
 		const ds = makeStoreForDesktop();
 		ds.System.Manager.Applications.apps["Notes.app"] = {
