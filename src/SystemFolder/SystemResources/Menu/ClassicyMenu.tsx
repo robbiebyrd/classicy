@@ -197,6 +197,15 @@ export interface ClassicyMenuItem {
 	event?: string;
 	/** Fields spread into the `event` action. */
 	eventData?: Record<string, unknown>;
+	/**
+	 * The item only asks first: its command shows a warning alert, whose
+	 * button runs it (Empty Trash, Reset PRAM). The menu appends an ellipsis
+	 * to its `title` ("Empty Trash…", as Mac OS 8 and System 7 wrote it),
+	 * unless the package's `layout.menu.confirmEllipsis` is `false`
+	 * (Windows: WIG Ch.7 "Types of Menu Items", pp.107-108, no ellipsis for
+	 * a command that only confirms). Give the title without one.
+	 */
+	confirms?: boolean;
 	/** Called when the item is chosen. Takes precedence over `event`. */
 	onClickFunc?: () => void;
 	/**
@@ -234,6 +243,25 @@ export interface ClassicyMenuItem {
 		disabledContent?: string;
 	};
 }
+
+/**
+ * `items` with each confirming item's (`confirms`) title as a menu draws it:
+ * an ellipsis appended when `ellipsis` is true (Mac OS 8 and System 7), the
+ * title as given when it is false (`layout.menu.confirmEllipsis` false,
+ * Windows). The same array when no item confirms or `ellipsis` is false;
+ * submenus are left to their own menus.
+ */
+export const withClassicyConfirmEllipsis = (
+	items: ClassicyMenuItem[],
+	ellipsis: boolean,
+): ClassicyMenuItem[] =>
+	!ellipsis || !items?.some((item) => item?.confirms && item.title)
+		? items
+		: items.map((item) =>
+				item?.confirms && item.title
+					? { ...item, title: `${item.title}\u2026` }
+					: item,
+			);
 
 interface ClassicyMenuProps {
 	/** Menu name, used to key the rendered list. */
@@ -362,7 +390,7 @@ const nudgeMenuWrapperOntoGrid = (wrapper: HTMLElement) => {
  */
 export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	name,
-	menuItems,
+	menuItems: givenMenuItems,
 	navClass,
 	subNavClass,
 	children,
@@ -375,6 +403,13 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
 	const layout = useClassicyAppearanceLayout();
+	// A confirming item's title as this package writes it: with an ellipsis
+	// (Mac OS) or without (`layout.menu.confirmEllipsis` false, Windows).
+	const confirmEllipsis = layout.menu?.confirmEllipsis !== false;
+	const menuItems = useMemo(
+		() => withClassicyConfirmEllipsis(givenMenuItems, confirmEllipsis),
+		[givenMenuItems, confirmEllipsis],
+	);
 	// Windows' menu keyboard (`layout.menu.keys` "windows"); absent, Mac OS
 	// 8's and System 7's menus, which take Return alone.
 	const windowsKeys = layout.menu?.keys === "windows";

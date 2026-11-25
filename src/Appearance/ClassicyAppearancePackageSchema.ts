@@ -1,7 +1,10 @@
 import { z } from "zod";
 import type { ClassicyAssetKind } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
-import { isThemeColorTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import {
+	CLASSICY_THEME_COLOR_TARGETS,
+	isThemeColorTarget,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { ClassicyPackageThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicySoundPackSchema } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
@@ -24,7 +27,7 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
  * `text`, `edit`, `textField`,
  * `assistant`,
  * `help`,
- * `selection`, `contextMenu`, `input`), each key of which is optional too,
+ * `selection`, `contextMenu`, `input`, `dialog`, `icon`), each key of which is optional too,
  * as are `menuBar.idleTimeoutMs` and `mouse`.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
@@ -53,6 +56,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			shortcutSpelling: z.enum(["glyphs", "names"]).optional(),
 			emptySubmenus: z.enum(["leaf", "placeholder"]).optional(),
 			itemHelp: z.enum(["balloon", "statusBar"]).optional(),
+			confirmEllipsis: z.boolean().optional(),
 		})
 		.optional(),
 	desktop: z.object({
@@ -179,6 +183,10 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.optional(),
 	mouse: z.enum(["mac", "windows"]).optional(),
 	input: z.object({ escapeCancels: z.boolean().optional() }).optional(),
+	dialog: z.object({ flushInput: z.boolean().optional() }).optional(),
+	icon: z
+		.object({ aliasBadge: z.enum(["desktop", "everywhere"]).optional() })
+		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
 // Every ClassicyAssetKind, once. The `satisfies` and the check below fail the
@@ -246,6 +254,18 @@ const colorFamilies = z.record(
 const fontFamilies = z.record(
 	colorFamilyName,
 	z.object({ label: colorFamilyLabel }),
+);
+
+// The Colors tab's labels for the core's colors (`colorLabels`): keyed by a
+// color target's CSS variable, another key refused.
+const colorLabels = z.partialRecord(
+	z.enum(
+		CLASSICY_THEME_COLOR_TARGETS.map((info) => info.cssVar) as [
+			string,
+			...string[],
+		],
+	),
+	colorFamilyLabel,
 );
 
 // A theme file importer (`themeFileImporter`): its file name extensions
@@ -481,6 +501,11 @@ export const ClassicyAppearancePackageSchema = z
 			.optional()
 			.describe(
 				"Labels for the package's own fonts (defaults.typography.families), which the Appearance Manager's Fonts tab edits.",
+			),
+		colorLabels: colorLabels
+			.optional()
+			.describe(
+				"The Colors tab's labels for the core's colors in the package's own words, keyed by each color's CSS variable (CLASSICY_THEME_COLOR_TARGETS' cssVar); a color without one keeps the core's label.",
 			),
 		themeFileImporter: themeFileImporter
 			.optional()

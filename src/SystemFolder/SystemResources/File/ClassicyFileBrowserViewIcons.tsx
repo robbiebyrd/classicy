@@ -24,6 +24,7 @@ import {
 	iconViewIconSize,
 } from "@/SystemFolder/Finder/FinderViewOptions";
 import type { ClassicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 import type { ArrowDirection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import {
 	CLASSICY_FILE_BROWSER_RENAME_DELAY_MS,
@@ -343,6 +344,9 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 						appId: appId,
 						name: filename,
 						invisible: properties._invisible,
+						// A shortcut's badge, where the package draws one in
+						// windows too (`layout.icon.aliasBadge` "everywhere").
+						alias: isAliasKind(properties._type),
 						// The Trash draws the active package's art; with none
 						// registered, its stored `_icon`, as every entry does.
 						icon:

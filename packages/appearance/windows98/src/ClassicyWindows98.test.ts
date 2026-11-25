@@ -1349,6 +1349,7 @@ describe("the Windows 98 appearance package", () => {
 				shortcutSpelling: "names",
 				emptySubmenus: "placeholder",
 				itemHelp: "statusBar",
+				confirmEllipsis: false,
 			},
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: {
@@ -1399,6 +1400,8 @@ describe("the Windows 98 appearance package", () => {
 			document: { confirmUnsavedClose: true, reopenActivates: true },
 			mouse: "windows",
 			input: { escapeCancels: true },
+			dialog: { flushInput: true },
+			icon: { aliasBadge: "everywhere" },
 		});
 	});
 
@@ -1634,12 +1637,58 @@ describe("the Windows 98 appearance package", () => {
 		expect(getClassicyAppearancePackage("windows98")?.sounds).toEqual([pack]);
 	});
 
-	it("registers no fonts, no screen saver and no hooks", async () => {
+	it("registers no fonts and no screen saver", async () => {
 		await import("./index");
 		const pkg = getClassicyAppearancePackage("windows98");
 		expect(document.getElementById("classicy-fonts-windows98")).toBeNull();
 		expect(pkg?.defaultScreenSaver).toBeUndefined();
-		expect(pkg?.hooks).toBeUndefined();
+	});
+
+	// One hook, a chosen menu item's (1.19 / 4.7; WIG Ch.4 "Mouse Actions",
+	// p.24; Ch.7 "Drop-down Menu Interaction", p.97): its press class
+	// carries a 1 ms animation (_Menu.scss), whose end runs the command at
+	// once, with no flash and no sound; its release clears it. Deeply
+	// frozen, as Platinum's hooks are.
+	it("registers one hook, a chosen menu item's, frozen and silent", async () => {
+		const { windows98AppearanceHooks } = await import("./index");
+		const pkg = getClassicyAppearancePackage("windows98");
+		expect(pkg?.hooks).toBe(windows98AppearanceHooks);
+		expect(Object.keys(pkg?.hooks?.on ?? {})).toEqual(["MenuItem"]);
+		const item = pkg?.hooks?.on?.MenuItem;
+		expect(Object.keys(item ?? {})).toEqual(["press", "release"]);
+		expect(Object.isFrozen(windows98AppearanceHooks)).toBe(true);
+		expect(Object.isFrozen(windows98AppearanceHooks.on)).toBe(true);
+		expect(Object.isFrozen(item)).toBe(true);
+		const ctx = (event: "press" | "release") => ({
+			component: "MenuItem" as const,
+			event,
+			element: null,
+			state: {},
+			detail: { itemId: "x", input: "pointer" },
+		});
+		expect(item?.press?.(ctx("press"))).toEqual({
+			className: "windows98MenuItemChosen",
+		});
+		expect(item?.release?.(ctx("release"))).toEqual({});
+	});
+
+	// The Colors tab's names for the core's colors (1.2; WIG Ch.1 "User in
+	// Control", p.1, "Directness", pp.1-2): the Display Properties Items of
+	// Windows 98 SE's Appearance tab (deskcp16.dll) where one is the color,
+	// else the `[Control Panel\Colors]` name in words.
+	it("labels the core's colors in Windows' words", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("windows98")?.colorLabels).toEqual({
+			"--color-system-01": "Button Highlight",
+			"--color-system-02": "Button Light",
+			"--color-system-03": "3D Objects",
+			"--color-system-05": "Button Shadow",
+			"--color-system-07": "Button Dark Shadow",
+			"--color-black": "Window Text",
+			"--color-highlight": "Selected Items",
+			"--color-window-document": "Window",
+			"--desktop-background-color": "Desktop",
+		});
 	});
 
 	// A disabled control's image embossed in the scheme's ButtonHilight and

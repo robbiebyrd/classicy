@@ -1,0 +1,14 @@
+// The Windows 98 PDF viewer, included by windows98.scss inside the package
+// wrapper, over the core's PDFViewerDocument.scss.
+//
+// - While a document loads ("Loading…", `.pdfViewerDocumentLoading`), the
+//   pointer over it is the arrow with the hourglass, the host's `progress`
+//   pointer: Windows' Working In Background pointer, "the application is
+//   busy but the user can still interact with it" (WIG Ch.4 "Mouse
+//   Pointers", p.23, Table 4.1; Ch.13 "Pointer Design", p.316; the audit's
+//   4.5), not the base's arrow.
+@mixin pdf-viewer {
+  .pdfViewerDocumentLoading {
+    cursor: progress;
+  }
+}

@@ -201,6 +201,17 @@ export type ClassicyAppearanceLayout = {
 		 * taskbar's Start menu and tray, the Control Strip's) give none.
 		 */
 		itemHelp?: "balloon" | "statusBar";
+		/**
+		 * Whether an item that only asks first (`ClassicyMenuItem.confirms`:
+		 * Empty Trash, Reset PRAM, whose command opens a warning alert)
+		 * takes an ellipsis. Absent or `true` (Mac OS 8 and System 7: "Empty
+		 * Trash…", HIGOS8 Ch.4 "Menu Items"): the menu appends "…" to its
+		 * title. `false` (Windows: WIG Ch.7 "Types of Menu Items", pp.107-108,
+		 * "Don't use an ellipsis for commands that only display a message
+		 * confirming the action", as Explorer's Empty Recycle Bin reads):
+		 * the title as given.
+		 */
+		confirmEllipsis?: boolean;
 	};
 	desktop: {
 		iconGridOrigin: "top-right" | "top-left" | "bottom-right" | "bottom-left";
@@ -967,6 +978,37 @@ export type ClassicyAppearanceLayout = {
 		 */
 		escapeCancels?: boolean;
 	};
+	/**
+	 * How a dialog takes the keyboard. Optional, as is each key.
+	 */
+	dialog?: {
+		/**
+		 * Whether a dialog ignores the keys pressed before it showed (WIG
+		 * Ch.10 "Message Notification", p.212). Absent or `false` (today's
+		 * behavior, until it is checked against HIGOS8 and HIG7):
+		 * `useKeyboardEquivalents` runs the default action on any Return
+		 * keydown, an auto-repeat of a Return held from the command that
+		 * raised the dialog included. `true` (Windows): it ignores every
+		 * auto-repeated keydown, and every keydown that came before the
+		 * dialog mounted, until a key comes up or a new key goes down.
+		 */
+		flushInput?: boolean;
+	};
+	/**
+	 * How icons are drawn. Optional, as is each key.
+	 */
+	icon?: {
+		/**
+		 * Where a shortcut's badge (the `aliasBadge` system art) is drawn.
+		 * Absent or `"desktop"` (Mac OS 8: the desktop's alias arrow): on the
+		 * desktop's icons alone. `"everywhere"` (Windows: WIG Ch.11
+		 * "Displaying Objects", p.230, Figure 11.11; the shell's shortcut
+		 * overlay in every view): also on a `ClassicyIcon` given `alias`
+		 * (the Finder's icon view) and on a shortcut's row in the list view,
+		 * each image and its badge inside a `classicyIconImage` element.
+		 */
+		aliasBadge?: "desktop" | "everywhere";
+	};
 };
 
 /**
@@ -1197,6 +1239,13 @@ export type ClassicyAppearancePackage = {
 	colorFamilies?: ClassicyAppearanceColorFamilies;
 	/** UI metadata per package font (`defaults.typography.families`). */
 	fontFamilies?: ClassicyAppearanceFontFamilies;
+	/**
+	 * The Colors tab's labels for the core's colors in the package's own
+	 * words, keyed by each target's `cssVar` (`"--color-system-03"`:
+	 * Windows 98's "3D Objects"); a color without one keeps the core's
+	 * label (`CLASSICY_THEME_COLOR_TARGETS`).
+	 */
+	colorLabels?: Readonly<Partial<Record<string, string>>>;
 	/**
 	 * Reads another system's theme files for Load Theme… while the package
 	 * is active (Windows 98's `.theme`); validated as a theme file's theme.

@@ -332,4 +332,27 @@ $thumb-min: px(8);
     background-color: b.$face;
     @include b.raised;
   }
+
+  // The split dividers take Windows' two-headed sizing pointers, the
+  // registry's `resize-lr` and `resize-ud`, the host's `col-resize` and
+  // `row-resize` without one, and keep them while a drag lasts: Windows has
+  // no one-way sizing pointer, where the base turns to the direction of
+  // travel (WIG Ch.4 "Mouse Pointers", p.23, Table 4.1; the audit's 4.2).
+  .classicySplitViewHorizontal > .classicySplitViewDivider {
+    @include b.registry-cursor(resize-lr, col-resize, 8 8);
+  }
+
+  .classicySplitViewVertical > .classicySplitViewDivider {
+    @include b.registry-cursor(resize-ud, row-resize, 8 8);
+  }
+
+  .classicySplitView:is([data-drag-direction='l'], [data-drag-direction='r']) .classicySplitViewDivider,
+  .classicySplitView:is([data-drag-direction='l'], [data-drag-direction='r']) .classicySplitViewSplitBox {
+    @include b.registry-cursor(resize-lr, col-resize, 8 8);
+  }
+
+  .classicySplitView:is([data-drag-direction='u'], [data-drag-direction='d']) .classicySplitViewDivider,
+  .classicySplitView:is([data-drag-direction='u'], [data-drag-direction='d']) .classicySplitViewSplitBox {
+    @include b.registry-cursor(resize-ud, row-resize, 8 8);
+  }
 }

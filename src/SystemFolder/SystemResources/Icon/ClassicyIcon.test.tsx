@@ -11,6 +11,7 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
+import { registerClassicySystemArt } from "@/Appearance/ClassicyAssetRegistry";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 // The Windows-layout package below needs a sound pack registered.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
@@ -545,5 +546,77 @@ describe("ClassicyIcon — the icon view's props", () => {
 		render(<ClassicyIcon {...props} onClickFunc={onClickFunc} />);
 		expect(fireEvent.keyDown(iconRoot(), { key: " " })).toBe(false);
 		expect(onClickFunc).toHaveBeenCalledOnce();
+	});
+});
+
+// A shortcut's badge in windows (the audit's 11.2; WIG Ch.11 "Displaying
+// Objects", p.230, Figure 11.11): under `layout.icon.aliasBadge`
+// "everywhere" an `alias` icon draws its image and the `aliasBadge` art's
+// mask pair inside `classicyIconImage`; absent (Mac OS 8: the desktop alone
+// badges aliases) or for an icon that is no shortcut, the DOM is as before.
+describe("ClassicyIcon — a shortcut's badge (layout.icon.aliasBadge)", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const BADGE = "data:image/gif;base64,R0lGODlhAQABAAAAACw=#badge";
+	const usePackage = (id: string, layout: unknown) => {
+		registerClassicyAppearancePackage({
+			id,
+			name: id,
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: `${id}-default`,
+				package: id,
+			},
+			layout: layout as never,
+		});
+		registerClassicySystemArt(id, { aliasBadge: BADGE });
+	};
+	const renderIcon = (alias: boolean) =>
+		render(
+			<ClassicyIcon
+				appId={"Test.app"}
+				name={"SimpleText"}
+				icon={"data:image/gif;base64,R0lGODlhAQABAAAAACw="}
+				alias={alias}
+			/>,
+		).container.querySelector(".classicyIcon") as HTMLElement;
+
+	it("draws the badge over the image under the Windows 98 layout", () => {
+		usePackage("windows-badge", windows98.layout);
+		const icon = renderIcon(true);
+		const box = icon.querySelector(":scope > .classicyIconImage");
+		expect(box).not.toBeNull();
+		const pairs = box?.querySelectorAll(":scope > .classicyIconMaskOuter");
+		expect(pairs).toHaveLength(2);
+		const badge = pairs?.[1] as HTMLElement;
+		expect(badge).toHaveClass("classicyIconAliasBadge");
+		expect(badge.style.getPropertyValue("--classicy-icon-mask")).toBe(
+			`url("${BADGE}")`,
+		);
+		const img = badge.querySelector("img");
+		expect(img?.getAttribute("src")).toBe(BADGE);
+		expect(img).toHaveAttribute("aria-hidden", "true");
+		expect(img).toHaveAttribute("alt", "");
+		// The image is still the icon's first, its alt the name.
+		expect(icon.querySelector("img")).toHaveAttribute("alt", "SimpleText");
+	});
+
+	it("draws no badge for an icon that is no shortcut", () => {
+		usePackage("windows-badge", windows98.layout);
+		const icon = renderIcon(false);
+		expect(icon.querySelector(".classicyIconImage")).toBeNull();
+		expect(icon.querySelector(".classicyIconAliasBadge")).toBeNull();
+	});
+
+	it("changes nothing under a layout without the key", () => {
+		const { icon: _icon, ...mac } = windows98.layout as Record<string, unknown>;
+		usePackage("mac-badge", mac);
+		const icon = renderIcon(true);
+		expect(icon.querySelector(".classicyIconImage")).toBeNull();
+		expect(icon.querySelector(".classicyIconAliasBadge")).toBeNull();
+		expect(icon.querySelectorAll(".classicyIconMaskOuter")).toHaveLength(1);
+		expect(
+			icon.querySelector(":scope > .classicyIconMaskOuter"),
+		).not.toBeNull();
 	});
 });

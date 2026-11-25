@@ -56,4 +56,50 @@
       }
     }
   }
+
+  // The message box's Help button: a push button with the word, 75 x 23
+  // like OK and Cancel, last in the row (WIG Ch.12 "The Help Command
+  // Button", p.278, Figure 12.8; the audit's 12.14), where a Help button
+  // elsewhere keeps the caption's "?" box (_Button.scss). Its label is the
+  // button's accessible name ("Help"); `background: b.$face` drops the "?"
+  // layer. Pressed, the rings turn and the label steps a pixel down and
+  // right; disabled, it is embossed GrayText.
+  .classicyAlertButtons .classicyBevelButton.classicyAlertHelpButton {
+    box-sizing: border-box;
+    width: auto;
+    min-width: var(--button-min-width);
+    height: var(--push-button-height);
+    padding: 0 var(--button-text-padding);
+    background: b.$face;
+    @include b.raised;
+
+    &::after {
+      content: attr(aria-label);
+      font-size: var(--ui-font-size);
+      color: b.$text;
+    }
+
+    &:focus-visible {
+      @include b.focus-rect(calc(var(--push-button-focus-inset) + #{b.$b}));
+    }
+  }
+
+  .classicyAlertButtons .classicyBevelButton.classicyAlertHelpButton:not(.disabled):is(:active, .pressed) {
+    background: b.$face;
+    @include b.pressed;
+
+    &::after {
+      position: relative;
+      top: b.$b;
+      left: b.$b;
+    }
+  }
+
+  .classicyAlertButtons .classicyBevelButton.classicyAlertHelpButton.disabled {
+    background: b.$face;
+
+    &::after {
+      @include b.disabled-text;
+    }
+  }
 }

@@ -365,7 +365,9 @@
 			"StageInner"
 		],
 		"Icon": [
+			"AliasBadge",
 			"DimmedImage",
+			"Image",
 			"Invisible",
 			"Mask",
 			"MaskOuter",

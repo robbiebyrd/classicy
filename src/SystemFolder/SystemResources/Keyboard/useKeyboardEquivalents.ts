@@ -1,4 +1,5 @@
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useEffect, useRef } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyCommandKeyHeld } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 /**
@@ -17,6 +18,14 @@ import { classicyCommandKeyHeld } from "@/SystemFolder/SystemResources/Menu/Clas
  *
  * Scope defaults to the whole document; pass `targetRef` to bind within a single
  * dialog so nested/stacked dialogs don't cross-fire.
+ *
+ * Under the package's `layout.dialog.flushInput` (Windows 98: WIG Ch.10
+ * "Message Notification", p.212) the dialog takes no key pressed before it
+ * showed: every auto-repeated keydown is ignored, and so is every keydown
+ * that came before the hook mounted, until the dialog is armed by a key
+ * coming up or a new key going down after it mounted. So a Return held from
+ * the command that raised an alert never dismisses it. Absent, any keydown
+ * counts, as it always has.
  */
 export type UseKeyboardEquivalentsOptions = {
 	/** Fired on Return / Enter (the default button's action). */
@@ -50,6 +59,30 @@ export const useKeyboardEquivalents = ({
 	enabled = true,
 	targetRef,
 }: UseKeyboardEquivalentsOptions): void => {
+	const flushInput = useClassicyAppearanceLayout().dialog?.flushInput === true;
+	// When the dialog mounted, on the events' own clock (a fresh event's
+	// `timeStamp`), and whether a key has come up or gone down anew since:
+	// `layout.dialog.flushInput`'s arming.
+	const mountedAtRef = useRef<number | null>(null);
+	const armedRef = useRef(false);
+	useEffect(() => {
+		mountedAtRef.current = new Event("classicy-dialog-mount").timeStamp;
+		armedRef.current = false;
+		return () => {
+			mountedAtRef.current = null;
+		};
+	}, []);
+	useEffect(() => {
+		if (!flushInput) return;
+		// A key coming up anywhere arms the dialog: whatever goes down next is
+		// a new press.
+		const arm = () => {
+			armedRef.current = true;
+		};
+		document.addEventListener("keyup", arm, true);
+		return () => document.removeEventListener("keyup", arm, true);
+	}, [flushInput]);
+
 	useEffect(() => {
 		if (!enabled) return;
 		const node: HTMLElement | Document = targetRef?.current ?? document;
@@ -57,6 +90,16 @@ export const useKeyboardEquivalents = ({
 		const handler = (event: Event) => {
 			const e = event as KeyboardEvent;
 			if (e.defaultPrevented) return;
+			if (flushInput) {
+				// Held keys repeat; a key that went down before the dialog
+				// showed belongs to the command that raised it.
+				if (e.repeat) return;
+				if (!armedRef.current) {
+					const mountedAt = mountedAtRef.current;
+					if (mountedAt !== null && e.timeStamp < mountedAt) return;
+					armedRef.current = true;
+				}
+			}
 
 			// Cancel: Escape, or Command/Ctrl + "." (Ctrl alone under the
 			// package's `layout.keyboard.command` "ctrl": Win+period cancels
@@ -87,7 +130,7 @@ export const useKeyboardEquivalents = ({
 
 		node.addEventListener("keydown", handler);
 		return () => node.removeEventListener("keydown", handler);
-	}, [enabled, onDefault, onCancel, targetRef]);
+	}, [enabled, onDefault, onCancel, targetRef, flushInput]);
 };
 
 /**

@@ -21,6 +21,7 @@ import {
 	ABOUT_BALLOON_HELP_TOPIC_ID,
 	type ClassicyAppearanceColorFamilies,
 	type ClassicyAppearanceFontFamilies,
+	type ClassicyAppearanceHooks,
 	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
 	type ClassicyTheme,
@@ -42,7 +43,7 @@ import windows98Icon from "./assets/art/windows98.svg";
 import { windows98SoundPack } from "./assets/sounds/windows98";
 import windows98Css from "./styles/windows98.scss?inline";
 import windows98JsonSource from "./windows98.json";
-import { deepFreeze } from "./windows98DeepFreeze.internal";
+import { type DeepReadonly, deepFreeze } from "./windows98DeepFreeze.internal";
 import { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 export * from "./assets/sounds/windows98";
@@ -116,8 +117,53 @@ const windows98Defaults =
 		(theme) => theme.id === windows98JsonSource.defaults.id,
 	) ?? windows98Theme(windows98JsonSource.defaults as unknown as ClassicyTheme);
 
-// No hooks: the package plays no interface feedback (Windows' sounds are
-// Microsoft's) and decorates nothing. No screen savers: it names none, so the
+/**
+ * The Windows 98 package's hooks (`hooks` in its registration): one, a
+ * chosen menu item's. Windows runs a menu command the moment the button
+ * comes up over its item, the menu closing first, with no flash and no
+ * sound (WIG Ch.4 "Mouse Actions", p.24; Ch.7 "Drop-down Menu
+ * Interaction", p.97). The core runs a chosen item's action when an
+ * animation of the item ends (else after a 400 ms fallback), so the press
+ * gives the item `windows98MenuItemChosen`, whose 1 ms animation
+ * (_Menu.scss) changes nothing drawn and ends within a frame; the release
+ * clears it. It plays no sound. Deeply frozen, and read-only to the type
+ * checker, as Platinum's are: to build on it, compose a new object.
+ */
+export const windows98AppearanceHooks: DeepReadonly<ClassicyAppearanceHooks> =
+	deepFreeze<ClassicyAppearanceHooks>({
+		on: {
+			MenuItem: {
+				press: () => ({ className: "windows98MenuItemChosen" }),
+				release: () => ({}),
+			},
+		},
+	});
+
+/**
+ * The Colors tab's names for the core's colors (1.2): the Item names of
+ * Windows 98 SE's Display Properties Appearance tab (deskcp16.dll) where an
+ * Item is the color (Desktop, Window, Selected Items, 3D Objects); the
+ * button shades and the window text, which Windows derived from 3D Objects
+ * and each Item's font color and offered as no Item, by their
+ * `[Control Panel\Colors]` names (ButtonHilight, ButtonLight, ButtonShadow,
+ * ButtonDkShadow, WindowText) in words. The Items that are no core color
+ * (the title bars, the window borders, the scroll bar, the ToolTip) are the
+ * package's own color families, labeled there.
+ */
+const windows98ColorLabels: Readonly<Record<string, string>> = Object.freeze({
+	"--color-system-01": "Button Highlight",
+	"--color-system-02": "Button Light",
+	"--color-system-03": "3D Objects",
+	"--color-system-05": "Button Shadow",
+	"--color-system-07": "Button Dark Shadow",
+	"--color-black": "Window Text",
+	"--color-highlight": "Selected Items",
+	"--color-window-document": "Window",
+	"--desktop-background-color": "Desktop",
+});
+
+// One hook (above), playing no interface feedback (Windows' sounds are
+// Microsoft's) and decorating nothing else. No screen savers: it names none, so the
 // Screen Saver control panel reads "This appearance has no screen savers."
 // A disabled control's image is embossed as Windows draws one (DrawState's
 // DSS_DISABLED): its ink in ButtonShadow over a copy one pixel down and right
@@ -133,6 +179,7 @@ registerClassicyAppearancePackage({
 	knobs: windows98JsonSource.knobs,
 	colorFamilies: windows98JsonSource.colorFamilies,
 	fontFamilies: windows98JsonSource.fontFamilies,
+	colorLabels: windows98ColorLabels,
 	options: classicyKnobsToSchema(windows98JsonSource.knobs),
 	iconDimming: {
 		disabledControl: {
@@ -148,6 +195,7 @@ registerClassicyAppearancePackage({
 	},
 	layout: windows98JsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [windows98SoundPack],
+	hooks: windows98AppearanceHooks,
 });
 
 // The Help menu's built-in topic in Windows' words, offered under this

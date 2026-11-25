@@ -337,4 +337,13 @@ $list-check: '[data-classicy-part="list-check"]';
   .classicyTreeNode:not(:last-child) > #{$tree-lines-group} {
     background: $dots-down var(--windows98-tree-parent-column) 0 / px(1) 100% no-repeat;
   }
+
+  // The arrow over a list's rows and a tree's, where the base shows the
+  // hand: Windows shows the normal select pointer over every control (WIG
+  // Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyListBoxOption,
+  .classicyTreeNodeBranch,
+  .classicyTreeNodeSelectable {
+    @include b.registry-cursor(arrow, default);
+  }
 }

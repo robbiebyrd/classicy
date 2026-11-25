@@ -9064,7 +9064,8 @@
 			"accessKeys": "auto",
 			"shortcutSpelling": "names",
 			"emptySubmenus": "placeholder",
-			"itemHelp": "statusBar"
+			"itemHelp": "statusBar",
+			"confirmEllipsis": false
 		},
 		"desktop": {
 			"iconGridOrigin": "top-left"
@@ -9146,6 +9147,12 @@
 		"mouse": "windows",
 		"input": {
 			"escapeCancels": true
+		},
+		"dialog": {
+			"flushInput": true
+		},
+		"icon": {
+			"aliasBadge": "everywhere"
 		}
 	},
 	"knobs": {

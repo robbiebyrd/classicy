@@ -856,6 +856,73 @@ describe("ClassicyAppearancePackageSchema", () => {
 	});
 });
 
+// The audit's 1.13, 10.20 and 11.2: `menu.confirmEllipsis`, the `dialog`
+// group's `flushInput` and the `icon` group's `aliasBadge`, each optional;
+// another value is refused at its path.
+describe("ClassicyAppearancePackageSchema confirmEllipsis, dialog and icon", () => {
+	const withLayout = (layout: Record<string, unknown>) => {
+		const input = platinumShaped();
+		Object.assign(input.layout as Record<string, unknown>, layout);
+		return ClassicyAppearancePackageSchema.safeParse(input);
+	};
+
+	it("takes each key, and the groups empty", () => {
+		const result = withLayout({
+			menu: { confirmEllipsis: false },
+			dialog: { flushInput: true },
+			icon: { aliasBadge: "everywhere" },
+		});
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menu).toEqual({ confirmEllipsis: false });
+		expect(result.data?.layout.dialog).toEqual({ flushInput: true });
+		expect(result.data?.layout.icon).toEqual({ aliasBadge: "everywhere" });
+		expect(
+			withLayout({ dialog: {}, icon: { aliasBadge: "desktop" } }).success,
+		).toBe(true);
+	});
+
+	it.each([
+		[
+			{ menu: { confirmEllipsis: "no" } },
+			["layout", "menu", "confirmEllipsis"],
+		],
+		[{ dialog: { flushInput: 1 } }, ["layout", "dialog", "flushInput"]],
+		[{ icon: { aliasBadge: "folders" } }, ["layout", "icon", "aliasBadge"]],
+	])("refuses %j", (layout, path) => {
+		const result = withLayout(layout);
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((i) => i.path)).toContainEqual(path);
+	});
+});
+
+// The Colors tab's labels for the core's colors (the audit's 1.2):
+// `colorLabels`, keyed by a color target's CSS variable; another key, or an
+// empty label, is refused.
+describe("ClassicyAppearancePackageSchema colorLabels", () => {
+	const withLabels = (colorLabels: unknown) =>
+		ClassicyAppearancePackageSchema.safeParse({
+			...platinumShaped(),
+			colorLabels,
+		});
+
+	it("takes labels keyed by the targets' CSS variables", () => {
+		const result = withLabels({
+			"--color-system-03": "3D Objects",
+			"--desktop-background-color": "Desktop",
+		});
+		expect(result.success).toBe(true);
+		expect(result.data?.colorLabels).toEqual({
+			"--color-system-03": "3D Objects",
+			"--desktop-background-color": "Desktop",
+		});
+	});
+
+	it("refuses a key that is no color target's, and an empty label", () => {
+		expect(withLabels({ "--color-menu": "Menu" }).success).toBe(false);
+		expect(withLabels({ "--color-system-03": " " }).success).toBe(false);
+	});
+});
+
 describe("classicyKnobsToSchema", () => {
 	it("classicyKnobsToSchema builds a bounded number per knob", () => {
 		const schema = classicyKnobsToSchema({

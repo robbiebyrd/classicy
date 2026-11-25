@@ -474,4 +474,19 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
   .classicyPopUpMenuScrollArrowDown::before {
     background: pixel-art(currentColor, $arrow-down);
   }
+
+  // A chosen item runs its command at once, with no flash (WIG Ch.4 "Mouse
+  // Actions", p.24; Ch.7 "Drop-down Menu Interaction", p.97; the audit's
+  // 1.19 / 4.7): the MenuItem press hook (index.ts) gives the item this
+  // class, whose animation draws nothing and ends within a frame; the
+  // core runs the item's action on its `animationend`.
+  .classicyMenuItem.windows98MenuItemChosen {
+    animation: windows98MenuItemChosen 1ms steps(1, end);
+  }
+
+  @keyframes windows98MenuItemChosen {
+    to {
+      opacity: 1;
+    }
+  }
 }

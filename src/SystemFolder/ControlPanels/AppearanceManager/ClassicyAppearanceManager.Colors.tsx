@@ -39,6 +39,12 @@ interface ColorsTabProps {
 	 * after the core groups, edited with the family form.
 	 */
 	colorFamilies?: ClassicyAppearanceColorFamilies;
+	/**
+	 * The same package's labels for the core's colors (`colorLabels`, by
+	 * each target's `cssVar`: Windows 98's "3D Objects"); a color without one
+	 * keeps the core's label.
+	 */
+	colorLabels?: Readonly<Partial<Record<string, string>>>;
 }
 
 /** DOM id of the swatch for a color target, e.g. `appearance_color_system_3`. */
@@ -62,6 +68,7 @@ export const useColorsTab = ({
 	changeColor,
 	appId,
 	colorFamilies,
+	colorLabels,
 }: ColorsTabProps): TabIndividual =>
 	useMemo(() => {
 		// A stored theme keeps only the package colors it changed: the rest
@@ -102,7 +109,12 @@ export const useColorsTab = ({
 													id={id}
 													appId={appId}
 													value={getThemeColor(theme, info.target)}
-													labelTitle={info.label}
+													labelTitle={
+														(colorLabels &&
+														Object.hasOwn(colorLabels, info.cssVar)
+															? colorLabels[info.cssVar]
+															: undefined) ?? info.label
+													}
 													labelPosition={"above"}
 													labelSize={"small"}
 													onChangeFunc={(color) =>
@@ -147,4 +159,11 @@ export const useColorsTab = ({
 				</div>
 			),
 		};
-	}, [theme, editingCustomTheme, changeColor, appId, colorFamilies]);
+	}, [
+		theme,
+		editingCustomTheme,
+		changeColor,
+		appId,
+		colorFamilies,
+		colorLabels,
+	]);

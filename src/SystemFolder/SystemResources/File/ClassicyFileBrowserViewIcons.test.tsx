@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import type { FinderIconViewOptions } from "@/SystemFolder/Finder/FinderContext";
 import { ClassicyFileBrowserViewIcons } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
@@ -300,5 +301,67 @@ describe("ClassicyFileBrowserViewIcons reads --desktop-icon-*", () => {
 		// unchanged, so nothing is read again.
 		rerender(ui(makeFs("test-icons-read-once-2")));
 		expect(desktopIconReads()).toBe(3);
+	});
+});
+
+// A shortcut's badge in the icon view (the audit's 11.2; WIG Ch.11
+// "Displaying Objects", p.230, Figure 11.11): under `layout.icon.aliasBadge`
+// "everywhere" an `app_shortcut` or `shortcut` entry's icon carries it, and
+// nothing else's does; absent, no icon does.
+describe("ClassicyFileBrowserViewIcons — shortcuts' badges (layout.icon.aliasBadge)", () => {
+	const makeShortcutFs = (key: string) =>
+		new ClassicyFileSystem(key, {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				SimpleText: { _type: ClassicyFileSystemEntryFileType.AppShortcut },
+				"Plan alias": { _type: ClassicyFileSystemEntryFileType.Shortcut },
+				"plan.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
+			},
+		});
+	const render98 = (key: string) =>
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyFileBrowserViewIcons
+					fs={makeShortcutFs(key)}
+					path="Documents"
+					appId="Finder.app"
+				/>
+			</ClassicyAppManagerProvider>,
+		);
+	const badged = () =>
+		Array.from(
+			document.querySelectorAll<HTMLElement>(".classicyIcon"),
+			(icon) => [
+				icon.querySelector("img")?.getAttribute("alt"),
+				icon.querySelector(".classicyIconImage .classicyIconAliasBadge") !==
+					null,
+			],
+		).sort();
+
+	it("badges the shortcuts alone under the key", () => {
+		const restore = activateTestWindowsKeysPackage({
+			icon: { aliasBadge: "everywhere" },
+		});
+		try {
+			render98("test-icons-badge-on");
+			expect(badged()).toEqual([
+				["Plan alias", true],
+				["SimpleText", true],
+				["plan.txt", false],
+			]);
+		} finally {
+			restore();
+		}
+	});
+
+	it("badges none without it", () => {
+		render98("test-icons-badge-off");
+		expect(badged()).toEqual([
+			["Plan alias", false],
+			["SimpleText", false],
+			["plan.txt", false],
+		]);
+		expect(document.querySelector(".classicyIconImage")).toBeNull();
 	});
 });

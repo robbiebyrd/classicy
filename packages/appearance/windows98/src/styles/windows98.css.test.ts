@@ -1082,4 +1082,155 @@ describe("windows98.scss (compiled)", () => {
 			for (const declaration of box) expect(balloon).toContain(declaration);
 		});
 	});
+
+	// The audit's L4-K findings, each rule pinned: Windows' pointers where
+	// the base shows the hand, the slashed circle or the Mac's one-way
+	// arrows (4.1, 4.2; WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1), the
+	// busy pointers (4.5), no extensions parade (1.16), a chosen menu item's
+	// 1 ms animation (1.19 / 4.7), the message box's Help push button
+	// (12.14) and a shortcut's badge in windows (11.2).
+	describe("pointers, the chosen item, the Help button and shortcuts' badges", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const rule = (selector: string) => {
+			const at = css.indexOf(`${selector} {`);
+			return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+		};
+		const flat = (text: string) => text.replace(/\s+/g, " ");
+		const registry = (role: string, keyword: string, hotspot: string) =>
+			`cursor: var(--classicy-cursor-${role}, url("data:,")) var(--classicy-cursor-${role}-hotspot, ${hotspot}), ${keyword}`;
+		const ARROW = registry("arrow", "default", "0 0");
+
+		it.each([
+			[".classicyListBoxOption,"],
+			[".classicyTreeNodeSelectable"],
+			[".classicyFileBrowserViewTableDisclosureTriangle"],
+			[".classicyTabScrollButton"],
+			[".classicyPagerArrow"],
+			[".classicySlider"],
+			[".classicySlider::-webkit-slider-thumb"],
+			[".classicySlider::-moz-range-thumb"],
+			[".classicyColorPickerCrayon"],
+		])("takes the arrow over %s", (selector) => {
+			const last = selector.endsWith(",");
+			// Each partial's rule comes last in it, after the look's own.
+			const at = css.lastIndexOf(`${scope} ${selector}${last ? "" : " {"}`);
+			expect(at).toBeGreaterThan(-1);
+			const block = css.slice(at, css.indexOf("}", at));
+			expect(flat(block)).toContain(ARROW);
+		});
+
+		it("lists the tree's rows and the swatches with them", () => {
+			expect(css).toContain(`${scope} .classicyTreeNodeBranch,`);
+			expect(css).toContain(`${scope} .classicyColorPickerSwatch,`);
+		});
+
+		it("keeps the two-headed sizing pointers on the split dividers, during a drag too", () => {
+			const lr = registry("resize-lr", "col-resize", "8 8");
+			const ud = registry("resize-ud", "row-resize", "8 8");
+			expect(
+				flat(
+					rule(
+						`${scope} .classicySplitViewHorizontal > .classicySplitViewDivider`,
+					),
+				),
+			).toContain(lr);
+			expect(
+				flat(
+					rule(
+						`${scope} .classicySplitViewVertical > .classicySplitViewDivider`,
+					),
+				),
+			).toContain(ud);
+			expect(
+				flat(
+					rule(
+						`${scope} .classicySplitView:is([data-drag-direction=l], [data-drag-direction=r]) .classicySplitViewSplitBox`,
+					),
+				),
+			).toContain(lr);
+			expect(
+				flat(
+					rule(
+						`${scope} .classicySplitView:is([data-drag-direction=u], [data-drag-direction=d]) .classicySplitViewSplitBox`,
+					),
+				),
+			).toContain(ud);
+		});
+
+		it("shows the busy pointers and no extensions parade", () => {
+			expect(flat(rule(`${scope} .classicyStartupScreen`))).toContain(
+				registry("watch", "wait", "8 8"),
+			);
+			expect(rule(`${scope} .classicyStartupScreenExtensions`)).toContain(
+				"display: none",
+			);
+			expect(rule(`${scope} .pdfViewerDocumentLoading`)).toContain(
+				"cursor: progress",
+			);
+		});
+
+		it("gives a chosen menu item a 1 ms animation that draws nothing", () => {
+			expect(
+				rule(`${scope} .classicyMenuItem.windows98MenuItemChosen`),
+			).toContain("animation: windows98MenuItemChosen 1ms steps(1, end)");
+			const at = css.indexOf("@keyframes windows98MenuItemChosen {");
+			expect(at).toBeGreaterThan(-1);
+			expect(
+				flat(css.slice(at, css.indexOf("}", css.indexOf("}", at) + 1))),
+			).toMatch(/to \{ opacity: 1; \}/);
+		});
+
+		it("draws the message box's Help button as a 75 x 23 push button with its word", () => {
+			const button = `${scope} .classicyAlertButtons .classicyBevelButton.classicyAlertHelpButton`;
+			const face = rule(button);
+			for (const declaration of [
+				"box-sizing: border-box",
+				"width: auto",
+				"min-width: var(--button-min-width)",
+				"height: var(--push-button-height)",
+				"padding: 0 var(--button-text-padding)",
+				"background: var(--color-system-03)",
+				"box-shadow:",
+			])
+				expect(face).toContain(declaration);
+			const label = rule(`${button}::after`);
+			expect(label).toContain("content: attr(aria-label)");
+			expect(label).toContain("font-size: var(--ui-font-size)");
+			expect(label).toContain("color: var(--color-black)");
+			expect(rule(`${button}:focus-visible`)).toContain("outline:");
+			const pressed = `${button}:not(.disabled):is(:active, .pressed)`;
+			expect(rule(pressed)).toContain("background: var(--color-system-03)");
+			const step = rule(`${pressed}::after`);
+			expect(step).toContain("top: var(--window-border-size)");
+			expect(step).toContain("left: var(--window-border-size)");
+			expect(rule(`${button}.disabled::after`)).toContain(
+				"color: var(--package-color-text-gray, var(--color-system-05))",
+			);
+		});
+
+		it("lays a shortcut's badge over its image in the icon view and the list view", () => {
+			const box = rule(`${scope} .classicyIcon .classicyIconImage`);
+			expect(box).toContain("position: relative");
+			expect(box).toContain("width: var(--desktop-icon-size)");
+			expect(box).toContain("height: var(--desktop-icon-size)");
+			const badge = rule(
+				`${scope} .classicyIcon .classicyIconMaskOuter.classicyIconAliasBadge`,
+			);
+			expect(badge).toContain("position: absolute");
+			expect(badge).toContain("inset: 0");
+			const row = rule(
+				`${scope} .classicyFileBrowserViewTableRowContainer > .classicyIconImage`,
+			);
+			expect(row).toContain("position: relative");
+			expect(row).toContain("margin: 0");
+			const rowBadge = rule(
+				`${scope} .classicyFileBrowserViewTableRowContainer > .classicyIconImage > .classicyIconAliasBadge`,
+			);
+			expect(rowBadge).toContain("position: absolute");
+			expect(rowBadge).toContain(
+				"width: var(--classicy-file-browser-icon-size)",
+			);
+			expect(rowBadge).toContain("left: var(--file-browser-list-icon-spacing)");
+		});
+	});
 });

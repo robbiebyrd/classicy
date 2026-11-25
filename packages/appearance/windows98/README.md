@@ -209,6 +209,24 @@ and `nodenext` resolution).
   an unavailable item can say why it is unavailable. The Mac packages keep
   their balloons as they were; the rich text editor's toolbar buttons show
   them a help balloon now, where they showed unstyled text.
+- **Its menus, message boxes, colors and pointers.** A menu command runs
+  the moment you choose it, with no flash and no wait. Empty Trash and
+  Reset PRAM read without an ellipsis, as Windows writes a command that
+  only asks first. A Return held down from the command that raised a
+  message box no longer closes the box: it waits for a new press. A message
+  box's Help button is a push button reading "Help", as wide as OK and
+  Cancel, last in the row. The startup screen shows no row of extensions.
+  The Appearance Manager's Colors tab names the colors as Windows' Display
+  Properties does: 3D Objects, Selected Items, Window and Desktop, and
+  Button Highlight, Button Light, Button Shadow, Button Dark Shadow and
+  Window Text for the colors Windows derived from them. Shortcuts in the
+  Finder's windows, in either view, carry the shortcut arrow over their
+  icon, as on the desktop. And the pointer is Windows' arrow over list and
+  tree rows, sliders, the tab and pager arrows and the color swatches (the
+  hand stays on links), the two-headed sizing pointer over a split view's
+  divider, also while it is dragged, the hourglass while Windows starts and
+  the arrow with the hourglass while a PDF loads. The Mac packages keep
+  their menus, dialogs, labels and pointers as they were.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
@@ -318,8 +336,10 @@ and `nodenext` resolution).
   registers Windows 98 and its sound pack. It also exports
   `WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json` (the themes, layout,
   knobs, color families and font labels, deep-frozen and typed with the
-  core's types, as `Windows98Json`), `windows98SoundPack` and
-  `readWindows98ThemeFile` (the `.theme` reader Load Theme… uses).
+  core's types, as `Windows98Json`), `windows98SoundPack`,
+  `windows98AppearanceHooks` (its one hook, a chosen menu item's, deeply
+  frozen) and `readWindows98ThemeFile` (the `.theme` reader Load Theme…
+  uses).
 - `./scss/*`: the package's SCSS: `bevels`, `pixel` and the `components/*`
   partials, and `windows98`, the whole sheet, which a host may compile
   through `pkg:@classicy/classicy/scss/*` (the package loads nothing of

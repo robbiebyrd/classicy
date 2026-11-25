@@ -276,4 +276,22 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
       opacity: 0.5;
     }
   }
+
+  // A shortcut in a window (`layout.icon.aliasBadge` "everywhere"; the
+  // core's `classicyIconImage` box): the shell's shortcut overlay over the
+  // whole image at the icon's size, its arrow drawn at the art's bottom
+  // left, as the desktop draws a shortcut's (_Desktop.scss; WIG Ch.11
+  // "Displaying Objects", p.230, Figure 11.11; the audit's 11.2). It shares
+  // the icon's selected and open looks, its own mask clipping them.
+  .classicyIcon .classicyIconImage {
+    position: relative;
+    width: var(--desktop-icon-size);
+    height: var(--desktop-icon-size);
+    margin: 0 auto;
+  }
+
+  .classicyIcon .classicyIconMaskOuter.classicyIconAliasBadge {
+    position: absolute;
+    inset: 0;
+  }
 }

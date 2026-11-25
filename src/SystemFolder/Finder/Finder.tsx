@@ -653,7 +653,8 @@ export const Finder = () => {
 				},
 				{
 					id: "finder_trash_empty",
-					title: "Empty Trash\u2026",
+					title: "Empty Trash",
+					confirms: true,
 					onClickFunc: () =>
 						desktopEventDispatch({
 							type: "ClassicyDesktopShowSystemDialog",

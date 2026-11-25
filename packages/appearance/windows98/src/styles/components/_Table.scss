@@ -263,4 +263,40 @@ $finder: ".classicyFileBrowserViewTableContainer";
   #{$finder}.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableDisclosure::after {
     content: none;
   }
+
+  // The arrow over the list view's expand buttons, where the base shows the
+  // hand (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyFileBrowserViewTableDisclosureTriangle {
+    @include b.registry-cursor(arrow, default);
+  }
+
+  // A shortcut's row (`layout.icon.aliasBadge` "everywhere"; the core's
+  // `classicyIconImage` box around the row icon and its badge): the shell's
+  // shortcut overlay over the small icon, at the icon's size, the same art
+  // the large icon takes, scaled (the asset registry holds no small image
+  // for it; WIG Ch.11 "Displaying Objects", p.230; the audit's 11.2). The
+  // box keeps the row icon's place in the row, and the badge lies inside
+  // the icon's margins.
+  .classicyFileBrowserViewTableRowContainer > .classicyIconImage {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    width: auto;
+    margin: 0;
+  }
+
+  .classicyFileBrowserViewTableRowContainer > .classicyIconImage > .classicyIconAliasBadge {
+    position: absolute;
+    top: var(--file-browser-list-row-padding, var(--file-browser-list-icon-spacing));
+    left: var(--file-browser-list-icon-spacing);
+    width: var(--classicy-file-browser-icon-size);
+    height: var(--classicy-file-browser-icon-size);
+    pointer-events: none;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
 }

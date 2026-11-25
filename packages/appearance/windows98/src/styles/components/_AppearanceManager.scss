@@ -91,4 +91,12 @@
     color: b.$highlight-text;
     background: b.$highlight;
   }
+
+  // The arrow over the color swatches and the crayons, where the base shows
+  // the hand (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's
+  // 4.1).
+  .classicyColorPickerSwatch,
+  .classicyColorPickerCrayon {
+    @include b.registry-cursor(arrow, default);
+  }
 }
