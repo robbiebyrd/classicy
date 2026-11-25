@@ -43,6 +43,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
+	classicyAppPalettesHidden,
+	isClassicyPrimaryWindow,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
@@ -127,6 +131,11 @@ const DEFAULT_MINIMUM_SIZE: [
 	ClassicyWindowSizeDimension,
 	ClassicyWindowSizeDimension,
 ] = [300, 0];
+
+// The title bar's box names under `window.collapse: "minimize"`: the
+// collapse box is Windows' Minimize button (WIG Ch.6 "Title Bar Buttons",
+// p.80). Module-level, so it keeps one identity.
+const MINIMIZE_TITLE_BAR_LABELS = { collapse: "Minimize" } as const;
 
 // The --menu-bar-height the desktop root carries for `theme` under `layout`
 // (the theme's, then the layout's override: 0 under window placement), or
@@ -341,7 +350,11 @@ interface ClassicyWindowProps {
 	 * windows with `collapsable={false}` and modals are skipped when another
 	 * window's box is Option-clicked. Double-clicking the title bar collapses
 	 * too, when the desktop's `doubleClickTitleToCollapse` preference is on.
-	 * Defaults to `true`.
+	 * Under a package whose layout says `window.collapse: "minimize"` (the
+	 * Windows shell) the box is Minimize (WIG Ch.6 "Minimizing Windows",
+	 * p.85): the window leaves the screen, keeps its taskbar button and comes
+	 * back when it is activated; a `modal` or utility window draws no box
+	 * there. Defaults to `true`.
 	 */
 	collapsable?: boolean;
 	/**
@@ -987,6 +1000,30 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		wsPositionRef.current = ws.position as [number, number];
 	}, [ws.position]);
 
+	// What the store's `collapsed` means under the active package
+	// (`layout.window.collapse`, plan 0020-w98 §5 "Minimize"). `"shade"` (the
+	// default, every package but the Windows shell): WindowShade, so `shaded`
+	// is `ws.collapsed` and nothing below changes. `"minimize"`: a primary
+	// window leaves the screen (`minimized`) and keeps its whole tree
+	// mounted; a modal or a palette has no taskbar button to come back from,
+	// so its collapse is ignored (`collapseIgnored`): drawn expanded, its
+	// stored flag kept for a package that shades it. Render decisions read
+	// `shaded`; the guards that must not measure or move a window that is not
+	// drawn at its size read `collapsedOrMinimized`.
+	const minimizes = layout.window.collapse === "minimize";
+	const collapseIgnored =
+		minimizes && !isClassicyPrimaryWindow({ modal, windowType });
+	const minimized = ws.collapsed === true && minimizes && !collapseIgnored;
+	const shaded = ws.collapsed === true && !minimizes;
+	const collapsedOrMinimized = shaded || minimized;
+	// A minimized app's palettes go with it (WIG Ch.8, p.145): under
+	// minimize, a palette is hidden while its app has an open primary window
+	// and every one is minimized, read from the app record already subscribed.
+	const hiddenWithApp =
+		minimizes && windowType === "utility" && !modal
+			? classicyAppPalettesHidden(currentApp)
+			: false;
+
 	// #248: correct on first paint (resolvedPosition above), but an alert
 	// sized [0, 0] (auto) centers against a phantom empty box — any async
 	// content growth after mount (e.g. an <img> finishing load) needs to
@@ -1001,6 +1038,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// async re-layout must never undo it.
 		if (userRepositionedRef.current) return;
 		if (isDraggingRef.current || isResizingRef.current) return;
+		// Off the screen (minimized, or a palette hidden with its app), the
+		// window measures 0 × 0: re-centering on that would move it. It is
+		// measured again when it comes back.
+		if (minimized || hiddenWithApp) return;
 		const el = windowRef.current;
 		if (!el) return;
 		const rect = el.getBoundingClientRect();
@@ -1145,11 +1186,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// matter) differ. Modals are left to the focus trap below.
 	const wasKeyboardFocusedRef = useRef(false);
 	useEffect(() => {
-		const ownsKeyboard = !modal && !ws.closed && !ws.collapsed && !!ws.focused;
+		const ownsKeyboard =
+			!modal && !ws.closed && !collapsedOrMinimized && !!ws.focused;
 		const becameFocused = ownsKeyboard && !wasKeyboardFocusedRef.current;
 		wasKeyboardFocusedRef.current = ownsKeyboard;
 		if (becameFocused) focusInitialTarget();
-	}, [modal, ws.closed, ws.collapsed, ws.focused, focusInitialTarget]);
+	}, [modal, ws.closed, collapsedOrMinimized, ws.focused, focusInitialTarget]);
 
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);
@@ -1330,7 +1372,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					windowRef.current,
 				),
 			// The minimum windowStyle draws, so the moved edge stops there.
-			[resolvedMinimumSize[0], ws.collapsed ? 0 : resolvedMinimumSize[1]],
+			[
+				resolvedMinimumSize[0],
+				collapsedOrMinimized ? 0 : resolvedMinimumSize[1],
+			],
 			windowViewportFloor(menuBarHeight),
 			// The taskbar's top, which the release clamp keeps the window
 			// above: given only while a band is published (undefined takes the
@@ -1566,7 +1611,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const appearance = useClassicyAppearance(
 		"Window",
 		{
-			collapsed: ws.collapsed,
+			// WindowShade only: a minimized window is not drawn at all
+			// (`classicyWindowMinimized`, below), and a modal's or palette's
+			// ignored collapse is drawn expanded.
+			collapsed: shaded,
 			active: front,
 			inactive: !front,
 			dragging: ws.moving,
@@ -1613,7 +1661,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, [modal, player, type]);
 
 	const toggleCollapse = () => {
-		if (collapsable) {
+		// Under minimize a modal's or palette's collapse is ignored: its box
+		// and its title's double-click do nothing (its stored flag is kept).
+		if (collapsable && !collapseIgnored) {
 			setCollapse(!ws.collapsed);
 		}
 	};
@@ -1642,6 +1692,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// was clicked, so its behavior is unchanged.
 				const isClicked = appKey === appId && w.id === id;
 				if (!isClicked && (w.collapsable === false || w.modal)) return;
+				// Under minimize only a primary window minimizes and restores
+				// (a palette's stored collapse is ignored there, and kept): the
+				// windows with a Minimize box, as the reducer's guard has it.
+				if (minimizes && !isClassicyPrimaryWindow(w)) return;
 				desktopEventDispatch({
 					type: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
 					window: w,
@@ -1653,6 +1707,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	// #206: the collapse box. Option-click collapses/expands ALL windows.
 	const onCollapseBoxClick = (e: MouseEvent<HTMLDivElement>) => {
+		// Under minimize the click must not reach the root's setActive (a
+		// window that was not focused) or ClassicyApp's container, whose
+		// ClassicyAppActivate would refocus the app's last-accessed window,
+		// the one just minimized, and so restore it at once. Under every
+		// other package it bubbles, as it always has.
+		if (minimizes) e.stopPropagation();
 		if (e.altKey) {
 			collapseOrExpandAll(!ws.collapsed);
 			return;
@@ -1663,7 +1723,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const setCollapse = (toCollapse: boolean) => {
 		if (toCollapse) {
 			track("collapse", { type: "ClassicyWindow", ...analyticsArgs });
-			setZoom(false, true, "collapse");
+			// WindowShade clears the zoom; a minimize keeps it, so a maximized
+			// window comes back maximized (Windows' SC_MINIMIZE keeps the
+			// maximized placement, SC_RESTORE from the taskbar returns to it).
+			if (!minimizes) setZoom(false, true, "collapse");
 			emit("collapse", withClassicyAppearanceInput());
 			desktopEventDispatch({
 				type: "ClassicyWindowCollapse",
@@ -1799,7 +1862,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		playSound: boolean = true,
 		cause: "zoom" | "collapse" | "resize" = "zoom",
 	) => {
-		if (ws.collapsed) {
+		// A shaded or minimized window expands first; a modal's or palette's
+		// ignored collapse (under minimize) is kept.
+		if (collapsedOrMinimized) {
 			setCollapse(false);
 		}
 		if (playSound) {
@@ -1890,7 +1955,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// Skipping the dispatch entirely while collapsed leaves the last
 		// expanded size in the store untouched, so it survives a
 		// collapse/expand cycle intact.
-		if (!resizable || ws.collapsed) return;
+		// A minimized window is not drawn at all (display: none), so it has
+		// no size to measure either.
+		if (!resizable || collapsedOrMinimized) return;
 		const resolved = nextSize ?? appliedWindowSize();
 		if (!resolved) return;
 		desktopEventDispatch({
@@ -2007,11 +2074,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				setActive();
 				return true;
 			case "minimize":
-				if (!collapsable || ws.collapsed) return false;
+				// Under minimize a modal or palette has no Minimize box.
+				if (!collapsable || collapseIgnored || ws.collapsed) return false;
 				setCollapse(true);
 				return true;
 			case "restore":
-				if (ws.collapsed) setCollapse(false);
+				// A minimized window comes back as it was, maximized included.
+				if (collapsedOrMinimized) setCollapse(false);
 				else if (ws.zoomed) applyZoom(false);
 				else return false;
 				setActive();
@@ -2040,6 +2109,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// and its re-run registers again.
 	const registrationRef = useRef<ClassicyWindowRegistration | null>(null);
 	const movesByTitleBar = !fixedModal;
+	// Whether it draws a collapse box: none on a modal or palette under
+	// minimize, which has no taskbar button to come back from.
+	const collapsesByBox = collapsable && !collapseIgnored;
 	useEffect(() => {
 		const entry = {
 			appId,
@@ -2050,7 +2122,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			windowType,
 			closable,
 			zoomable,
-			collapsable,
+			collapsable: collapsesByBox,
 			resizable,
 			movable: movesByTitleBar,
 			run: (command: ClassicyWindowCommand) => runCommandRef.current(command),
@@ -2067,7 +2139,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		windowType,
 		closable,
 		zoomable,
-		collapsable,
+		collapsesByBox,
 		resizable,
 		movesByTitleBar,
 	]);
@@ -2084,18 +2156,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const windowStyle = useMemo(
 		() => ({
 			width: size[0] === 0 ? "auto" : size[0],
-			// Collapsed: no inline height, so `.collapsed` (ClassicyWindow.scss)
-			// sizes the window to its title bar by the cascade alone.
-			height: ws.collapsed ? undefined : size[1] === 0 ? "auto" : size[1],
+			// Shaded: no inline height, so `.collapsed` (ClassicyWindow.scss)
+			// sizes the window to its title bar by the cascade alone. A
+			// minimized window keeps its size, out of sight.
+			height: shaded ? undefined : size[1] === 0 ? "auto" : size[1],
 			left: ws.position[0],
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
-			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
+			minHeight: shaded ? 0 : resolvedMinimumSize[1],
 		}),
 		[
 			size[0],
 			size[1],
-			ws.collapsed,
+			shaded,
 			ws.position[0],
 			ws.position[1],
 			resolvedMinimumSize[0],
@@ -2118,7 +2191,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		(appMenu?.length ?? 0) > 0 &&
 		windowType !== "utility" &&
 		!modal &&
-		!ws.collapsed;
+		!shaded;
 
 	// An array literal, so the class co-occurrence guard reads its classes.
 	const contentsClasses = [
@@ -2133,7 +2206,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// The contents holding the modeless-dialog frame (`contentFrame`), so a
 		// package can style the holder without `:has()` (Firefox before 121).
 		contentFrame ? "classicyWindowContentsWithFrame" : "",
-		classicyStateClasses({ collapsed: ws.collapsed }),
+		classicyStateClasses({ collapsed: shaded }),
 	];
 	const contentsStyle = backgroundColor
 		? ({
@@ -2209,6 +2282,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				resizable ? "" : "classicyWindowNoResize",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 				showsMenuBar ? "classicyWindowWithMenuBar" : "",
+				// Under `window.collapse: "minimize"` only: a minimized window,
+				// or a palette hidden with its app, leaves the screen
+				// (`display: none`), its tree kept mounted. No other package
+				// emits it.
+				minimized || hiddenWithApp ? "classicyWindowMinimized" : "",
 				className,
 			)}
 			onMouseMove={changeWindow}
@@ -2225,7 +2303,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		>
 			{/* #205: drag the window from the narrow frame on all four sides,
 					    not just the title bar. Each edge reuses the title-bar move logic. */}
-			{!ws.collapsed &&
+			{!shaded &&
 				(["top", "right", "bottom", "left"] as const).map((edge) => (
 					// biome-ignore lint/a11y/noStaticElementInteractions: frame edge is a mouse-only drag handle
 					<div
@@ -2249,8 +2327,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal={modal === true}
 				onClose={closable ? close : undefined}
 				onZoom={zoomable ? toggleZoom : undefined}
-				onCollapse={collapsable ? onCollapseBoxClick : undefined}
+				// Under minimize a modal or palette has no Minimize box: neither
+				// has a taskbar button to come back from.
+				onCollapse={collapsesByBox ? onCollapseBoxClick : undefined}
 				onCollapseKey={toggleCollapse}
+				labels={minimizes ? MINIMIZE_TITLE_BAR_LABELS : undefined}
 				onTitleMouseDown={onTitleMouseDown}
 				// stopChangeWindow is bound once, on the root classicyWindow
 				// element; the title's mouseup bubbles to it (see comment there).
@@ -2265,7 +2346,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					menuItems={appMenu}
 				/>
 			)}
-			{header && !ws.collapsed && (
+			{header && !shaded && (
 				<div
 					className={classNames(
 						"classicyWindowHeader",
@@ -2307,7 +2388,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			{/* #196: a Platinum placard status region pinned to the window's
 					    bottom-left, to the left of the horizontal scroll bar. Hidden
 					    while collapsed and kept clear of the bottom-right resizer. */}
-			{placard && !ws.collapsed && (
+			{placard && !shaded && (
 				<div
 					className={classNames(
 						"classicyWindowPlacardBar",
@@ -2317,7 +2398,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					{placard}
 				</div>
 			)}
-			{resizable && !ws.collapsed && (
+			{resizable && !shaded && (
 				// biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only drag target
 				<div
 					className={classNames(

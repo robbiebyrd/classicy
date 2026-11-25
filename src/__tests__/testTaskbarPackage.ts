@@ -22,6 +22,20 @@ export const TEST_TASKBAR_LAYOUT: ClassicyAppearanceLayout = {
 	taskbar: { startLabel: "Start" },
 };
 
+/** The id of the test package that minimizes (`TEST_MINIMIZE_LAYOUT`). */
+export const TEST_MINIMIZE_PACKAGE_ID = "test-taskbar-minimize";
+
+/**
+ * `TEST_TASKBAR_LAYOUT` whose collapse box minimizes (`window.collapse:
+ * "minimize"`, plan 0020-w98 §5 "Minimize"), which the schema allows only
+ * beside a taskbar. Register it with
+ * `registerTestTaskbarPackage(TEST_MINIMIZE_LAYOUT, TEST_MINIMIZE_PACKAGE_ID)`.
+ */
+export const TEST_MINIMIZE_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_TASKBAR_LAYOUT,
+	window: { ...TEST_TASKBAR_LAYOUT.window, collapse: "minimize" },
+};
+
 /**
  * Registers `test-taskbar` (or `id`), an Appearance Package with no CSS whose
  * layout is `layout` (`TEST_TASKBAR_LAYOUT` by default). Tests that call it

@@ -578,6 +578,7 @@
 			"Icon",
 			"Menu",
 			"MenuBar",
+			"Minimized",
 			"Modal",
 			"ModalFixed",
 			"ModalFront",

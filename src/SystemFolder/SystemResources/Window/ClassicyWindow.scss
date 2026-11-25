@@ -490,6 +490,15 @@
   visibility: hidden;
 }
 
+// Minimized (`layout.window.collapse: "minimize"`, the Windows shell): the
+// window leaves the screen and keeps its taskbar button (WIG Ch.6
+// "Minimizing Windows", p.85), its whole tree mounted; so does a palette
+// while every primary window of its app is minimized. Only that layout emits
+// the class, so no other package's window ever matches.
+.classicyWindow.classicyWindowMinimized {
+  display: none;
+}
+
 // The header and contents dim before the drag and resize rules: dragging or
 // resizing hides every child (opacity 0), dimmed or not.
 .classicyWindowHeaderDimmed {

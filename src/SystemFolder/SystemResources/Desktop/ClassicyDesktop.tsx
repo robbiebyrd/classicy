@@ -68,6 +68,7 @@ import {
 	classicyLayoutVars,
 	useClassicyAppearanceLayout,
 } from "@/Appearance/useClassicyAppearanceLayout";
+import { isClassicyWindowShown } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
@@ -247,11 +248,18 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const focusedAppId = useAppManager(
 		(s) => s.System.Manager.Applications.focusedAppId,
 	);
-	const finderHasOpenWindow = useAppManager((s) =>
-		listAppWindows(s.System.Manager.Applications.apps["Finder.app"]).some(
-			(w) => !w.closed,
-		),
-	);
+	// Under `window.collapse: "minimize"` (the Windows shell) a minimized
+	// Finder window (and a palette hidden with it) is off the screen, so it
+	// leaves the bar to the desktop; under every other package any open
+	// window holds it, a shaded one included.
+	const windowsMinimize =
+		useClassicyAppearanceLayout().window.collapse === "minimize";
+	const finderHasOpenWindow = useAppManager((s) => {
+		const finder = s.System.Manager.Applications.apps["Finder.app"];
+		return listAppWindows(finder).some((w) =>
+			windowsMinimize ? isClassicyWindowShown(finder, w) : !w.closed,
+		);
+	});
 	const desktopEventDispatch = useAppManagerDispatch();
 
 	const defaultApps = useContext(ClassicyDefaultAppsContext);

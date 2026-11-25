@@ -37,10 +37,28 @@ export type ClassicyWindowTitleBarProps = {
 	onTitleMouseDown?: (e: MouseEvent<HTMLDivElement>) => void;
 	/** Double-click on the title area. */
 	onTitleDoubleClick?: () => void;
+	/**
+	 * The control boxes' accessible names (`aria-label`), each defaulting to
+	 * the Mac OS name: `"Close"`, `"Zoom"`, `"Collapse"`. `ClassicyWindow`
+	 * names the collapse box `"Minimize"` under a layout whose
+	 * `window.collapse` is `"minimize"` (Windows' title bar buttons, WIG Ch.6,
+	 * p.80); without the prop the boxes keep their names.
+	 */
+	labels?: ClassicyWindowTitleBarLabels;
 	/** Extra class names, after the bar's own. */
 	className?: string;
 	/** Inline style for the bar's root element. */
 	style?: CSSProperties;
+};
+
+/** The control boxes' accessible names (`ClassicyWindowTitleBar`'s `labels`). */
+export type ClassicyWindowTitleBarLabels = {
+	/** The close box's name; `"Close"` when absent. */
+	close?: string;
+	/** The zoom box's name; `"Zoom"` when absent. */
+	zoom?: string;
+	/** The collapse box's name; `"Collapse"` when absent. */
+	collapse?: string;
 };
 
 /** Enter or Space on a control box, the keys that press a button. */
@@ -57,7 +75,7 @@ const isPressKey = (e: KeyboardEvent<HTMLDivElement>) =>
  *
  * Presentational: it reads no store and dispatches nothing; the window owns
  * the behavior and passes it in. The boxes are buttons named "Close", "Zoom"
- * and "Collapse".
+ * and "Collapse", unless `labels` names them otherwise.
  *
  * Its styles exist only under a `.classicyWindow` or `.classicyWindowFrame`
  * root (`ClassicyWindowTitleBar.scss` is included by those two sheets), so
@@ -81,6 +99,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 	onCollapseKey,
 	onTitleMouseDown,
 	onTitleDoubleClick,
+	labels,
 	className,
 	style,
 }) => (
@@ -101,7 +120,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<div
 					className={"classicyWindowCloseBox"}
 					role="button"
-					aria-label="Close"
+					aria-label={labels?.close ?? "Close"}
 					tabIndex={0}
 					onClick={() => onClose()}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
@@ -145,7 +164,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<div
 					className={"classicyWindowZoomBox"}
 					role="button"
-					aria-label="Zoom"
+					aria-label={labels?.zoom ?? "Zoom"}
 					tabIndex={0}
 					onClick={() => onZoom()}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
@@ -163,7 +182,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<div
 					className={"classicyWindowCollapseBox"}
 					role="button"
-					aria-label="Collapse"
+					aria-label={labels?.collapse ?? "Collapse"}
 					tabIndex={0}
 					onClick={onCollapse}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {

@@ -2,10 +2,19 @@ import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, renderHook } from "@/__tests__/test-utils";
 import {
+	registerTestTaskbarPackage,
+	TEST_MINIMIZE_LAYOUT,
+	TEST_MINIMIZE_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
 	type ClassicyStoreSystemApp,
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import {
@@ -561,5 +570,110 @@ describe("ClassicyWindow in the window registry", () => {
 			collapsed: false,
 			zoomed: false,
 		});
+	});
+});
+
+// Plan 0020-w98 §5, "Minimize": under `window.collapse: "minimize"` a modal
+// or palette has no Minimize box, and a minimized window comes back as it
+// was, maximized included.
+describe('ClassicyWindow\'s commands under window.collapse: "minimize"', () => {
+	beforeEach(() => {
+		mockPlayer.mockClear();
+		seedApp();
+		registerTestTaskbarPackage(TEST_MINIMIZE_LAYOUT, TEST_MINIMIZE_PACKAGE_ID);
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: TEST_MINIMIZE_PACKAGE_ID,
+			}),
+		);
+	});
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_MINIMIZE_PACKAGE_ID);
+	});
+
+	it("publishes no collapse box for a modal or palette, and refuses to minimize either", () => {
+		render(
+			<>
+				<ClassicyWindow id="main" appId={APP} title="Main">
+					<p>main</p>
+				</ClassicyWindow>
+				<ClassicyWindow
+					id="tools"
+					appId={APP}
+					title="Tools"
+					windowType="utility"
+				>
+					<p>tools</p>
+				</ClassicyWindow>
+				<ClassicyWindow id="dialog" appId={APP} title="Dialog" modal>
+					<p>dialog</p>
+				</ClassicyWindow>
+			</>,
+		);
+		expect(getClassicyWindowEntry(APP, "main")?.collapsable).toBe(true);
+		expect(getClassicyWindowEntry(APP, "tools")?.collapsable).toBe(false);
+		expect(getClassicyWindowEntry(APP, "dialog")?.collapsable).toBe(false);
+		expect(run("tools", { type: "minimize" })).toBe(false);
+		expect(run("dialog", { type: "minimize" })).toBe(false);
+		expect(record("tools")?.collapsed).toBe(false);
+		expect(record("dialog")?.collapsed).toBe(false);
+	});
+
+	it("restores a minimized maximized window maximized", () => {
+		render(
+			<ClassicyWindow id="main" appId={APP} title="Main">
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		expect(run("main", { type: "maximize" })).toBe(true);
+		expect(run("main", { type: "minimize" })).toBe(true);
+		expect(record("main")).toMatchObject({ collapsed: true, zoomed: true });
+		expect(run("main", { type: "restore" })).toBe(true);
+		expect(record("main")).toMatchObject({
+			collapsed: false,
+			zoomed: true,
+			focused: true,
+		});
+	});
+
+	it("restores nothing for a palette whose stored collapse is ignored", () => {
+		render(
+			<ClassicyWindow id="tools" appId={APP} title="Tools" windowType="utility">
+				<p>tools</p>
+			</ClassicyWindow>,
+		);
+		act(() =>
+			useAppManager.setState((state) => {
+				const app = state.System.Manager.Applications.apps[APP];
+				const tools = getAppWindow(app, "tools");
+				if (!tools) throw new Error("tools");
+				return {
+					...state,
+					System: {
+						...state.System,
+						Manager: {
+							...state.System.Manager,
+							Applications: {
+								...state.System.Manager.Applications,
+								apps: {
+									...state.System.Manager.Applications.apps,
+									[APP]: {
+										...app,
+										windows: {
+											...app.windows,
+											tools: { ...tools, collapsed: true },
+										},
+									},
+								},
+							},
+						},
+					},
+				};
+			}),
+		);
+		expect(run("tools", { type: "restore" })).toBe(false);
+		expect(record("tools")?.collapsed).toBe(true);
 	});
 });

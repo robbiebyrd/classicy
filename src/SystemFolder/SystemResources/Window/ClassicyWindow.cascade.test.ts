@@ -69,8 +69,19 @@ describe("ClassicyWindow.scss cascade", () => {
 			".classicyWindowContentsNotDimmed",
 			".classicyWindowPlacardBarDimmed",
 			".classicyWindowContentsFramedDimmed",
+			".classicyWindow.classicyWindowMinimized",
 		])
 			expect(at(s)).toBeGreaterThan(base);
+	});
+
+	// Plan 0020-w98 §5: a minimized window (`window.collapse: "minimize"`,
+	// the only layout that emits the class) leaves the screen with its tree
+	// mounted. Two classes, so it beats every one-class rule that sets
+	// `display`, wherever it sits.
+	it("a minimized window is not displayed", () => {
+		expect(rule(".classicyWindow.classicyWindowMinimized")).toEqual({
+			display: "none",
+		});
 	});
 
 	// A window can carry two of these at once, so the one that must win

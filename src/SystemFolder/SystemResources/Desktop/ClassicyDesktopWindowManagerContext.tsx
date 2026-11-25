@@ -9,8 +9,11 @@ import {
 	hasWindowZoomed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import {
+	classicyVisibleSuccession,
+	classicyWindowsMinimize,
 	focusApp,
 	focusWindow,
+	isClassicyPrimaryWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
@@ -258,6 +261,21 @@ export const classicyWindowEventHandler = (
 			if (ds.System.Manager.Applications.focusedAppId !== action.app.id) {
 				break;
 			}
+			// Under `window.collapse: "minimize"` focus passes on as it does
+			// from a minimize: the app's front shown window, else another
+			// app's, else the desktop. A minimized sibling is never restored,
+			// and the app is never left focused with no window to show its
+			// menus (where ClassicyApp's refocus would restore one). A window
+			// of the app that still holds focus (its dialog) keeps it.
+			if (classicyWindowsMinimize(ds)) {
+				const stillFocused = listAppWindows(
+					ds.System.Manager.Applications.apps[action.app.id],
+				).some((w) => w.focused === true && !w.closed);
+				if (!stillFocused) {
+					ds = classicyVisibleSuccession(ds, action.app.id, action.window.id);
+				}
+				break;
+			}
 			const nextFocus = mostRecentAppWindow(
 				listAppWindows(
 					ds.System.Manager.Applications.apps[action.app.id],
@@ -308,9 +326,15 @@ export const classicyWindowEventHandler = (
 			// Hand focus to a surviving sibling using the same succession rules
 			// as ClassicyWindowClose (lastAccessed → highest zOrder → default,
 			// skipping utility palettes). Removal happens first so the destroyed
-			// window can never select itself.
+			// window can never select itself. Under `window.collapse:
+			// "minimize"`, the minimize succession instead, which never picks
+			// (and so never restores) a minimized window.
 			if (heldFocus) {
-				focusApp(ds, action.app.id);
+				if (classicyWindowsMinimize(ds)) {
+					ds = classicyVisibleSuccession(ds, action.app.id, action.window.id);
+				} else {
+					focusApp(ds, action.app.id);
+				}
 			}
 			break;
 		}
@@ -357,7 +381,32 @@ export const classicyWindowEventHandler = (
 		}
 		case "ClassicyWindowCollapse": {
 			if (!hasAppAndWindow(action)) break;
-			updateWindow(action.app.id, action.window.id, { collapsed: true });
+			if (!classicyWindowsMinimize(ds)) {
+				updateWindow(action.app.id, action.window.id, { collapsed: true });
+				break;
+			}
+			// Under `window.collapse: "minimize"` (plan 0020-w98 §5): the
+			// window leaves the screen and keeps its taskbar button (WIG Ch.6
+			// "Minimizing Windows", p.85). A modal or a palette has no button
+			// to come back from, so its collapse is refused, whoever asks
+			// (collapse-all, a host's dispatch).
+			const app = ds.System.Manager.Applications.apps[action.app.id];
+			const record = getAppWindow(app, action.window.id);
+			if (!record || !isClassicyPrimaryWindow(record)) break;
+			const heldFocus =
+				record.focused === true &&
+				ds.System.Manager.Applications.focusedAppId === action.app.id;
+			ds = updateWindow(action.app.id, action.window.id, {
+				collapsed: true,
+				focused: false,
+			});
+			// The active window minimized: focus passes to the next window
+			// down, never a minimized one, so the app is not left focused
+			// with no window (where ClassicyApp's refocus would restore the
+			// one just minimized). Minimizing any other window moves nothing.
+			if (heldFocus) {
+				ds = classicyVisibleSuccession(ds, action.app.id, action.window.id);
+			}
 			break;
 		}
 		case "ClassicyWindowExpand": {

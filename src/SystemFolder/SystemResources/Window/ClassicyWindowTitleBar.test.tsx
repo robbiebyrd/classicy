@@ -178,6 +178,56 @@ describe("ClassicyWindowTitleBar", () => {
 		);
 	});
 
+	it("names the boxes from `labels`, each falling back to its own name", () => {
+		const { getByRole, rerender } = render(
+			<ClassicyWindowTitleBar
+				title="T"
+				onClose={vi.fn()}
+				onZoom={vi.fn()}
+				onCollapse={vi.fn()}
+				labels={{ collapse: "Minimize" }}
+			/>,
+		);
+		// Plan 0020-w98 §5: the collapse box is Windows' Minimize button.
+		expect(getByRole("button", { name: "Minimize" })).toHaveClass(
+			"classicyWindowCollapseBox",
+		);
+		expect(getByRole("button", { name: "Close" })).toHaveClass(
+			"classicyWindowCloseBox",
+		);
+		expect(getByRole("button", { name: "Zoom" })).toHaveClass(
+			"classicyWindowZoomBox",
+		);
+		rerender(
+			<ClassicyWindowTitleBar
+				title="T"
+				onClose={vi.fn()}
+				onZoom={vi.fn()}
+				onCollapse={vi.fn()}
+				labels={{ close: "Fermer", zoom: "Agrandir", collapse: "Réduire" }}
+			/>,
+		);
+		expect(
+			[
+				".classicyWindowCloseBox",
+				".classicyWindowZoomBox",
+				".classicyWindowCollapseBox",
+			].map((s) => document.querySelector(s)?.getAttribute("aria-label")),
+		).toEqual(["Fermer", "Agrandir", "Réduire"]);
+		// Without the prop the boxes keep their Mac OS names.
+		rerender(
+			<ClassicyWindowTitleBar
+				title="T"
+				onClose={vi.fn()}
+				onZoom={vi.fn()}
+				onCollapse={vi.fn()}
+			/>,
+		);
+		expect(getByRole("button", { name: "Collapse" })).toHaveClass(
+			"classicyWindowCollapseBox",
+		);
+	});
+
 	// The props are typed `() => void`: a host handler with an optional first
 	// parameter (`applyZoom(toZoom?: boolean)`) must not receive the click event.
 	it("calls onClose and onZoom with no arguments, by click and by key", () => {

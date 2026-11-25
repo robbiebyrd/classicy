@@ -208,6 +208,19 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   same app+id has mounted again by then (StrictMode's phantom remount, or a
   replacement instance). Modal windows are destroyed instead, as before.
 - `ClassicyWindowClose` promotes the app's highest-`zOrder` open sibling.
+- Under `layout.window.collapse: "minimize"` (the Windows shell, plan
+  0020-w98 §5; absent, `"shade"`, every other package is as above) the
+  collapse box minimizes: the same `collapsed` flag, but the window is
+  `classicyWindowMinimized` (`display: none`, tree mounted), its click does
+  not bubble and `zoomed` is kept. A modal or palette never minimizes (no box;
+  the reducer refuses it; a stored flag is drawn expanded), and palettes hide
+  while every primary window of their app is minimized
+  (`classicyAppPalettesHidden`). When the focused window minimizes, and on
+  `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy`, focus goes by
+  `classicyVisibleSuccession` (`ClassicyAppHelpers.ts`): the app's front
+  on-screen primary window, else another open, unhidden app's by `zOrder`,
+  else the desktop (Finder, no window); it never picks a minimized window.
+  `focusWindow` restores a minimized window it focuses.
 - The Application menu's Hide <app>, Hide Others and Show All dispatch
   `ClassicyAppHide`, `ClassicyAppHideOthers` and `ClassicyAppShowAll`
   (HIG7 p.127). `apps[id].hidden` is **session state**: `sanitizeStateForPersistence`

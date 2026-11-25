@@ -5,6 +5,8 @@ import "@/__tests__/withPlatinum";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
 import {
 	registerTestTaskbarPackage,
+	TEST_MINIMIZE_LAYOUT,
+	TEST_MINIMIZE_PACKAGE_ID,
 	TEST_TASKBAR_LAYOUT,
 	TEST_TASKBAR_PACKAGE_ID,
 } from "@/__tests__/testTaskbarPackage";
@@ -866,6 +868,7 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 
 	afterEach(() => {
 		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+		unregisterClassicyAppearancePackage(TEST_MINIMIZE_PACKAGE_ID);
 		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
 	});
 
@@ -935,6 +938,51 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 		expect(button("Main")).toHaveClass("active");
 		expect(button("Main")).not.toHaveClass("collapsed");
 		// Activating and minimizing moved no button.
+		expect(ownButtons().map((b) => b.textContent)).toEqual(["Main", "Second"]);
+	});
+
+	// Plan 0020-w98 §5, "Minimize": under a layout that minimizes, the
+	// active window's button takes it off the screen and the press passes to
+	// the next window down; the button brings it back.
+	it('minimizes the active window off the screen under window.collapse: "minimize"', () => {
+		registerTestTaskbarPackage(TEST_MINIMIZE_LAYOUT, TEST_MINIMIZE_PACKAGE_ID);
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: TEST_MINIMIZE_PACKAGE_ID,
+			}),
+		);
+		renderShell(
+			<>
+				<ClassicyWindow id="main" appId={APP_ID} title="Main">
+					<p>main</p>
+				</ClassicyWindow>
+				<ClassicyWindow id="second" appId={APP_ID} title="Second">
+					<p>second</p>
+				</ClassicyWindow>
+			</>,
+		);
+		const windowRoot = (id: string) =>
+			document.getElementById(`${APP_ID}_${id}`);
+		expect(button("Second")).toHaveClass("active");
+
+		fireEvent.click(button("Second"));
+		expect(getAppWindow(appRecord(), "second")).toMatchObject({
+			collapsed: true,
+			focused: false,
+		});
+		expect(windowRoot("second")).toHaveClass("classicyWindowMinimized");
+		expect(button("Second")).toHaveClass("collapsed");
+		expect(getAppWindow(appRecord(), "main")?.focused).toBe(true);
+		expect(button("Main")).toHaveClass("active");
+
+		fireEvent.click(button("Second"));
+		expect(getAppWindow(appRecord(), "second")).toMatchObject({
+			collapsed: false,
+			focused: true,
+		});
+		expect(windowRoot("second")).not.toHaveClass("classicyWindowMinimized");
+		expect(button("Second")).toHaveClass("active");
 		expect(ownButtons().map((b) => b.textContent)).toEqual(["Main", "Second"]);
 	});
 

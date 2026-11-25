@@ -828,7 +828,7 @@ component's root class, never folded into a longer class name and never in a
 
 | Component (root class) | States it sets |
 |---|---|
-| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed`, `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all) |
+| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed` (shaded: WindowShade, the store's `collapsed` under every layout but `window.collapse: "minimize"`, where a minimized window carries none and is marked `classicyWindowMinimized` instead, §4.1), `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all) |
 | `ClassicyButton` | `default` (`isDefault`), `pressed` (`depressed`) |
 | `ClassicyBevelButton` | `checked`, `pressed`, `mixed`, `disabled`, `open` (its menu or panel is showing) |
 | `ClassicyCheckbox`, `ClassicyRadioInput` | `checked`, `mixed`, `disabled`, `default` |
@@ -1035,7 +1035,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `appId` * | `string` | — |
 | `title` | `string` | `""` |
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
-| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll` |
+| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll`. The collapse box shades the window (WindowShade), or, under `layout.window.collapse: "minimize"`, is Minimize (below; a `modal` or utility window draws none there) |
 | `fitsScrollBars` | `boolean` | the package's `layout.scrollBar.fitsBars` for a resizable, non-utility window, else `false`: keep both bars (`fits`) while the content fits |
 | `modal` | `boolean` | `false` |
 | `movable` | `boolean` | `true` (modal only) |
@@ -1163,18 +1163,59 @@ menuBarHeight?, bottomBand?)` take it as an optional last argument, default
 0; with no taskbar the window passes 0, so every other package's numbers
 are unchanged.
 
+**Minimize** (`layout.window.collapse: "minimize"`, the Windows shell, plan
+0020-w98 §5; WIG Ch.6 "Minimizing Windows" and "Restoring Windows", p.85).
+The collapse box, named "Minimize" (`ClassicyWindowTitleBar`'s `labels`),
+still writes the store's `collapsed` flag, so a window minimized under one
+package is shaded under another, but the window is not shaded: it leaves the
+screen and keeps its taskbar button. Its root carries
+`classicyWindowMinimized` (base rule `display: none`) and none of
+WindowShade's drawing (no `collapsed` state, its size and every part kept,
+its whole tree mounted, so its children keep their state); it is not
+re-centered or measured while hidden. Only a primary window minimizes: a
+`modal` or utility window has no taskbar button to come back from, so it
+draws no collapse box, its title's double-click does nothing, the reducer
+refuses its `ClassicyWindowCollapse` (collapse-all and a host's dispatch
+included), and a stored `collapsed` (from a package that shades) is drawn
+expanded and kept. A palette is hidden with its app (it carries
+`classicyWindowMinimized` too) while its app has an open primary window and
+every one is minimized (WIG Ch.8, p.145); an app with palettes only keeps
+them. The box's click does not bubble (a click reaching the window's root or
+its `ClassicyApp` would activate, and so restore, the window it just
+minimized), and a minimize keeps `zoomed`, so a maximized window comes back
+maximized. When the focused window minimizes, focus passes to the next window
+down, never a minimized one (`classicyVisibleSuccession`): the app's own front
+primary window that is on screen (Classicy draws the focused app's windows
+above the others), else the front such window of any other open app that is
+not hidden, Finder and extensions included, by `zOrder`, which is a focus
+timestamp across apps; else the desktop (Finder focused with no window, its
+menus the bar's). `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy`
+pass focus on the same way under the flag, so neither restores a minimized
+window nor leaves an app focused with no window. Focusing a minimized window
+restores it (`focusWindow` clears `collapsed`), as its taskbar button does
+and as activating its app (`focusApp`, its last-accessed window) does.
+Option-click minimizes every primary window with a box, and expand-all
+restores them. Under every other layout (`"shade"`, the default) the box
+shades, its click bubbles, a collapse clears `zoomed` and keeps the focus,
+a close promotes the app's highest-`zOrder` open sibling (shaded or not), and
+focusing a window never touches `collapsed`.
+
 Each mounted window, modals included, also registers in the core's window
 registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
 a surface that lists windows or acts on one, such as the Windows 98 shell's
 taskbar (plan 0020-w98). Its entry holds what the store record does not:
 `appId`, `windowId`, `title`, the resolved `icon`, `modal`, `windowType`,
-`closable`, `zoomable`, `collapsable`, `resizable` and `movable` (`false` for
-a fixed modal), and `run(command)`, which carries a command out through the
+`closable`, `zoomable`, `collapsable` (whether it draws a collapse box:
+`false` for a modal or utility window under `window.collapse: "minimize"`),
+`resizable` and `movable` (`false` for a fixed modal), and `run(command)`, which carries a command out through the
 path the window's own box or click takes, so its sounds, analytics, the
 `onBeforeClose` veto and the zoom geometry are unchanged: `activate` focuses
-it; `minimize` collapses it (`false` without a collapse box or when already
-collapsed); `restore` expands a collapsed window, else un-zooms a zoomed one,
-then focuses it (`false` when it is neither); `maximize` zooms it, then
+it; `minimize` collapses it (`false` without a collapse box, which a modal
+or utility window lacks under `window.collapse: "minimize"`, or when already
+collapsed); `restore` expands a collapsed window (a minimized one comes back
+as it was, maximized included), else un-zooms a zoomed one, then focuses it
+(`false` when it is neither; a modal's or palette's ignored collapse under
+minimize is neither); `maximize` zooms it, then
 focuses it (`false` without a zoom box, on a modal, or when already zoomed);
 `close` runs the close box's path, veto included (`false` when it is not
 `closable`). `systemMenu`, `move` and `size` report `false`, and so does every
@@ -1207,6 +1248,7 @@ dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
 | `onCollapse` | `(e: MouseEvent<HTMLDivElement>) => void` | draws the collapse box; called by its click |
 | `onCollapseKey` | `() => void` | Enter or Space on the collapse box; without it those keys click the box |
 | `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
+| `labels` | `{ close?, zoom?, collapse? }` (`ClassicyWindowTitleBarLabels`) | the boxes' accessible names, each defaulting to `"Close"`, `"Zoom"`, `"Collapse"`; `ClassicyWindow` names the collapse box `"Minimize"` under `layout.window.collapse: "minimize"` (WIG Ch.6 "Title Bar Buttons", p.80) |
 | `className` / `style` | passthrough | onto the root |
 
 The structure is two SCSS mixins in `Window/ClassicyWindowTitleBar.scss`
@@ -1217,7 +1259,8 @@ or `.classicyWindowFrame .classicyWindowTitleBar …`. Rendered on its own,
 outside a `ClassicyWindow` or `ClassicyWindowFrame`, the title bar is
 unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 "System art"). The control boxes are `role="button"` elements named
-`"Close"`, `"Zoom"` and `"Collapse"` (`aria-label`).
+`"Close"`, `"Zoom"` and `"Collapse"` (`aria-label`), unless `labels` names
+them otherwise.
 
 ### 4.2 Buttons & toggles
 
@@ -4423,6 +4466,7 @@ how they look) has two halves:
 |---|---|---|
 | `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?, bottomBand?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7 and Windows 98): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
+| `window.collapse` (optional) | `shade`, `minimize` | what the collapse box does (and Option-click collapse-all, and a `ClassicyWindowCollapse` dispatch). `shade` (the default, Mac OS 8's WindowShade, every shipped package today): the window rolls up into its title bar. `minimize` (Windows 95/98, WIG Ch.6 "Minimizing Windows", p.85): the box is "Minimize", a primary window leaves the screen (`classicyWindowMinimized`, `display: none`, its tree kept mounted) and keeps its taskbar button, the box's click does not bubble, the zoom is kept, focus passes to the next window down that is on screen (the app's own, else another app's by `zOrder`, else the desktop; `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy` too), and focusing the window again restores it (§4.1, "Minimize"). A modal or utility window draws no collapse box there and its collapse is refused (a stored one drawn expanded and kept), and an app's palettes are hidden while every one of its open primary windows is minimized (WIG Ch.8, p.145). Either way it is the store's `collapsed` flag, so a window minimized under one package is shaded under another. Requires `taskbar` (the schema refuses it without one: a minimized window comes back through its taskbar button). The root gains no attribute or custom property for it |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (every shipped package today): `ClassicyDesktop` draws its Control Strip and no taskbar. Present: it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept); the taskbar's measured height is the band windows, Clean Up and every menu keep above. `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
