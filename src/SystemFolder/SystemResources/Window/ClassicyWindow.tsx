@@ -73,6 +73,15 @@ import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/Scroll
 import { useClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import {
+	type ClassicyWindowArrowKey,
+	type ClassicyWindowKeyboardMode,
+	type ClassicyWindowKeyboardModeEnd,
+	classicyKeyboardSizingEdges,
+	classicyWindowKeyboardStep,
+	classicyWindowSizingEdgesAt,
+	startClassicyWindowKeyboardMode,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowKeyboardMove.internal";
+import {
 	type ClassicyWindowChromeEdges,
 	classicyMaximizedWindowRect,
 	classicyWindowChromeEdges,
@@ -226,6 +235,53 @@ const SHELL_TITLE_BAR_LABELS = {
 	minimizeMaximize: { collapse: "Minimize", zoom: "Maximize" },
 	minimizeRestore: { collapse: "Minimize", zoom: "Restore" },
 } as const;
+
+// A keyboard Move or Size mode in progress (the registry's `move` and `size`
+// commands, plan 0020-w98 §5 "Keyboard Move and Size"). The travel is
+// applied to `base`, the rect the mode stands on: the start, then the rect
+// each arrow and each edge choice leaves, so an arrow at a limit moves
+// nothing and the next one back moves at once, as Windows clamps its
+// tracking point to where it has an effect. `reference` is the pointer
+// position the mouse's travel counts from, taken at its first move since
+// the last re-base (the browser cannot put the pointer on the caption, as
+// Windows does).
+type ClassicyWindowKeyboardModeState = {
+	mode: ClassicyWindowKeyboardMode;
+	stop: () => void;
+	// Where the window was when the mode started, for ESC: its stored
+	// position and size, and (Size) the inline geometry the steps overwrite.
+	startPosition: [number, number];
+	startRecordSize: [number, number];
+	startInline: { width: string; height: string; left: string; top: string };
+	base: ClassicyWindowRect;
+	travel: [number, number];
+	reference: [number, number] | null;
+	// Size: the edges being moved, `null` until an arrow or the mouse picks
+	// one; the frame's chrome, the content-height cap CSS draws at, and the
+	// sizing border's thickness and corner reach the mouse's pick reads.
+	edges: ClassicyWindowSizingEdges | null;
+	chrome: [number, number];
+	maximum: [number, number];
+	frame: number;
+	reach: number;
+	// Where the mode has put the window: its outer left/top and content size.
+	position: [number, number];
+	size: [number, number];
+	changed: boolean;
+};
+
+// The rect a window at `position` with `contentSize` and `chrome` occupies
+// (frame included), in the store's coordinates.
+const windowRectAt = (
+	position: [number, number],
+	contentSize: [number, number],
+	chrome: [number, number],
+): ClassicyWindowRect => ({
+	left: position[0],
+	top: position[1],
+	right: position[0] + contentSize[0] + chrome[0],
+	bottom: position[1] + contentSize[1] + chrome[1],
+});
 
 // A chrome of nothing on every side: the maximized rect's when the window's
 // element is not mounted yet.
@@ -1038,6 +1094,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			docUpHandlerRef.current(true),
 		);
 	};
+	// A keyboard Move or Size mode in progress (`startKeyboardMode`), or null,
+	// and what its input does, updated every render (as docMoveHandlerRef
+	// is) so the mode's document listeners always see fresh state.
+	const keyboardModeRef = useRef<ClassicyWindowKeyboardModeState | null>(null);
+	const keyboardModeHandlersRef = useRef<{
+		onArrow: (key: ClassicyWindowArrowKey) => void;
+		onPointerMove: (pointer: [number, number]) => void;
+		onEnd: (end: ClassicyWindowKeyboardModeEnd) => void;
+	}>({ onArrow: () => {}, onPointerMove: () => {}, onEnd: () => {} });
 
 	useEffect(() => {
 		const moveHandler = (e: globalThis.MouseEvent) =>
@@ -1213,6 +1278,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// async re-layout must never undo it.
 		if (userRepositionedRef.current) return;
 		if (isDraggingRef.current || isResizingRef.current) return;
+		// Nor while the keyboard moves or sizes it.
+		if (keyboardModeRef.current) return;
 		// Off the screen (minimized, or a palette hidden with its app), the
 		// window measures 0 × 0: re-centering on that would move it. It is
 		// measured again when it comes back.
@@ -2329,6 +2396,25 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		setResize(false, pendingSizeRef.current ?? undefined);
 	};
 
+	// A keyboard Move or Size mode the window can no longer carry out (it
+	// closed, minimized, was hidden with its app or maximized, or, sizing,
+	// was shaded, by a path other than the input the mode holds: a host's
+	// dispatch) ends where it is. Before the maximized rect is re-applied
+	// (the effect below), so that rect wins. The mode and its end are read
+	// through refs; the dependencies are the triggers.
+	useEffect(() => {
+		const mode = keyboardModeRef.current;
+		if (!mode) return;
+		if (
+			ws.closed ||
+			minimized ||
+			hiddenWithApp ||
+			maximized ||
+			(mode.mode === "size" && shaded)
+		)
+			keyboardModeHandlersRef.current.onEnd({ commit: true, lost: false });
+	}, [ws.closed, minimized, hiddenWithApp, maximized, shaded]);
+
 	// A maximized window keeps the work area's rect (plan 0020-w98 §5): on
 	// mount (after a reload or a package switch: the record says zoomed, the
 	// geometry may be another package's standard state or another viewport's),
@@ -2452,6 +2538,297 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		onCancel: modal ? onModalCancel : undefined,
 	});
 
+	// The keyboard Move and Size modes (the registry's `move` and `size`
+	// commands, which the Windows shell's window pop-up menu runs; plan
+	// 0020-w98 §5 "Keyboard Move and Size", WIG Ch.6 "Moving Windows" and
+	// "Sizing Borders", p.83; Windows' SC_MOVE/SC_SIZE loop, Wine's
+	// `WINPOS_SysCommandSizeMove`). While one lasts its document listeners
+	// (`startClassicyWindowKeyboardMode`) hold the keys and the mouse
+	// buttons: each arrow moves the window, or the edges being sized,
+	// `CLASSICY_WINDOW_KEYBOARD_STEP` (8 px), the mouse moves them by its
+	// travel with no button held, ENTER, a button-1 release or a lost pointer
+	// stream ends the mode where it is (through the release clamp), and ESC
+	// puts the window back. Move shows the package's drag band through the
+	// store's `moving` (the root's `dragging`), Size through `resizing`
+	// (`classicyWindowResizing`), as a pointer drag does.
+
+	// Moves the window to `position` (Move): the store's position, as a
+	// title-bar drag writes it, drawn clamped to the viewport by `ws`.
+	const moveByKeyboard = (
+		mode: ClassicyWindowKeyboardModeState,
+		position: [number, number],
+	) => {
+		if (position[0] === mode.position[0] && position[1] === mode.position[1])
+			return;
+		mode.position = position;
+		mode.changed = true;
+		emit("change", { kind: "move", input: "keyboard" });
+		setMoving(true, position);
+	};
+
+	// Sizes the window by the mode's travel from its base (Size): the chosen
+	// edges move, the others stay (`computeClassicyWindowEdgeResize`), each
+	// stopping at the menu bar's underside or the screen's left, at the work
+	// area's right and bottom, at `minimumSize` and at the height CSS draws
+	// at most, as a frame-edge drag stops. Written to the inline style, as
+	// that drag writes it, and stored when the mode ends.
+	const sizeByKeyboard = (mode: ClassicyWindowKeyboardModeState) => {
+		if (!mode.edges) return;
+		const { size: next, position } = computeClassicyWindowEdgeResize(
+			mode.edges,
+			mode.base,
+			[0, 0],
+			mode.travel,
+			mode.chrome,
+			resolvedMinimumSize,
+			windowViewportFloor(menuBarHeight),
+			windowWorkAreaCeiling(taskbarBand),
+			mode.maximum,
+		);
+		if (
+			next[0] === mode.size[0] &&
+			next[1] === mode.size[1] &&
+			position[0] === mode.position[0] &&
+			position[1] === mode.position[1]
+		)
+			return;
+		mode.size = next;
+		mode.position = position;
+		mode.changed = true;
+		const el = windowRef.current;
+		if (el) {
+			el.style.width = `${next[0]}px`;
+			el.style.height = `${next[1]}px`;
+			el.style.left = `${position[0]}px`;
+			el.style.top = `${position[1]}px`;
+		}
+		emit("change", { kind: "resize", input: "keyboard" });
+	};
+
+	// The travel starts again from where the window now is.
+	const rebaseKeyboardMode = (mode: ClassicyWindowKeyboardModeState) => {
+		mode.base = windowRectAt(mode.position, mode.size, mode.chrome);
+		mode.travel = [0, 0];
+		mode.reference = null;
+	};
+
+	// Ends the mode in progress: committed, the window stays where the mode
+	// left it (Move through the release clamp; Size storing the size it
+	// drew, and leaving a zoom's standard state as a grow-box resize does);
+	// canceled (ESC), it goes back to where the mode started. Either way the
+	// store's `moving` or `resizing` is cleared.
+	const finishKeyboardMode = ({
+		commit,
+		lost,
+	}: ClassicyWindowKeyboardModeEnd) => {
+		const mode = keyboardModeRef.current;
+		if (!mode) return;
+		keyboardModeRef.current = null;
+		mode.stop();
+		const moved = commit && mode.changed;
+		if (moved) userRepositionedRef.current = true;
+		if (mode.mode === "move") {
+			setMoving(
+				false,
+				commit
+					? clampWindowPositionToViewport(
+							mode.position,
+							ws.size,
+							menuBarHeight,
+							taskbarBand,
+						)
+					: mode.startPosition,
+			);
+			emit("dragEnd", {
+				kind: "move",
+				lost,
+				canceled: !commit,
+				input: "keyboard",
+			});
+			return;
+		}
+		const el = windowRef.current;
+		if (!moved && el) Object.assign(el.style, mode.startInline);
+		if (moved) setSize(mode.size);
+		desktopEventDispatch({
+			type: "ClassicyWindowResize",
+			resizing: false,
+			window: ws,
+			size: moved ? mode.size : mode.startRecordSize,
+			app: { id: appId },
+		});
+		if (moved) {
+			setMoving(
+				false,
+				clampWindowPositionToViewport(
+					mode.position,
+					mode.size,
+					menuBarHeight,
+					taskbarBand,
+				),
+			);
+			if (ws.zoomed) setZoom(false, true, "resize");
+		}
+		emit("dragEnd", {
+			kind: "resize",
+			lost,
+			canceled: !commit,
+			input: "keyboard",
+		});
+	};
+
+	keyboardModeHandlersRef.current = {
+		onArrow: (key) => {
+			const mode = keyboardModeRef.current;
+			if (!mode) return;
+			const step = classicyWindowKeyboardStep(key);
+			if (mode.mode === "move") {
+				moveByKeyboard(
+					mode,
+					clampWindowPositionToViewport(
+						[mode.position[0] + step[0], mode.position[1] + step[1]],
+						ws.size,
+						menuBarHeight,
+						taskbarBand,
+					),
+				);
+				rebaseKeyboardMode(mode);
+				return;
+			}
+			// The first arrow picks its edge, one across it adds the corner;
+			// neither moves anything (`classicyKeyboardSizingEdges`).
+			const edges = classicyKeyboardSizingEdges(mode.edges, key);
+			if (edges !== mode.edges) {
+				mode.edges = edges;
+				rebaseKeyboardMode(mode);
+				return;
+			}
+			mode.travel = [mode.travel[0] + step[0], mode.travel[1] + step[1]];
+			sizeByKeyboard(mode);
+			rebaseKeyboardMode(mode);
+		},
+		onPointerMove: (pointer) => {
+			const mode = keyboardModeRef.current;
+			if (!mode) return;
+			if (mode.mode === "size" && !mode.edges) {
+				// No edge yet: the mouse picks the one it crosses
+				// (`classicyWindowSizingEdgesAt`), and travels from there.
+				const el = windowRef.current;
+				if (!el) return;
+				const rect = el.getBoundingClientRect();
+				const edges = classicyWindowSizingEdgesAt(
+					{
+						left: rect.left,
+						top: rect.top,
+						right: rect.right,
+						bottom: rect.bottom,
+					},
+					pointer,
+					mode.frame,
+					mode.reach,
+				);
+				if (!edges) return;
+				mode.edges = edges;
+				mode.reference = pointer;
+				return;
+			}
+			if (!mode.reference) {
+				mode.reference = pointer;
+				return;
+			}
+			mode.travel = [
+				pointer[0] - mode.reference[0],
+				pointer[1] - mode.reference[1],
+			];
+			if (mode.mode === "move")
+				moveByKeyboard(mode, [
+					mode.base.left + mode.travel[0],
+					mode.base.top + mode.travel[1],
+				]);
+			else sizeByKeyboard(mode);
+		},
+		onEnd: finishKeyboardMode,
+	};
+
+	// Starts a keyboard mode on the window, activating it ("the implicit
+	// action of moving the window activates it", WIG p.83). `false`, starting
+	// nothing, with no element or when another mode is in effect on the page.
+	const startKeyboardMode = (mode: ClassicyWindowKeyboardMode): boolean => {
+		const el = windowRef.current;
+		if (!el) return false;
+		const applied = appliedWindowSize();
+		const startSize: [number, number] = [
+			applied?.[0] || resolvedSize[0],
+			applied?.[1] || resolvedSize[1],
+		];
+		const chrome = classicyWindowChromeSize(el);
+		const startPosition: [number, number] = [ws.position[0], ws.position[1]];
+		const state: ClassicyWindowKeyboardModeState = {
+			mode,
+			stop: () => {},
+			startPosition,
+			startRecordSize: [ws.size[0], ws.size[1]],
+			startInline: {
+				width: el.style.width,
+				height: el.style.height,
+				left: el.style.left,
+				top: el.style.top,
+			},
+			base: windowRectAt(startPosition, startSize, chrome),
+			travel: [0, 0],
+			reference: null,
+			edges: null,
+			chrome,
+			maximum: [Number.POSITIVE_INFINITY, windowContentHeightCap(el)],
+			frame:
+				mode === "size"
+					? readClassicyThemeVar("--window-frame-inset", undefined, el)
+					: 0,
+			reach:
+				mode === "size"
+					? readClassicyThemeVar("--window-title-bar-height", undefined, el)
+					: 0,
+			position: startPosition,
+			size: startSize,
+			changed: false,
+		};
+		const stop = startClassicyWindowKeyboardMode({
+			onArrow: (key) => keyboardModeHandlersRef.current.onArrow(key),
+			onPointerMove: (pointer) =>
+				keyboardModeHandlersRef.current.onPointerMove(pointer),
+			onEnd: (end) => keyboardModeHandlersRef.current.onEnd(end),
+		});
+		if (!stop) return false;
+		state.stop = stop;
+		keyboardModeRef.current = state;
+		setActive();
+		if (mode === "move") {
+			track("move", { type: "ClassicyWindow", ...analyticsArgs });
+			emit("dragStart", { kind: "move", input: "keyboard" });
+			setMoving(true, startPosition);
+		} else {
+			track("resize", { type: "ClassicyWindow", ...analyticsArgs });
+			emit("dragStart", { kind: "resize", input: "keyboard" });
+			desktopEventDispatch({
+				type: "ClassicyWindowResize",
+				resizing: true,
+				window: ws,
+				size: state.startRecordSize,
+				app: { id: appId },
+			});
+		}
+		return true;
+	};
+
+	// A mode still in progress when the window unmounts ends where it is, so
+	// its listeners go and the store's gesture flag is cleared.
+	useEffect(
+		() => () => {
+			keyboardModeHandlersRef.current.onEnd({ commit: true, lost: false });
+		},
+		[],
+	);
+
 	// The window registry (plan 0020-w98 §5, "Shared plumbing"): what the
 	// store record does not hold (the title, the icon, the capabilities) and
 	// this window's own commands, for a surface that lists windows or acts on
@@ -2468,6 +2845,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	runCommandRef.current = (command) => {
 		// A closed window draws nothing for a command to act on.
 		if (ws.closed) return false;
+		if (command.type === "move" || command.type === "size") {
+			// One mode at a time, and none during a pointer gesture.
+			if (
+				keyboardModeRef.current ||
+				pendingDragRef.current ||
+				isDraggingRef.current ||
+				isResizingRef.current
+			)
+				return false;
+		} else if (keyboardModeRef.current) {
+			// Any other command ends a keyboard mode where it is first.
+			finishKeyboardMode({ commit: true, lost: false });
+		}
 		switch (command.type) {
 			case "activate":
 				setActive();
@@ -2497,10 +2887,25 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				if (!closable) return false;
 				close();
 				return true;
+			case "move":
+				// The keyboard Move mode (Windows' SC_MOVE). Refused for a
+				// window that does not move (a fixed modal: an alert, or
+				// `movable={false}`), one that is maximized (Wine's
+				// `WINPOS_SysCommandSizeMove` returns at once for a zoomed
+				// window), and one that is not drawn (minimized, or a palette
+				// hidden with its app). A shaded window moves, as by its title
+				// bar.
+				if (fixedModal || maximized || minimized || hiddenWithApp) return false;
+				return startKeyboardMode("move");
+			case "size":
+				// The keyboard Size mode (Windows' SC_SIZE): a resizable
+				// window drawn at its size, as for its sizing border.
+				if (!resizable || maximized || collapsedOrMinimized || hiddenWithApp)
+					return false;
+				return startKeyboardMode("size");
 			default:
-				// The window pop-up menu and the keyboard Move and Size modes
-				// (`systemMenu`, `move`, `size`) have no path in this window:
-				// they report false, as an unknown command does.
+				// The window pop-up menu (`systemMenu`) has no path in this
+				// window yet: it reports false, as an unknown command does.
 				return false;
 		}
 	};

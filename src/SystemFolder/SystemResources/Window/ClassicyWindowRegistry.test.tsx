@@ -545,8 +545,31 @@ describe("ClassicyWindow in the window registry", () => {
 		);
 		expect(run("main", { type: "systemMenu" })).toBe(false);
 		expect(run("main", { type: "systemMenu", at: [10, 20] })).toBe(false);
-		expect(run("main", { type: "move" })).toBe(false);
-		expect(run("main", { type: "size" })).toBe(false);
+	});
+
+	// The keyboard modes themselves: ClassicyWindow.keyboardMoveSize.test.tsx.
+	it("starts its keyboard Move and Size modes", () => {
+		render(
+			<ClassicyWindow id="main" appId={APP} title="Main">
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		expect(run("main", { type: "move" })).toBe(true);
+		expect(record("main")?.moving).toBe(true);
+		act(() => {
+			document.body.dispatchEvent(
+				new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+			);
+		});
+		expect(record("main")?.moving).toBe(false);
+		expect(run("main", { type: "size" })).toBe(true);
+		expect(record("main")?.resizing).toBe(true);
+		act(() => {
+			document.body.dispatchEvent(
+				new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+			);
+		});
+		expect(record("main")?.resizing).toBe(false);
 	});
 
 	it("carries out nothing while it is closed", () => {

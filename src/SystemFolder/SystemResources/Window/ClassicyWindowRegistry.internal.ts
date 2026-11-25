@@ -27,7 +27,12 @@ import { useSyncExternalStore } from "react";
  * - `maximize`: zoom it (the zoom box's path), then activate it.
  * - `close`: the close box's path, `onBeforeClose` included.
  * - `systemMenu`, at a desktop point if given: the window pop-up menu.
- * - `move`, `size`: the keyboard Move and Size modes.
+ * - `move`, `size`: the keyboard Move and Size modes (WIG Ch.6, p.83): until
+ *   ENTER, a button-1 release or a lost pointer stream ends one where it is,
+ *   or ESC puts the window back, the arrow keys move the window, or the
+ *   edges being sized, 8 px a press and the mouse moves them by its travel.
+ *   A mode holds the keyboard and the mouse buttons while it lasts, and any
+ *   other command ends it where it is first.
  */
 export type ClassicyWindowCommand =
 	| { type: "activate" }
@@ -70,7 +75,9 @@ export type ClassicyWindowEntry = {
 	 * Run a command through the window's own path. `false` when the window
 	 * cannot carry it out: it is closed, it lacks the box the command needs,
 	 * there is nothing to do (minimizing a collapsed window, restoring one
-	 * that is neither collapsed nor zoomed), or the command is not built yet.
+	 * that is neither collapsed nor zoomed), it cannot move or size now
+	 * (maximized, minimized, fixed, or a keyboard mode or a drag already in
+	 * progress), or the command is not built yet (`systemMenu`).
 	 */
 	run(command: ClassicyWindowCommand): boolean;
 };

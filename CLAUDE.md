@@ -267,7 +267,15 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   `maximize`, `close`) through the window's own paths, read with
   `useClassicyWindowEntries()` and `runClassicyWindowCommand(appId, windowId,
   command)`. The entry is updated in place, a stale token unregisters
-  nothing, and registering adds no DOM and no store field.
+  nothing, and registering adds no DOM and no store field. Its `move` and
+  `size` start the keyboard Move and Size modes
+  (`Window/ClassicyWindowKeyboardMove.internal.ts`, WIG Ch.6 p.83): until
+  ENTER, a button-1 release or a lost pointer stream ends one where it is,
+  or ESC puts the window back, document capture-phase listeners hold every
+  key press and mouse button, and each arrow moves the window, or the edges being sized
+  (the first arrow picks one, an arrow across it makes the corner), 8 px,
+  the mouse by its travel; the store's `moving` or `resizing` shows the
+  drag band. One mode runs at a time, and any other command ends it first.
 - A mounted taskbar's measured height is the **taskbar band**
   (`Taskbar/ClassicyTaskbarBand.internal.ts`, store-free:
   `setClassicyTaskbarBand(px, owner?)`, the tallest band any owner

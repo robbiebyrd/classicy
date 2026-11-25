@@ -1297,6 +1297,59 @@ it carries no sizing border; a maximized window draws no edges or arms. Under
 every other layout the edges move the window as always and no window
 carries `classicyWindowSizingBorder` or draws a corner arm.
 
+**Keyboard Move and Size** (the window registry's `move` and `size`
+commands, below, which the Windows 98 shell's window pop-up menu runs; plan
+0020-w98 §5; WIG Ch.6 "Moving Windows" and "Sizing Borders", p.83:
+"the user can move the window with the keyboard interface by using arrow
+keys and pressing the ENTER key"; Windows' `SC_MOVE`/`SC_SIZE` tracking
+loop, Wine's `WINPOS_SysCommandSizeMove`, ReactOS's `DefWndDoSizeMove`).
+Under every package, each command activates the window and starts a mode
+that lasts until ENTER, a button-1 release or a lost pointer stream ends it
+where it is, or ESC puts the window back where it started. While it lasts,
+capture-phase listeners on the document hold every key press and mouse
+button (`ClassicyWindowKeyboardMove.internal.ts`, internal), so menu
+shortcuts, dialog keys (a modal's ESC included) and the controls under the
+pointer see none of them, and the click that ends a mode presses nothing;
+a key's release still reaches the page, as Windows' loop dispatches
+`WM_KEYUP`. Only one mode runs on the page at a time. Each arrow moves 8 px
+(`CLASSICY_WINDOW_KEYBOARD_STEP`, Wine's step), and the mouse, button held
+or not, moves by its travel since its first move (the browser cannot put
+the pointer on the caption, as Windows does).
+- **Move** (refused for a fixed modal, a maximized window under
+  `window.zoom: "maximize"`, a minimized one under `window.collapse:
+  "minimize"`, or a palette hidden with its app; a shaded window moves):
+  the store's `moving` is set, so the root carries `dragging` and the
+  package draws its drag band, as a title-bar drag does. An arrow stops at
+  the screen's edges and the menu bar's underside (the arrow back moves at
+  once), and the end goes through the release clamp
+  (`clampWindowPositionToViewport`).
+- **Size** (refused for a window that is not `resizable`, or is maximized,
+  shaded, minimized or hidden with its app): the store's `resizing` is set,
+  so the root carries `classicyWindowResizing`. The first arrow picks its
+  edge (Up the top, Down the bottom, Left the left, Right the right) and
+  moves nothing; an arrow across the chosen edge adds its own, making a
+  corner (Windows as shipped; Wine's and ReactOS's loops keep the one edge),
+  and moves nothing either; every other arrow moves the chosen edges 8 px.
+  Before an arrow has, the mouse picks the sizing-border edge or corner it
+  crosses (the pointer clamped to the window's rect, as Windows hit-tests
+  it: `--window-frame-inset` thick, a corner reaching
+  `--window-title-bar-height` past the frame's inside), then sizes it by
+  its travel. The edges move through `computeClassicyWindowEdgeResize`
+  (§8), stopping where a frame-edge drag stops (the menu bar's underside,
+  the screen's left, the work area's right and bottom, `minimumSize`, the
+  height `max-height` draws at most). The end stores the size and position
+  drawn and, under a layout without `window.zoom: "maximize"`, leaves a
+  zoom's standard state as a grow-box resize does; ESC keeps it.
+
+A mode ends where it is before the window carries out any other command,
+when it unmounts, and when another path (a host's dispatch) closes,
+minimizes or maximizes it, hides it with its app or, sizing, shades it (a
+maximized window's rect then wins). Its Window events are the drags'
+(`dragStart`, a `change` for each step that moves something, one
+`dragEnd`), each detail carrying `input: "keyboard"` and the `dragEnd`'s
+`canceled` (true for ESC). Analytics: `track("move")` or `track("resize")`
+when it starts.
+
 Each mounted window, modals included, also registers in the core's window
 registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
 a surface that lists windows or acts on one, such as the Windows 98 shell's
@@ -1317,8 +1370,11 @@ minimize, or its ignored zoom under maximize, is neither); `maximize` zooms
 it (maximizes it under `window.zoom: "maximize"`), then
 focuses it (`false` without a zoom box, on a modal, or when already zoomed);
 `close` runs the close box's path, veto included (`false` when it is not
-`closable`). `systemMenu`, `move` and `size` report `false`, and so does every
-command while the window is closed. The entry is updated in place when a
+`closable`); `move` and `size` start the keyboard Move and Size modes
+(above; `false` where a mode is refused, while one is already in effect on
+the page, or during a pointer drag of the window), and any other command
+ends the window's mode where it is first. `systemMenu` reports `false`, and
+so does every command while the window is closed. The entry is updated in place when a
 published value changes (the window keeps its place in the list) and removed
 on unmount; a StrictMode phantom cleanup's stale token removes nothing.
 Registering adds no DOM, no attribute and no store field, under every
@@ -4002,7 +4058,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Table | `div.classicyTableContainer` | none (`selected` stays on rows and headers) | select `{ rowId, selected, input }` (⌘A emits nothing); change `{ columnId, desc }` from a sortable header (pointer only: headers are not focusable); dragStart/dragEnd with the detail a cell reports through its context's `emitDrag` (the file browser's list view: a Finder outline drag, below, whose `dragEnd` carries `lost`), pointer only |
 | Link | `a.classicyLink` | disabled | click `{ input }` (never while disabled) |
 | FileInput | `div.classicyFileInputHolder` | none (`error` stays on `.classicyFileInputMessage`) | change `{ fileName }` for an accepted addition (the button or `addFiles`): the first file only of a batch, nothing on a refusal or removal, no `input` |
-| Window | `div.classicyWindow` | collapsed, active, inactive, dragging, expanded (active: a modal or the front window; dragging: the store's `moving`; expanded: the store's `zoomed`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` (pointer only) |
+| Window | `div.classicyWindow` | collapsed, active, inactive, dragging, expanded (active: a modal or the front window; dragging: the store's `moving`; expanded: the store's `zoomed`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` from a pointer drag; from a keyboard Move or Size mode (the window registry's `move`, `size`) the same with `input: "keyboard"`, and dragEnd's `canceled` (true for ESC) |
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
 | MenuItem | `li.classicyMenuItem` | disabled, open, default (the item's `isDefault`) | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
