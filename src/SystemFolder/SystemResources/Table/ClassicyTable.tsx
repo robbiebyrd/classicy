@@ -35,6 +35,17 @@ import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceI
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import {
+	classicyListPageIndex,
+	classicyListPageOf,
+	classicyMovesCursorOnly,
+	classicyPageKeysMove,
+	classicyShownRowRange,
+	classicyWindowsSelectionKeys,
+	classicyWindowsTreeKeys,
+	isClassicyAddModeKey,
+	isClassicyListNavigationKey,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyScrollAreaHead } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollAreaHead.internal";
@@ -230,6 +241,11 @@ type SelectionModifiers = {
 	shiftKey: boolean;
 	metaKey: boolean;
 	ctrlKey: boolean;
+	/**
+	 * A key in Windows' Add mode: Shift with it sets the anchor's range to
+	 * the anchor's state, the other selections staying (WIG Ch.5 p.44).
+	 */
+	addMode?: boolean;
 };
 
 const NO_MODIFIERS: SelectionModifiers = {
@@ -271,7 +287,16 @@ const NO_MODIFIERS: SelectionModifiers = {
  * rows a press drags across, unless `rowsDrag`; `selection.modifiers:
  * "windows"` makes Control (or ⌘) with Shift set the anchor's range to the
  * anchor's state, keeping the rest, and hands a double-click's selection to
- * `onActivateSelection`.
+ * `onActivateSelection`. `selection.pageKeys: "move"` makes Page Up and Page
+ * Down select the last or first row shown, or a page further (WIG Ch.5
+ * Table 5.1, pp.35-36), so the scroll area no longer pages;
+ * `selection.keyboard: "windows"` makes Space select the keyboard row
+ * (Control or ⌘ with it toggling it in a multi table; p.43), a multi
+ * table's Control (⌘, Option) with a navigation key move the keyboard row
+ * alone, and Shift+F8 toggle Add mode (`data-classicy-selection-mode="add"`
+ * on the container), where the keys move the row alone and Space toggles
+ * it (pp.43-44); `tree.keys: "windows"` moves the tree rows' expand and
+ * collapse to the bare Right and Left Arrows.
  *
  * ```tsx
  * <ClassicyTable
@@ -365,6 +390,19 @@ export function ClassicyTable<T>({
 	const selectsOnPress = classicySelectsOnPress(layout);
 	const dragsRange = classicyDragSelectsRange(layout) && !rowsDrag;
 	const windowsModifiers = classicyWindowsSelectionModifiers(layout);
+	// The page keys, Windows' selection keys and the tree rows' expand keys.
+	const pageKeysMove = classicyPageKeysMove(layout);
+	const windowsKeys = classicyWindowsSelectionKeys(layout);
+	const windowsTreeKeys = classicyWindowsTreeKeys(layout);
+	// Windows' Add mode (Shift+F8; WIG Ch.5 "Disjoint Selection", p.44),
+	// for a multiple selection table under Windows' selection keys: the
+	// navigation keys move the keyboard row alone and Space toggles it,
+	// until Shift+F8 again. The ref is what a key reads, the state what the
+	// container publishes.
+	const [addModeOn, setAddModeOn] = useState(false);
+	const addMode = windowsKeys && selectionMode === "multi" && addModeOn;
+	const addModeRef = useRef(addMode);
+	addModeRef.current = addMode;
 	// The row a button-1 press last landed on under `selectOn: "press"`, and
 	// whether it left the selection for the click to reset (a plain press
 	// on a selected row: comctl32's `nLButtonDownItem`).
@@ -551,10 +589,11 @@ export function ClassicyTable<T>({
 			// selections stay, and the anchor's range takes the anchor's
 			// state, as p.39 has it (Wine's reimplementation selects it
 			// whatever that state); the anchor stays.
+			// Shift in Windows' Add mode does the same (p.44).
 			if (
-				windowsModifiers &&
 				mods.shiftKey &&
-				(mods.metaKey || mods.ctrlKey) &&
+				((windowsModifiers && (mods.metaKey || mods.ctrlKey)) ||
+					mods.addMode) &&
 				anchorId.current
 			) {
 				const anchor = anchorId.current;
@@ -683,9 +722,13 @@ export function ClassicyTable<T>({
 		if (dragsRange) startRangeDrag(e, rowId, before, deferred);
 	};
 
-	const moveCursorTo = (rowId: string, mods: SelectionModifiers) => {
+	const moveCursorTo = (
+		rowId: string,
+		mods: SelectionModifiers,
+		select = true,
+	) => {
 		setCursorId(rowId);
-		applySelection(rowId, mods);
+		if (select) applySelection(rowId, mods);
 		// Keep the row within the scrolling list box.
 		requestAnimationFrame(() => {
 			const el = containerRef.current?.querySelector(
@@ -699,6 +742,40 @@ export function ClassicyTable<T>({
 		});
 	};
 
+	// The row Page Up or Page Down moves the cursor to (`selection.pageKeys`
+	// "move"): the last or first row wholly shown in the scroller the rows
+	// scroll in (this table's own viewport, or an ancestor's), below the
+	// pinned titles, or a page further from it (comctl32's list view).
+	const pageRowIndex = (
+		key: "PageUp" | "PageDown",
+		visual: Row<T>[],
+		current: number,
+	) => {
+		const container = containerRef.current;
+		const byId = new Map<string, Element>();
+		for (const el of Array.from(
+			container?.querySelectorAll("tr[data-row-id]") ?? [],
+		)) {
+			const id = el.getAttribute("data-row-id");
+			if (id !== null) byId.set(id, el);
+		}
+		const els = visual.map((r) => byId.get(r.id));
+		// Titles pinned over the rows (in the list, sticky) cover its top.
+		const head =
+			stickyHeader && !detached ? tableRef.current?.tHead : undefined;
+		const page = classicyListPageOf(
+			els.find(Boolean),
+			head ? head.getBoundingClientRect().bottom : undefined,
+		);
+		return classicyListPageIndex({
+			key,
+			current,
+			count: visual.length,
+			shown: page ? classicyShownRowRange(els, page.view) : null,
+			pageRows: page?.pageRows ?? 1,
+		});
+	};
+
 	// HIG list-box keyboard behavior, matching the Finder list view: Up/Down
 	// move the selection one row, Enter opens it, typing leading characters of
 	// the first column selects the first matching row.
@@ -707,39 +784,101 @@ export function ClassicyTable<T>({
 		const visual = visualRowsOf();
 		if (visual.length === 0) return;
 		const curIndex = visual.findIndex((r) => r.id === cursorId);
+		const multi = selectionMode === "multi";
 		const shiftMods: SelectionModifiers = {
-			shiftKey: e.shiftKey && selectionMode === "multi",
+			shiftKey: e.shiftKey && multi,
 			metaKey: false,
 			ctrlKey: false,
+			addMode: addModeRef.current,
 		};
+		// Under Windows' selection keys, a multi table's Control (⌘,
+		// Option) with a navigation key, and any navigation key in Add mode,
+		// moves the cursor alone (WIG Ch.5 "Disjoint Selection", pp.43-44;
+		// comctl32 moves the focus item without selecting); Shift extends.
+		const cursorOnly =
+			windowsKeys &&
+			multi &&
+			isClassicyListNavigationKey(e.key) &&
+			!e.shiftKey &&
+			(addModeRef.current || classicyMovesCursorOnly(e));
+		const navigate = (rowId: string) =>
+			moveCursorTo(rowId, shiftMods, !cursorOnly);
+
+		// Windows' Add mode key (p.44; fn+Shift+F8 on a Mac laptop).
+		if (windowsKeys && multi && isClassicyAddModeKey(e)) {
+			e.preventDefault();
+			setAddModeOn(!addModeRef.current);
+			addModeRef.current = !addModeRef.current;
+			return;
+		}
 
 		switch (e.key) {
 			case "ArrowDown": {
 				e.preventDefault();
 				const ni = Math.min(curIndex + 1, visual.length - 1);
-				moveCursorTo(visual[ni < 0 ? 0 : ni].id, shiftMods);
+				navigate(visual[ni < 0 ? 0 : ni].id);
 				return;
 			}
 			case "ArrowUp": {
 				e.preventDefault();
 				const ni = curIndex < 0 ? 0 : Math.max(curIndex - 1, 0);
-				moveCursorTo(visual[ni].id, shiftMods);
+				navigate(visual[ni].id);
 				return;
 			}
 			case "Home": {
 				e.preventDefault();
-				moveCursorTo(visual[0].id, shiftMods);
+				navigate(visual[0].id);
 				return;
 			}
 			case "End": {
 				e.preventDefault();
-				moveCursorTo(visual[visual.length - 1].id, shiftMods);
+				navigate(visual[visual.length - 1].id);
+				return;
+			}
+			case "PageUp":
+			case "PageDown": {
+				// Windows' lists move the cursor a screen (WIG Ch.5 Table
+				// 5.1, pp.35-36; App. B Table B.1, p.357); the Mac's leave
+				// the key to the scroll area, which pages.
+				if (!pageKeysMove) return;
+				e.preventDefault();
+				navigate(visual[pageRowIndex(e.key, visual, curIndex)].id);
+				return;
+			}
+			case " ": {
+				// Windows' Select key (WIG Ch.5 "Keyboard Selection", p.43;
+				// App. B Table B.2, p.358; comctl32's LISTVIEW_KeySelection):
+				// the cursor row alone, made the anchor; Control (or ⌘)
+				// toggles it in a multi table, Shift extends from the
+				// anchor, and in Add mode it toggles. The Mac's leave Space
+				// to the scroll area.
+				if (!windowsKeys) break;
+				e.preventDefault();
+				const row =
+					curIndex >= 0
+						? visual[curIndex]
+						: (visual.find((r) => effectiveSelected.includes(r.id)) ??
+							visual[0]);
+				const toggle = multi && (addModeRef.current || e.ctrlKey || e.metaKey);
+				moveCursorTo(row.id, {
+					shiftKey: multi && e.shiftKey && anchorId.current !== undefined,
+					metaKey: false,
+					ctrlKey: toggle,
+					addMode: addModeRef.current,
+				});
 				return;
 			}
 			case "ArrowRight": {
 				// Command-Right: expand the cursor row (HIG list-view
-				// equivalent, matching ClassicyTree).
-				if ((e.metaKey || e.ctrlKey) && curIndex >= 0) {
+				// equivalent, matching ClassicyTree); under Windows' tree
+				// keys, a bare Right Arrow (Shift allowed; WIG Ch.7 "Tree
+				// View Controls", pp.123-124).
+				if (
+					(windowsTreeKeys
+						? !e.metaKey && !e.ctrlKey && !e.altKey
+						: e.metaKey || e.ctrlKey) &&
+					curIndex >= 0
+				) {
 					const row = visual[curIndex];
 					if (row.getCanExpand() && !row.getIsExpanded()) {
 						e.preventDefault();
@@ -749,8 +888,14 @@ export function ClassicyTable<T>({
 				return;
 			}
 			case "ArrowLeft": {
-				// Command-Left: collapse it.
-				if ((e.metaKey || e.ctrlKey) && curIndex >= 0) {
+				// Command-Left: collapse it (a bare Left Arrow under Windows'
+				// tree keys).
+				if (
+					(windowsTreeKeys
+						? !e.metaKey && !e.ctrlKey && !e.altKey
+						: e.metaKey || e.ctrlKey) &&
+					curIndex >= 0
+				) {
 					const row = visual[curIndex];
 					if (row.getCanExpand() && row.getIsExpanded()) {
 						e.preventDefault();
@@ -805,11 +950,8 @@ export function ClassicyTable<T>({
 			`${first.accessor(r.original) ?? ""}`.toLowerCase().startsWith(buf),
 		);
 		if (match) {
-			moveCursorTo(match.id, {
-				shiftKey: false,
-				metaKey: false,
-				ctrlKey: false,
-			});
+			// Typing is navigation: in Add mode it moves the cursor alone.
+			moveCursorTo(match.id, NO_MODIFIERS, !addModeRef.current);
 		}
 	};
 
@@ -1159,6 +1301,7 @@ export function ClassicyTable<T>({
 				ref={setContainerRef}
 				tabIndex={tabIndex}
 				onKeyDown={handleKeyDown}
+				data-classicy-selection-mode={addMode ? "add" : undefined}
 				className={classNames(
 					"classicyTableContainer",
 					classicyStateClasses({ inactive }),
@@ -1184,6 +1327,7 @@ export function ClassicyTable<T>({
 			ref={setContainerRef}
 			tabIndex={tabIndex}
 			onKeyDown={handleKeyDown}
+			data-classicy-selection-mode={addMode ? "add" : undefined}
 			head={detachedHeader ?? undefined}
 		>
 			{tableElement}

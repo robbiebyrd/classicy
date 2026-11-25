@@ -772,3 +772,240 @@ describe("ClassicyListBox — the mouse under the Windows layout", () => {
 		expect(chosen()).toEqual(["Alpha"]);
 	});
 });
+
+// Under the Windows 98 layout Page Up and Page Down move a list's
+// selection a screen (`selection.pageKeys` "move", the audit's 5.2 / B.3;
+// WIG Ch.5 Table 5.1, pp.35-36), and a multi list takes Windows' selection
+// keys (`selection.keyboard` "windows", 5.16 / 5.18; pp.43-44): Control, ⌘
+// or Option with a navigation key moves the keyboard row alone, and
+// Shift+F8 toggles Add mode. Without the keys (the tests above, Platinum,
+// System 7) the page keys scroll and the selection follows the keyboard.
+describe("ClassicyListBox — the keyboard under the Windows layout", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+	const useLayout = (selection: Record<string, unknown>) =>
+		registerClassicyAppearancePackage({
+			id: "windows-list-keys",
+			name: "Windows list keys",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-list-keys-default",
+				package: "windows-list-keys",
+			},
+			layout: { ...CLASSICY_DEFAULT_APPEARANCE_LAYOUT, selection },
+		});
+	const ten = Array.from({ length: 10 }, (_, i) => ({
+		value: `v${i}`,
+		label: `${String.fromCharCode(65 + i)} item`,
+	}));
+	const row = (i: number) => screen.getAllByRole("option")[i];
+	const chosen = () =>
+		screen
+			.getAllByRole("option")
+			.filter((o) => o.getAttribute("aria-selected") === "true")
+			.map((o) => o.textContent?.charAt(0));
+	// Rows 20 px tall from y 100 in an 80-px viewport: four rows show,
+	// scrolled `by` rows.
+	const layOut = (container: HTMLElement, by = 0) => {
+		const viewport = container.querySelector(
+			".classicyListBoxViewport",
+		) as HTMLElement;
+		const rect = (top: number, height: number) =>
+			({
+				top,
+				bottom: top + height,
+				left: 0,
+				right: 200,
+				width: 200,
+				height,
+				x: 0,
+				y: top,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		viewport.getBoundingClientRect = () => rect(100, 80);
+		Object.defineProperty(viewport, "clientHeight", {
+			value: 80,
+			configurable: true,
+		});
+		screen.getAllByRole("option").forEach((r, i) => {
+			r.getBoundingClientRect = () => rect(100 + (i - by) * 20, 20);
+		});
+	};
+	// A keydown on the focused row; whether its default was taken.
+	const press = (key: string, init: KeyboardEventInit = {}) =>
+		!fireEvent.keyDown(document.activeElement as HTMLElement, {
+			key,
+			...init,
+		});
+
+	it("selects the last row shown on Page Down, then a page further; Page Up back", () => {
+		useLayout({ pageKeys: "move" });
+		const onChange = vi.fn();
+		const { container } = render(
+			<ClassicyListBox id="lb" options={ten} onChangeFunc={onChange} />,
+		);
+		layOut(container);
+		fireEvent.click(row(1));
+		expect(press("PageDown")).toBe(true);
+		expect(onChange).toHaveBeenLastCalledWith(["v3"]);
+		expect(row(3)).toHaveFocus();
+		press("PageDown");
+		expect(onChange).toHaveBeenLastCalledWith(["v6"]);
+		layOut(container, 3);
+		press("PageUp");
+		expect(onChange).toHaveBeenLastCalledWith(["v3"]);
+		press("PageUp");
+		expect(onChange).toHaveBeenLastCalledWith(["v0"]);
+	});
+
+	it("extends from the anchor with Shift and a page key in a multi list", () => {
+		useLayout({ pageKeys: "move" });
+		const { container } = render(
+			<ClassicyListBox id="lb" options={ten} selectionMode="multi" />,
+		);
+		layOut(container);
+		fireEvent.click(row(1));
+		press("PageDown", { shiftKey: true });
+		expect(chosen()).toEqual(["B", "C", "D"]);
+	});
+
+	it("leaves the page keys to the list's scrolling without the key", () => {
+		const onChange = vi.fn();
+		const { container } = render(
+			<ClassicyListBox id="lb" options={ten} onChangeFunc={onChange} />,
+		);
+		layOut(container);
+		fireEvent.click(row(1));
+		onChange.mockClear();
+		expect(press("PageDown")).toBe(false);
+		expect(press("PageUp")).toBe(false);
+		expect(onChange).not.toHaveBeenCalled();
+		expect(row(1)).toHaveFocus();
+	});
+
+	it("moves the keyboard row alone with Control, ⌘ or Option in a multi list", () => {
+		useLayout({ keyboard: "windows" });
+		const onChange = vi.fn();
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={ten}
+				selectionMode="multi"
+				onChangeFunc={onChange}
+			/>,
+		);
+		fireEvent.click(row(0));
+		onChange.mockClear();
+		expect(press("ArrowDown", { ctrlKey: true })).toBe(true);
+		expect(row(1)).toHaveFocus();
+		press("ArrowDown", { altKey: true });
+		expect(row(2)).toHaveFocus();
+		press("End", { metaKey: true });
+		expect(row(9)).toHaveFocus();
+		press("Home", { ctrlKey: true });
+		expect(row(0)).toHaveFocus();
+		press("ArrowDown", { ctrlKey: true });
+		press("ArrowDown", { ctrlKey: true });
+		expect(onChange).not.toHaveBeenCalled();
+		expect(chosen()).toEqual(["A"]);
+		// Control+Space adds the row (the Select key toggling it).
+		press(" ", { ctrlKey: true });
+		expect(chosen()).toEqual(["A", "C"]);
+		// Shift with a navigation key still extends from the anchor.
+		press("ArrowDown", { shiftKey: true, ctrlKey: true });
+		expect(chosen()).toEqual(["C", "D"]);
+		// A plain key selects again, the selection following it.
+		press("ArrowDown");
+		expect(chosen()).toEqual(["E"]);
+	});
+
+	it("selects with Control and an arrow without the key, or in a single list", () => {
+		const onChange = vi.fn();
+		const { unmount } = render(
+			<ClassicyListBox
+				id="lb"
+				options={ten}
+				selectionMode="multi"
+				onChangeFunc={onChange}
+			/>,
+		);
+		fireEvent.click(row(0));
+		press("ArrowDown", { ctrlKey: true });
+		expect(onChange).toHaveBeenLastCalledWith(["v1"]);
+		unmount();
+		useLayout({ keyboard: "windows" });
+		render(<ClassicyListBox id="lb" options={ten} onChangeFunc={onChange} />);
+		fireEvent.click(row(0));
+		press("ArrowDown", { ctrlKey: true });
+		expect(onChange).toHaveBeenLastCalledWith(["v1"]);
+	});
+
+	it("takes Add mode on Shift+F8: the keys move alone, Space toggles, Shift extends keeping the rest", () => {
+		useLayout({ keyboard: "windows" });
+		render(<ClassicyListBox id="lb" options={ten} selectionMode="multi" />);
+		const listbox = screen.getByRole("listbox");
+		fireEvent.click(row(0));
+		expect(listbox).not.toHaveAttribute("data-classicy-selection-mode");
+		expect(press("F8", { shiftKey: true })).toBe(true);
+		expect(listbox).toHaveAttribute("data-classicy-selection-mode", "add");
+		press("ArrowDown");
+		press("ArrowDown");
+		expect(row(2)).toHaveFocus();
+		expect(chosen()).toEqual(["A"]);
+		// Typing moves the row alone too.
+		press("f");
+		expect(row(5)).toHaveFocus();
+		expect(chosen()).toEqual(["A"]);
+		// Space toggles the row and makes it the anchor.
+		press(" ");
+		expect(chosen()).toEqual(["A", "F"]);
+		press("ArrowDown");
+		press("ArrowDown", { shiftKey: true });
+		expect(chosen()).toEqual(["A", "F", "G", "H"]);
+		press(" ");
+		expect(chosen()).toEqual(["A", "F", "G"]);
+		// Out of Add mode, keeping the selection; the next key replaces it.
+		press("F8", { shiftKey: true });
+		expect(listbox).not.toHaveAttribute("data-classicy-selection-mode");
+		expect(chosen()).toEqual(["A", "F", "G"]);
+		press("ArrowUp");
+		expect(chosen()).toEqual(["G"]);
+	});
+
+	it("takes no Add mode without the key, in a single list or in a check list", () => {
+		const { unmount } = render(
+			<ClassicyListBox id="lb" options={ten} selectionMode="multi" />,
+		);
+		fireEvent.click(row(0));
+		expect(press("F8", { shiftKey: true })).toBe(false);
+		press("ArrowDown");
+		expect(chosen()).toEqual(["B"]);
+		expect(screen.getByRole("listbox")).not.toHaveAttribute(
+			"data-classicy-selection-mode",
+		);
+		unmount();
+		useLayout({ keyboard: "windows" });
+		const single = render(<ClassicyListBox id="lb" options={ten} />);
+		fireEvent.click(row(0));
+		expect(press("F8", { shiftKey: true })).toBe(false);
+		expect(screen.getByRole("listbox")).not.toHaveAttribute(
+			"data-classicy-selection-mode",
+		);
+		single.unmount();
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={ten}
+				selectionMode="multi"
+				checkboxes
+			/>,
+		);
+		fireEvent.click(row(0));
+		expect(press("F8", { shiftKey: true })).toBe(false);
+		expect(screen.getByRole("listbox")).not.toHaveAttribute(
+			"data-classicy-selection-mode",
+		);
+	});
+});

@@ -3848,7 +3848,9 @@
 			"secondaryButton": "select",
 			"selectOn": "press",
 			"dragRange": true,
-			"modifiers": "windows"
+			"modifiers": "windows",
+			"pageKeys": "move",
+			"keyboard": "windows"
 		},
 		"contextMenu": {
 			"openOn": "release"

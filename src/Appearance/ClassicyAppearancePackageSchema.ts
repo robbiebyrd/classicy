@@ -117,6 +117,8 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			selectOn: z.enum(["click", "press"]).optional(),
 			dragRange: z.boolean().optional(),
 			modifiers: z.enum(["mac", "windows"]).optional(),
+			pageKeys: z.enum(["scroll", "move"]).optional(),
+			keyboard: z.enum(["follow", "windows"]).optional(),
 		})
 		.optional(),
 	contextMenu: z

@@ -11,6 +11,7 @@ import {
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 // The Windows-layout package below needs a sound pack registered.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
@@ -1738,5 +1739,290 @@ describe("ClassicyTable — selection by the mouse under the Windows layout", ()
 		moveTo(2);
 		fireEvent.mouseUp(document);
 		expect(selectedIds(plain.container)).toEqual([]);
+	});
+});
+
+// Under the Windows 98 layout Page Up and Page Down move the cursor a
+// screen, selecting as the arrows do (`selection.pageKeys` "move", the
+// audit's 5.2 / B.3; WIG Ch.5 Table 5.1, pp.35-36; comctl32's
+// LISTVIEW_KeyDown), Space is the Select key, Control (⌘, Option) with a
+// navigation key moves the cursor alone and Shift+F8 toggles Add mode
+// (`selection.keyboard` "windows", 5.16 / 5.18; pp.43-44), and the tree
+// rows expand and collapse on the bare Right and Left Arrows (`tree.keys`
+// "windows", B.3). Without the keys (the tests above, Platinum, System 7)
+// the scroll area takes the page keys and Space, and the selection
+// follows the cursor.
+describe("ClassicyTable — the keyboard under the Windows layout", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+	const useLayout = (
+		selection: Record<string, unknown>,
+		tree?: Record<string, unknown>,
+	) =>
+		registerClassicyAppearancePackage({
+			id: "windows-table-keys",
+			name: "Windows table keys",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-table-keys-default",
+				package: "windows-table-keys",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				selection,
+				...(tree ? { tree } : {}),
+			},
+		});
+	type Item = { id: string; name: string };
+	const items: Item[] = Array.from({ length: 10 }, (_, i) => ({
+		id: `i${i}`,
+		name: `${String.fromCharCode(65 + i)} item`,
+	}));
+	const cols: ClassicyTableColumn<Item>[] = [
+		{ id: "name", title: "Name", accessor: (n) => n.name },
+	];
+	const renderTable = (
+		props: Partial<Parameters<typeof ClassicyTable<Item>>[0]> = {},
+	) => {
+		const view = render(
+			<ClassicyTable
+				columns={cols}
+				rows={items}
+				getRowId={(n) => n.id}
+				selectionMode="multi"
+				{...props}
+			/>,
+		);
+		const box = view.container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		return { ...view, box };
+	};
+	const row = (container: HTMLElement, i: number) =>
+		container.querySelector(`tr[data-row-id="i${i}"]`) as HTMLElement;
+	const chosen = (container: HTMLElement) =>
+		[...container.querySelectorAll("tr.classicyTableRow.selected")].map((r) =>
+			r.getAttribute("data-row-id"),
+		);
+	const cursor = (container: HTMLElement) =>
+		container
+			.querySelector("tr.classicyTableRow.focused")
+			?.getAttribute("data-row-id");
+	const key = (box: HTMLElement, k: string, init: KeyboardEventInit = {}) =>
+		!fireEvent.keyDown(box, { key: k, ...init });
+	const rect = (top: number, height: number) =>
+		({
+			top,
+			bottom: top + height,
+			left: 0,
+			right: 300,
+			width: 300,
+			height,
+			x: 0,
+			y: top,
+			toJSON: () => ({}),
+		}) as DOMRect;
+	// Rows 20 px tall from y 100 in an 80-px viewport (four rows show),
+	// scrolled `by` rows; the column titles' bottom at `head`.
+	const layOut = (container: HTMLElement, by = 0, head = 0) => {
+		const viewport = container.querySelector(
+			".classicyScrollAreaViewport",
+		) as HTMLElement;
+		viewport.getBoundingClientRect = () => rect(100, 80);
+		Object.defineProperty(viewport, "clientHeight", {
+			value: 80,
+			configurable: true,
+		});
+		for (let i = 0; i < items.length; i++) {
+			row(container, i).getBoundingClientRect = () =>
+				rect(100 + (i - by) * 20, 20);
+		}
+		const thead = container.querySelector("thead") as HTMLElement;
+		thead.getBoundingClientRect = () => rect(head - 20, 20);
+	};
+
+	it("selects the last row shown on Page Down, then a page further, Page Up back", () => {
+		useLayout({ pageKeys: "move" });
+		const { container, box } = renderTable({ selectionMode: "single" });
+		layOut(container);
+		fireEvent.click(row(container, 1));
+		expect(key(box, "PageDown")).toBe(true);
+		expect(chosen(container)).toEqual(["i3"]);
+		key(box, "PageDown");
+		expect(chosen(container)).toEqual(["i6"]);
+		layOut(container, 3);
+		key(box, "PageUp");
+		expect(chosen(container)).toEqual(["i3"]);
+		key(box, "PageUp");
+		expect(chosen(container)).toEqual(["i0"]);
+	});
+
+	it("extends with Shift, and counts the rows under pinned titles as hidden", () => {
+		useLayout({ pageKeys: "move" });
+		const { container, box } = renderTable();
+		// The titles pinned over the viewport's top 20 px hide row 0.
+		layOut(container, 0, 120);
+		fireEvent.click(row(container, 2));
+		key(box, "PageUp", { shiftKey: true });
+		expect(chosen(container)).toEqual(["i1", "i2"]);
+		// From the first row shown, a page (three rows) less one back.
+		key(box, "PageUp", { shiftKey: true });
+		expect(chosen(container)).toEqual(["i0", "i1", "i2"]);
+	});
+
+	it("leaves the page keys to the scroll area without the key", () => {
+		const { container, box } = renderTable();
+		layOut(container);
+		fireEvent.click(row(container, 1));
+		key(box, "PageDown");
+		key(box, "PageUp");
+		expect(chosen(container)).toEqual(["i1"]);
+		expect(cursor(container)).toBe("i1");
+	});
+
+	it("moves the cursor alone with Control, ⌘ or Option, and selects with Space", () => {
+		useLayout({ keyboard: "windows" });
+		const onSelectionChange = vi.fn();
+		const { container, box } = renderTable({ onSelectionChange });
+		fireEvent.click(row(container, 0));
+		onSelectionChange.mockClear();
+		expect(key(box, "ArrowDown", { ctrlKey: true })).toBe(true);
+		expect(cursor(container)).toBe("i1");
+		key(box, "ArrowDown", { altKey: true });
+		key(box, "End", { metaKey: true });
+		expect(cursor(container)).toBe("i9");
+		key(box, "Home", { ctrlKey: true });
+		key(box, "ArrowDown", { ctrlKey: true });
+		expect(cursor(container)).toBe("i1");
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		expect(chosen(container)).toEqual(["i0"]);
+		// Control+Space toggles the cursor row in; Space alone selects it
+		// alone, and its default is taken (no page scroll).
+		expect(key(box, " ", { ctrlKey: true })).toBe(true);
+		expect(chosen(container)).toEqual(["i0", "i1"]);
+		key(box, "ArrowDown", { ctrlKey: true });
+		key(box, "ArrowDown", { ctrlKey: true });
+		expect(key(box, " ")).toBe(true);
+		expect(chosen(container)).toEqual(["i3"]);
+		// Control+Space takes it out again.
+		key(box, " ", { metaKey: true });
+		expect(chosen(container)).toEqual([]);
+		// Shift with a navigation key extends from the anchor.
+		key(box, " ");
+		key(box, "ArrowUp", { shiftKey: true, ctrlKey: true });
+		expect(chosen(container)).toEqual(["i2", "i3"]);
+	});
+
+	it("selects with Space alone in a single table, where Control still selects", () => {
+		useLayout({ keyboard: "windows" });
+		const { container, box } = renderTable({ selectionMode: "single" });
+		fireEvent.click(row(container, 0));
+		key(box, "ArrowDown", { ctrlKey: true });
+		expect(chosen(container)).toEqual(["i1"]);
+		key(box, " ", { ctrlKey: true });
+		expect(chosen(container)).toEqual(["i1"]);
+	});
+
+	it("leaves Space alone, and Control selecting, without the key", () => {
+		const { container, box } = renderTable();
+		fireEvent.click(row(container, 0));
+		key(box, "ArrowDown", { ctrlKey: true });
+		expect(chosen(container)).toEqual(["i1"]);
+		key(box, "ArrowDown", { altKey: true });
+		key(box, " ", { ctrlKey: true });
+		key(box, " ");
+		expect(chosen(container)).toEqual(["i2"]);
+	});
+
+	it("takes Add mode on Shift+F8: the keys move alone, Space toggles, Shift extends keeping the rest", () => {
+		useLayout({ keyboard: "windows" });
+		const { container, box } = renderTable();
+		fireEvent.click(row(container, 0));
+		expect(box).not.toHaveAttribute("data-classicy-selection-mode");
+		expect(key(box, "F8", { shiftKey: true })).toBe(true);
+		expect(box).toHaveAttribute("data-classicy-selection-mode", "add");
+		key(box, "ArrowDown");
+		key(box, "ArrowDown");
+		expect(cursor(container)).toBe("i2");
+		expect(chosen(container)).toEqual(["i0"]);
+		key(box, "f");
+		expect(cursor(container)).toBe("i5");
+		expect(chosen(container)).toEqual(["i0"]);
+		key(box, " ");
+		expect(chosen(container)).toEqual(["i0", "i5"]);
+		key(box, "ArrowDown");
+		key(box, "ArrowDown", { shiftKey: true });
+		expect(chosen(container)).toEqual(["i0", "i5", "i6", "i7"]);
+		key(box, " ");
+		expect(chosen(container)).toEqual(["i0", "i5", "i6"]);
+		key(box, "F8", { shiftKey: true });
+		expect(box).not.toHaveAttribute("data-classicy-selection-mode");
+		expect(chosen(container)).toEqual(["i0", "i5", "i6"]);
+		key(box, "ArrowUp");
+		expect(chosen(container)).toEqual(["i6"]);
+	});
+
+	it("takes no Add mode without the key, or in a single table", () => {
+		const { container, box, unmount } = renderTable();
+		fireEvent.click(row(container, 0));
+		expect(key(box, "F8", { shiftKey: true })).toBe(false);
+		expect(box).not.toHaveAttribute("data-classicy-selection-mode");
+		unmount();
+		useLayout({ keyboard: "windows" });
+		const single = renderTable({ selectionMode: "single" });
+		fireEvent.click(row(single.container, 0));
+		expect(key(single.box, "F8", { shiftKey: true })).toBe(false);
+		expect(single.box).not.toHaveAttribute("data-classicy-selection-mode");
+	});
+
+	it("publishes Add mode on an unscrolled table's container too", () => {
+		useLayout({ keyboard: "windows" });
+		const { box } = renderTable({ scrollable: false });
+		key(box, "F8", { shiftKey: true });
+		expect(box).toHaveAttribute("data-classicy-selection-mode", "add");
+	});
+
+	type Node = { id: string; name: string; children?: Node[] };
+	const tree: Node[] = [
+		{
+			id: "docs",
+			name: "Documents",
+			children: [{ id: "q1", name: "q1.pdf" }],
+		},
+		{ id: "top", name: "top.pdf" },
+	];
+	const treeCols: ClassicyTableColumn<Node>[] = [
+		{ id: "name", title: "Name", accessor: (n) => n.name },
+	];
+
+	it("expands and collapses a tree row on the bare arrows under Windows' tree keys", () => {
+		useLayout({}, { keys: "windows" });
+		const { container } = render(
+			<ClassicyTable
+				columns={treeCols}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+			/>,
+		);
+		const box = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		fireEvent.click(screen.getByText("Documents"));
+		// The chord gives way to the bare arrows.
+		expect(key(box, "ArrowRight", { metaKey: true })).toBe(false);
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+		expect(key(box, "ArrowRight")).toBe(true);
+		expect(screen.getByText("q1.pdf")).toBeInTheDocument();
+		key(box, "ArrowLeft", { ctrlKey: true });
+		expect(screen.getByText("q1.pdf")).toBeInTheDocument();
+		expect(key(box, "ArrowLeft", { shiftKey: true })).toBe(true);
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+		// A row that cannot expand leaves the key to the scroll area.
+		fireEvent.click(screen.getByText("top.pdf"));
+		key(box, "ArrowRight");
+		expect(screen.queryByText("q1.pdf")).toBeNull();
 	});
 });

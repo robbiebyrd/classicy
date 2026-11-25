@@ -72,7 +72,16 @@ and `nodenext` resolution).
   it, F2 renaming), dialogs and alerts centered on whole pixels,
   so their one-pixel bevels and glyphs stay sharp, trees driven by the bare
   arrow keys as Windows' tree view is (Right expands a folder or goes into
-  it, Left collapses it or goes up to its parent), and help shown as a
+  it, Left collapses it or goes up to its parent, and Ctrl with an arrow,
+  Home, End, Page Up or Page Down scrolls the tree without moving its
+  selection; a list view's folders expand on Right and Left too), lists
+  keyed as Windows' are (Page Up and Page Down moving the selection to the
+  page's last or first row, then a page further; Space selecting a list
+  view's row; in a list that takes several items, Ctrl with an arrow
+  moving the focus rectangle alone, Ctrl+Space then adding or removing that
+  item, and Shift+F8 entering Add mode, where the arrows move the focus
+  alone, Space adds or removes an item and Shift with an arrow extends
+  without losing the rest, until Shift+F8 again), and help shown as a
   ToolTip: once the pointer rests on a control, just below and right of the
   pointer (moved left at the screen's right edge, above the control at its
   bottom), gone when the control is clicked. The mouse follows Windows'

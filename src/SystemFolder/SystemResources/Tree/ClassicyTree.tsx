@@ -20,6 +20,14 @@ import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceL
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import {
+	classicyListPageOf,
+	classicyListScroller,
+	classicyPageKeysMove,
+	classicyScrollListBy,
+	classicyTreeScrollChord,
+	classicyWindowsTreeKeys,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 import {
 	ClassicyTriangle,
@@ -440,6 +448,12 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
  * `selection.selectOn: "press"` (Windows 98; WIG Ch.5 "Selection with the
  * Mouse", pp.37-38) a selectable leaf or branch is chosen at its button-1
  * press, the click ending it choosing nothing more; button 2 never chooses.
+ * Under `selection.pageKeys: "move"` (Windows 98; WIG Ch.5 Table 5.1,
+ * pp.35-36) Page Up and Page Down move the keyboard row to the first or
+ * last row shown, or a page further; under `tree.keys: "windows"` Control
+ * (or ⌘) with an arrow, Home, End, Page Up or Page Down scrolls the tree's
+ * scroller instead of moving or toggling anything, as comctl32's tree view
+ * takes them (`TREEVIEW_ScrollKeyDown`; WIG App. B Table B.1, p.357).
  * Drawn in a window that is not the active one, the root carries the
  * `inactive` state (`ClassicyWindowActiveContext`), as `ClassicyScrollArea`
  * does.
@@ -476,6 +490,18 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	// Roving tabindex + arrow/Home/End/type-select over the visible rows —
 	// see the SharedRowContext comment above for why the active row is kept
 	// separate from `selectedIds`.
+	// Windows' tree view takes the bare arrows along a branch, and scrolls on
+	// the Control chords (`tree.keys`); Mac OS 8's list views took ⌘→ / ⌘←
+	// alone. It chooses a row at the press (`selection.selectOn`), Mac OS
+	// 8's at the click, and moves a page on the page keys
+	// (`selection.pageKeys`), where Mac OS 8's scrolled.
+	const layout = useClassicyAppearanceLayout();
+	const windowsKeys = classicyWindowsTreeKeys(layout);
+	const selectOnPress = classicySelectsOnPress(layout);
+	const pageKeysMove = classicyPageKeysMove(layout);
+	const pressedRef = useRef<string | null>(null);
+
+	const rootRef = useRef<HTMLUListElement>(null);
 	const navRows = useMemo(
 		() => visible.map((r) => ({ id: r.id, label: r.node.label })),
 		[visible],
@@ -487,17 +513,17 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 		registerRef,
 		selectRow,
 		handleNavKey,
-	} = useListNavigation(navRows);
-
-	// Windows' tree view takes the bare arrows along a branch (`tree.keys`);
-	// Mac OS 8's list views took ⌘→ / ⌘← alone. It chooses a row at the
-	// press (`selection.selectOn`), Mac OS 8's at the click.
-	const layout = useClassicyAppearanceLayout();
-	const windowsKeys = layout.tree?.keys === "windows";
-	const selectOnPress = classicySelectsOnPress(layout);
-	const pressedRef = useRef<string | null>(null);
-
-	const rootRef = useRef<HTMLUListElement>(null);
+	} = useListNavigation(
+		navRows,
+		pageKeysMove
+			? {
+					pageRows: () =>
+						classicyListPageOf(
+							rootRef.current?.querySelector(".classicyTreeNodeLabelHolder"),
+						)?.pageRows ?? 1,
+				}
+			: undefined,
+	);
 	// The root's one state: `inactive` while the window it is drawn in is not
 	// the active one (as ClassicyScrollArea reads it; outside a window,
 	// never), so a package can draw the selection as an inactive window's
@@ -566,7 +592,28 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	const handleKeyDown = useCallback(
 		(e: ReactKeyboardEvent<HTMLUListElement>) => {
 			if (visible.length === 0) return;
-			// Arrow/Home/End/type-select are the shared list-navigation keys;
+			// Windows: Control (or ⌘) with a navigation key scrolls the view,
+			// the keyboard row and the selection staying where they are
+			// (TREEVIEW_KeyDown hands every Control key to
+			// TREEVIEW_ScrollKeyDown); so the chords no longer open or close
+			// a branch, which the bare arrows do.
+			if (windowsKeys && (e.ctrlKey || e.metaKey) && !e.altKey) {
+				const scroller = classicyListScroller(rootRef.current);
+				const line = rootRef.current?.querySelector(".classicyTreeNodeRow");
+				const delta = classicyTreeScrollChord(e.key, {
+					rowHeight: line?.getBoundingClientRect().height ?? 0,
+					scrollTop: scroller?.scrollTop ?? 0,
+					scrollHeight: scroller?.scrollHeight ?? 0,
+					clientHeight: scroller?.clientHeight ?? 0,
+				});
+				if (delta) {
+					e.preventDefault();
+					classicyScrollListBy(rootRef.current, delta[0], delta[1]);
+					return;
+				}
+			}
+			// Arrow/Home/End/type-select (and the page keys, under
+			// `pageKeys` "move") are the shared list-navigation keys;
 			// everything after this is tree-specific (expansion, selection).
 			if (handleNavKey(e) !== null) return;
 			const curIndex = activeId

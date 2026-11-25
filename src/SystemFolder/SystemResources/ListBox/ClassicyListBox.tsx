@@ -22,6 +22,14 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import {
+	classicyListPageOf,
+	classicyMovesCursorOnly,
+	classicyPageKeysMove,
+	classicyWindowsSelectionKeys,
+	isClassicyAddModeKey,
+	isClassicyListNavigationKey,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsBarPolicy } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
@@ -115,6 +123,11 @@ type SelectionModifiers = {
 	shiftKey: boolean;
 	metaKey: boolean;
 	ctrlKey: boolean;
+	/**
+	 * A key in Windows' Add mode: Shift with it sets the anchor's range to
+	 * the anchor's state, the other selections staying (WIG Ch.5 p.44).
+	 */
+	addMode?: boolean;
 };
 
 const NO_MODIFIERS: SelectionModifiers = {
@@ -149,6 +162,12 @@ const NO_MODIFIERS: SelectionModifiers = {
  * Control (or ⌘) with Shift set the anchor's range to the anchor's state,
  * keeping the rest of the selection, and hands a double-click's selection
  * to `onActivateSelection`. Button 2 never selects a row.
+ * `selection.pageKeys: "move"` makes Page Up and Page Down select the last
+ * or first row shown, or a page further (WIG Ch.5 Table 5.1, pp.35-36);
+ * `selection.keyboard: "windows"` makes a multi list's Control (⌘, Option)
+ * with a navigation key move the keyboard row alone, and Shift+F8 toggle
+ * Add mode (`data-classicy-selection-mode="add"` on the root), where the
+ * keys move the row alone and Space toggles it (pp.43-44).
  */
 export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	id,
@@ -181,6 +200,30 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	// (non-Shift) selection gesture.
 	const anchorIndex = useRef(-1);
 
+	const rootRef = useRef<HTMLDivElement>(null);
+	// When button 1 selects, whether a drag selects across rows, Windows'
+	// modified clicks, the page keys and Windows' selection keys: the active
+	// package's layout.
+	const layout = useClassicyAppearanceLayout();
+	const selectsOnPress = classicySelectsOnPress(layout);
+	const dragsRange = classicyDragSelectsRange(layout);
+	const windowsModifiers = classicyWindowsSelectionModifiers(layout);
+	const pageKeysMove = classicyPageKeysMove(layout);
+	// Windows' selection keys apply to a multiple selection list; a check
+	// list's keys already move without choosing.
+	const windowsKeys =
+		classicyWindowsSelectionKeys(layout) &&
+		selectionMode === "multi" &&
+		!checkList;
+	// Windows' Add mode (Shift+F8; WIG Ch.5 "Disjoint Selection", p.44):
+	// the navigation keys move the keyboard row alone and Space toggles it,
+	// until Shift+F8 again. Only under `windowsKeys`; the ref is what a key
+	// reads, the state what the root publishes.
+	const [addModeOn, setAddModeOn] = useState(false);
+	const addMode = windowsKeys && addModeOn;
+	const addModeRef = useRef(addMode);
+	addModeRef.current = addMode;
+
 	const navRows = useMemo(
 		() => options.map((o) => ({ id: o.value, label: o.label })),
 		[options],
@@ -192,16 +235,19 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 		registerRef,
 		selectRow,
 		handleNavKey,
-	} = useListNavigation(navRows);
+	} = useListNavigation(
+		navRows,
+		pageKeysMove
+			? {
+					pageRows: () =>
+						classicyListPageOf(
+							rootRef.current?.querySelector('[role="option"]'),
+						)?.pageRows ?? 1,
+				}
+			: undefined,
+	);
 
-	const rootRef = useRef<HTMLDivElement>(null);
 	const appearance = useClassicyAppearance("ListBox", { disabled }, rootRef);
-	// When button 1 selects, whether a drag selects across rows, and
-	// Windows' modified clicks: the active package's layout.
-	const layout = useClassicyAppearanceLayout();
-	const selectsOnPress = classicySelectsOnPress(layout);
-	const dragsRange = classicyDragSelectsRange(layout);
-	const windowsModifiers = classicyWindowsSelectionModifiers(layout);
 	// The row a button-1 press last landed on under `selectOn: "press"`, and
 	// whether it left the selection for the click to reset (a plain press
 	// on a selected row of a multi list). The click ending it reads this.
@@ -248,11 +294,12 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 			// Ch.5 "Selection Adjustment", p.39): the other selections stay,
 			// and the anchor's range takes the anchor's state; the anchor
 			// stays where it is.
+			// Shift in Windows' Add mode does the same (p.44).
 			if (
 				!checkList &&
-				windowsModifiers &&
 				mods.shiftKey &&
-				(mods.metaKey || mods.ctrlKey) &&
+				((windowsModifiers && (mods.metaKey || mods.ctrlKey)) ||
+					mods.addMode) &&
 				anchorIndex.current >= 0
 			) {
 				const anchorValue = options[anchorIndex.current]?.value;
@@ -396,10 +443,29 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 
 	const handleKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
 		if (disabled) return;
+		// Windows' Add mode key (WIG Ch.5 "Disjoint Selection", p.44;
+		// fn+Shift+F8 on a Mac laptop): in, and out keeping the selection.
+		if (windowsKeys && isClassicyAddModeKey(e)) {
+			e.preventDefault();
+			setAddModeOn(!addModeRef.current);
+			addModeRef.current = !addModeRef.current;
+			return;
+		}
 		const navId = handleNavKey(e);
 		if (navId !== null) {
 			// A check list's keys move the keyboard row alone (Space toggles).
 			if (checkList) return;
+			// Under Windows' selection keys, Control (⌘, Option) with a
+			// navigation key, and any navigation in Add mode, moves the
+			// keyboard row alone (pp.43-44); Shift still extends.
+			if (
+				windowsKeys &&
+				!e.shiftKey &&
+				(addModeRef.current ||
+					(isClassicyListNavigationKey(e.key) && classicyMovesCursorOnly(e)))
+			) {
+				return;
+			}
 			// Platinum lists move the selection with the keyboard; Shift-arrows
 			// extend the range in multi mode.
 			applySelection(
@@ -408,6 +474,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 					shiftKey: e.shiftKey && selectionMode === "multi",
 					metaKey: false,
 					ctrlKey: false,
+					addMode: addModeRef.current,
 				},
 			);
 			return;
@@ -421,7 +488,20 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 				if (!option.disabled) onActivateFunc(option.value);
 				return;
 			}
-			applySelection(index, e);
+			// In Add mode Space toggles the row and makes it the anchor, as
+			// Control+Space does (p.44); Shift+Space sets the anchor's range
+			// to its state, keeping the rest.
+			applySelection(
+				index,
+				addModeRef.current
+					? {
+							shiftKey: e.shiftKey && anchorIndex.current >= 0,
+							metaKey: false,
+							ctrlKey: true,
+							addMode: true,
+						}
+					: e,
+			);
 		}
 	};
 
@@ -439,6 +519,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 			aria-multiselectable={selectionMode === "multi" || undefined}
 			aria-label={label}
 			aria-disabled={disabled || undefined}
+			data-classicy-selection-mode={addMode ? "add" : undefined}
 			className={classNames(
 				"classicyListBox",
 				checkList ? "classicyListBoxCheckboxes" : "",

@@ -285,7 +285,8 @@ describe("ClassicyAppearancePackageSchema", () => {
 
 	// The mouse conventions (the WIG audit's 5.6, 5.7, 4.8-4.10, 1.18, and
 	// 5.3, 5.5, 5.9 and A.9's `selection.selectOn`, `dragRange` and
-	// `modifiers`): `selection.secondaryButton`, `contextMenu.openOn` and
+	// `modifiers`, and 5.2, 5.16, 5.18 and B.3's `selection.pageKeys` and
+	// `keyboard`): `selection.secondaryButton`, `contextMenu.openOn` and
 	// `input.escapeCancels` optional groups with optional keys, `mouse` a
 	// top-level keyword, each kept as given.
 	it("takes optional selection, contextMenu, mouse and input, and refuses another value", () => {
@@ -296,6 +297,8 @@ describe("ClassicyAppearancePackageSchema", () => {
 			selectOn: "press",
 			dragRange: true,
 			modifiers: "windows",
+			pageKeys: "move",
+			keyboard: "windows",
 		};
 		layout.contextMenu = { openOn: "release" };
 		layout.mouse = "windows";
@@ -307,6 +310,8 @@ describe("ClassicyAppearancePackageSchema", () => {
 			selectOn: "press",
 			dragRange: true,
 			modifiers: "windows",
+			pageKeys: "move",
+			keyboard: "windows",
 		});
 		expect(result.data?.layout.contextMenu).toEqual({ openOn: "release" });
 		expect(result.data?.layout.mouse).toBe("windows");
@@ -317,6 +322,8 @@ describe("ClassicyAppearancePackageSchema", () => {
 			["selection", { selectOn: "click" }],
 			["selection", { dragRange: false }],
 			["selection", { modifiers: "mac" }],
+			["selection", { pageKeys: "scroll" }],
+			["selection", { keyboard: "follow" }],
 			["contextMenu", {}],
 			["contextMenu", { openOn: "event" }],
 			["mouse", "mac"],
@@ -334,6 +341,8 @@ describe("ClassicyAppearancePackageSchema", () => {
 			["selection", "selectOn", "release"],
 			["selection", "dragRange", "yes"],
 			["selection", "modifiers", "linux"],
+			["selection", "pageKeys", "jump"],
+			["selection", "keyboard", "mac"],
 			["contextMenu", "openOn", "press"],
 			["input", "escapeCancels", "yes"],
 		]) {

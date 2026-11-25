@@ -339,8 +339,8 @@ export type ClassicyAppearanceLayout = {
 		foldersFirst?: boolean;
 	};
 	/**
-	 * How the keyboard drives a tree (`ClassicyTree`). Optional, as is each
-	 * key.
+	 * How the keyboard drives a tree (`ClassicyTree`, and a table's tree
+	 * rows). Optional, as is each key.
 	 */
 	tree?: {
 		/**
@@ -351,8 +351,17 @@ export type ClassicyAppearanceLayout = {
 		 * Controls", pp.123-124; comctl32's tree view): a bare Right Arrow
 		 * expands a closed branch, or moves to the first child of an open
 		 * one; a bare Left Arrow collapses an open branch, or moves to the
-		 * parent of a closed branch or a leaf. The modifier chords keep
-		 * working under either.
+		 * parent of a closed branch or a leaf. Under `"windows"` the chords
+		 * scroll instead, as comctl32's tree view takes them
+		 * (`TREEVIEW_ScrollKeyDown`; WIG App. B Table B.1, p.357): Control
+		 * (or ⌘) with Up or Down scrolls the tree's scroller one row, with
+		 * Left or Right a row's height sideways, with Page Up or Page Down a
+		 * page, and with Home or End to its top or bottom, the keyboard row
+		 * and the selection staying where they are. A table's tree rows
+		 * (`ClassicyTable` with `getSubRows`, the Finder's list view) follow
+		 * the same key: ⌘→ / ⌘← (or Control) expand and collapse the
+		 * keyboard row under `"mac"`, a bare Right and Left Arrow under
+		 * `"windows"`.
 		 */
 		keys?: "mac" | "windows";
 	};
@@ -379,7 +388,8 @@ export type ClassicyAppearanceLayout = {
 		placement?: "anchor" | "pointer";
 	};
 	/**
-	 * What the mouse's buttons do to a selection. Optional, as is each key.
+	 * What the mouse's buttons and the keyboard do to a selection.
+	 * Optional, as is each key.
 	 */
 	selection?: {
 		/**
@@ -450,6 +460,46 @@ export type ClassicyAppearanceLayout = {
 		 * Finder opens every selected item), where one is given.
 		 */
 		modifiers?: "mac" | "windows";
+		/**
+		 * What Page Up and Page Down do in a list box (`ClassicyListBox`), a
+		 * table (`ClassicyTable`, the Finder's list view) or a tree
+		 * (`ClassicyTree`). `"scroll"` (the default, Mac OS 8's lists): they
+		 * scroll the list a page (a scrolling table's or list box's scroll
+		 * area, else the browser), the keyboard row and the selection staying
+		 * where they are. `"move"` (Windows; WIG Ch.5 "Basic Navigation
+		 * Keys", Table 5.1, pp.35-36, "Down one screen (next screen, same
+		 * position)"; App. B Table B.1, p.357): they move the keyboard row to
+		 * the last (Page Down) or first (Page Up) row wholly shown, or, when
+		 * it is there already, a page further, one row fewer than the list
+		 * shows (comctl32's list view, `LISTVIEW_KeyDown`; user32's list box
+		 * steps the same page less one), the list scrolling only as far as
+		 * the row needs. A list box and a table select the row it reaches as
+		 * their arrows do (Shift extends from the anchor); a tree moves its
+		 * keyboard row alone, as its arrows do.
+		 */
+		pageKeys?: "scroll" | "move";
+		/**
+		 * How the keyboard builds a multiple selection list box's
+		 * (`ClassicyListBox`, not a check list) or a table's (`ClassicyTable`)
+		 * selection. `"follow"` (the default, Mac OS 8's lists): the
+		 * selection follows the keyboard row (Shift extends), and a table
+		 * leaves Space to its scroll area, which pages. `"windows"` (WIG
+		 * Ch.5 "Keyboard Selection", p.43, "Disjoint Selection", pp.43-44;
+		 * App. B Table B.2, p.358; comctl32's `LISTVIEW_KeySelection`):
+		 * Space selects a table's keyboard row alone and makes it the anchor,
+		 * and Control (or ⌘) with Space toggles it in a multiple selection
+		 * table, as a list box's Space already does; in a multiple selection
+		 * list box or table, Control, ⌘ or Option with an arrow, Home, End,
+		 * Page Up or Page Down moves the keyboard row without selecting
+		 * (macOS takes Control and the arrows for Spaces); and Shift+F8
+		 * toggles Add mode, published as `data-classicy-selection-mode="add"`
+		 * on the list's root, in which the navigation keys move the keyboard
+		 * row alone, Space toggles the row and makes it the anchor, and Shift
+		 * with a navigation key sets the anchor's range to the anchor's
+		 * state, the other selections staying. Leaving Add mode keeps the
+		 * selection; the next plain click or navigation key replaces it.
+		 */
+		keyboard?: "follow" | "windows";
 	};
 	/**
 	 * When a contextual menu opens (`ClassicyContextualMenuProvider`).

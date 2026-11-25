@@ -1,10 +1,17 @@
 // The Windows-layout package below needs a sound pack registered: Platinum's.
 import "@classicy/appearance-platinum";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import {
 	ClassicyTree,
 	type ClassicyTreeNode,
@@ -489,7 +496,7 @@ describe("ClassicyTree — the bare arrows along a branch (layout.tree.keys)", (
 		expect(onToggleNode).toHaveBeenCalledTimes(1);
 	});
 
-	it("keeps a dimmed branch closed, and the chords and Alt as before", async () => {
+	it("keeps a dimmed branch closed, the chords to the scroll, and Alt as before", async () => {
 		activePackage.id = "windows-trees";
 		const user = userEvent.setup();
 		const onToggleNode = vi.fn();
@@ -498,11 +505,17 @@ describe("ClassicyTree — the bare arrows along a branch (layout.tree.keys)", (
 		await user.keyboard("{ArrowRight}");
 		expect(screen.queryByText("Inside")).not.toBeInTheDocument();
 		expect(onToggleNode).not.toHaveBeenCalled();
-		// ⌘→ still opens, ⌘← still closes.
+		// ⌘→ and ⌘← give way to the bare arrows: they scroll sideways
+		// (TREEVIEW_ScrollKeyDown), opening and closing nothing.
 		row("Drive").focus();
 		await user.keyboard("{Meta>}{ArrowRight}{/Meta}");
+		expect(screen.queryByText("Folder")).not.toBeInTheDocument();
+		await user.keyboard("{ArrowRight}");
 		expect(screen.getByText("Folder")).toBeInTheDocument();
-		await user.keyboard("{Meta>}{ArrowLeft}{/Meta}");
+		await user.keyboard("{Control>}{ArrowLeft}{/Control}");
+		expect(screen.getByText("Folder")).toBeInTheDocument();
+		expect(row("Drive")).toHaveFocus();
+		await user.keyboard("{ArrowLeft}");
 		expect(screen.queryByText("Folder")).not.toBeInTheDocument();
 		// The tree takes a bare arrow's default (no sideways scroll); Alt and
 		// an arrow stay the browser's.
@@ -645,5 +658,169 @@ describe("ClassicyTree — chosen at the press (layout.selection.selectOn)", () 
 		fireEvent.click(holder("Pick"), { detail: 1 });
 		expect(onSelectNode.mock.calls.map((c) => c[0])).toEqual(["leaf", "pick"]);
 		expect(onSelectNode.mock.calls[0][2].type).toBe("click");
+	});
+});
+
+// Under the Windows 98 layout Page Up and Page Down move the keyboard row a
+// screen (`selection.pageKeys` "move", the audit's 5.2 / B.3; WIG Ch.5
+// Table 5.1, pp.35-36), and Control (or ⌘) with a navigation key scrolls
+// the tree without moving the keyboard row or the selection (`tree.keys`
+// "windows", B.3; App. B Table B.1, p.357; comctl32's
+// TREEVIEW_ScrollKeyDown). Platinum's default layout leaves the page keys
+// to the browser and takes the chords as moves.
+describe("ClassicyTree — the page keys and the scroll chords", () => {
+	const twelve: ClassicyTreeNode[] = Array.from({ length: 12 }, (_, i) => ({
+		id: `n${i}`,
+		label: `${String.fromCharCode(65 + i)} node`,
+	}));
+	const holders = () =>
+		Array.from(
+			document.querySelectorAll<HTMLElement>(".classicyTreeNodeLabelHolder"),
+		);
+	const rect = (top: number, height: number, left = 0) =>
+		({
+			top,
+			bottom: top + height,
+			left,
+			right: left + 200,
+			width: 200,
+			height,
+			x: left,
+			y: top,
+			toJSON: () => ({}),
+		}) as DOMRect;
+	// The tree in a scroll area: its rows 20 px tall from y 100, scrolled
+	// `by` rows, in an 80-px viewport 300 px of content tall.
+	const renderInArea = (props: Partial<Parameters<typeof ClassicyTree>[0]>) => {
+		const onSelectNode = vi.fn();
+		const onToggleNode = vi.fn();
+		const view = render(
+			<ClassicyScrollArea>
+				<ClassicyTree
+					nodes={twelve}
+					selectionMode="single"
+					selectedIds={["n1"]}
+					onSelectNode={onSelectNode}
+					onToggleNode={onToggleNode}
+					{...props}
+				/>
+			</ClassicyScrollArea>,
+		);
+		const viewport = view.container.querySelector(
+			".classicyScrollAreaViewport",
+		) as HTMLElement;
+		viewport.getBoundingClientRect = () => rect(100, 80);
+		for (const [name, value] of [
+			["clientHeight", 80],
+			["clientWidth", 200],
+			["scrollHeight", 300],
+		] as const)
+			Object.defineProperty(viewport, name, { value, configurable: true });
+		const place = (by: number) =>
+			holders().forEach((h, i) => {
+				h.getBoundingClientRect = () => rect(100 + (i - by) * 20, 20);
+				const line = h.closest(".classicyTreeNodeRow") as HTMLElement;
+				line.getBoundingClientRect = () => rect(100 + (i - by) * 20, 20);
+			});
+		place(0);
+		return { ...view, viewport, place, onSelectNode, onToggleNode };
+	};
+	const focusRow = (i: number) => act(() => holders()[i].focus());
+	const press = (key: string, init: KeyboardEventInit = {}) =>
+		!fireEvent.keyDown(document.activeElement as HTMLElement, {
+			key,
+			...init,
+		});
+
+	it("moves the keyboard row to the page's edge, then a page further, under pageKeys", () => {
+		activePackage.id = "windows-trees";
+		const { place, onSelectNode } = renderInArea({});
+		focusRow(1);
+		expect(press("PageDown")).toBe(true);
+		expect(holders()[3]).toHaveFocus();
+		press("PageDown");
+		expect(holders()[6]).toHaveFocus();
+		place(3);
+		press("PageUp");
+		expect(holders()[3]).toHaveFocus();
+		press("PageUp");
+		expect(holders()[0]).toHaveFocus();
+		// The keyboard row moves alone, as the tree's arrows do.
+		expect(onSelectNode).not.toHaveBeenCalled();
+	});
+
+	it("leaves the page keys to the browser under the Mac layout", () => {
+		renderInArea({});
+		focusRow(1);
+		expect(press("PageDown")).toBe(false);
+		expect(press("PageUp")).toBe(false);
+		expect(holders()[1]).toHaveFocus();
+	});
+
+	it("scrolls on Control or ⌘ with a navigation key, keeping the keyboard row and the selection", () => {
+		activePackage.id = "windows-trees";
+		const { viewport, onSelectNode, onToggleNode } = renderInArea({
+			nodes: [
+				{
+					id: "folder",
+					label: "Folder",
+					children: [{ id: "inner", label: "Inner" }],
+				},
+				...twelve,
+			],
+		});
+		focusRow(1);
+		expect(press("ArrowDown", { ctrlKey: true })).toBe(true);
+		expect(viewport.scrollTop).toBe(20);
+		press("ArrowDown", { metaKey: true });
+		expect(viewport.scrollTop).toBe(40);
+		press("ArrowUp", { ctrlKey: true });
+		expect(viewport.scrollTop).toBe(20);
+		// A page: the viewport's four whole rows.
+		press("PageDown", { ctrlKey: true });
+		expect(viewport.scrollTop).toBe(100);
+		press("Home", { ctrlKey: true });
+		expect(viewport.scrollTop).toBe(0);
+		press("End", { ctrlKey: true });
+		expect(viewport.scrollTop).toBe(220);
+		press("PageUp", { ctrlKey: true });
+		expect(viewport.scrollTop).toBe(140);
+		expect(holders()[1]).toHaveFocus();
+		// Left and Right a row's height sideways, opening nothing.
+		focusRow(0);
+		press("ArrowRight", { ctrlKey: true });
+		expect(viewport.scrollLeft).toBe(20);
+		press("ArrowLeft", { metaKey: true });
+		expect(viewport.scrollLeft).toBe(0);
+		expect(screen.queryByText("Inner")).not.toBeInTheDocument();
+		expect(onToggleNode).not.toHaveBeenCalled();
+		expect(onSelectNode).not.toHaveBeenCalled();
+		expect(holders()[0]).toHaveFocus();
+	});
+
+	it("scrolls an ancestor that is no scroll area's", () => {
+		activePackage.id = "windows-trees";
+		render(
+			<div data-testid="scroller" style={{ overflowY: "auto" }}>
+				<ClassicyTree nodes={twelve} />
+			</div>,
+		);
+		const scroller = screen.getByTestId("scroller");
+		const line = document.querySelector(".classicyTreeNodeRow") as HTMLElement;
+		line.getBoundingClientRect = () => rect(0, 18);
+		focusRow(2);
+		press("ArrowDown", { ctrlKey: true });
+		expect(scroller.scrollTop).toBe(18);
+		expect(holders()[2]).toHaveFocus();
+	});
+
+	it("moves the keyboard row on Control and an arrow under the Mac layout", () => {
+		const { viewport } = renderInArea({});
+		focusRow(1);
+		press("ArrowDown", { ctrlKey: true });
+		expect(holders()[2]).toHaveFocus();
+		expect(viewport.scrollTop).toBe(0);
+		press("Home", { ctrlKey: true });
+		expect(holders()[0]).toHaveFocus();
 	});
 });
