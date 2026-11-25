@@ -9,15 +9,23 @@ import type { FC, ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 const KEY = "classicyDesktopState";
+const OWNER_KEY = "classicyStorybookDesktopStateOwner";
+/** The test story under Platinum's defaults, as the decorator names it. */
+const OWNER = JSON.stringify(["test--story", "platinum", "default"]);
 
 /**
  * A page loaded anew, as a reload loads it: localStorage holding `saved`
  * when the store is created, then Platinum and the decorator, in
  * preview.tsx's order.
  */
-const loadPage = async (saved?: string | null) => {
-	if (saved) localStorage.setItem(KEY, saved);
-	else localStorage.removeItem(KEY);
+const loadPage = async (saved?: string | null, owner = OWNER) => {
+	if (saved) {
+		localStorage.setItem(KEY, saved);
+		localStorage.setItem(OWNER_KEY, owner);
+	} else {
+		localStorage.removeItem(KEY);
+		localStorage.removeItem(OWNER_KEY);
+	}
 	vi.resetModules();
 	await import("@classicy/appearance-platinum");
 	const { withClassicy } = await import("./ClassicyDecorators");
@@ -95,9 +103,12 @@ describe("a Storybook story that keeps its desktop state", () => {
 		const { unmount } = await page.show(KEEPS);
 		page.turnBalloonHelpOff();
 		expect(await savedBalloonHelpOff()).toBe(true);
+		// Saved for this story, under this package and theme.
+		expect(localStorage.getItem(OWNER_KEY)).toBe(OWNER);
 		act(() => unmount());
 		// Gone, and the store is the defaults again for the next story.
 		expect(localStorage.getItem(KEY)).toBeNull();
+		expect(localStorage.getItem(OWNER_KEY)).toBeNull();
 		expect(page.balloonHelpOff()).toBe(false);
 		page.turnBalloonHelpOff();
 		await new Promise((resolve) => setTimeout(resolve, 800));
@@ -118,6 +129,21 @@ describe("a Storybook story that keeps its desktop state", () => {
 		});
 		expect(await savedBalloonHelpOff()).toBe(false);
 	}, 60000);
+
+	it.each([
+		["another story", JSON.stringify(["other--story", "platinum", "default"])],
+		["another package", JSON.stringify(["test--story", "system7", "system7"])],
+		["another theme", JSON.stringify(["test--story", "platinum", "azul"])],
+	])(
+		"is not drawn for %s: the story starts from the defaults",
+		async (_, owner) => {
+			const page = await loadPage(SAVED, owner);
+			await page.show(KEEPS);
+			expect(page.offAtFirstDraw()).toBe(false);
+			expect(page.balloonHelpOff()).toBe(false);
+		},
+		60000,
+	);
 
 	it.each([
 		["a desktop story", { desktop: true, controlStrip: false }],

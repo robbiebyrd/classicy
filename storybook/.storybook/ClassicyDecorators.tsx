@@ -30,6 +30,7 @@ import {
 } from "./StorybookPackages";
 import {
 	claimClassicyStorybookLoadedState,
+	classicyStorybookSavedStateOwner,
 	keepClassicyStorybookDesktopSaved,
 } from "./StorybookSavedDesktop";
 
@@ -57,17 +58,20 @@ const ClassicyDesktopFrame = ({
 	themeId: string;
 	controlStrip: boolean;
 	appearancePackage?: string;
-	/** `parameters.classicy.persistence`: the desktop state is kept across a
-	 * reload, as a host's page keeps it. */
-	persistence: boolean;
+	/** With `parameters.classicy.persistence`, whom the desktop state is kept
+	 * for across a reload, as a host's page keeps it (the story, package and
+	 * theme: `classicyStorybookSavedStateOwner`). */
+	persistence?: string;
 	children: ReactNode;
 }) => {
 	const [ready, setReady] = useState(false);
 
 	useLayoutEffect(() => {
 		// A story that keeps its desktop state draws the state this page
-		// loaded, as a host's page draws it; otherwise the defaults.
-		const restored = persistence && claimClassicyStorybookLoadedState();
+		// loaded for it, as a host's page draws it; otherwise the defaults.
+		const restored =
+			persistence !== undefined &&
+			claimClassicyStorybookLoadedState(persistence);
 		if (!restored) resetClassicyStore(themeId);
 		// After the reset, which would otherwise wipe it: the switch sets
 		// Appearance.packageId and activates the package's defaults (so
@@ -84,9 +88,10 @@ const ClassicyDesktopFrame = ({
 			if (theme !== currentThemeId())
 				dispatch({ type: "ClassicyDesktopChangeTheme", activeTheme: theme });
 		}
-		const stopSaving = persistence
-			? keepClassicyStorybookDesktopSaved()
-			: undefined;
+		const stopSaving =
+			persistence !== undefined
+				? keepClassicyStorybookDesktopSaved(persistence)
+				: undefined;
 		setReady(true);
 		// The store outlives the story: put the default package back when a
 		// story that switched leaves, so the next non-desktop story (whose
@@ -94,7 +99,8 @@ const ClassicyDesktopFrame = ({
 		// defaults when one that kept its state leaves.
 		return () => {
 			stopSaving?.();
-			if (appearancePackage || persistence) resetClassicyStore(themeId);
+			if (appearancePackage || persistence !== undefined)
+				resetClassicyStore(themeId);
 		};
 	}, [themeId, appearancePackage, persistence]);
 
@@ -326,7 +332,11 @@ const ClassicyStory = ({
 					// Stories that mount their own strip set `controlStrip: false`.
 					controlStrip={context.parameters.classicy?.controlStrip ?? true}
 					appearancePackage={appearancePackage}
-					persistence={context.parameters.classicy?.persistence === true}
+					persistence={
+						context.parameters.classicy?.persistence === true
+							? classicyStorybookSavedStateOwner(context.id, packageId, themeId)
+							: undefined
+					}
 				>
 					<Story />
 				</ClassicyDesktopFrame>
