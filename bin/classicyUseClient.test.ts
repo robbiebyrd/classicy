@@ -10,6 +10,7 @@ import {
 	classicyUseClientPlugin,
 	findClassicyNoUseClientProblems,
 	findClassicyUseClientProblems,
+	hasClassicyUseClientDirective,
 } from "./classicyUseClient";
 
 // A library built as the three packages build theirs (lib mode, UMD and ES,
@@ -144,4 +145,86 @@ describe("findClassicyNoUseClientProblems", () => {
 		expect(
 			findClassicyNoUseClientProblems("dist/appearance-x.es.js", null),
 		).toEqual(["dist/appearance-x.es.js: missing"]));
+});
+
+// The directive prologue, read by hand in one pass (CodeQL alert 51,
+// js/redos: the regular expression it replaced backtracked exponentially).
+describe("hasClassicyUseClientDirective", () => {
+	it.each([
+		["the directive alone", '"use client"'],
+		["the directive with its semicolon", '"use client";\nimport"react";'],
+		["single quotes", "'use client'"],
+		["whitespace ahead of it", ' \t\r\n\v\f"use client";'],
+		["a byte order mark ahead of it", '﻿"use client";'],
+		["a block comment ahead of it", '/* a */"use client";'],
+		["a legal comment ahead of it", '/*! (c) x */\n"use client";'],
+		["an empty block comment", '/**/"use client";'],
+		["a block comment over lines", '/*\n * a\n */\n"use client";'],
+		["a line comment ahead of it", '// a\n"use client";'],
+		["a line comment ending in a carriage return", '// a\r\n"use client";'],
+		["another directive ahead of it", '"use strict";"use client";'],
+		["another directive with no semicolon", '"use strict"\n"use client"'],
+		[
+			"another directive, then whitespace and its semicolon",
+			"'a' \n ;'use client'",
+		],
+		["an empty directive ahead of it", '"";"use client";'],
+		["a directive that only starts like it", '"use clientx";"use client";'],
+		[
+			"everything at once",
+			'﻿/*! x */\n// y\n"use strict";\n/* z */ \'b\' ;\n"use client";',
+		],
+	])("finds %s", (_name, source) =>
+		expect(hasClassicyUseClientDirective(source)).toBe(true));
+
+	it.each([
+		["nothing", ""],
+		["whitespace only", " \n\t"],
+		["no directive", 'import "react";\n'],
+		["code ahead of it", 'import"react";"use client";'],
+		["its text in an expression later on", 'const s = "use client";'],
+		["a block comment that never ends", '/* "use client";'],
+		["the directive inside a block comment", '/* "use client"; */'],
+		["text after the first */ of a comment", '/* a */ b */ "use client";'],
+		["a line comment that never ends", '// "use client";'],
+		["the directive inside a line comment", '// "use client";\n'],
+		["mismatched quotes", "'use client\";"],
+		["a directive left open", '"use strict\n"use client";'],
+		["a directive with an escape ahead of it", '"a\\"b";"use client";'],
+		["a directive holding the other quote", '"it\'s";"use client";'],
+		["two semicolons after a directive", '"a";;"use client";'],
+		["a lone slash", '/ "use client";'],
+	])("finds none in %s", (_name, source) =>
+		expect(hasClassicyUseClientDirective(source)).toBe(false));
+
+	// The alert's input: "/*" and many "*//". The old expression's time grew
+	// exponentially with the repetitions (1.2 s at 40 in Node 24, and 2.1 s
+	// for 28 "*//*" before a "!"); one pass reads 50,000 at once.
+	it.each([
+		["the alert's input", `/*${"*//".repeat(50_000)}`],
+		[
+			"the alert's input, the directive after",
+			`/*${"*//".repeat(50_000)}\n"use client";`,
+		],
+		["block comments back to back", `${"/**/".repeat(50_000)}"use client";`],
+		["a block comment that never ends", `/*${"* /".repeat(50_000)}`],
+		["the old expression's slowest shape", `/*${"*//*".repeat(50_000)}!`],
+		["directives back to back", `${'"a";'.repeat(50_000)}"use client";`],
+	])("reads %s at once", (_name, source) => {
+		const start = performance.now();
+		hasClassicyUseClientDirective(source);
+		expect(performance.now() - start).toBeLessThan(50);
+	});
+
+	it("reads the alert's input as Node does: no directive in it", () => {
+		expect(hasClassicyUseClientDirective(`/*${"*//".repeat(50_000)}`)).toBe(
+			false,
+		);
+		expect(
+			hasClassicyUseClientDirective(`${"/**/".repeat(50_000)}"use client";`),
+		).toBe(true);
+		expect(
+			hasClassicyUseClientDirective(`${'"a";'.repeat(50_000)}"use client";`),
+		).toBe(true);
+	});
 });

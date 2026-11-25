@@ -16,6 +16,7 @@ import {
 	classicyCommonJsDeclarationFile,
 } from "./classicyCommonJsDeclarations";
 import { CLASSICY_DEFLATE_MARK } from "./classicyDeflateAsset";
+import { escapeClassicyRegExp } from "./classicyRegExpEscape";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
 // The real bin/check-dist-imports.mjs, run in
@@ -105,7 +106,7 @@ describe("check-dist-imports.mjs invariant 7: no package CSS in the core (named 
 		expect(stderr.trim().split("\n")).toEqual([
 			expect.stringMatching(
 				new RegExp(
-					`^${join("fx", "pdf-DcHjwfzs\\.js")}: .*${PACKAGE_FREE.source}`,
+					`^${escapeClassicyRegExp(join("fx", "pdf-DcHjwfzs.js"))}: .*${PACKAGE_FREE.source}`,
 				),
 			),
 		]);
@@ -197,7 +198,7 @@ describe("check-dist-imports.mjs invariant 9: stylesheet charset (named files)",
 		const { status, stderr } = check({}, { [FILE]: '.a::before{content:"✓"}' });
 		expect(status).toBe(1);
 		expect(stderr.trim()).toMatch(
-			new RegExp(`^${FILE.replace(".", "\\.")}: non-ASCII byte at offset 20`),
+			new RegExp(`^${escapeClassicyRegExp(FILE)}: non-ASCII byte at offset 20`),
 		);
 	});
 });
@@ -227,7 +228,7 @@ describe("check-dist-imports.mjs invariant 15: the browser floor's CSS math (nam
 		expect(status).toBe(1);
 		expect(stderr.trim()).toMatch(
 			new RegExp(
-				`^${FILE.replace(".", "\\.")}: \`left: round\\(50% - 6px,1px\\)\` in \`\\.a\` calls round\\(\\)`,
+				`^${escapeClassicyRegExp(FILE)}: \`left: round\\(50% - 6px,1px\\)\` in \`\\.a\` calls round\\(\\)`,
 			),
 		);
 	});
@@ -884,7 +885,7 @@ describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole
 		).toEqual([
 			expect.stringMatching(
 				new RegExp(
-					`^${UMD.replaceAll(".", "\\.")}: carries a deflated pdf.js worker that does not inflate \\(.+\\) -> check classicyDeflateAssetPlugin in vite.config.ts\\.$`,
+					`^${escapeClassicyRegExp(UMD)}: carries a deflated pdf.js worker that does not inflate \\(.+\\) -> check classicyDeflateAssetPlugin in vite.config.ts\\.$`,
 				),
 			),
 		]));

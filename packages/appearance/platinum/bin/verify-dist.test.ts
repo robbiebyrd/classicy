@@ -16,6 +16,7 @@ import {
 } from "../../../../bin/classicyCommonJsDeclarations";
 import { classicyFontStylesheet } from "../../../../bin/classicyFontStylesheet";
 import { CLASSICY_NODE_IMPORT_FIXTURE } from "../../../../bin/classicyNodeImportFixture";
+import { escapeClassicyRegExp } from "../../../../bin/classicyRegExpEscape";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector";
 import { classicyUmdLoader } from "../../../../bin/classicyUmdLoader";
 import { CLASSICY_USE_CLIENT } from "../../../../bin/classicyUseClient";
@@ -330,7 +331,7 @@ describe("bin/verify-dist.mjs", () => {
 				status: 1,
 				stderr: expect.stringMatching(
 					new RegExp(
-						`^dist/assets/${file.replace(".", "\\.")}: differs from [^ ]+/${file.replace(".", "\\.")} -> package files ship byte for byte; check the build's plugins \\(an image optimizer\\?\\)\\.$`,
+						`^dist/assets/${escapeClassicyRegExp(file)}: differs from [^ ]+/${escapeClassicyRegExp(file)} -> package files ship byte for byte; check the build's plugins \\(an image optimizer\\?\\)\\.$`,
 					),
 				),
 			}));
