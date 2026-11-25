@@ -3,11 +3,13 @@ id: 0223-ck1
 title: 'Windows 98 Appearance Package'
 purpose: 'A third Appearance Package, @classicy/appearance-windows98: Windows 95 and 98 on Classicy''s structure, built on the package contract of plans 0014-ahm, 0015-kxa and 0018-dbd with no assets of its own.'
 type: feat
-status: ready
+status: complete
 priority: "2"
 effort: L
 created: "2026-11-24T16:29:20.000Z"
-updated: "2026-11-24T16:29:20.000Z"
+updated: "2026-11-25T01:50:00.000Z"
+started: "2026-11-24T16:29:20.000Z"
+completed: "2026-11-25T01:50:00.000Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -21,19 +23,19 @@ links:
     - ["0018-dbd", "related"]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
   "7":
-    status: pending
+    status: complete
 ---
 
 # Windows 98 Appearance Package
@@ -137,3 +139,13 @@ Command: `git commit -m "feat(appearance): Windows 98 Appearance Package"`
   predates the package split). Steps 1, 2, 3 and 5 done; step 4 in progress
   (the window and menu partials first); the library build, the example build
   and Biome pass with the package in place.
+
+### 2026-11-25T01:50:00.000Z - Completed: PR #346
+
+The package, its wiring and docs (steps 1 to 5), the gates and the visual
+pass under Windows 98, Windows 95 and Brick (step 6), and the pull request
+(step 7). The Windows Interface Guidelines audit
+(`docs/plans/windows-guidelines-audit.md`) ran against the package before
+the review: 30 package-scope fixes, six additive core hooks, and story
+0225-m4q for the core behaviors and layout flags it deferred. Owner action
+before the release: story 0224-b3v.
