@@ -132,8 +132,10 @@ export const ManyApplications: Story = {
 /**
  * `ManyApplications` on a page that keeps its desktop state across a reload,
  * as a host's page does (`parameters.classicy.persistence`): the palette is
- * torn off on the first visit only, and after a reload it is drawn from its
- * saved window record, where it was left. That record exists a render before
+ * torn off, with the story's options, whenever the page shows it closed (a
+ * first visit, or a reload after its close box closed it); once it is open, a
+ * reload tears nothing off and draws it from its saved window record, where
+ * it was left, with its saved options. That record exists a render before
  * the desktop's floating layer draws the palette's list, which is what the
  * count waits for (integration review G round 2, F1).
  * `bin/check-app-switcher-palette.ts` reloads it twice.
