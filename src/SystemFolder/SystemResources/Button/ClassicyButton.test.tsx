@@ -1,5 +1,5 @@
 import { createRef } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	act,
 	fireEvent,
@@ -7,7 +7,15 @@ import {
 	screen,
 	userEvent,
 } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -287,5 +295,133 @@ describe("ClassicyButton forwarded ref", () => {
 		unmount();
 		expect(cleanup).toHaveBeenCalledTimes(1);
 		expect(calls).toHaveLength(1);
+	});
+});
+
+// The remaining chapters' audit's 4.11 / B.12 (WIG Ch.4 "Access Keys",
+// p.27; Ch.8 "Navigation in Secondary Windows", pp.148-149; Appendix B
+// Table B.5, p.360): under a package's `layout.menu.accessKeys` a push
+// button's access key, given or (under "auto") picked, is drawn as the
+// `access-key` part and focuses and clicks it; OK and Cancel take none.
+describe("ClassicyButton — access keys", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = (menu?: Record<string, string>) =>
+		registerClassicyAppearancePackage({
+			id: "windows-buttons",
+			name: "Windows buttons",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-buttons-default",
+				package: "windows-buttons",
+			},
+			layout: {
+				...windows98.layout,
+				...(menu ? { menu } : {}),
+			} as never,
+		});
+	const part = (name: string) =>
+		screen
+			.getByRole("button", { name })
+			.querySelector("[data-classicy-part='access-key']");
+	const alt = (k: string, target: Element) =>
+		fireEvent.keyDown(target, {
+			key: k,
+			code: `Key${k.toUpperCase()}`,
+			altKey: true,
+		});
+	const Dialog = ({
+		yes,
+		save,
+		ok,
+	}: {
+		yes: () => void;
+		save: () => void;
+		ok: () => void;
+	}) => (
+		<div className="classicyWindow">
+			<input aria-label="name" />
+			<ClassicyButton accessKey="y" onClickFunc={yes}>
+				Yes
+			</ClassicyButton>
+			<ClassicyButton onClickFunc={save}>Save</ClassicyButton>
+			<ClassicyButton onClickFunc={ok}>OK</ClassicyButton>
+			<ClassicyButton>Cancel</ClassicyButton>
+		</div>
+	);
+
+	it("draws and takes a given key and an automatic one, OK and Cancel none, under the Windows layout", () => {
+		useWindowsLayout();
+		const yes = vi.fn();
+		const save = vi.fn();
+		const ok = vi.fn();
+		render(<Dialog yes={yes} save={save} ok={ok} />);
+		expect(part("Yes")).toHaveTextContent("Y");
+		expect(part("Save")).toHaveTextContent("S");
+		expect(part("OK")).toBeNull();
+		expect(part("Cancel")).toBeNull();
+		// One mechanism: no native accesskey beside it.
+		expect(screen.getByRole("button", { name: "Yes" })).not.toHaveAttribute(
+			"accesskey",
+		);
+		const name = screen.getByRole("textbox", { name: "name" });
+		name.focus();
+		expect(alt("y", name)).toBe(false);
+		expect(yes).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("button", { name: "Yes" })).toHaveFocus();
+		// The key alone, from a button, which takes no letters.
+		fireEvent.keyDown(screen.getByRole("button", { name: "Yes" }), {
+			key: "s",
+			code: "KeyS",
+		});
+		expect(save).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("button", { name: "Save" })).toHaveFocus();
+		// The key alone from a text field types it.
+		name.focus();
+		fireEvent.keyDown(name, { key: "y", code: "KeyY" });
+		expect(yes).toHaveBeenCalledTimes(1);
+		// OK has no key: Alt+O reaches nothing.
+		alt("o", name);
+		expect(ok).not.toHaveBeenCalled();
+	});
+
+	it("gives an explicit key alone under explicit, and an empty key none", () => {
+		useWindowsLayout({ keys: "windows", accessKeys: "explicit" });
+		render(
+			<div className="classicyWindow">
+				<ClassicyButton accessKey="y">Yes</ClassicyButton>
+				<ClassicyButton>Save</ClassicyButton>
+				<ClassicyButton accessKey="">Retry</ClassicyButton>
+				<ClassicyButton accessKey="o">OK</ClassicyButton>
+			</div>,
+		);
+		expect(part("Yes")).toHaveTextContent("Y");
+		expect(part("Save")).toBeNull();
+		expect(part("Retry")).toBeNull();
+		// OK and Cancel take a key a host gives them.
+		expect(part("OK")).toHaveTextContent("O");
+	});
+
+	it("draws nothing and takes no key by default (Platinum), keeping accessKey the native attribute", () => {
+		const yes = vi.fn();
+		render(
+			<div className="classicyWindow">
+				<input aria-label="name" />
+				<ClassicyButton accessKey="y" onClickFunc={yes}>
+					Yes
+				</ClassicyButton>
+				<ClassicyButton>Save</ClassicyButton>
+			</div>,
+		);
+		const button = screen.getByRole("button", { name: "Yes" });
+		expect(button.querySelector("[data-classicy-part]")).toBeNull();
+		expect(button.innerHTML).toBe("Yes");
+		expect(part("Save")).toBeNull();
+		expect(button).toHaveAttribute("accesskey", "y");
+		const name = screen.getByRole("textbox", { name: "name" });
+		name.focus();
+		expect(alt("y", name)).toBe(true);
+		expect(yes).not.toHaveBeenCalled();
+		expect(name).toHaveFocus();
 	});
 });

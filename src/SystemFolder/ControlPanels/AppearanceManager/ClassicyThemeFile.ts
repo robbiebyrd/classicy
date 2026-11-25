@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import type { ClassicyAppearanceThemeFileImporter } from "@/Appearance/ClassicyAppearancePackage";
 // The store-free registry, never ClassicyAppearancePackage.ts: the desktop
 // reducer imports this module, and a path from it to the store would evaluate
 // the store before its default state.
@@ -335,4 +336,62 @@ export const downloadClassicyTheme = (
 	anchor.click();
 	URL.revokeObjectURL(url);
 	return { ok: true };
+};
+
+/**
+ * The `accept` list of Load Theme…'s file picker while `importer`'s package is
+ * active: Classicy's own theme files (JSON), and the extensions of the
+ * package's theme file importer, when it has one (Windows 98's `.theme`).
+ */
+export const classicyThemeFileAccept = (
+	importer?: Pick<ClassicyAppearanceThemeFileImporter, "extensions">,
+): string =>
+	["application/json", ".json", ...(importer?.extensions ?? [])].join(",");
+
+/**
+ * Whether Load Theme… hands `fileName` to `importer` rather than reading it
+ * as a Classicy theme file: its name ends in one of the importer's
+ * extensions, case aside.
+ */
+export const isClassicyForeignThemeFile = (
+	fileName: string,
+	importer?: Pick<ClassicyAppearanceThemeFileImporter, "extensions">,
+): boolean => {
+	const name = fileName.toLowerCase();
+	return !!importer?.extensions.some((extension) => name.endsWith(extension));
+};
+
+/**
+ * Reads another system's theme file through an Appearance Package's importer
+ * (`ClassicyAppearancePackage.themeFileImporter`): its text goes to
+ * `importer.read`, and the theme that returns is validated as a Classicy
+ * theme file's (`readClassicyTheme`: unknown keys stripped, every string held
+ * to its CSS role, the package installed), so nothing an importer produces
+ * reaches the store unchecked. An importer that throws fails the file.
+ */
+export const parseClassicyForeignThemeFile = (
+	text: string,
+	fileName: string,
+	importer: ClassicyAppearanceThemeFileImporter,
+): ClassicyThemeParseResult => {
+	if (text.length > MAX_THEME_FILE_LENGTH) {
+		return { ok: false, error: "This file is too large to be a theme." };
+	}
+	let result: ReturnType<ClassicyAppearanceThemeFileImporter["read"]>;
+	try {
+		result = importer.read(text, fileName);
+	} catch {
+		return { ok: false, error: "This theme file could not be read." };
+	}
+	if (!result || typeof result !== "object" || typeof result.ok !== "boolean")
+		return { ok: false, error: "This theme file could not be read." };
+	if (!result.ok)
+		return {
+			ok: false,
+			error:
+				typeof result.error === "string" && result.error
+					? result.error
+					: "This theme file could not be read.",
+		};
+	return readClassicyTheme(result.theme);
 };

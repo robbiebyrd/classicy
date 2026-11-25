@@ -36,7 +36,9 @@
 //                                         ring, the separator's upper line,
 //                                         GrayText
 //   ButtonDkShadow    --color-system-07   the frame's outer bottom-right ring
-//   WindowText        --color-black       the ink
+//   MenuText          --package-color-text-button  the ink (ButtonText,
+//                                         the same in every scheme)
+//   GrayText          --package-color-text-gray    an unavailable item
 //   Hilight           --color-highlight   the selected item's band
 //   HilightText       --package-color-selection-text (--color-white)
 @use "sass:list";
@@ -47,6 +49,13 @@
 // pull-downs and their submenus, a standalone menu, and the contextual menus
 // (a bevel button's pop-up menu is a contextual menu too).
 $menus: ".classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu";
+
+// A menu tree whose tracking the keyboard moved last: the core's `focused`
+// state on its root list (the one list straight inside a menu wrapper that
+// carries it; cleared when the pointer moves), and the menu lists in it,
+// the root itself included (a contextual menu's).
+$keyed: ":where(.classicyMenuWrapper > .focused)";
+$keyed-menus: "#{$keyed}:is(#{$menus}), #{$keyed} :is(#{$menus})";
 
 // The frame's thickness: its two bevel rings and the ring of face inside
 // them, where the items start (3 px); and its negative (a Sass name
@@ -103,7 +112,7 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
   box-sizing: border-box;
   padding: $frame;
   border: 0;
-  color: b.$text;
+  color: b.$button-text;
   background: b.$face;
   @include b.window-frame;
 }
@@ -124,6 +133,17 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     // As wide as its widest item: Windows sizes a menu to its items.
     min-width: 0;
     grid-template-columns: 1fr max-content;
+  }
+
+  // The scheme's menu font (`typography.families.menu`: MS Sans Serif 8 in
+  // Windows Standard, Times New Roman 10 in Eggplant, Arial 18 in the large
+  // High Contrast schemes), in every pull-down, submenu and contextual menu;
+  // a menu bar's own titles take it in _MenuBar.scss. An item grows with it,
+  // the padding the same.
+  :is(#{$menus}):not(.classicyDesktopMenu) {
+    font-family: b.$menu-font;
+    font-size: b.$menu-font-size;
+    font-weight: b.$menu-font-weight;
   }
 
   .classicyMenu,
@@ -161,7 +181,7 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     height: auto;
     padding: px(3) var(--menu-item-padding-x);
     line-height: 1;
-    color: b.$text;
+    color: b.$button-text;
     background-color: transparent;
     white-space: nowrap;
     cursor: default;
@@ -210,11 +230,33 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     font-weight: bold;
   }
 
+  // An access key (the core's `access-key` part, 7.1): one character of
+  // every title and item, underlined, in the menus, the menu bar's titles and
+  // a window's own bar alike (WIG Ch.7 "Menu Titles", p.106, Figure 7.4;
+  // "Menu Item Labels", p.109). The layout's `menu.accessKeys` "auto" gives
+  // every titled item one.
+  .classicyMenuItem [data-classicy-part="access-key"] {
+    @include b.access-key;
+  }
+
   // While the pointer is over a menu it tracks the item under it alone, so
   // a keyboard-current item elsewhere in it shows plain (one open on its
-  // submenu stays tracked).
-  :is(#{$menus}):hover .classicyMenuItem:not(:hover, .open):focus-visible {
-    color: b.$text;
+  // submenu stays tracked), unless the keyboard moved the tracking last
+  // (below).
+  :is(#{$menus}):hover .classicyMenuItem:not(:hover, .open, #{$keyed} *):focus-visible {
+    color: b.$button-text;
+    background-color: transparent;
+  }
+
+  // While the keyboard moved the tracking last (the arrow keys, Home, End,
+  // a typed letter; the core's `focused` on the root list until the pointer
+  // moves), the item it made current is the one tracked, wherever the
+  // pointer rests: an item under a resting pointer shows plain, as Windows
+  // moves its one selection to the key's item (WIG Ch.7 "Menu Items",
+  // p.106, Figure 7.5 "Selected Item"; "The Menu Bar and Drop-down Menus",
+  // p.98).
+  :is(#{$keyed-menus}) .classicyMenuItem:hover:not(:focus-visible, .open) {
+    color: b.$button-text;
     background-color: transparent;
   }
 
@@ -238,7 +280,12 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     }
   }
 
-  :is(#{$menus}):hover .classicyMenuItem.disabled:not(:hover, .open):focus-visible {
+  :is(#{$menus}):hover .classicyMenuItem.disabled:not(:hover, .open, #{$keyed} *):focus-visible {
+    @include b.disabled-text;
+    background-color: transparent;
+  }
+
+  :is(#{$keyed-menus}) .classicyMenuItem.disabled:hover:not(:focus-visible, .open) {
     @include b.disabled-text;
     background-color: transparent;
   }
@@ -300,6 +347,12 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     background: pixel-art(currentColor, $checkmark);
   }
 
+  // Under a resting pointer while the keyboard tracks another item, a
+  // dimmed item's mark is embossed again, as its title is (above).
+  :is(#{$keyed-menus}) .classicyMenuItem.disabled:hover:not(:focus-visible, .open) .classicyMenuItemCheck.checked::before {
+    background: embossed($checkmark);
+  }
+
   // An option item's gutter (the core's `classicyMenuItemBullet`, beside the
   // check's class): the 6 x 6 bullet in place of the check mark at the
   // chosen item, in the item's ink, embossed when the item is unavailable
@@ -324,6 +377,10 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
 
   :is(#{$menus}) .classicyMenuItem.disabled:is(:hover, .open, :focus-visible) .classicyMenuItemCheck.classicyMenuItemBullet.checked::before {
     background: pixel-art(currentColor, $bullet);
+  }
+
+  :is(#{$keyed-menus}) .classicyMenuItem.disabled:hover:not(:focus-visible, .open) .classicyMenuItemCheck.classicyMenuItemBullet.checked::before {
+    background: embossed($bullet);
   }
 
   // A separator: an etched line, ButtonShadow over ButtonHilight, across
@@ -368,6 +425,10 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     }
   }
 
+  :is(#{$keyed-menus}) .classicyMenuItemChildMenuIndicator.disabled:hover:not(:focus-visible, .open)::after {
+    background: embossed($submenu-arrow);
+  }
+
   // A submenu beside its item: its first item level with the parent item
   // (its frame the frame's thickness above it), its frame over the parent
   // menu's right side by the frame's thickness, so its bevel stands where
@@ -400,7 +461,7 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
   // ButtonFace row with the scroll arrows' triangle centered on it, as a
   // scrolling Windows 98 menu shows at each end.
   .classicyPopUpMenuScrollArrow {
-    color: b.$text;
+    color: b.$button-text;
     background: b.$face;
 
     &::before {
@@ -416,5 +477,20 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
 
   .classicyPopUpMenuScrollArrowDown::before {
     background: pixel-art(currentColor, $arrow-down);
+  }
+
+  // A chosen item runs its command at once, with no flash (WIG Ch.4 "Mouse
+  // Actions", p.24; Ch.7 "Drop-down Menu Interaction", p.97; the audit's
+  // 1.19 / 4.7): the MenuItem press hook (index.ts) gives the item this
+  // class, whose animation draws nothing and ends within a frame; the
+  // core runs the item's action on its `animationend`.
+  .classicyMenuItem.windows98MenuItemChosen {
+    animation: windows98MenuItemChosen 1ms steps(1, end);
+  }
+
+  @keyframes windows98MenuItemChosen {
+    to {
+      opacity: 1;
+    }
   }
 }

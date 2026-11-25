@@ -6,23 +6,35 @@
 // desktop's icons are _Desktop.scss's.
 //
 // - A large-icon view item, as Explorer drew it: the 32 x 32 image over its
-//   label in the UI font (MS Sans Serif 8pt), WindowText straight on the
+//   label in the scheme's icon font (MS Sans Serif 8pt in Windows Standard),
+//   WindowText straight on the
 //   Window white with no box, 2 px of air between the image and the label,
 //   1 px above and below the text and 2 px either side inside the label's
-//   rectangle. Selected, the rectangle fills with Hilight under HilightText
-//   and the dotted focus rectangle lies on its outer pixel ring
-//   (DrawFocusRect over the highlighted label); the image is blended with
-//   Hilight pixel by pixel (ImageList_Draw with ILD_SELECTED: a 50% dither
-//   of the highlight color over the icon's opaque pixels), drawn as a
-//   two-pixel checker layer over the image and clipped by the icon's own
-//   mask. An icon drawing its pre-rendered selected image
-//   (`registerClassicySelectedIconImages`) takes no layer. The mask pair is
+//   rectangle. Selected, the rectangle fills with Hilight under HilightText;
+//   the focus item alone, the icon with the keyboard's focus, takes the
+//   dotted focus rectangle on its label's outer pixel ring (LVIS_FOCUSED,
+//   DrawFocusRect: WindowText, HilightText over a highlighted label), only
+//   while it has the focus, and no browser ring. Selected, the image is
+//   blended with Hilight pixel by pixel (ImageList_Draw with ILD_SELECTED:
+//   a 50% dither of the highlight color over the icon's opaque pixels),
+//   drawn as a two-pixel checker layer over the image and clipped by the
+//   icon's own mask. An icon drawing its pre-rendered selected image
+//   (`registerClassicySelectedIconImages`) takes no layer. Cut and waiting
+//   for a Paste (`classicyFileCut`, LVIS_CUT), the image is blended with
+//   the Window color the same way, unless selected. The mask pair is
 //   exactly the icon's box, with no fringe (the base's black outline through
 //   the outer mask is Platinum's). An opened item looks like any other
 //   (Windows marks no opened icon), a folder under a drag is drawn selected,
 //   as the shell highlighted a drop target, and a hidden file stays ghosted
 //   as the base draws it, its window open or not (Explorer's "Show all
-//   files" draws hidden files faint).
+//   files" draws hidden files faint). In a window that is not the active
+//   one (the core's `inactive` on the icon), a selected item is drawn as a
+//   list view with LVS_SHOWSELALWAYS draws it while another window has the
+//   focus (Wine's listview.c: the image ILD_NORMAL, the label ButtonFace
+//   under ButtonText; WIG Ch.13 "Highlighting", p.318): the image as it is,
+//   the label ButtonFace under WindowText with no focus rectangle; a drop
+//   target keeps the highlight, as the shell's drop highlight ignores the
+//   focus.
 // - The image well: the client edge (`b.sunken`, WS_EX_CLIENTEDGE) around
 //   Window white, in place of the base's black line and its recess; set
 //   (`selected`), the well's option-set border, two solid rings just inside
@@ -45,7 +57,9 @@
 //   Hilight             --color-highlight         the selected label and the
 //                                                 blend
 //   HilightText         --package-color-selection-text (--color-white)
-//   ButtonFace          --color-system-03         the disabled well
+//   ButtonFace          --color-system-03         the disabled well, an
+//                                                 inactive window's selected
+//                                                 label
 //
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`) or
 // a count of grid pixels (`px()`, `--pixel-unit`); every color a token or a
@@ -57,17 +71,22 @@
 // transparent where the icon shows through.
 $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
 
-// A selected label: Hilight under HilightText, the dotted focus rectangle
-// on its outer pixel ring.
+// A selected label: Hilight under HilightText. The dotted focus rectangle
+// is the focus item's alone (below), selected or not.
 @mixin label-selected {
   color: b.$highlight-text;
   background: b.$highlight;
-  outline: b.$b dotted b.$highlight-text;
-  outline-offset: b.$neg-b;
 }
 
 @mixin icon {
   // --- Icons in windows ------------------------------------------------------
+  // The keyboard's place shows as the selection and its label's dotted focus
+  // rectangle (below), never the browser's ring, an unselected icon Tab
+  // reached included, as Explorer's list view draws no ring.
+  .classicyIcon:focus-visible {
+    outline: none;
+  }
+
   .classicyIcon {
     // No fringe: the outer mask draws nothing of its own.
     .classicyIconMaskOuter {
@@ -103,12 +122,42 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
     p {
       margin-top: px(2);
       padding: b.$b px(2);
-      font-family: var(--ui-font), sans-serif;
+      font-family: b.$icon-font;
       font-size: var(--desktop-icon-font-size);
+      font-weight: b.$icon-font-weight;
       line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
       color: b.$text;
       background: transparent;
     }
+
+    // A label being edited (a slow click on a selected item's label, F2 in
+    // Explorer): the list view's edit control, WindowText on Window in a
+    // one-pixel WindowFrame border where the label was, the label's font.
+    .classicyIconRename {
+      margin-top: px(2);
+      padding: 0 px(2);
+      border: b.$b solid b.$text;
+      border-radius: 0;
+      outline: none;
+      font-family: b.$icon-font;
+      font-size: var(--desktop-icon-font-size);
+      font-weight: b.$icon-font-weight;
+      line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
+      color: b.$text;
+      background: b.$window;
+    }
+  }
+
+  // The selection rectangle a drag across a folder's empty space draws, in
+  // the icon view and the list view alike (both views' `.classicyFileBrowserSelect`;
+  // the list view's under `layout.fileBrowser.regionSelect`): DrawFocusRect's
+  // one-pixel dots, XORed onto what lies under them, the icons and names
+  // included, which `difference` over white dots gives (black on the Window
+  // white, the inverse of a highlighted label), no outline.
+  .classicyFileBrowserSelect {
+    border: b.$b dotted var(--color-white);
+    outline: none;
+    mix-blend-mode: difference;
   }
 
   // Selected, or the folder under a drag: the label highlighted, the image
@@ -128,6 +177,46 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
 
     p {
       @include label-selected;
+    }
+  }
+
+  // Cut and waiting for a Paste (Explorer's Cut, LVIS_CUT; WIG Ch.5
+  // "Command Method Transfers" (p.66): "the system displays icons in a
+  // checkerboard dither to indicate this state"): the image blended 50%
+  // with the Window color, a two-pixel checker of Window over the icon's
+  // opaque pixels in the selection layer, clipped by its mask, as the
+  // highlight's blend is drawn; selected, the highlight's blend (above)
+  // stands, as ILD_SELECTED and ILD_BLEND50 are one blend whose color the
+  // list view picks.
+  .classicyIcon.classicyFileCut .classicyIconMaskOuter::after {
+    background: repeating-conic-gradient(b.$window 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
+  }
+
+  // The focus item (LVIS_FOCUSED): one dotted rectangle, on the label of the
+  // icon that has the focus, while it has it (a press gives it, the arrows
+  // move it; WIG Ch.5 "Keyboard Selection", p.43, "Selection Feedback",
+  // p.36), in WindowText, or HilightText over a highlighted label; a
+  // selected icon without the focus takes none.
+  .classicyIcon:focus p {
+    outline: b.$b dotted b.$text;
+    outline-offset: b.$neg-b;
+  }
+
+  .classicyIcon.selected:focus p {
+    outline-color: b.$highlight-text;
+  }
+
+  // Selected in an inactive window (not a drop target): the image unblended,
+  // the label ButtonFace under WindowText, no focus rectangle.
+  .classicyIcon.inactive.selected:not(.classicyFileDropTarget) {
+    .classicyIconMaskOuter:not(.classicyIconSelectedImage)::after {
+      background: none;
+    }
+
+    p {
+      color: b.$text;
+      background: b.$face;
+      outline: none;
     }
   }
 
@@ -200,5 +289,23 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
     .classicyImageWellImage {
       opacity: 0.5;
     }
+  }
+
+  // A shortcut in a window (`layout.icon.aliasBadge` "everywhere"; the
+  // core's `classicyIconImage` box): the shell's shortcut overlay over the
+  // whole image at the icon's size, its arrow drawn at the art's bottom
+  // left, as the desktop draws a shortcut's (_Desktop.scss; WIG Ch.11
+  // "Displaying Objects", p.230, Figure 11.11; the audit's 11.2). It shares
+  // the icon's selected and open looks, its own mask clipping them.
+  .classicyIcon .classicyIconImage {
+    position: relative;
+    width: var(--desktop-icon-size);
+    height: var(--desktop-icon-size);
+    margin: 0 auto;
+  }
+
+  .classicyIcon .classicyIconMaskOuter.classicyIconAliasBadge {
+    position: absolute;
+    inset: 0;
   }
 }

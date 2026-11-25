@@ -64,6 +64,17 @@
   text-overflow: ellipsis;
 }
 
+// A name being edited in place (the list view's `onRenameItem`, begun by
+// Explorer's Rename, New and F2 under a package's `layout.finder.commands`
+// or `layout.fileBrowser.keys` "windows"), where the name was: structure
+// only; its frame and colors are the package's.
+.classicyFileBrowserViewTableRowContainer .classicyFileBrowserViewTableRename {
+  box-sizing: border-box;
+  min-width: 0;
+  font: inherit;
+  user-select: text;
+}
+
 :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
   color: var(--color-white);
   background: var(--color-system-07);
@@ -129,4 +140,16 @@
 // 113-120 lacks: there every icon stacked at the top left).
 .classicyFileBrowserFill:not(.classicyFileBrowserFillList) {
   width: 100%;
+}
+
+// The icon view's selection rectangle, while a press on its empty space is
+// dragged: the desktop's dotted outline (`.classicyDesktopSelect`), over the
+// icons and never in the pointer's way. Mac OS 8's Finder drew the same
+// rectangle in a window as on the desktop.
+.classicyFileBrowserSelect {
+  position: absolute;
+  z-index: 600;
+  pointer-events: none;
+  border: var(--window-border-size) dotted var(--color-black);
+  outline: var(--window-border-size) dotted var(--color-black);
 }

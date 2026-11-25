@@ -8,23 +8,55 @@
 	"sprite": {
 		"ClassicyAlertChimes": [
 			0,
-			840
+			631.3378684807255
 		],
 		"ClassicyAlertChord": [
 			2000,
-			600.0000000000001
+			1098.9115646258504
 		],
 		"ClassicyAlertDing": [
-			4000,
-			450.00000000000017
+			5000,
+			915.6916099773244
 		],
 		"ClassicyAlertExclamation": [
-			6000,
-			419.99999999999994
+			7000,
+			1098.911564625851
+		],
+		"ClassicyAlertLogoff": [
+			10000,
+			3549.0249433106574
+		],
+		"ClassicyAlertNotify": [
+			15000,
+			1352.5170068027207
+		],
+		"ClassicyAlertRecycle": [
+			18000,
+			574.6485260770982
+		],
+		"ClassicyAlertStart": [
+			20000,
+			45.89569160997797
+		],
+		"ClassicyAlertTada": [
+			22000,
+			1938.866213151929
 		],
 		"ClassicyBeep": [
-			8000,
-			449.9999999999993
+			25000,
+			915.6916099773227
+		],
+		"ClassicyBoot": [
+			27000,
+			7858.503401360544
+		],
+		"ClassicyEmailNewMail": [
+			36000,
+			1352.5170068027207
+		],
+		"ClassicyTrashEmpty": [
+			39000,
+			574.6485260770982
 		]
 	}
 }

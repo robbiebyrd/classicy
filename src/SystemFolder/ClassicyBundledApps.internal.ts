@@ -13,6 +13,7 @@ import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager
 import "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 import "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupManifest";
+import "@/SystemFolder/ControlPanels/KeyboardManager/ClassicyKeyboardManagerManifest";
 import "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";

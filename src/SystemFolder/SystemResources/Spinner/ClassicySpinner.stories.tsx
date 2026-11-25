@@ -13,7 +13,8 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * A number field with little arrows, clamped to 9–72. Click an arrow to step
- * by one, or hold it to auto-repeat.
+ * by one, or hold it to auto-repeat; with the field focused, Up and Down
+ * Arrow step by one too.
  */
 export const Default: Story = {
 	args: {
@@ -38,6 +39,23 @@ export const LargeRange: Story = {
 		prefillValue: 512,
 		minValue: 32,
 		maxValue: 65536,
+	},
+};
+
+/**
+ * `wrap`: past 12 the hour comes round to 1, and below 1 to 12, by the arrows
+ * or the Up and Down keys, as Windows' spin boxes typically do (WIG Ch.7
+ * "Spin Boxes", p.128). A typed value is still clamped.
+ */
+export const Wrap: Story = {
+	args: {
+		id: "spin-wrap",
+		labelTitle: "Hour",
+		labelPosition: "left",
+		prefillValue: 12,
+		minValue: 1,
+		maxValue: 12,
+		wrap: true,
 	},
 };
 

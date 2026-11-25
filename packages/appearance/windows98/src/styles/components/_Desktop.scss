@@ -9,25 +9,43 @@
 //
 // - The desktop is a flat color, Background (`--desktop-background-color`,
 //   teal in Windows Standard), with no pattern: every Windows preset names
-//   no picture, and a picture a user picks in the Appearance Manager's
-//   Desktop tab is drawn by the base sheet as any wallpaper, so this partial
-//   leaves the face to the theme.
+//   no picture. A wallpaper or desktop pattern a user picks in the
+//   Appearance Manager's Desktop tab (the package registers Windows 98's
+//   nineteen of each, assets/windows98Wallpapers.ts) is drawn by the base
+//   sheet as any wallpaper, over the Background: a pattern is black on
+//   clear, so it shows in the scheme's color and black, as Windows drew it.
+//   Windows drew a bitmap's pixels one to one, never smoothed, so the
+//   picture is drawn whole pixels at any zoom (`image-rendering: pixelated`
+//   on the desktop, and `auto` again for everything in it, which sets its
+//   own, except the desktop icons, which the base draws pixelated: an `auto`
+//   in this layer would beat that rule and blur Windows' icons at any zoom
+//   or device-pixel ratio but 1).
 // - The selection marquee is the one-pixel dotted rectangle the shell XORed
-//   onto the desktop, drawn in the desktop text color (the XOR over the
-//   Background read as a light dotted line), where the base draws a dotted
-//   two-ring box in black.
-// - A desktop icon is the 32 x 32 image over its label, the label in the UI
-//   font (MS Sans Serif 8pt) in the desktop text color
+//   onto the desktop with DrawFocusRect: white dots under `difference`
+//   invert the pixels beneath them, as the XOR did in 8-bit color (over the
+//   teal Background the dots read 255,127,127, not white; over a label,
+//   its inverse), above the icons it crosses (z-index 11, over their 10)
+//   and below the windows, where the base draws a dotted two-ring box in
+//   black under the icons. A press that has not moved draws nothing
+//   (`classicyDesktopSelectEmpty`, on the outline while it is 0 x 0): the
+//   shell drew the rectangle once the pointer moved (WIG Ch.5 "Region
+//   Selection", p.42).
+// - A desktop icon is the 32 x 32 image over its label, the label in the
+//   scheme's icon font (`typography.families.icon`, at the theme's
+//   `desktop.iconFontSize`: MS Sans Serif 8pt in Windows Standard) in the
+//   desktop text color
 //   (`--package-color-desktop-text`, white) straight on the Background with
 //   no box, a one-pixel black drop shadow under the text so it reads over
 //   any Background, as the Active Desktop drew labels; 3 px of air between
 //   the image and the label, 1 px above and below the text and 2 px either
-//   side inside the label's rectangle. A shortcut keeps its arrow badge (the
-//   alias badge, the default package's art) but its label is upright:
-//   Windows never italicized a shortcut.
+//   side inside the label's rectangle. A shortcut's badge is Windows' own
+//   shortcut overlay (the package's `aliasBadge`, shell32's #30: an arrow box
+//   at the bottom left of a clear icon-sized image, which Windows drew over
+//   the whole icon), so the badge is the icon's size, not the base's
+//   quarter; its label is upright: Windows never italicized a shortcut.
 // - Selected, the label's rectangle fills with Hilight under HilightText,
-//   the drop shadow goes, and the dotted focus rectangle lies on the
-//   rectangle's outer pixel ring (DrawFocusRect over the highlighted label);
+//   the drop shadow goes (the dotted focus rectangle is the focus icon's
+//   alone, below, LVIS_FOCUSED, not every selected label's), and
 //   the image is blended with Hilight pixel by pixel (ImageList_Draw with
 //   ILD_SELECTED: a 50% dither of the highlight color over the icon's
 //   opaque pixels), drawn as a two-pixel checker layer over the image and
@@ -35,7 +53,9 @@
 //   An icon drawing its pre-rendered selected image
 //   (`registerClassicySelectedIconImages`) takes no layer. The mask pair is
 //   exactly the icon's box, with no fringe: the base's black outline through
-//   the outer mask is Platinum's.
+//   the outer mask is Platinum's. A Desktop Folder item cut and waiting for
+//   a Paste (`classicyFileCut`, LVIS_CUT) is blended with the Background
+//   the same way, unless selected.
 // - An icon whose window is open looks like any other (Windows marks no
 //   opened icon; the base's inverted shape is Mac OS's), and a folder under
 //   a drag is drawn selected, as the shell highlighted a drop target, where
@@ -75,21 +95,49 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
 $label-shadow: var(--desktop-label-shadow);
 $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shadow}) * 10000);
 
-// A selected label: Hilight under HilightText, no shadow, the dotted focus
-// rectangle on its outer pixel ring.
+// A selected label: Hilight under HilightText, no shadow. The dotted focus
+// rectangle is the focus icon's alone (below), selected or not.
 @mixin label-selected {
   color: b.$highlight-text;
   text-shadow: none;
   background: b.$highlight;
-  outline: b.$b dotted b.$highlight-text;
-  outline-offset: b.$neg-b;
 }
 
 @mixin desktop {
+  // --- The interface font -----------------------------------------------------
+  // MS Sans Serif, the face every theme names first (the package's
+  // "Pixelated MS Sans Serif", windows98Fonts.internal.ts), was a bitmap font
+  // (sserife.fon), which Windows drew as pixels whatever its font smoothing
+  // setting. The base smooths the desktop's text (`antialiased`); here the
+  // recreation's square pixels are drawn unsmoothed, where the browser takes
+  // the setting (WebKit and Blink on macOS; elsewhere the platform's own
+  // rendering stands).
+  & {
+    -webkit-font-smoothing: none;
+  }
+
+  // --- The picture ----------------------------------------------------------
+  // Whole pixels at any zoom, the desktop's own picture only. The desktop
+  // icons keep the base's own `pixelated` (ClassicyDesktopIcon.scss).
+  & {
+    image-rendering: pixelated;
+  }
+
+  & > :not(.classicyDesktopIcon) {
+    image-rendering: auto;
+  }
+
   // --- The marquee ----------------------------------------------------------
   .classicyDesktopSelect {
-    border: b.$b dotted var(--package-color-desktop-text, var(--color-white));
+    z-index: 11;
+    border: b.$b dotted var(--color-white);
     outline: none;
+    mix-blend-mode: difference;
+  }
+
+  // A press that has not moved yet: no dot under every click.
+  .classicyDesktopSelect.classicyDesktopSelectEmpty {
+    display: none;
   }
 
   // --- Desktop icons ---------------------------------------------------------
@@ -133,8 +181,9 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     p {
       margin-top: px(3);
       padding: b.$b px(2);
-      font-family: var(--ui-font), sans-serif;
+      font-family: b.$icon-font;
       font-size: var(--desktop-icon-font-size);
+      font-weight: b.$icon-font-weight;
       line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
       color: var(--package-color-desktop-text, var(--color-white));
       text-shadow: $label-shadow-offset $label-shadow-offset 0 var(--color-black);
@@ -142,7 +191,12 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     }
   }
 
-  // A shortcut's label is upright.
+  // A shortcut's overlay covers the whole icon (its arrow box is drawn at
+  // the image's bottom left), and its label is upright.
+  .classicyDesktopIconAliasBadge {
+    --alias-badge-size: var(--desktop-icon-size);
+  }
+
   .classicyDesktopIconAlias > p {
     font-style: normal;
   }
@@ -165,6 +219,46 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     p {
       @include label-selected;
     }
+  }
+
+  // A Desktop Folder item cut and waiting for a Paste (Explorer's Cut,
+  // LVIS_CUT; WIG Ch.5 "Command Method Transfers" (p.66)): the image
+  // blended 50% with the desktop's Background, its own field, a two-pixel
+  // checker in the selection layer, clipped by its mask (the shortcut
+  // overlay's too); selected, the highlight's blend stands.
+  .classicyDesktopIcon.classicyFileCut .classicyDesktopIconMaskOuter::after {
+    background: repeating-conic-gradient(var(--desktop-background-color) 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
+  }
+
+  // The focus icon (LVIS_FOCUSED): one dotted rectangle, on the label of the
+  // icon that has the focus, while it has it (a press gives it; WIG Ch.5
+  // "Keyboard Selection", p.43, "Selection Feedback", p.36), in the desktop
+  // text color, or HilightText over a highlighted label; a selected icon
+  // without the focus takes none.
+  .classicyDesktopIcon:focus p {
+    outline: b.$b dotted var(--package-color-desktop-text, var(--color-white));
+    outline-offset: b.$neg-b;
+  }
+
+  .classicyDesktopIcon.selected:focus p {
+    outline-color: b.$highlight-text;
+  }
+
+  // A desktop item's name being edited (Explorer's Rename, New and F2, the
+  // desktop list view's edit control): WindowText on Window in a one-pixel
+  // WindowFrame border where the label was, the label's font, no shadow.
+  .classicyDesktopIcon .classicyDesktopIconRename {
+    margin-top: px(3);
+    padding: 0 px(2);
+    border: b.$b solid b.$text;
+    border-radius: 0;
+    outline: none;
+    font-family: b.$icon-font;
+    font-size: var(--desktop-icon-font-size);
+    font-weight: b.$icon-font-weight;
+    line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
+    color: b.$text;
+    background: b.$window;
   }
 
   // Opened: as any other icon. The base inverts the shape and hides the
@@ -198,5 +292,56 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     border: 0;
     background: b.$window;
     @include b.sunken;
+  }
+
+  // While Windows starts: the hourglass over the startup screen (the
+  // registry's `watch`, the host's `wait` without one; WIG Ch.4 "Mouse
+  // Pointers", p.23, Table 4.1; the audit's 4.5), and no extensions parade
+  // (Windows 98 showed none; the audit's 1.16).
+  .classicyStartupScreen {
+    @include b.registry-cursor(watch, wait, 8 8);
+  }
+
+  .classicyStartupScreenExtensions {
+    display: none;
+  }
+}
+
+// The pointer during a file drag, Windows' drop effect, from the desktop
+// root's `data-classicy-drop`, which the core's drag engine sets for the
+// whole drag (its outline shown): the arrow over everything, whatever the
+// element under the pointer would show, no I-beam over a text field and no
+// hand over a link (WIG Ch.5 "Direct Manipulation Transfers" (p.67),
+// Figure 5.16: the arrow for a move); the no-drop pointer while nothing
+// there takes the drop (a window, the menu bar, a folder the drag refuses;
+// WIG Ch.4 Table 4.1, Ch.13 p.316, Ch.5 Figure 5.17); the arrow with a plus
+// for a copy, Control held, and with the shortcut curl for shortcuts,
+// Control and Shift held (Figure 5.16). The no-drop pointer is Windows 98's
+// own Unavailable (the `notAllowed` cursor role, USER.EXE's cursor 110),
+// the host's `no-drop` behind it; the copy and link pointers are the host's,
+// since USER.EXE has none (Windows drew the plus and the curl over the
+// arrow at run time). Keyed on the desktop root's id
+// (`#classicyDesktop`, which ClassicyDesktop always gives it), so they
+// outrank every element's own pointer rule, and included last in the
+// package, each effect after the arrow.
+@mixin file-drag-pointers {
+  &#classicyDesktop[data-classicy-drop],
+  &#classicyDesktop[data-classicy-drop] * {
+    cursor: default;
+  }
+
+  &#classicyDesktop[data-classicy-drop='none'],
+  &#classicyDesktop[data-classicy-drop='none'] * {
+    @include b.registry-cursor(not-allowed, no-drop);
+  }
+
+  &#classicyDesktop[data-classicy-drop='copy'],
+  &#classicyDesktop[data-classicy-drop='copy'] * {
+    cursor: copy;
+  }
+
+  &#classicyDesktop[data-classicy-drop='link'],
+  &#classicyDesktop[data-classicy-drop='link'] * {
+    cursor: alias;
   }
 }

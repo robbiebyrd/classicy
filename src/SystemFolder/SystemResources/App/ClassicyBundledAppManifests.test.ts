@@ -19,6 +19,7 @@ const BUNDLED_APP_IDS = [
 	"DriveSetup.app",
 	"Finder.app",
 	"HyperCard.app",
+	"KeyboardManager.app",
 	"MoviePlayer.app",
 	"PDFViewer.app",
 	"PictureViewer.app",

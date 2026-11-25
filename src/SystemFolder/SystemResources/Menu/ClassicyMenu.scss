@@ -225,6 +225,17 @@
   background-color: transparent;
 }
 
+// While the keyboard moved a menu tree's tracking last (ClassicyMenu's
+// `focused` state on its root list, the one list straight inside a menu
+// wrapper that carries it, cleared when the pointer moves), the item the
+// keyboard made current is the one tracked, so an item under a resting
+// pointer drops its hover highlight. A class and three pseudo-classes,
+// (0,4,0) (the `:where()` counts nothing), beat the hover rules above.
+:where(.classicyMenuWrapper > .focused) .classicyMenuItem:hover:not(:focus-visible):not(.open) {
+  color: inherit;
+  background-color: transparent;
+}
+
 .classicyMenuItemChildMenuIndicator {
   &:after {
     position: absolute;

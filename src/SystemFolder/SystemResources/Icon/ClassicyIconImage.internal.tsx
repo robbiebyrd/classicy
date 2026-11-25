@@ -33,7 +33,8 @@ type ClassicyIconImageProps = Omit<
 	/**
 	 * The icon is drawn dimmed: `true` or `"hiddenApp"` as a hidden
 	 * application's (HIG7 p.127), `"disabledItem"` as a row's that cannot be
-	 * chosen. The active package's `iconDimming` rule for that purpose is
+	 * chosen, `"disabledControl"` as an unavailable control's image (a
+	 * disabled bevel button's). The active package's `iconDimming` rule for that purpose is
 	 * applied on a canvas, and the result drawn once ready, the `<img>` then
 	 * marked `classicyIconDimmedImage` so the package's stylesheet dimming
 	 * stands down. Without a rule, or for an icon a canvas cannot read

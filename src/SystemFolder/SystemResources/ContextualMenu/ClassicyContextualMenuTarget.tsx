@@ -20,7 +20,10 @@ interface ClassicyContextualMenuTargetProps extends PropsWithChildren {
 /**
  * Attaches a contextual (right-click) menu to its children (HIGOS8 p.93) — the
  * Classicy replacement for the old `contextmenu` attribute. Right-clicking
- * anything inside opens `menuItems` 1 px below and right of the pointer.
+ * anything inside opens `menuItems` 1 px below and right of the pointer;
+ * Shift+F10 or the Application key with focus inside opens it at the focused
+ * element's center (WIG Ch.7 "Pop-up Menu Interaction" (p.101);
+ * `ClassicyContextualMenuProvider`).
  *
  * Contextual menus resolve innermost-first: this target wins over its window's
  * `contextMenu`, which wins over the app's, which wins over the desktop's

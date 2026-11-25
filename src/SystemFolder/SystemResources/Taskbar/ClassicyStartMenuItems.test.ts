@@ -107,8 +107,8 @@ describe("classicyStartMenuItems", () => {
 			"Help",
 			"Run...",
 			"—",
-			"Empty Trash…",
-			"Reset PRAM…",
+			"Empty Trash",
+			"Reset PRAM",
 			"—",
 			"Shut Down...",
 		]);
@@ -389,16 +389,21 @@ describe("classicyStartMenuItems", () => {
 		});
 	});
 
-	it("runs the Special menu's dialogs from Empty Trash… and Reset PRAM…", () => {
+	// The titles carry no ellipsis: each item `confirms`, and the menu adds
+	// one only where the package's `layout.menu.confirmEllipsis` asks for it
+	// (Windows 98 does not: WIG Ch.7 "Types of Menu Items", pp.107-108).
+	it("runs the Special menu's dialogs from Empty Trash and Reset PRAM, each confirming", () => {
 		const dispatch = vi.fn();
 		const items = classicyStartMenuItems(input({ dispatch }));
-		child(items, "Empty Trash…").onClickFunc?.();
-		child(items, "Reset PRAM…").onClickFunc?.();
+		expect(child(items, "Empty Trash").confirms).toBe(true);
+		expect(child(items, "Reset PRAM").confirms).toBe(true);
+		child(items, "Empty Trash").onClickFunc?.();
+		child(items, "Reset PRAM").onClickFunc?.();
 		expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
 			{ type: "ClassicyDesktopShowSystemDialog", dialog: "emptyTrash" },
 			{ type: "ClassicyDesktopShowSystemDialog", dialog: "resetPram" },
 		]);
-		expect(child(items, "Empty Trash…").id).toBe("start_special_empty_trash");
+		expect(child(items, "Empty Trash").id).toBe("start_special_empty_trash");
 	});
 
 	it("gives no item an id a menu bar uses", () => {

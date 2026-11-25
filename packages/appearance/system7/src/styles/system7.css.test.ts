@@ -571,6 +571,10 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(pointer).toMatch(/color: var\(--color-black\);/);
 			expect(pointer).toMatch(/background-color: transparent;/);
+			// System 7's menus take no keyboard navigation (no
+			// `layout.menu.keys`), so the core's keyboard-tracking `focused`
+			// state never reaches them and the sheet reads it nowhere.
+			expect(css).not.toMatch(/\.focused/);
 		});
 
 		it("overlaps a submenu on its parent menu's right side", () =>
@@ -2398,11 +2402,60 @@ describe("system7.scss (compiled)", () => {
 				/margin-right: calc\(var\(--window-border-size\) \* -1\);/,
 			);
 		});
+
+		// A closed split's split box (ClassicySplitView `splittable`): the
+		// solid black split bar of HIG pp.170-171, Figure 5-41.
+		it("draws a split box as the HIG's solid black split bar", () => {
+			expect(rule(".classicySplitViewSplitBox")).toMatch(
+				/background-color: var\(--color-black\);/,
+			);
+		});
+
+		// A name being edited in an icon view (a slow second click on a
+		// selected icon's name): the label's box, white, framed by one black
+		// pixel, as 7.5's Finder framed a name open for editing. The icon
+		// view's selection rectangle stays the base's dotted one, as on the
+		// desktop.
+		it("frames an icon's name being edited in the label's box", () => {
+			const field = rule(".classicyIcon .classicyIconRename");
+			expect(field).toMatch(/height: var\(--icon-label-height\);/);
+			expect(field).toMatch(
+				/border: var\(--box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(field).toMatch(/background: var\(--color-white\);/);
+			expect(field).toMatch(/color: var\(--color-black\);/);
+			expect(css).not.toContain("classicyFileBrowserSelect");
+			expect(css).not.toContain("classicyFileOpenDialogWellColumns");
+		});
 	});
 
 	// Plan 0018-dbd §3.7: the desktop, its icons, the Control Strip, the tab
 	// control and the Appearance Manager, from the 7.5 desktop captures and
 	// the Control Strip panel's own bitmaps.
+	// The rich text editor's toolbar tips (MDXEditor's Radix tooltips), now
+	// opened in the desktop (the WIG audit's 12.10, a defect under every
+	// package): System 7's help balloon box (HIG (1995) Ch.11 "Balloon
+	// Help", pp.316-317, Figure 11-8), the base `.classicyBalloonHelp`'s
+	// declarations and text.
+	it("draws the rich text editor's toolbar tips as its help balloon", () => {
+		const tip = rule(
+			".classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > *",
+		);
+		for (const declaration of [
+			"min-width: var(--balloon-help-min-width);",
+			"max-width: var(--balloon-help-max-width);",
+			"padding: var(--window-padding-size);",
+			"border: var(--window-border-size) solid var(--color-black);",
+			"border-radius: var(--balloon-help-corner-radius);",
+			"color: var(--color-black);",
+			"background: var(--color-white);",
+			"font-family: var(--ui-font);",
+			"font-size: var(--balloon-help-font-size);",
+			"line-height: 1.3;",
+		])
+			expect(tip).toContain(declaration);
+	});
+
 	describe("desktop, icons, Control Strip and tabs", () => {
 		const CORE_BACKGROUND = [
 			/background-color: var\(--desktop-background-color\);/,

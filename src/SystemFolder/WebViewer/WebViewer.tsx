@@ -14,6 +14,7 @@ import {
 	closeWindowMenuItemHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { isSameOriginUrl } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import "./WebViewer.scss";
@@ -79,19 +80,26 @@ export const WebViewer: FunctionalComponent = () => {
 		appName,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
 
 	const buildAppMenu = useCallback(
 		(windowId: string, url: string) => [
 			{
 				id: `${windowId}_file`,
 				title: "File",
+				accessKey: ak("f"),
 				menuChildren: [
-					closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
-						closeWindow(windowId, {
-							type: "ClassicyAppWebViewerCloseUrl",
-							app: { id: appId },
-							url,
-						}),
+					closeWindowMenuItemHelper(
+						`${windowId}_close_window`,
+						() =>
+							closeWindow(windowId, {
+								type: "ClassicyAppWebViewerCloseUrl",
+								app: { id: appId },
+								url,
+							}),
+						ak("c"),
 					),
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
 						openUrls.forEach((u) => {
@@ -102,16 +110,17 @@ export const WebViewer: FunctionalComponent = () => {
 							});
 						});
 					}),
-					quitMenuItemHelper(appId, appName, appIcon),
+					quitMenuItemHelper(appId, appName, appIcon, ak("")),
 				],
 			},
 			{
 				id: `${windowId}_help`,
 				title: "Help",
+				accessKey: ak("h"),
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, openUrls, aboutMenuItem, appIcon],
+		[closeWindow, openUrls, aboutMenuItem, appIcon, ak],
 	);
 
 	return (

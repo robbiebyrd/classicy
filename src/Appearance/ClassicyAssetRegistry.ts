@@ -84,6 +84,20 @@ const isIconLeafShape = (value: unknown): value is ClassicyIconLeaf => {
 	);
 };
 
+/**
+ * A cursor a package may register (`registerClassicyCursors`), published on
+ * the desktop root as `--classicy-cursor-<role>`. `help` is the contextual
+ * Help pointer, the arrow with a question mark, shown over the active window
+ * while What's This? is on (WIG Ch.12 "Context-Sensitive Help", p.273,
+ * Figure 12.2; `ClassicyBalloonHelp.scss`): Mac OS had no such mode, so
+ * Platinum and System 7 register none, and without one the browser's `help`
+ * keyword shows. `notAllowed` is Windows' Unavailable pointer (the slashed
+ * circle over a place a drag cannot drop) and `appStarting` its Working in
+ * Background pointer (the arrow with a small hourglass, while something
+ * loads behind a usable window; WIG Ch.4 "Mouse Pointers", Table 4.1): read
+ * only by the Windows 98 package's stylesheet, with the browser's `no-drop`
+ * and `progress` keywords behind them, and registered by no Mac package.
+ */
 export type ClassicyCursorRole =
 	| "arrow"
 	| "watch"
@@ -97,7 +111,10 @@ export type ClassicyCursorRole =
 	| "resizeU"
 	| "resizeD"
 	| "resizeL"
-	| "resizeR";
+	| "resizeR"
+	| "help"
+	| "notAllowed"
+	| "appStarting";
 
 export type ClassicySystemArtKey =
 	| "appleMenu"

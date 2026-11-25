@@ -29,3 +29,18 @@ describe("ClassicyMenu's scrolling rows", () => {
 		);
 	});
 });
+
+// While the keyboard moved a menu tree's tracking last (ClassicyMenu's
+// `focused` state on its root list), the item under a resting pointer drops
+// the base sheet's hover highlight, so the keyboard's item (the package's
+// `:focus-visible` look) is the one tracked. Keyed on the new state alone, so
+// a menu used with the pointer is drawn as before.
+describe("ClassicyMenu's keyboard tracking", () => {
+	it("drops the hover highlight under a resting pointer while the keyboard tracks", () => {
+		expect(
+			rule(
+				":where(.classicyMenuWrapper > .focused) .classicyMenuItem:hover:not(:focus-visible):not(.open)",
+			),
+		).toEqual({ color: "inherit", "background-color": "transparent" });
+	});
+});

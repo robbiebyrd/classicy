@@ -4,6 +4,7 @@ import {
 	useCallback,
 	useEffect,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { pickWindowToRestore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import {
 	useAppManager,
@@ -19,6 +20,7 @@ import { addClassicyQuickLaunchApp } from "@/SystemFolder/SystemResources/App/Cl
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { canonicalChord } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -190,6 +192,18 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	const balloonHelpKey = JSON.stringify(
 		normalizeIconBalloonHelp(desktopIconBalloonHelp, undefined) ?? null,
 	);
+	// Explorer's commands (`layout.finder.commands` "windows"; WIG Ch.5
+	// "Default Operations and Shortcut Techniques", p.45): the app's desktop
+	// icon's menu leads with Open, its default, the command a double-click
+	// runs (shell32.dll's "&Open"). Mac OS 8's Finder sets no default item in
+	// a contextual menu (HIGOS8 "Contextual Menus", pp.94-95), and its app
+	// icons store none (null clears one a Windows session stored).
+	const windowsCommands =
+		useClassicyAppearanceLayout().finder?.commands === "windows";
+	const bundledAccessKey = useClassicyBundledAccessKeys();
+	const openAccessKey = bundledAccessKey("o");
+	// Properties' (shell32.dll's "P&roperties"), the menu's last command.
+	const propertiesAccessKey = bundledAccessKey("r");
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: contextMenu is intentionally omitted to prevent re-firing with inline menu literals
 	useEffect(() => {
@@ -233,6 +247,48 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 						name: name,
 						icon: icon,
 					},
+					...(windowsCommands
+						? {
+								contextMenu: [
+									{
+										id: `${id}_desktop_icon_open`,
+										title: "Open",
+										...(openAccessKey !== undefined
+											? { accessKey: openAccessKey }
+											: {}),
+										isDefault: true,
+										event: "ClassicyDesktopIconOpen",
+										eventData: {
+											iconId: `${id}.shortcut`,
+											app: { id, name, icon },
+										},
+									},
+									// Explorer's Properties, last (WIG Ch.5
+									// "Properties", p.51): the application's sheet.
+									{ id: "spacer" },
+									{
+										id: `${id}_desktop_icon_properties`,
+										title: "Properties",
+										...(propertiesAccessKey !== undefined
+											? { accessKey: propertiesAccessKey }
+											: {}),
+										event: "ClassicyAppFinderPropertiesOpen",
+										eventData: { appId: id },
+									},
+								],
+							}
+						: // A Windows session's stored Open (this menu, never one a
+							// host stored), cleared, and only then, so the Mac
+							// packages' re-add is as it was.
+							useAppManager
+									.getState?.()
+									?.System?.Manager?.Desktop?.icons?.some(
+										(i) =>
+											i.appId === id &&
+											i.contextMenu?.[0]?.id === `${id}_desktop_icon_open`,
+									)
+							? { contextMenu: null }
+							: {}),
 					kind: "app_shortcut",
 					// A hidden icon still populates the derived Applications folder,
 					// which is built from app-shortcut icon records.
@@ -273,6 +329,9 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		id,
 		name,
 		icon,
+		windowsCommands,
+		openAccessKey,
+		propertiesAccessKey,
 	]);
 
 	// Runtime presence, separate from the persisted app record: Control Strip

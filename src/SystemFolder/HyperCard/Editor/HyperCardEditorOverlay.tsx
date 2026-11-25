@@ -14,6 +14,7 @@ import {
 	type PointerEvent,
 	useState,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	type HCEditState,
@@ -21,6 +22,8 @@ import {
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import type { HCRect } from "@/SystemFolder/HyperCard/HyperCardModel";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { classicyEscapeCancels } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
+import { classicyCommandKeyHeld } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 export const HYPERCARD_PART_DRAG_MIME = "application/x-hypercard-part-type";
 
@@ -77,6 +80,8 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 > = ({ stackId, edit, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 	const [drag, setDrag] = useState<DragState | undefined>();
+	// Escape disarms an armed part tool first (`input.escapeCancels`).
+	const escapeDisarms = classicyEscapeCancels(useClassicyAppearanceLayout());
 
 	const parts =
 		peekLayerParts(edit.draft, edit.currentCardId, edit.layer) ?? [];
@@ -167,7 +172,9 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 	};
 
 	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-		const meta = e.metaKey || e.ctrlKey;
+		// Command or Control; Control alone under Windows' command rule
+		// (`layout.keyboard.command` "ctrl").
+		const meta = classicyCommandKeyHeld(e);
 		const key = e.key.toLowerCase();
 		if (meta && key === "z") {
 			e.preventDefault();
@@ -179,6 +186,20 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 		}
 		if (meta && key === "v") {
 			dispatch({ type: "ClassicyAppHCEditPastePart", stackId });
+			return;
+		}
+		// Under Windows' Escape (`input.escapeCancels`; WIG Ch.1 "User in
+		// Control", p.1, Ch.4 "Shortcut Keys", p.27) an armed part tool is a
+		// mode Escape cancels: it is disarmed, whatever is selected, and the
+		// part stays selected until the next Escape. Elsewhere Escape only
+		// deselects, as it always has.
+		if (e.key === "Escape" && edit.placing && escapeDisarms) {
+			e.preventDefault();
+			dispatch({
+				type: "ClassicyAppHCEditSetPlacing",
+				stackId,
+				partType: undefined,
+			});
 			return;
 		}
 		if (!selected) return;

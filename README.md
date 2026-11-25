@@ -442,13 +442,24 @@ has its exports and its strict-CSP stylesheets.
 `@classicy/appearance-windows98` draws Windows 95 and 98 on Classicy's
 structure: gradient title bars with Minimize, Maximize and Close at the
 right, two-pixel bevels from the system colors, checkered scroll-bar tracks
-with an arrow at each end, raised menus and rectangular controls, in
-"Windows Standard", "Windows 95" and the sixteen classic color schemes of
-the Display control panel (Brick, Desert, Rainy Day, …), each a recoloring
-of one stylesheet. It ships its own alert tones but no fonts, art, icons,
-cursors, wallpapers or screen savers: every glyph is drawn from the theme's
-colors, and icons and cursors come from the default package's. Use it alone
-or beside the other packages; the Appearance Manager switches between them:
+with an arrow at each end, raised menus and rectangular controls, in the
+thirty-three color schemes of Windows 98's Display control panel ("Windows
+Standard", Brick, Desert, Rainy Day, the High Contrast schemes, …, each read
+from Windows 98 SE's own scheme data) and "Windows 95", each a recoloring
+of one stylesheet. It ships Windows 98's own icons, Start flag, Recycle Bin,
+shortcut overlay, Windows logo and cursors, and a pixel recreation of MS Sans
+Serif as its font; it shows the bundled apps, the Trash and the startup disk
+by Windows 98's names (Notepad, Display, Recycle Bin, My Computer, …) and
+plays Windows 98's own sounds where its default sound scheme did (The
+Microsoft Sound at startup, Ding, Chord, and Recycle when the Trash is
+emptied). The Desktop tab offers Windows 98's nineteen wallpapers
+and nineteen desktop patterns (drawn black over the scheme's desktop color,
+as Windows drew them), and the Screen Saver panel its screen savers: Flying
+Through Space, Flying Windows, Mystify Your Mind, Curves and Colors,
+Scrolling Marquee, 3D Pipes (WebGL) and Blank Screen, the default, each
+with its own options. The glyphs Windows drew in the scheme's colors are
+drawn from the theme's colors. Use it alone or beside the other packages;
+the Appearance Manager switches between them:
 
 ```sh
 pnpm add @classicy/classicy @classicy/appearance-windows98
@@ -463,7 +474,7 @@ import "@classicy/appearance-windows98";
 
 A Vite host lists it in `optimizeDeps.exclude` too (above). Its README,
 [`packages/appearance/windows98/README.md`](packages/appearance/windows98/README.md),
-has its themes, exports and strict-CSP stylesheet.
+has its themes, exports and strict-CSP stylesheets.
 
 ## Building and running on localhost
 
@@ -517,6 +528,10 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
 - [`flyer`](https://www.masswerk.at/flyer/), for further inspiration
 - Robin Casady, from the legendary [Casady & Greene](https://en.wikipedia.org/wiki/Casady_%26_Greene) for releasing ChicagoFLF into the public domain
 - [Apple](https://www.apple.com), who maintains the copyright on the background patterns, icons and interface components
+- [Microsoft](https://www.microsoft.com), who maintains the copyright on the Windows 95 and 98 icons, cursors, fonts, sounds, wallpapers, screen savers and interface components
+- lou, for the [MS Sans Serif](https://fontstruct.com/fontstructions/show/1384746) and [MS Sans Serif Bold](https://fontstruct.com/fontstructions/show/1384862) FontStruct recreations the Windows 98 package ships (licensed [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)), and [`98.css`](https://github.com/jdan/98.css) (jdan), for their woff2 conversions
+
+Classicy uses Microsoft's Windows 95 and 98 assets and Apple's Mac OS assets under the fair use doctrine.
 
 ## Features
 

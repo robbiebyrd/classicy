@@ -22,6 +22,21 @@
 		inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-01);
 }
 
+// `layout.fileDialog.listFlow: "columns"` (a flat list): the rows flow in
+// columns, top to bottom then left to right, as many to a column as the
+// list's height holds and each column as wide as the widest row (both
+// measured by ClassicyFileDialog), the list scrolling sideways, as Windows'
+// list view does in List mode. Structure only; unmeasured, one column.
+.classicyFileOpenDialogWellColumns .classicyTree {
+	display: grid;
+	grid-auto-flow: column;
+	grid-template-rows: repeat(var(--classicy-file-dialog-list-rows, 1000), auto);
+	grid-auto-columns: var(--classicy-file-dialog-list-column-width, max-content);
+	justify-items: start;
+	align-content: start;
+	width: max-content;
+}
+
 .classicyFileOpenDialogFooter {
 	display: flex;
 	align-items: center;

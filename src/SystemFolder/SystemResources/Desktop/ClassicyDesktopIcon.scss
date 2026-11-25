@@ -36,6 +36,21 @@
   }
 }
 
+// A Desktop Folder item's name being edited in place (Explorer's Rename,
+// New and F2 under a package's `layout.finder.commands` or
+// `layout.fileBrowser.keys` "windows"), where the label was, set as it is:
+// structure only; its frame and colors are the package's.
+.classicyDesktopIcon .classicyDesktopIconRename {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: var(--desktop-icon-label-gap);
+  padding: var(--desktop-icon-label-pad);
+  font-family: var(--body-font), serif;
+  font-size: var(--desktop-icon-font-size);
+  text-align: center;
+  user-select: text;
+}
+
 // An icon shows selection, never a focus ring. Three classes: beats
 // `.classicyDesktop *:focus-visible { outline-color }`.
 .classicyDesktop .classicyDesktopIcon:focus-visible {

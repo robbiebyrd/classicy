@@ -56,6 +56,8 @@ import {
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFont,
+	hasFontFamilyFont,
+	hasFontFamilySize,
 	hasFontSize,
 	hasImportableTheme,
 	hasMenuBar,
@@ -83,7 +85,13 @@ import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { canonicalChord } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	classicyEditableShortcuts,
+	classicyShortcutOverrideChord,
+	isClassicyShortcutOverrideId,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuShortcutOverrides";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import {
 	type ClassicyTaskbarEdge,
@@ -191,6 +199,24 @@ export interface ClassicyStoreSystemDesktopManagerIcon {
 export interface ClassicyStoreSystemDesktopManager
 	extends ClassicyStoreSystemManager {
 	selectedIcons?: string[];
+	/**
+	 * The desktop selection's anchor (WIG Ch.5 "Selection Adjustment",
+	 * pp.38-39): the icon a plain or Control-click last selected, which a
+	 * Shift-click's rectangle starts from (`ClassicyDesktopIconSelect`).
+	 * Written under `layout.selection.modifiers` `"windows"` and by
+	 * `ClassicyDesktopIconSelect`; session state, never persisted
+	 * (`sanitizeStateForPersistence`).
+	 */
+	selectionAnchor?: string | null;
+	/**
+	 * The desktop's focus icon (comctl32's LVIS_FOCUSED; WIG Ch.5
+	 * "Keyboard Selection", p.43): the icon last pressed or moved to, the
+	 * desktop's one Tab stop under `layout.selection.iconNavigation`
+	 * `"roving"` (`classicyDesktopFocusIconId` falls back to the first icon).
+	 * Written under that key and by `ClassicyDesktopIconSelect` and
+	 * `ClassicyDesktopIconMoveFocus`; session state, never persisted.
+	 */
+	focusIcon?: string | null;
 	systemMenu: ClassicyMenuItem[];
 	appMenu: ClassicyMenuItem[];
 	icons: ClassicyStoreSystemDesktopManagerIcon[];
@@ -245,6 +271,18 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Bumped on each request so the controller's effect re-fires even for a
 	 *  repeated identical request. */
 	openUrlRequestId?: number;
+	/**
+	 * The user's own keyboard shortcuts for the bundled apps' menu items
+	 * (WIG Ch.4 "Shortcut Keys", p.27): a stable shortcut id
+	 * (`CLASSICY_BUNDLED_MENU_SHORTCUTS`) to a canonical chord
+	 * (`"control+o"`). Written only under the active package's
+	 * `layout.keyboard.editableShortcuts` (`ClassicyDesktopSetShortcutOverride`,
+	 * `ClassicyDesktopResetShortcutOverrides`) and applied only under it
+	 * (`useClassicyMenuItemShortcut`); absent from the default state, kept
+	 * by `sanitizeStateForPersistence`, validated on load
+	 * (`migrateClassicyState`).
+	 */
+	shortcutOverrides?: Record<string, string>;
 }
 
 /**
@@ -387,6 +425,14 @@ const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
 	return ds.System.Manager.Desktop.controlStrip;
 };
 
+// Whether the active theme holds the package font `family`
+// (`typography.families`), the only fonts ChangeFont and ChangeFontSize edit.
+const hasActiveThemeFontFamily = (ds: ClassicyStore, family: string) => {
+	const families =
+		ds.System.Manager.Appearance.activeTheme?.typography?.families;
+	return !!families && Object.hasOwn(families, family);
+};
+
 export const classicyDesktopEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -451,7 +497,11 @@ export const classicyDesktopEventHandler = (
 				(action.e.target as Record<string, unknown>).id === "classicyDesktop"
 			) {
 				markAppFocused(ds, "Finder.app");
-				ds.System.Manager.Desktop.selectedIcons = [];
+				// A Shift or Control rectangle keeps the selection it starts
+				// from (`keepIconSelection`, `classicyDesktopSelectPress`'s
+				// `keep`; WIG Ch.5 "Region Selection", p.42).
+				if (action.keepIconSelection !== true)
+					ds.System.Manager.Desktop.selectedIcons = [];
 				ds.System.Manager.Desktop.selectBox.active = true;
 				ds.System.Manager.Desktop.selectBox.start = [
 					action.e.clientX,
@@ -762,6 +812,22 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopChangeFont": {
+			// A package font (`family`): only one the active theme holds, checked
+			// before the edit, so a refused change never forks a built-in theme.
+			if (action.family !== undefined) {
+				if (
+					!hasFontFamilyFont(action) ||
+					!hasActiveThemeFontFamily(ds, action.family)
+				)
+					break;
+				const { family, font } = action;
+				editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+					const families = theme.typography.families;
+					if (families && Object.hasOwn(families, family))
+						families[family] = { ...families[family], font };
+				});
+				break;
+			}
 			if (!hasFont(action)) break;
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
 				switch (action.fontType) {
@@ -781,6 +847,27 @@ export const classicyDesktopEventHandler = (
 		// The key and size are checked before the edit, so a refused change
 		// never forks a built-in theme.
 		case "ClassicyDesktopChangeFontSize": {
+			if (action.family !== undefined) {
+				if (
+					!hasFontFamilySize(action) ||
+					!hasActiveThemeFontFamily(ds, action.family)
+				) {
+					classicyLog(
+						"warn",
+						"ClassicyDesktopManager",
+						`ClassicyDesktopChangeFontSize rejected: family must name a font of the active theme's typography.families and fontSize be a number from ${CLASSICY_THEME_FONT_SIZE_MIN} to ${CLASSICY_THEME_FONT_SIZE_MAX}`,
+						{ family: action.family, fontSize: action.fontSize },
+					);
+					break;
+				}
+				const { family, fontSize } = action;
+				editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+					const families = theme.typography.families;
+					if (families && Object.hasOwn(families, family))
+						families[family] = { ...families[family], size: fontSize };
+				});
+				break;
+			}
 			if (!hasFontSize(action)) {
 				classicyLog(
 					"warn",
@@ -824,6 +911,60 @@ export const classicyDesktopEventHandler = (
 				break;
 			}
 			ds.System.Manager.Appearance.availableThemes = themes;
+			break;
+		}
+		case "ClassicyDesktopSetShortcutOverride": {
+			// Only a package that lets the user edit shortcuts writes one
+			// (Windows 98), so another package's persisted bytes never change.
+			if (
+				!classicyEditableShortcuts(
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId),
+				)
+			)
+				break;
+			const { itemId } = action as { itemId?: unknown };
+			if (!isClassicyShortcutOverrideId(itemId)) break;
+			const chord = classicyShortcutOverrideChord(
+				(action as { shortcut?: unknown }).shortcut,
+			);
+			if (!chord) break;
+			const desktop = ds.System.Manager.Desktop;
+			// The item's own chord again is no override: the map keeps only
+			// what differs, and loses the key when nothing does.
+			const own = (action as { defaultShortcut?: unknown }).defaultShortcut;
+			if (typeof own === "string" && canonicalChord(own) === chord) {
+				if (desktop.shortcutOverrides) {
+					delete desktop.shortcutOverrides[itemId];
+					if (Object.keys(desktop.shortcutOverrides).length === 0)
+						delete desktop.shortcutOverrides;
+				}
+				break;
+			}
+			desktop.shortcutOverrides ??= {};
+			desktop.shortcutOverrides[itemId] = chord;
+			break;
+		}
+		case "ClassicyDesktopResetShortcutOverrides": {
+			if (
+				!classicyEditableShortcuts(
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId),
+				)
+			)
+				break;
+			const desktop = ds.System.Manager.Desktop;
+			if (!desktop.shortcutOverrides) break;
+			const { itemIds } = action as { itemIds?: unknown };
+			if (Array.isArray(itemIds)) {
+				for (const id of itemIds) {
+					if (
+						isClassicyShortcutOverrideId(id) &&
+						Object.hasOwn(desktop.shortcutOverrides, id)
+					)
+						delete desktop.shortcutOverrides[id];
+				}
+				if (Object.keys(desktop.shortcutOverrides).length > 0) break;
+			}
+			delete desktop.shortcutOverrides;
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {

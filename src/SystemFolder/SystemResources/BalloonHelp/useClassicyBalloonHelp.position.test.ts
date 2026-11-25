@@ -7,7 +7,10 @@ vi.mock(
 	() => ({ useAppManager: () => false }),
 );
 
-import { resolveBalloonPosition } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import {
+	resolveBalloonPointerPlacement,
+	resolveBalloonPosition,
+} from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 
 /**
  * `position` is a preference. An anchor near an edge of the viewport has no room
@@ -138,5 +141,63 @@ describe("resolveBalloonPosition", () => {
 				{ width: 500, height: 400 },
 			),
 		).toBe("top-center");
+	});
+});
+
+// A ToolTip at the pointer (`layout.balloonHelp.placement` "pointer"; WIG
+// Ch.7 "Tooltip Controls", p.133; Wine's TOOLTIPS_Show): measured where it
+// first lands, below the pointer, then moved left to end at the bounds'
+// right edge (never past their left) and above the anchor where it passes
+// their bottom.
+describe("resolveBalloonPointerPlacement", () => {
+	const bounds = { left: 0, top: 0, right: 1280, bottom: 800 };
+	const box = (left: number, top: number, width = 150, height = 30) => ({
+		left,
+		top,
+		right: left + width,
+		bottom: top + height,
+	});
+
+	it("keeps a tip that fits where it opened, below the pointer", () => {
+		expect(
+			resolveBalloonPointerPlacement({ x: 300, y: 200 }, box(300, 220), bounds),
+		).toEqual({ side: "below", left: 300 });
+	});
+
+	it("moves a tip passing the right edge left until it ends there", () => {
+		expect(
+			resolveBalloonPointerPlacement(
+				{ x: 1200, y: 200 },
+				box(1200, 220),
+				bounds,
+			),
+		).toEqual({ side: "below", left: 1130 });
+	});
+
+	it("never moves it past the left edge", () => {
+		expect(
+			resolveBalloonPointerPlacement(
+				{ x: 20, y: 200 },
+				box(20, 220, 1400),
+				bounds,
+			),
+		).toEqual({ side: "below", left: 0 });
+	});
+
+	it("goes above the anchor where it would pass the bottom", () => {
+		expect(
+			resolveBalloonPointerPlacement({ x: 300, y: 780 }, box(300, 800), bounds),
+		).toEqual({ side: "above", left: 300 });
+	});
+
+	it("keeps to the desktop's bounds, not the viewport's", () => {
+		expect(
+			resolveBalloonPointerPlacement({ x: 600, y: 200 }, box(600, 220), {
+				left: 100,
+				top: 20,
+				right: 700,
+				bottom: 240,
+			}),
+		).toEqual({ side: "above", left: 550 });
 	});
 });

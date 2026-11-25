@@ -20,6 +20,13 @@ type ClassicyHelpButtonProps = {
 	disabled?: boolean;
 	/** Click handler — typically opens the relevant help (Apple Guide, a help window). */
 	onClickFunc?: MouseEventHandler<HTMLButtonElement>;
+	/**
+	 * Whether the button shows its `label` as a ToolTip under the package's
+	 * `layout.balloonHelp.unlabeledTips` (`ClassicyBevelButton`'s `nameTip`).
+	 * `ClassicyAlert` passes `false`: Windows 98 draws its Help as a push
+	 * button reading "Help". Defaults to `true`.
+	 */
+	nameTip?: boolean;
 	/** Extra class names merged onto the button (e.g. for placement). */
 	className?: string;
 	/** Inline style, merged onto the button after the component's own. */
@@ -50,6 +57,7 @@ export const ClassicyHelpButton: FunctionalComponent<
 	label = "Help",
 	disabled = false,
 	onClickFunc,
+	nameTip = true,
 	className,
 	style,
 	...dataAttributes
@@ -64,6 +72,7 @@ export const ClassicyHelpButton: FunctionalComponent<
 			icon={helpIcon}
 			disabled={disabled}
 			onClickFunc={onClickFunc}
+			nameTip={nameTip}
 			className={classNames("classicyHelpButton", className)}
 			style={style}
 		/>

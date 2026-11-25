@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 // getTheme serves the registered packages' themes: Platinum's.
 import "@classicy/appearance-platinum";
+// The Colors tab's labels per package (`colorLabels`).
+import "@classicy/appearance-system7";
+import "@classicy/appearance-windows98";
 import { fireEvent, render, renderHook, screen } from "@/__tests__/test-utils";
-import type { ClassicyAppearanceColorFamilies } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	type ClassicyAppearanceColorFamilies,
+	getClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
 import {
 	type ClassicyTheme,
 	getTheme,
@@ -57,6 +63,7 @@ const Host = ({
 	editingCustomTheme = false,
 	activeTheme = theme,
 	colorFamilies,
+	colorLabels,
 }: {
 	changeColor?: (
 		change: ClassicyThemeColorChange | ClassicyThemeColorFamilyChange,
@@ -64,6 +71,7 @@ const Host = ({
 	editingCustomTheme?: boolean;
 	activeTheme?: ClassicyTheme;
 	colorFamilies?: ClassicyAppearanceColorFamilies;
+	colorLabels?: Readonly<Partial<Record<string, string>>>;
 }) => {
 	const tab = useColorsTab({
 		theme: activeTheme,
@@ -71,6 +79,7 @@ const Host = ({
 		changeColor,
 		appId: "AppearanceManager.app",
 		colorFamilies,
+		colorLabels,
 	});
 	return <div>{tab.children}</div>;
 };
@@ -236,5 +245,47 @@ describe("useColorsTab: package color families", () => {
 	it("lists only the 28 core colors for a package that declares none", () => {
 		render(<Host activeTheme={withFamilies()} />);
 		expect(screen.getAllByTestId("colors-tab-picker")).toHaveLength(28);
+	});
+});
+
+// A package names the core's colors in its own words (`colorLabels`, the
+// audit's 1.2; WIG Ch.1 "User in Control", p.1, "Directness", pp.1-2):
+// Windows 98 by its Display Properties Items, else its `[Control
+// Panel\Colors]` names; Platinum and System 7 name none, so the tab is as
+// it was.
+describe("useColorsTab — the package's color labels", () => {
+	const labelOf = (cssVar: string) => {
+		const info = CLASSICY_THEME_COLOR_TARGETS.find((t) => t.cssVar === cssVar);
+		if (!info) throw new Error(cssVar);
+		return document.getElementById(appearanceColorPickerId(info.target))
+			?.textContent;
+	};
+
+	it.each([
+		["platinum"],
+		["system7"],
+	])("keeps the core's labels under %s", (id) => {
+		const pkg = getClassicyAppearancePackage(id);
+		expect(pkg?.colorLabels).toBeUndefined();
+		render(<Host colorLabels={pkg?.colorLabels} />);
+		for (const info of CLASSICY_THEME_COLOR_TARGETS)
+			expect(labelOf(info.cssVar)).toBe(info.label);
+	});
+
+	it("names the core's colors in Windows' words under Windows 98, the rest kept", () => {
+		const labels = getClassicyAppearancePackage("windows98")?.colorLabels;
+		render(<Host colorLabels={labels} />);
+		expect(labelOf("--color-system-03")).toBe("3D Objects");
+		expect(labelOf("--color-system-01")).toBe("Button Highlight");
+		expect(labelOf("--color-system-02")).toBe("Button Light");
+		expect(labelOf("--color-system-05")).toBe("Button Shadow");
+		expect(labelOf("--color-system-07")).toBe("Button Dark Shadow");
+		expect(labelOf("--color-black")).toBe("Window Text");
+		expect(labelOf("--color-highlight")).toBe("Selected Items");
+		expect(labelOf("--color-window-document")).toBe("Window");
+		expect(labelOf("--desktop-background-color")).toBe("Desktop");
+		// A color Windows gives no name keeps the core's.
+		expect(labelOf("--color-system-04")).toBe("4");
+		expect(labelOf("--color-alert")).toBe("Alert");
 	});
 });

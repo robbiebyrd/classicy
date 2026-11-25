@@ -32,6 +32,7 @@ import {
 	updateAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { classicyWindowViewStatePatch } from "@/SystemFolder/SystemResources/Window/ClassicyWindowViewStatePatch.internal";
 
 const initialWindowState = {
 	closed: false,
@@ -142,6 +143,15 @@ export type ClassicyWindowAction =
 			window: { id: string };
 			position: [number, number];
 			moving: boolean;
+	  }
+	// Record a window's view state (its scroll offsets, a document's caret),
+	// kept only under a package's `layout.window.restoreViewState`
+	| {
+			type: "ClassicyWindowSetScroll";
+			app: { id: string };
+			window: { id: string };
+			scroll?: [number, number];
+			caret?: number;
 	  }
 	// Refresh a window's stored menuBar record (does not require focus)
 	| {
@@ -387,6 +397,16 @@ export const classicyWindowEventHandler = (
 					w.menuBar = menuBar;
 				});
 			}
+			break;
+		}
+
+		case "ClassicyWindowSetScroll": {
+			if (!hasAppAndWindow(action)) break;
+			const patch = classicyWindowViewStatePatch(
+				ds,
+				action as { scroll?: unknown; caret?: unknown },
+			);
+			if (patch) updateWindow(action.app.id, action.window.id, patch);
 			break;
 		}
 

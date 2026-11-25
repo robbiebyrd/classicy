@@ -34,7 +34,7 @@ describe("Storybook preview theme toolbar", () => {
 		const { default: windows98Json } = await import(
 			"../../packages/appearance/windows98/src/windows98.json"
 		);
-		expect(windows98Json.presets).toHaveLength(18);
+		expect(windows98Json.presets).toHaveLength(34);
 		expect(items.slice(platinumItems?.length)).toEqual([
 			{ value: "system7", title: "System 7", right: "System 7" },
 			{ value: "system7-color", title: "System 7 Color", right: "System 7" },

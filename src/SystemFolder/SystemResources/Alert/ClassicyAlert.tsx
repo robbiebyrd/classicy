@@ -16,11 +16,13 @@ import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabul
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import {
 	useFocusTrap,
 	useKeyboardEquivalents,
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyWindowAlertTypeContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowAlertType.internal";
 import { ClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
 
 /**
@@ -50,6 +52,15 @@ export type ClassicyAlertButton = {
 	disabled?: boolean;
 	/** Called when the button is activated, before the alert's `onClose`. */
 	onClick?: () => void;
+	/**
+	 * The button's access key (`ClassicyButton`'s `accessKey`), read only
+	 * under a package's `layout.menu.accessKeys`. Omitted, a message box's
+	 * own buttons take Windows' (user.exe's "&Yes", "&No", "&Retry",
+	 * "&Abort", "&Ignore"; WIG Appendix B Table B.5), OK and Cancel none
+	 * (Return and Escape reach them), and any other the package's automatic
+	 * pick; `""` gives it none.
+	 */
+	accessKey?: string;
 };
 
 export type ClassicyAlertProps = {
@@ -132,6 +143,30 @@ const alertButtonRole = (
 	return "other";
 };
 
+// A message box's own buttons and the access keys Windows 98 gives them
+// (user.exe's button strings, read from the Windows 98 SE CD: "OK",
+// "Cancel", "&Abort", "&Retry", "&Ignore", "&Yes", "&No"), in the case
+// they are drawn in, so each lands on its first letter.
+const MESSAGE_BOX_ACCESS_KEYS: Readonly<Record<string, string>> = {
+	yes: "Y",
+	no: "N",
+	retry: "R",
+	abort: "A",
+	ignore: "I",
+};
+
+/** A button's access key: its own, else a message box button's (through `ak`, the bundled keys' gate). */
+const alertButtonAccessKey = (
+	button: ClassicyAlertButton,
+	ak: (key: string) => string | undefined,
+): string | undefined => {
+	if (button.accessKey !== undefined) return button.accessKey;
+	const label = button.label.trim().toLowerCase();
+	return Object.hasOwn(MESSAGE_BOX_ACCESS_KEYS, label)
+		? ak(MESSAGE_BOX_ACCESS_KEYS[label])
+		: undefined;
+};
+
 const defaultButtonsForType = (
 	alertType: ClassicyAlertType,
 ): ClassicyAlertButton[] => {
@@ -201,6 +236,8 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	style,
 }) => {
 	const player = useSoundDispatch();
+	// A message box's buttons' access keys, under a package that has them.
+	const ak = useClassicyBundledAccessKeys();
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const defaultButtonRef = useRef<HTMLButtonElement | null>(null);
 	const appearance = useClassicyAppearance("Alert", {}, contentRef);
@@ -309,14 +346,23 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	});
 
 	// The non-movable variant is an error-typed window, so ClassicyWindow already
-	// plays the alert sound. The movable variant is a plain modal, so play here.
+	// plays the alert sound (with the type this alert provides it below). The
+	// movable variant is a plain modal, so play here. Both carry the alert's
+	// type, which a sound pack may give its own sound (`alertTypeSounds`: an
+	// icon's event, as Windows played for a message box); a ref, so changing
+	// the type never sounds the alert again.
+	const alertTypeRef = useRef(alertType);
+	alertTypeRef.current = alertType;
 	useEffect(() => {
 		if (movable) {
-			player({ type: "ClassicySoundPlayError" });
+			player({
+				type: "ClassicySoundPlayError",
+				alertType: alertTypeRef.current,
+			});
 		}
 	}, [movable, player]);
 
-	return (
+	const alertWindow = (
 		<ClassicyWindow
 			id={id}
 			// The movable alert's red title bar is keyed on its window's class
@@ -384,6 +430,9 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 									}
 									disabled={button.disabled}
 									onClickFunc={() => handleButton(button)}
+									// Windows 98 draws it as a push button reading its
+									// label (_Alert.scss), so it needs no ToolTip of it.
+									nameTip={false}
 									className="classicyAlertHelpButton"
 									{...{ [CLASSICY_PART_ATTRIBUTE.role]: "other" }}
 								/>
@@ -397,6 +446,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 									}
 									isDefault={button.id === defaultButton?.id}
 									disabled={button.disabled}
+									accessKey={alertButtonAccessKey(button, ak)}
 									onClickFunc={() => handleButton(button)}
 									{...{
 										[CLASSICY_PART_ATTRIBUTE.role]: alertButtonRole(
@@ -413,5 +463,11 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 				</div>
 			</ClassicyWindowSelfPadding>
 		</ClassicyWindow>
+	);
+
+	return (
+		<ClassicyWindowAlertTypeContext.Provider value={alertType}>
+			{alertWindow}
+		</ClassicyWindowAlertTypeContext.Provider>
 	);
 };

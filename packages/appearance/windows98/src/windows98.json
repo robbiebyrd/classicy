@@ -46,6 +46,20 @@
 					"banner": 255,
 					"bannerGradient": 128,
 					"bannerText": 16777215
+				},
+				"text": {
+					"button": 0,
+					"gray": 8421504
+				},
+				"scrollBar": {
+					"track": 12632256
+				},
+				"sizingBorder": {
+					"active": 12632256,
+					"inactive": 12632256
+				},
+				"help": {
+					"jump": 32768
 				}
 			}
 		},
@@ -63,7 +77,33 @@
 			"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 			"monoSize": 12,
 			"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-			"digitalSize": 12
+			"digitalSize": 12,
+			"families": {
+				"caption": {
+					"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+					"size": 11,
+					"weight": 700
+				},
+				"smallCaption": {
+					"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+					"size": 11,
+					"weight": 700
+				},
+				"menu": {
+					"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+					"size": 11,
+					"weight": 400
+				},
+				"message": {
+					"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+					"size": 11,
+					"weight": 400
+				},
+				"icon": {
+					"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+					"weight": 400
+				}
+			}
 		},
 		"measurements": {
 			"window": {
@@ -72,7 +112,7 @@
 				"paddingSize": 5,
 				"scrollbarSize": 16,
 				"titleBarHeight": 18,
-				"utilityTitleBarHeight": 13
+				"utilityTitleBarHeight": 15
 			},
 			"control": {
 				"height": 20,
@@ -120,7 +160,8 @@
 				"buttonWidth": 24,
 				"buttonHeight": 22,
 				"largeButtonWidth": 32,
-				"largeButtonHeight": 30
+				"largeButtonHeight": 30,
+				"restBevel": 0
 			},
 			"checkbox": {
 				"size": 13,
@@ -159,7 +200,9 @@
 			},
 			"tooltip": {
 				"paddingX": 4,
-				"paddingY": 2
+				"paddingY": 2,
+				"pointerOffset": 20,
+				"shadow": 6
 			},
 			"menuItem": {
 				"paddingX": 6
@@ -252,6 +295,20 @@
 			},
 			"desktopLabel": {
 				"shadow": 1
+			},
+			"appleGuide": {
+				"headerFontSize": 11,
+				"bodyFontSize": 11
+			},
+			"sizingBorder": {
+				"width": 1
+			},
+			"scrollBar": {
+				"solidTrack": 0
+			},
+			"desktopIconGrid": {
+				"rowGap": 43,
+				"columnGap": 43
 			}
 		},
 		"desktop": {
@@ -310,6 +367,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 8421504
+					},
+					"scrollBar": {
+						"track": 12632256
+					},
+					"sizingBorder": {
+						"active": 12632256,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -327,7 +398,33 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
@@ -336,7 +433,7 @@
 					"paddingSize": 5,
 					"scrollbarSize": 16,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -384,7 +481,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -423,7 +521,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -516,6 +616,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -573,6 +687,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 8421504
+					},
+					"scrollBar": {
+						"track": 12632256
+					},
+					"sizingBorder": {
+						"active": 12632256,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -590,7 +718,33 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
@@ -599,7 +753,7 @@
 					"paddingSize": 5,
 					"scrollbarSize": 16,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -647,7 +801,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 1
 				},
 				"checkbox": {
 					"size": 13,
@@ -686,7 +841,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -779,6 +936,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -818,9 +989,9 @@
 				"families": {
 					"titleBar": {
 						"active": 8388608,
-						"activeGradient": 11564096,
+						"activeGradient": 8388608,
 						"inactive": 9275745,
-						"inactiveGradient": 13154416,
+						"inactiveGradient": 9275745,
 						"text": 14803154,
 						"inactiveText": 14803154
 					},
@@ -828,8 +999,8 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
-						"text": 0
+						"face": 14803154,
+						"text": 8388608
 					},
 					"desktop": {
 						"text": 16777215
@@ -838,6 +1009,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 9275745
+					},
+					"scrollBar": {
+						"track": 14803154
+					},
+					"sizingBorder": {
+						"active": 12763045,
+						"inactive": 12763045
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -855,16 +1040,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 12,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -912,7 +1123,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -951,7 +1163,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1044,6 +1258,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -1083,9 +1311,9 @@
 				"families": {
 					"titleBar": {
 						"active": 32896,
-						"activeGradient": 8699306,
+						"activeGradient": 32896,
 						"inactive": 10653032,
-						"inactiveGradient": 15257728,
+						"inactiveGradient": 10653032,
 						"text": 16777215,
 						"inactiveText": 16777215
 					},
@@ -1093,7 +1321,7 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
@@ -1103,6 +1331,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 10653032
+					},
+					"scrollBar": {
+						"track": 15394525
+					},
+					"sizingBorder": {
+						"active": 14011579,
+						"inactive": 14011579
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -1120,16 +1362,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -1177,7 +1445,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -1216,7 +1485,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1309,6 +1580,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -1327,8 +1612,8 @@
 			"package": "windows98",
 			"color": {
 				"outline": 0,
-				"select": 5800056,
-				"highlight": 5800056,
+				"select": 3699824,
+				"highlight": 3699824,
 				"window": {
 					"border": 0,
 					"borderOutset": 13162712,
@@ -1343,14 +1628,14 @@
 				"error": 16711680,
 				"system": [13162712, 9482408, 9482408, 7641232, 5800056, 2900028, 0],
 				"theme": [
-					14608100, 11847362, 9086624, 5800056, 4613728, 3493192, 2306864
+					14148578, 10862783, 7642779, 3699824, 2973018, 2246211, 1453613
 				],
 				"families": {
 					"titleBar": {
 						"active": 5800056,
-						"activeGradient": 8604547,
+						"activeGradient": 5800056,
 						"inactive": 9482408,
-						"inactiveGradient": 13352402,
+						"inactiveGradient": 9482408,
 						"text": 16777215,
 						"inactiveText": 5800056
 					},
@@ -1358,8 +1643,8 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
-						"text": 0
+						"face": 16777215,
+						"text": 8388736
 					},
 					"desktop": {
 						"text": 16777215
@@ -1368,6 +1653,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 5800056
+					},
+					"scrollBar": {
+						"track": 9482408
+					},
+					"sizingBorder": {
+						"active": 9482408,
+						"inactive": 9482408
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -1385,7 +1684,33 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 15,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 13,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 13,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 13,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
@@ -1393,8 +1718,8 @@
 					"controlSize": 12,
 					"paddingSize": 5,
 					"scrollbarSize": 16,
-					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"titleBarHeight": 19,
+					"utilityTitleBarHeight": 17
 				},
 				"control": {
 					"height": 20,
@@ -1425,8 +1750,8 @@
 					"unit": 1
 				},
 				"titleBar": {
-					"buttonWidth": 16,
-					"buttonHeight": 14,
+					"buttonWidth": 17,
+					"buttonHeight": 15,
 					"buttonGap": 0,
 					"closeGap": 2,
 					"endInset": 2,
@@ -1442,7 +1767,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -1481,7 +1807,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1574,6 +1902,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -1587,8 +1929,4176 @@
 			}
 		},
 		{
+			"id": "windows98HighContrast1",
+			"name": "High Contrast #1",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 32768,
+				"highlight": 32768,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 16777215,
+					"document": 0
+				},
+				"black": 16776960,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 16777215, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [13428428, 9225868, 5023308, 32768, 26112, 19712, 13056],
+				"families": {
+					"titleBar": {
+						"active": 255,
+						"activeGradient": 255,
+						"inactive": 65535,
+						"inactiveGradient": 65535,
+						"text": 16777215,
+						"inactiveText": 0
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 0,
+						"text": 16776960
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 16777215,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 255,
+						"inactive": 65535
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 17,
+					"titleBarHeight": 20,
+					"utilityTitleBarHeight": 15
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 18,
+					"buttonHeight": 16,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"menuBar": {
+					"titleHeight": 18
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrast1ExtraLarge",
+			"name": "High Contrast #1 (extra large)",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 32768,
+				"highlight": 32768,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 16777215,
+					"document": 0
+				},
+				"black": 16776960,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 16777215, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [13428428, 9225868, 5023308, 32768, 26112, 19712, 13056],
+				"families": {
+					"titleBar": {
+						"active": 255,
+						"activeGradient": 255,
+						"inactive": 65535,
+						"inactiveGradient": 65535,
+						"text": 16777215,
+						"inactiveText": 0
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 0,
+						"text": 16776960
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 16777215,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 255,
+						"inactive": 65535
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 30,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 23,
+						"weight": 400
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 30,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 31,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 400
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 32,
+					"titleBarHeight": 37,
+					"utilityTitleBarHeight": 28
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 35,
+					"buttonHeight": 33,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 6
+				},
+				"menuBar": {
+					"titleHeight": 38
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 23,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrast1Large",
+			"name": "High Contrast #1 (large)",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 32768,
+				"highlight": 32768,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 16777215,
+					"document": 0
+				},
+				"black": 16776960,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 16777215, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [13428428, 9225868, 5023308, 32768, 26112, 19712, 13056],
+				"families": {
+					"titleBar": {
+						"active": 255,
+						"activeGradient": 255,
+						"inactive": 65535,
+						"inactiveGradient": 65535,
+						"text": 16777215,
+						"inactiveText": 0
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 0,
+						"text": 16776960
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 16777215,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 255,
+						"inactive": 65535
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 20,
+						"weight": 700
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 28,
+					"titleBarHeight": 31,
+					"utilityTitleBarHeight": 26
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 29,
+					"buttonHeight": 27,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 6
+				},
+				"menuBar": {
+					"titleHeight": 30
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 20,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrast2",
+			"name": "High Contrast #2",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 255,
+				"highlight": 255,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 0,
+					"document": 0
+				},
+				"black": 65280,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 16777215, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [13421823, 9211135, 5000447, 255, 204, 153, 102],
+				"families": {
+					"titleBar": {
+						"active": 65535,
+						"activeGradient": 65535,
+						"inactive": 255,
+						"inactiveGradient": 255,
+						"text": 0,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16776960,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 65280,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 65535,
+						"inactive": 255
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 17,
+					"titleBarHeight": 20,
+					"utilityTitleBarHeight": 15
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 18,
+					"buttonHeight": 16,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"menuBar": {
+					"titleHeight": 18
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrast2ExtraLarge",
+			"name": "High Contrast #2 (extra large)",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 255,
+				"highlight": 255,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 0,
+					"document": 0
+				},
+				"black": 65280,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 16777215, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [13421823, 9211135, 5000447, 255, 204, 153, 102],
+				"families": {
+					"titleBar": {
+						"active": 65535,
+						"activeGradient": 65535,
+						"inactive": 255,
+						"inactiveGradient": 255,
+						"text": 0,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16776960,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 65280,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 65535,
+						"inactive": 255
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 30,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 23,
+						"weight": 400
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 30,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 31,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 400
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 32,
+					"titleBarHeight": 37,
+					"utilityTitleBarHeight": 28
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 35,
+					"buttonHeight": 33,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 6
+				},
+				"menuBar": {
+					"titleHeight": 38
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 23,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrast2Large",
+			"name": "High Contrast #2 (large)",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 255,
+				"highlight": 255,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 0,
+					"document": 0
+				},
+				"black": 65280,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 16777215, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [13421823, 9211135, 5000447, 255, 204, 153, 102],
+				"families": {
+					"titleBar": {
+						"active": 65535,
+						"activeGradient": 65535,
+						"inactive": 255,
+						"inactiveGradient": 255,
+						"text": 0,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16776960,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 65280,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 65535,
+						"inactive": 255
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 20,
+						"weight": 700
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 28,
+					"titleBarHeight": 31,
+					"utilityTitleBarHeight": 26
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 29,
+					"buttonHeight": 27,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 6
+				},
+				"menuBar": {
+					"titleHeight": 30
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 20,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrastBlack",
+			"name": "High Contrast Black",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 8388736,
+				"highlight": 8388736,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 16777215,
+					"document": 0
+				},
+				"black": 16777215,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 13676728, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [
+					15125734, 13012166, 10898598, 8388736, 6684774, 5046349, 3342387
+				],
+				"families": {
+					"titleBar": {
+						"active": 8388736,
+						"activeGradient": 8388736,
+						"inactive": 32768,
+						"inactiveGradient": 32768,
+						"text": 16777215,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777215,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 16777215,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 16776960,
+						"inactive": 32768
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 17,
+					"titleBarHeight": 20,
+					"utilityTitleBarHeight": 15
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 18,
+					"buttonHeight": 16,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"menuBar": {
+					"titleHeight": 18
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrastBlackExtraLarge",
+			"name": "High Contrast Black (extra large)",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 8388736,
+				"highlight": 8388736,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 16777215,
+					"document": 0
+				},
+				"black": 16777215,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 13676728, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [
+					15125734, 13012166, 10898598, 8388736, 6684774, 5046349, 3342387
+				],
+				"families": {
+					"titleBar": {
+						"active": 8388736,
+						"activeGradient": 8388736,
+						"inactive": 32768,
+						"inactiveGradient": 32768,
+						"text": 16777215,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777215,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 16777215,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 16776960,
+						"inactive": 32768
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 30,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 23,
+						"weight": 400
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 30,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 31,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 400
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 32,
+					"titleBarHeight": 37,
+					"utilityTitleBarHeight": 28
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 35,
+					"buttonHeight": 33,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 6
+				},
+				"menuBar": {
+					"titleHeight": 38
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 23,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrastBlackLarge",
+			"name": "High Contrast Black (large)",
+			"package": "windows98",
+			"color": {
+				"outline": 16777215,
+				"select": 8388736,
+				"highlight": 8388736,
+				"window": {
+					"border": 16777215,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 0,
+					"title": 16777215,
+					"document": 0
+				},
+				"black": 16777215,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 13676728, 0, 4210752, 8421504, 12632256, 16777215],
+				"theme": [
+					15125734, 13012166, 10898598, 8388736, 6684774, 5046349, 3342387
+				],
+				"families": {
+					"titleBar": {
+						"active": 8388736,
+						"activeGradient": 8388736,
+						"inactive": 32768,
+						"inactiveGradient": 32768,
+						"text": 16777215,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777215,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 16777215,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 0
+					},
+					"sizingBorder": {
+						"active": 16776960,
+						"inactive": 32768
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 20,
+						"weight": 700
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 28,
+					"titleBarHeight": 31,
+					"utilityTitleBarHeight": 26
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 29,
+					"buttonHeight": 27,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 6
+				},
+				"menuBar": {
+					"titleHeight": 30
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 20,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrastWhite",
+			"name": "High Contrast White",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 0,
+				"highlight": 0,
+				"window": {
+					"border": 0,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 16777215,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 13676728, 16777215, 12632256, 8421504, 4210752, 0],
+				"theme": [13421772, 9211020, 5000268, 0, 0, 0, 0],
+				"families": {
+					"titleBar": {
+						"active": 0,
+						"activeGradient": 0,
+						"inactive": 16777215,
+						"inactiveGradient": 16777215,
+						"text": 16777215,
+						"inactiveText": 0
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777215,
+						"text": 0
+					},
+					"desktop": {
+						"text": 0
+					},
+					"text": {
+						"button": 0,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 16777215
+					},
+					"sizingBorder": {
+						"active": 8421504,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 17,
+					"titleBarHeight": 20,
+					"utilityTitleBarHeight": 15
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 18,
+					"buttonHeight": 16,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"menuBar": {
+					"titleHeight": 18
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 16777215,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrastWhiteExtraLarge",
+			"name": "High Contrast White (extra large)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 0,
+				"highlight": 0,
+				"window": {
+					"border": 0,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 16777215,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 13676728, 16777215, 12632256, 8421504, 4210752, 0],
+				"theme": [13421772, 9211020, 5000268, 0, 0, 0, 0],
+				"families": {
+					"titleBar": {
+						"active": 0,
+						"activeGradient": 0,
+						"inactive": 16777215,
+						"inactiveGradient": 16777215,
+						"text": 16777215,
+						"inactiveText": 0
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777215,
+						"text": 0
+					},
+					"desktop": {
+						"text": 0
+					},
+					"text": {
+						"button": 0,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 16777215
+					},
+					"sizingBorder": {
+						"active": 8421504,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 30,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 23,
+						"weight": 400
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 30,
+						"weight": 700
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 21,
+						"weight": 700
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 30,
+					"titleBarHeight": 38,
+					"utilityTitleBarHeight": 28
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 36,
+					"buttonHeight": 34,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 6
+				},
+				"menuBar": {
+					"titleHeight": 38
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 23,
+				"backgroundImage": "",
+				"backgroundColor": 16777215,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98HighContrastWhiteLarge",
+			"name": "High Contrast White (large)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 0,
+				"highlight": 0,
+				"window": {
+					"border": 0,
+					"borderOutset": 12632256,
+					"borderInset": 8421504,
+					"frame": 16777215,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12632256, 13676728, 16777215, 12632256, 8421504, 4210752, 0],
+				"theme": [13421772, 9211020, 5000268, 0, 0, 0, 0],
+				"families": {
+					"titleBar": {
+						"active": 0,
+						"activeGradient": 0,
+						"inactive": 16777215,
+						"inactiveGradient": 16777215,
+						"text": 16777215,
+						"inactiveText": 0
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777215,
+						"text": 0
+					},
+					"desktop": {
+						"text": 0
+					},
+					"text": {
+						"button": 0,
+						"gray": 65280
+					},
+					"scrollBar": {
+						"track": 16777215
+					},
+					"sizingBorder": {
+						"active": 8421504,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 24,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 19,
+						"weight": 700
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 21,
+						"weight": 700
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 21,
+						"weight": 700
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 700
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 26,
+					"titleBarHeight": 37,
+					"utilityTitleBarHeight": 28
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 35,
+					"buttonHeight": 33,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 7
+				},
+				"menuBar": {
+					"titleHeight": 27
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 20,
+				"backgroundImage": "",
+				"backgroundColor": 16777215,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
 			"id": "windows98Lilac",
 			"name": "Lilac",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 7876816,
+				"highlight": 7876816,
+				"window": {
+					"border": 0,
+					"borderOutset": 14210540,
+					"borderInset": 5918385,
+					"frame": 11446489,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [14210540, 11446489, 11446489, 8682437, 5918385, 2959192, 0],
+				"theme": [
+					14997238, 12755690, 10514142, 7876816, 6301350, 4726141, 3150675
+				],
+				"families": {
+					"titleBar": {
+						"active": 5918385,
+						"activeGradient": 5918385,
+						"inactive": 8421504,
+						"inactiveGradient": 8421504,
+						"text": 16777215,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777215,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 5918385
+					},
+					"scrollBar": {
+						"track": 11446489
+					},
+					"sizingBorder": {
+						"active": 11446489,
+						"inactive": 11446489
+					},
+					"help": {
+						"jump": 32768
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 16,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 13,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 13,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 400
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 15,
+					"titleBarHeight": 22,
+					"utilityTitleBarHeight": 16
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 20,
+					"buttonHeight": 18,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menuBar": {
+					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98LilacLarge",
+			"name": "Lilac (large)",
 			"package": "windows98",
 			"color": {
 				"outline": 0,
@@ -1613,9 +6123,9 @@
 				"families": {
 					"titleBar": {
 						"active": 5918385,
-						"activeGradient": 11964363,
+						"activeGradient": 5918385,
 						"inactive": 8421504,
-						"inactiveGradient": 12104912,
+						"inactiveGradient": 8421504,
 						"text": 16777215,
 						"inactiveText": 16777215
 					},
@@ -1623,11 +6133,25 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 5918385
+					},
+					"scrollBar": {
+						"track": 11446489
+					},
+					"sizingBorder": {
+						"active": 11446489,
+						"inactive": 11446489
+					},
+					"help": {
+						"jump": 32768
 					},
 					"startMenu": {
 						"banner": 255,
@@ -1650,16 +6174,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 23,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 16,
+						"weight": 700
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 16,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 17,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
-					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"scrollbarSize": 15,
+					"titleBarHeight": 29,
+					"utilityTitleBarHeight": 21
 				},
 				"control": {
 					"height": 20,
@@ -1690,8 +6240,8 @@
 					"unit": 1
 				},
 				"titleBar": {
-					"buttonWidth": 16,
-					"buttonHeight": 14,
+					"buttonWidth": 27,
+					"buttonHeight": 25,
 					"buttonGap": 0,
 					"closeGap": 2,
 					"endInset": 2,
@@ -1707,7 +6257,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -1746,13 +6297,57 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
 				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 1
+				},
 				"menuBar": {
-					"titleHeight": 18
+					"titleHeight": 21
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				},
 				"taskbar": {
 					"height": 28,
@@ -1811,39 +6406,11 @@
 					"logOffButtonWidth": 65,
 					"logOffButtonGap": 10,
 					"logOffBottom": 13
-				},
-				"menu": {
-					"popUpMaxHeight": 106
-				},
-				"dialog": {
-					"alertMaxWidth": 415,
-					"inputMaxWidth": 415
-				},
-				"slider": {
-					"pixel": 1,
-					"channel": 4,
-					"thumbAlong": 11,
-					"thumbAcross": 21,
-					"thumbRise": 5,
-					"tickWidth": 1,
-					"tickHeight": 4
-				},
-				"growBox": {
-					"inset": 2
-				},
-				"utilityTitleBar": {
-					"textureWidth": 4,
-					"textureHeight": 3,
-					"buttonWidth": 12,
-					"buttonHeight": 11
-				},
-				"desktopLabel": {
-					"shadow": 1
 				}
 			},
 			"desktop": {
 				"iconSize": 32,
-				"iconFontSize": 11,
+				"iconFontSize": 16,
 				"backgroundImage": "",
 				"backgroundColor": 0,
 				"backgroundRepeat": "repeat",
@@ -1857,13 +6424,13 @@
 			"package": "windows98",
 			"color": {
 				"outline": 0,
-				"select": 13018694,
-				"highlight": 13018694,
+				"select": 13150280,
+				"highlight": 13150280,
 				"window": {
 					"border": 0,
-					"borderOutset": 15920343,
-					"borderInset": 13018694,
-					"frame": 15128750,
+					"borderOutset": 15788240,
+					"borderInset": 12622904,
+					"frame": 14732440,
 					"title": 16777215,
 					"document": 16777215
 				},
@@ -1872,25 +6439,25 @@
 				"alert": 16776960,
 				"error": 16711680,
 				"system": [
-					15920343, 15128750, 15128750, 14073722, 13018694, 6509347, 0
+					15788240, 14732440, 14732440, 13677672, 12622904, 6311452, 0
 				],
 				"theme": [
-					16051674, 15062956, 14139774, 13018694, 10388792, 7824426, 5194268
+					16051930, 15128749, 14205567, 13150280, 10520122, 7890219, 5260061
 				],
 				"families": {
 					"titleBar": {
 						"active": 8388608,
-						"activeGradient": 12622904,
-						"inactive": 13018694,
-						"inactiveGradient": 14731400,
+						"activeGradient": 8388608,
+						"inactive": 10526884,
+						"inactiveGradient": 10526884,
 						"text": 16777215,
-						"inactiveText": 15920343
+						"inactiveText": 15789272
 					},
 					"selection": {
 						"text": 0
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
@@ -1900,6 +6467,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 12622904
+					},
+					"scrollBar": {
+						"track": 15788240
+					},
+					"sizingBorder": {
+						"active": 14732440,
+						"inactive": 14732440
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -1917,16 +6498,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -1974,7 +6581,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -2013,7 +6621,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2106,6 +6716,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -2124,12 +6748,12 @@
 			"package": "windows98",
 			"color": {
 				"outline": 0,
-				"select": 128,
-				"highlight": 128,
+				"select": 27848,
+				"highlight": 27848,
 				"window": {
 					"border": 0,
-					"borderOutset": 13164760,
-					"borderInset": 4755592,
+					"borderOutset": 12902363,
+					"borderInset": 4951428,
 					"frame": 8962232,
 					"title": 16777215,
 					"document": 13164760
@@ -2138,22 +6762,22 @@
 				"white": 16777215,
 				"alert": 16776960,
 				"error": 16711680,
-				"system": [13164760, 8962232, 8962232, 6858912, 4755592, 2377796, 0],
-				"theme": [13421798, 9211078, 5000358, 128, 102, 77, 51],
+				"system": [12902363, 8962232, 8962232, 6989470, 4951428, 2508354, 0],
+				"theme": [13427444, 9223654, 5019864, 27848, 22176, 16760, 11088],
 				"families": {
 					"titleBar": {
 						"active": 128,
-						"activeGradient": 1619136,
-						"inactive": 4755592,
-						"inactiveGradient": 7916760,
+						"activeGradient": 128,
+						"inactive": 4951428,
+						"inactiveGradient": 4951428,
 						"text": 16777215,
-						"inactiveText": 12632256
+						"inactiveText": 13683920
 					},
 					"selection": {
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 13164760,
 						"text": 0
 					},
 					"desktop": {
@@ -2163,6 +6787,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 4951428
+					},
+					"scrollBar": {
+						"track": 12902363
+					},
+					"sizingBorder": {
+						"active": 8962232,
+						"inactive": 8962232
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -2180,14 +6818,40 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Small Fonts\", Arial, sans-serif",
+						"size": 9,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
 					"utilityTitleBarHeight": 13
 				},
@@ -2237,7 +6901,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -2276,7 +6941,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2369,6 +7036,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -2387,14 +7068,14 @@
 			"package": "windows98",
 			"color": {
 				"outline": 0,
-				"select": 32896,
-				"highlight": 32896,
+				"select": 2639944,
+				"highlight": 2639944,
 				"window": {
 					"border": 0,
 					"borderOutset": 14209224,
 					"borderInset": 7888984,
 					"frame": 11049104,
-					"title": 16777215,
+					"title": 16314616,
 					"document": 14209224
 				},
 				"black": 0,
@@ -2402,22 +7083,24 @@
 				"alert": 16776960,
 				"error": 16711680,
 				"system": [14209224, 11049104, 11049104, 9469044, 7888984, 3944492, 0],
-				"theme": [13428454, 9225926, 5023398, 32896, 26214, 19789, 13107],
+				"theme": [
+					13949658, 10399149, 6848383, 2639944, 2112058, 1583915, 1056029
+				],
 				"families": {
 					"titleBar": {
 						"active": 4735072,
-						"activeGradient": 10519736,
+						"activeGradient": 4735072,
 						"inactive": 7888984,
-						"inactiveGradient": 11049080,
-						"text": 16777215,
-						"inactiveText": 11049104
+						"inactiveGradient": 7888984,
+						"text": 16314616,
+						"inactiveText": 13682880
 					},
 					"selection": {
 						"text": 14209224
 					},
 					"tooltip": {
-						"face": 16777185,
-						"text": 0
+						"face": 14011592,
+						"text": 3145816
 					},
 					"desktop": {
 						"text": 16777215
@@ -2426,6 +7109,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 7888984
+					},
+					"scrollBar": {
+						"track": 14209224
+					},
+					"sizingBorder": {
+						"active": 11049104,
+						"inactive": 11049104
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -2443,16 +7140,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -2500,7 +7223,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -2539,7 +7263,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2632,6 +7358,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -2650,13 +7390,13 @@
 			"package": "windows98",
 			"color": {
 				"outline": 0,
-				"select": 8388736,
-				"highlight": 8388736,
+				"select": 12093520,
+				"highlight": 12093520,
 				"window": {
 					"border": 0,
-					"borderOutset": 16116431,
-					"borderInset": 14132527,
-					"frame": 15521181,
+					"borderOutset": 16313039,
+					"borderInset": 14589740,
+					"frame": 15783072,
 					"title": 16777215,
 					"document": 16777215
 				},
@@ -2665,17 +7405,17 @@
 				"alert": 16776960,
 				"error": 16711680,
 				"system": [
-					16116431, 15521181, 15521181, 14859622, 14132527, 7098904, 0
+					16313039, 15783072, 15783072, 15186534, 14589740, 7294998, 0
 				],
 				"theme": [
-					15125734, 13012166, 10898598, 8388736, 6684774, 5046349, 3342387
+					15853532, 14666160, 13479044, 12093520, 9661760, 7230000, 4863520
 				],
 				"families": {
 					"titleBar": {
 						"active": 14132527,
-						"activeGradient": 14732424,
+						"activeGradient": 14589740,
 						"inactive": 10526884,
-						"inactiveGradient": 13683856,
+						"inactiveGradient": 10526884,
 						"text": 16777215,
 						"inactiveText": 16116431
 					},
@@ -2683,8 +7423,8 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
-						"text": 0
+						"face": 16777215,
+						"text": 8388736
 					},
 					"desktop": {
 						"text": 16777215
@@ -2693,6 +7433,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 14589740
+					},
+					"scrollBar": {
+						"track": 16313039
+					},
+					"sizingBorder": {
+						"active": 15783072,
+						"inactive": 15783072
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -2710,16 +7464,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 18,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 16,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 16,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 16,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
-					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"scrollbarSize": 21,
+					"titleBarHeight": 26,
+					"utilityTitleBarHeight": 22
 				},
 				"control": {
 					"height": 20,
@@ -2750,8 +7530,8 @@
 					"unit": 1
 				},
 				"titleBar": {
-					"buttonWidth": 16,
-					"buttonHeight": 14,
+					"buttonWidth": 24,
+					"buttonHeight": 22,
 					"buttonGap": 0,
 					"closeGap": 2,
 					"endInset": 2,
@@ -2767,7 +7547,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -2806,13 +7587,15 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
 				},
 				"menuBar": {
-					"titleHeight": 18
+					"titleHeight": 22
 				},
 				"taskbar": {
 					"height": 28,
@@ -2899,11 +7682,25 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
 				"iconSize": 32,
-				"iconFontSize": 11,
+				"iconFontSize": 16,
 				"backgroundImage": "",
 				"backgroundColor": 4325442,
 				"backgroundRepeat": "repeat",
@@ -2917,13 +7714,13 @@
 			"package": "windows98",
 			"color": {
 				"outline": 0,
-				"select": 5203325,
-				"highlight": 5203325,
+				"select": 5268600,
+				"highlight": 5268600,
 				"window": {
 					"border": 0,
-					"borderOutset": 12700889,
-					"borderInset": 5203325,
-					"frame": 8624561,
+					"borderOutset": 12635352,
+					"borderInset": 5137788,
+					"frame": 8427696,
 					"title": 16777215,
 					"document": 16777215
 				},
@@ -2931,16 +7728,16 @@
 				"white": 16777215,
 				"alert": 16776960,
 				"error": 16711680,
-				"system": [12700889, 8624561, 8624561, 6913943, 5203325, 2634302, 0],
+				"system": [12635352, 8427696, 8427696, 6782614, 5137788, 2568766, 0],
 				"theme": [
-					14475493, 11582148, 8688548, 5203325, 4149604, 3095883, 2107442
+					14475492, 11581890, 8688288, 5268600, 4214880, 3161160, 2107440
 				],
 				"families": {
 					"titleBar": {
-						"active": 5203325,
-						"activeGradient": 8434896,
+						"active": 5268608,
+						"activeGradient": 5137788,
 						"inactive": 8421504,
-						"inactiveGradient": 11582672,
+						"inactiveGradient": 8421504,
 						"text": 16777215,
 						"inactiveText": 12700889
 					},
@@ -2948,7 +7745,7 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
@@ -2958,6 +7755,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 5137788
+					},
+					"scrollBar": {
+						"track": 12635352
+					},
+					"sizingBorder": {
+						"active": 8427696,
+						"inactive": 8427696
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -2975,16 +7786,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -3032,7 +7869,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -3071,7 +7909,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3164,6 +8004,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -3203,9 +8057,9 @@
 				"families": {
 					"titleBar": {
 						"active": 8388608,
-						"activeGradient": 4264,
+						"activeGradient": 8388608,
 						"inactive": 8421504,
-						"inactiveGradient": 12238537,
+						"inactiveGradient": 8421504,
 						"text": 16777215,
 						"inactiveText": 12632256
 					},
@@ -3213,8 +8067,8 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
-						"text": 0
+						"face": 16777215,
+						"text": 128
 					},
 					"desktop": {
 						"text": 16777215
@@ -3223,6 +8077,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 8421504
+					},
+					"scrollBar": {
+						"track": 12632256
+					},
+					"sizingBorder": {
+						"active": 12632256,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -3240,16 +8108,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 15,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 13,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 13,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 13,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
-					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"scrollbarSize": 13,
+					"titleBarHeight": 19,
+					"utilityTitleBarHeight": 17
 				},
 				"control": {
 					"height": 20,
@@ -3280,8 +8174,8 @@
 					"unit": 1
 				},
 				"titleBar": {
-					"buttonWidth": 16,
-					"buttonHeight": 14,
+					"buttonWidth": 17,
+					"buttonHeight": 15,
 					"buttonGap": 0,
 					"closeGap": 2,
 					"endInset": 2,
@@ -3297,7 +8191,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -3336,7 +8231,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3429,6 +8326,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -3470,17 +8381,17 @@
 				"families": {
 					"titleBar": {
 						"active": 10444912,
-						"activeGradient": 14208208,
+						"activeGradient": 10444912,
 						"inactive": 10526884,
-						"inactiveGradient": 13685968,
+						"inactiveGradient": 10526884,
 						"text": 16777215,
-						"inactiveText": 8224125
+						"inactiveText": 6316136
 					},
 					"selection": {
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
@@ -3490,6 +8401,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 10444912
+					},
+					"scrollBar": {
+						"track": 13610935
+					},
+					"sizingBorder": {
+						"active": 13610935,
+						"inactive": 13610935
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -3507,16 +8432,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 19,
+						"weight": 400
+					},
+					"smallCaption": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 13,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
-					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"scrollbarSize": 15,
+					"titleBarHeight": 23,
+					"utilityTitleBarHeight": 17
 				},
 				"control": {
 					"height": 20,
@@ -3547,8 +8498,8 @@
 					"unit": 1
 				},
 				"titleBar": {
-					"buttonWidth": 16,
-					"buttonHeight": 14,
+					"buttonWidth": 21,
+					"buttonHeight": 19,
 					"buttonGap": 0,
 					"closeGap": 2,
 					"endInset": 2,
@@ -3564,7 +8515,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -3603,7 +8555,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3696,11 +8650,349 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
 				"iconSize": 32,
 				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 8421504,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98RoseLarge",
+			"name": "Rose (large)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 10510448,
+				"highlight": 10510448,
+				"window": {
+					"border": 0,
+					"borderOutset": 15259872,
+					"borderInset": 10510448,
+					"frame": 13676728,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [
+					15259872, 13676728, 13676728, 12093588, 10510448, 5255224, 0
+				],
+				"theme": [
+					15523810, 13940671, 12357787, 10510448, 8408410, 6306371, 4204077
+				],
+				"families": {
+					"titleBar": {
+						"active": 10510448,
+						"activeGradient": 10444912,
+						"inactive": 10526884,
+						"inactiveGradient": 10526884,
+						"text": 16777215,
+						"inactiveText": 6316136
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777215,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 10510448
+					},
+					"scrollBar": {
+						"track": 12632256
+					},
+					"sizingBorder": {
+						"active": 13676728,
+						"inactive": 13676728
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 23,
+						"weight": 400
+					},
+					"smallCaption": {
+						"font": "\"Times New Roman\", Times, serif",
+						"size": 16,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 16,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 16,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 17,
+					"titleBarHeight": 28,
+					"utilityTitleBarHeight": 21
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 26,
+					"buttonHeight": 24,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 2
+				},
+				"menuBar": {
+					"titleHeight": 22
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 16,
 				"backgroundImage": "",
 				"backgroundColor": 8421504,
 				"backgroundRepeat": "repeat",
@@ -3735,9 +9027,9 @@
 				"families": {
 					"titleBar": {
 						"active": 5603479,
-						"activeGradient": 8960216,
+						"activeGradient": 5603479,
 						"inactive": 8421504,
-						"inactiveGradient": 10534088,
+						"inactiveGradient": 8421504,
 						"text": 16777215,
 						"inactiveText": 12632256
 					},
@@ -3745,7 +9037,7 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
@@ -3755,6 +9047,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 5603479
+					},
+					"scrollBar": {
+						"track": 13556963
+					},
+					"sizingBorder": {
+						"active": 10336712,
+						"inactive": 10336712
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -3772,16 +9078,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -3829,7 +9161,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -3868,7 +9201,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3961,6 +9296,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -3979,8 +9328,8 @@
 			"package": "windows98",
 			"color": {
 				"outline": 0,
-				"select": 5871460,
-				"highlight": 5871460,
+				"select": 10528840,
+				"highlight": 10528840,
 				"window": {
 					"border": 0,
 					"borderOutset": 13689811,
@@ -3995,14 +9344,14 @@
 				"error": 16711680,
 				"system": [13689811, 10668201, 10668201, 8302726, 5871460, 2903090, 0],
 				"theme": [
-					14609120, 11849913, 9156242, 5871460, 4684112, 3496764, 2374696
+					15527642, 13949101, 12370559, 10528840, 8422970, 6317355, 4211485
 				],
 				"families": {
 					"titleBar": {
 						"active": 5871460,
-						"activeGradient": 10012904,
+						"activeGradient": 5871460,
 						"inactive": 8421504,
-						"inactiveGradient": 11062448,
+						"inactiveGradient": 8421504,
 						"text": 16777215,
 						"inactiveText": 13689811
 					},
@@ -4010,7 +9359,7 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
@@ -4020,6 +9369,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 5871460
+					},
+					"scrollBar": {
+						"track": 13689811
+					},
+					"sizingBorder": {
+						"active": 10668201,
+						"inactive": 10668201
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -4037,16 +9400,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 15,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -4094,7 +9483,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -4133,7 +9523,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -4226,6 +9618,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -4265,9 +9671,9 @@
 				"families": {
 					"titleBar": {
 						"active": 8388736,
-						"activeGradient": 3706032,
+						"activeGradient": 8388736,
 						"inactive": 8421504,
-						"inactiveGradient": 11054248,
+						"inactiveGradient": 8421504,
 						"text": 16777215,
 						"inactiveText": 12632256
 					},
@@ -4275,8 +9681,8 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
-						"text": 0
+						"face": 16777215,
+						"text": 8388736
 					},
 					"desktop": {
 						"text": 16777215
@@ -4285,6 +9691,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 8421504
+					},
+					"scrollBar": {
+						"track": 12632256
+					},
+					"sizingBorder": {
+						"active": 12632256,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -4302,16 +9722,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -4359,7 +9805,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -4398,7 +9845,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -4491,6 +9940,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -4528,9 +9991,9 @@
 				"families": {
 					"titleBar": {
 						"active": 32896,
-						"activeGradient": 52440,
+						"activeGradient": 32896,
 						"inactive": 8421504,
-						"inactiveGradient": 10012856,
+						"inactiveGradient": 8421504,
 						"text": 16777215,
 						"inactiveText": 16776176
 					},
@@ -4538,7 +10001,7 @@
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
@@ -4548,6 +10011,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 8421504
+					},
+					"scrollBar": {
+						"track": 12632256
+					},
+					"sizingBorder": {
+						"active": 12632256,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -4565,16 +10042,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -4622,7 +10125,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -4661,7 +10165,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -4754,6 +10260,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -4776,9 +10296,9 @@
 				"highlight": 8421376,
 				"window": {
 					"border": 0,
-					"borderOutset": 15658704,
-					"borderInset": 12368961,
-					"frame": 14605984,
+					"borderOutset": 15790288,
+					"borderInset": 12632127,
+					"frame": 14737568,
 					"title": 16777215,
 					"document": 16777215
 				},
@@ -4787,7 +10307,7 @@
 				"alert": 16776960,
 				"error": 16711680,
 				"system": [
-					15658704, 14605984, 14605984, 13487472, 12368961, 6184480, 0
+					15790288, 14737568, 14737568, 13684848, 12632127, 6316064, 0
 				],
 				"theme": [
 					15132364, 13026956, 10921548, 8421376, 6710784, 5065984, 3355392
@@ -4795,17 +10315,17 @@
 				"families": {
 					"titleBar": {
 						"active": 8421376,
-						"activeGradient": 13152328,
+						"activeGradient": 8421376,
 						"inactive": 12368961,
-						"inactiveGradient": 12105856,
+						"inactiveGradient": 12632127,
 						"text": 16777215,
-						"inactiveText": 16777215
+						"inactiveText": 15263445
 					},
 					"selection": {
 						"text": 16777215
 					},
 					"tooltip": {
-						"face": 16777185,
+						"face": 16777215,
 						"text": 0
 					},
 					"desktop": {
@@ -4815,6 +10335,20 @@
 						"banner": 255,
 						"bannerGradient": 128,
 						"bannerText": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 12632127
+					},
+					"scrollBar": {
+						"track": 15790288
+					},
+					"sizingBorder": {
+						"active": 14737568,
+						"inactive": 14737568
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -4832,16 +10366,42 @@
 				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
 				"monoSize": 12,
 				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
-				"digitalSize": 12
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"menu": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 11,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
 			},
 			"measurements": {
 				"window": {
 					"borderSize": 1,
 					"controlSize": 12,
 					"paddingSize": 5,
-					"scrollbarSize": 16,
+					"scrollbarSize": 13,
 					"titleBarHeight": 18,
-					"utilityTitleBarHeight": 13
+					"utilityTitleBarHeight": 15
 				},
 				"control": {
 					"height": 20,
@@ -4889,7 +10449,8 @@
 					"buttonWidth": 24,
 					"buttonHeight": 22,
 					"largeButtonWidth": 32,
-					"largeButtonHeight": 30
+					"largeButtonHeight": 30,
+					"restBevel": 0
 				},
 				"checkbox": {
 					"size": 13,
@@ -4928,7 +10489,9 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -5021,6 +10584,20 @@
 				},
 				"desktopLabel": {
 					"shadow": 1
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"scrollBar": {
+					"solidTrack": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
 				}
 			},
 			"desktop": {
@@ -5028,6 +10605,646 @@
 				"iconFontSize": 11,
 				"backgroundImage": "",
 				"backgroundColor": 16413,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98ExtraLarge",
+			"name": "Windows Standard (extra large)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 128,
+				"highlight": 128,
+				"window": {
+					"border": 0,
+					"borderOutset": 16777215,
+					"borderInset": 8421504,
+					"frame": 12632256,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [16777215, 14671839, 12632256, 10526880, 8421504, 4210752, 0],
+				"theme": [13421798, 9211078, 5000358, 128, 102, 77, 51],
+				"families": {
+					"titleBar": {
+						"active": 128,
+						"activeGradient": 1082576,
+						"inactive": 8421504,
+						"inactiveGradient": 11908533,
+						"text": 16777215,
+						"inactiveText": 12632256
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 8421504
+					},
+					"scrollBar": {
+						"track": 12632256
+					},
+					"sizingBorder": {
+						"active": 12632256,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 19,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 13,
+						"weight": 700
+					},
+					"menu": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 16,
+						"weight": 400
+					},
+					"message": {
+						"font": "Arial, Helvetica, sans-serif",
+						"size": 16,
+						"weight": 400
+					},
+					"icon": {
+						"font": "Arial, Helvetica, sans-serif",
+						"weight": 400
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 21,
+					"titleBarHeight": 24,
+					"utilityTitleBarHeight": 18
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 22,
+					"buttonHeight": 20,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"menuBar": {
+					"titleHeight": 21
+				},
+				"scrollBar": {
+					"solidTrack": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 16,
+				"backgroundImage": "",
+				"backgroundColor": 32896,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Large",
+			"name": "Windows Standard (large)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 128,
+				"highlight": 128,
+				"window": {
+					"border": 0,
+					"borderOutset": 16777215,
+					"borderInset": 8421504,
+					"frame": 12632256,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [16777215, 14671839, 12632256, 10526880, 8421504, 4210752, 0],
+				"theme": [13421798, 9211078, 5000358, 128, 102, 77, 51],
+				"families": {
+					"titleBar": {
+						"active": 128,
+						"activeGradient": 1082576,
+						"inactive": 8421504,
+						"inactiveGradient": 11908533,
+						"text": 16777215,
+						"inactiveText": 12632256
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					},
+					"text": {
+						"button": 0,
+						"gray": 8421504
+					},
+					"scrollBar": {
+						"track": 12632256
+					},
+					"sizingBorder": {
+						"active": 12632256,
+						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12,
+				"families": {
+					"caption": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 16,
+						"weight": 700
+					},
+					"smallCaption": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 13,
+						"weight": 700
+					},
+					"menu": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 13,
+						"weight": 400
+					},
+					"message": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"size": 13,
+						"weight": 400
+					},
+					"icon": {
+						"font": "\"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+						"weight": 400
+					}
+				}
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 18,
+					"titleBarHeight": 22,
+					"utilityTitleBarHeight": 18
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 20,
+					"buttonHeight": 18,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 3
+				},
+				"toolbar": {
+					"buttonWidth": 24,
+					"buttonHeight": 22,
+					"largeButtonWidth": 32,
+					"largeButtonHeight": 30,
+					"restBevel": 0
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"listBox": {
+					"rowHeight": 13
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3,
+					"height": 21
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12,
+					"height": 21
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2,
+					"pointerOffset": 20,
+					"shadow": 6
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"menu": {
+					"popUpMaxHeight": 106
+				},
+				"dialog": {
+					"alertMaxWidth": 415,
+					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				},
+				"desktopLabel": {
+					"shadow": 1
+				},
+				"sizingBorder": {
+					"width": 1
+				},
+				"menuBar": {
+					"titleHeight": 18
+				},
+				"scrollBar": {
+					"solidTrack": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 43,
+					"columnGap": 43
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
+				},
+				"shellDialog": {
+					"top": 7,
+					"promptGap": 13,
+					"optionHeight": 16,
+					"optionGap": 3,
+					"buttonGap": 6,
+					"shutDownWidth": 317,
+					"shutDownBodyGap": 14,
+					"shutDownButtonsGap": 18,
+					"shutDownButtonsInset": 48,
+					"shutDownButtonWidth": 78,
+					"shutDownBottom": 8,
+					"runWidth": 341,
+					"runBodyGap": 11,
+					"runFieldGap": 10,
+					"runButtonsGap": 21,
+					"runButtonWidth": 75,
+					"runBottom": 13,
+					"logOffWidth": 282,
+					"logOffTop": 10,
+					"logOffSide": 12,
+					"logOffBodyGap": 30,
+					"logOffPromptTop": 14,
+					"logOffButtonsGap": 20,
+					"logOffButtonsInset": 62,
+					"logOffButtonWidth": 65,
+					"logOffButtonGap": 10,
+					"logOffBottom": 13
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 13,
+				"backgroundImage": "",
+				"backgroundColor": 32896,
 				"backgroundRepeat": "repeat",
 				"backgroundPosition": "center",
 				"backgroundSize": "auto"
@@ -5043,21 +11260,29 @@
 			"titleDoubleClick": "zoom",
 			"frameEdges": "resize",
 			"systemMenu": true,
-			"captionTooltips": true
+			"captionTooltips": true,
+			"restoreViewState": true
 		},
 		"menuBar": {
-			"placement": "window"
+			"placement": "window",
+			"idleTimeoutMs": 0
 		},
 		"desktop": {
 			"iconGridOrigin": "top-left"
 		},
 		"scrollBar": {
-			"fitsBars": "shown"
+			"fitsBars": "shown",
+			"liveSnapBack": true,
+			"snapBackScale": {
+				"across": 8,
+				"along": 2
+			}
 		},
 		"fileDialog": {
 			"frame": "movable",
 			"navigation": "flat",
-			"saveName": "selected"
+			"saveName": "selected",
+			"listFlow": "columns"
 		},
 		"taskbar": {
 			"startLabel": "Start",
@@ -5067,21 +11292,114 @@
 			}
 		},
 		"dialog": {
-			"caption": "titled"
-		}
+			"caption": "titled",
+			"flushInput": true
+		},
+		"menu": {
+			"standardShortcuts": "windows",
+			"keys": "windows",
+			"submenuDelayMs": 400,
+			"disabledItems": "browse",
+			"accessKeys": "auto",
+			"shortcutSpelling": "names",
+			"emptySubmenus": "placeholder",
+			"itemHelp": "statusBar",
+			"confirmEllipsis": false
+		},
+		"keyboard": {
+			"contextMenuKey": true,
+			"command": "ctrl",
+			"editableShortcuts": true
+		},
+		"finder": {
+			"commands": "windows"
+		},
+		"files": {
+			"names": "windows",
+			"unregisteredOpen": "openWith",
+			"extensions": "hideRegistered"
+		},
+		"transfer": {
+			"activateDropWindow": true,
+			"secondaryButton": "menu",
+			"copyModifier": "ctrl",
+			"autoScroll": true,
+			"desktopIconDrag": "outline"
+		},
+		"fileBrowser": {
+			"keys": "windows",
+			"iconSelection": "view",
+			"regionSelect": true
+		},
+		"fileList": {
+			"foldersFirst": true
+		},
+		"tree": {
+			"keys": "windows"
+		},
+		"balloonHelp": {
+			"placement": "pointer",
+			"contextHelp": "whatsThis",
+			"unlabeledTips": true,
+			"delayMs": 500,
+			"autoPopMs": 5000,
+			"reshowMs": 100,
+			"hideOnPress": true,
+			"activeWindowOnly": true
+		},
+		"text": {
+			"wordSelect": "trailingSpace"
+		},
+		"edit": {
+			"scope": "window",
+			"menu": "windows"
+		},
+		"textField": {
+			"contextMenu": "edit"
+		},
+		"assistant": {
+			"navigation": "buttons"
+		},
+		"help": {
+			"topicWindow": "winhelp"
+		},
+		"selection": {
+			"secondaryButton": "select",
+			"selectOn": "press",
+			"dragRange": true,
+			"modifiers": "windows",
+			"pageKeys": "move",
+			"keyboard": "windows",
+			"iconNavigation": "roving"
+		},
+		"contextMenu": {
+			"openOn": "release"
+		},
+		"document": {
+			"confirmUnsavedClose": true,
+			"reopenActivates": true
+		},
+		"mouse": "windows",
+		"input": {
+			"escapeCancels": true
+		},
+		"icon": {
+			"aliasBadge": "everywhere"
+		},
+		"crashScreen": "fatalException"
 	},
 	"knobs": {
 		"titleBar": {
 			"buttonWidth": {
 				"label": "Button width",
 				"min": 8,
-				"max": 32,
+				"max": 40,
 				"default": 16
 			},
 			"buttonHeight": {
 				"label": "Button height",
 				"min": 8,
-				"max": 32,
+				"max": 40,
 				"default": 14
 			},
 			"closeGap": {
@@ -5141,6 +11459,22 @@
 				"min": 0,
 				"max": 3,
 				"default": 1
+			}
+		},
+		"toolbar": {
+			"restBevel": {
+				"label": "Raised buttons",
+				"min": 0,
+				"max": 1,
+				"default": 0
+			}
+		},
+		"scrollBar": {
+			"solidTrack": {
+				"label": "Solid track",
+				"min": 0,
+				"max": 1,
+				"default": 0
 			}
 		}
 	},
@@ -5208,6 +11542,61 @@
 					"label": "Banner text"
 				}
 			}
+		},
+		"text": {
+			"label": "Text",
+			"colors": {
+				"button": {
+					"label": "Button text"
+				},
+				"gray": {
+					"label": "Unavailable text"
+				}
+			}
+		},
+		"scrollBar": {
+			"label": "Scroll bar",
+			"colors": {
+				"track": {
+					"label": "Track"
+				}
+			}
+		},
+		"sizingBorder": {
+			"label": "Window border",
+			"colors": {
+				"active": {
+					"label": "Active"
+				},
+				"inactive": {
+					"label": "Inactive"
+				}
+			}
+		},
+		"help": {
+			"label": "Help",
+			"colors": {
+				"jump": {
+					"label": "Jump text"
+				}
+			}
+		}
+	},
+	"fontFamilies": {
+		"caption": {
+			"label": "Active title bar"
+		},
+		"smallCaption": {
+			"label": "Palette title"
+		},
+		"menu": {
+			"label": "Menu"
+		},
+		"message": {
+			"label": "Message box"
+		},
+		"icon": {
+			"label": "Icon"
 		}
 	}
 }

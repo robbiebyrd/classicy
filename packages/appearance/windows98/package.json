@@ -30,18 +30,24 @@
 			"require": "./dist/appearance-windows98.umd.js"
 		},
 		"./scss/*": "./src/styles/*",
-		"./classicy-windows98.css": "./dist/classicy-windows98.css"
+		"./classicy-windows98.css": "./dist/classicy-windows98.css",
+		"./classicy-windows98.fonts.css": "./dist/classicy-windows98.fonts.css"
 	},
 	"files": [
 		"dist",
 		"src/styles",
+		"src/screenSavers/*.scss",
+		"src/assets/fonts/*.txt",
 		"README.md",
 		"LICENSE"
 	],
 	"sideEffects": [
 		"./dist/*.js",
 		"./src/index.ts",
+		"./src/assets/windows98Assets.ts",
+		"./src/assets/windows98AssetAdditions.ts",
 		"./src/assets/sounds/windows98.ts",
+		"./src/screenSavers/windows98ScreenSavers.ts",
 		"**/*.css",
 		"**/*.scss"
 	],
@@ -49,6 +55,9 @@
 		"build": "vite build && pnpm verify:dist",
 		"verify:dist": "node bin/verify-dist.mjs",
 		"test": "vitest run"
+	},
+	"dependencies": {
+		"zod": "^4.4.3"
 	},
 	"peerDependencies": {
 		"@classicy/classicy": "workspace:^",

@@ -1,10 +1,24 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import type { ClassicyActionTrust } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
-import type { ClassicyFileDropDestination } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import {
+	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	type ClassicyFileDropDestination,
+	type ClassicyFileDropTarget,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import {
+	CLASSICY_WINDOWS_RENAME_TITLE,
+	classicyFileNameRefusal,
+	isClassicyValidFileName,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileNames";
 import type {
 	ClassicyFileSystem,
+	ClassicyFileSystemCopyRefusal,
 	ClassicyFileSystemMoveRefusal,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -16,6 +30,7 @@ import {
 	restoreClassicyFileSystemItems,
 	trashClassicyFileSystemItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { classicyTrashDisplayName } from "@/SystemFolder/SystemResources/File/ClassicyTrashName";
 
 /**
  * The folder whose contents are the desktop's files and folders — Mac OS 8's
@@ -26,7 +41,7 @@ export const CLASSICY_DESKTOP_FOLDER_NAME = "Desktop Folder";
 /** `appId` prefix of the desktop icons that stand for Desktop Folder items. */
 export const CLASSICY_DESKTOP_ITEM_ICON_PREFIX = "classicy-desktop-item:";
 
-type Dispatch = (action: ActionMessage) => void;
+type Dispatch = (action: ActionMessage, trust?: ClassicyActionTrust) => void;
 
 /** The startup disk: the first drive at the root of the tree, if any. */
 export const classicyStartupDisk = (
@@ -86,7 +101,13 @@ export const classicyDesktopItemIconAction = (
 				(entry._icon as string | undefined) ??
 				iconImageByType(entry._type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
 		},
-		kind: isFolder ? "directory" : "file",
+		// A file shortcut (Explorer's Create Shortcut) is an alias kind
+		// (`isAliasKind`): the desktop badges its icon and italicizes its label.
+		kind: isFolder
+			? "directory"
+			: entry._type === ClassicyFileSystemEntryFileType.FileShortcut
+				? ClassicyFileSystemEntryFileType.FileShortcut
+				: "file",
 		filePath: path,
 		noLaunch: true,
 		...(location ? { location } : {}),
@@ -136,7 +157,38 @@ export type ClassicyFileMoveOptions = {
 	desktopLocation?: [number, number];
 	/** Pixels between successive dropped icons on the desktop. */
 	desktopStep?: number;
+	/**
+	 * For a desktop destination without `desktopLocation`: where each item's
+	 * icon goes, asked as each is placed (`index` its place among the items
+	 * moved or copied, `from` the original's path), so a caller may give
+	 * each the desktop's next free cell (Explorer's Paste from the keyboard)
+	 * or the place of the icon it copies (a Control-drag on the desktop).
+	 * Undefined lays the desktop out afresh, as an icon added with no
+	 * location does.
+	 */
+	desktopLocationFor?: (
+		index: number,
+		from: string,
+	) => [number, number] | undefined;
 };
+
+/**
+ * Where the icon of the `index`th item transferred to the desktop (from
+ * `from`) goes, by the options: `desktopLocation` stepping down by
+ * `desktopStep`, else `desktopLocationFor`, else undefined.
+ */
+export const classicyDesktopIconLocation = (
+	{
+		desktopLocation,
+		desktopStep = 72,
+		desktopLocationFor,
+	}: ClassicyFileMoveOptions,
+	index: number,
+	from: string,
+): [number, number] | undefined =>
+	desktopLocation
+		? [desktopLocation[0], desktopLocation[1] + index * desktopStep]
+		: desktopLocationFor?.(index, from);
 
 /**
  * Move `paths` into `destination`:
@@ -156,7 +208,7 @@ export function moveClassicyFileSystemItems(
 	paths: string[],
 	destination: ClassicyFileDropDestination,
 	dispatch: Dispatch,
-	{ desktopLocation, desktopStep = 72 }: ClassicyFileMoveOptions = {},
+	options: ClassicyFileMoveOptions = {},
 ): { from: string; to: string }[] {
 	if (
 		destination.kind === "folder" &&
@@ -197,11 +249,12 @@ export function moveClassicyFileSystemItems(
 	if (moves.length > 0) {
 		dispatch({ type: "ClassicyAppFinderPathsMoved", moves });
 		if (destination.kind === "desktop") {
-			moves.forEach(({ to }, index) => {
-				const location: [number, number] | undefined = desktopLocation
-					? [desktopLocation[0], desktopLocation[1] + index * desktopStep]
-					: undefined;
-				const action = classicyDesktopItemIconAction(fs, to, location);
+			moves.forEach(({ from, to }, index) => {
+				const action = classicyDesktopItemIconAction(
+					fs,
+					to,
+					classicyDesktopIconLocation(options, index, from),
+				);
 				if (action) dispatch(action);
 			});
 		}
@@ -220,15 +273,141 @@ export function moveClassicyFileSystemItems(
 	return moves;
 }
 
+const copyRefusalMessage = (
+	reason: ClassicyFileSystemCopyRefusal,
+	name: string,
+	folderName: string,
+): string => {
+	switch (reason) {
+		case "exists":
+			return `An item named “${name}” already exists in “${folderName}”. It was not copied.`;
+		case "into-itself":
+			return `“${name}” can’t be copied into itself.`;
+		case "locked":
+			return `“${name}” can’t be copied, because it or “${folderName}” is locked or used by the system software.`;
+		default:
+			return `“${name}” could not be copied.`;
+	}
+};
+
+/**
+ * Copy `paths` into `destination` (Explorer's Paste after a Copy; WIG Ch.5
+ * "Command Method", pp.59-61), as `moveClassicyFileSystemItems` moves them:
+ *
+ * 1. each item is copied with `fs.copy` (refused copies change nothing),
+ *    named as it is, else "Copy of <name>", "Copy (2) of <name>"… where
+ *    the destination holds the name (`classicyFirstFreeCopyName`);
+ * 2. items copied to the desktop (its Desktop Folder, made on first use)
+ *    get their icons, at `desktopLocation` stepping down by `desktopStep`,
+ *    else where `desktopLocationFor` puts each, in the same tick as the
+ *    copy, so they are placed before any view re-renders;
+ * 3. the first refusal is reported in an alert.
+ *
+ * Nothing is dispatched for the originals, which stay where they are.
+ * Returns the copies made, `{ from, to }` (the original's path and the
+ * copy's).
+ */
+export function copyClassicyFileSystemItems(
+	fs: ClassicyFileSystem,
+	paths: string[],
+	destination: ClassicyFileDropDestination,
+	dispatch: Dispatch,
+	options: ClassicyFileMoveOptions = {},
+): { from: string; to: string }[] {
+	const folder =
+		destination.kind === "desktop"
+			? ensureClassicyDesktopFolder(fs)
+			: destination.path;
+	if (!folder) return [];
+	const copies: { from: string; to: string }[] = [];
+	let refusal: { reason: ClassicyFileSystemCopyRefusal; name: string } | null =
+		null;
+	for (const path of paths) {
+		const result = fs.copy(path, folder);
+		if (result.ok) {
+			copies.push({ from: path, to: result.path });
+		} else if (!refusal) {
+			refusal = {
+				reason: result.reason,
+				name: path.split(fs.separator).pop() ?? path,
+			};
+		}
+	}
+	if (destination.kind === "desktop") {
+		copies.forEach(({ from, to }, index) => {
+			const action = classicyDesktopItemIconAction(
+				fs,
+				to,
+				classicyDesktopIconLocation(options, index, from),
+			);
+			if (action) dispatch(action);
+		});
+	}
+	if (refusal) {
+		const folderName =
+			destination.kind === "desktop"
+				? "the desktop"
+				: (folder.split(fs.separator).pop() ?? folder);
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			message: copyRefusalMessage(refusal.reason, refusal.name, folderName),
+		});
+	}
+	return copies;
+}
+
+/** The Finder's id: its windows are the folder windows a drop activates. */
+const FINDER_APP_ID = "Finder.app";
+
+/**
+ * After a drop into a Finder window that is not the active one, activates
+ * it, as Windows does (WIG Ch.5 "Direct Manipulation Method", p.62: "the
+ * user can drop an object in an inactive window. This action activates the
+ * window"; the remaining chapters' audit's 5.31), under the active
+ * package's `layout.transfer.activateDropWindow` (Windows 98): the window
+ * holding `target`'s element (`.classicyWindow`), when it is not `active`
+ * and is the Finder window (Finder keys its windows by folder path) of the
+ * `.classicyFileBrowserFill` root around the target, its
+ * `data-classicy-drop-folder`, gets `ClassicyWindowFocus`. Call it after
+ * a drop that moved or copied something. Returns whether it focused a
+ * window; without the key, or for a drop on the desktop, a drive, the
+ * Trash icon, the active window or another app's window, it does nothing.
+ */
+export function activateClassicyDropWindow(
+	target: ClassicyFileDropTarget | null | undefined,
+	dispatch: Dispatch,
+): boolean {
+	if (
+		!target ||
+		getClassicyAppearanceLayout().transfer?.activateDropWindow !== true
+	)
+		return false;
+	const windowElement = target.element.closest(".classicyWindow");
+	if (!windowElement || windowElement.classList.contains("active"))
+		return false;
+	const folder = target.element
+		.closest(".classicyFileBrowserFill")
+		?.getAttribute(CLASSICY_DROP_FOLDER_ATTRIBUTE);
+	if (!folder || windowElement.id !== [FINDER_APP_ID, folder].join("_"))
+		return false;
+	const window = getAppWindow(
+		useAppManager.getState().System.Manager.Applications.apps[FINDER_APP_ID],
+		folder,
+	);
+	if (!window) return false;
+	dispatch({ type: "ClassicyWindowFocus", app: { id: FINDER_APP_ID }, window });
+	return true;
+}
+
 const trashRefusalMessage = (
 	reason: ClassicyTrashRefusal,
 	name: string,
 ): string => {
 	switch (reason) {
 		case "locked":
-			return `“${name}” can’t be moved to the Trash, because it is locked or used by the system software.`;
+			return `“${name}” can’t be moved to the ${classicyTrashDisplayName()}, because it is locked or used by the system software.`;
 		default:
-			return `“${name}” could not be moved to the Trash.`;
+			return `“${name}” could not be moved to the ${classicyTrashDisplayName()}.`;
 	}
 };
 
@@ -246,17 +425,59 @@ const desktopIconLocations = (
 	return locations;
 };
 
+/** Options for `moveClassicyItemsToTrash`. */
+export type ClassicyTrashMoveOptions = {
+	/**
+	 * The Delete confirmation was answered Yes (Finder's box): move without
+	 * asking again. Omitted, Explorer's commands ask first.
+	 */
+	confirmed?: boolean;
+	/**
+	 * The trust the request arrived with, kept with a pending confirmation
+	 * (`ClassicyAppFinderConfirmDelete` is dispatched under it). Defaults to
+	 * the kernel's `"trusted"`.
+	 */
+	trust?: ClassicyActionTrust;
+};
+
+/**
+ * Whether a Delete asks before anything moves: under Explorer's commands
+ * (`layout.finder.commands` "windows"; Windows 98 SE's Recycle Bin, whose
+ * "Display delete confirmation dialog box" is on by default), while Finder,
+ * which shows the box, is mounted. Store-free: the active package's layout.
+ */
+export const classicyDeleteConfirms = (): boolean =>
+	getClassicyAppearanceLayout().finder?.commands === "windows" &&
+	isClassicyAppMounted("Finder.app");
+
 /**
  * Move `paths` to the Trash (Finder's Move To Trash, ⌃⌫/Delete, or a drop on
  * the Trash): Finder windows follow trashed folders, desktop items remember
  * where their icons were, and the first refusal is reported in an alert.
  * Returns the moves that happened.
+ *
+ * Under Explorer's commands (`classicyDeleteConfirms`; WIG Ch.5
+ * "Specialized Transfer Commands", p.67) every route asks first, the menus,
+ * the Delete and ⌃⌫ keys and a drop on the Trash alike: the paths are
+ * handed to Finder (`ClassicyAppFinderConfirmDelete`, under `trust`), which
+ * shows Windows 98 SE's "Confirm File Delete" box and calls this again with
+ * `confirmed` on Yes; nothing moves, and `[]` is returned, until then.
  */
 export function moveClassicyItemsToTrash(
 	fs: ClassicyFileSystem,
 	paths: string[],
 	dispatch: Dispatch,
+	{ confirmed = false, trust }: ClassicyTrashMoveOptions = {},
 ): { from: string; to: string }[] {
+	if (!confirmed && paths.length > 0 && classicyDeleteConfirms()) {
+		const action: ActionMessage = {
+			type: "ClassicyAppFinderConfirmDelete",
+			paths: [...paths],
+		};
+		if (trust === undefined) dispatch(action);
+		else dispatch(action, trust);
+		return [];
+	}
 	const { moves, refusal } = trashClassicyFileSystemItems(
 		fs,
 		paths,
@@ -280,7 +501,7 @@ const restoreRefusalMessage = (
 ): string => {
 	switch (reason) {
 		case "no-origin":
-			return `“${name}” can’t be restored, because the folder it came from no longer exists. Drag it out of the Trash instead.`;
+			return `“${name}” can’t be restored, because the folder it came from no longer exists. Drag it out of the ${classicyTrashDisplayName()} instead.`;
 		case "exists":
 			return `“${name}” can’t be restored, because an item with that name is already where it came from.`;
 		default:
@@ -329,4 +550,90 @@ export function restoreClassicyTrashItems(
 		});
 	}
 	return moves;
+}
+
+const renameRefusalMessage = (
+	reason: ClassicyFileSystemMoveRefusal | "invalid",
+	name: string,
+	oldName: string,
+): string => {
+	switch (reason) {
+		case "exists":
+			return `The name “${name}” is already taken. Please use a different name.`;
+		case "locked":
+			return `“${oldName}” can’t be renamed, because it is locked or used by the system software.`;
+		case "invalid":
+			return `“${name}” can’t be used as a name.`;
+		default:
+			return `“${oldName}” could not be renamed.`;
+	}
+};
+
+/**
+ * Rename the item at `path` to `name`, in its own folder (Finder's rename
+ * of an icon's name): `fs.move` with the new name, so the names of another
+ * entry are refused whatever their case (`exists`) and a change of case
+ * alone renames in place; Finder's windows on it follow
+ * (`ClassicyAppFinderPathsMoved`); a Desktop Folder item's desktop icon is
+ * placed where its old one was; any refusal is told in an alert. A name
+ * that is empty, holds the separator (`:`) or starts with `_` (the
+ * metadata prefix) is refused as invalid; one equal to the old changes
+ * nothing. Returns the new path, or undefined.
+ */
+export function renameClassicyFileSystemItem(
+	fs: ClassicyFileSystem,
+	path: string,
+	name: string,
+	dispatch: Dispatch,
+): string | undefined {
+	const parts = path.split(fs.separator);
+	const oldName = parts.pop() ?? path;
+	const folder = parts.join(fs.separator);
+	if (name === oldName) return undefined;
+	// Windows' names (`layout.files.names` "windows"): none of `\ / : * ?
+	// " < > |`, refused in Windows 98's own message box (shell32.dll's
+	// "Rename" and its text).
+	const windowsRefusal = classicyFileNameRefusal();
+	if (
+		windowsRefusal !== undefined &&
+		name.trim() !== "" &&
+		!isClassicyValidFileName(name)
+	) {
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			title: CLASSICY_WINDOWS_RENAME_TITLE,
+			message: windowsRefusal,
+		});
+		return undefined;
+	}
+	if (
+		name.trim() === "" ||
+		name.includes(fs.separator) ||
+		!isClassicyValidFileName(name) ||
+		name.startsWith("_")
+	) {
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			message: renameRefusalMessage("invalid", name, oldName),
+		});
+		return undefined;
+	}
+	const location = desktopIconLocations([path])[path];
+	const result = fs.move(path, folder, { name });
+	if (!result.ok) {
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			message: renameRefusalMessage(result.reason, name, oldName),
+		});
+		return undefined;
+	}
+	dispatch({
+		type: "ClassicyAppFinderPathsMoved",
+		moves: [{ from: path, to: result.path }],
+	});
+	if (folder === classicyDesktopFolderPath(fs)) {
+		const action = classicyDesktopItemIconAction(fs, result.path, location);
+		if (action) dispatch(action);
+	}
+	return result.path;
 }

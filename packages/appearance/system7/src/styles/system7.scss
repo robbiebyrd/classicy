@@ -33,6 +33,7 @@
 @use "components/ControlStrip";
 @use "components/Tabs";
 @use "components/AppearanceManager";
+@use "components/BalloonHelp";
 @use "screenSavers";
 
 @include package.classicy-package("system7") {
@@ -60,6 +61,7 @@
   @include ControlStrip.control-strip;
   @include Tabs.tabs;
   @include AppearanceManager.appearance-manager;
+  @include BalloonHelp.balloon-help;
 
   // The browser's own controls take black, not the base sheet's accent
   // (`--color-theme-04`, the Standard window color's #666699 in color):

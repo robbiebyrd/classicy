@@ -1,0 +1,62 @@
+// WinHelp's Help Topics browser (`ClassicyHelpTopics`, drawn only under the
+// package's `help.topicWindow` "winhelp"): its arrangement. The tab control
+// fills the dialog above the button row, its Contents page a prompt over the
+// topic list, which takes the rest of the page's height. The look (the
+// list's edge, the spacing Windows lays out in dialog units) is the
+// package's.
+
+.classicyHelpTopics {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--layout-item-gap);
+  height: 100%;
+  padding: var(--layout-item-gap);
+}
+
+.classicyHelpTopics > .classicyTabContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.classicyHelpTopics .classicyTabsHolder {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.classicyHelpTopics .classicyTabActiveContent {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.classicyHelpTopicsContents {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  row-gap: var(--layout-item-gap);
+  min-height: 0;
+  padding: var(--layout-dialog-edge);
+}
+
+.classicyHelpTopicsPrompt {
+  flex: none;
+  margin: 0;
+}
+
+.classicyHelpTopicsList {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.classicyHelpTopicsButtons {
+  display: flex;
+  flex: none;
+  flex-direction: row;
+  justify-content: flex-end;
+  column-gap: var(--button-gap);
+}

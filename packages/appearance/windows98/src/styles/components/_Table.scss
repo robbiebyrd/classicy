@@ -29,13 +29,28 @@
 // icon blended toward the highlight (a filter stands in for Explorer's 50%
 // Hilight dither; a package's own selected image,
 // `classicyIconSelectedImage`, stands as it is), the rest of the row white.
+// In a window that is not the active one (the core's `inactive` on the
+// list) the selection is drawn as a list view with LVS_SHOWSELALWAYS draws
+// it while another window has the focus (Wine's listview.c,
+// prepaint_setup and LISTVIEW_DrawItemPart: ButtonFace under ButtonText,
+// the image drawn ILD_NORMAL; WIG Ch.6 "Activating and Deactivating
+// Windows", p.81; Ch.13 "Highlighting", p.318): a selected row, or the
+// Finder's selected name, ButtonFace under WindowText, the name's icon
+// unblended, and no focus rectangle. A Finder row cut and waiting for a
+// Paste (`classicyFileCut` on its container, LVIS_CUT) has its icon faded
+// to half, a stand-in for the blend with the Window color, as the filter
+// stands in for the selection's. The selection rectangle a drag across
+// the Finder's list below its rows draws (`.classicyFileBrowserSelect`,
+// under `layout.fileBrowser.regionSelect`) is the icon view's, drawn by
+// _Icon.scss: DrawFocusRect's dots XORed over the rows.
 //
 // Overrides ClassicyTable.scss and ClassicyFileBrowserViewTable.scss.
 //
 //   Windows color     token
 //   Window            --color-window-document   the list, the rows
 //   WindowText        --color-black             the text
-//   ButtonFace        --color-system-03         the header buttons
+//   ButtonFace        --color-system-03         the header buttons, an
+//                                               inactive window's selection
 //   ButtonHilight     --color-system-01         the frame's outer
 //                                               bottom-right ring, a
 //                                               button's outer top-left
@@ -178,6 +193,32 @@ $finder: ".classicyFileBrowserViewTableContainer";
     background: b.$highlight;
   }
 
+  // The folder row under a file drag (LVIS_DROPHILITED; WIG Ch.5 "Direct
+  // Manipulation Transfers" (p.67): "use visual feedback to indicate the
+  // receptivity of potential destinations ... selection highlighting"):
+  // drawn as a selected row is, its name in Hilight and its icon dithered
+  // (below), in place of the base's Mac OS 8 darkening.
+  .classicyFileBrowserViewTableRowContainer.classicyFileDropTarget {
+    filter: none;
+
+    .classicyFileBrowserViewTableRowIconLabel {
+      color: b.$highlight-text;
+      background: b.$highlight;
+    }
+  }
+
+  // A name being edited (Explorer's Rename, New and F2 in the details
+  // view): the list view's edit control where the name was, WindowText on
+  // Window in a one-pixel WindowFrame border, the list's font.
+  .classicyFileBrowserViewTableRowContainer .classicyFileBrowserViewTableRename {
+    padding: 0 px(2);
+    border: b.$b solid b.$text;
+    border-radius: 0;
+    outline: none;
+    color: b.$text;
+    background: b.$window;
+  }
+
   // The Finder's focus item: the focus rectangle on the `focused` row's name
   // alone, as Explorer's details view rings its focus item's label,
   // WindowText on a white name and HilightText on a selected one; with
@@ -200,7 +241,8 @@ $finder: ".classicyFileBrowserViewTableContainer";
   // centered on the row), and clipped to the icon's shape by the mask the
   // core publishes on the row, `--classicy-icon-mask`. The base's darkening
   // filter stands down. Sized by the list's icon size, which the core
-  // publishes on the container (`--classicy-file-browser-icon-size`).
+  // publishes on the container (`--classicy-file-browser-icon-size`). The
+  // folder row under a file drag takes the same dither (LVIS_DROPHILITED).
   :where(.classicyFileBrowserViewTableRow).selected
     .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
     filter: none;
@@ -211,6 +253,8 @@ $finder: ".classicyFileBrowserViewTableContainer";
   }
 
   :where(.classicyFileBrowserViewTableRow).selected
+    .classicyFileBrowserViewTableDisclosure::after,
+  .classicyFileBrowserViewTableRowContainer.classicyFileDropTarget
     .classicyFileBrowserViewTableDisclosure::after {
     content: "";
     position: absolute;
@@ -225,5 +269,75 @@ $finder: ".classicyFileBrowserViewTableContainer";
     mask-image: var(--classicy-icon-mask);
     mask-size: 100% 100%;
     mask-repeat: no-repeat;
+  }
+
+  // A row cut and waiting for a Paste (Explorer's Cut, LVIS_CUT; WIG Ch.5
+  // "Command Method Transfers" (p.66)): its icon faded to half, a stand-in
+  // for ILD_BLEND50's blend with the Window color, as the details view's
+  // selected icon takes its dither from the gutter (above) and a bare <img>
+  // takes no layer of its own.
+  .classicyFileBrowserViewTableRowContainer.classicyFileCut .classicyFileBrowserViewTableRowIcon {
+    opacity: 0.5;
+  }
+
+  // ----- An inactive window's lists ----------------------------------------
+  // The selection ButtonFace under WindowText (LVS_SHOWSELALWAYS), the icon
+  // as it is, and no focus rectangle: the focus is another window's.
+  #{$list}.inactive :where(.classicyTableRow).selected {
+    color: b.$text;
+    background: b.$face;
+  }
+
+  #{$list}.inactive:focus :where(.classicyTableRow).focused {
+    outline: none;
+  }
+
+  #{$finder}.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
+    color: b.$text;
+    background: b.$face;
+  }
+
+  #{$finder}.inactive:focus :where(.classicyFileBrowserViewTableRow).focused .classicyFileBrowserViewTableRowIconLabel {
+    outline: none;
+  }
+
+  #{$finder}.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableDisclosure::after {
+    content: none;
+  }
+
+  // The arrow over the list view's expand buttons, where the base shows the
+  // hand (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyFileBrowserViewTableDisclosureTriangle {
+    @include b.registry-cursor(arrow, default);
+  }
+
+  // A shortcut's row (`layout.icon.aliasBadge` "everywhere"; the core's
+  // `classicyIconImage` box around the row icon and its badge): the shell's
+  // shortcut overlay over the small icon, at the icon's size, the same art
+  // the large icon takes, scaled (the asset registry holds no small image
+  // for it; WIG Ch.11 "Displaying Objects", p.230; the audit's 11.2). The
+  // box keeps the row icon's place in the row, and the badge lies inside
+  // the icon's margins.
+  .classicyFileBrowserViewTableRowContainer > .classicyIconImage {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    width: auto;
+    margin: 0;
+  }
+
+  .classicyFileBrowserViewTableRowContainer > .classicyIconImage > .classicyIconAliasBadge {
+    position: absolute;
+    top: var(--file-browser-list-row-padding, var(--file-browser-list-icon-spacing));
+    left: var(--file-browser-list-icon-spacing);
+    width: var(--classicy-file-browser-icon-size);
+    height: var(--classicy-file-browser-icon-size);
+    pointer-events: none;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
   }
 }

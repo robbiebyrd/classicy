@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { focusWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
@@ -6,8 +7,11 @@ import type {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
+	ABOUT_BALLOON_HELP_TOPIC_ID,
+	appleGuidePackageIdOf,
 	appleGuideWindowId,
 	getAppleGuideTopic,
+	isAppleGuideTopicRegistered,
 } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
@@ -22,11 +26,32 @@ export const APPLE_GUIDE_APP_NAME = "Apple Guide";
 export const APPLE_GUIDE_SHOW_TOPIC_EVENT =
 	"ClassicyAppAppleGuideShowTopic" as const;
 
+/**
+ * Event that opens (or re-focuses) the Help Topics browser
+ * (`ClassicyHelpTopics`), under a package whose layout says
+ * `help.topicWindow: "winhelp"` (Windows 98; WIG Ch.12 "The Help Topics
+ * Browser", p.284; Ch.7 "The Help Menu", p.99). Without that key no window
+ * lists the topics, and the event shows the built-in
+ * `ABOUT_BALLOON_HELP_TOPIC_ID` topic, as `APPLE_GUIDE_SHOW_TOPIC_EVENT`
+ * would. A window's Help ▸ Help Topics and the Start menu's Help dispatch
+ * it (`{ type: APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT }`).
+ */
+export const APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT =
+	"ClassicyAppAppleGuideShowTopics" as const;
+
+/** The Help Topics browser's window id, in `AppleGuide.app`. */
+export const APPLE_GUIDE_HELP_TOPICS_WINDOW_ID = "apple_guide_help_topics";
+
 export type AppleGuideData = {
 	/** Topic ids with an open window, in the order they were opened. */
 	openTopics?: string[];
 	/** Current zero-based page index per topic id. */
 	pages?: Record<string, number>;
+	/**
+	 * Whether the Help Topics browser is open (`ClassicyHelpTopics`; drawn
+	 * only under `layout.help.topicWindow` "winhelp").
+	 */
+	helpTopicsOpen?: boolean;
 };
 
 /** Manifest schema for AppleGuide.app's `data` (see registerApp). */
@@ -39,6 +64,12 @@ export const AppleGuideDataSchema = z.looseObject({
 		.record(z.string(), z.number())
 		.optional()
 		.describe("Current zero-based page index per topic id."),
+	helpTopicsOpen: z
+		.boolean()
+		.optional()
+		.describe(
+			'Whether the Help Topics browser is open (drawn only under the package\'s help.topicWindow "winhelp").',
+		),
 });
 
 export function isAppleGuideData(
@@ -65,21 +96,29 @@ export function isAppleGuideData(
 			return false;
 		}
 	}
+	if ("helpTopicsOpen" in d && typeof d.helpTopicsOpen !== "boolean") {
+		return false;
+	}
 	return true;
 }
 
-/** Drop any topic id no longer registered, so a removed/renamed id can never get stuck. */
+/**
+ * Drop any topic id no longer registered, so a removed/renamed id can never
+ * get stuck. Registered under any package: a topic another package offers
+ * stays open, its window drawing nothing until that package is drawn again.
+ */
 function pruneUnregisteredTopics(data: AppleGuideData): AppleGuideData {
 	const open = data.openTopics;
-	if (!open || open.every((id) => getAppleGuideTopic(id) !== undefined)) {
+	if (!open || open.every(isAppleGuideTopicRegistered)) {
 		return data;
 	}
-	const kept = open.filter((id) => getAppleGuideTopic(id) !== undefined);
-	const pages = data.pages
-		? Object.fromEntries(
-				Object.entries(data.pages).filter(([id]) => kept.includes(id)),
-			)
-		: data.pages;
+	const kept = open.filter(isAppleGuideTopicRegistered);
+	// No `pages` key where there was none: `pages: undefined` fails
+	// `isAppleGuideData`, which would drop every open topic on the next read.
+	if (!data.pages) return { ...data, openTopics: kept };
+	const pages = Object.fromEntries(
+		Object.entries(data.pages).filter(([id]) => kept.includes(id)),
+	);
 	return { ...data, openTopics: kept, pages };
 }
 
@@ -100,24 +139,51 @@ export const classicyAppleGuideEventHandler = (
 		isAppleGuideData(raw) ? raw : {},
 	);
 	const topicId = topicIdOf(action);
+	// The package the desktop draws, from the draft (reducers never read the
+	// store's live state): it decides the topic variants offered and the
+	// help layout.
+	const packageId = appleGuidePackageIdOf(
+		ds.System.Manager.Appearance?.packageId,
+	);
+
+	const showTopic = (id: string): ClassicyStore => {
+		const open = appData.openTopics ?? [];
+		appData = {
+			...appData,
+			openTopics: open.includes(id) ? open : [...open, id],
+			pages: { ...(appData.pages ?? {}), [id]: 0 },
+		};
+		app.data = appData;
+		// Focus explicitly: ClassicyWindowOpen only focuses brand-new windows,
+		// and a reopened topic's window persists as closed after its first open.
+		return focusWindow(ds, APPLE_GUIDE_APP_ID, appleGuideWindowId(id));
+	};
 
 	switch (action.type) {
+		case APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT: {
+			const winhelp =
+				getClassicyAppearanceLayout(packageId).help?.topicWindow === "winhelp";
+			if (!winhelp) return showTopic(ABOUT_BALLOON_HELP_TOPIC_ID);
+			appData = { ...appData, helpTopicsOpen: true };
+			app.data = appData;
+			return focusWindow(
+				ds,
+				APPLE_GUIDE_APP_ID,
+				APPLE_GUIDE_HELP_TOPICS_WINDOW_ID,
+			);
+		}
+		case "ClassicyAppAppleGuideCloseTopics": {
+			const { helpTopicsOpen: _closed, ...rest } = appData;
+			appData = rest;
+			break;
+		}
 		case APPLE_GUIDE_SHOW_TOPIC_EVENT: {
 			if (!topicId) break;
-			if (!getAppleGuideTopic(topicId)) {
+			if (!getAppleGuideTopic(topicId, packageId)) {
 				classicyLog("warn", "AppleGuide", "Unknown topic id", topicId);
 				break;
 			}
-			const open = appData.openTopics ?? [];
-			appData = {
-				...appData,
-				openTopics: open.includes(topicId) ? open : [...open, topicId],
-				pages: { ...(appData.pages ?? {}), [topicId]: 0 },
-			};
-			app.data = appData;
-			// Focus explicitly: ClassicyWindowOpen only focuses brand-new windows,
-			// and a reopened topic's window persists as closed after its first open.
-			return focusWindow(ds, APPLE_GUIDE_APP_ID, appleGuideWindowId(topicId));
+			return showTopic(topicId);
 		}
 		case "ClassicyAppAppleGuideCloseTopic": {
 			if (!topicId) break;
@@ -129,7 +195,7 @@ export const classicyAppleGuideEventHandler = (
 		}
 		case "ClassicyAppAppleGuideSetPage": {
 			if (!topicId) break;
-			const topic = getAppleGuideTopic(topicId);
+			const topic = getAppleGuideTopic(topicId, packageId);
 			if (!topic) break;
 			const requested =
 				"page" in action && typeof action.page === "number" ? action.page : 0;
@@ -177,6 +243,13 @@ registerApp({
 				topicId: z.string().describe("Id of the topic to page."),
 				page: z.number().describe("Zero-based page index to show."),
 			}),
+		},
+		[APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT]: {
+			description:
+				'Open (or re-focus) the Help Topics browser, which lists the guide topics (under the package\'s help.topicWindow "winhelp"; else show the About Help topic).',
+		},
+		ClassicyAppAppleGuideCloseTopics: {
+			description: "Close the Help Topics browser.",
 		},
 	},
 	state: AppleGuideDataSchema,

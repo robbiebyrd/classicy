@@ -51,7 +51,7 @@ New file `src/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter.ts`:
 ```ts
 export interface ClassicyFileSystemJournalEntry {
     seq: number                                          // monotonic, persisted across sessions
-    op: 'write' | 'mkdir' | 'rmdir' | 'meta' | 'load' | 'move'
+    op: 'write' | 'mkdir' | 'rmdir' | 'meta' | 'load' | 'move' | 'copy'
     path: string                                         // colon-separated; '' for 'load'
     data?: string                                        // file contents for 'write'
     metadata?: Partial<ClassicyFileSystemEntryMetadata>  // for 'meta'
@@ -108,6 +108,7 @@ Every `ClassicyFileSystem` mutation flows through a private notifier:
 | `load(data)` | `{op: 'load', path: ''}` |
 | `setMetadata(path, patch)` *(new)* | `{op: 'meta', path, metadata: patch}` |
 | `move(path, toFolderPath, options?)` *(added later)* | `{op: 'move', path, to: newPath, metadata?, unsetMetadata?}` |
+| `copy(path, toFolderPath, options?)` *(added later: Explorer's Copy and Paste)* | `{op: 'copy', path, to: copyPath, metadata: {_createdOn}, unsetMetadata?}`: replay as a deep copy of `path` at `to`, the copy and every entry in it given `metadata`, the copy itself without the `unsetMetadata` keys (the Trash's markers, a placeholder's mark) |
 
 The notifier, per mutation:
 

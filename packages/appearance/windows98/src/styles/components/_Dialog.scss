@@ -275,6 +275,13 @@ $field-line: calc(#{$field-height} - var(--field-padding-y) - var(--field-paddin
     }
   }
 
+  // Flowing in columns (the package's `fileDialog.listFlow`), the list
+  // mode's columns sit the label's trailing padding apart, Wine's
+  // TRAILING_LABEL_PADDING (12): `--layout-group-gap`.
+  .classicyFileOpenDialogWellColumns .classicyTree {
+    column-gap: var(--layout-group-gap);
+  }
+
   // The buttons, `--button-gap` apart, in Windows' order: Open or Save (the
   // default, the row's last button) first, Cancel (the one before it) next,
   // New Folder (Save's, before them both) last. By position: the dialog's

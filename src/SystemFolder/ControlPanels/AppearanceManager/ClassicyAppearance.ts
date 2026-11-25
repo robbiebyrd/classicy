@@ -15,6 +15,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import { classicyThemeDerivations } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import {
+	type ClassicyThemeFontFamilies,
+	classicyFontFamilyVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontFamilies";
+import {
 	classicyMeasurementVars,
 	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
@@ -128,6 +132,15 @@ export type ClassicyThemeTypography = {
 	monoSize: number;
 	digital: string;
 	digitalSize: number;
+	/**
+	 * An Appearance Package's own fonts, beside the core typography: name →
+	 * `{ font, size?, weight? }` (`ClassicyThemeFontFamily`), optional.
+	 * Windows 98 holds each scheme's caption, small caption, menu, message
+	 * box and icon fonts here. Every entry becomes `--package-font-<name>`,
+	 * with `-size` and `-weight` beside it when set, on the desktop root
+	 * (`classicyFontFamilyVars`); a theme without it emits none.
+	 */
+	families?: ClassicyThemeFontFamilies;
 };
 
 /**
@@ -300,6 +313,9 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		...(theme.typography.uiSmall
 			? { "--ui-font-small": theme.typography.uiSmall }
 			: {}),
+		// --- Package fonts: every entry under `typography.families` as
+		// `--package-font-<name>` (and `-size`, `-weight`). None without it.
+		...classicyFontFamilyVars(theme.typography.families),
 		"--mono-font": theme.typography.mono,
 		"--mono-font-size": intToPx(theme.typography.monoSize),
 		"--digital-font": theme.typography.digital,

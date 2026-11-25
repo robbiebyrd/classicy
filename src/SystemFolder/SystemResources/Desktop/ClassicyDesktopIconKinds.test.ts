@@ -10,6 +10,11 @@ describe("isAliasKind", () => {
 		expect(isAliasKind("shortcut")).toBe(true);
 	});
 
+	it("treats file shortcuts (Explorer's Create Shortcut) as aliases", () => {
+		expect(isAliasKind("file_shortcut")).toBe(true);
+		expect(isAliasKind("File_Shortcut")).toBe(true);
+	});
+
 	it.each([
 		"drive",
 		"trash",

@@ -5,12 +5,15 @@ import {
 	type ChangeEventHandler,
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	type SyntheticEvent,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
+import { useClassicyTextFieldContextMenu } from "@/SystemFolder/SystemResources/App/ClassicyTextFieldMenu.internal";
+import { useClassicyWordSelect } from "@/SystemFolder/SystemResources/App/ClassicyWordSelect.internal";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -77,11 +80,41 @@ export interface EditorProps {
 	labelPosition?: ClassicyLabelPosition;
 	/** Fired with the native change event on every edit. */
 	onChangeFunc?: ChangeEventHandler<HTMLTextAreaElement>;
+	/**
+	 * Where the caret starts, as a character offset into the text, clamped to
+	 * its length: a document window's view state put back
+	 * (`useClassicyWindowViewState`, under a package's
+	 * `layout.window.restoreViewState`). Read when the editor mounts, and
+	 * set without focusing the field or scrolling it. None by default: the
+	 * caret starts at the beginning, as a `<textarea>`'s does.
+	 */
+	initialCaret?: number;
+	/**
+	 * Called with the caret's offset (the selection's start) once it has
+	 * stopped moving (no selection change for 200 ms), when it differs from
+	 * the last offset reported (or `initialCaret`), and once more if the
+	 * editor unmounts while a report is due.
+	 */
+	onCaretSettled?: (caret: number) => void;
+	/**
+	 * Where the text starts scrolled, `[scrollLeft, scrollTop]`
+	 * (`ClassicyScrollArea`'s `initialScroll`, the `<textarea>` being the
+	 * area's viewport). None by default.
+	 */
+	initialScroll?: [number, number];
+	/**
+	 * Called with the text's offsets once its scrolling ends
+	 * (`ClassicyScrollArea`'s `onScrollSettled`).
+	 */
+	onScrollSettled?: (scroll: [number, number]) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
 	style?: CSSProperties;
 }
+
+/** How long the caret waits, unmoved, before it is reported (`onCaretSettled`). */
+const CARET_SETTLE_MS = 200;
 
 const fontSizeClass: Record<ClassicyControlLabelSize, string> = {
 	small: "classicyTextEditorSizeSmall",
@@ -101,6 +134,11 @@ const fontSizeClass: Record<ClassicyControlLabelSize, string> = {
  * Markdown or styled text use `ClassicyRichTextEditor`. A window whose only
  * content is a full-size editor should pass `scrollable={false}`, since the
  * textarea scrolls itself.
+ *
+ * Under a package whose layout says `text.wordSelect: "trailingSpace"`
+ * (Windows) a double-click takes the spaces after its word too, and under
+ * `textField.contextMenu: "edit"` a right-click shows the field's own Edit
+ * menu (Undo, Cut, Copy, Paste, Delete, Select All) instead of the window's.
  *
  * ```tsx
  * <ClassicyTextEditor
@@ -126,6 +164,10 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 	labelSize = "medium",
 	labelPosition = "above",
 	onChangeFunc,
+	initialCaret,
+	onCaretSettled,
+	initialScroll,
+	onScrollSettled,
 	className,
 	style,
 }) => {
@@ -177,12 +219,69 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 		};
 	}, [autoHeight, value]);
 
+	const wordSelect = useClassicyWordSelect();
+	const textMenu = useClassicyTextFieldContextMenu();
+
 	const handleChange = useCallback(
 		(e: ChangeEvent<HTMLTextAreaElement>) => {
 			setValue(e.target.value);
 			onChangeFunc?.(e);
 		},
 		[onChangeFunc],
+	);
+
+	// The caret put back (`initialCaret`), once, when the field mounts,
+	// leaving the field's scroll where it was (the scroll area puts the
+	// view state's own offsets back), and reported again once it settles.
+	const initialCaretRef = useRef(initialCaret);
+	const caretSettledRef = useRef<number>(0);
+	const caretAtRef = useRef<number | null>(null);
+	const caretTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const onCaretSettledRef = useRef(onCaretSettled);
+	onCaretSettledRef.current = onCaretSettled;
+	useLayoutEffect(() => {
+		const field = holderRef.current?.querySelector<HTMLTextAreaElement>(
+			"textarea.classicyTextEditor",
+		);
+		const caret = initialCaretRef.current;
+		if (
+			!field ||
+			typeof caret !== "number" ||
+			!Number.isFinite(caret) ||
+			caret <= 0
+		) {
+			return;
+		}
+		const at = Math.min(Math.floor(caret), field.value.length);
+		const { scrollLeft, scrollTop } = field;
+		field.setSelectionRange(at, at);
+		field.scrollLeft = scrollLeft;
+		field.scrollTop = scrollTop;
+		caretSettledRef.current = at;
+	}, []);
+	const settleCaret = useCallback(() => {
+		caretTimerRef.current = null;
+		const at = caretAtRef.current;
+		if (at === null || at === caretSettledRef.current) return;
+		caretSettledRef.current = at;
+		onCaretSettledRef.current?.(at);
+	}, []);
+	const handleSelect = useCallback(
+		(e: SyntheticEvent<HTMLTextAreaElement>) => {
+			caretAtRef.current = e.currentTarget.selectionStart;
+			if (!onCaretSettledRef.current) return;
+			if (caretTimerRef.current !== null) clearTimeout(caretTimerRef.current);
+			caretTimerRef.current = setTimeout(settleCaret, CARET_SETTLE_MS);
+		},
+		[settleCaret],
+	);
+	useEffect(
+		() => () => {
+			if (caretTimerRef.current === null) return;
+			clearTimeout(caretTimerRef.current);
+			settleCaret();
+		},
+		[settleCaret],
 	);
 
 	return (
@@ -213,10 +312,16 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 				)}
 				vertical={fitsScrollBars ? "always" : "auto"}
 				horizontal={fitsScrollBars ? "always" : "auto"}
+				initialScroll={initialScroll}
+				onScrollSettled={onScrollSettled}
 				renderViewport={(viewport) => (
 					<textarea
 						ref={viewport.ref}
 						onScroll={viewport.onScroll}
+						onSelect={handleSelect}
+						onDoubleClick={wordSelect}
+						onMouseDown={textMenu?.onMouseDown}
+						onContextMenu={textMenu?.onContextMenu}
 						id={id}
 						disabled={disabled}
 						className={classNames(

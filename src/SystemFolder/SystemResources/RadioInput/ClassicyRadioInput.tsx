@@ -66,6 +66,19 @@ type ClassicyRadioInputValueProps = {
 	disabled?: boolean;
 	/** Text label; clicking it selects the button. */
 	label?: string;
+	/**
+	 * The button's access key (mnemonic), one character of `label`
+	 * (`ClassicyControlLabel`'s `accessKey`; WIG Ch.4 "Access Keys" (p.27),
+	 * Ch.8 "Navigation in Secondary Windows" (pp.148-149)): Alt and the key,
+	 * in the window holding focus, focuses this button and turns it on, as
+	 * a click does; the key alone does the same while focus is on a button,
+	 * a check box or an option button. Its character is drawn as the
+	 * `access-key` part, which a package underlines (Windows 98). Read only
+	 * under the package's `layout.menu.accessKeys`; under `"auto"` (Windows
+	 * 98) a label given none takes the first free character of its text,
+	 * and `""` gives it none. Inert under Platinum and System 7.
+	 */
+	accessKey?: string;
 };
 
 // HIGOS8 Ch.2 "Radio Buttons" (p.24): a radio group always has exactly one
@@ -254,6 +267,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 							labelFor={item.id}
 							disabled={itemDisabled}
 							label={item.label}
+							accessKey={item.accessKey}
 							onMouseDown={(e) => {
 								if (itemDisabled) return;
 								pressItem(item.id, e.currentTarget as HTMLElement);

@@ -19,21 +19,31 @@ import type {
 export interface ClassicyFileSystemJournalEntry {
 	/** Monotonic sequence number, persisted across sessions (gap = missed delivery). */
 	seq: number;
-	op: "write" | "mkdir" | "rmdir" | "meta" | "load" | "move";
+	op: "write" | "mkdir" | "rmdir" | "meta" | "load" | "move" | "copy";
 	/**
 	 * Colon-separated path; '' for 'load' (wholesale replacement). For 'move',
-	 * the entry's path before the move.
+	 * the entry's path before the move; for 'copy', the original's path.
 	 */
 	path: string;
-	/** For op 'move': the entry's new colon-separated path (its name may change). */
+	/**
+	 * For op 'move': the entry's new colon-separated path (its name may
+	 * change). For op 'copy': the copy's path (`ClassicyFileSystem.copy`).
+	 */
 	to?: string;
 	/** File contents, for op 'write'. */
 	data?: string;
-	/** Metadata patch, for op 'meta' — and for 'move', the keys it set. */
+	/**
+	 * Metadata patch, for op 'meta' — and for 'move', the keys it set. For
+	 * 'copy', the `_createdOn` (an ISO 8601 string) the copy and every entry
+	 * inside it took: replay a copy as a deep copy of `path` to `to`, each of
+	 * its entries given `metadata`, the copy itself without `unsetMetadata`.
+	 */
 	metadata?: Partial<ClassicyFileSystemEntryMetadata>;
 	/**
 	 * For op 'move': metadata keys the move removed from the entry (e.g. the
-	 * Trash markers on Restore). Listed by name, so the removal survives JSON.
+	 * Trash markers on Restore); for op 'copy', those the copy left off (the
+	 * Trash markers, a placeholder's mark). Listed by name, so the removal
+	 * survives JSON.
 	 */
 	unsetMetadata?: string[];
 	/** ISO 8601. */

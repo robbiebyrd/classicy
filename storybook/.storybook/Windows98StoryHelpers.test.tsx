@@ -339,7 +339,7 @@ describe("Windows 98 shell play helpers on the story desktop", () => {
 		await screen.findByText("scene", {}, { timeout: 20000 });
 		const panel = await openTrayIcon(document, "Sound", 1);
 		expect(panel.classList.contains("classicyTaskbarTrayPopup")).toBe(true);
-		await openTrayIcon(document, "Appearance", 2);
+		await openTrayIcon(document, "Display", 2);
 		expect(
 			document.querySelector(".classicyContextMenuWrapper"),
 		).not.toBeNull();

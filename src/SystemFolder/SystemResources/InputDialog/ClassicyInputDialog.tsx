@@ -35,9 +35,12 @@ export type ClassicyInputDialogProps = {
 	title?: string;
 	/**
 	 * Prompt shown above the field as its `<label>` (e.g. "Name of new
-	 * folder:"), a `ClassicyControlLabel`: text or rich content.
+	 * folder:"), a `ClassicyControlLabel`: text or rich content, or a
+	 * function of the field's current value returning it, for a prompt that
+	 * says why a value is refused (the file dialog's New Folder under
+	 * `layout.files.names` "windows").
 	 */
-	prompt?: ReactNode;
+	prompt?: ReactNode | ((value: string) => ReactNode);
 	/** Initial field value; its text is selected on open. Defaults to `""`. */
 	initialValue?: string;
 	/** Placeholder shown when the field is empty. */
@@ -209,7 +212,7 @@ export const ClassicyInputDialog: FunctionalComponent<
 							<ClassicyControlLabel
 								className="classicyInputDialogPrompt"
 								labelFor={`${id}-field`}
-								label={prompt}
+								label={typeof prompt === "function" ? prompt(value) : prompt}
 							/>
 							<ClassicyInput
 								id={`${id}-field`}

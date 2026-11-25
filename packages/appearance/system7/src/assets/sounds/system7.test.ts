@@ -7,6 +7,7 @@ import {
 	classicyPackDefaultAlert,
 	resolveClassicyAlertSound,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
+import { CLASSICY_OPTIONAL_SOUND_SPRITE_IDS } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { system7SoundPack } from "./system7";
 import system7Json from "./system7/system7.json";
 
@@ -85,6 +86,19 @@ describe("System 7's sound pack", () => {
 		expect(
 			resolveClassicyAlertSound(system7SoundPack, "ClassicyAlertDroplet"),
 		).toBe("ClassicyAlertDroplet");
+	});
+
+	// The optional sprites (Windows 98's Empty Trash sound) and the alert
+	// type sounds are another pack's: System 7's defines neither, so it plays
+	// nothing when the Trash is emptied and its alert for every alert box.
+	it("defines no optional sprite and gives no alert type its own sound", () => {
+		for (const id of CLASSICY_OPTIONAL_SOUND_SPRITE_IDS)
+			expect(Object.keys(system7SoundPack.sprite)).not.toContain(id);
+		expect(system7SoundPack.alertTypeSounds).toBeUndefined();
+		for (const alertType of ["note", "caution", "stop"] as const)
+			expect(
+				resolveClassicyAlertSound(system7SoundPack, undefined, alertType),
+			).toBe("ClassicyAlertSimpleBeep");
 	});
 });
 

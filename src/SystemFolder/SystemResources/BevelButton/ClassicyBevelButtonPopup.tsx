@@ -6,6 +6,7 @@ import {
 	type KeyboardEvent,
 	type ReactNode,
 	type RefObject,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useRef,
@@ -34,6 +35,8 @@ import {
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 import { ClassicyMenuScrollMarginContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuScrollMargin.internal";
+import { ClassicyMenuStatusContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 // A panel (non-menu surface) gives keyboard focus to its first control.
 const PANEL_FOCUS_SELECTOR =
@@ -126,6 +129,8 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	style: consumerStyle,
 }) => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
+	// In a window (its React tree's), not the taskbar's or Control Strip's.
+	const inWindow = useContext(ClassicyWindowActiveContext) !== undefined;
 	// Null until measured: the first paint is hidden so the popup never flashes
 	// at an unplaced position.
 	const [position, setPosition] = useState<{
@@ -227,6 +232,9 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 			onClose();
 		};
 		const onKeyDown = (e: globalThis.KeyboardEvent) => {
+			// A menu's own Escape (ClassicyMenu closes a submenu first, then
+			// this surface, through its provider's onClose) is already handled.
+			if (e.defaultPrevented) return;
 			if (e.key === "Escape") {
 				e.preventDefault();
 				onClose();
@@ -253,10 +261,14 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		};
 	}, [buttonRef, onClose]);
 
-	// Menu items keep focus off the button, so arrow keys walk them here:
-	// the items shown, so a closed submenu's (drawn `display: none`, which
-	// takes no focus) are passed over rather than walked into.
+	// Menu items keep focus off the button, so arrow keys walk them here,
+	// unless the menu walked them already: ClassicyMenu takes the keys for
+	// every menu it roots (dimmed items passed over, as here, unless the
+	// package's `layout.menu.disabledItems` browses them). Only the items
+	// shown: a closed submenu's (drawn `display: none`, which takes no
+	// focus) are passed over rather than walked into.
 	const onMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (e.defaultPrevented) return;
 		if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
 		const items = classicyBevelPopupShownItems(wrapperRef.current, {
 			dimmed: keyboard,
@@ -283,13 +295,18 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		...consumerStyle,
 	};
 
+	// Its items give the menus' status text (`layout.menu.itemHelp`) only in
+	// a window: the taskbar's and the Control Strip's pop-ups belong to no
+	// window's status bar.
 	const menu = menuItems ? (
-		<ClassicyMenu
-			name={id}
-			menuItems={menuItems}
-			navClass="classicyContextMenu"
-			subNavClass="classicyContextSubMenu"
-		/>
+		<ClassicyMenuStatusContext.Provider value={inWindow}>
+			<ClassicyMenu
+				name={id}
+				menuItems={menuItems}
+				navClass="classicyContextMenu"
+				subNavClass="classicyContextSubMenu"
+			/>
+		</ClassicyMenuStatusContext.Provider>
 	) : null;
 
 	const surface = menuItems ? (

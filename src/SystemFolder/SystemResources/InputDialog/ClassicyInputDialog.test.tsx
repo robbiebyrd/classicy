@@ -59,6 +59,21 @@ describe("ClassicyInputDialog", () => {
 		);
 	});
 
+	// The file dialog's New Folder under Windows' names reads why a name is
+	// refused (the remaining chapters' audit's 10.9): a prompt may follow
+	// the field's value.
+	it("takes a prompt that follows the field's value", async () => {
+		setup({
+			prompt: (value: string) =>
+				value.includes("?") ? "No question marks." : "Name of new folder:",
+			initialValue: "Plans",
+		});
+		expect(screen.getByText("Name of new folder:")).toBeInTheDocument();
+		const field = screen.getByDisplayValue("Plans");
+		await userEvent.type(field, "?");
+		expect(screen.getByText("No question marks.")).toBeInTheDocument();
+	});
+
 	it("takes a rich prompt", () => {
 		setup({
 			prompt: (

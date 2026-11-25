@@ -4,7 +4,7 @@ import "./app.css";
 import { Classicy, registerClassicyIcons } from "@classicy/classicy";
 // The Appearance Packages: the core draws no desktop without one. Platinum
 // registers first, so it stays the default; System 7 adds its two themes
-// and Windows 98 its eighteen to the Appearance Manager (Themes tab).
+// and Windows 98 its thirty-four to the Appearance Manager (Themes tab).
 import "@classicy/appearance-platinum";
 import "@classicy/appearance-system7";
 import "@classicy/appearance-windows98";

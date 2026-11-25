@@ -5,6 +5,7 @@ import { CLASSICY_SEEDED_PLACEHOLDER } from "@/SystemFolder/SystemResources/File
 import { resetClassicyDerivedAppEntryNameWarnings } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	buildExtensionsFolder,
+	classicyExtensionControlPanelId,
 	withExtensionsFolder,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import {
@@ -359,5 +360,47 @@ describe("withExtensionsFolder keeps static files, replacing only placeholders",
 		expect(extensions["SimpleText (SimpleText.app)"]._creator).toBe(
 			"SimpleText.app",
 		);
+	});
+});
+
+// The remaining chapters' audit's 9.3 (WIG Ch.9 p.176): the control panel an
+// Extension entry's Properties opens under Explorer's commands.
+describe("classicyExtensionControlPanelId", () => {
+	it("names the Control Strip panel for a module and the Screen Saver panel for its extension", () => {
+		expect(
+			classicyExtensionControlPanelId({
+				_type: ClassicyFileSystemEntryFileType.Extension,
+				_creator: "AppearanceManager.app",
+				_format: "ControlStripModule",
+			}),
+		).toBe("ControlStripManager.app");
+		expect(
+			classicyExtensionControlPanelId({
+				_type: ClassicyFileSystemEntryFileType.Extension,
+				_creator: "ScreenSaver.app",
+			}),
+		).toBe("ScreenSaverManager.app");
+	});
+
+	it("names none for another extension, any other entry, or nothing", () => {
+		expect(
+			classicyExtensionControlPanelId({
+				_type: ClassicyFileSystemEntryFileType.Extension,
+				_creator: "AppleGuide.app",
+			}),
+		).toBeUndefined();
+		expect(
+			classicyExtensionControlPanelId({
+				_type: ClassicyFileSystemEntryFileType.Extension,
+				_creator: "constructor",
+			}),
+		).toBeUndefined();
+		expect(
+			classicyExtensionControlPanelId({
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_creator: "ScreenSaver.app",
+			}),
+		).toBeUndefined();
+		expect(classicyExtensionControlPanelId(undefined)).toBeUndefined();
 	});
 });

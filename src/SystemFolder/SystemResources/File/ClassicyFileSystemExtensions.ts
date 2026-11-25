@@ -119,3 +119,34 @@ export const withExtensionsFolder = (
 		},
 	};
 };
+
+/**
+ * The control panels that set the extensions up, by the extension's app id
+ * (`_creator`): the Screen Saver extension's is the Screen Saver control
+ * panel.
+ */
+const CLASSICY_EXTENSION_CONTROL_PANELS: Readonly<Record<string, string>> =
+	Object.freeze({ "ScreenSaver.app": "ScreenSaverManager.app" });
+
+/**
+ * The control panel an Extension entry's Properties opens (Explorer's
+ * commands, `layout.finder.commands` "windows"; WIG Ch.9 "Single Document
+ * Window Interface", p.176: an object with no window of its own is set up
+ * in its property sheet): a Control Strip module's
+ * (`_format: "ControlStripModule"`) the Control Strip control panel, else
+ * the panel of the extension that made it (`_creator`; the Screen Saver
+ * extension's, the Screen Saver control panel). Undefined for any other
+ * entry, and for an extension no panel sets up, whose menu and double-click
+ * stay as they are.
+ */
+export const classicyExtensionControlPanelId = (
+	entry: { _type?: unknown; _format?: unknown; _creator?: unknown } | undefined,
+): string | undefined => {
+	if (entry?._type !== ClassicyFileSystemEntryFileType.Extension)
+		return undefined;
+	if (entry._format === "ControlStripModule") return "ControlStripManager.app";
+	const creator = typeof entry._creator === "string" ? entry._creator : "";
+	return Object.hasOwn(CLASSICY_EXTENSION_CONTROL_PANELS, creator)
+		? CLASSICY_EXTENSION_CONTROL_PANELS[creator]
+		: undefined;
+};

@@ -228,6 +228,12 @@ $remove-x: runs(
     @include b.disabled-text;
   }
 
+  // A label's access key (the core's `access-key` part, 8.9; WIG Ch.8
+  // "Navigation in Secondary Windows", pp.148-149), underlined.
+  .classicyControlLabel [data-classicy-part="access-key"] {
+    @include b.access-key;
+  }
+
   .classicyOutput {
     color: b.$text;
   }

@@ -1,0 +1,29 @@
+// The System 7 help balloon for the surfaces whose balloon the core does not
+// draw itself, included by system7.scss inside the package wrapper. The
+// core's own balloons (ClassicyBalloonHelp.scss) are drawn by the base
+// sheet; this partial gives the same box to:
+//
+// - The rich text editor's toolbar tips (MDXEditor's Radix tooltips, in the
+//   editor's `classicyRichTextEditorPopups` element in the desktop): System
+//   7's help balloon, "shaped like cartoon speech balloons" (Macintosh Human
+//   Interface Guidelines (1995), Ch.11 "Balloon Help", pp.316-317, Figure
+//   11-8): the balloon's white face in a one-pixel black line with its round
+//   corners, its padding, width limits and text, the same declarations as
+//   the base `.classicyBalloonHelp` and its text, black on white in color as
+//   in black and white. No tail: the tip is Radix's box, centered
+//   `sideOffset` (10) above its button, with no element for the balloon's
+//   drawn tail.
+@mixin balloon-help {
+  .classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > * {
+    min-width: var(--balloon-help-min-width);
+    max-width: var(--balloon-help-max-width);
+    padding: var(--window-padding-size);
+    border: var(--window-border-size) solid var(--color-black);
+    border-radius: var(--balloon-help-corner-radius);
+    color: var(--color-black);
+    background: var(--color-white);
+    font-family: var(--ui-font);
+    font-size: var(--balloon-help-font-size);
+    line-height: 1.3;
+  }
+}

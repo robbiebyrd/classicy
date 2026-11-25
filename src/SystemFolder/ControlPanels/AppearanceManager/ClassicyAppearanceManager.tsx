@@ -21,7 +21,10 @@ import type {
 	ClassicyTheme,
 	ClassicyThemeTypography,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+import {
+	APPEARANCE_MANAGER_APP_ID,
+	APPEARANCE_MANAGER_TABS_KEY,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import {
 	isCustomThemeActive,
 	listClassicyPackageThemes,
@@ -29,7 +32,10 @@ import {
 import type { ClassicyThemeColorFamilyChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
+	classicyThemeFileAccept,
 	downloadClassicyTheme,
+	isClassicyForeignThemeFile,
+	parseClassicyForeignThemeFile,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import type {
@@ -63,7 +69,10 @@ import {
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
+import { useClassicySessionTab } from "@/SystemFolder/SystemResources/Tabs/useClassicySessionTab";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { useColorsTab } from "./ClassicyAppearanceManager.Colors";
 import {
@@ -107,6 +116,12 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		APP_NAME,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
+	// The user's own Close and Quit keys under a package that lets them be
+	// edited (`keyboard.editableShortcuts`; WIG Ch.4 "Shortcut Keys", p.27).
+	const shortcut = useClassicyMenuItemShortcuts();
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
 	// Themes hold a registered wallpaper by filename; the preview and the
@@ -197,7 +212,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				});
 				return;
 			}
-			const result = parseClassicyThemeFile(text);
+			// Another system's theme file (Windows 98's `.theme`) goes through
+			// the active package's importer; anything else is a Classicy theme
+			// file. Either way the theme is validated the same way.
+			const importer = activePackage.themeFileImporter;
+			const result =
+				importer && isClassicyForeignThemeFile(file.name, importer)
+					? parseClassicyForeignThemeFile(text, file.name, importer)
+					: parseClassicyThemeFile(text);
 			if (!result.ok) {
 				setThemeFileError({
 					label: `“${file.name}” could not be loaded.`,
@@ -226,7 +248,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				theme: result.theme,
 			});
 		},
-		[desktopEventDispatch, activePackage.id],
+		[desktopEventDispatch, activePackage.id, activePackage.themeFileImporter],
 	);
 
 	const switchTheme = useCallback(
@@ -350,6 +372,35 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		[desktopEventDispatch, typography],
 	);
 
+	// A package font (`typography.families.<name>`), as the core fonts: the
+	// chosen family first, the rest of its stack kept as fallbacks.
+	const changeFamilyFont = useCallback(
+		(name: string, family: string) => {
+			const current = typography.families?.[name]?.font;
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeFont",
+					family: name,
+					font: withPrimaryFontFamily(current ?? "", family),
+				});
+			});
+		},
+		[desktopEventDispatch, typography],
+	);
+
+	const changeFamilyFontSize = useCallback(
+		(name: string, size: number) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeFontSize",
+					family: name,
+					fontSize: size,
+				});
+			});
+		},
+		[desktopEventDispatch],
+	);
+
 	const changeColor = useCallback(
 		(change: ClassicyThemeColorChange | ClassicyThemeColorFamilyChange) => {
 			startTransition(() => {
@@ -470,18 +521,21 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		{
 			id: `${APP_ID}_file`,
 			title: "File",
+			accessKey: ak("f"),
 			menuChildren: [
 				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
 				{
 					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
 					),
-					keyboardShortcut: "⌥W",
+					accessKey: ak("c"),
+					keyboardShortcut: shortcut(`${APP_ID}_close_window`, "⌥W"),
 				},
 				{ id: "spacer" },
 				{
 					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
-					keyboardShortcut: "⌥Q",
+					accessKey: ak(""),
+					keyboardShortcut: shortcut(`${APP_ID}_quit`, "⌥Q"),
 				},
 			],
 		},
@@ -504,6 +558,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		toggleDoubleClickTitleToCollapse,
 		saveTheme,
 		loadThemeFile,
+		themeFileAccept: classicyThemeFileAccept(activePackage.themeFileImporter),
 	});
 
 	const packagesTab = usePackagesTab({
@@ -532,25 +587,31 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		backgroundSize,
 	});
 
+	// The active theme's own package, as the reducer validates its colors
+	// (a theme of another package draws that package's, or none).
+	const themePackage = packages.find(
+		(pkg) =>
+			pkg.id ===
+			(appearanceState.activeTheme.package ??
+				CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
+	);
 	const colorsTab = useColorsTab({
 		theme: appearanceState.activeTheme,
 		editingCustomTheme: isCustomThemeActive(appearanceState),
 		changeColor,
 		appId: APP_ID,
-		// The active theme's own package's colors, as the reducer validates
-		// them (a theme of another package draws that package's, or none).
-		colorFamilies: packages.find(
-			(pkg) =>
-				pkg.id ===
-				(appearanceState.activeTheme.package ??
-					CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
-		)?.colorFamilies,
+		colorFamilies: themePackage?.colorFamilies,
+		// Its words for the core's colors (Windows 98's "3D Objects").
+		colorLabels: themePackage?.colorLabels,
 	});
 
 	const fontsTab = useFontsTab({
 		typography,
 		changeFont,
 		changeFontSize,
+		fontFamilies: activePackage.fontFamilies,
+		changeFamilyFont,
+		changeFamilyFontSize,
 	});
 
 	const metricsTab = useMetricsTab({
@@ -586,6 +647,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		previewAlertVolume,
 	});
 
+	// Reopened in the session, the panel shows the page it was left on (WIG
+	// Ch.8 p.146; HIG7 p.146).
+	const sessionTab = useClassicySessionTab(APP_ID, APPEARANCE_MANAGER_TABS_KEY);
 	const tabs = useMemo(
 		// Packages and Options follow Themes: the package is the outermost
 		// choice, its knobs next. Colors sits between Desktop and Fonts: Mac OS
@@ -643,7 +707,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				<div className={"classicyAppearanceManagerContent"}>
 					{/* Eight tabs need the compact strip, which scrolls sideways
 					    when they overflow the 480 px panel. */}
-					<ClassicyTabs tabs={tabs} size="small" />
+					<ClassicyTabs tabs={tabs} size="small" {...sessionTab} />
 					<ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
 				</div>
 			</ClassicyWindow>

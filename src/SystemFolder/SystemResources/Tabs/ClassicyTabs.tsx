@@ -14,9 +14,13 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyLabelAccessKey } from "@/SystemFolder/SystemResources/ControlLabel/useClassicyLabelAccessKey.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { renderClassicyAccessKeyText } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
+import { classicyTabSelectsOnPress } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 /**
  * Tab sizing. `medium` is the classic control-panel look and the default;
@@ -42,6 +46,14 @@ export interface TabProps {
 	 * way (strip, then panel); the stylesheet moves the strip with `order`.
 	 */
 	stripPosition?: "top" | "bottom";
+	/**
+	 * The tab selected on mount (an index, clamped to the tabs). Defaults to
+	 * 0, the first. A window that reopens on its last tab passes the one
+	 * `onTabChange` last reported (`useClassicySessionTab`).
+	 */
+	defaultTab?: number;
+	/** Called with a tab's index whenever it becomes the selected one. */
+	onTabChange?: (index: number) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -57,11 +69,53 @@ export interface TabIndividual {
 	/** Icon URL shown on the tab, alongside the title or on its own. Decorative. */
 	icon?: string;
 	/**
+	 * The tab's access key (mnemonic), one character of `title` (WIG Ch.4
+	 * "Access Keys" (p.27); Ch.8 "Navigation in Secondary Windows"
+	 * (pp.148-149)): Alt and the key, in the window holding focus, chooses
+	 * the tab and focuses it, as the arrow keys do; the key alone does the
+	 * same while focus is on a button, a check box or an option button. Its
+	 * first match in the title is drawn as the `access-key` part, which a
+	 * package underlines (Windows 98). One register with the window's other
+	 * controls (`ClassicyControlLabel`'s). Read only under the package's
+	 * `layout.menu.accessKeys`, and only as given: a tab takes no automatic
+	 * key under `"auto"`, as Windows 98's own property sheets' tabs carried
+	 * none ("General", "Sharing": shell32.dll's page titles have no `&`).
+	 * Inert under Platinum and System 7.
+	 */
+	accessKey?: string;
+	/**
 	 * The tab's panel content. Inactive panels stay mounted (only `hidden`), so
 	 * form state inside them survives switching tabs.
 	 */
 	children: ReactNode;
 }
+
+/**
+ * A tab's title, with its access key registered and drawn
+ * (`useClassicyLabelAccessKey`; the tab button is its control, by id). A tab
+ * given no `accessKey` takes none, `"auto"` or not.
+ */
+const ClassicyTabLabel: FunctionalComponent<{
+	title: string;
+	accessKey: string | undefined;
+	tabId: string;
+	onActivate: () => void;
+}> = ({ title, accessKey, tabId, onActivate }) => {
+	const labelRef = useRef<HTMLSpanElement>(null);
+	const key = useClassicyLabelAccessKey({
+		labelRef,
+		holderRef: labelRef,
+		text: title,
+		accessKey: accessKey ?? "",
+		labelFor: tabId,
+		onActivate,
+	});
+	return (
+		<span ref={labelRef} className={"classicyTabButtonLabel"}>
+			{renderClassicyAccessKeyText(title, key)}
+		</span>
+	);
+};
 
 /** `medium` is the unmodified base style, so it carries no modifier class. */
 const SIZE_CLASS: Record<ClassicyTabsSize, string> = {
@@ -116,11 +170,13 @@ const NO_OVERFLOW: ScrollState = {
  * standard way to split a control panel or dialog into pages. There is no raw
  * HTML equivalent; it implements the ARIA `role="tablist"` pattern.
  *
- * Uncontrolled: it always opens on the first tab and keeps the selection
- * itself. Under Platinum, pressing a tab plays `ClassicyTabClickDown`,
+ * Uncontrolled: it opens on the first tab (or `defaultTab`) and keeps the
+ * selection itself, reporting each change to `onTabChange`. Under Platinum, pressing a tab plays `ClassicyTabClickDown`,
  * releasing it plays `ClassicyTabClickUp` (the package's hooks), and the
  * release selects it (both also send analytics events of type
- * `ClassicyTab`). The tab strip is a roving-tabindex group:
+ * `ClassicyTab`); under a package whose layout says `mouse: "windows"`
+ * (Windows 98, whose tab control selects on WM_LBUTTONDOWN) the button-1
+ * press selects it instead. The tab strip is a roving-tabindex group:
  * Left/Up and Right/Down move (wrapping) and Home/End jump, with activation
  * following focus. When the tabs do not fit, scroll arrows appear at both
  * ends and step the strip by whole tabs.
@@ -138,10 +194,16 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	tabs,
 	size = "medium",
 	stripPosition = "top",
+	defaultTab = 0,
+	onTabChange,
 	className,
 	style,
 }) => {
-	const [activeTab, setActiveTab] = useState(0);
+	const [activeTab, setActiveTab] = useState(() =>
+		Number.isInteger(defaultTab) && defaultTab > 0
+			? Math.min(defaultTab, Math.max(tabs.length - 1, 0))
+			: 0,
+	);
 	// Tab and panel DOM ids are unique per instance (#309): two strips with a
 	// "General" tab must not share ids, or aria-controls points at the wrong
 	// panel.
@@ -156,11 +218,17 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	const rootRef = useRef<HTMLDivElement>(null);
 	// The container had no state class; `selected` stays on the tab buttons.
 	const appearance = useClassicyAppearance("Tabs", {}, rootRef);
+	// Chosen at the button-1 press (Windows: comctl32 selects on
+	// WM_LBUTTONDOWN; WIG Ch.4 "Mouse Actions", p.24), else at the release.
+	const selectsOnPress = classicyTabSelectsOnPress(
+		useClassicyAppearanceLayout(),
+	);
 
 	const selectTab = (tabId: number) => {
 		appearance.emit("select", withClassicyAppearanceInput({ tabId }));
 		track("click", { type: "ClassicyTab", tabId, ...analyticsArgs });
 		setActiveTab(tabId);
+		onTabChange?.(tabId);
 	};
 
 	const pressTab = (tabId: number) => {
@@ -371,8 +439,13 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 											"classicyTabButton",
 											classicyStateClasses({ selected: isActive }),
 										)}
-										onMouseDown={() => pressTab(index)}
-										onMouseUp={() => selectTab(index)}
+										onMouseDown={(e) => {
+											pressTab(index);
+											if (selectsOnPress && e.button === 0) selectTab(index);
+										}}
+										onMouseUp={
+											selectsOnPress ? undefined : () => selectTab(index)
+										}
 										onKeyDown={handleTabKeyDown}
 									>
 										{tab.icon && (
@@ -389,9 +462,19 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 											/>
 										)}
 										{tab.title && (
-											<span className={"classicyTabButtonLabel"}>
-												{tab.title}
-											</span>
+											<ClassicyTabLabel
+												title={tab.title}
+												accessKey={tab.accessKey}
+												tabId={tabDomId(index)}
+												onActivate={() => {
+													// As the arrow keys choose a tab: pressed, then chosen.
+													appearance.emit(
+														"press",
+														withClassicyAppearanceInput({ tabId: index }),
+													);
+													selectTab(index);
+												}}
+											/>
 										)}
 									</button>
 								</div>

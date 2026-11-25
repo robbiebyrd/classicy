@@ -1,0 +1,148 @@
+// The Windows 98 Help topic window, included by windows98.scss inside the
+// package wrapper, after _BalloonHelp.scss and _Assistant.scss; overrides
+// the Mac OS 8 "About Help" look that AppleGuide.scss gives the assistant
+// in Apple Guide's window (`.appleGuideWindow`). Under Windows the window is
+// a WinHelp task topic window (WIG Ch.12 "Task Topic Windows", p.280,
+// Figures 12.10 and 12.11):
+//
+// - The interior is the Help window color, InfoWindow (cream in Windows
+//   Standard, the ToolTip's own system color), the topic InfoText, both the
+//   topic's title band and its text in the system (UI) font, the title bold
+//   (the base's); their sizes are the theme's `appleGuide.headerFontSize`
+//   and `bodyFontSize` knobs (11, MS Sans Serif 8, where Platinum's are 13
+//   and 14).
+// - The title band is a nonscrolling region with a line along its bottom
+//   (WIG Ch.12 "Nonscrolling Regions", p.283; Figure 12.12): a one-ring
+//   WindowFrame line, in the place of the wizard header's etched line (the
+//   audit's 12.19 over 1.5), the body scrolling below it.
+// - The footer (its browse buttons) stays the wizard's ButtonFace band.
+// - A text jump is green and underlined (WIG Ch.12 "Jumps", p.283: "The
+//   default system presentation for text jumps is green underlined text";
+//   WinHelp's JUMPCOLOR, winhlp32.exe on the Windows 98 SE CD), hovered or
+//   pressed alike; the package's `help.jump` color (#008000 in every scheme:
+//   WinHelp's jump color is its own win.ini setting, which a display scheme
+//   does not change), an unavailable jump keeping _Placard.scss's emboss.
+//   The underline and the hand already set a jump apart (ClassicyLink.scss).
+//
+// - The row of command buttons above the topic (the core's
+//   `help.topicWindow` "winhelp", `.appleGuideButtonBar`; WIG Ch.12 "Task
+//   Topic Windows", p.280, Figure 12.10): a ButtonFace band, Help Topics,
+//   Back and Options standing at its left, touching, each a push button
+//   `--push-button-height` (23) tall and `--button-min-width` (75) wide at
+//   least, the band ruled off from the topic by a WindowFrame line.
+//
+// The Help Topics browser (the core's `ClassicyHelpTopics`, under the same
+// key; WIG Ch.12 "The Help Topics Browser" and "The Help Topic Tabs",
+// pp.284-288, Figure 12.13) is winhlp32.exe's dialog (Windows 98 SE CD,
+// DIALOG 909 and its Contents page, DIALOG 112), laid out in its dialog
+// units of MS Sans Serif 8 (6 × 13 base units: a unit 1.5 pixels across,
+// 1.625 down), each converted to the nearest pixel:
+//
+// - The tab control 4 units (6 px) inside the dialog's edge, the buttons 4
+//   units below it and from the dialog's right and bottom edges, 4 units
+//   (6 px) apart, each a push button.
+// - The Contents page 12 units (18 px) right of the tab control's left edge
+//   and 27 (44 px) below its top, 252 units (378 px) wide, the tree's
+//   bottom 10 units (16 px) above the control's: inside the tab's panel
+//   (its row, its rings and `--tab-control-padding`), 6 px at the left, 9
+//   at the top, 8 at the right and 4 at the bottom; the prompt one line,
+//   the tree 16 units (26 px) below the prompt's top.
+// - The tree a tree view with the client edge, Window white, its rows a
+//   book or a page icon and a name, with no lines and no buttons (its
+//   SysTreeView32 style is TVS_DISABLEDRAGDROP alone; _ListBox.scss leaves
+//   its lines out), so the disclosure cell is not drawn.
+//
+//   Windows color     token
+//   InfoWindow        --package-color-tooltip-face (--color-window-document)
+//   InfoText          --package-color-tooltip-text (--color-black)
+//   WindowFrame       --color-window-border
+//   ButtonFace        --color-system-03
+//   Window            --color-window-document
+//   (Help's jump)     --package-color-help-jump    (--color-theme-04)
+//
+// Every length is a ring (`b.$b`), a knob or a whole pixel (`px()`), every
+// color a token or a package color with a token fallback.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+@mixin apple-guide {
+  .appleGuideWindow .classicyAssistantHeader,
+  .appleGuideWindow .classicyAssistantBody {
+    color: var(--package-color-tooltip-text, var(--color-black));
+    background: var(--package-color-tooltip-face, var(--color-window-document));
+    font-family: var(--ui-font), sans-serif;
+  }
+
+  // The nonscrolling region's line (12.19), in the etched line's place.
+  .appleGuideWindow .classicyAssistantHeader {
+    border-bottom: b.$b solid var(--color-window-border);
+    box-shadow: none;
+  }
+
+  .appleGuideWindow .classicyAssistantFooter {
+    background: b.$face;
+    --classicy-pager-band: #{b.$face};
+  }
+
+  // A jump (12.20). `:not(.disabled)` outweighs the placard partial's
+  // hover and active rules and leaves an unavailable jump embossed.
+  .appleGuideWindow .classicyLink:not(.disabled) {
+    color: var(--package-color-help-jump, var(--color-theme-04));
+  }
+
+  // The command buttons above the topic (12.16), the band ruled off from
+  // the title band below it.
+  .appleGuideButtonBar {
+    background: b.$face;
+    border-bottom: b.$b solid var(--color-window-border);
+  }
+
+  .appleGuideButtonBar > .classicyButton {
+    min-height: var(--push-button-height);
+    min-width: var(--button-min-width);
+    margin: 0;
+  }
+
+  // ----- The Help Topics browser (12.21) ---------------------------------
+  // A dialog face (the window's `contentFrame`, ButtonFace with no client
+  // edge, _Window.scss), its text WindowText in the dialog's font.
+  .classicyHelpTopics {
+    row-gap: px(6);
+    padding: px(6);
+    color: b.$text;
+    font-family: var(--ui-font), sans-serif;
+    font-size: var(--ui-font-size);
+  }
+
+  // Inside the tab's panel (its two rings and `--tab-control-padding`).
+  .classicyHelpTopicsContents {
+    row-gap: px(14);
+    padding: px(9) px(8) px(4) px(6);
+  }
+
+  .classicyHelpTopicsList {
+    box-sizing: border-box;
+    padding: b.$b2;
+    border: 0;
+    background: b.$window;
+    @include b.sunken;
+  }
+
+  .classicyHelpTopicsListViewport {
+    box-shadow: none;
+  }
+
+  .classicyHelpTopicsList .classicyTreeNodeDisclosure {
+    display: none;
+  }
+
+  .classicyHelpTopicsButtons {
+    column-gap: px(6);
+  }
+
+  .classicyHelpTopicsButtons > .classicyButton {
+    min-height: var(--push-button-height);
+    min-width: var(--button-min-width);
+    margin: 0;
+  }
+}

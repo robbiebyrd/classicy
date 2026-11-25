@@ -1,4 +1,10 @@
+import { useCallback } from "react";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	type ClassicyFileTypeNames,
+	getClassicyFileTypeNames,
+	useClassicyFileTypeNames,
+} from "@/Appearance/ClassicyFileTypeNames";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
@@ -10,19 +16,60 @@ export const capitalizeFirst = (s: string) => {
 	return s && String(s[0]).toUpperCase() + String(s).slice(1);
 };
 
-/**
- * Human-readable label for a ClassicyFileSystemEntryFileType value in file
- * listings ("app_shortcut" → "Application", "text_file" → "Text file").
- */
-export const fileTypeDisplayName = (fileType: string) => {
+/** The core's name for a file type: its id, spaced and capitalized. */
+const coreFileTypeName = (fileType: string): string => {
 	if (fileType === "app_shortcut") return "Application";
 	return capitalizeFirst(fileType.replaceAll("_", " "));
 };
 
 /**
+ * A type's name from `names` (a package's `fileTypeNames`), else the core's
+ * ("text_file" → "Text file"). Looked up with `Object.hasOwn`, so a type
+ * such as `"constructor"` never reaches the prototype. Pure.
+ */
+export const classicyFileTypeNameFrom = (
+	names: ClassicyFileTypeNames,
+	fileType: string,
+): string =>
+	Object.hasOwn(names, fileType)
+		? ((names as Record<string, string>)[fileType] ??
+			coreFileTypeName(fileType))
+		: coreFileTypeName(fileType);
+
+/**
+ * Human-readable label for a ClassicyFileSystemEntryFileType value in file
+ * listings and property sheets: `packageId`'s package's name for it (the
+ * active package's when no id is given; its `fileTypeNames`, Windows 98's
+ * "Text Document" or "File Folder"), else the core's ("app_shortcut" →
+ * "Application", "text_file" → "Text file"). Store-free; components use
+ * `useClassicyFileTypeDisplayName`, which follows a package switch.
+ */
+export const fileTypeDisplayName = (fileType: string, packageId?: string) =>
+	classicyFileTypeNameFrom(getClassicyFileTypeNames(packageId), fileType);
+
+/**
+ * `fileTypeDisplayName` for the active package, live: the callback changes
+ * when the package's names do, so a list re-renders its Kind column on a
+ * package switch.
+ */
+export const useClassicyFileTypeDisplayName = (): ((
+	fileType: string,
+) => string) => {
+	const names = useClassicyFileTypeNames();
+	return useCallback(
+		(fileType: string) => classicyFileTypeNameFrom(names, fileType),
+		[names],
+	);
+};
+
+/**
  * The icon for an entry of type `byType` that has none of its own: the
- * folder icon for a directory, the generic file icon otherwise, from
- * `packageId`'s icons (default: the active package's). Pass
+ * folder icon for a directory; otherwise the type's own document icon,
+ * `system.files.byType.<type>`, when a package registers one (Windows 98
+ * does, for the types it had a handler's icon for: WIG Ch.10 "Registering
+ * Icons", p.200; Platinum and System 7 register none), else the generic file
+ * icon, `system.files.file`; each from `packageId`'s icons (default: the
+ * active package's), then the default package's. Pass
  * `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID` for the core's icon, which every
  * icon surface draws as the active package's (`resolveClassicyIconImage`),
  * to store an icon or hand it to a surface that may not re-render on a
@@ -38,7 +85,15 @@ export const iconImageByType = (byType: string, packageId?: string) => {
 		}
 		default: {
 			return (
-				resolveClassicyAsset("icons", "system.files.file", packageId) ?? ""
+				(byType !== ""
+					? resolveClassicyAsset(
+							"icons",
+							`system.files.byType.${byType}`,
+							packageId,
+						)
+					: undefined) ??
+				resolveClassicyAsset("icons", "system.files.file", packageId) ??
+				""
 			);
 		}
 	}
@@ -145,3 +200,70 @@ export const cleanupIcon = (
 		origin[1] + Math.floor(pitch[1] * startY),
 	];
 };
+
+/**
+ * Explorer's Line Up Icons (Windows 98 SE's View ▸ Line Up Icons, the
+ * Finder's Clean Up): each icon, in the order given, moves to the cell of
+ * the lattice (`pitch` from `origin`) nearest where it is that no earlier
+ * icon took, never left of or above the lattice's first cell. Pure: `places`
+ * are the icons' top-left corners, as the icons draw them.
+ */
+export const classicyLineUpIconPlaces = (
+	places: readonly (readonly [number, number])[],
+	pitch: readonly [number, number],
+	origin: readonly [number, number],
+): [number, number][] => {
+	const taken = new Set<string>();
+	return places.map(([x, y]) => {
+		const home: [number, number] = [
+			Math.max(0, Math.round((x - origin[0]) / pitch[0])),
+			Math.max(0, Math.round((y - origin[1]) / pitch[1])),
+		];
+		const at = ([c, r]: [number, number]): [number, number] => [
+			origin[0] + c * pitch[0],
+			origin[1] + r * pitch[1],
+		];
+		// Rings of cells around the nearest one, nearest first: the lattice
+		// has a cell free for every icon, so a ring always holds one.
+		for (let ring = 0; ; ring++) {
+			const cells: [number, number][] = [];
+			for (let dc = -ring; dc <= ring; dc++) {
+				for (let dr = -ring; dr <= ring; dr++) {
+					if (Math.max(Math.abs(dc), Math.abs(dr)) !== ring) continue;
+					const cell: [number, number] = [home[0] + dc, home[1] + dr];
+					if (cell[0] >= 0 && cell[1] >= 0) cells.push(cell);
+				}
+			}
+			const distance = (cell: [number, number]) => {
+				const [cx, cy] = at(cell);
+				return (cx - x) ** 2 + (cy - y) ** 2;
+			};
+			cells.sort((a, b) => distance(a) - distance(b));
+			const free = cells.find((cell) => !taken.has(`${cell[0]},${cell[1]}`));
+			if (free) {
+				taken.add(`${free[0]},${free[1]}`);
+				return at(free);
+			}
+		}
+	});
+};
+
+/**
+ * The first of `cells` (an icon view's cells, in its layout order) that no
+ * icon at `taken` covers, a cover being within half a `pitch` on both axes:
+ * where Explorer's New puts an item made from the menu bar. Undefined when
+ * every cell is covered (give one more cell than there are icons).
+ */
+export const classicyFreeIconCell = (
+	taken: readonly (readonly [number, number])[],
+	cells: readonly [number, number][],
+	pitch: readonly [number, number],
+): [number, number] | undefined =>
+	cells.find(
+		(cell) =>
+			!taken.some(
+				([x, y]) =>
+					Math.abs(x - cell[0]) < pitch[0] / 2 &&
+					Math.abs(y - cell[1]) < pitch[1] / 2,
+			),
+	);

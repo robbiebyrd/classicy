@@ -1,13 +1,34 @@
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import {
+	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+} from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import {
+	registerClassicyAssets,
+	resolveClassicyAsset,
+} from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { getClassicyFileTypeNames } from "@/Appearance/ClassicyFileTypeNames";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	capitalizeFirst,
+	classicyFileTypeNameFrom,
+	classicyFreeIconCell,
+	classicyLineUpIconPlaces,
 	cleanupIcon,
 	createGrid,
 	fileTypeDisplayName,
 	getGridPosition,
 	iconGridLattice,
+	iconImageByType,
 	readClassicyDesktopIconMetrics,
+	useClassicyFileTypeDisplayName,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import { snapToGrid } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 
@@ -23,6 +44,67 @@ describe("fileTypeDisplayName", () => {
 	it("capitalizes simple types", () => {
 		expect(fileTypeDisplayName("directory")).toBe("Directory");
 		expect(fileTypeDisplayName("pdf")).toBe("Pdf");
+	});
+
+	// The remaining chapters' audit's 10.2 (WIG Ch.10 "The Application
+	// Identifier Key", pp.197-198): a package's `fileTypeNames` name the
+	// types; one that names none keeps the core's.
+	describe("with a package's names", () => {
+		afterEach(() => resetClassicyAppearancePackagesForTests());
+		const registerNamed = (
+			id: string,
+			fileTypeNames?: Record<string, string>,
+		) =>
+			registerClassicyAppearancePackage({
+				id,
+				name: id,
+				css: "",
+				defaults: {
+					...CLASSICY_CORE_DEFAULT_THEME,
+					id: `${id}-default`,
+					package: id,
+				},
+				layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				...(fileTypeNames ? { fileTypeNames } : {}),
+			});
+
+		it("reads the given package's name, else the core's", () => {
+			registerNamed("named", {
+				directory: "File Folder",
+				text_file: "Text Document",
+			});
+			registerNamed("plain");
+			expect(fileTypeDisplayName("directory", "named")).toBe("File Folder");
+			expect(fileTypeDisplayName("text_file", "named")).toBe("Text Document");
+			// A type it names not.
+			expect(fileTypeDisplayName("pdf", "named")).toBe("Pdf");
+			expect(fileTypeDisplayName("directory", "plain")).toBe("Directory");
+			expect(fileTypeDisplayName("app_shortcut", "plain")).toBe("Application");
+			expect(getClassicyFileTypeNames("plain")).toEqual({});
+		});
+
+		it("stores a frozen copy, so the caller's object changes nothing", () => {
+			const names: Record<string, string> = { directory: "File Folder" };
+			registerNamed("copied", names);
+			names.directory = "Changed";
+			expect(fileTypeDisplayName("directory", "copied")).toBe("File Folder");
+			expect(Object.isFrozen(getClassicyFileTypeNames("copied"))).toBe(true);
+		});
+
+		it("looks names up as own keys only", () => {
+			expect(classicyFileTypeNameFrom({}, "constructor")).toBe("Constructor");
+			expect(classicyFileTypeNameFrom({ video: "Video Clip" }, "video")).toBe(
+				"Video Clip",
+			);
+		});
+
+		it("follows the active package live (useClassicyFileTypeDisplayName)", () => {
+			const { result } = renderHook(() => useClassicyFileTypeDisplayName());
+			expect(result.current("directory")).toBe("Directory");
+			act(() => registerNamed("live", { directory: "File Folder" }));
+			// The only registered package is the one drawn.
+			expect(result.current("directory")).toBe("File Folder");
+		});
 	});
 });
 
@@ -170,4 +252,120 @@ describe("icon-view layout reads --desktop-icon-*", () => {
 			padding: 12,
 			cell: 96,
 		}));
+});
+
+// Explorer's Line Up Icons and New's free cell (the remaining chapters'
+// audit's A.4 and 5.40; Windows 98 SE's View ▸ Line Up Icons).
+describe("classicyLineUpIconPlaces", () => {
+	const pitch: [number, number] = [64, 64];
+	const origin: [number, number] = [4, 4];
+
+	it("moves each icon to its nearest cell, never left of or above the first", () => {
+		expect(
+			classicyLineUpIconPlaces(
+				[
+					[70, 10],
+					[-30, -30],
+					[200, 140],
+				],
+				pitch,
+				origin,
+			),
+		).toEqual([
+			[68, 4],
+			[4, 4],
+			[196, 132],
+		]);
+	});
+
+	it("gives a later icon wanting a taken cell the nearest free one", () => {
+		const lined = classicyLineUpIconPlaces(
+			[
+				[6, 6],
+				[10, 8],
+				[2, 70],
+			],
+			pitch,
+			origin,
+		);
+		expect(lined[0]).toEqual([4, 4]);
+		expect(lined[1]).toEqual([68, 4]);
+		expect(lined[2]).toEqual([4, 68]);
+		expect(new Set(lined.map((p) => p.join(","))).size).toBe(3);
+	});
+});
+
+describe("classicyFreeIconCell", () => {
+	it("returns the first cell no icon covers, within half a pitch", () => {
+		const cells: [number, number][] = [
+			[4, 4],
+			[4, 68],
+			[68, 4],
+		];
+		expect(classicyFreeIconCell([], cells, [64, 64])).toEqual([4, 4]);
+		expect(
+			classicyFreeIconCell(
+				[
+					[10, 10],
+					[30, 80],
+				],
+				cells,
+				[64, 64],
+			),
+		).toEqual([68, 4]);
+		expect(
+			classicyFreeIconCell(
+				[
+					[4, 4],
+					[4, 68],
+					[68, 4],
+				],
+				cells,
+				[64, 64],
+			),
+		).toBeUndefined();
+	});
+});
+
+// The audit's 10.4: a package may register a document icon per file type
+// (`system.files.byType.<type>`), which `iconImageByType` draws before the
+// generic file icon; Platinum and System 7 register none, so every type
+// draws `system.files.file`, as before.
+describe("iconImageByType", () => {
+	const BY_TYPE = "test-icons-by-type";
+	registerClassicyAssets("icons", BY_TYPE, {
+		system: {
+			files: {
+				file: "/by-type/generic.webp",
+				byType: { text_file: "/by-type/text.webp" },
+			},
+			folders: { directory: "/by-type/folder.webp" },
+		},
+	});
+
+	it("draws a type's own document icon when the package registers one", () =>
+		expect(iconImageByType("text_file", BY_TYPE)).toBe("/by-type/text.webp"));
+
+	it("draws the package's generic file icon for a type it has none for", () => {
+		expect(iconImageByType("video", BY_TYPE)).toBe("/by-type/generic.webp");
+		expect(iconImageByType("", BY_TYPE)).toBe("/by-type/generic.webp");
+		expect(iconImageByType("__proto__", BY_TYPE)).toBe("/by-type/generic.webp");
+	});
+
+	it("keeps the folder icon for a directory", () =>
+		expect(iconImageByType("directory", BY_TYPE)).toBe("/by-type/folder.webp"));
+
+	it("draws the core's generic file icon for every type without byType keys", () => {
+		const generic = resolveClassicyAsset(
+			"icons",
+			"system.files.file",
+			CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+		);
+		expect(generic).toBeTruthy();
+		for (const type of ["text_file", "image", "video", "audio", "file"])
+			expect(
+				iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
+				type,
+			).toBe(generic);
+	});
 });

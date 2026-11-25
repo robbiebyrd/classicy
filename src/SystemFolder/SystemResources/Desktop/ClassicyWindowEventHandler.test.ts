@@ -6,7 +6,15 @@ import {
 	TEST_TASKBAR_PACKAGE_ID,
 } from "@/__tests__/testTaskbarPackage";
 import { windowsRecord } from "@/__tests__/windowsRecord";
-import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+// The Windows-layout package below needs a sound pack registered: the core
+// default theme names Platinum's.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type {
 	ClassicyStore,
@@ -22,6 +30,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 function makeStore(
 	overrides: Partial<{
@@ -378,6 +387,92 @@ describe("ClassicyWindowSetMenuBar", () => {
 		expect(
 			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.menuBar,
 		).toEqual([]);
+	});
+});
+
+// A window's view state (the WIG audit's 2.1; WIG Ch.2 "Persistence",
+// p.12): kept on its record only under a package's
+// `layout.window.restoreViewState`, finite values only.
+describe("ClassicyWindowSetScroll", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-view-state",
+			name: "Windows View State",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-view-state-default",
+				package: "windows-view-state",
+			},
+			layout: windows98.layout as never,
+		});
+	const w1 = (ds: ClassicyStore) =>
+		getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
+	const setScroll = (ds: ClassicyStore, extra: Record<string, unknown>) =>
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowSetScroll",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+			...extra,
+		});
+
+	it("records the scroll offsets and the caret under Windows 98's layout", () => {
+		useWindowsLayout();
+		const ds = makeStoreWithWindows();
+		setScroll(ds, { scroll: [12, 340] });
+		expect(w1(ds)?.scroll).toEqual([12, 340]);
+		expect(w1(ds)?.caret).toBeUndefined();
+		setScroll(ds, { caret: 57 });
+		expect(w1(ds)?.caret).toBe(57);
+		expect(w1(ds)?.scroll).toEqual([12, 340]);
+		setScroll(ds, { scroll: [0, 0], caret: 0 });
+		expect(w1(ds)?.scroll).toEqual([0, 0]);
+		expect(w1(ds)?.caret).toBe(0);
+	});
+
+	it("ignores values that are not finite, negative or fractional carets", () => {
+		useWindowsLayout();
+		const ds = makeStoreWithWindows();
+		setScroll(ds, { scroll: [10, 20], caret: 3 });
+		for (const extra of [
+			{ scroll: [Number.NaN, 5] },
+			{ scroll: [5, Number.POSITIVE_INFINITY] },
+			{ scroll: [-1, 5] },
+			{ scroll: [5] },
+			{ scroll: "10,20" },
+			{ caret: -2 },
+			{ caret: 1.5 },
+			{ caret: Number.NaN },
+			{},
+		]) {
+			setScroll(ds, extra);
+		}
+		expect(w1(ds)?.scroll).toEqual([10, 20]);
+		expect(w1(ds)?.caret).toBe(3);
+	});
+
+	it("is a no-op for an unknown window", () => {
+		useWindowsLayout();
+		const ds = makeStoreWithWindows();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowSetScroll",
+			app: { id: "TestApp" },
+			window: { id: "nope" },
+			scroll: [1, 2],
+		});
+		expect(
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "nope"),
+		).toBeUndefined();
+	});
+
+	it("writes nothing under the default layout", () => {
+		const ds = makeStoreWithWindows();
+		setScroll(ds, { scroll: [12, 340], caret: 57 });
+		expect(w1(ds)).not.toHaveProperty("scroll");
+		expect(w1(ds)).not.toHaveProperty("caret");
 	});
 });
 

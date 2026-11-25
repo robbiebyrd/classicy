@@ -1,0 +1,92 @@
+// The Windows 98 wizard, included by windows98.scss inside the package
+// wrapper, before _AppleGuide.scss; overrides the Platinum look that the
+// structure sheet ClassicyAssistant.scss carries (the header band, the body,
+// the footer and its pager). A paged assistant under Windows is a wizard, a
+// secondary window of dialog faces (WIG Ch.12 "Guidelines for Writing Text
+// for Wizards", pp.289-290, Figures 12.17 and 12.18; Windows 98 SE's
+// comctl32.dll wizard template):
+//
+// - The page is a dialog face: the body ButtonFace, not Window white, its
+//   text WindowText.
+// - The header band (the page's title, bold) keeps its place, drawn in the
+//   manner of Windows 98's Wizard97 header (comctl32 4.72 has PSH_WIZARD97;
+//   Figure 12.17 draws none, a product choice recorded in the audit's
+//   12.23): a ButtonFace band with the etched line under it, ButtonShadow
+//   over ButtonHilight, as a window's header strip is ruled off (the
+//   audit's 1.5; _Window.scss's `.classicyWindowHeader`).
+// - The footer: ButtonFace, an etched line along its top (a ButtonShadow
+//   ring over a ButtonHilight one) above the buttons, which stand at the
+//   right, "< Back" and "Next >" first (the core's `assistant.navigation`
+//   "buttons", `.classicyAssistantNav`), touching, as comctl32's template
+//   places them (IDC_BACK_BUTTON at 12 dialog units, 50 wide,
+//   IDC_NEXT_BUTTON at 62), then the page's own buttons (Finish, Cancel),
+//   each 7 dialog units (10.5 px) from the next (IDC_FINISH_BUTTON at 119,
+//   IDCANCEL at 176): the gaps are the buttons' own margins
+//   (`--window-padding-size`, 5, on each side), the footer's and the
+//   groups' own gaps none. Every footer button is a push button,
+//   `--push-button-height` (23) tall and `--button-min-width` (75) wide at
+//   least, where the base draws them small; no page number is drawn.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03  the band, the body, the footer
+//   ButtonHilight     --color-system-01  the etched lines' light side
+//   ButtonShadow      --color-system-05  the etched lines' dark side
+//   WindowText        --color-black      the text
+//
+// Every length is a ring (`b.$b`, `b.$neg-b`, `b.$neg-b2`) or a knob, every
+// color a token.
+@use "../bevels" as b;
+
+@mixin assistant {
+  .classicyAssistant {
+    color: b.$text;
+  }
+
+  // The etched line under the title band (1.5).
+  .classicyAssistantHeader {
+    box-shadow:
+      inset 0 #{b.$neg-b} b.$hilight,
+      inset 0 #{b.$neg-b2} b.$shadow;
+  }
+
+  .classicyAssistantBody {
+    background: b.$face;
+  }
+
+  .classicyAssistantFooter {
+    justify-content: flex-end;
+    column-gap: 0;
+    background: b.$face;
+    border-top: b.$b solid b.$shadow;
+    box-shadow: inset 0 b.$b b.$hilight;
+    --classicy-pager-band: #{b.$face};
+  }
+
+  // Back and Next first and touching, the page's own buttons after them.
+  .classicyAssistantNav {
+    order: 1;
+    column-gap: 0;
+  }
+
+  .classicyAssistantBack {
+    margin-inline-end: 0;
+  }
+
+  .classicyAssistantNext {
+    margin-inline-start: 0;
+  }
+
+  .classicyAssistantFooterButtons {
+    order: 2;
+    column-gap: 0;
+  }
+
+  .classicyAssistantPageIndicator {
+    display: none;
+  }
+
+  .classicyAssistantFooter .classicyButton.classicyButtonSmall {
+    min-height: var(--push-button-height);
+    min-width: var(--button-min-width);
+  }
+}

@@ -1133,7 +1133,12 @@ describe("ClassicyTaskbar", () => {
 					expect(commands).toEqual(["one:restore"]);
 					// Released on the button, nothing is dropped.
 					fireEvent.mouseUp(document, { clientX: 40, clientY: 700 });
-					expect(onDrop).toHaveBeenCalledWith(null, [40, 700], [40, 700]);
+					expect(onDrop).toHaveBeenCalledWith(
+						null,
+						[40, 700],
+						[40, 700],
+						"move",
+					);
 				} finally {
 					abandon();
 				}
@@ -1732,7 +1737,7 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 			expect(getAppWindow(appRecord(), "second")?.collapsed).toBe(false);
 			// The taskbar takes no drop.
 			fireEvent.mouseUp(document, { clientX: 140, clientY: 760 });
-			expect(onDrop).toHaveBeenCalledWith(null, [140, 760], [140, 760]);
+			expect(onDrop).toHaveBeenCalledWith(null, [140, 760], [140, 760], "move");
 		} finally {
 			abandon();
 			vi.useRealTimers();

@@ -26,6 +26,7 @@ import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/Classicy
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { useResolvedMediaSource } from "@/SystemFolder/SystemResources/File/useResolvedMediaSource";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import {
@@ -205,6 +206,9 @@ export const MoviePlayer: FunctionalComponent = () => {
 		appName,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
 
 	const closeDocAction = useCallback(
 		(doc: ResolvedMovieDocument) =>
@@ -226,25 +230,29 @@ export const MoviePlayer: FunctionalComponent = () => {
 			{
 				id: `${windowId}_file`,
 				title: "File",
+				accessKey: ak("f"),
 				menuChildren: [
-					closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
-						closeWindow(windowId, closeDocAction(doc)),
+					closeWindowMenuItemHelper(
+						`${windowId}_close_window`,
+						() => closeWindow(windowId, closeDocAction(doc)),
+						ak("c"),
 					),
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
 						for (const entry of windowEntries) {
 							closeWindow(entry.windowId, closeDocAction(entry.doc));
 						}
 					}),
-					quitMenuItemHelper(appId, appName, appIcon),
+					quitMenuItemHelper(appId, appName, appIcon, ak("")),
 				],
 			},
 			{
 				id: `${windowId}_help`,
 				title: "Help",
+				accessKey: ak("h"),
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, closeDocAction, windowEntries, aboutMenuItem, appIcon],
+		[closeWindow, closeDocAction, windowEntries, aboutMenuItem, appIcon, ak],
 	);
 
 	return (

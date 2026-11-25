@@ -29,10 +29,19 @@ const COLUMN_LABELS: { key: string; label: string }[] = [
 	{ key: "version", label: "Version" },
 ];
 
+/**
+ * The Views tab of Finder Preferences. With `extensions` (under a package
+ * whose layout says `files.extensions: "hideRegistered"`, Windows 98), it
+ * also holds Windows 98's Folder Options check box "Hide file extensions
+ * for known file types", checked while `extensions.hide`
+ * (`ClassicyAppFinderSetHideFileExtensions`).
+ */
 export const useFinderViewsTab = (
 	standardViews: FinderStandardViews,
+	extensions?: { hide: boolean },
 ): TabIndividual => {
 	const dispatch = useAppManagerDispatch();
+	const hideExtensions = extensions?.hide;
 	// Which pane is showing. UI state, not a preference: it selects what you
 	// are editing rather than recording a choice, so it is deliberately not
 	// persisted and resets to Icons on each open.
@@ -191,9 +200,25 @@ export const useFinderViewsTab = (
 						</div>
 					)}
 				</ClassicyControlGroup>
+				{hideExtensions !== undefined && (
+					// Windows 98's Folder Options, View tab: "Hide file
+					// extensions for known file types" (WIG Ch.10 "System
+					// Naming Conventions", p.210), on by default.
+					<ClassicyCheckbox
+						id={"finder_prefs_hide_extensions"}
+						label={"Hide file extensions for known file types"}
+						checked={hideExtensions}
+						onClickFunc={(checked) =>
+							dispatch({
+								type: "ClassicyAppFinderSetHideFileExtensions",
+								hide: checked,
+							})
+						}
+					/>
+				)}
 			</div>
 		),
-		[pane, icons, list, setOption],
+		[pane, icons, list, setOption, hideExtensions, dispatch],
 	);
 
 	return { title: "Views", children };

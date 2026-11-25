@@ -417,13 +417,18 @@ describe("System 7's assets", () => {
 	});
 
 	describe("cursors", () => {
-		it("registers every ClassicyCursorRole", () => {
+		// Every role but `help`, the contextual Help pointer of Windows' What's
+		// This? (WIG Ch.12 "Context-Sensitive Help", p.273): System 7 had no
+		// such mode, so it registers none; nor `notAllowed` and `appStarting`,
+		// Windows' Unavailable and Working in Background pointers (WIG Ch.4
+		// Table 4.1), which only the Windows 98 package's stylesheet reads.
+		it("registers every ClassicyCursorRole but help, notAllowed and appStarting", () => {
 			expect(CURSOR_ROLES.length).toBeGreaterThan(10);
 			expect(
 				CURSOR_ROLES.filter(
 					(role) => !resolveClassicyAsset("cursors", role, SYSTEM7),
 				),
-			).toEqual([]);
+			).toEqual(["help", "notAllowed", "appStarting"]);
 		});
 
 		it("points each cursor at its CURS hotspot, the arrow at its tip", () => {
@@ -448,6 +453,7 @@ describe("System 7's assets", () => {
 				resizeD: [8, 8],
 				resizeL: [8, 8],
 				resizeR: [8, 8],
+				help: undefined,
 			});
 		});
 	});

@@ -15,11 +15,33 @@
 //   ButtonDkShadow    --color-system-07
 //   Window            --color-window-document
 //   WindowText        --color-black
+//   ButtonText        --package-color-text-button  (MenuText, the same in
+//                                                   every scheme)
 //   Hilight           --color-highlight
 //   HilightText       --package-color-selection-text
-//   GrayText          --color-system-05
+//   GrayText          --package-color-text-gray    (ButtonShadow in every
+//                                                   scheme but High
+//                                                   Contrast's)
 //   InfoWindow/Text   --package-color-tooltip-face / -text
+//   Scrollbar         --package-color-scroll-bar-track
+//   ActiveBorder…     --package-color-sizing-border-active / -inactive
 //   ActiveTitle…      --package-color-title-bar-*
+//
+// A disabled control's glyphs (DFCS_INACTIVE) and a disabled button's label
+// (DSS_DISABLED) are embossed in ButtonShadow over ButtonHilight; disabled
+// text elsewhere (menus, lists, static text) is GrayText.
+// A scheme's own fonts (`typography.families`, the core's package fonts):
+// the caption's, small caption's, menu's, message box's and icon's, each read
+// with the UI font behind it, for a theme of another package.
+$menu-font: var(--package-font-menu, var(--ui-font));
+$menu-font-size: var(--package-font-menu-size, var(--ui-font-size));
+$menu-font-weight: var(--package-font-menu-weight, normal);
+$message-font: var(--package-font-message, var(--ui-font));
+$message-font-size: var(--package-font-message-size, var(--ui-font-size));
+$message-font-weight: var(--package-font-message-weight, normal);
+$icon-font: var(--package-font-icon, var(--ui-font));
+$icon-font-weight: var(--package-font-icon-weight, normal);
+
 // One ring, two rings, and each negated (a Sass name starting with `-`
 // would be private to this module, so the negatives are `$neg-*`).
 $b: var(--window-border-size);
@@ -34,7 +56,8 @@ $shadow: var(--color-system-05);
 $dkshadow: var(--color-system-07);
 $window: var(--color-window-document);
 $text: var(--color-black);
-$gray-text: var(--color-system-05);
+$button-text: var(--package-color-text-button, var(--color-black));
+$gray-text: var(--package-color-text-gray, var(--color-system-05));
 $highlight: var(--color-highlight);
 $highlight-text: var(--package-color-selection-text, var(--color-white));
 
@@ -113,6 +136,28 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
   text-shadow: $b $b 0 $hilight;
 }
 
+// A disabled button's label, as DrawState's DSS_DISABLED embosses it:
+// ButtonShadow over a ButtonHilight copy one pixel below right.
+@mixin disabled-label {
+  color: $shadow;
+  text-shadow: $b $b 0 $hilight;
+}
+
+// An access key's character (the core's `access-key` part on a menu title,
+// a menu item or a control label: the audit's 7.1 and 8.9): underlined in
+// its text's ink, a pixel thick, a pixel below the baseline, as Windows
+// 95/98's DrawText draws a prefixed character (`TEXT_DrawUnderscore` at the
+// ascent plus one; WIG Ch.7 "Menu Titles", p.106, Figure 7.4). Always shown:
+// hiding it until Alt is pressed came with Windows 2000. A disabled item's
+// emboss (`disabled-text`'s text-shadow) shadows it too, as DrawState
+// embosses the whole string.
+@mixin access-key {
+  text-decoration-line: underline;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: $b;
+  text-underline-offset: $b;
+}
+
 // The dotted keyboard-focus rectangle Windows draws inside a control,
 // `$inset` inside its edge.
 @mixin focus-rect($inset) {
@@ -125,4 +170,17 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
 // colors are equal (Windows 95's) draws a flat bar.
 @mixin title-bar-gradient($from, $to) {
   background: linear-gradient(90deg, $from, $to);
+}
+
+// A pointer in the cursor registry's idiom (as the base writes its resize
+// cursors, ClassicyWindow.scss): the role's registered image
+// (`--classicy-cursor-<role>`, published by the desktop, with its hotspot),
+// else the keyword, the host's own pointer of that shape. Outside a desktop
+// the variable is undefined, which would void the declaration, so it falls
+// back to an image that never loads and the browser moves on to the
+// keyword (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1).
+@mixin registry-cursor($role, $keyword, $hotspot: 0 0) {
+  cursor:
+    var(--classicy-cursor-#{$role}, url('data:,')) var(--classicy-cursor-#{$role}-hotspot, #{$hotspot}),
+    $keyword;
 }

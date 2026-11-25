@@ -4,40 +4,93 @@
 // leaves external, so it registers into the host's one copy of the
 // registries; the core neither imports nor bundles it.
 //
-// One package, eighteen themes: "Windows Standard" (Windows 98's own
-// scheme, the defaults), "Windows 95" (the same palette with flat title
-// bars) and the sixteen classic color schemes of the Display control panel
-// (Brick, Desert, Eggplant, Lilac, Maple, Marine, Plum, Pumpkin, Rainy Day,
-// Red White and Blue, Rose, Slate, Spruce, Storm, Teal, Wheat), each the
-// system colors of its `[Control Panel\Colors]` block, every one drawn by
-// the same stylesheet.
+// One package, thirty-four themes: the thirty-three color schemes of
+// Windows 98 Second Edition's Display control panel, each read from the
+// scheme Windows 98 SE's SHELL2.INF writes (`[schemes.reg]`, under
+// HKCU\Control Panel\Appearance\Schemes: its 29 system colors, its border,
+// scroll bar, caption, small caption and menu sizes and its caption, small
+// caption, menu, message box and icon fonts), "Windows Standard" (the
+// defaults, keeping USER's built-in caption gradients, which a fresh Windows
+// 98 draws) first; and "Windows 95" (Windows Standard's palette with flat
+// title bars and raised toolbar buttons). Every one is drawn by the same
+// stylesheet.
 //
 // Hand-written. Its exports are the package's public API.
 
 import {
+	ABOUT_BALLOON_HELP_TOPIC_ID,
 	type ClassicyAppearanceColorFamilies,
+	type ClassicyAppearanceFontFamilies,
+	type ClassicyAppearanceHooks,
 	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
 	type ClassicyTheme,
 	classicyKnobsToSchema,
+	registerAppleGuideTopic,
 	registerClassicyAppearancePackage,
 	withDefaultThemeColorFamilies,
 	withDefaultThemeMetrics,
 } from "@classicy/classicy";
+import { createElement } from "react";
 // Registers at module load: the sound pack, which must be registered before
 // the registration below, since the package is validated and a theme's
 // `sound.pack` must name a registered pack. The package lists the pack; it
 // never registers it a second time.
 import "./assets/sounds/windows98";
+// Registers at module load: Windows 98's icons, system art, cursors,
+// wallpapers and desktop patterns, from the Windows 98 Second Edition CD, and
+// its interface font (docs/windows98-asset-inventory.md).
+import "./assets/windows98Assets";
+// Registers at module load, after it: the document icons by file type
+// (`system.files.byType`) and the Unavailable and Working in Background
+// pointers.
+import "./assets/windows98AssetAdditions";
+// Registers at module load: Windows 98's screen savers, before the package,
+// whose `defaultScreenSaver` names one of them.
+import "./screenSavers/windows98ScreenSavers";
 // The package's own icon (the Appearance Manager's Themes tab): a window on
 // the teal desktop.
 import windows98Icon from "./assets/art/windows98.svg";
 import { windows98SoundPack } from "./assets/sounds/windows98";
+import { WINDOWS98_DEFAULT_SCREEN_SAVER } from "./screenSavers/windows98ScreenSavers";
 import windows98Css from "./styles/windows98.scss?inline";
 import windows98JsonSource from "./windows98.json";
-import { deepFreeze } from "./windows98DeepFreeze.internal";
+import { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "./windows98Apps";
+import { type DeepReadonly, deepFreeze } from "./windows98DeepFreeze.internal";
+import { windows98FileTypeNames } from "./windows98FileTypeNames";
+import { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 export * from "./assets/sounds/windows98";
+export {
+	WINDOWS98_CURSOR_ADDITIONS,
+	WINDOWS98_FILE_TYPE_ICON_FILES,
+} from "./assets/windows98AssetAdditions";
+export {
+	WINDOWS98_CURSORS,
+	WINDOWS98_SYSTEM_ART,
+} from "./assets/windows98Assets";
+export {
+	WINDOWS98_DESKTOP_PATTERNS,
+	WINDOWS98_WALLPAPERS,
+	type Windows98DesktopPattern,
+	type Windows98Wallpaper,
+	type Windows98WallpaperBitmap,
+} from "./assets/windows98Wallpapers";
+// The screen savers' parts, so a host can offer one under another package by
+// re-registering it with that package's id added.
+export * from "./screenSavers/BlankScreen/ClassicyScreenSaverBlankScreen";
+export * from "./screenSavers/CurvesAndColors/ClassicyScreenSaverCurvesAndColors";
+export * from "./screenSavers/FlyingThroughSpace/ClassicyScreenSaverFlyingThroughSpace";
+export * from "./screenSavers/FlyingWindows/ClassicyScreenSaverFlyingWindows";
+export * from "./screenSavers/Mystify/ClassicyScreenSaverMystify";
+export * from "./screenSavers/Pipes/ClassicyScreenSaverPipes";
+export * from "./screenSavers/ScrollingMarquee/ClassicyScreenSaverScrollingMarquee";
+export {
+	WINDOWS98_DEFAULT_SCREEN_SAVER,
+	WINDOWS98_SCREEN_SAVER_IDS,
+} from "./screenSavers/windows98ScreenSavers";
+export { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "./windows98Apps";
+export { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 /**
  * Windows 98's theme data (`windows98.json`), typed with the core's own
@@ -55,9 +108,16 @@ export type Windows98Json = {
 	/**
 	 * Labels for the Windows colors no palette slot holds: the title bars'
 	 * (`titleBar`), the selected text's (`selection`), the ToolTip's
-	 * (`tooltip`) and the desktop icon labels' (`desktop`).
+	 * (`tooltip`), the desktop icon labels' (`desktop`), ButtonText and
+	 * GrayText (`text`), the scroll bar's track (`scrollBar`), the sizing
+	 * border's (`sizingBorder`) and a Help topic's text jumps (`help`).
 	 */
 	readonly colorFamilies: Readonly<ClassicyAppearanceColorFamilies>;
+	/**
+	 * Labels for each scheme's fonts (`typography.families`): the caption's,
+	 * the small caption's, the menu's, the message box's and the icon's.
+	 */
+	readonly fontFamilies: Readonly<ClassicyAppearanceFontFamilies>;
 };
 
 /**
@@ -101,18 +161,60 @@ const windows98Defaults =
 	) ?? windows98Theme(windows98JsonSource.defaults as unknown as ClassicyTheme);
 
 /**
- * The apps Windows 98 shows by another name (the package's `apps`): the
- * Control Strip control panel, whose face under the Windows shell is
- * Taskbar Properties (plan 0020-w98 E4), is Windows 98's "Taskbar & Start
- * Menu", as Start ▸ Settings and the Control Panels folder list it.
+ * The Windows 98 package's hooks (`hooks` in its registration): one, a
+ * chosen menu item's. Windows runs a menu command the moment the button
+ * comes up over its item, the menu closing first, with no flash and no
+ * sound (WIG Ch.4 "Mouse Actions", p.24; Ch.7 "Drop-down Menu
+ * Interaction", p.97). The core runs a chosen item's action when an
+ * animation of the item ends (else after a 400 ms fallback), so the press
+ * gives the item `windows98MenuItemChosen`, whose 1 ms animation
+ * (_Menu.scss) changes nothing drawn and ends within a frame; the release
+ * clears it. It plays no sound. Deeply frozen, and read-only to the type
+ * checker, as Platinum's are: to build on it, compose a new object.
  */
-export const WINDOWS98_APP_IDENTITIES = deepFreeze({
-	"ControlStripManager.app": { name: "Taskbar & Start Menu" },
+export const windows98AppearanceHooks: DeepReadonly<ClassicyAppearanceHooks> =
+	deepFreeze<ClassicyAppearanceHooks>({
+		on: {
+			MenuItem: {
+				press: () => ({ className: "windows98MenuItemChosen" }),
+				release: () => ({}),
+			},
+		},
+	});
+
+/**
+ * The Colors tab's names for the core's colors (1.2): the Item names of
+ * Windows 98 SE's Display Properties Appearance tab (deskcp16.dll) where an
+ * Item is the color (Desktop, Window, Selected Items, 3D Objects); the
+ * button shades and the window text, which Windows derived from 3D Objects
+ * and each Item's font color and offered as no Item, by their
+ * `[Control Panel\Colors]` names (ButtonHilight, ButtonLight, ButtonShadow,
+ * ButtonDkShadow, WindowText) in words. The Items that are no core color
+ * (the title bars, the window borders, the scroll bar, the ToolTip) are the
+ * package's own color families, labeled there.
+ */
+const windows98ColorLabels: Readonly<Record<string, string>> = Object.freeze({
+	"--color-system-01": "Button Highlight",
+	"--color-system-02": "Button Light",
+	"--color-system-03": "3D Objects",
+	"--color-system-05": "Button Shadow",
+	"--color-system-07": "Button Dark Shadow",
+	"--color-black": "Window Text",
+	"--color-highlight": "Selected Items",
+	"--color-window-document": "Window",
+	"--desktop-background-color": "Desktop",
 });
 
-// No hooks: the package plays no interface feedback (Windows' sounds are
-// Microsoft's) and decorates nothing. No screen savers: it names none, so the
-// Screen Saver control panel reads "This appearance has no screen savers."
+// One hook (above), playing no interface feedback (Windows 98's default
+// sound scheme gave the controls none) and decorating nothing else. Its
+// screen savers are Windows 98's seven (screenSavers/windows98ScreenSavers.ts),
+// Blank Screen the default, since Windows 98 named none. Its `apps` and
+// `desktopIcons` show the bundled apps, the Trash and the startup disk by
+// Windows 98's names (windows98Apps.ts).
+// A disabled control's image is embossed as Windows draws one (DrawState's
+// DSS_DISABLED): its ink in ButtonShadow over a copy one pixel down and right
+// in ButtonHilight, the scheme's two colors. Load Theme… reads Windows
+// `.theme` files (windows98ThemeFile.ts).
 registerClassicyAppearancePackage({
 	id: WINDOWS98_APPEARANCE_PACKAGE_ID,
 	name: windows98JsonSource.name,
@@ -122,8 +224,56 @@ registerClassicyAppearancePackage({
 	css: windows98Css,
 	knobs: windows98JsonSource.knobs,
 	colorFamilies: windows98JsonSource.colorFamilies,
+	fontFamilies: windows98JsonSource.fontFamilies,
+	colorLabels: windows98ColorLabels,
 	options: classicyKnobsToSchema(windows98JsonSource.knobs),
+	iconDimming: {
+		disabledControl: {
+			emboss: {
+				highlight: { colorKey: "system", index: 0 },
+				shadow: { colorKey: "system", index: 4 },
+			},
+		},
+	},
+	themeFileImporter: {
+		extensions: [".theme"],
+		read: readWindows98ThemeFile,
+	},
 	layout: windows98JsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [windows98SoundPack],
-	apps: WINDOWS98_APP_IDENTITIES,
+	// Windows' names for the file types (10.2): "File Folder", "Text
+	// Document", in the Kind column and a property sheet's Type.
+	fileTypeNames: windows98FileTypeNames,
+	hooks: windows98AppearanceHooks,
+	apps: WINDOWS98_APPS,
+	desktopIcons: WINDOWS98_DESKTOP_ICONS,
+	defaultScreenSaver: WINDOWS98_DEFAULT_SCREEN_SAVER,
+});
+
+// The Help menu's built-in topic in Windows' words, offered under this
+// package alone, so Platinum and System 7 keep Apple Guide's "About Help"
+// (the WIG audit's 12.18). A task topic is brief "how", without concepts
+// (WIG Ch.12 "Guidelines for Writing Task Help Topics", pp.280-281): how to
+// learn an item's name (its ToolTip, Ch.12 "Tooltips", p.276) and what it
+// does (What's This?, Ch.12 "Context-Sensitive Help", pp.273-275).
+registerAppleGuideTopic({
+	id: ABOUT_BALLOON_HELP_TOPIC_ID,
+	title: "Using Help",
+	packages: [WINDOWS98_APPEARANCE_PACKAGE_ID],
+	pages: [
+		createElement(
+			"ul",
+			null,
+			createElement(
+				"li",
+				null,
+				"Point to an item and wait: its ToolTip names it.",
+			),
+			createElement(
+				"li",
+				null,
+				"To learn what an item does, choose What's This? from the Help menu, then click the item.",
+			),
+		),
+	],
 });

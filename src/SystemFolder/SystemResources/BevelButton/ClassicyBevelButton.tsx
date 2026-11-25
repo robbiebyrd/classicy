@@ -8,17 +8,21 @@ import {
 	type MouseEventHandler,
 	type PropsWithChildren,
 	type ReactNode,
+	type RefObject,
 	useCallback,
 	useContext,
 	useEffect,
 	useId,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { ClassicyState } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
 import type {
 	ClassicyBevelPopupAlign,
@@ -92,7 +96,9 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	/**
 	 * Alt text for the icon image. Defaults to `""` (decorative). For an
 	 * icon-only button set this (or `aria-label`): it is the accessible name,
-	 * and the pop-up surface's label.
+	 * and the pop-up surface's label; under a package whose
+	 * `layout.balloonHelp.unlabeledTips` is `true` (Windows 98) the button
+	 * also shows that name as its ToolTip, balloon help on or off.
 	 */
 	iconAlt?: string;
 	/**
@@ -104,6 +110,14 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 * that does. Defaults to `false`.
 	 */
 	iconSmall?: boolean;
+	/**
+	 * Whether an icon-only button shows its accessible name as a ToolTip
+	 * under the package's `layout.balloonHelp.unlabeledTips` (above). Pass
+	 * `false` for a button whose package's stylesheet draws that name as its
+	 * text, as Windows 98's message box draws its Help push button. Defaults
+	 * to `true`; without `unlabeledTips` it does nothing.
+	 */
+	nameTip?: boolean;
 	/**
 	 * On-state for `toggle`/`radio` modes. Seeds the button's own state and
 	 * re-syncs it whenever the prop changes; the button still flips itself on
@@ -196,6 +210,46 @@ const bevelWidthClass = {
 	large: "classicyBevelButtonBevelLarge",
 } as const;
 
+/** What the button forwards to its ToolTip (ClassicyBevelButtonTip). */
+interface ClassicyBevelButtonTipHandlers {
+	onMouseEnter: (point: { clientX: number; clientY: number }) => void;
+	onMouseLeave: () => void;
+}
+
+const FORCED_TIP = { force: true };
+
+/**
+ * An icon-only bevel button's ToolTip, its accessible name, under the
+ * package's `layout.balloonHelp.unlabeledTips`: Balloon Help's hook on the
+ * button, forced (shown whether or not balloon help is on), its pointer
+ * handlers handed to the button through `handlersRef` and the tip's id,
+ * while it shows, through `onDescribed`.
+ */
+const ClassicyBevelButtonTip: FunctionalComponent<{
+	anchorRef: RefObject<HTMLButtonElement | null>;
+	name: string;
+	handlersRef: RefObject<ClassicyBevelButtonTipHandlers | null>;
+	onDescribed: (id: string | undefined) => void;
+}> = ({ anchorRef, name, handlersRef, onDescribed }) => {
+	const config = useMemo(() => ({ content: name }), [name]);
+	const { handlers, balloon } = useClassicyBalloonHelp(
+		anchorRef,
+		config,
+		FORCED_TIP,
+	);
+	handlersRef.current = handlers as ClassicyBevelButtonTipHandlers;
+	const id = handlers["aria-describedby"];
+	useEffect(() => onDescribed(id), [id, onDescribed]);
+	useEffect(
+		() => () => {
+			handlersRef.current = null;
+			onDescribed(undefined);
+		},
+		[handlersRef, onDescribed],
+	);
+	return balloon;
+};
+
 // `!children`/`children &&` both treat numeric `0` as absent, which is wrong:
 // `<ClassicyBevelButton icon={x}>{0}</ClassicyBevelButton>` has real content.
 // Shared by the `isSquare` derivation and the render guard so they can never
@@ -265,6 +319,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 	icon,
 	iconAlt = "",
 	iconSmall = false,
+	nameTip = true,
 	on,
 	square,
 	mixed = false,
@@ -316,6 +371,22 @@ export const ClassicyBevelButton: FunctionalComponent<
 	const [popupAnchor, setPopupAnchor] = useState<ClassicyBevelPopupRect | null>(
 		null,
 	);
+
+	// An icon-only button's ToolTip (the package's
+	// `layout.balloonHelp.unlabeledTips`; WIG Ch.12 "Tooltips", p.276, Figure
+	// 12.6; App. C "User Assistance", p.364): its accessible name, shown
+	// whether or not balloon help is on, as Windows shows a toolbar button's
+	// name. A button with text, or with no name, has none.
+	// The tip is its own component (ClassicyBevelButtonTip), mounted only
+	// while there is one, so a button without changes nothing.
+	const unlabeledTips =
+		useClassicyAppearanceLayout().balloonHelp?.unlabeledTips === true;
+	const tipName =
+		unlabeledTips && nameTip && !hasRenderableContent(children)
+			? rest["aria-label"] || iconAlt || undefined
+			: undefined;
+	const tipHandlersRef = useRef<ClassicyBevelButtonTipHandlers | null>(null);
+	const [tipId, setTipId] = useState<string | undefined>(undefined);
 	const [focusFirstItem, setFocusFirstItem] = useState(false);
 	const popupOpen = popupAnchor !== null;
 	const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -630,7 +701,19 @@ export const ClassicyBevelButton: FunctionalComponent<
 				// If the pointer leaves while held, a push button reverts to off. A
 				// pending hold keeps running: dragging off toward the menu is part of
 				// the gesture.
-				onMouseLeave={() => setPressed(false)}
+				onMouseLeave={() => {
+					setPressed(false);
+					tipHandlersRef.current?.onMouseLeave();
+				}}
+				{...(tipName && {
+					onMouseEnter: (e: MouseEvent<HTMLButtonElement>) => {
+						tipHandlersRef.current?.onMouseEnter(e);
+						rest.onMouseEnter?.(e);
+					},
+					"aria-describedby":
+						[rest["aria-describedby"], tipId].filter(Boolean).join(" ") ||
+						undefined,
+				})}
 			>
 				{icon && (
 					<ClassicyIconImage
@@ -639,6 +722,10 @@ export const ClassicyBevelButton: FunctionalComponent<
 						drawnAt={iconSmall ? true : Number.POSITIVE_INFINITY}
 						alt={iconAlt}
 						draggable={false}
+						// Unavailable, the image takes the active package's
+						// `iconDimming.disabledControl` rule where it declares one
+						// (Windows 98's embossed image); else the stylesheet dims it.
+						dimmed={disabled ? "disabledControl" : false}
 					/>
 				)}
 				{hasRenderableContent(children) && (
@@ -657,6 +744,14 @@ export const ClassicyBevelButton: FunctionalComponent<
 					/>
 				)}
 			</button>
+			{tipName && (
+				<ClassicyBevelButtonTip
+					anchorRef={buttonRef}
+					name={tipName}
+					handlersRef={tipHandlersRef}
+					onDescribed={setTipId}
+				/>
+			)}
 			{popupAnchor && (
 				<ClassicyBevelButtonPopup
 					id={popupId}
