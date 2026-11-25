@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
 	type ClassicyWindowRect,
+	type ClassicyWindowSizingEdges,
+	computeClassicyWindowEdgeResize,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 import { CLASSICY_WINDOW_RESIZE_FUDGE } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize.internal";
@@ -257,4 +259,266 @@ describe("computeClassicyWindowResize's ceiling", () => {
 				[Number.POSITIVE_INFINITY, 80],
 			),
 		).toEqual({ size: [215, 0], position: [100, 100] }));
+});
+
+// Plan 0020-w98 §5 "Frame-edge sizing" (`layout.window.frameEdges:
+// "resize"`; WIG Ch.6 "Sizing Borders", p.83): the named edges move by the
+// pointer's travel since the press, the others stay. The same rect as above:
+// its content is 190 x 120 (the rect less the chrome).
+describe("computeClassicyWindowEdgeResize", () => {
+	const INF = Number.POSITIVE_INFINITY;
+	const edge = (
+		edges: ClassicyWindowSizingEdges,
+		from: [number, number],
+		to: [number, number],
+		minimum?: [number, number],
+		floor?: [number, number],
+		ceiling?: [number, number],
+		maximum?: [number, number],
+	) =>
+		computeClassicyWindowEdgeResize(
+			edges,
+			rect,
+			from,
+			to,
+			chrome,
+			minimum,
+			floor,
+			ceiling,
+			maximum,
+		);
+
+	// Each edge alone: the opposite edge and the other axis stay put, and a
+	// left or top edge follows the pointer exactly (pressed on the frame's
+	// outer pixel, the window's outer left or top lands under it).
+	it.each<
+		[
+			ClassicyWindowSizingEdges,
+			[number, number],
+			[number, number],
+			{ size: [number, number]; position: [number, number] },
+		]
+	>([
+		[
+			"right",
+			[300, 175],
+			[340, 200],
+			{ size: [230, 120], position: [100, 100] },
+		],
+		["left", [100, 175], [60, 150], { size: [230, 120], position: [60, 100] }],
+		[
+			"bottom",
+			[200, 250],
+			[230, 300],
+			{ size: [190, 170], position: [100, 100] },
+		],
+		["top", [200, 100], [170, 70], { size: [190, 150], position: [100, 70] }],
+	])("the %s edge moves alone", (edges, from, to, expected) =>
+		expect(edge(edges, from, to)).toEqual(expected));
+
+	// Each corner moves both of its edges; the opposite corner stays.
+	it.each<
+		[
+			ClassicyWindowSizingEdges,
+			[number, number],
+			[number, number],
+			{ size: [number, number]; position: [number, number] },
+		]
+	>([
+		[
+			"top-left",
+			[100, 100],
+			[80, 90],
+			{ size: [210, 130], position: [80, 90] },
+		],
+		[
+			"top-right",
+			[300, 100],
+			[320, 90],
+			{ size: [210, 130], position: [100, 90] },
+		],
+		[
+			"bottom-left",
+			[100, 250],
+			[80, 260],
+			{ size: [210, 130], position: [80, 100] },
+		],
+		[
+			"bottom-right",
+			[300, 250],
+			[320, 260],
+			{ size: [210, 130], position: [100, 100] },
+		],
+	])("the %s corner moves both its edges", (edges, from, to, expected) =>
+		expect(edge(edges, from, to)).toEqual(expected));
+
+	it("a press that never moves keeps the rect", () => {
+		for (const edges of [
+			"top",
+			"right",
+			"bottom",
+			"left",
+			"top-left",
+			"top-right",
+			"bottom-left",
+			"bottom-right",
+		] as const)
+			expect(edge(edges, [150, 150], [150, 150])).toEqual({
+				size: [190, 120],
+				position: [100, 100],
+			});
+	});
+
+	it("moves by whole pixels", () => {
+		expect(edge("right", [300, 175], [310.4, 175]).size).toEqual([200, 120]);
+		expect(edge("left", [100, 175], [89.4, 175])).toEqual({
+			size: [201, 120],
+			position: [89, 100],
+		});
+	});
+
+	describe("the minimum", () => {
+		it("stops a left edge where the content reaches it, the right edge kept", () =>
+			expect(edge("left", [100, 175], [200, 175], [150, 0])).toEqual({
+				size: [150, 120],
+				position: [140, 100],
+			}));
+		it("stops a right edge", () =>
+			expect(edge("right", [300, 175], [150, 175], [150, 0])).toEqual({
+				size: [150, 120],
+				position: [100, 100],
+			}));
+		it("stops a top edge, the bottom edge kept", () =>
+			expect(edge("top", [200, 100], [200, 200], [0, 100])).toEqual({
+				size: [190, 100],
+				position: [100, 120],
+			}));
+		it("stops a bottom edge", () =>
+			expect(edge("bottom", [200, 250], [200, 120], [0, 100])).toEqual({
+				size: [190, 100],
+				position: [100, 100],
+			}));
+		it("never gives a negative size with no minimum", () => {
+			expect(edge("right", [300, 175], [0, 175])).toEqual({
+				size: [0, 120],
+				position: [100, 100],
+			});
+			expect(edge("top", [200, 100], [200, 600])).toEqual({
+				size: [190, 0],
+				position: [100, 220],
+			});
+		});
+	});
+
+	describe("the floor", () => {
+		it("stops a top edge at the menu bar's underside", () =>
+			expect(edge("top", [200, 100], [200, 10], [0, 0], [0, 30])).toEqual({
+				size: [190, 190],
+				position: [100, 30],
+			}));
+		it("stops a left edge at the screen's left", () =>
+			expect(edge("left", [100, 175], [-50, 175], [0, 0], [0, 30])).toEqual({
+				size: [290, 120],
+				position: [0, 100],
+			}));
+		it("leaves a right or bottom edge alone", () =>
+			expect(
+				edge("bottom-right", [300, 250], [320, 260], [0, 0], [500, 500]),
+			).toEqual({ size: [210, 130], position: [100, 100] }));
+		// Reached only by a window stored below its minimum: the release
+		// clamp keeps every stored rect above the floor.
+		it("gives way to the minimum", () =>
+			expect(edge("left", [100, 175], [2, 175], [400, 0], [0, 30])).toEqual({
+				size: [400, 120],
+				position: [-110, 100],
+			}));
+	});
+
+	// Measured as the release clamp measures (the left or top plus the
+	// content size), so the clamp never moves the window after the release.
+	describe("the ceiling", () => {
+		it("stops a bottom edge at the taskbar's top", () =>
+			expect(
+				edge("bottom", [200, 250], [200, 900], [0, 0], [0, 0], [INF, 740]),
+			).toEqual({ size: [190, 640], position: [100, 100] }));
+		it("stops a right edge at the work area's right", () =>
+			expect(
+				edge("right", [300, 175], [900, 175], [0, 0], [0, 0], [600, INF]),
+			).toEqual({ size: [500, 120], position: [100, 100] }));
+		it("leaves a left or top edge alone", () =>
+			expect(
+				edge("top-left", [100, 100], [80, 90], [0, 0], [0, 0], [0, 0]),
+			).toEqual({ size: [210, 130], position: [80, 90] }));
+		it("never gives a negative size for a press already past it", () =>
+			expect(
+				edge("bottom", [200, 250], [200, 900], [0, 0], [0, 0], [INF, 80]),
+			).toEqual({ size: [190, 0], position: [100, 100] }));
+		it("gives way to the minimum", () =>
+			expect(
+				edge("right", [300, 175], [900, 175], [150, 0], [0, 0], [200, INF]),
+			).toEqual({ size: [150, 120], position: [100, 100] }));
+		it("an unlimited ceiling changes nothing", () =>
+			expect(
+				edge(
+					"bottom-right",
+					[300, 250],
+					[5000, 5000],
+					[0, 0],
+					[0, 0],
+					[INF, INF],
+				),
+			).toEqual(edge("bottom-right", [300, 250], [5000, 5000])));
+	});
+
+	// The content size CSS draws at most: past it the drawn window would stop
+	// and a fixed edge move, so the moving edge stops instead.
+	describe("the maximum", () => {
+		it("stops a bottom edge", () =>
+			expect(
+				edge(
+					"bottom",
+					[200, 250],
+					[200, 400],
+					[0, 0],
+					[0, 0],
+					[INF, INF],
+					[INF, 200],
+				),
+			).toEqual({ size: [190, 200], position: [100, 100] }));
+		it("stops a top edge with the bottom edge kept", () =>
+			expect(
+				edge(
+					"top",
+					[200, 100],
+					[200, 0],
+					[0, 0],
+					[0, 0],
+					[INF, INF],
+					[INF, 200],
+				),
+			).toEqual({ size: [190, 200], position: [100, 20] }));
+		it("gives way to the minimum, as CSS's min-height beats max-height", () =>
+			expect(
+				edge(
+					"bottom",
+					[200, 250],
+					[200, 400],
+					[0, 300],
+					[0, 0],
+					[INF, INF],
+					[INF, 200],
+				),
+			).toEqual({ size: [190, 300], position: [100, 100] }));
+	});
+
+	it("never reads a negative start size off a rect smaller than its chrome", () =>
+		expect(
+			computeClassicyWindowEdgeResize(
+				"right",
+				{ left: 0, top: 0, right: 5, bottom: 5 },
+				[5, 2],
+				[25, 2],
+				[10, 30],
+			),
+		).toEqual({ size: [20, 0], position: [0, 0] }));
 });

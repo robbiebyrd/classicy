@@ -109,10 +109,12 @@ export type ClassicyAppearanceLayout = {
 		 * 8, whose frame is a drag region): dragging an edge moves the window.
 		 * `"resize"` (Windows 95/98, WIG Ch.6 "Sizing Borders", p.83): dragging
 		 * an edge sizes a resizable window from that edge, and eight corner
-		 * arms, each a title bar's height along its edge (Wine's
-		 * `NC_HandleNCHitTest`), size both edges of their corner. A
-		 * non-resizable or maximized window's edges do nothing, as a fixed
-		 * border neither moves nor sizes a window in Windows.
+		 * arms, each reaching a title bar's height past the inside of the frame
+		 * along its edge (Wine's `NC_HandleNCHitTest`: `SM_CXSIZE` past
+		 * `SM_CXFRAME`), size both edges of their corner; the window's root
+		 * carries `classicyWindowSizingBorder`. A non-resizable or maximized
+		 * window's edges do nothing, as a fixed border neither moves nor sizes
+		 * a window in Windows.
 		 */
 		frameEdges?: "move" | "resize";
 		/**

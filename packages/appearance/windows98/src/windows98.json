@@ -3785,7 +3785,8 @@
 			"growBoxCorner": "bottom-right",
 			"centering": "wholePixel",
 			"zoom": "maximize",
-			"titleDoubleClick": "zoom"
+			"titleDoubleClick": "zoom",
+			"frameEdges": "resize"
 		},
 		"menuBar": {
 			"placement": "screen"

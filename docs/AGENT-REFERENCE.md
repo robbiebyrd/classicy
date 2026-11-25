@@ -828,7 +828,7 @@ component's root class, never folded into a longer class name and never in a
 
 | Component (root class) | States it sets |
 |---|---|
-| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed` (shaded: WindowShade, the store's `collapsed` under every layout but `window.collapse: "minimize"`, where a minimized window carries none and is marked `classicyWindowMinimized` instead, §4.1), `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all. Under `window.zoom: "maximize"` a zoomed window is maximized and also carries the part class `classicyWindowMaximized`, §4.1) |
+| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed` (shaded: WindowShade, the store's `collapsed` under every layout but `window.collapse: "minimize"`, where a minimized window carries none and is marked `classicyWindowMinimized` instead, §4.1), `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all. Under `window.zoom: "maximize"` a zoomed window is maximized and also carries the part class `classicyWindowMaximized`, §4.1). Under `window.frameEdges: "resize"` a window whose frame sizes it carries the part class `classicyWindowSizingBorder` and draws eight corner arms, `classicyWindowFrameCorner` with `classicyWindowFrameCorner-<corner>-<h\|v>` (§4.1, "Frame-edge sizing"); no other layout emits either |
 | `ClassicyButton` | `default` (`isDefault`), `pressed` (`depressed`) |
 | `ClassicyBevelButton` | `checked`, `pressed`, `mixed`, `disabled`, `open` (its menu or panel is showing) |
 | `ClassicyCheckbox`, `ClassicyRadioInput` | `checked`, `mixed`, `disabled`, `default` |
@@ -1035,7 +1035,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `appId` * | `string` | — |
 | `title` | `string` | `""` |
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
-| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll`. The collapse box shades the window (WindowShade), or, under `layout.window.collapse: "minimize"`, is Minimize (below; a `modal` or utility window draws none there). The zoom box toggles the standard state, or, under `layout.window.zoom: "maximize"`, is Maximize and Restore (below; a utility window draws none there) |
+| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll`. The collapse box shades the window (WindowShade), or, under `layout.window.collapse: "minimize"`, is Minimize (below; a `modal` or utility window draws none there). The zoom box toggles the standard state, or, under `layout.window.zoom: "maximize"`, is Maximize and Restore (below; a utility window draws none there). The frame's edges move the window, or, under `layout.window.frameEdges: "resize"`, size a resizable window from any edge and corner and do nothing on a non-resizable one (below) |
 | `fitsScrollBars` | `boolean` | the package's `layout.scrollBar.fitsBars` for a resizable, non-utility window, else `false`: keep both bars (`fits`) while the content fits |
 | `modal` | `boolean` | `false` |
 | `movable` | `boolean` | `true` (modal only) |
@@ -1260,6 +1260,42 @@ zoom box's toggle on a window that draws one, whatever the preference says
 (it stays stored, and applies again under another package), and does nothing
 on a window that cannot zoom (`zoomable={false}`, a palette under maximize)
 or on a modal's caption: it never falls back to a collapse.
+
+**Frame-edge sizing** (`layout.window.frameEdges: "resize"`, the Windows
+shell, plan 0020-w98 §5; WIG Ch.6 "Sizing Borders", p.83). Under `"move"`
+(the default) the four frame edges (`classicyWindowFrameEdge-top|right|bottom|left`,
+`--window-padding-size` thick) move the window, as the title bar does.
+Under `"resize"` a resizable window drawn at its size (not maximized,
+shaded or minimized) has a sizing border instead: its root carries
+`classicyWindowSizingBorder`, a press on an edge sizes the window from that
+edge, and eight corner arms (`classicyWindowFrameCorner
+classicyWindowFrameCorner-<corner>-<arm>`, corners `top-left`, `top-right`,
+`bottom-left`, `bottom-right`; arm `h` along the top or bottom edge, `v`
+along the side) size both edges of their corner. Windows sizes from the
+whole frame and nothing inside it, and a corner reaches `SM_CXSIZE` past the
+inside of the frame along both of its edges (Wine's `NC_HandleNCHitTest`), so
+under the sizing border the base sheet makes each edge and arm the frame's
+width, `--window-frame-inset` (4 px under Windows 98, `SM_CXFRAME`), and each
+arm `--window-frame-inset` + `--window-title-bar-height` long (22 px), above
+the edges and below the grow box; the edges show the registry's `resizeUd`
+and `resizeLr` cursors, the arms `resizeNwse` and `resizeNesw`, each falling
+back to `ns-resize`, `ew-resize`, `nwse-resize` and `nesw-resize`. A press
+(button 1) activates the window ("the action of sizing the window
+implicitly makes it active"), takes the pointer's capture, so the edge
+keeps its cursor however far the pointer outruns it, and runs the grow
+box's gesture (the store's `resizing`, the inline width and height, the
+release, a lost pointer stream ending it where it is): the named edges
+follow the pointer's travel (`computeClassicyWindowEdgeResize`, §8) and the
+others stay, each moving edge stopping at the menu bar's underside or the
+screen's left, at the work area's right and bottom (the viewport's right,
+the taskbar's top), at `minimumSize`, and at the height the window's
+`max-height` (`calc(100% - var(--window-max-height-reserve))`) draws it at
+most, so the stored size is the drawn one and the release clamp never moves
+a window just sized. A non-resizable window's edges (a fixed border, WIG
+Ch.6 "Window Frames", p.76, modals included) neither move nor size it, and
+it carries no sizing border; a maximized window draws no edges or arms. Under
+every other layout the edges move the window as always and no window
+carries `classicyWindowSizingBorder` or draws a corner arm.
 
 Each mounted window, modals included, also registers in the core's window
 registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
@@ -2635,7 +2671,8 @@ the browser's own cursor shows for them.
 from the registry at call time and sets `document.body.style.cursor`; a role
 with no registered cursor (or no argument) restores the default. For a cursor
 over one element, use CSS instead: `cursor: var(--classicy-cursor-<role>,
-url('data:,')) <x> <y>, <keyword>` (the window grow box and the split-view
+url('data:,')) <x> <y>, <keyword>` (the window grow box, a window's sizing
+border under `layout.window.frameEdges: "resize"`, §4.1, and the split-view
 dividers do this; inside a desktop, `.classicyDesktop { cursor: default }`
 hides a body cursor anyway).
 
@@ -4470,7 +4507,15 @@ it like Platinum (§1); its README lists what it ships.
   window to the rect it had, even after a reload, a maximized window neither
   moves nor sizes and has no size grip, and a double-click on the caption
   maximizes or restores it (WIG Ch.6 "Maximizing Windows" and "Restoring
-  Windows", pp.84–85; §4.1, "Maximize and restore").
+  Windows", pp.84–85; §4.1, "Maximize and restore"); and `window:
+  { frameEdges: "resize" }`: a resizable window sizes from any edge of its
+  four-pixel frame and from its corners, each reaching a caption's height
+  along both edges, and a dialog's or other fixed window's frame does
+  nothing (WIG Ch.6 "Sizing Borders", p.83; §4.1, "Frame-edge sizing").
+  Until the package registers cursors of its own, the edges show the
+  default package's (Platinum's) `resizeUd` and `resizeLr` art, as the size
+  grip shows its `resizeLr`, and the corners the browser's diagonal resize
+  cursors, which Platinum does not register.
 - **The look** (`src/styles/windows98.scss`, one `components/_<Name>.scss`
   partial per component, `_bevels.scss` and `_pixel.scss`): the four-ring
   bevels as inset box-shadows of the system tokens (`raised`, `pressed`,
@@ -4539,6 +4584,7 @@ how they look) has two halves:
 | `window.collapse` (optional) | `shade`, `minimize` | what the collapse box does (and Option-click collapse-all, and a `ClassicyWindowCollapse` dispatch). `shade` (the default, Mac OS 8's WindowShade, every shipped package today): the window rolls up into its title bar. `minimize` (Windows 95/98, WIG Ch.6 "Minimizing Windows", p.85): the box is "Minimize", a primary window leaves the screen (`classicyWindowMinimized`, `display: none`, its tree kept mounted) and keeps its taskbar button, the box's click does not bubble, the zoom is kept, focus passes to the next window down that is on screen (the app's own, else another app's by `zOrder`, else the desktop; `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy` too), and focusing the window again restores it (§4.1, "Minimize"). A modal or utility window draws no collapse box there and its collapse is refused (a stored one drawn expanded and kept), and an app's palettes are hidden while every one of its open primary windows is minimized (WIG Ch.8, p.145). Either way it is the store's `collapsed` flag, so a window minimized under one package is shaded under another. Requires `taskbar` (the schema refuses it without one: a minimized window comes back through its taskbar button). The root gains no attribute or custom property for it |
 | `window.zoom` (optional) | `standard`, `maximize` | what the zoom box does (and the window registry's `maximize` and `restore`). `standard` (the default, Mac OS 8, every package but Windows 98): it toggles the window between the rect the user gave it and its standard state, the content's ideal size within the desktop less `--window-zoom-margin` (`zoomMode`, `idealSize`). `maximize` (Windows 95/98, WIG Ch.6 "Maximizing Windows" and "Restoring Windows", pp.84–85; the audit's 6.6; Windows 98 declares it): the box is "Maximize", "Restore" while maximized; the window's content box takes the work area (the desktop less the menu bar's band and the taskbar's) with its frame just outside it, as Windows grows a maximized window's rect by its frame (`classicyMaximizedWindowRect`); `zoomMode` and `idealSize` are ignored; the rect it had goes with the zoom (`ClassicyWindowZoom`'s `restore`) and is stored as the record's `restoreRect`, deleted on un-zoom, so Restore survives a reload; while maximized the root carries `classicyWindowMaximized` (base rule `max-height: none`) beside `expanded`, the window is not clamped on screen, its caption's drag is refused, its frame edges and grow box are not drawn, and it takes the work area again on mount, on a band change and on a desktop resize (§4.1, "Maximize and restore"). A utility window has no Maximize button there (WIG Ch.8, p.164, Figure 8.16), so it draws no zoom box and a stored zoom is drawn unmaximized. Either way it is the store's `zoomed` flag, so a window maximized under one package is a zoomed one under another (clamped back on screen, un-zoomed to its `restoreRect`). The root gains no attribute or custom property for it |
 | `window.titleDoubleClick` (optional) | `collapse`, `zoom` | what a double-click on the caption does. `collapse` (the default, Mac OS 8): it collapses the window while the desktop's `doubleClickTitleToCollapse` preference is on. `zoom` (Windows 95/98 as shipped, Wine's `NC_HandleNCLButtonDblClk`; Windows 98 declares it): it runs the zoom box's toggle (maximize or restore, under `window.zoom: "maximize"`) whatever the preference says (the preference stays stored and applies again under another package), and does nothing on a window that draws no zoom box or on a modal's caption, never a collapse (§4.1, "The caption's double-click"). The root gains no attribute or custom property for it |
+| `window.frameEdges` (optional) | `move`, `resize` | what the four frame edges do. `move` (the default, Mac OS 8, whose frame is a drag region; every package but Windows 98): a press on an edge moves the window, as the title bar does. `resize` (Windows 95/98, WIG Ch.6 "Sizing Borders", p.83; the audit's 6.5; Windows 98 declares it): a resizable window drawn at its size has a sizing border, its root carrying `classicyWindowSizingBorder`: each edge (the frame's width, `--window-frame-inset`, `SM_CXFRAME`) sizes it from that edge and eight corner arms (`classicyWindowFrameCorner-<corner>-<h\|v>`, reaching `--window-title-bar-height` past the inside of the frame along each edge, as Wine's `NC_HandleNCHitTest` makes a corner `SM_CXSIZE` long) size both edges of their corner, with the registry's resize cursors; a press activates the window and takes the pointer's capture, the moving edges follow the pointer (`computeClassicyWindowEdgeResize`, below) and stop at the work area, the minimum size and the height reserve's cap, so the release clamp never moves a window just sized. A non-resizable window's edges (modals included) do nothing, and a maximized window draws none (§4.1, "Frame-edge sizing"). The root gains no attribute or custom property for it |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (every shipped package today): `ClassicyDesktop` draws its Control Strip and no taskbar. Present: it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept); the taskbar's measured height is the band windows, Clean Up and every menu keep above. `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
@@ -4683,6 +4729,43 @@ drag and, for any other corner, `position` as its left and top.
 Types: `ClassicyWindowRect` is the `rect` argument (`{ left, top, right,
 bottom }`, viewport pixels, frame included); `ClassicyWindowResizeResult` is
 the return value (`{ size, position }`, both `[number, number]`).
+
+**`computeClassicyWindowEdgeResize(edges, startRect, startPointer, pointer,
+chrome, minimum?, floor?, ceiling?, maximum?)`** → `{ size: [w, h],
+position: [left, top] }`. Pure; the size and position for a frame-edge
+sizing drag (`layout.window.frameEdges: "resize"`, §4.1, "Frame-edge
+sizing"). `edges` (`ClassicyWindowSizingEdges`: `"top"`, `"right"`,
+`"bottom"`, `"left"`, `"top-left"`, `"top-right"`, `"bottom-left"`,
+`"bottom-right"`, Windows' eight sizing hit-test codes; a corner names both
+of its edges) move by the pointer's travel since the press, `pointer −
+startPointer` rounded to whole pixels; every other edge stays, so a left or
+top drag keeps the right or bottom edge where it was. `startRect` is the
+window's bounding rect at the press (frame included) and `chrome` its frame
+padding plus border, as for `computeClassicyWindowResize`. Each moving edge
+stops at a limit, as Windows confines a sizing drag's pointer to the work
+area and stops the edge at the window's tracking sizes (Wine's
+`sys_command_size_move`):
+
+- `floor` (`[x, y]`, default `[0, 0]`): the lowest left/top a moving left or
+  top edge may take (`ClassicyWindow` passes `windowViewportFloor`).
+- `ceiling` (`[right, bottom]`, default `[Infinity, Infinity]`): the largest
+  right/bottom a moving right or bottom edge may reach, measured as the
+  release clamp measures it, the left or top plus the content size.
+  `ClassicyWindow` passes the work area's, `[innerWidth, innerHeight − band]`
+  (the taskbar's top while one is mounted, else the viewport's bottom),
+  always: frame-edge sizing exists only under that flag.
+- `minimum` and `maximum` (`[w, h]`, defaults `[0, 0]` and `[Infinity,
+  Infinity]`): the content size CSS draws at least and at most;
+  `ClassicyWindow` passes its `minimumSize` and, for the height, its
+  containing block's height less `--window-max-height-reserve` (the
+  `max-height` every window has), read once per gesture.
+
+The size is never below 0, and the minimum wins over every other limit, as
+CSS's `min-height` beats `max-height`; it can conflict with the floor or the
+ceiling only for a window stored below its minimum, because the release
+clamp keeps every stored rect between the two. `ClassicyWindow` writes
+`size` as the window's width and height during the drag and, for a moving
+left or top edge, `position` as its left or top.
 
 **Icon grid.** Clean Up walks the grid one grid step at a time: the icon
 cell plus its padding (`cell + padding` from `classicyDesktopIconMetrics`,

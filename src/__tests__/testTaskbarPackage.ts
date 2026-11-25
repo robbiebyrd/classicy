@@ -75,3 +75,17 @@ export const TEST_MAXIMIZE_LAYOUT: ClassicyAppearanceLayout = {
 	menuBar: { placement: "screen" },
 	desktop: { iconGridOrigin: "top-left" },
 };
+
+/** The id of the test package whose frame edges size (`TEST_FRAME_EDGES_LAYOUT`). */
+export const TEST_FRAME_EDGES_PACKAGE_ID = "test-frame-edges";
+
+/**
+ * Windows 98's window behavior from plan 0020-w98 step 7: `TEST_MAXIMIZE_LAYOUT`
+ * whose frame edges size a resizable window (`window.frameEdges: "resize"`),
+ * as the package declares them before its shell lands. Register it with
+ * `registerTestTaskbarPackage(TEST_FRAME_EDGES_LAYOUT, TEST_FRAME_EDGES_PACKAGE_ID)`.
+ */
+export const TEST_FRAME_EDGES_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_MAXIMIZE_LAYOUT,
+	window: { ...TEST_MAXIMIZE_LAYOUT.window, frameEdges: "resize" },
+};

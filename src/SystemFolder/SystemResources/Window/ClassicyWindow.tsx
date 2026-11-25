@@ -23,6 +23,7 @@ import {
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	type ReactNode,
+	type PointerEvent as ReactPointerEvent,
 	type RefObject,
 	useCallback,
 	useEffect,
@@ -86,6 +87,8 @@ import {
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
 import {
 	type ClassicyWindowRect,
+	type ClassicyWindowSizingEdges,
+	computeClassicyWindowEdgeResize,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
@@ -122,6 +125,75 @@ const windowViewportCeiling = (bottomBand: number): [number, number] => [
 	Number.POSITIVE_INFINITY,
 	(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand,
 ];
+
+// The largest right/bottom a frame-edge sizing drag may reach
+// (`computeClassicyWindowEdgeResize`'s `ceiling`): the work area's right and
+// bottom, the viewport's right edge and the taskbar's top (its bottom edge
+// with no taskbar). Windows confines a sizing drag's pointer to the work
+// area (Wine's `sys_command_size_move` clips it to the monitor's `rcWork`),
+// so an edge never passes it; and the release clamp keeps a window inside
+// the same box, so it never moves a window the user has just sized.
+const windowWorkAreaCeiling = (bottomBand: number): [number, number] => [
+	typeof window !== "undefined" ? window.innerWidth : 800,
+	(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand,
+];
+
+// The eight corner arms of a sizing border (`layout.window.frameEdges:
+// "resize"`), each `[corner, arm]`: `h` lies along the top or bottom edge,
+// `v` along a side. Each sizes both edges of its corner, as Windows' corner
+// hit zones do (Wine's `NC_HandleNCHitTest`).
+const FRAME_CORNER_ARMS: readonly [
+	Extract<
+		ClassicyWindowSizingEdges,
+		"top-left" | "top-right" | "bottom-left" | "bottom-right"
+	>,
+	"h" | "v",
+][] = [
+	["top-left", "h"],
+	["top-left", "v"],
+	["top-right", "h"],
+	["top-right", "v"],
+	["bottom-left", "h"],
+	["bottom-left", "v"],
+	["bottom-right", "h"],
+	["bottom-right", "v"],
+];
+
+// The largest content height CSS draws a window at: `.classicyWindow`'s
+// `max-height: calc(100% - var(--window-max-height-reserve))`, a share of
+// its containing block's padding box (an absolutely positioned box's
+// percentage resolves against it whatever that block's own height), so a
+// frame-edge sizing drag stops where the drawn window would stop and its
+// fixed edge never moves. No limit outside a laid-out containing block
+// (jsdom has no `offsetParent`). Read once per gesture.
+const windowContentHeightCap = (el: HTMLElement): number => {
+	const block = el.offsetParent;
+	if (!(block instanceof HTMLElement)) return Number.POSITIVE_INFINITY;
+	return Math.max(
+		0,
+		block.clientHeight -
+			readClassicyThemeVar("--window-max-height-reserve", undefined, el),
+	);
+};
+
+// A press on a sizing border's edge or corner arm takes the pointer's
+// capture, so every move and the release go to it wherever the pointer
+// goes (over another window, the desktop or an iframe) and the browser
+// keeps showing its resize cursor, as Windows keeps the sizing cursor
+// through the drag. Button 1 only; the gesture itself starts on the
+// press's mousedown.
+const captureSizingPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
+	if (e.button !== 0) return;
+	e.currentTarget.setPointerCapture?.(e.pointerId);
+};
+
+// An edge that neither moves nor sizes its window (a fixed border under
+// `layout.window.frameEdges: "resize"`, WIG Ch.6 "Window Frames", p.76):
+// its press keeps the focus and the text selection where they are, as an
+// edge press always did, and does nothing else.
+const holdFrameEdge = (e: MouseEvent<HTMLDivElement>) => {
+	e.preventDefault();
+};
 
 // The geometry prop defaults, module-level so they keep one identity: an
 // array literal in the props destructuring is a new array every render, which
@@ -394,8 +466,11 @@ interface ClassicyWindowProps {
 	collapsable?: boolean;
 	/**
 	 * Draw the grow box at the bottom-right corner. A non-resizable window
-	 * ignores any persisted size and always opens at `initialSize`. Defaults to
-	 * `true`.
+	 * ignores any persisted size and always opens at `initialSize`. Under a
+	 * package whose layout says `window.frameEdges: "resize"` (Windows 98)
+	 * a resizable window also sizes from any edge of its frame and from its
+	 * corners (WIG Ch.6 "Sizing Borders", p.83), and a non-resizable one's
+	 * frame neither moves nor sizes it. Defaults to `true`.
 	 */
 	resizable?: boolean;
 	/**
@@ -765,6 +840,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// package), and nothing on a window that cannot zoom or on a modal's
 	// caption, never a collapse.
 	const titleDoubleClickZooms = layout.window.titleDoubleClick === "zoom";
+	// What the four frame edges do (`layout.window.frameEdges`, plan 0020-w98
+	// §5 "Frame-edge sizing"). `"move"` (the default, every package but the
+	// Windows shell): Mac OS 8's frame is a drag region, so a press moves the
+	// window, as always. `"resize"` (Windows 95/98, WIG Ch.6 "Sizing
+	// Borders", p.83): a resizable window's frame is its sizing border
+	// (`sizingBorder`, below); a fixed one's edges do nothing.
+	const frameEdgesSize = layout.window.frameEdges === "resize";
 
 	// `--menu-bar-height`, read once per theme and menu-bar placement instead
 	// of on every render: a drag re-renders on each mousemove, and a read
@@ -916,6 +998,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		bottom: 0,
 	});
 	const chromeRef = useRef<[number, number]>([0, 0]);
+	// A frame-edge sizing gesture's own inputs (`startEdgeResize`), beside
+	// the rect and chrome above: the edges it moves, the press's pointer, and
+	// the content-size cap CSS draws at; null for a grow-box resize and
+	// between gestures.
+	const edgeResizeRef = useRef<{
+		edges: ClassicyWindowSizingEdges;
+		startPointer: [number, number];
+		maximum: [number, number];
+	} | null>(null);
 	// `--window-resize-inset`, read once when a resize gesture starts
 	// (startResizeWindow); null until the first gesture.
 	const resizeInsetRef = useRef<number | null>(null);
@@ -1092,6 +1183,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// `classicyWindowMaximized`; the rect is re-applied when the work area
 	// changes (below).
 	const maximized = maximizable && ws.zoomed === true;
+	// The sizing border (`layout.window.frameEdges: "resize"`): a resizable
+	// window drawn at its size has one, its four edges and eight corner arms
+	// sizing it, and its root carries `classicyWindowSizingBorder`. A
+	// maximized window has none (Windows sizes no maximized window: Wine's
+	// `sys_command_size_move` returns at once), and neither has a shaded or
+	// minimized one, which is not drawn at its size.
+	const sizingBorder =
+		frameEdgesSize && resizable && !maximized && !collapsedOrMinimized;
 	// A minimized app's palettes go with it (WIG Ch.8, p.145): under
 	// minimize, a palette is hidden while its app has an open primary window
 	// and every one is minimized, read from the app record already subscribed.
@@ -1416,6 +1515,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		userRepositionedRef.current = true;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
+		edgeResizeRef.current = null;
 
 		emit("dragEnd", { kind: wasResizing ? "resize" : "move", lost });
 		setActive();
@@ -1438,6 +1538,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// box (the rect measured on press, not the store position) and, for any
 	// grow box but bottom-right, the left/top that keep that corner in place.
 	const applyResize = (clientX: number, clientY: number) => {
+		const edgeResize = edgeResizeRef.current;
+		if (edgeResize) {
+			applyEdgeResize(edgeResize, clientX, clientY);
+			return;
+		}
 		const corner = layout.window.growBoxCorner;
 		const { size, position } = computeClassicyWindowResize(
 			corner,
@@ -1473,8 +1578,40 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
+	// A frame-edge sizing drag's move (`layout.window.frameEdges: "resize"`):
+	// the named edges follow the pointer's travel since the press, the others
+	// stay (`computeClassicyWindowEdgeResize`), each moving edge stopped at
+	// the viewport floor, the work area's right and bottom
+	// (`windowWorkAreaCeiling`), the minimum size and the height CSS draws at
+	// most, so the release clamp leaves the window where the user left it.
+	const applyEdgeResize = (
+		edgeResize: NonNullable<typeof edgeResizeRef.current>,
+		clientX: number,
+		clientY: number,
+	) => {
+		const { size, position } = computeClassicyWindowEdgeResize(
+			edgeResize.edges,
+			resizeRectRef.current,
+			edgeResize.startPointer,
+			[clientX, clientY],
+			chromeRef.current,
+			resolvedMinimumSize,
+			windowViewportFloor(menuBarHeight),
+			windowWorkAreaCeiling(taskbarBand),
+			edgeResize.maximum,
+		);
+		pendingSizeRef.current = size;
+		const el = windowRef.current;
+		if (!el) return;
+		el.style.width = `${size[0]}px`;
+		el.style.height = `${size[1]}px`;
+		if (edgeResize.edges.includes("left")) el.style.left = `${position[0]}px`;
+		if (edgeResize.edges.startsWith("top")) el.style.top = `${position[1]}px`;
+	};
+
 	const startResizeWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
+		edgeResizeRef.current = null;
 		track("resize", { type: "ClassicyWindow", ...analyticsArgs });
 		const rect = windowRef?.current?.getBoundingClientRect();
 		const left = rect?.left ?? 0;
@@ -1519,6 +1656,58 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		setSize(startSize);
 		emit("dragStart", { kind: "resize" });
 	};
+
+	// A press on a sizing border's edge or corner arm (`layout.window.frameEdges:
+	// "resize"`, plan 0020-w98 §5 "Frame-edge sizing"; WIG Ch.6 "Sizing
+	// Borders", p.83): a resize gesture that moves `edges`, through the grow
+	// box's machinery (the refs, the inline width and height, the release
+	// through `endResize` and `setMoving`, and the pointer-stream watch). The
+	// window is activated at once: "the action of sizing the window
+	// implicitly makes it active" (p.83). Button 1 only.
+	const startEdgeResize =
+		(edges: ClassicyWindowSizingEdges) => (e: MouseEvent<HTMLDivElement>) => {
+			e.preventDefault();
+			if (e.button !== 0) return;
+			const el = windowRef.current;
+			if (!el) return;
+			setActive();
+			track("resize", { type: "ClassicyWindow", ...analyticsArgs });
+			const rect = el.getBoundingClientRect();
+			wsPositionRef.current = [rect.left, rect.top];
+			resizeRectRef.current = {
+				left: rect.left,
+				top: rect.top,
+				right: rect.right,
+				bottom: rect.bottom,
+			};
+			chromeRef.current = classicyWindowChromeSize(el);
+			edgeResizeRef.current = {
+				edges,
+				startPointer: [e.clientX, e.clientY],
+				maximum: [Number.POSITIVE_INFINITY, windowContentHeightCap(el)],
+			};
+			isResizingRef.current = true;
+			watchPointerStream();
+			desktopEventDispatch({
+				type: "ClassicyWindowPosition",
+				app: {
+					id: appId,
+				},
+				window: ws,
+				position: [rect.left, rect.top],
+			});
+			// The size the window is drawn at, in its content box (#291), as
+			// the grow box seeds its gesture.
+			const applied = appliedWindowSize();
+			const startSize: [number, number] = [
+				applied?.[0] || resolvedSize[0],
+				applied?.[1] || resolvedSize[1],
+			];
+			setResize(true, startSize);
+			setZoom(false, true, "resize");
+			setSize(startSize);
+			emit("dragStart", { kind: "resize" });
+		};
 
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
@@ -1635,6 +1824,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		pendingDragRef.current = false;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
+		edgeResizeRef.current = null;
 		setActive();
 		// Most releases are plain clicks: they must not write a size at all, or
 		// the store drifts from the size the window is actually drawn at (#291).
@@ -2508,6 +2698,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// Ch.6 "Window Frames" (p.76)), which a package can draw from this
 				// class; Platinum and System 7 read it not at all.
 				resizable ? "" : "classicyWindowNoResize",
+				// Under `window.frameEdges: "resize"` only: a window whose frame
+				// is a sizing border (resizable, drawn at its size, not
+				// maximized), which keys the edges' and corner arms' resize
+				// cursors and thickness. No other package emits it.
+				sizingBorder ? "classicyWindowSizingBorder" : "",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 				showsMenuBar ? "classicyWindowWithMenuBar" : "",
 				// Under `window.collapse: "minimize"` only: a minimized window,
@@ -2535,7 +2730,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			onContextMenu={onContextMenuHandler}
 		>
 			{/* #205: drag the window from the narrow frame on all four sides,
-					    not just the title bar. Each edge reuses the title-bar move logic. */}
+					    not just the title bar. Each edge reuses the title-bar move logic.
+					    Under `window.frameEdges: "resize"` (the Windows shell) an edge
+					    sizes a window with a sizing border instead, and a fixed
+					    border's edges do nothing. */}
 			{/* A maximized window's frame is off the screen and neither moves
 			    nor sizes it, so its edges are not drawn. */}
 			{!shaded &&
@@ -2549,10 +2747,34 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 							`classicyWindowFrameEdge-${edge}`,
 						)}
 						role="presentation"
-						onMouseDown={startMoveWindow}
+						onPointerDown={sizingBorder ? captureSizingPointer : undefined}
+						onMouseDown={
+							frameEdgesSize
+								? sizingBorder
+									? startEdgeResize(edge)
+									: holdFrameEdge
+								: startMoveWindow
+						}
 						// stopChangeWindow is bound once, on the root classicyWindow
 						// element (below); mouseup here bubbles to it, so a second
 						// binding on this descendant would double-invoke the handler.
+					></div>
+				))}
+			{/* A sizing border's corners (`window.frameEdges: "resize"` only):
+			    two arms each, along the top or bottom edge and along the side,
+			    which size both of the corner's edges. */}
+			{sizingBorder &&
+				FRAME_CORNER_ARMS.map(([corner, arm]) => (
+					// biome-ignore lint/a11y/noStaticElementInteractions: a corner arm is a mouse-only sizing handle
+					<div
+						key={`${corner}-${arm}`}
+						className={classNames(
+							"classicyWindowFrameCorner",
+							`classicyWindowFrameCorner-${corner}-${arm}`,
+						)}
+						role="presentation"
+						onPointerDown={captureSizingPointer}
+						onMouseDown={startEdgeResize(corner)}
 					></div>
 				))}
 			<ClassicyWindowTitleBar

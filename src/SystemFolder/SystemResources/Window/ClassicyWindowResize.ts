@@ -91,3 +91,90 @@ export const computeClassicyWindowResize = (
 	}
 	return { size, position };
 };
+
+/**
+ * What a frame-edge sizing gesture moves (`layout.window.frameEdges:
+ * "resize"`, the Windows shell): one of the four edges, or a corner, which
+ * moves both of its edges. These are Windows' eight sizing hit-test codes,
+ * `HTTOP` to `HTBOTTOMRIGHT` (Wine's `NC_HandleNCHitTest`).
+ */
+export type ClassicyWindowSizingEdges =
+	| "top"
+	| "right"
+	| "bottom"
+	| "left"
+	| "top-left"
+	| "top-right"
+	| "bottom-left"
+	| "bottom-right";
+
+/**
+ * The size and position for a frame-edge sizing drag (`layout.window.frameEdges:
+ * "resize"`, WIG Ch.6 "Sizing Borders", p.83): the edges `edges` names move by
+ * the pointer's travel since the press (`pointer − startPointer`, rounded to
+ * whole pixels), and every other edge stays where it was, so a left or top
+ * drag keeps the right or bottom edge in place. `startRect` is the window's
+ * bounding rect when the drag started (frame included) and `chrome` its frame
+ * padding plus border, which the rect includes and the returned size does not.
+ *
+ * Each moving edge stops at a limit, as Windows confines the pointer of a
+ * sizing drag to the work area and stops the edge at the window's minimum
+ * and maximum tracking size (Wine's `sys_command_size_move`):
+ * - a left or top edge at `floor`, the lowest left/top the window may take
+ *   (the floor `clampWindowPositionToViewport` re-applies after the gesture);
+ * - a right or bottom edge at `ceiling`, the largest right/bottom it may
+ *   reach, measured as the release clamp measures it, the left or top plus
+ *   the content size;
+ * - any moving edge where the content would pass `minimum` or `maximum`
+ *   (the content size CSS draws at least and at most: `ClassicyWindow`
+ *   passes its `minimumSize` and its height reserve's cap, so the size it
+ *   stores is the size it draws, and a fixed edge never moves).
+ *
+ * The returned size is never below 0. The minimum wins over every other
+ * limit, as CSS's `min-height` beats `max-height`; it conflicts with the
+ * floor or the ceiling only for a window stored below its minimum (which CSS
+ * draws at the minimum anyway), because the release clamp keeps every
+ * window's stored rect between the floor and the ceiling. So the window ends
+ * the gesture where the user left it, and the release clamp never moves a
+ * window the user has just sized. Returns `{ size, position }`, as
+ * `computeClassicyWindowResize` does: the content size and the outer
+ * left/top.
+ */
+export const computeClassicyWindowEdgeResize = (
+	edges: ClassicyWindowSizingEdges,
+	startRect: ClassicyWindowRect,
+	startPointer: [number, number],
+	pointer: [number, number],
+	chrome: [number, number],
+	minimum: [number, number] = [0, 0],
+	floor: [number, number] = [0, 0],
+	ceiling: [number, number] = [Infinity, Infinity],
+	maximum: [number, number] = [Infinity, Infinity],
+): ClassicyWindowResizeResult => {
+	const near = [startRect.left, startRect.top];
+	const far = [startRect.right, startRect.bottom];
+	const movesNear = [edges.includes("left"), edges.startsWith("top")];
+	const movesFar = [edges.includes("right"), edges.startsWith("bottom")];
+	const size: [number, number] = [0, 0];
+	const position: [number, number] = [startRect.left, startRect.top];
+	for (const i of [0, 1]) {
+		const startSize = Math.max(0, far[i] - near[i] - chrome[i]);
+		const travel = Math.round(pointer[i] - startPointer[i]);
+		// Never below 0, nor past the maximum; the minimum wins over both.
+		const bounded = (next: number) =>
+			Math.max(minimum[i], 0, Math.min(next, maximum[i]));
+		if (movesFar[i]) {
+			// The right or bottom edge moves; the left or top stays.
+			size[i] = bounded(Math.min(startSize + travel, ceiling[i] - near[i]));
+		} else if (movesNear[i]) {
+			// The left or top edge moves; the right or bottom stays.
+			size[i] = bounded(
+				Math.min(startSize - travel, far[i] - chrome[i] - floor[i]),
+			);
+			position[i] = far[i] - chrome[i] - size[i];
+		} else {
+			size[i] = startSize;
+		}
+	}
+	return { size, position };
+};

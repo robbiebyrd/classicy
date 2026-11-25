@@ -244,7 +244,10 @@ describe("the Windows 98 appearance package", () => {
 	// "Maximizing Windows" and "Restoring Windows", pp.84-85), and a
 	// double-click on the caption maximizes or restores it, as Windows 98
 	// shipped (`window.titleDoubleClick`; Wine `NC_HandleNCLButtonDblClk`).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click", async () => {
+	// A resizable window sizes from any edge of its frame and from its
+	// corners (`window.frameEdges`, the audit's 6.5; WIG Ch.6 "Sizing
+	// Borders", p.83; Wine `NC_HandleNCHitTest`).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click, and sized from their frame's edges and corners", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: {
@@ -252,6 +255,7 @@ describe("the Windows 98 appearance package", () => {
 				centering: "wholePixel",
 				zoom: "maximize",
 				titleDoubleClick: "zoom",
+				frameEdges: "resize",
 			},
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-left" },

@@ -235,6 +235,19 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   `isClassicyWindowRestoreRect`), else the opening rect. A palette or modal
   never maximizes there. `layout.window.titleDoubleClick: "zoom"` makes the
   caption's double-click the zoom box's toggle, never a collapse.
+- Under `layout.window.frameEdges: "resize"` (Windows 98 declares it; absent,
+  `"move"`, the four frame edges move the window) a resizable window drawn at
+  its size (not maximized, shaded or minimized) has a sizing border: the root
+  carries `classicyWindowSizingBorder`, each edge (`--window-frame-inset`
+  thick, Windows' `SM_CXFRAME`) and eight corner arms
+  (`classicyWindowFrameCorner-<corner>-<h|v>`, the frame plus
+  `--window-title-bar-height` long, Wine's `NC_HandleNCHitTest`) size it
+  through the grow box's gesture, with the registry's resize cursors; a press
+  activates the window and takes the pointer's capture, and the moving edges
+  (`computeClassicyWindowEdgeResize`, `ClassicyWindowResize.ts`) stop at the
+  viewport floor, the work area's right and bottom, `minimumSize` and the
+  `max-height` reserve's cap, so the release clamp never moves the window. A
+  non-resizable window's edges do nothing.
 - The Application menu's Hide <app>, Hide Others and Show All dispatch
   `ClassicyAppHide`, `ClassicyAppHideOthers` and `ClassicyAppShowAll`
   (HIG7 p.127). `apps[id].hidden` is **session state**: `sanitizeStateForPersistence`
