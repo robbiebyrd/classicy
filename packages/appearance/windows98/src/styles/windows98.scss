@@ -3,7 +3,7 @@
 // scoped under `.classicyDesktop[data-classicy-appearance="windows98"]`. The
 // look is built element by element, each a components/_<Name>.scss partial
 // exposing one mixin, included inside the wrapper below: the windows, the
-// menus and menu bars, the taskbar, the pop-up menus, the dialogs and
+// menus and menu bars, the taskbar and its Start menu, the pop-up menus, the dialogs and
 // alerts, the push buttons, the checkboxes and radio buttons, the text
 // fields and lists, the group boxes, the progress bars, the scroll bars, the
 // desktop and its icons, the tab control, the sliders, the placards and
@@ -16,6 +16,7 @@
 @use "components/Menu";
 @use "components/MenuBar";
 @use "components/Taskbar";
+@use "components/StartMenu";
 @use "components/PopUpMenu";
 @use "components/Dialog";
 @use "components/Alert";
@@ -45,6 +46,7 @@
   @include Menu.menu;
   @include MenuBar.menu-bar;
   @include Taskbar.taskbar;
+  @include StartMenu.start-menu;
   @include PopUpMenu.pop-up-menu;
   @include Dialog.dialog;
   @include Alert.alert;

@@ -657,4 +657,155 @@ describe("windows98.scss (compiled)", () => {
 			expect(clock).toContain("font-variant-numeric: tabular-nums");
 		});
 	});
+
+	// The Start menu and the status area's pop-ups (plan 0020-w98 §3 and §7;
+	// WIG Ch.3 "The Start Button", p.15): one dialog frame around the
+	// banner and the items, the banner's gradient and upward text from the
+	// package's `startMenu` colors, 32 px icons on 32 px rows at the first
+	// level and the menus' 16 px ones in every submenu, and a tray icon's
+	// panel in the same dialog frame.
+	describe("the Start menu and the tray's pop-ups", () => {
+		const selectors = selectorsOf(css);
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		const B = "var(--window-border-size)";
+		const B2 = `calc(${B} + ${B})`;
+		const NEG_B = `calc(${B} * -1)`;
+		const NEG_B2 = `calc(${B2} * -1)`;
+		// The dialog frame (WS_DLGFRAME, DS_MODALFRAME): the window edge's
+		// two rings (EDGE_RAISED) and one ring of ButtonFace inside them,
+		// SM_CXDLGFRAME 3: _Menu.scss's menu frame.
+		const DIALOG_FRAME = [
+			`padding: calc(${B2} + ${B})`,
+			"background: var(--color-system-03)",
+			`box-shadow: inset ${NEG_B} ${NEG_B} var(--color-system-07), inset ${B} ${B} var(--color-system-02), inset ${NEG_B2} ${NEG_B2} var(--color-system-05), inset ${B2} ${B2} var(--color-system-01)`,
+		];
+		const FIRST_LEVEL =
+			".classicyStartMenu > .classicyMenuWrapper > .classicyContextMenu";
+
+		it("draws one dialog frame around the banner and the items, the menu's own cleared", () => {
+			const surface = block(
+				"=windows98] .classicyBevelButtonPopup.classicyStartMenu",
+			);
+			for (const declaration of DIALOG_FRAME)
+				expect(surface).toContain(declaration);
+			const list = block(`=windows98] ${FIRST_LEVEL}`);
+			expect(list).toContain("padding: 0");
+			expect(list).toContain("box-shadow: none");
+			// After the menus' frame (_Menu.scss), which it outranks.
+			expect(
+				selectors.findIndex((selector) => selector.endsWith(` ${FIRST_LEVEL}`)),
+			).toBeGreaterThan(
+				selectors.findIndex((selector) =>
+					selector.endsWith(
+						":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu)",
+					),
+				),
+			);
+			expect(
+				block(
+					".classicyStartMenu > .classicyMenuWrapper > .classicyMenuScrollShadow",
+				),
+			).toContain("box-shadow: none");
+		});
+
+		// Windows 98 SE's explorer.exe bitmap 157, drawn smooth from the
+		// package's colors (each with a core token behind it, for a theme
+		// of another package): navy above the 98th row from the foot, blue
+		// from the 52nd to the 28th, back toward navy in the foot's row; the
+		// text white, the title bold and the edition regular, set up from
+		// the foot (the banner turned half a turn, so its own top is the
+		// menu's bottom).
+		it("draws the banner's gradient and upward text from the startMenu colors", () => {
+			const BANNER =
+				"var(--package-color-start-menu-banner, var(--color-highlight))";
+			const GRADIENT =
+				"var(--package-color-start-menu-banner-gradient, var(--color-highlight))";
+			const banner = block("=windows98] .classicyStartMenuBanner");
+			expect(banner).toContain(
+				`background: linear-gradient(color-mix(in srgb, ${BANNER} 15%, ${GRADIENT}) 0, ${BANNER} calc(var(--pixel-unit) * 28), ${BANNER} calc(var(--pixel-unit) * 52), ${GRADIENT} calc(var(--pixel-unit) * 98))`,
+			);
+			expect(banner).toContain(
+				"color: var(--package-color-start-menu-banner-text, var(--color-white))",
+			);
+			expect(banner).toContain("width: var(--start-menu-banner-width)");
+			expect(banner).toContain("padding: var(--start-menu-banner-inset) 0 0");
+			expect(banner).toContain("font-family: var(--ui-font)");
+			expect(banner).toContain("font-size: var(--start-menu-banner-font-size)");
+			expect(banner).toContain("line-height: var(--start-menu-banner-width)");
+			expect(banner).toContain("writing-mode: vertical-rl");
+			expect(banner).toContain("rotate: 180deg");
+			expect(banner).toContain("justify-content: flex-start");
+			expect(block(".classicyStartMenuBannerTitle")).toContain(
+				"font-weight: bold",
+			);
+			expect(block(".classicyStartMenuBannerEdition")).toContain(
+				"font-weight: normal",
+			);
+			// Every package color read carries a core token behind it.
+			const reads = [
+				...css.matchAll(
+					/var\((--package-color-start-menu-[a-z-]+)(, var\(--color-[a-z0-9-]+\))?\)/g,
+				),
+			];
+			expect(new Set(reads.map(([, name]) => name))).toEqual(
+				new Set([
+					"--package-color-start-menu-banner",
+					"--package-color-start-menu-banner-gradient",
+					"--package-color-start-menu-banner-text",
+				]),
+			);
+			for (const [, name, fallback] of reads)
+				expect(fallback, name).toBeDefined();
+		});
+
+		// The first level's rows are the large icons' height, each icon 2 px
+		// in and 4 px before its label; the rule reaches the menu's own
+		// rows alone, so every submenu keeps the menus' small icons.
+		it("sets 32 px icons on 32 px rows at the first level, and the menus' 16 px ones in its submenus", () => {
+			const row = block(`=windows98] ${FIRST_LEVEL} > .classicyMenuItem`);
+			expect(row).toContain("height: var(--start-menu-item-height)");
+			expect(row).toContain(
+				"padding: 0 var(--menu-item-padding-x) 0 var(--start-menu-icon-inset)",
+			);
+			const icon = block(`${FIRST_LEVEL} > .classicyMenuItem > p > img`);
+			expect(icon).toContain("width: var(--start-menu-icon-size)");
+			expect(icon).toContain("height: var(--start-menu-icon-size)");
+			expect(icon).toContain("margin-right: var(--start-menu-icon-gap)");
+			// Only the first level: no knob of the family reaches a submenu.
+			for (const selector of selectors.filter((s) =>
+				/\.classicyStartMenu\b/.test(s),
+			))
+				expect(selector, selector).not.toMatch(/classicyContextSubMenu/);
+			const submenuIcon = block(
+				":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu) .classicyMenuItem img",
+			);
+			expect(submenuIcon).toContain("width: var(--icon-small-size)");
+			expect(submenuIcon).toContain("height: var(--icon-small-size)");
+		});
+
+		// A tray icon's panel (the Sound slider) wears the dialog frame, as
+		// Windows 98's tray volume pop-up (sndvol32, DS_MODALFRAME) did; it
+		// outranks the bevel pop-up panel's own rule, which comes later.
+		it("draws a tray icon's panel in the dialog frame, over the bevel pop-up panel's", () => {
+			const tray =
+				".classicyBevelButtonPopup.classicyBevelButtonPopupPanel.classicyTaskbarTrayPopup";
+			const panel = block(`=windows98] ${tray}`);
+			for (const declaration of DIALOG_FRAME)
+				expect(panel).toContain(declaration);
+			expect(
+				block(
+					"=windows98] .classicyBevelButtonPopup.classicyBevelButtonPopupPanel",
+				),
+			).toContain(`padding: ${B2}`);
+			// A module's menu is every menu's: no rule of its own.
+			expect(
+				selectors.filter(
+					(s) => /\.classicyTaskbarTrayPopup\b/.test(s) && !s.endsWith(tray),
+				),
+			).toEqual([]);
+		});
+	});
 });

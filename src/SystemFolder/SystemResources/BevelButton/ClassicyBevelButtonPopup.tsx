@@ -32,6 +32,7 @@ import {
 	classicyMenuWholePixel,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import { ClassicyMenuScrollMarginContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuScrollMargin.internal";
 
 // A panel (non-menu surface) gives keyboard focus to its first control.
 const PANEL_FOCUS_SELECTOR =
@@ -57,6 +58,16 @@ type ClassicyBevelButtonPopupProps = {
 	 * (every other surface), the surface's DOM is as it was.
 	 */
 	aside?: ReactNode;
+	/**
+	 * How far its menu's scroll cap keeps the list from the bottom of the
+	 * menu bounds, in px. Absent (every surface but the Windows shell's),
+	 * the pop-up menus' 4, as before. The taskbar's Start menu and tray
+	 * pop-ups pass 0: they sit flush on the taskbar band's top edge, which
+	 * the bounds end at, so a menu that fits there is drawn whole rather
+	 * than capped by the margin into scrolling (plan 0020-w98 §2). Its
+	 * submenus keep the same margin.
+	 */
+	menuScrollMargin?: number;
 	/** Accessible name for the menu or panel. */
 	label?: string;
 	/** Move focus onto the first enabled item — set when opened by keyboard. */
@@ -91,6 +102,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	menuItems,
 	content,
 	aside,
+	menuScrollMargin,
 	label,
 	focusFirstItem = false,
 	buttonRef,
@@ -231,6 +243,15 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		...consumerStyle,
 	};
 
+	const menu = menuItems ? (
+		<ClassicyMenu
+			name={id}
+			menuItems={menuItems}
+			navClass="classicyContextMenu"
+			subNavClass="classicyContextSubMenu"
+		/>
+	) : null;
+
 	const surface = menuItems ? (
 		<ClassicyMenuProvider onClose={onClose} startActive={true}>
 			<div
@@ -243,12 +264,13 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 				onKeyDown={onMenuKeyDown}
 			>
 				{aside}
-				<ClassicyMenu
-					name={id}
-					menuItems={menuItems}
-					navClass="classicyContextMenu"
-					subNavClass="classicyContextSubMenu"
-				/>
+				{menuScrollMargin === undefined ? (
+					menu
+				) : (
+					<ClassicyMenuScrollMarginContext.Provider value={menuScrollMargin}>
+						{menu}
+					</ClassicyMenuScrollMarginContext.Provider>
+				)}
 			</div>
 		</ClassicyMenuProvider>
 	) : (

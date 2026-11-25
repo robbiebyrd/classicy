@@ -120,8 +120,9 @@ describe("the Windows 98 appearance package", () => {
 	// The colors no palette slot holds are the package's families: the
 	// title bars' (ActiveTitle, GradientActiveTitle, InactiveTitle,
 	// GradientInactiveTitle, TitleText, InactiveTitleText), the selected
-	// text's (HilightText), the ToolTip's (InfoWindow, InfoText) and the
-	// desktop labels'. Windows 95's bars are flat: both gradient ends equal.
+	// text's (HilightText), the ToolTip's (InfoWindow, InfoText), the
+	// desktop labels' and the Start menu banner's. Windows 95's bars are
+	// flat: both gradient ends equal.
 	it("carries the title-bar, selection, ToolTip and desktop colors as its color families", () => {
 		const [standard, win95] = windows98Json.presets;
 		expect(standard.color.families.titleBar).toEqual({
@@ -149,6 +150,7 @@ describe("the Windows 98 appearance package", () => {
 			"selection",
 			"tooltip",
 			"desktop",
+			"startMenu",
 		]);
 		for (const [family, { colors }] of Object.entries(
 			windows98Json.colorFamilies,
@@ -177,6 +179,9 @@ describe("the Windows 98 appearance package", () => {
 			"--package-color-tooltip-face": "#ffffe1",
 			"--package-color-tooltip-text": "#000000",
 			"--package-color-desktop-text": "#ffffff",
+			"--package-color-start-menu-banner": "#0000ff",
+			"--package-color-start-menu-banner-gradient": "#000080",
+			"--package-color-start-menu-banner-text": "#ffffff",
 			"--pixel-unit": "1px",
 			"--title-bar-button-width": "16px",
 			"--title-bar-button-height": "14px",
@@ -301,6 +306,59 @@ describe("the Windows 98 appearance package", () => {
 				"--taskbar-clock-padding-x": "5px",
 				"--icon-small-size": "16px",
 				"--pixel-unit": "1px",
+			});
+	});
+
+	// The Start menu (plan 0020-w98 §3 and §7; WIG Ch.3 "The Start Button",
+	// p.15): its banner is Windows 98 SE's explorer.exe bitmap 157, 21 px
+	// wide, its letters set at 18 px (their 10-pixel x-height and 13-pixel
+	// ascenders) from 5 px above its foot, drawn from the package's
+	// `startMenu` colors, the same in every scheme as the bitmap was: blue
+	// (`banner`) near the foot, navy (`bannerGradient`, the bitmap's top row)
+	// above, the text white; its first level 32 px rows of 32 px icons, 2 px
+	// in and 4 px before the label. The stylesheet alone reads the knobs.
+	it("sizes the Start menu from its knobs and colors its banner from its family in every theme", async () => {
+		const startMenu = {
+			bannerWidth: 21,
+			bannerFontSize: 18,
+			bannerInset: 5,
+			itemHeight: 32,
+			iconSize: 32,
+			iconInset: 2,
+			iconGap: 4,
+		};
+		const family = {
+			banner: 0x0000ff,
+			bannerGradient: ACTIVE_TITLE,
+			bannerText: WHITE,
+		};
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets]) {
+			expect(theme.measurements.startMenu, theme.id).toEqual(startMenu);
+			expect(theme.color.families.startMenu, theme.id).toEqual(family);
+		}
+		// The row holds its icon exactly.
+		expect(startMenu.itemHeight).toBe(startMenu.iconSize);
+		expect(windows98Json.colorFamilies.startMenu).toEqual({
+			label: "Start menu",
+			colors: {
+				banner: { label: "Banner" },
+				bannerGradient: { label: "Banner gradient" },
+				bannerText: { label: "Banner text" },
+			},
+		});
+		await import("./index");
+		for (const theme of getAllThemes())
+			expect(getThemeVars(theme), theme.id).toMatchObject({
+				"--start-menu-banner-width": "21px",
+				"--start-menu-banner-font-size": "18px",
+				"--start-menu-banner-inset": "5px",
+				"--start-menu-item-height": "32px",
+				"--start-menu-icon-size": "32px",
+				"--start-menu-icon-inset": "2px",
+				"--start-menu-icon-gap": "4px",
+				"--package-color-start-menu-banner": "#0000ff",
+				"--package-color-start-menu-banner-gradient": "#000080",
+				"--package-color-start-menu-banner-text": "#ffffff",
 			});
 	});
 

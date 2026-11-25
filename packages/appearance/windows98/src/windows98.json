@@ -41,6 +41,11 @@
 				},
 				"desktop": {
 					"text": 16777215
+				},
+				"startMenu": {
+					"banner": 255,
+					"bannerGradient": 128,
+					"bannerText": 16777215
 				}
 			}
 		},
@@ -177,6 +182,15 @@
 				"trayPaddingX": 3,
 				"clockPaddingX": 5
 			},
+			"startMenu": {
+				"bannerWidth": 21,
+				"bannerFontSize": 18,
+				"bannerInset": 5,
+				"itemHeight": 32,
+				"iconSize": 32,
+				"iconInset": 2,
+				"iconGap": 4
+			},
 			"menu": {
 				"popUpMaxHeight": 106
 			},
@@ -257,6 +271,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -392,6 +411,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -472,6 +500,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -607,6 +640,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -689,6 +731,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -824,6 +871,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -906,6 +962,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -1041,6 +1102,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1123,6 +1193,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -1258,6 +1333,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1340,6 +1424,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -1475,6 +1564,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1559,6 +1657,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -1694,6 +1797,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1774,6 +1886,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -1909,6 +2026,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1989,6 +2115,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -2124,6 +2255,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -2208,6 +2348,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -2343,6 +2488,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -2425,6 +2579,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -2560,6 +2719,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -2642,6 +2810,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -2777,6 +2950,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -2861,6 +3043,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -2996,6 +3183,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3078,6 +3274,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -3213,6 +3414,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3295,6 +3505,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -3430,6 +3645,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3512,6 +3736,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -3647,6 +3876,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3727,6 +3965,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -3862,6 +4105,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3946,6 +4198,11 @@
 					},
 					"desktop": {
 						"text": 16777215
+					},
+					"startMenu": {
+						"banner": 255,
+						"bannerGradient": 128,
+						"bannerText": 16777215
 					}
 				}
 			},
@@ -4081,6 +4338,15 @@
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
 					"clockPaddingX": 5
+				},
+				"startMenu": {
+					"bannerWidth": 21,
+					"bannerFontSize": 18,
+					"bannerInset": 5,
+					"itemHeight": 32,
+					"iconSize": 32,
+					"iconInset": 2,
+					"iconGap": 4
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -4280,6 +4546,20 @@
 			"colors": {
 				"text": {
 					"label": "Icon label text"
+				}
+			}
+		},
+		"startMenu": {
+			"label": "Start menu",
+			"colors": {
+				"banner": {
+					"label": "Banner"
+				},
+				"bannerGradient": {
+					"label": "Banner gradient"
+				},
+				"bannerText": {
+					"label": "Banner text"
 				}
 			}
 		}

@@ -182,6 +182,17 @@ describe("the Start menu", () => {
 			DESKTOP.height - TASKBAR_HEIGHT - MENU.height,
 		);
 		expect(pxOf(surface.style.left)).toBe(START.left);
+		// Flush on that edge, its menu fits and is drawn whole: its scroll
+		// cap keeps no margin from the band (the pop-up menus' 4 px would
+		// have it scroll by that much).
+		const list = surface.querySelector(
+			":scope > .classicyMenuWrapper > ul",
+		) as HTMLElement;
+		expect(list).not.toHaveClass("classicyMenuListScrolls");
+		expect(list.style.maxHeight).toBe("");
+		expect(
+			document.querySelector('[data-classicy-part="menu-scroll-down"]'),
+		).toBeNull();
 	});
 
 	describe("the banner", () => {

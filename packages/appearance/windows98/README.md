@@ -43,9 +43,9 @@ and `nodenext` resolution).
   color), Plum (high color), Pumpkin (large), Rainy Day, Red, White, and
   Blue (VGA), Rose, Slate, Spruce, Storm (VGA), Teal (VGA) and Wheat (ids
   `windows98Brick` and so on). Every scheme is a recoloring of one
-  stylesheet: the title-bar colors, the selected text's, the ToolTip's and
-  the desktop labels' are the package's own color families, editable in the
-  Colors tab beside the palette.
+  stylesheet: the title-bar colors, the selected text's, the ToolTip's, the
+  desktop labels' and the Start menu banner's are the package's own color
+  families, editable in the Colors tab beside the palette.
 - **The Windows shell.** No menu bar crosses the top of the screen: each
   window has its own, under its title bar, ending with a Help menu that
   holds Classicy's help commands, the application's own and, last, "About"
@@ -148,6 +148,15 @@ and `nodenext` resolution).
     active window's pushed in over a checkered face with its title in bold;
     and the notification area in a sunken pane, its icons flat and the
     clock at its right end, as Windows 98 drew them;
+  - the Start menu, sitting on the taskbar's top edge in one raised frame
+    around its banner and its items: the banner a navy-to-blue strip down
+    its left side, "Windows" in bold and "98" reading upward in white, as
+    Windows 98's banner was in every color scheme (its colors are the Start
+    menu color family in the Colors tab), the first level large 32-pixel
+    icons on 32-pixel rows, and Programs, Settings and Control Panel
+    ordinary menus with small icons; a notification icon's menu is an
+    ordinary menu, and its panel (the Sound volume slider) sits in the same
+    raised frame, both drawn whole on the taskbar's top edge;
   - controls: 23-pixel push buttons with the default button's dark ring and
     the dotted focus rectangle, 13-pixel checkboxes, 12-pixel radio buttons,
     sunken text fields and lists, pop-up menus with their drop-down button,

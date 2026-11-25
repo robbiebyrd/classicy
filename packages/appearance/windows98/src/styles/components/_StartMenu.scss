@@ -1,0 +1,131 @@
+// The Windows 98 Start menu, included by windows98.scss inside the package
+// wrapper after the taskbar: it dresses the surface ClassicyStartMenu.scss
+// lays out (a ClassicyBevelButtonPopup, `classicyStartMenu`: the banner
+// first, the menu beside it; plan 0020-w98 §3 and §7). WIG Ch.3 "The Start
+// Button" (p.15) names the menu and draws none; the pixels are Windows 98's
+// as its shell built them, which ReactOS's shell menu band (`CMenuDeskBar`,
+// `CMenuToolbars`) carries over, and as the Windows 98 SE CD's explorer.exe
+// holds its banner (bitmap 157):
+//
+// - The frame: one dialog frame around the banner and the items together
+//   (the band's window is WS_POPUP | WS_DLGFRAME: DrawEdge's EDGE_RAISED and
+//   one ring of ButtonFace inside it, SM_CXDLGFRAME 3), the menu frame of
+//   _Menu.scss (`Menu.menu-frame`, which a tray icon's panel wears too,
+//   _Taskbar.scss). The menu list inside keeps no frame of its own: the
+//   banner and the items share the one.
+// - The banner: `--start-menu-banner-width` (21, the bitmap's width) at the
+//   left of the client area, its full height (the band blits the bitmap at
+//   the foot and stretches its top row over the rest). Its gradient is the
+//   bitmap's, a 16-color dither of navy and blue drawn smooth from the
+//   package's `startMenu` colors: `bannerGradient` (navy, the top row's
+//   color) over everything above the 98th row from the foot, ramping to
+//   `banner` (blue) at the 52nd, blue down to the 28th, then back toward
+//   navy, about a sixth of the way to blue in the foot's row. The text, set
+//   in the bitmap from the foot up, is `--start-menu-banner-font-size` (18:
+//   its letters' 10-pixel x-height and 13-pixel ascenders) in the UI font
+//   (the bitmap's face is Microsoft's: the package draws no Microsoft art)
+//   and `bannerText` (white): the layout's `startBanner.title` bold, then
+//   its `edition` regular, from `--start-menu-banner-inset` (5) above the
+//   foot, the letters' tops toward the menu's left edge, their line the
+//   banner's width, so their tops stand about three pixels in and their
+//   baseline four from the right, as the bitmap's do. The colors and text
+//   are the same in every scheme, as the bitmap was.
+// - The first level: rows `--start-menu-item-height` (32) tall, each with
+//   its `--start-menu-icon-size` (32) icon `--start-menu-icon-inset` (2) in
+//   from the banner, `--start-menu-icon-gap` (4) before the label (ReactOS
+//   sets the large-icon band's buttons no vertical padding). The tracked
+//   row's Hilight band, the submenu triangles, the separators and every
+//   submenu (16 px icons, 17 px rows: Programs, Settings, Control Panel)
+//   are _Menu.scss's.
+//
+//   Windows color       token
+//   ButtonFace          --color-system-03   the face, the frame's inner ring
+//   (the frame's rings, _bevels.scss's window frame)
+//   banner navy         --package-color-start-menu-banner-gradient
+//                       (--color-highlight)
+//   banner blue         --package-color-start-menu-banner (--color-highlight)
+//   banner text         --package-color-start-menu-banner-text (--color-white)
+//
+// Every length is a `startMenu` knob or grid pixels of the banner's rows
+// (`px()`); every color a package color with a core token behind it, for a
+// theme of another package.
+@use "../pixel" as *;
+@use "Menu";
+
+// --- Colors -----------------------------------------------------------------
+$banner: var(--package-color-start-menu-banner, var(--color-highlight));
+$banner-gradient: var(--package-color-start-menu-banner-gradient, var(--color-highlight));
+$banner-text: var(--package-color-start-menu-banner-text, var(--color-white));
+
+// The bitmap's gradient, from its foot up (the banner is turned half a
+// turn, below, so its own top is the menu's bottom and a gradient running
+// down it runs up the screen): about a sixth of the way from navy to blue
+// in the foot's row, blue from the 28th row to the 52nd, navy from the
+// 98th on.
+$banner-gradient-art: linear-gradient(
+  color-mix(in srgb, #{$banner} 15%, #{$banner-gradient}) 0,
+  $banner px(28),
+  $banner px(52),
+  $banner-gradient px(98)
+);
+
+// The menu's own list (the first level), not a submenu's.
+$first-level: ".classicyStartMenu > .classicyMenuWrapper > .classicyContextMenu";
+
+@mixin start-menu {
+  // --- The frame --------------------------------------------------------------
+  // One dialog frame around the banner and the items.
+  .classicyBevelButtonPopup.classicyStartMenu {
+    @include Menu.menu-frame;
+  }
+
+  // The menu inside keeps no frame of its own, nor does the sibling a capped
+  // list draws its frame on.
+  #{$first-level} {
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .classicyStartMenu > .classicyMenuWrapper > .classicyMenuScrollShadow {
+    box-shadow: none;
+  }
+
+  // --- The banner -------------------------------------------------------------
+  // Set top to bottom, then turned half a turn: the text runs up from the
+  // foot, the letters' tops toward the left, and the banner's own top (the
+  // inset, the gradient's start) is the menu's bottom.
+  .classicyStartMenuBanner {
+    justify-content: flex-start;
+    align-items: center;
+    width: var(--start-menu-banner-width);
+    padding: var(--start-menu-banner-inset) 0 0;
+    color: $banner-text;
+    background: $banner-gradient-art;
+    font-family: var(--ui-font);
+    font-size: var(--start-menu-banner-font-size);
+    line-height: var(--start-menu-banner-width);
+    writing-mode: vertical-rl;
+    rotate: 180deg;
+  }
+
+  .classicyStartMenuBannerTitle {
+    font-weight: bold;
+  }
+
+  .classicyStartMenuBannerEdition {
+    font-weight: normal;
+  }
+
+  // --- The first level ----------------------------------------------------------
+  // Rows the large icons' height, each icon a little in from the banner.
+  #{$first-level} > .classicyMenuItem {
+    height: var(--start-menu-item-height);
+    padding: 0 var(--menu-item-padding-x) 0 var(--start-menu-icon-inset);
+  }
+
+  #{$first-level} > .classicyMenuItem > p > img {
+    width: var(--start-menu-icon-size);
+    height: var(--start-menu-icon-size);
+    margin-right: var(--start-menu-icon-gap);
+  }
+}

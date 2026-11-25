@@ -125,10 +125,12 @@ const useClassicyStartMenuItems = () => {
  * `classicyStartMenu`) placed against the Start button: below it where there
  * is room, else, as at the foot of the desktop, flipped above it onto the
  * taskbar band's top edge (the menu bounds end there), on whole pixels inside
- * the desktop. The layout's `startBanner`, when it has one, is the surface's
- * first child (`classicyStartMenuBanner`, `data-classicy-part=
- * "start-menu-banner"`, `aria-hidden`: the title, then the edition), beside
- * the menu (`classicyStartMenuItems`).
+ * the desktop, its menu's scroll cap keeping no margin from that edge
+ * (`menuScrollMargin`), so it is drawn whole wherever it fits. The layout's
+ * `startBanner`, when it has one, is the surface's first child
+ * (`classicyStartMenuBanner`, `data-classicy-part="start-menu-banner"`,
+ * `aria-hidden`: the title, then the edition), beside the menu
+ * (`classicyStartMenuItems`).
  *
  * It opens with no item selected, however it was opened, as Windows' Start
  * menu does: Down Arrow selects the first item and Up Arrow the last, from
@@ -188,6 +190,8 @@ export const ClassicyStartMenu: FunctionalComponent<ClassicyStartMenuProps> = ({
 			buttonRef={buttonRef}
 			onClose={onClose}
 			aside={aside}
+			// It sits on the band's top edge: a menu that fits there is whole.
+			menuScrollMargin={0}
 		/>
 	);
 };

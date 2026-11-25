@@ -805,6 +805,13 @@ describe("the tray", () => {
 				DESKTOP.height - TASKBAR_HEIGHT - PANEL.height,
 			);
 			expect(pxOf(menu.style.left)).toBe(ICON.left);
+			// Flush on the band's top edge it fits, and is drawn whole: no
+			// scroll cap held 4 px off the edge.
+			const list = menu.querySelector(
+				":scope > .classicyMenuWrapper > ul",
+			) as HTMLElement;
+			expect(list).not.toHaveClass("classicyMenuListScrolls");
+			expect(list.style.maxHeight).toBe("");
 		});
 	});
 });

@@ -68,8 +68,17 @@
 // Scrollbar color where Window and ButtonHilight differ (eleven of the
 // eighteen themes), by the rule user32 applies to a scroll bar's track
 // (`DEFWND_ControlColor`), but the themes carry no Scrollbar color, and the
-// track keeps the checker too. The Start menu and the status area's pop-ups
-// are _Menu.scss's and _PopUpMenu.scss's.
+// track keeps the checker too.
+//
+// - The status area's pop-ups, which open above their icon on the bar's top
+//   edge: a module's menu (`classicyTaskbarTrayPopup` around a menu, and its
+//   button-2 menu at the pointer) is every menu's (_Menu.scss); its panel
+//   (the Sound module's slider) wears the dialog frame around its content,
+//   the menu frame (`Menu.menu-frame`: EDGE_RAISED and one ring of
+//   ButtonFace), as Windows 98's own tray pop-up did (sndvol32's tray volume
+//   dialog is DS_MODALFRAME, its frame SM_CXDLGFRAME 3), where another bevel
+//   pop-up's panel keeps the window frame's two rings alone
+//   (_PopUpMenu.scss). The Start menu is _StartMenu.scss's.
 //
 //   Windows color     token
 //   ButtonFace        --color-system-03   the bar, every face, the checker's
@@ -90,6 +99,7 @@
 //   ActiveTitle…      --package-color-title-bar-*   the glyph's caption
 @use "../bevels" as b;
 @use "../pixel" as *;
+@use "Menu";
 
 // --- Art --------------------------------------------------------------------
 // The Start button's glyph (16 x 14): a small window, six rectangles in
@@ -336,5 +346,13 @@ $edge: b.$b2;
     font-family: var(--ui-font);
     font-size: var(--ui-font-size);
     font-variant-numeric: tabular-nums;
+  }
+
+  // --- The pop-ups -------------------------------------------------------------
+  // A module's panel: the dialog frame around its content (three classes:
+  // it outranks the bevel pop-up panel's own rule, which _PopUpMenu.scss
+  // includes after this partial).
+  .classicyBevelButtonPopup.classicyBevelButtonPopupPanel.classicyTaskbarTrayPopup {
+    @include Menu.menu-frame;
   }
 }

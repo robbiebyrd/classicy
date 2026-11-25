@@ -296,6 +296,8 @@ const ClassicyTaskbarTrayIcon: FunctionalComponent<{
 					focusFirstItem={surface.keyboard}
 					buttonRef={buttonRef}
 					onClose={closeSurface}
+					// On the band's top edge, a menu that fits there is whole.
+					menuScrollMargin={0}
 				/>
 			)}
 		</>

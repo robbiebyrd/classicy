@@ -644,7 +644,11 @@ pull-down then hanging with its right side under its title's right side
 (base `ClassicyDesktopMenuBar.scss`; a package that places pull-downs itself
 places it too, as System 7 does); a submenu passing both sides keeps the side
 it passes by less; one still outside is pinned by equal and opposite wrapper
-margins, across and down. The scroll cap ends at the bounds' bottom; a
+margins, across and down. The scroll cap ends 4 px above the bounds'
+bottom (`POPUP_MENU_VIEWPORT_MARGIN`), or flush on it under a host that sits
+its menu there (`ClassicyMenuScrollMarginContext`, provided only by
+`ClassicyBevelButtonPopup`'s `menuScrollMargin`, which only the taskbar's
+Start menu and tray pop-ups pass, as 0: they sit on the band's top edge); a
 capped list's shadow sibling is rendered in the cap's own commit; a menu
 whose 64 px floor still passes the bounds is pinned, top winning. Again on
 reopen and on a desktop resize (the outermost open menu's `ResizeObserver` +

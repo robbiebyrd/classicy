@@ -94,7 +94,11 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
 // The menu frame: the window frame's bevel around a ButtonFace box, the
 // items a ring of face inside it. Inset shadows, so a list that scrolls
 // keeps them in place; the frame is drawn again on the sibling ClassicyMenu
-// puts over a scrolling list (below).
+// puts over a scrolling list (below). It is Windows' dialog frame
+// (WS_DLGFRAME, DS_MODALFRAME: EDGE_RAISED and one ring of ButtonFace,
+// SM_CXDLGFRAME 3), which the shell's pop-ups wear too: the Start menu
+// around its banner and items (_StartMenu.scss) and a notification icon's
+// panel (_Taskbar.scss).
 @mixin menu-frame {
   box-sizing: border-box;
   padding: $frame;

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	losePointerStream,
@@ -815,5 +815,89 @@ describe("ClassicyBevelButtonPopup", () => {
 
 	it("finds no item outside a surface", () => {
 		expect(classicyBevelPopupShownItems(null)).toEqual([]);
+	});
+
+	// Plan 0020-w98 §2: a surface flush on the bounds' bottom (the taskbar
+	// band's top edge, where the Windows shell's Start menu and tray pop-ups
+	// sit) keeps its menu whole under `menuScrollMargin={0}`; without it the
+	// menu's scroll cap keeps the pop-up menus' 4 px off the edge, as before,
+	// and a menu that fits there flush scrolls by that much. jsdom lays
+	// nothing out: the surface and its list share one stubbed 160 × 200 box.
+	describe("menuScrollMargin", () => {
+		const MENU = { width: 160, height: 200 };
+		// Below the bottom of the viewport (the bounds here): the surface
+		// flips above it and is pinned flush on the bounds' bottom.
+		const below = () => ({
+			top: window.innerHeight + 2,
+			bottom: window.innerHeight + 24,
+			left: 10,
+			right: 40,
+		});
+		const listOf = (surface: Element) =>
+			surface.querySelector(
+				":scope > .classicyMenuWrapper > ul",
+			) as HTMLElement;
+
+		beforeEach(() => {
+			vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+				function (this: Element) {
+					const surface = this.closest(".classicyBevelButtonPopup");
+					if (
+						surface &&
+						(this === surface || (this.tagName === "UL" && !this.closest("li")))
+					) {
+						const { left, top } = (surface as HTMLElement).style;
+						return DOMRect.fromRect({
+							x: Number.parseFloat(left) || 0,
+							y: Number.parseFloat(top) || 0,
+							width: MENU.width,
+							height: MENU.height,
+						});
+					}
+					return DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
+				},
+			);
+			const computed = window.getComputedStyle;
+			vi.spyOn(window, "getComputedStyle").mockImplementation(
+				(el: Element, pseudo?: string | null) =>
+					pseudo
+						? ({ content: "none" } as unknown as CSSStyleDeclaration)
+						: computed.call(window, el),
+			);
+		});
+
+		afterEach(() => vi.restoreAllMocks());
+
+		it("leaves the pop-up menus' margin without it: a menu flush on the bottom scrolls by it", () => {
+			render(<Surface menuItems={lassoItems(vi.fn())} anchor={below()} />);
+			const surface = screen.getByRole("menu", { name: "Surface" });
+			expect(Number.parseFloat(surface.style.top)).toBe(
+				window.innerHeight - MENU.height,
+			);
+			const list = listOf(surface);
+			expect(list).toHaveClass("classicyMenuListScrolls");
+			expect(list.style.maxHeight).toBe(`${MENU.height - 4}px`);
+		});
+
+		it("keeps the menu whole flush on the bottom under a margin of 0", () => {
+			render(
+				<Surface
+					menuItems={lassoItems(vi.fn())}
+					anchor={below()}
+					menuScrollMargin={0}
+				/>,
+			);
+			const surface = screen.getByRole("menu", { name: "Surface" });
+			expect(Number.parseFloat(surface.style.top)).toBe(
+				window.innerHeight - MENU.height,
+			);
+			const list = listOf(surface);
+			expect(list).not.toHaveClass("classicyMenuListScrolls");
+			expect(list.style.maxHeight).toBe("");
+			// The surface's DOM is the same: the margin is no element.
+			expect(Array.from(surface.children, (el) => el.className)).toEqual([
+				"classicyMenuWrapper",
+			]);
+		});
 	});
 });

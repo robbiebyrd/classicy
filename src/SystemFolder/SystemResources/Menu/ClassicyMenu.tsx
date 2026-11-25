@@ -34,12 +34,12 @@ import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyI
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { classicyMenuBounds } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
+import { ClassicyMenuScrollMarginContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuScrollMargin.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
 	ClassicyMenuPlacementEpoch,
 	useClassicySubmenuPlacement,
 } from "@/SystemFolder/SystemResources/Menu/useClassicySubmenuPlacement.internal";
-import { POPUP_MENU_VIEWPORT_MARGIN } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
 
@@ -256,6 +256,10 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	open,
 }) => {
 	const { closeSignal } = useContext(ClassicyMenuContext);
+	// How far the scroll cap keeps the list from the bounds' bottom: the
+	// pop-up menus' margin, unless a host that sits its menu flush on that
+	// edge provides another (the Windows shell's Start menu and tray pop-ups).
+	const scrollMargin = useContext(ClassicyMenuScrollMarginContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: closeSignal is intentionally used as a trigger; the effect resets menu state when the signal changes
@@ -357,9 +361,8 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 					px(style.borderTopWidth) +
 					px(style.borderBottomWidth);
 		// The room below it, to the bottom of what shows of its desktop (the
-		// desktop's overflow would clip a list run past it).
-		const room =
-			classicyMenuBounds(el).bottom - POPUP_MENU_VIEWPORT_MARGIN - rect.top;
+		// desktop's overflow would clip a list run past it), less the margin.
+		const room = classicyMenuBounds(el).bottom - scrollMargin - rect.top;
 		if (scrollCap === null) {
 			// From the list's top to its last laid-out row's bottom (its rows
 			// run down in order; a row with no box, `display: none`, is
