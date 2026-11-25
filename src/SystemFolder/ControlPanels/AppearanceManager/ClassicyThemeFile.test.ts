@@ -22,9 +22,12 @@ import {
 	slugifyClassicyThemeName,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
+	classicyThemeFileAccept,
 	classicyThemeFileName,
 	downloadClassicyTheme,
 	exportClassicyTheme,
+	isClassicyForeignThemeFile,
+	parseClassicyForeignThemeFile,
 	parseClassicyThemeFile,
 	portableClassicyThemeBackground,
 	readClassicyTheme,
@@ -494,5 +497,91 @@ describe("theme files and appearance packages", () => {
 		expect(parseError(JSON.stringify(file))).toBe(
 			'This theme needs the "irix" appearance package, which is not installed.',
 		);
+	});
+});
+
+// A package's importer for another system's theme files (Windows 98's
+// `.theme`): Load Theme… offers its extensions while the package is active
+// and validates what it returns as a Classicy theme file's theme.
+describe("theme files read by a package's importer", () => {
+	// The theme's package must be registered: the registry is reset above.
+	const platinum = getClassicyAppearancePackage("platinum");
+	beforeEach(() => {
+		if (platinum) registerClassicyAppearancePackage(platinum);
+	});
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const theme = () => ({
+		...structuredClone(getTheme("default")),
+		name: "Jungle",
+	});
+
+	it("accepts JSON alone without an importer, and the importer's extensions with one", () => {
+		expect(classicyThemeFileAccept()).toBe("application/json,.json");
+		expect(classicyThemeFileAccept({ extensions: [".theme"] })).toBe(
+			"application/json,.json,.theme",
+		);
+		expect(
+			isClassicyForeignThemeFile("Jungle.THEME", { extensions: [".theme"] }),
+		).toBe(true);
+		expect(
+			isClassicyForeignThemeFile("jungle.json", { extensions: [".theme"] }),
+		).toBe(false);
+		expect(isClassicyForeignThemeFile("Jungle.theme")).toBe(false);
+	});
+
+	it("validates the importer's theme as a theme file's", () => {
+		const read = vi.fn(() => ({ ok: true as const, theme: theme() }));
+		const result = parseClassicyForeignThemeFile("[Theme]", "Jungle.theme", {
+			extensions: [".theme"],
+			read,
+		});
+		expect(read).toHaveBeenCalledWith("[Theme]", "Jungle.theme");
+		expect(result).toMatchObject({ ok: true, theme: { name: "Jungle" } });
+		// Unsafe or invalid values never pass.
+		const bad = parseClassicyForeignThemeFile("x", "bad.theme", {
+			extensions: [".theme"],
+			read: () => ({
+				ok: true,
+				theme: { ...theme(), typography: { ...theme().typography, ui: "x;}" } },
+			}),
+		});
+		expect(bad.ok).toBe(false);
+	});
+
+	it("reports the importer's refusal, a throw or a malformed answer as a failure", () => {
+		const importer = (read: () => unknown) => ({
+			extensions: [".theme"],
+			read: read as never,
+		});
+		expect(
+			parseClassicyForeignThemeFile(
+				"x",
+				"a.theme",
+				importer(() => ({ ok: false, error: "Not a Windows theme." })),
+			),
+		).toEqual({ ok: false, error: "Not a Windows theme." });
+		expect(
+			parseClassicyForeignThemeFile(
+				"x",
+				"a.theme",
+				importer(() => {
+					throw new Error("boom");
+				}),
+			),
+		).toEqual({ ok: false, error: "This theme file could not be read." });
+		expect(
+			parseClassicyForeignThemeFile(
+				"x",
+				"a.theme",
+				importer(() => "nope"),
+			).ok,
+		).toBe(false);
+		expect(
+			parseClassicyForeignThemeFile(
+				"x".repeat(300 * 1024),
+				"a.theme",
+				importer(() => ({ ok: true, theme: theme() })),
+			),
+		).toEqual({ ok: false, error: "This file is too large to be a theme." });
 	});
 });

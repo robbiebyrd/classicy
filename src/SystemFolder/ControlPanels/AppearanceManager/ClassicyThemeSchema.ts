@@ -202,6 +202,27 @@ export const ClassicyThemeSchema = z.object({
 		monoSize: fontSize,
 		digital: fontStack,
 		digitalSize: fontSize,
+		// An Appearance Package's own fonts (`--package-font-<name>`): names
+		// the walker emits, each a font stack with an optional size and
+		// weight. Optional, so a file without them loads; a build that
+		// predates them strips the key, so a file with them still loads there,
+		// in the core fonts.
+		families: z
+			.record(
+				colorFamilyName,
+				z.object({
+					font: fontStack,
+					size: fontSize.optional(),
+					weight: z
+						.number()
+						.int()
+						.min(100)
+						.max(900)
+						.multipleOf(100, "must be a weight from 100 to 900 in hundreds")
+						.optional(),
+				}),
+			)
+			.optional(),
 	}),
 	measurements: z
 		.object({

@@ -22,7 +22,7 @@ import {
 
 const keysOf = (
 	titles: (string | [string, string])[],
-	mode: "explicit" | "auto",
+	mode: "explicit" | "auto" | undefined,
 ) =>
 	resolveClassicyAccessKeys(
 		titles.map((t) =>
@@ -76,6 +76,16 @@ describe("classicyAutoAccessKeyIndex", () => {
 });
 
 describe("resolveClassicyAccessKeys", () => {
+	// A package that declares no `layout.menu.accessKeys` (Platinum, System
+	// 7: Mac OS had no access keys) gives none, an explicit one included.
+	it("gives none, an explicit key included, with no mode declared", () => {
+		expect(keysOf(["File", ["Edit", "E"], "View"], undefined)).toEqual([
+			null,
+			null,
+			null,
+		]);
+	});
+
 	it("gives only explicit keys under explicit, none to the rest", () => {
 		expect(keysOf(["File", ["Edit", "E"], "View"], "explicit")).toEqual([
 			null,

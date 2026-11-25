@@ -1,6 +1,6 @@
 // The flash class comes from Platinum's MenuItem press hook.
 import "@classicy/appearance-platinum";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	act,
@@ -44,9 +44,13 @@ import windows98 from "../../../../packages/appearance/windows98/src/windows98.j
 
 // The store is mocked, so nothing connects the active package id; stand in
 // for the store's connection. Platinum (registered above) is the default
-// layout, which declares no menu keys; `windows-menus` carries the Windows
-// 98 package's own layout (`menu.submenuDelayMs` 400, `menu.disabledItems`
-// "browse", `menuBar.idleTimeoutMs` 0).
+// layout, which declares no menu keys (Mac OS 8's menus: Return alone, no
+// access keys); `windows-menus` carries the Windows 98 package's own layout
+// (`menu.keys` "windows", `menu.submenuDelayMs` 400, `menu.disabledItems`
+// "browse", `menu.accessKeys` "auto", `menuBar.idleTimeoutMs` 0);
+// `windows-keys` declares Windows' menu keyboard alone (dimmed items
+// skipped, no access keys, no delays), and `windows-keys-explicit` adds
+// explicit access keys to it.
 const activePackage = { id: "platinum" };
 connectClassicyAssetPackageSource({
 	getId: () => activePackage.id,
@@ -63,6 +67,25 @@ registerClassicyAppearancePackage({
 	},
 	layout: windows98.layout as never,
 });
+for (const [id, menu] of [
+	["windows-keys", { keys: "windows" }],
+	["windows-keys-explicit", { keys: "windows", accessKeys: "explicit" }],
+] as const)
+	registerClassicyAppearancePackage({
+		id,
+		name: id,
+		css: "",
+		defaults: {
+			...CLASSICY_CORE_DEFAULT_THEME,
+			id: `${id}-default`,
+			package: id,
+		},
+		layout: {
+			...windows98.layout,
+			menuBar: { placement: "screen" },
+			menu,
+		} as never,
+	});
 
 const basicItems = [
 	{ id: "item-1", title: "File" },
@@ -493,7 +516,72 @@ const key = (k: string, init: Record<string, unknown> = {}) =>
 const barList = () =>
 	document.querySelector(".classicyDesktopMenu") as HTMLElement;
 
-describe("ClassicyMenu — keyboard navigation (WIG Ch.7, p.98; the audit's 7.7)", () => {
+describe("ClassicyMenu — the keyboard under Mac OS menus (no layout.menu.keys: Platinum, System 7)", () => {
+	// Mac OS 8's and System 7's menus had no keyboard navigation (HIGOS8
+	// "Sticky Menus", p.92): Return alone chooses the focused item, as it
+	// always did, and every other key is left to its owner.
+	it("chooses the focused item on Return alone, and takes no other key", () => {
+		vi.useFakeTimers();
+		const onClose = vi.fn();
+		const { spies } = renderBar(barSpies(), onClose);
+		const before = screen.getByText("before");
+		before.focus();
+		expect(fireEvent.keyDown(before, { key: "F10" })).toBe(true);
+		expect(before).toHaveFocus();
+		item("file").focus();
+		for (const k of ["ArrowDown", "ArrowUp", "ArrowRight", "Home", " ", "n"])
+			expect(key(k)).toBe(true);
+		expect(item("file")).not.toHaveClass("open");
+		expect(item("file")).toHaveFocus();
+		// Return opens the title's menu, as a click does, and leaves focus.
+		expect(key("Enter")).toBe(false);
+		expect(item("file")).toHaveClass("open");
+		expect(item("file")).toHaveFocus();
+		expect(barList()).not.toHaveClass("focused");
+		// Escape closes nothing; a focused item is chosen by Return.
+		expect(key("Escape")).toBe(true);
+		expect(item("file")).toHaveClass("open");
+		item("open").focus();
+		expect(key("ArrowDown")).toBe(true);
+		expect(item("open")).toHaveFocus();
+		expect(key("Enter")).toBe(false);
+		act(() => {
+			vi.advanceTimersByTime(450);
+		});
+		expect(spies.open).toHaveBeenCalledTimes(1);
+		expect(item("file")).not.toHaveClass("open");
+		expect(barList()).not.toHaveClass("focused");
+	});
+
+	it("leaves a pop-up menu's keys to the document while focus is outside it", () => {
+		const onClose = vi.fn();
+		render(
+			<ClassicyMenuProvider startActive onClose={onClose}>
+				<button type="button">target</button>
+				<ClassicyMenu
+					name="popup"
+					navClass="classicyContextMenu"
+					menuItems={[
+						{ id: "copy", title: "Copy", accessKey: "c" },
+						{ id: "paste", title: "Paste" },
+					]}
+				/>
+			</ClassicyMenuProvider>,
+		);
+		const target = screen.getByText("target");
+		target.focus();
+		for (const k of ["ArrowDown", "ArrowUp", "Escape", "c"])
+			expect(fireEvent.keyDown(target, { key: k })).toBe(true);
+		expect(target).toHaveFocus();
+		expect(onClose).not.toHaveBeenCalled();
+	});
+});
+
+describe("ClassicyMenu — keyboard navigation (layout.menu.keys windows; WIG Ch.7, p.98; the audit's 7.7)", () => {
+	beforeEach(() => {
+		activePackage.id = "windows-keys";
+	});
+
 	it("activates the bar on F10, walks its titles with wrap-around, and gives focus back on a second F10", () => {
 		renderBar();
 		const before = screen.getByText("before");
@@ -707,7 +795,11 @@ describe("ClassicyMenu — keyboard navigation (WIG Ch.7, p.98; the audit's 7.7)
 	});
 });
 
-describe("ClassicyMenu — a pop-up root menu and the keyboard (WIG Ch.7, p.101; the audit's 7.8)", () => {
+describe("ClassicyMenu — a pop-up root menu and the keyboard (layout.menu.keys windows; WIG Ch.7, p.101; the audit's 7.8)", () => {
+	beforeEach(() => {
+		activePackage.id = "windows-keys";
+	});
+
 	const renderPopup = (onClose = vi.fn()) => {
 		render(
 			<ClassicyMenuProvider startActive onClose={onClose}>
@@ -1015,7 +1107,7 @@ describe("ClassicyMenu — access keys (WIG Ch.7, pp.97, 106, 109; the audit's 7
 	};
 
 	it("draws none and leaves Alt to the browser under a package without access keys (Platinum)", () => {
-		renderBar();
+		const first = renderBar();
 		expect(parts()).toHaveLength(0);
 		expect(document.querySelector("[aria-keyshortcuts]")).toBeNull();
 		const before = screen.getByText("before");
@@ -1024,15 +1116,67 @@ describe("ClassicyMenu — access keys (WIG Ch.7, pp.97, 106, 109; the audit's 7
 		expect(item("file")).not.toHaveClass("open");
 		pressAlt(before);
 		expect(before).toHaveFocus();
-		// Typing still jumps by the first letter (L2-A's type-ahead).
+		// Under Windows' keys with no access keys, typing jumps by the first
+		// letter (L2-A's type-ahead).
+		first.unmount();
+		activePackage.id = "windows-keys";
+		renderBar();
+		expect(parts()).toHaveLength(0);
 		item("file").focus();
 		key("ArrowDown");
 		key("q");
 		expect(item("quit")).toHaveFocus();
 	});
 
+	// Mac OS had no access keys: a host's explicit `accessKey` is inert under
+	// a package that declares no `layout.menu.accessKeys`.
+	it("ignores an explicit key under a package without access keys (Platinum): nothing drawn, named or taken", () => {
+		vi.useFakeTimers();
+		const open = vi.fn();
+		render(
+			<ClassicyMenuProvider>
+				<button type="button">before</button>
+				<ClassicyMenu
+					name="bar"
+					navClass="classicyDesktopMenu"
+					subNavClass="classicySubMenu"
+					menuItems={[
+						{
+							id: "file",
+							title: "File",
+							accessKey: "F",
+							menuChildren: [
+								{
+									id: "open",
+									title: "Open",
+									accessKey: "p",
+									onClickFunc: open,
+								},
+							],
+						},
+					]}
+				/>
+			</ClassicyMenuProvider>,
+		);
+		expect(parts()).toHaveLength(0);
+		expect(document.querySelector("[aria-keyshortcuts]")).toBeNull();
+		expect(item("file").querySelector("p")?.innerHTML).toBe("File");
+		const before = screen.getByText("before");
+		before.focus();
+		expect(alt("f", before)).toBe(true);
+		expect(item("file")).not.toHaveClass("open");
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		item("open").focus();
+		expect(key("p")).toBe(true);
+		act(() => {
+			vi.advanceTimersByTime(450);
+		});
+		expect(open).not.toHaveBeenCalled();
+	});
+
 	it("underlines an explicit key's first match, in its own case first, and chooses its item when typed", () => {
 		vi.useFakeTimers();
+		activePackage.id = "windows-keys-explicit";
 		const open = vi.fn();
 		render(
 			<ClassicyMenuProvider>
@@ -1220,6 +1364,7 @@ describe("ClassicyMenu — access keys (WIG Ch.7, pp.97, 106, 109; the audit's 7
 					/>
 				</ClassicyMenuProvider>,
 			);
+		activePackage.id = "windows-keys-explicit";
 		const first = bar();
 		item("menu").focus();
 		key("ArrowDown");
@@ -1228,7 +1373,7 @@ describe("ClassicyMenu — access keys (WIG Ch.7, pp.97, 106, 109; the audit's 7
 		expect(item("tab")).toHaveFocus();
 		key("t");
 		expect(item("cut")).toHaveFocus();
-		// Dimmed, passed over (Platinum's skip): focus stays.
+		// Dimmed, passed over (the default skip): focus stays.
 		key("d");
 		expect(item("cut")).toHaveFocus();
 		act(() => {
@@ -1277,6 +1422,7 @@ describe("ClassicyMenu — access keys (WIG Ch.7, pp.97, 106, 109; the audit's 7
 	});
 
 	it("passes a pop-up menu's letters on under a package without access keys", () => {
+		activePackage.id = "windows-keys";
 		const copy = vi.fn();
 		render(
 			<ClassicyMenuProvider startActive>

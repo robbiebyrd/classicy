@@ -190,8 +190,12 @@ describe("the optional desktopIconGrid knobs", () => {
 	it("ignores knobs that are not finite numbers of zero or more", () => {
 		const theme = getTheme("default");
 		for (const desktopIconGrid of [
-			{ rowGap: -1, top: -1 },
-			{ rowGap: Number.NaN, top: Number.POSITIVE_INFINITY },
+			{ rowGap: -1, columnGap: -1, top: -1 },
+			{
+				rowGap: Number.NaN,
+				columnGap: Number.NaN,
+				top: Number.POSITIVE_INFINITY,
+			},
 			{},
 		]) {
 			const metrics = classicyDesktopIconMetrics({
@@ -199,8 +203,40 @@ describe("the optional desktopIconGrid knobs", () => {
 				measurements: { ...theme.measurements, desktopIconGrid },
 			} as ClassicyTheme);
 			expect(metrics.rowPitch).toBeUndefined();
+			expect(metrics.columnPitch).toBeUndefined();
 			expect(metrics.top).toBeUndefined();
 		}
+	});
+
+	// Windows 98's IconSpacing: icon cells 75 px apart both ways (Wine
+	// sysparams.c, 1125 twips), declared as `columnGap` and `rowGap` 43 over
+	// a 32 px icon. Without `columnGap`, columns keep `cell + padding`.
+	it("steps columns by columnPitch, the icon size plus columnGap, when the package declares it", () => {
+		const theme = getTheme("default");
+		const spaced = classicyDesktopIconMetrics({
+			...theme,
+			desktop: { ...theme.desktop, iconSize: 32 },
+			measurements: {
+				...theme.measurements,
+				desktopIconGrid: { rowGap: 43, columnGap: 43 },
+			},
+		} as ClassicyTheme);
+		expect(spaced).toMatchObject({ rowPitch: 75, columnPitch: 75 });
+		expect(
+			[1, 2, 3].map(
+				(col) => classicyDesktopIconGridPosition(spaced, col, 0, "top-left")[0],
+			),
+		).toEqual([8, 83, 158]);
+		expect(classicyDesktopIconGridPosition(spaced, 1, 1, "top-left")[1]).toBe(
+			32 + 75,
+		);
+		expect(classicyDesktopIconGridPosition(spaced, 2, 0, "top-right")[0]).toBe(
+			1024 - 150,
+		);
+		// Absent, the columns step by cell + padding (72) as before.
+		expect(
+			classicyDesktopIconGridPosition(metrics32, 3, 0, "top-left")[0],
+		).toBe(8 + 2 * 72);
 	});
 
 	it("lays the desktop out on the knobs' rows, as many as fit", () => {

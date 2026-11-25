@@ -273,10 +273,16 @@ describe("windows98.scss (compiled)", () => {
 		).toBe(false);
 		// A resting pointer's item is plain, a dimmed one embossed.
 		const plain = block(`${keyedMenus} .classicyMenuItem${resting}`);
-		expect(plain).toContain("color: var(--color-black)");
+		// MenuText, the scheme's ButtonText (WindowText behind it).
+		expect(plain).toContain(
+			"color: var(--package-color-text-button, var(--color-black))",
+		);
 		expect(plain).toContain("background-color: transparent");
 		const dimmed = block(`${keyedMenus} .classicyMenuItem.disabled${resting}`);
-		expect(dimmed).toContain("color: var(--color-system-05)");
+		// GrayText, ButtonShadow behind it.
+		expect(dimmed).toContain(
+			"color: var(--package-color-text-gray, var(--color-system-05))",
+		);
 		expect(dimmed).toContain("text-shadow:");
 		expect(dimmed).toContain("background-color: transparent");
 		for (const mark of [
@@ -533,6 +539,10 @@ describe("windows98.scss (compiled)", () => {
 			expect(
 				rule(".classicyFileOpenDialogWellColumns .classicyTree"),
 			).toContain("column-gap: var(--layout-group-gap)");
+			// The keyboard's place is the selection and its label's dotted
+			// focus rectangle, never the browser's ring on the icon (the base
+			// sheet takes it from a selected icon alone).
+			expect(rule(".classicyIcon:focus-visible")).toContain("outline: none");
 		});
 
 		// WIG Ch.5 "Keyboard Selection" (p.43), "Selection Feedback" (p.36);
@@ -599,6 +609,173 @@ describe("windows98.scss (compiled)", () => {
 			expect(rule(".classicyBalloonHelpPointerAbove")).toContain(
 				"margin-bottom: calc(var(--pixel-unit) * 2)",
 			);
+		});
+
+		// The look and the schemes (L2-F): the audit's 7.23 and 14.3, and the
+		// per-scheme data re-sourced from Windows 98 SE's SHELL2.INF.
+		describe("the schemes' look", () => {
+			const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+			const rule = (selector: string) => {
+				let declarations = "";
+				const full = `${scope} ${selector}`;
+				const re = /([^{}]+)\{([^{}]*)\}/g;
+				for (const match of css.matchAll(re)) {
+					const selectors = splitSelectors(match[1].trim());
+					if (selectors.includes(full)) declarations += match[2];
+				}
+				return declarations;
+			};
+
+			// Figure 7.34 (WIG Ch.7 "Toolbars and Status Bars", p.136): Windows
+			// 95's toolbar buttons raised at rest; Windows 98's flat (TBSTYLE_FLAT).
+			// One knob, `--toolbar-rest-bevel`, the rest bevel's ring width: the
+			// raised bevel at rest, one raised ring under the mouse only where the
+			// rest bevel is flat, the second sunken ring pressed only where it is
+			// raised.
+			it("draws a toolbar button's bevel from the rest-bevel knob, flat at 0 and raised at 1", () => {
+				const rest = rule(".classicyButtonToolbar .classicyBevelButton");
+				expect(rest).toContain(
+					"box-shadow: inset calc(var(--toolbar-rest-bevel) * -1) calc(var(--toolbar-rest-bevel) * -1) var(--color-system-07), inset var(--toolbar-rest-bevel) var(--toolbar-rest-bevel) var(--color-system-01)",
+				);
+				const hot = rule(
+					".classicyButtonToolbar .classicyBevelButton:not(.disabled):hover",
+				);
+				expect(hot).toContain(
+					"inset max(0px, var(--window-border-size) - var(--toolbar-rest-bevel)) max(0px, var(--window-border-size) - var(--toolbar-rest-bevel)) var(--color-system-01)",
+				);
+				const down = rule(
+					".classicyButtonToolbar .classicyBevelButton.disabled.checked",
+				);
+				expect(down).toContain(
+					"box-shadow: inset var(--window-border-size) var(--window-border-size) var(--color-system-05), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-01), inset calc(var(--window-border-size) + var(--toolbar-rest-bevel)) calc(var(--window-border-size) + var(--toolbar-rest-bevel)) var(--color-system-07)",
+				);
+				// The embossed image of a disabled button is drawn whole.
+				expect(
+					rule(
+						".classicyBevelButton.disabled .classicyBevelButtonIcon.classicyIconDimmedImage",
+					),
+				).toContain("opacity: 1");
+			});
+
+			// Wine's DEFWND_ControlColor: the checker only where ButtonHilight is
+			// Window, else the solid Scrollbar brush, inverted (DSTINVERT) where
+			// the track is held.
+			it("fills a solid track with the Scrollbar color and inverts it where it is held", () => {
+				const track = rule(".classicyScrollBarTrack");
+				expect(track).toContain(
+					"background: repeating-conic-gradient(var(--color-system-01) 0 25%, var(--color-system-03) 0 50%)",
+				);
+				expect(track).toContain(
+					"box-shadow: inset 0 0 0 calc(var(--scroll-bar-solid-track) * 10000) var(--package-color-scroll-bar-track, var(--color-system-03))",
+				);
+				const under = rule(".classicyScrollBarTrack.pressed::before");
+				expect(under).toContain(
+					"background: repeating-conic-gradient(var(--color-black) 0 25%, var(--color-system-07) 0 50%)",
+				);
+				expect(under).toContain(
+					"box-shadow: inset 0 0 0 calc(var(--scroll-bar-solid-track) * 10000) var(--package-color-scroll-bar-track, var(--color-system-03))",
+				);
+				const over = rule(".classicyScrollBarTrack.pressed::after");
+				expect(over).toContain(
+					"box-shadow: inset 0 0 0 calc(var(--scroll-bar-solid-track) * 10000) var(--color-white)",
+				);
+				expect(over).toContain("mix-blend-mode: difference");
+				for (const pseudo of ["::before", "::after"])
+					expect(
+						rule(
+							`.classicyScrollBarVertical .classicyScrollBarTrack.pressed${pseudo}`,
+						),
+						pseudo,
+					).toContain("top: var(--classicy-scroll-page-start)");
+			});
+
+			// Each scheme's fonts: the menu's in the menus, the message box's in a
+			// message box, the icon's under the icons; each behind the UI font.
+			it("sets the menus, message boxes and icon labels in the scheme's fonts", () => {
+				const menus = rule(
+					":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu):not(.classicyDesktopMenu)",
+				);
+				expect(menus).toContain(
+					"font-family: var(--package-font-menu, var(--ui-font))",
+				);
+				expect(menus).toContain(
+					"font-size: var(--package-font-menu-size, var(--ui-font-size))",
+				);
+				expect(menus).toContain(
+					"font-weight: var(--package-font-menu-weight, normal)",
+				);
+				const message = rule(".classicyAlert .classicyAlertMessage");
+				expect(message).toContain(
+					"font-family: var(--package-font-message, var(--ui-font))",
+				);
+				expect(message).toContain(
+					"font-size: var(--package-font-message-size, var(--ui-font-size))",
+				);
+				expect(css).toMatch(
+					/font-family: var\(--package-font-icon, var\(--ui-font\)\);\s*font-size: var\(--desktop-icon-font-size\);\s*font-weight: var\(--package-font-icon-weight, normal\)/,
+				);
+			});
+
+			// ButtonText and GrayText take their own tokens (High Contrast #1's
+			// ButtonText is white beside a yellow WindowText; every High Contrast
+			// GrayText is green), a disabled control's glyph and a disabled
+			// button's label ButtonShadow (DFCS_INACTIVE, DSS_DISABLED).
+			it("draws button inks in ButtonText, disabled text in GrayText and disabled glyphs in ButtonShadow", () => {
+				expect(rule(".classicyButton")).toContain(
+					"color: var(--package-color-text-button, var(--color-black))",
+				);
+				expect(rule(".classicyTabButton")).toContain(
+					"color: var(--package-color-text-button, var(--color-black))",
+				);
+				expect(rule(".classicyButton:disabled")).toContain(
+					"color: var(--color-system-05)",
+				);
+				const embossed = rule(
+					".classicyScrollBarVertical.fits .classicyScrollBarArrowStart::before",
+				);
+				expect(embossed).toContain("var(--color-system-05)");
+				expect(embossed).not.toContain("--package-color-text-gray");
+				expect(css).toContain(
+					"color: var(--package-color-text-gray, var(--color-system-05))",
+				);
+			});
+
+			// WIG Ch.14 "Color" (p.334): under forced colors the package keeps its
+			// drawing and takes the user's system colors.
+			it("keeps every control drawn under forced colors, in the system colors", () => {
+				const start = css.indexOf("@media (forced-colors: active)");
+				expect(start).toBeGreaterThan(-1);
+				const block = css.slice(start);
+				expect(block).toContain(
+					`${scope},\n    ${scope} * {\n      forced-color-adjust: none;`,
+				);
+				expect(block).toMatch(
+					/color: CanvasText;\s*background-color: Canvas;\s*background-image: none;/,
+				);
+				// Outside it, text with no color of its own is WindowText.
+				expect(css).toContain(
+					`${scope} {\n    color: var(--color-black);\n  }`,
+				);
+				for (const declaration of [
+					"--color-system-01: ButtonBorder",
+					"--color-system-02: ButtonFace",
+					"--color-system-03: ButtonFace",
+					"--color-system-05: ButtonBorder",
+					"--color-system-07: ButtonText",
+					"--color-black: CanvasText",
+					"--color-window-document: Canvas",
+					"--color-highlight: Highlight",
+					"--package-color-selection-text: HighlightText",
+					"--package-color-text-button: ButtonText",
+					"--package-color-text-gray: GrayText",
+					"--package-color-title-bar-active: Highlight",
+					"--package-color-title-bar-text: HighlightText",
+					"--scroll-bar-solid-track: 0px",
+				])
+					expect(block, declaration).toContain(declaration);
+				// Last in the sheet, so its tokens win over nothing they must not.
+				expect(css.lastIndexOf("@media (forced-colors: active)")).toBe(start);
+			});
 		});
 	});
 });

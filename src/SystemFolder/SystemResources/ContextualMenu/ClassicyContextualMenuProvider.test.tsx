@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -222,12 +223,61 @@ describe("ClassicyContextualMenuProvider", () => {
 	});
 });
 
+// Mac OS 8's and System 7's contextual menus open from a Control-click or a
+// right-click alone and close as sticky menus do (HIGOS8 "Contextual Menus",
+// pp.93-94): with no `layout.keyboard.contextMenuKey` and no `layout.menu.keys`
+// (no package registered here: the core's default layout, Mac OS 8's), neither
+// key opens one, and Escape closes none.
+describe("ClassicyContextualMenuProvider — the keyboard under Mac OS (no layout flags)", () => {
+	it("opens no menu on Shift+F10 or the Application key, and leaves both keys to the browser", () => {
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyContextualMenuTarget menuItems={menuA}>
+					<button type="button">field</button>
+				</ClassicyContextualMenuTarget>
+			</ClassicyContextualMenuProvider>,
+		);
+		const field = screen.getByText("field");
+		field.focus();
+		expect(fireEvent.keyDown(field, { key: "F10", shiftKey: true })).toBe(true);
+		expect(fireEvent.keyDown(field, { key: "ContextMenu" })).toBe(true);
+		expect(screen.queryByText("Alpha One")).not.toBeInTheDocument();
+		// The browser's own contextmenu for the key is not swallowed either.
+		expect(fireEvent.contextMenu(field, { clientX: 5, clientY: 5 })).toBe(
+			false,
+		);
+		expect(screen.getByText("Alpha One")).toBeInTheDocument();
+	});
+
+	it("keeps an open menu on Escape", () => {
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyContextualMenuTarget menuItems={menuA}>
+					<button type="button">field</button>
+				</ClassicyContextualMenuTarget>
+			</ClassicyContextualMenuProvider>,
+		);
+		const field = screen.getByText("field");
+		fireEvent.contextMenu(field, { clientX: 5, clientY: 5 });
+		field.focus();
+		expect(fireEvent.keyDown(field, { key: "Escape" })).toBe(true);
+		expect(screen.getByText("Alpha One")).toBeInTheDocument();
+	});
+});
+
 // Shift+F10 and the Application key open the selection's contextual menu
-// (WIG Ch.7 "Pop-up Menu Interaction", p.101; the audit's 7.9): the focused
+// (WIG Ch.7 "Pop-up Menu Interaction", p.101; the audit's 7.9) under the
+// package's `layout.keyboard.contextMenuKey` (Windows 98): the focused
 // element gets a `contextmenu` of its own, at its center, so the targets a
-// right-click reaches resolve it, innermost first. Escape closes the open
-// menu (7.8), focus outside it or in it.
-describe("ClassicyContextualMenuProvider — the keyboard's context-menu keys", () => {
+// right-click reaches resolve it, innermost first. Under `layout.menu.keys`
+// "windows", Escape closes the open menu (7.8), focus outside it or in it.
+describe("ClassicyContextualMenuProvider — the keyboard's context-menu keys (layout.keyboard.contextMenuKey)", () => {
+	let restore: () => void;
+	beforeEach(() => {
+		restore = activateTestWindowsKeysPackage();
+	});
+	afterEach(() => restore());
+
 	const wrapper = () =>
 		document.querySelector(".classicyContextMenuWrapper") as HTMLElement | null;
 	const atRect = (el: Element, rect: Partial<DOMRect>) =>

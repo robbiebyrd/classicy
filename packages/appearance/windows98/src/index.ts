@@ -4,18 +4,22 @@
 // leaves external, so it registers into the host's one copy of the
 // registries; the core neither imports nor bundles it.
 //
-// One package, eighteen themes: "Windows Standard" (Windows 98's own
-// scheme, the defaults), "Windows 95" (the same palette with flat title
-// bars) and the sixteen classic color schemes of the Display control panel
-// (Brick, Desert, Eggplant, Lilac, Maple, Marine, Plum, Pumpkin, Rainy Day,
-// Red White and Blue, Rose, Slate, Spruce, Storm, Teal, Wheat), each the
-// system colors of its `[Control Panel\Colors]` block, every one drawn by
-// the same stylesheet.
+// One package, thirty-four themes: the thirty-three color schemes of
+// Windows 98 Second Edition's Display control panel, each read from the
+// scheme Windows 98 SE's SHELL2.INF writes (`[schemes.reg]`, under
+// HKCU\Control Panel\Appearance\Schemes: its 29 system colors, its border,
+// scroll bar, caption, small caption and menu sizes and its caption, small
+// caption, menu, message box and icon fonts), "Windows Standard" (the
+// defaults, keeping USER's built-in caption gradients, which a fresh Windows
+// 98 draws) first; and "Windows 95" (Windows Standard's palette with flat
+// title bars and raised toolbar buttons). Every one is drawn by the same
+// stylesheet.
 //
 // Hand-written. Its exports are the package's public API.
 
 import {
 	type ClassicyAppearanceColorFamilies,
+	type ClassicyAppearanceFontFamilies,
 	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
 	type ClassicyTheme,
@@ -36,8 +40,10 @@ import { windows98SoundPack } from "./assets/sounds/windows98";
 import windows98Css from "./styles/windows98.scss?inline";
 import windows98JsonSource from "./windows98.json";
 import { deepFreeze } from "./windows98DeepFreeze.internal";
+import { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 export * from "./assets/sounds/windows98";
+export { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 /**
  * Windows 98's theme data (`windows98.json`), typed with the core's own
@@ -55,9 +61,16 @@ export type Windows98Json = {
 	/**
 	 * Labels for the Windows colors no palette slot holds: the title bars'
 	 * (`titleBar`), the selected text's (`selection`), the ToolTip's
-	 * (`tooltip`) and the desktop icon labels' (`desktop`).
+	 * (`tooltip`), the desktop icon labels' (`desktop`), ButtonText and
+	 * GrayText (`text`), the scroll bar's track (`scrollBar`) and the sizing
+	 * border's (`sizingBorder`).
 	 */
 	readonly colorFamilies: Readonly<ClassicyAppearanceColorFamilies>;
+	/**
+	 * Labels for each scheme's fonts (`typography.families`): the caption's,
+	 * the small caption's, the menu's, the message box's and the icon's.
+	 */
+	readonly fontFamilies: Readonly<ClassicyAppearanceFontFamilies>;
 };
 
 /**
@@ -103,6 +116,10 @@ const windows98Defaults =
 // No hooks: the package plays no interface feedback (Windows' sounds are
 // Microsoft's) and decorates nothing. No screen savers: it names none, so the
 // Screen Saver control panel reads "This appearance has no screen savers."
+// A disabled control's image is embossed as Windows draws one (DrawState's
+// DSS_DISABLED): its ink in ButtonShadow over a copy one pixel down and right
+// in ButtonHilight, the scheme's two colors. Load Theme… reads Windows
+// `.theme` files (windows98ThemeFile.ts).
 registerClassicyAppearancePackage({
 	id: WINDOWS98_APPEARANCE_PACKAGE_ID,
 	name: windows98JsonSource.name,
@@ -112,7 +129,20 @@ registerClassicyAppearancePackage({
 	css: windows98Css,
 	knobs: windows98JsonSource.knobs,
 	colorFamilies: windows98JsonSource.colorFamilies,
+	fontFamilies: windows98JsonSource.fontFamilies,
 	options: classicyKnobsToSchema(windows98JsonSource.knobs),
+	iconDimming: {
+		disabledControl: {
+			emboss: {
+				highlight: { colorKey: "system", index: 0 },
+				shadow: { colorKey: "system", index: 4 },
+			},
+		},
+	},
+	themeFileImporter: {
+		extensions: [".theme"],
+		read: readWindows98ThemeFile,
+	},
 	layout: windows98JsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [windows98SoundPack],
 });

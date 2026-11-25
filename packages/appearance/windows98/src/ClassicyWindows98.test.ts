@@ -18,7 +18,7 @@ import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import windows98Json from "./windows98.json";
 
 // The Windows 98 package registers on import: package `windows98` with its
-// eighteen themes, its layout, its color families and its sound pack, alone,
+// thirty-four themes, its layout, its color families and its sound pack, alone,
 // with no other package registered (the test setup registers none).
 
 const BLACK = 0x000000;
@@ -29,6 +29,8 @@ const BUTTON_SHADOW = 0x808080;
 const ACTIVE_TITLE = 0x000080;
 const GRADIENT_ACTIVE_TITLE = 0x1084d0;
 const DESKTOP = 0x008080;
+const PIXEL_STACK =
+	'"Pixelated MS Sans Serif", "MS Sans Serif", "Microsoft Sans Serif", Tahoma, Arial, sans-serif';
 
 describe("the Windows 98 appearance package", () => {
 	it("registers package windows98 on import, alone and without an error", async () => {
@@ -59,7 +61,11 @@ describe("the Windows 98 appearance package", () => {
 		expect(pkg?.icon).toBeTruthy();
 	});
 
-	it("registers eighteen themes, Windows Standard the defaults", async () => {
+	// Windows 98 SE's thirty-three schemes (SHELL2.INF), in the order its
+	// Display control panel lists them (a sorted combo box), after Windows
+	// Standard, the defaults, and Windows 95. Every id the package shipped
+	// before is kept, so a saved choice still resolves.
+	it("registers thirty-four themes, Windows Standard the defaults", async () => {
 		await import("./index");
 		const pkg = getClassicyAppearancePackage("windows98");
 		expect(pkg?.presets?.map((t) => [t.id, t.name])).toEqual([
@@ -68,7 +74,26 @@ describe("the Windows 98 appearance package", () => {
 			["windows98Brick", "Brick"],
 			["windows98Desert", "Desert"],
 			["windows98Eggplant", "Eggplant"],
+			["windows98HighContrast1", "High Contrast #1"],
+			["windows98HighContrast1ExtraLarge", "High Contrast #1 (extra large)"],
+			["windows98HighContrast1Large", "High Contrast #1 (large)"],
+			["windows98HighContrast2", "High Contrast #2"],
+			["windows98HighContrast2ExtraLarge", "High Contrast #2 (extra large)"],
+			["windows98HighContrast2Large", "High Contrast #2 (large)"],
+			["windows98HighContrastBlack", "High Contrast Black"],
+			[
+				"windows98HighContrastBlackExtraLarge",
+				"High Contrast Black (extra large)",
+			],
+			["windows98HighContrastBlackLarge", "High Contrast Black (large)"],
+			["windows98HighContrastWhite", "High Contrast White"],
+			[
+				"windows98HighContrastWhiteExtraLarge",
+				"High Contrast White (extra large)",
+			],
+			["windows98HighContrastWhiteLarge", "High Contrast White (large)"],
 			["windows98Lilac", "Lilac"],
+			["windows98LilacLarge", "Lilac (large)"],
 			["windows98Maple", "Maple"],
 			["windows98Marine", "Marine (high color)"],
 			["windows98Plum", "Plum (high color)"],
@@ -76,11 +101,14 @@ describe("the Windows 98 appearance package", () => {
 			["windows98RainyDay", "Rainy Day"],
 			["windows98RedWhiteBlue", "Red, White, and Blue (VGA)"],
 			["windows98Rose", "Rose"],
+			["windows98RoseLarge", "Rose (large)"],
 			["windows98Slate", "Slate"],
 			["windows98Spruce", "Spruce"],
 			["windows98Storm", "Storm (VGA)"],
 			["windows98Teal", "Teal (VGA)"],
 			["windows98Wheat", "Wheat"],
+			["windows98ExtraLarge", "Windows Standard (extra large)"],
+			["windows98Large", "Windows Standard (large)"],
 		]);
 		expect(pkg?.defaults).toBe(pkg?.presets?.[0]);
 		expect(pkg?.presets).toEqual(getAllThemes());
@@ -144,11 +172,25 @@ describe("the Windows 98 appearance package", () => {
 			text: BLACK,
 		});
 		expect(standard.color.families.desktop).toEqual({ text: WHITE });
+		// ButtonText and GrayText, Scrollbar, ActiveBorder and InactiveBorder:
+		// the colors only a High Contrast or a solid-track scheme sets apart.
+		expect(standard.color.families.text).toEqual({
+			button: BLACK,
+			gray: BUTTON_SHADOW,
+		});
+		expect(standard.color.families.scrollBar).toEqual({ track: BUTTON_FACE });
+		expect(standard.color.families.sizingBorder).toEqual({
+			active: BUTTON_FACE,
+			inactive: BUTTON_FACE,
+		});
 		expect(Object.keys(windows98Json.colorFamilies)).toEqual([
 			"titleBar",
 			"selection",
 			"tooltip",
 			"desktop",
+			"text",
+			"scrollBar",
+			"sizingBorder",
 		]);
 		for (const [family, { colors }] of Object.entries(
 			windows98Json.colorFamilies,
@@ -211,23 +253,1012 @@ describe("the Windows 98 appearance package", () => {
 			}
 	});
 
-	// Windows 98's metrics: a 1 px ring, 16 px scroll bars, an 18 px title
-	// bar with 16 x 14 buttons, 11 px MS Sans Serif, 32 px icons.
-	it("sets Windows 98's metrics and type in every theme", () => {
-		for (const theme of windows98Json.presets) {
-			expect(theme.measurements.window).toEqual({
-				borderSize: 1,
-				controlSize: 12,
-				paddingSize: 5,
-				scrollbarSize: 16,
-				titleBarHeight: 18,
-				utilityTitleBarHeight: 13,
-			});
-			expect(theme.typography.ui).toMatch(/^"Pixelated MS Sans Serif"/);
-			expect(theme.typography.uiSize).toBe(11);
-			expect(theme.desktop.iconSize).toBe(32);
-			expect(theme.measurements.dither.tileSize).toBe(0);
+	// Every scheme's key values, as Windows 98 SE's SHELL2.INF writes them
+	// (the scheme blobs under HKCU\Control Panel\Appearance\Schemes,
+	// decoded: its 29 COLORREFs and NONCLIENTMETRICS), written out here
+	// rather than read from the JSON, so a wrong value in windows98.json
+	// fails. The palette: ButtonFace, Hilight, the active caption's two ends
+	// (flat in every named scheme, as the INF stores them; Windows Standard and
+	// its sizes keep USER's 0 0 128 to 16 132 208), Window, WindowText,
+	// GrayText, the ToolTip's InfoWindow and InfoText, Scrollbar. The metrics:
+	// the scroll bar, caption, small caption and menu sizes, the sizing border,
+	// and whether the track is solid (ButtonHilight not Window). The caption
+	// font: its face, size (an MS Sans Serif request takes the bitmap size GDI
+	// draws it at) and weight.
+	const SCHEMES: [
+		string,
+		string,
+		{
+			face: number;
+			hilight: number;
+			title: [number, number];
+			window: number;
+			text: number;
+			gray: number;
+			tooltip: [number, number];
+			scrollbar: number;
+		},
+		{
+			scroll: number;
+			caption: number;
+			small: number;
+			menu: number;
+			border: number;
+			solidTrack: number;
+		},
+		[string, number, number],
+	][] = [
+		[
+			"windows98",
+			"Windows Standard",
+			{
+				face: 0xc0c0c0,
+				hilight: 0x000080,
+				title: [0x000080, 0x1084d0],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x808080,
+				tooltip: [0xffffe1, 0x000000],
+				scrollbar: 0xc0c0c0,
+			},
+			{
+				scroll: 16,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 0,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98Brick",
+			"Brick",
+			{
+				face: 0xc2bfa5,
+				hilight: 0x8d8961,
+				title: [0x800000, 0x800000],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x8d8961,
+				tooltip: [0xe1e0d2, 0x800000],
+				scrollbar: 0xe1e0d2,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["Arial", 12, 700],
+		],
+		[
+			"windows98Desert",
+			"Desert",
+			{
+				face: 0xd5ccbb,
+				hilight: 0x008080,
+				title: [0x008080, 0x008080],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0xa28d68,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xeae6dd,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98Eggplant",
+			"Eggplant",
+			{
+				face: 0x90b0a8,
+				hilight: 0x387470,
+				title: [0x588078, 0x588078],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x588078,
+				tooltip: [0xffffff, 0x800080],
+				scrollbar: 0x90b0a8,
+			},
+			{
+				scroll: 16,
+				caption: 19,
+				small: 17,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["Times New Roman", 15, 700],
+		],
+		[
+			"windows98HighContrast1",
+			"High Contrast #1",
+			{
+				face: 0x000000,
+				hilight: 0x008000,
+				title: [0x0000ff, 0x0000ff],
+				window: 0x000000,
+				text: 0xffff00,
+				gray: 0x00ff00,
+				tooltip: [0x000000, 0xffff00],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 17,
+				caption: 20,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98HighContrast1ExtraLarge",
+			"High Contrast #1 (extra large)",
+			{
+				face: 0x000000,
+				hilight: 0x008000,
+				title: [0x0000ff, 0x0000ff],
+				window: 0x000000,
+				text: 0xffff00,
+				gray: 0x00ff00,
+				tooltip: [0x000000, 0xffff00],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 32,
+				caption: 37,
+				small: 28,
+				menu: 38,
+				border: 6,
+				solidTrack: 1,
+			},
+			["Arial", 30, 700],
+		],
+		[
+			"windows98HighContrast1Large",
+			"High Contrast #1 (large)",
+			{
+				face: 0x000000,
+				hilight: 0x008000,
+				title: [0x0000ff, 0x0000ff],
+				window: 0x000000,
+				text: 0xffff00,
+				gray: 0x00ff00,
+				tooltip: [0x000000, 0xffff00],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 28,
+				caption: 31,
+				small: 26,
+				menu: 30,
+				border: 6,
+				solidTrack: 1,
+			},
+			["Arial", 24, 700],
+		],
+		[
+			"windows98HighContrast2",
+			"High Contrast #2",
+			{
+				face: 0x000000,
+				hilight: 0x0000ff,
+				title: [0x00ffff, 0x00ffff],
+				window: 0x000000,
+				text: 0x00ff00,
+				gray: 0x00ff00,
+				tooltip: [0xffff00, 0x000000],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 17,
+				caption: 20,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98HighContrast2ExtraLarge",
+			"High Contrast #2 (extra large)",
+			{
+				face: 0x000000,
+				hilight: 0x0000ff,
+				title: [0x00ffff, 0x00ffff],
+				window: 0x000000,
+				text: 0x00ff00,
+				gray: 0x00ff00,
+				tooltip: [0xffff00, 0x000000],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 32,
+				caption: 37,
+				small: 28,
+				menu: 38,
+				border: 6,
+				solidTrack: 1,
+			},
+			["Arial", 30, 700],
+		],
+		[
+			"windows98HighContrast2Large",
+			"High Contrast #2 (large)",
+			{
+				face: 0x000000,
+				hilight: 0x0000ff,
+				title: [0x00ffff, 0x00ffff],
+				window: 0x000000,
+				text: 0x00ff00,
+				gray: 0x00ff00,
+				tooltip: [0xffff00, 0x000000],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 28,
+				caption: 31,
+				small: 26,
+				menu: 30,
+				border: 6,
+				solidTrack: 1,
+			},
+			["Arial", 24, 700],
+		],
+		[
+			"windows98HighContrastBlack",
+			"High Contrast Black",
+			{
+				face: 0x000000,
+				hilight: 0x800080,
+				title: [0x800080, 0x800080],
+				window: 0x000000,
+				text: 0xffffff,
+				gray: 0x00ff00,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 17,
+				caption: 20,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98HighContrastBlackExtraLarge",
+			"High Contrast Black (extra large)",
+			{
+				face: 0x000000,
+				hilight: 0x800080,
+				title: [0x800080, 0x800080],
+				window: 0x000000,
+				text: 0xffffff,
+				gray: 0x00ff00,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 32,
+				caption: 37,
+				small: 28,
+				menu: 38,
+				border: 6,
+				solidTrack: 1,
+			},
+			["Arial", 30, 700],
+		],
+		[
+			"windows98HighContrastBlackLarge",
+			"High Contrast Black (large)",
+			{
+				face: 0x000000,
+				hilight: 0x800080,
+				title: [0x800080, 0x800080],
+				window: 0x000000,
+				text: 0xffffff,
+				gray: 0x00ff00,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0x000000,
+			},
+			{
+				scroll: 28,
+				caption: 31,
+				small: 26,
+				menu: 30,
+				border: 6,
+				solidTrack: 1,
+			},
+			["Arial", 24, 700],
+		],
+		[
+			"windows98HighContrastWhite",
+			"High Contrast White",
+			{
+				face: 0xffffff,
+				hilight: 0x000000,
+				title: [0x000000, 0x000000],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x00ff00,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xffffff,
+			},
+			{
+				scroll: 17,
+				caption: 20,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98HighContrastWhiteExtraLarge",
+			"High Contrast White (extra large)",
+			{
+				face: 0xffffff,
+				hilight: 0x000000,
+				title: [0x000000, 0x000000],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x00ff00,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xffffff,
+			},
+			{
+				scroll: 30,
+				caption: 38,
+				small: 28,
+				menu: 38,
+				border: 6,
+				solidTrack: 1,
+			},
+			["Arial", 30, 700],
+		],
+		[
+			"windows98HighContrastWhiteLarge",
+			"High Contrast White (large)",
+			{
+				face: 0xffffff,
+				hilight: 0x000000,
+				title: [0x000000, 0x000000],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x00ff00,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xffffff,
+			},
+			{
+				scroll: 26,
+				caption: 37,
+				small: 28,
+				menu: 27,
+				border: 7,
+				solidTrack: 1,
+			},
+			["Arial", 24, 700],
+		],
+		[
+			"windows98Lilac",
+			"Lilac",
+			{
+				face: 0xaea8d9,
+				hilight: 0x7830d0,
+				title: [0x5a4eb1, 0x5a4eb1],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x5a4eb1,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xaea8d9,
+			},
+			{
+				scroll: 15,
+				caption: 22,
+				small: 16,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["Arial", 16, 700],
+		],
+		[
+			"windows98LilacLarge",
+			"Lilac (large)",
+			{
+				face: 0xaea8d9,
+				hilight: 0x5a4eb1,
+				title: [0x5a4eb1, 0x5a4eb1],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x5a4eb1,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xaea8d9,
+			},
+			{
+				scroll: 15,
+				caption: 29,
+				small: 21,
+				menu: 21,
+				border: 1,
+				solidTrack: 1,
+			},
+			["Arial", 23, 700],
+		],
+		[
+			"windows98Maple",
+			"Maple",
+			{
+				face: 0xe0cc98,
+				hilight: 0xc8a848,
+				title: [0x800000, 0x800000],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0xc09c38,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xf0e8d0,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98Marine",
+			"Marine (high color)",
+			{
+				face: 0x88c0b8,
+				hilight: 0x006cc8,
+				title: [0x000080, 0x000080],
+				window: 0xc8e0d8,
+				text: 0x000000,
+				gray: 0x4b8d84,
+				tooltip: [0xc8e0d8, 0x000000],
+				scrollbar: 0xc4dfdb,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 13,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98Plum",
+			"Plum (high color)",
+			{
+				face: 0xa89890,
+				hilight: 0x284848,
+				title: [0x484060, 0x484060],
+				window: 0xd8d0c8,
+				text: 0x000000,
+				gray: 0x786058,
+				tooltip: [0xd5ccc8, 0x300058],
+				scrollbar: 0xd8d0c8,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 0,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98Pumpkin",
+			"Pumpkin (large)",
+			{
+				face: 0xf0d4a0,
+				hilight: 0xb88850,
+				title: [0xd7a52f, 0xde9f2c],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0xde9f2c,
+				tooltip: [0xffffff, 0x800080],
+				scrollbar: 0xf8eacf,
+			},
+			{
+				scroll: 21,
+				caption: 26,
+				small: 22,
+				menu: 22,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 19, 700],
+		],
+		[
+			"windows98RainyDay",
+			"Rainy Day",
+			{
+				face: 0x8098b0,
+				hilight: 0x506478,
+				title: [0x506480, 0x4e657c],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x4e657c,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xc0ccd8,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98RedWhiteBlue",
+			"Red, White, and Blue (VGA)",
+			{
+				face: 0xc0c0c0,
+				hilight: 0x800000,
+				title: [0x800000, 0x800000],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x808080,
+				tooltip: [0xffffff, 0x000080],
+				scrollbar: 0xc0c0c0,
+			},
+			{
+				scroll: 13,
+				caption: 19,
+				small: 17,
+				menu: 18,
+				border: 1,
+				solidTrack: 0,
+			},
+			["Times New Roman", 15, 700],
+		],
+		[
+			"windows98Rose",
+			"Rose",
+			{
+				face: 0xcfafb7,
+				hilight: 0x9f6070,
+				title: [0x9f6070, 0x9f6070],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x9f6070,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xcfafb7,
+			},
+			{
+				scroll: 15,
+				caption: 23,
+				small: 17,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["Times New Roman", 19, 400],
+		],
+		[
+			"windows98RoseLarge",
+			"Rose (large)",
+			{
+				face: 0xd0b0b8,
+				hilight: 0xa06070,
+				title: [0xa06070, 0x9f6070],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0xa06070,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xc0c0c0,
+			},
+			{
+				scroll: 17,
+				caption: 28,
+				small: 21,
+				menu: 22,
+				border: 2,
+				solidTrack: 1,
+			},
+			["Times New Roman", 23, 400],
+		],
+		[
+			"windows98Slate",
+			"Slate",
+			{
+				face: 0x9db9c8,
+				hilight: 0x558097,
+				title: [0x558097, 0x558097],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x558097,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xcedce3,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98Spruce",
+			"Spruce",
+			{
+				face: 0xa2c8a9,
+				hilight: 0xa0a848,
+				title: [0x599764, 0x599764],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x599764,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xd0e3d3,
+			},
+			{
+				scroll: 15,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 12, 700],
+		],
+		[
+			"windows98Storm",
+			"Storm (VGA)",
+			{
+				face: 0xc0c0c0,
+				hilight: 0x800080,
+				title: [0x800080, 0x800080],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x808080,
+				tooltip: [0xffffff, 0x800080],
+				scrollbar: 0xc0c0c0,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 0,
+			},
+			["Arial", 11, 700],
+		],
+		[
+			"windows98Teal",
+			"Teal (VGA)",
+			{
+				face: 0xc0c0c0,
+				hilight: 0x008080,
+				title: [0x008080, 0x008080],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x808080,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xc0c0c0,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 0,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98Wheat",
+			"Wheat",
+			{
+				face: 0xe0e0a0,
+				hilight: 0x808000,
+				title: [0x808000, 0x808000],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0xc0c03f,
+				tooltip: [0xffffff, 0x000000],
+				scrollbar: 0xf0f0d0,
+			},
+			{
+				scroll: 13,
+				caption: 18,
+				small: 15,
+				menu: 18,
+				border: 1,
+				solidTrack: 1,
+			},
+			["MS Sans Serif", 11, 700],
+		],
+		[
+			"windows98ExtraLarge",
+			"Windows Standard (extra large)",
+			{
+				face: 0xc0c0c0,
+				hilight: 0x000080,
+				title: [0x000080, 0x1084d0],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x808080,
+				tooltip: [0xffffe1, 0x000000],
+				scrollbar: 0xc0c0c0,
+			},
+			{
+				scroll: 21,
+				caption: 24,
+				small: 18,
+				menu: 21,
+				border: 1,
+				solidTrack: 0,
+			},
+			["Arial", 19, 700],
+		],
+		[
+			"windows98Large",
+			"Windows Standard (large)",
+			{
+				face: 0xc0c0c0,
+				hilight: 0x000080,
+				title: [0x000080, 0x1084d0],
+				window: 0xffffff,
+				text: 0x000000,
+				gray: 0x808080,
+				tooltip: [0xffffe1, 0x000000],
+				scrollbar: 0xc0c0c0,
+			},
+			{
+				scroll: 18,
+				caption: 22,
+				small: 18,
+				menu: 18,
+				border: 1,
+				solidTrack: 0,
+			},
+			["MS Sans Serif", 16, 700],
+		],
+	];
+	const MS_SANS_SERIF_HEIGHTS = [11, 13, 16, 18, 24, 32];
+
+	it("pins every scheme's colors, metrics and caption font to Windows 98 SE's own", () => {
+		expect(SCHEMES).toHaveLength(33);
+		for (const [id, name, colors, metrics, [face, height, weight]] of SCHEMES) {
+			const theme = windows98Json.presets.find((t) => t.id === id);
+			expect(theme?.name, id).toBe(name);
+			if (!theme) continue;
+			const c = theme.color;
+			const f = c.families;
+			expect(
+				{
+					face: c.system[2],
+					hilight: c.highlight,
+					title: [f.titleBar.active, f.titleBar.activeGradient],
+					window: c.window.document,
+					text: c.black,
+					gray: f.text.gray,
+					tooltip: [f.tooltip.face, f.tooltip.text],
+					scrollbar: f.scrollBar.track,
+				},
+				id,
+			).toEqual(colors);
+			const m = theme.measurements;
+			expect(
+				{
+					scroll: m.window.scrollbarSize,
+					caption: m.window.titleBarHeight,
+					small: m.window.utilityTitleBarHeight,
+					menu: m.menuBar.titleHeight,
+					border: m.sizingBorder.width,
+					solidTrack: m.scrollBar.solidTrack,
+				},
+				id,
+			).toEqual(metrics);
+			// SM_CXSIZE - 2 by SM_CYSIZE - 4, Windows' caption buttons.
+			expect(m.titleBar.buttonWidth, id).toBe(metrics.caption - 2);
+			expect(m.titleBar.buttonHeight, id).toBe(metrics.caption - 4);
+			const caption = theme.typography.families.caption;
+			expect(caption.weight, id).toBe(weight >= 600 ? 700 : 400);
+			if (face === "MS Sans Serif") {
+				expect(caption.size, id).toBe(
+					MS_SANS_SERIF_HEIGHTS.filter((h) => h <= height).at(-1) ?? 11,
+				);
+				expect(caption.font, id).toMatch(
+					caption.size === 11
+						? /^"Pixelated MS Sans Serif", "MS Sans Serif"/
+						: /^"MS Sans Serif"/,
+				);
+			} else {
+				expect(caption.size, id).toBe(height);
+				expect(caption.font.replaceAll('"', ""), id).toMatch(
+					new RegExp(`^${face},`),
+				);
+			}
 		}
+	});
+
+	// The four High Contrast schemes, in High Contrast's colors (the 98.js
+	// report's section 5): High Contrast Black's frame (ButtonHilight 192,
+	// ButtonShadow 128, ButtonDkShadow white, a yellow ActiveBorder), its
+	// green GrayText; High Contrast #1's yellow WindowText beside white
+	// ButtonText; High Contrast White's labels black on its white desktop.
+	it("draws the High Contrast schemes in High Contrast's colors", () => {
+		const theme = (id: string) => {
+			const found = windows98Json.presets.find((t) => t.id === id);
+			if (!found) throw new Error(id);
+			return found;
+		};
+		const black = theme("windows98HighContrastBlack");
+		expect(black.color.system).toEqual([
+			0xc0c0c0,
+			0xd0b0b8,
+			BLACK,
+			0x404040,
+			BUTTON_SHADOW,
+			0xc0c0c0,
+			WHITE,
+		]);
+		expect(black.color.window.border).toBe(WHITE);
+		expect(black.color.families.sizingBorder).toEqual({
+			active: 0xffff00,
+			inactive: 0x008000,
+		});
+		expect(black.color.families.text.gray).toBe(0x00ff00);
+		expect(black.color.families.desktop.text).toBe(WHITE);
+		const one = theme("windows98HighContrast1");
+		expect(one.color.black).toBe(0xffff00);
+		expect(one.color.families.text.button).toBe(WHITE);
+		const white = theme("windows98HighContrastWhite");
+		expect(white.desktop.backgroundColor).toBe(WHITE);
+		expect(white.color.families.desktop.text).toBe(BLACK);
+		// The (large) and (extra large) versions take their base's colors.
+		for (const size of ["Large", "ExtraLarge"])
+			for (const base of ["1", "2", "Black", "White"])
+				expect(
+					theme(`windows98HighContrast${base}${size}`).color,
+					`${base}${size}`,
+				).toEqual(theme(`windows98HighContrast${base}`).color);
+		expect(
+			theme("windows98HighContrastBlackLarge").measurements.sizingBorder,
+		).toEqual({
+			width: 6,
+		});
+	});
+
+	// Each scheme's fonts: the caption, small caption, menu, message box and
+	// icon fonts, Arial and Times New Roman where Windows 98 named them, the
+	// pixel face only for MS Sans Serif's 8-point size; the icon font's size
+	// is the desktop's label size.
+	it("gives each scheme Windows 98's fonts, the pixel face only at MS Sans Serif 8", () => {
+		const theme = (id: string) => {
+			const found = windows98Json.presets.find((t) => t.id === id);
+			if (!found) throw new Error(id);
+			return found;
+		};
+		expect(theme("windows98").typography.families).toEqual({
+			caption: { font: PIXEL_STACK, size: 11, weight: 700 },
+			smallCaption: { font: PIXEL_STACK, size: 11, weight: 700 },
+			menu: { font: PIXEL_STACK, size: 11, weight: 400 },
+			message: { font: PIXEL_STACK, size: 11, weight: 400 },
+			icon: { font: PIXEL_STACK, weight: 400 },
+		});
+		expect(theme("windows98Eggplant").typography.families.menu).toEqual({
+			font: '"Times New Roman", Times, serif',
+			size: 13,
+			weight: 400,
+		});
+		expect(theme("windows98Rose").typography.families.caption).toEqual({
+			font: '"Times New Roman", Times, serif',
+			size: 19,
+			weight: 400,
+		});
+		expect(theme("windows98Marine").typography.families.smallCaption).toEqual({
+			font: '"Small Fonts", Arial, sans-serif',
+			size: 9,
+			weight: 700,
+		});
+		expect(theme("windows98Pumpkin").typography.families.caption).toEqual({
+			font: '"MS Sans Serif", "Microsoft Sans Serif", Tahoma, Arial, sans-serif',
+			size: 18,
+			weight: 700,
+		});
+		expect(theme("windows98ExtraLarge").desktop.iconFontSize).toBe(16);
+		expect(theme("windows98ExtraLarge").typography.families.icon.font).toBe(
+			"Arial, Helvetica, sans-serif",
+		);
+		for (const t of windows98Json.presets) {
+			expect(t.typography.ui, t.id).toBe(PIXEL_STACK);
+			expect(t.typography.uiSize, t.id).toBe(11);
+			expect(t.desktop.iconSize, t.id).toBe(32);
+			expect(t.measurements.dither.tileSize, t.id).toBe(0);
+			expect(t.measurements.window.borderSize, t.id).toBe(1);
+			// IconSpacing 75 both ways (Wine sysparams.c, 1125 twips).
+			expect(t.measurements.desktopIconGrid, t.id).toEqual({
+				rowGap: 43,
+				columnGap: 43,
+			});
+		}
+		expect(Object.keys(windows98Json.fontFamilies)).toEqual([
+			"caption",
+			"smallCaption",
+			"menu",
+			"message",
+			"icon",
+		]);
+	});
+
+	// Windows 95 keeps its shipped palette (Windows Standard's with ButtonLight
+	// on the face, flat captions) and Windows Standard's metrics and fonts,
+	// and its toolbars' buttons are raised at rest (Figure 7.34; the audit's
+	// 7.23); every Windows 98 scheme keeps the flat ones (TBSTYLE_FLAT).
+	it("raises Windows 95's toolbar buttons at rest and no other scheme's", () => {
+		const [standard, win95] = windows98Json.presets;
+		expect(win95.color.system[1]).toBe(BUTTON_FACE);
+		expect(win95.measurements.window).toEqual(standard.measurements.window);
+		expect(win95.typography).toEqual(standard.typography);
+		for (const theme of windows98Json.presets)
+			expect(theme.measurements.toolbar.restBevel, theme.id).toBe(
+				theme.id === "windows95" ? 1 : 0,
+			);
+		expect(windows98Json.knobs.toolbar.restBevel).toMatchObject({
+			min: 0,
+			max: 1,
+			default: 0,
+		});
+	});
+
+	// The fonts and the new knobs reach the desktop as package variables.
+	it("emits each scheme's fonts and its track, toolbar and border knobs", async () => {
+		await import("./index");
+		const vars = getThemeVars(getTheme("windows98Brick") as ClassicyTheme);
+		expect(vars).toMatchObject({
+			"--package-font-caption": "Arial, Helvetica, sans-serif",
+			"--package-font-caption-size": "12px",
+			"--package-font-caption-weight": "700",
+			"--package-font-menu-size": "11px",
+			"--package-font-small-caption-weight": "400",
+			"--package-color-scroll-bar-track": "#e1e0d2",
+			"--package-color-text-gray": "#8d8961",
+			"--scroll-bar-solid-track": "1px",
+			"--toolbar-rest-bevel": "0px",
+			"--sizing-border-width": "1px",
+			"--menu-bar-title-height": "18px",
+			"--window-scrollbar-size": "13px",
+		});
+		// The icon font's size is the theme's desktop.iconFontSize.
+		expect(vars).not.toHaveProperty("--package-font-icon-size");
+		expect(getThemeVars(getTheme("windows95") as ClassicyTheme)).toMatchObject({
+			"--toolbar-rest-bevel": "1px",
+		});
 	});
 
 	// Windows keeps a window's scroll bars drawn, disabled, where its content
@@ -260,7 +1291,12 @@ describe("the Windows 98 appearance package", () => {
 	// (`fileDialog.listFlow` "columns"; WIG Ch.8 Figure 8.6), the icon view
 	// takes Explorer's selection keys (`fileBrowser.keys` "windows"; WIG
 	// Ch.5 "Selection"), and file lists put folders first
-	// (`fileList.foldersFirst`, as Explorer sorts). Button 2 selects what it
+	// (`fileList.foldersFirst`, as Explorer sorts). Its menus take Windows'
+	// keyboard (`menu.keys` "windows"; WIG Ch.7 pp.97-98, 101), Shift+F10 and
+	// the Application key open the focused element's contextual menu
+	// (`keyboard.contextMenuKey`; Appendix B Table B.2), and Finder's item
+	// menus lead with Open, their default (`finder.commands` "windows"; WIG
+	// Ch.7 "Icon Pop-up Menus", pp.102-103). Button 2 selects what it
 	// presses on, keeping a selection it presses inside
 	// (`selection.secondaryButton` "select", the audit's 5.6 / 11.3 / A.3;
 	// WIG Ch.5 "Selection with the Mouse", pp.37-38), and its menu opens at
@@ -287,12 +1323,13 @@ describe("the Windows 98 appearance package", () => {
 	// Actions", pp.24-25); and Escape takes a drag back
 	// (`input.escapeCancels`, 1.18 / 4.16; WIG Ch.1 "Forgiveness",
 	// pp.2-3; Ch.4 "Shortcut Keys", p.27).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, lists selecting at the press and across a drag, Control with Shift adding a range and a double-click opening the selection, the page keys moving a list's row, Space, Control and Add mode building a selection, a drag carrying the icon view's selection, the list view's selection rectangle, one Tab stop for the icons, Windows' press discipline, Escape taking a drag back", async () => {
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus on Windows' keys, kept open and cascades on a time-out, the context-menu keys, Explorer's Open first, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, lists selecting at the press and across a drag, Control with Shift adding a range and a double-click opening the selection, the page keys moving a list's row, Space, Control and Add mode building a selection, a drag carrying the icon view's selection, the list view's selection rectangle, one Tab stop for the icons, Windows' press discipline, Escape taking a drag back", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
 			menuBar: { placement: "screen", idleTimeoutMs: 0 },
 			menu: {
+				keys: "windows",
 				submenuDelayMs: 400,
 				disabledItems: "browse",
 				accessKeys: "auto",
@@ -311,6 +1348,8 @@ describe("the Windows 98 appearance package", () => {
 				saveName: "selected",
 				listFlow: "columns",
 			},
+			keyboard: { contextMenuKey: true },
+			finder: { commands: "windows" },
 			fileBrowser: {
 				keys: "windows",
 				iconSelection: "view",
@@ -416,6 +1455,32 @@ describe("the Windows 98 appearance package", () => {
 		expect(document.getElementById("classicy-fonts-windows98")).toBeNull();
 		expect(pkg?.defaultScreenSaver).toBeUndefined();
 		expect(pkg?.hooks).toBeUndefined();
+	});
+
+	// A disabled control's image embossed in the scheme's ButtonHilight and
+	// ButtonShadow (DrawState's DSS_DISABLED, the 98.js report's 2.7), the
+	// one dimming rule the package declares; Load Theme… reading Windows
+	// `.theme` files (2.10); the scheme fonts' labels for the Fonts tab.
+	it("embosses disabled controls' images, reads .theme files and labels its fonts", async () => {
+		const { readWindows98ThemeFile } = await import("./index");
+		const pkg = getClassicyAppearancePackage("windows98");
+		expect(pkg?.iconDimming).toEqual({
+			disabledControl: {
+				emboss: {
+					highlight: { colorKey: "system", index: 0 },
+					shadow: { colorKey: "system", index: 4 },
+				},
+			},
+		});
+		expect(pkg?.themeFileImporter?.extensions).toEqual([".theme"]);
+		expect(pkg?.themeFileImporter?.read).toBe(readWindows98ThemeFile);
+		expect(pkg?.fontFamilies).toEqual({
+			caption: { label: "Active title bar" },
+			smallCaption: { label: "Palette title" },
+			menu: { label: "Menu" },
+			message: { label: "Message box" },
+			icon: { label: "Icon" },
+		});
 	});
 
 	// The exported data is a frozen copy: editing it edits no registered theme.

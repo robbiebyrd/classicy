@@ -77,8 +77,10 @@ interface ClassicyControlLabelProps {
 	 * equivalent always wins. Its first match in the label's text, in the
 	 * key's own case first, is wrapped in `<span
 	 * data-classicy-part="access-key">`, which a package underlines (Windows
-	 * 98 does; Platinum and System 7 draw nothing for it). Under the
-	 * package's `layout.menu.accessKeys` `"auto"` (Windows 98) a label of a
+	 * 98 does). Read only under the package's `layout.menu.accessKeys`: under
+	 * Platinum and System 7, which declare none (Mac OS had no access keys),
+	 * it is inert, nothing drawn or taken. Under its `"auto"` (Windows 98) a
+	 * label of a
 	 * focusable control given none takes the first character of its text no
 	 * other label of its window holds, never one an explicit key holds; `""`
 	 * gives it none.

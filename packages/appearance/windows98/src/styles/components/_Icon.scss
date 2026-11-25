@@ -6,7 +6,8 @@
 // desktop's icons are _Desktop.scss's.
 //
 // - A large-icon view item, as Explorer drew it: the 32 x 32 image over its
-//   label in the UI font (MS Sans Serif 8pt), WindowText straight on the
+//   label in the scheme's icon font (MS Sans Serif 8pt in Windows Standard),
+//   WindowText straight on the
 //   Window white with no box, 2 px of air between the image and the label,
 //   1 px above and below the text and 2 px either side inside the label's
 //   rectangle. Selected, the rectangle fills with Hilight under HilightText;
@@ -119,8 +120,9 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
     p {
       margin-top: px(2);
       padding: b.$b px(2);
-      font-family: var(--ui-font), sans-serif;
+      font-family: b.$icon-font;
       font-size: var(--desktop-icon-font-size);
+      font-weight: b.$icon-font-weight;
       line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
       color: b.$text;
       background: transparent;
@@ -135,8 +137,9 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
       border: b.$b solid b.$text;
       border-radius: 0;
       outline: none;
-      font-family: var(--ui-font), sans-serif;
+      font-family: b.$icon-font;
       font-size: var(--desktop-icon-font-size);
+      font-weight: b.$icon-font-weight;
       line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
       color: b.$text;
       background: b.$window;

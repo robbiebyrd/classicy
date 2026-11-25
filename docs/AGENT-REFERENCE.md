@@ -565,6 +565,8 @@ Common built-in actions:
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` or `{ family, key, color }` | Set one theme color, or one of the active package's own colors (forks a built-in into "Custom"; see §8, "Package color families") |
 | `ClassicyDesktopChangeMetric` | `{ metricKey, value }` or `{ family, key, value }` | Set one core layout metric, or one knob of the active package (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
+| `ClassicyDesktopChangeFont` | `{ fontType, font }` or `{ family, font }` | Set a core typography family (`ui`, `body`, `header`, `mono`, `digital`, `uiSmall`), or the stack of a package font the active theme holds (`typography.families`; forks a built-in into "Custom"; see §8, "Package font families") |
+| `ClassicyDesktopChangeFontSize` | `{ fontType, fontSize }` or `{ family, fontSize }` | Set a core typography size, or a package font's size, 8–72 px (refused with a warning otherwise) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a registered wallpaper is held by its filename. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (Platinum included: no package counts as installed until it registers) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename, `<package>\|<file>` or its source) is stored by filename when it is the theme's package's, or Platinum's and the theme's package has no file of that name, else as `<package>\|<file>` (`portableClassicyWallpaper(value, theme.package)`; never decided by the active package). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
@@ -741,7 +743,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, isDefault?, accessKey?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`accessKey` is the item's access key, one character, its first match in the title (the key's own case first) wrapped in `<span data-classicy-part="access-key">` (in one `<span>` holding the whole title, so a flex row keeps its spaces), typed to choose the item or, on a bar's title, with Alt to open its menu ("Menu keyboard and press tracking", §4.5), and announced as the item's `aria-keyshortcuts` (`Alt+F` on a bar's title, `O` in a menu); under the package's `layout.menu.accessKeys` `"auto"` an item without one takes the first free character of its title, `""` opting it out; an empty `menuChildren` is a plain item unless the package's `layout.menu.emptySubmenus` is `"placeholder"`, which gives it a submenu of one dimmed "(Empty)" item, id `<id>_empty`, with no access key; `imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark` (default `"check"`) makes a checkable item an option button with `"bullet"`, one choice of an interdependent group: `role="menuitemradio"` with `aria-checked` `true` or `false` (`"mixed"` reads as unchecked there, ARIA 1.2 allowing it on a check box alone) and its gutter span carrying `classicyMenuItemBullet` beside `classicyMenuItemCheck`, so a package draws the Windows Interface Guidelines' round bullet there (WIG Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button") while Platinum and System 7, keyed on `.classicyMenuItemCheck.checked`, draw their check mark for either kind; `isDefault: true` marks the menu's default item, the command a double-click on the selection runs, emitted as the `default` state class on the item's `<li>`, which the WIG draws in bold (Ch.7 "Types of Menu Items" (pp.108–109), Figure 7.5 "Default Item"; Ch.13 "Font and Size" (p.311)) and Platinum and System 7 read not at all. Finder's View as Icons / View as List are a `"bullet"` group, and the Trash icon's Open is its menu's default item)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, isDefault?, accessKey?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`accessKey` is the item's access key, one character, read only under the package's `layout.menu.accessKeys` (Windows 98; under Platinum and System 7, which declare none, it is inert: nothing drawn, named or taken), its first match in the title (the key's own case first) wrapped in `<span data-classicy-part="access-key">` (in one `<span>` holding the whole title, so a flex row keeps its spaces), typed to choose the item or, on a bar's title, with Alt to open its menu ("Menu keyboard and press tracking", §4.5), and announced as the item's `aria-keyshortcuts` (`Alt+F` on a bar's title, `O` in a menu); under the package's `layout.menu.accessKeys` `"auto"` an item without one takes the first free character of its title, `""` opting it out; an empty `menuChildren` is a plain item unless the package's `layout.menu.emptySubmenus` is `"placeholder"`, which gives it a submenu of one dimmed "(Empty)" item, id `<id>_empty`, with no access key; `imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark` (default `"check"`) makes a checkable item an option button with `"bullet"`, one choice of an interdependent group: `role="menuitemradio"` with `aria-checked` `true` or `false` (`"mixed"` reads as unchecked there, ARIA 1.2 allowing it on a check box alone) and its gutter span carrying `classicyMenuItemBullet` beside `classicyMenuItemCheck`, so a package draws the Windows Interface Guidelines' round bullet there (WIG Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button") while Platinum and System 7, keyed on `.classicyMenuItemCheck.checked`, draw their check mark for either kind; `isDefault: true` marks the menu's default item, the command a double-click on the selection runs, emitted as the `default` state class on the item's `<li>`, which the WIG draws in bold (Ch.7 "Types of Menu Items" (pp.108–109), Figure 7.5 "Default Item"; Ch.13 "Font and Size" (p.311)) and Platinum and System 7 read not at all. Finder's View as Icons / View as List are a `"bullet"` group, and the Trash icon's Open is its menu's default item)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -840,7 +842,7 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyDesktopIcon` | `selected`, `open` (its app is open, or its folder is open in a Finder window), `dragging` |
 | `ClassicyControlStrip` | `collapsed`, `dragging` |
 | `ClassicyMenu` items | `disabled`, `open`, `default` (the item's `isDefault`: the command a double-click runs, which Windows 98 draws bold; Platinum and System 7 read it not at all) |
-| `ClassicyMenu`'s root list (a menu bar's, a contextual menu's, a pop-up bevel button's: the one `<ul>` straight inside its `.classicyMenuWrapper` that a root menu draws) | `focused` while the keyboard, not the pointer, last moved the tree's tracked item (an arrow key, Home, End, a typed letter, F10), until the pointer moves; select it as `:where(.classicyMenuWrapper > .focused)`. Every package draws the keyboard's item from `:focus-visible` (Platinum the browser's focus ring, System 7 inverted, Windows 98 the Hilight band); under `focused` an item under a resting pointer drops its hover highlight (the base sheet's rule, and System 7's and Windows 98's own), and System 7's and Windows 98's rule that tracks the pointer's item alone stands down, so one item is tracked at a time. A menu used with the pointer alone never carries it |
+| `ClassicyMenu`'s root list (a menu bar's, a contextual menu's, a pop-up bevel button's: the one `<ul>` straight inside its `.classicyMenuWrapper` that a root menu draws) | `focused` while the keyboard, not the pointer, last moved the tree's tracked item (an arrow key, Home, End, a typed letter, F10), until the pointer moves; only under the package's `layout.menu.keys` `"windows"` (Windows 98: Platinum's and System 7's menus take no keyboard navigation and never carry it); select it as `:where(.classicyMenuWrapper > .focused)`. Windows 98 draws the keyboard's item from `:focus-visible` (the Hilight band); under `focused` an item under a resting pointer drops its hover highlight (the base sheet's rule, and Windows 98's own), and Windows 98's rule that tracks the pointer's item alone stands down, so one item is tracked at a time. A menu used with the pointer alone never carries it |
 | `ClassicyTabs` tab buttons and their wrappers (`classicyTabButtonWrapper`); `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
 | `ClassicyTree` (`classicyTree`), `ClassicyTable` (`classicyTableContainer`, the Finder's list included), `ClassicyListBox` (`classicyListBox`) | `inactive` while the window it is drawn in is not the active one (`ClassicyWindowActiveContext`, as `ClassicyScrollArea` reads it; outside a window, never): the tree adds it to its root, a table with `scrollable={false}` to its container, and a scrolling table's or a list box's root is its `ClassicyScrollArea`'s, which carries it already. Windows 98 draws a tree's, a list view's and the Finder's selections in ButtonFace under WindowText there, its icons unblended and with no focus rectangle (comctl32's TVS_/LVS_SHOWSELALWAYS; WIG Ch.13 "Highlighting", p.318), and keeps a list box's Hilight (user32's LISTBOX); Platinum and System 7 read it on none of these roots |
 | `ClassicyTable` rows (Finder list rows included) | `focused` on the one focus row, the keyboard cursor: the row last clicked or arrowed to while it is listed, else the first selected row, else the first row; carried whether or not the list has focus, so a package rings it under the container's `:focus` (Windows 98's dotted focus rectangle; Platinum and System 7 read it not at all) |
@@ -918,7 +920,7 @@ on Classicy's internal class names carry one of four attributes
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
 | `data-classicy-selection` | `all`, `tail` | a `ClassicyInput`'s `<input>` while it is `selected`: `all` when the selection starts at the text's first character (the whole text), `tail` when it starts at a later one. A tail scrolled so its first character sits at the field's left edge publishes `--classicy-input-selection-start: 0px`, as the whole text does, so this is what tells them apart (System 7 highlights a tail from its first character's pen position, the whole line a pixel left of the text's). Absent while the field is not `selected` |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `access-key`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`, `scroll-accessory-start`, `scroll-accessory-end`; `menu-scroll-up`, `menu-scroll-down`; `list-check` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders (holding its name and `+` under `layout.menu.shortcutSpelling` `"names"`); the access key's character in a menu title, a menu item or a `ClassicyControlLabel` (`accessKey`, or the automatic pick under `layout.menu.accessKeys` `"auto"`; Windows 98 underlines it, Platinum and System 7 draw nothing for it); and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8), and the holders of the controls a caller puts inside a bar past its arrows (`barAccessories`: `scroll-accessory-start` before the start arrow, `scroll-accessory-end` after the end one, `classicyScrollBarAccessory` with `…Start`/`…End`, ordered 5 and 35 by the base sheet; a `splittable` split view's split box); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3); and a `ClassicyListBox` check list's check box before each row (`list-check`, `checkboxes`, `aria-hidden`; hidden by the base sheet, drawn by Windows 98) |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `access-key`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`, `scroll-accessory-start`, `scroll-accessory-end`; `menu-scroll-up`, `menu-scroll-down`; `list-check` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders (holding its name and `+` under `layout.menu.shortcutSpelling` `"names"`); the access key's character in a menu title, a menu item or a `ClassicyControlLabel` (`accessKey` under `layout.menu.accessKeys`, and the automatic pick under its `"auto"`; Windows 98 underlines it; never rendered under Platinum or System 7, which declare no access keys); and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8), and the holders of the controls a caller puts inside a bar past its arrows (`barAccessories`: `scroll-accessory-start` before the start arrow, `scroll-accessory-end` after the end one, `classicyScrollBarAccessory` with `…Start`/`…End`, ordered 5 and 35 by the base sheet; a `splittable` split view's split box); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3); and a `ClassicyListBox` check list's check box before each row (`list-check`, `checkboxes`, `aria-hidden`; hidden by the base sheet, drawn by Windows 98) |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -1224,7 +1226,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyControlLabel` | `label?` (text or rich content, a `ReactNode`), `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?`, `accessKey?` (one character; `""` for none) | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc`. `accessKey` (WIG Ch.4 "Access Keys" (p.27); Ch.8 "Navigation in Secondary Windows" (pp.148-149); the Windows 98 audit's 8.9): its first match in the label's text (the key's own case first; inside the element of a rich label that holds it) is wrapped in `<span data-classicy-part="access-key">`; Alt and the key, in the window holding focus (its `.classicyWindow`, else the document; with focus on the page, the front modal or active window), focuses the control (`labelFor`'s element, else the row itself when clickable, else the first focusable control among `children`) and, for a check box, an option button or a button, clicks it (a text field's text is selected), as Windows' dialog manager does; the key alone does the same while focus is on a check box, an option button or a button. Labels of one window sharing a key are moved between, none clicked; a disabled or hidden control is skipped. Left alone: a key a handler took, Control or Command held, a menu item's keyboard equivalent (an Option chord), a key a menu bar's title holds outside a modal window (the bar takes it, WIG Ch.7 p.143), focus in a menu, and on a Mac focus in a text entry (Option types a character there). Under the package's `layout.menu.accessKeys` `"auto"` (Windows 98) every label of a focusable control given none takes the first character of its text no other label of its window holds, an explicit key reserved first (labels resolved in document order, again whenever one mounts, unmounts or changes); a label with no key under `"explicit"` registers nothing |
+| `ClassicyControlLabel` | `label?` (text or rich content, a `ReactNode`), `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?`, `accessKey?` (one character; `""` for none) | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc`. `accessKey` (WIG Ch.4 "Access Keys" (p.27); Ch.8 "Navigation in Secondary Windows" (pp.148-149); the Windows 98 audit's 8.9), read only under the package's `layout.menu.accessKeys` (inert under Platinum and System 7, which declare none: Mac OS had no access keys): its first match in the label's text (the key's own case first; inside the element of a rich label that holds it) is wrapped in `<span data-classicy-part="access-key">`; Alt and the key, in the window holding focus (its `.classicyWindow`, else the document; with focus on the page, the front modal or active window), focuses the control (`labelFor`'s element, else the row itself when clickable, else the first focusable control among `children`) and, for a check box, an option button or a button, clicks it (a text field's text is selected), as Windows' dialog manager does; the key alone does the same while focus is on a check box, an option button or a button. Labels of one window sharing a key are moved between, none clicked; a disabled or hidden control is skipped. Left alone: a key a handler took, Control or Command held, a menu item's keyboard equivalent (an Option chord), a key a menu bar's title holds outside a modal window (the bar takes it, WIG Ch.7 p.143), focus in a menu, and on a Mac focus in a text entry (Option types a character there). Under the package's `layout.menu.accessKeys` `"auto"` (Windows 98) every label of a focusable control given none takes the first character of its text no other label of its window holds, an explicit key reserved first (labels resolved in document order, again whenever one mounts, unmounts or changes); a label with no key under `"explicit"`, or any label under a package that declares no `layout.menu.accessKeys`, registers nothing |
 | `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default: the package's window face, Platinum `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
 | `ClassicyControlGroupFormRow` | `children` *, `justify? ("start"\|"end")` | full-width row inside a `layout="form"` group for anything that is not a label/control pair (checkbox, push button, text); `end` puts a button at the group's lower right |
 | `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--group-box-gap`); the content of a control panel that is a stack of groups |
@@ -1252,10 +1254,10 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount: a root menu), `orientation?` (`"horizontal" \| "vertical"`, a root menu's: its items are a menu bar's titles or a menu's items, to the keyboard and the pointer; default `"vertical"` under a `startActive` provider, else `"horizontal"`; a submenu is always vertical) | renders a menu list; a root menu takes the keyboard and press-drag-release for its whole tree ("Menu keyboard and press tracking" below); items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount: a root menu), `orientation?` (`"horizontal" \| "vertical"`, a root menu's: its items are a menu bar's titles or a menu's items, to the keyboard and the pointer; default `"vertical"` under a `startActive` provider, else `"horizontal"`; a submenu is always vertical) | renders a menu list; a root menu takes press-drag-release, and the keyboard as the package's `layout.menu.keys` says (Return alone under Platinum and System 7, Windows' keys under Windows 98), for its whole tree ("Menu keyboard and press tracking" below); items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs?` (default: the active package's `layout.menuBar.idleTimeoutMs`, else `15000`) | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout). `startActive` makes its root `ClassicyMenu` a pop-up (vertical) menu to the keyboard and the pointer; without it the root is a menu bar |
 | `useClassicyMenuIdleTimeout()` | → `number` | the idle time-out a provider given no `idleTimeoutMs` uses: the active package's `layout.menuBar.idleTimeoutMs` (Windows 98: `0`, never), else `CLASSICY_MENU_DEFAULT_IDLE_TIMEOUT_MS` (15000, HIGOS8 p.92); re-renders on a package switch. The screen and window menu bars need no prop: their providers read it |
-| `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element. Shift+F10 and the Application key open it too, from a focused element inside it ("Menu keyboard and press tracking" below) |
+| `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element. Under the package's `layout.keyboard.contextMenuKey` (Windows 98) Shift+F10 and the Application key open it too, from a focused element inside it ("Menu keyboard and press tracking" below) |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned. `onClose` runs on a selection, a click outside, Escape (a level at a time: an open submenu first) or the idle time-out |
 | `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y]), hideContextMenu() }` | imperative API. Under a package whose layout says `contextMenu.openOn: "release"` (§8, "Layout declarations"; Windows 98) a `showContextMenu` made while button 2 (or, as a macOS host raises `contextmenu` for it, a Control-press of button 1) is down is held, and the menu opens at that button's `mouseup`, heard on the document in the capture phase; a newer call replaces the held one, and a lost pointer stream or `hideContextMenu` drops it. A Windows host raises `contextmenu` at the release, so the menu opens at once there; under other packages it opens at the call, at the press on macOS and Linux hosts (Mac OS 8's Control-press) |
 | `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
@@ -1265,17 +1267,27 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 **Menu keyboard and press tracking** (WIG Ch.7, pp.97-98, 101, 104-106,
 109; HIGOS8 "Sticky Menus", p.92; the Windows 98 audit's 7.1, 7.5 to 7.9
-and 7.12). Every package, no declaration needed, except the layout keys
-named (§8, "Layout declarations"). A root `ClassicyMenu` (one rendered with no
-`open`) owns a register of its lists and items
-(`ClassicyMenuTree.internal.ts`) and handles, for its whole tree, keys that
-reach it and presses on it:
+and 7.12). A root `ClassicyMenu` (one rendered with no `open`) owns a
+register of its lists and items (`ClassicyMenuTree.internal.ts`) and
+handles, for its whole tree, keys that reach it and presses on it. The
+press tracking, the submenu time-outs and the idle time-out are every
+package's (the last two only as the package's layout declares them);
+everything the keyboard does is Windows' and only under the package's
+`layout.menu.keys` `"windows"` (Windows 98), its access keys also only
+under `layout.menu.accessKeys` and the context-menu keys only under
+`layout.keyboard.contextMenuKey` (§8, "Layout declarations"). Mac OS 8's
+and System 7's menus had no keyboard navigation, access keys or menu key
+(HIGOS8 "Sticky Menus" (p.92), "Contextual Menus" (pp.93-95)), so under
+Platinum and System 7, which declare none of the three, a menu takes
+Return alone, choosing the focused item as a click does, as it always has;
+a pop-up bevel button's menu keeps its own Up/Down walk and Escape
+(`ClassicyBevelButtonPopup`), the root list never carries `focused`,
+nothing is drawn for an `accessKey`, and Alt, F10, Shift+F10 and the
+Application key are left to the browser. Under `"windows"`:
 
 - Roving focus: every item is a `tabIndex={-1}` `<li>`; the keyboard moves
-  focus between them (`:focus-visible` is the package's drawing: Platinum
-  draws the browser's own focus ring, declaring no menu focus rule, as its
-  pop-up bevel buttons' keyboard-opened menus always did; System 7 inverts
-  the item; Windows 98 draws its Hilight band). A root's items are a menu
+  focus between them (`:focus-visible` is the package's drawing: Windows 98
+  draws its Hilight band). A root's items are a menu
   bar's titles (`orientation` `"horizontal"`, the default under a provider
   without `startActive`) or a menu's items (`"vertical"`, the default under
   a `startActive` one: contextual menus, pop-up bevel buttons' menus).
@@ -1297,9 +1309,10 @@ reach it and presses on it:
   an item with an open submenu closes that submenu. Keys with Control or
   Command, and Alt with anything but an access key, are left to their
   owners (the keyboard-equivalent dispatcher).
-- Access keys (`ClassicyMenuItem.accessKey`, or the automatic pick under
-  the package's `layout.menu.accessKeys` `"auto"`, Windows 98; resolved per
-  list, an explicit key reserved first, `ClassicyAccessKeys.internal.tsx`):
+- Access keys (only under the package's `layout.menu.accessKeys`:
+  `ClassicyMenuItem.accessKey` under `"explicit"`, and the automatic pick
+  too under `"auto"`, Windows 98; resolved per list, an explicit key
+  reserved first, `ClassicyAccessKeys.internal.tsx`):
   typed in a list, Alt held or not (a Windows user keeps Alt down through
   Alt+F, X), the one item holding the key is chosen as Return chooses it (a
   submenu or a title's menu opens on its first item, a leaf runs; a dimmed
@@ -1317,7 +1330,7 @@ reach it and presses on it:
   equivalent is that chord (an Option chord wins), when focus is in a modal
   window (`.classicyWindowModal`) the bar is not in, and, on a Mac, Alt and
   a key in a text entry (where Option types a character). A bar without
-  access keys (Platinum, System 7, given none) leaves Alt to the browser.
+  access keys leaves Alt to the browser.
 - Escape closes one level: a submenu back to its item; a bar's menu back
   to its title, which keeps focus ("leaves its menu title highlighted"); a
   title with nothing open deactivates the bar, focus going back where it
@@ -1327,7 +1340,10 @@ reach it and presses on it:
   again: the screen bar, or a window's own bar while its window is active
   (`ClassicyWindowActiveContext`). Alt alone does the same on a bar whose
   titles have access keys (above); elsewhere it is not claimed (browsers
-  keep it: Firefox shows its own menu bar).
+  keep it: Firefox shows its own menu bar). Escape closing an open
+  contextual menu is this level's too: under any other layout a contextual
+  menu closes as a Mac OS sticky menu does, on a click outside, a choice
+  or the idle time-out.
 - A root whose menu is shown while focus is outside it (a contextual menu
   opened by the pointer leaves focus on what was clicked; a pop-up bevel
   button's opened by a click, on the button) takes Escape (one level), Up
@@ -1346,7 +1362,12 @@ reach it and presses on it:
   pointer moves (a `mousemove` with travel; the browser's re-dispatch over
   content that moved under a resting pointer keeps it), and the keyboard
   picks up from the item under the pointer when the pointer moved last.
-- Press-drag-release (`useClassicyMenuPress.internal.ts`): a press on a
+
+Every package, keyboard or not:
+
+- Press-drag-release (`useClassicyMenuPress.internal.ts`; Mac OS 8's
+  menus open on the press and choose on the release, HIGOS8 "Sticky Menus"
+  (p.92), as Windows' do, WIG Ch.7 (p.97)): a press on a
   menu bar title opens its menu at once (a click no longer has to end
   first), the pointer tracks the items while the button is held (another
   title it crosses opens, as hovering an active bar does); released over an
@@ -1374,8 +1395,10 @@ reach it and presses on it:
 - The idle time-out: every `ClassicyMenuProvider` given no `idleTimeoutMs`
   reads the package's `layout.menuBar.idleTimeoutMs`
   (`useClassicyMenuIdleTimeout`; absent, 15 s; Windows 98: `0`, never).
-- Shift+F10 and the Application key (`useClassicyContextMenuKey.internal.ts`,
-  mounted by `ClassicyContextualMenuProvider`) send the focused element a
+- Shift+F10 and the Application key, only under the package's
+  `layout.keyboard.contextMenuKey` (Windows 98;
+  `useClassicyContextMenuKey.internal.ts`, mounted by
+  `ClassicyContextualMenuProvider`), send the focused element a
   `contextmenu` of its own, at the center of its visible box (as Windows
   places an edit control's keyboard pop-up menu: Wine's `edit.c`), which
   every target a right-click reaches resolves innermost first: a
@@ -1388,8 +1411,10 @@ reach it and presses on it:
   browser's own `contextmenu` for the key (Chrome on Windows fires it on the
   Menu key's keyup) is swallowed for half a second.
 - `ClassicyBevelButtonPopup`'s own Up/Down walk and its document Escape
-  listener skip a key the menu already took (`defaultPrevented`): the menu
-  walks its items (passing dimmed ones, as the pop-up did) and closes it.
+  listener skip a key the menu already took (`defaultPrevented`): under
+  `layout.menu.keys` `"windows"` the menu walks its items (passing dimmed
+  ones, as the pop-up did) and closes it; under any other they are the
+  pop-up's, as before.
 
 **Where menus open** (System 7.5's Menu Manager, measured: its Help menu at
 the bar's right end, `*-menu-help-and-selected-icon.png`, and its
@@ -2945,13 +2970,18 @@ functions in `ClassicyFileBrowserIconSelection.ts`
 rectangle itself, both views', is `startClassicyFileBrowserMarquee`
 (`File/ClassicyFileBrowserMarquee.internal.ts`, with the pure
 `classicyFileBrowserMarqueeScroll`).
-Finder's item menus (an icon or a list row, and a desktop file or folder
-icon's) lead with Open, the default item (`isDefault`), the command a
-double-click runs, then Move To Trash or, in the Trash, Restore: Mac OS 8's
-contextual menus led with Open, and Windows' icon pop-up menus do (WIG Ch.7
-"Icon Pop-up Menus", pp.102-103); the menus keep the Mac's commands
-Classicy has (no Rename, Create Shortcut or Properties: Classicy has no Make
-Alias or Get Info). Drop targets are any element marked
+Finder's item menus (an icon or a list row) hold Move To Trash or, in the
+Trash, Restore (none deeper in it), with no default item, as Mac OS 8's
+Finder set none (HIGOS8 "Contextual Menus", pp.94-95: "you should not set a
+default item"), and a desktop file or folder icon has none. Under
+`layout.finder.commands: "windows"` (Windows 98; §8) every one of them, a
+desktop file or folder icon's included (stored with the icon,
+`ClassicyDesktopIconAdd { contextMenu }`, and taken away again by a re-add
+with `contextMenu: null` once the package offers none), leads with Open, the
+default item (`isDefault`), the command a double-click runs, as Windows'
+icon pop-up menus do (WIG Ch.7 "Icon Pop-up Menus", pp.102-103). The menus
+keep the commands Classicy has (no Rename, Create Shortcut or Properties:
+Classicy has no Make Alias or Get Info). Drop targets are any element marked
 `data-classicy-drop-folder="<path>"` or `data-classicy-drop-desktop`
 (`CLASSICY_DROP_FOLDER_ATTRIBUTE`/`…DESKTOP…`); windows, the menu bar, the
 Control Strip and dialogs block drops. The drag engine is
@@ -3034,7 +3064,9 @@ type ClassicyTheme = {
     color: { outline; select; highlight; black; white; alert; error;
              system: number[7]; theme: number[7];
              window: { border; borderOutset; borderInset; frame; title; document } }  // colors are ints
-    typography: { ui; uiSize; header; headerSize; body; bodySize; mono; monoSize; digital; digitalSize }
+    typography: { ui; uiSize; header; headerSize; body; bodySize; mono; monoSize; digital; digitalSize;
+                  uiSmall?;                // the small UI text's family (System 7's Geneva)
+                  families?: Record<string, { font; size?; weight? }> }  // a package's own fonts (below)
     measurements: { window; control; button; groupBox; layout;  // the 20 core metrics (below)
                     [family: string]: Record<string, number> }   // plus a package's own families
     desktop: { iconSize; iconFontSize; backgroundImage; backgroundColor;
@@ -3355,7 +3387,7 @@ registerClassicyAppearancePackage({
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
-| `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, desktop.iconGridOrigin, scrollBar?, slider?, fileDialog?, fileBrowser?, fileList?, tree?, balloonHelp?, selection?, contextMenu?, mouse?, input? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
+| `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, menuBar.idleTimeoutMs?, desktop.iconGridOrigin, menu?, keyboard?, finder?, scrollBar?, patternOrigin?, slider?, fileDialog?, fileBrowser?, fileList?, tree?, balloonHelp?, selection?, contextMenu?, mouse?, input? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
@@ -3846,12 +3878,13 @@ first fallback is `label`. With `label` omitted, `name` is the own label.
 #### Icon dimming
 
 A package's optional `iconDimming` declares how it dims an icon, per pixel;
-the core draws the result on a canvas (`ClassicyIconDimming.ts`). Two
+the core draws the result on a canvas (`ClassicyIconDimming.ts`). Three
 surfaces read it: `hiddenApp`, a hidden application's icon in the
-Application menu (HIG7 p.127), and `disabledItem`, the icon of a
+Application menu (HIG7 p.127), `disabledItem`, the icon of a
 `ClassicyTree` row that cannot be chosen (a `disabled` node: the files a
-Save box dims). Each is optional, in `variants` too. A rule is data,
-validated at registration:
+Save box dims), and `disabledControl`, a disabled bevel or toolbar button's
+image (`ClassicyBevelButton`'s `icon` while `disabled`). Each is optional, in
+`variants` too. A rule is data, validated at registration:
 
 ```ts
 iconDimming: {
@@ -3865,7 +3898,35 @@ iconDimming: {
 ```
 
 Only `blend` is required; `bits` defaults to 8 and `palette` to none. A
-pixel's alpha is never changed, so the icon keeps its mask. The dimmed image
+pixel's alpha is never changed, so the icon keeps its mask.
+
+`disabledControl` may instead be an **emboss** (`ClassicyIconEmbossRule`),
+the way Windows draws a disabled control's image (DrawState's
+`DSS_DISABLED`; comctl32's `TOOLBAR_DrawMasked`): every pixel that is opaque
+(alpha 128 or more) and not pure white becomes the `shadow` color, over the
+same pixels one down and right in the `highlight` color, everything else
+clear (`embossClassicyIconPixels`). The two colors are theme colors,
+addressed as the Colors tab addresses them (`ClassicyThemeColorTarget`),
+read from the active theme when the image is drawn
+(`classicyIconEmbossColors`, through the asset registry's link to the
+store), so the emboss follows the scheme:
+
+```ts
+iconDimming: {
+    disabledControl: {
+        emboss: {
+            highlight: { colorKey: 'system', index: 0 }, // ButtonHilight
+            shadow: { colorKey: 'system', index: 4 },    // ButtonShadow
+        },
+    },
+}
+```
+
+Windows 98 declares exactly that, and only that. A package that declares no
+`disabledControl` rule (Platinum, System 7) draws a disabled button's image
+as before, dimmed by its stylesheet; one that declares an emboss marks the
+image `classicyIconDimmedImage`, and Windows 98's sheet draws it at full
+opacity (the base halves a disabled bevel button's image). The dimmed image
 is a `data:` URL, cached per source, rule and size for the page (except a failed load, which is drawn again on the next request: a cross-origin icon without CORS fails to load under `crossOrigin = "anonymous"`, and `onerror` carries no reason, so that cannot be told from a network error and is requested again on each dimmed mount; each source logs one `warn`), and the
 `<img>` drawing it carries the part class `classicyIconDimmedImage`
 (`CLASSICY_ICON_DIMMED_IMAGE_CLASS`), so the package's stylesheet dimming
@@ -4546,27 +4607,64 @@ it is the worked example of a package that registers **no assets**: no
 fonts, art, icons, cursors, wallpapers or screen savers. Install and import
 it like Platinum (§1); its README lists what it ships.
 
-- **Themes.** Eighteen, every one `package: "windows98"`, `sound.pack:
-  "windows98"`, no `assetVariant`, `dither.tileSize: 0`: `windows98`
-  ("Windows Standard", the defaults: the Windows 98 scheme, its `system`
-  palette ButtonHilight, ButtonLight, ButtonFace, a mid gray, ButtonShadow,
-  a dark gray and ButtonDkShadow in slots 01 to 07, `window.document`
-  Window, `highlight` Hilight, the teal desktop with no picture),
-  `windows95` ("Windows 95": the same palette, flat title bars) and the
-  sixteen classic schemes from the `[Control Panel\Colors]` block of each
-  Windows theme file (`windows98Brick` … `windows98Wheat`, named as the
-  Display control panel named them). The typography is a font stack
-  (`"Pixelated MS Sans Serif"`, MS Sans Serif, Microsoft Sans Serif, Tahoma,
-  Arial, at 11 px; Fixedsys, Lucida Console, Courier New for monospaced
-  text), since MS Sans Serif is Microsoft's; a host that loads 98.css's face
-  gets the bitmap look.
+- **Themes.** Thirty-four, every one `package: "windows98"`, `sound.pack:
+  "windows98"`, no `assetVariant`, `dither.tileSize: 0`: the thirty-three
+  color schemes of Windows 98 Second Edition's Display control panel, each
+  read from the scheme its `SHELL2.INF` writes (`[schemes.reg]`, under
+  `HKCU\Control Panel\Appearance\Schemes`: a NONCLIENTMETRICS, the icon
+  font and 29 COLORREFs), named exactly as Windows 98 names them, and
+  `windows95` ("Windows 95"). The order is the Display control panel's
+  (a sorted combo box) after `windows98` ("Windows Standard", the defaults)
+  and `windows95`: Brick, Desert, Eggplant, the twelve High Contrast schemes
+  (`windows98HighContrast1`, `…1Large`, `…1ExtraLarge`, the same for `2`,
+  `Black` and `White`), Lilac, Lilac (large), Maple, Marine (high color),
+  Plum (high color), Pumpkin (large), Rainy Day, Red, White, and Blue (VGA),
+  Rose, Rose (large), Slate, Spruce, Storm (VGA), Teal (VGA), Wheat, Windows
+  Standard (extra large) (`windows98ExtraLarge`) and (large)
+  (`windows98Large`); every id 3.7 shipped is kept, so a saved choice still
+  resolves. Each scheme maps its colors as Windows draws them: `system`
+  ButtonHilight, ButtonLight, ButtonFace, the mid gray between ButtonFace
+  and ButtonShadow, ButtonShadow, the one between ButtonShadow and
+  ButtonDkShadow, ButtonDkShadow; `window.document` Window, `black`
+  WindowText, `window.border` and `outline` WindowFrame, `highlight`
+  Hilight (its tints and shades in `theme`), `window.title` TitleText,
+  `desktop.backgroundColor` Background; the rest in the package colors
+  (below). The named schemes' captions are flat, as the INF stores them;
+  Windows Standard and its two sizes keep USER's built-in 0 0 128 → 16 132
+  208 and 128 128 128 → 181 181 181 gradients, which a fresh Windows 98
+  draws. Windows 95 keeps the palette it shipped with (Windows Standard's
+  with ButtonLight on the face, flat captions) and takes Windows Standard's
+  metrics and fonts. The metrics are the scheme's: `window.scrollbarSize`
+  (iScrollWidth), `window.titleBarHeight` (iCaptionHeight),
+  `titleBar.buttonWidth`/`buttonHeight` (SM_CXSIZE − 2 by SM_CYSIZE − 4,
+  Wine's caption buttons), `window.utilityTitleBarHeight`
+  (iSmCaptionHeight), `menuBar.titleHeight` (iMenuHeight), `sizingBorder.width`
+  (iBorderWidth); the fonts the scheme's caption, small caption, menu,
+  message box and icon fonts (`typography.families`, "Package font
+  families"; the icon font's size `desktop.iconFontSize`): Arial and Times
+  New Roman where Windows 98 names them; MS Sans Serif, a bitmap face, at
+  the size GDI draws it (the largest of its 11, 13, 16, 18, 24 and 32 px
+  faces at or under the request, 11 for any smaller), the pixel face named
+  first only at 11 px, its one cut. The UI font stays 11 px MS Sans Serif in
+  every scheme (`"Pixelated MS Sans Serif"`, MS Sans Serif, Microsoft Sans
+  Serif, Tahoma, Arial; Fixedsys, Lucida Console, Courier New for monospaced
+  text): a dialog's font is its template's, not the scheme's. The desktop
+  labels are white, black on High Contrast White's white desktop.
 - **Color families** ("Package color families"): `titleBar` (`active`,
   `activeGradient`, `inactive`, `inactiveGradient`, `text`, `inactiveText`:
   ActiveTitle, GradientActiveTitle, InactiveTitle, GradientInactiveTitle,
   TitleText, InactiveTitleText), `selection` (`text`: HilightText),
-  `tooltip` (`face`, `text`: InfoWindow, InfoText) and `desktop` (`text`:
-  the desktop labels'), the Windows colors no palette slot holds, editable
-  in the Colors tab. Every stylesheet read carries a `--color-*` fallback.
+  `tooltip` (`face`, `text`: InfoWindow, InfoText, each scheme's own: Brick's
+  dark red on its pale face, Plum's, Marine's), `desktop` (`text`: the
+  desktop labels'), `text` (`button`, `gray`: ButtonText, the ink of buttons,
+  menus, tabs and arrows, and GrayText, disabled text; High Contrast #1's
+  ButtonText is white beside its yellow WindowText, every High Contrast
+  GrayText green), `scrollBar` (`track`: Scrollbar) and `sizingBorder`
+  (`active`, `inactive`: ActiveBorder and InactiveBorder, High Contrast
+  Black's yellow and green), the Windows colors no palette slot holds,
+  editable in the Colors tab. Every stylesheet read carries a `--color-*`
+  fallback. A disabled control's glyph (DFCS_INACTIVE) and a disabled
+  button's label (DSS_DISABLED) are embossed in ButtonShadow, not GrayText.
 - **Knob families** ("Package knob families"): `pixel` (`unit`, the
   pixel-art grid), `titleBar` (button width and height, the gap before
   Close, the end, icon and text insets, the gap below), `pushButton`,
@@ -4584,18 +4682,29 @@ it like Platinum (§1); its README lists what it ships.
   `listBox` (`rowHeight`, 13: the 8-point MS Sans Serif row), `toolbar`
   (`buttonWidth`/`buttonHeight`, 24 x 22, and `largeButtonWidth`/
   `largeButtonHeight`, 32 x 30: the WIG's two toolbar button sizes, for a
-  medium or small and a large ClassicyButtonToolbar), `slider`, `growBox`,
-  `utilityTitleBar` and
+  medium or small and a large ClassicyButtonToolbar; and `restBevel`, the
+  rest bevel's ring width: 0, the flat TBSTYLE_FLAT button, in every
+  Windows 98 scheme, 1, the raised one, in Windows 95's, Figure 7.34),
+  `slider`, `growBox`, `utilityTitleBar`,
   `desktopLabel` (`shadow`, the desktop labels' text shadow offset, 1; 0
-  sends the shadow out of the desktop, the stock Windows 98 label); `knobs`,
-  and so the Options tab, covers `titleBar`, `progressBar`, `field`,
-  `popUp` (`height`), `tabControl` and `desktopLabel`. Layout: grow box
+  sends the shadow out of the desktop, the stock Windows 98 label),
+  `scrollBar` (`solidTrack`: 1 where ButtonHilight is not Window, the track
+  then the solid Scrollbar brush, Wine's DEFWND_ControlColor; 0 the 50%
+  checker), `sizingBorder` (`width`, iBorderWidth: 1, 2 in Rose (large), 6
+  or 7 in the large High Contrast schemes) and `menuBar` (`titleHeight`,
+  iMenuHeight: 18, up to 38), the last two read by the window frame and the
+  menu bar, and `desktopIconGrid` (`rowGap` and `columnGap` 43: Windows'
+  75 px IconSpacing over a 32 px icon); `knobs`, and so the Options tab,
+  covers `titleBar` (its button sizes up to 40), `progressBar`, `field`,
+  `popUp` (`height`), `tabControl`, `desktopLabel`, `toolbar` (`restBevel`,
+  "Raised buttons") and `scrollBar` (`solidTrack`, "Solid track"). Layout: grow box
   bottom right, menu bar
   on the screen with `idleTimeoutMs: 0` (an open menu stays until the next
-  click), `menu: { submenuDelayMs: 400, disabledItems: "browse",
-  accessKeys: "auto", shortcutSpelling: "names", emptySubmenus:
-  "placeholder" }` (a cascading menu opens and closes on Windows' 400 ms
-  time-out, a pop-up menu's on hover too, the keyboard browses dimmed items,
+  click), `menu: { keys: "windows", submenuDelayMs: 400, disabledItems:
+  "browse", accessKeys: "auto", shortcutSpelling: "names", emptySubmenus:
+  "placeholder" }` (the menus take Windows' keyboard, a cascading menu opens
+  and closes on Windows' 400 ms time-out, a pop-up menu's on hover too, the
+  keyboard browses dimmed items,
   every menu title, item and label of a focusable control takes an access
   key, underlined by `_Menu.scss` and `_TextField.scss` (`b.access-key`: a
   pixel thick, a pixel below the baseline, as `DrawText` draws a prefixed
@@ -4625,7 +4734,11 @@ it like Platinum (§1); its README lists what it ships.
   true` (the list view's selection rectangle from below its rows, either
   view's scrolling the window toward an edge the pointer passes, p.42) and
   `fileList.foldersFirst: true` (folders before files, as Explorer lists
-  them, last when a list sorts down),
+  them, last when a list sorts down), `keyboard.contextMenuKey: true`
+  (Shift+F10 and the Application key open the focused element's contextual
+  menu, WIG Appendix B Table B.2), `finder.commands: "windows"` (Finder's
+  item menus lead with Open, their default item, WIG Ch.7 "Icon Pop-up
+  Menus", pp.102-103),
   `tree.keys: "windows"` (a bare Right Arrow expands a branch or goes into
   it, a bare Left Arrow collapses it or goes up, WIG Ch.7 "Tree View
   Controls", pp.123-124) and `balloonHelp.placement: "pointer"` (help as a
@@ -4715,9 +4828,39 @@ it like Platinum (§1); its README lists what it ships.
   Selection", p.42), and a
   meter's warning zones patterned over their color, a WindowText 25% stipple on a
   suboptimal zone's blocks and the 50% checker on a bad zone's
-  (`_ProgressBar.scss`; WIG Ch.14 "Visual Disabilities", p.329). Icons, cursors and system
+  (`_ProgressBar.scss`; WIG Ch.14 "Visual Disabilities", p.329), a
+  toolbar button's bevel from `--toolbar-rest-bevel` (raised at rest under
+  Windows 95, flat with a one-ring hot track under Windows 98's schemes,
+  `_Button.scss`), a solid track's Scrollbar fill an inset box-shadow over
+  the checker spread by `--scroll-bar-solid-track` (its held side inverted
+  by a `::after` of white in `mix-blend-mode: difference`, DSTINVERT), the
+  menus in `--package-font-menu`, a message box in `--package-font-message`
+  and icon labels in `--package-font-icon`, text with no color of its own
+  WindowText, and, under `@media (forced-colors: active)` (Windows' High
+  Contrast setting, `_ForcedColors.scss`, last), the drawing kept
+  (`forced-color-adjust: none`) with every token pointed at a CSS system
+  color (ButtonFace, ButtonBorder, ButtonText, Canvas, CanvasText,
+  Highlight, HighlightText, GrayText, LinkText), the wallpaper hidden (WIG
+  Ch.14 "Color", p.334). Icons, cursors and system
   art resolve to the default package's (§5), and with no package offering
   a screen saver the panel reads "This appearance has no screen savers."
+- **Icon dimming.** `iconDimming.disabledControl`, an emboss in
+  ButtonHilight (`system` 0) and ButtonShadow (`system` 4): a disabled
+  toolbar button's image as DrawState's DSS_DISABLED draws it ("Icon
+  dimming").
+- **Theme files.** `themeFileImporter` `{ extensions: [".theme"], read:
+  readWindows98ThemeFile }` (`windows98ThemeFile.ts`, exported): a Windows
+  `.theme` file (Plus! for Windows 95, Windows 98's Desktop Themes) loads
+  through Load Theme… as a custom theme of the package. Its
+  `[Control Panel\Colors]` map as the schemes' do (a color it lacks is
+  Windows Standard's; GradientActiveTitle and GradientInactiveTitle, which
+  no Plus! file has, take their base color, a flat caption), `[Metrics]`'s
+  NonclientMetrics and IconMetrics (decimal bytes, ANSI or wide, told apart
+  by length) give the metrics and fonts as the schemes' do and the icon
+  spacing, `[Control Panel\Desktop]`'s wallpaper is kept by its file name
+  when a package registers it (case aside, else none; `TileWallpaper` tiles,
+  `WallpaperStyle=2` stretches), and `[Theme] DisplayName`, else the file
+  name, names it. Sounds, cursors, icons and screen savers are not read.
 - **Sound.** One pack, `windows98`: `ClassicyBeep` and four alert tones
   (Chimes, Chord, Ding, Exclamation; `defaultAlert` Ding), synthesized for
   the package (Windows' sounds are Microsoft's), ogg and m4a. The package
@@ -4744,9 +4887,10 @@ how they look) has two halves:
 2. **The package's `layout` block**, for the three arrangements that need
    JavaScript as well as CSS, the optional `window.centering`,
    `menuBar.idleTimeoutMs` and `mouse`, and the optional `menu`,
-   `scrollBar`, `patternOrigin`, `slider`, `fileDialog`, `fileBrowser`,
-   `fileList`, `tree`, `balloonHelp`, `selection`, `contextMenu` and
-   `input` groups, which declare behavior rather than arrangement. The groups and each of their keys are
+   `keyboard`, `finder`, `scrollBar`, `patternOrigin`, `slider`,
+   `fileDialog`, `fileBrowser`, `fileList`, `tree`, `balloonHelp`,
+   `selection`, `contextMenu` and `input` groups, which declare behavior
+   rather than arrangement. The groups and each of their keys are
    optional, so a package that leaves one out keeps the core's behavior;
    Platinum declares only `slider`.
 
@@ -4756,11 +4900,14 @@ how they look) has two halves:
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `menuBar.idleTimeoutMs` (optional) | a whole number of ms, `0` to `3600000` | how long an open menu waits, untouched, before it closes itself: read by every `ClassicyMenuProvider` given no `idleTimeoutMs` (the screen and window bars, contextual menus, pop-up bevel buttons' menus) through `useClassicyMenuIdleTimeout`. Absent (Platinum, System 7): 15000, HIGOS8 "Sticky Menus" (p.92). `0` (Windows 98): never, as a Windows menu stays until the next click (WIG Ch.7 "Drop-down Menu Interaction", p.97; Ch.14 "Timing and Navigational Interfaces", p.333) |
+| `menu.keys` (optional) | `mac`, `windows` | how menus take the keyboard ("Menu keyboard and press tracking", §4.5). `mac` (the default, Platinum, System 7: Mac OS 8's and System 7's menus had no keyboard navigation, HIGOS8 "Sticky Menus" (p.92)): Return chooses the focused item as a click does, and nothing else is taken (a pop-up bevel button's menu keeps its own Up/Down walk and Escape); the root list never carries `focused`. `windows` (Windows 98; WIG Ch.7 "The Menu Bar and Drop-down Menus" (pp.97-98), "Pop-up Menu Interaction" (p.101)): roving focus through every menu tree (Up/Down wrapping, Right/Left into and out of submenus and across a bar's titles, Home/End, Return and Space, typing to the next item), Escape a level at a time (an open contextual menu included), F10 to a bar and back, a pop-up shown with focus outside it taking Escape, Up, Down and its access keys from the document, access keys typed in a menu and Alt with a title's (`menu.accessKeys`), and the `focused` state on the root list while the keyboard tracks |
 | `menu.submenuDelayMs` (optional) | a whole number of ms, `0` to `10000` | a cascading menu's pointer time-outs ("Menu keyboard and press tracking", §4.5). Absent (Platinum, System 7): a hovered submenu opens at once and stays open until another opens or the menus close, and a pop-up menu's submenus open on a click. Set (Windows 98: 400, `SPI_GETMENUSHOWDELAY`; WIG Ch.7 "Cascading Menus", pp.104-105): it waits that long under a resting pointer before opening (a leave cancels it), an open one closes that long after the pointer rests on another item of its list unless the pointer returns to it first, a pop-up menu's open on hover too, and a dimmed item's never on hover. Bar titles switch at once either way; a click, Return or an arrow key opens at once |
 | `menu.disabledItems` (optional) | `skip`, `browse` | how the menus' keyboard treats a dimmed item. `skip` (the default, as Mac OS menus and the pop-up bevel buttons' menus did): Up, Down, Home, End and typing pass over it. `browse` (Windows 98; WIG Ch.7 "Menu Items", p.107: disabling "does not prevent the user from browsing or choosing it"): it is tracked like any other, and choosing it does nothing |
-| `menu.accessKeys` (optional) | `explicit`, `auto` | which menu titles, menu items and control labels have an access key (`data-classicy-part="access-key"`; "Menu keyboard and press tracking", §4.5; `ClassicyControlLabel`, §4.4). `explicit` (the default, Platinum, System 7): those given an `accessKey` alone, so a Mac menu draws and takes nothing new. `auto` (Windows 98; WIG Ch.7 "Menu Titles" (p.106), "Menu Item Labels" (p.109); Ch.8 pp.148-149): every other titled item, and every other label of a focusable control, takes the first character of its text that no sibling (the menu's items, the bar's titles, the window's labels) holds: its first letter, a later word's first letter, a consonant, then a vowel (WIG Ch.4 "Access Keys", p.27), an explicit key reserved first, so the pick never takes it (Windows 98's Start menu, Favorites "a" and Find "F", passes both); `""` opts one out |
+| `menu.accessKeys` (optional) | `explicit`, `auto` | which menu titles, menu items and control labels have an access key (`data-classicy-part="access-key"`; "Menu keyboard and press tracking", §4.5; `ClassicyControlLabel`, §4.4). Absent (Platinum, System 7: Mac OS had no access keys): none, a given `accessKey` included, so a Mac menu or label draws, names and takes nothing new. `explicit`: those given an `accessKey` alone. A menu's keys are typed through the menu keyboard (`menu.keys` `"windows"`); a label's Alt and key work under either value. `auto` (Windows 98; WIG Ch.7 "Menu Titles" (p.106), "Menu Item Labels" (p.109); Ch.8 pp.148-149): every other titled item, and every other label of a focusable control, takes the first character of its text that no sibling (the menu's items, the bar's titles, the window's labels) holds: its first letter, a later word's first letter, a consonant, then a vowel (WIG Ch.4 "Access Keys", p.27), an explicit key reserved first, so the pick never takes it (Windows 98's Start menu, Favorites "a" and Find "F", passes both); `""` opts one out |
 | `menu.shortcutSpelling` (optional) | `glyphs`, `names` | how `ClassicyKbd`'s `inline` form, a menu item's keyboard equivalent, spells a chord. `glyphs` (the default, Platinum, System 7): ⌃⌥⇧⌘ and the key. `names` (Windows 98; WIG Ch.7 "Shortcut Keys in Menu Items", p.110: "Ctrl+key ... and Shift+key", "Fn"): the keycaps' names joined by `+`, "Ctrl+Shift+S", ⌘ as Win, ⌫ Backspace, ⌦ Del, Escape Esc, the arrows Up, Down, Left, Right (`formatKeyboardShortcutNames`). Display only: the chord fires as before |
 | `menu.emptySubmenus` (optional) | `leaf`, `placeholder` | an item given an empty `menuChildren`. `leaf` (the default): a plain item, chosen as any other. `placeholder` (Windows 98, as its Start menu and Favorites show an empty folder): a submenu of one dimmed "(Empty)" item (id `<id>_empty`, no access key) |
+| `keyboard.contextMenuKey` (optional) | `false`, `true` | `true` (Windows 98; WIG Ch.7 "Pop-up Menu Interaction" (p.101), Appendix B Tables B.2 and B.3): Shift+F10 and the Application (ContextMenu) key open the focused element's contextual menu, as a right-click on it does (`ClassicyContextualMenuProvider`, "Menu keyboard and press tracking", §4.5). Absent or `false` (Platinum, System 7: Mac OS contextual menus open from a Control-click alone, HIGOS8 "Contextual Menus" (p.93)): neither key is taken |
+| `finder.commands` (optional) | `mac`, `windows` | which commands Finder's item menus offer ("Icon view selection", §7). `mac` (the default, Platinum, System 7): Move To Trash, or Restore in the Trash, with no default item (HIGOS8 "Contextual Menus" (pp.94-95): "you should not set a default item"), and none on a desktop file or folder. `windows` (Windows 98; WIG Ch.7 "Icon Pop-up Menus" (pp.102-103)): every item's menu, a desktop file's or folder's included, leads with Open, its default item (`isDefault`), the command a double-click runs |
 | `tree.keys` (optional) | `mac`, `windows` | how the keyboard drives a `ClassicyTree`. `mac` (the default, Platinum, System 7, as Mac OS 8's list views): Up, Down, Home, End and typing move the keyboard row, ⌘→ / ⌘← open and close the focused branch, and a bare Right or Left Arrow does nothing (its default left to the browser). `windows` (Windows 98; WIG Ch.7 "Tree View Controls", pp.123-124; comctl32's TREEVIEW_KeyDown): a bare Right Arrow expands a closed branch or moves to an open one's first child (a leaf stays), a bare Left Arrow collapses an open branch or moves to the row's parent (a closed root row stays), Shift allowed and Alt left to the browser, the key's default taken; a dimmed branch never toggles. Under `windows` the chords give way to the bare arrows and scroll instead, as comctl32's tree view takes every Control key (`TREEVIEW_KeyDown` hands it to `TREEVIEW_ScrollKeyDown`; WIG App. B Table B.1, p.357; the audit's B.3): Control (or ⌘) with Up or Down scrolls the tree's scroller one row (a registered scroll area's through its own `scrollBy`, else the nearest ancestor that scrolls), with Left or Right a row's height sideways, with Page Up or Page Down the page's whole rows, with Home or End to its top or bottom, the keyboard row and the selection staying put and the key's default taken. A `ClassicyTable`'s tree rows (`getSubRows`, the Finder's list view) read the same key for their expand keys (one key for both, recorded): ⌘→ / ⌘← (or Control) under `mac`, a bare Right and Left Arrow (Shift allowed) under `windows`, where the chords expand nothing. Read with `classicyWindowsTreeKeys(layout)` (`Keyboard/ClassicyListKeys.internal.ts`) |
 | `balloonHelp.placement` (optional) | `anchor`, `pointer` | where `useClassicyBalloonHelp` (`ClassicyBalloonHelp`, the desktop icons' balloons) shows help (§4.8). `anchor` (the default, Platinum, System 7): Mac OS 8's balloon against the anchor, after the delay from the pointer's arrival. `pointer` (Windows 98; WIG Ch.7 "Tooltip Controls", p.133; Ch.12 "Tooltips"): a tip at the resting pointer, below it (`classicyBalloonHelpPointerBelow`, offset by the package) or above the anchor at the desktop's bottom (`classicyBalloonHelpPointerAbove`), moved left at its right edge, with no tail, hidden by a press on the anchor until the pointer leaves |
 | `selection.secondaryButton` (optional) | `menu`, `select` | what button 2 does to the selection it presses on. `menu` (the default, Platinum, System 7, as Mac OS 8's Control-click): it shows the object's menu, a desktop icon's collapsing the desktop's selection to it first, and a `ClassicyTable` row under it changes nothing. `select` (Windows 98; WIG Ch.5 "Selection with the Mouse", pp.37-38; Ch.11 "Accessing Commands for Selected Objects", p.234; App. A Table A.1, p.349): a press on an unselected desktop icon or table row (the Finder's list view) selects it alone before its `contextmenu`, so its menu acts on what is drawn selected, and a press on a selected one keeps the whole selection for its menu. `ClassicyListBox` and `ClassicyTree` ignore button 2 under either, as user32's list box does. The desktop's empty area reads it through `classicyDesktopSelectPress` (`Desktop/ClassicyDesktopSelectBox.internal.ts`: button 2 clears the icons and starts the rectangle as button 1 does) |
@@ -4967,7 +5114,8 @@ one preview iframe across sidebar navigation, so a story visited after a
 
 The Appearance Manager's Themes tab has **Save Theme…** (downloads the
 *active* theme, built-in or custom) and **Load Theme…** (picks a `.json`
-file, imports it, selects it). A load error shows a stop alert with the
+file, imports it, selects it; and, while the active package has a theme
+file importer, a file of another system's format, below). A load error shows a stop alert with the
 reason; a theme for a package that is not installed is refused this way
 before anything is dispatched. A theme for another *installed* package
 switches to that package first (`ClassicyDesktopChangeAppearancePackage`),
@@ -4975,6 +5123,22 @@ then imports, so the active theme and the active look agree. That switch is
 the panel's: a programmatic `ClassicyDesktopImportTheme` leaves `packageId`
 alone. Helpers live in `ClassicyThemeFile.ts`; the schema in
 `ClassicyThemeSchema.ts`.
+
+**Another system's theme files.** A package may read another system's theme
+files (`ClassicyAppearancePackage.themeFileImporter`,
+`ClassicyAppearanceThemeFileImporter`: `{ extensions, read(text, fileName)
+}`, `extensions` lower case with the dot). While it is the active package,
+Load Theme…'s picker accepts those extensions beside JSON
+(`classicyThemeFileAccept(importer)`, `"application/json,.json,.theme"`), a
+file whose name ends in one (case aside, `isClassicyForeignThemeFile`) is
+read as text and handed to `read`, and the theme it returns is validated as
+a Classicy theme file's theme (`parseClassicyForeignThemeFile`, through
+`readClassicyTheme`: unknown keys stripped, every string held to its CSS
+role, its package installed) before `ClassicyDesktopImportTheme` adds it as
+a custom theme; a refusal (`{ ok: false, error }`), a throw or a file over
+the size limit shows in the panel's alert. A package without an importer
+(Platinum, System 7) leaves the picker at JSON and reads every file as one.
+Windows 98's reads Windows `.theme` files (the Windows 98 section).
 
 File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json`:
 
@@ -5102,7 +5266,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (None first, which stores `""`: no picture, the desktop's solid color; then the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`). `bg` is the resolved picture, `""` for none (the picker reads None and the preview shows the desktop color) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies? })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
-| Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
+| Fonts | `useFontsTab({ typography, changeFont, changeFontSize, fontFamilies?, changeFamilyFont?, changeFamilyFontSize? })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`); then a row per package font the theme holds (`typography.families`, labeled by the active package's `fontFamilies`, a size beside each that has one; "Package font families") |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
 | Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.5, and a call without it works as in 3.1) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
@@ -5140,6 +5304,7 @@ Theme-driven variables (values change per theme):
 | Window metrics | `--window-control-size`, `--window-border-size`, `--window-padding-size`, `--window-scrollbar-size`, `--window-scrollbar-arrow-size` |
 | Typography | `--header-font`/`--header-font-size`, `--body-font`/`--body-font-size`, `--ui-font`/`--ui-font-size`, `--mono-font`/`--mono-font-size`, `--digital-font`/`--digital-font-size` |
 | Package colors | `--package-color-<family>-<key>`: the active theme's `color.families` ("Package color families" below), e.g. Platinum's `--package-color-gray-ramp-step2` |
+| Package fonts | `--package-font-<name>`, `-size`, `-weight`: the active theme's `typography.families` ("Package font families"), e.g. Windows 98's `--package-font-menu-size`; none for a theme without them |
 | Desktop | `--desktop-icon-size`, `--desktop-icon-font-size`, `--desktop-background-image`, `--desktop-background-color`, `--desktop-background-repeat`, `--desktop-background-position`, `--desktop-background-size`; fixed: `--icon-small-size` (16px), `--icon-size-regular` (32px) |
 
 **Package color families.** An Appearance Package may declare colors of its
@@ -5227,7 +5392,61 @@ change), the way it declares measurement families. They are additive, 3.5.
   strip drawing its grays through the 50% checker), and
   `controlStrip.pressedGlyphInk` / `pressedGlyphLight` / `pressedGlyphDark`
   (black / #777777 / #222222; white / black / black), a pressed collapse
-  box's glyph darkened, inverted in 1-bit, as 7.5.5 draws it.
+  box's glyph darkened, inverted in 1-bit, as 7.5.5 draws it. **Windows 98**
+  declares `titleBar`, `selection`, `tooltip`, `desktop`, `text`
+  (`button`, `gray`: ButtonText and GrayText), `scrollBar` (`track`:
+  Scrollbar) and `sizingBorder` (`active`, `inactive`: ActiveBorder and
+  InactiveBorder), each scheme's own values from Windows 98 SE's SHELL2.INF
+  (the Windows 98 section below).
+
+**Package font families.** An Appearance Package may hold fonts of its own
+in a theme beside the core typography (`ui`, `header`, `body`, `mono`,
+`digital`, which do not change), the way it holds colors. Additive, 3.8;
+Platinum and System 7 hold none and emit none.
+
+- **Theme data.** `typography.families.<name>`: `{ font, size?, weight? }`
+  (`ClassicyThemeFontFamily`, `ClassicyThemeFontFamilies`,
+  `ClassicyThemeFontFamilies.ts`): `font` a font stack the schema's
+  `fontStack` accepts (family names, quotes and commas), `size` a font size
+  within 8–72 px, `weight` 100 to 900 in hundreds. Names are
+  lowercase-first camelCase (`constructor`, `prototype` and `__proto__`
+  never). Windows 98 holds each scheme's `caption`, `smallCaption`, `menu`,
+  `message` and `icon` fonts there (the icon font's size is the theme's
+  `desktop.iconFontSize`, so it has none).
+- **Variables.** `getThemeVars` emits `--package-font-<name>` (the stack),
+  `--package-font-<name>-size` (px, when set) and
+  `--package-font-<name>-weight` (when set), kebab-cased
+  (`classicyFontFamilyVars`, `classicyFontFamilyVarName`): `smallCaption` →
+  `--package-font-small-caption`. The prefix
+  (`CLASSICY_PACKAGE_FONT_VAR_PREFIX`) is reserved whole
+  (`isReservedClassicyThemeVar`), so no measurement family makes one; two
+  names that make one variable (`smallCaption`'s size and a family
+  `smallCaptionSize`) keep the first in key order, one warning. A malformed
+  entry, an unsafe stack, a size or weight out of bounds emits nothing.
+  Read them from a package's own stylesheet with a core fallback, a
+  typography variable for a stack or a size and a keyword for a weight
+  (`var(--package-font-menu, var(--ui-font))`,
+  `var(--package-font-menu-weight, normal)`): the var-coverage test
+  requires it.
+- **Package metadata.** `ClassicyAppearancePackage.fontFamilies`
+  (`ClassicyAppearanceFontFamilies`): name → `{ label }`. The package
+  schema refuses a declared font that `defaults.typography.families` holds
+  no value for.
+- **Editing.** The Fonts tab adds a row per family the active theme holds
+  after the core rows, in the declared order and labeled by it (else by
+  name; `listClassicyThemeFontFamilies`): a family pop-up (the font
+  registry) and a size spinner when the entry has a size. They dispatch
+  `ClassicyDesktopChangeFont { family, font }` and
+  `ClassicyDesktopChangeFontSize { family, fontSize }` (predicates
+  `hasFontFamilyFont`, `hasFontFamilySize`), which edit only a family the
+  active theme holds, checked before the edit so a refused change never
+  forks a built-in; the `fontType` forms are unchanged. The weight is the
+  theme's.
+- **Persistence and theme files.** The families are stored, exported and
+  imported with the theme, whole (`ClassicyThemeSchema` keeps them,
+  optional; a build without the capability strips them and loads the theme
+  in the core fonts). A theme without them is not completed from its
+  package: every read has its core fallback.
 
 **Layout metrics** are theme data too. The inputs live in the theme JSON under
 `measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,
@@ -5361,17 +5580,21 @@ literals.
   row's (rows step by `desktop.iconSize` plus it, so the pitch follows an
   edited icon size; the metrics' `rowPitch`), and `top`, the first row's
   top for a top origin and the highest a bottom origin's row goes (the
-  metrics' `top`). Each is read from the theme completed by its package's
+  metrics' `top`), and `columnGap`, the room beside an icon's box before the
+  next column's (columns step by `desktop.iconSize` plus it; the metrics'
+  `columnPitch`). Each is read from the theme completed by its package's
   defaults (`withDefaultThemeMetrics(theme,
   classicyThemeMeasurementDefaults(theme.package))`, as `getThemeVars`
   reads every knob), so a saved Custom theme, which persistence stores
   without the values equal to those defaults, keeps its package's rows.
   Each counts when that value is a finite number of zero or more; unset in
-  the theme and in its package, rows step by `cell + padding` from
-  `4 × padding`, as columns always do, so Platinum, which sets neither,
-  lays its desktop out as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
+  the theme and in its package, rows and columns step by `cell + padding`,
+  rows from `4 × padding`, so Platinum, which sets none, lays its desktop
+  out as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
   tops at y 60, 112, 164, 216 under its 20 px bar, a 52 px pitch for its
-  32 px icons; `*-desktop-menubar-icons.png`).
+  32 px icons; `*-desktop-menubar-icons.png`). Windows 98 sets `rowGap` and
+  `columnGap` 43 over its 32 px icons, Windows' 75 px IconSpacing both ways
+  (Wine `sysparams.c`, 1125 twips).
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
@@ -6124,8 +6347,9 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 43 sites over 11 files, the sites kept on purpose
-(Part G), the H-R7 and H-R21 geometry and the button spacing scale:
+the list ends at these 46 sites over 14 files, the sites kept on purpose
+(Part G), the H-R7 and H-R21 geometry, two on/off switches and the button
+spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
   `--desktop-icon-size` per icon, and the root's `--desktop-icon-cell` would
@@ -6148,6 +6372,15 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   triangle, the dotted group box and separator), one-pixel rectangles on
   the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
   Strip's.
+- Windows 98's `_pixel.scss`, the one `pixel-unit × n` in its `px()`
+  helper: the title-bar buttons' marks, the scroll arrows, the check, the
+  radio ring and dot, the pop-up and menu arrows and the slider's thumb,
+  one-pixel rectangles on the art's grid (H-R7), as System 7's.
+- Windows 98's two switches, each a knob of 0 or 1 times ten thousand
+  pixels: `_Desktop.scss`'s label shadow (`desktopLabel.shadow`; at 0 the
+  shadow is sent out of the desktop) and `_ScrollBar.scss`'s solid track
+  (`scrollBar.solidTrack`; the inset fill's spread, nothing at 0 and the
+  whole track at 1). On/off switches, not theme proportions (H-R7).
 - Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
   helper: the slider drawn pixel for pixel from HIGOS8 Figures 2-18 and
   2-19 at rest (the channel and its caps, the indicator, the knob, the

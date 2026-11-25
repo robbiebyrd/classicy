@@ -213,3 +213,54 @@ describe("useFontsTab — the small UI font", () => {
 		expect(menus[ROWS.length]).toHaveTextContent("Geneva");
 	});
 });
+
+// A package's own fonts (`typography.families`: Windows 98's caption, menu,
+// message box and icon fonts) are rows of their own after the core ones,
+// labeled by the package (`fontFamilies`), a size beside each that has one;
+// a theme without them (Platinum's) shows none.
+describe("useFontsTab — the package's fonts", () => {
+	const families = {
+		caption: { font: "Arial, sans-serif", size: 12, weight: 700 },
+		icon: { font: '"Geneva", sans-serif', weight: 400 },
+	};
+	const labels = {
+		caption: { label: "Active title bar" },
+		icon: { label: "Icon" },
+	};
+
+	it("shows no package font row for a theme without families", () => {
+		render(<Host />);
+		expect(screen.queryByText("Active title bar")).toBeNull();
+		expect(screen.getAllByRole("combobox")).toHaveLength(ROWS.length);
+	});
+
+	it("lists each family under its label and reports its family and size", () => {
+		const changeFamilyFont = vi.fn();
+		const changeFamilyFontSize = vi.fn();
+		const PackageHost = () => {
+			const tab = useFontsTab({
+				typography: { ...defaultTypography, families },
+				changeFont: vi.fn(),
+				changeFontSize: vi.fn(),
+				fontFamilies: labels,
+				changeFamilyFont,
+				changeFamilyFontSize,
+			});
+			return <div>{tab.children}</div>;
+		};
+		const { container } = render(<PackageHost />);
+		expect(screen.getByText("Active title bar")).toBeInTheDocument();
+		expect(screen.getByText("Icon")).toBeInTheDocument();
+		const menus = screen.getAllByRole("combobox");
+		expect(menus).toHaveLength(ROWS.length + 2);
+		expect(menus[ROWS.length + 1]).toHaveTextContent("Geneva");
+		// The caption has a size; the icon's is the Desktop tab's.
+		const captionSize = container.querySelector<HTMLInputElement>(
+			"#family-caption-size",
+		);
+		expect(captionSize?.value).toBe("12");
+		expect(container.querySelector("#family-icon-size")).toBeNull();
+		if (captionSize) fireEvent.change(captionSize, { target: { value: "16" } });
+		expect(changeFamilyFontSize).toHaveBeenCalledExactlyOnceWith("caption", 16);
+	});
+});

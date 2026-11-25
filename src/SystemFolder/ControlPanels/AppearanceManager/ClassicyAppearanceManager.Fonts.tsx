@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+import type { ClassicyAppearanceFontFamilies } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAssetTree } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyThemeTypography } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -6,6 +7,7 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { primaryFontFamily } from "./ClassicyFontStack";
+import { listClassicyThemeFontFamilies } from "./ClassicyThemeFontFamilies";
 import {
 	CLASSICY_THEME_FONT_SIZE_MAX,
 	CLASSICY_THEME_FONT_SIZE_MIN,
@@ -26,12 +28,24 @@ interface FontsTabProps {
 	 */
 	changeFont: (fontType: string, font: string) => void;
 	changeFontSize: (fontType: string, size: number) => void;
+	/**
+	 * The active package's labels for its own fonts (`fontFamilies`): a row
+	 * for each `typography.families` entry of the theme, in this order.
+	 */
+	fontFamilies?: Readonly<ClassicyAppearanceFontFamilies>;
+	/** Called with a package font's name and the bare family name picked. */
+	changeFamilyFont?: (name: string, font: string) => void;
+	/** Called with a package font's name and the size typed. */
+	changeFamilyFontSize?: (name: string, size: number) => void;
 }
 
 export const useFontsTab = ({
 	typography,
 	changeFont,
 	changeFontSize,
+	fontFamilies,
+	changeFamilyFont,
+	changeFamilyFontSize,
 }: FontsTabProps): TabIndividual => {
 	const fonts = useClassicyAssetTree("fonts");
 	// The spinner shows a typed size clamped to its bounds but reports the raw
@@ -43,6 +57,17 @@ export const useFontsTab = ({
 			if (size !== undefined) changeFontSize(fontType, size);
 		},
 		[changeFontSize],
+	);
+	const reportFamilySize = useCallback(
+		(name: string, typed: string) => {
+			const size = clampClassicyThemeFontSize(Number(typed));
+			if (size !== undefined) changeFamilyFontSize?.(name, size);
+		},
+		[changeFamilyFontSize],
+	);
+	const packageFonts = useMemo(
+		() => listClassicyThemeFontFamilies(typography, fontFamilies),
+		[typography, fontFamilies],
 	);
 	const fontOptions = useMemo(
 		() =>
@@ -178,9 +203,44 @@ export const useFontsTab = ({
 							/>
 						</div>
 					)}
+					{/* The active package's own fonts (`typography.families`):
+					    Windows 98's caption, menu, message box and icon fonts.
+					    An entry without a size (the icon font's is the Desktop
+					    tab's label size) shows the family alone. */}
+					{packageFonts.map(({ name, label, family }) => (
+						<div key={name} className={"classicyAppearanceManagerFontsRow"}>
+							<div className={"classicyAppearanceManagerFontsLabel"}>
+								<ClassicyControlLabel label={label} direction={"left"} />
+							</div>
+							<ClassicyPopUpMenu
+								id={`family-${name}`}
+								options={fontOptions}
+								selected={primaryFontFamily(family.font)}
+								placeholder={"Custom"}
+								onChangeFunc={(e) => changeFamilyFont?.(name, e.target.value)}
+							/>
+							{family.size !== undefined && (
+								<ClassicySpinner
+									id={`family-${name}-size`}
+									prefillValue={family.size}
+									minValue={CLASSICY_THEME_FONT_SIZE_MIN}
+									maxValue={CLASSICY_THEME_FONT_SIZE_MAX}
+									onChangeFunc={(e) => reportFamilySize(name, e.target.value)}
+								/>
+							)}
+						</div>
+					))}
 				</div>
 			),
 		}),
-		[typography, changeFont, reportSize, fontOptions],
+		[
+			typography,
+			changeFont,
+			reportSize,
+			fontOptions,
+			packageFonts,
+			changeFamilyFont,
+			reportFamilySize,
+		],
 	);
 };

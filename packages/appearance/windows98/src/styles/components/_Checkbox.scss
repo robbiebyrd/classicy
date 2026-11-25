@@ -24,13 +24,13 @@
 //   two-pixel strokes in the same place (Windows 3.1's mark).
 // - Pressed (the mouse down on the box or its label), the face turns
 //   ButtonFace with the mark kept; disabled, the face is ButtonFace and the
-//   mark GrayText (Windows embosses no check mark).
+//   mark ButtonShadow (DFCS_INACTIVE; Windows embosses no check mark).
 // - Mixed (BST_INDETERMINATE, the 3-state box's third state): Windows 9x
 //   fills the box with the 50% checker of ButtonFace and ButtonHilight and
-//   draws the mark in GrayText over it (Wine's DFC_ButtonCheck: a
+//   draws the mark in ButtonShadow over it (Wine's DFC_ButtonCheck: a
 //   DFCS_BUTTON3STATE box's mark takes COLOR_BTNSHADOW), whether or not the
 //   box is also on; pressed or disabled, its face is ButtonFace, as any
-//   box's, the mark GrayText still.
+//   box's, the mark ButtonShadow still.
 // - The label starts six pixels after the box (98.css: a 19-pixel label
 //   inset less the 13-pixel box): the holder's gap is the core's label
 //   spacing less the box's margin, and the label's own margin is none.
@@ -50,7 +50,7 @@
 //                                              the checker's light, the emboss
 //   ButtonLight       --color-system-02        the inner bottom-right ring
 //   ButtonShadow      --color-system-05        the outer top-left ring,
-//                                              GrayText
+//                                              a disabled or mixed mark
 //   ButtonDkShadow    --color-system-07        the inner top-left ring
 //
 // The face and the mark's ink are the box's own custom properties, which
@@ -145,10 +145,10 @@ $ink: var(--windows98-checkbox-ink);
       --windows98-checkbox-face: #{b.$face};
     }
 
-    // Disabled: a ButtonFace face, the mark GrayText.
+    // Disabled: a ButtonFace face, the mark ButtonShadow (DFCS_INACTIVE).
     &:disabled {
       --windows98-checkbox-face: #{b.$face};
-      --windows98-checkbox-ink: #{b.$gray-text};
+      --windows98-checkbox-ink: #{b.$shadow};
     }
   }
 
@@ -157,12 +157,12 @@ $ink: var(--windows98-checkbox-ink);
     background: marked($x-mark);
   }
 
-  // Mixed: the checker face with the mark in GrayText, on or off (each rule
+  // Mixed: the checker face with the mark in ButtonShadow, on or off (each rule
   // at or above its checked counterpart's weight, and after it); pressed or
   // disabled, the face is ButtonFace, as any box's.
   .classicyCheckbox.mixed {
     --windows98-checkbox-face: #{$checker};
-    --windows98-checkbox-ink: #{b.$gray-text};
+    --windows98-checkbox-ink: #{b.$shadow};
     background: marked($check);
   }
 

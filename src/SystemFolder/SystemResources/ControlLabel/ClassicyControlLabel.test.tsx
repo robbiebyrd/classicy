@@ -18,9 +18,11 @@ vi.mock(
 );
 
 // Platinum (registered above) is the default layout, which declares no
-// access keys; `windows-labels` carries the Windows 98 package's layout
-// (`menu.accessKeys` "auto"). The store is not mounted: stand in for its
-// connection of the active package id.
+// access keys (Mac OS had none: a label's own `accessKey` is inert there);
+// `windows-labels` carries the Windows 98 package's layout
+// (`menu.accessKeys` "auto"), and `explicit-labels` declares explicit keys
+// alone. The store is not mounted: stand in for its connection of the
+// active package id.
 const activePackage = { id: "platinum" };
 connectClassicyAssetPackageSource({
 	getId: () => activePackage.id,
@@ -36,6 +38,20 @@ registerClassicyAppearancePackage({
 		package: "windows-labels",
 	},
 	layout: windows98.layout as never,
+});
+registerClassicyAppearancePackage({
+	id: "explicit-labels",
+	name: "Explicit labels",
+	css: "",
+	defaults: {
+		...CLASSICY_CORE_DEFAULT_THEME,
+		id: "explicit-labels-default",
+		package: "explicit-labels",
+	},
+	layout: {
+		...windows98.layout,
+		menu: { accessKeys: "explicit" },
+	} as never,
 });
 
 afterEach(() => {
@@ -202,7 +218,22 @@ describe("ClassicyControlLabel — access keys (WIG Ch.8, pp.148-149; the audit'
 		expect(find).toHaveFocus();
 	});
 
+	it("ignores a label's own key under a package without access keys (Platinum)", () => {
+		render(<Form keys={{ name: "N", match: "c" }} />);
+		expect(part()).toBeNull();
+		const find = screen.getByText("Find");
+		find.focus();
+		expect(alt("n", find)).toBe(true);
+		expect(alt("c", find)).toBe(true);
+		expect(fireEvent.keyDown(find, { key: "c" })).toBe(true);
+		expect(find).toHaveFocus();
+		expect((document.getElementById("match") as HTMLInputElement).checked).toBe(
+			false,
+		);
+	});
+
 	it("underlines an explicit key, and Alt and it focus the field and select its text", () => {
+		activePackage.id = "explicit-labels";
 		render(<Form keys={{ name: "N" }} />);
 		expect(part()).toHaveTextContent("N");
 		const find = screen.getByText("Find");
@@ -215,6 +246,7 @@ describe("ClassicyControlLabel — access keys (WIG Ch.8, pp.148-149; the audit'
 	});
 
 	it("clicks a check box it reaches, from Alt and the key or the key alone on a button", () => {
+		activePackage.id = "explicit-labels";
 		render(<Form keys={{ match: "c", whole: "w" }} />);
 		const match = document.getElementById("match") as HTMLInputElement;
 		const whole = document.getElementById("whole") as HTMLInputElement;
@@ -230,6 +262,7 @@ describe("ClassicyControlLabel — access keys (WIG Ch.8, pp.148-149; the audit'
 	});
 
 	it("leaves the key alone to a text field that has focus", () => {
+		activePackage.id = "explicit-labels";
 		render(<Form keys={{ match: "c" }} />);
 		const name = document.getElementById("name") as HTMLInputElement;
 		name.focus();
@@ -294,6 +327,7 @@ describe("ClassicyControlLabel — access keys (WIG Ch.8, pp.148-149; the audit'
 	});
 
 	it("yields Alt and a key to a menu bar's title outside a modal window, and to a menu item's Option chord", () => {
+		activePackage.id = "explicit-labels";
 		render(<Form keys={{ name: "n", match: "c" }} />);
 		const remove = registerClassicyAccessKeyMenuBar({
 			claims: (key) => key === "n",
@@ -319,6 +353,7 @@ describe("ClassicyControlLabel — access keys (WIG Ch.8, pp.148-149; the audit'
 		const platform = vi
 			.spyOn(navigator, "platform", "get")
 			.mockReturnValue("MacIntel");
+		activePackage.id = "explicit-labels";
 		render(<Form keys={{ match: "c" }} />);
 		const name = document.getElementById("name") as HTMLInputElement;
 		name.focus();

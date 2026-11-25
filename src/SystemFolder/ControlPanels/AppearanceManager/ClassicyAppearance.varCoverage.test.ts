@@ -151,6 +151,32 @@ describe("theme variable coverage (H 6.1)", () => {
 		).toEqual([]);
 	});
 
+	// A package font (`--package-font-<name>`, its `-size` and `-weight`) is
+	// emitted only by a theme that holds `typography.families`, so every read
+	// carries a fallback: a core typography variable for a stack or a size, a
+	// keyword for a weight (no core variable holds one).
+	it("reads every package font with a core typography fallback", () => {
+		const reads = sheets.flatMap((sheet) => [
+			...sheet.matchAll(
+				/var\(\s*(--package-font-[a-zA-Z0-9-]+)\s*([,)])\s*([^)]*)/g,
+			),
+		]);
+		expect(reads.length).toBeGreaterThan(0);
+		expect(
+			reads
+				.filter(([, name, next, fallback]) =>
+					next !== ","
+						? true
+						: name.endsWith("-weight")
+							? !/^(normal|bold|[1-9]00)\s*$/.test(fallback)
+							: !/^var\(\s*--(ui|body|header|mono|digital)-font(-size)?\s*$/.test(
+									fallback,
+								),
+				)
+				.map(([read]) => read),
+		).toEqual([]);
+	});
+
 	// Platinum's sheets and scripts, in its workspace package (plan 0015-kxa
 	// §3.1), are read too: `--menu-frame-shadow-width` is read only there.
 	it("scans each workspace Appearance Package's source", () =>

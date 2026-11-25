@@ -639,6 +639,10 @@ export const ClassicyBevelButton: FunctionalComponent<
 						drawnAt={iconSmall ? true : Number.POSITIVE_INFINITY}
 						alt={iconAlt}
 						draggable={false}
+						// Unavailable, the image takes the active package's
+						// `iconDimming.disabledControl` rule where it declares one
+						// (Windows 98's embossed image); else the stylesheet dims it.
+						dimmed={disabled ? "disabledControl" : false}
 					/>
 				)}
 				{hasRenderableContent(children) && (

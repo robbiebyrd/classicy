@@ -9,7 +9,9 @@ import {
 import {
 	type ClassicyIconDimmingRule,
 	classicyDimmedIconSource,
+	classicyIconEmbossColors,
 	dimClassicyIconPixels,
+	embossClassicyIconPixels,
 	resolveClassicyIconDimmingRule,
 } from "@/Appearance/ClassicyIconDimming";
 import { resetClassicyDimmedIconsForTests } from "@/Appearance/ClassicyIconDimming.internal";
@@ -272,5 +274,147 @@ describe("resolveClassicyIconDimmingRule", () => {
 			}),
 		);
 		expect(getClassicyAppearancePackage("bad")).toBeUndefined();
+	});
+});
+
+// The 98.js report's 2.7: Windows draws a disabled toolbar button's image as
+// DrawState's DSS_DISABLED does (comctl32's TOOLBAR_DrawMasked): the opaque
+// pixels that are not white, in ButtonShadow, over the same pixels one down
+// and right in ButtonHilight; everything else clear. Only a package that
+// declares an emboss rule for `disabledControl` gets it (Windows 98).
+describe("embossClassicyIconPixels", () => {
+	it("draws the opaque, non-white pixels in the shadow over a copy one pixel down and right in the highlight", () => {
+		// 3 x 2: an ink pixel, a white one, a clear one / an ink pixel, a
+		// half-clear one, a translucent ink pixel.
+		const data = px(
+			[10, 20, 30, 255],
+			[255, 255, 255, 255],
+			[0, 0, 0, 0],
+			[200, 0, 0, 200],
+			[5, 5, 5, 127],
+			[1, 2, 3, 128],
+		);
+		embossClassicyIconPixels(data, 3, 2, "#ffffff", "#808080");
+		const at = (x: number, y: number) =>
+			[...data.slice((y * 3 + x) * 4, (y * 3 + x) * 4 + 4)].join(",");
+		// Ink at (0,0), (0,1) and (2,1): the shadow there.
+		expect(at(0, 0)).toBe("128,128,128,255");
+		expect(at(0, 1)).toBe("128,128,128,255");
+		expect(at(2, 1)).toBe("128,128,128,255");
+		// The highlight one down and right of (0,0); (0,1)'s and (2,1)'s fall
+		// outside the image.
+		expect(at(1, 1)).toBe("255,255,255,255");
+		// The white pixel and the clear ones are clear.
+		expect(at(1, 0)).toBe("0,0,0,0");
+		expect(at(2, 0)).toBe("0,0,0,0");
+	});
+});
+
+describe("disabledControl: an emboss in theme colors", () => {
+	const EMBOSS = {
+		emboss: {
+			highlight: { colorKey: "system" as const, index: 0 as const },
+			shadow: { colorKey: "system" as const, index: 4 as const },
+		},
+	};
+	const makePackage = (
+		id: string,
+		overrides: Partial<ClassicyAppearancePackage> = {},
+	): ClassicyAppearancePackage => ({
+		id,
+		name: id,
+		css: "",
+		defaults: { ...getTheme("default"), package: id },
+		layout: {
+			window: { growBoxCorner: "bottom-right" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+		},
+		...overrides,
+	});
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		vi.restoreAllMocks();
+	});
+
+	it("registers an emboss rule for disabledControl and reads its colors from a theme", () => {
+		registerClassicyAppearancePackage(
+			makePackage("embosses", { iconDimming: { disabledControl: EMBOSS } }),
+		);
+		const rule = resolveClassicyIconDimmingRule(
+			"disabledControl",
+			"embosses",
+			undefined,
+		);
+		expect(rule).toEqual(EMBOSS);
+		const theme = getTheme("default");
+		expect(
+			classicyIconEmbossColors(EMBOSS, {
+				...theme,
+				color: {
+					...theme.color,
+					system: [0xffffff, 1, 2, 3, 0x808080, 5, 6],
+				},
+			}),
+		).toEqual({ emboss: { highlight: "#ffffff", shadow: "#808080" } });
+		expect(classicyIconEmbossColors(EMBOSS, undefined)).toBeUndefined();
+	});
+
+	// The other purposes keep the per-pixel rule alone; a package that
+	// declares no disabledControl rule (Platinum, System 7) has none.
+	it("refuses an emboss rule for another purpose, and resolves none where none is declared", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		registerClassicyAppearancePackage(
+			makePackage("misplaced", {
+				iconDimming: {
+					hiddenApp: EMBOSS as unknown as ClassicyIconDimmingRule,
+				},
+			}),
+		);
+		expect(getClassicyAppearancePackage("misplaced")).toBeUndefined();
+		registerClassicyAppearancePackage(makePackage("plain"));
+		expect(
+			resolveClassicyIconDimmingRule("disabledControl", "plain", undefined),
+		).toBeUndefined();
+	});
+
+	it("draws an emboss rule's image and caches it per colors", async () => {
+		vi.spyOn(globalThis, "Image").mockImplementation(function (
+			this: HTMLImageElement,
+		) {
+			const img = document.createElement("img");
+			Object.defineProperty(img, "naturalWidth", { value: 2 });
+			Object.defineProperty(img, "naturalHeight", { value: 2 });
+			queueMicrotask(() => img.onload?.(new Event("load")));
+			return img;
+		} as unknown as typeof Image);
+		const pixels = new Uint8ClampedArray([
+			0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		]);
+		const ctx = {
+			drawImage: vi.fn(),
+			getImageData: vi.fn(() => ({ data: pixels, width: 2, height: 2 })),
+			putImageData: vi.fn(),
+		};
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+			() => ctx as unknown as CanvasRenderingContext2D,
+		);
+		vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(
+			"data:image/png;base64,EMBOSSED",
+		);
+		const colors = { emboss: { highlight: "#ffffff", shadow: "#808080" } };
+		await expect(
+			classicyDimmedIconSource("tool.png", colors, Number.POSITIVE_INFINITY),
+		).resolves.toBe("data:image/png;base64,EMBOSSED");
+		expect([...pixels]).toEqual([
+			128, 128, 128, 255, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255,
+		]);
+		await classicyDimmedIconSource(
+			"tool.png",
+			{ ...colors },
+			Number.POSITIVE_INFINITY,
+		);
+		expect(ctx.getImageData).toHaveBeenCalledTimes(1);
+		resetClassicyDimmedIconsForTests();
 	});
 });

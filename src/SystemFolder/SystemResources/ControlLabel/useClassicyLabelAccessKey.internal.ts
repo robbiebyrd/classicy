@@ -212,7 +212,9 @@ const listen = (on: boolean) => {
  * under the package's `layout.menu.accessKeys` `"auto"`, the automatic pick
  * for a label of a focusable control (unique among its window's labels, an
  * explicit key reserved first). Null for none, and nothing registered: a
- * label with no key under `"explicit"` (Platinum, System 7) adds nothing.
+ * label under a package that declares no `layout.menu.accessKeys`
+ * (Platinum, System 7), its own `accessKey` included, or with no key under
+ * `"explicit"`, adds nothing.
  * @internal
  */
 export const useClassicyLabelAccessKey = ({
@@ -229,9 +231,15 @@ export const useClassicyLabelAccessKey = ({
 	accessKey: string | undefined;
 	labelFor: string | undefined;
 }): ClassicyAccessKey | null => {
-	const auto = useClassicyAppearanceLayout().menu?.accessKeys === "auto";
+	// No access keys at all without the package's `layout.menu.accessKeys`
+	// (Mac OS 8 and System 7 had none), a label's own `accessKey` included.
+	const mode = useClassicyAppearanceLayout().menu?.accessKeys;
+	const auto = mode === "auto";
 	const given = normalizeClassicyAccessKey(accessKey);
-	const takesPart = text !== "" && (given !== undefined ? given !== "" : auto);
+	const takesPart =
+		mode !== undefined &&
+		text !== "" &&
+		(given !== undefined ? given !== "" : auto);
 	const idRef = useRef<symbol | null>(null);
 	if (idRef.current === null) idRef.current = Symbol("ClassicyControlLabel");
 	const [value, setValue] = useState<string | undefined>(undefined);

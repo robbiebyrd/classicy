@@ -566,21 +566,15 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(current).toMatch(/color: var\(--color-white\);/);
 			expect(current).toMatch(/background-color: var\(--color-black\);/);
-			// While the pointer last moved the tracking it tracks the item
-			// under it alone; while the keyboard did (the core's `focused` on
-			// the root list), the keyboard's item is the one inverted and an
-			// item under a resting pointer shows plain, one item at a time.
-			const keyed = ":where(.classicyMenuWrapper > .focused)";
 			const pointer = rule(
-				`${MENUS}:hover .classicyMenuItem:not(:hover, .open, ${keyed} *):focus-visible`,
+				`${MENUS}:hover .classicyMenuItem:not(:hover, .open):focus-visible`,
 			);
 			expect(pointer).toMatch(/color: var\(--color-black\);/);
 			expect(pointer).toMatch(/background-color: transparent;/);
-			const resting = rule(
-				`:is(${keyed}${MENUS}, ${keyed} ${MENUS}) .classicyMenuItem:hover:not(:focus-visible, .open)`,
-			);
-			expect(resting).toMatch(/color: var\(--color-black\);/);
-			expect(resting).toMatch(/background-color: transparent;/);
+			// System 7's menus take no keyboard navigation (no
+			// `layout.menu.keys`), so the core's keyboard-tracking `focused`
+			// state never reaches them and the sheet reads it nowhere.
+			expect(css).not.toMatch(/\.focused/);
 		});
 
 		it("overlaps a submenu on its parent menu's right side", () =>

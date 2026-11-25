@@ -6,8 +6,8 @@ chrome on Classicy's Mac OS structure, the way a Kaleidoscope scheme once
 dressed a Mac as a PC: gradient title bars with Minimize, Maximize and Close
 at the right, two-pixel bevels from the system colors, dithered scroll-bar
 tracks with an arrow at each end, raised menus and rectangular controls, in
-Windows 98's own color scheme and the sixteen classic schemes of its Display
-control panel.
+every color scheme of Windows 98's Display control panel, High Contrast
+included.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Without one,
 `ClassicyDesktop` shows a message telling you to load one instead of the
@@ -32,22 +32,41 @@ and `nodenext` resolution).
 
 ## What it ships
 
-- **Eighteen themes.** **Windows Standard** (id `windows98`, the package's
-  defaults): the Windows 98 scheme, navy title bars shading to light blue,
-  the `#C0C0C0` face and the teal desktop. **Windows 95** (id `windows95`):
-  the same palette with flat navy title bars, as Windows 95 drew them. And
-  the classic schemes, each from the `[Control Panel\Colors]` block of its
-  Windows theme file: Brick, Desert, Eggplant, Lilac, Maple, Marine (high
-  color), Plum (high color), Pumpkin (large), Rainy Day, Red, White, and
-  Blue (VGA), Rose, Slate, Spruce, Storm (VGA), Teal (VGA) and Wheat (ids
-  `windows98Brick` and so on). Every scheme is a recoloring of one
-  stylesheet: the title-bar colors, the selected text's, the ToolTip's and
-  the desktop labels' are the package's own color families, editable in the
-  Colors tab beside the palette.
+- **Thirty-four themes.** The thirty-three color schemes of Windows 98
+  Second Edition's Display control panel, each read from the scheme Windows
+  98 SE's own `SHELL2.INF` writes to the registry (its 29 system colors,
+  its border, scroll bar, caption, small caption and menu sizes, and its
+  caption, small caption, menu, message box and icon fonts), under Windows
+  98's own names: **Windows Standard** (id `windows98`, the package's
+  defaults: navy title bars shading to light blue, which a fresh Windows 98
+  draws, the `#C0C0C0` face and the teal desktop), Windows Standard (large)
+  and (extra large), Brick, Desert, Eggplant, High Contrast #1, #2, Black and
+  White, each in its (large) and (extra large) sizes too, Lilac and Lilac
+  (large), Maple, Marine (high color), Plum (high color), Pumpkin (large),
+  Rainy Day, Red, White, and Blue (VGA), Rose and Rose (large), Slate,
+  Spruce, Storm (VGA), Teal (VGA) and Wheat (ids `windows98Brick`,
+  `windows98HighContrastBlackLarge` and so on; every id the package shipped
+  before is kept). The named schemes' captions are flat, as Windows 98
+  stores them. And **Windows 95** (id `windows95`): Windows Standard's
+  palette with flat navy title bars and raised toolbar buttons, as Windows
+  95 drew them. Every scheme is a recoloring of one stylesheet: the
+  title-bar colors, the selected text's, the ToolTip's (each scheme's own:
+  Brick's dark red on its pale face), the desktop labels', ButtonText,
+  GrayText, the scroll bar's and the window borders' are the package's own
+  color families, editable in the Colors tab beside the palette, and its
+  fonts the package's own font rows in the Fonts tab (Times New Roman in
+  Eggplant's and Rose's captions and menus, Arial in Brick's caption and
+  Lilac's, larger faces in the large schemes).
 - **Its layout.** The grow box at the bottom right, the menu bar on the
   screen, menus that stay open until the next click, cascading menus that
   open and close on Windows' 400 ms time-out (a contextual menu's on hover
-  too), a menu keyboard that stops on dimmed items as Windows' does,
+  too), Windows' menu keyboard (the arrow keys through the menus and across
+  the menu bar, Home and End, Return and Space, a letter jumping to its
+  item, Escape a level at a time, an open contextual menu included; the
+  Mac packages' menus take Return alone), stopping on dimmed items as
+  Windows' does, Shift+F10 and the Application key opening the focused
+  item's contextual menu, Finder's item menus leading with Open, their
+  default item, as Explorer's do (the Mac packages' keep the Mac Finder's),
   an access key on every menu title, menu item and label of a control
   (the first free letter of its text, underlined, unless the app gives it
   one): Alt and a title's letter opens its menu, a letter in an open menu
@@ -151,7 +170,8 @@ and `nodenext` resolution).
     the dotted focus rectangle, 13-pixel checkboxes, 12-pixel radio buttons,
     sunken text fields and lists, pop-up menus with their drop-down button,
     rectangular tabs on a raised panel, the block progress bar, etched group
-    boxes, trackbar sliders, raised placards and bevel buttons, image
+    boxes, trackbar sliders, raised placards and bevel buttons, flat
+    toolbar buttons (raised in the Windows 95 scheme), image
     wells that mark their set value with a solid border, the text color
     outside the button highlight, inside the sunken edge, a list of check
     boxes (a list an app gives check boxes) with the flat check box nested
@@ -159,7 +179,8 @@ and `nodenext` resolution).
     meters whose warning ranges carry a pattern as well as their color (a
     dotted stipple when the value leaves the ideal range, a checker when it
     is far from it), so they read in black and white too;
-  - scroll bars: an arrow at each end on a checkered track, a raised scroll
+  - scroll bars: an arrow at each end on a checkered track (a solid one in
+    the scheme's Scrollbar color in the schemes Windows fills so), a raised scroll
     box, the paged side of the track inverted while the mouse holds it, an
     arrow embossed (disabled) at the end of its travel (the up arrow at the
     top of a document, the down arrow at its bottom), the bars kept in an
@@ -186,17 +207,34 @@ and `nodenext` resolution).
   buttons' width and height, the gap before Close and the gap under the
   bar; the progress bar's block width and gap; the height of single-line
   fields and of pop-up menus (21 px each, Windows' edit and combo box
-  height, which a larger UI font raises on its own) and of tabs; and the
+  height, which a larger UI font raises on its own) and of tabs; the
   desktop labels' text-shadow offset (1 px; 0 removes the shadow, which
-  stock Windows 98 drew only with the Active Desktop).
+  stock Windows 98 drew only with the Active Desktop); raised toolbar
+  buttons (Windows 95's, 1; Windows 98's flat ones, 0); and a solid scroll
+  track (1 where the scheme's ButtonHilight is not its Window color, as
+  Windows fills the track with the Scrollbar color then; 0 the checker).
+- **High Contrast.** The four High Contrast schemes, in three sizes, and,
+  when the browser forces colors (Windows' own High Contrast setting), the
+  whole look drawn in the user's system colors rather than lost: every
+  bevel an outline, every glyph kept, the wallpaper hidden.
+- **Windows theme files.** Load Theme… in the Appearance Manager reads a
+  Windows `.theme` file (Plus! for Windows 95, Windows 98's Desktop
+  Themes) while Windows 98 is the active package: its colors, metrics and
+  fonts become a custom theme, a missing caption gradient taking its base
+  color, its wallpaper kept by name when one of that name is installed.
+- **Disabled toolbar images** embossed, as Windows draws them: the image's
+  dark pixels in the scheme's ButtonShadow over a ButtonHilight copy one
+  pixel down and right.
 - **A sound pack**, `windows98`: four alert tones, Chimes, Chord, Ding (the
   default) and Exclamation, named after the roles Windows gave its sounds
   but synthesized for the package (Windows' own sounds are Microsoft's), plus
   the beep. The package plays no interface feedback.
 - **No fonts.** MS Sans Serif is Microsoft's, so the themes name a stack a
   host may satisfy: `"Pixelated MS Sans Serif"` first (the face 98.css
-  ships, if the host loads it), then Microsoft Sans Serif, Tahoma and Arial,
-  at 11 px; Fixedsys, Lucida Console or Courier New for monospaced text.
+  ships, if the host loads it, cut for 11 px and so named only there), then
+  MS Sans Serif, Microsoft Sans Serif, Tahoma and Arial; Arial and Times New
+  Roman where a scheme names them; Fixedsys, Lucida Console or Courier New
+  for monospaced text.
 - **No art, icons, cursors, wallpapers or screen savers of its own.** Every
   glyph is drawn from theme tokens in the stylesheet. Icons, cursors and
   system art resolve to the default package's (Platinum's, when it is
@@ -208,8 +246,9 @@ and `nodenext` resolution).
 - `.`: the package entry (ES and UMD bundles, with types). Importing it
   registers Windows 98 and its sound pack. It also exports
   `WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json` (the themes, layout,
-  knobs and color families, deep-frozen and typed with the core's types, as
-  `Windows98Json`) and `windows98SoundPack`.
+  knobs, color families and font labels, deep-frozen and typed with the
+  core's types, as `Windows98Json`), `windows98SoundPack` and
+  `readWindows98ThemeFile` (the `.theme` reader Load Theme… uses).
 - `./scss/*`: the package's SCSS: `bevels`, `pixel` and the `components/*`
   partials, and `windows98`, the whole sheet, which a host may compile
   through `pkg:@classicy/classicy/scss/*` (the package loads nothing of
@@ -260,14 +299,24 @@ drawn on a canvas and shown from a `data:` URL.
   (`--pixel-unit`), inked in theme tokens, so each color scheme draws them
   in its own colors; the scroll track's checker is a two-color
   `repeating-conic-gradient` of the face and highlight tokens.
-- **Where the schemes come from.** The sixteen classic schemes' values are
-  the `[Control Panel\Colors]` blocks of the classic Windows theme files
-  (ButtonFace, ButtonShadow, ActiveTitle, GradientActiveTitle, Hilight, …),
-  mapped onto Classicy's palette: ButtonHilight, ButtonLight, ButtonFace,
-  ButtonShadow and ButtonDkShadow are `system` 1, 2, 3, 5 and 7, Window the
-  document color, Hilight the highlight, Background the desktop color, and
-  the title-bar, HilightText and InfoWindow colors the package's color
-  families.
+- **Where the schemes come from.** Windows 98 Second Edition's own
+  `SHELL2.INF` (in `PRECOPY2.CAB` of the Windows 98 SE CD, "Copyright (c)
+  1994-1998 Microsoft Corporation"): its `[schemes.reg]` section writes all
+  thirty-three schemes under `HKCU\Control Panel\Appearance\Schemes`, each
+  a 520-byte blob (a NONCLIENTMETRICS, the icon font and 29 COLORREFs),
+  decoded and mapped onto Classicy's palette: ButtonHilight, ButtonLight,
+  ButtonFace, ButtonShadow and ButtonDkShadow are `system` 1, 2, 3, 5 and 7
+  (4 and 6 the grays between), Window the document color, WindowText the
+  ink, WindowFrame the outline, Hilight the highlight, Background the
+  desktop color, and the title-bar, HilightText, InfoWindow, ButtonText,
+  GrayText, Scrollbar and border colors the package's color families; the
+  sizes are knobs, the fonts the theme's font rows. Two departures, both
+  Windows 98 as it runs: Windows Standard keeps USER's built-in caption
+  gradients (the INF stores the scheme flat), and an MS Sans Serif size is
+  the one GDI draws (MS Sans Serif is a bitmap face of 11, 13, 16, 18, 24
+  and 32 px, a request between two drawn in the smaller, one below 11 in
+  the 11 px face). The 3.7 schemes came from a third-party Windows 8 pack
+  and differed in gradients, palettes, Hilight colors and every font.
 
 ## References and resources
 
@@ -277,9 +326,11 @@ package.
 - [98.css](https://jdan.github.io/98.css/) (jdan): the CSS recipes for the
   bevels, the title-bar buttons' marks and the controls, and the
   `"Pixelated MS Sans Serif"` face the themes name first.
-- [os-gui](https://os-gui.js.org) (1j01): Windows 98's menus, windows and
-  the classic color schemes' `.theme` files (`[Control Panel\Colors]`),
-  which the sixteen schemes here are read from.
+- [os-gui](https://os-gui.js.org) (1j01): Windows 98's menus and windows,
+  and the `.theme` file format the importer reads.
+- Windows 98 Second Edition's `SHELL2.INF`: the thirty-three color schemes,
+  colors, sizes and fonts, which every scheme here is read from (Microsoft's
+  data; decoded, not copied as a file).
 - [React95](https://storybook.react95.io/) and
   [windows98-ui](https://windows98-ui.netlify.app): component galleries to
   compare states against.

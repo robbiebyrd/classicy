@@ -44,12 +44,19 @@ export const classicyContextMenuKeyPoint = (el: Element): [number, number] => {
  * the desktop (`#classicyDesktop`), a key a handler already took
  * (`defaultPrevented`) and auto-repeats are left alone; the browser's own
  * `contextmenu` for the key, which some browsers also fire, is swallowed.
- * Mounted by `ClassicyContextualMenuProvider`.
+ * Only while `enabled` (the package's `layout.keyboard.contextMenuKey`:
+ * Windows'; Mac OS 8's and System 7's contextual menus open from a
+ * Control-click alone, HIGOS8 "Contextual Menus" (p.93), so neither key is
+ * taken there). Mounted by `ClassicyContextualMenuProvider`.
  * @internal
  */
-export const useClassicyContextMenuKey = (): void => {
+export const useClassicyContextMenuKey = (enabled: boolean): void => {
 	useEffect(() => {
-		if (typeof document === "undefined" || typeof window === "undefined")
+		if (
+			!enabled ||
+			typeof document === "undefined" ||
+			typeof window === "undefined"
+		)
 			return;
 		let lastPress: { target: Element; x: number; y: number } | null = null;
 		let swallowNativeUntil = 0;
@@ -116,5 +123,5 @@ export const useClassicyContextMenuKey = (): void => {
 			window.removeEventListener("keyup", onKeyUp);
 			window.removeEventListener("contextmenu", onContextMenu, true);
 		};
-	}, []);
+	}, [enabled]);
 };

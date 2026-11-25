@@ -1,0 +1,100 @@
+// High Contrast, as the browser forces it (`@media (forced-colors: active)`:
+// Windows' own High Contrast setting, or another system's forced colors),
+// included last by windows98.scss inside the package wrapper. Forced colors
+// would undo this package's drawing: the browser drops every box-shadow
+// (each bevel and ring here), every gradient image (the pixel-art glyphs,
+// the checkers, the caption's gradient) and every text shadow, and repaints
+// text, borders and backgrounds in the user's colors, leaving flat boxes
+// with no arrows, marks or edges. So the package takes the drawing back
+// (`forced-color-adjust: none`) and points its own tokens at the CSS system
+// colors instead, so every control is drawn as it always is, in the user's
+// High Contrast colors (WIG Ch.14 "Color", p.334: "check the High Contrast
+// Mode setting and adjust your colors"; App. C "Accessibility", p.365):
+//
+//   token                         Windows color      system color
+//   --color-system-01             ButtonHilight      ButtonBorder
+//   --color-system-02, -03        ButtonLight, the   ButtonFace
+//                                 face
+//   --color-system-04, -05        ButtonShadow       ButtonBorder
+//   --color-system-06, -07        ButtonDkShadow     ButtonText
+//   --package-color-text-button   ButtonText         ButtonText
+//   --package-color-text-gray     GrayText           GrayText
+//   --color-black, -outline,      WindowText,        CanvasText
+//   -window-border                WindowFrame
+//   --color-window-document,      Window, the face   Canvas
+//   -window-frame                 of a window
+//   --color-highlight, -select    Hilight            Highlight
+//   --package-color-selection-…   HilightText        HighlightText
+//   the active caption            ActiveTitle        Highlight, HighlightText
+//   the inactive caption          InactiveTitle      Canvas, GrayText
+//   the ToolTip                   InfoWindow         Canvas, CanvasText
+//   the accent (links)            Hilight's shades   LinkText, VisitedText
+//
+// so every edge is a whole outline (its outer ring ButtonBorder on the
+// light sides) whose dark sides are heavier, ButtonText inside ButtonBorder
+// (a raised edge's bottom and right, a sunken one's top and left), which
+// keeps the 3-D cue in two colors. The scroll track is the checker of
+// ButtonBorder and ButtonFace (the solid-track switch off), and the desktop
+// shows no wallpaper, the image behind its icons' labels ("hide images
+// behind text"), only Canvas.
+@mixin forced-colors {
+  @media (forced-colors: active) {
+    &,
+    * {
+      forced-color-adjust: none;
+    }
+
+    // The desktop root holds the theme's own values (set on it inline), so
+    // its ground and its text are named here; everything inside reads the
+    // tokens below.
+    & {
+      color: CanvasText;
+      background-color: Canvas;
+      background-image: none;
+    }
+
+    * {
+      --color-system-01: ButtonBorder;
+      --color-system-02: ButtonFace;
+      --color-system-03: ButtonFace;
+      --color-system-04: ButtonBorder;
+      --color-system-05: ButtonBorder;
+      --color-system-06: ButtonText;
+      --color-system-07: ButtonText;
+      --color-black: CanvasText;
+      --color-white: Canvas;
+      --color-outline: CanvasText;
+      --color-window-border: CanvasText;
+      --color-window-border-outset: ButtonBorder;
+      --color-window-border-inset: ButtonBorder;
+      --color-window-frame: ButtonFace;
+      --color-window-title: HighlightText;
+      --color-window-document: Canvas;
+      --color-highlight: Highlight;
+      --color-select: Highlight;
+      --color-theme-01: Highlight;
+      --color-theme-02: Highlight;
+      --color-theme-03: Highlight;
+      --color-theme-04: LinkText;
+      --color-theme-05: VisitedText;
+      --color-theme-06: LinkText;
+      --color-theme-07: LinkText;
+      --package-color-text-button: ButtonText;
+      --package-color-text-gray: GrayText;
+      --package-color-selection-text: HighlightText;
+      --package-color-title-bar-active: Highlight;
+      --package-color-title-bar-active-gradient: Highlight;
+      --package-color-title-bar-text: HighlightText;
+      --package-color-title-bar-inactive: Canvas;
+      --package-color-title-bar-inactive-gradient: Canvas;
+      --package-color-title-bar-inactive-text: GrayText;
+      --package-color-tooltip-face: Canvas;
+      --package-color-tooltip-text: CanvasText;
+      --package-color-desktop-text: CanvasText;
+      --package-color-scroll-bar-track: ButtonFace;
+      --package-color-sizing-border-active: ButtonFace;
+      --package-color-sizing-border-inactive: ButtonFace;
+      --scroll-bar-solid-track: 0px;
+    }
+  }
+}

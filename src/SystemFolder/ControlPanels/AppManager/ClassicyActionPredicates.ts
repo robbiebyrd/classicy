@@ -23,6 +23,11 @@ import {
 	isValidThemeColor,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
+	isClassicyFontFamilyName,
+	isClassicyFontFamilySize,
+	isClassicyFontStack,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontFamilies";
+import {
 	type ClassicyThemeFontSizeKey,
 	isClassicyThemeFontSizeKey,
 	isValidClassicyThemeFontSize,
@@ -229,6 +234,30 @@ export function hasBackgroundSize(
 /** Action has `fontType: string` and `font: string` */
 export function hasFont(m: Msg): m is Msg & { fontType: string; font: string } {
 	return typeof m.fontType === "string" && typeof m.font === "string";
+}
+
+/**
+ * Action is a valid package font edit (`ClassicyDesktopChangeFont { family,
+ * font }`): `family` is a package font name and `font` a font stack the
+ * theme schema accepts (`typography.families.<family>.font`).
+ */
+export function hasFontFamilyFont(
+	m: Msg,
+): m is Msg & { family: string; font: string } {
+	return isClassicyFontFamilyName(m.family) && isClassicyFontStack(m.font);
+}
+
+/**
+ * Action is a valid package font size edit (`ClassicyDesktopChangeFontSize {
+ * family, fontSize }`): `family` is a package font name and `fontSize` within
+ * the font-size bounds the theme schema uses.
+ */
+export function hasFontFamilySize(
+	m: Msg,
+): m is Msg & { family: string; fontSize: number } {
+	return (
+		isClassicyFontFamilyName(m.family) && isClassicyFontFamilySize(m.fontSize)
+	);
 }
 
 /**

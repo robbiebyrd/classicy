@@ -8,6 +8,7 @@ import {
 	useRef,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
@@ -382,6 +383,10 @@ export const Finder = () => {
 	const appName: string = "Finder";
 	const appId: string = "Finder.app";
 	const desktopEventDispatch = useAppManagerDispatch();
+	// Explorer's commands in the item menus (`layout.finder.commands`
+	// "windows": Windows 98); absent, Mac OS 8's Finder's.
+	const windowsCommands =
+		useClassicyAppearanceLayout().finder?.commands === "windows";
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
@@ -688,26 +693,32 @@ export const Finder = () => {
 		},
 		[openItem],
 	);
-	// Right-click on an item: Open first, the menu's default item, the
-	// command a double-click runs (Mac OS 8's contextual menus led with Open
-	// too; Windows draws the default bold, WIG Ch.7 "Icon Pop-up Menus",
-	// pp.102-103), then Restore in the Trash, Move To Trash elsewhere —
-	// acting on the whole selection when the item is part of it. Rename,
-	// Create Shortcut and Properties are Windows' (Tables 7.1-7.2); the
-	// menus keep the Mac's commands Classicy has, and it has no Make Alias
-	// or Get Info.
+	// Right-click on an item: Restore in the Trash, Move To Trash elsewhere —
+	// acting on the whole selection when the item is part of it. Under
+	// Explorer's commands (`layout.finder.commands` "windows") Open comes
+	// first, the menu's default item, the command a double-click runs, which
+	// Windows draws bold (WIG Ch.7 "Icon Pop-up Menus", pp.102-103); Mac OS
+	// 8's Finder sets no default item in a contextual menu (HIGOS8
+	// "Contextual Menus", pp.94-95: "you should not set a default item"), so
+	// its menus are as they were. Rename, Create Shortcut and Properties are
+	// Windows' (Tables 7.1-7.2); the menus keep the commands Classicy has,
+	// and it has no Make Alias or Get Info.
 	const itemContextMenu = useCallback(
 		(path: string, selectedPaths: string[]): ClassicyMenuItem[] | undefined => {
 			const targets = selectedPaths.includes(path) ? selectedPaths : [path];
-			const open: ClassicyMenuItem = {
-				id: "finder_item_open",
-				title: "Open",
-				isDefault: true,
-				onClickFunc: () => openItem(path),
-			};
+			const open: ClassicyMenuItem[] = windowsCommands
+				? [
+						{
+							id: "finder_item_open",
+							title: "Open",
+							isDefault: true,
+							onClickFunc: () => openItem(path),
+						},
+					]
+				: [];
 			if (isClassicyTrashItem(fs, path)) {
 				return [
-					open,
+					...open,
 					{
 						id: "finder_item_restore",
 						title: "Restore",
@@ -715,9 +726,10 @@ export const Finder = () => {
 					},
 				];
 			}
-			if (isInClassicyTrash(fs, path)) return [open];
+			if (isInClassicyTrash(fs, path))
+				return open.length > 0 ? open : undefined;
 			return [
-				open,
+				...open,
 				{
 					id: "finder_item_move_to_trash",
 					title: "Move To Trash",
@@ -725,13 +737,15 @@ export const Finder = () => {
 				},
 			];
 		},
-		[fs, openItem, restoreItems, trashItems],
+		[fs, windowsCommands, openItem, restoreItems, trashItems],
 	);
-	// A desktop file or folder icon's menu, stored with the icon: the same
-	// as the item's in a window (Open, then Move To Trash, for the desktop's
+	// A desktop file or folder icon's menu under Explorer's commands
+	// (`layout.finder.commands` "windows"), stored with the icon: the same as
+	// the item's in a window (Open, then Move To Trash, for the desktop's
 	// selected items when it is one of them). Open runs the latest openItem
 	// (through a ref), so the menu need not be rebuilt each time Finder's
-	// windows change.
+	// windows change. Mac OS 8's Finder stores none (null, below, clears one
+	// a Windows session stored), as before.
 	const openItemRef = useRef(openItem);
 	useLayoutEffect(() => {
 		openItemRef.current = openItem;
@@ -779,7 +793,7 @@ export const Finder = () => {
 			if (action) {
 				desktopEventDispatch({
 					...action,
-					contextMenu: desktopItemContextMenu(path),
+					contextMenu: windowsCommands ? desktopItemContextMenu(path) : null,
 				});
 			}
 		}
@@ -794,7 +808,7 @@ export const Finder = () => {
 				});
 			}
 		}
-	}, [fs, desktopEventDispatch, desktopItemContextMenu]);
+	}, [fs, desktopEventDispatch, windowsCommands, desktopItemContextMenu]);
 
 	const getHeaderString = useCallback(
 		(dir: ClassicyFileSystemEntryMetadata) => {

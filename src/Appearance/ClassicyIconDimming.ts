@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { getClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import {
 	getActiveClassicyAppearancePackageId,
 	getActiveClassicyAssetVariant,
@@ -12,6 +13,11 @@ import {
 	settled,
 	settledListeners,
 } from "@/Appearance/ClassicyIconDimming.internal";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	type ClassicyThemeColorTarget,
+	getThemeColor,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /**
@@ -36,31 +42,71 @@ export type ClassicyIconDimmingRule = {
 	palette?: readonly string[];
 };
 
+/**
+ * An embossed image, the way Windows draws a disabled control's image
+ * (DrawState's DSS_DISABLED; a toolbar button's, comctl32's
+ * `TOOLBAR_DrawMasked`): every pixel of the image that is opaque (alpha 128
+ * or more) and not pure white becomes the `shadow` color, over a copy of the
+ * same pixels one pixel down and right in the `highlight` color; every other
+ * pixel is clear. The two colors are theme colors (`ClassicyThemeColorTarget`,
+ * Windows 98's ButtonHilight and ButtonShadow), read from the active theme
+ * when the image is drawn, so the emboss follows the color scheme.
+ */
+export type ClassicyIconEmbossRule = {
+	emboss: {
+		highlight: ClassicyThemeColorTarget;
+		shadow: ClassicyThemeColorTarget;
+	};
+};
+
+/** An emboss rule with its theme colors read (`#RRGGBB`), as drawn. */
+export type ClassicyIconEmbossColors = {
+	emboss: { highlight: string; shadow: string };
+};
+
 /** The surfaces a package can declare a dimming rule for. */
-export type ClassicyIconDimmingPurpose = "hiddenApp" | "disabledItem";
+export type ClassicyIconDimmingPurpose =
+	| "hiddenApp"
+	| "disabledItem"
+	| "disabledControl";
 
 /**
  * A package's dimming rules (`ClassicyAppearancePackage.iconDimming`):
  * `hiddenApp` is a hidden application's icon in the Application menu (HIG7
  * p.127); `disabledItem` is the icon of a list or tree row that cannot be
  * chosen (`ClassicyTree`'s `disabled` nodes: the files a Save box dims).
- * `variants` overrides them under a theme's asset variant
- * (`ClassicyTheme.assetVariant`); `null` there declares no rule, so the
- * package's stylesheet dims the icon its own way (a 1-bit checker, say).
+ * `disabledControl` is the image of a control that is unavailable (a
+ * disabled bevel or toolbar button's icon), and may also be an emboss rule
+ * (`ClassicyIconEmbossRule`, Windows 98's). `variants` overrides them under a
+ * theme's asset variant (`ClassicyTheme.assetVariant`); `null` there declares
+ * no rule, so the package's stylesheet dims the icon its own way (a 1-bit
+ * checker, say).
  */
 export type ClassicyIconDimming = {
 	hiddenApp?: ClassicyIconDimmingRule;
 	disabledItem?: ClassicyIconDimmingRule;
+	disabledControl?: ClassicyIconDimmingRule | ClassicyIconEmbossRule;
 	variants?: Readonly<
 		Record<
 			string,
 			{
 				hiddenApp?: ClassicyIconDimmingRule | null;
 				disabledItem?: ClassicyIconDimmingRule | null;
+				disabledControl?:
+					| ClassicyIconDimmingRule
+					| ClassicyIconEmbossRule
+					| null;
 			}
 		>
 	>;
 };
+
+/** A rule as the canvas draws it: a per-pixel rule, or an emboss with its
+ * colors read. */
+type DrawnRule = ClassicyIconDimmingRule | ClassicyIconEmbossColors;
+
+const isEmbossColors = (rule: DrawnRule): rule is ClassicyIconEmbossColors =>
+	"emboss" in rule;
 
 /** The part class an icon drawn with its dimmed image carries, so a
  * package's own dimming (an opacity, the fallback) stands down. */
@@ -75,6 +121,10 @@ type ParsedRule = {
 };
 
 const parsedRules = new WeakMap<ClassicyIconDimmingRule, ParsedRule>();
+
+/** A rule's cache key: the same for equal rules, whatever their identity. */
+const ruleKey = (rule: DrawnRule): string =>
+	isEmbossColors(rule) ? JSON.stringify(rule) : parse(rule).key;
 
 const hex = (value: string): number => Number.parseInt(value.slice(1), 16);
 
@@ -151,6 +201,44 @@ export const dimClassicyIconPixels = (
 	}
 };
 
+/**
+ * Embosses RGBA pixels (`ImageData.data`, `width` × `height`) in place, as
+ * DrawState's DSS_DISABLED does (`ClassicyIconEmbossRule`): each pixel that
+ * is opaque (alpha 128 or more) and not pure white is ink; the result is the
+ * ink in `shadow` over the same ink one pixel down and right in `highlight`,
+ * fully opaque, and clear everywhere else. Colors are `#RRGGBB`.
+ */
+export const embossClassicyIconPixels = (
+	data: Uint8ClampedArray,
+	width: number,
+	height: number,
+	highlight: string,
+	shadow: string,
+): void => {
+	const ink = new Uint8Array(width * height);
+	for (let i = 0; i < ink.length; i++) {
+		const at = i * 4;
+		const white =
+			data[at] === 255 && data[at + 1] === 255 && data[at + 2] === 255;
+		ink[i] = data[at + 3] >= 128 && !white ? 1 : 0;
+	}
+	const light = hex(highlight);
+	const dark = hex(shadow);
+	const paint = (i: number, color: number) => {
+		const at = i * 4;
+		data[at] = (color >> 16) & 255;
+		data[at + 1] = (color >> 8) & 255;
+		data[at + 2] = color & 255;
+		data[at + 3] = 255;
+	};
+	data.fill(0);
+	for (let y = 0; y < height; y++)
+		for (let x = 0; x < width; x++)
+			if (ink[y * width + x] && x + 1 < width && y + 1 < height)
+				paint((y + 1) * width + x + 1, light);
+	for (let i = 0; i < ink.length; i++) if (ink[i]) paint(i, dark);
+};
+
 const loadImage = (src: string): Promise<HTMLImageElement | undefined> =>
 	new Promise((resolve) => {
 		const image = new Image();
@@ -174,7 +262,7 @@ const reportUnreadable = (src: string, why: string): void => {
 
 const draw = async (
 	src: string,
-	rule: ClassicyIconDimmingRule,
+	rule: DrawnRule,
 	size: number | undefined,
 	key: string,
 ): Promise<string | undefined> => {
@@ -190,8 +278,11 @@ const draw = async (
 		);
 		return undefined;
 	}
-	const width = size ?? image.naturalWidth ?? 0;
-	const height = size ?? image.naturalHeight ?? 0;
+	// A size that is not a finite number (a surface that draws the icon at
+	// whatever size it is) takes the image's own.
+	const drawn = size !== undefined && Number.isFinite(size) ? size : undefined;
+	const width = drawn ?? image.naturalWidth ?? 0;
+	const height = drawn ?? image.naturalHeight ?? 0;
 	if (width <= 0 || height <= 0) return undefined;
 	const canvas = document.createElement("canvas");
 	canvas.width = width;
@@ -201,7 +292,15 @@ const draw = async (
 	ctx.drawImage(image, 0, 0, width, height);
 	try {
 		const pixels = ctx.getImageData(0, 0, width, height);
-		dimClassicyIconPixels(pixels.data, rule);
+		if (isEmbossColors(rule))
+			embossClassicyIconPixels(
+				pixels.data,
+				width,
+				height,
+				rule.emboss.highlight,
+				rule.emboss.shadow,
+			);
+		else dimClassicyIconPixels(pixels.data, rule);
 		ctx.putImageData(pixels, 0, 0);
 		return canvas.toDataURL("image/png");
 	} catch {
@@ -217,8 +316,9 @@ const draw = async (
 };
 
 /**
- * The icon at `src` dimmed by `rule`, as a `data:` URL, drawn `size` px
- * square (else at its natural size); `undefined` when the icon cannot be
+ * The icon at `src` dimmed by `rule` (a per-pixel rule, or an emboss with its
+ * colors read), as a `data:` URL, drawn `size` px square (else at its natural
+ * size); `undefined` when the icon cannot be
  * read (it failed to load, has no size, or taints the canvas). Cached per
  * source, rule and size for the page, except a failed load, which is drawn
  * again on the next request (the failure may be transient). A source that
@@ -226,10 +326,10 @@ const draw = async (
  */
 export const classicyDimmedIconSource = (
 	src: string,
-	rule: ClassicyIconDimmingRule,
+	rule: ClassicyIconDimmingRule | ClassicyIconEmbossColors,
 	size?: number,
 ): Promise<string | undefined> => {
-	const key = `${parse(rule).key}|${size ?? ""}|${src}`;
+	const key = `${ruleKey(rule)}|${size ?? ""}|${src}`;
 	let pending = dimmedSources.get(key);
 	if (!pending) {
 		pending =
@@ -248,13 +348,24 @@ export const classicyDimmedIconSource = (
 
 /**
  * The active package's rule for `purpose`, under the active theme's asset
- * variant; `undefined` when it declares none. Store-free.
+ * variant; `undefined` when it declares none. Store-free. Only
+ * `disabledControl` may be an emboss rule.
  */
-export const resolveClassicyIconDimmingRule = (
+export function resolveClassicyIconDimmingRule(
+	purpose: "hiddenApp" | "disabledItem",
+	packageId?: string,
+	variant?: string,
+): ClassicyIconDimmingRule | undefined;
+export function resolveClassicyIconDimmingRule(
+	purpose: ClassicyIconDimmingPurpose,
+	packageId?: string,
+	variant?: string,
+): ClassicyIconDimmingRule | ClassicyIconEmbossRule | undefined;
+export function resolveClassicyIconDimmingRule(
 	purpose: ClassicyIconDimmingPurpose,
 	packageId: string = getActiveClassicyAppearancePackageId(),
 	variant: string | undefined = getActiveClassicyAssetVariant(),
-): ClassicyIconDimmingRule | undefined => {
+): ClassicyIconDimmingRule | ClassicyIconEmbossRule | undefined {
 	const dimming = getClassicyAppearancePackage(packageId)?.iconDimming;
 	if (!dimming) return undefined;
 	const byVariant =
@@ -266,7 +377,31 @@ export const resolveClassicyIconDimmingRule = (
 	if (byVariant && Object.hasOwn(byVariant, purpose))
 		return byVariant[purpose] ?? undefined;
 	return dimming[purpose];
+}
+
+/**
+ * An emboss rule's colors read from `theme` (the active theme: Windows 98's
+ * ButtonHilight and ButtonShadow of the scheme drawn), as `#RRGGBB`;
+ * `undefined` without a theme.
+ */
+export const classicyIconEmbossColors = (
+	rule: ClassicyIconEmbossRule,
+	theme: ClassicyTheme | undefined,
+): ClassicyIconEmbossColors | undefined => {
+	if (!theme?.color) return undefined;
+	const color = (target: ClassicyThemeColorTarget) =>
+		`#${getThemeColor(theme, target).toString(16).padStart(6, "0")}`;
+	return {
+		emboss: {
+			highlight: color(rule.emboss.highlight),
+			shadow: color(rule.emboss.shadow),
+		},
+	};
 };
+
+const isEmbossRule = (
+	rule: ClassicyIconDimmingRule | ClassicyIconEmbossRule | undefined,
+): rule is ClassicyIconEmbossRule => !!rule && "emboss" in rule;
 
 // What an icon that is not dimmed subscribes with: nothing, so the many icons
 // that never dim hold no listener on the asset registry or the settled set.
@@ -294,12 +429,42 @@ export const useClassicyDimmedIconImage = (
 		() => (dimmed ? resolveClassicyIconDimmingRule(purpose) : undefined),
 		[dimmed, purpose],
 	);
-	const rule = useSyncExternalStore(
+	const declared = useSyncExternalStore(
 		dimmed ? subscribeClassicyAssets : subscribeNothing,
 		getRule,
 		getRule,
 	);
-	const key = rule && src ? `${parse(rule).key}|${size ?? ""}|${src}` : "";
+	// An emboss rule's colors come from the active theme, read through the
+	// asset registry's link to the store (store-free here, as the rest of the
+	// module is) as a string, a stable snapshot, while one is declared; the
+	// registry's listeners hear every store change, so a scheme change
+	// redraws.
+	const emboss = isEmbossRule(declared) ? declared : undefined;
+	const getEmbossColors = useCallback(() => {
+		if (!emboss) return "";
+		const colors = classicyIconEmbossColors(
+			emboss,
+			getClassicyAssetPackageSource()?.getActiveTheme?.() as
+				| ClassicyTheme
+				| undefined,
+		);
+		return colors ? JSON.stringify(colors) : "";
+	}, [emboss]);
+	const embossColors = useSyncExternalStore(
+		emboss ? subscribeClassicyAssets : subscribeNothing,
+		getEmbossColors,
+		getEmbossColors,
+	);
+	const rule = useMemo<DrawnRule | undefined>(
+		() =>
+			emboss
+				? embossColors
+					? (JSON.parse(embossColors) as ClassicyIconEmbossColors)
+					: undefined
+				: (declared as ClassicyIconDimmingRule | undefined),
+		[declared, emboss, embossColors],
+	);
+	const key = rule && src ? `${ruleKey(rule)}|${size ?? ""}|${src}` : "";
 	useEffect(() => {
 		// Settling notifies `subscribeSettled`, which re-reads below.
 		if (rule && src) void classicyDimmedIconSource(src, rule, size);

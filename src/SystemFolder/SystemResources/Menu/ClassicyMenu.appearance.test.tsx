@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyComponentName } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyMenu } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
@@ -272,7 +273,16 @@ describe("ClassicyMenu appearance", () => {
 	// The keyboard opens a submenu through the click's own path (the audit's
 	// 7.7): the item's and the menu's `open`, with the keyboard as input, then
 	// the focus it moves to the submenu's first item.
+	// Under Windows' menu keyboard (`layout.menu.keys` "windows"); a Mac OS
+	// package's menus take Return alone.
 	it("emits open, keyboard input, when an arrow key opens a submenu", () => {
+		probe.uninstall();
+		probe = installClassicyAppearanceProbe({
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				menu: { keys: "windows" },
+			},
+		});
 		renderMenu();
 		item("more").focus();
 		probe.events.length = 0;

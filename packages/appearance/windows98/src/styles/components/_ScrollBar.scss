@@ -20,21 +20,31 @@
 // - The track is the 50% checker of ButtonFace and ButtonHilight that
 //   Windows fills a scroll bar's page area with (the SCROLLBAR's halftone
 //   brush), one conic-gradient layer on the `--pixel-unit` grid, no image.
+//   Windows uses that checker only where ButtonHilight is the Window color;
+//   in any other scheme it fills the track with the solid Scrollbar brush
+//   (Wine's DEFWND_ControlColor for CTLCOLOR_SCROLLBAR: Brick, Desert,
+//   Eggplant, Lilac, Maple, Marine, Pumpkin, Rainy Day, Rose, Slate, Spruce,
+//   Wheat and the High Contrast schemes). The theme says which: the knob
+//   `scrollBar.solidTrack` (1 solid, 0 the checker), the color the package
+//   color `scrollBar.track`, an inset fill over the checker (a theme of
+//   another package sets neither, and draws the checker).
 //   Held (the core's repeat paging), Windows inverts the page area on the
 //   clicked side of the thumb alone (`PatBlt DSTINVERT`): the core publishes
 //   that stretch on the held track as `--classicy-scroll-page-start` and
 //   `--classicy-scroll-page-length` (from the track's start along the bar,
 //   following the thumb as it pages, gone when the thumb reaches the pointer
-//   or the button comes up), and a `::after` over it draws the checker
+//   or the button comes up), and a `::before` over it draws the checker
 //   inverted, ButtonDkShadow where ButtonFace was and black where
 //   ButtonHilight was, laid from the track's origin so the two checkers
-//   interlock whatever the stretch's offset.
+//   interlock whatever the stretch's offset; over a solid track the
+//   `::before` is the Scrollbar color and a `::after` above it inverts it
+//   (white in `difference`, DSTINVERT exactly).
 // - The thumb is a raised ButtonFace box (`b.raised`) with no grip, as long
 //   as the core computes it and never shorter than 8 pixels (half an arrow
 //   button, the proportional thumb's minimum); dragged, Windows redraws it
 //   where it is, so `dragging` changes nothing.
 // - Nothing to scroll (`fits`): Windows disables the bar, its arrows drawn
-//   embossed, GrayText over a ButtonHilight copy one pixel down and right,
+//   embossed, ButtonShadow over a ButtonHilight copy one pixel down and right,
 //   on the raised face, no thumb (the core draws none), the checker kept.
 // - An arrow at the end of its travel (`disabled`, which the core sets on
 //   the start arrow while the axis is scrolled to 0, on the end arrow while
@@ -67,9 +77,12 @@
 //                                              checker's light, the emboss
 //   ButtonLight       --color-system-02        the inner top-left ring
 //   ButtonShadow      --color-system-05        the inner bottom-right ring,
-//                                              GrayText, the pressed ring
+//                                              the embossed triangles, the
+//                                              pressed ring
 //   ButtonDkShadow    --color-system-07        the outer bottom-right ring
-//   WindowText        --color-black            the triangles
+//   ButtonText        --package-color-text-button  the triangles
+//   Scrollbar         --package-color-scroll-bar-track  a solid track
+//   WindowText        --color-black            the focus rectangle
 //
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
 // every glyph a stack of one-pixel rectangles on the `--pixel-unit` grid
@@ -93,6 +106,12 @@ $checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) 
 // ButtonDkShadow (the complement of the light gray is the dark one).
 $checker-inverted: repeating-conic-gradient(b.$text 0 25%, b.$dkshadow 0 50%) 0 0 / px(2) px(2);
 
+// The solid track (`scrollBar.solidTrack` 1): Scrollbar, an inset fill
+// spread over the whole track, ten thousand pixels a ring (a switch: 0 draws
+// nothing, 1 covers any track), over the checker.
+$track: var(--package-color-scroll-bar-track, var(--color-system-03));
+$solid-fill: calc(var(--scroll-bar-solid-track) * 10000);
+
 // The moving split bar: ButtonFace checked with its inverse (the halftone
 // tracker, PATINVERT over the face).
 $split-halftone: repeating-conic-gradient(b.$dkshadow 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
@@ -100,14 +119,14 @@ $split-halftone: repeating-conic-gradient(b.$dkshadow 0 25%, b.$face 0 50%) 0 0 
 // The proportional thumb's minimum length: half an arrow button.
 $thumb-min: px(8);
 
-// A glyph in WindowText; the same embossed, GrayText over its ButtonHilight
+// A glyph in WindowText; the same embossed, ButtonShadow over its ButtonHilight
 // copy one pixel down and right.
 @function glyph($art) {
-  @return pixel-art(b.$text, $art);
+  @return pixel-art(b.$button-text, $art);
 }
 
 @function glyph-embossed($art) {
-  @return list.join(pixel-art(b.$gray-text, $art), pixel-art(b.$hilight, $art, $px, $px), comma);
+  @return list.join(pixel-art(b.$shadow, $art), pixel-art(b.$hilight, $art, $px, $px), comma);
 }
 
 // --- The arrow button -------------------------------------------------------
@@ -179,19 +198,32 @@ $thumb-min: px(8);
     @include arrow-glyph($arrow-right, 4, 7, 2, 4);
   }
 
-  // The track: the checker; held, the paged side inverted (the header).
+  // The track: the checker, or the solid Scrollbar over it; held, the paged
+  // side inverted (the header).
   .classicyScrollBarTrack {
     position: relative;
     background: $checker;
+    box-shadow: inset 0 0 0 $solid-fill $track;
 
+    &.pressed::before,
     &.pressed::after {
       content: "";
       position: absolute;
       pointer-events: none;
+    }
+
+    &.pressed::before {
       background: $checker-inverted;
+      box-shadow: inset 0 0 0 $solid-fill $track;
+    }
+
+    &.pressed::after {
+      box-shadow: inset 0 0 0 $solid-fill var(--color-white);
+      mix-blend-mode: difference;
     }
   }
 
+  .classicyScrollBarVertical .classicyScrollBarTrack.pressed::before,
   .classicyScrollBarVertical .classicyScrollBarTrack.pressed::after {
     left: 0;
     right: 0;
@@ -200,6 +232,7 @@ $thumb-min: px(8);
     background-position: 0 calc(var(--classicy-scroll-page-start) * -1);
   }
 
+  .classicyScrollBarHorizontal .classicyScrollBarTrack.pressed::before,
   .classicyScrollBarHorizontal .classicyScrollBarTrack.pressed::after {
     top: 0;
     bottom: 0;

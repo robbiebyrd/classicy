@@ -27,7 +27,7 @@
 // (13) square, a ButtonShadow ring outside a ButtonFace one (Windows 98's
 // flat edge, BF_FLAT), Window white inside, the 7 x 7 WindowText check
 // three pixels in while the row is chosen (_Checkbox.scss's mark), the face
-// ButtonFace and the mark GrayText while the row or the list is disabled.
+// ButtonFace and the mark ButtonShadow while the row or the list is disabled.
 // The tree view (TREEVIEW): the same edge on a framed tree
 // or list frame, and the selection on the label alone, Hilight under
 // HilightText a pixel above and below the text and two beside it
@@ -65,7 +65,8 @@
 //   Window            --color-window-document   the list
 //   WindowText        --color-black             the rows, the focus rectangle
 //   ButtonShadow      --color-system-05         the outer top-left ring,
-//                                               GrayText, the tree's lines
+//                                               a disabled check, the tree's
+//                                               lines
 //   ButtonDkShadow    --color-system-07         the inner top-left ring
 //   ButtonHilight     --color-system-01         the outer bottom-right ring
 //   ButtonLight       --color-system-02         the inner bottom-right ring
@@ -208,7 +209,7 @@ $list-check: '[data-classicy-part="list-check"]';
   }
 
   // Disabled (the row, or the whole list): a ButtonFace face, the mark
-  // GrayText, as a disabled check box's.
+  // ButtonShadow, as a disabled check box's.
   :where(.classicyListBoxOption).disabled > #{$list-check},
   :where(.classicyListBox).disabled .classicyListBoxOption > #{$list-check} {
     background: b.$face;
@@ -216,7 +217,7 @@ $list-check: '[data-classicy-part="list-check"]';
 
   :where(.classicyListBoxOption).disabled.selected > #{$list-check},
   :where(.classicyListBox).disabled .classicyListBoxOption.selected > #{$list-check} {
-    background: list-check-mark(b.$gray-text), b.$face;
+    background: list-check-mark(b.$shadow), b.$face;
   }
 
   // ----- The framed list and the tree view -------------------------------

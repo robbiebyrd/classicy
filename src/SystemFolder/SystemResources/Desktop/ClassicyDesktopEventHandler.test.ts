@@ -422,6 +422,87 @@ describe("classicyDesktopEventHandler — ClassicyDesktopChangeFont", () => {
 	});
 });
 
+// A package's own fonts (`typography.families`, Windows 98's caption, menu,
+// message box and icon fonts): ChangeFont and ChangeFontSize take `family`
+// to edit one the active theme holds; a theme without families (Platinum's,
+// System 7's) has none to edit, and the core keys stay as they were.
+describe("classicyDesktopEventHandler — package fonts (`family`)", () => {
+	const withFamilies = () => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Appearance.activeTheme.typography.families = {
+			menu: { font: '"Pixelated MS Sans Serif", Arial', size: 11, weight: 400 },
+			icon: { font: "Arial", weight: 400 },
+		};
+		return ds;
+	};
+
+	it("sets a package font's stack and size, keeping its other fields", () => {
+		const ds = withFamilies();
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFont",
+			family: "menu",
+			font: '"Times New Roman", serif',
+		});
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFontSize",
+			family: "menu",
+			fontSize: 13,
+		});
+		expect(
+			ds.System.Manager.Appearance.activeTheme.typography.families?.menu,
+		).toEqual({ font: '"Times New Roman", serif', size: 13, weight: 400 });
+		expect(
+			getThemeVars(ds.System.Manager.Appearance.activeTheme),
+		).toMatchObject({
+			"--package-font-menu": '"Times New Roman", serif',
+			"--package-font-menu-size": "13px",
+			"--package-font-menu-weight": "400",
+		});
+	});
+
+	it("refuses a family the theme lacks, an unsafe stack or a size out of bounds, and changes nothing", () => {
+		const ds = withFamilies();
+		const before = structuredClone(
+			ds.System.Manager.Appearance.activeTheme.typography,
+		);
+		for (const action of [
+			{ type: "ClassicyDesktopChangeFont", family: "caption", font: "Arial" },
+			{ type: "ClassicyDesktopChangeFont", family: "menu", font: "x;}" },
+			{
+				type: "ClassicyDesktopChangeFont",
+				family: "__proto__",
+				font: "Arial",
+			},
+			{ type: "ClassicyDesktopChangeFontSize", family: "menu", fontSize: 99 },
+			{ type: "ClassicyDesktopChangeFontSize", family: "nope", fontSize: 12 },
+		])
+			classicyDesktopEventHandler(ds, action);
+		expect(ds.System.Manager.Appearance.activeTheme.typography).toEqual(before);
+	});
+
+	it("edits no family where the theme has none, and the core keys as before", () => {
+		const ds = makeStoreForDesktop();
+		const before = structuredClone(
+			ds.System.Manager.Appearance.activeTheme.typography,
+		);
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFont",
+			family: "menu",
+			font: "Arial",
+		});
+		expect(ds.System.Manager.Appearance.activeTheme.typography).toEqual(before);
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopChangeFontSize",
+			fontType: "uiSize",
+			fontSize: 13,
+		});
+		expect(ds.System.Manager.Appearance.activeTheme.typography.uiSize).toBe(13);
+		expect(
+			ds.System.Manager.Appearance.activeTheme.typography.families,
+		).toBeUndefined();
+	});
+});
+
 describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 	it("replaces availableThemes with the provided list", () => {
 		const ds = makeStoreForDesktop();

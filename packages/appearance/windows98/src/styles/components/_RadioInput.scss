@@ -26,7 +26,7 @@
 // - On: the WindowText dot, 4 x 4 with its corners off, four pixels in.
 //   Pressed (the mouse down on the button or its label), the inside turns
 //   ButtonFace with the dot kept; disabled, the inside is ButtonFace and the
-//   dot GrayText.
+//   dot ButtonShadow (DFCS_INACTIVE).
 // - Mixed: the empty circle, whatever the group's setting, as the WIG's
 //   mixed-value appearance has every button of the group drawn without a
 //   setting dot (WIG Ch.7 "Option Buttons" (p.115, Fig. 7.10)).
@@ -54,7 +54,7 @@
 //                                              emboss
 //   ButtonLight       --color-system-02        the inner lower-right arc
 //   ButtonShadow      --color-system-05        the outer upper-left arc,
-//                                              GrayText
+//                                              a disabled dot
 //   ButtonDkShadow    --color-system-07        the inner upper-left arc
 @use "sass:list";
 @use "../bevels" as b;
@@ -144,10 +144,10 @@ $ink: var(--windows98-radio-ink);
     background: list.join(ring(), marked($dot), comma);
   }
 
-  // Disabled: a ButtonFace inside, the dot GrayText.
+  // Disabled: a ButtonFace inside, the dot ButtonShadow (DFCS_INACTIVE).
   :where(.classicyRadioInputWrapper).disabled {
     --windows98-radio-face: #{b.$face};
-    --windows98-radio-ink: #{b.$gray-text};
+    --windows98-radio-ink: #{b.$shadow};
   }
 
   // The native input over the whole circle, invisible: the wrapper draws

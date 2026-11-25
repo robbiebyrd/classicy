@@ -85,12 +85,16 @@ const withHelpItem = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
  * and right of the click and gets the HIG's leading Help item (HIGOS8 p.93) —
  * a disabled placeholder when the caller supplied none.
  *
- * It also opens them from the keyboard: Shift+F10 and the Application key
- * send the focused element a `contextmenu` of its own, at its center (or,
- * with focus on the desktop itself, where the pointer last went down in
- * it), which the same targets resolve innermost first (WIG Ch.7 "Pop-up
- * Menu Interaction" (p.101)). Escape closes the open menu a level at a time
- * (`ClassicyMenu`), and Up and Down take the keyboard into it.
+ * Under the package's `layout.keyboard.contextMenuKey` (Windows) it also
+ * opens them from the keyboard: Shift+F10 and the Application key send the
+ * focused element a `contextmenu` of its own, at its center (or, with focus
+ * on the desktop itself, where the pointer last went down in it), which the
+ * same targets resolve innermost first (WIG Ch.7 "Pop-up Menu Interaction"
+ * (p.101)). Under `layout.menu.keys` `"windows"` Escape closes the open menu
+ * a level at a time (`ClassicyMenu`), and Up and Down take the keyboard into
+ * it. A Mac OS package declares neither: its contextual menus open from a
+ * Control-click or right-click alone and close as sticky menus do (HIGOS8
+ * "Contextual Menus" (pp.93-94)).
  *
  * Under a package whose layout says `contextMenu.openOn: "release"`
  * (Windows 98; WIG Ch.5 "Selection with the Mouse", p.38: "display the
@@ -110,10 +114,9 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 	PropsWithChildren
 > = ({ children }) => {
 	const [openMenu, setOpenMenu] = useState<OpenContextMenu | null>(null);
-	useClassicyContextMenuKey();
-	const onRelease = classicyContextMenuOpensOnRelease(
-		useClassicyAppearanceLayout(),
-	);
+	const layout = useClassicyAppearanceLayout();
+	useClassicyContextMenuKey(layout.keyboard?.contextMenuKey === true);
+	const onRelease = classicyContextMenuOpensOnRelease(layout);
 
 	// Under `openOn: "release"`: the button of the secondary press that is
 	// down (button 2, or button 1 pressed with Control, which a macOS host

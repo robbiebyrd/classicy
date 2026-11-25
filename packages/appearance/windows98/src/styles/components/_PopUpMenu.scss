@@ -109,7 +109,7 @@ $field-height: max(
   padding: 0;
   border: 0;
   border-radius: 0;
-  color: b.$text;
+  color: b.$button-text;
   background: b.$face;
   @include b.raised;
   cursor: default;
@@ -407,7 +407,7 @@ $field-height: max(
   .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
     padding: b.$b2;
     border: 0;
-    color: b.$text;
+    color: b.$button-text;
     background: b.$face;
     @include b.window-frame;
   }

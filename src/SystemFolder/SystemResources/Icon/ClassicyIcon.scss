@@ -49,12 +49,14 @@
   user-select: text;
 }
 
-// An icon shows its selection, which the keyboard moves (the file browser's
-// icon view), never a focus ring, as a desktop icon (ClassicyDesktopIcon.scss)
-// and Mac OS 8's Finder icons; nor does the icon view's holder, focused by a
-// press on its empty space. Three classes: beats
-// `.classicyDesktop *:focus-visible { outline-color }`.
-.classicyDesktop .classicyIcon:focus-visible,
+// An icon the keyboard selected (the file browser's icon view: an arrow or
+// typing moves its selection) shows that selection, not a focus ring too, as
+// a desktop icon (ClassicyDesktopIcon.scss) and Mac OS 8's Finder icons do;
+// an unselected icon Tab reached keeps the ring every package drew before.
+// Nor does the icon view's holder, focused by a press on its empty space.
+// Three classes or more: beats `.classicyDesktop *:focus-visible
+// { outline-color }`.
+.classicyDesktop .classicyIcon.selected:focus-visible,
 .classicyDesktop .classicyFileBrowserFill:focus-visible {
   outline: none;
 }

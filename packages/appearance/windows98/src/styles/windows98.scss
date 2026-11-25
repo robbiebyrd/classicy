@@ -8,7 +8,8 @@
 // group boxes, the progress bars, the scroll bars, the desktop and its
 // icons, the tab control, the sliders, the placards and bevel buttons, the
 // ToolTips, the tables, the separators, the little arrows, the Appearance
-// Manager, the Control Strip and the HyperCard editor's handles.
+// Manager, the Control Strip and the HyperCard editor's handles; and, last,
+// the High Contrast block that keeps them all under forced colors.
 @use "pkg:@classicy/classicy/scss/package";
 @use "bevels" as b;
 @use "components/Window";
@@ -37,6 +38,7 @@
 @use "components/AppearanceManager";
 @use "components/ControlStrip";
 @use "components/HyperCard";
+@use "components/ForcedColors";
 
 @include package.classicy-package("windows98") {
   @include Window.window;
@@ -66,6 +68,13 @@
   @include ControlStrip.control-strip;
   @include HyperCard.hyper-card;
 
+  // Text that sets no color of its own is WindowText, as a window's client
+  // area draws it (white in High Contrast Black; the browser's black, the
+  // same, in every other scheme).
+  & {
+    color: b.$text;
+  }
+
   // The browser's own controls take the highlight color (Hilight, navy in
   // Windows Standard), where the base sheet's accent is `--color-theme-04`.
   &,
@@ -84,4 +93,8 @@
     color: b.$highlight-text;
     background: b.$highlight;
   }
+
+  // Last: under forced colors (Windows' High Contrast), the tokens above
+  // become the user's system colors.
+  @include ForcedColors.forced-colors;
 }

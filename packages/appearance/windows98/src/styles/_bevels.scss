@@ -15,11 +15,33 @@
 //   ButtonDkShadow    --color-system-07
 //   Window            --color-window-document
 //   WindowText        --color-black
+//   ButtonText        --package-color-text-button  (MenuText, the same in
+//                                                   every scheme)
 //   Hilight           --color-highlight
 //   HilightText       --package-color-selection-text
-//   GrayText          --color-system-05
+//   GrayText          --package-color-text-gray    (ButtonShadow in every
+//                                                   scheme but High
+//                                                   Contrast's)
 //   InfoWindow/Text   --package-color-tooltip-face / -text
+//   Scrollbar         --package-color-scroll-bar-track
+//   ActiveBorder…     --package-color-sizing-border-active / -inactive
 //   ActiveTitle…      --package-color-title-bar-*
+//
+// A disabled control's glyphs (DFCS_INACTIVE) and a disabled button's label
+// (DSS_DISABLED) are embossed in ButtonShadow over ButtonHilight; disabled
+// text elsewhere (menus, lists, static text) is GrayText.
+// A scheme's own fonts (`typography.families`, the core's package fonts):
+// the caption's, small caption's, menu's, message box's and icon's, each read
+// with the UI font behind it, for a theme of another package.
+$menu-font: var(--package-font-menu, var(--ui-font));
+$menu-font-size: var(--package-font-menu-size, var(--ui-font-size));
+$menu-font-weight: var(--package-font-menu-weight, normal);
+$message-font: var(--package-font-message, var(--ui-font));
+$message-font-size: var(--package-font-message-size, var(--ui-font-size));
+$message-font-weight: var(--package-font-message-weight, normal);
+$icon-font: var(--package-font-icon, var(--ui-font));
+$icon-font-weight: var(--package-font-icon-weight, normal);
+
 // One ring, two rings, and each negated (a Sass name starting with `-`
 // would be private to this module, so the negatives are `$neg-*`).
 $b: var(--window-border-size);
@@ -34,7 +56,8 @@ $shadow: var(--color-system-05);
 $dkshadow: var(--color-system-07);
 $window: var(--color-window-document);
 $text: var(--color-black);
-$gray-text: var(--color-system-05);
+$button-text: var(--package-color-text-button, var(--color-black));
+$gray-text: var(--package-color-text-gray, var(--color-system-05));
 $highlight: var(--color-highlight);
 $highlight-text: var(--package-color-selection-text, var(--color-white));
 
@@ -101,6 +124,13 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
 // Disabled text: GrayText with a one-pixel ButtonHilight emboss below right.
 @mixin disabled-text {
   color: $gray-text;
+  text-shadow: $b $b 0 $hilight;
+}
+
+// A disabled button's label, as DrawState's DSS_DISABLED embosses it:
+// ButtonShadow over a ButtonHilight copy one pixel below right.
+@mixin disabled-label {
+  color: $shadow;
   text-shadow: $b $b 0 $hilight;
 }
 

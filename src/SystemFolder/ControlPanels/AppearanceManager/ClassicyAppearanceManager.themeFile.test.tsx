@@ -510,3 +510,102 @@ describe("Appearance Manager — saving and loading theme files", {
 		).toEqual(["Platinum", "Beep", "Elsewhere"]);
 	});
 });
+
+// A package's theme file importer (`themeFileImporter`, Windows 98's
+// `.theme`): offered by Load Theme… only while that package is active, its
+// theme validated as a Classicy theme file's. Platinum declares none, so its
+// picker takes JSON alone and a `.theme` file is read as JSON.
+describe("Appearance Manager — a package's theme file importer", {
+	timeout: INTEGRATION_TIMEOUT_MS,
+}, () => {
+	const importerTheme = (name: string): ClassicyTheme => ({
+		...structuredClone(getTheme("default")),
+		id: "imported",
+		name,
+		package: "importer-pack",
+	});
+	const read = vi.fn((text: string, fileName: string) =>
+		text.startsWith("[Control Panel\\Colors]")
+			? { ok: true as const, theme: importerTheme(`From ${fileName}`) }
+			: { ok: false as const, error: "Not a theme for this test." },
+	);
+	registerClassicyAppearancePackage({
+		id: "importer-pack",
+		name: "Importer Pack",
+		css: "",
+		defaults: importerTheme("Importer Default"),
+		layout: {
+			window: { growBoxCorner: "bottom-right" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+		},
+		themeFileImporter: { extensions: [".theme"], read },
+	});
+
+	beforeEach(() => {
+		dispatched.length = 0;
+		read.mockClear();
+		localStorage.clear();
+		sessionStorage.clear();
+		useAppManager.setState(
+			JSON.parse(
+				JSON.stringify(DefaultAppManagerState),
+			) as typeof DefaultAppManagerState,
+			true,
+		);
+	});
+
+	const fileInput = () =>
+		screen.getByTestId("appearance_theme_file_input") as HTMLInputElement;
+
+	it("takes JSON alone under a package without an importer, and reads a .theme file as JSON", async () => {
+		await openAppearanceManager();
+		expect(fileInput().accept).toBe("application/json,.json");
+		pickFile(new File(["[Control Panel\\Colors]"], "Jungle.theme"));
+		const alert = await screen.findByRole("alertdialog");
+		expect(alert).toHaveTextContent("This file is not valid JSON.");
+		expect(read).not.toHaveBeenCalled();
+	});
+
+	it("offers the importer's extensions while its package is active and imports what it reads", async () => {
+		await openAppearanceManager();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "importer-pack",
+			});
+		});
+		await waitFor(() =>
+			expect(fileInput().accept).toBe("application/json,.json,.theme"),
+		);
+		pickFile(
+			new File(["[Control Panel\\Colors]\nWindow=1 2 3"], "Jungle.THEME"),
+		);
+		await waitFor(() =>
+			expect(appearance().activeTheme.name).toBe("From Jungle.THEME"),
+		);
+		expect(read).toHaveBeenCalledWith(
+			"[Control Panel\\Colors]\nWindow=1 2 3",
+			"Jungle.THEME",
+		);
+		expect(appearance().activeTheme.package).toBe("importer-pack");
+		expect(appearance().activeTheme.id).toMatch(/^custom-/);
+	});
+
+	it("shows the importer's refusal in the panel's alert", async () => {
+		await openAppearanceManager();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "importer-pack",
+			});
+		});
+		await waitFor(() => expect(fileInput().accept).toContain(".theme"));
+		dispatched.length = 0;
+		pickFile(new File(["nonsense"], "bad.theme"));
+		const alert = await screen.findByRole("alertdialog");
+		expect(alert).toHaveTextContent("“bad.theme” could not be loaded.");
+		expect(alert).toHaveTextContent("Not a theme for this test.");
+		expect(dispatchedTypes()).not.toContain("ClassicyDesktopImportTheme");
+	});
+});

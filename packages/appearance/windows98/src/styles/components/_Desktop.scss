@@ -22,8 +22,10 @@
 //   (`classicyDesktopSelectEmpty`, on the outline while it is 0 x 0): the
 //   shell drew the rectangle once the pointer moved (WIG Ch.5 "Region
 //   Selection", p.42).
-// - A desktop icon is the 32 x 32 image over its label, the label in the UI
-//   font (MS Sans Serif 8pt) in the desktop text color
+// - A desktop icon is the 32 x 32 image over its label, the label in the
+//   scheme's icon font (`typography.families.icon`, at the theme's
+//   `desktop.iconFontSize`: MS Sans Serif 8pt in Windows Standard) in the
+//   desktop text color
 //   (`--package-color-desktop-text`, white) straight on the Background with
 //   no box, a one-pixel black drop shadow under the text so it reads over
 //   any Background, as the Active Desktop drew labels; 3 px of air between
@@ -144,8 +146,9 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     p {
       margin-top: px(3);
       padding: b.$b px(2);
-      font-family: var(--ui-font), sans-serif;
+      font-family: b.$icon-font;
       font-size: var(--desktop-icon-font-size);
+      font-weight: b.$icon-font-weight;
       line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
       color: var(--package-color-desktop-text, var(--color-white));
       text-shadow: $label-shadow-offset $label-shadow-offset 0 var(--color-black);
