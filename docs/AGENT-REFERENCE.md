@@ -2666,14 +2666,34 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   Platinum theme naming `bw` draws System 7's 1-bit art under System 7);
   `variant` defaults to that theme's, and every reader (`useClassicyAsset`,
   `useClassicyAssetTree`, `resolveClassicyAsset`, the published
-  `--classicy-art-*` / `--classicy-cursor-*`) follows a theme switch. A variant the package never
-  registered draws the base tree, with one `classicyLog` warning per package
-  and variant per page (checked after the current task, so trees registered
-  in the same module evaluation never warn), and only when no art of the
-  variant is drawn: a foreign theme whose variant the drawn package takes
-  logs nothing for its own package, whose lookups (the default package's
-  fallback, the core icon mapping) read its base tree as they should, and
-  is warned if its own package later draws it (0235-xgi N4). A variant is registered by its
+  `--classicy-art-*` / `--classicy-cursor-*`) follows a theme switch. A
+  variant's art is the drawing package's: it is drawn when that package
+  takes the variant (the theme is its own, or one of its built-in themes
+  names the variant) and registered trees for it. A theme naming a variant
+  that draws no art (a misspelled name, a variant its package never
+  registered, a variant only another package has) draws the drawing
+  package's base assets and is warned once per page with `classicyLog`,
+  whichever package draws it and whichever package's id a lookup is made
+  with: `Theme asset variant "<v>" is not registered for package "<id>"; its
+  base assets are used` for the drawing package when it takes the variant
+  and never registered it, and for the theme's own package, when another
+  draws, if that never registered it either (both, when both hold); else
+  `Theme asset variant "<v>" of package "<own>" is not drawn by package
+  "<drawing>"; its base assets are used` (the variant is its own package's,
+  and the drawing package takes none of another package's theme). So a
+  System 7 Custom theme naming `sepia` drawn under Platinum warns for
+  `"system7"`, and System 7's 1-bit theme drawn under Platinum warns that
+  `bw` is not drawn by `"platinum"`. A theme whose variant the drawing
+  package draws logs nothing: a Platinum theme naming `bw` under System 7
+  draws System 7's 1-bit art, and the lookups the core makes with Platinum's
+  id (`classicyCoreIcon`, `iconImageByType(type,
+  CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`) read Platinum's base tree, as
+  they should (0235-xgi N4). Each warning is checked after the current
+  task, against what holds then (trees, or a drawing package, registered in
+  the same module evaluation never warn), and one that no longer applies
+  leaves no mark, so it is logged if it applies again (a variant another
+  package drew, once its own package draws it). Lookups given an explicit
+  `variant` (`resolveClassicyThemeAsset`) never warn. A variant is registered by its
   first accepted leaf: a variant registration whose every leaf is dropped
   (or that holds none) registers nothing, so a theme naming it is still
   warned. Wallpapers vary by name only

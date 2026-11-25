@@ -241,8 +241,13 @@ export type ClassicyTheme = {
 	 * (`registerClassicyAssets(kind, package, tree, { variant })`): icons,
 	 * system art, cursors and wallpapers by name resolve the variant's tree,
 	 * then the package's base tree, then the default package's. Absent, the
-	 * base tree; a variant the package never registered draws the base tree
-	 * too, with one warning.
+	 * base tree. While another package draws the theme, that package's art of
+	 * the variant is drawn when one of its built-in themes names the variant
+	 * and it registered trees for it. A variant that draws no art (one the
+	 * drawing package never registered, or does not take from another
+	 * package's theme) draws the drawing package's base tree, with one
+	 * warning per page; a variant whose art is drawn logs nothing
+	 * (AGENT-REFERENCE §5, "Per-theme variants").
 	 */
 	assetVariant?: string;
 };
