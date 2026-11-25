@@ -1868,6 +1868,8 @@ agrees). Every package, no declaration needed:
   2.1 §10.3.7), so a long item wrapped, in the Application menu under a
   short front application's name ("Date and Time Manager") and in the Apple
   menu on a 640-pixel desktop, which held it only at its `min-width`. The
+  Apple menu and its submenus have no `min-width` of their own (it was a
+  fifth of the viewport, wider than their items on a wide screen). The
   Application menu hangs left of its title's right side (`left: auto`).
   No item wraps; the placement above keeps the wider menu inside the
   bounds.

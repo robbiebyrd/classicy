@@ -43,6 +43,15 @@ describe("fixed menu surfaces", () => {
 		expect(menu(".classicyContextSubMenu").width).toBe("max-content");
 	});
 
+	// Found with F1: the Apple menu and its submenus took a fifth of the
+	// viewport at the least, wider than their items on a wide screen.
+	it("size the Apple menu by its items, never by the viewport", () =>
+		expect(
+			compileScss(
+				"src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar.scss",
+			),
+		).not.toMatch(/\d(\.\d+)?vw\b/));
+
 	it("hang the Application menu from its title's right side, at its items' width", () => {
 		const bar = rule("Desktop/MenuBar/ClassicyDesktopMenuBar.scss")(
 			".classicyDesktopMenuAppSwitcher * ul",

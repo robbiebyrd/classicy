@@ -10,11 +10,10 @@
     height: 100%;
     display: flex;
   }
-  div {
-    ul {
-      min-width: 20vw;
-    }
-  }
+
+  // The Apple menu and its submenus are as wide as their widest items, as
+  // every menu is (`.classicySubMenu`); a fifth of the viewport made them
+  // wider than their items on a wide screen, and narrower on a narrow one.
 
   &:after {
     display: none;
