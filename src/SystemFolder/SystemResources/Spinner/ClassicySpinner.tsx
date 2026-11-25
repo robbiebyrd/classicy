@@ -53,6 +53,16 @@ interface ClassicySpinnerProps {
 	minValue?: number;
 	/** Highest allowed value. Unbounded when omitted. */
 	maxValue?: number;
+	/**
+	 * Cycle past the ends instead of stopping at them: a step up from
+	 * `maxValue` lands on `minValue` and a step down from `minValue` on
+	 * `maxValue`, a larger step wrapping by the range (the up-down control's
+	 * UDS_WRAP; WIG Ch.7 "Spin Boxes", p.128: spin boxes "typically wrap").
+	 * Steps alone (the little arrows and the arrow keys): a typed value is
+	 * clamped as before. Needs `maxValue`; without it the top is unbounded
+	 * and the bottom clamps. Defaults to `false`.
+	 */
+	wrap?: boolean;
 	/** Disables the field and its little arrows (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
 	/** Dims the label independently of the field. Defaults to `disabled`. */
@@ -80,7 +90,9 @@ interface ClassicySpinnerProps {
  *
  * Clicking an arrow steps by 1; holding it auto-repeats, and the step grows
  * tenfold for every 3 seconds the arrow stays held (1, 10, 100…) so large
- * ranges are quick to cross. The field keeps its own value and resets to
+ * ranges are quick to cross. With the field focused, Up and Down Arrow step
+ * by 1 too (the key's own repeat covering a held key), through the same
+ * clamp, or `wrap`, as the arrows. The field keeps its own value and resets to
  * `prefillValue` when that prop changes; typed changes are reported to
  * analytics as `selected` events. For a stepper without the field, use
  * `ClassicyLittleArrows` directly.
@@ -96,6 +108,7 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 			prefillValue,
 			minValue = 0,
 			maxValue = undefined,
+			wrap = false,
 			disabled = false,
 			labelDisabled,
 			isDefault,
@@ -130,6 +143,8 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 		minValueRef.current = minValue;
 		const maxValueRef = useRef(maxValue);
 		maxValueRef.current = maxValue;
+		const wrapRef = useRef(wrap);
+		wrapRef.current = wrap;
 		const onChangeFuncRef = useRef(onChangeFunc);
 		onChangeFuncRef.current = onChangeFunc;
 
@@ -168,8 +183,21 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 			} as ChangeEvent<HTMLInputElement>);
 		};
 
+		// A step past an end lands that far into the range from the other end
+		// (the range's span counted in whole units, `max - min + 1`), with
+		// `wrap` and both ends set; otherwise the clamp.
+		const wrapOrClamp = (val: number): number => {
+			const max = maxValueRef.current;
+			const min = minValueRef.current;
+			if (!wrapRef.current || max === undefined || max < min) return clamp(val);
+			const span = max - min + 1;
+			if (val > max) return min + ((val - max - 1) % span);
+			if (val < min) return max - ((min - val - 1) % span);
+			return val;
+		};
+
 		const applyDelta = (direction: 1 | -1, step: number) => {
-			const next = clamp(valueRef.current + direction * step);
+			const next = wrapOrClamp(valueRef.current + direction * step);
 			valueRef.current = next;
 			setValue(next);
 			notifyChange(next);
@@ -195,6 +223,29 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 		const handleOnKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
 			if (e.key === "Enter" && onEnterFunc) {
 				onEnterFunc();
+				return;
+			}
+			// Up and Down Arrow step by one unit, as the little arrows do: the
+			// native number field stepped on them too, but past the clamp,
+			// reporting a value beyond the range (WIG Ch.7 "Spin Boxes",
+			// p.128: "with the focus, UP/DOWN ARROW change the value"). A
+			// modified arrow stays the browser's.
+			if (
+				(e.key === "ArrowUp" || e.key === "ArrowDown") &&
+				!e.altKey &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				!e.shiftKey
+			) {
+				e.preventDefault();
+				if (disabled) return;
+				applyDelta(e.key === "ArrowUp" ? 1 : -1, 1);
+				// A keyboard step was the field's own change before, so it is
+				// tracked as one still.
+				track("selected", {
+					...analyticsArgs,
+					selected: String(valueRef.current),
+				});
 			}
 		};
 

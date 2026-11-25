@@ -251,8 +251,13 @@ describe("the Windows 98 appearance package", () => {
 	// menu's shortcuts are spelled Ctrl+S (`menu.shortcutSpelling` "names",
 	// 7.15; WIG Ch.7 "Shortcut Keys in Menu Items", p.110), and an empty
 	// submenu shows a dimmed "(Empty)" (`menu.emptySubmenus` "placeholder",
-	// as Windows 98's Start menu does).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels", async () => {
+	// as Windows 98's Start menu does). A bare Right Arrow expands a tree's
+	// branch and a bare Left Arrow collapses it (`tree.keys` "windows", the
+	// audit's 7.21; WIG Ch.7 "Tree View Controls", pp.123-124), and help
+	// shows as a ToolTip below and right of the resting pointer, gone on a
+	// press (`balloonHelp.placement` "pointer", 7.27; WIG Ch.7 "Tooltip
+	// Controls", p.133).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
@@ -271,6 +276,8 @@ describe("the Windows 98 appearance package", () => {
 				navigation: "flat",
 				saveName: "selected",
 			},
+			tree: { keys: "windows" },
+			balloonHelp: { placement: "pointer" },
 		});
 	});
 
@@ -291,6 +298,23 @@ describe("the Windows 98 appearance package", () => {
 			"--dialog-input-max-width": "415px",
 			"--dialog-alert-min-width": "280px",
 			"--dialog-keyboard-equivalent-max-width": "420px",
+		});
+	});
+
+	// A ToolTip at the pointer stands under the arrow cursor: 20 px below the
+	// pointer's hot spot, as TOOLTIPS_Show places it (Wine's tooltips.c; the
+	// audit's 7.27; WIG Ch.7 "Tooltip Controls", p.133), in every theme. The
+	// core places the box at the hot spot; `_BalloonHelp.scss` reads this.
+	it("sets the ToolTip 20 px under the pointer in every theme", async () => {
+		await import("./index");
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements.tooltip, theme.id).toEqual({
+				paddingX: 4,
+				paddingY: 2,
+				pointerOffset: 20,
+			});
+		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
+			"--tooltip-pointer-offset": "20px",
 		});
 	});
 

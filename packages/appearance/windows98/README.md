@@ -59,8 +59,13 @@ and `nodenext` resolution).
   window's scroll bars kept where its content fits, and the Open and Save
   boxes as titled, movable dialogs showing one folder at a time under a
   pop-up that runs the path upward (Windows' Look in), Save As opening with
-  the file name selected, and dialogs and alerts centered on whole pixels,
-  so their one-pixel bevels and glyphs stay sharp.
+  the file name selected, dialogs and alerts centered on whole pixels,
+  so their one-pixel bevels and glyphs stay sharp, trees driven by the bare
+  arrow keys as Windows' tree view is (Right expands a folder or goes into
+  it, Left collapses it or goes up to its parent), and help shown as a
+  ToolTip: once the pointer rests on a control, just below and right of the
+  pointer (moved left at the screen's right edge, above the control at its
+  bottom), gone when the control is clicked.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
@@ -84,9 +89,14 @@ and `nodenext` resolution).
     the dotted focus rectangle, 13-pixel checkboxes, 12-pixel radio buttons,
     sunken text fields and lists, pop-up menus with their drop-down button,
     rectangular tabs on a raised panel, the block progress bar, etched group
-    boxes, trackbar sliders, raised placards and bevel buttons, and image
+    boxes, trackbar sliders, raised placards and bevel buttons, image
     wells that mark their set value with a solid border, the text color
-    outside the button highlight, inside the sunken edge;
+    outside the button highlight, inside the sunken edge, a list of check
+    boxes (a list an app gives check boxes) with the flat check box nested
+    controls take before each item, the checked items otherwise plain, and
+    meters whose warning ranges carry a pattern as well as their color (a
+    dotted stipple when the value leaves the ideal range, a checker when it
+    is far from it), so they read in black and white too;
   - scroll bars: an arrow at each end on a checkered track, a raised scroll
     box, the paged side of the track inverted while the mouse holds it, an
     arrow embossed (disabled) at the end of its travel (the up arrow at the
@@ -97,6 +107,10 @@ and `nodenext` resolution).
     (as Explorer drew it) on the desktop, in icon views and in the Finder's
     list, ToolTips in place of balloon help, and the Appearance Manager
     and Control Strip under the same bevels;
+  - a window that is not the active one shows its selections as Explorer
+    did: a tree's, a list's and the Finder's selected items in the button
+    face color with plain text, their icons unblended and no focus
+    rectangle (a list box keeps its highlight, as Windows' list box did);
   - message boxes and input dialogs no wider than 415 px, the largest
     secondary window the Windows Interface Guidelines allow, a message box's
     buttons centered, as Windows centers them (a dialog's OK and Cancel

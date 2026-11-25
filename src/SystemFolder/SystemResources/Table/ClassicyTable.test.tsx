@@ -12,6 +12,7 @@ import {
 	type ClassicyTableColumn,
 	type ClassicyTableSelectionApi,
 } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 vi.mock("@/SystemFolder/SystemResources/Table/ClassicyTable.scss", () => ({}));
 
@@ -1160,5 +1161,56 @@ describe("ClassicyTable's detached titles' style", () => {
 			detached.style.getPropertyValue("--classicy-table-sorted-width"),
 		).not.toBe("");
 		expect(detached.style.height).toBe("");
+	});
+});
+
+// WIG Ch.6 "Activating and Deactivating Windows" (p.81); Ch.13 "Highlighting"
+// (p.318): the list says whether its window is the active one (the audit's
+// 6.4 / 13.8), as ClassicyScrollArea does, so a package can draw an inactive
+// window's selection apart (Windows 98's ButtonFace).
+describe("ClassicyTable — inactive", () => {
+	const container = () =>
+		document.querySelector(".classicyTableContainer") as HTMLElement;
+	const table = (scrollable: boolean) => (
+		<ClassicyTable
+			columns={columns}
+			rows={albums}
+			getRowId={(a) => a.id}
+			scrollable={scrollable}
+			className="host"
+		/>
+	);
+
+	for (const scrollable of [false, true])
+		it(`carries inactive in a window that is not the active one (scrollable ${scrollable}), once`, () => {
+			render(
+				<ClassicyWindowActiveContext.Provider value={false}>
+					{table(scrollable)}
+				</ClassicyWindowActiveContext.Provider>,
+			);
+			expect(container()).toHaveClass("inactive");
+			expect(
+				container()
+					.className.split(" ")
+					.filter((c) => c === "inactive"),
+			).toHaveLength(1);
+		});
+
+	for (const scrollable of [false, true])
+		it(`does not in the active window, or outside any window (scrollable ${scrollable})`, () => {
+			const { unmount } = render(
+				<ClassicyWindowActiveContext.Provider value={true}>
+					{table(scrollable)}
+				</ClassicyWindowActiveContext.Provider>,
+			);
+			expect(container()).not.toHaveClass("inactive");
+			unmount();
+			render(table(scrollable));
+			expect(container()).not.toHaveClass("inactive");
+		});
+
+	it("leaves the unscrolled container's classes as they were when active", () => {
+		render(table(false));
+		expect(container().className).toBe("classicyTableContainer host");
 	});
 });

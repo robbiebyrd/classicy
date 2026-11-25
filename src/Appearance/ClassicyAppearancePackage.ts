@@ -268,6 +268,46 @@ export type ClassicyAppearanceLayout = {
 		 */
 		listColumnTitles?: "inList" | "aboveList";
 	};
+	/**
+	 * How the keyboard drives a tree (`ClassicyTree`). Optional, as is each
+	 * key.
+	 */
+	tree?: {
+		/**
+		 * `"mac"` (the default, Mac OS 8's list views): Up, Down, Home, End
+		 * and typing move between the rows, and ⌘→ / ⌘← (Control under
+		 * Windows' keyboards) open and close the focused branch; a bare Right
+		 * or Left Arrow does nothing. `"windows"` (WIG Ch.7 "Tree View
+		 * Controls", pp.123-124; comctl32's tree view): a bare Right Arrow
+		 * expands a closed branch, or moves to the first child of an open
+		 * one; a bare Left Arrow collapses an open branch, or moves to the
+		 * parent of a closed branch or a leaf. The modifier chords keep
+		 * working under either.
+		 */
+		keys?: "mac" | "windows";
+	};
+	/**
+	 * Where help that `useClassicyBalloonHelp` (`ClassicyBalloonHelp`, the
+	 * desktop icons' balloons) shows goes. Optional, as is each key.
+	 */
+	balloonHelp?: {
+		/**
+		 * `"anchor"` (the default, Mac OS 8's Balloon Help): the balloon is
+		 * placed against the element it describes, on the side its
+		 * `position` prefers (flipped where there is no room), its tail
+		 * pointing at it, after the delay from the pointer's arrival.
+		 * `"pointer"` (Windows' ToolTip; WIG Ch.7 "Tooltip Controls",
+		 * p.133; Ch.12 "Tooltips"): the box appears once the pointer has
+		 * rested on the element for the delay, its top-left corner at the
+		 * pointer's position, below it by what the package's stylesheet
+		 * offsets the part `classicyBalloonHelpPointerBelow` (the cursor's
+		 * height), moved left to stay on the desktop, and above the element
+		 * (`classicyBalloonHelpPointerAbove`) where it would pass the
+		 * desktop's bottom; no tail is drawn. A press on the element hides
+		 * it until the pointer leaves.
+		 */
+		placement?: "anchor" | "pointer";
+	};
 };
 
 /**

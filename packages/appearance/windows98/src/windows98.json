@@ -154,7 +154,8 @@
 			},
 			"tooltip": {
 				"paddingX": 4,
-				"paddingY": 2
+				"paddingY": 2,
+				"pointerOffset": 20
 			},
 			"menuItem": {
 				"paddingX": 6
@@ -352,7 +353,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -549,7 +551,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -748,7 +751,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -947,7 +951,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1146,7 +1151,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1345,7 +1351,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1546,7 +1553,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1743,7 +1751,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1940,7 +1949,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2141,7 +2151,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2340,7 +2351,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2539,7 +2551,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2740,7 +2753,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2939,7 +2953,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3138,7 +3153,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3337,7 +3353,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3534,7 +3551,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3735,7 +3753,8 @@
 				},
 				"tooltip": {
 					"paddingX": 4,
-					"paddingY": 2
+					"paddingY": 2,
+					"pointerOffset": 20
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3806,6 +3825,12 @@
 			"frame": "movable",
 			"navigation": "flat",
 			"saveName": "selected"
+		},
+		"tree": {
+			"keys": "windows"
+		},
+		"balloonHelp": {
+			"placement": "pointer"
 		}
 	},
 	"knobs": {

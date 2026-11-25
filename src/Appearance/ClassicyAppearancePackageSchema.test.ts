@@ -213,6 +213,43 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// The tree's keys and the help's placement (the WIG audit's 7.21 and
+	// 7.27): optional groups with optional keys, each kept as given.
+	it("takes optional tree.keys and balloonHelp.placement, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.tree = { keys: "windows" };
+		layout.balloonHelp = { placement: "pointer" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.tree).toEqual({ keys: "windows" });
+		expect(result.data?.layout.balloonHelp).toEqual({ placement: "pointer" });
+		for (const [group, value] of [
+			["tree", {}],
+			["tree", { keys: "mac" }],
+			["balloonHelp", {}],
+			["balloonHelp", { placement: "anchor" }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[group] = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [group, key, value] of [
+			["tree", "keys", "emacs"],
+			["balloonHelp", "placement", "cursor"],
+		]) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
 	it("rejects defaults that belong to another package", () => {
 		const result = ClassicyAppearancePackageSchema.safeParse({
 			...platinumShaped(),

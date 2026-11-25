@@ -9,6 +9,7 @@ import {
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/ListBox/ClassicyListBox.scss",
@@ -267,5 +268,133 @@ describe("ClassicyListBox scroll bar while its rows fit", () => {
 		expect(drawn).toHaveLength(1);
 		expect(drawn[0].classList.contains("classicyScrollBarVertical")).toBe(true);
 		expect(drawn[0].classList.contains("fits")).toBe(true);
+	});
+});
+
+// WIG Ch.7 "Extended and Multiple Selection List Boxes" (pp.122-123, Figure
+// 7.15): "Precede each item in a multiple selection list box with a check
+// box ... It also serves to differentiate keyboard navigation from the state
+// of a choice" (the audit's 7.25). Opt-in: a list without `checkboxes` is
+// unchanged (the tests above).
+describe("ClassicyListBox — a check list (checkboxes)", () => {
+	const checks = () =>
+		document.querySelectorAll('[data-classicy-part="list-check"]');
+	const option = (name: string) => screen.getByRole("option", { name });
+
+	it("puts an aria-hidden check part before each row's icon and label, and marks the list", () => {
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={[
+					{ value: "a", label: "Alpha", icon: "a.png" },
+					...options.slice(1),
+				]}
+				selectionMode="multi"
+				checkboxes
+			/>,
+		);
+		expect(checks()).toHaveLength(4);
+		const first = option("Alpha");
+		expect(first.firstElementChild).toHaveAttribute(
+			"data-classicy-part",
+			"list-check",
+		);
+		expect(first.firstElementChild).toHaveAttribute("aria-hidden", "true");
+		expect(first.firstElementChild?.nextElementSibling).toHaveClass(
+			"classicyListBoxOptionIcon",
+		);
+		expect(screen.getByRole("listbox")).toHaveClass(
+			"classicyListBoxCheckboxes",
+		);
+	});
+
+	it("draws no check part, and keeps its classes, without checkboxes or in single mode", () => {
+		const { unmount } = render(
+			<ClassicyListBox id="lb" options={options} selectionMode="multi" />,
+		);
+		expect(checks()).toHaveLength(0);
+		expect(screen.getByRole("listbox")).not.toHaveClass(
+			"classicyListBoxCheckboxes",
+		);
+		unmount();
+		render(<ClassicyListBox id="lb" options={options} checkboxes />);
+		expect(checks()).toHaveLength(0);
+		expect(screen.getByRole("listbox")).not.toHaveClass(
+			"classicyListBoxCheckboxes",
+		);
+	});
+
+	it("toggles a row on a plain click, never replacing or ranging", () => {
+		const onChange = vi.fn();
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				selectionMode="multi"
+				checkboxes
+				onChangeFunc={onChange}
+			/>,
+		);
+		fireEvent.click(option("Beta"));
+		expect(onChange).toHaveBeenLastCalledWith(["b"]);
+		fireEvent.click(option("Delta"));
+		expect(onChange).toHaveBeenLastCalledWith(["b", "d"]);
+		fireEvent.click(option("Alpha"), { shiftKey: true });
+		expect(onChange).toHaveBeenLastCalledWith(["b", "d", "a"]);
+		fireEvent.click(option("Beta"));
+		expect(onChange).toHaveBeenLastCalledWith(["d", "a"]);
+		expect(option("Beta")).toHaveAttribute("aria-selected", "false");
+		expect(option("Delta")).toHaveAttribute("aria-selected", "true");
+	});
+
+	it("moves the keyboard row without choosing, and Space toggles it", async () => {
+		const user = userEvent.setup();
+		const onChange = vi.fn();
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				selectionMode="multi"
+				checkboxes
+				onChangeFunc={onChange}
+			/>,
+		);
+		fireEvent.click(option("Alpha"));
+		expect(onChange).toHaveBeenCalledTimes(1);
+		await user.keyboard("{ArrowDown}{ArrowDown}");
+		expect(option("Gamma")).toHaveFocus();
+		await user.keyboard("{Shift>}{ArrowUp}{/Shift}{End}g");
+		expect(onChange).toHaveBeenCalledTimes(1);
+		expect(option("Gamma")).toHaveFocus();
+		await user.keyboard(" ");
+		expect(onChange).toHaveBeenLastCalledWith(["a", "c"]);
+		await user.keyboard(" ");
+		expect(onChange).toHaveBeenLastCalledWith(["a"]);
+	});
+});
+
+// WIG Ch.6 "Activating and Deactivating Windows" (p.81): a list box's root
+// is its scroll area's, which says whether its window is the active one (the
+// audit's 6.4 / 13.8); Windows 98 keeps the LISTBOX's Hilight either way.
+describe("ClassicyListBox — inactive", () => {
+	it("carries inactive in a window that is not the active one, from its scroll area", () => {
+		render(
+			<ClassicyWindowActiveContext.Provider value={false}>
+				<ClassicyListBox id="lb" options={options} />
+			</ClassicyWindowActiveContext.Provider>,
+		);
+		expect(screen.getByRole("listbox")).toHaveClass("inactive");
+	});
+
+	it("does not in the active window, or outside any window", () => {
+		const { unmount } = render(
+			<ClassicyWindowActiveContext.Provider value={true}>
+				<ClassicyListBox id="lb" options={options} />
+			</ClassicyWindowActiveContext.Provider>,
+		);
+		expect(screen.getByRole("listbox")).not.toHaveClass("inactive");
+		unmount();
+		render(<ClassicyListBox id="lb" options={options} />);
+		expect(screen.getByRole("listbox")).not.toHaveClass("inactive");
 	});
 });

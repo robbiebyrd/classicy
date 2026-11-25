@@ -41,3 +41,10 @@
 .classicyListBoxOptionLabel {
   flex: 1 1 auto;
 }
+
+// A check list's check box (`checkboxes`): hidden here, so a package that
+// draws one shows it (Windows 98's flat check box); without it the row's
+// selection is the only mark, as in any multiple-selection list.
+.classicyListBoxOption > [data-classicy-part="list-check"] {
+  display: none;
+}

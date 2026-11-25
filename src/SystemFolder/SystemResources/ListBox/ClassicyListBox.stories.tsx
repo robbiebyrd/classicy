@@ -50,6 +50,24 @@ export const MultiSelect: Story = {
 };
 
 /**
+ * `checkboxes` on a multi list: a check box before each row, a click or Space
+ * toggling that row alone and the arrows moving without choosing (WIG Ch.7
+ * "Extended and Multiple Selection List Boxes", pp.122-123, Figure 7.15).
+ * The base sheet hides the box, so under Platinum and System 7 the chosen
+ * rows highlight as in any multi list; Windows 98 draws the flat check box
+ * and leaves the chosen rows plain.
+ */
+export const Checkboxes: Story = {
+	args: {
+		id: "listbox-checkboxes",
+		label: "Components",
+		selectionMode: "multi",
+		checkboxes: true,
+		options: fonts,
+	},
+};
+
+/**
  * `visibleRows` caps the height at four rows so the list scrolls; a disabled
  * option is dimmed and cannot be selected.
  */

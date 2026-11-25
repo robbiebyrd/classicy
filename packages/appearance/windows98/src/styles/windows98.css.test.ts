@@ -325,4 +325,178 @@ describe("windows98.scss (compiled)", () => {
 			".classicyDesktop[data-classicy-appearance=windows98] .classicyMenuItem [data-classicy-part=access-key]",
 		]);
 	});
+
+	// The rules keyed on the hooks of the WIG audit's controls pass: a check
+	// list's check boxes (7.25), an inactive window's selections (6.4 /
+	// 13.8), a meter's zone patterns (14.5) and a ToolTip at the pointer
+	// (7.27).
+	describe("the controls' hooks", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const rule = (selector: string) => {
+			// The declarations of every rule whose selector list holds
+			// `selector`, in source order.
+			const full = `${scope} ${selector}`;
+			let declarations = "";
+			let at = css.indexOf(full);
+			while (at >= 0) {
+				const open = css.indexOf("{", at);
+				const header = css.slice(
+					Math.max(css.lastIndexOf("}", at), css.lastIndexOf("{", at)) + 1,
+					open,
+				);
+				if (splitSelectors(header.trim()).includes(full))
+					declarations += css.slice(open + 1, css.indexOf("}", open));
+				at = css.indexOf(full, open);
+			}
+			return declarations;
+		};
+
+		// WIG Ch.7 "Extended and Multiple Selection List Boxes" (pp.122-123,
+		// Figure 7.15); Ch.13 "Flat Appearance" (p.309): the flat 13-px box,
+		// a ButtonShadow ring outside a ButtonFace one on Window white, the
+		// 7 x 7 check while the row is chosen; the chosen row itself plain.
+		it("draws a check list's flat check boxes and leaves its chosen rows plain", () => {
+			const box = rule(
+				".classicyListBoxOption > [data-classicy-part=list-check]",
+			);
+			expect(box).toContain("display: block");
+			expect(box).toContain("width: var(--checkbox-size)");
+			expect(box).toContain("height: var(--checkbox-size)");
+			expect(box).toContain("background: var(--color-window-document)");
+			expect(box).toContain(
+				"inset 0 0 0 var(--window-border-size) var(--color-system-05)",
+			);
+			expect(box).toContain(
+				"inset 0 0 0 calc(var(--window-border-size) + var(--window-border-size)) var(--color-system-03)",
+			);
+			const checked = rule(
+				":where(.classicyListBoxOption).selected > [data-classicy-part=list-check]",
+			);
+			// The check's top pixel, three in from the right of its 7 columns,
+			// and its bottom one, over Window white.
+			expect(checked).toContain(
+				"linear-gradient(var(--color-black), var(--color-black)) calc(var(--pixel-unit) * 9) calc(var(--pixel-unit) * 3)/var(--pixel-unit) var(--pixel-unit) no-repeat",
+			);
+			expect(checked).toContain(
+				"calc(var(--pixel-unit) * 5) calc(var(--pixel-unit) * 9)/var(--pixel-unit) var(--pixel-unit) no-repeat",
+			);
+			expect(checked.trim().endsWith("var(--color-window-document);")).toBe(
+				true,
+			);
+			const dimmed = rule(
+				":where(.classicyListBoxOption).disabled.selected > [data-classicy-part=list-check]",
+			);
+			expect(dimmed).toContain("linear-gradient(var(--color-system-05)");
+			expect(dimmed.trim().endsWith("var(--color-system-03);")).toBe(true);
+			expect(
+				rule(
+					":where(.classicyListBox).disabled .classicyListBoxOption > [data-classicy-part=list-check]",
+				),
+			).toContain("background: var(--color-system-03)");
+			const row = rule(
+				".classicyListBoxCheckboxes :where(.classicyListBoxOption).selected",
+			);
+			expect(row).toContain("color: var(--color-black)");
+			expect(row).toContain("background-color: transparent");
+			expect(
+				rule(
+					".classicyListBoxCheckboxes :where(.classicyListBoxOption).selected:focus",
+				),
+			).toContain("outline-color: var(--color-black)");
+			// A plain list box keeps its Hilight in an inactive window (user32's
+			// LISTBOX): no rule reads `inactive` on the list.
+			expect(
+				selectorsOf(css).some((selector) =>
+					/\.classicyListBox(?:[.:][\w-]+)*\.inactive/.test(selector),
+				),
+			).toBe(false);
+		});
+
+		// WIG Ch.6 "Activating and Deactivating Windows" (p.81); Ch.13
+		// "Highlighting" (p.318); comctl32's LVS_SHOWSELALWAYS and
+		// TVS_SHOWSELALWAYS: ButtonFace under WindowText, the icon unblended,
+		// no focus rectangle.
+		it("draws an inactive window's list view, tree and icon selections in ButtonFace", () => {
+			const list =
+				".classicyTableContainer:not(.classicyFileBrowserViewTableContainer)";
+			for (const [selector, property] of [
+				[`${list}.inactive :where(.classicyTableRow).selected`, "background"],
+				[
+					".classicyFileBrowserViewTableContainer.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel",
+					"background",
+				],
+				[
+					".classicyTree.inactive :where(.classicyTreeNodeLabelHolder:not(.classicyFileOpenDialogWell *)).selected .classicyTreeNodeLabel",
+					"background-color",
+				],
+			]) {
+				const declarations = rule(selector);
+				expect(declarations, selector).toContain("color: var(--color-black)");
+				expect(declarations, selector).toContain(
+					`${property}: var(--color-system-03)`,
+				);
+			}
+			for (const selector of [
+				`${list}.inactive:focus :where(.classicyTableRow).focused`,
+				".classicyFileBrowserViewTableContainer.inactive:focus :where(.classicyFileBrowserViewTableRow).focused .classicyFileBrowserViewTableRowIconLabel",
+				".classicyTree.inactive .classicyTreeNodeLabelHolder:not(.classicyFileOpenDialogWell *):focus .classicyTreeNodeLabel",
+			])
+				expect(rule(selector), selector).toContain("outline: none");
+			expect(
+				rule(
+					".classicyFileBrowserViewTableContainer.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableDisclosure::after",
+				),
+			).toContain("content: none");
+			const icon =
+				".classicyIcon.inactive.selected:not(.classicyFileDropTarget)";
+			expect(
+				rule(
+					`${icon} .classicyIconMaskOuter:not(.classicyIconSelectedImage)::after`,
+				),
+			).toContain("background: none");
+			const label = rule(`${icon} p`);
+			expect(label).toContain("color: var(--color-black)");
+			expect(label).toContain("background: var(--color-system-03)");
+			expect(label).toContain("outline: none");
+		});
+
+		// WIG Ch.14 "Visual Disabilities" (p.329); Ch.13 "Color as a
+		// Secondary Form of Information" (p.298): a pattern over the zone's
+		// color, the continuous fill masked to its blocks.
+		it("patterns a meter's warning zones so they read without their color", () => {
+			const stipple =
+				"repeating-conic-gradient(var(--color-black) 0 25%, transparent 0 100%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)";
+			const checker =
+				"repeating-conic-gradient(var(--color-black) 0 25%, transparent 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)";
+			for (const part of [".classicyMeterFill", ".classicyMeterSegmentOn"]) {
+				expect(rule(`.classicyMeterSuboptimal ${part}`), part).toContain(
+					`background: ${stipple}, var(--classicy-meter-fill)`,
+				);
+				expect(rule(`.classicyMeterBad ${part}`), part).toContain(
+					`background: ${checker}, var(--classicy-meter-fill)`,
+				);
+			}
+			for (const zone of [".classicyMeterSuboptimal", ".classicyMeterBad"])
+				expect(rule(`${zone} .classicyMeterFill`), zone).toContain(
+					"mask-image: repeating-linear-gradient(to right, var(--color-black) 0 var(--progress-bar-block-width)",
+				);
+			// The optimal zone stays solid: no pattern keyed on it.
+			expect(
+				selectorsOf(css).some((selector) =>
+					selector.includes(".classicyMeterOptimal ."),
+				),
+			).toBe(false);
+		});
+
+		// WIG Ch.7 "Tooltip Controls" (p.133); Wine's TOOLTIPS_Show: 20 below
+		// the cursor's hot spot, or 2 above the control.
+		it("puts a ToolTip at the pointer under the cursor, or clear of its control above it", () => {
+			expect(rule(".classicyBalloonHelpPointerBelow")).toContain(
+				"margin-top: var(--tooltip-pointer-offset)",
+			);
+			expect(rule(".classicyBalloonHelpPointerAbove")).toContain(
+				"margin-bottom: calc(var(--pixel-unit) * 2)",
+			);
+		});
+	});
 });

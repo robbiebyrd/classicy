@@ -13,6 +13,16 @@
 //   and its placements (top or bottom, left, center or right) are hidden.
 // - A title, where the help has one, is the same text in bold, as a
 //   ToolTip's title is (TTM_SETTITLE), with the balloon's gap below it.
+// - Where: at the pointer (the package's `balloonHelp.placement`
+//   "pointer"; WIG Ch.7 "Tooltip Controls", p.133: "usually displayed at
+//   the lower right of the pointer, but is automatically adjusted if this
+//   location is offscreen"). The core puts the box's top left at the
+//   pointer's hot spot; below it (`classicyBalloonHelpPointerBelow`) the box
+//   stands `--tooltip-pointer-offset` (20) lower, under the arrow cursor, as
+//   TOOLTIPS_Show places it (Wine's tooltips.c: the cursor position plus
+//   20); moved above its control (`classicyBalloonHelpPointerAbove`) where it
+//   would pass the desktop's bottom, it stands two pixels clear of it
+//   (`rc.top - 2`).
 //
 //   Windows color     token
 //   InfoWindow        --package-color-tooltip-face (--color-window-document)
@@ -22,6 +32,7 @@
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
 // every color a token.
 @use "../bevels" as b;
+@use "../pixel" as *;
 
 @mixin balloon-help {
   .classicyBalloonHelp {
@@ -41,5 +52,14 @@
   // A ToolTip has no tail, whichever way the balloon would point.
   .classicyBalloonHelpTail {
     display: none;
+  }
+
+  // At the pointer: under the cursor, or clear of the control above it.
+  .classicyBalloonHelpPointerBelow {
+    margin-top: var(--tooltip-pointer-offset);
+  }
+
+  .classicyBalloonHelpPointerAbove {
+    margin-bottom: px(2);
   }
 }

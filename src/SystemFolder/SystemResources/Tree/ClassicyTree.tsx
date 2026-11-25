@@ -8,12 +8,14 @@ import {
 	type MouseEvent as ReactMouseEvent,
 	type ReactNode,
 	useCallback,
+	useContext,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
@@ -22,6 +24,7 @@ import {
 	ClassicyTriangle,
 	type ClassicyTriangleDirection,
 } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 /**
  * Configuration for the small ClassicyButton rendered to the right of a leaf
@@ -119,6 +122,8 @@ type FlatTreeRow = {
 	depth: number;
 	hasChildren: boolean;
 	open: boolean;
+	/** The branch the row hangs under; absent at the root. */
+	parentId?: string;
 };
 
 const nodeHasChildren = (node: ClassicyTreeNode): boolean =>
@@ -146,13 +151,14 @@ function flattenVisible(
 	openSet: Set<string>,
 	depth = 0,
 	acc: FlatTreeRow[] = [],
+	parentId?: string,
 ): FlatTreeRow[] {
 	for (const node of nodes) {
 		const hasChildren = nodeHasChildren(node);
 		const open = hasChildren && openSet.has(node.id);
-		acc.push({ id: node.id, node, depth, hasChildren, open });
+		acc.push({ id: node.id, node, depth, hasChildren, open, parentId });
 		if (open && node.children) {
-			flattenVisible(node.children, openSet, depth + 1, acc);
+			flattenVisible(node.children, openSet, depth + 1, acc, node.id);
 		}
 	}
 	return acc;
@@ -378,7 +384,13 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
  * `branchSelectable`, in which case a click selects and a double-click
  * toggles. Keyboard: Up/Down, Home/End and type-select move focus through
  * the visible rows (without selecting), ⌘→ / ⌘← open and close the focused
- * branch, and Enter/Space toggles a branch or selects a leaf.
+ * branch, and Enter/Space toggles a branch or selects a leaf. Under a
+ * package whose layout declares `tree.keys: "windows"` (Windows 98; WIG
+ * Ch.7 "Tree View Controls", pp.123-124) a bare Right Arrow also expands a
+ * closed branch or moves to an open one's first child, and a bare Left
+ * Arrow collapses an open branch or moves to the row's parent. Drawn in a
+ * window that is not the active one, the root carries the `inactive` state
+ * (`ClassicyWindowActiveContext`), as `ClassicyScrollArea` does.
  *
  * ```tsx
  * <ClassicyTree
@@ -416,12 +428,27 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 		() => visible.map((r) => ({ id: r.id, label: r.node.label })),
 		[visible],
 	);
-	const { activeId, setActiveId, tabStopId, registerRef, handleNavKey } =
-		useListNavigation(navRows);
+	const {
+		activeId,
+		setActiveId,
+		tabStopId,
+		registerRef,
+		selectRow,
+		handleNavKey,
+	} = useListNavigation(navRows);
+
+	// Windows' tree view takes the bare arrows along a branch (`tree.keys`);
+	// Mac OS 8's list views took ⌘→ / ⌘← alone.
+	const windowsKeys = useClassicyAppearanceLayout().tree?.keys === "windows";
 
 	const rootRef = useRef<HTMLUListElement>(null);
-	// The list had no state class; row states stay on the rows.
-	const appearance = useClassicyAppearance("Tree", {}, rootRef);
+	// The root's one state: `inactive` while the window it is drawn in is not
+	// the active one (as ClassicyScrollArea reads it; outside a window,
+	// never), so a package can draw the selection as an inactive window's
+	// (Windows 98: ButtonFace, as TVS_SHOWSELALWAYS draws it). Row states
+	// stay on the rows.
+	const inactive = useContext(ClassicyWindowActiveContext) === false;
+	const appearance = useClassicyAppearance("Tree", { inactive }, rootRef);
 	const emitAppearance = appearance.emit;
 
 	// Every expansion path (click, double-click, ⌘→/⌘←, Enter/Space) runs here.
@@ -489,6 +516,10 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 				: -1;
 			const current = curIndex >= 0 ? visible[curIndex] : undefined;
 
+			// A bare arrow (Shift allowed, as comctl32 ignores it; Alt is the
+			// browser's history chord) under Windows' tree keys.
+			const bareArrow = windowsKeys && !e.metaKey && !e.ctrlKey && !e.altKey;
+
 			switch (e.key) {
 				case "ArrowRight": {
 					// Command-Right: open the focused branch (HIG list-view equivalent).
@@ -500,6 +531,20 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 					) {
 						e.preventDefault();
 						setOpen(current.id, true);
+						return;
+					}
+					// Windows: expand a closed branch, else move to its first
+					// child (the row after it, the flattening being pre-order);
+					// a leaf stays where it is (TREEVIEW_KeyDown's VK_RIGHT).
+					if (bareArrow && current) {
+						e.preventDefault();
+						if (!current.hasChildren) return;
+						if (!current.open) {
+							if (!current.node.disabled) setOpen(current.id, true);
+							return;
+						}
+						const child = visible[curIndex + 1];
+						if (child && child.parentId === current.id) selectRow(child.id);
 					}
 					return;
 				}
@@ -513,6 +558,18 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 					) {
 						e.preventDefault();
 						setOpen(current.id, false);
+						return;
+					}
+					// Windows: collapse an open branch, else move to the parent
+					// (VK_LEFT); at the root a closed row stays. A dimmed branch,
+					// which refuses to toggle, moves to its parent instead.
+					if (bareArrow && current) {
+						e.preventDefault();
+						if (current.hasChildren && current.open && !current.node.disabled) {
+							setOpen(current.id, false);
+							return;
+						}
+						if (current.parentId !== undefined) selectRow(current.parentId);
 					}
 					return;
 				}
@@ -551,6 +608,8 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 			visible,
 			activeId,
 			handleNavKey,
+			windowsKeys,
+			selectRow,
 			setOpen,
 			toggle,
 			selectionMode,

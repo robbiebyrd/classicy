@@ -112,6 +112,8 @@
 			"Anchor",
 			"Container",
 			"Content",
+			"PointerAbove",
+			"PointerBelow",
 			"Tail",
 			"TailBottom",
 			"TailCenter",
@@ -360,7 +362,13 @@
 			"Prompt"
 		],
 		"Link": [],
-		"ListBox": ["Option", "OptionIcon", "OptionLabel", "Viewport"],
+		"ListBox": [
+			"Checkboxes",
+			"Option",
+			"OptionIcon",
+			"OptionLabel",
+			"Viewport"
+		],
 		"LittleArrows": ["Button", "ButtonDown", "Group"],
 		"Menu": ["ListScrolls", "ScrollShadow"],
 		"MenuItem": [
@@ -637,7 +645,8 @@
 			"scroll-corner",
 			"scroll-drag-outline",
 			"menu-scroll-up",
-			"menu-scroll-down"
+			"menu-scroll-down",
+			"list-check"
 		]
 	}
 }

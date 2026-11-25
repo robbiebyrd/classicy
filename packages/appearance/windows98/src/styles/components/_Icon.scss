@@ -22,7 +22,14 @@
 //   (Windows marks no opened icon), a folder under a drag is drawn selected,
 //   as the shell highlighted a drop target, and a hidden file stays ghosted
 //   as the base draws it, its window open or not (Explorer's "Show all
-//   files" draws hidden files faint).
+//   files" draws hidden files faint). In a window that is not the active
+//   one (the core's `inactive` on the icon), a selected item is drawn as a
+//   list view with LVS_SHOWSELALWAYS draws it while another window has the
+//   focus (Wine's listview.c: the image ILD_NORMAL, the label ButtonFace
+//   under ButtonText; WIG Ch.13 "Highlighting", p.318): the image as it is,
+//   the label ButtonFace under WindowText with no focus rectangle; a drop
+//   target keeps the highlight, as the shell's drop highlight ignores the
+//   focus.
 // - The image well: the client edge (`b.sunken`, WS_EX_CLIENTEDGE) around
 //   Window white, in place of the base's black line and its recess; set
 //   (`selected`), the well's option-set border, two solid rings just inside
@@ -45,7 +52,9 @@
 //   Hilight             --color-highlight         the selected label and the
 //                                                 blend
 //   HilightText         --package-color-selection-text (--color-white)
-//   ButtonFace          --color-system-03         the disabled well
+//   ButtonFace          --color-system-03         the disabled well, an
+//                                                 inactive window's selected
+//                                                 label
 //
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`) or
 // a count of grid pixels (`px()`, `--pixel-unit`); every color a token or a
@@ -128,6 +137,20 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
 
     p {
       @include label-selected;
+    }
+  }
+
+  // Selected in an inactive window (not a drop target): the image unblended,
+  // the label ButtonFace under WindowText, no focus rectangle.
+  .classicyIcon.inactive.selected:not(.classicyFileDropTarget) {
+    .classicyIconMaskOuter:not(.classicyIconSelectedImage)::after {
+      background: none;
+    }
+
+    p {
+      color: b.$text;
+      background: b.$face;
+      outline: none;
     }
   }
 

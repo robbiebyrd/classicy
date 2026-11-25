@@ -6,6 +6,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	type RefObject,
+	useContext,
 	useId,
 	useRef,
 	useState,
@@ -31,6 +32,7 @@ import {
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 interface ClassicyIconProps {
 	/** Owning app id; prefixes the element's DOM id (`<appId>.shortcut-…`). */
@@ -138,7 +140,9 @@ export const snapToGrid = (
  * toggles the selected (highlighted) look; double-click or Enter/Space calls
  * `onClickFunc`. Position and selection are local state — nothing is written
  * to the store. Size follows the theme's `--desktop-icon-size` unless `size`
- * is set.
+ * is set. Drawn in a window that is not the active one, the root carries the
+ * `inactive` state (`ClassicyWindowActiveContext`), for a package that draws
+ * a selection in an inactive window apart.
  *
  * ```tsx
  * <div ref={holderRef} style={{ position: "relative", height: 200 }}>
@@ -176,9 +180,13 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const movedWhileDragging = useRef<boolean>(false);
 
 	const iconRef = useRef<HTMLDivElement>(null);
+	// `inactive` while the window the icon is drawn in is not the active one
+	// (outside a window, never), as ClassicyScrollArea reads it: Windows 98
+	// draws an inactive list view's selected item apart (LVS_SHOWSELALWAYS).
+	const inactive = useContext(ClassicyWindowActiveContext) === false;
 	const appearance = useClassicyAppearance(
 		"Icon",
-		{ dragging, selected: active },
+		{ dragging, selected: active, inactive },
 		iconRef,
 	);
 	// One dragEnd per dragStart: mouseup also ends presses that never dragged.

@@ -16,6 +16,7 @@ import {
 	type ReactNode,
 	type RefObject,
 	useCallback,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
@@ -34,6 +35,7 @@ import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyScrollAreaHead } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollAreaHead.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
@@ -201,7 +203,10 @@ type SelectionModifiers = {
  * tree rows: each cell `render` receives `{ depth, canExpand, isExpanded,
  * toggle }` so a column draws its own disclosure triangle and indent (this is
  * how the Finder list view is built), and ⌘→ / ⌘← expand and collapse the
- * keyboard row.
+ * keyboard row. Drawn in a window that is not the active one, the container
+ * carries the `inactive` state (`ClassicyWindowActiveContext`): a scrolling
+ * table's container is its scroll area's root, which carries it already;
+ * with `scrollable={false}` (the Finder's list) the table adds it itself.
  *
  * ```tsx
  * <ClassicyTable
@@ -281,6 +286,12 @@ export function ClassicyTable<T>({
 	);
 	// The container had no state class; `selected` stays on rows and headers.
 	const appearance = useClassicyAppearance("Table", {}, containerRef);
+	// `inactive` while the window it is drawn in is not the active one (as
+	// ClassicyScrollArea reads it; outside a window, never), so a package can
+	// draw the selection as an inactive window's (Windows 98: ButtonFace, as
+	// LVS_SHOWSELALWAYS draws it). A scrolling table's container is the scroll
+	// area's root, which emits it; the unscrolled container emits it here.
+	const inactive = useContext(ClassicyWindowActiveContext) === false;
 	const tableRef = useRef<HTMLTableElement>(null);
 	// Titles above the list: in a scrolling ancestor's head (lent while
 	// asked for), or this table's own scroll area's (given as its `head`).
@@ -859,6 +870,7 @@ export function ClassicyTable<T>({
 				onKeyDown={handleKeyDown}
 				className={classNames(
 					"classicyTableContainer",
+					classicyStateClasses({ inactive }),
 					appearance.className,
 					className,
 				)}

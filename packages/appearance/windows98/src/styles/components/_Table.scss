@@ -29,13 +29,22 @@
 // icon blended toward the highlight (a filter stands in for Explorer's 50%
 // Hilight dither; a package's own selected image,
 // `classicyIconSelectedImage`, stands as it is), the rest of the row white.
+// In a window that is not the active one (the core's `inactive` on the
+// list) the selection is drawn as a list view with LVS_SHOWSELALWAYS draws
+// it while another window has the focus (Wine's listview.c,
+// prepaint_setup and LISTVIEW_DrawItemPart: ButtonFace under ButtonText,
+// the image drawn ILD_NORMAL; WIG Ch.6 "Activating and Deactivating
+// Windows", p.81; Ch.13 "Highlighting", p.318): a selected row, or the
+// Finder's selected name, ButtonFace under WindowText, the name's icon
+// unblended, and no focus rectangle.
 //
 // Overrides ClassicyTable.scss and ClassicyFileBrowserViewTable.scss.
 //
 //   Windows color     token
 //   Window            --color-window-document   the list, the rows
 //   WindowText        --color-black             the text
-//   ButtonFace        --color-system-03         the header buttons
+//   ButtonFace        --color-system-03         the header buttons, an
+//                                               inactive window's selection
 //   ButtonHilight     --color-system-01         the frame's outer
 //                                               bottom-right ring, a
 //                                               button's outer top-left
@@ -225,5 +234,30 @@ $finder: ".classicyFileBrowserViewTableContainer";
     mask-image: var(--classicy-icon-mask);
     mask-size: 100% 100%;
     mask-repeat: no-repeat;
+  }
+
+  // ----- An inactive window's lists ----------------------------------------
+  // The selection ButtonFace under WindowText (LVS_SHOWSELALWAYS), the icon
+  // as it is, and no focus rectangle: the focus is another window's.
+  #{$list}.inactive :where(.classicyTableRow).selected {
+    color: b.$text;
+    background: b.$face;
+  }
+
+  #{$list}.inactive:focus :where(.classicyTableRow).focused {
+    outline: none;
+  }
+
+  #{$finder}.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
+    color: b.$text;
+    background: b.$face;
+  }
+
+  #{$finder}.inactive:focus :where(.classicyFileBrowserViewTableRow).focused .classicyFileBrowserViewTableRowIconLabel {
+    outline: none;
+  }
+
+  #{$finder}.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableDisclosure::after {
+    content: none;
   }
 }

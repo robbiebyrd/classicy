@@ -45,6 +45,21 @@ type ClassicyListBoxProps = {
 	options: ClassicyListBoxOption[];
 	/** Single or multiple selection. Defaults to `"single"`. */
 	selectionMode?: ClassicyListBoxSelectionMode;
+	/**
+	 * With `selectionMode="multi"`, a check box before each row (`<span
+	 * data-classicy-part="list-check" aria-hidden>`, ahead of the icon; the
+	 * row's `aria-selected` carries its state), making the list a multiple
+	 * selection list box in the Windows Interface Guidelines' sense (Ch.7
+	 * "Extended and Multiple Selection List Boxes", pp.122-123, Figure 7.15):
+	 * a click, or Space on the keyboard row, toggles that row alone, with no
+	 * modifier and no range; the arrow keys, Home, End and typing move the
+	 * keyboard row without choosing, keeping navigation apart from the
+	 * choices. The list carries `classicyListBoxCheckboxes`. The base sheet
+	 * hides the part, so a package shows it (Windows 98 draws the flat check
+	 * box, checked while the row is selected). Ignored with `"single"`.
+	 * Defaults to `false`.
+	 */
+	checkboxes?: boolean;
 	/** Controlled selection. Omit for uncontrolled use with `onChangeFunc`. */
 	selected?: string[];
 	/** Called with the full new selection (array of values) after every change. */
@@ -88,13 +103,16 @@ type SelectionModifiers = {
  *
  * Enter or a double-click calls `onActivateFunc` (Space selects). Pass
  * `selected` to control the selection, or leave it out and read changes from
- * `onChangeFunc`. For a single choice from a short list in a dialog row, a
+ * `onChangeFunc`. `checkboxes` turns a multi list into a check list (a click
+ * toggles, the keys move without choosing). Drawn in a window that is not
+ * the active one, the root (a `ClassicyScrollArea`'s) carries `inactive`. For a single choice from a short list in a dialog row, a
  * `ClassicyPopUpMenu` is usually the better fit.
  */
 export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	id,
 	options,
 	selectionMode = "single",
+	checkboxes = false,
 	selected,
 	onChangeFunc,
 	onActivateFunc,
@@ -108,6 +126,9 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 }) => {
 	const [internal, setInternal] = useState<string[]>([]);
 	const effectiveSelected = selected ?? internal;
+	// A multiple selection list with a check box per row: each row toggles on
+	// its own, and the keyboard moves without choosing.
+	const checkList = checkboxes && selectionMode === "multi";
 
 	// The range anchor for Shift selection: the index of the last plain
 	// (non-Shift) selection gesture.
@@ -160,7 +181,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 				withClassicyAppearanceInput({ value: option.value, selected }),
 			);
 		if (selectionMode === "multi") {
-			if (mods.shiftKey && anchorIndex.current >= 0) {
+			if (!checkList && mods.shiftKey && anchorIndex.current >= 0) {
 				const from = Math.min(anchorIndex.current, index);
 				const to = Math.max(anchorIndex.current, index);
 				commit(
@@ -172,7 +193,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 				emitSelect(true);
 				return; // the anchor survives so the range can keep pivoting
 			}
-			if (mods.metaKey || mods.ctrlKey) {
+			if (checkList || mods.metaKey || mods.ctrlKey) {
 				anchorIndex.current = index;
 				const wasSelected = effectiveSelected.includes(option.value);
 				commit(
@@ -193,6 +214,8 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 		if (disabled) return;
 		const navId = handleNavKey(e);
 		if (navId !== null) {
+			// A check list's keys move the keyboard row alone (Space toggles).
+			if (checkList) return;
 			// Platinum lists move the selection with the keyboard; Shift-arrows
 			// extend the range in multi mode.
 			applySelection(
@@ -234,6 +257,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyListBox",
+				checkList ? "classicyListBoxCheckboxes" : "",
 				appearance.className,
 				label ? "" : className,
 			)}
@@ -280,6 +304,9 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 						}}
 						onFocus={() => setActiveId(o.value)}
 					>
+						{checkList && (
+							<span data-classicy-part="list-check" aria-hidden="true" />
+						)}
 						{o.icon && (
 							<ClassicyIconImage
 								className="classicyListBoxOptionIcon"

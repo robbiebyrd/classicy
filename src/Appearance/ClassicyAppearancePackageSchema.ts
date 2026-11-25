@@ -18,8 +18,8 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
 /**
  * The three arrangement groups, every one required, and the optional
  * behavior groups (`menu`, `scrollBar`, `patternOrigin`, `slider`,
- * `fileDialog`, `fileBrowser`), each key of which is optional too, as is
- * `menuBar.idleTimeoutMs`.
+ * `fileDialog`, `fileBrowser`, `tree`, `balloonHelp`), each key of which is
+ * optional too, as is `menuBar.idleTimeoutMs`.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
@@ -93,6 +93,10 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
 		})
+		.optional(),
+	tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),
+	balloonHelp: z
+		.object({ placement: z.enum(["anchor", "pointer"]).optional() })
 		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 

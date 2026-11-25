@@ -4,6 +4,7 @@ import {
 	ClassicyIcon,
 	snapToGrid,
 } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 afterEach(cleanup);
 
@@ -82,5 +83,43 @@ describe("ClassicyIcon consumer style", () => {
 			.closest(".classicyIcon") as HTMLElement;
 		expect(icon.style.zIndex).toBe("");
 		expect(icon.style.opacity).toBe("0.5");
+	});
+});
+
+// WIG Ch.13 "Highlighting" (p.318): the icon says whether its window is the
+// active one (the audit's 6.4 / 13.8), so a package can draw a selected item
+// of an inactive window apart (Windows 98's list view, LVS_SHOWSELALWAYS).
+describe("ClassicyIcon — inactive", () => {
+	const icon = (
+		<ClassicyIcon
+			appId={"Test.app"}
+			name={"thing.pdf"}
+			icon={"data:image/gif;base64,R0lGODlhAQABAAAAACw="}
+		/>
+	);
+	const iconRoot = () =>
+		screen.getByRole("img").closest(".classicyIcon") as HTMLElement;
+
+	it("carries inactive in a window that is not the active one, beside selected", () => {
+		render(
+			<ClassicyWindowActiveContext.Provider value={false}>
+				{icon}
+			</ClassicyWindowActiveContext.Provider>,
+		);
+		expect(iconRoot()).toHaveClass("inactive");
+		fireEvent.click(iconRoot());
+		expect(iconRoot()).toHaveClass("selected", "inactive");
+	});
+
+	it("does not in the active window, or outside any window", () => {
+		render(
+			<ClassicyWindowActiveContext.Provider value={true}>
+				{icon}
+			</ClassicyWindowActiveContext.Provider>,
+		);
+		expect(iconRoot()).not.toHaveClass("inactive");
+		cleanup();
+		render(icon);
+		expect(iconRoot()).not.toHaveClass("inactive");
 	});
 });

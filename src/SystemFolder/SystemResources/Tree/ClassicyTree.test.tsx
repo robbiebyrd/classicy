@@ -1,9 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+// The Windows-layout package below needs a sound pack registered: Platinum's.
+import "@classicy/appearance-platinum";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
+import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import {
 	ClassicyTree,
 	type ClassicyTreeNode,
 } from "@/SystemFolder/SystemResources/Tree/ClassicyTree";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -28,6 +35,31 @@ vi.mock(
 	"@/SystemFolder/SystemResources/Triangle/ClassicyTriangle.scss",
 	() => ({}),
 );
+
+// Platinum (registered above) is the default layout, which declares no tree
+// keys; `windows-trees` carries the Windows 98 package's layout
+// (`tree.keys` "windows"). The store is not mounted: stand in for its
+// connection of the active package id.
+const activePackage = { id: "platinum" };
+connectClassicyAssetPackageSource({
+	getId: () => activePackage.id,
+	subscribe: () => () => {},
+});
+registerClassicyAppearancePackage({
+	id: "windows-trees",
+	name: "Windows trees",
+	css: "",
+	defaults: {
+		...CLASSICY_CORE_DEFAULT_THEME,
+		id: "windows-trees-default",
+		package: "windows-trees",
+	},
+	layout: windows98.layout as never,
+});
+
+afterEach(() => {
+	activePackage.id = "platinum";
+});
 
 const nodes: ClassicyTreeNode[] = [
 	{
@@ -355,5 +387,159 @@ describe("ClassicyTree selection & disabled", () => {
 		expect(onEdit).toHaveBeenCalledTimes(1);
 		expect(onSelectNode).not.toHaveBeenCalled();
 		expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+	});
+});
+
+// WIG Ch.7 "Tree View Controls" (pp.123-124): "LEFT ARROW and RIGHT ARROW to
+// move along a particular branch of the outline. Pressing RIGHT ARROW can
+// also expand the outline at a branch"; comctl32's TREEVIEW_KeyDown (the
+// audit's 7.21), under the package's `tree.keys` "windows" alone.
+describe("ClassicyTree — the bare arrows along a branch (layout.tree.keys)", () => {
+	const deep: ClassicyTreeNode[] = [
+		{
+			id: "drive",
+			label: "Drive",
+			children: [
+				{
+					id: "folder",
+					label: "Folder",
+					children: [{ id: "file", label: "File" }],
+				},
+				{ id: "note", label: "Note" },
+			],
+		},
+		{
+			id: "dimmed",
+			label: "Dimmed",
+			disabled: true,
+			children: [{ id: "inside", label: "Inside" }],
+		},
+		{ id: "loose", label: "Loose" },
+	];
+	const row = (label: string) =>
+		screen
+			.getByText(label)
+			.closest(".classicyTreeNodeLabelHolder") as HTMLElement;
+	const keydown = (target: HTMLElement, init: KeyboardEventInit) => {
+		const event = new KeyboardEvent("keydown", {
+			bubbles: true,
+			cancelable: true,
+			...init,
+		});
+		target.dispatchEvent(event);
+		return event;
+	};
+
+	it("leaves a bare Right or Left Arrow alone under the Mac layout", async () => {
+		const user = userEvent.setup();
+		const onToggleNode = vi.fn();
+		render(<ClassicyTree nodes={deep} onToggleNode={onToggleNode} />);
+		row("Drive").focus();
+		await user.keyboard("{ArrowRight}");
+		expect(screen.queryByText("Folder")).not.toBeInTheDocument();
+		expect(row("Drive")).toHaveFocus();
+		await user.keyboard("{ArrowLeft}");
+		expect(row("Drive")).toHaveFocus();
+		expect(onToggleNode).not.toHaveBeenCalled();
+		// Nor its default (a scroller may still scroll sideways).
+		expect(keydown(row("Drive"), { key: "ArrowRight" }).defaultPrevented).toBe(
+			false,
+		);
+	});
+
+	it("expands a closed branch with Right, then moves to its first child", async () => {
+		activePackage.id = "windows-trees";
+		const user = userEvent.setup();
+		const onToggleNode = vi.fn();
+		render(<ClassicyTree nodes={deep} onToggleNode={onToggleNode} />);
+		row("Drive").focus();
+		await user.keyboard("{ArrowRight}");
+		expect(onToggleNode).toHaveBeenCalledWith("drive", true);
+		expect(screen.getByText("Folder")).toBeInTheDocument();
+		expect(row("Drive")).toHaveFocus();
+		await user.keyboard("{ArrowRight}");
+		expect(row("Folder")).toHaveFocus();
+		await user.keyboard("{ArrowRight}{ArrowRight}");
+		expect(row("File")).toHaveFocus();
+		// A leaf goes nowhere.
+		await user.keyboard("{ArrowRight}");
+		expect(row("File")).toHaveFocus();
+	});
+
+	it("moves to the parent with Left, then collapses the open branch", async () => {
+		activePackage.id = "windows-trees";
+		const user = userEvent.setup();
+		const onToggleNode = vi.fn();
+		render(
+			<ClassicyTree
+				nodes={[{ ...deep[0], defaultOpen: true }, ...deep.slice(1)]}
+				onToggleNode={onToggleNode}
+			/>,
+		);
+		row("Note").focus();
+		await user.keyboard("{ArrowLeft}");
+		expect(row("Drive")).toHaveFocus();
+		expect(onToggleNode).not.toHaveBeenCalled();
+		await user.keyboard("{ArrowLeft}");
+		expect(onToggleNode).toHaveBeenCalledWith("drive", false);
+		expect(screen.queryByText("Note")).not.toBeInTheDocument();
+		// Closed at the root, a Left goes nowhere.
+		await user.keyboard("{ArrowLeft}");
+		expect(row("Drive")).toHaveFocus();
+		expect(onToggleNode).toHaveBeenCalledTimes(1);
+	});
+
+	it("keeps a dimmed branch closed, and the chords and Alt as before", async () => {
+		activePackage.id = "windows-trees";
+		const user = userEvent.setup();
+		const onToggleNode = vi.fn();
+		render(<ClassicyTree nodes={deep} onToggleNode={onToggleNode} />);
+		row("Dimmed").focus();
+		await user.keyboard("{ArrowRight}");
+		expect(screen.queryByText("Inside")).not.toBeInTheDocument();
+		expect(onToggleNode).not.toHaveBeenCalled();
+		// ⌘→ still opens, ⌘← still closes.
+		row("Drive").focus();
+		await user.keyboard("{Meta>}{ArrowRight}{/Meta}");
+		expect(screen.getByText("Folder")).toBeInTheDocument();
+		await user.keyboard("{Meta>}{ArrowLeft}{/Meta}");
+		expect(screen.queryByText("Folder")).not.toBeInTheDocument();
+		// The tree takes a bare arrow's default (no sideways scroll); Alt and
+		// an arrow stay the browser's.
+		expect(keydown(row("Loose"), { key: "ArrowRight" }).defaultPrevented).toBe(
+			true,
+		);
+		expect(
+			keydown(row("Loose"), { key: "ArrowLeft", altKey: true })
+				.defaultPrevented,
+		).toBe(false);
+	});
+});
+
+// WIG Ch.6 "Activating and Deactivating Windows" (p.81); Ch.13 "Highlighting"
+// (p.318): the tree says whether its window is the active one (the audit's
+// 6.4 / 13.8), as ClassicyScrollArea does.
+describe("ClassicyTree — inactive", () => {
+	const tree = () => document.querySelector(".classicyTree") as HTMLElement;
+
+	it("carries inactive in a window that is not the active one", () => {
+		render(
+			<ClassicyWindowActiveContext.Provider value={false}>
+				<ClassicyTree nodes={nodes} />
+			</ClassicyWindowActiveContext.Provider>,
+		);
+		expect(tree()).toHaveClass("inactive");
+	});
+
+	it("does not in the active window, or outside any window", () => {
+		const { unmount } = render(
+			<ClassicyWindowActiveContext.Provider value={true}>
+				<ClassicyTree nodes={nodes} />
+			</ClassicyWindowActiveContext.Provider>,
+		);
+		expect(tree()).not.toHaveClass("inactive");
+		unmount();
+		render(<ClassicyTree nodes={nodes} />);
+		expect(tree().className).toBe("classicyTree");
 	});
 });
