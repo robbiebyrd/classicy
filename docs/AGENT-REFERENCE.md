@@ -829,6 +829,7 @@ component's root class, never folded into a longer class name and never in a
 | Component (root class) | States it sets |
 |---|---|
 | `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed` (shaded: WindowShade, the store's `collapsed` under every layout but `window.collapse: "minimize"`, where a minimized window carries none and is marked `classicyWindowMinimized` instead, §4.1), `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all. Under `window.zoom: "maximize"` a zoomed window is maximized and also carries the part class `classicyWindowMaximized`, §4.1). Under `window.frameEdges: "resize"` a window whose frame sizes it carries the part class `classicyWindowSizingBorder` and draws eight corner arms, `classicyWindowFrameCorner` with `classicyWindowFrameCorner-<corner>-<h\|v>` (§4.1, "Frame-edge sizing"); no other layout emits either |
+| `ClassicyWindowTitleBar` (none on its root) | its close box (`classicyWindowCloseBox`): `disabled` while `closeDisabled` draws it unavailable (with `aria-disabled="true"`; under `layout.dialog.caption: "titled"`, a modal that cannot close), which only Windows 98 draws (embossed, never pressed) |
 | `ClassicyButton` | `default` (`isDefault`), `pressed` (`depressed`) |
 | `ClassicyBevelButton` | `checked`, `pressed`, `mixed`, `disabled`, `open` (its menu or panel is showing) |
 | `ClassicyCheckbox`, `ClassicyRadioInput` | `checked`, `mixed`, `disabled`, `default` |
@@ -1037,8 +1038,9 @@ manager. Must be a descendant of `ClassicyApp`.
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
 | `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll`. The collapse box shades the window (WindowShade), or, under `layout.window.collapse: "minimize"`, is Minimize (below; a `modal` or utility window draws none there). The zoom box toggles the standard state, or, under `layout.window.zoom: "maximize"`, is Maximize and Restore (below; a utility window draws none there). The frame's edges move the window, or, under `layout.window.frameEdges: "resize"`, size a resizable window from any edge and corner and do nothing on a non-resizable one (below) |
 | `fitsScrollBars` | `boolean` | the package's `layout.scrollBar.fitsBars` for a resizable, non-utility window, else `false`: keep both bars (`fits`) while the content fits |
-| `modal` | `boolean` | `false` |
-| `movable` | `boolean` | `true` (modal only) |
+| `modal` | `boolean` | `false` (under `layout.dialog.caption: "titled"` a modal's caption is always titled, has a Close box and moves it: "Dialog and message box captions", below) |
+| `movable` | `boolean` | `true` (modal only; ignored under `layout.dialog.caption: "titled"`, where every modal moves) |
+| `onCaptionClose` | `() => void` | — (read only on a `modal` that is not `closable`, under `layout.dialog.caption: "titled"`: what its caption's Close box, the window pop-up menu's Close, ALT+F4 and the icon's double-click run; without it the Close box is drawn unavailable) |
 | `defaultWindow` | `boolean` | `false` |
 | `initialSize` / `minimumSize` | `[w, h]`, each `number \| "\${number}%"` | `[350, 0]` / `[300, 0]` (0 = auto) |
 | `initialPosition` | `[x, y]` — x: `number \| "left" \| "center" \| "right"`, y: `number \| "top" \| "center" \| "bottom"` | `[110, 110]` |
@@ -1103,7 +1105,51 @@ the top and no second bevel on the contents
 (`.classicyWindowModalFixed:not(.classicyWindowRed)`). Platinum's fixed
 alert keeps its red title bar. With no title bar, such a modal has no close
 or collapse box to show, so pass `closable={false}` (Escape then beeps) and
-`collapsable={false}`, and dismiss it with its own buttons.
+`collapsable={false}`, and dismiss it with its own buttons. Under a layout
+whose `dialog.caption` is `"titled"` (Windows 98) no modal is fixed: neither
+kind carries `classicyWindowModalFixed`, and both move by their caption
+(below).
+
+**Dialog and message box captions** (`layout.dialog.caption: "titled"`, the
+Windows shell, plan 0020-w98 §6; WIG Ch.8 "Appearance and Behavior", p.145,
+Figure 8.1; "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17).
+Only a `modal` window changes; every other window is captioned as always,
+and under every other layout a modal is too (`onCaptionClose` read nowhere):
+- **Title.** A modal with an empty `title` shows its app's display name
+  (`useClassicyAppIdentity`: a package's `apps` override, else the app
+  record's name, else the `appId` less `.app`), as a message box's title
+  names its context; the root's `aria-label` and the window registry's
+  `title` follow it. The desktop's alerts read "Finder". `ClassicyAboutWindow`
+  passes "About <name>", as Windows' `ShellAbout` captions its box.
+- **Close box.** The caption always draws one: a `closable` modal closes as
+  before; a non-closable one runs its `onCaptionClose`; with neither the box
+  is drawn unavailable (`ClassicyWindowTitleBar`'s `closeDisabled`: the
+  `disabled` state, `aria-disabled="true"`, out of the tab order, no
+  handler), as Windows grays the Close of a message box with no Cancel
+  (ReactOS's `MessageBoxProc` removes `SC_CLOSE`; Wine's
+  `draw_close_button` grays the box for a missing or grayed `SC_CLOSE`, and
+  its press does nothing). The window pop-up menu's Close is enabled, and
+  the registry's `close` command (ALT+F4, the icon's double-click) runs,
+  exactly when the box would close the dialog, so ALT+F4 on a Yes/No alert
+  does nothing.
+- **Movable.** Every modal moves by its caption (WIG p.145), an alert of
+  `type="error"` and a `movable={false}` modal included: neither carries
+  `classicyWindowModalFixed`, the drag and the keyboard Move are allowed,
+  and the pop-up menu's Move is enabled. An alert keeps its red band
+  (`classicyWindowRed`, which Windows 98 draws as any caption) and its beep.
+- **The bundled dialogs** pass `onCaptionClose`, each the path its own
+  button runs: `ClassicyAlert` presses its `cancel`-role button, else its
+  only button (a help button aside), else none, so a Yes/No question's box
+  is unavailable (and so while that button is disabled), as `MessageBox`
+  maps Close to IDCANCEL, else, with OK alone, to IDOK; `ClassicyFileDialog`
+  runs `onCancelFunc` (unavailable without it); `ClassicyInputDialog` and
+  `ClassicyKeyboardEquivalentDialog` their Cancel; `ClassicyAboutWindow`
+  clicks its own OK button (`.click()` on a ref), so `hideFunc` still gets a
+  real click event; `HyperCardDialog` an ask's Cancel (the empty answer), an
+  answer's Cancel button, else its only button.
+- **Escape is unchanged.** Each dialog's own keyboard equivalents take
+  Escape first, as before; a non-closable modal with no Escape of its own
+  still beeps, whatever `onCaptionClose` says.
 
 A modal's inner area (`.classicyWindowContentsModalInner`) carries
 `classicyWindowContentsSelfPadded` while its content root lays itself out
@@ -1391,7 +1437,8 @@ the same from the menu:
   maximized, and a minimized window here has nothing on the screen to
   move); Size for a resizable window neither collapsed nor zoomed; Minimize
   with a collapse box and not collapsed; Maximize with a zoom box and not
-  zoomed; Close when `closable`. Close is the default item (`isDefault`, the
+  zoomed; Close when the Close box would close the window (`closable`, or,
+  under `dialog.caption: "titled"`, a modal's `onCaptionClose`). Close is the default item (`isDefault`, the
   `default` state, which Windows 98 draws bold; Wine's `SetMenuDefaultItem(…,
   SC_CLOSE)`) and shows ALT+F4 (`"⌥F4"`, drawn in the menu's glyph
   spelling). Item ids are `${appId}_${windowId}_system_<command>`. Move and
@@ -1442,8 +1489,11 @@ Each mounted window, modals included, also registers in the core's window
 registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
 a surface that lists windows or acts on one, such as the Windows 98 shell's
 taskbar (plan 0020-w98). Its entry holds what the store record does not:
-`appId`, `windowId`, `title`, the resolved `icon`, `modal`, `windowType`,
-`closable`, `zoomable` (whether it draws a zoom box: `false` for a modal or
+`appId`, `windowId`, `title` (the caption's: under `dialog.caption:
+"titled"` an untitled modal's is its app's display name), the resolved
+`icon`, `modal`, `windowType`, `closable` (whether its Close closes it:
+`closable`, or, under `dialog.caption: "titled"`, a modal's
+`onCaptionClose`), `zoomable` (whether it draws a zoom box: `false` for a modal or
 utility window under `window.zoom: "maximize"`), `collapsable` (whether it draws a collapse box:
 `false` for a modal or utility window under `window.collapse: "minimize"`),
 `resizable` and `movable` (`false` for a fixed modal), and `run(command)`, which carries a command out through the
@@ -1457,8 +1507,9 @@ as it was, maximized included), else un-zooms a zoomed one, then focuses it
 minimize, or its ignored zoom under maximize, is neither); `maximize` zooms
 it (maximizes it under `window.zoom: "maximize"`), then
 focuses it (`false` without a zoom box, on a modal, or when already zoomed);
-`close` runs the close box's path, veto included (`false` when it is not
-`closable`); `move` and `size` start the keyboard Move and Size modes
+`close` runs the close box's path, veto included, or, for a non-closable
+modal under `dialog.caption: "titled"`, its `onCaptionClose` (`false` when
+it has neither); `move` and `size` start the keyboard Move and Size modes
 (above; `false` where a mode is refused, while one is already in effect on
 the page, or during a pointer drag of the window), and any other command
 ends the window's mode where it is first. `systemMenu` opens the window
@@ -1492,11 +1543,13 @@ dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
 | `variant` | `"document" \| "utility"` | default `"document"` (side bands around the title); `"utility"` draws the windoid's center band and no title text |
 | `modal` | `boolean` | adds `classicyWindowTitleBarModal`; never a zoom box |
 | `onClose` / `onZoom` | `() => void` | each draws its box (a `data-classicy-control` wrapper) and is called, with no arguments, by a click, Enter or Space |
+| `closeDisabled` | `boolean` | draws the close box unavailable, `onClose` given or not: the `disabled` state, `aria-disabled="true"`, `tabIndex` -1 and no handler (its click, Enter and Space do nothing). `ClassicyWindow` passes it under `layout.dialog.caption: "titled"` for a modal that cannot close (no `closable`, no `onCaptionClose`), as Windows grays an unavailable Close; Windows 98 draws it embossed and unpressable, and Platinum and System 7, which never get it, would draw it as their close box. Without it the box renders as before |
 | `onCollapse` | `(e: MouseEvent<HTMLDivElement>) => void` | draws the collapse box; called by its click |
 | `onCollapseKey` | `() => void` | Enter or Space on the collapse box; without it those keys click the box |
 | `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
 | `onIconMouseDown` / `onIconDoubleClick` | `(e: MouseEvent<HTMLDivElement>) => void` | on the proxy icon (`.classicyWindowIcon`), before the title area hears the event (a double-click handler calls `e.stopPropagation()` to keep it from `onTitleDoubleClick`). Without them the icon is inert, and its element carries its class alone. `ClassicyWindow` passes them under `layout.window.systemMenu`: the press opens the window pop-up menu, the double-click closes the window (WIG Ch.6 "Title Bar Icons", p.78) |
 | `labels` | `{ close?, zoom?, collapse? }` (`ClassicyWindowTitleBarLabels`) | the boxes' accessible names, each defaulting to `"Close"`, `"Zoom"`, `"Collapse"`; `ClassicyWindow` names the collapse box `"Minimize"` under `layout.window.collapse: "minimize"`, and the zoom box `"Maximize"`, `"Restore"` while maximized, under `layout.window.zoom: "maximize"` (WIG Ch.6 "Title Bar Buttons", p.80; "Maximizing Windows", p.84) |
+| `buttonTooltips` | `boolean` | each box names itself (its label) in a tooltip once the pointer has rested on it 500 ms (Windows' automatic delay, Wine's `TTDT_AUTOMATIC`), whatever Balloon Help says (`useClassicyBalloonHelp`'s `force`), below the box, `aria-describedby` pointing at it while shown; a press on the box hides it until the pointer comes back. `ClassicyWindow` passes it under `layout.window.captionTooltips: true`. Without it no box runs the balloon hook, and the boxes render as before |
 | `className` / `style` | passthrough | onto the root |
 
 The structure is two SCSS mixins in `Window/ClassicyWindowTitleBar.scss`
@@ -1720,15 +1773,15 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
-| `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once Under `layout.dialog.caption: "titled"` (Windows 98) its caption reads `title`, else the app's display name, it moves whatever `movable` says, and its Close box presses the `cancel`-role button, else the only button (a help button aside), and is drawn unavailable with neither (a Yes/No question) or while that button is disabled (§4.1, "Dialog and message box captions") |
+| `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` Under `layout.dialog.caption: "titled"` its caption's Close box is Cancel |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
-| `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
+| `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own; under `layout.dialog.caption: "titled"` its caption's Close box is Cancel |
 | `ClassicyFileOpenDialog` | `id` *, `appId` *, `open` *, `volumes` *, `onOpenFunc(selections)` *, `selectionMode?`, `fileTypeFilters?`, `onCancelFunc?`, `title? ("Open")` | always renders System 7.5's Standard File parts (`*-755-dialog-standardfile-layout.png`): the volume's small icon and name (`classicyFileOpenDialogVolume`), Eject (`classicyFileOpenDialogEject`, always dimmed), Desktop (`classicyFileOpenDialogDesktop`: goes to the volume with id `"desktop"`, `desktopVolume(fs)`'s; dimmed without one or on it) and a line (`<hr class="classicyFileOpenDialogDivider">`), before the actions. The base sheet hides all four, so a package shows them (System 7 does). The box is a movable modal unless the package's `layout.fileDialog.frame` is `"fixed"` (§8, "Layout declarations"); its size is the theme's optional `fileDialog.width` x `height` knobs, else 440 x 400; a save box's body also carries `classicyFileDialogSaveBody`. A closed `ClassicyPopUpMenu` draws its selected option's `icon` as the part `classicyPopUpMenuValueIcon`, which the base sheet hides (System 7 shows it) |
-| `ClassicyFileSaveDialog` | `id` *, `appId` *, `open` *, `volumes` *, `formats` *, `onSaveFunc(saved)` *, `defaultFileName?`, `onErrorFunc?`, `onCancelFunc?`, `title? ("Save")` | |
+| `ClassicyFileSaveDialog` | `id` *, `appId` *, `open` *, `volumes` *, `formats` *, `onSaveFunc(saved)` *, `defaultFileName?`, `onErrorFunc?`, `onCancelFunc?`, `title? ("Save")` || Open and Save: under `layout.dialog.caption: "titled"` the caption's Close box runs `onCancelFunc` (drawn unavailable without it) |
 | `ClassicyColorPickerDialog` | `id` *, `open` *, `initialColor?`, `onSelectFunc?(color: number)`, `onCancelFunc?`, `crayons?` | |
 | `ClassicyColorPicker` | `id` *, `value?`/`defaultValue?` (int color), `onChangeFunc?(color)`, `labelTitle?` | swatch control that opens the dialog |
-| `ClassicyAboutWindow` | `appId` *, `appName` *, `appIcon` *, `hideFunc` *, `appMenu?` (`ClassicyMenuItem[]`, the menu bar while it is focused) | standard About box. `appName`/`appIcon` are the app's own; the heading and icon show the package's display identity for `appId` (§8, "App display overrides"), while its analytics keep `appName` |
+| `ClassicyAboutWindow` | `appId` *, `appName` *, `appIcon` *, `hideFunc` *, `appMenu?` (`ClassicyMenuItem[]`, the menu bar while it is focused) | standard About box. `appName`/`appIcon` are the app's own; the heading and icon show the package's display identity for `appId` (§8, "App display overrides"), while its analytics keep `appName`. Under `layout.dialog.caption: "titled"` (Windows 98) it is captioned "About <display name>" (Windows' `ShellAbout` caption) and its caption's Close box clicks OK, so `hideFunc` gets a real click event |
 | `ClassicyAssistant` | `pages` * (`{title, content, buttons?, canAdvance?, labelIcon?, accessoryIcon?, accessoryIconSize? ("sm"\|"md"\|"lg")}[]`), `buttons?`, `page?`/`onPageChange?`, `initialPage? (0)` | setup-assistant flow. `page` makes it controlled; `initialPage` is the zero-based starting page when uncontrolled. Per page, `labelIcon` is a small icon left of the title and `accessoryIcon` a decorative icon at the right of the header (default size `"sm"`; `"lg"` overflows the header) |
 
 Keyboard-equivalent helpers: `checkKeyboardEquivalent(shortcut, {inUse,
@@ -4669,7 +4722,14 @@ it like Platinum (§1); its README lists what it ships.
   Size moving and sizing it with the arrow keys (WIG Ch.7 "The Window Pop-up
   Menu", p.102; §4.1, "The window pop-up (system) menu"). Until the shell's
   taskbar and minimize land, its Minimize shades the window, as the
-  caption's Minimize box does.
+  caption's Minimize box does. `window: { captionTooltips: true }`: each
+  caption button names itself in a tooltip after 500 ms (Windows 98 as
+  shipped); and `dialog: { caption: "titled" }`: every dialog and message
+  box has a titled caption (its app's name when untitled; an About box
+  "About <name>") with a Close box, its Cancel (a message box's only
+  button when it has no Cancel; embossed and unavailable on a Yes/No
+  question, where ALT+F4 does nothing too), and moves by it, alerts included
+  (WIG Ch.8, pp.145, 164, 166; §4.1, "Dialog and message box captions").
   Until the package registers cursors of its own, the edges show the
   default package's (Platinum's) `resizeUd` and `resizeLr` art, as the size
   grip shows its `resizeLr`, and the corners the browser's diagonal resize
@@ -4730,8 +4790,9 @@ how they look) has two halves:
 2. **The package's `layout` block**, for the three arrangements that need
    JavaScript as well as CSS, the optional `window.centering`, and the
    optional `scrollBar`, `patternOrigin` and `slider` groups, which declare
-   behavior rather than arrangement, and the optional `taskbar` group, which
-   gives the desktop a Windows taskbar in its Control Strip's place. The groups and each of their keys are
+   behavior rather than arrangement, the optional `taskbar` group, which
+   gives the desktop a Windows taskbar in its Control Strip's place, and the
+   optional `dialog` group, which captions modals as Windows does. The groups and each of their keys are
    optional, so a package that leaves one out keeps the core's behavior;
    Platinum declares only `slider`.
 
@@ -4744,6 +4805,8 @@ how they look) has two halves:
 | `window.titleDoubleClick` (optional) | `collapse`, `zoom` | what a double-click on the caption does. `collapse` (the default, Mac OS 8): it collapses the window while the desktop's `doubleClickTitleToCollapse` preference is on. `zoom` (Windows 95/98 as shipped, Wine's `NC_HandleNCLButtonDblClk`; Windows 98 declares it): it runs the zoom box's toggle (maximize or restore, under `window.zoom: "maximize"`) whatever the preference says (the preference stays stored and applies again under another package), and does nothing on a window that draws no zoom box or on a modal's caption, never a collapse (§4.1, "The caption's double-click"). The root gains no attribute or custom property for it |
 | `window.frameEdges` (optional) | `move`, `resize` | what the four frame edges do. `move` (the default, Mac OS 8, whose frame is a drag region; every package but Windows 98): a press on an edge moves the window, as the title bar does. `resize` (Windows 95/98, WIG Ch.6 "Sizing Borders", p.83; the audit's 6.5; Windows 98 declares it): a resizable window drawn at its size has a sizing border, its root carrying `classicyWindowSizingBorder`: each edge (the frame's width, `--window-frame-inset`, `SM_CXFRAME`) sizes it from that edge and eight corner arms (`classicyWindowFrameCorner-<corner>-<h\|v>`, reaching `--window-title-bar-height` past the inside of the frame along each edge, as Wine's `NC_HandleNCHitTest` makes a corner `SM_CXSIZE` long) size both edges of their corner, with the registry's resize cursors; a press activates the window and takes the pointer's capture, the moving edges follow the pointer (`computeClassicyWindowEdgeResize`, below) and stop at the work area, the minimum size and the height reserve's cap, so the release clamp never moves a window just sized. A non-resizable window's edges (modals included) do nothing, and a maximized window draws none (§4.1, "Frame-edge sizing"). The root gains no attribute or custom property for it |
 | `window.systemMenu` (optional) | `false`, `true` | whether windows have the window pop-up (system) menu. `false` (the default, every package but Windows 98): a right-click on the title bar shows the window's or its app's `contextMenu`, as anywhere in the window, the title bar's icon is inert, the window registry's `systemMenu` command reports `false`, and no key is bound. `true` (Windows 95/98, WIG Ch.6 "Title Bars", "Title Bar Icons", "Title Bar Buttons", pp.76–80; Ch.7 "The Window Pop-up Menu", p.102; Ch.8, pp.145 and 164; App. B, Table B.2, p.358; the audit's 6.2, 6.3, 7.10 and 8.7; Windows 98 declares it): the menu (Restore, Move, Size, Minimize, Maximize and Close; Move and Close on a modal; Move, Size and Close on a palette; each enabled as Wine's `MENU_InitSysMenuPopup` enables it; Close the bold default with ALT+F4; `classicyWindowSystemMenuItems`, below) opens at the pointer on a right-click anywhere in the title bar and on a window button's right-click on the taskbar, and drops from the caption's bottom-left on a press on its icon and on ALT+SPACE (the first item selected), with no Help item, the arrows walking it and ESC closing it; a double-click on the icon and ALT+F4 close the window through its Close box's path (veto included; nothing when it cannot close), and the menu's Move and Size run the keyboard modes (§4.1, "The window pop-up (system) menu"). `ClassicyDesktop` binds ALT+SPACE and ALT+F4 only under it. The root gains no class, attribute or custom property for it |
+| `window.captionTooltips` (optional) | `false`, `true` | whether each title-bar box names itself in a tooltip. `false` (the default, every package but Windows 98): none. `true` (Windows 98 as shipped; Windows 95 had none, and the 1995 guidelines say nothing; Windows 98 declares it): a box shows its label ("Close"; "Maximize" or "Restore", "Minimize" under the shell's flags, else "Zoom" and "Collapse") after the pointer rests on it 500 ms, whatever Balloon Help says, hidden by a press on it (`ClassicyWindowTitleBar`'s `buttonTooltips`, §4.1). The root gains no class, attribute or custom property for it |
+| `dialog.caption` (optional group `dialog`) | `plain`, `titled` | how a `modal` window is captioned. `plain` (the default, Mac OS 8, every package but Windows 98): the title it is given, a Close box only when `closable`, and an alert or a `movable={false}` modal fixed in place. `titled` (Windows 95/98, WIG Ch.8 "Appearance and Behavior", p.145, Figure 8.1; "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17; Windows 98 declares it): every modal's caption has a title (its app's display name when it is given none), a Close box (closing a `closable` modal, running `onCaptionClose` for any other, drawn unavailable with neither, as for a Yes/No message box) whose path the window pop-up menu's Close and ALT+F4 follow, and moves the dialog, an alert included (no `classicyWindowModalFixed`) (§4.1, "Dialog and message box captions"). Every other window is unaffected. The root gains no attribute or custom property for it |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (every shipped package today): `ClassicyDesktop` draws its Control Strip and no taskbar. Present: it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept); the taskbar's measured height is the band windows, Clean Up and every menu keep above. `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |

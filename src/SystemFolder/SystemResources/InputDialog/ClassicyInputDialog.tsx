@@ -89,7 +89,9 @@ const defaultValidate = (value: string): boolean => value.trim().length > 0;
  *     is free to mean "confirm");
  *   - Escape / Command-period triggers Cancel;
  *   - the default button is dimmed, and Return ignored, while the value fails
- *     `validate`.
+ *     `validate`;
+ *   - under a layout whose `dialog.caption` is `"titled"` (Windows 98) the
+ *     caption's Close box is Cancel.
  *
  * The dialog owns the field's text; callers receive the final value through
  * `onConfirm` and need not track keystrokes. It renders a `ClassicyWindow`, so
@@ -172,6 +174,8 @@ export const ClassicyInputDialog: FunctionalComponent<
 			title={title}
 			hideIcon={true}
 			closable={false}
+			// A titled caption's Close box (Windows 98) is Cancel.
+			onCaptionClose={cancel}
 			resizable={false}
 			zoomable={false}
 			collapsable={false}

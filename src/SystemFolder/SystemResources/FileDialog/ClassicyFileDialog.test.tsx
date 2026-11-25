@@ -773,3 +773,66 @@ describe("ClassicyFileDialog under System 7.5's Standard File declarations", () 
 		);
 	});
 });
+
+// Plan 0020-w98 §6: under a layout whose `dialog.caption` is `"titled"`
+// (Windows 98) the Open and Save As boxes have a Close box in their caption
+// (WIG Ch.8 "Open Dialog Box" and "Save As Dialog Box", Figures 8.6 and
+// 8.7), which is Cancel, and drawn unavailable with no Cancel to run; under
+// every other layout they have none (HIGOS8 p.59: a movable modal dialog
+// box has no close box).
+describe("ClassicyFileDialog's caption Close box", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const closeBox = () =>
+		document.querySelector<HTMLElement>(
+			".classicyWindow > .classicyWindowTitleBar .classicyWindowCloseBox",
+		);
+	const open = (onCancelFunc?: () => void) =>
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[]}
+				onOpenFunc={() => {}}
+				onCancelFunc={onCancelFunc}
+			/>,
+		);
+	const titled = () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage({
+			id: "test-titled-dialogs",
+			name: "Titled Dialogs",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-titled-dialogs-default",
+				package: "test-titled-dialogs",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				dialog: { caption: "titled" },
+			},
+		});
+	};
+
+	it("is not drawn by default (Mac OS 8)", () => {
+		open(vi.fn());
+		expect(closeBox()).toBeNull();
+	});
+
+	it("runs Cancel under titled dialog captions", () => {
+		titled();
+		const onCancel = vi.fn();
+		open(onCancel);
+		fireEvent.click(closeBox() as HTMLElement);
+		expect(onCancel).toHaveBeenCalledTimes(1);
+	});
+
+	it("is unavailable with no Cancel to run", () => {
+		titled();
+		open();
+		expect(closeBox()).toHaveAttribute("aria-disabled", "true");
+	});
+});

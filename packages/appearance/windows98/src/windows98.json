@@ -3787,7 +3787,8 @@
 			"zoom": "maximize",
 			"titleDoubleClick": "zoom",
 			"frameEdges": "resize",
-			"systemMenu": true
+			"systemMenu": true,
+			"captionTooltips": true
 		},
 		"menuBar": {
 			"placement": "screen"
@@ -3802,6 +3803,9 @@
 			"frame": "movable",
 			"navigation": "flat",
 			"saveName": "selected"
+		},
+		"dialog": {
+			"caption": "titled"
 		}
 	},
 	"knobs": {

@@ -26,9 +26,14 @@
 //   two overlapping windows (WIG Ch.6 "Maximizing Windows", pp.84-85:
 //   "the Maximize button is replaced by the Restore button"). Windows shows
 //   the buttons on an inactive window too (the base hides them). The core
-//   draws a box only for an action the window has and never a disabled one,
-//   so the embossed disabled mark Windows draws has no element to land on
-//   and is not emitted.
+//   draws a box only for an action the window has, with one exception: under
+//   the package's titled dialog captions (`dialog.caption: "titled"`) a
+//   dialog that cannot close (a Yes/No message box) draws its Close box
+//   unavailable (`disabled`), raised and never pressed, its mark embossed:
+//   ButtonShadow over a ButtonHilight copy one pixel down and right, as
+//   DrawFrameControl draws a DFCS_INACTIVE caption button (Wine's
+//   `draw_frame_caption`) and `draw_close_button` grays a Close whose
+//   SC_CLOSE is grayed or gone.
 // - `--title-bar-gap` (2) of frame below the caption, then the client area,
 //   sunken two pixels (WS_EX_CLIENTEDGE: `b.sunken`) around its viewport and
 //   scroll bars, white; the size grip in the scroll bars' corner, three
@@ -222,6 +227,21 @@ $grip-shadow: runs($grip, "s");
   }
 }
 
+// An unavailable caption button (DFCS_INACTIVE): raised, its mark `$art`
+// at grid (`$x`, `$y`) in ButtonShadow over its ButtonHilight copy one
+// pixel down and right (Wine's `draw_frame_caption` draws the highlight copy
+// first and the shadow mark over it), and not pressed by the mouse: Windows
+// tracks no press on a grayed Close (Wine's `track_close_button` returns at
+// once). After the button's own rules, which it outweighs only by order.
+@mixin caption-button-disabled($art, $x, $y) {
+  &,
+  &:active {
+    background: pixel-art(b.$shadow, shift($art, $x, $y)), pixel-art(b.$hilight, shift($art, $x + 1, $y + 1)), b.$face;
+
+    @include b.raised;
+  }
+}
+
 // The caption's boxes, under `.classicyWindow` only (the standalone frame
 // draws none): their arrangement, wrappers and geometry.
 @mixin caption-boxes {
@@ -290,6 +310,12 @@ $grip-shadow: runs($grip, "s");
 
     .classicyWindowCollapseBox {
       @include caption-button($minimize, 4, 9);
+    }
+
+    // A dialog's Close it cannot carry out (the core's `closeDisabled`,
+    // under the titled dialog captions): the X embossed, never pressed.
+    .classicyWindowCloseBox.disabled {
+      @include caption-button-disabled($close, 4, 3);
     }
   }
 }
@@ -666,6 +692,11 @@ $grip-shadow: runs($grip, "s");
         height: var(--utility-title-bar-button-height);
 
         @include caption-button($close-small, 3, 3);
+      }
+
+      // A palette-shaped dialog's unavailable Close: the small X embossed.
+      .classicyWindowCloseBox.disabled {
+        @include caption-button-disabled($close-small, 3, 3);
       }
     }
 

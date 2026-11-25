@@ -25,7 +25,10 @@ import { useSyncExternalStore } from "react";
  * - `restore`: expand a collapsed window, else un-zoom a zoomed one, then
  *   activate it.
  * - `maximize`: zoom it (the zoom box's path), then activate it.
- * - `close`: the close box's path, `onBeforeClose` included.
+ * - `close`: the close box's path, `onBeforeClose` included; for a
+ *   non-closable modal under `dialog.caption: "titled"`, its
+ *   `onCaptionClose` (the caption Close box's action), and nothing when it
+ *   has none.
  * - `systemMenu`, at a desktop point if given: the window pop-up menu
  *   (`window.systemMenu: true` layouts only), opened at that point, else
  *   dropped from the caption's bottom-left with its first item selected, as
@@ -55,7 +58,11 @@ export type ClassicyWindowEntry = {
 	readonly appId: string;
 	/** The window's id, unique within its app. */
 	readonly windowId: string;
-	/** The `title` prop, `""` for an untitled window. */
+	/**
+	 * The title its caption shows: the `title` prop, `""` for an untitled
+	 * window, except that under `dialog.caption: "titled"` an untitled modal
+	 * shows its app's display name.
+	 */
 	readonly title: string;
 	/** The icon the window draws beside its title (the resolved `icon`). */
 	readonly icon: string;
@@ -63,7 +70,11 @@ export type ClassicyWindowEntry = {
 	readonly modal: boolean;
 	/** The `windowType` prop: a document window or a utility palette. */
 	readonly windowType: "document" | "utility";
-	/** Whether it draws a close box (`closable`). */
+	/**
+	 * Whether its Close closes it (its `close` command succeeds): `closable`,
+	 * or, under `dialog.caption: "titled"`, a non-closable modal's
+	 * `onCaptionClose`.
+	 */
 	readonly closable: boolean;
 	/** Whether it draws a zoom box (`zoomable`). */
 	readonly zoomable: boolean;

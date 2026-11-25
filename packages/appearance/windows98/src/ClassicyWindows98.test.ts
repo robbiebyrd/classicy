@@ -251,8 +251,12 @@ describe("the Windows 98 appearance package", () => {
 	// its icon and ALT+SPACE, and closes on a double-click on its icon and
 	// ALT+F4 (`window.systemMenu`, the audit's 6.2, 6.3, 7.10 and 8.7; WIG
 	// Ch.6, pp.76-80; Ch.7 "The Window Pop-up Menu", p.102; App. B, Table
-	// B.2, p.358).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click, sized from their frame's edges and corners, and given the window pop-up menu", async () => {
+	// B.2, p.358). Each caption button names itself in a tooltip
+	// (`window.captionTooltips`, Windows 98 as shipped). Every dialog and
+	// message box has a titled caption with a Close box and moves by it
+	// (`dialog.caption`, WIG Ch.8 "Appearance and Behavior", p.145, Figure
+	// 8.1; "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click, sized from their frame's edges and corners, given the window pop-up menu and caption-button tooltips, and every dialog titled, closable from its caption and movable", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: {
@@ -262,6 +266,7 @@ describe("the Windows 98 appearance package", () => {
 				titleDoubleClick: "zoom",
 				frameEdges: "resize",
 				systemMenu: true,
+				captionTooltips: true,
 			},
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-left" },
@@ -271,6 +276,7 @@ describe("the Windows 98 appearance package", () => {
 				navigation: "flat",
 				saveName: "selected",
 			},
+			dialog: { caption: "titled" },
 		});
 	});
 

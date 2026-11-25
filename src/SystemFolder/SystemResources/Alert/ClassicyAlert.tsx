@@ -59,7 +59,11 @@ export type ClassicyAlertProps = {
 	appId?: string;
 	/** Severity — selects the icon and the generated default buttons. Defaults to `"note"`. */
 	alertType?: ClassicyAlertType;
-	/** Title-bar text, shown on the movable variant. Defaults to `""`. */
+	/**
+	 * Title-bar text, shown on the movable variant (and, under a layout whose
+	 * `dialog.caption` is `"titled"`, on every alert, which then reads its
+	 * app's display name when this is empty). Defaults to `""`.
+	 */
 	title?: string;
 	/** Bold system-font heading (tier 1); also the dialog's accessible name. */
 	label: string;
@@ -159,6 +163,11 @@ const defaultButtonsForType = (
  *   fires the `cancel`-role button (if any).
  * - **Help**: a `help`-role button renders as `ClassicyHelpButton`, placed
  *   lower left (HIGOS8 p.86).
+ * - **Caption** (under a layout whose `dialog.caption` is `"titled"`,
+ *   Windows 98): the title bar reads its app's name when `title` is empty,
+ *   the alert moves by it, `movable` or not, and its Close box presses the
+ *   `cancel`-role button, else the only button, and is drawn unavailable
+ *   when there is neither (a Yes/No question), as Windows' message box does.
  *
  * It renders a `ClassicyWindow`, so it must sit inside a `ClassicyApp`. Show it
  * by mounting it and hide it by unmounting it from `onClose`:
@@ -262,6 +271,25 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 		if (cancelButton) handleButton(cancelButton);
 	}, [cancelButton, handleButton]);
 
+	// What the caption's Close box presses under a layout whose
+	// `dialog.caption` is `"titled"` (Windows 95/98, where every message box
+	// has a Close box, WIG Ch.8 "Message Box Types", p.166, Figure 8.17): the
+	// cancel-role button, else the alert's only button (its help button
+	// aside), as MessageBox maps Close to IDCANCEL, else, with OK alone, to
+	// IDOK (ReactOS's `MessageBoxProc`, `uCancelId`); with neither (Yes/No)
+	// none, so the box is drawn unavailable and ALT+F4 does nothing, as
+	// MessageBox removes Close there. A disabled button is none: its Close
+	// would do nothing.
+	const captionCloseButton = useMemo(() => {
+		const others = resolvedButtons.filter((b) => b.role !== "help");
+		const button =
+			cancelButton ?? (others.length === 1 ? others[0] : undefined);
+		return button && !button.disabled ? button : undefined;
+	}, [resolvedButtons, cancelButton]);
+	const onCaptionClose = useCallback(() => {
+		if (captionCloseButton) handleButton(captionCloseButton);
+	}, [captionCloseButton, handleButton]);
+
 	// Return → default button, Escape / Command-period → Cancel, scoped to the
 	// alert so stacked dialogs don't cross-fire.
 	useKeyboardEquivalents({
@@ -299,6 +327,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 			title={title}
 			hideIcon={true}
 			closable={false}
+			onCaptionClose={captionCloseButton ? onCaptionClose : undefined}
 			resizable={false}
 			zoomable={false}
 			collapsable={false}

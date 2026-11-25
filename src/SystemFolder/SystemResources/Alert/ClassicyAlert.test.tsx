@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
-import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
+import {
+	registerTestTaskbarPackage,
+	TEST_DIALOG_CAPTION_LAYOUT,
+	TEST_DIALOG_CAPTION_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	ClassicyAlert,
+	type ClassicyAlertButton,
+} from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import {
 	clampWindowPositionToViewport,
 	resolvePosition,
@@ -17,7 +26,9 @@ vi.mock(
 		useAppManager: (selector: (state: unknown) => unknown) =>
 			selector({
 				System: {
-					Manager: { Applications: { apps: {} } },
+					// The Desktop slice: the caption buttons' tooltips (a titled
+					// dialog layout's) read balloon help's toggle from it.
+					Manager: { Desktop: {}, Applications: { apps: {} } },
 				},
 			}),
 		useAppManagerDispatch: () => mockDispatch,
@@ -359,6 +370,163 @@ describe("ClassicyAlert", () => {
 				[500, 400],
 			);
 			expect(moves[0]?.position).toEqual(expected);
+		});
+	});
+});
+
+// Plan 0020-w98 §6: under a layout whose `dialog.caption` is `"titled"`
+// (Windows 98) every message box has a titled caption with a Close box (WIG
+// Ch.8 "Message Box Types", p.166, Figure 8.17). The box presses the cancel
+// button, else the only button, as MessageBox maps Close to IDCANCEL, else,
+// with OK alone, to IDOK (ReactOS's `MessageBoxProc`), and is drawn
+// unavailable with neither (a Yes/No question), as MessageBox removes Close
+// there. Under every other layout the alert draws no Close box.
+describe("ClassicyAlert's caption Close box", () => {
+	const closeBox = () =>
+		document.querySelector<HTMLElement>(
+			".classicyWindow > .classicyWindowTitleBar .classicyWindowCloseBox",
+		);
+	const yesNo = (onYes = vi.fn(), onNo = vi.fn()): ClassicyAlertButton[] => [
+		{ id: "yes", label: "Yes", role: "default", onClick: onYes },
+		{ id: "no", label: "No", onClick: onNo },
+	];
+
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockPlayer.mockClear();
+	});
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_DIALOG_CAPTION_PACKAGE_ID);
+	});
+
+	it("draws none under a layout without titled captions", () => {
+		render(<ClassicyAlert alertType="caution" label="c" />);
+		expect(closeBox()).toBeNull();
+		expect(document.querySelector(".classicyWindowTitleText")).toBeNull();
+	});
+
+	describe('under dialog.caption: "titled"', () => {
+		beforeEach(() => {
+			registerTestTaskbarPackage(
+				TEST_DIALOG_CAPTION_LAYOUT,
+				TEST_DIALOG_CAPTION_PACKAGE_ID,
+			);
+		});
+
+		it("presses the cancel button", () => {
+			const onCancel = vi.fn();
+			const onContinue = vi.fn();
+			const onClose = vi.fn();
+			render(
+				<ClassicyAlert
+					alertType="caution"
+					label="c"
+					buttons={[
+						{
+							id: "cancel",
+							label: "Cancel",
+							role: "cancel",
+							onClick: onCancel,
+						},
+						{
+							id: "go",
+							label: "Continue",
+							role: "default",
+							onClick: onContinue,
+						},
+					]}
+					onClose={onClose}
+				/>,
+			);
+			const box = closeBox() as HTMLElement;
+			expect(box).not.toHaveAttribute("aria-disabled");
+			fireEvent.click(box);
+			expect(onCancel).toHaveBeenCalledTimes(1);
+			expect(onContinue).not.toHaveBeenCalled();
+			expect(onClose).toHaveBeenCalledTimes(1);
+		});
+
+		it("presses the only button when there is no cancel button, a help button aside", () => {
+			const onOk = vi.fn();
+			const onHelp = vi.fn();
+			const { unmount } = render(
+				<ClassicyAlert
+					alertType="note"
+					label="n"
+					buttons={[
+						{ id: "ok", label: "OK", role: "default", onClick: onOk },
+						{ id: "help", label: "Help", role: "help", onClick: onHelp },
+					]}
+				/>,
+			);
+			fireEvent.click(closeBox() as HTMLElement);
+			expect(onOk).toHaveBeenCalledTimes(1);
+			expect(onHelp).not.toHaveBeenCalled();
+			unmount();
+			// The generated OK of a note alert too.
+			const onClose = vi.fn();
+			render(<ClassicyAlert alertType="note" label="n" onClose={onClose} />);
+			fireEvent.click(closeBox() as HTMLElement);
+			expect(onClose).toHaveBeenCalledTimes(1);
+		});
+
+		it("is unavailable on a Yes/No question, and presses nothing", () => {
+			const onYes = vi.fn();
+			const onNo = vi.fn();
+			const onClose = vi.fn();
+			render(
+				<ClassicyAlert
+					alertType="caution"
+					label="Save changes?"
+					buttons={yesNo(onYes, onNo)}
+					onClose={onClose}
+				/>,
+			);
+			const box = closeBox() as HTMLElement;
+			expect(box).toHaveClass("disabled");
+			expect(box).toHaveAttribute("aria-disabled", "true");
+			fireEvent.click(box);
+			fireEvent.keyDown(box, { key: "Enter" });
+			expect(onYes).not.toHaveBeenCalled();
+			expect(onNo).not.toHaveBeenCalled();
+			expect(onClose).not.toHaveBeenCalled();
+		});
+
+		it("is unavailable while the button it would press is disabled", () => {
+			const onCancel = vi.fn();
+			render(
+				<ClassicyAlert
+					alertType="caution"
+					label="c"
+					buttons={[
+						{
+							id: "cancel",
+							label: "Cancel",
+							role: "cancel",
+							disabled: true,
+							onClick: onCancel,
+						},
+						{ id: "go", label: "Continue", role: "default" },
+					]}
+				/>,
+			);
+			const box = closeBox() as HTMLElement;
+			expect(box).toHaveAttribute("aria-disabled", "true");
+			fireEvent.click(box);
+			expect(onCancel).not.toHaveBeenCalled();
+		});
+
+		it("titles the alert with its app's name and lets it move", () => {
+			render(<ClassicyAlert appId="Finder.app" alertType="stop" label="s" />);
+			expect(
+				document.querySelector(".classicyWindowTitleText p"),
+			).toHaveTextContent("Finder");
+			const root = document.querySelector(".classicyWindow") as HTMLElement;
+			// A fixed alert (`type="error"`) still, its red band kept, but
+			// not fixed in place.
+			expect(root).toHaveClass("classicyWindowRed");
+			expect(root).not.toHaveClass("classicyWindowModalFixed");
 		});
 	});
 });

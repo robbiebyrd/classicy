@@ -69,7 +69,14 @@ and `nodenext` resolution).
   window with the arrow keys until ENTER (ESC puts it back), and a
   double-click on the icon or ALT+F4 closes the window. A browser on a
   Windows computer keeps ALT+F4 and ALT+SPACE for itself; on a Mac they are
-  Option+F4 and Option+Space.
+  Option+F4 and Option+Space. Each caption button names itself (Minimize,
+  Maximize or Restore, Close) in a tooltip when the pointer rests on it, as
+  Windows 98 did. Every dialog and message box has a title (its
+  application's name when it has none of its own; an About box reads
+  "About" and the name) and a Close button, which cancels it (a message box
+  with only an OK takes OK), and moves by its caption, error messages
+  included; a Yes/No question, which has no Cancel, shows its Close dimmed,
+  and ALT+F4 leaves it open, as Windows' message boxes do.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
@@ -78,7 +85,8 @@ and `nodenext` resolution).
     the three-ring fixed frame with no sizing border on dialogs and on any
     window that cannot be sized (the control panels, the About windows, the
     Calculator), dialogs on a flat face with the title and Close alone in
-    their caption (no icon, no Minimize), palette windows with Close alone,
+    their caption (no icon, no Minimize; an unavailable Close embossed),
+    palette windows with Close alone,
     a modeless dialog's frame flattened to a plain ButtonFace box;
   - menus: the flat menu bar, raised pull-down and contextual menus with an
     inverted highlight and embossed dimmed items, etched separators, the

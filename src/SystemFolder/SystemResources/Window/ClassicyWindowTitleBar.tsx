@@ -1,11 +1,16 @@
 import classNames from "classnames";
-import type {
-	CSSProperties,
-	FC as FunctionalComponent,
-	KeyboardEvent,
-	MouseEvent,
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	type KeyboardEvent,
+	type MouseEvent,
+	useRef,
 } from "react";
-import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	CLASSICY_PART_ATTRIBUTE,
+	classicyStateClasses,
+} from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 
 export type ClassicyWindowTitleBarProps = {
@@ -24,6 +29,19 @@ export type ClassicyWindowTitleBarProps = {
 	modal?: boolean;
 	/** Draws the close box and is called, with no arguments, by its click, Enter or Space. */
 	onClose?: () => void;
+	/**
+	 * Draws the close box unavailable, whether or not `onClose` is given: it
+	 * carries the `disabled` state and `aria-disabled="true"`, leaves the tab
+	 * order (`tabIndex` -1) and has no handler, so its click, Enter and Space
+	 * do nothing. `ClassicyWindow` passes it under a layout whose
+	 * `dialog.caption` is `"titled"` for a modal that has no way to close
+	 * (not `closable`, no `onCaptionClose`): Windows grays a Close it cannot
+	 * carry out (Wine's `draw_close_button` for a system menu whose
+	 * `SC_CLOSE` is grayed or absent, as a Yes/No message box's is). Windows
+	 * 98 draws it embossed; a package with no unavailable Close draws it as
+	 * its close box.
+	 */
+	closeDisabled?: boolean;
 	/**
 	 * Draws the zoom box (not on a modal bar) and is called, with no
 	 * arguments, by its click, Enter or Space.
@@ -61,6 +79,19 @@ export type ClassicyWindowTitleBarProps = {
 	 * p.80); without the prop the boxes keep their names.
 	 */
 	labels?: ClassicyWindowTitleBarLabels;
+	/**
+	 * Each control box names itself in a tooltip: its label (`labels`, else
+	 * "Close", "Zoom", "Collapse") once the pointer has rested on it for
+	 * 500 ms (Windows' automatic delay, the double-click time: Wine's
+	 * `TTDT_AUTOMATIC`), whether or not balloon help is on
+	 * (`useClassicyBalloonHelp`'s `force`), below the box; a press on the box
+	 * hides it until the pointer comes back, as a Windows tooltip hides on a
+	 * button press. `ClassicyWindow` passes it under a layout whose
+	 * `window.captionTooltips` is `true` (Windows 98 as shipped). Without it
+	 * the boxes render as they always have, with no tooltip and no hover
+	 * handler.
+	 */
+	buttonTooltips?: boolean;
 	/** Extra class names, after the bar's own. */
 	className?: string;
 	/** Inline style for the bar's root element. */
@@ -81,6 +112,90 @@ export type ClassicyWindowTitleBarLabels = {
 const isPressKey = (e: KeyboardEvent<HTMLDivElement>) =>
 	e.key === "Enter" || e.key === " ";
 
+// How long the pointer rests on a box before its tooltip shows: Windows'
+// automatic delay, the double-click time (Wine's `tooltips.c`,
+// `TTDT_AUTOMATIC`), 500 ms by default, as the taskbar's buttons wait.
+const CAPTION_TOOLTIP_DELAY_MS = 500;
+
+/** One control box: its class, accessible name and behavior. */
+type ClassicyWindowTitleBarBoxProps = {
+	className: string;
+	label: string;
+	disabled?: boolean;
+	onClick?: (e: MouseEvent<HTMLDivElement>) => void;
+	onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
+};
+
+// The box as it has always rendered: a focusable button-role div; an
+// unavailable one (`disabled`) out of the tab order, `aria-disabled`, with
+// no handler.
+const ClassicyWindowTitleBarBox: FunctionalComponent<
+	ClassicyWindowTitleBarBoxProps
+> = ({ className, label, disabled = false, onClick, onKeyDown }) => (
+	// biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box
+	<div
+		className={classNames(className, classicyStateClasses({ disabled }))}
+		role="button"
+		aria-label={label}
+		aria-disabled={disabled ? "true" : undefined}
+		tabIndex={disabled ? -1 : 0}
+		onClick={onClick}
+		onKeyDown={onKeyDown}
+	></div>
+);
+
+// The same box naming itself in a tooltip (`buttonTooltips`): a forced
+// balloon (a tooltip, shown whatever Balloon Help says) after the pointer
+// rests on it, below it, hidden by a press on it. A separate component, so a
+// bar without the prop runs no balloon hook at all.
+const ClassicyWindowTitleBarTooltipBox: FunctionalComponent<
+	ClassicyWindowTitleBarBoxProps
+> = ({ className, label, disabled = false, onClick, onKeyDown }) => {
+	const ref = useRef<HTMLDivElement>(null);
+	const { handlers, balloon } = useClassicyBalloonHelp(
+		ref,
+		{
+			content: label,
+			delay: CAPTION_TOOLTIP_DELAY_MS,
+			position: "bottom-left",
+		},
+		{ force: true },
+	);
+	return (
+		<>
+			{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
+			<div
+				ref={ref}
+				className={classNames(className, classicyStateClasses({ disabled }))}
+				role="button"
+				aria-label={label}
+				aria-disabled={disabled ? "true" : undefined}
+				aria-describedby={handlers["aria-describedby"]}
+				tabIndex={disabled ? -1 : 0}
+				onClick={onClick}
+				onKeyDown={onKeyDown}
+				onMouseEnter={handlers.onMouseEnter}
+				onMouseLeave={handlers.onMouseLeave}
+				// A press hides the tooltip (and stops its timer) until the
+				// pointer leaves and comes back, as Windows' tooltip control
+				// hides on a relayed button press.
+				onMouseDown={handlers.onMouseLeave}
+			></div>
+			{balloon}
+		</>
+	);
+};
+
+// A box, with its tooltip when the bar asks for them.
+const ClassicyWindowTitleBarControlBox: FunctionalComponent<
+	ClassicyWindowTitleBarBoxProps & { tooltip: boolean }
+> = ({ tooltip, ...box }) =>
+	tooltip ? (
+		<ClassicyWindowTitleBarTooltipBox {...box} />
+	) : (
+		<ClassicyWindowTitleBarBox {...box} />
+	);
+
 /**
  * The Mac OS 8 title bar, shared by `ClassicyWindow` and
  * `ClassicyWindowFrame`: the control boxes (close, zoom, collapse; each
@@ -89,9 +204,12 @@ const isPressKey = (e: KeyboardEvent<HTMLDivElement>) =>
  * drawn only when its handler is given, so an Appearance Package skins one
  * title bar for both chromes.
  *
- * Presentational: it reads no store and dispatches nothing; the window owns
- * the behavior and passes it in. The boxes are buttons named "Close", "Zoom"
- * and "Collapse", unless `labels` names them otherwise.
+ * Presentational: it dispatches nothing and reads no store (only the
+ * tooltips `buttonTooltips` asks for read balloon help's toggle, through
+ * `useClassicyBalloonHelp`); the window owns the behavior and passes it in. The boxes are buttons named "Close", "Zoom"
+ * and "Collapse", unless `labels` names them otherwise; `closeDisabled` draws
+ * an unavailable close box and `buttonTooltips` gives each box its name as a
+ * tooltip.
  *
  * Its styles exist only under a `.classicyWindow` or `.classicyWindowFrame`
  * root (`ClassicyWindowTitleBar.scss` is included by those two sheets), so
@@ -110,6 +228,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 	variant = "document",
 	modal = false,
 	onClose,
+	closeDisabled = false,
 	onZoom,
 	onCollapse,
 	onCollapseKey,
@@ -118,6 +237,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 	onIconMouseDown,
 	onIconDoubleClick,
 	labels,
+	buttonTooltips = false,
 	className,
 	style,
 }) => (
@@ -129,22 +249,25 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 		)}
 		style={style}
 	>
-		{onClose && (
+		{(onClose || closeDisabled) && (
 			<div
 				className={"classicyWindowControlBox"}
 				{...{ [CLASSICY_PART_ATTRIBUTE.control]: "close" }}
 			>
-				{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-				<div
+				<ClassicyWindowTitleBarControlBox
+					tooltip={buttonTooltips}
 					className={"classicyWindowCloseBox"}
-					role="button"
-					aria-label={labels?.close ?? "Close"}
-					tabIndex={0}
-					onClick={() => onClose()}
-					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-						if (isPressKey(e)) onClose();
-					}}
-				></div>
+					label={labels?.close ?? "Close"}
+					disabled={closeDisabled}
+					onClick={!closeDisabled && onClose ? () => onClose() : undefined}
+					onKeyDown={
+						!closeDisabled && onClose
+							? (e: KeyboardEvent<HTMLDivElement>) => {
+									if (isPressKey(e)) onClose();
+								}
+							: undefined
+					}
+				/>
 			</div>
 		)}
 		{/* biome-ignore lint/a11y/noStaticElementInteractions: title bar is a mouse-only drag handle */}
@@ -183,17 +306,15 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				className={"classicyWindowControlBox"}
 				{...{ [CLASSICY_PART_ATTRIBUTE.control]: "zoom" }}
 			>
-				{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-				<div
+				<ClassicyWindowTitleBarControlBox
+					tooltip={buttonTooltips}
 					className={"classicyWindowZoomBox"}
-					role="button"
-					aria-label={labels?.zoom ?? "Zoom"}
-					tabIndex={0}
+					label={labels?.zoom ?? "Zoom"}
 					onClick={() => onZoom()}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 						if (isPressKey(e)) onZoom();
 					}}
-				></div>
+				/>
 			</div>
 		)}
 		{onCollapse && (
@@ -201,19 +322,17 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				className={"classicyWindowControlBox"}
 				{...{ [CLASSICY_PART_ATTRIBUTE.control]: "collapse" }}
 			>
-				{/* biome-ignore lint/a11y/useSemanticElements: custom window control styled as pixel-precise box */}
-				<div
+				<ClassicyWindowTitleBarControlBox
+					tooltip={buttonTooltips}
 					className={"classicyWindowCollapseBox"}
-					role="button"
-					aria-label={labels?.collapse ?? "Collapse"}
-					tabIndex={0}
+					label={labels?.collapse ?? "Collapse"}
 					onClick={onCollapse}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 						if (!isPressKey(e)) return;
 						if (onCollapseKey) onCollapseKey();
 						else e.currentTarget.click();
 					}}
-				></div>
+				/>
 			</div>
 		)}
 	</div>

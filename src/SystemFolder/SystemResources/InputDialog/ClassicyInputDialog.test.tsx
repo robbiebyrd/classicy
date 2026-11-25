@@ -1,5 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, userEvent } from "@/__tests__/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	act,
+	fireEvent,
+	renderWithProviders,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
+import {
+	registerTestTaskbarPackage,
+	TEST_DIALOG_CAPTION_LAYOUT,
+	TEST_DIALOG_CAPTION_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
 
 const setup = (
@@ -124,5 +141,47 @@ describe("ClassicyInputDialog", () => {
 		) as HTMLInputElement;
 		expect(field.selectionStart).toBe(0);
 		expect(field.selectionEnd).toBe("untitled folder".length);
+	});
+});
+
+// Plan 0020-w98 §6: under a layout whose `dialog.caption` is `"titled"`
+// (Windows 98) a dialog's caption has a Close box, which is its Cancel (WIG
+// Ch.8, p.145, Figure 8.1); under every other layout it has none.
+describe("ClassicyInputDialog's caption Close box", () => {
+	const closeBox = () =>
+		document.querySelector<HTMLElement>(
+			".classicyWindow > .classicyWindowTitleBar .classicyWindowCloseBox",
+		);
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_DIALOG_CAPTION_PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	it("is not drawn under a layout without titled captions", () => {
+		setup();
+		expect(closeBox()).toBeNull();
+	});
+
+	describe('under dialog.caption: "titled"', () => {
+		beforeEach(() => {
+			registerTestTaskbarPackage(
+				TEST_DIALOG_CAPTION_LAYOUT,
+				TEST_DIALOG_CAPTION_PACKAGE_ID,
+			);
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: TEST_DIALOG_CAPTION_PACKAGE_ID,
+				}),
+			);
+		});
+
+		it("runs Cancel, and nothing else", () => {
+			const { onConfirm, onCancel } = setup({ initialValue: "Notes" });
+			fireEvent.click(closeBox() as HTMLElement);
+			expect(onCancel).toHaveBeenCalledTimes(1);
+			expect(onConfirm).not.toHaveBeenCalled();
+		});
 	});
 });

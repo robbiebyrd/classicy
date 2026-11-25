@@ -7,6 +7,7 @@ import {
 	useRef,
 } from "react";
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -44,7 +45,11 @@ export type ClassicyAboutWindowProps = {
  * OK is the default button (HIGOS8 p.23): it carries the default ring, and
  * Return or Escape activates it, so every dismissal runs `hideFunc`. The box
  * has no close, zoom or collapse box and cannot be resized; it takes focus
- * when it mounts. Most apps get it from `useClassicyAboutMenu`, which returns
+ * when it mounts. Under a layout whose `dialog.caption` is `"titled"`
+ * (Windows 98) it is captioned "About <name>", as Windows' About boxes are
+ * (`ShellAbout`'s caption, "About %s"; the Help menu's "About application
+ * name", WIG Ch.7 "The Help Menu", p.99), and its caption's Close box clicks
+ * OK. Most apps get it from `useClassicyAboutMenu`, which returns
  * the About menu item and this window, wired together:
  *
  * ```tsx
@@ -64,6 +69,10 @@ export const ClassicyAboutWindow: FunctionalComponent<
 	const desktopEventDispatch = useAppManagerDispatch();
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const okButtonRef = useRef<HTMLButtonElement | null>(null);
+	// Under a titled caption (Windows 95/98) the box is "About <name>", as
+	// `ShellAbout` captions it (Wine's shell32: "About %s" with the app's
+	// name); every other layout keeps the untitled Mac OS About box.
+	const titled = useClassicyAppearanceLayout().dialog?.caption === "titled";
 
 	// HIGOS8 Ch.3 (p.23/p.57): the About box's OK is the default button — it gets
 	// the ring and Return activates it. Escape also dismisses (a single-OK info
@@ -99,7 +108,11 @@ export const ClassicyAboutWindow: FunctionalComponent<
 			className={className}
 			style={style}
 			appId={appId}
+			title={titled ? `About ${identity.name}` : ""}
 			closable={false}
+			// A titled caption's Close box (Windows 98) clicks OK, so
+			// `hideFunc` gets the real click event its type promises.
+			onCaptionClose={() => okButtonRef.current?.click()}
 			resizable={false}
 			zoomable={false}
 			scrollable={false}

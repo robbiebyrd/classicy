@@ -237,4 +237,40 @@ describe("windows98.scss (compiled)", () => {
 		// On the title alone: no rule bolds the item itself.
 		expect(has(".classicyMenuItem.default")).toBe(false);
 	});
+
+	// Plan 0020-w98 §6 (`dialog.caption: "titled"`): a dialog that cannot
+	// close draws its Close box `disabled`, raised, its X embossed in
+	// ButtonShadow over a ButtonHilight copy one pixel down and right
+	// (DrawFrameControl's DFCS_INACTIVE caption button, Wine's
+	// `draw_frame_caption`), and never pressed (Wine's `track_close_button`
+	// tracks no press on a grayed Close); the palette's small Close likewise.
+	it("draws an unavailable Close box embossed and never pressed", () => {
+		const selectors = selectorsOf(css);
+		const at = (tail: string) =>
+			selectors.findIndex((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		for (const root of [
+			".classicyWindow",
+			".classicyWindow.classicyWindowUtility",
+		]) {
+			const box = `${root} .classicyWindowTitleBar .classicyWindowCloseBox`;
+			const disabled = `${box}.disabled`;
+			expect(at(disabled), disabled).toBeGreaterThanOrEqual(0);
+			expect(at(`${disabled}:active`), disabled).toBeGreaterThanOrEqual(0);
+			// After the box's own pressed rule, which it overrides.
+			expect(at(`${disabled}:active`)).toBeGreaterThan(at(`${box}:active`));
+			const look = block(`${disabled}:active`);
+			expect(look).toContain("var(--color-system-05)");
+			expect(look).toContain("var(--color-system-01)");
+			expect(look).not.toContain("var(--color-black)");
+			// Raised, not pressed: ButtonDkShadow is the outer ring's bottom
+			// and right (pressed, it would be ButtonHilight there).
+			expect(look).toMatch(
+				/box-shadow: inset calc\(var\(--window-border-size\) \* -1\) calc\(var\(--window-border-size\) \* -1\) var\(--color-system-07\)/,
+			);
+		}
+	});
 });

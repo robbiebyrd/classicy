@@ -34,6 +34,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
@@ -498,9 +499,29 @@ interface ClassicyWindowProps {
 	/**
 	 * Draw the close box at the left of the title bar (HIGOS8 p.101). On a
 	 * `modal` window it also decides Escape / Command-period: a closable modal
-	 * closes, a non-closable one beeps. Defaults to `true`.
+	 * closes, a non-closable one beeps. Under a package whose layout says
+	 * `dialog.caption: "titled"` (Windows 98) a modal draws a Close box
+	 * whatever this says: a non-closable one's runs `onCaptionClose`, and is
+	 * drawn unavailable without it. Defaults to `true`.
 	 */
 	closable?: boolean;
+	/**
+	 * What a non-closable modal's caption Close box does under a package
+	 * whose layout says `dialog.caption: "titled"` (Windows 95/98, where
+	 * every dialog and message box has a Close box: WIG Ch.8 "Appearance and
+	 * Behavior", p.145, Figure 8.1; "Message Box Types", p.166, Figure 8.17).
+	 * Pass the path the dialog's own dismissing button runs, its Cancel, or
+	 * a message box's only button (Windows' `DefDlgProc` turns a dialog's
+	 * Close into its Cancel; a message box's into its Cancel, else, with OK
+	 * alone, its OK). The window pop-up menu's Close, ALT+F4 and a
+	 * double-click on the title bar's icon run it too. Without it that Close
+	 * box is drawn unavailable and none of them closes the dialog, as
+	 * Windows grays a Yes/No message box's Close. Read only on a `modal`
+	 * window that is not `closable`, under that layout: everywhere else it
+	 * changes nothing (Escape / Command-period included, which the dialog's
+	 * own keys handle).
+	 */
+	onCaptionClose?: () => void;
 	/**
 	 * Draw the zoom box (HIGOS8 p.104), left of the collapse box. Never drawn
 	 * on `modal` windows. See `zoomMode` and `idealSize`. Under a package
@@ -564,7 +585,11 @@ interface ClassicyWindowProps {
 	 * focus, cancels on Escape / Command-period, and draws no zoom box. It is a
 	 * movable modal dialog box unless `movable={false}` or `type="error"`. Its
 	 * store record is dropped on unmount, so a modal keeps no geometry between
-	 * openings. Defaults to `false`.
+	 * openings. Under a package whose layout says `dialog.caption: "titled"`
+	 * (Windows 98) its caption is always titled, with its app's display name
+	 * when `title` is empty, always has a Close box (`onCaptionClose`), and it
+	 * always moves by its caption, `movable={false}` and `type="error"`
+	 * included (WIG Ch.8, pp.145, 164, 166). Defaults to `false`.
 	 */
 	modal?: boolean;
 	/**
@@ -820,6 +845,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	hideIcon = false,
 	hidden = false,
 	closable = true,
+	onCaptionClose,
 	zoomable = true,
 	collapsable = true,
 	resizable = true,
@@ -963,11 +989,44 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		);
 	}, [activeTheme, menuBarPlacement]);
 
+	// How a modal is captioned (`layout.dialog.caption`, plan 0020-w98 §6).
+	// `"plain"` (the default, Mac OS 8, every package but Windows 98): the
+	// title it is given, a Close box only when `closable`, and an alert or a
+	// `movable={false}` modal fixed in place, as always. `"titled"` (Windows
+	// 95/98: WIG Ch.8 "Appearance and Behavior", p.145, Figure 8.1;
+	// "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17): a
+	// modal's caption names its context, its app, when given no title; its
+	// Close box is always drawn, closing a closable modal, running
+	// `onCaptionClose` for any other, and unavailable with neither (Windows
+	// grays the Close of a message box with no Cancel: ReactOS's
+	// `MessageBoxProc` removes `SC_CLOSE`, and Wine's `draw_close_button`
+	// grays the box for a missing or grayed `SC_CLOSE`); and every
+	// secondary window moves by its caption, an alert included. Only a modal
+	// changes: every other window is captioned as always.
+	const titledCaption = modal && layout.dialog?.caption === "titled";
+	// What the caption's Close box runs when the modal is not closable.
+	const captionClose = titledCaption && !closable ? onCaptionClose : undefined;
+	// Whether its Close (the box, the pop-up menu's Close, ALT+F4, the
+	// icon's double-click) does anything.
+	const closesByCaption = closable || captionClose !== undefined;
+	// The title the caption shows: the `title` prop, or, under a titled
+	// caption, its app's display name for an untitled modal (an alert): a
+	// message box's title "identifies the context in which the message is
+	// displayed—usually the name of the object" or application (p.164). The
+	// root's accessible name follows it.
+	const appIdentity = useClassicyAppIdentity(appId, {
+		name: currentApp?.name || appId.replace(/\.app$/, ""),
+		icon: "",
+	});
+	const shownTitle = titledCaption && title === "" ? appIdentity.name : title;
+
 	// A modal of type "error" (an alert) or with `movable={false}` cannot be
-	// moved (a fixed modal dialog box); every other modal can (a movable one).
-	// Only "error" carries the alert semantics (the beep, the error scrim and
-	// the red band), which key on `type` below, never on this value.
-	const fixedModal = modal && (type === "error" || !movable);
+	// moved (a fixed modal dialog box); every other modal can (a movable one),
+	// and, under a titled caption, every modal (WIG p.145: a secondary window
+	// moves by its title bar). Only "error" carries the alert semantics (the
+	// beep, the error scrim and the red band), which key on `type` below,
+	// never on this value.
+	const fixedModal = modal && !titledCaption && (type === "error" || !movable);
 
 	// `movable` applies to modals only (a document window always moves). Say
 	// so once per window, in development, rather than drop it silently.
@@ -2964,7 +3023,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				resizable,
 				minimizable: collapsesByBox,
 				maximizable: zoomsByBox && !modal,
-				closable,
+				// The Close box's path: closable, or a titled caption's
+				// `onCaptionClose`.
+				closable: closesByCaption,
 			},
 			handlers,
 		);
@@ -3097,9 +3158,20 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				setActive();
 				return true;
 			case "close":
-				if (!closable) return false;
-				close();
-				return true;
+				// The caption Close box's action: a closable window closes; a
+				// non-closable modal under a titled caption runs its
+				// `onCaptionClose`; anything else cannot close (a Yes/No
+				// message box), as Windows ignores ALT+F4 and the icon's
+				// double-click when Close is unavailable.
+				if (closable) {
+					close();
+					return true;
+				}
+				if (captionClose) {
+					captionClose();
+					return true;
+				}
+				return false;
 			case "move":
 				// The keyboard Move mode (Windows' SC_MOVE). Refused for a
 				// window that does not move (a fixed modal: an alert, or
@@ -3141,11 +3213,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const entry = {
 			appId,
 			windowId: id,
-			title,
+			// The title its caption shows (a titled caption's untitled modal:
+			// its app's display name).
+			title: shownTitle,
 			icon,
 			modal,
 			windowType,
-			closable,
+			// Whether its Close closes it (a titled caption's non-closable
+			// modal: through `onCaptionClose`).
+			closable: closesByCaption,
 			// Whether it draws a zoom box: under maximize, a palette or a
 			// dialog has no Maximize button.
 			zoomable: zoomsByBox,
@@ -3160,11 +3236,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, [
 		appId,
 		id,
-		title,
+		shownTitle,
 		icon,
 		modal,
 		windowType,
-		closable,
+		closesByCaption,
 		zoomsByBox,
 		collapsesByBox,
 		resizable,
@@ -3283,7 +3359,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			id={[appId, id].join("_")}
 			ref={windowRef}
 			role="application"
-			aria-label={title || undefined}
+			aria-label={shownTitle || undefined}
 			// Package, then consumer, then the window's own geometry; neither
 			// may set the stacking.
 			style={{
@@ -3401,12 +3477,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					></div>
 				))}
 			<ClassicyWindowTitleBar
-				title={title}
+				title={shownTitle}
 				icon={icon}
 				hideIcon={hideIcon}
 				variant={windowType === "utility" ? "utility" : "document"}
 				modal={modal === true}
-				onClose={closable ? close : undefined}
+				// Under a titled caption a modal always draws its Close box:
+				// its `onCaptionClose` when it is not closable, else drawn
+				// unavailable. Every other window draws one when closable.
+				onClose={closable ? close : captionClose}
+				closeDisabled={titledCaption && !closesByCaption}
+				// Each box names itself in a tooltip
+				// (`layout.window.captionTooltips`, Windows 98 as shipped).
+				buttonTooltips={layout.window.captionTooltips === true}
 				onZoom={zoomsByBox ? toggleZoom : undefined}
 				// Under minimize a modal or palette has no Minimize box: neither
 				// has a taskbar button to come back from.

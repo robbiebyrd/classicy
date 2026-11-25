@@ -122,3 +122,21 @@ export const TEST_SHELL_SYSTEM_MENU_LAYOUT: ClassicyAppearanceLayout = {
 		systemMenu: true,
 	},
 };
+
+/** The id of the test package with titled dialog captions (`TEST_DIALOG_CAPTION_LAYOUT`). */
+export const TEST_DIALOG_CAPTION_PACKAGE_ID = "test-dialog-caption";
+
+/**
+ * Windows 98's window behavior from plan 0020-w98 step 10:
+ * `TEST_SYSTEM_MENU_LAYOUT` whose caption buttons name themselves in a
+ * tooltip (`window.captionTooltips: true`) and whose dialogs and message
+ * boxes are titled, closable from their caption and movable
+ * (`dialog.caption: "titled"`), as the package declares them before its
+ * shell lands. Register it with
+ * `registerTestTaskbarPackage(TEST_DIALOG_CAPTION_LAYOUT, TEST_DIALOG_CAPTION_PACKAGE_ID)`.
+ */
+export const TEST_DIALOG_CAPTION_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_SYSTEM_MENU_LAYOUT,
+	window: { ...TEST_SYSTEM_MENU_LAYOUT.window, captionTooltips: true },
+	dialog: { caption: "titled" },
+};

@@ -69,7 +69,8 @@ export type ClassicyKeyboardEquivalentDialogProps =
  * neither a command key nor a function key, or one another item already uses,
  * leaves the field unchanged and raises an alert saying why. Return chooses
  * OK and Escape (or ⌘-period) Cancel, as in any dialog, so those cannot be
- * recorded bare.
+ * recorded bare. Under a layout whose `dialog.caption` is `"titled"`
+ * (Windows 98) the caption's Close box is Cancel.
  *
  * Captured keys are kept from the app's own menu shortcuts. A browser may
  * still act on a few combinations before the page sees them (⌘W, ⌘Q, ⌘T and
@@ -177,6 +178,8 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 				title={title}
 				hideIcon={true}
 				closable={false}
+				// A titled caption's Close box (Windows 98) is Cancel.
+				onCaptionClose={cancel}
 				resizable={false}
 				zoomable={false}
 				collapsable={false}

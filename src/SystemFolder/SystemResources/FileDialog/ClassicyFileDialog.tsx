@@ -90,7 +90,11 @@ type ClassicyFileDialogSharedProps = {
 	 * `ClassicyFileDialogVolume`. Keep the array stable (e.g. `useMemo`).
 	 */
 	volumes: ClassicyFileDialogVolume[];
-	/** Called when Cancel, Escape or Command-period fires. */
+	/**
+	 * Called when Cancel, Escape or Command-period fires, and, under a layout
+	 * whose `dialog.caption` is `"titled"` (Windows 98), by the caption's
+	 * Close box (drawn unavailable without it).
+	 */
 	onCancelFunc?: () => void;
 	/** Extra class names, merged onto the dialog window after the component's own. */
 	className?: string;
@@ -692,6 +696,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 				// dismissed only via its Cancel button or Escape / Command-period
 				// (handled by the dialog-body useKeyboardEquivalents above).
 				closable={false}
+				// Under a titled caption (Windows 98: Open and Save As have a
+				// Close box, WIG Ch.8, Figures 8.6 and 8.7) the box is Cancel.
+				onCaptionClose={onCancelFunc}
 				zoomable={false}
 				collapsable={false}
 				resizable={false}

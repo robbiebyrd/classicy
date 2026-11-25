@@ -58,6 +58,18 @@ export const HyperCardDialog: FunctionalComponent<HyperCardDialogProps> = ({
 
 	const buttons = dialog.buttons ?? ["OK"];
 
+	// What the caption's Close box answers under a layout whose
+	// `dialog.caption` is `"titled"` (Windows 98, where every dialog has a
+	// Close box): an ask's Cancel (the empty answer), an answer's Cancel
+	// button, else its only button, as a message box's Close is its Cancel,
+	// else, with one button, that one; with neither the box is drawn
+	// unavailable (none), as Windows grays a Yes/No box's Close.
+	const captionAnswer =
+		dialog.kind === "ask"
+			? ""
+			: (buttons.find((b) => b.trim().toLowerCase() === "cancel") ??
+				(buttons.length === 1 ? buttons[0] : undefined));
+
 	// The modal ClassicyWindow already portals to the desktop and dims the
 	// background; it must NOT be wrapped in classicyDesktopDialogOverlay — that
 	// overlay is a fixed, top-of-stack layer and, once the window portals out of
@@ -70,6 +82,9 @@ export const HyperCardDialog: FunctionalComponent<HyperCardDialogProps> = ({
 			style={style}
 			title={dialog.kind === "ask" ? "Ask" : appName}
 			closable={false}
+			onCaptionClose={
+				captionAnswer === undefined ? undefined : () => respond(captionAnswer)
+			}
 			resizable={false}
 			zoomable={false}
 			scrollable={false}

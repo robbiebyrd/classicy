@@ -248,6 +248,18 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   viewport floor, the work area's right and bottom, `minimumSize` and the
   `max-height` reserve's cap, so the release clamp never moves the window. A
   non-resizable window's edges do nothing.
+- Under `layout.dialog.caption: "titled"` (Windows 98 declares it; absent,
+  `"plain"`, a modal's caption is as above) every `modal` window's caption is
+  titled (its app's display name, `useClassicyAppIdentity`, when `title` is
+  empty), always draws a Close box (closing a closable modal, else running
+  the new `onCaptionClose` prop, else drawn unavailable through
+  `ClassicyWindowTitleBar`'s `closeDisabled`: `disabled`, `aria-disabled`),
+  and moves (no modal is `classicyWindowModalFixed`). The registry's `close`
+  command (ALT+F4, the icon's double-click) and the pop-up menu's Close follow
+  the box. Each bundled dialog passes its Cancel (an alert its cancel-role
+  button, else its only button; none for Yes/No). `layout.window.captionTooltips:
+  true` gives each box a forced 500 ms tooltip of its label (the title bar's
+  `buttonTooltips`).
 - The Application menu's Hide <app>, Hide Others and Show All dispatch
   `ClassicyAppHide`, `ClassicyAppHideOthers` and `ClassicyAppShowAll`
   (HIG7 p.127). `apps[id].hidden` is **session state**: `sanitizeStateForPersistence`
