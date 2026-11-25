@@ -33,6 +33,7 @@ import {
 	useClassicyControlStripDisabledModules,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -67,6 +68,9 @@ export function ClassicyControlStripManager() {
 		APP_NAME,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
 	const windowClose = useClassicyWindowClose(APP_ID);
 
 	const stored = useAppManager((s) => s.System.Manager.Desktop.controlStrip);
@@ -134,6 +138,7 @@ export function ClassicyControlStripManager() {
 					{
 						id: `${APP_ID}_file`,
 						title: "File",
+						accessKey: ak("f"),
 						menuChildren: [
 							{ ...aboutMenuItem, title: `About ${APP_NAME}` },
 							{
@@ -143,11 +148,13 @@ export function ClassicyControlStripManager() {
 										quitAppHelper(APP_ID, APP_NAME, appIcon),
 									),
 								),
+								accessKey: ak("c"),
 								keyboardShortcut: "⌥W",
 							},
 							{ id: "spacer" },
 							{
 								...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+								accessKey: ak(""),
 								keyboardShortcut: "⌥Q",
 							},
 						],

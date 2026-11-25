@@ -38,8 +38,10 @@ import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import {
 	type ClassicyAccessKey,
 	classicyAccessKeyFromEvent,
+	markClassicyMenuShown,
 	renderClassicyAccessKeyText,
 	resolveClassicyAccessKeys,
+	warnClassicyDuplicateAccessKeys,
 } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { classicyMenuBounds } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
@@ -162,6 +164,9 @@ export interface ClassicyMenuItem {
 	 * the Edit menu's ⌘Z/⌘X/⌘C/⌘V/⌘A in a focused text field). The glyph still
 	 * renders in the menu, but the app-wide dispatcher does NOT intercept the
 	 * keystroke — so native editing keeps working and we don't preventDefault it.
+	 * Spelled by name (`layout.menu.shortcutSpelling` `"names"`) off a Mac,
+	 * its ⌘ reads `Ctrl`, the key the browser answers there (`ClassicyKbd`'s
+	 * `nativeShortcut`).
 	 */
 	nativeShortcut?: boolean;
 	/**
@@ -378,6 +383,18 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 			),
 		[menuItems, accessKeyMode],
 	);
+	// Two items of this menu sharing a key (explicit ones; the automatic
+	// pick never repeats one): a development warning (WIG Ch.4 "Access
+	// Keys", p.27: unique within its scope).
+	useEffect(() => {
+		warnClassicyDuplicateAccessKeys(
+			"Menu",
+			accessKeys.map((key, i) => ({
+				text: he.decode(menuItems?.[i]?.title ?? ""),
+				key: key?.key,
+			})),
+		);
+	}, [accessKeys, menuItems]);
 
 	// A root menu owns its tree's register; a submenu joins its root's.
 	const isRoot = open === undefined;
@@ -587,6 +604,12 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// passes on). In the capture phase, before the focused element (or a
 	// dialog around it) sees them.
 	const treeShown = isRoot && (popup === true || openChildId !== null);
+	// Shown on Windows' keyboard, the menu takes the keys typed: a bar's
+	// title and a label stand down from Alt and a key meanwhile.
+	useEffect(() => {
+		if (!treeShown || !windowsKeys) return;
+		return markClassicyMenuShown();
+	}, [treeShown, windowsKeys]);
 	useEffect(() => {
 		if (!treeShown || !tree || !windowsKeys) return;
 		const onKey = (e: globalThis.KeyboardEvent) => {
@@ -677,7 +700,6 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		listRef,
 		windowActive,
 		titleKeys: titleAccessKeys,
-		menuItems,
 		keyboardEnv,
 		closeAll,
 		restoreFocus,
@@ -1489,6 +1511,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				<ClassicyKbd
 					variant="inline"
 					shortcut={menuItem.keyboardShortcut}
+					nativeShortcut={menuItem.nativeShortcut === true}
 					className="classicyMenuItemKeyboardShortcut"
 				/>
 			)}

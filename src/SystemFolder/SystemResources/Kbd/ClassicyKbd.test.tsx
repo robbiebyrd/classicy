@@ -56,9 +56,36 @@ registerClassicyAppearancePackage({
 	},
 	layout: windows98.layout as never,
 });
+// Windows 98's spelling without its command rule (`keyboard.command`): ⌘
+// is then the Windows key it is matched against.
+registerClassicyAppearancePackage({
+	id: "names-kbd",
+	name: "Shortcuts by name",
+	css: "",
+	defaults: {
+		...CLASSICY_CORE_DEFAULT_THEME,
+		id: "names-kbd-default",
+		package: "names-kbd",
+	},
+	layout: {
+		...windows98.layout,
+		keyboard: { contextMenuKey: true },
+	} as never,
+});
+
+// The host's platform, for the native shortcuts' spelling.
+let platformSpy: { mockRestore: () => void } | undefined;
+const setPlatform = (platform: string) => {
+	platformSpy?.mockRestore();
+	platformSpy = vi
+		.spyOn(navigator, "platform", "get")
+		.mockReturnValue(platform);
+};
 
 afterEach(() => {
 	activePackage.id = "platinum";
+	platformSpy?.mockRestore();
+	platformSpy = undefined;
 });
 
 describe("ClassicyKbd", () => {
@@ -179,7 +206,9 @@ describe("ClassicyKbd — layout.menu.shortcutSpelling", () => {
 		expect(text("⌃⌫")).toBe("Ctrl+Backspace");
 		expect(text("⌃⌦")).toBe("Ctrl+Del");
 		expect(text("⌥⇧↑")).toBe("Alt+Shift+Up");
-		expect(text("Cmd+O")).toBe("Win+O");
+		// Command answers to Control alone there (`keyboard.command` "ctrl").
+		expect(text("Cmd+O")).toBe("Ctrl+O");
+		expect(text("⌃⌘O")).toBe("Ctrl+O");
 		expect(text("⌃Escape")).toBe("Ctrl+Esc");
 		expect(text("F1")).toBe("F1");
 		expect(text("⌃s")).toBe("Ctrl+S");
@@ -194,10 +223,10 @@ describe("ClassicyKbd — layout.menu.shortcutSpelling", () => {
 		expect(
 			parts.map((p) => [p.getAttribute("data-classicy-part"), p.textContent]),
 		).toEqual([
+			["modifier-command", "Ctrl+"],
 			["modifier-shift", "Shift+"],
-			["modifier-command", "Win+"],
 		]);
-		expect(container.querySelector("kbd")).toHaveTextContent("Shift+Win+S");
+		expect(container.querySelector("kbd")).toHaveTextContent("Ctrl+Shift+S");
 		// Text, wrapped in spans: the accessible name reads the same.
 		render(
 			<button type="button">
@@ -205,6 +234,39 @@ describe("ClassicyKbd — layout.menu.shortcutSpelling", () => {
 			</button>,
 		);
 		expect(screen.getByRole("button", { name: "Ctrl+S" })).toBeInTheDocument();
+	});
+
+	// The remaining chapters' audit's 1.12 and 5.30 (WIG Ch.4 "Shortcut
+	// Keys", p.27; Ch.5 "Shortcut Keys for Transfer Operations", pp.67-68).
+	it("spells ⌘ Win without the command rule, and a native chord's ⌘ Ctrl off a Mac whatever the rule", () => {
+		activePackage.id = "names-kbd";
+		const text = (shortcut: string, nativeShortcut?: boolean) =>
+			render(
+				<ClassicyKbd shortcut={shortcut} nativeShortcut={nativeShortcut} />,
+			).container.querySelector("kbd")?.textContent;
+		setPlatform("Win32");
+		expect(text("⌘O")).toBe("Win+O");
+		expect(text("⌃⌘O")).toBe("Ctrl+Win+O");
+		expect(text("⌘X", true)).toBe("Ctrl+X");
+		expect(text("⇧⌘Z", true)).toBe("Ctrl+Shift+Z");
+		expect(text("⌃⌘V", true)).toBe("Ctrl+V");
+		// On a Mac the browser's own editing keys are ⌘: the Windows key.
+		setPlatform("MacIntel");
+		expect(text("⌘X", true)).toBe("Win+X");
+		// Under the command rule, ⌘ is Ctrl on a Mac too.
+		activePackage.id = "windows-kbd";
+		expect(text("⌘X", true)).toBe("Ctrl+X");
+		expect(text("⌘O")).toBe("Ctrl+O");
+	});
+
+	it("keeps the glyphs, a native chord's included, by default (Platinum)", () => {
+		setPlatform("Win32");
+		const text = (shortcut: string, nativeShortcut?: boolean) =>
+			render(
+				<ClassicyKbd shortcut={shortcut} nativeShortcut={nativeShortcut} />,
+			).container.querySelector("kbd")?.textContent;
+		expect(text("⌘X", true)).toBe("⌘X");
+		expect(text("⌘O")).toBe("⌘O");
 	});
 
 	it("keeps the glyphs by default (Platinum) and in key caps", () => {

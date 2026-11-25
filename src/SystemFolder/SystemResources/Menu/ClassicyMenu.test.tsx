@@ -35,6 +35,12 @@ import { losePointerStream } from "@/__tests__/losePointerStream";
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { resetClassicyAccessKeyReportsForTests } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
@@ -1293,7 +1299,10 @@ describe("ClassicyMenu — access keys (WIG Ch.7, pp.97, 106, 109; the audit's 7
 		expect(before).toHaveFocus();
 	});
 
-	it("leaves Alt and a key to a menu item's Option chord, and to a modal window the bar is not in", () => {
+	// The remaining chapters' audit's 4.14 (WIG Ch.4 "Shortcut Keys", p.27):
+	// a title's access key wins over a menu item's ⌥ chord
+	// (useClassicyMenuBarAccessKeys.test.tsx mounts the dispatcher too).
+	it("takes Alt and a title's key over a menu item's Option chord, and leaves it to a modal window the bar is not in", () => {
 		activePackage.id = "windows-menus";
 		render(
 			<ClassicyMenuProvider>
@@ -1324,8 +1333,10 @@ describe("ClassicyMenu — access keys (WIG Ch.7, pp.97, 106, 109; the audit's 7
 		);
 		const before = screen.getByText("before");
 		before.focus();
-		alt("f", before);
-		expect(item("file")).not.toHaveClass("open");
+		expect(alt("f", before)).toBe(false);
+		expect(item("file")).toHaveClass("open");
+		fireEvent.keyDown(item("find"), { key: "Escape" });
+		fireEvent.keyDown(item("file"), { key: "Escape" });
 		alt("e", before);
 		expect(item("edit")).toHaveClass("open");
 		fireEvent.keyDown(item("undo"), { key: "Escape" });
@@ -1490,5 +1501,50 @@ describe("ClassicyMenu — empty submenus (layout.menu.emptySubmenus)", () => {
 		expect(empty).toHaveTextContent("(Empty)");
 		expect(empty).toHaveClass("disabled");
 		expect(empty.querySelector('[data-classicy-part="access-key"]')).toBeNull();
+	});
+});
+
+// The remaining chapters' audit's 4.12 (WIG Ch.4 "Access Keys", p.27:
+// unique "within the scope of its interaction"): in a development build two
+// items of one menu sharing a key log a Menu warning, once; none under a
+// package without access keys, where no item has one.
+describe("ClassicyMenu — duplicate access keys", () => {
+	const entries: ClassicyLogEntry[] = [];
+	afterEach(() => {
+		unregisterClassicyLogSink("menu-duplicates");
+		entries.length = 0;
+		resetClassicyAccessKeyReportsForTests();
+	});
+	const items = [
+		{ id: "copy", title: "Copy", accessKey: "c" },
+		{ id: "close", title: "Close", accessKey: "c" },
+		{ id: "paste", title: "Paste", accessKey: "p" },
+	];
+
+	it("warns once when two items of one menu share a key", () => {
+		activePackage.id = "windows-keys-explicit";
+		registerClassicyLogSink({
+			id: "menu-duplicates",
+			onLog: (entry) => entries.push(entry),
+		});
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const { rerender } = render(
+			<ClassicyMenu name="m" menuItems={items} open={true} />,
+		);
+		rerender(<ClassicyMenu name="m" menuItems={[...items]} open={true} />);
+		const menuWarnings = entries.filter((e) => e.subsystem === "Menu");
+		expect(menuWarnings).toHaveLength(1);
+		expect(menuWarnings[0].level).toBe("warn");
+		expect(menuWarnings[0].message).toContain("“Copy”, “Close”");
+		warn.mockRestore();
+	});
+
+	it("warns of nothing by default (Platinum)", () => {
+		registerClassicyLogSink({
+			id: "menu-duplicates",
+			onLog: (entry) => entries.push(entry),
+		});
+		render(<ClassicyMenu name="m" menuItems={items} open={true} />);
+		expect(entries.filter((e) => e.subsystem === "Menu")).toHaveLength(0);
 	});
 });

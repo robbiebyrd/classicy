@@ -110,3 +110,28 @@ describe("closeAllWindowsMenuItemHelper", () => {
 		expect(called).toBe(true);
 	});
 });
+
+// The remaining chapters' audit's 4.12 (WIG Appendix B Table B.5): the
+// helpers carry the access key a bundled app passes, and none otherwise.
+describe("the helpers' access keys", () => {
+	it("carry the key given, an empty one included, and no key when given none", () => {
+		expect(
+			quitMenuItemHelper("my-app", "My App", "icon.png", ""),
+		).toMatchObject({ accessKey: "" });
+		expect(
+			"accessKey" in quitMenuItemHelper("my-app", "My App", "icon.png"),
+		).toBe(false);
+		expect(
+			"accessKey" in
+				quitMenuItemHelper("my-app", "My App", "icon.png", undefined),
+		).toBe(false);
+		expect(closeWindowMenuItemHelper("w", () => {}, "c").accessKey).toBe("c");
+		expect("accessKey" in closeWindowMenuItemHelper("w", () => {})).toBe(false);
+		expect(closeAllWindowsMenuItemHelper("w", () => {}, "a").accessKey).toBe(
+			"a",
+		);
+		expect("accessKey" in closeAllWindowsMenuItemHelper("w", () => {})).toBe(
+			false,
+		);
+	});
+});

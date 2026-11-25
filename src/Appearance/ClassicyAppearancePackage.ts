@@ -321,6 +321,22 @@ export type ClassicyAppearanceLayout = {
 		 * neither key is taken.
 		 */
 		contextMenuKey?: boolean;
+		/**
+		 * Which key a Command (⌘) keyboard equivalent answers to
+		 * (`shortcutMatchesEvent`, `canonicalChordsFromEvent`,
+		 * `classicyCommandKeyHeld`: the menu-shortcut dispatcher, the
+		 * dialogs' Command-period, HyperCard's editor). `"metaOrCtrl"` (the
+		 * default, Mac OS): Command or Control, so a ⌘ equivalent works on
+		 * any keyboard. `"ctrl"` (Windows; WIG Ch.4 "Shortcut Keys" (p.28),
+		 * Appendix B Table B.3 (p.359): the Windows keys are for the
+		 * system's own functions): Control alone, and a key pressed with the
+		 * Windows key (`metaKey`) runs no command, so Win+letter fires
+		 * nothing and Win+period cancels nothing. A recorded equivalent
+		 * (`keyboardShortcutFromEvent`) follows: Control records as ⌘ and the
+		 * Windows key records nothing. Under `menu.shortcutSpelling`
+		 * `"names"` a ⌘ chord is then spelled `Ctrl+`.
+		 */
+		command?: "metaOrCtrl" | "ctrl";
 	};
 	/**
 	 * Which commands the Finder's menus offer (`Finder`). Optional, as is

@@ -1,11 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+// The command-rule package below needs a sound pack registered: Platinum's.
+import "@classicy/appearance-platinum";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import {
 	CLASSICY_MODIFIER_GLYPHS,
 	CLASSICY_MODIFIER_KEY_NAMES,
 	CLASSICY_MODIFIER_ORDER,
 	canonicalChord,
 	canonicalChordsFromEvent,
+	classicyCommandIsCtrl,
+	classicyCommandKeyHeld,
+	classicyCommandSpelledCtrl,
 	classicyKeycapName,
+	classicyShortcutModifierNames,
 	collectMenuChords,
 	findMenuItemByShortcut,
 	formatKeyboardShortcut,
@@ -19,6 +28,33 @@ import {
 	shortcutMatchesEvent,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
+
+// Platinum (registered above) is the default layout, Command answering to
+// Command or Control; `windows-command` carries the Windows 98 package's
+// layout (`keyboard.command` "ctrl"). The store is not mounted: stand in for
+// its connection of the active package id.
+const activePackage = { id: "platinum" };
+connectClassicyAssetPackageSource({
+	getId: () => activePackage.id,
+	subscribe: () => () => {},
+});
+registerClassicyAppearancePackage({
+	id: "windows-command",
+	name: "Windows command rule",
+	css: "",
+	defaults: {
+		...CLASSICY_CORE_DEFAULT_THEME,
+		id: "windows-command-default",
+		package: "windows-command",
+	},
+	layout: windows98.layout as never,
+});
+
+afterEach(() => {
+	activePackage.id = "platinum";
+});
 
 const makeKeyEvent = (init: Partial<KeyboardEvent>): KeyboardEvent =>
 	({
@@ -556,5 +592,177 @@ describe("formatKeyboardShortcutNames / classicyKeycapName", () => {
 			"S",
 			"-",
 		]);
+	});
+});
+
+// The remaining chapters' audit's 4.19 (WIG Ch.4 "Shortcut Keys", p.28;
+// Appendix B Table B.3, p.359: the Windows keys are for the system's own
+// functions): under `layout.keyboard.command` "ctrl" a Command equivalent
+// answers to Control alone, and the Windows key (`metaKey`) runs nothing.
+describe("layout.keyboard.command", () => {
+	const ctrlS = makeKeyEvent({ key: "s", code: "KeyS", ctrlKey: true });
+	const winS = makeKeyEvent({ key: "s", code: "KeyS", metaKey: true });
+	const winCtrlS = makeKeyEvent({
+		key: "s",
+		code: "KeyS",
+		metaKey: true,
+		ctrlKey: true,
+	});
+	const winAltW = makeKeyEvent({
+		key: "w",
+		code: "KeyW",
+		metaKey: true,
+		altKey: true,
+	});
+
+	it("reads the rule from the active package, or the layout given", () => {
+		expect(classicyCommandIsCtrl()).toBe(false);
+		activePackage.id = "windows-command";
+		expect(classicyCommandIsCtrl()).toBe(true);
+		expect(classicyCommandIsCtrl({ keyboard: { command: "metaOrCtrl" } })).toBe(
+			false,
+		);
+		expect(classicyCommandIsCtrl({})).toBe(false);
+	});
+
+	it("matches ⌘ to Command or Control by default (Platinum)", () => {
+		expect(shortcutMatchesEvent("⌘S", ctrlS)).toBe(true);
+		expect(shortcutMatchesEvent("⌘S", winS)).toBe(true);
+		expect(shortcutMatchesEvent("⌘S", winCtrlS)).toBe(true);
+		expect(canonicalChordsFromEvent(winS)).toEqual(["command+s"]);
+		expect(classicyCommandKeyHeld(winS)).toBe(true);
+		expect(classicyCommandKeyHeld(ctrlS)).toBe(true);
+	});
+
+	it("matches ⌘ to Control alone under ctrl, and nothing while the Windows key is held", () => {
+		activePackage.id = "windows-command";
+		expect(shortcutMatchesEvent("⌘S", ctrlS)).toBe(true);
+		expect(shortcutMatchesEvent("⌃S", ctrlS)).toBe(true);
+		expect(shortcutMatchesEvent("⌘S", winS)).toBe(false);
+		expect(shortcutMatchesEvent("⌘S", winCtrlS)).toBe(false);
+		expect(shortcutMatchesEvent("⌃S", winCtrlS)).toBe(false);
+		// An Option chord pressed with the Windows key is no Option chord.
+		expect(shortcutMatchesEvent("⌥W", winAltW)).toBe(false);
+		expect(
+			shortcutMatchesEvent(
+				"⌥W",
+				makeKeyEvent({ key: "w", code: "KeyW", altKey: true }),
+			),
+		).toBe(true);
+		expect(canonicalChordsFromEvent(ctrlS)).toEqual(["command+s", "control+s"]);
+		expect(canonicalChordsFromEvent(winS)).toEqual([]);
+		expect(canonicalChordsFromEvent(winCtrlS)).toEqual([]);
+		expect(canonicalChordsFromEvent(winAltW)).toEqual([]);
+		expect(classicyCommandKeyHeld(winS)).toBe(false);
+		expect(classicyCommandKeyHeld(winCtrlS)).toBe(false);
+		expect(classicyCommandKeyHeld(ctrlS)).toBe(true);
+		// A layout passed wins over the active package's.
+		expect(classicyCommandKeyHeld(winS, {})).toBe(true);
+	});
+
+	it("finds no menu item for a Windows-key chord under ctrl", () => {
+		const items: ClassicyMenuItem[] = [
+			{ id: "save", title: "Save", keyboardShortcut: "⌘S" },
+		];
+		expect(findMenuItemByShortcut(items, winS)?.id).toBe("save");
+		activePackage.id = "windows-command";
+		expect(findMenuItemByShortcut(items, winS)).toBeUndefined();
+		expect(findMenuItemByShortcut(items, ctrlS)?.id).toBe("save");
+	});
+
+	it("records Control as ⌘ on any host and the Windows key as nothing under ctrl", () => {
+		const ev = (init: KeyboardEventInit & { key: string }) =>
+			new KeyboardEvent("keydown", init);
+		activePackage.id = "windows-command";
+		const ctrl = ev({ key: "s", code: "KeyS", ctrlKey: true });
+		expect(keyboardShortcutFromEvent(ctrl, { mac: true })).toBe("⌘S");
+		expect(keyboardShortcutFromEvent(ctrl, { mac: false })).toBe("⌘S");
+		expect(
+			keyboardShortcutFromEvent(ev({ key: "s", code: "KeyS", metaKey: true }), {
+				mac: true,
+			}),
+		).toBe("");
+		expect(
+			keyboardShortcutFromEvent(
+				ev({ key: "s", code: "KeyS", ctrlKey: true, altKey: true }),
+				{ mac: true },
+			),
+		).toBe("⌥⌘S");
+		// Round-trips: the recorded ⌘ answers to the Control that made it.
+		expect(shortcutMatchesEvent(keyboardShortcutFromEvent(ctrl), ctrl)).toBe(
+			true,
+		);
+		// The option overrides the package.
+		activePackage.id = "platinum";
+		expect(
+			keyboardShortcutFromEvent(ctrl, { mac: true, commandIsCtrl: true }),
+		).toBe("⌘S");
+		expect(keyboardShortcutFromEvent(ctrl, { mac: true })).toBe("⌃S");
+	});
+});
+
+// The remaining chapters' audit's 1.12 and 5.30: the names spelling writes
+// ⌘ as Ctrl where Command is Control (WIG Ch.4 "Shortcut Keys", p.27; Ch.5
+// "Shortcut Keys for Transfer Operations", pp.67-68).
+describe("formatKeyboardShortcutNames with commandIsCtrl / classicyCommandSpelledCtrl", () => {
+	it("spells ⌘ Ctrl, a Control held too counting once", () => {
+		expect(formatKeyboardShortcutNames("⌘S", { commandIsCtrl: true })).toBe(
+			"Ctrl+S",
+		);
+		expect(formatKeyboardShortcutNames("⇧⌘Z", { commandIsCtrl: true })).toBe(
+			"Ctrl+Shift+Z",
+		);
+		expect(formatKeyboardShortcutNames("⌥⇧⌘K", { commandIsCtrl: true })).toBe(
+			"Ctrl+Alt+Shift+K",
+		);
+		expect(formatKeyboardShortcutNames("⌃⌘S", { commandIsCtrl: true })).toBe(
+			"Ctrl+S",
+		);
+		expect(formatKeyboardShortcutNames("⌃⌥⌫", { commandIsCtrl: true })).toBe(
+			"Ctrl+Alt+Backspace",
+		);
+		expect(formatKeyboardShortcutNames("⌘S", { commandIsCtrl: false })).toBe(
+			"Win+S",
+		);
+		expect(
+			classicyShortcutModifierNames("⌃⇧⌘S", { commandIsCtrl: true }),
+		).toEqual([
+			{ modifier: "control", name: "Ctrl" },
+			{ modifier: "shift", name: "Shift" },
+		]);
+		expect(
+			classicyShortcutModifierNames("⇧⌘S", { commandIsCtrl: true }),
+		).toEqual([
+			{ modifier: "command", name: "Ctrl" },
+			{ modifier: "shift", name: "Shift" },
+		]);
+		expect(classicyShortcutModifierNames("⇧⌘S")).toEqual([
+			{ modifier: "shift", name: "Shift" },
+			{ modifier: "command", name: "Win" },
+		]);
+	});
+
+	it("spells ⌘ Ctrl under the command rule, and a native chord's off a Mac whatever the rule", () => {
+		const ctrl = { keyboard: { command: "ctrl" as const } };
+		expect(classicyCommandSpelledCtrl({ layout: ctrl, mac: true })).toBe(true);
+		expect(classicyCommandSpelledCtrl({ layout: {}, mac: false })).toBe(false);
+		expect(
+			classicyCommandSpelledCtrl({
+				layout: {},
+				nativeShortcut: true,
+				mac: false,
+			}),
+		).toBe(true);
+		expect(
+			classicyCommandSpelledCtrl({
+				layout: {},
+				nativeShortcut: true,
+				mac: true,
+			}),
+		).toBe(false);
+		// The active package's rule by default.
+		expect(classicyCommandSpelledCtrl({ mac: true })).toBe(false);
+		activePackage.id = "windows-command";
+		expect(classicyCommandSpelledCtrl({ mac: true })).toBe(true);
 	});
 });

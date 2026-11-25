@@ -2,14 +2,13 @@ import { type RefObject, useEffect, useRef } from "react";
 import {
 	classicyAccessKeyFromEvent,
 	classicyFocusedAccessKeyScope,
-	classicyMenuBarHasChord,
-	classicyMenuItemsHaveChord,
+	isClassicyMenuKeyTarget,
+	isClassicyMenuShown,
 	isClassicyModalAccessKeyScope,
 	isClassicyTextEntry,
 	registerClassicyAccessKeyMenuBar,
 } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { isClassicyMacPlatform } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
-import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import {
 	type ClassicyMenuKeyboardEnv,
 	type ClassicyMenuTree,
@@ -24,20 +23,27 @@ import {
  * B.2):
  *
  * - Alt and a title's access key opens that title's menu on its first
- *   item, unless a menu item's keyboard equivalent is that chord (Classicy's
- *   Option chords always win), focus is in a modal window the bar is not
- *   in (a dialog takes its own keys), or, on a Mac, in a text entry (where
- *   Option types a character).
+ *   item, ahead of any menu item's Option (⌥) keyboard equivalent of that
+ *   chord (WIG Ch.4 "Shortcut Keys" (p.27): "avoid ALT+key combinations,
+ *   because they conflict with access keys"): the listener runs in the
+ *   capture phase on `window`, before the menu-shortcut dispatcher's
+ *   `document` listener, and `preventDefault`s the key it takes, so the
+ *   dispatcher, which skips a prevented event, runs no ⌥ item for it (a
+ *   chord no title holds still reaches its item). Unless focus is in a
+ *   modal window the bar is not in (a dialog takes its own keys), in a menu
+ *   (it takes its own keys), or, on a Mac, in a text entry (where Option
+ *   types a character), and while no menu on Windows' keyboard is shown
+ *   (it takes the keys typed: `isClassicyMenuShown`).
  * - Alt pressed and released alone, with no other key or press between,
  *   brings focus to the bar's first title, and back, as F10 does ("ALT
  *   Activate or inactivate menu bar mode").
  *
- * Both only on a bar whose titles have access keys (`titleKeys`; a package's
- * `layout.menu.accessKeys` `"auto"`, or a host's own `accessKey`s), and on a
+ * Both only on a bar whose titles have access keys (`titleKeys`, which
+ * exist only under a package's `layout.menu.accessKeys`), and on a
  * window's bar only while its window is active, so a Mac bar without them
- * leaves Alt to the browser as before. The bar also tells the labels'
- * access keys (`ClassicyControlLabel`) which keys it takes and whether a
- * chord is one of its items' equivalents.
+ * leaves Alt, and every ⌥ chord, to the browser and the dispatcher as
+ * before. The bar also tells the labels' access keys
+ * (`ClassicyControlLabel`) which keys it takes.
  * @internal
  */
 export const useClassicyMenuBarAccessKeys = ({
@@ -45,7 +51,6 @@ export const useClassicyMenuBarAccessKeys = ({
 	listRef,
 	windowActive,
 	titleKeys,
-	menuItems,
 	keyboardEnv,
 	closeAll,
 	restoreFocus,
@@ -57,13 +62,12 @@ export const useClassicyMenuBarAccessKeys = ({
 	windowActive: boolean | undefined;
 	/** The titles' access keys, lower-cased. */
 	titleKeys: ReadonlySet<string>;
-	menuItems: readonly ClassicyMenuItem[] | undefined;
 	keyboardEnv: () => ClassicyMenuKeyboardEnv;
 	closeAll: () => void;
 	restoreFocus: () => void;
 }): void => {
-	const stateRef = useRef({ windowActive, titleKeys, menuItems });
-	stateRef.current = { windowActive, titleKeys, menuItems };
+	const stateRef = useRef({ windowActive, titleKeys });
+	stateRef.current = { windowActive, titleKeys };
 
 	const bar = tree !== null;
 	useEffect(() => {
@@ -75,14 +79,6 @@ export const useClassicyMenuBarAccessKeys = ({
 					windowActive !== false &&
 					listRef.current?.isConnected === true &&
 					titleKeys.has(key)
-				);
-			},
-			hasChord: (e) => {
-				const { windowActive, menuItems } = stateRef.current;
-				return (
-					windowActive !== false &&
-					listRef.current?.isConnected === true &&
-					classicyMenuItemsHaveChord(menuItems, e)
 				);
 			},
 		});
@@ -105,22 +101,23 @@ export const useClassicyMenuBarAccessKeys = ({
 				return;
 			}
 			armed = false;
+		};
+		// Alt and a title's key, in the capture phase: ahead of the dispatcher's
+		// ⌥ chords (WIG Ch.4 "Shortcut Keys", p.27).
+		const onAccessKey = (e: KeyboardEvent) => {
 			if (e.defaultPrevented || !e.altKey || e.ctrlKey || e.metaKey) return;
+			if (e.key === "Alt") return;
 			const root = listRef.current;
 			if (!root?.isConnected) return;
-			// In the menus, the root's own handler had it.
-			if (e.target instanceof Node && root.contains(e.target)) return;
+			// A menu takes its own keys: focus in one (this bar's root handler,
+			// or another bar's), or one shown on Windows' keyboard.
+			if (isClassicyMenuKeyTarget(e.target) || isClassicyMenuShown()) return;
 			const char = classicyAccessKeyFromEvent(e);
 			if (char === null || !stateRef.current.titleKeys.has(char)) return;
 			if (outOfReach(root)) return;
 			if (
 				isClassicyMacPlatform() &&
 				isClassicyTextEntry(root.ownerDocument.activeElement)
-			)
-				return;
-			if (
-				classicyMenuItemsHaveChord(stateRef.current.menuItems, e) ||
-				classicyMenuBarHasChord(e)
 			)
 				return;
 			if (!handleClassicyMenuBarAccessKey(tree, keyboardEnv(), char)) return;
@@ -148,11 +145,13 @@ export const useClassicyMenuBarAccessKeys = ({
 		const disarm = () => {
 			armed = false;
 		};
+		window.addEventListener("keydown", onAccessKey, true);
 		window.addEventListener("keydown", onKeyDown);
 		window.addEventListener("keyup", onKeyUp);
 		window.addEventListener("mousedown", disarm, true);
 		window.addEventListener("blur", disarm);
 		return () => {
+			window.removeEventListener("keydown", onAccessKey, true);
 			window.removeEventListener("keydown", onKeyDown);
 			window.removeEventListener("keyup", onKeyUp);
 			window.removeEventListener("mousedown", disarm, true);

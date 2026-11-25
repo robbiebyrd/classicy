@@ -329,6 +329,15 @@ $down: ":is(:active, .pressed, .checked, .open)";
     @include ringed-flat;
   }
 
+  // A button's access key (the core's `access-key` part, the remaining
+  // chapters' audit's 4.11; WIG Ch.4 "Access Keys" (p.27); Appendix B
+  // Table B.5 (p.360): "&Yes", "&Open"), underlined in its label's ink as
+  // DrawText draws a prefixed character, always shown; disabled, the
+  // label's emboss shadows it too.
+  .classicyButton [data-classicy-part="access-key"] {
+    @include b.access-key;
+  }
+
   // Disabled: raised still, the label embossed; the default's ring stays.
   .classicyButton:disabled {
     background: b.$face;

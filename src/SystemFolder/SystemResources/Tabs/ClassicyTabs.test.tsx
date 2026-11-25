@@ -351,3 +351,83 @@ describe("ClassicyTabs — when a press chooses a tab (layout.mouse)", () => {
 		expect(chosen()).toEqual(["First Tab"]);
 	});
 });
+
+// The remaining chapters' audit's 4.11 / B.12 (WIG Ch.4 "Access Keys",
+// p.27): a tab given an `accessKey` is chosen by Alt and its key under a
+// package's `layout.menu.accessKeys`; a tab given none takes none, "auto"
+// or not (Windows 98's property sheets' tabs carried none).
+describe("ClassicyTabs — access keys", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const keyed = [
+		{ title: "General", accessKey: "g", children: <p>General content</p> },
+		{ title: "Sharing", children: <p>Sharing content</p> },
+		{ title: "Tools", accessKey: "t", children: <p>Tools content</p> },
+	];
+	const alt = (k: string, target: Element) =>
+		fireEvent.keyDown(target, {
+			key: k,
+			code: `Key${k.toUpperCase()}`,
+			altKey: true,
+		});
+	const chosen = () =>
+		screen
+			.getAllByRole("tab")
+			.filter((tab) => tab.getAttribute("aria-selected") === "true")
+			.map((tab) => tab.textContent);
+
+	it("underlines a given key and chooses its tab on Alt and it under the Windows layout", () => {
+		registerClassicyAppearancePackage({
+			id: "windows-tabs",
+			name: "Windows tabs",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-tabs-default",
+				package: "windows-tabs",
+			},
+			layout: windows98.layout as never,
+		});
+		const onTabChange = vi.fn();
+		const { container } = render(
+			<div className="classicyWindow">
+				<button type="button">OK</button>
+				<ClassicyTabs tabs={keyed} onTabChange={onTabChange} />
+			</div>,
+		);
+		expect(
+			Array.from(
+				container.querySelectorAll("[data-classicy-part='access-key']"),
+			).map((el) => el.textContent),
+		).toEqual(["G", "T"]);
+		const ok = screen.getByRole("button", { name: "OK" });
+		ok.focus();
+		expect(alt("t", ok)).toBe(false);
+		expect(chosen()).toEqual(["Tools"]);
+		expect(screen.getByRole("tab", { name: "Tools" })).toHaveFocus();
+		expect(onTabChange).toHaveBeenLastCalledWith(2);
+		// A tab takes letters itself: the key alone from it does nothing.
+		fireEvent.keyDown(screen.getByRole("tab", { name: "Tools" }), {
+			key: "g",
+			code: "KeyG",
+		});
+		expect(chosen()).toEqual(["Tools"]);
+		alt("g", screen.getByRole("tab", { name: "Tools" }));
+		expect(chosen()).toEqual(["General"]);
+	});
+
+	it("draws and takes nothing by default (Platinum)", () => {
+		const onTabChange = vi.fn();
+		const { container } = render(
+			<div className="classicyWindow">
+				<button type="button">OK</button>
+				<ClassicyTabs tabs={keyed} onTabChange={onTabChange} />
+			</div>,
+		);
+		expect(container.querySelector("[data-classicy-part]")).toBeNull();
+		const ok = screen.getByRole("button", { name: "OK" });
+		ok.focus();
+		expect(alt("t", ok)).toBe(true);
+		expect(chosen()).toEqual(["General"]);
+		expect(onTabChange).not.toHaveBeenCalled();
+	});
+});

@@ -74,6 +74,7 @@ import {
 	useClassicyStoredTrashIcon,
 	useClassicyTrashIcon,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -143,6 +144,10 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	trashIcon,
 }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
+	// The bundled menus' access keys under a package that has them (WIG
+	// Appendix B Table B.5: File F, Close C, Edit E, Select All A, View V,
+	// Help H; Special S, its first letter).
+	const ak = useClassicyBundledAccessKeys();
 	// The browser's selection, for File ▸ Move To Trash and Restore.
 	const commandsRef = useRef<ClassicyFileBrowserCommands | null>(null);
 	const inTrash = isInClassicyTrash(fs, op);
@@ -180,9 +185,16 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			{
 				id: `${appId}_${op}_file`,
 				title: "File",
+				accessKey: ak("f"),
 				menuChildren: [
-					closeWindowMenuItemHelper(`${appId}_${op}_file_closew`, () =>
-						closeWindow(op, { type: "ClassicyAppFinderCloseFolder", path: op }),
+					closeWindowMenuItemHelper(
+						`${appId}_${op}_file_closew`,
+						() =>
+							closeWindow(op, {
+								type: "ClassicyAppFinderCloseFolder",
+								path: op,
+							}),
+						ak("c"),
 					),
 					closeAllWindowsMenuItemHelper(
 						`${appId}_${op}_file_closews`,
@@ -216,10 +228,12 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			{
 				id: `${appId}_${op}_edit`,
 				title: "Edit",
+				accessKey: ak("e"),
 				menuChildren: [
 					{
 						id: `${appId}_${op}_edit_select_all`,
 						title: "Select All",
+						accessKey: ak("a"),
 						keyboardShortcut: "⌘A",
 						// Either view: the icon view keeps one selection too.
 						onClickFunc: () => selectionApiRef.current?.selectAll(),
@@ -235,6 +249,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			{
 				id: `${appId}_view`,
 				title: "View",
+				accessKey: ak("v"),
 				// One view at a time: an option group marking the current one,
 				// as Mac OS 8's View menu checks it (Platinum and System 7 draw
 				// their check) and Windows draws the chosen option's bullet (WIG
@@ -259,6 +274,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			{
 				id: `${appId}_${op}_special`,
 				title: "Special",
+				accessKey: ak("s"),
 				menuChildren: classicySpecialMenuItems(
 					desktopEventDispatch,
 					`${appId}_${op}`,
@@ -267,6 +283,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			{
 				id: `${appId}_${op}_help`,
 				title: "Help",
+				accessKey: ak("h"),
 				menuChildren: [
 					{
 						id: `${appId}_${op}_help_balloon`,
@@ -294,6 +311,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			trashItems,
 			restoreItems,
 			desktopEventDispatch,
+			ak,
 		],
 	);
 
@@ -387,6 +405,9 @@ export const Finder = () => {
 	// "windows": Windows 98); absent, Mac OS 8's Finder's.
 	const windowsCommands =
 		useClassicyAppearanceLayout().finder?.commands === "windows";
+	// Open's access key in the item menus under a package that has them
+	// (WIG Appendix B Table B.5: Open O; shell32.dll's "&Open").
+	const ak = useClassicyBundledAccessKeys();
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
@@ -619,6 +640,7 @@ export const Finder = () => {
 				{
 					id: "finder_trash_open",
 					title: "Open",
+					...(ak("o") !== undefined ? { accessKey: ak("o") } : {}),
 					// The command a double-click on the icon runs: the menu's
 					// default item, which Windows draws bold (WIG Ch.7 "Types of
 					// Menu Items" (pp.108–109), Figure 7.5 "Default Item").
@@ -640,7 +662,7 @@ export const Finder = () => {
 				},
 			],
 		});
-	}, [trashIcon, desktopEventDispatch]);
+	}, [trashIcon, desktopEventDispatch, ak]);
 
 	const trashItems = useCallback(
 		(paths: string[]) => {
@@ -711,6 +733,7 @@ export const Finder = () => {
 						{
 							id: "finder_item_open",
 							title: "Open",
+							accessKey: ak("o"),
 							isDefault: true,
 							onClickFunc: () => openItem(path),
 						},
@@ -737,7 +760,7 @@ export const Finder = () => {
 				},
 			];
 		},
-		[fs, windowsCommands, openItem, restoreItems, trashItems],
+		[fs, windowsCommands, openItem, restoreItems, trashItems, ak],
 	);
 	// A desktop file or folder icon's menu under Explorer's commands
 	// (`layout.finder.commands` "windows"), stored with the icon: the same as
@@ -755,6 +778,7 @@ export const Finder = () => {
 			{
 				id: "finder_item_open",
 				title: "Open",
+				...(ak("o") !== undefined ? { accessKey: ak("o") } : {}),
 				isDefault: true,
 				onClickFunc: () => openItemRef.current(path),
 			},
@@ -775,7 +799,7 @@ export const Finder = () => {
 				},
 			},
 		],
-		[trashItems],
+		[trashItems, ak],
 	);
 
 	// Mirror the Desktop Folder onto the desktop: an icon for each item in it,

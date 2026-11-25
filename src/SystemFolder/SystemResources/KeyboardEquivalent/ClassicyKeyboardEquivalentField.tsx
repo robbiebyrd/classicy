@@ -4,6 +4,7 @@ import {
 	type FC as FunctionalComponent,
 	useState,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import {
@@ -51,7 +52,8 @@ export type ClassicyKeyboardEquivalentFieldProps = Omit<
  * Pass the owning app's id as `appId`: the dialog is a window of that app, and
  * only an open app's windows are positioned (and centered) by the store.
  *
- * The field is controlled — it shows `value` spelled out (`⌃ + ⌘ + S`) and
+ * The field is controlled — it shows `value` spelled out (`⌃ + ⌘ + S`;
+ * `Ctrl+S` under a package that spells shortcuts by name, Windows 98) and
  * reports the new equivalent in menu-item form (`"⌃⌘S"`), ready for a
  * `ClassicyMenuItem`'s `keyboardShortcut`. The dialog's rules come through
  * too: a combination without ⌘ (or a function key) is refused unless
@@ -73,6 +75,7 @@ export const ClassicyKeyboardEquivalentField: FunctionalComponent<
 	...dialogProps
 }) => {
 	const [editing, setEditing] = useState(false);
+	const layout = useClassicyAppearanceLayout();
 
 	return (
 		<ClassicyControlGroup label={label} className={className} style={style}>
@@ -82,7 +85,7 @@ export const ClassicyKeyboardEquivalentField: FunctionalComponent<
 					className="classicyKeyboardEquivalentDisplay"
 					ariaLabel={label}
 					// A no-break space keeps an empty display at its full height.
-					value={spellKeyboardEquivalent(value) || " "}
+					value={spellKeyboardEquivalent(value, layout) || " "}
 				/>
 				<ClassicyButton
 					id={id}

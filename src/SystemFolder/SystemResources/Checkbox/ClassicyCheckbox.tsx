@@ -43,6 +43,19 @@ export type ClassicyCheckboxProps = {
 	onClickFunc?: (checked: boolean) => void;
 	/** Text label; clicking it toggles the checkbox. Omit for a bare box. */
 	label?: string;
+	/**
+	 * The label's access key (mnemonic), one character of `label`
+	 * (`ClassicyControlLabel`'s `accessKey`; WIG Ch.4 "Access Keys" (p.27),
+	 * Ch.8 "Navigation in Secondary Windows" (pp.148-149)): Alt and the key,
+	 * in the window holding focus, focuses the box and toggles it, as a
+	 * click does; the key alone does the same while focus is on a button, a
+	 * check box or an option button. Its character is drawn as the
+	 * `access-key` part, which a package underlines (Windows 98). Read only
+	 * under the package's `layout.menu.accessKeys`; under `"auto"` (Windows
+	 * 98) a label given none takes the first free character of its text,
+	 * and `""` gives it none. Inert under Platinum and System 7.
+	 */
+	accessKey?: string;
 	/** Label text size. Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
 	/** Where the label sits relative to the box. Defaults to `right`. */
@@ -89,6 +102,7 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 	disabled,
 	onClickFunc,
 	label,
+	accessKey,
 	labelSize = "medium",
 	labelPosition = "right",
 	mark = "check",
@@ -135,6 +149,7 @@ export const ClassicyCheckbox: FunctionalComponent<ClassicyCheckboxProps> = ({
 				label={label}
 				labelFor={id}
 				labelSize={labelSize}
+				accessKey={accessKey}
 				disabled={disabled}
 			/>
 			<input

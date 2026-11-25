@@ -6,36 +6,51 @@ import {
 	classicyAccessKeyScopeOf,
 	classicyFocusedAccessKeyScope,
 	classicyMenuBarClaimsAccessKey,
-	classicyMenuBarHasChord,
+	isClassicyMenuKeyTarget,
+	isClassicyMenuShown,
 	isClassicyModalAccessKeyScope,
 	isClassicyTextEntry,
 	normalizeClassicyAccessKey,
 	resolveClassicyAccessKeys,
+	warnClassicyDuplicateAccessKeys,
 } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { isClassicyMacPlatform } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 /**
- * The control labels' access keys (`ClassicyControlLabel`'s `accessKey`, or
- * the automatic pick under the package's `layout.menu.accessKeys` `"auto"`):
+ * The controls' access keys (`ClassicyControlLabel`'s `accessKey`, and so
+ * `ClassicyCheckbox`'s and `ClassicyRadioInput`'s; `ClassicyButton`'s and a
+ * `ClassicyTabs` tab's, which register their own text as the label; or the
+ * automatic pick under the package's `layout.menu.accessKeys` `"auto"`):
  * one register for the page, its labels grouped by scope (their window,
  * else the document: WIG Ch.4 "Access Keys" (p.27), unique "within the scope
- * of its interaction") and resolved there in document order, and one window
- * `keydown` listener while any label has a key (WIG Ch.8 "Navigation in
+ * of its interaction") and resolved there in document order, and window
+ * `keydown` listeners while any label has a key (WIG Ch.8 "Navigation in
  * Secondary Windows", pp.148-149):
  *
  * - Alt and a label's key, in the window holding focus, moves focus to its
  *   control and activates it as a click would where the control is a check
  *   box, an option button or a button (Wine's `IsDialogMessage`: a button
- *   is clicked, another control focused, an edit field's text selected).
- *   Several labels sharing the key are moved between, none activated. Left
- *   to its owner: a key a handler took (`defaultPrevented`), Control or
- *   Command held, a menu item's keyboard equivalent (Classicy's Option
- *   chords win), a key a menu bar's title holds outside a modal window (the
- *   bar receives it: WIG Ch.7, p.143), focus in a menu, and, on a Mac, focus
- *   in a text entry (where Option types a character).
+ *   is clicked, another control focused, an edit field's text selected), or
+ *   as its own `onActivate` says (a tab is chosen). Several labels sharing
+ *   the key are moved between, none activated. It listens in the capture
+ *   phase, ahead of the menu-shortcut dispatcher's `document` listener, and
+ *   `preventDefault`s the key it takes, so an access key wins over a menu
+ *   item's Option (⌥) equivalent of the same chord (WIG Ch.4 "Shortcut
+ *   Keys", p.27: Alt combinations "conflict with access keys"); a chord no
+ *   label in scope holds still reaches its item. Left to its owner: a key a
+ *   handler took (`defaultPrevented`), Control or Command held, a key a
+ *   menu bar's title holds outside a modal window (the bar receives it:
+ *   WIG Ch.7, p.143), focus in a menu or a menu shown on Windows' keyboard
+ *   (it takes the keys typed), and, on a Mac, focus in a text entry (where
+ *   Option types a character).
  * - The key alone does the same while focus is on a check box, an option
  *   button or a button, whose keyboard takes no letters ("if the keyboard is
- *   not being used as input for another control").
+ *   not being used as input for another control"), a tab excepted (a tab
+ *   control takes letters); in the bubble phase, so the focused control's
+ *   own handler has it first.
+ *
+ * In development builds two controls of one window sharing a key log a
+ * `"Dialog"` warning (`warnClassicyDuplicateAccessKeys`).
  * @internal
  */
 
@@ -48,6 +63,8 @@ type LabelEntry = {
 	/** The package's `"auto"`: a label of a focusable control takes a key. */
 	auto: boolean;
 	labelFor: string | undefined;
+	/** What its key does in place of a click (a tab chosen); read when typed. */
+	activate: { current: (() => void) | undefined };
 };
 
 const entries = new Map<symbol, LabelEntry>();
@@ -132,6 +149,13 @@ const recompute = () => {
 			const key = resolved[i];
 			if (key) next.set(id, `${key.key}:${key.index}`);
 		});
+		warnClassicyDuplicateAccessKeys(
+			"Dialog",
+			ids.map((id, i) => ({
+				text: (entries.get(id) as LabelEntry).text,
+				key: resolved[i]?.key,
+			})),
+		);
 	}
 	const changed =
 		next.size !== assigned.size ||
@@ -156,9 +180,14 @@ const onKeyDown = (e: KeyboardEvent) => {
 	// A menu takes its own keys (ClassicyMenu).
 	if (active?.closest(".classicyMenuWrapper")) return;
 	if (e.altKey) {
+		if (isClassicyMenuKeyTarget(e.target) || isClassicyMenuShown()) return;
 		if (isClassicyMacPlatform() && isClassicyTextEntry(active)) return;
-		if (classicyMenuBarHasChord(e)) return;
-	} else if (!(active instanceof HTMLElement && active.matches(BUTTON_LIKE))) {
+	} else if (
+		!(active instanceof HTMLElement && active.matches(BUTTON_LIKE)) ||
+		// A tab control takes letters itself (comctl32's tab control asks
+		// for them: DLGC_WANTCHARS).
+		active.matches('[role="tab"]')
+	) {
 		return;
 	}
 	const scope = classicyFocusedAccessKeyScope(doc);
@@ -169,42 +198,57 @@ const onKeyDown = (e: KeyboardEvent) => {
 	)
 		return;
 	const matches: HTMLElement[] = [];
-	const labels: HTMLElement[] = [];
+	const labels: LabelEntry[] = [];
 	for (const [id, entry] of entries) {
 		if (parse(assigned.get(id))?.key !== char) continue;
 		if (!entry.label.isConnected) continue;
 		if (classicyAccessKeyScopeOf(entry.label) !== scope) continue;
 		const control = controlOf(entry);
 		if (!control || !isUsable(control)) continue;
-		labels.push(entry.label);
+		labels.push(entry);
 		matches.push(control);
 	}
 	if (matches.length === 0) return;
 	const order = labels
-		.map((label, i) => ({ label, control: matches[i] }))
-		.sort((a, b) => byDocumentOrder(a.label, b.label))
-		.map(({ control }) => control);
+		.map((entry, i) => ({ entry, control: matches[i] }))
+		.sort((a, b) => byDocumentOrder(a.entry.label, b.entry.label));
 	e.preventDefault();
 	if (order.length > 1) {
 		const current = order.findIndex(
-			(control) => control === active || control.contains(active),
+			({ control }) => control === active || control.contains(active),
 		);
-		order[(current + 1) % order.length].focus();
+		order[(current + 1) % order.length].control.focus();
 		return;
 	}
-	const [control] = order;
+	const [{ entry, control }] = order;
 	control.focus();
-	if (control.matches(BUTTON_LIKE)) control.click();
+	const activate = entry.activate.current;
+	if (activate) activate();
+	else if (control.matches(BUTTON_LIKE)) control.click();
 	else if (control instanceof HTMLInputElement && isClassicyTextEntry(control))
 		control.select();
+};
+
+// Alt and a key, ahead of the menu-shortcut dispatcher (capture phase on
+// window); the key alone, after the focused control's own handler.
+const onAltKeyDown = (e: KeyboardEvent) => {
+	if (e.altKey) onKeyDown(e);
+};
+const onBareKeyDown = (e: KeyboardEvent) => {
+	if (!e.altKey) onKeyDown(e);
 };
 
 let listening = false;
 const listen = (on: boolean) => {
 	if (typeof window === "undefined" || on === listening) return;
 	listening = on;
-	if (on) window.addEventListener("keydown", onKeyDown);
-	else window.removeEventListener("keydown", onKeyDown);
+	if (on) {
+		window.addEventListener("keydown", onAltKeyDown, true);
+		window.addEventListener("keydown", onBareKeyDown);
+	} else {
+		window.removeEventListener("keydown", onAltKeyDown, true);
+		window.removeEventListener("keydown", onBareKeyDown);
+	}
 };
 
 /**
@@ -223,6 +267,7 @@ export const useClassicyLabelAccessKey = ({
 	text,
 	accessKey,
 	labelFor,
+	onActivate,
 }: {
 	labelRef: RefObject<HTMLElement | null>;
 	holderRef: RefObject<HTMLElement | null>;
@@ -230,6 +275,12 @@ export const useClassicyLabelAccessKey = ({
 	text: string;
 	accessKey: string | undefined;
 	labelFor: string | undefined;
+	/**
+	 * What the key does once its control has focus, in place of a click
+	 * (`ClassicyTabs` chooses its tab); the latest is read when the key is
+	 * typed.
+	 */
+	onActivate?: () => void;
 }): ClassicyAccessKey | null => {
 	// No access keys at all without the package's `layout.menu.accessKeys`
 	// (Mac OS 8 and System 7 had none), a label's own `accessKey` included.
@@ -242,6 +293,8 @@ export const useClassicyLabelAccessKey = ({
 		(given !== undefined ? given !== "" : auto);
 	const idRef = useRef<symbol | null>(null);
 	if (idRef.current === null) idRef.current = Symbol("ClassicyControlLabel");
+	const activateRef = useRef<(() => void) | undefined>(onActivate);
+	activateRef.current = onActivate;
 	const [value, setValue] = useState<string | undefined>(undefined);
 	useLayoutEffect(() => {
 		const id = idRef.current as symbol;
@@ -259,6 +312,7 @@ export const useClassicyLabelAccessKey = ({
 			accessKey,
 			auto,
 			labelFor: labelFor || undefined,
+			activate: activateRef,
 		});
 		listen(true);
 		recompute();

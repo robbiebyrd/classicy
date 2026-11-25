@@ -22,6 +22,7 @@ import type {
 import { desktopVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
 import { ClassicyFileSaveDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
@@ -164,6 +165,11 @@ export const SimpleText = () => {
 
 	const closeWindow = useClassicyWindowClose(appId);
 	const editMenu = useClassicyEditMenu(appId);
+	// The menus' access keys under a package that has them: Notepad's and
+	// WordPad's (notepad.exe "&File", "&New", "&Open...", "&Save", "Save
+	// &As..."; wordpad.exe "F&ormat"; WIG Appendix B Table B.5: Close C,
+	// Help H); Quit is unmarked.
+	const ak = useClassicyBundledAccessKeys();
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		appId,
 		appName,
@@ -371,37 +377,48 @@ export const SimpleText = () => {
 				{
 					id: `${doc.windowId}_file`,
 					title: "File",
+					accessKey: ak("f"),
 					menuChildren: [
-						{ id: `${doc.windowId}_new`, title: "New", onClickFunc: newFile },
+						{
+							id: `${doc.windowId}_new`,
+							title: "New",
+							accessKey: ak("n"),
+							onClickFunc: newFile,
+						},
 						{
 							id: `${doc.windowId}_open`,
 							title: "Open…",
+							accessKey: ak("o"),
 							onClickFunc: () => setShowOpenDialog(true),
 						},
 						{ id: "spacer" },
 						{
 							id: `${doc.windowId}_close`,
 							title: "Close",
+							accessKey: ak("c"),
 							onClickFunc: closeThis,
 						},
 						{
 							id: `${doc.windowId}_save`,
 							title: "Save",
+							accessKey: ak("s"),
 							onClickFunc: () => saveDoc(doc.target),
 						},
 						{
 							id: `${doc.windowId}_save_as`,
 							title: "Save As…",
+							accessKey: ak("A"),
 							onClickFunc: () => setSaveTarget(doc.target),
 						},
 						{ id: "spacer" },
-						quitMenuItemHelper(appId, appName, appIcon),
+						quitMenuItemHelper(appId, appName, appIcon, ak("")),
 					],
 				},
 				editMenu,
 				{
 					id: `${doc.windowId}_format`,
 					title: "Format",
+					accessKey: ak("o"),
 					menuChildren: [
 						{
 							id: `${doc.windowId}_toggle_format`,
@@ -413,11 +430,13 @@ export const SimpleText = () => {
 				{
 					id: `${doc.windowId}_help`,
 					title: "Help",
+					accessKey: ak("h"),
 					menuChildren: [aboutMenuItem],
 				},
 			];
 		},
 		[
+			ak,
 			newFile,
 			saveDoc,
 			toggleType,

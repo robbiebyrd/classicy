@@ -10,9 +10,10 @@ import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceL
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	CLASSICY_MODIFIER_GLYPHS,
-	CLASSICY_MODIFIER_KEY_NAMES,
 	type ClassicyModifierName,
+	classicyCommandSpelledCtrl,
 	classicyKeycapName,
+	classicyShortcutModifierNames,
 	keyboardShortcutModifiers,
 	parseKeyboardShortcut,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
@@ -29,6 +30,15 @@ type ClassicyKbdProps = PropsWithChildren<{
 	 * "Tab").
 	 */
 	shortcut?: string;
+	/**
+	 * The shortcut is one the browser carries out itself (a menu item's
+	 * `nativeShortcut`: Cut, Copy, Paste, Undo, Select All). Spelled by name
+	 * off a Mac, its ⌘ is then `Ctrl`, the key the browser answers there
+	 * (WIG Ch.5 "Shortcut Keys for Transfer Operations", pp.67-68), whatever
+	 * the package's `layout.keyboard.command`. Read only by the names
+	 * spelling. Defaults to `false`.
+	 */
+	nativeShortcut?: boolean;
 	/**
 	 * `inline` renders the whole glyph run as one `<kbd>` (the menu-item look);
 	 * `keycaps` renders one raised Platinum key cap per key in the chord.
@@ -66,21 +76,29 @@ const ModifierGlyph = ({
  * by name, each modifier's span holds its name and the `+` joining it to
  * what follows, and the key is its keycap's name: "Cmd+Shift+S" →
  * ["Shift+", "Win+", "S"], read "Shift+Win+S" (WIG Ch.7 "Shortcut Keys in
- * Menu Items", p.110).
+ * Menu Items", p.110); with `commandIsCtrl` Command's span reads "Ctrl+"
+ * (`classicyShortcutModifierNames`).
  */
-const shortcutParts = (shortcut: string, names = false): ReactNode[] => {
+const shortcutParts = (
+	shortcut: string,
+	names = false,
+	commandIsCtrl = false,
+): ReactNode[] => {
 	const parsed = parseKeyboardShortcut(shortcut);
-	const modifiers = keyboardShortcutModifiers(parsed);
-	const parts: ReactNode[] = modifiers.map((name, i) =>
-		names ? (
-			<ModifierGlyph key={name} name={name}>
-				{CLASSICY_MODIFIER_KEY_NAMES[name]}
+	let parts: ReactNode[];
+	if (names) {
+		const modifiers = classicyShortcutModifierNames(parsed, { commandIsCtrl });
+		parts = modifiers.map(({ modifier, name }, i) => (
+			<ModifierGlyph key={modifier} name={modifier}>
+				{name}
 				{parsed.key || i < modifiers.length - 1 ? "+" : ""}
 			</ModifierGlyph>
-		) : (
+		));
+	} else {
+		parts = keyboardShortcutModifiers(parsed).map((name) => (
 			<ModifierGlyph key={name} name={name} />
-		),
-	);
+		));
+	}
 	if (parsed.key)
 		parts.push(names ? classicyKeycapName(parsed.key) : parsed.key);
 	return parts;
@@ -99,7 +117,10 @@ const shortcutParts = (shortcut: string, names = false): ReactNode[] => {
  * whose `layout.menu.shortcutSpelling` is `"names"` (Windows 98), `inline`
  * spells the shortcut as Windows' menus do, "Ctrl+Shift+S" (⌃ Ctrl, ⌥ Alt,
  * ⇧ Shift, ⌘ Win; ⌫ Backspace, ⌦ Del, the arrows Up, Down, Left and Right,
- * Escape Esc), each modifier's span holding its name and `+`. It renders
+ * Escape Esc), each modifier's span holding its name and `+`; ⌘ is `Ctrl`
+ * while the package's `layout.keyboard.command` is `"ctrl"` (Windows 98,
+ * where Command answers to Control alone), and for a `nativeShortcut` off a
+ * Mac (`classicyCommandSpelledCtrl`). It renders
  * nothing when the shortcut parses to no keys or there is nothing to show.
  *
  * ```tsx
@@ -108,6 +129,7 @@ const shortcutParts = (shortcut: string, names = false): ReactNode[] => {
  */
 export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 	shortcut,
+	nativeShortcut = false,
 	variant = "inline",
 	className,
 	style,
@@ -115,11 +137,17 @@ export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 }) => {
 	// Windows spells a menu's shortcut by its keycaps' names (WIG Ch.7, p.110);
 	// key caps always draw the glyphs.
+	const layout = useClassicyAppearanceLayout();
 	const names =
-		useClassicyAppearanceLayout().menu?.shortcutSpelling === "names" &&
-		variant === "inline";
+		layout.menu?.shortcutSpelling === "names" && variant === "inline";
 	const parts =
-		shortcut !== undefined ? shortcutParts(shortcut, names) : undefined;
+		shortcut !== undefined
+			? shortcutParts(
+					shortcut,
+					names,
+					names && classicyCommandSpelledCtrl({ layout, nativeShortcut }),
+				)
+			: undefined;
 
 	if (parts !== undefined && parts.length === 0) return null;
 	if (parts === undefined && children === undefined) return null;

@@ -6,6 +6,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
@@ -16,6 +17,7 @@ import {
 	getUndoStateSnapshot,
 	subscribeUndoState,
 } from "@/SystemFolder/SystemResources/App/ClassicyEditCommands";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 /**
@@ -57,6 +59,9 @@ export function useClassicyAboutMenu(
 ): ClassicyAboutMenu {
 	const [showAbout, setShowAbout] = useState(false);
 	const hideAbout = useCallback(() => setShowAbout(false), []);
+	// About's access key under a package that has them (WIG Appendix B
+	// Table B.5: About A; notepad.exe's "&About Notepad").
+	const ak = useClassicyBundledAccessKeys();
 
 	// Every caller documents (see useClassicyHelpMenu above) that a menu array
 	// must be referentially stable or it re-fires consuming effects every
@@ -70,9 +75,10 @@ export function useClassicyAboutMenu(
 		() => ({
 			id: `${appId}_about`,
 			title: "About",
+			accessKey: ak("a"),
 			onClickFunc: () => setShowAbout(true),
 		}),
-		[appId],
+		[appId, ak],
 	);
 
 	const aboutWindow = showAbout ? (
@@ -125,6 +131,17 @@ export function useClassicyHelpMenu(
  * leaves the keystrokes to the browser; the click handlers drive the same
  * actions for mouse users.
  *
+ * Under a package with access keys (`layout.menu.accessKeys`, Windows 98)
+ * the menu carries Windows 98 SE's letters (WIG Appendix B Table B.5:
+ * Edit E, Undo U, Cut t, Copy C, Paste P, Select All A; notepad.exe's and
+ * mspaint.exe's "&Undo", "Cu&t", "&Copy", "&Paste", "Select &All"), Clear
+ * Paint's "C&lear Selection" and Microsoft Chat's "C&lear" beside Select
+ * &All (Table B.5 names no Clear); and under its
+ * `layout.menu.shortcutSpelling` `"names"` Clear shows the Delete key,
+ * "Del", as those menus do (WIG Ch.5 "Shortcut Keys for Transfer
+ * Operations", pp.67-68), a native key the browser's editing answers.
+ * Platinum and System 7 keep Mac OS 8's menu: no keys, no Clear shortcut.
+ *
  * `preferencesItem`, when supplied, is appended after a divider at the BOTTOM of
  * the Edit menu — the position Mac OS 8 standardized for the Preferences command
  * (HIGOS8 Ch.4 "Menu Bar Changes", p.91). Give it a title ending in an ellipsis
@@ -152,15 +169,20 @@ export function useClassicyEditMenu(
 			? `Undo ${undoState.label}`
 			: "Undo"
 		: "Can't Undo";
+	const ak = useClassicyBundledAccessKeys();
+	const clearShowsDel =
+		useClassicyAppearanceLayout().menu?.shortcutSpelling === "names";
 
 	return useMemo(
 		() => ({
 			id: `${idPrefix}_edit`,
 			title: "Edit",
+			accessKey: ak("e"),
 			menuChildren: [
 				{
 					id: `${idPrefix}_undo`,
 					title: undoTitle,
+					accessKey: ak("u"),
 					disabled: !undoState.canUndo,
 					keyboardShortcut: "⌘Z",
 					nativeShortcut: true,
@@ -170,6 +192,7 @@ export function useClassicyEditMenu(
 				{
 					id: `${idPrefix}_cut`,
 					title: "Cut",
+					accessKey: ak("t"),
 					keyboardShortcut: "⌘X",
 					nativeShortcut: true,
 					onClickFunc: classicyEditCommands.cut,
@@ -177,6 +200,7 @@ export function useClassicyEditMenu(
 				{
 					id: `${idPrefix}_copy`,
 					title: "Copy",
+					accessKey: ak("c"),
 					keyboardShortcut: "⌘C",
 					nativeShortcut: true,
 					onClickFunc: classicyEditCommands.copy,
@@ -184,6 +208,7 @@ export function useClassicyEditMenu(
 				{
 					id: `${idPrefix}_paste`,
 					title: "Paste",
+					accessKey: ak("p"),
 					keyboardShortcut: "⌘V",
 					nativeShortcut: true,
 					onClickFunc: () => {
@@ -193,11 +218,16 @@ export function useClassicyEditMenu(
 				{
 					id: `${idPrefix}_clear`,
 					title: "Clear",
+					accessKey: ak("l"),
+					...(clearShowsDel
+						? { keyboardShortcut: "⌦", nativeShortcut: true }
+						: {}),
 					onClickFunc: classicyEditCommands.clear,
 				},
 				{
 					id: `${idPrefix}_select_all`,
 					title: "Select All",
+					accessKey: ak("A"),
 					keyboardShortcut: "⌘A",
 					nativeShortcut: true,
 					onClickFunc: classicyEditCommands.selectAll,
@@ -209,6 +239,13 @@ export function useClassicyEditMenu(
 					: []),
 			],
 		}),
-		[idPrefix, preferencesItem, undoTitle, undoState.canUndo],
+		[
+			idPrefix,
+			preferencesItem,
+			undoTitle,
+			undoState.canUndo,
+			ak,
+			clearShowsDel,
+		],
 	);
 }

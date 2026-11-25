@@ -1,6 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, userEvent } from "@/__tests__/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -164,5 +172,73 @@ describe("ClassicyRadioInput align", () => {
 			"classicyRadioInputGroup",
 			"classicyRadioInputGroupColumns",
 		);
+	});
+});
+
+// The remaining chapters' audit's 4.11 / B.12 (WIG Ch.4 "Access Keys",
+// p.27; Ch.8 "Navigation in Secondary Windows", pp.148-149): each option
+// button's `accessKey` is its label's.
+describe("ClassicyRadioInput — access keys", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const alt = (k: string, target: Element) =>
+		fireEvent.keyDown(target, {
+			key: k,
+			code: `Key${k.toUpperCase()}`,
+			altKey: true,
+		});
+	const Group = ({ onClickFunc }: { onClickFunc: (id: string) => void }) => (
+		<div className="classicyWindow">
+			<button type="button">Apply</button>
+			<ClassicyRadioInput
+				name="speed"
+				label="Speed"
+				onClickFunc={onClickFunc}
+				inputs={[
+					{ id: "slow", label: "Slow", accessKey: "l" },
+					{ id: "fast", label: "Fast" },
+				]}
+			/>
+		</div>
+	);
+
+	it("underlines each button's key and turns it on with Alt and it under the Windows layout", () => {
+		registerClassicyAppearancePackage({
+			id: "windows-radios",
+			name: "Windows option buttons",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-radios-default",
+				package: "windows-radios",
+			},
+			layout: windows98.layout as never,
+		});
+		const onClickFunc = vi.fn();
+		const { container } = render(<Group onClickFunc={onClickFunc} />);
+		// The group's title labels no control and takes none; "Fast" its
+		// first letter.
+		expect(
+			Array.from(
+				container.querySelectorAll("[data-classicy-part='access-key']"),
+			).map((el) => el.textContent),
+		).toEqual(["l", "F"]);
+		const apply = screen.getByRole("button", { name: "Apply" });
+		apply.focus();
+		expect(alt("f", apply)).toBe(false);
+		expect(screen.getByRole("radio", { name: "Fast" })).toBeChecked();
+		expect(screen.getByRole("radio", { name: "Fast" })).toHaveFocus();
+		expect(onClickFunc).toHaveBeenLastCalledWith("fast");
+		alt("l", document.activeElement as Element);
+		expect(screen.getByRole("radio", { name: "Slow" })).toBeChecked();
+	});
+
+	it("draws and takes nothing by default (Platinum)", () => {
+		const onClickFunc = vi.fn();
+		const { container } = render(<Group onClickFunc={onClickFunc} />);
+		expect(container.querySelector("[data-classicy-part]")).toBeNull();
+		const apply = screen.getByRole("button", { name: "Apply" });
+		apply.focus();
+		expect(alt("f", apply)).toBe(true);
+		expect(onClickFunc).not.toHaveBeenCalled();
 	});
 });

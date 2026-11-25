@@ -288,6 +288,37 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// Which key a Command equivalent answers to (the remaining chapters'
+	// audit's 4.19; WIG Ch.4 "Shortcut Keys", p.28): keyboard.command,
+	// optional, beside contextMenuKey in the keyboard group.
+	it("takes an optional keyboard.command beside contextMenuKey, and refuses another value", () => {
+		for (const command of ["metaOrCtrl", "ctrl"] as const) {
+			const input = platinumShaped();
+			(input.layout as Record<string, unknown>).keyboard = {
+				contextMenuKey: true,
+				command,
+			};
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.success, command).toBe(true);
+			expect(result.data?.layout.keyboard).toEqual({
+				contextMenuKey: true,
+				command,
+			});
+		}
+		const alone = platinumShaped();
+		(alone.layout as Record<string, unknown>).keyboard = { command: "ctrl" };
+		expect(ClassicyAppearancePackageSchema.safeParse(alone).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).keyboard = { command: "meta" };
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"keyboard",
+			"command",
+		]);
+	});
+
 	// The tree's keys and the help's placement (the WIG audit's 7.21 and
 	// 7.27): optional groups with optional keys, each kept as given.
 	it("takes optional tree.keys and balloonHelp.placement, and refuses another value", () => {

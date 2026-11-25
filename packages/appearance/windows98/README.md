@@ -67,13 +67,19 @@ and `nodenext` resolution).
   Windows' does, Shift+F10 and the Application key opening the focused
   item's contextual menu, Finder's item menus leading with Open, their
   default item, as Explorer's do (the Mac packages' keep the Mac Finder's),
-  an access key on every menu title, menu item and label of a control
-  (the first free letter of its text, underlined, unless the app gives it
-  one): Alt and a title's letter opens its menu, a letter in an open menu
-  chooses its item, Alt pressed alone (or F10) takes the menu bar, and Alt
-  and a label's letter moves to its control (clicking a check box, option
-  button or button), keyboard shortcuts spelled as Windows' menus spell
-  them (Ctrl+Backspace, Alt+Shift+F), an empty submenu showing a dimmed
+  an access key on every menu title, menu item, label of a control and
+  push button (the first free letter of its text, underlined, unless the
+  app gives it one; OK and Cancel take none, as Enter and Esc reach them;
+  a tab only one the app gives it), the bundled apps' menus and message
+  boxes carrying Windows 98's own letters (&File, Cu&t, &Copy, &Paste,
+  Select &All, &Yes, &No, &Retry): Alt and a title's letter opens its menu,
+  a letter in an open menu chooses its item, Alt pressed alone (or F10)
+  takes the menu bar, and Alt and a control's letter moves to it (clicking
+  a check box, option button or button, choosing a tab), ahead of any
+  Alt shortcut of a menu item, keyboard shortcuts spelled as Windows' menus
+  spell them (Ctrl+Backspace, Alt+Shift+F, Ctrl+X, the Edit menu's Clear
+  Del) and answering to Ctrl alone, so the Windows key with a letter or a
+  period runs nothing, an empty submenu showing a dimmed
   "(Empty)", desktop icons from the top left, as Windows laid them, a
   window's scroll bars kept where its content fits, a dragged scroll box
   that snaps back, the document with it, when the pointer strays well away
@@ -160,7 +166,8 @@ and `nodenext` resolution).
     inverted highlight and embossed dimmed items (one item highlighted at a
     time: the keyboard's, while the arrow keys moved it last, the
     pointer's otherwise), etched separators, the access key's letter
-    underlined in every title and item (in a control's label too), the
+    underlined in every title and item (in a control's label, a push
+    button and a tab too), the
     default item (the command a double-click runs: Open, first in every
     Finder item's and desktop icon's menu) in
     bold and a round bullet at the chosen item of an option group (the

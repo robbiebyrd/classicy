@@ -305,12 +305,21 @@ describe("windows98.scss (compiled)", () => {
 	// pixel thick, a pixel below the baseline, as Windows 95/98's DrawText
 	// draws a prefixed character (WIG Ch.7 "Menu Titles", p.106, Figure 7.4;
 	// Ch.8 "Navigation in Secondary Windows", pp.148-149).
-	it("underlines an access key in the menus, the menu bar and the control labels", () => {
+	it("underlines an access key in the menus, the menu bar, the control labels, the push buttons and the tabs", () => {
 		const block = (tail: string) =>
 			new RegExp(
 				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
 			).exec(css)?.[1] ?? "";
-		for (const owner of [".classicyMenuItem", ".classicyControlLabel"]) {
+		// The labels' rule draws a check box's and an option button's too
+		// (ClassicyControlLabels); a push button and a tab carry their own
+		// (the remaining chapters' audit's 4.11; WIG Ch.4 "Access Keys",
+		// p.27; Appendix B Table B.5, p.360).
+		for (const owner of [
+			".classicyMenuItem",
+			".classicyControlLabel",
+			".classicyButton",
+			".classicyTabButton",
+		]) {
 			const rule = block(`${owner} [data-classicy-part=access-key]`);
 			expect(rule, owner).toContain("text-decoration-line: underline");
 			expect(rule, owner).toContain("text-decoration-color: currentColor");

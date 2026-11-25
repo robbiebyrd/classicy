@@ -19,6 +19,7 @@ import {
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const { name: appName, id: appId } = PDFViewerAppInfo;
@@ -57,19 +58,26 @@ export const PDFViewer: FunctionalComponent = () => {
 		appName,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
 
 	const buildAppMenu = useCallback(
 		(windowId: string, path: string) => [
 			{
 				id: `${windowId}_file`,
 				title: "File",
+				accessKey: ak("f"),
 				menuChildren: [
-					closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
-						closeWindow(windowId, {
-							type: CLOSE_FILE,
-							app: { id: appId },
-							path,
-						}),
+					closeWindowMenuItemHelper(
+						`${windowId}_close_window`,
+						() =>
+							closeWindow(windowId, {
+								type: CLOSE_FILE,
+								app: { id: appId },
+								path,
+							}),
+						ak("c"),
 					),
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
 						for (const p of openFiles) {
@@ -80,16 +88,17 @@ export const PDFViewer: FunctionalComponent = () => {
 							});
 						}
 					}),
-					quitMenuItemHelper(appId, appName, appIcon),
+					quitMenuItemHelper(appId, appName, appIcon, ak("")),
 				],
 			},
 			{
 				id: `${windowId}_help`,
 				title: "Help",
+				accessKey: ak("h"),
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, openFiles, aboutMenuItem, appIcon],
+		[closeWindow, openFiles, aboutMenuItem, appIcon, ak],
 	);
 
 	return (

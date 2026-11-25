@@ -21,6 +21,7 @@ import {
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import type { HCRect } from "@/SystemFolder/HyperCard/HyperCardModel";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { classicyCommandKeyHeld } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 export const HYPERCARD_PART_DRAG_MIME = "application/x-hypercard-part-type";
 
@@ -167,7 +168,9 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 	};
 
 	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-		const meta = e.metaKey || e.ctrlKey;
+		// Command or Control; Control alone under Windows' command rule
+		// (`layout.keyboard.command` "ctrl").
+		const meta = classicyCommandKeyHeld(e);
 		const key = e.key.toLowerCase();
 		if (meta && key === "z") {
 			e.preventDefault();

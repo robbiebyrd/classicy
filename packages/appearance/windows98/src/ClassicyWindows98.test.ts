@@ -1294,7 +1294,10 @@ describe("the Windows 98 appearance package", () => {
 	// (`fileList.foldersFirst`, as Explorer sorts). Its menus take Windows'
 	// keyboard (`menu.keys` "windows"; WIG Ch.7 pp.97-98, 101), Shift+F10 and
 	// the Application key open the focused element's contextual menu
-	// (`keyboard.contextMenuKey`; Appendix B Table B.2), and Finder's item
+	// (`keyboard.contextMenuKey`; Appendix B Table B.2), a Command
+	// equivalent answers to Control alone, never the Windows key
+	// (`keyboard.command` "ctrl", 4.19; WIG Ch.4 "Shortcut Keys", p.28;
+	// App. B Table B.3), and Finder's item
 	// menus lead with Open, their default (`finder.commands` "windows"; WIG
 	// Ch.7 "Icon Pop-up Menus", pp.102-103). Button 2 selects what it
 	// presses on, keeping a selection it presses inside
@@ -1323,7 +1326,7 @@ describe("the Windows 98 appearance package", () => {
 	// Actions", pp.24-25); and Escape takes a drag back
 	// (`input.escapeCancels`, 1.18 / 4.16; WIG Ch.1 "Forgiveness",
 	// pp.2-3; Ch.4 "Shortcut Keys", p.27).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus on Windows' keys, kept open and cascades on a time-out, the context-menu keys, Explorer's Open first, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, lists selecting at the press and across a drag, Control with Shift adding a range and a double-click opening the selection, the page keys moving a list's row, Space, Control and Add mode building a selection, a drag carrying the icon view's selection, the list view's selection rectangle, one Tab stop for the icons, Windows' press discipline, Escape taking a drag back", async () => {
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus on Windows' keys, kept open and cascades on a time-out, the context-menu keys, Command equivalents on Control alone, Explorer's Open first, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, lists selecting at the press and across a drag, Control with Shift adding a range and a double-click opening the selection, the page keys moving a list's row, Space, Control and Add mode building a selection, a drag carrying the icon view's selection, the list view's selection rectangle, one Tab stop for the icons, Windows' press discipline, Escape taking a drag back", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
@@ -1348,7 +1351,7 @@ describe("the Windows 98 appearance package", () => {
 				saveName: "selected",
 				listFlow: "columns",
 			},
-			keyboard: { contextMenuKey: true },
+			keyboard: { contextMenuKey: true, command: "ctrl" },
 			finder: { commands: "windows" },
 			fileBrowser: {
 				keys: "windows",

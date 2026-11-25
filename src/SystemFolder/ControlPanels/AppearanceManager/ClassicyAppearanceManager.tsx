@@ -66,6 +66,7 @@ import {
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { useClassicySessionTab } from "@/SystemFolder/SystemResources/Tabs/useClassicySessionTab";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -111,6 +112,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		APP_NAME,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
 	// Themes hold a registered wallpaper by filename; the preview and the
@@ -510,17 +514,20 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		{
 			id: `${APP_ID}_file`,
 			title: "File",
+			accessKey: ak("f"),
 			menuChildren: [
 				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
 				{
 					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
 					),
+					accessKey: ak("c"),
 					keyboardShortcut: "⌥W",
 				},
 				{ id: "spacer" },
 				{
 					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+					accessKey: ak(""),
 					keyboardShortcut: "⌥Q",
 				},
 			],

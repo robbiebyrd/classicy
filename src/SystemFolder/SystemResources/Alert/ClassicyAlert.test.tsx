@@ -1,10 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import {
 	clampWindowPositionToViewport,
 	resolvePosition,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockPlayer = vi.hoisted(() => vi.fn());
@@ -360,5 +368,81 @@ describe("ClassicyAlert", () => {
 			);
 			expect(moves[0]?.position).toEqual(expected);
 		});
+	});
+});
+
+// The remaining chapters' audit's 4.12 (WIG Appendix B Table B.5, p.360;
+// user.exe's "&Yes", "&No", "&Retry", "&Abort", "&Ignore", read from the
+// Windows 98 SE CD): a message box's own buttons take Windows' keys under a
+// package with access keys, OK and Cancel none; under Platinum, none.
+describe("ClassicyAlert — access keys", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-alerts",
+			name: "Windows alerts",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-alerts-default",
+				package: "windows-alerts",
+			},
+			layout: windows98.layout as never,
+		});
+	const keyOf = (name: string) =>
+		screen
+			.getByRole("button", { name })
+			.querySelector("[data-classicy-part='access-key']")?.textContent ?? null;
+	const buttons = (yes: () => void) => [
+		{ id: "abort", label: "Abort" },
+		{ id: "retry", label: "Retry" },
+		{ id: "ignore", label: "Ignore" },
+		{ id: "yes", label: "Yes", onClick: yes },
+	];
+
+	it("gives a message box's buttons Windows' keys, OK and Cancel none, under the Windows layout", () => {
+		useWindowsLayout();
+		const yes = vi.fn();
+		const onClose = vi.fn();
+		const { unmount } = render(
+			<ClassicyAlert label="Save?" buttons={buttons(yes)} onClose={onClose} />,
+		);
+		expect(["Abort", "Retry", "Ignore", "Yes"].map(keyOf)).toEqual([
+			"A",
+			"R",
+			"I",
+			"Y",
+		]);
+		const retry = screen.getByRole("button", { name: "Retry" });
+		retry.focus();
+		fireEvent.keyDown(retry, { key: "y", code: "KeyY", altKey: true });
+		expect(yes).toHaveBeenCalledTimes(1);
+		expect(onClose).toHaveBeenCalledTimes(1);
+		unmount();
+		render(
+			<ClassicyAlert
+				label="Delete?"
+				buttons={[
+					{ id: "no", label: "No" },
+					{ id: "cancel", label: "Cancel", role: "cancel" },
+					{ id: "ok", label: "OK", role: "default" },
+					{ id: "other", label: "Keep Both", accessKey: "b" },
+				]}
+			/>,
+		);
+		expect(keyOf("No")).toBe("N");
+		expect(keyOf("Cancel")).toBeNull();
+		expect(keyOf("OK")).toBeNull();
+		expect(keyOf("Keep Both")).toBe("B");
+	});
+
+	it("gives none by default (Platinum)", () => {
+		render(<ClassicyAlert label="Save?" buttons={buttons(vi.fn())} />);
+		for (const name of ["Abort", "Retry", "Ignore", "Yes"]) {
+			expect(keyOf(name), name).toBeNull();
+			expect(screen.getByRole("button", { name })).not.toHaveAttribute(
+				"accesskey",
+			);
+		}
 	});
 });

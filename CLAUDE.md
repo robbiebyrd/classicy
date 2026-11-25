@@ -601,6 +601,28 @@ on a recorded key. Recorded shortcuts use the menu-item form (`"⌃⌘S"`, via
 Rules live in `checkKeyboardEquivalent` (needs ⌘ or a function key unless
 `requireCommandKey={false}`; `inUse` conflicts name their owner).
 
+Which key ⌘ answers to is the package's `layout.keyboard.command`
+(`classicyCommandIsCtrl`, read store-free inside `shortcutMatchesEvent`,
+`canonicalChordsFromEvent`, `keyboardShortcutFromEvent` and
+`classicyCommandKeyHeld`, so the dispatcher needs no change): Command or
+Control by default, Control alone under Windows 98's `"ctrl"`, where a
+Windows-key (`metaKey`) chord runs nothing and Command-period is
+Ctrl+period (match a ⌘ chord by hand only through `classicyCommandKeyHeld`).
+Under `menu.shortcutSpelling` `"names"` ⌘ is then spelled `Ctrl+`, as is a
+`nativeShortcut` item's off a Mac (`classicyCommandSpelledCtrl`).
+
+Access keys (`layout.menu.accessKeys` only; `Keyboard/ClassicyAccessKeys.internal.tsx`):
+menus, menu bar titles and `ClassicyControlLabel` (lane L2-B), plus
+`ClassicyButton`, `ClassicyCheckbox`, `ClassicyRadioInput`'s inputs and
+`ClassicyTabs`' tabs, all one register per window
+(`useClassicyLabelAccessKey`). Alt and a key listens in the capture phase
+on `window` and `preventDefault`s what it takes, so an access key beats a
+menu item's ⌥ chord (WIG Ch.4 p.27) and the dispatcher stands down. The
+bundled menus and message boxes take Windows 98's letters through
+`useClassicyBundledAccessKeys()` (the key only under the flag, so Platinum
+and System 7 store and draw none); a new bundled menu item or button gets
+its letter the same way.
+
 ### Control Strip
 
 `ClassicyDesktop` mounts a `ClassicyControlStrip` at its lower left — the home
@@ -1011,7 +1033,7 @@ A package's optional `apps: Record<appId, { name?, icon?, description? }>` (`Cla
 ### Vocabulary and cascade
 
 - **State classes** are bare and sit beside the root: `.classicyButton.pressed`, `.classicyWindow.active`, never `classicyButtonPressed` and never `data-state` (none is emitted). The 16 states (`active inactive disabled selected pressed focused hover collapsed open dragging error default checked mixed expanded fits`) are generated from `src/Appearance/vocabulary/ClassicyVocabulary.json` by `node bin/generate-vocabulary.ts` (run by `generate-barrels`; CI runs `--check` for freshness) into `ClassicyVocabulary.ts` (`CLASSICY_STATE`, `classicyStateClasses`, `CLASSICY_COMPONENT`, `CLASSICY_PART_ATTRIBUTE`) and `_vocabulary.scss` (`$classicy-states`, `classicy-state()`, which errors at compile time on an unknown name). Emit states with `classicyStateClasses({ … })`; write single-state base rules as `:where(.root).state` so they keep the root rule's specificity. The generator rejects a state that collides with a root or part class; a coverage test (`ClassicyVocabulary.test.ts`) requires every `classicy[A-Z]…` token in the string/template literals and object-literal keys of src `.ts`/`.tsx` and each workspace package's `packages/appearance/<id>/src` (savers, tests and stories excepted) to be a declared root, part or extra class — non-class tokens go in its `NOT_CLASSES` allowlist with a reason, and a class built as `` `classicyX${…}` `` needs a `TEMPLATE_FAMILIES` entry, whose suffixes the test reads from the type union (or SCSS palette) the template interpolates, each declared.
-- **Part attributes**: `data-classicy-control` (`close|zoom|collapse`, window control boxes), `data-classicy-role` (`default|cancel|other`, alert buttons), `data-classicy-part` (`apple|app|help|switcher|extensions|clock`, menu-bar clusters; `window-menu-bar`, the root of a window's own menu bar; `modifier-control|option|shift|command`, `ClassicyKbd`'s modifier glyph spans; `access-key`, an access key's character in a menu title, item or control label; `scrollbar`, `scroll-arrow-start|end`, `scroll-track`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`, `scroll-accessory-start|end`, `ClassicyScrollArea`'s parts; `list-check`, a `ClassicyListBox` check list's check box (`checkboxes`), hidden by the base sheet, drawn by Windows 98), `data-classicy-selection` (`all|tail`, on a `ClassicyInput`'s `<input>` while it is `selected`: the selection runs to the end of the text from its first character, or from a later one).
+- **Part attributes**: `data-classicy-control` (`close|zoom|collapse`, window control boxes), `data-classicy-role` (`default|cancel|other`, alert buttons), `data-classicy-part` (`apple|app|help|switcher|extensions|clock`, menu-bar clusters; `window-menu-bar`, the root of a window's own menu bar; `modifier-control|option|shift|command`, `ClassicyKbd`'s modifier glyph spans; `access-key`, an access key's character in a menu title, item, control label, push button or tab (only under a package's `layout.menu.accessKeys`); `scrollbar`, `scroll-arrow-start|end`, `scroll-track`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`, `scroll-accessory-start|end`, `ClassicyScrollArea`'s parts; `list-check`, a `ClassicyListBox` check list's check box (`checkboxes`), hidden by the base sheet, drawn by Windows 98), `data-classicy-selection` (`all|tail`, on a `ClassicyInput`'s `<input>` while it is `selected`: the selection runs to the end of the text from its first character, or from a later one).
 - **Passthrough**: every exported component with a DOM root merges `className` (appended after root and state classes) and `style` (spread after its own) onto its outermost element, so consumer `style` keys win over the component's own, component custom properties included — except window geometry and `zIndex`, which the window and icon states own (`ClassicyWindow` keeps its geometry and drops `zIndex`; `ClassicyIcon`/`ClassicyDesktopIcon` drop `zIndex`, and a `left`/`top` there overrides the drag position). Components with no root of their own (`ClassicyApp` and the bundled apps on it, the providers, controllers, and fragment renderers such as `QuickTimeSeekBar`) take neither — the full list is in `docs/AGENT-REFERENCE.md` §4.0.1; `ClassicyPassthrough.test.tsx` and `ClassicyPassthrough.more.test.tsx` hold one row per component that does.
 - **Cascade**: component CSS compiles into `@layer classicy.base` (see the Cascade layers note under Build Notes for the plugin and host rules); there is no `!important` in src SCSS or a workspace package's (test-enforced by `ClassicyCascade.repo.test.ts`), so a state rule must follow the base rule it overrides. Public contract: `docs/AGENT-REFERENCE.md` §4.0.1.
 

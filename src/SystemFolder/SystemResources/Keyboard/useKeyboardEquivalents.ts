@@ -1,4 +1,5 @@
 import { type RefObject, useEffect } from "react";
+import { classicyCommandKeyHeld } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 /**
  * HIG keyboard-equivalent engine (Mac OS 8 HIG, Ch. 3 "Keyboard Navigation and
@@ -6,7 +7,8 @@ import { type RefObject, useEffect } from "react";
  *
  * Wires the two dialog-wide keyboard equivalents the HIG requires:
  *   - Return / Enter  -> the default action (the dialog's default button)
- *   - Escape / Cmd-.  -> the Cancel action
+ *   - Escape / Cmd-.  -> the Cancel action (Cmd is Command or Control; Control
+ *     alone under the package's `layout.keyboard.command` "ctrl", Windows 98)
  *
  * The default action deliberately does NOT fire when focus is on another button
  * or inside a multi-line text area, so those elements keep their own behavior
@@ -56,10 +58,12 @@ export const useKeyboardEquivalents = ({
 			const e = event as KeyboardEvent;
 			if (e.defaultPrevented) return;
 
-			// Cancel: Escape, or Command/Ctrl + "."
+			// Cancel: Escape, or Command/Ctrl + "." (Ctrl alone under the
+			// package's `layout.keyboard.command` "ctrl": Win+period cancels
+			// nothing, `classicyCommandKeyHeld`).
 			if (
 				onCancel &&
-				(e.key === "Escape" || ((e.metaKey || e.ctrlKey) && e.key === "."))
+				(e.key === "Escape" || (classicyCommandKeyHeld(e) && e.key === "."))
 			) {
 				e.preventDefault();
 				onCancel();

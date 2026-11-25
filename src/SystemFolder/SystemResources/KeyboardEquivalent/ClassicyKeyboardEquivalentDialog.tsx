@@ -8,6 +8,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	ClassicyAlert,
 	type ClassicyAlertButton,
@@ -20,7 +21,10 @@ import {
 	checkKeyboardEquivalent,
 	spellKeyboardEquivalent,
 } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentRules";
-import { keyboardShortcutFromEvent } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+import {
+	classicyCommandKeyHeld,
+	keyboardShortcutFromEvent,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import { ClassicyOutput } from "@/SystemFolder/SystemResources/Output/ClassicyOutput";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
@@ -97,6 +101,7 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 	style,
 }) => {
 	const contentRef = useRef<HTMLDivElement | null>(null);
+	const layout = useClassicyAppearanceLayout();
 	const [value, setValue] = useState(initialValue);
 	const [problem, setProblem] =
 		useState<ClassicyKeyboardEquivalentProblem | null>(null);
@@ -131,7 +136,7 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 			}
 			if (
 				(bare && e.key === "Escape") ||
-				((e.metaKey || e.ctrlKey) && e.key === ".")
+				(classicyCommandKeyHeld(e) && e.key === ".")
 			) {
 				cancel();
 				return;
@@ -204,7 +209,7 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 							className="classicyKeyboardEquivalentDisplay"
 							ariaLabel="Keyboard equivalent"
 							// A no-break space keeps an empty display at its full height.
-							value={spellKeyboardEquivalent(value) || " "}
+							value={spellKeyboardEquivalent(value, layout) || " "}
 						/>
 						{description != null && description !== "" && (
 							<p className="classicyKeyboardEquivalentDescription">

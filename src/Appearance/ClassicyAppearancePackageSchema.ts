@@ -111,7 +111,12 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			regionSelect: z.boolean().optional(),
 		})
 		.optional(),
-	keyboard: z.object({ contextMenuKey: z.boolean().optional() }).optional(),
+	keyboard: z
+		.object({
+			contextMenuKey: z.boolean().optional(),
+			command: z.enum(["metaOrCtrl", "ctrl"]).optional(),
+		})
+		.optional(),
 	finder: z
 		.object({ commands: z.enum(["mac", "windows"]).optional() })
 		.optional(),

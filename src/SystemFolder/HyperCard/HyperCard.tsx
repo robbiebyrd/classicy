@@ -1,5 +1,6 @@
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 /**
  * HyperCard.app — a JSON-driven HyperCard stack player for Classicy.
@@ -131,6 +132,10 @@ export const HyperCard: FunctionalComponent = () => {
 		appName,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, New N, Open O, Save S, Edit E, Undo U, Copy
+	// C, Paste P, Delete D, View V, Next N, Back B; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
 
 	const [savedStacksOpen, setSavedStacksOpen] = useState(false);
 	const [saveStackOpen, setSaveStackOpen] = useState(false);
@@ -647,12 +652,14 @@ export const HyperCard: FunctionalComponent = () => {
 			{
 				id: "file",
 				title: "File",
+				accessKey: ak("f"),
 				menuChildren: [
 					{ ...aboutMenuItem, title: `About ${appName}` },
 					{ id: "spacer" },
 					{
 						id: "new_stack",
 						title: "New Stack…",
+						accessKey: ak("n"),
 						onClickFunc: newStack,
 					},
 					{ id: "spacer" },
@@ -720,6 +727,7 @@ export const HyperCard: FunctionalComponent = () => {
 								{
 									id: "save_stack",
 									title: "Save Stack…",
+									accessKey: ak("s"),
 									onClickFunc: () => setSaveStackOpen(true),
 								},
 							]
@@ -727,6 +735,7 @@ export const HyperCard: FunctionalComponent = () => {
 					{
 						id: "open_saved",
 						title: "Open Saved Stack…",
+						accessKey: ak("o"),
 						onClickFunc: () => setSavedStacksOpen(true),
 					},
 					// #236: a non-destructive Browse/Edit toggle — mirrors the toolbar's
@@ -764,7 +773,7 @@ export const HyperCard: FunctionalComponent = () => {
 					// #236: Quit walks every dirty stack (Save/Discard/Cancel) before
 					// actually dispatching ClassicyAppClose — see handleQuit above.
 					{
-						...quitMenuItemHelper(appId, appName, appIcon),
+						...quitMenuItemHelper(appId, appName, appIcon, ak("")),
 						onClickFunc: handleQuit,
 					},
 				],
@@ -774,10 +783,12 @@ export const HyperCard: FunctionalComponent = () => {
 						{
 							id: "edit",
 							title: "Edit",
+							accessKey: ak("e"),
 							menuChildren: [
 								{
 									id: "undo",
 									title: "Undo",
+									accessKey: ak("u"),
 									onClickFunc: () =>
 										dispatch({
 											type: "ClassicyAppHCEditUndo",
@@ -797,6 +808,7 @@ export const HyperCard: FunctionalComponent = () => {
 								{
 									id: "copy_part",
 									title: "Copy Part",
+									accessKey: ak("c"),
 									onClickFunc: () =>
 										edit.selectedPartId &&
 										dispatch({
@@ -808,6 +820,7 @@ export const HyperCard: FunctionalComponent = () => {
 								{
 									id: "paste_part",
 									title: "Paste Part",
+									accessKey: ak("p"),
 									onClickFunc: () =>
 										dispatch({
 											type: "ClassicyAppHCEditPastePart",
@@ -817,6 +830,7 @@ export const HyperCard: FunctionalComponent = () => {
 								{
 									id: "delete_part",
 									title: "Delete Part",
+									accessKey: ak("d"),
 									onClickFunc: () =>
 										edit.selectedPartId &&
 										dispatch({
@@ -845,6 +859,7 @@ export const HyperCard: FunctionalComponent = () => {
 			{
 				id: "view",
 				title: "View",
+				accessKey: ak("v"),
 				menuChildren: [
 					paletteToggle(
 						"hypercard_tools",
@@ -874,10 +889,20 @@ export const HyperCard: FunctionalComponent = () => {
 						onClickFunc: () => navigate("first"),
 					},
 					{ id: "go_prev", title: "Prev", onClickFunc: () => navigate("prev") },
-					{ id: "go_next", title: "Next", onClickFunc: () => navigate("next") },
+					{
+						id: "go_next",
+						title: "Next",
+						accessKey: ak("n"),
+						onClickFunc: () => navigate("next"),
+					},
 					{ id: "go_last", title: "Last", onClickFunc: () => navigate("last") },
 					{ id: "spacer" },
-					{ id: "go_back", title: "Back", onClickFunc: () => navigate("back") },
+					{
+						id: "go_back",
+						title: "Back",
+						accessKey: ak("b"),
+						onClickFunc: () => navigate("back"),
+					},
 				],
 			},
 			...(activeStackId && edit
@@ -889,6 +914,7 @@ export const HyperCard: FunctionalComponent = () => {
 								{
 									id: "new_card",
 									title: "New Card",
+									accessKey: ak("n"),
 									onClickFunc: () =>
 										dispatch({
 											type: "ClassicyAppHCEditAddCard",
@@ -898,6 +924,7 @@ export const HyperCard: FunctionalComponent = () => {
 								{
 									id: "delete_card",
 									title: "Delete Card",
+									accessKey: ak("d"),
 									onClickFunc: () =>
 										dispatch({
 											type: "ClassicyAppHCEditDeleteCard",
@@ -957,6 +984,7 @@ export const HyperCard: FunctionalComponent = () => {
 		aboutMenuItem,
 		handleQuit,
 		appIcon,
+		ak,
 	]);
 
 	// Keep the menu bar in sync with the dynamic edit-mode menus. Focus

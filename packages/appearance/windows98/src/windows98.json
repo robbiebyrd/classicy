@@ -8801,7 +8801,8 @@
 			"listFlow": "columns"
 		},
 		"keyboard": {
-			"contextMenuKey": true
+			"contextMenuKey": true,
+			"command": "ctrl"
 		},
 		"finder": {
 			"commands": "windows"

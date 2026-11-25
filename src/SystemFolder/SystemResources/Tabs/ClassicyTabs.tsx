@@ -17,7 +17,9 @@ import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceI
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyLabelAccessKey } from "@/SystemFolder/SystemResources/ControlLabel/useClassicyLabelAccessKey.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { renderClassicyAccessKeyText } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { classicyTabSelectsOnPress } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 /**
@@ -67,11 +69,53 @@ export interface TabIndividual {
 	/** Icon URL shown on the tab, alongside the title or on its own. Decorative. */
 	icon?: string;
 	/**
+	 * The tab's access key (mnemonic), one character of `title` (WIG Ch.4
+	 * "Access Keys" (p.27); Ch.8 "Navigation in Secondary Windows"
+	 * (pp.148-149)): Alt and the key, in the window holding focus, chooses
+	 * the tab and focuses it, as the arrow keys do; the key alone does the
+	 * same while focus is on a button, a check box or an option button. Its
+	 * first match in the title is drawn as the `access-key` part, which a
+	 * package underlines (Windows 98). One register with the window's other
+	 * controls (`ClassicyControlLabel`'s). Read only under the package's
+	 * `layout.menu.accessKeys`, and only as given: a tab takes no automatic
+	 * key under `"auto"`, as Windows 98's own property sheets' tabs carried
+	 * none ("General", "Sharing": shell32.dll's page titles have no `&`).
+	 * Inert under Platinum and System 7.
+	 */
+	accessKey?: string;
+	/**
 	 * The tab's panel content. Inactive panels stay mounted (only `hidden`), so
 	 * form state inside them survives switching tabs.
 	 */
 	children: ReactNode;
 }
+
+/**
+ * A tab's title, with its access key registered and drawn
+ * (`useClassicyLabelAccessKey`; the tab button is its control, by id). A tab
+ * given no `accessKey` takes none, `"auto"` or not.
+ */
+const ClassicyTabLabel: FunctionalComponent<{
+	title: string;
+	accessKey: string | undefined;
+	tabId: string;
+	onActivate: () => void;
+}> = ({ title, accessKey, tabId, onActivate }) => {
+	const labelRef = useRef<HTMLSpanElement>(null);
+	const key = useClassicyLabelAccessKey({
+		labelRef,
+		holderRef: labelRef,
+		text: title,
+		accessKey: accessKey ?? "",
+		labelFor: tabId,
+		onActivate,
+	});
+	return (
+		<span ref={labelRef} className={"classicyTabButtonLabel"}>
+			{renderClassicyAccessKeyText(title, key)}
+		</span>
+	);
+};
 
 /** `medium` is the unmodified base style, so it carries no modifier class. */
 const SIZE_CLASS: Record<ClassicyTabsSize, string> = {
@@ -418,9 +462,19 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 											/>
 										)}
 										{tab.title && (
-											<span className={"classicyTabButtonLabel"}>
-												{tab.title}
-											</span>
+											<ClassicyTabLabel
+												title={tab.title}
+												accessKey={tab.accessKey}
+												tabId={tabDomId(index)}
+												onActivate={() => {
+													// As the arrow keys choose a tab: pressed, then chosen.
+													appearance.emit(
+														"press",
+														withClassicyAppearanceInput({ tabId: index }),
+													);
+													selectTab(index);
+												}}
+											/>
 										)}
 									</button>
 								</div>

@@ -1,21 +1,31 @@
-import { describe, expect, it } from "vitest";
-import { render } from "@/__tests__/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, renderHook } from "@/__tests__/test-utils";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import {
 	classicyAccessKeyFromEvent,
 	classicyAccessKeyIndex,
 	classicyAutoAccessKeyIndex,
 	classicyFocusedAccessKeyScope,
 	classicyMenuBarClaimsAccessKey,
-	classicyMenuBarHasChord,
-	classicyMenuItemsHaveChord,
 	classicyNodeText,
+	isClassicyMenuKeyTarget,
+	isClassicyMenuShown,
 	isClassicyTextEntry,
+	markClassicyMenuShown,
 	normalizeClassicyAccessKey,
 	registerClassicyAccessKeyMenuBar,
 	renderClassicyAccessKeyNode,
 	renderClassicyAccessKeyText,
+	resetClassicyAccessKeyReportsForTests,
 	resolveClassicyAccessKeys,
+	useClassicyBundledAccessKeys,
+	warnClassicyDuplicateAccessKeys,
 } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // The access keys of the WIG audit's 7.1 and 8.9 (WIG Ch.4 "Access Keys",
 // p.27; Ch.7 "Menu Titles", p.106, "Menu Item Labels", p.109).
@@ -285,40 +295,132 @@ describe("the menu bars' claims", () => {
 	it("answers from every registered bar, and forgets a removed one", () => {
 		const remove = registerClassicyAccessKeyMenuBar({
 			claims: (key) => key === "f",
-			hasChord: (e) => e.altKey && e.code === "KeyQ",
 		});
 		expect(classicyMenuBarClaimsAccessKey("f")).toBe(true);
 		expect(classicyMenuBarClaimsAccessKey("e")).toBe(false);
-		expect(
-			classicyMenuBarHasChord(
-				new KeyboardEvent("keydown", { key: "q", code: "KeyQ", altKey: true }),
-			),
-		).toBe(true);
 		remove();
 		expect(classicyMenuBarClaimsAccessKey("f")).toBe(false);
 	});
+});
 
-	it("finds an Option chord among a menu's items, submenus and dimmed items included", () => {
-		const items = [
-			{
-				id: "file",
-				title: "File",
-				menuChildren: [
-					{ id: "x", title: "X", disabled: true, keyboardShortcut: "⌥F" },
-				],
-			},
+// The remaining chapters' audit's 4.14: while a menu on Windows' keyboard is
+// shown, or focus is in a menu, Alt and a key are the menu's.
+describe("the menus that take the keys typed", () => {
+	it("counts each shown menu once, and forgets a removed one", () => {
+		expect(isClassicyMenuShown()).toBe(false);
+		const a = markClassicyMenuShown();
+		const b = markClassicyMenuShown();
+		expect(isClassicyMenuShown()).toBe(true);
+		a();
+		a();
+		expect(isClassicyMenuShown()).toBe(true);
+		b();
+		expect(isClassicyMenuShown()).toBe(false);
+	});
+
+	it("knows a target in a bar's title or an open menu", () => {
+		const { container } = render(
+			<>
+				<ul>
+					<li className="classicyMenuItem">
+						<span data-testid="title">File</span>
+					</li>
+				</ul>
+				<div className="classicyMenuWrapper">
+					<button type="button">item</button>
+				</div>
+				<button type="button">outside</button>
+			</>,
+		);
+		const [item, outside] = Array.from(container.querySelectorAll("button"));
+		expect(isClassicyMenuKeyTarget(container.querySelector("span"))).toBe(true);
+		expect(isClassicyMenuKeyTarget(item)).toBe(true);
+		expect(isClassicyMenuKeyTarget(outside)).toBe(false);
+		expect(isClassicyMenuKeyTarget(null)).toBe(false);
+	});
+});
+
+// The remaining chapters' audit's 4.12 (WIG Appendix B Table B.5, p.360):
+// the bundled menus' and buttons' keys, given only under a package with
+// access keys, so Platinum and System 7 carry none.
+describe("useClassicyBundledAccessKeys", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+
+	it("gives no key by default (Platinum)", () => {
+		const { result } = renderHook(() => useClassicyBundledAccessKeys());
+		expect(result.current("f")).toBeUndefined();
+		expect(result.current("")).toBeUndefined();
+	});
+
+	it("gives the key, an empty one included, under a package's layout.menu.accessKeys, and keeps its identity", () => {
+		restore = activateTestWindowsKeysPackage({
+			menu: { keys: "windows", accessKeys: "explicit" },
+		});
+		const { result, rerender } = renderHook(() =>
+			useClassicyBundledAccessKeys(),
+		);
+		const first = result.current;
+		expect(first("f")).toBe("f");
+		expect(first("")).toBe("");
+		rerender();
+		expect(result.current).toBe(first);
+	});
+});
+
+// WIG Ch.4 "Access Keys" (p.27): unique within its scope.
+describe("warnClassicyDuplicateAccessKeys", () => {
+	const entries: ClassicyLogEntry[] = [];
+	afterEach(() => {
+		unregisterClassicyLogSink("duplicate-keys");
+		entries.length = 0;
+		resetClassicyAccessKeyReportsForTests();
+		vi.unstubAllEnvs();
+	});
+	const listen = () =>
+		registerClassicyLogSink({
+			id: "duplicate-keys",
+			onLog: (entry) => entries.push(entry),
+		});
+
+	it("logs a set sharing a key once, as a Menu or a Dialog warning", () => {
+		listen();
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const set = [
+			{ text: "Copy", key: "c" },
+			{ text: "Close", key: "c" },
+			{ text: "Paste", key: "p" },
+			{ text: "Clear", key: null },
 		];
-		expect(
-			classicyMenuItemsHaveChord(
-				items,
-				new KeyboardEvent("keydown", { key: "f", code: "KeyF", altKey: true }),
-			),
-		).toBe(true);
-		expect(
-			classicyMenuItemsHaveChord(
-				items,
-				new KeyboardEvent("keydown", { key: "e", code: "KeyE", altKey: true }),
-			),
-		).toBe(false);
+		warnClassicyDuplicateAccessKeys("Menu", set);
+		warnClassicyDuplicateAccessKeys("Menu", set);
+		expect(entries).toHaveLength(1);
+		expect(entries[0]).toMatchObject({ level: "warn", subsystem: "Menu" });
+		expect(entries[0].message).toContain("“Copy”, “Close”");
+		expect(entries[0].message).toContain('"c"');
+		warnClassicyDuplicateAccessKeys("Dialog", [
+			{ text: "Yes", key: "y" },
+			{ text: "Yesterday", key: "y" },
+		]);
+		expect(entries[1]).toMatchObject({ subsystem: "Dialog" });
+		expect(entries[1].message).toContain("one window's controls");
+		warn.mockRestore();
+	});
+
+	it("logs nothing for unique keys, or in a production build", () => {
+		listen();
+		warnClassicyDuplicateAccessKeys("Menu", [
+			{ text: "Copy", key: "c" },
+			{ text: "Paste", key: "p" },
+		]);
+		vi.stubEnv("NODE_ENV", "production");
+		warnClassicyDuplicateAccessKeys("Menu", [
+			{ text: "Copy", key: "c" },
+			{ text: "Close", key: "c" },
+		]);
+		expect(entries).toHaveLength(0);
 	});
 });

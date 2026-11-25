@@ -4,13 +4,12 @@ import {
 	isValidElement,
 	type ReactElement,
 	type ReactNode,
+	useCallback,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
-import {
-	isClassicyMacPlatform,
-	shortcutMatchesEvent,
-} from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
-import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { isClassicyMacPlatform } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
 /**
  * Access keys (mnemonics): one character of a menu title, a menu item or a
@@ -314,24 +313,10 @@ export const classicyFocusedAccessKeyScope = (doc: Document): Element => {
 export const isClassicyModalAccessKeyScope = (scope: Element): boolean =>
 	scope.classList.contains("classicyWindowModal");
 
-/** Does any item of `items`, its submenus included, take `e` as its keyboard equivalent? */
-export const classicyMenuItemsHaveChord = (
-	items: readonly ClassicyMenuItem[] | undefined,
-	e: KeyboardEvent,
-): boolean =>
-	(items ?? []).some(
-		(item) =>
-			(item.keyboardShortcut !== undefined &&
-				shortcutMatchesEvent(item.keyboardShortcut, e)) ||
-			classicyMenuItemsHaveChord(item.menuChildren, e),
-	);
-
 /** A menu bar, as the labels' access keys see it. */
 export type ClassicyAccessKeyMenuBar = {
 	/** It takes Alt+`key` now (it is the active bar, and a title has the key). */
 	claims: (key: string) => boolean;
-	/** One of its items has `e` as its keyboard equivalent (an Option chord). */
-	hasChord: (e: KeyboardEvent) => boolean;
 };
 
 const menuBars = new Set<ClassicyAccessKeyMenuBar>();
@@ -354,6 +339,95 @@ export const registerClassicyAccessKeyMenuBar = (
 export const classicyMenuBarClaimsAccessKey = (key: string): boolean =>
 	Array.from(menuBars).some((bar) => bar.claims(key));
 
-/** Is `e` a keyboard equivalent of a menu bar's item? Classicy's Option chords win over access keys. */
-export const classicyMenuBarHasChord = (e: KeyboardEvent): boolean =>
-	Array.from(menuBars).some((bar) => bar.hasChord(e));
+// The menus on Windows' keyboard (`layout.menu.keys` "windows") shown now:
+// each takes the keys typed while it is shown, its items' access keys
+// among them, before a bar's title or a label does.
+let shownMenus = 0;
+
+/**
+ * Marks a menu on Windows' keyboard as shown (`ClassicyMenu`, while a root's
+ * tree is shown); returns its removal, which counts once.
+ */
+export const markClassicyMenuShown = (): (() => void) => {
+	shownMenus += 1;
+	let removed = false;
+	return () => {
+		if (removed) return;
+		removed = true;
+		shownMenus -= 1;
+	};
+};
+
+/**
+ * Is a menu on Windows' keyboard shown? While one is, the menu bars' and
+ * the labels' Alt and a key stand down: the menu takes the keys typed, its
+ * items' access keys choosing them (WIG Ch.7 "Menu Item Labels", p.109).
+ */
+export const isClassicyMenuShown = (): boolean => shownMenus > 0;
+
+/**
+ * Is `target` in a menu (a bar's title, or an item of an open menu)? A
+ * menu takes its own keys; an access key from outside it stands down.
+ */
+export const isClassicyMenuKeyTarget = (target: EventTarget | null): boolean =>
+	target instanceof Element &&
+	target.closest(".classicyMenuItem, .classicyMenuWrapper") !== null;
+
+/**
+ * The access keys the bundled menus and buttons are given (WIG Appendix B
+ * Table B.5, p.360: About A, Close C, Copy C, Cut t, Delete D, File F, Help
+ * H, …; read from Windows 98 SE's own menus: notepad.exe's "&File",
+ * "Cu&t", "&Help Topics", shell32.dll's "P&roperties", "Rena&me", user.exe's
+ * "&Yes", "&No", "&Retry"): the key given, only while the active package
+ * declares `layout.menu.accessKeys`, else `undefined`, so under Platinum and
+ * System 7 (no access keys) a bundled item or button carries no key, renders
+ * no part, and stores nothing new. `""` (an explicit none: Quit, OK, Cancel)
+ * passes as given. The function is stable while the package's mode is.
+ * @internal
+ */
+export const useClassicyBundledAccessKeys = (): ((
+	key: string,
+) => string | undefined) => {
+	const mode = useClassicyAppearanceLayout().menu?.accessKeys;
+	return useCallback(
+		(key: string) => (mode === undefined ? undefined : key),
+		[mode],
+	);
+};
+
+// The duplicate sets already reported, by message.
+const reportedDuplicates = new Set<string>();
+
+/**
+ * Logs, in development builds and once per set, siblings sharing an access
+ * key (WIG Ch.4 "Access Keys" (p.27): "define an access key to be unique
+ * within the scope of its interaction"): `"Menu"` for two items of one menu,
+ * `"Dialog"` for two controls of one window. `entries` are the siblings'
+ * texts and resolved keys; nothing is logged when every key is unique.
+ * @internal
+ */
+export const warnClassicyDuplicateAccessKeys = (
+	subsystem: "Menu" | "Dialog",
+	entries: readonly { text: string; key: string | null | undefined }[],
+): void => {
+	if (process.env.NODE_ENV === "production") return;
+	const byKey = new Map<string, string[]>();
+	for (const { text, key } of entries) {
+		if (!key) continue;
+		byKey.set(key, [...(byKey.get(key) ?? []), text]);
+	}
+	for (const [key, texts] of byKey) {
+		if (texts.length < 2) continue;
+		const where =
+			subsystem === "Menu" ? "one menu's items" : "one window's controls";
+		const message = `${texts.map((t) => `“${t}”`).join(", ")}: ${where} share the access key "${key}"; give each its own (WIG Ch.4 "Access Keys", p.27).`;
+		if (reportedDuplicates.has(message)) continue;
+		reportedDuplicates.add(message);
+		classicyLog("warn", subsystem, message);
+	}
+};
+
+/** Clears the duplicate reports between tests. @internal */
+export const resetClassicyAccessKeyReportsForTests = (): void => {
+	reportedDuplicates.clear();
+};

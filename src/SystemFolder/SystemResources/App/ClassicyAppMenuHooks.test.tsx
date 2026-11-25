@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -212,5 +213,70 @@ describe("useClassicyHelpMenu", () => {
 		expect(
 			useAppManager.getState().System.Manager.Desktop.helpMenu?.["Weather.app"],
 		).toBeUndefined();
+	});
+});
+
+// The remaining chapters' audit's 4.12 and 5.30: under a package with
+// access keys (`layout.menu.accessKeys`) the About item and the Edit menu
+// carry Windows 98's letters (Table B.5; notepad.exe's and mspaint.exe's
+// Edit menus: "&Undo", "Cu&t", "&Copy", "&Paste", "C&lear Selection",
+// "Select &All"), and under its names spelling Clear shows the Delete key;
+// Platinum's carry none.
+describe("the bundled menus' access keys", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+	const keysOf = (menu: { accessKey?: string; menuChildren?: unknown[] }) => [
+		menu.accessKey,
+		...(menu.menuChildren as { id: string; accessKey?: string }[])
+			.filter((item) => item.id !== "spacer")
+			.map((item) => item.accessKey),
+	];
+
+	it("gives About and the Edit menu Windows 98's letters under the Windows layout", () => {
+		restore = activateTestWindowsKeysPackage({
+			menu: { keys: "windows", accessKeys: "auto", shortcutSpelling: "names" },
+		});
+		const about = renderHook(() =>
+			useClassicyAboutMenu("TestApp.app", "Test App", ""),
+		);
+		expect(about.result.current.aboutMenuItem.accessKey).toBe("a");
+		const edit = renderHook(() => useClassicyEditMenu("test"));
+		expect(keysOf(edit.result.current)).toEqual([
+			"e",
+			"u",
+			"t",
+			"c",
+			"p",
+			"l",
+			"A",
+		]);
+		const clear = edit.result.current.menuChildren?.find(
+			(item) => item.id === "test_clear",
+		);
+		expect(clear).toMatchObject({
+			keyboardShortcut: "⌦",
+			nativeShortcut: true,
+		});
+	});
+
+	it("gives none, and Clear no shortcut, by default (Platinum)", () => {
+		const about = renderHook(() =>
+			useClassicyAboutMenu("TestApp.app", "Test App", ""),
+		);
+		expect(about.result.current.aboutMenuItem.accessKey).toBeUndefined();
+		const edit = renderHook(() => useClassicyEditMenu("test"));
+		expect(keysOf(edit.result.current).every((k) => k === undefined)).toBe(
+			true,
+		);
+		const clear = edit.result.current.menuChildren?.find(
+			(item) => item.id === "test_clear",
+		);
+		expect(clear?.keyboardShortcut).toBeUndefined();
+		expect(clear?.nativeShortcut).toBeUndefined();
+		// Serialized as before: no key appears in the menu's JSON.
+		expect(JSON.stringify(edit.result.current)).not.toContain("accessKey");
 	});
 });

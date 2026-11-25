@@ -1,6 +1,7 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import type { ReactNode, RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import {
 	dispatch,
 	useAppManager,
@@ -203,5 +204,50 @@ describe("Finder folder-window keyboard focus (#270)", () => {
 
 		expect(initialFocusRef).toBeDefined();
 		expect(focusTargetRef).toBe(initialFocusRef);
+	});
+});
+
+// The remaining chapters' audit's 4.12 (WIG Appendix B Table B.5, p.360):
+// under a package with access keys the folder window's menus carry Windows
+// 98's letters (File F, Close C, Edit E, Select All A, View V, Help H,
+// About A; Special S, its first letter); under Platinum, none.
+describe("Finder folder-window menus' access keys", () => {
+	const keysOf = () =>
+		folderMenu().map((menu) => [
+			menu.title,
+			menu.accessKey,
+			(menu.menuChildren ?? [])
+				.filter((item) => item.id !== "spacer")
+				.map((item) => [item.title, item.accessKey]),
+		]);
+
+	it("gives the bundled letters under the Windows layout", async () => {
+		const restore = activateTestWindowsKeysPackage({
+			menu: { keys: "windows", accessKeys: "auto" },
+		});
+		try {
+			await openDocuments();
+			const [file, edit, view, special, help] = keysOf();
+			expect(file.slice(0, 2)).toEqual(["File", "f"]);
+			expect(file[2]).toContainEqual(["Close Window", "c"]);
+			expect(edit.slice(0, 2)).toEqual(["Edit", "e"]);
+			expect(edit[2]).toContainEqual(["Select All", "a"]);
+			expect(view.slice(0, 2)).toEqual(["View", "v"]);
+			expect(special.slice(0, 2)).toEqual(["Special", "s"]);
+			expect(help.slice(0, 2)).toEqual(["Help", "h"]);
+			expect(help[2]).toContainEqual([expect.stringMatching(/^About/), "a"]);
+		} finally {
+			restore();
+		}
+	});
+
+	it("gives none by default (Platinum)", async () => {
+		await openDocuments();
+		expect(JSON.stringify(folderMenu())).not.toContain("accessKey");
+		for (const [, key, items] of keysOf()) {
+			expect(key).toBeUndefined();
+			for (const [, itemKey] of items as [string, string | undefined][])
+				expect(itemKey).toBeUndefined();
+		}
 	});
 });

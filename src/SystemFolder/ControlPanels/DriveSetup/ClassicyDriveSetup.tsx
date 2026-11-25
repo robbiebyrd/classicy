@@ -17,6 +17,7 @@ import {
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { getDriveRows, isDriveSyncConnected } from "./ClassicyDriveSetupUtils";
@@ -49,6 +50,9 @@ export const ClassicyDriveSetup: FC = () => {
 		APP_NAME,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
 	const windowClose = useClassicyWindowClose(APP_ID);
 
 	const [selected, setSelected] = useState<string | null>(null);
@@ -98,17 +102,20 @@ export const ClassicyDriveSetup: FC = () => {
 		{
 			id: `${APP_ID}_file`,
 			title: "File",
+			accessKey: ak("f"),
 			menuChildren: [
 				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
 				{
 					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
 					),
+					accessKey: ak("c"),
 					keyboardShortcut: "⌥W",
 				},
 				{ id: "spacer" },
 				{
 					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+					accessKey: ak(""),
 					keyboardShortcut: "⌥Q",
 				},
 			],

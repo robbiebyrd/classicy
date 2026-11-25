@@ -30,6 +30,7 @@ import {
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { ClassicyOutput } from "@/SystemFolder/SystemResources/Output/ClassicyOutput";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -122,6 +123,9 @@ export const Calculator: FunctionalComponent = () => {
 		APP_NAME,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
 	const windowClose = useClassicyWindowClose(APP_ID);
 
 	const [state, setState] = useState<CalculatorState>(CALCULATOR_INITIAL_STATE);
@@ -175,6 +179,7 @@ export const Calculator: FunctionalComponent = () => {
 		{
 			id: `${APP_ID}_file`,
 			title: "File",
+			accessKey: ak("f"),
 			menuChildren: [
 				// Hoisted into the Apple menu by the menu bar (HIG #209).
 				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
@@ -182,11 +187,13 @@ export const Calculator: FunctionalComponent = () => {
 					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 						windowClose(WINDOW_ID, quit),
 					),
+					accessKey: ak("c"),
 					keyboardShortcut: "⌥W",
 				},
 				{ id: "spacer" },
 				{
 					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+					accessKey: ak(""),
 					keyboardShortcut: "⌥Q",
 				},
 			],
@@ -244,6 +251,10 @@ export const Calculator: FunctionalComponent = () => {
 								data-span={button.span}
 								buttonShape="square"
 								depressed={flashedButtonId === button.id}
+								// The keypad is typed directly, as Windows 98's Calculator
+								// is: its keys carry no access key (calc.exe's captions
+								// have no "&").
+								accessKey={ak("")}
 								onClickFunc={() => press(button.key)}
 							>
 								{button.key}
