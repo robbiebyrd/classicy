@@ -21,6 +21,11 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
  *
  * 1. `blend`: each channel moves `amount` (0–1) of the way to `color`'s,
  *    rounded down. `{ color: "#FFFFFF", amount: 0.5 }` is `(c + 255) >> 1`.
+ *    With `depth: 16` the blend is made on 16-bit components, as QuickDraw's
+ *    `RGBColor` holds them: each channel widened to `c * 257`, moved, rounded
+ *    down, and its high byte kept. Halfway to white that is the high byte of
+ *    `(c * 257 + 65535) / 2` (0x00 to 0x7F, 0x44 to 0xA2, 0xCC to 0xE6), where
+ *    the 8-bit blend gives 0xA1 and 0xE5. `depth` defaults to 8.
  * 2. `bits`: each channel keeps its top `bits` bits (1–8), expanded back to
  *    8 by repeating them, the way QuickDraw widens a short color component
  *    (4 bits: `0x7` becomes `0x77`).
@@ -31,7 +36,7 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
  * `#RRGGBB`.
  */
 export type ClassicyIconDimmingRule = {
-	blend: { color: string; amount: number };
+	blend: { color: string; amount: number; depth?: 8 | 16 };
 	bits?: number;
 	palette?: readonly string[];
 };
@@ -69,6 +74,7 @@ export const CLASSICY_ICON_DIMMED_IMAGE_CLASS = "classicyIconDimmedImage";
 type ParsedRule = {
 	target: [number, number, number];
 	amount: number;
+	depth: 8 | 16;
 	bits: number;
 	palette: number[] | undefined;
 	key: string;
@@ -85,6 +91,7 @@ const parse = (rule: ClassicyIconDimmingRule): ParsedRule => {
 	const parsed: ParsedRule = {
 		target: [(color >> 16) & 255, (color >> 8) & 255, color & 255],
 		amount: rule.blend.amount,
+		depth: rule.blend.depth ?? 8,
 		bits: rule.bits ?? 8,
 		palette: rule.palette?.map(hex),
 		key: JSON.stringify(rule),
@@ -130,7 +137,13 @@ export const dimClassicyIconPixels = (
 	data: Uint8ClampedArray,
 	rule: ClassicyIconDimmingRule,
 ): void => {
-	const { target, amount, bits, palette } = parse(rule);
+	const { target, amount, depth, bits, palette } = parse(rule);
+	// One channel blended at the rule's depth, back to 8 bits.
+	const blend =
+		depth === 16
+			? (c: number, t: number) =>
+					Math.floor(c * 257 + (t * 257 - c * 257) * amount) >> 8
+			: (c: number, t: number) => Math.floor(c + (t - c) * amount);
 	const memo = new Map<number, number>();
 	for (let i = 0; i < data.length; i += 4) {
 		if (data[i + 3] === 0) continue;
@@ -138,7 +151,7 @@ export const dimClassicyIconPixels = (
 		let out = memo.get(source);
 		if (out === undefined) {
 			const [r, g, b] = [data[i], data[i + 1], data[i + 2]].map((c, n) =>
-				expand(Math.floor(c + (target[n] - c) * amount), bits),
+				expand(blend(c, target[n]), bits),
 			);
 			out = palette?.length
 				? nearest(palette, r, g, b)

@@ -40,17 +40,19 @@ $grip-dots-bottom-right: (3 5) (3 8) (3 11) (3 14);
 @mixin menu {
   // A hidden application's icon in the Application menu. The core draws it
   // with Platinum's dimming rule (`iconDimming`, platinumIconDimming.ts), as
-  // Mac OS 8.1 does (Infinite Mac, the capture script's
-  // `platinum-81-appmenu-hidden-app.png`; HIGOS8 describes no dimmed icon:
+  // Mac OS 8.5 does at true color (Infinite Mac's 9500,
+  // `resources/screenshots/mac-os-8.5/platinum-85-appmenu-hidden-app.png`:
+  // halfway to white on 16-bit components; HIGOS8 describes no dimmed icon:
   // its glossary, p.129, says only that a disabled item "may appear
   // dimmed"). This opacity is the fallback for an icon a canvas cannot read
-  // (cross-origin, no CORS): it puts black at the rule's #777777 on the
-  // menu's #DDDDDD. The Application Switcher's palette, the menu torn off,
-  // dims a hidden application's icon the same way (Mac OS 8.5,
-  // `resources/screenshots/mac-os-8.5/platinum-85-switcher-hidden-app.png`).
+  // (cross-origin, no CORS): it puts black at the rule's #7F7F7F on the
+  // menu's #DDDDDD (0.42, measured in Chromium and Firefox: 0.43 draws
+  // #7D7D7D, 0.46 the old rule's #777777). The Application Switcher's
+  // palette, the menu torn off, dims a hidden application's icon the same
+  // way (`platinum-85-switcher-hidden-app.png`).
   .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage),
   .classicyApplicationSwitcherHidden .classicyApplicationSwitcherIcon:not(.classicyIconDimmedImage) {
-    opacity: 0.46;
+    opacity: 0.42;
   }
 
   // The Application menu's title as Mac OS 8.5 draws it (integration review

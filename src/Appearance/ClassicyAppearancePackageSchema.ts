@@ -287,6 +287,7 @@ const iconDimmingRule = z
 		blend: z.object({
 			color: dimmingColor,
 			amount: z.number().min(0).max(1),
+			depth: z.union([z.literal(8), z.literal(16)]).optional(),
 		}),
 		bits: z.number().int().min(1).max(8).optional(),
 		palette: z.array(dimmingColor).min(1).max(256).optional(),
@@ -365,7 +366,7 @@ export const ClassicyAppearancePackageSchema = z
 		iconDimming: iconDimming
 			.optional()
 			.describe(
-				"How the package dims an icon per pixel (a hidden application's icon): blend each channel toward a color, keep the top bits of each, then take the nearest palette entry. Per asset variant, null declares none.",
+				"How the package dims an icon per pixel (a hidden application's icon): blend each channel toward a color (on 8- or 16-bit components), keep the top bits of each, then take the nearest palette entry. Per asset variant, null declares none.",
 			),
 	})
 	// The defaults are the theme a switch to this package activates; one that

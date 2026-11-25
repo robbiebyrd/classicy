@@ -261,12 +261,13 @@ describe("platinum.scss (compiled)", () => {
 	// Story 0214-c61 fix round 3: a hidden application's icon is drawn by
 	// the core with Platinum's dimming rule (`iconDimming`); the opacity is
 	// the fallback for an icon a canvas cannot read, so it stands down over
-	// the dimmed image (`classicyIconDimmedImage`). 0.46 puts black at #777777
-	// on the menu's #DDDDDD, as the rule does.
+	// the dimmed image (`classicyIconDimmedImage`). 0.42 puts black at
+	// #7F7F7F on the menu's #DDDDDD, as Mac OS 8.5's rule does (the 8.5
+	// audit's M10; measured in Chromium and Firefox).
 	it("dims a hidden application's icon by opacity only when the core drew no dimmed image", () => {
 		// The Application Switcher's palette shares the rule (story 0231-8c6).
 		expect(css).toMatch(
-			/\.classicyDesktopMenuAppHidden > p > img:not\(\.classicyIconDimmedImage\),\s*[^{]*\.classicyApplicationSwitcherHidden \.classicyApplicationSwitcherIcon:not\(\.classicyIconDimmedImage\) \{\s*opacity: 0\.46;\s*\}/,
+			/\.classicyDesktopMenuAppHidden > p > img:not\(\.classicyIconDimmedImage\),\s*[^{]*\.classicyApplicationSwitcherHidden \.classicyApplicationSwitcherIcon:not\(\.classicyIconDimmedImage\) \{\s*opacity: 0\.42;\s*\}/,
 		);
 		expect(css).not.toMatch(/\.classicyDesktopMenuAppHidden > p > img \{/);
 	});
@@ -1399,7 +1400,7 @@ describe("platinum.scss (compiled)", () => {
 			rule(
 				`${P} .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage), ${P} .classicyApplicationSwitcherHidden .classicyApplicationSwitcherIcon:not(.classicyIconDimmedImage)`,
 			).props.opacity,
-		).toBe("0.46");
+		).toBe("0.42");
 	});
 
 	// The Application Switcher's palette as Mac OS 8.5 draws it

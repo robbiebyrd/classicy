@@ -5070,7 +5070,7 @@ validated at registration:
 ```ts
 iconDimming: {
     hiddenApp: {
-        blend: { color: '#FFFFFF', amount: 0.5 }, // each channel halfway to white, rounded down
+        blend: { color: '#FFFFFF', amount: 0.5 }, // each channel halfway to white, rounded down (depth: 16 blends c * 257 and keeps the high byte)
         bits: 4,                                  // keep 4 bits per channel, widened by repeating them (0x7 -> 0x77)
         palette: ['#FFFFFF', '#FFFFCC', /* … */], // then the nearest entry over all three channels (ties: the earlier)
     },
@@ -5078,7 +5078,12 @@ iconDimming: {
 }
 ```
 
-Only `blend` is required; `bits` defaults to 8 and `palette` to none. A
+Only `blend` is required; its `depth` defaults to 8, `bits` to 8 and
+`palette` to none. With `depth: 16` the blend is made on 16-bit components,
+as QuickDraw's `RGBColor` holds them: each channel widened to `c * 257`,
+moved, rounded down, and its high byte kept (halfway to white, the high byte
+of `(c * 257 + 65535) / 2`: 0x44 to 0xA2 and 0xCC to 0xE6, where 8 bits give
+0xA1 and 0xE5). A
 pixel's alpha is never changed, so the icon keeps its mask. The dimmed image
 is a `data:` URL, cached per source, rule and size for the page (except a failed load, which is drawn again on the next request: a cross-origin icon without CORS fails to load under `crossOrigin = "anonymous"`, and `onerror` carries no reason, so that cannot be told from a network error and is requested again on each dimmed mount; each source logs one `warn`), and the
 `<img>` drawing it carries the part class `classicyIconDimmedImage`
@@ -5094,16 +5099,27 @@ cross-origin host that sends CORS headers is read; one that does not fails
 that load and is logged once per source at `warn`). This is a browser limit, not a
 choice: serve icons from the page's origin, as `data:` URLs, or with CORS.
 
-System 7 and Platinum declare the same `hiddenApp` rule
-(`system7IconDimming.ts`, `platinumIconDimming.ts`), and System 7 the same
-again for `disabledItem` (`color-dialog-standardfile-save.png`: SimpleText's
-dimmed icon, every pixel; null in 1-bit, where its stylesheet's checker
-dims the icon, `:where(.classicyTreeNodeLabelHolder).disabled
-.classicyTreeNodeIcon:not(.classicyIconDimmedImage)`): blend halfway to white, 4 bits, the Macintosh
-8-bit system palette (the 6x6x6 cube, then the red, green, blue and gray
-ramps). It reproduces 7.5.5's dimmed Finder icon and 8.1's dimmed Stickies
-icon pixel for pixel. System 7's `bw` variant declares none: 1-bit dims
-through the 50% checker. Components draw an icon dimmed with
+System 7 declares the same `hiddenApp` rule for 7.5.5 and again for
+`disabledItem` (`system7IconDimming.ts`; `color-dialog-standardfile-save.png`:
+SimpleText's dimmed icon, every pixel; null in 1-bit, where its stylesheet's
+checker dims the icon, `:where(.classicyTreeNodeLabelHolder).disabled
+.classicyTreeNodeIcon:not(.classicyIconDimmedImage)`): blend halfway to
+white, 4 bits, the Macintosh 8-bit system palette (the 6x6x6 cube, then the
+red, green, blue and gray ramps). It reproduces 7.5.5's dimmed Finder icon
+pixel for pixel, and 8.1's dimmed Stickies icon on Infinite Mac's Quadra
+650, which draws at that lower depth. Platinum declares Mac OS 8.5's rule at
+true color (`platinumIconDimming.ts`, the 8.5 audit's M10): halfway to
+white on 16-bit components (`depth: 16`), no bits step, no palette, which
+draws every pixel of the Apple menu's title dimmed under an alert in 8.5
+and in 8.1 on Infinite Mac's Power Macintosh 9500 (`platinumIconDimming.test.ts`,
+`resources/screenshots/mac-os-8.5/platinum-85-apple-title{,-dimmed}.png`,
+`mac-os-8.1/platinum-81-9500-apple-title{,-dimmed}.png`; the hidden
+Stickies icon of `platinum-85-appmenu-hidden-app.png` draws the rule's
+outputs too, #7F7F7F, #FFFF7F, #FFE6CC, #E6CCB3 and #D5D5D5, none of them
+a palette color); its stylesheet's
+fallback opacity, 0.42, puts black at the rule's #7F7F7F on the menu's
+#DDDDDD in Chromium and Firefox. System 7's `bw` variant declares none:
+1-bit dims through the 50% checker. Components draw an icon dimmed with
 `ClassicyMenuItem.imageDimmed` (the App Switcher sets it on a hidden app's
 row); `useClassicyDimmedIconImage(src, dimmed)` and
 `resolveClassicyIconDimmingRule(purpose, packageId?, variant?)` are the
