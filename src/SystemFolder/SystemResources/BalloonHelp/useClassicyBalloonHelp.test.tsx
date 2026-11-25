@@ -30,7 +30,6 @@ import {
 	type ClassicyIconBalloonHelp,
 	useClassicyBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
-import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 // No package is registered for the first tests, so the layout is the
 // fallback's (anchor placement); `windows-tips` carries the Windows 98
@@ -548,33 +547,38 @@ describe("useClassicyBalloonHelp — ToolTip timing, the active window, force", 
 		expect(shown()).toBe(false);
 	});
 
+	// The window's root, as ClassicyWindow draws it: its `active` state class
+	// while it is the active window.
+	const Framed = ({ active }: { active: boolean }) => (
+		<div className={`classicyWindow ${active ? "active" : "inactive"}`}>
+			<Harness config={{ content: "Drag items here." }} />
+		</div>
+	);
+
 	it.each([
-		["inactive", false, false],
-		["active", true, true],
-		["outside any window", undefined, true],
-	])("shows a tip in an %s window under the Windows 98 layout: %s", (_, active, expected) => {
+		["an inactive window", false, false],
+		["an active window", true, true],
+		["no window", undefined, true],
+	])("shows a tip in %s under the Windows 98 layout: %s", (_, active, expected) => {
 		fakeClock();
 		activePackage.id = "windows-tips";
 		mockState.disableBalloonHelp = false;
 		render(
-			<ClassicyWindowActiveContext.Provider value={active}>
+			active === undefined ? (
 				<Harness config={{ content: "Drag items here." }} />
-			</ClassicyWindowActiveContext.Provider>,
+			) : (
+				<Framed active={active} />
+			),
 		);
 		fireEvent.mouseEnter(screen.getByTestId("anchor"));
 		wait(500);
 		expect(shown()).toBe(expected);
 	});
 
-	it("hides a shown tip when its window goes inactive, and shows in an inactive window under a Mac layout", () => {
+	it("hides a shown tip when its window goes inactive, and shows in an inactive window under a Mac layout", async () => {
 		fakeClock();
 		activePackage.id = "windows-tips";
 		mockState.disableBalloonHelp = false;
-		const Framed = ({ active }: { active: boolean }) => (
-			<ClassicyWindowActiveContext.Provider value={active}>
-				<Harness config={{ content: "Drag items here." }} />
-			</ClassicyWindowActiveContext.Provider>
-		);
 		const { rerender, unmount } = render(<Framed active={true} />);
 		fireEvent.mouseEnter(screen.getByTestId("anchor"), {
 			clientX: 5,
@@ -583,6 +587,9 @@ describe("useClassicyBalloonHelp — ToolTip timing, the active window, force", 
 		wait(500);
 		expect(shown()).toBe(true);
 		rerender(<Framed active={false} />);
+		// The window's class change reaches the hook through a
+		// MutationObserver, a microtask.
+		await act(async () => {});
 		expect(shown()).toBe(false);
 		// Active again, the pointer's next move starts the wait again.
 		rerender(<Framed active={true} />);

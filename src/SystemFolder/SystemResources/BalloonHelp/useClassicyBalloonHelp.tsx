@@ -1,18 +1,10 @@
 import type { CSSProperties, FC, ReactNode, RefObject } from "react";
-import {
-	useContext,
-	useEffect,
-	useId,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { registerClassicyHelpAnchor } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
-import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 export type ClassicyBalloonPosition =
 	| "top-left"
@@ -46,6 +38,11 @@ export interface ClassicyBalloonHelpOptions {
 	 */
 	force?: boolean;
 }
+
+// The window root's state class while it is the active window (the
+// vocabulary's `active`, CLASSICY_STATE.active), which `activeWindowOnly`
+// reads.
+const ACTIVE_STATE = "active";
 
 // When a shown tip last lost its pointer (`Date.now()`), page-wide: a tip
 // whose pointer arrives within the package's `layout.balloonHelp.reshowMs`
@@ -401,9 +398,10 @@ const BalloonTail: FC<{ className: string }> = ({ className }) => (
  * visit; `autoPopMs` hides a shown tip after that long without a pointer
  * move over its element, until the pointer leaves; `hideOnPress` hides it,
  * or cancels its wait, on a press until the pointer leaves, at the anchor
- * too; and `activeWindowOnly` shows none in an inactive window
- * (`ClassicyWindowActiveContext` false), hiding a shown one when its window
- * goes inactive, while an anchor outside any window is unaffected.
+ * too; and `activeWindowOnly` shows none in an inactive window (a
+ * `.classicyWindow` root without the `active` state), hiding a shown one
+ * when its window goes inactive, while an anchor outside any window is
+ * unaffected.
  *
  * ```tsx
  * const ref = useRef<HTMLDivElement>(null);
@@ -432,11 +430,15 @@ export const useClassicyBalloonHelp = (
 	// A tooltip shows whatever the global toggle says (`options.force`).
 	const hiddenByToggle = disableBalloonHelp && options?.force !== true;
 	// An element in an inactive window shows no tip under the package's
-	// `activeWindowOnly`; one outside any window (the context's `undefined`)
-	// is unaffected.
-	const windowActive = useContext(ClassicyWindowActiveContext);
-	const inactiveWindow =
-		tipLayout?.activeWindowOnly === true && windowActive === false;
+	// `activeWindowOnly`; one outside any window is unaffected. Read from the
+	// window's root in the document (its `active` state class), when the tip
+	// would show and while it shows.
+	const activeWindowOnly = tipLayout?.activeWindowOnly === true;
+	const inInactiveWindow = (): boolean => {
+		if (!activeWindowOnly) return false;
+		const win = anchorRef.current?.closest(".classicyWindow");
+		return !!win && !win.classList.contains(ACTIVE_STATE);
+	};
 	const hideOnPress = atPointer || tipLayout?.hideOnPress === true;
 	const autoPopMs = tipLayout?.autoPopMs;
 	const reshowMs = tipLayout?.reshowMs;
@@ -480,9 +482,13 @@ export const useClassicyBalloonHelp = (
 	const startRef = useRef<() => void>(() => {});
 
 	const start = () => {
-		if (inactiveWindow) return;
+		if (inInactiveWindow()) return;
 		if (atPointer && timerRef.current !== null) clearTimeout(timerRef.current);
 		timerRef.current = setTimeout(() => {
+			if (inInactiveWindow()) {
+				timerRef.current = null;
+				return;
+			}
 			if (anchorRef.current) {
 				setRect(anchorRef.current.getBoundingClientRect());
 			}
@@ -571,16 +577,26 @@ export const useClassicyBalloonHelp = (
 		};
 	}, [visible, autoPopMs]);
 
-	// An inactive window (`activeWindowOnly`) takes its shown tip away, and
-	// any wait; the pointer's next arrival, once it is active, starts again.
+	// Its window going inactive (`activeWindowOnly`) takes a shown tip away;
+	// the pointer's next move, or its next arrival, once the window is active
+	// again, starts again.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the anchor's window is read when the tip shows
 	useEffect(() => {
-		if (!inactiveWindow) return;
-		if (timerRef.current !== null) clearTimeout(timerRef.current);
-		timerRef.current = null;
-		setVisible(false);
-		setPoint(null);
-		setPointerFix(null);
-	}, [inactiveWindow]);
+		const win = anchorRef.current?.closest(".classicyWindow");
+		if (!activeWindowOnly || !visible || !win) return;
+		const watch = () => {
+			if (win.classList.contains(ACTIVE_STATE)) return;
+			if (timerRef.current !== null) clearTimeout(timerRef.current);
+			timerRef.current = null;
+			setVisible(false);
+			setPoint(null);
+			setPointerFix(null);
+		};
+		const observer = new MutationObserver(watch);
+		observer.observe(win, { attributes: true, attributeFilter: ["class"] });
+		watch();
+		return () => observer.disconnect();
+	}, [activeWindowOnly, visible]);
 
 	// The pointer over the anchor and a press there, through listeners on
 	// the anchor element itself (the caller's own handlers stay its own).
@@ -671,12 +687,7 @@ export const useClassicyBalloonHelp = (
 
 	const pointerSide = pointerFix?.side ?? "below";
 	const balloon =
-		!config ||
-		hiddenByToggle ||
-		inactiveWindow ||
-		!visible ||
-		!rect ||
-		(atPointer && !point)
+		!config || hiddenByToggle || !visible || !rect || (atPointer && !point)
 			? null
 			: createPortal(
 					<div

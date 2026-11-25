@@ -606,10 +606,11 @@ export type ClassicyAppearanceLayout = {
 		/**
 		 * Absent, a tip shows in any window. `true` (Windows; WIG Ch.12
 		 * "Status Bar Messages", p.276: "Like tooltips, the window typically
-		 * must be active"): an element in an inactive window
-		 * (`ClassicyWindowActiveContext` false) shows no tip, and a shown tip
-		 * hides when its window goes inactive; elements outside any window
-		 * (the desktop's icons, the taskbar) are unaffected.
+		 * must be active"): an element in an inactive window (its
+		 * `.classicyWindow` root without the `active` state) shows no tip,
+		 * and a shown tip hides when its window goes inactive; elements
+		 * outside any window (the desktop's icons, the taskbar) are
+		 * unaffected.
 		 */
 		activeWindowOnly?: boolean;
 	};
