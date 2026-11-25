@@ -180,7 +180,12 @@
 				"trayIconSize": 16,
 				"trayIconPitch": 20,
 				"trayPaddingX": 3,
-				"clockPaddingX": 5
+				"clockPaddingX": 5,
+				"quickLaunchButtonWidth": 23,
+				"gripperWidth": 3,
+				"gripperInset": 2,
+				"gripperGap": 4,
+				"bandEndGap": 4
 			},
 			"startMenu": {
 				"bannerWidth": 21,
@@ -410,7 +415,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -639,7 +649,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -870,7 +885,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -1101,7 +1121,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -1332,7 +1357,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -1563,7 +1593,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -1796,7 +1831,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -2025,7 +2065,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -2254,7 +2299,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -2487,7 +2537,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -2718,7 +2773,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -2949,7 +3009,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -3182,7 +3247,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -3413,7 +3483,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -3644,7 +3719,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -3875,7 +3955,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -4104,7 +4189,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -4337,7 +4427,12 @@
 					"trayIconSize": 16,
 					"trayIconPitch": 20,
 					"trayPaddingX": 3,
-					"clockPaddingX": 5
+					"clockPaddingX": 5,
+					"quickLaunchButtonWidth": 23,
+					"gripperWidth": 3,
+					"gripperInset": 2,
+					"gripperGap": 4,
+					"bandEndGap": 4
 				},
 				"startMenu": {
 					"bannerWidth": 21,

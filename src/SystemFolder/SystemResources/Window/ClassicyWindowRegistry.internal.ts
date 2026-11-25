@@ -41,6 +41,19 @@ import { useSyncExternalStore } from "react";
  *   edges being sized, 8 px a press and the mouse moves them by its travel.
  *   A mode holds the keyboard and the mouse buttons while it lasts, and any
  *   other command ends it where it is first.
+ * - `place`: the taskbar's Cascade Windows, Tile Windows and their Undo
+ *   (plan 0020-w98 E1, Windows' `CascadeWindows`/`TileWindows` and
+ *   `SetWindowPlacement`): move the window to `position` (its outer top-left,
+ *   the record's `position`) and, when it is resizable, give its content
+ *   `size` (the record's `size`), without activating it or playing a sound.
+ *   A maximized window is restored first, the rect given replacing the one
+ *   it remembered, as `CascadeWindows` restores a zoomed window before it
+ *   moves it. With `maximized: true` (a window that can maximize) the rect is
+ *   the one its Restore returns to and the window takes the work area
+ *   afterwards, as `SetWindowPlacement` with `SW_SHOWMAXIMIZED` does.
+ *   Refused for a window that is not drawn (minimized, shaded, or a palette
+ *   hidden with its app), one that does not move (a fixed modal), and one in
+ *   a keyboard mode or a pointer drag.
  */
 export type ClassicyWindowCommand =
 	| { type: "activate" }
@@ -50,7 +63,48 @@ export type ClassicyWindowCommand =
 	| { type: "close" }
 	| { type: "systemMenu"; at?: [number, number] }
 	| { type: "move" }
-	| { type: "size" };
+	| { type: "size" }
+	| {
+			type: "place";
+			position: [number, number];
+			size?: [number, number];
+			maximized?: boolean;
+	  };
+
+/**
+ * A window rect as the window applies it: its outer left/top (the record's
+ * `position`) and its content-box size (the record's `size`; the frame and
+ * border lie outside it).
+ */
+export type ClassicyWindowPlacement = {
+	readonly position: [number, number];
+	readonly size: [number, number];
+};
+
+/**
+ * Where a drawn window is and what bounds its size, for a surface that
+ * arranges windows (the taskbar's Cascade and Tile), read when it is asked
+ * for, never published.
+ */
+export type ClassicyWindowGeometry = {
+	/** The rect it is drawn at now. */
+	readonly rect: ClassicyWindowPlacement;
+	/**
+	 * The rect its Restore returns it to: while it is maximized, the rect it
+	 * had before (this mount's, else the record's `restoreRect`, else the rect
+	 * it opened at); otherwise `rect`.
+	 */
+	readonly restoreRect: ClassicyWindowPlacement;
+	/** Maximized (`window.zoom: "maximize"` and zoomed). */
+	readonly maximized: boolean;
+	/**
+	 * Its chrome across and down: each axis's frame padding and border,
+	 * summed, which lie outside the content size.
+	 */
+	readonly chrome: [number, number];
+	/** The least content size it may be given (`minimumSize`, resolved). */
+	readonly minimumSize: [number, number];
+};
 
 /** What a mounted window publishes about itself. */
 export type ClassicyWindowEntry = {
@@ -88,12 +142,19 @@ export type ClassicyWindowEntry = {
 	 */
 	readonly movable: boolean;
 	/**
+	 * Where the window is drawn and what bounds its size
+	 * (`ClassicyWindowGeometry`), read now; `undefined` while it is not drawn
+	 * (closed, minimized, shaded, or a palette hidden with its app).
+	 */
+	geometry(): ClassicyWindowGeometry | undefined;
+	/**
 	 * Run a command through the window's own path. `false` when the window
 	 * cannot carry it out: it is closed, it lacks the box the command needs,
 	 * there is nothing to do (minimizing a collapsed window, restoring one
 	 * that is neither collapsed nor zoomed), it cannot move or size now
 	 * (maximized, minimized, fixed, or a keyboard mode or a drag already in
-	 * progress), or it has no pop-up menu to show (`systemMenu` under a
+	 * progress; for `place`, not drawn, fixed, or in a mode or a drag), or it
+	 * has no pop-up menu to show (`systemMenu` under a
 	 * layout without `window.systemMenu`, or with no point for a window off
 	 * the screen).
 	 */

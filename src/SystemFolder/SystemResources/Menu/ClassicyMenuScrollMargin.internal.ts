@@ -12,9 +12,12 @@ import { POPUP_MENU_VIEWPORT_MARGIN } from "@/SystemFolder/SystemResources/PopUp
  * one: the Windows shell's Start menu and tray pop-ups
  * (`ClassicyBevelButtonPopup`'s `menuScrollMargin`, 0), which sit on the
  * taskbar band's top edge (plan 0020-w98 §2, "Menus keep above the
- * taskbar"), so a menu that fits there is drawn whole rather than capped
- * by the margin into scrolling. Without a provider every menu keeps the
- * margin, as before. Internal: not exported from the package.
+ * taskbar"), and a contextual menu opened from a point below the bounds,
+ * in that band (`ClassicyContextualMenu`, 0: the taskbar's, the clock's, a
+ * tray icon's and a window button's menus, plan 0020-w98 E1), so a menu
+ * that fits there is drawn whole rather than capped by the margin into
+ * scrolling. Without a provider every menu keeps the margin, as before.
+ * Internal: not exported from the package.
  */
 export const ClassicyMenuScrollMarginContext = createContext<number>(
 	POPUP_MENU_VIEWPORT_MARGIN,

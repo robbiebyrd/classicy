@@ -656,6 +656,96 @@ describe("windows98.scss (compiled)", () => {
 			expect(clock).toContain("font-size: var(--ui-font-size)");
 			expect(clock).toContain("font-variant-numeric: tabular-nums");
 		});
+
+		// The bands (plan 0020-w98 E1): each band's gripper comctl32's rebar
+		// draws (`GRIPPER_WIDTH` 3 of BDR_RAISEDINNER on ButtonFace,
+		// `REBAR_PRE_GRIPPER` 2 before it and inset 2 from the row's top and
+		// bottom, `REBAR_ALWAYS_SPACE` 4 after it); Quick Launch's band ending
+		// `REBAR_POST_CHILD` 4 after its toolbar, its buttons flat toolbar
+		// buttons 23 wide (BDR_RAISEDINNER under the pointer, BDR_SUNKENOUTER
+		// pressed there, the icon a pixel down and right), Show Desktop's
+		// glyph pixel art from the theme's tokens; and the window buttons, past
+		// one row, at their least width beside the up-down control (16 wide,
+		// the buttons' height, its two buttons _LittleArrows.scss's).
+		it("draws the grippers, Quick Launch's flat buttons and the window buttons' up/down control", () => {
+			const THIN_RAISED = `box-shadow: inset ${B} ${B} var(--color-system-01), inset ${NEG_B} ${NEG_B} var(--color-system-05)`;
+			const THIN_SUNKEN = `box-shadow: inset ${B} ${B} var(--color-system-05), inset ${NEG_B} ${NEG_B} var(--color-system-01)`;
+			const gripper = block("=windows98] .classicyTaskbarGripper");
+			expect(gripper).toContain("width: var(--taskbar-gripper-width)");
+			expect(gripper).toContain(
+				"height: calc(var(--taskbar-button-height) - var(--taskbar-gripper-inset) - var(--taskbar-gripper-inset))",
+			);
+			expect(gripper).toContain(
+				"margin: 0 var(--taskbar-gripper-gap) 0 var(--taskbar-gripper-inset)",
+			);
+			expect(gripper).toContain("background: var(--color-system-03)");
+			expect(gripper).toContain(THIN_RAISED);
+			const band = block("=windows98] .classicyTaskbarQuickLaunch");
+			expect(band).toContain("height: var(--taskbar-button-height)");
+			expect(band).toContain("padding-right: var(--taskbar-band-end-gap)");
+			const button = block("=windows98] .classicyTaskbarQuickLaunchButton");
+			expect(button).toContain(
+				"width: var(--taskbar-quick-launch-button-width)",
+			);
+			expect(button).toContain("background: transparent");
+			expect(button).toContain("box-shadow: none");
+			expect(block(".classicyTaskbarQuickLaunchButton:hover")).toContain(
+				THIN_RAISED,
+			);
+			expect(block(".classicyTaskbarQuickLaunchButton:hover:active")).toContain(
+				THIN_SUNKEN,
+			);
+			expect(
+				block(".classicyTaskbarQuickLaunchButton:hover:active > *"),
+			).toContain(SHIFT);
+			expect(
+				block(".classicyTaskbarQuickLaunchButton:focus-visible"),
+			).toContain(`outline-offset: calc(${B} * -1)`);
+			expect(block(".classicyTaskbarQuickLaunchIcon")).toContain(
+				"width: var(--icon-small-size)",
+			);
+			const glyph = block(".classicyTaskbarShowDesktopIcon");
+			expect(glyph).toContain("width: calc(var(--pixel-unit) * 16)");
+			for (const ink of [
+				"var(--color-system-07)",
+				"var(--desktop-background-color)",
+				"var(--color-system-05)",
+				"var(--color-window-document)",
+				"var(--package-color-title-bar-active, var(--color-highlight))",
+				"var(--color-black)",
+			])
+				expect(glyph).toContain(`linear-gradient(${ink}, ${ink})`);
+			expect(glyph).not.toMatch(/url\(/);
+			// Past one row: every button at its least width.
+			expect(block(".classicyTaskbarTasksPaged > li")).toContain(
+				"flex: 0 0 var(--taskbar-button-min-width)",
+			);
+			expect(at(".classicyTaskbarTasksPaged > li")).toBeGreaterThan(
+				at(".classicyTaskbarTasks > li"),
+			);
+			const pager = block("=windows98] .classicyTaskbarPager");
+			expect(pager).toContain("width: var(--window-scrollbar-size)");
+			expect(pager).toContain("height: var(--taskbar-button-height)");
+			expect(pager).toContain("margin-right: var(--taskbar-button-gap)");
+			const arrows = block(
+				"=windows98] .classicyTaskbarPagerUp,\n  .classicyDesktop[data-classicy-appearance=windows98] .classicyTaskbarPagerDown",
+			);
+			expect(arrows).toContain(RAISED);
+			// The up-down control's triangles: black at rest, embossed dimmed.
+			expect(block("=windows98] .classicyTaskbarPagerUp")).toContain(
+				"linear-gradient(var(--color-black), var(--color-black)) calc(var(--pixel-unit) * 5) calc(var(--pixel-unit) * 6)/calc(var(--pixel-unit) * 5) var(--pixel-unit) no-repeat",
+			);
+			const dimmed = block(".classicyTaskbarPagerDown:disabled");
+			expect(dimmed).toContain(
+				"linear-gradient(var(--color-system-05), var(--color-system-05))",
+			);
+			expect(dimmed).toContain(
+				"linear-gradient(var(--color-system-01), var(--color-system-01))",
+			);
+			expect(block(".classicyTaskbarPagerUp:active:not(:disabled)")).toContain(
+				`box-shadow: inset 0 0 0 ${B} var(--color-system-05)`,
+			);
+		});
 	});
 
 	// The Start menu and the status area's pop-ups (plan 0020-w98 §3 and §7;

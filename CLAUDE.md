@@ -281,10 +281,12 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   runtime window registry (`Window/ClassicyWindowRegistry.internal.ts`, plan
   0020-w98 §5): its title, icon and capabilities, which the persisted record
   does not hold, and `run(command)` (`activate`, `minimize`, `restore`,
-  `maximize`, `close`, `move`, `size`, `systemMenu`) through the window's
+  `maximize`, `close`, `move`, `size`, `systemMenu`, `place`) through the window's
   own paths, read with
   `useClassicyWindowEntries()` and `runClassicyWindowCommand(appId, windowId,
-  command)`. The entry is updated in place, a stale token unregisters
+  command)`; `place` puts a window at a rect (restoring a maximized one
+  first) for the taskbar's Cascade and Tile, and the entry's `geometry()`
+  reads its drawn and restore rects, chrome and minimum. The entry is updated in place, a stale token unregisters
   nothing, and registering adds no DOM and no store field. Its `move` and
   `size` start the keyboard Move and Size modes
   (`Window/ClassicyWindowKeyboardMove.internal.ts`, WIG Ch.6 p.83): until
@@ -650,9 +652,11 @@ places it too, as System 7 does); a submenu passing both sides keeps the side
 it passes by less; one still outside is pinned by equal and opposite wrapper
 margins, across and down. The scroll cap ends 4 px above the bounds'
 bottom (`POPUP_MENU_VIEWPORT_MARGIN`), or flush on it under a host that sits
-its menu there (`ClassicyMenuScrollMarginContext`, provided only by
+its menu there (`ClassicyMenuScrollMarginContext`, provided by
 `ClassicyBevelButtonPopup`'s `menuScrollMargin`, which only the taskbar's
-Start menu and tray pop-ups pass, as 0: they sit on the band's top edge); a
+Start menu and tray pop-ups pass, as 0: they sit on the band's top edge, and
+as 0 by a contextual menu opened from a point below the bounds, in the band:
+the taskbar's, the clock's, a tray icon's and a window button's menus); a
 capped list's shadow sibling is rendered in the cap's own commit; a menu
 whose 64 px floor still passes the bounds is pinned, top winning. Again on
 reopen and on a desktop resize (the outermost open menu's `ResizeObserver` +
@@ -722,11 +726,24 @@ tick (`Widgets/Time/useClassicyClockTime.internal.ts`, which writes
 `DateAndTime.dateTime` each minute), so the store keeps time under the
 headless screen bar. The strip's
 `collapsed`, `width`, `edge` and `bottom` stay stored, unused. Button 2 on
-the taskbar's background opens its own menu (`ClassicyTaskbarMenu.internal.ts`):
-Minimize All Windows (one `ClassicyWindowCollapse` per window with a
-Minimize box, from one handler, the active window last), which then reads
-Undo Minimize All until a window it minimized is restored or closed by other
-means, and Properties (the Control Strip control panel).
+the taskbar's background opens its own menu (`ClassicyTaskbarMenu.internal.ts`,
+Windows 98 SE's explorer.exe menu, plan 0020-w98 E1): Toolbars ▸ Quick
+Launch (over the bar and its bands only; `ClassicyDesktopTaskbarSetQuickLaunch`,
+stored as `Desktop.taskbar.quickLaunch`, absent = shown), Cascade Windows
+and Tile Windows Horizontally (stacked) / Vertically (side by side), placing
+each shown window button's window from the back through the registry's
+`place` command as ReactOS's `CascadeWindows`/`TileWindows` do
+(`ClassicyTaskbarArrange.internal.ts`), Minimize All Windows (one
+`ClassicyWindowCollapse` per window with a Minimize box, from one handler,
+the active window last), the one Undo of the last of those (Undo Cascade,
+Undo Tile, Undo Minimize All), and Properties (the Control Strip control
+panel). Quick Launch (`ClassicyTaskbarQuickLaunch.internal.tsx`) follows the
+Start button: the Finder, Show Desktop (Minimize All, then its Undo) and the
+apps marked `showInQuickLaunch` (a runtime mark,
+`App/ClassicyQuickLaunchApps.internal.ts`), each band then led by a
+`classicyTaskbarGripper`. Past one row at their least width (the package's
+`min-width` and `column-gap`, measured) the window buttons page
+(`classicyTaskbarTasksPaged`, an up/down `classicyTaskbarPager`).
 
 Modules come only from `registerClassicyControlStripModule`
 (`ClassicyControlStripRegistry.ts`) — `{ id, label, icon, appId?, order?,

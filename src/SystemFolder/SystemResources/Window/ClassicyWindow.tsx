@@ -90,6 +90,8 @@ import {
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
 	type ClassicyWindowCommand,
+	type ClassicyWindowGeometry,
+	type ClassicyWindowPlacement,
 	type ClassicyWindowRegistration,
 	registerClassicyWindow,
 	unregisterClassicyWindow,
@@ -3143,7 +3145,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	runCommandRef.current = (command) => {
 		// A closed window draws nothing for a command to act on.
 		if (ws.closed) return false;
-		if (command.type === "move" || command.type === "size") {
+		if (
+			command.type === "move" ||
+			command.type === "size" ||
+			command.type === "place"
+		) {
 			// One mode at a time, and none during a pointer gesture.
 			if (
 				keyboardModeRef.current ||
@@ -3221,6 +3227,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				if (!resizable || maximized || collapsedOrMinimized || hiddenWithApp)
 					return false;
 				return startKeyboardMode("size");
+			case "place":
+				return placeWindow(command);
 			case "systemMenu":
 				// The window pop-up menu: at the point given (a taskbar
 				// button's right-click), else dropped from the caption with
@@ -3236,6 +3244,114 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				return false;
 		}
 	};
+	// Whether the window is drawn on the desktop: open, its app shown, not
+	// minimized or shaded, and not a palette hidden with its app.
+	const drawnOnDesktop = () =>
+		!ws.closed &&
+		currentApp?.hidden !== true &&
+		!collapsedOrMinimized &&
+		!hiddenWithApp;
+	// The rect a Restore returns a maximized window to, as `applyZoom(false)`
+	// finds it: this mount's, else the record's `restoreRect`, else the rect
+	// it opened at.
+	const maximizedRestoreRect = (): ClassicyStoreSystemAppWindowRect => {
+		const storedRect = currentWindow?.restoreRect;
+		return (
+			userStateRef.current ??
+			(isClassicyWindowRestoreRect(storedRect) ? storedRect : null) ??
+			computeInitialRect()
+		);
+	};
+	// The registry's `geometry` (the taskbar's Cascade and Tile): read when
+	// asked, through a ref as the commands are, so it sees fresh state.
+	const geometryRef = useRef<() => ClassicyWindowGeometry | undefined>(
+		() => undefined,
+	);
+	geometryRef.current = () => {
+		if (!drawnOnDesktop()) return undefined;
+		const drawn = appliedWindowSize() ?? size;
+		const rect: ClassicyWindowPlacement = {
+			position: [ws.position[0], ws.position[1]],
+			size: [drawn[0], drawn[1]],
+		};
+		const restore = maximized ? maximizedRestoreRect() : rect;
+		const el = windowRef.current;
+		const edges = el ? classicyWindowChromeEdges(el) : NO_CHROME;
+		return {
+			rect,
+			restoreRect: {
+				position: [restore.position[0], restore.position[1]],
+				size: [restore.size[0], restore.size[1]],
+			},
+			maximized,
+			chrome: [edges.left + edges.right, edges.top + edges.bottom],
+			minimumSize: [resolvedMinimumSize[0], resolvedMinimumSize[1]],
+		};
+	};
+	// The registry's `place` command (the taskbar's Cascade, Tile and their
+	// Undo; Windows' `CascadeWindows`, `TileWindows`, `SetWindowPlacement`):
+	// the rect given, with no activation and no sound. A maximized window is
+	// restored first, its zoom cleared and the rect it remembered dropped
+	// (the zoom event carries `cause: "resize"`, the geometry changing by an
+	// arrangement, not the zoom box). With `maximized` (a window that can
+	// maximize) the rect becomes the one its Restore returns to, and the
+	// window takes the work area, as its Maximize does.
+	const placeWindow = (
+		command: Extract<ClassicyWindowCommand, { type: "place" }>,
+	): boolean => {
+		if (fixedModal || !drawnOnDesktop()) return false;
+		const position: [number, number] = [
+			Math.round(command.position[0]),
+			Math.round(command.position[1]),
+		];
+		// Sized as the window can be drawn: never below its minimum, nor
+		// taller than its `max-height` lets CSS draw it (the frame-edge
+		// drag's cap), so the stored size is the drawn one.
+		const el = windowRef.current;
+		const heightCap = el
+			? windowContentHeightCap(el)
+			: Number.POSITIVE_INFINITY;
+		const nextSize: [number, number] | undefined =
+			resizable && command.size
+				? [
+						Math.max(resolvedMinimumSize[0], Math.round(command.size[0])),
+						Math.max(
+							resolvedMinimumSize[1],
+							Math.min(heightCap, Math.round(command.size[1])),
+						),
+					]
+				: undefined;
+		if (command.maximized === true && maximizable) {
+			const before: ClassicyStoreSystemAppWindowRect = {
+				position,
+				size: nextSize ?? [size[0], size[1]],
+			};
+			userStateRef.current = before;
+			const maximizedRect = computeMaximizedRect();
+			setZoomFlag(
+				true,
+				false,
+				"resize",
+				isClassicyWindowRestoreRect(before) ? before : undefined,
+			);
+			setSize(maximizedRect.size);
+			setResize(false, maximizedRect.size);
+			setMoving(false, maximizedRect.position);
+			return true;
+		}
+		if (maximized) {
+			setZoomFlag(false, false, "resize");
+			userStateRef.current = null;
+		}
+		if (nextSize) {
+			setSize(nextSize);
+			setResize(false, nextSize);
+		}
+		userRepositionedRef.current = true;
+		setMoving(false, position);
+		return true;
+	};
+
 	// The registration, keyed on the values it publishes: the first run
 	// registers, a later one updates the entry in place (the window keeps its
 	// place in the list), and the effect after it unregisters on unmount or
@@ -3261,6 +3377,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			collapsable: collapsesByBox,
 			resizable,
 			movable: movesByTitleBar,
+			geometry: () => geometryRef.current(),
 			run: (command: ClassicyWindowCommand) => runCommandRef.current(command),
 		};
 		const current = registrationRef.current;

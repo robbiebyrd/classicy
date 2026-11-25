@@ -28,11 +28,16 @@
   user-select: none;
 }
 
-// The three regions are flex items placed by `order` from their
-// data-classicy-part, so a package can rearrange them with `order` alone.
+// The regions are flex items placed by `order` from their
+// data-classicy-part, so a package can rearrange them with `order` alone:
+// the Start button, the Quick Launch toolbar, the window buttons' band (its
+// gripper, its list, its up/down control) and the status area.
 $classicy-taskbar-order: (
   taskbar-start: 10,
+  taskbar-quick-launch: 15,
+  taskbar-tasks-gripper: 18,
   taskbar-tasks: 20,
+  taskbar-pager: 25,
   taskbar-tray: 30,
 );
 
@@ -100,6 +105,68 @@ $classicy-taskbar-order: (
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+// The Quick Launch toolbar (ClassicyTaskbarQuickLaunch.internal.tsx): its
+// gripper, then a row of buttons, each a small icon. The package sizes and
+// draws them.
+.classicyTaskbarQuickLaunch {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.classicyTaskbarQuickLaunchButtons {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    flex: 0 0 auto;
+    display: flex;
+  }
+}
+
+.classicyTaskbarQuickLaunchButton {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+}
+
+.classicyTaskbarQuickLaunchIcon,
+.classicyTaskbarShowDesktopIcon {
+  flex: 0 0 auto;
+}
+
+// A band's gripper (Quick Launch's, and the window buttons' beside it).
+.classicyTaskbarGripper {
+  flex: 0 0 auto;
+}
+
+// The window buttons' up/down control, shown while they take more than one
+// row: two buttons stacked, sharing its height.
+.classicyTaskbarPager {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.classicyTaskbarPagerUp,
+.classicyTaskbarPagerDown {
+  flex: 1 1 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 // The status area: the Control Strip's modules as notification icons, the

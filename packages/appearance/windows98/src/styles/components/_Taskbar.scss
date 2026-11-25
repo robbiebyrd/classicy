@@ -45,9 +45,29 @@
 //   selected button's drawing wins in comctl32). A minimized window's
 //   (`collapsed`) is an ordinary raised button. Nothing changes under the
 //   pointer (the taskbar tracks no hover). The keyboard focus is the dotted
-//   rectangle three pixels in. Buttons past what the row holds at their
-//   least width are clipped at the status area (Windows wraps them onto
-//   rows reached by an up/down control, which the core does not draw).
+//   rectangle three pixels in. Once the buttons at their least width no
+//   longer fit the row (`classicyTaskbarTasksPaged`), each takes exactly that
+//   width and the row shows one page of them, as ReactOS's
+//   `UpdateButtonsSize` sets every button to its least width before it wraps
+//   them; the up/down control (`.classicyTaskbarPager`) then stands at the
+//   band's right, `--window-scrollbar-size` (16, SM_CXVSCROLL) wide and the
+//   buttons' height, its two buttons the up-down control's (_LittleArrows.scss:
+//   raised, a 5-pixel triangle, embossed while dimmed on the first or last
+//   row), `--taskbar-button-gap` before the status area.
+// - Quick Launch (Windows 98's, Internet Explorer 4's desktop update): a
+//   toolbar band after the Start button, and while it shows the bar is a
+//   rebar of two bands, each led by comctl32's gripper (`GRIPPER_WIDTH` 3,
+//   `REBAR_PRE_GRIPPER` 2 from the band's start and inset 2 from its top and
+//   bottom, BDR_RAISEDINNER: ButtonHilight at its top and left, ButtonShadow
+//   at its bottom and right, on ButtonFace), `REBAR_ALWAYS_SPACE` (4) before
+//   the band's toolbar, `REBAR_POST_CHILD` (4) after it. Its buttons are
+//   flat toolbar buttons (TBSTYLE_FLAT) `--taskbar-quick-launch-button-width`
+//   (23: a 16-pixel icon and `DEFPAD_CX` 7) by the buttons' height, no edge
+//   at rest, the thin raised edge (BDR_RAISEDINNER) under the pointer and
+//   the thin sunken one (BDR_SUNKENOUTER) while pressed there, the icon a
+//   pixel down and right (comctl32's `TOOLBAR_DrawButton`). Show Desktop's
+//   glyph is the package's own pixel art: a desk pad in the desktop's color
+//   with a sheet of paper and a pencil.
 // - The status area, 2 px from the right: a pane `--taskbar-button-height`
 //   tall in one sunken ring (BDR_SUNKENOUTER, `b.sunken-thin`: ButtonShadow
 //   at the top and left, ButtonHilight at the bottom and right),
@@ -97,8 +117,10 @@
 //                                         rectangle
 //   Window            --color-window-document   the glyph's body
 //   ActiveTitle…      --package-color-title-bar-*   the glyph's caption
+@use "sass:meta";
 @use "../bevels" as b;
 @use "../pixel" as *;
+@use "LittleArrows";
 @use "Menu";
 
 // --- Art --------------------------------------------------------------------
@@ -131,6 +153,30 @@ $start-glyph-art:
   pixel-art(b.$face, ((1 1 14 12),)),
   pixel-art(b.$dkshadow, ((0 0 16 14),));
 
+// Show Desktop's glyph (16 x 16): a desk pad seen from above, with a sheet of
+// paper and a pencil, the first on top:
+//
+//   ................
+//   ................
+//   ................
+//   .kkkkkkkkkkkkkk.   k  the pad's edge, ButtonDkShadow
+//   .kddddddsssssdk.   d  the pad, the desktop's color
+//   .kddddddswwwsdk.   s  the sheet's edge, ButtonShadow
+//   .kdddddtswwwsdk.   w  the sheet, Window
+//   .kddddtdswwwsdk.   t  the pencil, the active title's color
+//   .kdddtddswwwsdk.
+//   .kddtdddsssssdk.
+//   .kdpddddddddddk.   p  its point, ButtonText
+//   .kddddddddddddk.
+//   .kkkkkkkkkkkkkk.
+$show-desktop-art:
+  pixel-art(b.$text, ((3 10),)),
+  pixel-art($title-active, ((4 9), (5 8), (6 7), (7 6))),
+  pixel-art(b.$window, ((9 5 3 4),)),
+  pixel-art(b.$shadow, ((8 4 5 6),)),
+  pixel-art(var(--desktop-background-color), ((2 4 12 8),)),
+  pixel-art(b.$dkshadow, ((1 3 14 10),));
+
 // --- Looks ------------------------------------------------------------------
 // The 50% checker of ButtonHilight and ButtonFace on the pixel grid, the face
 // of the active window's button.
@@ -162,6 +208,21 @@ $edge: b.$b2;
   &:focus-visible {
     @include b.focus-rect(calc(#{b.$b2} + #{b.$b}));
   }
+}
+
+// The thin raised edge (BDR_RAISEDINNER) and the thin sunken one
+// (BDR_SUNKENOUTER): one ring, ButtonHilight at the top and left and
+// ButtonShadow at the bottom and right, or the reverse.
+@mixin raised-thin {
+  box-shadow:
+    inset b.$b b.$b b.$hilight,
+    inset b.$neg-b b.$neg-b b.$shadow;
+}
+
+@mixin sunken-thin {
+  box-shadow:
+    inset b.$b b.$b b.$shadow,
+    inset b.$neg-b b.$neg-b b.$hilight;
 }
 
 // Pushed in: the soft sunken edge, the contents one pixel down and right.
@@ -228,6 +289,11 @@ $edge: b.$b2;
     @include taskbar-button;
   }
 
+  // Past one row the buttons take their least width, a page at a time.
+  .classicyTaskbarTasksPaged > li {
+    flex: 0 0 var(--taskbar-button-min-width);
+  }
+
   .classicyTaskbarTaskIcon {
     width: var(--icon-small-size);
     height: var(--icon-small-size);
@@ -247,6 +313,115 @@ $edge: b.$b2;
     .classicyTaskbarTaskLabel {
       font-weight: bold;
     }
+  }
+
+  // --- The bands: grippers, Quick Launch, the up/down control ------------------
+  // A band's gripper: three pixels of BDR_RAISEDINNER on ButtonFace, two in
+  // from the band's start and from the row's top and bottom, four before the
+  // band's toolbar.
+  .classicyTaskbarGripper {
+    align-self: center;
+    box-sizing: border-box;
+    width: var(--taskbar-gripper-width);
+    height: calc(var(--taskbar-button-height) - var(--taskbar-gripper-inset) - var(--taskbar-gripper-inset));
+    margin: 0 var(--taskbar-gripper-gap) 0 var(--taskbar-gripper-inset);
+    background: b.$face;
+    @include raised-thin;
+  }
+
+  // Quick Launch: the buttons' height, its band ending four pixels after
+  // its last button.
+  .classicyTaskbarQuickLaunch {
+    align-self: center;
+    height: var(--taskbar-button-height);
+    padding-right: var(--taskbar-band-end-gap);
+  }
+
+  .classicyTaskbarQuickLaunchButtons,
+  .classicyTaskbarQuickLaunchButtons > li {
+    height: 100%;
+  }
+
+  // A flat toolbar button: no edge at rest, raised under the pointer, sunken
+  // while pressed there, the icon centered.
+  .classicyTaskbarQuickLaunchButton {
+    width: var(--taskbar-quick-launch-button-width);
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    color: b.$text;
+    background: transparent;
+    box-shadow: none;
+
+    &:hover {
+      @include raised-thin;
+    }
+
+    &:hover:active {
+      @include sunken-thin;
+
+      > * {
+        translate: b.$b b.$b;
+      }
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include b.focus-rect(b.$b);
+    }
+  }
+
+  .classicyTaskbarQuickLaunchIcon {
+    display: block;
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+    margin: 0;
+  }
+
+  .classicyTaskbarShowDesktopIcon {
+    width: px(16);
+    height: px(16);
+    background: $show-desktop-art;
+  }
+
+  // The window buttons' up/down control: SM_CXVSCROLL wide, the buttons'
+  // height, its two buttons the up-down control's.
+  .classicyTaskbarPager {
+    align-self: center;
+    box-sizing: border-box;
+    width: var(--window-scrollbar-size);
+    height: var(--taskbar-button-height);
+    margin-right: var(--taskbar-button-gap);
+    background: b.$face;
+  }
+
+  .classicyTaskbarPagerUp,
+  .classicyTaskbarPagerDown {
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    color: b.$text;
+    @include b.raised;
+    cursor: default;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include b.focus-rect(calc(#{b.$b2} + #{b.$b}));
+    }
+  }
+
+  .classicyTaskbarPagerUp {
+    @include LittleArrows.arrow-button(meta.get-function("up-arrow", $module: "LittleArrows"));
+  }
+
+  .classicyTaskbarPagerDown {
+    @include LittleArrows.arrow-button(meta.get-function("down-arrow", $module: "LittleArrows"));
   }
 
   // --- The status area --------------------------------------------------------

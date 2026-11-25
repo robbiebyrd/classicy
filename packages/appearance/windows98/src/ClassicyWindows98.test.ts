@@ -267,7 +267,12 @@ describe("the Windows 98 appearance package", () => {
 	// icon 3 px in and 3 px before its label; the status area's 16 px icons in
 	// 20 px cells (explorer's `ICON_BORDER` of 2 each side), 3 px in from the
 	// pane's ends, and the clock's text 5 px from either side (ReactOS
-	// `TRAY_CLOCK_WND_SPACING_X`).
+	// `TRAY_CLOCK_WND_SPACING_X`). Quick Launch's flat buttons are a 16-pixel
+	// icon and comctl32's toolbar padding (`DEFPAD_CX`, 7) wide; each band's
+	// gripper is comctl32's rebar's (`GRIPPER_WIDTH` 3, `REBAR_PRE_GRIPPER` 2
+	// before it and inset 2 from the band's top and bottom,
+	// `REBAR_ALWAYS_SPACE` 4 after it), a band ending `REBAR_POST_CHILD` (4)
+	// after its toolbar.
 	it("sizes the taskbar from its knobs in every theme", async () => {
 		const taskbar = {
 			height: 28,
@@ -283,6 +288,11 @@ describe("the Windows 98 appearance package", () => {
 			trayIconPitch: 20,
 			trayPaddingX: 3,
 			clockPaddingX: 5,
+			quickLaunchButtonWidth: 23,
+			gripperWidth: 3,
+			gripperInset: 2,
+			gripperGap: 4,
+			bandEndGap: 4,
 		};
 		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
 			expect(theme.measurements.taskbar, theme.id).toEqual(taskbar);
@@ -304,6 +314,11 @@ describe("the Windows 98 appearance package", () => {
 				"--taskbar-tray-icon-pitch": "20px",
 				"--taskbar-tray-padding-x": "3px",
 				"--taskbar-clock-padding-x": "5px",
+				"--taskbar-quick-launch-button-width": "23px",
+				"--taskbar-gripper-width": "3px",
+				"--taskbar-gripper-inset": "2px",
+				"--taskbar-gripper-gap": "4px",
+				"--taskbar-band-end-gap": "4px",
 				"--icon-small-size": "16px",
 				"--pixel-unit": "1px",
 			});

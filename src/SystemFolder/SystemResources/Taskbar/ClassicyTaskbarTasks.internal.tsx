@@ -365,14 +365,76 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 };
 
 /**
+ * How many window buttons one row of the task band holds (plan 0020-w98 E1,
+ * "Task-band paging"), as ReactOS's `CTaskSwitchWnd::UpdateButtonsSize`
+ * fits them: every button fits while each can have its least width
+ * (`minWidth`, SM_CXSIZE plus two edges, the package's `min-width` on the
+ * list's items) and the gap after it (the list's `column-gap`); past that,
+ * the buttons take their least width and a row holds as many as fit beside
+ * the up/down control. `listWidth` is the list's width now and `pagerWidth`
+ * the control's outer width beside it (0 while it is not drawn), so the room
+ * without the control is their sum. A list with no least width (a package
+ * that sets none) or not laid out (no width) holds every button. Returns
+ * `count` when every button fits, else at least 1. Pure.
+ */
+export function classicyTaskbarTasksPerPage({
+	count,
+	listWidth,
+	pagerWidth,
+	minWidth,
+	gap,
+}: {
+	count: number;
+	listWidth: number;
+	pagerWidth: number;
+	minWidth: number;
+	gap: number;
+}): number {
+	const room = listWidth + pagerWidth;
+	if (count <= 0 || !(minWidth > 0) || !(room > 0)) return count;
+	const slot = minWidth + Math.max(0, gap);
+	if (count * slot <= room) return count;
+	// Beside the control: the list's own width once it is drawn, else the
+	// whole room for now (the next measure, with the control drawn, refines
+	// it).
+	const beside = pagerWidth > 0 ? listWidth : room;
+	return Math.max(1, Math.min(count, Math.floor(beside / slot)));
+}
+
+// A length a computed style holds, in px; 0 when it holds none.
+const computedPx = (value: string): number => {
+	const px = Number.parseFloat(value);
+	return Number.isFinite(px) ? px : 0;
+};
+
+/**
  * The taskbar's list of window buttons (`.classicyTaskbarTasks`,
  * `data-classicy-part="taskbar-tasks"`). Each button runs its window's own
  * commands through the window registry, so the window's sounds, analytics
  * and geometry stay in `ClassicyWindow`, and carries
  * `data-classicy-drop-activate`, so a file drag resting on it brings its
  * window up (`classicyTaskbarDropActivateCommand`).
+ *
+ * - **Its gripper** (`gripper`): while Quick Launch is shown the task band is
+ *   one of two bands, and a `classicyTaskbarGripper` with
+ *   `data-classicy-part="taskbar-tasks-gripper"` leads it, as comctl32's
+ *   rebar gives every sizable band a gripper once there are two.
+ * - **Paging** (plan 0020-w98 E1): when the buttons at their least width no
+ *   longer fit one row (`classicyTaskbarTasksPerPage`, measured on mount, on
+ *   a resize and as windows come and go), the list carries
+ *   `classicyTaskbarTasksPaged`, shows one row of buttons at a time, and the
+ *   up/down control (`.classicyTaskbarPager`,
+ *   `data-classicy-part="taskbar-pager"`: `classicyTaskbarPagerUp`, dimmed on
+ *   the first row, and `classicyTaskbarPagerDown`, dimmed on the last) moves
+ *   between the rows, as Windows 95/98's task band scrolled its rows of
+ *   buttons with an up-down control at its right. The row holding the active
+ *   window's button is shown whenever that window changes. A package that
+ *   gives the buttons no least width never pages.
  */
-export const ClassicyTaskbarTasks: FunctionalComponent = () => {
+export const ClassicyTaskbarTasks: FunctionalComponent<{
+	/** Lead the band with its gripper (Quick Launch is shown beside it). */
+	gripper?: boolean;
+}> = ({ gripper = false }) => {
 	const entries = useClassicyWindowEntries();
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const overrides = useClassicyAppIdentityOverrides();
@@ -392,20 +454,130 @@ export const ClassicyTaskbarTasks: FunctionalComponent = () => {
 	}, [order]);
 	const byKey = new Map(tasks.map((t) => [t.key, t]));
 
+	// Paging: how many buttons a row holds, measured; the row shown.
+	const listRef = useRef<HTMLUListElement>(null);
+	const pagerRef = useRef<HTMLDivElement>(null);
+	const count = order.length;
+	// The buttons a row holds while they take more than one, else null
+	// (every button fits, the start, and after any change until measured).
+	const [rowCap, setRowCap] = useState<number | null>(null);
+	const [page, setPage] = useState(0);
+	const measureRef = useRef<() => void>(() => {});
+	measureRef.current = () => {
+		const list = listRef.current;
+		if (!list || typeof getComputedStyle !== "function") return;
+		const item = list.firstElementChild;
+		const pager = pagerRef.current;
+		let pagerWidth = 0;
+		if (pager) {
+			const style = getComputedStyle(pager);
+			pagerWidth =
+				pager.offsetWidth +
+				computedPx(style.marginLeft) +
+				computedPx(style.marginRight);
+		}
+		const next = classicyTaskbarTasksPerPage({
+			count,
+			listWidth: list.clientWidth,
+			pagerWidth,
+			minWidth: item ? computedPx(getComputedStyle(item).minWidth) : 0,
+			gap: computedPx(getComputedStyle(list).columnGap),
+		});
+		const cap = next < count ? next : null;
+		setRowCap((current) => (current === cap ? current : cap));
+	};
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the dependencies are the triggers (the ref reads fresh state): the buttons coming and going, and the control appearing or going
+	useLayoutEffect(() => {
+		measureRef.current();
+	}, [count, rowCap]);
+	useEffect(() => {
+		const list = listRef.current;
+		if (!list || typeof ResizeObserver !== "function") return;
+		const observer = new ResizeObserver(() => measureRef.current());
+		observer.observe(list);
+		const bar = list.parentElement;
+		if (bar) observer.observe(bar);
+		return () => observer.disconnect();
+	}, []);
+	const paged = rowCap !== null && rowCap < count;
+	const rowLength = paged ? Math.max(1, rowCap) : Math.max(1, count);
+	const pages = paged ? Math.ceil(count / rowLength) : 1;
+	const shownPage = Math.min(page, pages - 1);
+	// The active window's row comes into view when that window changes.
+	const activeKey = tasks.find((t) => t.active)?.key;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the active window and the row length; the order is read as it stands
+	useLayoutEffect(() => {
+		if (!activeKey) return;
+		const index = order.indexOf(activeKey);
+		if (index >= 0) setPage(Math.floor(index / rowLength));
+	}, [activeKey, rowLength]);
+	const shown = paged
+		? order.slice(shownPage * rowLength, (shownPage + 1) * rowLength)
+		: order;
+	const step = (direction: 1 | -1) =>
+		setPage(Math.max(0, Math.min(pages - 1, shownPage + direction)));
+	// The up/down control acts at the press, as an up-down control does, and
+	// takes no focus from a press; Enter and Space reach it as a click with
+	// no press count.
+	const pagerHandlers = (direction: 1 | -1) => ({
+		onMouseDown: (e: MouseEvent<HTMLButtonElement>) => {
+			if (e.button !== 0) return;
+			e.preventDefault();
+			step(direction);
+		},
+		onClick: (e: MouseEvent<HTMLButtonElement>) => {
+			if (e.detail === 0) step(direction);
+		},
+	});
+
 	return (
-		<ul
-			className="classicyTaskbarTasks"
-			data-classicy-part="taskbar-tasks"
-			aria-label="Running windows"
-		>
-			{order.map((key) => {
-				const task = byKey.get(key);
-				return task ? (
-					<li key={key}>
-						<ClassicyTaskbarTaskButton task={task} overrides={overrides} />
-					</li>
-				) : null;
-			})}
-		</ul>
+		<>
+			{gripper && (
+				<span
+					className="classicyTaskbarGripper"
+					data-classicy-part="taskbar-tasks-gripper"
+					aria-hidden="true"
+				/>
+			)}
+			<ul
+				ref={listRef}
+				className={classNames("classicyTaskbarTasks", {
+					classicyTaskbarTasksPaged: paged,
+				})}
+				data-classicy-part="taskbar-tasks"
+				aria-label="Running windows"
+			>
+				{shown.map((key) => {
+					const task = byKey.get(key);
+					return task ? (
+						<li key={key}>
+							<ClassicyTaskbarTaskButton task={task} overrides={overrides} />
+						</li>
+					) : null;
+				})}
+			</ul>
+			{paged && (
+				<div
+					ref={pagerRef}
+					className="classicyTaskbarPager"
+					data-classicy-part="taskbar-pager"
+				>
+					<button
+						type="button"
+						className="classicyTaskbarPagerUp"
+						aria-label="Previous row of window buttons"
+						disabled={shownPage === 0}
+						{...pagerHandlers(-1)}
+					/>
+					<button
+						type="button"
+						className="classicyTaskbarPagerDown"
+						aria-label="Next row of window buttons"
+						disabled={shownPage >= pages - 1}
+						{...pagerHandlers(1)}
+					/>
+				</div>
+			)}
+		</>
 	);
 };

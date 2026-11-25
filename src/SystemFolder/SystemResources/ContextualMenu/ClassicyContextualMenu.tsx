@@ -11,6 +11,7 @@ import {
 	classicyMenuWholePixel,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import { ClassicyMenuScrollMarginContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuScrollMargin.internal";
 import {
 	ClassicyMenuPlacementEpoch,
 	useClassicyMenuDesktopResize,
@@ -21,6 +22,7 @@ import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
 	useCallback,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useRef,
@@ -130,6 +132,15 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// menus. Before paint, so no frame shows it off the desktop.
 	const [left, setLeft] = useState<number>(position[0]);
 	const [top, setTop] = useState<number>(position[1]);
+	// Opened from below the menu bounds' bottom: a point in the Windows
+	// shell's taskbar band (the bounds end at its top edge; plan 0020-w98
+	// §2, "Menus keep above the taskbar"), where the menu is pinned flush on
+	// the band, so its scroll cap keeps no margin there, as the band's own
+	// pop-ups keep none (`ClassicyBevelButtonPopup`'s `menuScrollMargin`):
+	// a menu that fits is drawn whole. A point inside the bounds (every
+	// point on a desktop with no taskbar) keeps the margin, as always.
+	const inheritedScrollMargin = useContext(ClassicyMenuScrollMarginContext);
+	const [fromBelowBounds, setFromBelowBounds] = useState(false);
 	// Bumped when the desktop changes size while the menu is open: it is
 	// placed again against the desktop's new box.
 	const [desktopSize, setDesktopSize] = useState(0);
@@ -180,6 +191,7 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 			top: y - inkTop,
 			bottom: y + frame.height + inkBottom,
 		});
+		setFromBelowBounds(position[1] > bounds.bottom);
 		let y = position[1];
 		if (inkAt(y).bottom > bounds.bottom) y = position[1] - frame.height;
 		setTop(
@@ -300,12 +312,16 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 				{/* Its items' submenus are measured again after it is placed
 				    again (a desktop resize). */}
 				<ClassicyMenuPlacementEpoch.Provider value={desktopSize}>
-					<ClassicyMenu
-						name={name}
-						menuItems={menuItems}
-						navClass={"classicyContextMenu"}
-						subNavClass={"classicyContextSubMenu"}
-					></ClassicyMenu>
+					<ClassicyMenuScrollMarginContext.Provider
+						value={fromBelowBounds ? 0 : inheritedScrollMargin}
+					>
+						<ClassicyMenu
+							name={name}
+							menuItems={menuItems}
+							navClass={"classicyContextMenu"}
+							subNavClass={"classicyContextSubMenu"}
+						></ClassicyMenu>
+					</ClassicyMenuScrollMarginContext.Provider>
 				</ClassicyMenuPlacementEpoch.Provider>
 			</div>
 		</ClassicyMenuProvider>

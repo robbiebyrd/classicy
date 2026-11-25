@@ -15,6 +15,7 @@ import {
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { setClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
@@ -22,7 +23,8 @@ import {
 	ClassicyStartMenu,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyStartMenu.internal";
 import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
-import { useClassicyTaskbarMenu } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
+import { useClassicyTaskbarCommands } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
+import { ClassicyTaskbarQuickLaunch } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarQuickLaunch.internal";
 import { ClassicyTaskbarTasks } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
 import { ClassicyTaskbarTray } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTray.internal";
 import {
@@ -32,11 +34,19 @@ import {
 
 /**
  * The taskbar's background under button 2, which opens the taskbar's own
- * menu: the window buttons' list and the status area's own boxes, around
- * their buttons (the root itself is checked as the event's current target).
+ * menu: the band site (the window buttons' list and its gripper and up/down
+ * control, the Quick Launch toolbar around its buttons) and the status
+ * area's own boxes, around their buttons (the root itself is checked as the
+ * event's current target).
  */
-const TASKBAR_BACKGROUND = [
+const TASKBAR_BAND_SITE = [
 	".classicyTaskbarTasks",
+	".classicyTaskbarGripper",
+	".classicyTaskbarPager",
+	".classicyTaskbarQuickLaunch",
+	".classicyTaskbarQuickLaunchButtons",
+].join(", ");
+const TASKBAR_STATUS_AREA = [
 	".classicyTaskbarTray",
 	".classicyTaskbarTrayIcons",
 	".classicyTaskbarTrayExtensions",
@@ -148,11 +158,22 @@ const useClassicyTaskbarBandPublisher = (
  *   Date & Time control panel, a click does nothing, and button 2 opens the
  *   taskbar's menu with Adjust Date/Time first, its default item. It keeps
  *   the store's time as the menu bar's clock does.
- * - **Its own menu.** Button 2 on the taskbar's background opens Minimize
- *   All Windows (Undo Minimize All after it, until one of those windows is
- *   restored or closed by other means) and Properties, the Control Strip
- *   control panel (`ClassicyTaskbarMenu.internal.ts`; WIG App. B, Table
- *   B.3, p.359).
+ * - **Quick Launch** (`ClassicyTaskbarQuickLaunch.internal.tsx`), shown
+ *   after the Start button unless the user turned it off (Toolbars ▸ Quick
+ *   Launch, stored as `System.Manager.Desktop.taskbar.quickLaunch`): the
+ *   Finder, Show Desktop and the apps the host marks
+ *   (`ClassicyApp`'s `showInQuickLaunch`), each a flat button with its name
+ *   as a tooltip. While it shows, the window buttons' band leads with a
+ *   gripper too.
+ * - **Its own menu.** Button 2 on the taskbar's background opens Toolbars ▸
+ *   (over the bar and its bands, not the status area), Cascade Windows,
+ *   Tile Windows Horizontally and Vertically, Minimize All Windows, the Undo
+ *   of the last of those, and Properties, the Control Strip control panel
+ *   (`ClassicyTaskbarMenu.internal.ts`; WIG App. B, Table B.3, p.359;
+ *   Windows 98 SE's explorer.exe).
+ * - **Paging.** When the window buttons at their least width no longer fit
+ *   the row, they show one row at a time behind an up/down control at the
+ *   band's right (`ClassicyTaskbarTasks.internal.tsx`).
  * - **The band.** It publishes its height as the taskbar band, so windows,
  *   desktop icons and menus keep above it (`useClassicyTaskbarBand`).
  *
@@ -222,22 +243,31 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 			closeStartMenu();
 		}
 	};
-	// Button 2 on the taskbar's background (the bar itself, the window
-	// buttons' list around its buttons, the status area around its icons)
-	// opens the taskbar's own menu. Over a part that has its own (a window
-	// button, a tray icon) or none (the Start button), and over the taskbar
-	// in any case, the browser's menu and the desktop's never open.
-	const showTaskbarMenu = useClassicyTaskbarMenu();
+	// Button 2 on the taskbar's background (the bar itself, the bands around
+	// their buttons, the status area around its icons) opens the taskbar's
+	// own menu, led by Toolbars ▸ except over the status area (the band
+	// site's menu). Over a part that has its own (a window button, a Quick
+	// Launch button, a tray icon) or none (the Start button), and over the
+	// taskbar in any case, the browser's menu and the desktop's never open.
+	const { showMenu: showTaskbarMenu, toggleDesktop } =
+		useClassicyTaskbarCommands();
 	const onContextMenu = (e: MouseEvent<HTMLElement>) => {
 		if (e.defaultPrevented) return;
 		e.preventDefault();
 		const target = e.target;
+		const at: [number, number] = [e.clientX, e.clientY];
 		if (
 			target === e.currentTarget ||
-			(target instanceof Element && target.matches(TASKBAR_BACKGROUND))
+			(target instanceof Element && target.matches(TASKBAR_BAND_SITE))
 		)
-			showTaskbarMenu([e.clientX, e.clientY]);
+			showTaskbarMenu(at, [], { toolbars: true });
+		else if (target instanceof Element && target.matches(TASKBAR_STATUS_AREA))
+			showTaskbarMenu(at);
 	};
+	// Quick Launch, shown unless the user turned it off.
+	const quickLaunch = useAppManager(
+		(s) => s.System.Manager.Desktop.taskbar?.quickLaunch !== false,
+	);
 
 	return (
 		<nav
@@ -275,7 +305,13 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 					onClose={closeStartMenu}
 				/>
 			)}
-			<ClassicyTaskbarTasks />
+			{quickLaunch && (
+				<ClassicyTaskbarQuickLaunch
+					showTaskbarMenu={showTaskbarMenu}
+					toggleDesktop={toggleDesktop}
+				/>
+			)}
+			<ClassicyTaskbarTasks gripper={quickLaunch} />
 			<ClassicyTaskbarTray
 				disabledModules={disabledModules}
 				hideModules={hideModules}

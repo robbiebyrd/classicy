@@ -173,6 +173,10 @@ export interface ClassicyStoreSystemDesktopManager
 	/** The Control Strip's persisted arrangement. Optional for state built
 	 * by hand; the defaults always carry it. */
 	controlStrip?: ClassicyStoreControlStrip;
+	/** The Windows shell's taskbar preferences (`layout.taskbar`), written
+	 * only by the taskbar's own controls, so a desktop that never drew a
+	 * taskbar never carries it (the default state has none). */
+	taskbar?: ClassicyStoreTaskbar;
 	/** When true, double-clicking a window's title bar collapses it (Appearance
 	 * control-panel option). Defaults to true. */
 	doubleClickTitleToCollapse?: boolean;
@@ -210,6 +214,17 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Bumped on each request so the controller's effect re-fires even for a
 	 *  repeated identical request. */
 	openUrlRequestId?: number;
+}
+
+/**
+ * The taskbar's persisted preferences (plan 0020-w98 E1), each optional with
+ * Windows 98's default when absent.
+ */
+export interface ClassicyStoreTaskbar {
+	/** Toolbars ▸ Quick Launch: the Quick Launch toolbar shown beside the
+	 * Start button. Absent (the default) is shown, as Windows 98 installs it;
+	 * `ClassicyDesktopTaskbarSetQuickLaunch` writes it. */
+	quickLaunch?: boolean;
 }
 
 /** The default Control Strip arrangement: shown, nothing hidden or reordered. */
@@ -667,6 +682,12 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopSetBalloonHelp": {
 			if (!hasDisableBalloonHelp(action)) break;
 			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetQuickLaunch": {
+			if (!hasVisible(action)) break;
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.quickLaunch = action.visible;
 			break;
 		}
 		case "ClassicyDesktopControlStripSetVisible": {

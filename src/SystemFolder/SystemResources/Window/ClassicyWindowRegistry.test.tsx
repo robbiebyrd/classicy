@@ -72,6 +72,7 @@ const entry = (
 	collapsable: true,
 	resizable: true,
 	movable: true,
+	geometry: () => undefined,
 	run: () => true,
 	...overrides,
 });
@@ -574,6 +575,105 @@ describe("ClassicyWindow in the window registry", () => {
 		expect(record("main")?.resizing).toBe(false);
 	});
 
+	// Plan 0020-w98 E1: the taskbar's Cascade and Tile read each window's
+	// geometry and place it through its own path.
+	it("reports its geometry while it is drawn, and none while it is shaded or closed", () => {
+		render(
+			<ClassicyWindow
+				id="main"
+				appId={APP}
+				title="Main"
+				initialSize={[300, 200]}
+				initialPosition={[40, 50]}
+				minimumSize={[120, 80]}
+			>
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		const geometry = () => getClassicyWindowEntry(APP, "main")?.geometry();
+		expect(geometry()).toEqual({
+			rect: { position: [40, 50], size: [300, 200] },
+			restoreRect: { position: [40, 50], size: [300, 200] },
+			maximized: false,
+			// jsdom lays out no frame.
+			chrome: [0, 0],
+			minimumSize: [120, 80],
+		});
+		expect(run("main", { type: "minimize" })).toBe(true);
+		expect(geometry()).toBeUndefined();
+		expect(run("main", { type: "restore" })).toBe(true);
+		expect(geometry()).toBeDefined();
+		expect(run("main", { type: "close" })).toBe(true);
+		expect(geometry()).toBeUndefined();
+	});
+
+	it("places itself at the rect given, sized when it is resizable, never activated", () => {
+		render(
+			<>
+				<ClassicyWindow
+					id="main"
+					appId={APP}
+					title="Main"
+					initialSize={[300, 200]}
+					initialPosition={[40, 50]}
+					minimumSize={[120, 80]}
+				>
+					<p>main</p>
+				</ClassicyWindow>
+				<ClassicyWindow
+					id="fixed"
+					appId={APP}
+					title="Fixed"
+					resizable={false}
+					initialSize={[200, 100]}
+					initialPosition={[10, 20]}
+				>
+					<p>fixed</p>
+				</ClassicyWindow>
+			</>,
+		);
+		const focusedBefore = record("main")?.focused;
+		expect(
+			run("main", { type: "place", position: [5.4, 30], size: [250, 150] }),
+		).toBe(true);
+		expect(record("main")).toMatchObject({
+			position: [5, 30],
+			size: [250, 150],
+			zoomed: false,
+		});
+		expect(record("main")?.focused).toBe(focusedBefore);
+		// Never below its minimum.
+		expect(
+			run("main", { type: "place", position: [0, 0], size: [50, 40] }),
+		).toBe(true);
+		expect(record("main")?.size).toEqual([120, 80]);
+		// A window that does not size only moves.
+		expect(
+			run("fixed", { type: "place", position: [70, 80], size: [400, 400] }),
+		).toBe(true);
+		expect(record("fixed")).toMatchObject({
+			position: [70, 80],
+			size: [200, 100],
+		});
+		mockPlayer.mockClear();
+		expect(mockPlayer).not.toHaveBeenCalled();
+		// Not drawn: refused.
+		expect(run("main", { type: "minimize" })).toBe(true);
+		expect(run("main", { type: "place", position: [1, 1] })).toBe(false);
+		expect(record("main")?.position).toEqual([0, 0]);
+	});
+
+	it("refuses to place a fixed alert", () => {
+		render(
+			<ClassicyWindow id="alert" appId={APP} title="" modal type="error">
+				<p>alert</p>
+			</ClassicyWindow>,
+		);
+		const before = record("alert")?.position;
+		expect(run("alert", { type: "place", position: [1, 2] })).toBe(false);
+		expect(record("alert")?.position).toEqual(before);
+	});
+
 	it("carries out nothing while it is closed", () => {
 		render(
 			<ClassicyWindow id="main" appId={APP} title="Main">
@@ -795,5 +895,74 @@ describe('ClassicyWindow\'s commands under window.zoom: "maximize"', () => {
 		expect(run("dialog", { type: "maximize" })).toBe(false);
 		expect(record("tools")?.zoomed).toBe(false);
 		expect(record("dialog")?.zoomed).toBe(false);
+	});
+
+	// Plan 0020-w98 E1: Cascade and Tile restore a maximized window before
+	// they place it (CascadeWindows' `ShowWindow(SW_RESTORE)`), and their Undo
+	// maximizes it again around the rect it had (SetWindowPlacement with
+	// SW_SHOWMAXIMIZED).
+	it("reports a maximized window's rect to restore, and restores it to the rect it is placed at", () => {
+		render(
+			<ClassicyWindow
+				id="main"
+				appId={APP}
+				title="Main"
+				initialSize={[400, 300]}
+				initialPosition={[50, 60]}
+			>
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		expect(run("main", { type: "maximize" })).toBe(true);
+		expect(getClassicyWindowEntry(APP, "main")?.geometry()).toMatchObject({
+			maximized: true,
+			restoreRect: { position: [50, 60], size: [400, 300] },
+		});
+		expect(
+			run("main", { type: "place", position: [10, 20], size: [320, 240] }),
+		).toBe(true);
+		expect(record("main")).toMatchObject({
+			zoomed: false,
+			position: [10, 20],
+			size: [320, 240],
+		});
+		expect(record("main")?.restoreRect).toBeUndefined();
+		// No zoom sound for an arrangement.
+		expect(mockPlayer).not.toHaveBeenCalledWith(
+			expect.objectContaining({ type: "ClassicySoundPlay" }),
+		);
+	});
+
+	it("maximizes around the rect given with maximized: true", () => {
+		render(
+			<ClassicyWindow
+				id="main"
+				appId={APP}
+				title="Main"
+				initialSize={[400, 300]}
+				initialPosition={[50, 60]}
+			>
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		expect(
+			run("main", {
+				type: "place",
+				position: [30, 40],
+				size: [320, 240],
+				maximized: true,
+			}),
+		).toBe(true);
+		expect(record("main")).toMatchObject({
+			zoomed: true,
+			size: [window.innerWidth, expect.any(Number)],
+			restoreRect: { position: [30, 40], size: [320, 240] },
+		});
+		expect(run("main", { type: "restore" })).toBe(true);
+		expect(record("main")).toMatchObject({
+			zoomed: false,
+			position: [30, 40],
+			size: [320, 240],
+		});
 	});
 });

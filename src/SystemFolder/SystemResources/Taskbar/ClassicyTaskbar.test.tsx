@@ -20,6 +20,7 @@ import {
 	CLASSICY_NO_APP_IDENTITY_OVERRIDES,
 	type ClassicyAppIdentityOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	type ClassicyStoreSystemApp,
 	type ClassicyStoreSystemAppWindow,
@@ -59,6 +60,7 @@ import {
 	classicyTaskbarOrder,
 	classicyTaskbarTaskKey,
 	classicyTaskbarTasks,
+	classicyTaskbarTasksPerPage,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import {
@@ -66,6 +68,7 @@ import {
 	type ClassicyWindowEntry,
 	type ClassicyWindowRegistration,
 	registerClassicyWindow,
+	runClassicyWindowCommand,
 	unregisterClassicyWindow,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
 
@@ -91,6 +94,7 @@ const entry = (
 	collapsable: true,
 	resizable: true,
 	movable: true,
+	geometry: () => undefined,
 	run: () => true,
 	...overrides,
 });
@@ -405,63 +409,155 @@ describe("classicyTaskbarMinimizedAllStands", () => {
 
 describe("classicyTaskbarMenuItems", () => {
 	const handlers = {
+		onCascade: () => {},
+		onTile: () => {},
 		onMinimizeAll: () => {},
-		onUndoMinimizeAll: () => {},
+		onUndo: () => {},
 		onProperties: () => {},
 	};
-	const shape = (items: { id: string; title?: string; disabled?: boolean }[]) =>
+	const shape = (
+		items: {
+			id: string;
+			title?: string;
+			disabled?: boolean;
+			checked?: boolean | "mixed";
+			menuChildren?: { title?: string; checked?: boolean | "mixed" }[];
+		}[],
+	) =>
 		items.map((i) =>
-			i.id === "spacer" ? "—" : `${i.title}${i.disabled ? " (off)" : ""}`,
+			i.id === "spacer"
+				? "—"
+				: `${i.title}${i.disabled ? " (off)" : ""}${
+						i.menuChildren
+							? ` ▸ ${i.menuChildren
+									.map((c) => `${c.checked ? "✓" : ""}${c.title}`)
+									.join(", ")}`
+							: ""
+					}`,
 		);
+	const ARRANGE = [
+		"Cascade Windows",
+		"Tile Windows Horizontally",
+		"Tile Windows Vertically",
+	];
 
-	it("is Minimize All Windows, a divider and Properties", () => {
+	it("is Windows 98's: the arrangements, Minimize All Windows and Properties", () => {
 		expect(
 			shape(
 				classicyTaskbarMenuItems({
 					...handlers,
-					undo: false,
+					canArrange: true,
 					canMinimizeAll: true,
+					undo: null,
 				}),
 			),
-		).toEqual(["Minimize All Windows", "—", "Properties"]);
+		).toEqual([...ARRANGE, "—", "Minimize All Windows", "—", "Properties"]);
 		expect(
 			shape(
 				classicyTaskbarMenuItems({
 					...handlers,
-					undo: false,
+					canArrange: false,
 					canMinimizeAll: false,
+					undo: null,
 				}),
 			),
-		).toEqual(["Minimize All Windows (off)", "—", "Properties"]);
+		).toEqual([
+			...ARRANGE.map((t) => `${t} (off)`),
+			"—",
+			"Minimize All Windows (off)",
+			"—",
+			"Properties",
+		]);
 	});
 
-	it("reads Undo Minimize All while the list stands", () => {
-		const items = classicyTaskbarMenuItems({
+	it("adds the Undo of the last arrangement or Minimize All after Minimize All Windows", () => {
+		for (const [kind, title] of [
+			["minimizeAll", "Undo Minimize All"],
+			["cascade", "Undo Cascade"],
+			["tile", "Undo Tile"],
+		] as const) {
+			const items = classicyTaskbarMenuItems({
+				...handlers,
+				canArrange: true,
+				canMinimizeAll: false,
+				undo: kind,
+			});
+			expect(shape(items)).toEqual([
+				...ARRANGE,
+				"—",
+				"Minimize All Windows (off)",
+				title,
+				"—",
+				"Properties",
+			]);
+			expect(items[5].id).toBe(CLASSICY_TASKBAR_MENU_IDS.undo);
+		}
+	});
+
+	it("leads with Toolbars ▸ Quick Launch, checked while it shows, for the band site", () => {
+		const shown = classicyTaskbarMenuItems({
 			...handlers,
-			undo: true,
-			canMinimizeAll: false,
+			canArrange: true,
+			canMinimizeAll: true,
+			undo: null,
+			toolbars: { quickLaunch: true, onQuickLaunch: () => {} },
 		});
-		expect(shape(items)).toEqual(["Undo Minimize All", "—", "Properties"]);
-		expect(items[0].id).toBe(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll);
+		expect(shape(shown).slice(0, 2)).toEqual(["Toolbars ▸ ✓Quick Launch", "—"]);
+		expect(shown[0].id).toBe(CLASSICY_TASKBAR_MENU_IDS.toolbars);
+		expect(shown[0].menuChildren?.[0].id).toBe(
+			CLASSICY_TASKBAR_MENU_IDS.quickLaunch,
+		);
+		const hidden = classicyTaskbarMenuItems({
+			...handlers,
+			canArrange: true,
+			canMinimizeAll: true,
+			undo: null,
+			toolbars: { quickLaunch: false, onQuickLaunch: () => {} },
+		});
+		expect(shape(hidden)[0]).toBe("Toolbars ▸ Quick Launch");
 	});
 
-	it("leads with the caller's items and a divider", () => {
+	it("leads with the caller's items and a divider, before Toolbars ▸", () => {
 		expect(
 			shape(
 				classicyTaskbarMenuItems({
 					...handlers,
-					undo: false,
+					canArrange: true,
 					canMinimizeAll: true,
+					undo: null,
 					leading: [{ id: "adjust", title: "Adjust Date/Time" }],
+					toolbars: { quickLaunch: true, onQuickLaunch: () => {} },
 				}),
 			),
 		).toEqual([
 			"Adjust Date/Time",
 			"—",
+			"Toolbars ▸ ✓Quick Launch",
+			"—",
+			...ARRANGE,
+			"—",
 			"Minimize All Windows",
 			"—",
 			"Properties",
 		]);
+	});
+
+	it("runs each arrangement through its handler", () => {
+		const onTile = vi.fn();
+		const onCascade = vi.fn();
+		const items = classicyTaskbarMenuItems({
+			...handlers,
+			onTile,
+			onCascade,
+			canArrange: true,
+			canMinimizeAll: true,
+			undo: null,
+		});
+		items[0].onClickFunc?.();
+		items[1].onClickFunc?.();
+		items[2].onClickFunc?.();
+		expect(onCascade).toHaveBeenCalledTimes(1);
+		expect(onTile.mock.calls).toEqual([["horizontally"], ["vertically"]]);
 	});
 });
 
@@ -525,15 +621,23 @@ describe("ClassicyTaskbar", () => {
 	});
 
 	describe("structure", () => {
-		it("is a labelled nav with the Start button, the window list and the status area, in that order", () => {
+		it("is a labelled nav with the Start button, Quick Launch, the window list and the status area, in that order", () => {
 			const { container } = render(<ClassicyTaskbar />);
 			const nav = container.querySelector("nav.classicyTaskbar");
 			expect(nav).toHaveAttribute("aria-label", "Taskbar");
+			// Two bands, each led by its gripper (comctl32's rebar draws one
+			// once a second sizable band is there).
 			expect(
 				Array.from(nav?.children ?? [], (el) =>
 					el.getAttribute("data-classicy-part"),
 				),
-			).toEqual(["taskbar-start", "taskbar-tasks", "taskbar-tray"]);
+			).toEqual([
+				"taskbar-start",
+				"taskbar-quick-launch",
+				"taskbar-tasks-gripper",
+				"taskbar-tasks",
+				"taskbar-tray",
+			]);
 			const list = nav?.querySelector(".classicyTaskbarTasks");
 			expect(list?.tagName).toBe("UL");
 			expect(list).toHaveAttribute("aria-label", "Running windows");
@@ -1113,6 +1217,183 @@ describe("ClassicyTaskbar", () => {
 		expect(seen.at(-1)).toEqual([]);
 		unmount();
 	});
+
+	// Plan 0020-w98 E1, "Task-band paging": past one row at their least
+	// width, the buttons show a row at a time behind an up/down control.
+	// jsdom lays nothing out: the list's width and the control's are given,
+	// and the package's least width and gap come from a stylesheet.
+	describe("paging", () => {
+		let style: HTMLStyleElement | null = null;
+		let listWidth = 100;
+		const withPackageStyle = () => {
+			style = document.createElement("style");
+			style.textContent =
+				".classicyTaskbarTasks { column-gap: 3px; } .classicyTaskbarTasks > li { min-width: 22px; }";
+			document.head.append(style);
+		};
+		const pager = () => document.querySelector(".classicyTaskbarPager");
+		const up = () =>
+			document.querySelector(".classicyTaskbarPagerUp") as HTMLButtonElement;
+		const down = () =>
+			document.querySelector(".classicyTaskbarPagerDown") as HTMLButtonElement;
+		const shown = () => taskButtons().map((b) => b.textContent);
+		const six = ["w1", "w2", "w3", "w4", "w5", "w6"];
+		const seedSix = (focused = "w1") => {
+			setApps(
+				app(
+					"A.app",
+					six.map((id, i) =>
+						win(id, { zOrder: i + 1, focused: id === focused }),
+					),
+					{ focused: true },
+				),
+			);
+			for (const id of six) register(entry("A.app", id));
+		};
+
+		beforeEach(() => {
+			listWidth = 100;
+			vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(
+				function (this: HTMLElement) {
+					return this.classList.contains("classicyTaskbarTasks")
+						? listWidth
+						: 0;
+				},
+			);
+			vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(
+				function (this: HTMLElement) {
+					return this.classList.contains("classicyTaskbarPager") ? 16 : 0;
+				},
+			);
+		});
+
+		afterEach(() => {
+			style?.remove();
+			style = null;
+			vi.restoreAllMocks();
+		});
+
+		it("shows a row of buttons at a time behind the up/down control once they no longer fit", () => {
+			withPackageStyle();
+			seedSix();
+			render(<ClassicyTaskbar />);
+			// Six buttons need 6 x 25; a 100 px row beside the control holds four.
+			const list = document.querySelector(".classicyTaskbarTasks");
+			expect(list).toHaveClass("classicyTaskbarTasksPaged");
+			expect(shown()).toEqual(["w1", "w2", "w3", "w4"]);
+			expect(pager()).toHaveAttribute("data-classicy-part", "taskbar-pager");
+			expect(pager()?.previousElementSibling).toBe(list);
+			expect(up()).toBeDisabled();
+			expect(down()).not.toBeDisabled();
+			expect(up()).toHaveAttribute(
+				"aria-label",
+				"Previous row of window buttons",
+			);
+			// The control acts at the press, taking no focus.
+			const press = new MouseEvent("mousedown", {
+				bubbles: true,
+				cancelable: true,
+				button: 0,
+			});
+			act(() => {
+				down().dispatchEvent(press);
+			});
+			expect(press.defaultPrevented).toBe(true);
+			expect(shown()).toEqual(["w5", "w6"]);
+			expect(down()).toBeDisabled();
+			expect(up()).not.toBeDisabled();
+			// Enter or Space: a click with no press count.
+			fireEvent.click(up(), { detail: 0 });
+			expect(shown()).toEqual(["w1", "w2", "w3", "w4"]);
+		});
+
+		it("shows the active window's row when that window changes", () => {
+			withPackageStyle();
+			seedSix();
+			render(<ClassicyTaskbar />);
+			expect(shown()).toEqual(["w1", "w2", "w3", "w4"]);
+			seedFocus("w6");
+			expect(shown()).toEqual(["w5", "w6"]);
+			expect(taskButton("w6")).toHaveClass("active");
+			seedFocus("w2");
+			expect(shown()).toEqual(["w1", "w2", "w3", "w4"]);
+		});
+
+		it("draws one row and no control again once the buttons fit", () => {
+			withPackageStyle();
+			seedSix();
+			render(<ClassicyTaskbar />);
+			expect(pager()).not.toBeNull();
+			act(() => {
+				for (const registration of made.splice(4))
+					unregisterClassicyWindow(registration);
+			});
+			// Four buttons need 4 x 25, within the 100 px row and the 16 px
+			// control's room.
+			expect(pager()).toBeNull();
+			expect(document.querySelector(".classicyTaskbarTasks")).not.toHaveClass(
+				"classicyTaskbarTasksPaged",
+			);
+			expect(shown()).toEqual(["w1", "w2", "w3", "w4"]);
+		});
+
+		it("never pages under a package that gives the buttons no least width", () => {
+			seedSix();
+			render(<ClassicyTaskbar />);
+			expect(pager()).toBeNull();
+			expect(shown()).toEqual(six);
+		});
+
+		const seedFocus = (focused: string) =>
+			act(() =>
+				useAppManager.setState((state) =>
+					produce(state, (draft) => {
+						const own = draft.System.Manager.Applications.apps["A.app"];
+						for (const w of Object.values(own.windows)) {
+							w.focused = w.id === focused;
+							if (w.id === focused) w.zOrder = 100 + Math.random();
+						}
+					}),
+				),
+			);
+	});
+});
+
+describe("classicyTaskbarTasksPerPage", () => {
+	const room = { listWidth: 100, pagerWidth: 0, minWidth: 22, gap: 3 };
+	it("holds every button while each has its least width and gap", () => {
+		expect(classicyTaskbarTasksPerPage({ ...room, count: 4 })).toBe(4);
+		expect(classicyTaskbarTasksPerPage({ ...room, count: 0 })).toBe(0);
+	});
+
+	it("holds as many as fit beside the control past that, one at least", () => {
+		// Before the control is drawn, the whole room.
+		expect(classicyTaskbarTasksPerPage({ ...room, count: 6 })).toBe(4);
+		// Beside it: the list's own width; without it the room is 116.
+		expect(
+			classicyTaskbarTasksPerPage({ ...room, count: 6, pagerWidth: 16 }),
+		).toBe(4);
+		expect(
+			classicyTaskbarTasksPerPage({ ...room, count: 4, pagerWidth: 16 }),
+		).toBe(4);
+		expect(
+			classicyTaskbarTasksPerPage({
+				...room,
+				count: 6,
+				listWidth: 10,
+				pagerWidth: 16,
+			}),
+		).toBe(1);
+	});
+
+	it("holds every button with no least width or no width laid out", () => {
+		expect(
+			classicyTaskbarTasksPerPage({ ...room, count: 9, minWidth: 0 }),
+		).toBe(9);
+		expect(
+			classicyTaskbarTasksPerPage({ ...room, count: 9, listWidth: 0 }),
+		).toBe(9);
+	});
 });
 
 describe("ClassicyTaskbar on a desktop, with real windows", () => {
@@ -1520,11 +1801,15 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 				expect(collapsed("second")).toBe(true),
 			);
 			openTaskbarMenu();
-			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll)).toBeNull();
+			// Both stand, as in explorer's menu: Minimize All Windows, dimmed
+			// with nothing left to minimize, and its Undo below it.
 			expect(
-				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll),
-			).toHaveTextContent("Undo Minimize All");
-			await choose(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll, () =>
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll),
+			).toHaveClass("disabled");
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toHaveTextContent(
+				"Undo Minimize All",
+			);
+			await choose(CLASSICY_TASKBAR_MENU_IDS.undo, () =>
 				expect(getAppWindow(appRecord(), "second")?.focused).toBe(true),
 			);
 			expect(collapsed("main")).toBe(false);
@@ -1532,9 +1817,10 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 			expect(button("Second")).toHaveClass("active");
 			// Undone, it is forgotten.
 			openTaskbarMenu();
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toBeNull();
 			expect(
 				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll),
-			).not.toBeNull();
+			).not.toHaveClass("disabled");
 		});
 
 		it("forgets what it minimized once one of those windows is restored by hand", async () => {
@@ -1549,9 +1835,7 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 			fireEvent.click(button("Main"));
 			expect(collapsed("main")).toBe(true);
 			openTaskbarMenu();
-			expect(
-				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll),
-			).toBeNull();
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toBeNull();
 			expect(
 				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll),
 			).toHaveClass("disabled");
@@ -1571,9 +1855,7 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 				}),
 			);
 			openTaskbarMenu();
-			expect(
-				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll),
-			).toBeNull();
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toBeNull();
 		});
 
 		it("dims Minimize All Windows while no window can be minimized", () => {
@@ -1612,6 +1894,227 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 					]?.open,
 				).toBe(true),
 			);
+		});
+
+		// Plan 0020-w98 E1: Toolbars ▸ Quick Launch, the band site's menu
+		// (browselc.dll's menu 268), over the bar and its bands only.
+		it("leads with Toolbars ▸ Quick Launch over the bar, which hides Quick Launch and shows it again", async () => {
+			renderShell(threeWindows);
+			const quickLaunch = () =>
+				document.querySelector(".classicyTaskbarQuickLaunch");
+			const gripper = () =>
+				document.querySelector('[data-classicy-part="taskbar-tasks-gripper"]');
+			expect(quickLaunch()).not.toBeNull();
+			expect(gripper()).not.toBeNull();
+			openTaskbarMenu();
+			const item = taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.quickLaunch);
+			expect(item).toHaveTextContent("Quick Launch");
+			expect(item).toHaveAttribute("aria-checked", "true");
+			await choose(CLASSICY_TASKBAR_MENU_IDS.quickLaunch, () =>
+				expect(quickLaunch()).toBeNull(),
+			);
+			// One band left: no gripper.
+			expect(gripper()).toBeNull();
+			expect(useAppManager.getState().System.Manager.Desktop.taskbar).toEqual({
+				quickLaunch: false,
+			});
+			openTaskbarMenu();
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.quickLaunch),
+			).toHaveAttribute("aria-checked", "false");
+			await choose(CLASSICY_TASKBAR_MENU_IDS.quickLaunch, () =>
+				expect(quickLaunch()).not.toBeNull(),
+			);
+			// Over the status area: the tray's menu, with no Toolbars ▸.
+			openTaskbarMenu(
+				document.querySelector(".classicyTaskbarTray") as Element,
+			);
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties),
+			).not.toBeNull();
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.toolbars)).toBeNull();
+		});
+
+		// Plan 0020-w98 E1: Cascade Windows and Tile Windows (ReactOS
+		// `CascadeWindows` and `TileWindows`), and the menu's one Undo
+		// (explorer's "&Undo %s"). jsdom lays out no desktop and no frame, so
+		// the work area is the 1024 x 768 viewport and each window's outer
+		// rect is its content's.
+		describe("Cascade and Tile", () => {
+			const arranged = (
+				<>
+					<ClassicyWindow
+						id="main"
+						appId={APP_ID}
+						title="Main"
+						initialSize={[400, 300]}
+						initialPosition={[100, 100]}
+					>
+						<p>main</p>
+					</ClassicyWindow>
+					<ClassicyWindow
+						id="second"
+						appId={APP_ID}
+						title="Second"
+						initialSize={[400, 300]}
+						initialPosition={[200, 150]}
+					>
+						<p>second</p>
+					</ClassicyWindow>
+					<ClassicyWindow
+						id="palette"
+						appId={APP_ID}
+						title="Palette"
+						windowType="utility"
+						initialPosition={[600, 40]}
+					>
+						<p>palette</p>
+					</ClassicyWindow>
+				</>
+			);
+			const rectOf = (id: string) => {
+				const record = getAppWindow(appRecord(), id);
+				return { position: record?.position, size: record?.size };
+			};
+			// SM_CXSIZEFRAME plus SM_CXSIZE from the theme, a whole pixel.
+			const step = () =>
+				Math.round(
+					readClassicyThemeVar("--window-frame-inset") +
+						readClassicyThemeVar("--window-title-bar-height"),
+				);
+			const ORIGINAL = {
+				main: { position: [100, 100], size: [400, 300] },
+				second: { position: [200, 150], size: [400, 300] },
+			};
+
+			it("cascades the shown windows from the back one, keeps the stacking and activates the front one, then undoes it", async () => {
+				renderShell(arranged);
+				expect(button("Second")).toHaveClass("active");
+				const palette = rectOf("palette");
+				openTaskbarMenu();
+				await choose(CLASSICY_TASKBAR_MENU_IDS.cascade, () =>
+					expect(rectOf("main").position).toEqual([0, 0]),
+				);
+				// 4/7 of the 1024 x 768 work area at least.
+				expect(rectOf("main")).toEqual({ position: [0, 0], size: [585, 438] });
+				expect(rectOf("second")).toEqual({
+					position: [step(), step()],
+					size: [585, 438],
+				});
+				// A palette has no button: it stays where it was.
+				expect(rectOf("palette")).toEqual(palette);
+				expect(getAppWindow(appRecord(), "second")?.focused).toBe(true);
+				expect(
+					getAppWindow(appRecord(), "second")?.zOrder ?? 0,
+				).toBeGreaterThan(getAppWindow(appRecord(), "main")?.zOrder ?? 0);
+				openTaskbarMenu();
+				expect(
+					taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo),
+				).toHaveTextContent("Undo Cascade");
+				await choose(CLASSICY_TASKBAR_MENU_IDS.undo, () =>
+					expect(rectOf("main")).toEqual(ORIGINAL.main),
+				);
+				expect(rectOf("second")).toEqual(ORIGINAL.second);
+				openTaskbarMenu();
+				expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toBeNull();
+			});
+
+			it("tiles the windows side by side, vertically, and stacked, horizontally", async () => {
+				renderShell(arranged);
+				openTaskbarMenu();
+				await choose(CLASSICY_TASKBAR_MENU_IDS.tileVertically, () =>
+					expect(rectOf("second").position).toEqual([512, 0]),
+				);
+				expect(rectOf("main")).toEqual({ position: [0, 0], size: [512, 768] });
+				expect(rectOf("second")).toEqual({
+					position: [512, 0],
+					size: [512, 768],
+				});
+				openTaskbarMenu();
+				expect(
+					taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo),
+				).toHaveTextContent("Undo Tile");
+				await choose(CLASSICY_TASKBAR_MENU_IDS.tileHorizontally, () =>
+					expect(rectOf("second").position).toEqual([0, 384]),
+				);
+				expect(rectOf("main")).toEqual({ position: [0, 0], size: [1024, 384] });
+				expect(rectOf("second")).toEqual({
+					position: [0, 384],
+					size: [1024, 384],
+				});
+				// The Undo of a run of arrangements returns to the places before
+				// the first (ReactOS backs the windows up only when nothing is
+				// arranged).
+				openTaskbarMenu();
+				await choose(CLASSICY_TASKBAR_MENU_IDS.undo, () =>
+					expect(rectOf("main")).toEqual(ORIGINAL.main),
+				);
+				expect(rectOf("second")).toEqual(ORIGINAL.second);
+			});
+
+			it("dims the arrangements while no window is shown, and leaves minimized windows alone", async () => {
+				renderShell(arranged);
+				fireEvent.click(button("Second"));
+				expect(getAppWindow(appRecord(), "second")?.collapsed).toBe(true);
+				openTaskbarMenu();
+				await choose(CLASSICY_TASKBAR_MENU_IDS.cascade, () =>
+					expect(rectOf("main").position).toEqual([0, 0]),
+				);
+				// The lone shown window keeps its size.
+				expect(rectOf("main")).toEqual({ position: [0, 0], size: [400, 300] });
+				expect(rectOf("second")).toEqual(ORIGINAL.second);
+				fireEvent.click(button("Main"));
+				expect(getAppWindow(appRecord(), "main")?.collapsed).toBe(true);
+				openTaskbarMenu();
+				for (const id of [
+					CLASSICY_TASKBAR_MENU_IDS.cascade,
+					CLASSICY_TASKBAR_MENU_IDS.tileHorizontally,
+					CLASSICY_TASKBAR_MENU_IDS.tileVertically,
+				])
+					expect(taskbarMenuItem(id)).toHaveClass("disabled");
+				// With nothing to arrange, the arrangement's Undo is gone.
+				expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toBeNull();
+			});
+
+			it("restores a maximized window before it cascades it, and its Undo maximizes it again", async () => {
+				registerTestTaskbarPackage(
+					TEST_SHELL_SYSTEM_MENU_LAYOUT,
+					TEST_SHELL_SYSTEM_MENU_PACKAGE_ID,
+				);
+				act(() =>
+					dispatch({
+						type: "ClassicyDesktopChangeAppearancePackage",
+						packageId: TEST_SHELL_SYSTEM_MENU_PACKAGE_ID,
+					}),
+				);
+				try {
+					renderShell(arranged);
+					act(() => {
+						runClassicyWindowCommand(APP_ID, "second", { type: "maximize" });
+					});
+					expect(getAppWindow(appRecord(), "second")?.zoomed).toBe(true);
+					openTaskbarMenu();
+					await choose(CLASSICY_TASKBAR_MENU_IDS.cascade, () =>
+						expect(getAppWindow(appRecord(), "second")?.zoomed).toBe(false),
+					);
+					expect(rectOf("second")).toEqual({
+						position: [step(), step()],
+						size: [585, 438],
+					});
+					openTaskbarMenu();
+					await choose(CLASSICY_TASKBAR_MENU_IDS.undo, () =>
+						expect(getAppWindow(appRecord(), "second")?.zoomed).toBe(true),
+					);
+					expect(getAppWindow(appRecord(), "second")?.restoreRect).toEqual(
+						ORIGINAL.second,
+					);
+					expect(rectOf("main")).toEqual(ORIGINAL.main);
+				} finally {
+					unregisterClassicyAppearancePackage(
+						TEST_SHELL_SYSTEM_MENU_PACKAGE_ID,
+					);
+				}
+			});
 		});
 	});
 

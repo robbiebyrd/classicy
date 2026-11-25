@@ -430,14 +430,19 @@ describe("the taskbar's clock", () => {
 			expect(minimizeAll).not.toBeNull();
 			expect(minimizeAll).not.toHaveClass("default");
 			expect(properties).not.toBeNull();
-			// Adjust Date/Time, a divider, Minimize All Windows, a divider,
-			// Properties, with no Help item.
+			// Adjust Date/Time, a divider, the arrangements, a divider,
+			// Minimize All Windows, a divider, Properties, with no Help item
+			// and no Toolbars ▸ (the band site's, not the status area's).
 			expect(
 				Array.from(adjust?.parentElement?.children ?? []).map(
 					(child) => child.id || child.tagName.toLowerCase(),
 				),
 			).toEqual([
 				CLASSICY_TASKBAR_MENU_IDS.adjustDateTime,
+				"hr",
+				CLASSICY_TASKBAR_MENU_IDS.cascade,
+				CLASSICY_TASKBAR_MENU_IDS.tileHorizontally,
+				CLASSICY_TASKBAR_MENU_IDS.tileVertically,
 				"hr",
 				CLASSICY_TASKBAR_MENU_IDS.minimizeAll,
 				"hr",
@@ -503,6 +508,7 @@ describe("the taskbar's clock", () => {
 				collapsable: true,
 				resizable: true,
 				movable: true,
+				geometry: () => undefined,
 				run: () => true,
 			});
 			try {
@@ -533,10 +539,14 @@ describe("the taskbar's clock", () => {
 				expect(
 					menuItem(CLASSICY_TASKBAR_MENU_IDS.adjustDateTime),
 				).not.toBeNull();
-				expect(
-					menuItem(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll),
-				).toHaveTextContent("Undo Minimize All");
-				expect(menuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll)).toBeNull();
+				expect(menuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toHaveTextContent(
+					"Undo Minimize All",
+				);
+				// Minimize All Windows stays, dimmed with nothing left to
+				// minimize (explorer's menu holds both items).
+				expect(menuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll)).toHaveClass(
+					"disabled",
+				);
 			} finally {
 				unregisterClassicyWindow(registration);
 			}

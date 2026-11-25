@@ -57,13 +57,21 @@ and `nodenext` resolution).
     Panel (the control panels) and Show Balloons or Hide Balloons; Help;
     then Empty Trash… and Reset PRAM…, where Windows has Shut Down. Its
     banner reads "Windows 98" under every scheme.
+  - **Quick Launch**, beside the Start button, as Windows 98 installs it:
+    small buttons for the Finder (a window on the startup disk), Show
+    Desktop (it minimizes every window; a second click brings them back)
+    and each app you mark with `showInQuickLaunch` on its `ClassicyApp`,
+    each named in a tooltip. Toolbars ▸ Quick Launch in the taskbar's menu
+    hides it and shows it again, and the choice is kept.
   - **A button for each open window** (not for dialogs or palettes), in
     the order the windows opened, the active window's pressed. Clicking a
     button activates its window, minimizes it when it is already active,
     and restores it when it is minimized; right-clicking it opens the
     window's pop-up menu; a title cut short shows whole in a tooltip; and
     a file dragged from a folder and held over a button brings its window
-    up for the drop.
+    up for the drop. When too many windows are open for the buttons to
+    fit, they shrink to their icons and show a row at a time, with small
+    up and down arrows at the right to move between the rows.
   - **The notification area**, at its right, holds the Control Strip's
     modules as icons (Sound, Screen Saver, Appearance, and any module your
     app registers): a click opens a module's control or its menu, a
@@ -74,9 +82,12 @@ and `nodenext` resolution).
     tooltip; a double-click on it opens Date & Time. The Control Strip
     control panel chooses which modules show; Windows draws no Control
     Strip.
-  - **Right-click the taskbar** for Minimize All Windows (then Undo
-    Minimize All) and Properties, which opens the Control Strip control
-    panel; right-click the clock for Adjust Date/Time first.
+  - **Right-click the taskbar** for Toolbars ▸ Quick Launch, Cascade
+    Windows, Tile Windows Horizontally (one above another) and Tile
+    Windows Vertically (side by side), Minimize All Windows, then Undo
+    Cascade, Undo Tile or Undo Minimize All to put the windows back, and
+    Properties, which opens the Control Strip control panel; right-click
+    the clock for Adjust Date/Time first.
 
   The Minimize button sends a window to its taskbar button, and the next
   window on screen takes the focus; an application's palettes leave the

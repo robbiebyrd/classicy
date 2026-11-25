@@ -15,6 +15,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import { addClassicyQuickLaunchApp } from "@/SystemFolder/SystemResources/App/ClassicyQuickLaunchApps.internal";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { normalizeIconBalloonHelp } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -57,6 +58,13 @@ export interface ClassicyAppProps {
 	 *  is independent of `showDesktopIcon` — an app can appear on the desktop
 	 *  but not in Applications, or the reverse. Ignored for `extension` apps. */
 	showInApplicationsFolder?: boolean;
+	/** Put a button for this app on the Windows shell's Quick Launch toolbar,
+	 *  beside the taskbar's Start button, while the app is mounted. Defaults
+	 *  to false. Read only by the taskbar, which only an Appearance Package
+	 *  whose layout declares `taskbar` (Windows 98) mounts, so it changes
+	 *  nothing under any other package, and nothing is stored. Ignored for
+	 *  `extension` apps. */
+	showInQuickLaunch?: boolean;
 	/** Balloon help for this app's desktop icon: a string or
 	 *  `{ title?, content, position?, delay? }`. A bare string (or an object
 	 *  without a title) is titled with the app's name. When omitted, the app's
@@ -136,6 +144,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	addSystemMenu,
 	showDesktopIcon,
 	showInApplicationsFolder,
+	showInQuickLaunch = false,
 	desktopIconBalloonHelp,
 	noDesktopIcon,
 	inApplicationsFolder,
@@ -269,6 +278,16 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	// Runtime presence, separate from the persisted app record: Control Strip
 	// modules registered with this app's id show only while it is mounted.
 	useEffect(() => markClassicyAppMounted(id), [id]);
+
+	// The Windows shell's Quick Launch toolbar (runtime presence too, never
+	// stored): a button for the app while it is mounted and marked.
+	useEffect(
+		() =>
+			showInQuickLaunch && !extension
+				? addClassicyQuickLaunchApp({ id, name, icon })
+				: undefined,
+		[showInQuickLaunch, extension, id, name, icon],
+	);
 
 	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";
 	useEffect(() => {
