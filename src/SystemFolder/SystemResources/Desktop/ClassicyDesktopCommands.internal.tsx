@@ -12,6 +12,8 @@ import {
 	type ClassicyNewItemKind,
 	classicyArrangeIconsMenuItem,
 	classicyCanRename,
+	classicyCreateShortcutMenuItem,
+	classicyCreateShortcuts,
 	classicyDeleteMenuItem,
 	classicyLineUpIconsMenuItem,
 	classicyNewItemPath,
@@ -40,8 +42,8 @@ export type ClassicyDesktopCommands = {
 	 * The desktop's File, Edit and View menus (ids `finder_file`,
 	 * `finder_edit`, `finder_view`, the ids of the desktop's own), for
 	 * `Desktop.appMenu` and the headless bar's chords: File ▸ Open ⌃O, New ▸,
-	 * Delete (Del) and Rename; Edit ▸ Select All ⌃A; View ▸ Arrange Icons ▸
-	 * and Line Up Icons.
+	 * Create Shortcut, Delete (Del) and Rename; Edit ▸ Select All ⌃A; View ▸
+	 * Arrange Icons ▸ and Line Up Icons.
 	 */
 	barMenu?: ClassicyMenuItem[];
 	/**
@@ -72,6 +74,17 @@ const selectedDeletablePaths = (): string[] =>
 		icon.kind !== "trash"
 			? [icon.filePath]
 			: [],
+	);
+
+/**
+ * The paths the desktop's Create Shortcut makes shortcuts to: every
+ * selected icon that stands for an entry of the tree (a Desktop Folder
+ * item, a drive, the Trash). An application's icon is no entry, and the
+ * desktop draws it already.
+ */
+const selectedShortcutTargets = (): string[] =>
+	selectedDesktopIcons().flatMap((icon) =>
+		icon.filePath !== undefined ? [icon.filePath] : [],
 	);
 
 /**
@@ -132,6 +145,10 @@ export const classicyOpenDesktopIcon = (
  *   Desktop Folder (created on first use), named "New Folder", "New Folder
  *   (2)"…, its icon at the white-space menu's point or the first free grid
  *   cell, selected alone, its name edited at once.
+ * - Create Shortcut: a shortcut to each selected Desktop Folder item beside
+ *   it, "Shortcut to <name>", in the first free cell and selected; for a
+ *   selected drive or the Trash, Windows 98's offer of the desktop
+ *   (`ClassicyAppFinderOfferDesktopShortcut`), which Finder asks.
  * - Delete (Del): the selected files and folders to the Trash, Windows 98
  *   SE's confirmation first (`moveClassicyItemsToTrash`).
  * - Rename: the one selected Desktop Folder item's name, edited in place.
@@ -142,8 +159,8 @@ export const classicyOpenDesktopIcon = (
  *
  * Windows 98 SE's desktop menu also held Active Desktop ▸, Refresh, Undo,
  * Paste, Paste Shortcut and Properties; Refresh has nothing to do in a live
- * tree, Classicy has no file undo, and Paste, Paste Shortcut, Create
- * Shortcut and Properties are other items' (they add to these menus).
+ * tree, Classicy has no file undo, and Paste, Paste Shortcut and
+ * Properties are other items' (they add to these menus).
  */
 export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 	const windowsCommands = useClassicyWindowsFinderCommands();
@@ -185,6 +202,11 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 			const iconId = `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`;
 			dispatch({ type: "ClassicyDesktopIconFocus", iconId });
 			startClassicyDesktopIconRename(iconId);
+		};
+		const createShortcut = () => {
+			const paths = selectedShortcutTargets();
+			if (paths.length > 0)
+				classicyCreateShortcuts(getFileSystem(), paths, dispatch);
 		};
 		const remove = () => {
 			const paths = selectedDeletablePaths();
@@ -238,6 +260,7 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 						newItem(what),
 					),
 					{ id: "spacer" },
+					classicyCreateShortcutMenuItem("finder_file", ak, createShortcut),
 					classicyDeleteMenuItem("finder_file", ak, remove),
 					classicyRenameMenuItem("finder_file", ak, rename),
 				],

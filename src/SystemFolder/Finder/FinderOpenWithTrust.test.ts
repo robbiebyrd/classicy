@@ -13,6 +13,7 @@ import {
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { routeClassicyAppOpenFile } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppOpenFileRouting";
 import { classicyFinderEventHandler } from "@/SystemFolder/Finder/FinderContext";
+import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 // Side-effect imports: each app's reducer registers itself, as the package
 // barrel does in the real app.
@@ -303,6 +304,81 @@ describe("Finder's URL shortcuts", () => {
 
 		expect(apps(result)["WebViewer.app"].data?.openUrls).toEqual([
 			{ url, title: "Site" },
+		]);
+	});
+});
+
+// The remaining chapters' audit's 10.6: a file shortcut opens its target
+// under the trust its own open arrived with, so a script's open of a
+// shortcut reaches no route a script's open of the target could not.
+describe("Finder's file shortcuts under untrusted dispatch", () => {
+	const docs = "Macintosh HD:Documents";
+	const shortcutTo = (target: string) => ({
+		_type: ClassicyFileSystemEntryFileType.FileShortcut,
+		_targetPath: target,
+	});
+
+	it("rejects the target's app's OpenFile that is not allowlisted", () => {
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${docs}:Notes.txt`, "hello");
+		const ds = storeWith("LockedPad.app", "Locked Pad", text);
+
+		const result = finderOpen(
+			ds,
+			shortcutTo(`${docs}:Notes.txt`),
+			`${docs}:Shortcut to Notes.txt`,
+			"untrusted",
+		);
+
+		expect(apps(result)["LockedPad.app"].data).toEqual({});
+		expect(apps(result)["LockedPad.app"].open).toBe(false);
+		expect(warn).toHaveBeenCalledWith(REJECTED, {
+			type: "ClassicyAppLockedPadOpenFile",
+		});
+	});
+
+	it("routes an allowlisted target's OpenFile", () => {
+		registerClassicyUntrustedActionAllowlist("ClassicyAppShortPadOpenFile");
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${docs}:Notes.txt`, "hello");
+		const ds = storeWith("ShortPad.app", "ShortPad", text);
+
+		const result = finderOpen(
+			ds,
+			shortcutTo(`${docs}:Notes.txt`),
+			`${docs}:Shortcut to Notes.txt`,
+			"untrusted",
+		);
+
+		expect(apps(result)["ShortPad.app"].data?.openFiles).toEqual([
+			`${docs}:Notes.txt`,
+		]);
+	});
+
+	it("opens no folder for an untrusted open, which may not open one itself", () => {
+		const fs = new ClassicyFileSystem();
+		fs.mkDir(`${docs}:Projects`);
+
+		const result = finderOpen(
+			DefaultAppManagerState,
+			shortcutTo(`${docs}:Projects`),
+			`${docs}:Shortcut to Projects`,
+			"untrusted",
+		);
+
+		expect(apps(result)["Finder.app"].data?.openPaths).toBeUndefined();
+		expect(warn).toHaveBeenCalledWith(REJECTED, {
+			type: "ClassicyAppFinderOpenFolder",
+		});
+
+		const trusted = finderOpen(
+			DefaultAppManagerState,
+			shortcutTo(`${docs}:Projects`),
+			`${docs}:Shortcut to Projects`,
+			"trusted",
+		);
+		expect(apps(trusted)["Finder.app"].data?.openPaths).toEqual([
+			`${docs}:Projects`,
 		]);
 	});
 });

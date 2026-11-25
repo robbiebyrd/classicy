@@ -6,12 +6,16 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
+import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { CLASSICY_DESKTOP_ITEM_ICON_PREFIX } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -120,9 +124,15 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
 
 		const menu = itemMenus[DOCUMENTS](`${DOCUMENTS}:Projects`, []) ?? [];
-		// Windows 98 SE Explorer's item menu (shell32.dll): Open, then Delete
-		// and Rename (the audit's 1.21, 5.39 and 10.3).
-		expect(titles(menu)).toEqual(["Open", "—", "Delete", "Rename"]);
+		// Windows 98 SE Explorer's item menu (shell32.dll): Open, then Create
+		// Shortcut, Delete and Rename (the audit's 1.21, 5.39, 10.3 and 10.6).
+		expect(titles(menu)).toEqual([
+			"Open",
+			"—",
+			"Create Shortcut",
+			"Delete",
+			"Rename",
+		]);
 		expect(menu[0].isDefault).toBe(true);
 		expect(menu.slice(1).some((item) => item.isDefault)).toBe(false);
 
@@ -154,6 +164,7 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 			expect(titles(icon?.contextMenu)).toEqual([
 				"Open",
 				"—",
+				"Create Shortcut",
 				"Delete",
 				"Rename",
 			]);
@@ -267,5 +278,230 @@ describe("Explorer's Delete, Rename and Properties in Finder's item menus", () =
 		expect(
 			useAppManager.getState().System.Manager.Desktop.errorDialog,
 		).toBeFalsy();
+	});
+});
+
+/** Makes `appId` the app text files open with. */
+const setTextHandler = (appId: string) =>
+	act(() =>
+		useAppManager.setState(
+			produce(useAppManager.getState(), (draft) => {
+				draft.System.Manager.Applications.fileTypeHandlers.text_file = appId;
+			}),
+		),
+	);
+
+// The remaining chapters' audit's 10.6 (WIG Ch.10 "Registering Commands",
+// pp.200-201, and "System Naming Conventions", p.210; Windows 98 SE,
+// shell32.dll): under Explorer's commands an item's menu lists its
+// handler's verbs after Open, and Create Shortcut makes "Shortcut to
+// <name>" beside the item, or offers the desktop where none may be made.
+describe("Explorer's Create Shortcut and verbs in Finder's item menus", () => {
+	let restore: () => void;
+	beforeEach(() => {
+		restore = activateTestWindowsKeysPackage();
+	});
+	afterEach(() => {
+		restore();
+		dispatch({ type: "ClassicyAppFinderOfferDesktopShortcutClose" });
+	});
+
+	const offer = () =>
+		(
+			useAppManager.getState().System.Manager.Applications.apps["Finder.app"]
+				?.data as { desktopShortcutOffer?: { paths: string[] } } | undefined
+		)?.desktopShortcutOffer;
+	const createShortcut = (path: string, selected: string[] = []) =>
+		itemMenus[DOCUMENTS](path, selected)?.find(
+			(item) => item.title === "Create Shortcut",
+		);
+
+	it("makes a shortcut beside each item, numbered on a clash", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS}:Plan.txt`, "a");
+		fs.mkDir(`${DOCUMENTS}:Projects`);
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+		const both = [`${DOCUMENTS}:Plan.txt`, `${DOCUMENTS}:Projects`];
+		act(() => createShortcut(`${DOCUMENTS}:Plan.txt`, both)?.onClickFunc?.());
+		expect(fs.resolve(`${DOCUMENTS}:Shortcut to Plan.txt`)).toMatchObject({
+			_type: "file_shortcut",
+			_targetPath: `${DOCUMENTS}:Plan.txt`,
+		});
+		expect(fs.resolve(`${DOCUMENTS}:Shortcut to Projects`)?._targetPath).toBe(
+			`${DOCUMENTS}:Projects`,
+		);
+		act(() => createShortcut(`${DOCUMENTS}:Plan.txt`)?.onClickFunc?.());
+		expect(fs.resolve(`${DOCUMENTS}:Shortcut (2) to Plan.txt`)).toBeDefined();
+		expect(offer()).toBeUndefined();
+	});
+
+	it("offers the desktop where no shortcut may be made; Yes makes it there, No does not", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.mkDir(`${DOCUMENTS}:Locked`);
+		fs.writeFile(`${DOCUMENTS}:Locked:Memo.txt`, "m");
+		fs.setMetadata(`${DOCUMENTS}:Locked`, { _readOnly: true });
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+		const memo = `${DOCUMENTS}:Locked:Memo.txt`;
+		act(() => createShortcut(memo)?.onClickFunc?.());
+		expect(offer()).toEqual({ paths: [memo] });
+		expect(
+			await screen.findByText(
+				/Windows cannot create a shortcut here\.\s+Do you want the shortcut to be placed on the desktop instead\?/,
+			),
+		).toBeTruthy();
+		fireEvent.click(screen.getByRole("button", { name: "No" }));
+		await waitFor(() => expect(offer()).toBeUndefined());
+		expect(
+			fs.resolve("Macintosh HD:Desktop Folder:Shortcut to Memo.txt"),
+		).toBeUndefined();
+
+		act(() => createShortcut(memo)?.onClickFunc?.());
+		fireEvent.click(await screen.findByRole("button", { name: "Yes" }));
+		await waitFor(() => expect(offer()).toBeUndefined());
+		const made = "Macintosh HD:Desktop Folder:Shortcut to Memo.txt";
+		expect(fs.resolve(made)?._targetPath).toBe(memo);
+		await waitFor(() => {
+			const icon = desktopIcon(made);
+			expect(icon?.kind).toBe("file_shortcut");
+			expect(icon?.location).toBeDefined();
+		});
+		expect(
+			useAppManager.getState().System.Manager.Desktop.selectedIcons,
+		).toEqual([`${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${made}`]);
+	});
+
+	it("offers no Create Shortcut on the Trash's items", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.mkDir(`${DOCUMENTS}:Old`);
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: "Trash" });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus.Trash).toBeDefined());
+		fs.move(`${DOCUMENTS}:Old`, "Trash", {
+			metadata: { _trashed: true, _trashedFrom: DOCUMENTS },
+		});
+		expect(titles(itemMenus.Trash("Trash:Old", []))).not.toContain(
+			"Create Shortcut",
+		);
+	});
+
+	it("gives a desktop file icon Create Shortcut, beside it on the desktop", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.mkDir("Macintosh HD:Desktop Folder");
+		fs.writeFile(NOTES, "hello");
+		render(<Finder />);
+		await waitFor(() =>
+			expect(titles(desktopIcon(NOTES)?.contextMenu)).toContain(
+				"Create Shortcut",
+			),
+		);
+		act(() =>
+			desktopIcon(NOTES)
+				?.contextMenu?.find((item) => item.title === "Create Shortcut")
+				?.onClickFunc?.(),
+		);
+		const made = "Macintosh HD:Desktop Folder:Shortcut to Notes.txt";
+		expect(fs.resolve(made)?._targetPath).toBe(NOTES);
+		await waitFor(() => expect(desktopIcon(made)?.kind).toBe("file_shortcut"));
+	});
+
+	it("lists the handler's verbs after Open, and runs each on the items of its type", async () => {
+		const ran: ActionMessage[] = [];
+		registerApp({
+			id: "VerbPad.app",
+			description: "Prints notes.",
+			prefix: "ClassicyAppVerbPad",
+			handler: (ds, action) => {
+				ran.push(action);
+				return ds;
+			},
+			actions: {
+				ClassicyAppVerbPadPrint: { description: "Print a note." },
+			},
+			verbs: [
+				{
+					id: "print",
+					title: "Print",
+					action: "ClassicyAppVerbPadPrint",
+					accessKey: "P",
+				},
+			],
+		});
+		const release = markClassicyAppMounted("VerbPad.app");
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS}:a.txt`, "a");
+		fs.writeFile(`${DOCUMENTS}:b.txt`, "b");
+		fs.mkDir(`${DOCUMENTS}:Folder`);
+		dispatch({
+			type: "ClassicyAppLoad",
+			app: { id: "VerbPad.app", name: "VerbPad", icon: "" },
+		});
+		setTextHandler("VerbPad.app");
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		try {
+			render(<Finder />);
+			await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+			const targets = [
+				`${DOCUMENTS}:a.txt`,
+				`${DOCUMENTS}:b.txt`,
+				`${DOCUMENTS}:Folder`,
+			];
+			await waitFor(() =>
+				expect(titles(itemMenus[DOCUMENTS](targets[0], targets))).toEqual([
+					"Open",
+					"Print",
+					"—",
+					"Create Shortcut",
+					"Delete",
+					"Rename",
+				]),
+			);
+			const print = itemMenus[DOCUMENTS](targets[0], targets)?.[1];
+			expect(print?.isDefault).toBeFalsy();
+			act(() => print?.onClickFunc?.());
+			expect(
+				ran
+					.filter((a) => a.type === "ClassicyAppVerbPadPrint")
+					.map((a) => [a.app, a.path]),
+			).toEqual([
+				[{ id: "VerbPad.app" }, `${DOCUMENTS}:a.txt`],
+				[{ id: "VerbPad.app" }, `${DOCUMENTS}:b.txt`],
+			]);
+			// A folder's menu lists none.
+			expect(titles(itemMenus[DOCUMENTS](targets[2], []))).not.toContain(
+				"Print",
+			);
+		} finally {
+			release();
+			setTextHandler("Finder.app");
+		}
+	});
+});
+
+describe("Finder item menus without Explorer's commands", () => {
+	it("list no verbs and no Create Shortcut (Mac OS 8's Finder)", async () => {
+		registerApp({
+			id: "MacVerbPad.app",
+			description: "Prints notes.",
+			verbs: [{ id: "print", title: "Print", action: "ClassicyAppMacPrint" }],
+		});
+		const release = markClassicyAppMounted("MacVerbPad.app");
+		setTextHandler("MacVerbPad.app");
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS}:a.txt`, "a");
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		try {
+			render(<Finder />);
+			await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+			expect(titles(itemMenus[DOCUMENTS](`${DOCUMENTS}:a.txt`, []))).toEqual([
+				"Move To Trash",
+			]);
+		} finally {
+			release();
+			setTextHandler("Finder.app");
+		}
 	});
 });

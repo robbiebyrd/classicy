@@ -811,6 +811,10 @@ export function sanitizeStateForPersistence(
 		if (finderApp?.data && "confirmDelete" in finderApp.data) {
 			delete (finderApp.data as Record<string, unknown>).confirmDelete;
 		}
+		// So does a Create Shortcut waiting for its desktop offer's answer.
+		if (finderApp?.data && "desktopShortcutOffer" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).desktopShortcutOffer;
+		}
 		// The Special menu's confirmation alert belongs to the session that
 		// opened it; a reload must not greet the user with Empty Trash. An
 		// error alert is just as transient, and its message may name an item

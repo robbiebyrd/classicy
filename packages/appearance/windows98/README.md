@@ -68,11 +68,18 @@ and `nodenext` resolution).
   item's contextual menu, Finder's item menus leading with Open, their
   default item, as Explorer's do (the Mac packages' keep the Mac Finder's),
   Explorer's commands in Finder's menus (a folder window's File menu Open,
-  New, Delete, Rename and Close; its View menu Large Icons, Details, Arrange
-  Icons by Name, Type, Size or Date and Line Up Icons; the same, with New, on
-  a right-click in its white space; an item's menu Open, Delete and Rename;
+  New, Create Shortcut, Delete, Rename and Close; its View menu Large Icons,
+  Details, Arrange Icons by Name, Type, Size or Date and Line Up Icons; the
+  same, with New, on a right-click in its white space; an item's menu Open,
+  the commands its application adds, Create Shortcut, Delete and Rename;
   an extension's Properties, its control panel, which a double-click opens
-  too; an app's and a drive's desktop icon leading with Open), New making a
+  too; an app's and a drive's desktop icon leading with Open), Create
+  Shortcut making a "Shortcut to Plan.txt" ("Shortcut (2) to Plan.txt" on a
+  clash) beside each item, selected, with the arrow on the desktop, and
+  asking Windows 98's "Windows cannot create a shortcut here. Do you want the
+  shortcut to be placed on the desktop instead?" for a drive, the Trash or an
+  item of a folder that takes none, a shortcut opening what it points at, or
+  saying "Problem with Shortcut" when that is gone, New making a
   "New Folder" ("New Folder (2)" on a clash) or a "New Text Document.txt"
   (SimpleText's) where the menu was opened and its name edited at once, in
   either view and on the desktop, F2 renaming in both views and on the

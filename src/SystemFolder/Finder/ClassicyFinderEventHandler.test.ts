@@ -1004,3 +1004,52 @@ describe("classicyFinderEventHandler — ClassicyAppFinderConfirmDelete", () => 
 		expect(data(ds).confirmDelete).toBeUndefined();
 	});
 });
+
+// The remaining chapters' audit's 10.6: Create Shortcut on an item whose
+// folder takes none (a drive, an item of a derived folder) waits for
+// Windows 98's offer of the desktop, session-only, and is dismissed.
+describe("classicyFinderEventHandler — ClassicyAppFinderOfferDesktopShortcut", () => {
+	const data = (ds: ClassicyStore) =>
+		ds.System.Manager.Applications.apps["Finder.app"].data as {
+			desktopShortcutOffer?: unknown;
+		};
+
+	it("keeps the paths, and its Close takes them away", () => {
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderOfferDesktopShortcut",
+				paths: ["Macintosh HD", "", 3],
+			},
+			"trusted",
+		);
+		expect(data(ds).desktopShortcutOffer).toEqual({ paths: ["Macintosh HD"] });
+		classicyFinderEventHandler(
+			ds,
+			{ type: "ClassicyAppFinderOfferDesktopShortcutClose" },
+			"trusted",
+		);
+		expect(data(ds).desktopShortcutOffer).toBeUndefined();
+	});
+
+	it("is never persisted", () => {
+		const pending = classicyFinderEventHandler(
+			structuredClone(DefaultAppManagerState),
+			{ type: "ClassicyAppFinderOfferDesktopShortcut", paths: ["Trash"] },
+			"trusted",
+		);
+		expect(data(pending).desktopShortcutOffer).toBeDefined();
+		expect(
+			data(sanitizeStateForPersistence(pending)).desktopShortcutOffer,
+		).toBeUndefined();
+	});
+
+	it("ignores a request without paths", () => {
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{ type: "ClassicyAppFinderOfferDesktopShortcut", paths: [] },
+			"trusted",
+		);
+		expect(data(ds).desktopShortcutOffer).toBeUndefined();
+	});
+});

@@ -169,6 +169,24 @@ export function resetClassicyFileSystemSharedTrees(): void {
 }
 
 /**
+ * A `ClassicyFileSystem` on the live tree already shared under
+ * `storageKey` (the default key, Finder's, when omitted), or undefined while
+ * no instance has read one: a store-free reader for code outside a
+ * component, such as a reducer (Finder's open of a file shortcut resolves
+ * its `_targetPath` here). It never seeds, reloads or persists a tree.
+ */
+export function getClassicySharedFileSystem(
+	storageKey = "classicyStorage",
+	separator = ":",
+): ClassicyFileSystem | undefined {
+	if (!sharedTrees.has(storageKey)) return undefined;
+	// An instance for a key whose tree is shared, given no epoch, attaches
+	// to that tree, reading only its journal's sequence number (see the
+	// constructor).
+	return new ClassicyFileSystem(storageKey, undefined, separator);
+}
+
+/**
  * `JSON.stringify` replacer for the persisted tree: drops every entry a
  * derived overlay generated (`_derived: true`). A metadata key's own value
  * is always kept, but `JSON.stringify` still runs the replacer on what is

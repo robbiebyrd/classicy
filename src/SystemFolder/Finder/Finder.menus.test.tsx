@@ -256,6 +256,7 @@ describe("Finder folder-window menus' access keys", () => {
 			expect(file[2]).toEqual([
 				["Open", "o"],
 				["New", "w"],
+				["Create Shortcut", "S"],
 				["Delete", "D"],
 				["Rename", "m"],
 				["Close", "c"],
@@ -292,8 +293,8 @@ describe("Finder folder-window menus' access keys", () => {
 // (WIG Ch.1 "Understanding Users", p.8; Ch.5 pp.45, 61, 67, 69; App. A
 // Table A.1 note 3, p.350): under Explorer's commands
 // (`layout.finder.commands` "windows") a folder window's File menu is
-// Windows 98 SE Explorer's (shell32.dll): Open ⌃O, New ▸, Delete (Del),
-// Rename, Close; its View menu the views, Arrange Icons ▸ and Line Up Icons;
+// Windows 98 SE Explorer's (shell32.dll): Open ⌃O, New ▸, Create Shortcut
+// (10.6), Delete (Del), Rename, Close; its View menu the views, Arrange Icons ▸ and Line Up Icons;
 // its white space the same, with New. Platinum's and System 7's are as
 // they were.
 describe("Finder folder-window menus under Explorer's commands", () => {
@@ -331,6 +332,7 @@ describe("Finder folder-window menus under Explorer's commands", () => {
 				"—",
 				"New",
 				"—",
+				"Create Shortcut",
 				"Delete",
 				"Rename",
 				"—",
@@ -411,6 +413,36 @@ describe("Finder folder-window menus under Explorer's commands", () => {
 				type: "ClassicyAppFinderCloseFolder",
 				path: `${DOCUMENTS_PATH}:Projects`,
 			});
+			restore();
+		}
+	});
+
+	// The remaining chapters' audit's 10.6: File ▸ Create Shortcut makes
+	// "Shortcut to <name>" beside each selected item, in the first free cell
+	// of the window's view and selected there.
+	it("runs Create Shortcut on the window's browser", async () => {
+		const restore = activateTestWindowsKeysPackage();
+		const { ClassicyFileSystem } = await import(
+			"@/SystemFolder/SystemResources/File/ClassicyFileSystem"
+		);
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS_PATH}:Plan.txt`, "a");
+		const made = `${DOCUMENTS_PATH}:Shortcut to Plan.txt`;
+		try {
+			await openDocuments();
+			const commands = fakeCommands([`${DOCUMENTS_PATH}:Plan.txt`]);
+			expect(fileItem("Create Shortcut")?.accessKey).toBeUndefined();
+			act(() => fileItem("Create Shortcut")?.onClickFunc?.());
+			expect(commands.place).toHaveBeenCalledWith(made);
+			expect(commands.select).toHaveBeenCalledWith([made]);
+			expect(commands.rename).not.toHaveBeenCalled();
+			expect(fs.resolve(made)).toMatchObject({
+				_type: "file_shortcut",
+				_targetPath: `${DOCUMENTS_PATH}:Plan.txt`,
+			});
+		} finally {
+			fs.rmDir(made);
+			fs.rmDir(`${DOCUMENTS_PATH}:Plan.txt`);
 			restore();
 		}
 	});

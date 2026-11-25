@@ -1,17 +1,37 @@
 import { useMemo } from "react";
-import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
+	getClassicyAppearanceLayout,
+	useClassicyAppearanceLayout,
+} from "@/Appearance/useClassicyAppearanceLayout";
+import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	type ClassicyAppVerbEntry,
 	type ClassicyCreatableFileType,
+	listClassicyAppVerbs,
 	listClassicyCreatableFileTypes,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import { classicyDesktopFreeIconLocation } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+import type { ClassicyFileBrowserCommands } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import type { ClassicyFileBrowserArrangeKey } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import {
+	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
+	classicyDesktopFolderPath,
+	classicyDesktopItemIconAction,
+	ensureClassicyDesktopFolder,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { classicyFirstFreeName } from "@/SystemFolder/SystemResources/File/ClassicyFileNames";
+import {
+	classicyFileShortcutPath,
+	createClassicyFileShortcut,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileShortcut";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { isInClassicyTrash } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 // Explorer's commands in Finder's menus and the desktop's, under
@@ -315,4 +335,247 @@ export const classicyDeleteConfirmation = (
 		title: "Confirm Multiple File Delete",
 		message: `Are you sure you want to send these ${paths.length} items to the ${trashName}?`,
 	};
+};
+
+/**
+ * Create Shortcut (shell32.dll's "Create &Shortcut", access key S): makes a
+ * shortcut to each selected item (`classicyPlanShortcuts`).
+ */
+export const classicyCreateShortcutMenuItem = (
+	id: string,
+	ak: AccessKey,
+	onCreate: () => void,
+	disabled = false,
+): ClassicyMenuItem => ({
+	id: `${id}_create_shortcut`,
+	title: "Create Shortcut",
+	...withKey(ak, "S"),
+	disabled,
+	onClickFunc: onCreate,
+});
+
+const parentOf = (fs: ClassicyFileSystem, path: string): string =>
+	path.split(fs.separator).slice(0, -1).join(fs.separator);
+
+/**
+ * Where Create Shortcut puts a shortcut to the item at `path`: beside it,
+ * in its folder, when New may make an item there
+ * (`classicyCanMakeItemIn`); undefined when it may not (a drive at the
+ * root of the tree, an item of the derived Applications, Extensions or
+ * Control Strip Modules folders, or of a read-only or system folder),
+ * where Windows 98 offers the desktop instead (shell32.dll: "Windows
+ * cannot create a shortcut here. Do you want the shortcut to be placed on
+ * the desktop instead?").
+ */
+export const classicyShortcutFolderFor = (
+	fs: ClassicyFileSystem,
+	path: string,
+): string | undefined => {
+	const folder = parentOf(fs, path);
+	return folder !== "" && classicyCanMakeItemIn(fs, folder)
+		? folder
+		: undefined;
+};
+
+/** What Create Shortcut does with a selection (`classicyPlanShortcuts`). */
+export type ClassicyShortcutPlan = {
+	/** The items whose shortcut goes beside them, by their folder, in order. */
+	beside: Map<string, string[]>;
+	/** The items whose folder takes no shortcut: Windows offers the desktop. */
+	offerDesktop: string[];
+};
+
+/**
+ * Sorts the items at `paths` for Create Shortcut: those still in the tree
+ * and not in the Trash (Windows 98's Recycle Bin offers no Create
+ * Shortcut on its items), each beside itself (`classicyShortcutFolderFor`)
+ * or, where no shortcut may be made, offered the desktop.
+ */
+export const classicyPlanShortcuts = (
+	fs: ClassicyFileSystem,
+	paths: readonly string[],
+): ClassicyShortcutPlan => {
+	const beside = new Map<string, string[]>();
+	const offerDesktop: string[] = [];
+	for (const path of paths) {
+		if (!fs.resolve(path) || isInClassicyTrash(fs, path)) continue;
+		const folder = classicyShortcutFolderFor(fs, path);
+		if (folder === undefined) offerDesktop.push(path);
+		else beside.set(folder, [...(beside.get(folder) ?? []), path]);
+	}
+	return { beside, offerDesktop };
+};
+
+type Dispatch = (action: ActionMessage) => void;
+
+/**
+ * An application's own icon (its record's, as its code gives it), for a
+ * shortcut to an entry a derived folder lists for it.
+ */
+const recordedAppIcon = (appId: string): string | undefined =>
+	useAppManager.getState().System.Manager.Applications.apps[appId]?.icon;
+
+/**
+ * Makes a shortcut to each item at `targetPaths` in the Desktop Folder
+ * (created on first use), each icon in the desktop's first free grid cell,
+ * then makes the new icons the desktop's selection, as Windows 98 selects
+ * the shortcuts it made. Returns the shortcuts' paths.
+ */
+export const createClassicyDesktopShortcuts = (
+	fs: ClassicyFileSystem,
+	targetPaths: readonly string[],
+	dispatch: Dispatch,
+): string[] => {
+	const folder = ensureClassicyDesktopFolder(fs);
+	if (!folder) return [];
+	const made: string[] = [];
+	for (const targetPath of targetPaths) {
+		const path = createClassicyFileShortcut(fs, targetPath, folder, {
+			appIcon: recordedAppIcon,
+		});
+		if (!path) continue;
+		const state = useAppManager.getState().System.Manager;
+		const location = classicyDesktopFreeIconLocation(
+			state.Appearance.activeTheme,
+			state.Desktop.icons,
+			getClassicyAppearanceLayout(state.Appearance.packageId).desktop
+				.iconGridOrigin,
+		);
+		// Placed in the tick the shortcut is made, so the desktop's mirror of
+		// the Desktop Folder finds its icon placed.
+		const action = classicyDesktopItemIconAction(fs, path, location);
+		if (action) dispatch(action);
+		made.push(path);
+	}
+	if (made.length > 0) {
+		dispatch({
+			type: "ClassicyDesktopIconSelectBox",
+			iconIds: made.map(
+				(path) => `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`,
+			),
+		});
+	}
+	return made;
+};
+
+/**
+ * Explorer's Create Shortcut on the items at `paths` (WIG Ch.10
+ * "Registering Commands", pp.200-201, and "System Naming Conventions",
+ * p.210; `classicyPlanShortcuts`): a shortcut beside each, "Shortcut to
+ * <name>" ("Shortcut (2) to <name>" on a clash); in a folder window
+ * (`commands`, its browser) placed in the first free cell and selected,
+ * on the desktop for Desktop Folder items (`createClassicyDesktopShortcuts`);
+ * for the items whose folder takes none (a drive, the Trash, an item of a
+ * derived folder), `ClassicyAppFinderOfferDesktopShortcut`, Finder's offer
+ * of the desktop instead. Returns the shortcuts made beside their items.
+ */
+export const classicyCreateShortcuts = (
+	fs: ClassicyFileSystem,
+	paths: readonly string[],
+	dispatch: Dispatch,
+	commands: ClassicyFileBrowserCommands | null = null,
+): string[] => {
+	const plan = classicyPlanShortcuts(fs, paths);
+	const desktopFolder = classicyDesktopFolderPath(fs);
+	const made: string[] = [];
+	for (const [folder, targets] of plan.beside) {
+		if (folder === desktopFolder) {
+			made.push(...createClassicyDesktopShortcuts(fs, targets, dispatch));
+			continue;
+		}
+		const inFolder: string[] = [];
+		for (const target of targets) {
+			const path = classicyFileShortcutPath(fs, target, folder);
+			commands?.place(path);
+			if (
+				createClassicyFileShortcut(fs, target, folder, {
+					path,
+					appIcon: recordedAppIcon,
+				})
+			)
+				inFolder.push(path);
+		}
+		if (inFolder.length > 0) commands?.select(inFolder);
+		made.push(...inFolder);
+	}
+	if (plan.offerDesktop.length > 0)
+		dispatch({
+			type: "ClassicyAppFinderOfferDesktopShortcut",
+			paths: plan.offerDesktop,
+		});
+	return made;
+};
+
+/** A verb `classicyVerbsFor` lists, with the app that declared it. */
+export type ClassicyFileVerb = ClassicyAppVerbEntry & { appId: string };
+
+/**
+ * The verbs an item of type `type` takes (WIG Ch.10 "Registering
+ * Commands", pp.200-201): those of the app `fileTypeHandlers` names for
+ * the type (`registerApp`'s `verbs`), while it is mounted (an app not
+ * mounted cannot run them); none for a folder or drive, whose handler is
+ * Finder's own window.
+ */
+export const classicyVerbsFor = (
+	type: string | undefined,
+	fileTypeHandlers: Readonly<Record<string, string>>,
+	mounted: ReadonlySet<string>,
+): ClassicyFileVerb[] => {
+	if (
+		type === undefined ||
+		type === ClassicyFileSystemEntryFileType.Directory ||
+		type === ClassicyFileSystemEntryFileType.Drive
+	)
+		return [];
+	const appId = Object.hasOwn(fileTypeHandlers, type)
+		? fileTypeHandlers[type]
+		: undefined;
+	if (!appId || !mounted.has(appId)) return [];
+	return listClassicyAppVerbs(appId).map((verb) => ({ ...verb, appId }));
+};
+
+/**
+ * The menu items of `verbs` (after Open in an item's menu), each running
+ * its verb on `targets`, the items of the same handler's type: `dispatch`
+ * gets `{ type: action, app: { id }, path }` for each, trusted, as a menu
+ * choice is.
+ */
+export const classicyVerbMenuItems = (
+	id: string,
+	ak: AccessKey,
+	verbs: readonly ClassicyFileVerb[],
+	targets: () => readonly string[],
+	dispatch: Dispatch,
+): ClassicyMenuItem[] =>
+	verbs.map((verb) => ({
+		id: `${id}_verb_${verb.appId}_${verb.id}`,
+		title: verb.title,
+		...(verb.accessKey !== undefined ? withKey(ak, verb.accessKey) : {}),
+		onClickFunc: () => {
+			for (const path of targets())
+				dispatch({ type: verb.action, app: { id: verb.appId }, path });
+		},
+	}));
+
+/**
+ * The verbs of the items' handlers, read where each item menu is built:
+ * the store's `fileTypeHandlers` and the mounted apps
+ * (`classicyVerbsFor`).
+ */
+export const useClassicyFileVerbs = (): ((
+	type: string | undefined,
+) => ClassicyFileVerb[]) => {
+	const mounted = useClassicyMountedApps();
+	const fileTypeHandlers = useAppManager(
+		(state) => state.System.Manager.Applications.fileTypeHandlers,
+	);
+	return useMemo(
+		() => (type: string | undefined) =>
+			classicyVerbsFor(
+				type,
+				fileTypeHandlers as Record<string, string>,
+				mounted,
+			),
+		[fileTypeHandlers, mounted],
+	);
 };

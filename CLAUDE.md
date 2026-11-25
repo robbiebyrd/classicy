@@ -137,6 +137,15 @@ commentary:
   merged first-wins; `listClassicyCreatableFileTypes(appIds?)` lists them by
   name, and New ▸ lists the mounted apps'. SimpleText declares Text Document
   (`.txt`).
+- `verbs` (optional): the commands the app adds to its files' menus under
+  `layout.finder.commands` "windows", after Open (a type's Shell verbs, WIG
+  Ch.10 pp.200-201), `{ id, title, action, accessKey? }[]`, each validated
+  by `ClassicyAppVerbEntrySchema` (a failing one dropped with a warning),
+  merged first-wins by `id`; `listClassicyAppVerbs(appId)` reads them.
+  Finder lists the verbs of the app `fileTypeHandlers` names for an item's
+  type while it is mounted, and runs one by dispatching `{ type: action,
+  app: { id }, path }`, trusted, per selected item of that type. No bundled
+  app declares one (Classicy has no printing).
 - Read side: `getAppManifest`, `listAppManifests`, `listScriptableActions`,
   `describeAppAction`/`describeAppState` (balloon-ready `{title, content}`),
   and `parseAppData` (typed guard replacing hand-rolled `isXData` functions).
@@ -189,8 +198,9 @@ The Trash and drive icons carry stock balloon help automatically
 #### Alias Badging
 
 Desktop icons whose `kind` is `app_shortcut` or `shortcut` — every icon
-`ClassicyApp` registers — render the Mac OS 8 alias arrow over the icon's
-bottom-left corner and italicize their label. System kinds (`drive`, `trash`,
+`ClassicyApp` registers — or `file_shortcut` (a Desktop Folder item that is
+a file shortcut, `classicyDesktopItemIconAction`) render the Mac OS 8 alias
+arrow over the icon's bottom-left corner and italicize their label. System kinds (`drive`, `trash`,
 `directory`, `file`, `icon`) get neither. The predicate lives in
 `ClassicyDesktopIconKinds.ts`; the badge is a second mask pair reusing
 `classicyDesktopIconMaskOuter`/`classicyDesktopIconMask`, so it inherits the
@@ -842,6 +852,24 @@ stripped by `sanitizeStateForPersistence`) and Finder's Yes moves them with
 |` in names (`isClassicyValidFileName`, `ClassicyFileNames.ts`; renames in
 Windows 98's "Rename" box, the file dialog's Save and New Folder) and offers
 New Folder's first free name.
+
+Create Shortcut (10.6; File menus, item menus, a drive's and the Trash's
+icon, the desktop's `barMenu`) makes a `file_shortcut` entry
+(`ClassicyFileSystemEntryFileType.FileShortcut`, `_targetPath` its target,
+`File/ClassicyFileShortcut.ts`): "Shortcut to <name>", "Shortcut (2) to
+<name>"… beside each item, placed and selected, through
+`classicyCreateShortcuts` (`ClassicyFileCommands.internal.ts`); a shortcut
+to a shortcut is a copy of it. Where the item's folder takes no new item (a
+drive, the Trash, a derived or read-only folder) it dispatches
+`ClassicyAppFinderOfferDesktopShortcut` (Finder's session-only
+`desktopShortcutOffer`, stripped by sanitize) and Finder asks Windows 98 SE's
+"Windows cannot create a shortcut here." box, whose Yes makes them in the
+Desktop Folder. Opening one, under every package, is Finder's
+`ClassicyAppFinderOpenFile` resolving `_targetPath` in the live tree
+(`getClassicySharedFileSystem`, store-free) and opening the target as its
+double-click would, under the open's trust; a missing one shows "Problem
+with Shortcut" under the flag (`classicyShortcutProblem`), the core's text
+otherwise. An item's menu lists its handler's `verbs` after Open.
 
 ### Finder Drag and Drop
 

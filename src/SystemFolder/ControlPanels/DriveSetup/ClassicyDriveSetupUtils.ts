@@ -80,6 +80,16 @@ export function buildDriveContextMenu(
 		open?: boolean;
 		/** Open's access key, when the package gives one (shell32.dll's "&Open"). */
 		openAccessKey?: string;
+		/**
+		 * End with Create Shortcut (Explorer's commands; WIG Ch.10
+		 * "Registering Commands", pp.200-201): a drive lies at the root of
+		 * the tree, where no shortcut may be made, so it asks Finder to offer
+		 * the desktop instead (`ClassicyAppFinderOfferDesktopShortcut`), as
+		 * Windows 98 SE offers it for a drive in My Computer.
+		 */
+		createShortcut?: boolean;
+		/** Create Shortcut's access key, when the package gives one (shell32.dll's "Create &Shortcut"). */
+		createShortcutAccessKey?: string;
 	} = {},
 ): ClassicyMenuItem[] {
 	return [
@@ -118,5 +128,19 @@ export function buildDriveContextMenu(
 			eventData: { drive },
 			disabled: !isConnected,
 		},
+		...(options.createShortcut
+			? [
+					{ id: "spacer" },
+					{
+						id: `drive_${drive}_create_shortcut`,
+						title: "Create Shortcut",
+						...(options.createShortcutAccessKey !== undefined
+							? { accessKey: options.createShortcutAccessKey }
+							: {}),
+						event: "ClassicyAppFinderOfferDesktopShortcut",
+						eventData: { paths: [drive] },
+					},
+				]
+			: []),
 	];
 }

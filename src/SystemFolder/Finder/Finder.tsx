@@ -57,14 +57,19 @@ import {
 	classicyArrangeIconsMenuItem,
 	classicyCanMakeItemIn,
 	classicyCanRename,
+	classicyCreateShortcutMenuItem,
+	classicyCreateShortcuts,
 	classicyDeleteConfirmation,
 	classicyDeleteMenuItem,
 	classicyLineUpIconsMenuItem,
 	classicyNewItemPath,
 	classicyNewMenuItem,
 	classicyRenameMenuItem,
+	classicyVerbMenuItems,
+	createClassicyDesktopShortcuts,
 	makeClassicyNewItem,
 	useClassicyCreatableFileTypes,
+	useClassicyFileVerbs,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileCommands.internal";
 import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
@@ -76,6 +81,10 @@ import {
 	renameClassicyFileSystemItem,
 	restoreClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import {
+	CLASSICY_SHORTCUT_DESKTOP_OFFER,
+	CLASSICY_SHORTCUT_TITLE,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileShortcut";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { classicyExtensionControlPanelId } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
@@ -153,6 +162,15 @@ type FinderWindowProps = {
 		commands: ClassicyFileBrowserCommands | null,
 		at?: [number, number],
 	) => void;
+	/**
+	 * Explorer's Create Shortcut on the items at `paths`: a shortcut beside
+	 * each, placed and selected in the window's browser (`commands`), or the
+	 * desktop offered where none may be made.
+	 */
+	createShortcuts: (
+		paths: string[],
+		commands: ClassicyFileBrowserCommands | null,
+	) => void;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -186,6 +204,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	windowsCommands,
 	creatableTypes,
 	newItem,
+	createShortcuts,
 }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
 	// The bundled menus' access keys under a package that has them (WIG
@@ -350,6 +369,15 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 											!canMakeHere,
 										),
 										{ id: "spacer" },
+										classicyCreateShortcutMenuItem(
+											`${appId}_${op}_file`,
+											ak,
+											() =>
+												createShortcuts(
+													commandsRef.current?.selectedPaths() ?? [],
+													commandsRef.current,
+												),
+										),
 										classicyDeleteMenuItem(`${appId}_${op}_file`, ak, () =>
 											trashItems(commandsRef.current?.selectedPaths() ?? []),
 										),
@@ -529,6 +557,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			fs,
 			windowsViewItems,
 			windowsArrangeItems,
+			createShortcuts,
 		],
 	);
 
@@ -655,6 +684,52 @@ const FinderDeleteConfirmation: FunctionalComponent<{
 			]}
 			onClose={() =>
 				desktopEventDispatch({ type: "ClassicyAppFinderConfirmDeleteClose" })
+			}
+		/>
+	);
+};
+
+/**
+ * Windows 98 SE's offer when Create Shortcut's items lie where no shortcut
+ * may be made (Explorer's commands; shell32.dll's "Windows cannot create a
+ * shortcut here. Do you want the shortcut to be placed on the desktop
+ * instead?", in its "Shortcut" box, Yes and No): shown while Finder's data
+ * holds a pending offer. Yes makes a shortcut on the desktop to each item
+ * still there; No, Escape or closing makes none.
+ */
+const FinderDesktopShortcutOffer: FunctionalComponent<{
+	appId: string;
+	fs: ClassicyFileSystem;
+	paths: string[];
+}> = ({ appId, fs, paths }) => {
+	const desktopEventDispatch = useAppManagerDispatch();
+	return (
+		<ClassicyAlert
+			id={"finder_desktop_shortcut_offer"}
+			appId={appId}
+			alertType={"caution"}
+			movable={true}
+			title={CLASSICY_SHORTCUT_TITLE}
+			label={CLASSICY_SHORTCUT_DESKTOP_OFFER}
+			buttons={[
+				{
+					id: "yes",
+					label: "Yes",
+					role: "default",
+					onClick: () => {
+						createClassicyDesktopShortcuts(
+							fs,
+							paths.filter((path) => fs.resolve(path)),
+							desktopEventDispatch,
+						);
+					},
+				},
+				{ id: "no", label: "No", role: "cancel" },
+			]}
+			onClose={() =>
+				desktopEventDispatch({
+					type: "ClassicyAppFinderOfferDesktopShortcutClose",
+				})
 			}
 		/>
 	);
@@ -849,6 +924,9 @@ export const Finder = () => {
 					// Explorer's drives lead with Open, the default (5.23).
 					open: windowsCommands,
 					openAccessKey: ak("o"),
+					// And offer Create Shortcut, on the desktop (10.6).
+					createShortcut: windowsCommands,
+					createShortcutAccessKey: ak("S"),
 				}),
 			});
 		});
@@ -932,9 +1010,23 @@ export const Finder = () => {
 							dialog: "emptyTrash",
 						}),
 				},
+				// Explorer's Create Shortcut (Windows 98 SE's Recycle Bin menu,
+				// shell32.dll): the Trash lies at the root of the tree, so its
+				// shortcut is offered on the desktop.
+				...(windowsCommands
+					? [
+							{ id: "spacer" },
+							classicyCreateShortcutMenuItem("finder_trash", ak, () =>
+								desktopEventDispatch({
+									type: "ClassicyAppFinderOfferDesktopShortcut",
+									paths: [CLASSICY_TRASH_PATH],
+								}),
+							),
+						]
+					: []),
 			],
 		});
-	}, [trashIcon, desktopEventDispatch, ak]);
+	}, [trashIcon, desktopEventDispatch, ak, windowsCommands]);
 
 	const trashItems = useCallback(
 		(paths: string[]) => {
@@ -999,6 +1091,41 @@ export const Finder = () => {
 			commands?.rename(path);
 		},
 		[fs],
+	);
+	// Explorer's Create Shortcut (10.6; WIG Ch.10 p.210): a shortcut beside
+	// each item, "Shortcut to <name>" ("Shortcut (2) to <name>" on a clash),
+	// placed in the first free cell and selected in the window; on the
+	// desktop when the item is a Desktop Folder item; for items whose folder
+	// takes none (a drive, an item of a derived folder), Windows 98's offer
+	// of the desktop instead.
+	const createShortcuts = useCallback(
+		(paths: string[], commands: ClassicyFileBrowserCommands | null) => {
+			classicyCreateShortcuts(fs, paths, desktopEventDispatch, commands);
+		},
+		[fs, desktopEventDispatch],
+	);
+	// The item's handler's verbs, after Open (10.6; WIG Ch.10 "Registering
+	// Commands", pp.200-201): those of the app that opens the item's type,
+	// run on each target that app opens too.
+	const fileVerbs = useClassicyFileVerbs();
+	const verbItems = useCallback(
+		(path: string, targets: () => string[]): ClassicyMenuItem[] => {
+			const verbs = fileVerbs(fs.resolve(path)?._type);
+			if (verbs.length === 0) return [];
+			const handler = verbs[0].appId;
+			return classicyVerbMenuItems(
+				"finder_item",
+				ak,
+				verbs,
+				() =>
+					targets().filter(
+						(target) =>
+							fileVerbs(fs.resolve(target)?._type)[0]?.appId === handler,
+					),
+				desktopEventDispatch,
+			);
+		},
+		[fs, fileVerbs, ak, desktopEventDispatch],
 	);
 	// Every item of a selection a double-click opens (the list view, under
 	// `layout.selection.modifiers` "windows"), each as openItem opens it.
@@ -1066,11 +1193,16 @@ export const Finder = () => {
 			if (isInClassicyTrash(fs, path))
 				return open.length > 0 ? open : undefined;
 			if (windowsCommands) {
-				// Explorer's item menu (Windows 98 SE, shell32.dll): Open, then
-				// Delete and Rename; Rename only for one item that may be.
+				// Explorer's item menu (Windows 98 SE, shell32.dll): Open, the
+				// handler's verbs, then Create Shortcut, Delete and Rename;
+				// Rename only for one item that may be.
 				return [
 					...open,
+					...verbItems(path, () => targets),
 					{ id: "spacer" },
+					classicyCreateShortcutMenuItem("finder_item", ak, () =>
+						createShortcuts(targets, commands),
+					),
 					classicyDeleteMenuItem("finder_item", ak, () => trashItems(targets)),
 					classicyRenameMenuItem(
 						"finder_item",
@@ -1089,7 +1221,16 @@ export const Finder = () => {
 				},
 			];
 		},
-		[fs, windowsCommands, openItem, restoreItems, trashItems, ak],
+		[
+			fs,
+			windowsCommands,
+			openItem,
+			restoreItems,
+			trashItems,
+			ak,
+			verbItems,
+			createShortcuts,
+		],
 	);
 	// A desktop file or folder icon's menu under Explorer's commands
 	// (`layout.finder.commands` "windows"), stored with the icon: the same as
@@ -1127,9 +1268,14 @@ export const Finder = () => {
 					isDefault: true,
 					onClickFunc: () => openItemRef.current(path),
 				},
+				...verbItems(path, targets),
 				{ id: "spacer" },
-				// Explorer's Delete and Rename (Windows 98 SE, shell32.dll),
-				// Delete for the desktop's selected items when this is one.
+				// Explorer's Create Shortcut, Delete and Rename (Windows 98 SE,
+				// shell32.dll), for the desktop's selected items when this is
+				// one.
+				classicyCreateShortcutMenuItem("finder_item", ak, () =>
+					createShortcuts(targets(), null),
+				),
 				classicyDeleteMenuItem("finder_item", ak, () => trashItems(targets())),
 				classicyRenameMenuItem("finder_item", ak, () => {
 					if (targets().length === 1 && classicyCanRename(fs, path))
@@ -1139,7 +1285,7 @@ export const Finder = () => {
 				}),
 			];
 		},
-		[trashItems, ak, fs],
+		[trashItems, ak, fs, verbItems, createShortcuts],
 	);
 
 	// Mirror the Desktop Folder onto the desktop: an icon for each item in it,
@@ -1252,6 +1398,7 @@ export const Finder = () => {
 							windowsCommands={windowsCommands}
 							creatableTypes={creatableTypes}
 							newItem={newItem}
+							createShortcuts={createShortcuts}
 						/>
 					))
 				: null}
@@ -1261,6 +1408,13 @@ export const Finder = () => {
 					fs={fs}
 					paths={finderData.confirmDelete.paths}
 					trust={finderData.confirmDelete.trust}
+				/>
+			) : null}
+			{finderData.desktopShortcutOffer ? (
+				<FinderDesktopShortcutOffer
+					appId={appId}
+					fs={fs}
+					paths={finderData.desktopShortcutOffer.paths}
 				/>
 			) : null}
 			{aboutWindow}

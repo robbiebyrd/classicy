@@ -94,7 +94,13 @@ export const classicyDesktopItemIconAction = (
 				(entry._icon as string | undefined) ??
 				iconImageByType(entry._type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
 		},
-		kind: isFolder ? "directory" : "file",
+		// A file shortcut (Explorer's Create Shortcut) is an alias kind
+		// (`isAliasKind`): the desktop badges its icon and italicizes its label.
+		kind: isFolder
+			? "directory"
+			: entry._type === ClassicyFileSystemEntryFileType.FileShortcut
+				? ClassicyFileSystemEntryFileType.FileShortcut
+				: "file",
 		filePath: path,
 		noLaunch: true,
 		...(location ? { location } : {}),

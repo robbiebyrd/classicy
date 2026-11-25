@@ -38,6 +38,11 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import {
+	classicyShortcutProblem,
+	resolveClassicyFileShortcut,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileShortcut";
+import { getClassicySharedFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { classicyExtensionControlPanelId } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
@@ -144,6 +149,12 @@ export const FinderDataSchema = z.looseObject({
 		.describe(
 			"A Delete waiting for its confirmation (Explorer's commands, `layout.finder.commands` \"windows\"): the items' paths and the trust the request arrived with. Session-only: never persisted.",
 		),
+	desktopShortcutOffer: z
+		.object({ paths: z.array(z.string()) })
+		.optional()
+		.describe(
+			"A Create Shortcut waiting for its answer (Explorer's commands): items whose folder takes no shortcut, which Windows 98 offers to make on the desktop instead. Session-only: never persisted.",
+		),
 });
 
 export type FinderData = z.infer<typeof FinderDataSchema>;
@@ -195,7 +206,7 @@ export const classicyFinderEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
 	trust: ClassicyActionTrust,
-) => {
+): ClassicyStore => {
 	const appId = "Finder.app";
 	if (!ds.System.Manager.Applications.apps[appId]) return ds;
 	const raw = ds.System.Manager.Applications.apps[appId].data ?? {};
@@ -381,6 +392,24 @@ export const classicyFinderEventHandler = (
 			appData = rest;
 			break;
 		}
+		case "ClassicyAppFinderOfferDesktopShortcut": {
+			// Create Shortcut on an item whose folder takes no shortcut (a
+			// drive, an item of a derived folder): Finder asks Windows 98 SE's
+			// "Windows cannot create a shortcut here." and its Yes makes the
+			// shortcuts on the desktop.
+			if (!hasPaths(action)) break;
+			const paths = (action.paths as string[]).filter(
+				(p) => typeof p === "string" && p !== "",
+			);
+			if (paths.length === 0) break;
+			appData = { ...appData, desktopShortcutOffer: { paths } };
+			break;
+		}
+		case "ClassicyAppFinderOfferDesktopShortcutClose": {
+			const { desktopShortcutOffer: _answered, ...rest } = appData;
+			appData = rest;
+			break;
+		}
 		case "ClassicyAppFinderEmptyTrash": {
 			// TODO: What will this do?
 			break;
@@ -418,6 +447,48 @@ export const classicyFinderEventHandler = (
 					message:
 						"This file adds functionality to your computer. It cannot be opened.",
 				};
+				return ds;
+			}
+			if (file?._type === ClassicyFileSystemEntryFileType.FileShortcut) {
+				// A file shortcut (Explorer's Create Shortcut; WIG Ch.10
+				// "Registering Commands", pp.200-201) opens its target, read
+				// from the live tree, as a double-click on the target would and
+				// under the trust this open arrived with: a folder or drive in a
+				// window, anything else through this same case.
+				const fs = getClassicySharedFileSystem();
+				const target = fs ? resolveClassicyFileShortcut(fs, file) : undefined;
+				if (target?.found) {
+					const opensFolder =
+						target.entry._type === ClassicyFileSystemEntryFileType.Directory ||
+						target.entry._type === ClassicyFileSystemEntryFileType.Drive;
+					const next: ActionMessage = opensFolder
+						? { type: "ClassicyAppFinderOpenFolder", path: target.path }
+						: {
+								type: "ClassicyAppFinderOpenFile",
+								file: target.entry,
+								path: target.path,
+							};
+					if (!checkClassicyActionTrust(trust, next.type)) return ds;
+					return classicyFinderEventHandler(ds, next, trust);
+				}
+				// An application's shortcut still opens its application once
+				// the derived Applications folder names the entry otherwise.
+				const creator =
+					typeof file._creator === "string"
+						? ds.System.Manager.Applications.apps[file._creator]
+						: undefined;
+				if (creator) {
+					if (!checkClassicyActionTrust(trust, "ClassicyAppOpen")) return ds;
+					openApp(ds, creator.id, creator.name, creator.icon);
+					return ds;
+				}
+				// Windows 98 SE's "Problem with Shortcut" (its search for the
+				// nearest match has no Classicy counterpart).
+				ds.System.Manager.Desktop.errorDialog = classicyShortcutProblem(
+					target?.path ||
+						(typeof file._targetPath === "string" ? file._targetPath : ""),
+					ds.System.Manager.Appearance.packageId,
+				);
 				return ds;
 			}
 			// Legacy QuickTime _creator-based routing
@@ -637,6 +708,19 @@ registerApp({
 		ClassicyAppFinderConfirmDeleteClose: {
 			description:
 				"Dismiss a pending Delete confirmation (its Yes or No was chosen).",
+		},
+		ClassicyAppFinderOfferDesktopShortcut: {
+			description:
+				"Offer to make on the desktop the shortcuts Create Shortcut cannot make beside their items (Explorer's commands: Windows 98 SE's \"Windows cannot create a shortcut here.\"). Its Yes makes them; it makes nothing itself.",
+			params: z.object({
+				paths: z
+					.array(z.string())
+					.describe("Absolute paths of the items the shortcuts are to."),
+			}),
+		},
+		ClassicyAppFinderOfferDesktopShortcutClose: {
+			description:
+				"Dismiss a pending desktop-shortcut offer (its Yes or No was chosen).",
 		},
 		ClassicyAppFinderEmptyTrash: {
 			description:

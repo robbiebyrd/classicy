@@ -167,6 +167,23 @@ describe("classicyDesktopItemIconAction", () => {
 			undefined,
 		);
 	});
+
+	// The remaining chapters' audit's 10.6: a file shortcut's icon is an
+	// alias kind (`isAliasKind`), badged with its label italicized; files
+	// and folders keep theirs.
+	it("gives a file shortcut the file_shortcut kind, a file and a folder theirs", () => {
+		const fs = makeFs();
+		fs.mkDir("Macintosh HD:Documents:Folder");
+		fs.writeFile("Macintosh HD:Documents:Link", "", {
+			_type: ClassicyFileSystemEntryFileType.FileShortcut,
+			_targetPath: "Macintosh HD:Documents:Plan.txt",
+		});
+		const kind = (path: string) =>
+			classicyDesktopItemIconAction(fs, path)?.kind;
+		expect(kind("Macintosh HD:Documents:Link")).toBe("file_shortcut");
+		expect(kind("Macintosh HD:Documents:Plan.txt")).toBe("file");
+		expect(kind("Macintosh HD:Documents:Folder")).toBe("directory");
+	});
 });
 
 // Renaming an icon's name in place (a slow second click in an icon view, F2

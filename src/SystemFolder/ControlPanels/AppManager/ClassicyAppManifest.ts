@@ -82,6 +82,49 @@ export type ClassicyAppCreatesEntry = z.infer<
 	typeof ClassicyAppCreatesEntrySchema
 >;
 
+/**
+ * One command an app adds to its files' menus under
+ * `layout.finder.commands` "windows" (WIG Ch.10 "Registering Commands",
+ * pp.200-201: a type's verbs, listed at the top of its icons' menus after
+ * Open, the default). Finder lists the verbs of the app that handles an
+ * item's type (`fileTypeHandlers`), while that app is mounted, and runs a
+ * verb by dispatching `{ type: action, app: { id }, path }` for each
+ * selected item of that type, trusted (the user chose it); the app's own
+ * reducer does the rest (opening its window, if it needs one).
+ */
+export const ClassicyAppVerbEntrySchema = z.object({
+	id: z
+		.string()
+		.regex(/^[A-Za-z][A-Za-z0-9_-]{0,31}$/)
+		.describe(
+			"The verb's language-independent name, unique within the app, e.g. `print`.",
+		),
+	title: z
+		.string()
+		.min(1)
+		.max(40)
+		.refine((title) => title.trim() === title, {
+			message: "a verb's title has no surrounding spaces",
+		})
+		.describe('The menu item\'s title, e.g. "Print".'),
+	action: z
+		.string()
+		.regex(/^[A-Za-z][A-Za-z0-9_]*$/)
+		.describe(
+			"The action type dispatched for each item, with `{ app: { id }, path }`: one the app's own reducer handles.",
+		),
+	accessKey: z
+		.string()
+		.regex(/^[A-Za-z0-9]$/)
+		.optional()
+		.describe(
+			"The item's access key, one letter or digit of its title, shown under a package's `layout.menu.accessKeys`.",
+		),
+});
+
+/** One entry of a manifest's `verbs`. */
+export type ClassicyAppVerbEntry = z.infer<typeof ClassicyAppVerbEntrySchema>;
+
 /** What an app passes to `registerApp`. */
 export interface ClassicyAppManifestDefinition {
 	id: string;
@@ -107,6 +150,14 @@ export interface ClassicyAppManifestDefinition {
 	 * listed yet (first wins, by `fileType` and `typeName`).
 	 */
 	creates?: ClassicyAppCreatesEntry[];
+	/**
+	 * The commands the app adds to its files' menus under
+	 * `layout.finder.commands` "windows", after Open (Explorer's verbs;
+	 * `ClassicyAppVerbEntrySchema`). An entry that fails the schema is
+	 * dropped with a warning. Re-registering adds verbs whose `id` is not
+	 * listed yet (first wins).
+	 */
+	verbs?: ClassicyAppVerbEntry[];
 }
 
 /** The stored, merged manifest for one app id. */
@@ -118,6 +169,8 @@ export interface ClassicyAppManifest {
 	state?: z.ZodType;
 	/** The document types the app makes from File ▸ New, validated. */
 	creates?: ClassicyAppCreatesEntry[];
+	/** The commands the app adds to its files' menus, validated. */
+	verbs?: ClassicyAppVerbEntry[];
 }
 
 const manifests = new Map<string, ClassicyAppManifest>();
@@ -192,6 +245,21 @@ export function registerApp(def: ClassicyAppManifestDefinition): void {
 			continue;
 		manifest.creates = [...creates, Object.freeze(parsed.data)];
 	}
+	for (const raw of def.verbs ?? []) {
+		const parsed = ClassicyAppVerbEntrySchema.safeParse(raw);
+		if (!parsed.success) {
+			classicyLog(
+				"warn",
+				"registerApp",
+				"Ignoring a `verbs` entry that fails its schema",
+				{ appId: def.id, entry: raw, issues: parsed.error.issues },
+			);
+			continue;
+		}
+		const verbs = manifest.verbs ?? [];
+		if (verbs.some((verb) => verb.id === parsed.data.id)) continue;
+		manifest.verbs = [...verbs, Object.freeze(parsed.data)];
+	}
 	if (def.prefix && def.handler && !manifest.prefixes.includes(def.prefix)) {
 		manifest.prefixes.push(def.prefix);
 		prefixIndex.set(def.prefix, def.id);
@@ -251,6 +319,14 @@ export function listClassicyCreatableFileTypes(
 	return list.sort((a, b) =>
 		a.typeName.toLowerCase().localeCompare(b.typeName.toLowerCase()),
 	);
+}
+
+/**
+ * The verbs `appId` registered (`registerApp`'s `verbs`), in registration
+ * order; empty when it registered none.
+ */
+export function listClassicyAppVerbs(appId: string): ClassicyAppVerbEntry[] {
+	return [...(manifests.get(appId)?.verbs ?? [])];
 }
 
 /** One script-callable action, flattened for discovery. */

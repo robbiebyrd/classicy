@@ -721,6 +721,22 @@ Rules (enforced/warned by the kernel):
   (first wins, by `fileType` and `typeName`). SimpleText declares `{
   fileType: "text_file", typeName: "Text Document", extension: "txt" }`
   (Windows 98's New ▸ Text Document); a package without the key lists none.
+- **Verbs on its files' menus** (`verbs`, optional; WIG Ch.10 "Registering
+  Commands", pp.200-201, a type's Shell verbs): `{ id, title, action,
+  accessKey? }[]`, each validated by `ClassicyAppVerbEntrySchema` (`id` a
+  language-independent name, a letter then up to 31 letters, digits, `_` or
+  `-`, unique within the app; `title` 1–40 characters, no surrounding
+  spaces; `action` an action type the app's own reducer handles; `accessKey`
+  one letter or digit of the title) and dropped with a warning when it
+  fails. Under `layout.finder.commands` "windows", Finder lists the verbs of
+  the app `fileTypeHandlers` names for an item's type, while that app is
+  mounted, after Open on the item's menu (in a folder window and on a
+  desktop file), and runs one by dispatching `{ type: action, app: { id },
+  path }`, trusted, for each selected item of a type that app handles; the
+  app's reducer does the rest (opening its window, if it needs one). None
+  for a folder or drive. Re-registering adds the verbs whose `id` is not
+  listed yet (first wins). No bundled app declares one (Classicy has no
+  printing, the WIG's example verb); a package without the key lists none.
 
 Open-with exports (`ClassicyAppOpenFileRouting.ts`, `ClassicyAppManager.ts`):
 
@@ -742,6 +758,7 @@ Read-side helpers:
 | `describeAppState` | `(appId, "dot.path") => { title, content } \| undefined` | field docs from `.describe()` |
 | `parseAppData<T>` | `(appId, raw) => T \| undefined` | typed guard for `apps[id].data`; `undefined` on failure — use `parseAppData<TVData>(id, raw) ?? {}` |
 | `listClassicyCreatableFileTypes` | `(appIds?: ReadonlySet<string>) => ClassicyCreatableFileType[]` | every registered app's `creates` entries (or only `appIds`'), with their `appId`, sorted by type name without case, a type name two apps declare listed once (the first registered's) |
+| `listClassicyAppVerbs` | `(appId) => ClassicyAppVerbEntry[]` | the verbs `appId` registered (`verbs`), in registration order, each frozen; empty when it registered none |
 
 Deprecated but still working: `registerAppEventHandler(prefix, handler)`
 (routing only — no manifest, so no balloon help / script discovery / dev
@@ -1654,9 +1671,11 @@ plain integers (`0xRRGGBB`).
 | `ClassicyPixelArt` | `rows` (`string[]` of palette tokens, `.` transparent) **or** `art` (a `ClassicySystemArtKey` holding pixel art, read from the active package at render time), `className?`, `style?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors). `useClassicyPixelArtRows(key)` returns a key's rows; a package registers rows as system art with `encodeClassicyPixelArtRows(rows)` (a `data:text/x-classicy-pixel-art,…` source, `CLASSICY_PIXEL_ART_MIME`), and `decodeClassicyPixelArtRows(src)` reads one back outside React |
 
 Desktop icon `kind` values (sort order): `drive`, `directory`, `app_shortcut`,
-`shortcut`, `trash`, `file`, `icon`. Kinds `app_shortcut` and `shortcut` get
-the Mac OS 8 alias arrow badge + italic label (`isAliasKind(kind)` predicate is
-exported). Trash and drive icons carry stock balloon help automatically
+`shortcut`, `trash`, `file`, `icon`, and `file_shortcut` (a Desktop Folder
+item that is a file shortcut, `classicyDesktopItemIconAction`). Kinds
+`app_shortcut`, `shortcut` and `file_shortcut` get the alias arrow badge +
+italic label (`isAliasKind(kind)` predicate is exported) under every
+package. Trash and drive icons carry stock balloon help automatically
 (`defaultBalloonForKind(kind, title)`).
 
 ### 4.8 Balloon help
@@ -2925,12 +2944,13 @@ An entry is a plain object: underscore-prefixed keys are metadata
 
 | Field | Type | Meaning |
 |---|---|---|
-| `_type` * | `ClassicyFileSystemEntryFileType` | one of `file, shortcut, app_shortcut, extension, drive, directory, text_file, markdown, pdf, image, video, audio, stack` |
+| `_type` * | `ClassicyFileSystemEntryFileType` | one of `file, shortcut, app_shortcut, extension, drive, directory, text_file, markdown, pdf, image, video, audio, stack, file_shortcut` |
 | `_mimeType` | `string` | MIME type |
 | `_creator` / `_format` | `string` | select the opening application for the file |
 | `_label` / `_comments` | `string` | standard Mac metadata fields |
 | `_url` | `string` | URL to fetch content from; also the target of a `shortcut` |
 | `_openIn` | `"classicy" \| "browser" \| "browser-new"` | how a shortcut's `_url` opens (absent = `"classicy"`, the in-desktop WebViewer window) |
+| `_targetPath` | `string` | for a `file_shortcut`, the path of the entry it opens, as stored when it was made; a target moved, renamed or trashed since leaves it pointing at nothing (see "File shortcuts" below) |
 | `_data` | `unknown` | file contents; a string read via `resolveFileSystemEntrySource` is gzip+base64url bytes and takes precedence over `_url` |
 | `_icon` / `_badge` | `string` / `ReactNode` | icon URL / badge overlay |
 | `_createdOn` / `_modifiedOn` | `Date` | timestamps |
@@ -2948,6 +2968,53 @@ format. Seed-tree helpers for the provider's `defaultFileSystem` prop:
 `DefaultFSContent` (the stock tree) and `mergeClassicyFileSystemEntries`.
 A live tree is seeded from a deep copy of its default tree, so neither
 `DefaultFSContent` nor a host's `defaultFileSystem` is ever changed by edits.
+`getClassicySharedFileSystem(storageKey? = "classicyStorage", separator?)`
+(`ClassicyFileSystem.ts`) is a store-free reader of the live tree already
+shared under a key, `undefined` while no instance has read one; it never
+seeds, reloads or persists a tree (Finder's reducer resolves a file
+shortcut's target through it).
+
+### File shortcuts
+
+A `file_shortcut` entry (`ClassicyFileSystemEntryFileType.FileShortcut`)
+is Windows' shortcut to a file, folder or drive (WIG Ch.10 "Registering
+Commands", pp.200-201, and "System Naming Conventions", p.210; Windows 98
+SE's Create Shortcut, its names and its message boxes as shell32.dll holds
+them). `_targetPath` names what it opens; `_icon` is its target's icon as
+stored when it was made (the target's own `_icon`, else the core's icon for
+its type, which every icon surface draws as the active package's; for an
+entry a derived folder lists for an application, that app's record icon,
+never the display icon the folder draws it by), and `_creator` the app of a
+shortcut to an application's entry. `ClassicyFileShortcut.ts` (public):
+
+| Export | Use |
+|---|---|
+| `createClassicyFileShortcut(fs, targetPath, folder, { path?, appIcon? })` | writes a shortcut to the entry at `targetPath` in `folder` (a write, journaled and persisted), named `classicyFileShortcutPath(fs, targetPath, folder)` unless `path` gives one; a shortcut to a shortcut is a copy of it, pointing where it points (Windows 98 makes no shortcut to a shortcut: "You cannot create a shortcut to another shortcut. Either copy the shortcut…"); `undefined` when the target is gone or the write was refused |
+| `classicyShortcutName(name, n?)` / `classicyFirstFreeShortcutName(fs, folder, name)` | "Shortcut to <name>", "Shortcut (2) to <name>"… (shell32.dll's "Shortcut () to %s.lnk"), the first free one compared without case |
+| `resolveClassicyFileShortcut(fs, shortcut)` | `{ found: true, path, entry }` for the target, following a shortcut to a shortcut (up to sixteen, never in a circle), or `{ found: false, path }` with the path that is missing |
+| `isClassicyFileShortcut(entry)` | `_type === "file_shortcut"` |
+| `classicyShortcutProblem(targetPath, packageId?)` | the box for a target that is gone: Windows 98 SE's `{ title: "Problem with Shortcut", message: "The file or folder '<target>' that this shortcut refers to cannot be found." }` under `layout.finder.commands` "windows", else `{ message: CLASSICY_SHORTCUT_MISSING_ORIGINAL }` ("The original item for this shortcut could not be found.", the core's text for a URL shortcut with no URL) |
+| `CLASSICY_SHORTCUT_TITLE`, `CLASSICY_SHORTCUT_PROBLEM_TITLE`, `CLASSICY_SHORTCUT_DESKTOP_OFFER`, `classicyShortcutMissingMessage(path)` | shell32.dll's "Shortcut", "Problem with Shortcut", "Windows cannot create a shortcut here.\nDo you want the shortcut to be placed on the desktop instead?" and the missing-target text |
+
+Opening one (Finder's `ClassicyAppFinderOpenFile` with the shortcut as
+`file`, as a double-click in either view or on the desktop sends it) opens
+its target under every package, read from the live tree, as a double-click
+on the target would and under the trust the open arrived with: a folder or
+drive through `ClassicyAppFinderOpenFolder`, anything else through the same
+OpenFile case, each checked as a dispatch of its type would be
+(`checkClassicyActionTrust`), so a script's open of a shortcut reaches no
+route its open of the target could not. A missing target opens the
+`_creator` app when it is loaded (the Applications folder renames an entry
+with the package), else sets `Desktop.errorDialog` to
+`classicyShortcutProblem` (Windows 98's search for the nearest match has no
+Classicy counterpart). Under `layout.finder.commands` "windows" Create
+Shortcut makes them (§8 `finder.commands`): beside each item; for one whose
+folder takes no new item (`classicyCanMakeItemIn`: a drive at the root of
+the tree, the Trash, an item of a derived, read-only or system folder)
+`ClassicyAppFinderOfferDesktopShortcut { paths }` (Finder's data
+`desktopShortcutOffer`, session-only), and Finder shows Windows 98 SE's
+"Shortcut" box (Yes, No), whose Yes makes them in the Desktop Folder. A
+drop on a shortcut to a folder moves nothing into it.
 
 Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
 `display? ("icons"|"list")`, `dirOnClickFunc?`, `fileOnClickFunc?`,
@@ -3059,9 +3126,12 @@ icon pop-up menus do (WIG Ch.7 "Icon Pop-up Menus", pp.102-103). Under the
 same key the menus are Windows 98 SE Explorer's (shell32.dll's menus and
 letters; the remaining chapters' audit's 1.21, 5.23, 5.39, 5.40, 10.3, 9.3
 and A.4; this supersedes lane 2's decision to keep the Mac's commands
-alone): an item's menu is Open (bold, O), then Delete (D, drawn with Del,
-`keyboardShortcut: "⌦"` as a native key) and Rename (m; dimmed for more than
-one item or one that may not be renamed); an Extension's leads with
+alone): an item's menu is Open (bold, O), its handler's verbs (the app that
+opens its type, while mounted: `registerApp`'s `verbs`, each run on every
+selected item that app opens; none for a folder; 10.6), then Create
+Shortcut (S), Delete (D, drawn with Del, `keyboardShortcut: "⌦"` as a native
+key) and Rename (m; dimmed for more than one item or one that may not be
+renamed); an Extension's leads with
 Properties (r, its default), which opens the control panel that sets it up
 (`classicyExtensionControlPanelId`: a Control Strip module's the Control
 Strip panel, the Screen Saver extension's the Screen Saver panel), as its
@@ -3069,8 +3139,12 @@ double-click does (Mac OS 8's "This file adds functionality to your
 computer. It cannot be opened." stays for an extension no panel sets up);
 an app shortcut's desktop menu and a drive's lead with Open, their default,
 too (a stored event, `ClassicyDesktopIconOpen` or
-`ClassicyAppFinderOpenFolder`). A folder window's File menu is Open ⌃O, New
-▸, Delete, Rename and Close (the Trash's Open, Restore and Close); its View
+`ClassicyAppFinderOpenFolder`), and a drive's and the Trash's end with
+Create Shortcut (S), which offers the desktop (both lie at the root of the
+tree, where Windows 98 SE asks "Windows cannot create a shortcut here. Do you
+want the shortcut to be placed on the desktop instead?"). A folder window's
+File menu is Open ⌃O, New ▸, Create Shortcut, Delete, Rename and Close (the
+Trash's Open, Restore and Close); its View
 menu Large Icons and Details (the icon and list views), Arrange Icons ▸ (by
 Name, by Type, by Size, by Date, each a sort key the Finder's views have; in
 the list view only the shown columns') and Line Up Icons (dimmed in the
@@ -3084,6 +3158,18 @@ or "New Text Document.txt" in the window's folder (none in the Trash or a
 read-only, derived or system folder), its icon where the white-space menu
 was opened (else the first free cell), selected alone, its name edited at
 once (`ClassicyFileBrowserCommands`' `place`, `select` and `rename`).
+Create Shortcut (`classicyCreateShortcuts`) makes "Shortcut to <name>"
+("Shortcut (2) to <name>"… on a clash), a `file_shortcut` ("File
+shortcuts" above), beside each selected item: in a window's folder in the
+first free cell, selected there, not renamed (Windows 98 SE leaves the name
+as made); beside a Desktop Folder item on the desktop, selected; for the
+items whose folder takes none, the desktop offer, whose Yes makes them in
+the Desktop Folder; the Trash's items have none, as the Recycle Bin's
+lacked it. An application's own desktop icon (`app_shortcut`, no entry of
+the tree) has no Create Shortcut: the desktop's File ▸ Create Shortcut
+passes it over. The File menus list no verbs (Explorer's listed the
+selection's at the top of its File menu; Classicy's File menus are built
+without the selection).
 Delete, on every route (the menus, the browsers' and the desktop's Delete
 and ⌃⌫, a drop on the Trash), asks Windows 98 SE's question first while
 Finder is mounted (`moveClassicyItemsToTrash`, `classicyDeleteConfirms`):
@@ -4862,10 +4948,13 @@ it like Platinum (§1); its README lists what it ships.
   Ch.4 "Shortcut Keys", p.28, Table B.3), `finder.commands: "windows"` (Finder's
   item menus lead with Open, their default item, WIG Ch.7 "Icon Pop-up
   Menus", pp.102-103, and its menus are Explorer's: File ▸ Open, New ▸,
-  Delete and Rename, View ▸ Large Icons, Details, Arrange Icons ▸ and Line
-  Up Icons, the same on a folder's white space, Delete asking Windows 98
-  SE's "Confirm File Delete" first, an Extension's Properties opening its
-  control panel, WIG Ch.1 p.8, Ch.5 pp.45, 67, 69, Ch.10 pp.199-200),
+  Create Shortcut, Delete and Rename, View ▸ Large Icons, Details, Arrange
+  Icons ▸ and Line Up Icons, the same on a folder's white space, Delete
+  asking Windows 98 SE's "Confirm File Delete" first, an Extension's
+  Properties opening its control panel, an item's handler's verbs after
+  Open, Create Shortcut making "Shortcut to <name>" or offering the desktop,
+  a missing target's "Problem with Shortcut", WIG Ch.1 p.8, Ch.5 pp.45, 67,
+  69, Ch.10 pp.199-201, 210),
   `files.names: "windows"` (a name holds none of `\ / : * ? " < > |`, refused
   in Windows 98's words, and New Folder is "New Folder (2)" on a clash, WIG
   Ch.10 p.210),
@@ -5038,7 +5127,7 @@ how they look) has two halves:
 | `menu.emptySubmenus` (optional) | `leaf`, `placeholder` | an item given an empty `menuChildren`. `leaf` (the default): a plain item, chosen as any other. `placeholder` (Windows 98, as its Start menu and Favorites show an empty folder): a submenu of one dimmed "(Empty)" item (id `<id>_empty`, no access key) |
 | `keyboard.command` (optional) | `metaOrCtrl`, `ctrl` | which key a Command (⌘) keyboard equivalent answers to (the remaining chapters' audit's 4.19). `metaOrCtrl` (the default, Platinum, System 7): Command or Control, so a ⌘ equivalent works on any keyboard. `ctrl` (Windows 98; WIG Ch.4 "Shortcut Keys" (p.28), Appendix B Table B.3 (p.359): the Windows keys are for the system's own functions): Control alone, and a key pressed with the Windows key (`metaKey`) satisfies no shortcut: `shortcutMatchesEvent`, `canonicalChordsFromEvent` (so `ClassicyShortcutDispatcher` and `findMenuItemByShortcut`, unchanged), `classicyCommandKeyHeld` (`useKeyboardEquivalents`' and the keyboard-equivalent dialog's Command-period, HyperCard's editor keys) read it store-free at call time, so Win+letter runs no command and Win+period cancels nothing; `keyboardShortcutFromEvent` records Control as ⌘ on any host and a Windows-key chord as nothing; under `menu.shortcutSpelling` `"names"` a ⌘ chord reads `Ctrl+` |
 | `keyboard.contextMenuKey` (optional) | `false`, `true` | `true` (Windows 98; WIG Ch.7 "Pop-up Menu Interaction" (p.101), Appendix B Tables B.2 and B.3): Shift+F10 and the Application (ContextMenu) key open the focused element's contextual menu, as a right-click on it does (`ClassicyContextualMenuProvider`, "Menu keyboard and press tracking", §4.5). Absent or `false` (Platinum, System 7: Mac OS contextual menus open from a Control-click alone, HIGOS8 "Contextual Menus" (p.93)): neither key is taken |
-| `finder.commands` (optional) | `mac`, `windows` | which commands Finder's and the desktop's menus offer ("Icon view selection", §7). `mac` (the default, Platinum, System 7): Mac OS 8's menus byte for byte: an item's Move To Trash, or Restore in the Trash, with no default item (HIGOS8 "Contextual Menus" (pp.94-95): "you should not set a default item"), none on a desktop file, folder or app icon, a folder window's File menu Close Window, Close All Windows and Move To Trash, its View menu View as Icons and View as List, no white-space menu, Delete with no confirmation and Mac OS 8's alert on an Extension. `windows` (Windows 98; WIG Ch.1 "Understanding Users" (p.8); Ch.5 pp.45, 61, 67, 69; Ch.7 "Icon Pop-up Menus" (pp.102-103); Ch.9 p.176; Ch.10 pp.199-200; App. A Table A.1 note 3 (p.350); Windows 98 SE Explorer's menus and letters, shell32.dll; the audit's 1.21, 5.23, 5.39, 5.40, 9.3, 10.3, A.4): every item's menu, a desktop file's, folder's, app's and drive's included, leads with Open, its default item (`isDefault`), the command a double-click runs, an item's then Delete (Del) and Rename; an Extension's leads with Properties, which (as its double-click) opens its control panel (`classicyExtensionControlPanelId`); a folder window's File menu is Open ⌃O, New ▸, Delete, Rename, Close; its View menu Large Icons, Details, Arrange Icons ▸ (by Name, Type, Size, Date) and Line Up Icons; its white space's menu (`backgroundContextMenu`) View ▸, Arrange Icons ▸, Line Up Icons and New ▸; the desktop's (`useClassicyDesktopCommands`, `Desktop/ClassicyDesktopCommands.internal.tsx`, for the shell to wire) File ▸ Open, New ▸, Delete, Rename, Edit ▸ Select All, View ▸ Arrange Icons ▸ (by Name, Type) and Line Up Icons, and on its white space Arrange Icons ▸, Line Up Icons and New ▸; New ▸ makes "New Folder" (2)… or a registered type's "New <Type Name>" (`registerApp`'s `creates`) and starts its name's edit in place (the icon view's, the list view's and a desktop icon's field); every Delete route asks Windows 98 SE's "Confirm File Delete" (Folder, Multiple File) box first while Finder is mounted (`classicyDeleteConfirms`). Read with `layout.finder?.commands === "windows"` (`useClassicyWindowsFinderCommands()` in components) |
+| `finder.commands` (optional) | `mac`, `windows` | which commands Finder's and the desktop's menus offer ("Icon view selection", §7). `mac` (the default, Platinum, System 7): Mac OS 8's menus byte for byte: an item's Move To Trash, or Restore in the Trash, with no default item (HIGOS8 "Contextual Menus" (pp.94-95): "you should not set a default item"), none on a desktop file, folder or app icon, a folder window's File menu Close Window, Close All Windows and Move To Trash, its View menu View as Icons and View as List, no white-space menu, Delete with no confirmation and Mac OS 8's alert on an Extension. `windows` (Windows 98; WIG Ch.1 "Understanding Users" (p.8); Ch.5 pp.45, 61, 67, 69; Ch.7 "Icon Pop-up Menus" (pp.102-103); Ch.9 p.176; Ch.10 pp.199-200; App. A Table A.1 note 3 (p.350); Windows 98 SE Explorer's menus and letters, shell32.dll; the audit's 1.21, 5.23, 5.39, 5.40, 9.3, 10.3, 10.6, A.4): every item's menu, a desktop file's, folder's, app's and drive's included, leads with Open, its default item (`isDefault`), the command a double-click runs, an item's then its handler's verbs (`registerApp`'s `verbs`), Create Shortcut, Delete (Del) and Rename; a drive's and the Trash's icon end with Create Shortcut, which offers the desktop ("File shortcuts", §7); an Extension's leads with Properties, which (as its double-click) opens its control panel (`classicyExtensionControlPanelId`); a folder window's File menu is Open ⌃O, New ▸, Create Shortcut, Delete, Rename, Close; its View menu Large Icons, Details, Arrange Icons ▸ (by Name, Type, Size, Date) and Line Up Icons; its white space's menu (`backgroundContextMenu`) View ▸, Arrange Icons ▸, Line Up Icons and New ▸; the desktop's (`useClassicyDesktopCommands`, `Desktop/ClassicyDesktopCommands.internal.tsx`, for the shell to wire) File ▸ Open, New ▸, Create Shortcut, Delete, Rename, Edit ▸ Select All, View ▸ Arrange Icons ▸ (by Name, Type) and Line Up Icons, and on its white space Arrange Icons ▸, Line Up Icons and New ▸; New ▸ makes "New Folder" (2)… or a registered type's "New <Type Name>" (`registerApp`'s `creates`) and starts its name's edit in place (the icon view's, the list view's and a desktop icon's field); Create Shortcut makes "Shortcut to <name>" ("Shortcut (2) to <name>"…, a `file_shortcut`) beside each item, placed and selected, or offers the desktop where none may be made; every Delete route asks Windows 98 SE's "Confirm File Delete" (Folder, Multiple File) box first while Finder is mounted (`classicyDeleteConfirms`). Read with `layout.finder?.commands === "windows"` (`useClassicyWindowsFinderCommands()` in components) |
 | `files.names` (optional) | `mac`, `windows` | how names are written (`File/ClassicyFileNames.ts`). `mac` and absent (Platinum, System 7; HFS): a name may hold anything but `:`, and the file dialog's New Folder prompt opens empty. `windows` (Windows 98; WIG Ch.10 "File Naming Conventions" (p.210); the audit's 10.9 and 10.10): a name may hold none of `\ / : * ? " < > \|` (`isClassicyValidFileName`; the WIG lists eight, Windows 98 as shipped refused the quotation mark too), a rename refused in Windows 98's "Rename" box, "A filename cannot contain any of the following characters:" and the nine (`CLASSICY_WINDOWS_FILE_NAME_REFUSAL`, shell32.dll), the file dialog dimming Save and Create for such a name, its New Folder prompt reading the refusal while the name holds one; and the New Folder prompt offers the folder's first free "New Folder", "New Folder (2)", "New Folder (3)"… (`classicyFirstFreeName`; Windows 98's parentheses over the WIG's "Document 2"), selected. The Trash's clash names and the derived folders keep their own numbering |
 | `tree.keys` (optional) | `mac`, `windows` | how the keyboard drives a `ClassicyTree`. `mac` (the default, Platinum, System 7, as Mac OS 8's list views): Up, Down, Home, End and typing move the keyboard row, ⌘→ / ⌘← open and close the focused branch, and a bare Right or Left Arrow does nothing (its default left to the browser). `windows` (Windows 98; WIG Ch.7 "Tree View Controls", pp.123-124; comctl32's TREEVIEW_KeyDown): a bare Right Arrow expands a closed branch or moves to an open one's first child (a leaf stays), a bare Left Arrow collapses an open branch or moves to the row's parent (a closed root row stays), Shift allowed and Alt left to the browser, the key's default taken; a dimmed branch never toggles. Under `windows` the chords give way to the bare arrows and scroll instead, as comctl32's tree view takes every Control key (`TREEVIEW_KeyDown` hands it to `TREEVIEW_ScrollKeyDown`; WIG App. B Table B.1, p.357; the audit's B.3): Control (or ⌘) with Up or Down scrolls the tree's scroller one row (a registered scroll area's through its own `scrollBy`, else the nearest ancestor that scrolls), with Left or Right a row's height sideways, with Page Up or Page Down the page's whole rows, with Home or End to its top or bottom, the keyboard row and the selection staying put and the key's default taken. A `ClassicyTable`'s tree rows (`getSubRows`, the Finder's list view) read the same key for their expand keys (one key for both, recorded): ⌘→ / ⌘← (or Control) under `mac`, a bare Right and Left Arrow (Shift allowed) under `windows`, where the chords expand nothing. Read with `classicyWindowsTreeKeys(layout)` (`Keyboard/ClassicyListKeys.internal.ts`) |
 | `balloonHelp.placement` (optional) | `anchor`, `pointer` | where `useClassicyBalloonHelp` (`ClassicyBalloonHelp`, the desktop icons' balloons) shows help (§4.8). `anchor` (the default, Platinum, System 7): Mac OS 8's balloon against the anchor, after the delay from the pointer's arrival. `pointer` (Windows 98; WIG Ch.7 "Tooltip Controls", p.133; Ch.12 "Tooltips"): a tip at the resting pointer, below it (`classicyBalloonHelpPointerBelow`, offset by the package) or above the anchor at the desktop's bottom (`classicyBalloonHelpPointerAbove`), moved left at its right edge, with no tail, hidden by a press on the anchor until the pointer leaves |

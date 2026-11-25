@@ -92,6 +92,7 @@ describe("useClassicyDesktopCommands", () => {
 			"—",
 			["New", "w"],
 			"—",
+			["Create Shortcut", "S"],
 			["Delete", "D"],
 			["Rename", "m"],
 		]);
@@ -263,6 +264,75 @@ describe("useClassicyDesktopCommands", () => {
 			act(() => fileItem("Delete")?.onClickFunc?.());
 			expect(
 				new ClassicyFileSystem().resolve(`${DESKTOP_FOLDER}:a.txt`),
+			).toBeUndefined();
+		});
+
+		// The remaining chapters' audit's 10.6: Create Shortcut makes
+		// "Shortcut to <name>" beside a Desktop Folder item, on the desktop
+		// and selected; for a drive (at the root of the tree, which takes
+		// none) it asks Finder to offer the desktop, as Windows 98 SE does.
+		it("makes a shortcut beside a selected item, its icon placed and selected", () => {
+			useWindowsLayout();
+			render(<Harness />);
+			const a = seedItem("a.txt");
+			select([a]);
+			act(() => fileItem("Create Shortcut")?.onClickFunc?.());
+			const path = `${DESKTOP_FOLDER}:Shortcut to a.txt`;
+			expect(new ClassicyFileSystem().resolve(path)).toMatchObject({
+				_type: "file_shortcut",
+				_targetPath: `${DESKTOP_FOLDER}:a.txt`,
+			});
+			const id = `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`;
+			const icon = desktop().icons.find((i) => i.appId === id);
+			// An alias kind: the desktop badges it and italicizes its label.
+			expect(icon?.kind).toBe("file_shortcut");
+			expect(icon?.location).toBeDefined();
+			expect(desktop().selectedIcons).toEqual([id]);
+			// Again: numbered, as Windows 98 numbers it.
+			select([a]);
+			act(() => fileItem("Create Shortcut")?.onClickFunc?.());
+			expect(
+				new ClassicyFileSystem().resolve(
+					`${DESKTOP_FOLDER}:Shortcut (2) to a.txt`,
+				),
+			).toBeDefined();
+		});
+
+		it("asks Finder to offer the desktop for a selected drive, and skips an app's icon", () => {
+			useWindowsLayout();
+			render(<Harness />);
+			new ClassicyFileSystem();
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopIconAdd",
+					app: { id: "Finder.app", name: "Macintosh HD", icon: "" },
+					kind: "drive",
+					filePath: "Macintosh HD",
+					event: "ClassicyAppFinderOpenFolder",
+					eventData: { path: "Macintosh HD" },
+				}),
+			);
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopIconAdd",
+					app: { id: "TV.app", name: "TV", icon: "" },
+					kind: "app_shortcut",
+				}),
+			);
+			const drive = desktop().icons.find((i) => i.kind === "drive")?.appId;
+			select([drive as string, "TV.app"]);
+			act(() => fileItem("Create Shortcut")?.onClickFunc?.());
+			expect(
+				(
+					useAppManager.getState().System.Manager.Applications.apps[
+						"Finder.app"
+					]?.data as { desktopShortcutOffer?: unknown }
+				)?.desktopShortcutOffer,
+			).toEqual({ paths: ["Macintosh HD"] });
+			expect(
+				new ClassicyFileSystem().resolve(
+					`${DESKTOP_FOLDER}:Shortcut to Macintosh HD`,
+				),
 			).toBeUndefined();
 		});
 
