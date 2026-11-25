@@ -69,6 +69,13 @@ Embeds [Infinite Mac](https://infinitemac.org) — a browser-based emulator runn
 ### SimpleText
 A basic rich-text editor backed by the `ClassicyRichTextEditor` component, included from the core library.
 
+### Demo Extension
+A background extension with no window: it appears in the startup parade and in `System Folder:Extensions`, and shows a menu bar extension (`ClassicyMenuBarExtension`) whose menu opens Demo.
+
+## Appearances
+
+The app loads all three Appearance Packages (Platinum, System 7 and Windows 98); switch between them in the Appearance control panel's Packages tab. Under Windows 98 the desktop becomes the Windows 98 shell: a taskbar with the Start menu (CTRL+ESC), Quick Launch (where Demo, marked `showInQuickLaunch`, has a button), a button per window, and the status area holding the Control Strip's modules, the Demo Extension's indicator and the clock; windows minimize to the taskbar, maximize to the work area and carry their own menu bars. The app passes `userName="Guest"`, so the Start menu offers Log Off Guest....
+
 ---
 
 ## TimeMachine Proxy Setup

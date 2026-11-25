@@ -264,6 +264,7 @@ export const Demo = () => {
 			icon={appIcon}
 			defaultWindow={"demo2"}
 			addSystemMenu={false}
+			showInQuickLaunch
 		>
 			<ClassicyWindow
 				id={"demo_error_modal"}

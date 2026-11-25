@@ -314,16 +314,19 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   `layout.window.systemMenu` (at `at`, else from the caption with its first
   item selected, as ALT+SPACE does; see Contextual Menus) and reports
   `false` without the flag.
-- A mounted taskbar's measured height is the **taskbar band**
+- A mounted taskbar's measured thickness is the **taskbar band**
   (`Taskbar/ClassicyTaskbarBand.internal.ts`, store-free:
-  `setClassicyTaskbarBand(px, owner?)`, the tallest band any owner
-  publishes in effect, `getClassicyTaskbarBand`, `useClassicyTaskbarBand`;
-  0 with no taskbar).
+  `setClassicyTaskbarBand(px, owner?, edge?)`, the thickest band any owner
+  publishes in effect, on the edge it is docked to (plan 0020-w98 E4);
+  `getClassicyTaskbarInsets`/`useClassicyTaskbarInsets` give it per edge,
+  `getClassicyTaskbarBand`/`useClassicyTaskbarBand` the bottom's; all 0
+  with no taskbar or under Auto hide).
   Window geometry (`resolveSize`, `resolvePosition`,
-  `clampWindowPositionToViewport`, each with an optional `bottomBand`, the
-  zoom's standard state, and a grow-box drag's `ceiling`, passed only while
-  the band is not 0), Clean Up's grid and every menu's bounds keep above it,
-  so with no taskbar every number is today's.
+  `clampWindowPositionToViewport`, each with an optional `bottomBand` that
+  takes the insets, a number being the bottom's, the zoom's standard state,
+  maximize, and a grow-box drag's `ceiling`, passed only while a band is
+  not 0), Cascade and Tile, Clean Up's grid and every menu's bounds keep to
+  the work area it leaves, so with no taskbar every number is today's.
 
 ### Analytics
 
@@ -657,8 +660,8 @@ Menus open where they show (`ClassicyMenuPlacement.internal.ts`,
 `useClassicySubmenuPlacement.internal.ts`): measured in layout effects, frame
 shadow included (border box, outer `box-shadow`, absolute
 `::before`/`::after`), against the bounds, `.classicyDesktop`'s box where it
-overlaps the viewport, less a mounted taskbar's band along its bottom, on
-both axes. A pull-down (screen or window bar) or
+overlaps the viewport, less a mounted taskbar's band on the edge it is
+docked to, on both axes. A pull-down (screen or window bar) or
 submenu that would pass the right edge gets `classicySubMenuFlipLeft`, a
 pull-down then hanging with its right side under its title's right side
 (base `ClassicyDesktopMenuBar.scss`; a package that places pull-downs itself
@@ -700,113 +703,9 @@ prop takes the strip's props (`disabledModules`, `defaultCollapsed`,
 `defaultWidth`) or `false` to hide it; Storybook desktop stories opt out with
 `parameters.classicy.controlStrip: false`.
 
-Under a package whose layout declares `taskbar` (Windows 98, beside
-`menuBar.placement: "window"` and `window.collapse: "minimize"`; plan
-0020-w98 §2), `ClassicyDesktop` mounts `ClassicyTaskbar` (`Taskbar/`) in the
-strip's place,
-at the same point among its children, and no strip: a `<nav>` along the
-bottom (z-index 355) with the Start button (`taskbar-start`, `open`; its
-tooltip Windows 98's "Click here to begin.", forced, 500 ms, never over the
-open menu), a
-button per open primary window from the window registry (`taskbar-tasks`;
-no modal or palette; `active` for the active window or, under its app's
-dialog or palette, the app's front window; `collapsed`; `pressed`; a click
-restores, minimizes or activates through the registry, button 2 asks for
-the window's `systemMenu`; creation order for the session; a cut-short title
-is a forced 500 ms tooltip; each carries `data-classicy-drop-activate`, so a
-file drag resting on it 500 ms restores or activates its window, never
-minimizing it, WIG Ch.3 p.16; `classicyTaskbarTaskAttention` while its
-record's session-only `attention` is set, below) and the status area
-(`taskbar-tray`). It takes
-`controlStrip`'s `disabledModules` (published for the control panel, as the
-strip does) and `hideModules` for `controlStrip={false}`, and publishes its
-measured height as the taskbar band.
-
-Under a taskbar the strip's modules are the status area's notification icons
-(`ClassicyTaskbarTray.internal.tsx`, WIG Ch.10 pp.211–212): the strip's
-arrangement less `hiddenModules`, none while `controlStrip.visible` is
-`false` or under `hideModules` (`classicyTaskbarTrayModules`); each its own
-component keyed `id:revision`, a `button.classicyTaskbarTrayIcon` (`open`
-while its surface is) opening its own `ClassicyBevelButtonPopup`
-(`classicyTaskbarTrayPopup`, flipped above the band). Button 1 opens
-`content`, else `menuItems` (after 500 ms when the menu has an `isDefault`
-item, so a double-click runs that item alone); button 2 opens `menuItems` at
-the pointer; the label is a forced 500 ms tooltip. Then the menu bar
-extensions' region, `ul#classicyDesktopMenuExtensions`
-(`classicyTaskbarTrayExtensions`), which `ClassicyMenuBarExtension` looks up
-again when the placement or the taskbar's presence changes; then the clock
-(`ClassicyTaskbarClock.internal.tsx`, `time.classicyTaskbarClock`, the
-`clock` part): `h:mm AM` (`HH:mm` under `militaryTime`), hidden while
-`DateAndTime.show` is false, the long date (`dddd, MMMM dd, yyyy`) a forced
-500 ms tooltip, a double-click opening Date & Time, button 2 the taskbar's
-menu led by Adjust Date/Time (`isDefault`); it shares the menu bar clock's
-tick (`Widgets/Time/useClassicyClockTime.internal.ts`, which writes
-`DateAndTime.dateTime` each minute), so the store keeps time under the
-headless screen bar. The strip's
-`collapsed`, `width`, `edge` and `bottom` stay stored, unused. Button 2 on
-the taskbar's background opens its own menu (`ClassicyTaskbarMenu.internal.ts`,
-Windows 98 SE's explorer.exe menu, plan 0020-w98 E1): Toolbars ▸ Quick
-Launch (over the bar and its bands only; `ClassicyDesktopTaskbarSetQuickLaunch`,
-stored as `Desktop.taskbar.quickLaunch`, absent = shown), Cascade Windows
-and Tile Windows Horizontally (stacked) / Vertically (side by side), placing
-each shown window button's window from the back through the registry's
-`place` command as ReactOS's `CascadeWindows`/`TileWindows` do
-(`ClassicyTaskbarArrange.internal.ts`), Minimize All Windows (one
-`ClassicyWindowCollapse` per window with a Minimize box, from one handler,
-the active window last), the one Undo of the last of those (Undo Cascade,
-Undo Tile, Undo Minimize All), and Properties (the Control Strip control
-panel). Quick Launch (`ClassicyTaskbarQuickLaunch.internal.tsx`) follows the
-Start button: the Finder, Show Desktop (Minimize All, then its Undo) and the
-apps marked `showInQuickLaunch` (a runtime mark,
-`App/ClassicyQuickLaunchApps.internal.ts`), each band then led by a
-`classicyTaskbarGripper`. Past one row at their least width (the package's
-`min-width` and `column-gap`, measured) the window buttons page
-(`classicyTaskbarTasksPaged`, an up/down `classicyTaskbarPager`).
-
-The taskbar docks to any edge (plan 0020-w98 E4,
-`Taskbar/ClassicyTaskbarDock.internal.ts`): a drag of its empty area moves it
-to the edge whose diagonal quarter of the desktop holds the pointer, stored
-as `Desktop.taskbar.edge` (`ClassicyDesktopTaskbarSetEdge`; root classes
-`classicyTaskbarEdge<Edge>`, `classicyTaskbarVertical` at a side, where the
-buttons stack and page down the band), and the band lies on that edge
-(`setClassicyTaskbarBand(px, owner, edge)`, `getClassicyTaskbarInsets`; every
-geometry function's band argument takes insets, a number being the
-bottom's), so windows, maximize, Cascade and Tile, Clean Up and menus keep to
-the work area, and the Start menu and tray pop-ups open toward the desktop.
-Under a taskbar the Control Strip control panel is Taskbar Properties
-(`Taskbar/ClassicyTaskbarProperties.internal.tsx`; Windows 98 names the panel
-"Taskbar & Start Menu" through its `apps`): Always on top (off:
-`classicyTaskbarBelow`, z-index 15, until the taskbar is used), Auto hide
-(`classicyTaskbarAutoHide`, `collapsed` while slid off to a 2 px strip, no
-band), Show small icons in Start menu (`classicyStartMenuSmallIcons`, no
-banner) and Show Clock, written together by `ClassicyDesktopTaskbarSetOptions`
-on OK or Apply (`Desktop.taskbar.alwaysOnTop|autoHide|smallStartMenuIcons|showClock`,
-defaults from `classicyTaskbarOptions`); Clear
-(`ClassicyDesktopTaskbarClearHistory`) empties Documents and the Run history.
-
-The Start menu (plan 0020-w98 E2) adds Documents ▸ (the session's recent
-documents, `File/ClassicyRecentDocuments.internal.ts`: Finder's
-`ClassicyAppFinderOpenFile` records each document it opens, trusted opens
-only, most recent first, at most 15, `ClassicyAppFinderPathsMoved` renames
-them; store-free, never persisted), Run..., and, after Empty Trash… and
-Reset PRAM…, Log Off <name>... (only with `ClassicyDesktop`'s `userName`) and
-Shut Down...; no Favorites or Find (Classicy has no search). Those open the
-shell's dialogs through `ClassicyDesktopShowSystemDialog` (`"shutDown"`,
-`"run"`, `"logOff"`, accepted only under `layout.taskbar`), which
-`ClassicyDesktop` draws (`Taskbar/ClassicyShellDialogs.internal.tsx`, mounted
-only under a taskbar; Windows 98 SE's shell32 dialogs): Shut Down Windows
-(Stand by: a dark `classicyPowerScreen` until a key or press; Shut down:
-`closeClassicySessionPrograms`, then "It's now safe to turn off your
-computer." until a key or press reloads; Restart: the programs closed, then
-`startClassicyFreshSession("restart")`, a reload replaying the startup
-screen with settings and files kept; the last choice stored as
-`Desktop.taskbar.shutDownChoice`), Run (`ClassicyRunCommand.internal.ts`: an
-http(s) URL through `ClassicyDesktopOpenUrl`, a path through Finder, an app
-by id or name; else Windows' "Cannot find the file" message; history in
-`Desktop.taskbar.runHistory`, 26 at most) and Log Off Windows (Yes runs the
-host's `onLogOff`, else a reload). Shut Down and Log Off draw
-`classicyShellDialogDim` over the taskbar (z 358) for the package to dim.
-Closing the programs writes the state at once (`flushAppManagerPersistence`).
+Under a package whose layout declares `taskbar` (Windows 98) no strip is
+drawn: `ClassicyDesktop` mounts the taskbar in its place, and the strip's
+modules become the status area's notification icons (Windows Shell, below).
 
 Modules come only from `registerClassicyControlStripModule`
 (`ClassicyControlStripRegistry.ts`) — `{ id, label, icon, appId?, order?,
@@ -872,6 +771,162 @@ layers drawn with the `classicy-px-rect` function
 follows the theme. Widths snap to whole modules (module width plus its
 separator, `--control-strip-module-width` + `--control-strip-border-width`,
 31 px under Platinum).
+
+### Windows Shell
+
+Plan 0020-w98 (`docs/plans/0020-w98-dsgn-windows-98-shell-taskbar-and-window-menu-bars.md`)
+gives the Windows 95/98 shell to a package whose layout asks for it: a
+taskbar in the Control Strip's place, a Start menu, window menu bars that
+end with Help, and Windows' minimize, maximize, sizing border, system menu
+and dialog captions. Every piece is keyed on an optional layout flag
+(`ClassicyAppearanceLayoutSchema`; absent, Mac OS 8's behavior), so
+Platinum, System 7 and Storybook's `mirrored` package render and behave as
+before; Windows 98 declares them all (`windows98.json` `layout`):
+
+| Flag | Windows 98 | Absent (every other package) | Where |
+|---|---|---|---|
+| `menuBar.placement` | `"window"`: a headless screen bar, each window its own bar | `"screen"` | Theming, "Arrangement" |
+| `taskbar` (`startLabel`, `startBanner`) | the taskbar, the Start menu (its banner), CTRL+ESC | the Control Strip | below |
+| `window.collapse` | `"minimize"` | `"shade"` | Window Order & Focus Succession |
+| `window.zoom` | `"maximize"` | `"standard"` | the same |
+| `window.titleDoubleClick` | `"zoom"` | a collapse | the same |
+| `window.frameEdges` | `"resize"` | `"move"` | the same |
+| `window.systemMenu` | `true`: the window pop-up menu, ALT+SPACE, ALT+F4 | `false` | Contextual Menus |
+| `window.captionTooltips` | `true` | `false` | Window Order & Focus Succession |
+| `dialog.caption` | `"titled"` | `"plain"` | the same |
+
+The window behaviors (minimize and `classicyVisibleSuccession`, maximize and
+`restoreRect`, the sizing border, keyboard Move and Size, the window
+registry, attention, the taskbar band) are under Window Order & Focus
+Succession above; the system menu under Contextual Menus below; Help in one
+menu, and the window bar's Help and About under a taskbar, under App display
+overrides. The look is the package's (`_Taskbar.scss`, `_StartMenu.scss`,
+`_ShellDialog.scss`, `_MenuBar.scss` (window menu bars), `_Window.scss` in
+`packages/appearance/windows98/src/styles/components/`, from its `taskbar`,
+`startMenu`, `shellDialog` and `menuBar` knobs and `startMenu` colors). The example
+app marks Demo `showInQuickLaunch` and passes `userName`, so it shows a
+host's Quick Launch button and Log Off; `Appearance/Windows 98/Shell`
+(`Windows98Shell.stories.tsx`, helpers in `storybook/.storybook/windows98.ts`)
+draws every scene.
+
+**The Start menu** (`Taskbar/ClassicyStartMenu.internal.tsx`, items from
+`classicyStartMenuItems`, `ClassicyStartMenuItems.internal.ts`; WIG Ch.3
+p.15, Figure 3.1) is a `ClassicyBevelButtonPopup` (`#classicy-start-menu`,
+`classicyStartMenu`) against the Start button, flipped onto the band's edge,
+with the layout's `taskbar.startBanner` as its `aside`
+(`classicyStartMenuBanner`, `start-menu-banner` part) and Windows' menu loop
+as its `keyboard`: About This Computer, Programs ▸ (the Applications folder's
+mounted apps), Documents ▸, Settings ▸ (Control Panel ▸, the balloon
+toggle), Help, Run..., Empty Trash… and Reset PRAM…, Log Off <name>... and
+Shut Down... . The Start button toggles it, and so does CTRL+ESC anywhere on
+the page (`useClassicyTaskbarKeys.internal.ts`, WIG App. B Table B.2; not
+while a modal's scrim is open; the WINDOWS key is Command and is not bound).
+
+**The taskbar.** `ClassicyDesktop` mounts `ClassicyTaskbar` (`Taskbar/`) in
+the Control Strip's place, at the same point among its children, and no
+strip: a `<nav>` along the
+bottom, or the edge it is docked to (z-index 355) with the Start button (`taskbar-start`, `open`; its
+tooltip Windows 98's "Click here to begin.", forced, 500 ms, never over the
+open menu), a
+button per open primary window from the window registry (`taskbar-tasks`;
+no modal or palette; `active` for the active window or, under its app's
+dialog or palette, the app's front window; `collapsed`; `pressed`; a click
+restores, minimizes or activates through the registry, button 2 asks for
+the window's `systemMenu`; creation order for the session; a cut-short title
+is a forced 500 ms tooltip; each carries `data-classicy-drop-activate`, so a
+file drag resting on it 500 ms restores or activates its window, never
+minimizing it, WIG Ch.3 p.16; `classicyTaskbarTaskAttention` while its
+record's session-only `attention` is set, below) and the status area
+(`taskbar-tray`). It takes
+`controlStrip`'s `disabledModules` (published for the control panel, as the
+strip does) and `hideModules` for `controlStrip={false}`, and publishes its
+measured height as the taskbar band.
+
+**The status area.** Under a taskbar the strip's modules are its notification icons
+(`ClassicyTaskbarTray.internal.tsx`, WIG Ch.10 pp.211–212): the strip's
+arrangement less `hiddenModules`, none while `controlStrip.visible` is
+`false` or under `hideModules` (`classicyTaskbarTrayModules`); each its own
+component keyed `id:revision`, a `button.classicyTaskbarTrayIcon` (`open`
+while its surface is) opening its own `ClassicyBevelButtonPopup`
+(`classicyTaskbarTrayPopup`, flipped above the band). Button 1 opens
+`content`, else `menuItems` (after 500 ms when the menu has an `isDefault`
+item, so a double-click runs that item alone); button 2 opens `menuItems` at
+the pointer; the label is a forced 500 ms tooltip. Then the menu bar
+extensions' region, `ul#classicyDesktopMenuExtensions`
+(`classicyTaskbarTrayExtensions`), which `ClassicyMenuBarExtension` looks up
+again when the placement or the taskbar's presence changes; then the clock
+(`ClassicyTaskbarClock.internal.tsx`, `time.classicyTaskbarClock`, the
+`clock` part): `h:mm AM` (`HH:mm` under `militaryTime`), hidden while
+`DateAndTime.show` is false, the long date (`dddd, MMMM dd, yyyy`) a forced
+500 ms tooltip, a double-click opening Date & Time, button 2 the taskbar's
+menu led by Adjust Date/Time (`isDefault`); it shares the menu bar clock's
+tick (`Widgets/Time/useClassicyClockTime.internal.ts`, which writes
+`DateAndTime.dateTime` each minute), so the store keeps time under the
+headless screen bar. The strip's
+`collapsed`, `width`, `edge` and `bottom` stay stored, unused. Button 2 on
+the taskbar's background opens its own menu (`ClassicyTaskbarMenu.internal.ts`,
+Windows 98 SE's explorer.exe menu, plan 0020-w98 E1): Toolbars ▸ Quick
+Launch (over the bar and its bands only; `ClassicyDesktopTaskbarSetQuickLaunch`,
+stored as `Desktop.taskbar.quickLaunch`, absent = shown), Cascade Windows
+and Tile Windows Horizontally (stacked) / Vertically (side by side), placing
+each shown window button's window from the back through the registry's
+`place` command as ReactOS's `CascadeWindows`/`TileWindows` do
+(`ClassicyTaskbarArrange.internal.ts`), Minimize All Windows (one
+`ClassicyWindowCollapse` per window with a Minimize box, from one handler,
+the active window last), the one Undo of the last of those (Undo Cascade,
+Undo Tile, Undo Minimize All), and Properties (the Control Strip control
+panel). Quick Launch (`ClassicyTaskbarQuickLaunch.internal.tsx`) follows the
+Start button: the Finder, Show Desktop (Minimize All, then its Undo) and the
+apps marked `showInQuickLaunch` (a runtime mark,
+`App/ClassicyQuickLaunchApps.internal.ts`), each band then led by a
+`classicyTaskbarGripper`. Past one row at their least width (the package's
+`min-width` and `column-gap`, measured) the window buttons page
+(`classicyTaskbarTasksPaged`, an up/down `classicyTaskbarPager`).
+
+**Docking and Taskbar Properties.** The taskbar docks to any edge (plan 0020-w98 E4,
+`Taskbar/ClassicyTaskbarDock.internal.ts`): a drag of its empty area moves it
+to the edge whose diagonal quarter of the desktop holds the pointer, stored
+as `Desktop.taskbar.edge` (`ClassicyDesktopTaskbarSetEdge`; root classes
+`classicyTaskbarEdge<Edge>`, `classicyTaskbarVertical` at a side, where the
+buttons stack and page down the band), and the band lies on that edge
+(`setClassicyTaskbarBand(px, owner, edge)`, `getClassicyTaskbarInsets`; every
+geometry function's band argument takes insets, a number being the
+bottom's), so windows, maximize, Cascade and Tile, Clean Up and menus keep to
+the work area, and the Start menu and tray pop-ups open toward the desktop.
+Under a taskbar the Control Strip control panel is Taskbar Properties
+(`Taskbar/ClassicyTaskbarProperties.internal.tsx`; Windows 98 names the panel
+"Taskbar & Start Menu" through its `apps`): Always on top (off:
+`classicyTaskbarBelow`, z-index 15, until the taskbar is used), Auto hide
+(`classicyTaskbarAutoHide`, `collapsed` while slid off to a 2 px strip, no
+band), Show small icons in Start menu (`classicyStartMenuSmallIcons`, no
+banner) and Show Clock, written together by `ClassicyDesktopTaskbarSetOptions`
+on OK or Apply (`Desktop.taskbar.alwaysOnTop|autoHide|smallStartMenuIcons|showClock`,
+defaults from `classicyTaskbarOptions`); Clear
+(`ClassicyDesktopTaskbarClearHistory`) empties Documents and the Run history.
+
+**The shell's dialogs.** The Start menu (plan 0020-w98 E2) adds Documents ▸ (the session's recent
+documents, `File/ClassicyRecentDocuments.internal.ts`: Finder's
+`ClassicyAppFinderOpenFile` records each document it opens, trusted opens
+only, most recent first, at most 15, `ClassicyAppFinderPathsMoved` renames
+them; store-free, never persisted), Run..., and, after Empty Trash… and
+Reset PRAM…, Log Off <name>... (only with `ClassicyDesktop`'s `userName`) and
+Shut Down...; no Favorites or Find (Classicy has no search). Those open the
+shell's dialogs through `ClassicyDesktopShowSystemDialog` (`"shutDown"`,
+`"run"`, `"logOff"`, accepted only under `layout.taskbar`), which
+`ClassicyDesktop` draws (`Taskbar/ClassicyShellDialogs.internal.tsx`, mounted
+only under a taskbar; Windows 98 SE's shell32 dialogs): Shut Down Windows
+(Stand by: a dark `classicyPowerScreen` until a key or press; Shut down:
+`closeClassicySessionPrograms`, then "It's now safe to turn off your
+computer." until a key or press reloads; Restart: the programs closed, then
+`startClassicyFreshSession("restart")`, a reload replaying the startup
+screen with settings and files kept; the last choice stored as
+`Desktop.taskbar.shutDownChoice`), Run (`ClassicyRunCommand.internal.ts`: an
+http(s) URL through `ClassicyDesktopOpenUrl`, a path through Finder, an app
+by id or name; else Windows' "Cannot find the file" message; history in
+`Desktop.taskbar.runHistory`, 26 at most) and Log Off Windows (Yes runs the
+host's `onLogOff`, else a reload). Shut Down and Log Off draw
+`classicyShellDialogDim` over the taskbar (z 358) for the package to dim.
+Closing the programs writes the state at once (`flushAppManagerPersistence`).
 
 ### Contextual Menus
 

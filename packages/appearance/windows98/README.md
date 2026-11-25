@@ -371,6 +371,13 @@ taskbar, the Start menu, the status area, window menu bars, maximized and
 minimized windows, the system menu, message boxes, Shut Down, Run, Taskbar
 Properties and a docked taskbar), each opened as a user would open it.
 
+`pnpm preview` runs the example app, which loads this package beside
+Platinum and System 7: choose Windows 98 in the Appearance control panel's
+Packages tab to drive the shell with real apps. Its Demo app has a Quick
+Launch button (`showInQuickLaunch`), its Demo Extension a status indicator
+in the notification area (a `ClassicyMenuBarExtension`), and its desktop a
+`userName`, so the Start menu offers Log Off Guest....
+
 ## License
 
 This software is provided free and in the public domain under

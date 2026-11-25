@@ -28,7 +28,9 @@ const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
 createRoot(rootElement).render(
 	<StrictMode>
-		<Classicy>
+		{/* userName: the Windows 98 shell's Start menu offers "Log Off
+		    Guest..." for it; no other package reads it. */}
+		<Classicy userName="Guest">
 			<Browser />
 			<BlueBox />
 			<Demo />
