@@ -3891,7 +3891,11 @@ registerClassicyFileSystemAdapter({
 
 All hooks are optional (capability-based). Register at app entry before
 rendering. Re-registering an id replaces it; `unregisterClassicyFileSystemAdapter(id)`
-removes it. Adapter exceptions are isolated — a faulty adapter can never block
+removes it. `flushClassicyFileSystemPending()` writes every storage key's
+debounced persist now, as `pagehide` does; a test harness that gives each case
+a fresh `localStorage` calls it first, or the next case's first instance drains
+the last case's pending write into the fresh storage and reads it back as its
+tree. Adapter exceptions are isolated — a faulty adapter can never block
 local operation. Derived folders (Applications, Extensions, Control Strip
 Modules) never journal, and their `_derived` entries never reach persistence:
 `snapshot()` (the localStorage write and every adapter snapshot, whose `tree`

@@ -20,6 +20,8 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import type * as SearchModule from "@/SystemFolder/FindFile/ClassicyFindFileSearch";
+import type * as SourcesModule from "@/SystemFolder/FindFile/ClassicyFindSources";
 import {
 	type ClassicyFindResult,
 	listClassicyFindSources,
@@ -42,6 +44,58 @@ import {
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const READ_ME = "Macintosh HD:Documents:Read Me.txt";
+
+// The searches Find File runs last, so a test waits for a search's end, not
+// for a time: Items Found opens (or the alert shows) when the search's
+// promise settles, which takes as long as the machine takes. Each module's
+// export is the call FindFile makes.
+const searches = vi.hoisted(() => ({
+	files: undefined as Promise<unknown> | undefined,
+	sources: undefined as Promise<unknown> | undefined,
+}));
+vi.mock(
+	"@/SystemFolder/FindFile/ClassicyFindFileSearch",
+	async (importOriginal) => {
+		const actual = await importOriginal<typeof SearchModule>();
+		return {
+			...actual,
+			searchClassicyFileSystem: (
+				...args: Parameters<typeof actual.searchClassicyFileSystem>
+			) => {
+				const search = actual.searchClassicyFileSystem(...args);
+				searches.files = search;
+				return search;
+			},
+		};
+	},
+);
+vi.mock(
+	"@/SystemFolder/FindFile/ClassicyFindSources",
+	async (importOriginal) => {
+		const actual = await importOriginal<typeof SourcesModule>();
+		return {
+			...actual,
+			searchClassicyFindSources: (
+				...args: Parameters<typeof actual.searchClassicyFindSources>
+			) => {
+				const search = actual.searchClassicyFindSources(...args);
+				searches.sources = search;
+				return search;
+			},
+		};
+	},
+);
+
+/**
+ * The last search of `kind`, run to its end inside `act`: its results drawn
+ * (Items Found registered and open), or its alert.
+ */
+const searchEnds = (kind: "files" | "sources" = "files") =>
+	act(async () => {
+		const search = searches[kind];
+		if (!search) throw new Error(`No search of ${kind} was started`);
+		await search.catch(() => {});
+	});
 
 const apps = () => useAppManager.getState().System.Manager.Applications.apps;
 const findFile = () => apps()[FIND_FILE_APP_ID];
@@ -153,6 +207,8 @@ describe("Find File", { timeout: 30_000 }, () => {
 		localStorage.clear();
 		sessionStorage.clear();
 		useAppManager.setState(DefaultAppManagerState, true);
+		searches.files = undefined;
+		searches.sources = undefined;
 		const fs = new ClassicyFileSystem();
 		fs.writeFile("Macintosh HD:Documents:Projects:Plan.txt", "plan", {
 			_type: ClassicyFileSystemEntryFileType.TextFile,
@@ -208,7 +264,8 @@ describe("Find File", { timeout: 30_000 }, () => {
 		await openFindFile();
 		typeName("read m");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		const results = resultsWindow() as HTMLElement;
 		expect(within(results).getByText("Found 1 Item")).toBeInTheDocument();
 		expect(within(results).getAllByText("Read Me.txt").length).toBeGreaterThan(
@@ -233,7 +290,8 @@ describe("Find File", { timeout: 30_000 }, () => {
 		await openFindFile();
 		typeName("read me");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		choose("Open Item");
 		await waitFor(() => expect(apps()["SimpleText.app"]?.open).toBe(true));
 		const recent = useAppManager
@@ -250,7 +308,8 @@ describe("Find File", { timeout: 30_000 }, () => {
 		await openFindFile();
 		typeName("plan.txt");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		choose("Open Enclosing Folder");
 		const folder = "Macintosh HD:Documents:Projects";
 		await waitFor(() =>
@@ -294,7 +353,8 @@ describe("Find File", { timeout: 30_000 }, () => {
 		await openFindFile();
 		typeName("zebra");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		choose("Open Enclosing Folder");
 		expect(
 			await screen.findByText(
@@ -314,7 +374,8 @@ describe("Find File", { timeout: 30_000 }, () => {
 		fireEvent.click(screen.getByRole("button", { name: "OK" }));
 		typeName("qqzzx");
 		clickFind();
-		expect(await screen.findByText("No items were found.")).toBeInTheDocument();
+		await searchEnds();
+		expect(screen.getByText("No items were found.")).toBeInTheDocument();
 		expect(resultsWindow()).toBeFalsy();
 	});
 
@@ -376,7 +437,8 @@ describe("Find File", { timeout: 30_000 }, () => {
 		await openFindFile();
 		typeName("read me");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		choose("Close Window");
 		await waitFor(() => expect(resultsWindow()).toBeFalsy());
 		expect(findFile()?.open).toBe(true);
@@ -393,6 +455,8 @@ describe("Find File's channels", { timeout: 30_000 }, () => {
 		localStorage.clear();
 		sessionStorage.clear();
 		useAppManager.setState(DefaultAppManagerState, true);
+		searches.files = undefined;
+		searches.sources = undefined;
 		registerClassicyLogSink({
 			id: "find-file-test",
 			onLog: (e) => logs.push(e),
@@ -459,11 +523,10 @@ describe("Find File's channels", { timeout: 30_000 }, () => {
 		renderDesktop();
 		await openFindFile();
 		await searchFor("news");
-		await waitFor(() =>
-			expect(
-				within(resultsWindow() as HTMLElement).getByText("Found 3 Items"),
-			).toBeInTheDocument(),
-		);
+		await searchEnds("sources");
+		expect(
+			within(resultsWindow() as HTMLElement).getByText("Found 3 Items"),
+		).toBeInTheDocument();
 		const results = resultsWindow() as HTMLElement;
 		expect(within(results).getAllByText("The Archive").length).toBeGreaterThan(
 			0,
@@ -518,7 +581,9 @@ describe("Find File's channels", { timeout: 30_000 }, () => {
 			answers[0]([{ name: "Old answer", kind: "page", open: () => {} }]);
 			answers[1]([{ name: "New answer", kind: "page", open: () => {} }]);
 		});
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		// The second search ends with its one source's answer.
+		await searchEnds("sources");
+		expect(resultsWindow()).toBeTruthy();
 		const results = resultsWindow() as HTMLElement;
 		expect(within(results).getAllByText("New answer").length).toBeGreaterThan(
 			0,

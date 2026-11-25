@@ -965,7 +965,10 @@ A storage key's first instance (or an epoch reload with nothing stored) seeds
 the live tree from a deep copy of the defaults (`copyClassicyFileSystemSeed`),
 so `DefaultFSContent`, a host's `defaultFileSystem` and seed-migration entries
 are never edited in place (0098).
-Tests reset the trees in `src/__tests__/setup.ts`.
+Tests reset the trees in `src/__tests__/setup.ts`, after flushing the last
+case's debounced writes into its own storage (`flushClassicyFileSystemPending`,
+`ClassicyFileSystemAdapter.ts`): left pending, the next case's first instance
+would drain them into its fresh storage and read them back as its tree.
 
 Derived overlays (Applications, Extensions, Control Strip Modules) mark their
 entries `_derived: true`; each rebuild drops the previous build's entries
