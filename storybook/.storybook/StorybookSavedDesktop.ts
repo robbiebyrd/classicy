@@ -1,5 +1,6 @@
 import {
 	CLASSICY_DESKTOP_STATE_STORAGE_KEY,
+	persistAppManagerStateNow,
 	startAppManagerPersistence,
 	stopAppManagerPersistence,
 	wasHydratedFromStorage,
@@ -19,9 +20,12 @@ import {
  * the story's frame draws the store as it loaded, where it would otherwise
  * reset it, when the page shows the story it was saved for, under the same
  * Package and Theme toolbar choices. Any other first story resets the store
- * before it draws (`claimClassicyStorybookLoadedState`). The saved state is
- * removed when the story leaves; a page closed while it is shown leaves it
- * saved, and the next page sets it aside the same way.
+ * before it draws (`claimClassicyStorybookLoadedState`). The state is saved
+ * at once when the story is shown, with its owner, so the two always agree:
+ * a reload before the first debounced save draws what the story showed, never
+ * another owner's state left under the key. The saved state is removed when
+ * the story leaves; a page closed while it is shown leaves it saved, and the
+ * next page sets it aside the same way.
  */
 
 /** Where the owner of the saved desktop state is kept. */
@@ -65,16 +69,30 @@ export const claimClassicyStorybookLoadedState = (owner?: string): boolean => {
  * Saves the desktop state as a host's page does, for `owner`, until the
  * returned function is called: it stops saving and removes the saved state,
  * so no other story loads it.
+ *
+ * The state shown now is saved at once, before the owner is written, and
+ * another owner's state is removed first: the owner key never names state it
+ * was not saved for, so a reload before the first debounced save (500 ms
+ * after the mount burst's last change; without an adapter `pagehide` writes
+ * nothing) draws this story's state, not the other owner's (integration
+ * review G round 5, findings 1 and 3).
  */
 export const keepClassicyStorybookDesktopSaved = (
 	owner: string,
 ): (() => void) => {
 	try {
+		if (readOwner() !== owner)
+			localStorage.removeItem(CLASSICY_DESKTOP_STATE_STORAGE_KEY);
+	} catch {
+		// Storage blocked: nothing is saved either.
+	}
+	startAppManagerPersistence();
+	persistAppManagerStateNow();
+	try {
 		localStorage.setItem(OWNER_KEY, owner);
 	} catch {
 		// Storage blocked: nothing will be saved either.
 	}
-	startAppManagerPersistence();
 	return () => {
 		stopAppManagerPersistence();
 		try {

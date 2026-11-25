@@ -18,13 +18,17 @@ const OWNER = JSON.stringify(["test--story", "platinum", "default"]);
  * when the store is created, then Platinum and the decorator, in
  * preview.tsx's order.
  */
-const loadPage = async (saved?: string | null, owner = OWNER) => {
-	if (saved) {
-		localStorage.setItem(KEY, saved);
-		localStorage.setItem(OWNER_KEY, owner);
-	} else {
-		localStorage.removeItem(KEY);
-		localStorage.removeItem(OWNER_KEY);
+const loadPage = async (saved?: string | null, owner = OWNER) =>
+	loadPageWith({
+		[KEY]: saved ?? null,
+		[OWNER_KEY]: saved ? owner : null,
+	});
+
+/** A page loaded anew with localStorage holding exactly `storage`. */
+const loadPageWith = async (storage: Record<string, string | null>) => {
+	for (const [key, value] of Object.entries(storage)) {
+		if (value === null) localStorage.removeItem(key);
+		else localStorage.setItem(key, value);
 	}
 	vi.resetModules();
 	await import("@classicy/appearance-platinum");
@@ -65,6 +69,8 @@ const loadPage = async (saved?: string | null, owner = OWNER) => {
 		});
 	return {
 		show,
+		/** The page goes away as a reload takes it: it writes nothing more. */
+		stopSaving: store.stopAppManagerPersistence,
 		dispatch: store.dispatch,
 		balloonHelpOff,
 		turnBalloonHelpOff,
@@ -72,14 +78,24 @@ const loadPage = async (saved?: string | null, owner = OWNER) => {
 	};
 };
 
-/** The saved state's balloon help switch, once it is saved (within 3 s). */
-const savedBalloonHelpOff = async (): Promise<boolean | undefined> => {
+/**
+ * The saved state's balloon help switch once it reads `expected` (within
+ * 3 s), else the last one saved: the story saves its state at once when it
+ * is shown, so a change is saved over an earlier copy.
+ */
+const savedBalloonHelpOff = async (
+	expected: boolean,
+): Promise<boolean | undefined> => {
+	let last: boolean | undefined;
 	for (let waited = 0; waited < 3000; waited += 100) {
 		const text = localStorage.getItem(KEY);
-		if (text) return JSON.parse(text).System.Manager.Desktop.disableBalloonHelp;
+		if (text) {
+			last = JSON.parse(text).System.Manager.Desktop.disableBalloonHelp;
+			if (last === expected) return last;
+		}
 		await new Promise((resolve) => setTimeout(resolve, 100));
 	}
-	return undefined;
+	return last;
 };
 
 const KEEPS = { desktop: true, controlStrip: false, persistence: true };
@@ -102,7 +118,7 @@ describe("a Storybook story that keeps its desktop state", () => {
 		const page = await loadPage();
 		const { unmount } = await page.show(KEEPS);
 		page.turnBalloonHelpOff();
-		expect(await savedBalloonHelpOff()).toBe(true);
+		expect(await savedBalloonHelpOff(true)).toBe(true);
 		// Saved for this story, under this package and theme.
 		expect(localStorage.getItem(OWNER_KEY)).toBe(OWNER);
 		act(() => unmount());
@@ -127,7 +143,7 @@ describe("a Storybook story that keeps its desktop state", () => {
 				disableBalloonHelp: false,
 			});
 		});
-		expect(await savedBalloonHelpOff()).toBe(false);
+		expect(await savedBalloonHelpOff(false)).toBe(false);
 	}, 60000);
 
 	it.each([
@@ -144,6 +160,35 @@ describe("a Storybook story that keeps its desktop state", () => {
 		},
 		60000,
 	);
+
+	// A page that starts the story afresh (the state left under the key was
+	// saved for another owner) saves its own state with the owner at once:
+	// reloaded before its first debounced save, it draws the defaults, never
+	// the other owner's state under its own owner (integration review G
+	// round 5, findings 1 and 3).
+	it.each([
+		0, 300,
+	])("a reload %i ms after the story started afresh draws the defaults, not the other owner's state", async (wait) => {
+		const first = await loadPage(
+			SAVED,
+			JSON.stringify(["test--story", "platinum", "azul"]),
+		);
+		const view = await first.show(KEEPS);
+		expect(first.offAtFirstDraw()).toBe(false);
+		await new Promise((resolve) => setTimeout(resolve, wait));
+		// What the page leaves when it goes away: a reload runs no cleanup.
+		const left = {
+			[KEY]: localStorage.getItem(KEY),
+			[OWNER_KEY]: localStorage.getItem(OWNER_KEY),
+		};
+		expect(left[OWNER_KEY]).toBe(OWNER);
+		first.stopSaving();
+		act(() => view.unmount());
+		const reloaded = await loadPageWith(left);
+		await reloaded.show(KEEPS);
+		expect(reloaded.offAtFirstDraw()).toBe(false);
+		expect(reloaded.balloonHelpOff()).toBe(false);
+	}, 60000);
 
 	it.each([
 		["a desktop story", { desktop: true, controlStrip: false }],
