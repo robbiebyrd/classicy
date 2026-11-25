@@ -54,7 +54,9 @@ describe("fixed menu surfaces", () => {
 			".classicyDesktopMenuAppSwitcher * ul",
 		);
 		expect(bar.left).toBe("auto");
-		expect(bar.right).toMatch(/^calc\(/);
+		// Its frame's right column under the title's last, as Mac OS 8.1 and
+		// 8.5 draw it: out of the title's content box by its end padding.
+		expect(bar.right).toBe("calc(var(--menu-item-padding-inline) * -1)");
 		expect(bar.width).toBeUndefined();
 	});
 

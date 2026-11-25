@@ -174,13 +174,16 @@ $classicy-menu-bar-order: (
   }
 
   // The Application menu hangs left of its title's right side, as wide as
-  // its widest item (`.classicySubMenu`): Mac OS 8.1's title is the front
-  // application's icon alone, its menu much wider (the 8.1 capture of the
-  // menu's order, `resources/screenshots/mac-os-8.1/`).
+  // its widest item (`.classicySubMenu`), the frame's right column under
+  // the title's last, as Mac OS 8.1 and 8.5 both draw it (x 633 in the 8.1
+  // capture of the menu's order, `resources/screenshots/mac-os-8.1/`):
+  // past the title's content box, where its wrapper is, by the title's end
+  // padding (a package that pads the title otherwise places it, as Platinum
+  // and System 7 do).
   * {
     ul {
       left: auto;
-      right: calc((var(--window-control-size) - var(--window-padding-size)) * -1);
+      right: calc(var(--menu-item-padding-inline) * -1);
     }
   }
 }

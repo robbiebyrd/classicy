@@ -79,6 +79,16 @@ $grip-dots-bottom-right: (3 5) (3 8) (3 11) (3 14);
     &.collapsed > p > img {
       margin-right: 0;
     }
+
+    // Its menu hangs with the frame's right column under the title's last,
+    // as Mac OS 8.1 and 8.5 both draw it (x 633 in
+    // `mac-os-8.1/platinum-81-appmenu-order.png`; x 628 with Apple System
+    // Profiler in front in 8.5, audit-85b `im85/b2-asp-appmenu.png`): past
+    // the title's content box, where the base sheet hangs it, by the
+    // title's end padding.
+    > .classicyMenuWrapper > .classicySubMenu {
+      right: calc(var(--menu-bar-switcher-title-end) * -1);
+    }
   }
 
   #{$bar} > .classicyMenuItem.classicyDesktopMenuTime {

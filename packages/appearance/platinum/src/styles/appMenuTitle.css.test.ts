@@ -178,6 +178,13 @@ describe("Platinum's Application menu title geometry (Mac OS 8.5)", () => {
 			"0 var(--menu-bar-switcher-title-end) 0 var(--menu-bar-switcher-title-start)",
 		);
 		expect(rule(BAR)["padding-right"]).toBe("var(--menu-bar-end-inset)");
+		// Its menu's right side under the title's: the wrapper is the title's
+		// content box, so the list reaches out by the title's end padding.
+		expect(
+			rule(
+				`${P} :is(${bar} > .classicyMenuItem, ${bar} > .classicyMenuItemBalloonAnchor > .classicyMenuItem).classicyDesktopMenuAppSwitcher > .classicyMenuWrapper > .classicySubMenu`,
+			).right,
+		).toBe("calc(var(--menu-bar-switcher-title-end) * -1)");
 		expect(rule(`${BAR} > .classicyMenuItem.classicyDesktopMenuTime`)).toEqual({
 			"margin-right": "0",
 			"padding-right": "var(--menu-bar-clock-end)",
