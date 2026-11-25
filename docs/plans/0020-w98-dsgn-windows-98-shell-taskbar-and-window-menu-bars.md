@@ -6,7 +6,7 @@ status: ready
 priority: "2"
 effort: XL
 created: "2026-11-25T02:47:00.000Z"
-updated: "2026-11-25T02:47:00.000Z"
+updated: "2026-11-25T03:15:00.000Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -50,15 +50,16 @@ bar while a Finder window is focused.
 **Approach:** Add optional layout flags that the Windows 98 package declares
 and the core reads (`taskbar`, `window.collapse`, `window.zoom`,
 `window.titleDoubleClick`, `window.frameEdges`, `window.systemMenu`,
-`dialog.caption`). With a flag absent, the core behaves as it does today. Add a
-core `ClassicyTaskbar` component, mounted by `ClassicyDesktop` only when the
-layout asks for one. It is built from what Classicy already has: the window
-records, the Control Strip registry, the Apple menu's entries, the Applications
-folder, the Help menu and the Special menu. Every new class, part and state
-that it or a window flag emits is read only by the Windows 98 package. Draw
-the look in new and rewritten Windows 98 partials. Fix the double Help menu in
-every package by merging an application's Help menu into the system Help menu,
-as the Mac OS HIG and the Windows guidelines both ask.
+`window.captionTooltips`, `dialog.caption`). With a flag absent, the core
+behaves as it does today. Add a core `ClassicyTaskbar` component, mounted by
+`ClassicyDesktop` only when the layout asks for one. It is built from what
+Classicy already has: the window records, the Control Strip registry, the
+Apple menu's entries, the Applications folder, the Help menu and the Special
+menu. Every new class, part and state that it or a window flag emits is read
+only by the Windows 98 package. Draw the look in new and rewritten Windows 98
+partials. Fix the double Help menu in every package by merging an
+application's Help menu into the system Help menu, as the Mac OS HIG and the
+Windows guidelines both ask.
 
 ---
 
@@ -110,6 +111,13 @@ as the Mac OS HIG and the Windows guidelines both ask.
   - The four `classicyWindowFrameEdge-*` handles call `startMoveWindow`.
   - The title bar's double-click collapses the window when the desktop's
     `doubleClickTitleToCollapse` preference is on.
+  - `setCollapse(true)` first clears `zoomed` (`setZoom(false, true,
+    "collapse")`), and `setResize` writes nothing while `ws.collapsed`.
+  - Clicks bubble: the root's `onClick={setActive}` and `onMouseUp`
+    (`stopChangeWindow`, which calls `setActive`) run after any control's own
+    click, and then `ClassicyApp`'s container dispatches
+    `ClassicyAppActivate`, which `focusApp`s the app's last-accessed window
+    (`pickWindowToRestore`).
   - A right-click anywhere on the window shows `contextMenu` or the app's
     `contextMenu`.
   - `resizable={false}` adds `classicyWindowNoResize`.
@@ -122,7 +130,16 @@ as the Mac OS HIG and the Windows guidelines both ask.
   `resolvePosition` and `clampWindowPositionToViewport` keep a window below the
   menu bar's band. Nothing reserves a band at the bottom. The desktop icon grid
   (`createGrid` and `classicyDesktopIconGridPosition` in
-  `ClassicyDesktopIconContext.tsx`) uses the whole viewport height.
+  `ClassicyDesktopIconContext.tsx`) uses the whole viewport height, and so does
+  every menu's placement box (`classicyMenuBounds`,
+  `ClassicyMenuPlacement.internal.ts`). `.classicyWindow` caps its height at
+  `calc(100% - var(--window-max-height-reserve))` (53 px under Windows 98:
+  `window.controlSize * 4 + window.paddingSize`).
+- **Stacking.** Windows sit at z-index 20 (active 300, the active app's 150,
+  floating palettes 350), the Control Strip at 355, a modal's scrim at 360 and
+  a non-error modal at 370, contextual menus at 900 and bevel pop-ups at 5000,
+  all in `#classicyDesktop`'s stacking context. A window's own menu bar's
+  pull-downs live inside the window's stacking context.
 - **Dialogs.** Every bundled dialog except the color picker passes
   `closable={false}`. `ClassicyAlert` has no title unless it is given one, and
   a fixed alert (`type="error"`) cannot be moved. The Windows 98 package
@@ -191,10 +208,16 @@ The rules read:
 - **Ch.7 "The Help Menu" (p.99).** Help topics, then "About *application
   name*" with no ellipsis.
 - **Ch.7 "The Window Pop-up Menu" (p.102).** Close, Restore, Move, Size,
-  Minimize and Maximize. A secondary window has Move and Close.
+  Minimize and Maximize. A secondary window has Move and Close. Button 2
+  anywhere in the title bar shows it, "excluding the title bar icon", whose
+  button 2 shows the icon's own menu; button 1 on the icon shows the window's
+  menu for compatibility.
 - **Ch.8 "Appearance and Behavior" (p.145, Figure 8.1).** A secondary window
   has no taskbar button and no Maximize or Minimize button. It may have a
   Close button and has a pop-up menu.
+- **Ch.8 "Interaction with Other Windows" (p.145).** When a primary window is
+  minimized, its dependent secondary windows are hidden, and they come back
+  with it.
 - **Ch.8 "Palette Windows" (p.164, Figure 8.16).** A palette's menu: Close,
   Move, Size.
 - **Ch.8 "Message Boxes" (p.164).** The title names the context, usually the
@@ -208,7 +231,8 @@ The rules read:
   window's button, and a drag over a button restores its window.
 - **Ch.10 "Status Notification" (pp.211–212, Figure 10.2).**
   - Button 1 opens a pop-up window of information or controls, as the volume
-    control does.
+    control does. "If there is no information or control that applies, do not
+    display anything."
   - Button 2 opens a pop-up menu.
   - A double-click runs the menu's default command.
   - A tooltip names the indicator.
@@ -217,8 +241,8 @@ The rules read:
 - **App. B Table B.2 (p.358).** ALT+SPACEBAR shows the window's pop-up menu,
   ALT+F4 closes the active window, CTRL+ESC accesses the Start button, and
   ALT+TAB and ALT+ESC switch windows.
-- **App. B Table B.3 (p.359).** The WINDOWS key shows the Start menu, and
-  WINDOWS+M minimizes all windows.
+- **App. B Table B.3 (p.359).** The WINDOWS key shows the Start menu,
+  WINDOWS+M minimizes all windows and SHIFT+WINDOWS+M is "Undo Minimize All".
 
 Where the 1995 text says nothing, Windows 98 as shipped decides, read from
 Wine 5.0's `user32` and `comctl32`, ReactOS's `explorer` and os-gui 0.7.3's
@@ -228,7 +252,9 @@ Wine 5.0's `user32` and `comctl32`, ReactOS's `explorer` and os-gui 0.7.3's
   On the caption, it maximizes or restores when the window has a Maximize box.
   On the system-menu icon, it closes.
 - **Caption right-click** (`NC_HandleNCRButtonDown`). On the caption or the
-  icon, it shows the window menu.
+  icon, it shows the window menu. This is the OS as shipped over p.102's icon
+  menu: a window's icon in Classicy stands for no object with commands of its
+  own, so the window menu is the only menu it could show.
 - **System menu states** (Wine `menu.c`, `MENU_InitSysMenuPopup`):
   - Size is grayed unless the window is sizable and neither maximized nor
     minimized.
@@ -265,6 +291,14 @@ Wine 5.0's `user32` and `comctl32`, ReactOS's `explorer` and os-gui 0.7.3's
   (`TRAY_CLOCK_WND_SPACING_X`). The tooltip is `DATE_LONGDATE`.
 - **Tooltips** (Wine `tooltips.c`, `TTDT_AUTOMATIC`). The initial delay is
   `GetDoubleClickTime()`, 500 ms by default.
+- **The taskbar's own menu** (Windows 98 as shipped). Toolbars ▸, Cascade
+  Windows, Tile Windows Horizontally, Tile Windows Vertically, Minimize All
+  Windows, then Properties. After Minimize All Windows the item reads "Undo
+  Minimize All" and restores what it minimized.
+- **Owned windows** (Wine `nonclient.c`, `NC_HandleSysCommand`). `SC_MINIMIZE`
+  calls `ShowOwnedPopups(hwnd, FALSE)` before minimizing the active window,
+  and `SC_RESTORE` shows them again: a minimized window's palettes and dialogs
+  go with it, as Ch.8 (p.145) asks.
 
 ## Decisions
 
@@ -284,7 +318,21 @@ Wine 5.0's `user32` and `comctl32`, ReactOS's `explorer` and os-gui 0.7.3's
   window minimized under Windows 98 then shows as a WindowShade title bar
   under Platinum, where it stays reachable. With a separate `minimized` field,
   a minimized window would be lost under a package with no taskbar, and the
-  persisted window record would gain a key under every package.
+  persisted window record would gain a key under every package. Under the
+  flag a `utility` or `modal` record's `collapsed` is ignored (drawn
+  expanded), since neither has a taskbar button to come back from: a palette
+  shaded under Platinum is never lost under Windows 98.
+- **A maximized window minimizes and restores maximized.** — Windows as
+  shipped: `SC_MINIMIZE` keeps the window's maximized placement and
+  `SC_RESTORE` from the taskbar brings it back maximized. So under
+  `window.collapse: "minimize"`, `setCollapse(true)` does not clear `zoomed`
+  (today it calls `setZoom(false, true, "collapse")`, which a WindowShade
+  needs and a minimize must not do).
+- **A minimized app's palettes go with it.** — WIG Ch.8 (p.145), Wine
+  `NC_HandleSysCommand`. Classicy's palettes belong to an app, not a window,
+  so under the flag a `utility` window is hidden while its app has at least
+  one open document window and every one of them is minimized. An app with
+  palettes only keeps them.
 - **Maximize reuses `zoomed`. A `restoreRect` is persisted only when a window
   is maximized under `window.zoom: "maximize"`.** — My call. Restore must
   survive a reload, which the session-only `userStateRef` does not. Platinum
@@ -335,6 +383,22 @@ Wine 5.0's `user32` and `comctl32`, ReactOS's `explorer` and os-gui 0.7.3's
   whole desktop, a Mac adaptation this plan keeps, so an open dialog blocks
   the taskbar as it blocks the desktop. Windows leaves the taskbar usable.
   The deviation is recorded.
+- **Menus keep above the taskbar.** `classicyMenuBounds` takes the taskbar's
+  band off the bottom of the box every menu, pop-up, combo box list,
+  contextual menu and bevel pop-up keeps to. — My call. A window's pull-downs
+  are inside the window's stacking context (z 300), under the taskbar's 355,
+  so a menu that ran into the band would be hidden behind it. Windows may let
+  a menu cover the taskbar; Classicy flips or caps it above the band instead.
+  The band is 0 without a taskbar, so every other package's menus are placed
+  exactly as today. The Start menu and the tray's pop-ups, anchored in the
+  band, flip above it and sit on its top edge.
+- **A maximized window is not capped by the window height reserve.** Under
+  `window.zoom: "maximize"` a maximized window's root carries
+  `classicyWindowMaximized`, whose one base rule sets `max-height: none`:
+  `.classicyWindow`'s `calc(100% - var(--window-max-height-reserve))` (53 px
+  under Windows 98) would stop it 25 px short of the taskbar. — My call. The
+  existing `expanded` state cannot carry the rule, since every package emits
+  it on a zoomed window.
 - **The taskbar is fixed to the bottom edge, and the layout has no `edge`
   flag.** — My call. Moving the taskbar is a Taskbar Properties preference,
   which Classicy has no surface for, and no package asks for another edge.
@@ -346,6 +410,33 @@ Wine 5.0's `user32` and `comctl32`, ReactOS's `explorer` and os-gui 0.7.3's
   500 ms, as WIG Ch.3 (p.16) and Ch.10 (p.211) ask.** — My call. The delay is
   the double-click time Windows uses for its hover timers (Wine
   `tooltips.c`). The guidelines give no figure.
+- **The Application menu's Hide, Hide Others and Show All have no home under
+  the shell.** — My call. Windows has no application-level hide. The
+  taskbar's Minimize All Windows and Undo Minimize All are its counterparts,
+  and an app hidden earlier in the session (under another package) is shown
+  by activating any of its task buttons (`markAppFocused` shows it). The App
+  Switcher's list of open apps becomes the task buttons. An open app with no
+  open window has no button, as in Windows; choosing it in Start ▸ Programs
+  reopens its windows (`openApp` clears every window's `closed`), so nothing
+  an app offers is stranded.
+- **A tray icon whose module has only a menu opens that menu on button 1.**
+  — Windows 98 as shipped over WIG p.211's "do not display anything": its own
+  Display indicator (QuickRes) opened its menu of settings on a click.
+  Classicy's Screen Saver and Appearance modules' menus are their controls.
+  Button 2 opens the same menu, as the WIG asks.
+- **The balloon toggle stays reachable with no window open.** Start ▸
+  Settings holds "Show Balloons" / "Hide Balloons" (⌥H) beside Control Panel.
+  — My call. The screen bar's Help menu held it at all times; under the shell
+  only window bars have a Help menu. Settings is where Windows 98's Start
+  menu kept system preferences.
+- **No new action type.** Every shell command dispatches existing actions:
+  `ClassicyWindowCollapse`/`Expand`/`Zoom`/`Focus`/`Move`/`Resize`/`Close`
+  from the window's own paths, `ClassicyAppOpen` from the Start menu, the
+  tray and the taskbar's menu, `ClassicyDesktopSetBalloonHelp` and
+  `ClassicyDesktopShowSystemDialog` from the existing menu items. The one new
+  payload field, `ClassicyWindowZoom`'s `restore`, is on the guarded floor
+  (`ClassicyWindow*`), so no HyperCard script or other untrusted dispatch can
+  minimize, maximize or move a window. The allowlist is unchanged.
 
 ### Rejected alternatives
 
@@ -362,9 +453,16 @@ Wine 5.0's `user32` and `comctl32`, ReactOS's `explorer` and os-gui 0.7.3's
   retires that adaptation (audit 3.1, 3.2, "Mac-structure adaptations").
 - **The taskbar above modals.** A user could switch apps under an app-modal
   dialog, which the core's modal model does not support.
+- **Lifting window menus above the taskbar** (portaling each window
+  pull-down out of its window). It would change where every package's window
+  menus live in the DOM, for a gain the menu bounds give with no DOM change.
+- **A `minimized` state or `display: none` keyed on `collapsed`.** The 16
+  states are fixed, and `collapsed` is drawn by every package as WindowShade.
 - **Cascade Windows and Tile Windows in the taskbar's menu.** The guidelines
   do not require them, and they would be new window-arrangement behavior. The
-  menu offers Minimize All Windows (WINDOWS+M's command) and Properties.
+  menu offers Minimize All Windows (WINDOWS+M's command), Undo Minimize All
+  (SHIFT+WINDOWS+M's) and Properties. Toolbars ▸ goes with Quick Launch (out
+  of scope).
 - **Windows' flag on the Start button.** It is Microsoft artwork.
 
 ## Design
@@ -385,10 +483,11 @@ Components read the flags with `useClassicyAppearanceLayout()`, reducers with
 | `taskbar.startLabel` | `"Start"`; 1–24 characters, trimmed, no control characters | `"Start"` | the Start button's label | Figure 3.1. A host can relabel it. |
 | `taskbar.startBanner` | absent (no banner); `{ title, edition? }`, each 1–24 characters | `{ "title": "Windows", "edition": "98" }` | the Start menu's vertical banner, its title bold | Windows 98 shipped one. Text belongs in the layout because the theme has no text. |
 | `window.collapse` | `"shade"`, `"minimize"` | `"minimize"` | `"minimize"`: the collapse box minimizes. The window leaves the screen and keeps its taskbar button. Focus passes on, and activating the window restores it (§5). | WIG Ch.6 (p.85) |
-| `window.zoom` | `"standard"`, `"maximize"` | `"maximize"` | `"maximize"`: the zoom box fills the desktop less the taskbar, with the frame off-screen, and Restore returns the stored rect (§5) | WIG Ch.6 (pp.84–85), audit 6.6 |
-| `window.titleDoubleClick` | `"collapse"`, `"zoom"` | `"zoom"` | `"zoom"`: a caption double-click maximizes or restores a zoomable window, whatever the desktop's `doubleClickTitleToCollapse` says | Windows 98 as shipped (`NC_HandleNCLButtonDblClk`) |
+| `window.zoom` | `"standard"`, `"maximize"` | `"maximize"` | `"maximize"`: the zoom box fills the desktop less the taskbar, with the frame off-screen, and Restore returns the stored rect (§5). `zoomMode` and `idealSize` are ignored: Windows has one maximized state. | WIG Ch.6 (pp.84–85), audit 6.6 |
+| `window.titleDoubleClick` | `"collapse"`, `"zoom"` | `"zoom"` | `"zoom"`: a caption double-click maximizes or restores a zoomable window, whatever the desktop's `doubleClickTitleToCollapse` says (the preference stays stored and still applies under other packages); on a window that cannot zoom it does nothing | Windows 98 as shipped (`NC_HandleNCLButtonDblClk`) |
 | `window.frameEdges` | `"move"`, `"resize"` | `"resize"` | `"resize"`: the four edges size a resizable window. A non-resizable or maximized window's edges are inert. Eight corner arms size two edges at once (§5). | WIG Ch.6 (p.83), audit 6.5 |
 | `window.systemMenu` | `false`, `true` | `true` | The window pop-up menu opens on the caption's right-click, the icon's click, the task button's right-click and ALT+SPACE. The icon's double-click and ALT+F4 close the window. The menu's Move and Size enter the keyboard modes (§5). | WIG Ch.6 (pp.76, 78, 80, 83), Ch.7 (p.102), Ch.8 (pp.145, 164); audit 6.2, 6.3, 7.10, 8.7 |
+| `window.captionTooltips` | `false`, `true` | `true` | Each caption button shows its label ("Minimize", "Maximize" or "Restore", "Close") as a forced tooltip after 500 ms: `ClassicyWindowTitleBar`'s new `buttonTooltips?` mounts, per box, a small internal component that attaches `useClassicyBalloonHelp(ref, { content: label, delay: 500 }, { force: true })`; without the prop the title bar renders as today. | Windows 98 as shipped (Windows 95 had none; the 1995 text says nothing) |
 | `dialog.caption` (group `dialog`) | `"plain"`, `"titled"` | `"titled"` | `"titled"`: every modal's caption has a title and a Close box, and every modal can be moved (§6) | WIG Ch.8 (pp.145, 164, 166; Figures 8.1, 8.17) |
 
 **Refinements**, in the schema, each with a message that names the rule:
@@ -419,10 +518,16 @@ root `<nav>` (one row in `ClassicyPassthrough.more.test.tsx`).
 module.
 
 **Mounting.** `ClassicyDesktop` renders
-`layout.taskbar ? <ClassicyTaskbar … /> : controlStrip !== false && <ClassicyControlStrip … />`,
-placing the taskbar before `{children}` and the bundled apps, so its layout
-effect runs first. The root calls `useClassicyAppearance("Taskbar", {},
-rootRef)` for the package's class, attributes and style, and emits no events.
+`layout.taskbar ? <ClassicyTaskbar … /> : controlStrip !== false && <ClassicyControlStrip … />`
+in the Control Strip's place in its JSX (after `<ClassicyControlPanels />`),
+so the desktop's children keep their order and Platinum's DOM is unchanged.
+Windows that register in the same commit as the taskbar register before its
+band is measured (the band is published in a layout effect, and their
+`ClassicyWindowOpen` runs with the first render's geometry); the `ws` memo
+re-clamps every record against the band on each render, so they are drawn
+above the taskbar at once and their stored position is corrected on their
+next move. The root calls `useClassicyAppearance("Taskbar", {}, rootRef)` for
+the package's class, attributes and style, and emits no events.
 
 **Structure** (base `ClassicyTaskbar.scss`, structure only):
 
@@ -439,7 +544,7 @@ rootRef)` for the package's class, attributes and style, and emits no events.
     </button></li> …
   </ul>
   <div class="classicyTaskbarTray" data-classicy-part="taskbar-tray" role="group" aria-label="Notification area">
-    <ul class="classicyTaskbarTrayIcons"> <li> (a module's ClassicyBevelButton, class classicyTaskbarTrayIcon) </li> … </ul>
+    <ul class="classicyTaskbarTrayIcons"> <li><button class="classicyTaskbarTrayIcon [open]" aria-label=…><img alt=""/></button></li> … </ul>
     <ul id="classicyDesktopMenuExtensions" class="classicyDesktopMenuExtensions classicyTaskbarTrayExtensions"
         data-classicy-part="extensions"></ul>
     <time class="classicyTaskbarClock" data-classicy-part="clock" dateTime=…>4:37 PM</time>
@@ -458,7 +563,7 @@ rootRef)` for the package's class, attributes and style, and emits no events.
 The new class names are declared in
 `src/Appearance/vocabulary/ClassicyVocabulary.json` (component `Taskbar`:
 `Clock`, `Start`, `StartIcon`, `StartLabel`, `Task`, `TaskIcon`, `TaskLabel`,
-`Tasks`, `Tray`, `TrayExtensions`, `TrayIcon`, `TrayIcons`). So are the
+`Tasks`, `Tray`, `TrayExtensions`, `TrayIcon`, `TrayIcons`, `TrayPopup`). So are the
 `data-classicy-part` values `taskbar-start`, `taskbar-tasks` and
 `taskbar-tray`. `clock` and `extensions` are already declared. The states are
 the existing `active`, `collapsed`, `pressed` and `open`.
@@ -478,10 +583,27 @@ the taskbar publishes its root's `offsetHeight` with
   the maximized rect (§5) leaves it out. `ClassicyWindow` passes
   `useClassicyTaskbarBand()`. Every default is 0, so a desktop with no
   taskbar computes what it computes today.
+- **Sizing.** `computeClassicyWindowResize` gains an optional last argument
+  `ceiling: [number, number] = [Infinity, Infinity]`, the largest right and
+  bottom a moving far edge may reach, measured as the release clamp measures
+  (left or top plus the content size); `ClassicyWindow` passes
+  `[Infinity, vh − band]` only while the band is not 0 (the frame-edge
+  sizing of §5 uses the same ceiling). A grow-box drag into the taskbar then
+  stops at its top instead of being moved back up by the release clamp.
+  Without a taskbar the argument is not passed and the numbers are today's.
 - **The desktop icon grid.** `createGrid` in `ClassicyDesktopIconContext.tsx`
-  counts rows in `window.innerHeight − getClassicyTaskbarBand()`, so Clean
-  Up, Arrange and a newly added icon stay above the taskbar. An icon dragged
-  by hand may still be dropped anywhere, as today.
+  counts rows in `window.innerHeight − getClassicyTaskbarBand()`, and
+  `classicyDesktopIconGridPosition` measures a bottom origin's rows from the
+  same height, so Clean Up, Arrange and a newly added icon stay above the
+  taskbar whatever a package's grid origin. An icon dragged by hand may still
+  be dropped anywhere, as today. The module value is read in the reducer, as
+  `window.innerHeight` already is.
+- **Menus.** `classicyMenuBounds` (`ClassicyMenuPlacement.internal.ts`) takes
+  `getClassicyTaskbarBand()` off its box's bottom (Decisions, "Menus keep
+  above the taskbar"), which every menu placement reads: pull-downs and
+  submenus, contextual menus (the system menu and the task buttons' and
+  tray's menus included), pop-up menus, combo boxes and bevel pop-ups (the
+  Start menu and the tray's pop-ups).
 - **The screen saver** needs nothing: its overlay is z-index 100001, the
   startup screen 100000 and the dialog overlay 99999.
 
@@ -512,7 +634,10 @@ the taskbar publishes its root's `offsetHeight` with
   `icon` at 16 px.
 - **States.**
   - `active`: the record is `focused`, its app is focused, and the window is
-    not minimized. The button also gets `aria-pressed="true"`.
+    not minimized. While a modal or palette of that app holds focus, the
+    app's highest-`zOrder` open, unminimized document window keeps the
+    pressed button, as Windows keeps an owner's button pressed under its
+    dialog. The button also gets `aria-pressed="true"`.
   - `collapsed`: the window is minimized.
   - `pressed`: between a mouse-down on the button and the release.
 - **Click** (ReactOS `HandleTaskItemClick`):
@@ -533,7 +658,10 @@ the taskbar publishes its root's `offsetHeight` with
   Classicy file drag rests on it for 500 ms, `ClassicyFileDrag.ts` dispatches
   `classicy:dropactivate` on the element and the button runs `restore` or
   `activate`. `.classicyTaskbar` joins `BLOCKING_SELECTOR`, so the taskbar
-  takes no drops.
+  takes no drops. The drag's hover check looks for the topmost
+  `[data-classicy-drop-activate]` under the pointer before the blocking
+  check, which would otherwise stop at the taskbar first. Leaving the button
+  or ending the drag clears the timer.
 
 **The tray.**
 
@@ -542,27 +670,42 @@ the taskbar publishes its root's `offsetHeight` with
   less the persisted `hiddenModules`, left to right. If the persisted
   `controlStrip.visible` is `false` (the Control Strip control panel's
   checkbox), or the host passed `controlStrip={false}`, the tray shows no
-  modules. The clock stays.
+  modules. The clock stays. The strip's own settings (`collapsed`, `width`,
+  `edge`, `bottom`) mean nothing to the tray: they stay stored, unchanged,
+  and apply again under a package that draws the strip.
 - **Publishing the host's choice.** The taskbar calls
   `setClassicyControlStripDisabledModules`, as the strip does, so the Control
   Strip control panel keeps offering what the tray shows.
-- **Each module** renders as a `ClassicyBevelButton`:
-  `mode="popup"`, `className="classicyTaskbarTrayIcon"`, `iconSmall`,
-  `aria-label` = `classicyControlStripModuleLabel`, `popupPlacement="below"`
-  (at the bottom of the desktop `classicyBevelPopupPlacement` flips the popup
-  above), `popupAlign` `"start"` for a menu and `"center"` for content.
+- **Each module** renders as its own component, keyed `id:revision` as the
+  strip keys it, because a module's function-form `icon` and `menuItems` and
+  its `content` component are hooks. The component draws a plain
+  `<button class="classicyTaskbarTrayIcon">` with the module's 16 px icon and
+  `aria-label` = `classicyControlStripModuleLabel`, and opens its surface
+  itself with `ClassicyBevelButtonPopup` (`anchor` the button's rect,
+  `side="below"`, `align` `"start"` for a menu and `"center"` for content,
+  `buttonRef`, `onClose`, `className="classicyTaskbarTrayPopup"`). The popup flips above the button, since the menu
+  bounds end at the band. It is not a `ClassicyBevelButton`, whose
+  press-and-hold menu and sticky-click rules a tray icon does not have. The
+  button carries `open` while its surface is open.
 - **Clicks on a module** (WIG Ch.10 pp.211–212):
-  - Button 1 opens `menuItems`, or the `content` component (the Sound
-    slider), above the icon.
+  - Button 1 opens the `content` component (the Sound slider), else
+    `menuItems` (Decisions), above the icon. When the menu holds an
+    `isDefault` item, the popup opens only once the double-click time
+    (500 ms) has passed without a second click, so a double-click runs the
+    default alone, as Windows' indicators tell a click from a double-click.
   - Button 2 opens `menuItems` as a contextual menu at the pointer, or
     nothing for a content-only module.
   - A double-click runs the `menuItems` item marked `isDefault`, if any.
   - The tooltip (forced, 500 ms) is the module's label (audit 7.28).
 - **The extensions region** keeps the id `classicyDesktopMenuExtensions`. The
-  screen bar is headless under a taskbar (refinement 1), so the id is unique.
-  `ClassicyMenuBarExtension` looks the region up again when the placement
-  *or* the taskbar's presence changes. Its menus open from the item's bottom
-  and keep to the desktop's bounds, so they open upward.
+  screen bar `ClassicyDesktop` mounts is headless under a taskbar
+  (refinement 1), so the id is unique unless a host mounts a second
+  `ClassicyDesktopMenuBar` of its own with `placement="screen"`, which it
+  documents against. `ClassicyMenuBarExtension` looks the region up again
+  when the placement *or* the taskbar's presence (`layout.taskbar !==
+  undefined`) changes. Its menus open from the item's bottom and keep to the
+  menu bounds, which end at the band, so they are pinned upward above the
+  taskbar.
 
 **The clock.**
 - The tick that `ClassicyDesktopMenuWidgetTime` runs (the anchored virtual
@@ -583,9 +726,18 @@ the taskbar publishes its root's `offsetHeight` with
 root, the empty task list or the tray's padding) shows these items, and stops
 the desktop's menu:
 
-1. **Minimize All Windows.** Collapses every open, collapsable, non-modal,
-   non-utility window. It is disabled when there is none. This is WINDOWS+M's
-   command (App. B Table B.3, p.359).
+1. **Minimize All Windows.** Minimizes every open, unminimized,
+   collapsable, non-modal, non-utility window, by dispatching
+   `ClassicyWindowCollapse` for each from the one menu-item handler (one
+   event, so React commits once and only the final focus emits a pageview).
+   It is disabled when there is none. This is WINDOWS+M's command (App. B
+   Table B.3, p.359). The taskbar remembers, for the session, which windows
+   it minimized and which window was active. While that list holds a window
+   that is still open and minimized, the item reads **Undo Minimize All**
+   instead (SHIFT+WINDOWS+M's command): it dispatches `ClassicyWindowExpand`
+   for each, then `ClassicyWindowFocus` for the window that was active, and
+   forgets the list. Restoring or closing any listed window by other means
+   also forgets it.
 2. A separator.
 3. **Properties.** Opens `CONTROL_STRIP_MANAGER_APP_ID`, whose settings now
    drive the tray.
@@ -607,9 +759,10 @@ sees it. Elsewhere it reaches the page.
 ### 3. The Start menu
 
 **Surface.** `ClassicyStartMenu.internal.tsx` renders `ClassicyBevelButtonPopup`
-(`id="classicy-start-menu"`, `className="classicyStartMenu"`, `side="below"`,
-`align="start"`, `buttonRef` the Start button, `focusFirstItem` when opened by
-the keyboard). That component already places a surface against an anchor with
+(`id="classicy-start-menu"`, `className="classicyStartMenu"`, `anchor` the
+Start button's rect, `side="below"`, `align="start"`, `buttonRef` the Start
+button, `focusFirstItem` when opened by the keyboard, `onClose` clearing the
+button's `open`). That component already places a surface against an anchor with
 `classicyBevelPopupPlacement` and `classicyMenuBounds`, flipping it above when
 there is no room below (as at the foot of the desktop) and keeping it on
 whole pixels inside the desktop. It also closes the surface on an outside
@@ -652,7 +805,11 @@ without rendering:
    Date & Time, Screen Saver and Control Strip (`showInApplicationsFolder=
    {false}`). Drive Setup and Calculator are listed in Applications, so they
    appear under Programs only. Each item has its display name
-   (`withClassicyAppIdentityMenuItems`), and the list is sorted.
+   (`withClassicyAppIdentityMenuItems`), and the list is sorted. After
+   Control Panel, a separator, then **Show Balloons** / **Hide Balloons**
+   (⌥H): the screen bar's toggle item, `event: "ClassicyDesktopSetBalloonHelp"`
+   (Decisions). Its chord is already dispatched by the headless bar, so the
+   item only shows it.
 5. **Help** (`image: system.help`).
    `event: APPLE_GUIDE_SHOW_TOPIC_EVENT, eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID }`,
    Classicy's Help Topics.
@@ -662,8 +819,11 @@ without rendering:
    `classicySpecialMenuItems(dispatch, "start")`, in Shut Down's place.
 
 First-level items carry their icons through `image`. The package draws them
-at 32 px and the submenus' at 16 px (§7). The menu has no keyboard shortcuts,
-so no shortcut column. Choosing an item closes the menu (the popup's
+at 32 px and the submenus' at 16 px (§7). The first level has no keyboard
+shortcuts, so no shortcut column; only Settings' balloon toggle shows one.
+The hooks' values (the Trash art from `useClassicyTrashIcon`, the mounted
+apps, the identity overrides, `disableBalloonHelp`) are passed in, so the
+builder stays pure. Choosing an item closes the menu (the popup's
 `ClassicyMenuProvider` `onClose`).
 
 ### 4. Window menu bars under the shell, and Help everywhere
@@ -696,6 +856,16 @@ merge, as today. Finder's `…_help_balloon` item becomes
 `{ event: "ClassicyDesktopSetBalloonHelp", eventData: { disableBalloonHelp: !disableBalloonHelp } }`.
 Its title and id are unchanged, so it still works in a window bar and the
 merge recognizes it.
+
+The chord registrations do not move with the items. `appChordsKey` is still
+collected from the raw `appMenu`, so an app's Help chords stay app-scope, and
+`systemChordsKey` is collected from the Apple menu and the system's own Help
+items (`classicySystemHelpItems`), not the merged menu, so the system scope
+claims exactly what it claims today and the Keyboard Equivalent dialog's
+`inUse` owner names stay the same. The dispatcher resolves a chord in the
+merged menu depth-first; an app Help item whose chord equals ⌥H would now
+lose to the system toggle, which no bundled app has and which the dedupe
+already removes for the balloon toggle.
 
 What Platinum and System 7 draw afterwards: one Help menu, still the last
 standard menu, still titled with System 7's art. With a Finder window
@@ -735,7 +905,11 @@ system Help (⌥H). The window bars dispatch nothing, as today.
   today).
 - Empty Trash… stays on the Trash icon's menu and in the Start menu.
 - Reset PRAM… is in the Start menu and the desktop's menu.
-- About This Computer and Help are in the Start menu.
+- About This Computer and Help are in the Start menu, and the balloon toggle
+  in Start ▸ Settings.
+- Items an app registers for Finder (`Desktop.helpMenu["Finder.app"]`) are in
+  every Finder window's Help; with no Finder window open, a double-click on
+  the startup disk opens one.
 - ⌃⌫ still dispatches through the headless bar.
 - The desktop's effect that reinstalls its menus in `Desktop.appMenu`
   (`desktopOwnsBar`) counts only windows that are not minimized under
@@ -764,9 +938,9 @@ Each command runs the window's own path, so sounds, analytics, the
 | --- | --- |
 | `activate` | `setActive` |
 | `minimize` | `setCollapse(true)` |
-| `restore` | `setCollapse(false)` or `applyZoom(false)`, then `setActive` |
-| `maximize` | `applyZoom(true)` |
-| `close` | `close()` |
+| `restore` | minimized: `setCollapse(false)` (a maximized window comes back maximized); else maximized: `applyZoom(false)`; then `setActive` |
+| `maximize` | `applyZoom(true)` (which expands a minimized window first, as `setZoomFlag` already does), then `setActive` |
+| `close` | the caption Close box's action: `close()` when `closable`, else, under `dialog.caption: "titled"`, `onCaptionClose`; else nothing (`false`) |
 | `systemMenu` | the system menu (below) |
 | `move`, `size` | the keyboard modes (below) |
 
@@ -776,18 +950,44 @@ registry offers `useClassicyWindowEntries()` (`useSyncExternalStore`) and
 DOM and no store, under every package. Modals register too, which the system
 menu and ALT+F4 need.
 
+- The entry's `run` calls the window through a ref updated every render, as
+  `docMoveHandlerRef` is, so the registration effect re-runs only when a
+  published value changes, never on every render.
+- The registry keeps one immutable snapshot, replaced on each register,
+  update and unregister, so `useSyncExternalStore` sees a stable value.
+- Registering returns a token. Unregistering with a stale token (a
+  StrictMode phantom cleanup after the remount registered again) removes
+  nothing.
+
 **Minimize** (`window.collapse: "minimize"`).
 - **Rendering.** `ClassicyWindow` derives
-  `minimized = ws.collapsed && collapse === "minimize" && !modal` and
-  `shaded = ws.collapsed && collapse === "shade"`. Every render-only
-  `ws.collapsed` decision uses `shaded`: the frame edges, header, placard,
-  grow box, menu bar, the contents' `collapsed` state, the inline height and
-  `minHeight`, and the root's `collapsed` state. A minimized window keeps its
-  whole tree mounted, so its children keep their state. Its root carries
-  `classicyWindowMinimized` (vocabulary: Window part `Minimized`), and
-  `ClassicyWindow.scss` has the one base rule
+  `minimized = ws.collapsed && collapse === "minimize" && !modal && windowType !== "utility"`
+  and `shaded = ws.collapsed && collapse === "shade"` (`collapse` defaulting
+  to `"shade"`, so `shaded === ws.collapsed` for every other package). Every
+  render-only `ws.collapsed` decision uses `shaded`: the frame edges, header,
+  placard, grow box, menu bar, the contents' `collapsed` state, the inline
+  height and `minHeight`, and the root's `collapsed` state. The guards that
+  must not measure or move a window that is not drawn at its size
+  (`setResize`, the keyboard-focus effect, the resize minimum) read
+  `shaded || minimized`, which is `ws.collapsed` except for a modal or
+  palette under the flag, whose collapse is ignored (Decisions). A minimized
+  window keeps its whole tree mounted, so its children keep their state. Its
+  root carries `classicyWindowMinimized` (vocabulary: Window part
+  `Minimized`), and `ClassicyWindow.scss` has the one base rule
   `.classicyWindow.classicyWindowMinimized { display: none; }`. No other
   package emits the class.
+- **Palettes.** Under the flag a `utility` window also carries
+  `classicyWindowMinimized` while its app has at least one open document
+  window and every open document window is minimized (Decisions), read from
+  the app record the window already subscribes to.
+- **No bubbling restore.** Under the flag the collapse box's click handler
+  calls `e.stopPropagation()`. Without it the click would reach the root's
+  `setActive` (for a window that was not focused) and `ClassicyApp`'s
+  container, whose `ClassicyAppActivate` would `focusApp` the app's
+  last-accessed window, the one just minimized, and restore it at once.
+  Without the flag the click bubbles as today.
+- **Zoom kept.** Under the flag `setCollapse(true)` skips its
+  `setZoom(false, true, "collapse")` (Decisions).
 - **Labels.** `ClassicyWindowTitleBar` gains
   `labels?: { close?, zoom?, collapse? }` (defaults "Close", "Zoom",
   "Collapse"). Under the flag the collapse box is labelled "Minimize".
@@ -796,24 +996,36 @@ menu and ALT+F4 need.
     taskbar button, so collapse-all and a host dispatch skip them.
   - The record gets `collapsed: true` and `focused: false`.
   - If the window was focused and its app held focus, focus passes on through
-    `classicyVisibleSuccession(ds, appId, windowId)`: the app's most recent
-    open, unminimized, non-utility window; else the most recently focused
-    other open, non-extension app that has one (its most recent such window);
-    else `markAppFocused(ds, "Finder.app")` with no window focused, which is
-    the desktop.
+    `classicyVisibleSuccession(ds, appId, windowId)`: the app's highest-
+    `zOrder` open, unminimized, non-utility, non-modal window; else the
+    highest-`zOrder` such window of any other open app, Finder and extensions
+    included (an Apple Guide window has a task button, so it is a primary
+    window here), which is Windows' next window in Z-order; else
+    `markAppFocused(ds, "Finder.app")` with no window focused, which is the
+    desktop. `zOrder` is a focus timestamp (`focusWindow` stamps
+    `max(Date.now(), top + 1)`), so it orders windows across apps too.
   - Under the flag, `ClassicyWindowClose` and `ClassicyWindowDestroy` use the
-    same succession, so closing a window never restores a minimized sibling.
+    same succession, so closing a window never restores a minimized sibling
+    and never leaves an app focused with no window to show its menus.
     Without the flag both are unchanged.
 - **Activation restores.** `focusWindow` (`ClassicyAppHelpers.ts`) clears
-  `collapsed` when it focuses a minimized window under the flag. Activating a
-  minimized window restores it, as ALT+TAB and the taskbar do (WIG Ch.6,
-  p.85). So `focusApp` (opening or activating an app) brings back its
-  last-accessed window.
+  `collapsed` when it focuses a minimized document window under the flag.
+  Activating a minimized window restores it, as ALT+TAB and the taskbar do
+  (WIG Ch.6, p.85). So `focusApp` (Start ▸ Programs on an open app, whose
+  `openApp` focuses it) brings back its last-accessed window.
+  `pickWindowToRestore` is unchanged. Nothing but a deliberate activation
+  reaches a minimized window: its own clicks cannot (it is not drawn), the
+  minimize click does not bubble (above), and the succession never picks it.
+  `ClassicyApp`'s refocus effect (`defaultWindow`) runs only while its app is
+  focused with no focused window, which the succession never leaves an app
+  in after a minimize.
 - **Persistence.** `collapsed` persists as today. A package switch shows a
   minimized window as a WindowShade title bar under Platinum, and a shaded
-  window as minimized under Windows 98.
+  window as minimized under Windows 98 (a shaded palette or dialog is drawn
+  expanded there, its flag kept).
 - **Option-click collapse-all** minimizes every window that has a minimize
-  box, under the reducer's guard. Expand-all restores them.
+  box, under the reducer's guard (its click does not bubble either).
+  Expand-all restores them.
 
 **Maximize and restore** (`window.zoom: "maximize"`).
 - **The maximized rect.** The pure
@@ -828,11 +1040,24 @@ menu and ALT+F4 need.
   `SM_CXFRAME` on each side, so the caption touches the screen's top and
   sides. `classicyWindowChromeEdges(el)` gives the per-side padding plus
   border.
-- **`applyZoom(true)`** remembers the user rect (`userStateRef`) and
-  dispatches `ClassicyWindowZoom { zoomed: true, restore: { position, size } }`.
-  The reducer stores `restoreRect` only when `restore` is given, and deletes
-  it on `zoomed: false`. The window then applies the maximized size and
-  position.
+- **`applyZoom(true)`** remembers the user rect (`userStateRef`) as today and,
+  under the flag only, adds it to the dispatch:
+  `ClassicyWindowZoom { zoomed: true, restore: { position, size } }`. The
+  reducer stores `restoreRect` only when `restore` is given and both pairs
+  are finite numbers (`hasWindowZoomed` is extended to check the optional
+  field, as the other predicates check theirs), and deletes it on
+  `zoomed: false`. The window then applies the maximized size and position.
+- **`restoreRect` persistence.** It is a new optional field of
+  `ClassicyStoreSystemAppWindow` (`ClassicyAppManager.ts`). It must survive a
+  reload, so `sanitizeStateForPersistence` keeps it; no migration step is
+  needed (absent means "none"), and the default state seeds none. Its reader,
+  `applyZoom(false)`, uses it only when both pairs are finite numbers, so a
+  hand-edited store cannot place a window at `NaN`. A Platinum or System 7
+  session never writes it, so their persisted bytes are unchanged.
+- **The root while maximized** carries `classicyWindowMaximized` (vocabulary:
+  Window part `Maximized`), whose base rule in `ClassicyWindow.scss`,
+  `.classicyWindow.classicyWindowMaximized { max-height: none; }`, lifts the
+  height reserve (Decisions). Only `window.zoom: "maximize"` emits it.
 - **`applyZoom(false)`** restores `userStateRef`, else the record's
   `restoreRect`, else, under the flag only, the window's initial rect
   (`resolvedSize` at `resolvedPosition`). The `restoreRect` fallback runs
@@ -854,9 +1079,10 @@ menu and ALT+F4 need.
 
 **The caption's double-click** (`window.titleDoubleClick: "zoom"`).
 `onTitleDoubleClick` toggles the zoom when `zoomable`, whatever
-`doubleClickTitleToCollapse` says. A modal's caption does nothing. A
-double-click on the icon closes the window (below) and stops propagation, so
-the caption's handler never also runs.
+`doubleClickTitleToCollapse` says; on a window that cannot zoom it does
+nothing (it never falls back to a collapse). A modal's caption does nothing.
+A double-click on the icon closes the window (below) and stops propagation,
+so the caption's handler never also runs.
 
 **The window pop-up (system) menu** (`window.systemMenu: true`).
 - **Builder.** The pure `classicyWindowSystemMenuItems(state, handlers)`
@@ -878,30 +1104,52 @@ the caption's handler never also runs.
   - a right-click inside `.classicyWindowTitleBar`, its icon and boxes
     included, at the pointer (WIG pp.76, 80, 102). A right-click elsewhere
     in the window keeps today's `contextMenu` resolution.
-  - a mouse-down on `.classicyWindowIcon`, at the icon's bottom-left, without
-    starting a move. Windows 98 as shipped does this; WIG p.78 notes it.
-  - ALT+SPACE (`useClassicyWindowShellKeys.internal.ts`, mounted by
-    `ClassicyDesktop` under the flag) on the focused window, at its icon's
-    bottom-left.
+  - a mouse-down on `.classicyWindowIcon` (`e.detail === 1`), at the icon's
+    bottom-left, stopping propagation so `.classicyWindowTitle`'s
+    `onTitleMouseDown` never arms a move. Windows 98 as shipped does this;
+    WIG pp.78 and 102 note it.
+  - ALT+SPACE on the focused window, at its icon's bottom-left, or, for a
+    window that draws no icon (a modal, a palette, `hideIcon`), its title
+    bar's bottom-left. The listener is
+    `useClassicyWindowShellKeys(enabled)`
+    (`src/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal.ts`),
+    called by `ClassicyDesktop` with `enabled = layout.window.systemMenu ===
+    true`; disabled, it binds nothing.
   - the `systemMenu` command, at the given point (the task button's
     right-click).
-- **Closing from the icon and the keyboard.** A double-click on
-  `.classicyWindowIcon` runs `close()` when `closable`. ALT+F4 runs the
-  focused window's `close`. Both keys are bound where the browser lets them
-  through. Windows takes ALT+F4 and ALT+SPACE before the page, while macOS
-  delivers both as Option chords. A text field's Option+Space (a
-  non-breaking space) gives way to the menu, as ALT+SPACE does in Windows.
+- **Closing from the icon and the keyboard.** The second press of a
+  double-click on `.classicyWindowIcon` (`e.detail >= 2`) does not reopen the
+  menu; its `dblclick` hides the open system menu (`hideContextMenu`) and runs
+  the `close` command, as Windows closes on `WM_NCLBUTTONDBLCLK` over the
+  system-menu icon. ALT+F4 runs the focused window's `close` command, so a
+  dialog follows its caption Close box (§6): a non-closable alert with no
+  cancel-role button stays open, as Windows ignores ALT+F4 when a message box
+  grays its Close. With no window focused ALT+F4 does nothing (Windows 98's
+  Shut Down dialog has no Classicy counterpart). Both keys are bound where
+  the browser lets them through, and skip an event already
+  `defaultPrevented`. Windows takes ALT+F4 and ALT+SPACE before the page,
+  while macOS delivers both as Option chords. A text field's Option+Space (a
+  non-breaking space) gives way to the menu, as ALT+SPACE does in Windows;
+  this deliberately differs from the shortcut dispatcher's rule that
+  Option-only chords never act in a text field, and only under the flag.
 - **`ClassicyWindowTitleBar` props.** It gains `onIconMouseDown?` and
-  `onIconDoubleClick?`. Without them the icon stays inert.
+  `onIconDoubleClick?`. Without them the icon stays inert. (Its other new
+  props: `labels?` §5 "Minimize", `closeDisabled?` §6, `buttonTooltips?` §1.)
+- **Analytics.** The caption's right-click keeps the root's
+  `track("contextMenu", …)` call, with `show: true`; the commands keep the
+  window's own `track` calls (`collapse`, `expand`, `zoom`, `close`, `move`,
+  `resize`). No pageview is added: the menu is no window.
 
 **Frame-edge sizing** (`window.frameEdges: "resize"`).
 - **The math.** The pure
-  `computeClassicyWindowEdgeResize(edges, startRect, startPointer, pointer, chrome, minimum, floor)`
+  `computeClassicyWindowEdgeResize(edges, startRect, startPointer, pointer, chrome, minimum, floor, ceiling)`
   (`ClassicyWindowResize.ts`) moves the named edges by the pointer's travel.
   A left or top edge stops at the floor
-  (`windowViewportFloor(menuBarHeight)`), and any moving edge stops where the
-  content would pass `minimumSize`. It returns `{ size, position }`, as
-  `computeClassicyWindowResize` does.
+  (`windowViewportFloor(menuBarHeight)`), a right or bottom edge at the
+  ceiling (§2 "Sizing": the taskbar's top while one is mounted), and any
+  moving edge stops where the content would pass `minimumSize`. It returns
+  `{ size, position }`, as `computeClassicyWindowResize` does, so the release
+  clamp never moves a window the user has just sized.
 - **Which windows.** On a resizable window that is neither maximized nor
   shaded, the root carries `classicyWindowSizingBorder` and the four edge
   handles call `startEdgeResize`. On a non-resizable or maximized window the
@@ -916,12 +1164,18 @@ the caption's handler never also runs.
   `--window-title-bar-height` long, 18 under Windows 98: Wine's
   `NC_HandleNCHitTest` makes a corner `SM_CXSIZE` along the top and bottom
   edges and `SM_CYSIZE` along the sides, both `iCaptionHeight`/`Width`, 18.
-  Each is `--window-frame-inset` thick. They size both edges of their
-  corner.
+  Each is `--window-padding-size` thick, the edge handles' own thickness, so
+  an arm covers its edge's end exactly. They sit above the edges (z-index 6,
+  under the resizer's 999) and size both edges of their corner.
 - **Cursors.** Base `ClassicyWindow.scss` gives the edges and arms their
-  resize cursors
-  (`var(--classicy-cursor-resize-ud, ns-resize)`, `-lr` for `ew-resize`,
-  `-nwse`, `-nesw`), keyed on `classicyWindowSizingBorder`.
+  resize cursors in the registry's idiom, an image layer then a keyword (an
+  undefined variable must not void the declaration), keyed on
+  `classicyWindowSizingBorder`:
+  `cursor: var(--classicy-cursor-resize-ud, url('data:,')) var(--classicy-cursor-resize-ud-hotspot, 8 8), ns-resize;`
+  for the top and bottom edges, `resize-lr` with `ew-resize` for the sides,
+  `resize-nwse` with `nwse-resize` and `resize-nesw` with `nesw-resize` for
+  the corners. Windows 98 registers no cursors, so these resolve to the
+  default package's (Platinum's) art, as the grow box's do today.
 - **Vocabulary.** Window parts `SizingBorder` and `FrameCorner`. The
   hyphenated suffixes are outside the token scan, as `classicyWindowFrameEdge-`
   already is.
@@ -973,7 +1227,7 @@ follows. Every other window is unaffected.
 | `ClassicyFileDialog` | `onCancelFunc` |
 | `ClassicyInputDialog` | its Cancel |
 | `ClassicyKeyboardEquivalentDialog` | its Cancel |
-| `ClassicyAboutWindow` | `hideFunc` |
+| `ClassicyAboutWindow` | a click on its own OK button (`.click()` on a ref), so `hideFunc`, typed `MouseEventHandler<HTMLButtonElement>`, still receives a real event |
 | `HyperCardDialog` | its cancel button, else its only button |
 
   Each handler runs the same path its button runs.
@@ -990,7 +1244,7 @@ families below are package-only: the core reads none of them.
 
 | Partial | Change |
 | --- | --- |
-| `_MenuBar.scss` (rewritten) | The window menu bar: a 1 px ButtonFace row, 18 px titles (`menuBar.titleHeight` 18, a new package knob), and a 1 px ButtonFace line under them: 20 px in all (Wine `SM_CYMENU` + 1). Titles are plain ButtonText with `--menu-item-padding-x` (6) each side. A title under the pointer is hot-tracked raised (1 px ButtonHilight at the top and left, ButtonShadow at the bottom and right). An open or keyboard-tracked title is sunken (the reverse), its text 1 px down-right. There is no Hilight band and no hover band in an inactive window. A disabled title is embossed GrayText. The same title rules draw a screen bar a host forces with `placement="screen"`, as a flat ButtonFace strip. The taskbar-style rules (the Apple title as Start, the switcher as the pressed task button, the tray, the clock pane) are removed: the taskbar now owns that look. |
+| `_MenuBar.scss` (rewritten) | The window menu bar: a 1 px ButtonFace row, 18 px titles (`menuBar.titleHeight` 18, a new package knob), and a 1 px ButtonFace line under them: 20 px in all (Wine `SM_CYMENU` + 1). Titles are plain ButtonText with `--menu-item-padding-x` (6) each side. A title under the pointer is hot-tracked raised (1 px ButtonHilight at the top and left, ButtonShadow at the bottom and right). An open or keyboard-tracked title is sunken (the reverse), its text 1 px down-right. There is no Hilight band and no hover band in an inactive window. A disabled title is embossed GrayText. The same title rules draw a screen bar a host forces with `placement="screen"`, as a flat ButtonFace strip. The taskbar-style rules (the Apple title as Start, the switcher as the pressed task button, the tray, the clock pane) are removed: the taskbar now owns that look. The unscoped extension rules (`.classicyDesktopMenuExtensions`, `.classicyDesktopMenuExtensionTrigger`) move to `_Taskbar.scss` under `.classicyTaskbarTray`; every rule left in the partial is scoped under `.classicyDesktopMenuBar` or `.classicyWindowMenuBar`, so none reaches the tray's `clock` and `extensions` parts. A `:has()` twin keeps its plain rule first, as the browser-floor test requires. |
 | `_Window.scss` | `with-menu-bar` uses the 20 px band (`calc(var(--menu-bar-title-height) + #{b.$b2})`) instead of the derived 21. A disabled Close box (`.classicyWindowCloseBox.disabled`) draws the `$close` mark embossed (GrayText with a ButtonHilight pixel below and right, as the scroll arrows' `disabled` does), unpressable. A modal caption keeps the Close box (it hides the collapse box and icon as today). The header comment drops "Collapsed (WindowShade…)" for minimize. |
 | `_Taskbar.scss` (new) | See below. |
 | `windows98.json` | New knob families, in `defaults` and every preset: `taskbar` and `startMenu` (below), and `menuBar.titleHeight`. A color family `startMenu` (`banner`, `bannerGradient`, `bannerText`) with `colorFamilies` labels; every stylesheet read has a `--color-*` fallback. The `layout` block takes the flags of §1. |
@@ -1034,9 +1288,13 @@ families below are package-only: the core reads none of them.
     5, ReactOS `TRAY_CLOCK_WND_SPACING_X`), in the UI font at
     `--ui-font-size`.
   - Figure 10.2 is the reference.
-- **Popups.** A module's `content` panel above its icon keeps
+- **Popups.** A module's `content` panel above its icon
+  (`.classicyBevelButtonPopupPanel.classicyTaskbarTrayPopup`) keeps
   `_ControlStrip.scss`'s panel look, reused through a shared mixin. A
-  module's menu is a contextual menu (`_Menu.scss`).
+  module's menu (`.classicyBevelButtonPopup.classicyTaskbarTrayPopup`, and the
+  button-2 contextual menu) is drawn by `_Menu.scss`.
+- **Tray icons** draw no bevel at rest, pressed or `open`: Windows 98's tray
+  drew none.
 
 The Start menu is drawn as follows:
 
@@ -1055,7 +1313,7 @@ The Start menu is drawn as follows:
 - **Separators** are `_Menu.scss`'s.
 
 The banner colors and the Start menu metrics (21, 18, 32) are Windows 98's
-as remembered from its Start menu. The visual check in step 19 confirms them
+as remembered from its Start menu. The visual check in step 21 confirms them
 against a Windows 98 SE capture. See Open Questions.
 
 The `_ControlStrip.scss` partial stays: a host may still mount
@@ -1067,20 +1325,20 @@ tray reuses its panel mixin.
 Every core change is gated on a flag, a prop or a mounted taskbar that
 Platinum, System 7 and `mirrored` never have, except where the table says
 otherwise. The Platinum and System 7 package test suites, the Storybook
-`mirrored` stories and the parity shots (step 19) are the overall guard.
+`mirrored` stories and the parity shots (step 21) are the overall guard.
 
 | Core file | What stays byte-identical for Platinum, System 7 and `mirrored` | Pinned by |
 | --- | --- | --- |
 | `ClassicyAppearancePackageSchema.ts`, `ClassicyAppearancePackage.ts` | Their layouts parse to the same objects. `CLASSICY_DEFAULT_APPEARANCE_LAYOUT` is unchanged. | `ClassicyAppearancePackageSchema.test.ts` (each flag absent → the parse equals the input; Platinum's and System 7's registered layouts deep-equal their JSON); `ClassicyAppearanceDefaults.test.ts` |
 | `useClassicyAppearanceLayout.ts` | `classicyLayoutVars` and `classicyLayoutThemeVars` return the same keys | `useClassicyAppearanceLayout.test.ts` (key sets under Platinum's, System 7's and `mirrored`'s layouts) |
 | `ClassicyDesktop.tsx` | No taskbar is mounted. `ClassicyControlStrip` is mounted with the same props. The root's attributes and style keys are the same. No shell-keys listener. `desktopOwnsBar` is unchanged under `collapse: "shade"`. | `ClassicyDesktop.layout.test.tsx` (Platinum: a `.classicyControlStrip`, no `.classicyTaskbar`, the root's attribute names listed exactly) |
-| `ClassicyWindow.tsx`, `ClassicyWindowTitleBar.tsx` | The same DOM: no new class, part, state or attribute, the same aria-labels. The collapse box shades and the zoom is the standard state. The caption's double-click collapses per the preference. Frame edges move the window. A right-click shows `contextMenu`. The icon is inert. A non-closable modal has no Close box. Fixed modals stay fixed. | `ClassicyWindow.collapse.test.tsx`, `.hig.test.tsx`, `.titlebar.test.tsx`, `.contextmenu.test.tsx`, `.modal.test.tsx`, `ClassicyWindowTitleBar.test.tsx`: an "under the default layout" case for each flag, plus a DOM snapshot of a document window's and a modal's root and title bar |
-| `ClassicyWindowResize.ts`, `ClassicyWindowMaximize.ts` (new) | `computeClassicyWindowResize` is untouched. The new functions are called only under their flags. | `ClassicyWindowResize.test.ts`, `ClassicyWindow.resizer.test.ts` |
+| `ClassicyWindow.tsx`, `ClassicyWindowTitleBar.tsx` | The same DOM: no new class, part, state or attribute, the same aria-labels. The collapse box shades and the zoom is the standard state. The caption's double-click collapses per the preference. Frame edges move the window. A right-click shows `contextMenu`. The icon is inert. A non-closable modal has no Close box. Fixed modals stay fixed. The collapse box's click bubbles, and a collapse clears `zoomed`, as today. The registry entry adds no DOM. | `ClassicyWindow.collapse.test.tsx`, `.hig.test.tsx`, `.titlebar.test.tsx`, `.contextmenu.test.tsx`, `.modal.test.tsx`, `ClassicyWindowTitleBar.test.tsx`: an "under the default layout" case for each flag, plus a DOM snapshot of a document window's and a modal's root and title bar |
+| `ClassicyWindowResize.ts`, `ClassicyWindowMaximize.ts` (new) | `computeClassicyWindowResize` gains only the optional `ceiling` (default `[Infinity, Infinity]`), which `ClassicyWindow` passes only while a band is published: its existing cases return the same numbers. The new functions are called only under their flags. | `ClassicyWindowResize.test.ts` (every existing case unchanged with no `ceiling`), `ClassicyWindow.resizer.test.ts` |
 | `ClassicyDesktopWindowManagerContext.tsx`, `ClassicyAppHelpers.ts` | Collapse sets `collapsed` and keeps focus. Close and Destroy succession are as today. `focusWindow` never touches `collapsed`. `ClassicyWindowZoom` without `restore` writes only `zoomed`. | `ClassicyWindowEventHandler.test.ts`, `ClassicyAppHelpers.test.ts` (each with and without the flag) |
-| `ClassicyAppManager.ts` | `restoreRect?` is optional and never written without the flag. The persisted bytes are unchanged. | `ClassicyStateMigrations.windowFlags.test.ts` (a Platinum session's persisted JSON has no `restoreRect`) |
-| Window geometry (`resolveSize`, `resolvePosition`, `clampWindowPositionToViewport`, `computeStandardRect`) and `ClassicyDesktopIconContext.tsx` | The band is 0 with no taskbar, so the numbers are unchanged | `ClassicyWindow.geometry.test.ts`, `ClassicyDesktopIconEventHandler.test.ts` (band 0 equals today's numbers) |
+| `ClassicyAppManager.ts`, `ClassicyActionPredicates.ts` | `restoreRect?` is optional and never written without the flag; `hasWindowZoomed` accepts every payload it accepts today. The persisted bytes are unchanged. | `ClassicyStateMigrations.windowFlags.test.ts` (a Platinum session's persisted JSON has no `restoreRect`) |
+| Window geometry (`resolveSize`, `resolvePosition`, `clampWindowPositionToViewport`, `computeStandardRect`), `ClassicyDesktopIconContext.tsx` (`createGrid`, `classicyDesktopIconGridPosition`) and `ClassicyMenuPlacement.internal.ts` (`classicyMenuBounds`) | The band is 0 with no taskbar, so the numbers, every icon's place and every menu's box are unchanged | `ClassicyWindow.geometry.test.ts`, `ClassicyDesktopIconEventHandler.test.ts`, `ClassicyMenuPlacement.test.ts` (band 0 equals today's numbers; a band of 28 moves only the bottom) |
 | `ClassicyWindowMenuBar.tsx` | Without a taskbar it draws `appMenu` with `withClassicyAppIdentityAboutItem`, as today | `ClassicyWindowMenuBar.test.tsx` (the `mirrored` layout: Finder's bar lists File, Edit, View, Special, Help, and its Help holds the balloon toggle and About) |
-| `ClassicyDesktopMenuBar.tsx`, `Finder.tsx` | **Changes by design** (the double-Help bug): with an app Help menu focused, one Help title. Every other title and item is the same. Finder's toggle behaves the same. | `ClassicyDesktopMenuBar.help.test.tsx` (one `help` part with a Finder window focused; its children; a host app's extra Help item merged after a divider), `ClassicyDesktopMenuBar.test.tsx` (the About strip), `Finder.menus.test.tsx` |
+| `ClassicyDesktopMenuBar.tsx`, `Finder.tsx` | **Changes by design** (the double-Help bug): with an app Help menu focused, one Help title. Every other title and item is the same. Finder's toggle behaves the same. The `system` and `app` chord registrations are byte-identical (`systemChordsKey` from the system's own items). | `ClassicyDesktopMenuBar.help.test.tsx` (one `help` part with a Finder window focused; its children; a host app's extra Help item merged after a divider), `ClassicyDesktopMenuBar.test.tsx` (the About strip), `ClassicyShortcutDispatcher.integration.test.tsx` (the registered chord lists with a Finder window focused, before and after), `Finder.menus.test.tsx` |
 | `ClassicyMenuBarExtension.tsx` | It portals into the screen bar's region under screen placement and renders nothing under `mirrored` | `ClassicyMenuBarExtension.placement.test.tsx` |
 | `ClassicyDesktopMenuWidgetTime.tsx` → `useClassicyClockTime.internal.ts` | The widget's DOM, its click toggle and the minute dispatch | a new `ClassicyDesktopMenuWidgetTime.test.tsx`, written before the move |
 | `useClassicyBalloonHelp.tsx` | The third argument is optional, and without `force` the global toggle still hides the balloon | `useClassicyBalloonHelp.test.tsx` |
@@ -1088,14 +1346,15 @@ otherwise. The Platinum and System 7 package test suites, the Storybook
 | `ClassicyFileDrag.ts` | `.classicyTaskbar` and `data-classicy-drop-activate` occur only under the shell. Folder and desktop targets are unchanged. | `ClassicyFileDrag.test.ts` |
 | `ClassicyFileSystemApplications.ts` | Only an export is added | `ClassicyFileSystemApplications.test.ts` |
 | Dialogs (`ClassicyAlert`, `ClassicyFileDialog`, `ClassicyInputDialog`, `ClassicyKeyboardEquivalentDialog`, `ClassicyAboutWindow`, `HyperCardDialog`) | `onCaptionClose` is read only under `dialog.caption: "titled"` | each dialog's test: no `.classicyWindowCloseBox` under the default layout |
-| Base SCSS (`ClassicyWindow.scss`, `ClassicyTaskbar.scss`, `ClassicyStartMenu.scss`) | Every new rule is keyed on a class only the flags emit (`classicyWindowMinimized`, `classicyWindowSizingBorder`, `classicyWindowFrameCorner`, `classicyTaskbar*`, `classicyStartMenu*`) | a grep of each new class across `packages/appearance/platinum/src`, `packages/appearance/system7/src`, `storybook/.storybook/*.scss` and `src/**/*.scss`, run before each commit; `ClassicyCascade.repo.test.ts`, `ClassicyBrowserFloor.repo.test.ts` |
+| Base SCSS (`ClassicyWindow.scss`, `ClassicyTaskbar.scss`, `ClassicyStartMenu.scss`) | Every new rule is keyed on a class only the flags emit (`classicyWindowMinimized`, `classicyWindowMaximized`, `classicyWindowSizingBorder`, `classicyWindowFrameCorner`, `classicyTaskbar*`, `classicyStartMenu*`) | a grep of each new class across `packages/appearance/platinum/src`, `packages/appearance/system7/src`, `storybook/.storybook/*.scss` and `src/**/*.scss`, run before each commit; `ClassicyCascade.repo.test.ts`, `ClassicyBrowserFloor.repo.test.ts` |
 | Vocabulary | Declarations only | `node bin/generate-vocabulary.ts --check`, `ClassicyVocabulary.test.ts` |
 
 ### Edge cases
 
 - **A package switch with the shell's states.**
-  - A minimized window shows as a WindowShade title bar, and a shaded window
-    as minimized.
+  - A minimized window shows as a WindowShade title bar, and a shaded
+    document window as minimized. A shaded palette or dialog is drawn
+    expanded under Windows 98, its flag kept for Platinum.
   - A maximized window is clamped back on screen under Platinum, keeps
     `zoomed` and un-zooms to its `restoreRect`.
   - The taskbar unmounts and the band becomes 0: icons stay where they are,
@@ -1106,8 +1365,17 @@ otherwise. The Platinum and System 7 package test suites, the Storybook
   modal window under minimize is refused, so no window is ever lost.
 - **Reload.** A maximized window re-applies the current work area on mount.
   A minimized window stays minimized, with its button.
-- **Utility windows** (palettes) have no task button. They float as today and
-  have the palette's system menu.
+- **Utility windows** (palettes) have no task button. They float as today,
+  have the palette's system menu, and hide while every open document window
+  of their app is minimized.
+- **A maximized window minimized** comes back maximized from its task button,
+  its menu's Restore or a Start ▸ Programs activation.
+- **A minimize box clicked on an inactive window** minimizes it: the press's
+  release activates it first (`stopChangeWindow`), the click minimizes it and
+  passes focus on, and nothing after the click activates it again.
+- **A window menu near the taskbar** flips or scrolls above the band rather
+  than running under it; a menu opened from a window at the top of the screen
+  is placed as today.
 - **Hidden apps** (Hide commands, kept for hosts that dispatch them). Their
   windows keep their buttons. Activating one shows the app (`markAppFocused`).
 - **CTRL+ESC with a modal open.** The menu does not open: the scrim covers the
@@ -1115,7 +1383,8 @@ otherwise. The Platinum and System 7 package test suites, the Storybook
   `.classicyWindowModalScrim` in the desktop).
 - **An empty Programs submenu** shows "(Empty)" disabled.
 - **The tray's extensions** keep the id `classicyDesktopMenuExtensions`.
-  Refinement 1 makes two regions with that id impossible.
+  Refinement 1 keeps the desktop's own screen bar headless, so only a host's
+  second, forced `placement="screen"` bar could add a region with that id.
 - **A window wider than the work area** maximizes to the work area anyway: the
   content box is the work area, its `minimumSize` permitting.
 
@@ -1125,21 +1394,25 @@ otherwise. The Platinum and System 7 package test suites, the Storybook
   `classicyMaximizedWindowRect`, `computeClassicyWindowEdgeResize`,
   `classicyWindowSystemMenuItems`, `classicyStartMenuItems`,
   `classicyHelpMenuChildren`, `isClassicyAppHelpMenu`, the clock formats, the
-  task order, `classicyVisibleSuccession`, the band source and the window
-  registry.
+  task order, `classicyVisibleSuccession`, the band source, the window
+  registry, `classicyMenuBounds` with a band and `computeClassicyWindowResize`
+  with a `ceiling`.
 - **Component tests** for `ClassicyTaskbar`, the Start menu, the tray, the
   clock and every window behavior. Each runs both under a Windows 98 layout
   (the registered package, or a test layout with the flag) and under the
   default layout (today's behavior).
 - **Reducer tests** for minimize succession, restore on focus and
-  `restoreRect`.
+  `restoreRect` (written, validated, cleared, persisted).
+- **Bubbling tests** for the minimize box: under the flag its click reaches
+  neither `setActive` nor `ClassicyAppActivate`; under the default layout it
+  reaches both, as today.
 - **Package tests:** `ClassicyWindows98.test.ts` (the exact `layout`, the
   knobs in every theme, the color family) and `windows98.css.test.ts` (a pin
   for every new rule).
 - **Platinum's and System 7's own suites**, unchanged, after every step.
-- **Storybook stories** for the shell under Windows 98 (step 18), and the
+- **Storybook stories** for the shell under Windows 98 (step 20), and the
   `mirrored` stories unchanged.
-- **The visual check** (step 19):
+- **The visual check** (step 21):
   - Platinum's and System 7's parity shots against the branch point: AE 0,
     except the screen bar with a Finder window focused (one Help title).
   - Windows 98 shots of the taskbar, Start menu, tray, window menu bar,
@@ -1154,10 +1427,13 @@ otherwise. The Platinum and System 7 package test suites, the Storybook
 - The layout flags of §1, read by the core and declared by `windows98.json`.
 - `ClassicyTaskbar` with the Start button, the Start menu, task buttons, the
   tray (the Control Strip's modules, the menu bar extensions, the clock) and
-  the taskbar's menu.
+  the taskbar's menu (Minimize All Windows, Undo Minimize All, Properties).
+- The taskbar's band kept clear by window geometry, sizing, the icon grid and
+  every menu's placement box.
 - Minimize to the taskbar, maximize to the work area, restore, the window
   pop-up menu, frame-edge sizing, keyboard Move and Size, the caption's and
-  the icon's double-clicks, ALT+SPACE, ALT+F4, CTRL+ESC.
+  the icon's double-clicks, ALT+SPACE, ALT+F4, CTRL+ESC; a minimized app's
+  palettes hidden with it.
 - Window menu bars ending with Help under the shell. The double-Help fix in
   every package.
 - Titled dialog and message box captions with a Close box.
@@ -1180,8 +1456,6 @@ otherwise. The Platinum and System 7 package test suites, the Storybook
 - **Moving the taskbar to another edge, auto-hide, "always on top" off.**
   These are Taskbar Properties preferences, which Classicy has no surface
   for.
-- **Caption button tooltips** (Windows 98's "Minimize"/"Close" hints). Not in
-  the guidelines.
 - **The Windows icon pop-up menus** (Rename, Create Shortcut, Properties),
   audit 7.11: menu content, package-agnostic.
 - **Access keys and `Alt+` spelling** (audits 7.1, 7.15): a separate core
@@ -1198,7 +1472,7 @@ closes the other audit items leaves them alone.
 
 ## Audit findings this plan resolves
 
-The final step (19) returns these status changes. A later step writes them
+The final step (21) returns these status changes. A later step writes them
 into `docs/plans/windows-guidelines-audit.md`.
 
 - **"Mac-structure and web-platform adaptations"**:
@@ -1239,11 +1513,11 @@ into `docs/plans/windows-guidelines-audit.md`.
 - [ ] **The Start menu banner's colors** (navy at the bottom fading to black
   at the top, white text), **its width (21 px), its font size (18 px) and the
   first-level row height (32 px)**. These are Windows 98 SE's as remembered,
-  not measured. Step 19 confirms each against a Windows 98 SE capture and
+  not measured. Step 21 confirms each against a Windows 98 SE capture and
   corrects the knobs and the color family before the step closes. —
   implementer
 - [ ] **The tray's icon pitch (20 px) and inner padding (3 px)**. These are
-  read from Figure 10.2 at its printed scale. Step 19 confirms them against a
+  read from Figure 10.2 at its printed scale. Step 21 confirms them against a
   capture, as above. — implementer
 
 ---
@@ -1270,7 +1544,9 @@ These apply to every step:
   changes. It does not edit `docs/RELEASE-NOTES-3.8.md` or the audit.
 - **The Windows 98 package** declares each flag in the step that makes the
   core read it. The taskbar, window placement and minimize come together in
-  step 14, once nothing would be lost by them.
+  step 16, once nothing would be lost by them.
+- **Size.** Each step is one session's work (about 20–40 minutes); the band,
+  the registry, the tray and the clock are separate steps for that reason.
 
 ### Step 1: Layout flags
 
@@ -1280,7 +1556,8 @@ These apply to every step:
   - Add the optional keys of §1 to the schema and the type, with their value
     sets: `taskbar { startLabel?, startBanner? { title, edition? } }`;
     `window.collapse`, `window.zoom`, `window.titleDoubleClick`,
-    `window.frameEdges`, `window.systemMenu`; `dialog { caption? }`.
+    `window.frameEdges`, `window.systemMenu`, `window.captionTooltips`;
+    `dialog { caption? }`.
   - Add the two refinements (taskbar ⇒ window placement; minimize ⇒
     taskbar), with messages.
   - Each key's TSDoc comment states its contract. No package declares a key
@@ -1297,37 +1574,64 @@ These apply to every step:
   unchanged.
 - **Returns:** no release note (internal).
 
-### Step 2: Window registry, taskbar band and band-aware geometry
+### Step 2: The window registry
 
 - **Files:**
   - new `src/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal.ts`;
-  - new `src/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal.ts`;
-  - `src/SystemFolder/SystemResources/Window/ClassicyWindow.tsx`;
-  - `src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext.tsx`;
-  - `src/SystemFolder/SystemResources/File/ClassicyFileSystemApplications.ts`.
+  - `src/SystemFolder/SystemResources/Window/ClassicyWindow.tsx`.
 - **Change:**
-  - The registry (§5, "Shared plumbing"): `ClassicyWindow` registers its
-    entry and its `activate`, `minimize`, `restore`, `maximize` and `close`
-    commands over its existing functions. `systemMenu`, `move` and `size`
-    return `false` until steps 7–8.
-  - The band source.
-  - The optional `bottomBand` parameter on `resolveSize`, `resolvePosition`
-    and `clampWindowPositionToViewport`; `computeStandardRect` reads the
-    band. `ClassicyWindow` subscribes with `useClassicyTaskbarBand()`.
-  - `createGrid` subtracts `getClassicyTaskbarBand()`.
-  - Export `isClassicyApplicationsEntry`.
+  - First, before any edit to `ClassicyWindow.tsx`: the DOM snapshots that
+    §8 names (a document window's and a modal's root and title bar under
+    Platinum's layout), so every later step that touches the window is held
+    to them.
+  - The registry (§5, "Shared plumbing"): entries, the token, the one
+    snapshot, `run` through a ref. `ClassicyWindow` registers its entry and
+    its `activate`, `minimize`, `restore`, `maximize` and `close` commands
+    over its existing functions (`close` is `close()` when `closable`; the
+    caption close joins it in step 10). `systemMenu`, `move` and `size`
+    return `false` until steps 8 and 9.
 - **Tests:**
-  - new `ClassicyWindowRegistry.test.ts` (register, update and unregister;
+  - new `ClassicyWindowRegistry.test.ts` (register, update and unregister; a
+    stale token removes nothing; the snapshot is stable between changes;
     commands reach the window; StrictMode remount);
+  - the snapshots in `ClassicyWindow.titlebar.test.tsx` and
+    `ClassicyWindow.modal.test.tsx`.
+- **Returns:** no release note (internal).
+
+### Step 3: The taskbar band and band-aware geometry
+
+- **Files:**
+  - new `src/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal.ts`;
+  - `src/SystemFolder/SystemResources/Window/ClassicyWindow.tsx` (the
+    geometry functions, `computeStandardRect`, the `ws` memo's clamp, the
+    resize ceiling);
+  - `src/SystemFolder/SystemResources/Window/ClassicyWindowResize.ts`
+    (`ceiling`);
+  - `src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext.tsx`;
+  - `src/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal.ts`.
+- **Change:** §2 "The band": the band source; the optional `bottomBand`
+  parameter on `resolveSize`, `resolvePosition` and
+  `clampWindowPositionToViewport`; `computeStandardRect` reading the band;
+  `ClassicyWindow` subscribing with `useClassicyTaskbarBand()`; the grow box's
+  `ceiling`, passed only while the band is not 0; `createGrid` and
+  `classicyDesktopIconGridPosition`'s bottom origins; `classicyMenuBounds`.
+- **Tests:**
   - new `ClassicyTaskbarBand.test.ts`;
   - `ClassicyWindow.geometry.test.ts` (band 0 equals today; a band of 28 caps
     `y` and centers within the work area);
-  - `ClassicyDesktopIconEventHandler.test.ts` (rows above the band; band 0
-    unchanged);
-  - `ClassicyFileSystemApplications.test.ts`.
+  - `ClassicyWindowResize.test.ts` (every existing case unchanged with no
+    `ceiling`; a ceiling stops the bottom edge);
+  - `ClassicyDesktopIconEventHandler.test.ts` (rows above the band for top
+    and bottom origins; band 0 unchanged);
+  - `ClassicyMenuPlacement.test.ts` (band 0 is today's box; a band of 28
+    moves only the bottom).
+- **Docs:** AGENT-REFERENCE §8's `computeClassicyWindowResize(corner, rect,
+  pointer, chrome, fudge?, minimum?, floor?, ceiling?)` entry, and the
+  `resolveSize`/`resolvePosition`/`clampWindowPositionToViewport` signatures
+  where §8 names them (the exported functions gain an optional argument).
 - **Returns:** no release note (internal).
 
-### Step 3: Taskbar skeleton and task buttons
+### Step 4: Taskbar skeleton and task buttons
 
 - **Files:**
   - new `src/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar.tsx`,
@@ -1337,26 +1641,29 @@ These apply to every step:
     files;
   - `src/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp.tsx`.
 - **Change:**
-  - `ClassicyTaskbar`, mounted instead of the Control Strip when
-    `layout.taskbar` is set. It forwards `controlStrip`'s `disabledModules`
-    and `false`.
+  - `ClassicyTaskbar`, mounted in the Control Strip's place when
+    `layout.taskbar` is set (§2 "Mounting"). It forwards `controlStrip`'s
+    `disabledModules` and `false`.
   - The structure and base rules of §2.
   - The band published from the root's height.
   - The Start button: label and empty icon span, `open` toggled, no menu yet.
-  - The task list: membership, order, labels, icons, states, clicks through
-    the registry, right-click through `systemMenu` (inert until step 8),
-    truncation tooltips.
+  - The task list: membership, order, labels, icons, states (the owner's
+    button stays pressed under its dialog), clicks through the registry,
+    right-click through `systemMenu` (inert until step 9), truncation
+    tooltips.
   - The balloon hook's optional `{ force }` argument.
   - The vocabulary's `Taskbar` component and the parts `taskbar-start`,
     `taskbar-tasks` and `taskbar-tray`.
 - **Tests:**
   - new `ClassicyTaskbar.test.tsx`, under a test package whose layout
     declares a taskbar: membership (no modal, no palette, no closed window),
-    the order rules, the `active`/`collapsed`/`pressed` states, click →
+    the order rules, the `active`/`collapsed`/`pressed` states (an open
+    alert keeps its owner's button pressed), click →
     activate/minimize/restore through the registry, the tooltip only when
     truncated, the band;
   - `ClassicyDesktop.layout.test.tsx` (Platinum: Control Strip and no
-    taskbar; the taskbar layout: a taskbar and no Control Strip);
+    taskbar, the desktop's children in today's order; the taskbar layout: a
+    taskbar in the strip's place and no Control Strip);
   - `useClassicyBalloonHelp.test.tsx` (`force`);
   - `ClassicyPassthrough.more.test.tsx` (a `ClassicyTaskbar` row).
 - **Docs:** AGENT-REFERENCE §4 (`ClassicyTaskbar` row), §4.0.1 (Taskbar parts
@@ -1365,7 +1672,7 @@ These apply to every step:
   `ClassicyDesktop` mounts when the Appearance Package's layout declares
   `taskbar`".
 
-### Step 4: Minimize (`window.collapse: "minimize"`)
+### Step 5: Minimize (`window.collapse: "minimize"`)
 
 - **Files:**
   - `ClassicyWindow.tsx`, `ClassicyWindowTitleBar.tsx`, `ClassicyWindow.scss`;
@@ -1373,13 +1680,22 @@ These apply to every step:
   - `src/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers.ts`;
   - `ClassicyDesktop.tsx` (`desktopOwnsBar`);
   - the vocabulary (`Minimized`).
-- **Change:** §5 "Minimize": `minimized` and `shaded`, the class and its base
-  rule, the title bar's `labels`, the reducer guard and
-  `classicyVisibleSuccession` (Collapse, Close and Destroy under the flag),
-  restore on `focusWindow`.
+- **Change:** §5 "Minimize":
+  - `minimized` and `shaded`, and the guards that read `shaded || minimized`;
+  - the class and its base rule; the palettes hidden with their app;
+  - the collapse box's click not bubbling, and `zoomed` kept, under the flag;
+  - the title bar's `labels`;
+  - the reducer guard and `classicyVisibleSuccession` (Collapse, Close and
+    Destroy under the flag);
+  - restore on `focusWindow`.
 - **Tests:**
-  - `ClassicyWindow.collapse.test.tsx` (the default layout is unchanged; under
-    the flag: hidden, mounted children kept, label "Minimize");
+  - `ClassicyWindow.collapse.test.tsx` (the default layout is unchanged,
+    the click still bubbling and a collapse still clearing `zoomed`; under
+    the flag: hidden, mounted children kept, label "Minimize", a zoomed
+    window keeps `zoomed`, a minimize box clicked on an inactive window
+    leaves it minimized, a shaded palette record is drawn expanded, a
+    palette hides while its app's document windows are all minimized);
+  - `ClassicyWindow.collapseAll.test.tsx` (Option-click under the flag);
   - `ClassicyWindowEventHandler.test.ts` (succession within the app, across
     apps and to the desktop; a utility or modal collapse refused; Close
     skipping a minimized sibling);
@@ -1390,62 +1706,75 @@ These apply to every step:
 - **Docs:** §8 layout row. CLAUDE.md "Window Order & Focus Succession" (the
   minimize succession).
 - **Returns:** a release note on minimize under a taskbar layout; audit:
-  Ch.6 "Minimizing/Restoring Windows" → 🔧 once step 14 lands.
+  Ch.6 "Minimizing/Restoring Windows" → 🔧 once step 16 lands.
 
-### Step 5: Maximize, restore and the caption's double-click
+### Step 6: Maximize, restore and the caption's double-click
 
 - **Files:**
   - new `src/SystemFolder/SystemResources/Window/ClassicyWindowMaximize.ts`;
-  - `ClassicyWindow.tsx`;
+  - `ClassicyWindow.tsx`, `ClassicyWindow.scss` (`classicyWindowMaximized`);
   - `ClassicyDesktopWindowManagerContext.tsx` (`restoreRect`);
   - `src/SystemFolder/ControlPanels/AppManager/ClassicyAppManager.ts` (the
-    type);
+    type), `ClassicyActionPredicates.ts` (`hasWindowZoomed`);
+  - the vocabulary (`Maximized`);
   - `packages/appearance/windows98/src/windows98.json`
     (`window.zoom: "maximize"`, `window.titleDoubleClick: "zoom"`);
   - `packages/appearance/windows98/src/ClassicyWindows98.test.ts`.
 - **Change:** §5 "Maximize and restore" and "The caption's double-click":
   - the pure rect and `classicyWindowChromeEdges`;
-  - `applyZoom` with `restore`, and the restore fallbacks;
+  - `applyZoom` with `restore` under the flag, the validated `restoreRect`,
+    and the restore fallbacks;
+  - `classicyWindowMaximized` and its `max-height: none`;
   - the clamp skipped while maximized;
   - move, edges and grow box inert;
   - re-apply on a desktop resize, a band change or a mount;
+  - `zoomMode` and `idealSize` ignored under the flag;
   - the labels Maximize and Restore;
   - `onTitleDoubleClick` under `"zoom"`.
 - **Tests:**
   - new `ClassicyWindowMaximize.test.ts` (the rect with and without a band,
     the chrome offsets);
   - `ClassicyWindow.hig.test.tsx` (the default layout keeps the standard
-    state; under the flag: the rect, `expanded`, restore to `userStateRef`,
-    then to `restoreRect` after a remount);
-  - `ClassicyWindowEventHandler.test.ts` (`restoreRect` written and cleared);
+    state and no `classicyWindowMaximized`; under the flag: the rect,
+    `expanded` and `classicyWindowMaximized`, restore to `userStateRef`,
+    then to `restoreRect` after a remount, a malformed `restoreRect`
+    ignored);
+  - `ClassicyWindowEventHandler.test.ts` (`restoreRect` written, refused when
+    malformed, and cleared);
+  - `ClassicyActionPredicates.test.ts` (`hasWindowZoomed` with and without
+    `restore`);
   - `ClassicyStateMigrations.windowFlags.test.ts` (Platinum's persisted JSON
-    has none);
-  - `ClassicyWindow.titlebar.test.tsx` (double-click by flag);
+    has none; a Windows 98 session's survives `sanitizeStateForPersistence`);
+  - `ClassicyWindow.titlebar.test.tsx` (double-click by flag; nothing on a
+    window that cannot zoom);
   - `ClassicyWindows98.test.ts` (the exact layout).
 - **Docs:** §8 rows. The Windows 98 README "Its layout" bullet. The
   AGENT-REFERENCE Windows 98 entry.
 - **Returns:** a release note; audit 6.6 → 🔧.
 
-### Step 6: Frame-edge sizing
+### Step 7: Frame-edge sizing
 
 - **Files:** `ClassicyWindowResize.ts` (`computeClassicyWindowEdgeResize`),
   `ClassicyWindow.tsx`, `ClassicyWindow.scss`, the vocabulary
   (`SizingBorder`, `FrameCorner`), `windows98.json`
   (`window.frameEdges: "resize"`), `ClassicyWindows98.test.ts`.
-- **Change:** §5 "Frame-edge sizing": the edge math, the root class, the edge
-  handlers, the eight corner arms, the base cursors, the inert cases
-  (non-resizable, maximized, shaded).
+- **Change:** §5 "Frame-edge sizing": the edge math with its floor and
+  ceiling, the root class, the edge handlers, the eight corner arms, the base
+  cursors in the registry's idiom, the inert cases (non-resizable,
+  maximized, shaded).
 - **Tests:**
-  - `ClassicyWindowResize.test.ts` (each edge, each corner, the minimum and
-    the floor);
+  - `ClassicyWindowResize.test.ts` (each edge, each corner, the minimum, the
+    floor and the ceiling);
   - a new `ClassicyWindow.frameEdges.test.tsx` (the default layout moves the
     window; under the flag each handle sizes it, a non-resizable window's
     edges are inert, the arms are present only under the flag);
+  - `ClassicyCascade.repo.test.ts` (the cursor rules follow
+    `.classicyWindowFrameEdge`'s `cursor: default`);
   - `ClassicyWindows98.test.ts`.
 - **Docs:** §8 row; §4.0.1 Window parts.
 - **Returns:** a release note; audit 6.5 → 🔧.
 
-### Step 7: Keyboard Move and Size
+### Step 8: Keyboard Move and Size
 
 - **Files:** new `src/SystemFolder/SystemResources/Window/ClassicyWindowKeyboardMove.internal.ts`,
   `ClassicyWindow.tsx` (the `move` and `size` commands).
@@ -1459,58 +1788,69 @@ These apply to every step:
   - the minimum holds;
   - refused while maximized, minimized or fixed.
 - **Docs:** AGENT-REFERENCE `ClassicyWindow` (the commands).
-- **Returns:** none alone (it reaches users through step 8's menu).
+- **Returns:** none alone (it reaches users through step 9's menu).
 
-### Step 8: The window pop-up (system) menu, ALT+SPACE and ALT+F4
+### Step 9: The window pop-up (system) menu, ALT+SPACE and ALT+F4
 
 - **Files:**
   - new `src/SystemFolder/SystemResources/Window/ClassicyWindowSystemMenu.ts`;
-  - new `useClassicyWindowShellKeys.internal.ts`;
+  - new `src/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal.ts`;
   - `ClassicyWindow.tsx`, `ClassicyWindowTitleBar.tsx` (`onIconMouseDown`,
     `onIconDoubleClick`);
-  - `ClassicyDesktop.tsx` (mounts the keys hook under the flag);
+  - `ClassicyDesktop.tsx` (calls `useClassicyWindowShellKeys(enabled)`);
   - `windows98.json` (`window.systemMenu: true`),
     `ClassicyWindows98.test.ts`.
 - **Change:** §5 "The window pop-up (system) menu":
   - the builder and its states;
-  - the caption's right-click, the icon's mouse-down and double-click;
-  - ALT+SPACE and ALT+F4;
+  - the caption's right-click, the icon's first press and its double-click
+    (the second press not reopening the menu);
+  - ALT+SPACE (at the icon, else the title bar) and ALT+F4 (the `close`
+    command);
   - the `systemMenu` command (the task button's right-click now opens it);
-  - Move and Size wired to step 7.
+  - Move and Size wired to step 8.
 - **Tests:**
   - new `ClassicyWindowSystemMenu.test.ts` (each window kind's items and
     states, Close default);
   - `ClassicyWindow.contextmenu.test.tsx` (the default layout unchanged;
     under the flag the caption shows the system menu and the body keeps
     `contextMenu`);
-  - new `ClassicyWindow.systemMenu.test.tsx` (icon click and double-click,
-    ALT+SPACE, ALT+F4, the veto honored);
+  - new `ClassicyWindow.systemMenu.test.tsx` (icon press with no move armed,
+    double-click closing with no menu left open, ALT+SPACE, ALT+F4, the veto
+    honored, a `defaultPrevented` key ignored, no listener without the flag);
   - `ClassicyTaskbar.test.tsx` (right-click opens it).
 - **Docs:** §8 row; §4.0.1. CLAUDE.md "Contextual Menus" (the caption's menu
   under the flag).
 - **Returns:** a release note; audit 6.2, 6.3, 7.10, 8.7 → 🔧.
 
-### Step 9: Titled dialog and message box captions
+### Step 10: Titled dialog and message box captions
 
 - **Files:** `ClassicyWindow.tsx` (`onCaptionClose`, the title fallback,
-  movable), `ClassicyWindowTitleBar.tsx` (`closeDisabled`),
-  `ClassicyAlert.tsx`, `ClassicyFileDialog.tsx`, `ClassicyInputDialog.tsx`,
+  movable, the `close` command's caption close),
+  `ClassicyWindowTitleBar.tsx` (`closeDisabled`), `ClassicyAlert.tsx`,
+  `ClassicyFileDialog.tsx`, `ClassicyInputDialog.tsx`,
   `ClassicyKeyboardEquivalentDialog.tsx`, `ClassicyAboutWindow.tsx`,
   `HyperCardDialog.tsx`, `windows98.json` (`dialog.caption: "titled"`),
   `ClassicyWindows98.test.ts`.
-- **Change:** §6.
+- **Change:** §6, and ALT+F4 and the system menu's Close following the
+  caption's Close box; the caption buttons' tooltips
+  (`window.captionTooltips`, `buttonTooltips`), declared by `windows98.json`
+  in the same step.
 - **Tests:**
   - `ClassicyWindow.modal.test.tsx` (the default layout: no Close box and
     fixed stays fixed; titled: the title fallback, the Close box runs
-    `onCaptionClose`, disabled without one, an error alert moves);
+    `onCaptionClose`, disabled without one, an error alert moves, ALT+F4 on a
+    Yes/No alert does nothing);
   - `ClassicyAlert.test.tsx` (cancel → sole → disabled);
-  - each dialog's test (the Close box runs its Cancel);
-  - `ClassicyWindowTitleBar.test.tsx`.
-- **Docs:** §8 row; §4 `ClassicyWindow` (`onCaptionClose`);
+  - each dialog's test (the Close box runs its Cancel; the About box's OK
+    handler gets an event);
+  - `ClassicyWindowTitleBar.test.tsx` (`closeDisabled`; `buttonTooltips`
+    shows each label after 500 ms with balloon help off, and nothing without
+    the prop).
+- **Docs:** §8 rows; §4 `ClassicyWindow` (`onCaptionClose`);
   `ClassicyWindowTitleBar` props.
 - **Returns:** a release note; audit 8.1 refined, Ch.8 message boxes ✅.
 
-### Step 10: Help in one menu everywhere; Help in each window bar under the shell
+### Step 11: Help in one menu everywhere; Help in each window bar under the shell
 
 - **Files:**
   - new `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyHelpMenu.internal.ts`;
@@ -1518,13 +1858,17 @@ These apply to every step:
   - `src/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.tsx`;
   - `src/SystemFolder/Finder/Finder.tsx` (the toggle as an `event` item).
 - **Change:** §4: the moved and new helpers; the screen bar's merge (every
-  package); the window bar's Help under `layout.taskbar`.
+  package), with `systemChordsKey` kept to the system's own items; the window
+  bar's Help under `layout.taskbar`.
 - **Tests:**
   - new `ClassicyHelpMenu.test.ts`;
   - `ClassicyDesktopMenuBar.help.test.tsx` (one Help with a Finder window
     focused, under Platinum's and System 7's layouts; a host's Help item
     merged; the dedupe);
   - `ClassicyDesktopMenuBar.test.tsx` (the About strip tests still pass);
+  - `ClassicyShortcutDispatcher.integration.test.tsx` (the `system` and `app`
+    chord lists unchanged with a Finder window and a host Help item with a
+    chord);
   - `ClassicyWindowMenuBar.test.tsx` (`mirrored` unchanged; under a taskbar
     layout: Help last, system items, registered items, the app's items,
     "About Finder" last);
@@ -1536,71 +1880,96 @@ These apply to every step:
 - **Returns:** a release note naming the fix in every package ("an
   application's Help menu is merged into the Help menu; a Finder window no
   longer adds a second Help title") and stating that Platinum and System 7
-  change.
+  change, checked against HIGOS8 Ch.4 "Help menus" (p.92, Figure 4-2) and
+  HIG7 "The Help Menu" (p.125).
 
-### Step 11: The Start menu and CTRL+ESC
+### Step 12: The Start menu and CTRL+ESC
 
 - **Files:**
-  - new `ClassicyStartMenu.internal.tsx`, `ClassicyStartMenuItems.internal.ts`,
-    `ClassicyStartMenu.scss`, `useClassicyTaskbarKeys.internal.ts`;
+  - new `src/SystemFolder/SystemResources/Taskbar/ClassicyStartMenu.internal.tsx`,
+    `ClassicyStartMenuItems.internal.ts`, `ClassicyStartMenu.scss`,
+    `useClassicyTaskbarKeys.internal.ts`;
   - `ClassicyTaskbar.tsx`;
   - `src/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup.tsx`
     (`aside`);
+  - `src/SystemFolder/SystemResources/File/ClassicyFileSystemApplications.ts`
+    (export `isClassicyApplicationsEntry`);
   - the vocabulary (`StartMenu`, `start-menu-banner`).
-- **Change:** §3, and the Start button's menu from step 3.
+- **Change:** §3, with Settings' balloon toggle, and the Start button's menu
+  from step 4.
 - **Tests:**
   - new `ClassicyStartMenuItems.test.ts` (the structure, Programs from
     Applications and mounted apps, Control Panel from the Apple entries not
-    in Applications, sorted by display name, "(Empty)");
-  - new `ClassicyStartMenu.test.tsx` (opens upward and inside bounds, banner
-    from the layout and none without it, a choice closes it, Escape returns
-    focus, CTRL+ESC toggles, blocked under a modal);
-  - `ClassicyBevelButton.popup.test.tsx` (`aside`).
+    in Applications, sorted by display name, "(Empty)", the balloon toggle's
+    title following `disableBalloonHelp`);
+  - new `ClassicyStartMenu.test.tsx` (opens upward on the band's top edge
+    and inside bounds, banner from the layout and none without it, a choice
+    closes it, Escape returns focus, CTRL+ESC toggles, blocked under a
+    modal);
+  - `ClassicyBevelButton.popup.test.tsx` (`aside`);
+  - `ClassicyFileSystemApplications.test.ts` (the export).
 - **Docs:** §4.0.1; the §8 `taskbar.startLabel` and `startBanner` rows.
 - **Returns:** a release note.
 
-### Step 12: The tray and the clock
+### Step 13: The tray and the taskbar's own menu
 
 - **Files:**
-  - new `ClassicyTaskbarTray.internal.tsx`, `ClassicyTaskbarClock.internal.tsx`;
-  - new `src/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/useClassicyClockTime.internal.ts`;
-  - `ClassicyDesktopMenuWidgetTime.tsx`;
-  - `ClassicyMenuBarExtension.tsx`;
+  - new `src/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTray.internal.tsx`;
+  - `src/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension.tsx`;
   - `ClassicyTaskbar.tsx` (the taskbar's menu).
-- **Change:** §2 "The tray", "The clock" and "The taskbar's own menu":
-  - the modules as tray icons, with their arrangement, clicks, double-click
-    default and tooltips;
+- **Change:** §2 "The tray" and "The taskbar's own menu":
+  - the modules as tray icons, each its own component, with their
+    arrangement, `ClassicyBevelButtonPopup` surfaces, clicks, the deferred
+    first click beside an `isDefault` item, the double-click default and
+    tooltips;
   - the extensions region and its re-query;
-  - the shared clock hook, with the widget's DOM pinned first;
-  - the clock's format, tooltip, double-click and right-click;
-  - Minimize All Windows and Properties.
+  - Minimize All Windows, Undo Minimize All and Properties.
 - **Tests:**
-  - new `ClassicyDesktopMenuWidgetTime.test.tsx` (written and green before the
-    move);
   - new `ClassicyTaskbarTray.test.tsx` (order, hidden, disabled, `visible`
-    and `controlStrip={false}`, click/right-click/double-click, tooltip
-    label);
-  - new `ClassicyTaskbarClock.test.tsx` (12 h and 24 h, the long date,
-    `show`, the double-click opens Date & Time, the menu);
+    and `controlStrip={false}`, a hook-form module, click/right-click/
+    double-click, tooltip label, the popup above the band);
   - `ClassicyMenuBarExtension.placement.test.tsx` (portals into the tray;
     `mirrored` unchanged);
-  - `ClassicyTaskbar.test.tsx` (Minimize All).
+  - `ClassicyTaskbar.test.tsx` (Minimize All with one commit's focus, Undo
+    Minimize All, the list forgotten when a window is restored by hand).
 - **Docs:** CLAUDE.md "Control Strip" (the tray under a taskbar). The
   AGENT-REFERENCE `ClassicyControlStrip` and `ClassicyMenuBarExtension` rows.
 - **Returns:** a release note; audit 7.28 → 🔧.
 
-### Step 13: Drop activation on task buttons
+### Step 14: The clock
+
+- **Files:**
+  - new `src/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/useClassicyClockTime.internal.ts`;
+  - `ClassicyDesktopMenuWidgetTime.tsx`;
+  - new `src/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarClock.internal.tsx`;
+  - `ClassicyTaskbarTray.internal.tsx` (mounts it).
+- **Change:** §2 "The clock":
+  - first, `ClassicyDesktopMenuWidgetTime.test.tsx`, green against today's
+    widget;
+  - then the shared clock hook, with the widget's DOM unchanged;
+  - the taskbar clock's format, tooltip, `show`, double-click and right-click
+    (Adjust Date/Time, then the taskbar's menu of step 13).
+- **Tests:**
+  - new `ClassicyDesktopMenuWidgetTime.test.tsx` (written and green before
+    the move: its DOM, its click toggle, the minute dispatch);
+  - new `ClassicyTaskbarClock.test.tsx` (12 h and 24 h, the long date,
+    `show`, the double-click opens Date & Time, the menu).
+- **Docs:** the AGENT-REFERENCE `ClassicyTaskbar` row (the clock).
+- **Returns:** none beyond step 16's.
+
+### Step 15: Drop activation on task buttons
 
 - **Files:** `src/SystemFolder/SystemResources/File/ClassicyFileDrag.ts`,
   `ClassicyTaskbarTasks.internal.tsx`.
 - **Change:** `.classicyTaskbar` in `BLOCKING_SELECTOR`. A
-  `data-classicy-drop-activate` element under a resting drag for 500 ms gets
-  `classicy:dropactivate`, and the button restores or activates its window.
+  `data-classicy-drop-activate` element under a resting drag for 500 ms,
+  found before the blocking check, gets `classicy:dropactivate`, and the
+  button restores or activates its window.
 - **Tests:** `ClassicyFileDrag.test.ts` (the timer, reset on leaving, no drop
-  target), `ClassicyTaskbar.test.tsx`.
+  target, folder and desktop targets unchanged), `ClassicyTaskbar.test.tsx`.
 - **Returns:** audit Ch.3 "Window Buttons" (drops) → 🔧.
 
-### Step 14: Windows 98 becomes the shell
+### Step 16: Windows 98 becomes the shell
 
 - **Files:** `packages/appearance/windows98/src/windows98.json`
   (`menuBar.placement: "window"`, the `taskbar` block,
@@ -1617,7 +1986,7 @@ These apply to every step:
   notes take); audit: the Ch.3 rows and the "Mac-structure adaptations"
   rewrite.
 
-### Step 15: Windows 98 look — window menu bars and captions
+### Step 17: Windows 98 look — window menu bars and captions
 
 - **Files:**
   - `packages/appearance/windows98/src/styles/components/_MenuBar.scss`
@@ -1626,48 +1995,51 @@ These apply to every step:
   - `src/styles/windows98.css.test.ts`, `src/ClassicyWindows98.test.ts`.
 - **Change:** §7's first two rows: the 20 px bar, raised hot-tracking and the
   sunken open title, the screen bar's fallback, the embossed disabled Close,
-  the comment updates.
+  the comment updates. The taskbar-style screen-bar rules (3.1, 3.2) go;
+  their look returns on the taskbar in step 18.
 - **Tests:**
   - `windows98.css.test.ts` (a pin for every new rule: the band, hover
     raised, open sunken with offset, disabled Close);
   - `ClassicyWindows98.test.ts` (the knob in every theme).
 - **Returns:** audit Ch.7 "The Menu Bar and Drop-down Menus" note.
 
-### Step 16: Windows 98 look — taskbar, task buttons, tray, clock
+### Step 18: Windows 98 look — taskbar, task buttons, tray, clock
 
 - **Files:** new `packages/appearance/windows98/src/styles/components/_Taskbar.scss`,
   `windows98.scss` (include it), `windows98.json` (the `taskbar` knob family
   in `defaults` and every preset), `windows98.css.test.ts`,
   `ClassicyWindows98.test.ts`, `bin/multiplier-allowlist.json` (only if a
   multiplier is unavoidable, with its reason).
-- **Change:** §7's taskbar bullets, and the Start glyph's pixel art.
+- **Change:** §7's taskbar bullets, the tray icons with no bevel, and the
+  Start glyph's pixel art.
 - **Tests:** CSS pins (the bar edge, the Start raised and pressed, task
   active/pressed/dither, the tray's sunken ring, the clock padding), the
   knobs in every theme.
 - **Returns:** audit 3.1 and 3.2 re-pointed.
 
-### Step 17: Windows 98 look — Start menu and tray popups
+### Step 19: Windows 98 look — Start menu and tray popups
 
 - **Files:** `_Taskbar.scss` (or a new `_StartMenu.scss` included after it),
   `_ControlStrip.scss` (the panel mixin shared), `windows98.json`
   (`startMenu` knobs and color family in `defaults`, every preset and
   `colorFamilies`), `windows98.css.test.ts`, `ClassicyWindows98.test.ts`.
 - **Change:** §7's Start menu rules (frame, banner, large first-level icons)
-  and the tray popups.
+  and the tray popups (`classicyTaskbarTrayPopup`).
 - **Tests:**
   - CSS pins: one frame, the banner gradient from the family with `--color-*`
-    fallbacks, 32 px first-level icons, 16 px in submenus;
+    fallbacks, 32 px first-level icons, 16 px in submenus, the tray panel;
   - the color family in every theme;
   - `ClassicyAppearance.varCoverage`.
-- **Returns:** none beyond step 14's.
+- **Returns:** none beyond step 16's.
 
-### Step 18: Storybook stories for the Windows 98 shell
+### Step 20: Storybook stories for the Windows 98 shell
 
 - **Files:** new `packages/appearance/windows98/src/Windows98Shell.stories.tsx`,
   `storybook/.storybook/windows98.ts` (helpers),
   `storybook/.storybook/Windows98StoryHelpers.test.tsx`.
 - **Change:** stories registered through `windows98.ts`
-  (`windows98Parameters`, `inScheme`):
+  (`windows98Parameters`, `inScheme`), each leaving
+  `parameters.classicy.controlStrip` unset so the tray has its modules:
   - the taskbar with three windows (one active, one minimized);
   - the Start menu open (a play function), with Programs open;
   - a tray menu and the Sound panel open;
@@ -1682,7 +2054,7 @@ These apply to every step:
   `pnpm build:storybook`.
 - **Returns:** none.
 
-### Step 19: Example app, visual check and docs wrap-up
+### Step 21: Example app, visual check and docs wrap-up
 
 - **Files:** `CLAUDE.md` (a "Windows shell" architecture section, with the
   Control Strip, menu bar and window notes updated), `docs/AGENT-REFERENCE.md`
@@ -1691,9 +2063,10 @@ These apply to every step:
 - **Change:**
   - Run `pnpm build:source && pnpm --filter classicy-example build` and
     `pnpm preview`. Drive the example under Windows 98: open, minimize,
-    restore and maximize windows; the Start menu; the tray's Sound, Screen
-    Saver and Appearance modules; the demo extension in the tray; a dialog's
-    Close box; ALT+SPACE (macOS host); CTRL+ESC.
+    restore and maximize windows (a maximized one minimized and restored);
+    the Start menu; the tray's Sound, Screen Saver and Appearance modules;
+    the demo extension in the tray; a window menu near the taskbar; a
+    dialog's Close box; ALT+SPACE (macOS host); CTRL+ESC.
   - Shoot Windows 98 views and compare them by eye with WIG Figures 3.1,
     7.1, 8.1, 8.17, 10.2 and a Windows 98 SE capture. Settle the open
     questions' values.
