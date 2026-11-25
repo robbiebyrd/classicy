@@ -72,6 +72,7 @@ import {
 	useClassicyAppearanceLayout,
 } from "@/Appearance/useClassicyAppearanceLayout";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 import {
@@ -297,6 +298,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		),
 	);
 	const desktopEventDispatch = useAppManagerDispatch();
+	const player = useSoundDispatch();
 
 	const defaultApps = useContext(ClassicyDefaultAppsContext);
 	const {
@@ -350,9 +352,19 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	}, [systemDialog, desktopEventDispatch]);
 
 	// Special ▸ Empty Trash, once confirmed: remove the Trash's contents for
-	// good, and close any Finder window open on a folder inside it.
+	// good, and close any Finder window open on a folder inside it. Something
+	// removed plays `ClassicyTrashEmpty` (Windows 98's Empty Recycle Bin), an
+	// optional sprite: a pack that does not define it (Platinum's, System 7's)
+	// plays nothing and stops nothing, and no other pack stands in for it.
+	// Interrupting, as Windows' PlaySound did, so the alert's own sound never
+	// keeps it from playing.
 	const emptyTrash = useCallback(() => {
-		emptyClassicyTrash(getFileSystem());
+		if (emptyClassicyTrash(getFileSystem()) > 0) {
+			player({
+				type: "ClassicySoundPlayInterrupt",
+				sound: "ClassicyTrashEmpty",
+			});
+		}
 		const finder =
 			useAppManager.getState().System.Manager.Applications.apps["Finder.app"];
 		const openPaths = (finder?.data as { openPaths?: unknown } | undefined)
@@ -365,7 +377,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				desktopEventDispatch({ type: "ClassicyAppFinderCloseFolder", path });
 			}
 		}
-	}, [getFileSystem, desktopEventDispatch]);
+	}, [getFileSystem, desktopEventDispatch, player]);
 
 	// File ▸ Move To Trash, ⌃⌫ or Delete on the desktop: trash the items of
 	// the selected file and folder icons (not drives, apps or the Trash).

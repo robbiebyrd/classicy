@@ -1,8 +1,8 @@
 # Windows 98 asset inventory
 
-Every icon, system-art key, cursor, font face and display name the Windows 98 Appearance Package (`@classicy/appearance-windows98`, `packages/appearance/windows98`) takes from Windows 98, and exactly which file each comes from. The package registers them from `src/assets/windows98Assets.ts` (the icons from the data in `src/assets/windows98Icons.ts`, the fonts from the face list in `src/assets/windows98Fonts.internal.ts`) and `src/windows98Apps.ts`; `src/assets/windows98Inventory.test.ts` reads this file and fails if a row and the registration disagree.
+Every icon, system-art key, cursor, font face, sound and display name the Windows 98 Appearance Package (`@classicy/appearance-windows98`, `packages/appearance/windows98`) takes from Windows 98, and exactly which file each comes from. The package registers them from `src/assets/windows98Assets.ts` (the icons from the data in `src/assets/windows98Icons.ts`, the fonts from the face list in `src/assets/windows98Fonts.internal.ts`), `src/assets/sounds/windows98.ts` and `src/windows98Apps.ts`; `src/assets/windows98Inventory.test.ts` reads this file and fails if a row and the registration disagree.
 
-Windows 95 and 98's icons, bitmaps, cursors and interface are Microsoft's; Classicy uses them under the fair use doctrine, as it uses Apple's Mac OS art under Platinum and System 7. The interface face is a recreation of MS Sans Serif by FontStruct user "lou", licensed CC BY-SA 3.0 (Fonts).
+Windows 95 and 98's icons, bitmaps, cursors, sounds and interface are Microsoft's; Classicy uses them under the fair use doctrine, as it uses Apple's Mac OS art under Platinum and System 7. The interface face is a recreation of MS Sans Serif by FontStruct user "lou", licensed CC BY-SA 3.0 (Fonts).
 
 ## Sources and conversion
 
@@ -416,6 +416,30 @@ The faces registered with `registerClassicyFonts` (and written to `dist/classicy
 | `Pixelated MS Sans Serif` | bold | normal | `fonts/PixelatedMSSansSerif-bold-normal.woff2` | FontStruct "MS Sans Serif Bold" by lou (fontstruct.com/fontstructions/show/1384862), 98.css's woff2 (`ms_sans_serif_bold.woff2`) | CC BY-SA 3.0: `fonts/font-bold-readme.txt`, `fonts/font-bold-license.txt` |
 
 The recreation draws MS Sans Serif 8 pt at 96 dpi, the size the themes set (11 px); the package's stylesheet draws it unsmoothed (`-webkit-font-smoothing: none`), as Windows drew its bitmap face.
+
+## Sounds
+
+The sound pack `windows98` (`src/assets/sounds/windows98.ts`): Windows 98 Second Edition's own WAVs, copied unchanged from the CD's cabinets (each installs to `C:\WINDOWS\MEDIA`) to `src/assets/sounds/windows98/sprites/<sprite>.wav`, from which `pnpm build:audio` encodes the pack's two sheets, `windows98.ogg` and `windows98.m4a` (mono at 44.1 kHz, as every Classicy pack). The events are mapped as Windows 98's default sound scheme maps them, which the CD's `MMOPT.INF` (`[Register_MMopts.AddReg.HKCU]`) and `MOTOWN.INF` (`[mmsys.add.reg.hkcu]`) write: Default sound Ding; Asterisk, Critical Stop, Exclamation and Question Chord; Exit Windows Logoff; New Mail Notification Notify; Empty Recycle Bin Recycle; Start Windows The Microsoft Sound; Open program, Close program, Maximize, Minimize, Restore Up, Restore Down, Menu command, Menu popup and Program error none, so the package plays no interface feedback (it has no `hooks`). `start.wav` is Internet Explorer's Start Navigation click (`IEUINIT.INF`), not a startup sound. Exit Windows has no Classicy counterpart (Classicy does not shut down), so Logoff is an alert only.
+
+The Alert column is the Sound tab's list (`alerts`): the eight short WAVs of the Media folder, which the Sounds control panel offered for any event, Ding the default (`defaultAlert`, Windows' Default sound, which an error beep plays: a click outside a modal window, as Windows' `MessageBeep(0)` did). While the user has picked none of them, an alert box plays its type's sound (`alertTypeSounds`): a note (Asterisk) and a stop (Critical Stop) `ClassicyAlertChord`, a caution (Exclamation) `ClassicyAlertExclamation`, both Chord.
+
+| Sprite | Windows 98 file | Windows 98 event | Alert | SHA-256 |
+| --- | --- | --- | --- | --- |
+| `ClassicyAlertChimes` | `chimes.wav` (`WIN98_70.CAB`), 16-bit PCM, 22,050 Hz stereo, 0.63 s | none in the default scheme | Chimes | `31c85c00b252ce9fbee39cf6f0b2bc2039950c91ebdc9a5524ba159eed165f29` |
+| `ClassicyAlertChord` | `chord.wav` (`WIN98_70.CAB`), 16-bit PCM, 22,050 Hz stereo, 1.10 s | Asterisk (`SystemAsterisk`), Critical Stop (`SystemHand`), Question (`SystemQuestion`): a note or stop alert box | Chord | `ee94302491c85b010d55c48058142420ec356467b88ec43131fc0d0b0600c259` |
+| `ClassicyAlertDing` | `ding.wav` (`WIN98_70.CAB`), 16-bit PCM, 22,050 Hz stereo, 0.92 s | Default sound (`.Default`) | Ding | `47a423798ff67d9c00f1607f470573d80653b7581475fa850a557c46b06a104a` |
+| `ClassicyAlertExclamation` | `chord.wav` (`WIN98_70.CAB`), as `ClassicyAlertChord` | Exclamation (`SystemExclamation`): a caution alert box | — | `ee94302491c85b010d55c48058142420ec356467b88ec43131fc0d0b0600c259` |
+| `ClassicyAlertLogoff` | `logoff.wav` (`WIN98_71.CAB`/`WIN98_72.CAB`), 16-bit PCM, 22,050 Hz stereo, 3.55 s | Exit Windows (`SystemExit`) | Logoff | `7c8127001d7574113bcdb50a9ac76d55641e9aff215af65fa6dd9abae9ce5694` |
+| `ClassicyAlertNotify` | `notify.wav` (`WIN98_72.CAB`), 16-bit PCM, 22,050 Hz stereo, 1.35 s | New Mail Notification (`MailBeep`) | Notify | `160e0fa1d103850311bd16f74dd448b2b93ff690e10bc8ddc866d03e1aa8825b` |
+| `ClassicyAlertRecycle` | `recycle.wav` (`WIN98_72.CAB`), 16-bit PCM, 22,050 Hz mono, 0.57 s | Empty Recycle Bin (`EmptyRecycleBin`) | Recycle | `94b978244f9184b6792271c48fb3372dcc35f11c3d826c663c5973336acae010` |
+| `ClassicyAlertStart` | `start.wav` (`WIN98_55.CAB`), 4-bit Microsoft ADPCM, 22,050 Hz stereo, 0.05 s | Start Navigation (Internet Explorer's `Navigating`) | Start | `eff8f5a74d7499b0991ff42e7963927ad37a17d63ef13ee784b849cae2808ada` |
+| `ClassicyAlertTada` | `tada.wav` (`WIN98_73.CAB`), 16-bit PCM, 22,050 Hz stereo, 1.94 s | none in the default scheme | Tada | `18bc62150edbb6bc61908d59222f44729fa60292f4ace7c615a6667ce6bdf676` |
+| `ClassicyBeep` | `ding.wav` (`WIN98_70.CAB`), as `ClassicyAlertDing` | Default sound (`.Default`): HyperCard's `beep` | — | `47a423798ff67d9c00f1607f470573d80653b7581475fa850a557c46b06a104a` |
+| `ClassicyBoot` | `The Microsoft Sound.wav` (stored as `logon.wav`, `WIN98_54.CAB`), 16-bit PCM, 22,050 Hz stereo, 7.86 s | Start Windows (`SystemStart`): the startup screen | — | `fc18b965c256f40645d903c1d66dd0e39eb9d1be4136c56bec0b0672f8ce55fb` |
+| `ClassicyEmailNewMail` | `notify.wav` (`WIN98_72.CAB`), as `ClassicyAlertNotify` | New Mail Notification (`MailBeep`) | — | `160e0fa1d103850311bd16f74dd448b2b93ff690e10bc8ddc866d03e1aa8825b` |
+| `ClassicyTrashEmpty` | `recycle.wav` (`WIN98_72.CAB`), as `ClassicyAlertRecycle` | Empty Recycle Bin (`EmptyRecycleBin`): Special ▸ Empty Trash, once something is removed | — | `94b978244f9184b6792271c48fb3372dcc35f11c3d826c663c5973336acae010` |
+
+Eight of the nine are byte for byte 98.js's `audio/` copies, and winhistory.de's `o98.wav` and `win98logoff.wav` are The Microsoft Sound and `logoff.wav`; 98.js's `START.WAV` is a 16-bit re-encode, so the CD's ADPCM original is used. `ClassicyTrashEmpty` is an optional sprite (`CLASSICY_OPTIONAL_SOUND_SPRITE_IDS`): only a pack that defines it plays it, so Platinum's and System 7's play nothing when the Trash is emptied, and Platinum's pack never stands in for it.
 
 ## Apps
 

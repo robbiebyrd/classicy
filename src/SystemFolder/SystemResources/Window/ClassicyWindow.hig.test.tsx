@@ -279,6 +279,17 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 			expect(dragStarts()).toHaveLength(0);
 		});
 
+		// Outside an alert box (`ClassicyAlert` provides its type), the opening
+		// error sound carries no alert type, exactly as before.
+		it("sends a plain error sound when the window holds no alert", () => {
+			renderWindow({ modal: true, type: "error" });
+			expect(
+				mockPlayer.mock.calls.filter(
+					([action]) => action.type === "ClassicySoundPlayError",
+				),
+			).toEqual([[{ type: "ClassicySoundPlayError" }]]);
+		});
+
 		// `movable={false}` means nothing on a non-modal window; say so once
 		// per window, in development, rather than ignore it silently.
 		describe("on a non-modal window", () => {

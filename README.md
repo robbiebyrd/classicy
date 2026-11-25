@@ -449,9 +449,10 @@ of one stylesheet. It ships Windows 98's own icons, the Start flag, the
 Recycle Bin, the shortcut overlay, the Windows logo and the cursors, a pixel
 recreation of MS Sans Serif as its font, shows the bundled apps, the Trash
 and the startup disk by Windows 98's names (Notepad, Display, Recycle Bin, My
-Computer, …), and has its own alert tones; it ships no wallpapers or screen
-savers, and the glyphs Windows drew in the scheme's colors are drawn from the
-theme's colors. Use it alone or beside the other packages;
+Computer, …), and plays Windows 98's own sounds where its default sound
+scheme did (The Microsoft Sound at startup, Ding, Chord, and Recycle when the
+Trash is emptied); it ships no wallpapers or screen savers, and the glyphs
+Windows drew in the scheme's colors are drawn from the theme's colors. Use it alone or beside the other packages;
 the Appearance Manager switches between them:
 
 ```sh

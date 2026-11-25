@@ -13,10 +13,13 @@ import {
 import soundLabels from "./ClassicySoundManagerLabels.json";
 import {
 	CLASSICY_CONTRACT_ALERT_SPRITE_IDS,
+	CLASSICY_OPTIONAL_SOUND_SPRITE_IDS,
+	CLASSICY_OPTIONAL_SOUND_SPRITES,
 	CLASSICY_SOUND_SPRITE_IDS,
 	ClassicySoundPackSchema,
 	classicySoundPackMissingSprites,
 	getClassicySoundPack,
+	isClassicyOptionalSoundSprite,
 	listClassicySoundPacks,
 	registerClassicySoundPack,
 	resetClassicySoundPacks,
@@ -126,7 +129,7 @@ describe("ClassicySoundPacks", () => {
 			expect(contractIds.has(a.value)).toBe(true);
 	});
 
-	it("every sound literal dispatched in src is a contract id", () => {
+	it("every sound literal dispatched in src is a contract or optional id", () => {
 		const found: string[] = [];
 		// The core's src and Platinum's, in its workspace package (plan
 		// 0015-kxa §3.1), whose hooks play the control sounds.
@@ -148,9 +151,16 @@ describe("ClassicySoundPacks", () => {
 					: /playClassicyAppearanceSound\(\s*["']([A-Za-z0-9_]+)["']/g;
 			for (const m of text.matchAll(bridge)) found.push(m[1]);
 		}
-		expect(new Set(found.filter((id) => !contractIds.has(id)))).toEqual(
-			new Set(),
-		);
+		expect(
+			new Set(
+				found.filter(
+					(id) => !contractIds.has(id) && !isClassicyOptionalSoundSprite(id),
+				),
+			),
+		).toEqual(new Set());
+		// The optional ids are dispatched too (ClassicyDesktop's Empty Trash).
+		for (const id of CLASSICY_OPTIONAL_SOUND_SPRITE_IDS)
+			expect(found).toContain(id);
 		expect(found.length).toBeGreaterThan(20);
 	});
 
@@ -176,6 +186,56 @@ describe("ClassicySoundPacks", () => {
 		expect(absolute.success).toBe(true);
 		if (relative.success && absolute.success)
 			expect(absolute.data.id).toBe(relative.data.id);
+	});
+});
+
+// Sprites a pack may leave out (Windows 98's Empty Recycle Bin sound): never
+// part of the contract, so no pack that lacks one is reported for it, and
+// Platinum's pack, the fallback for the contract's ids, defines none.
+describe("CLASSICY_OPTIONAL_SOUND_SPRITE_IDS", () => {
+	it("are the optional sprites' ids, none of them a contract id", () => {
+		expect(CLASSICY_OPTIONAL_SOUND_SPRITE_IDS).toEqual(["ClassicyTrashEmpty"]);
+		expect(CLASSICY_OPTIONAL_SOUND_SPRITES.map((s) => s.id)).toEqual(
+			CLASSICY_OPTIONAL_SOUND_SPRITE_IDS,
+		);
+		for (const id of CLASSICY_OPTIONAL_SOUND_SPRITE_IDS) {
+			expect(contractIds.has(id)).toBe(false);
+			expect(isClassicyOptionalSoundSprite(id)).toBe(true);
+		}
+		expect(isClassicyOptionalSoundSprite("ClassicyBeep")).toBe(false);
+	});
+
+	// Platinum's pack, the default pack, defines none, so it never stands in
+	// for one (System 7's and Windows 98's packages pin their own packs).
+	it("are in no stock label and no Platinum sprite", () => {
+		for (const id of CLASSICY_OPTIONAL_SOUND_SPRITE_IDS) {
+			expect(soundLabels.map((l) => l.id)).not.toContain(id);
+			expect(Object.keys(platinumJson.sprite)).not.toContain(id);
+		}
+	});
+
+	it("are never listed missing", () => {
+		const missing = classicySoundPackMissingSprites(pack() as never);
+		for (const id of CLASSICY_OPTIONAL_SOUND_SPRITE_IDS)
+			expect(missing).not.toContain(id);
+	});
+});
+
+describe("alertTypeSounds", () => {
+	it("validates a sprite per alert type and strips other keys", () => {
+		const parsed = ClassicySoundPackSchema.parse(
+			pack({
+				alertTypeSounds: { note: "ClassicyBeep", question: "ClassicyBeep" },
+			}),
+		);
+		expect(parsed.alertTypeSounds).toEqual({ note: "ClassicyBeep" });
+		expect(
+			ClassicySoundPackSchema.safeParse(pack({ alertTypeSounds: { stop: "" } }))
+				.success,
+		).toBe(false);
+		expect(
+			ClassicySoundPackSchema.parse(pack()).alertTypeSounds,
+		).toBeUndefined();
 	});
 });
 

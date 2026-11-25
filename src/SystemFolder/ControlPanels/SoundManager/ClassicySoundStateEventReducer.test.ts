@@ -869,3 +869,178 @@ describe("loops that span the active and fallback players", () => {
 		expect(ss.fallbackPlayer?.play).not.toHaveBeenCalled();
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Optional sprites (CLASSICY_OPTIONAL_SOUND_SPRITE_IDS): `ClassicyTrashEmpty`
+// plays only from the pack that defines it (Windows 98's). Platinum's and
+// System 7's packs lack it: under either, and under any pack falling back to
+// Platinum's, it plays nothing, stops nothing and logs nothing.
+// ---------------------------------------------------------------------------
+
+describe("optional sprites", () => {
+	const trashPack = {
+		id: "trash",
+		name: "Trash",
+		src: ["https://cdn.example.com/trash.ogg"],
+		sprite: {
+			ClassicyBeep: [0, 100] as [number, number],
+			ClassicyTrashEmpty: [200, 100] as [number, number],
+		},
+	};
+	const load = (ss: ClassicySoundState, pack: typeof trashPack) =>
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
+			pack,
+		});
+	const play = (ss: ClassicySoundState, type: string) =>
+		ClassicySoundStateEventReducer(ss, {
+			type: type as ClassicySoundActionTypes,
+			sound: "ClassicyTrashEmpty",
+		});
+
+	it("plays on the active pack that defines it", () => {
+		const ss = load(makeSoundState(), trashPack);
+		play(ss, "ClassicySoundPlayInterrupt");
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyTrashEmpty");
+		expect(ss.fallbackPlayer?.play).not.toHaveBeenCalled();
+	});
+
+	it("never falls back to the default pack, and stops nothing", () => {
+		const ss = loadRemote(makeSoundState());
+		expect(ss.fallbackPlayer).not.toBeNull();
+		for (const type of ["ClassicySoundPlay", "ClassicySoundPlayInterrupt"])
+			play(ss, type);
+		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
+		expect(ss.fallbackPlayer?.play).not.toHaveBeenCalled();
+		expect(ss.soundPlayer?.stop).not.toHaveBeenCalled();
+		expect(ss.fallbackPlayer?.stop).not.toHaveBeenCalled();
+	});
+
+	it("plays nothing and stops nothing under the default pack, which lacks it", () => {
+		const ss = makeSoundState();
+		play(ss, "ClassicySoundPlayInterrupt");
+		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
+		expect(ss.soundPlayer?.stop).not.toHaveBeenCalled();
+	});
+
+	it("is never reported missing when a pack lacks it", () => {
+		const warn = vi.spyOn(ClassicyLog, "classicyLog");
+		loadRemote(makeSoundState());
+		const missing = warn.mock.calls
+			.filter((c) => String(c[2]).includes("missing sprites"))
+			.flatMap((c) => (c[3] as { missing: string[] }).missing);
+		expect(missing.length).toBeGreaterThan(0);
+		expect(missing).not.toContain("ClassicyTrashEmpty");
+		warn.mockRestore();
+	});
+
+	it("lists its label while a pack defining it plays, and drops it after", () => {
+		const start = makeSoundState();
+		const trash = load(start, trashPack);
+		expect(trash.labels).toEqual([
+			{
+				id: "ClassicyTrashEmpty",
+				group: "System",
+				label: "Empty Trash",
+				description: "",
+			},
+		]);
+		expect(load(trash, trashPack).labels).toEqual(trash.labels);
+		const back = loadRemote(trash);
+		expect(back.labels).toEqual([]);
+		// A pack defining none keeps the labels it had: the same array.
+		expect(loadRemote(start).labels).toBe(start.labels);
+		expect(loadRemote(back).labels).toBe(back.labels);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Alert types (`alertTypeSounds`): an alert box's opening sound carries its
+// type, and a pack may give each type its own sprite (Windows 98: Chord for
+// Asterisk, Exclamation and Critical Stop, Ding for the plain beep).
+// ---------------------------------------------------------------------------
+
+describe("ClassicySoundPlayError with an alert type", () => {
+	const typedPack = {
+		id: "typed",
+		name: "Typed",
+		src: ["https://cdn.example.com/typed.ogg"],
+		sprite: {
+			ClassicyAlertDing: [0, 100] as [number, number],
+			ClassicyAlertChord: [200, 100] as [number, number],
+			ClassicyAlertTada: [400, 100] as [number, number],
+		},
+		alerts: [
+			{ value: "ClassicyAlertDing", label: "Ding" },
+			{ value: "ClassicyAlertTada", label: "Tada" },
+		],
+		defaultAlert: "ClassicyAlertDing",
+		alertTypeSounds: {
+			stop: "ClassicyAlertChord",
+			caution: "ClassicyAlertGone",
+		},
+	};
+	const typed = (alertSound?: string) => {
+		registerClassicySoundPack(typedPack);
+		return ClassicySoundStateEventReducer(makeSoundState({ alertSound }), {
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
+			pack: typedPack,
+		});
+	};
+	const error = (
+		ss: ClassicySoundState,
+		alertType?: "note" | "caution" | "stop",
+	) =>
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayError" as ClassicySoundActionTypes,
+			alertType,
+		});
+
+	it("plays the pack's sound for the type while no choice is stored", () => {
+		const ss = typed();
+		error(ss, "stop");
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertChord");
+	});
+
+	it("plays the default alert for a type the pack gives no sound, or none", () => {
+		const ss = typed();
+		error(ss, "note");
+		error(ss);
+		expect(
+			(ss.soundPlayer?.play as ReturnType<typeof vi.fn>).mock.calls,
+		).toEqual([["ClassicyAlertDing"], ["ClassicyAlertDing"]]);
+	});
+
+	it("plays the default alert when the type names a sprite the pack lacks", () => {
+		const ss = typed();
+		error(ss, "caution");
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertDing");
+	});
+
+	it("plays a stored choice the pack offers for every type", () => {
+		const ss = typed("ClassicyAlertTada");
+		error(ss, "stop");
+		error(ss);
+		expect(
+			(ss.soundPlayer?.play as ReturnType<typeof vi.fn>).mock.calls,
+		).toEqual([["ClassicyAlertTada"], ["ClassicyAlertTada"]]);
+	});
+
+	it("an explicit sound still wins over the type", () => {
+		const ss = typed();
+		ClassicySoundStateEventReducer(ss, {
+			type: "ClassicySoundPlayError" as ClassicySoundActionTypes,
+			sound: "ClassicyAlertTada",
+			alertType: "stop",
+		});
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertTada");
+	});
+
+	it("changes nothing under a pack with no alertTypeSounds (Platinum's)", () => {
+		for (const alertType of [undefined, "note", "caution", "stop"] as const) {
+			const ss = makeSoundState();
+			error(ss, alertType);
+			expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertSosumi");
+		}
+	});
+});

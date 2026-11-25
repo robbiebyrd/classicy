@@ -1387,7 +1387,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound on opening, sent with its `alertType` (`ClassicySoundPlayError { alertType }`), so a pack's `alertTypeSounds` may give each type its own (§10; Windows 98's Chord). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -2632,7 +2632,11 @@ Trash routes through `moveClassicyFileSystemItems`. Special menu:
 `ClassicyDesktopShowSystemDialog { dialog: "emptyTrash" | "resetPram" | null }`
 (`Desktop.systemDialog`, never persisted, like the refusal alerts'
 `Desktop.errorDialog`); `classicySpecialMenuItems(dispatch,
-idPrefix)` and `ClassicyEmptyTrashAlert` are the shared pieces.
+idPrefix)` and `ClassicyEmptyTrashAlert` are the shared pieces. Once the
+alert's OK removes something, the desktop plays `ClassicyTrashEmpty`
+(`ClassicySoundPlayInterrupt`), an optional sprite (§10): Windows 98's pack
+plays its Empty Recycle Bin sound, and a pack without it, Platinum's and
+System 7's, plays nothing.
 
 ### Entry format
 
@@ -4448,9 +4452,22 @@ README lists what it ships and every asset's source.
   Internet Explorer, with Windows 98's descriptions; `desktopIcons` shows the
   Trash as the Recycle Bin and the startup disk as My Computer ("Desktop icon
   overrides").
-- **Sound.** One pack, `windows98`: `ClassicyBeep` and four alert tones
-  (Chimes, Chord, Ding, Exclamation; `defaultAlert` Ding), synthesized for
-  the package (Windows' sounds are Microsoft's), ogg and m4a. The package
+- **Sound** (`src/assets/sounds/windows98.ts`). One pack, `windows98`,
+  ogg and m4a, from Windows 98 SE's own WAVs (the CD's `C:\WINDOWS\MEDIA`
+  files, `src/assets/sounds/windows98/sprites/<sprite>.wav`), mapped as
+  its default scheme (`MMOPT.INF`, `MOTOWN.INF`) maps the events:
+  `ClassicyBoot` The Microsoft Sound (Start Windows), `ClassicyBeep` Ding
+  (Default sound), `ClassicyEmailNewMail` Notify (New Mail Notification),
+  `ClassicyTrashEmpty` Recycle (Empty Recycle Bin; an optional sprite).
+  `alerts` are the Media folder's eight short WAVs (Chimes, Chord, Ding,
+  Logoff, Notify, Recycle, Start, Tada; `defaultAlert` Ding, the Default
+  sound an error beep plays), and `alertTypeSounds` gives an alert box
+  Chord, its icon's event (Asterisk for a note, Exclamation for a caution,
+  `ClassicyAlertExclamation`, Critical Stop for a stop) while the user has
+  picked no alert. `ClassicyAlertExclamation` (Chord again) is kept from
+  the earlier pack but no longer offered. Each WAV's file and SHA-256 is in
+  `docs/windows98-asset-inventory.md`, "Sounds". The scheme gives opening,
+  closing, maximizing, minimizing and menus no sound, and the package
   declares no `hooks`, so controls play no feedback.
 - **Build.** `pnpm --filter @classicy/appearance-windows98 build`: its
   `verify:dist` holds System 7's invariants for its own files, with
@@ -6002,8 +6019,26 @@ rewritten, so switching packs and back restores it. The default state seeds
 no `alertSound`, so a first session plays the active pack's default. The
 store-free readers are `classicyPackAlerts(pack)`,
 `classicyPackDefaultAlert(pack)` (`defaultAlert` when it is one of the
-alerts, else the first) and `resolveClassicyAlertSound(pack, stored)` (the
-stored choice or Platinum's default when no pack is known).
+alerts, else the first) and `resolveClassicyAlertSound(pack, stored,
+alertType?)` (the stored choice or Platinum's default when no pack is
+known).
+**Alert types** (3.8): a pack may give each alert type its own sound,
+`alertTypeSounds: { note?, caution?, stop? }` (`ClassicyAlertTypeSounds`,
+each a sprite id of the pack; `ClassicyAlertSoundType` is `ClassicyAlert`'s
+`alertType` union). `ClassicyAlert` sends its type with the error sound it
+plays on opening, `ClassicySoundPlayError { alertType }` (the fixed
+variant's window sends it, through an internal context the alert provides;
+every other error sound, a scrim click, a fixed modal's Escape, the
+Assistant's refusal, carries none). While the stored choice is not one of
+the pack's `alerts` (the default state stores none), such an alert plays
+its type's sprite, else the default alert; a stored choice the pack offers
+wins for every alert, and a type naming a sprite the pack lacks falls back
+to the default (and is listed by `classicySoundPackMissingSprites`). Only
+the pack's own: a pack never takes the default pack's. Windows 98's gives
+every type Chord, Windows' message-box sound, beside its Ding beep;
+Platinum's and System 7's declare none, so their alerts resolve exactly as
+before (`classicyPackAlertTypeSound(pack, alertType)` is the store-free
+reader).
 `CLASSICY_ALERT_SOUNDS` (Platinum's seven) and `DEFAULT_ALERT_SOUND`
 (`"ClassicyAlertSosumi"`) are deprecated: they are Platinum's values, kept
 for existing imports; read the active pack instead.
@@ -6030,7 +6065,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 })
 ```
 
-- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite, alerts?, defaultAlert? }`
+- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite, alerts?, defaultAlert?, alertTypeSounds? }`
   (`ClassicySoundPackSchema` validates it; an invalid pack is rejected with a
   `classicyLog` warning). `sprite` is `Record<string, [offsetMs, durationMs, loop?]>`.
   `src` entries must be resolvable by the page: `http(s)` URLs or `data:`
@@ -6078,6 +6113,20 @@ registerClassicySoundPack({            // module scope, like the other registrie
   `ClassicyAlertTabitha`, `ClassicyAlertWildEep`), the first seven entries of
   `CLASSICY_SOUND_SPRITE_IDS`; a pack that declares no `alerts` should define
   them.
+- **Optional sprites** (3.8): `CLASSICY_OPTIONAL_SOUND_SPRITES` (`{ id,
+  group, label, description }[]`; its ids `CLASSICY_OPTIONAL_SOUND_SPRITE_IDS`,
+  `isClassicyOptionalSoundSprite(id)`) are dispatched by Classicy but not
+  part of the contract: a pack may leave one out, its absence is never
+  reported missing, and it plays only from the active pack when that pack
+  defines it. The default pack never stands in for one, so a pack that
+  lacks it plays nothing and stops nothing for it, even on
+  `ClassicySoundPlayInterrupt`. While a pack that defines one plays, its
+  label joins the sound state's `labels` (the Sound control panel's
+  Disable Sounds list and HyperCard's sound picker), and leaves it when a
+  pack without it loads; a pack that defines none keeps the labels array as
+  it was. The one so far is `ClassicyTrashEmpty` ("System", "Empty
+  Trash"), played after Special ▸ Empty Trash removes something; only
+  Windows 98's pack defines it (Recycle, Windows' Empty Recycle Bin sound).
 - **Single source of truth**: the active theme's `sound.pack` decides which
   pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption
   { path: "sound.pack", value: "<pack id>" }` (the Sound tab's action: the pack

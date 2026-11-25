@@ -4,9 +4,12 @@ import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/Ap
 import { findClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPackLookup.internal";
 import {
 	CLASSICY_DEFAULT_SOUND_PACK_ID,
+	CLASSICY_OPTIONAL_SOUND_SPRITES,
+	type ClassicyAlertSoundType,
 	type ClassicySoundPack,
 	classicySoundPackMissingSprites,
 	getClassicySoundPack,
+	isClassicyOptionalSoundSprite,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import {
 	type SoundData,
@@ -88,6 +91,12 @@ export interface ClassicySoundAction {
 	volume?: number;
 	/** ClassicySoundSetAlertVolume: the alert level, 0–100. */
 	alertVolume?: number;
+	/**
+	 * ClassicySoundPlayError without `sound`: the type of the alert box
+	 * sounding (`ClassicyAlert` sends it), whose `alertTypeSounds` entry the
+	 * pack plays while no stored alert choice applies. Absent: the alert.
+	 */
+	alertType?: ClassicyAlertSoundType;
 }
 
 export type { SoundData };
@@ -174,9 +183,38 @@ const stopAll = (ss: ClassicySoundState) => {
 	ss.fallbackPlayer?.stop();
 };
 
-/** The player that owns `sound`: the active pack's, else the default pack's. */
+/**
+ * The player that owns `sound`: the active pack's, else the default pack's;
+ * none for an optional sprite the active pack lacks, which the default pack
+ * never stands in for.
+ */
 const playerFor = (ss: ClassicySoundState, sound: string): Howl | null =>
-	ss.sprites.has(sound) ? ss.soundPlayer : ss.fallbackPlayer;
+	ss.sprites.has(sound)
+		? ss.soundPlayer
+		: isClassicyOptionalSoundSprite(sound)
+			? null
+			: ss.fallbackPlayer;
+
+/**
+ * The labels the Sound control panel lists while `pack` plays: `current`
+ * without any optional sprite's, plus each optional sprite `pack` defines.
+ * `current` itself when that changes nothing (every pack that defines no
+ * optional sprite, after one that defined none).
+ */
+const labelsFor = (
+	current: ClassicySoundInfo[],
+	pack: ClassicySoundPack,
+): ClassicySoundInfo[] => {
+	const base = current.filter(
+		(label) => !isClassicyOptionalSoundSprite(label.id),
+	);
+	const optional = CLASSICY_OPTIONAL_SOUND_SPRITES.filter((sprite) =>
+		Object.hasOwn(pack.sprite, sprite.id),
+	);
+	return optional.length === 0 && base.length === current.length
+		? current
+		: [...base, ...optional];
+};
 
 /**
  * Initial sound state for a provider mount: `base` (muted when asked) with the
@@ -240,11 +278,18 @@ const playAlert = (ss: ClassicySoundState, sound: string) => {
 	}
 };
 
-/** The alert to play now: the stored choice if the loaded pack has it. */
-const currentAlert = (ss: ClassicySoundState): string | undefined =>
+/**
+ * The alert to play now: the stored choice if the loaded pack has it, else
+ * the pack's sound for `alertType`, else its default.
+ */
+const currentAlert = (
+	ss: ClassicySoundState,
+	alertType?: ClassicyAlertSoundType,
+): string | undefined =>
 	resolveClassicyAlertSound(
 		ss.packId ? getClassicySoundPack(ss.packId) : undefined,
 		ss.alertSound,
+		alertType,
 	);
 
 const playerCanPlay = (ss: ClassicySoundState, sound: string) => {
@@ -289,7 +334,7 @@ export const ClassicySoundStateEventReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundPlayError: {
-			const sound = action.sound ?? currentAlert(ss);
+			const sound = action.sound ?? currentAlert(ss, action.alertType);
 			if (sound && playerCanPlayInterrupt(ss, sound)) playAlert(ss, sound);
 			next = { ...ss };
 			break;
@@ -351,6 +396,7 @@ export const ClassicySoundStateEventReducer = (
 				soundPlayer: createSoundPlayer({ soundData: pack }),
 				packId: pack.id,
 				sprites: new Set(Object.keys(pack.sprite)),
+				labels: labelsFor(ss.labels, pack),
 				fallbackPlayer: isDefault
 					? null
 					: (ss.fallbackPlayer ?? createDefaultPackPlayer()),

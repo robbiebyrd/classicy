@@ -10,7 +10,10 @@ import {
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { resolveClassicyAlertSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import {
+	type ClassicySoundPack,
+	classicySoundPackMissingSprites,
 	getClassicySoundPack,
 	listClassicySoundPacks,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
@@ -291,27 +294,85 @@ describe("the Windows 98 appearance package", () => {
 		).toEqual([]);
 	});
 
-	// The pack: four alert tones synthesized for the package (Windows' own
-	// sounds are Microsoft's), Ding the default, and the beep.
+	// The pack: Windows 98 SE's own sounds, mapped as its default scheme
+	// (MMOPT.INF, MOTOWN.INF) maps the events: the eight short WAVs of its
+	// Media folder as the alerts, Ding the default (Default sound), Chord for
+	// an alert box of each type (Asterisk, Exclamation, Critical Stop), The
+	// Microsoft Sound at startup, Notify for new mail and Recycle when the
+	// Trash is emptied. docs/windows98-asset-inventory.md pins each file.
 	it("registers its sound pack, which every theme names", async () => {
 		await import("./index");
 		const pack = getClassicySoundPack("windows98");
 		expect(listClassicySoundPacks().map((p) => p.id)).toEqual(["windows98"]);
-		expect(pack?.alerts?.map((a) => a.value)).toEqual([
-			"ClassicyAlertChimes",
-			"ClassicyAlertChord",
-			"ClassicyAlertDing",
-			"ClassicyAlertExclamation",
+		expect(pack?.alerts).toEqual([
+			{ value: "ClassicyAlertChimes", label: "Chimes" },
+			{ value: "ClassicyAlertChord", label: "Chord" },
+			{ value: "ClassicyAlertDing", label: "Ding" },
+			{ value: "ClassicyAlertLogoff", label: "Logoff" },
+			{ value: "ClassicyAlertNotify", label: "Notify" },
+			{ value: "ClassicyAlertRecycle", label: "Recycle" },
+			{ value: "ClassicyAlertStart", label: "Start" },
+			{ value: "ClassicyAlertTada", label: "Tada" },
 		]);
 		expect(pack?.defaultAlert).toBe("ClassicyAlertDing");
+		expect(pack?.alertTypeSounds).toEqual({
+			note: "ClassicyAlertChord",
+			caution: "ClassicyAlertExclamation",
+			stop: "ClassicyAlertChord",
+		});
+		// Every id the pack declared before (none dropped), plus Windows'.
 		expect(Object.keys(pack?.sprite ?? {}).sort()).toEqual([
 			"ClassicyAlertChimes",
 			"ClassicyAlertChord",
 			"ClassicyAlertDing",
 			"ClassicyAlertExclamation",
+			"ClassicyAlertLogoff",
+			"ClassicyAlertNotify",
+			"ClassicyAlertRecycle",
+			"ClassicyAlertStart",
+			"ClassicyAlertTada",
 			"ClassicyBeep",
+			"ClassicyBoot",
+			"ClassicyEmailNewMail",
+			"ClassicyTrashEmpty",
 		]);
 		expect(getClassicyAppearancePackage("windows98")?.sounds).toEqual([pack]);
+	});
+
+	// What plays, through the core's own resolution: an alert box Chord, the
+	// beep and a refused click Ding, a stored choice Windows offers for both,
+	// and Platinum's Sosumi (not Windows') the default for each instead.
+	it("plays Chord for an alert box and Ding for a beep, as Windows 98 did", async () => {
+		await import("./index");
+		const pack = getClassicySoundPack("windows98") as ClassicySoundPack;
+		expect(
+			(["note", "caution", "stop"] as const).map((alertType) =>
+				resolveClassicyAlertSound(pack, undefined, alertType),
+			),
+		).toEqual([
+			"ClassicyAlertChord",
+			"ClassicyAlertExclamation",
+			"ClassicyAlertChord",
+		]);
+		expect(resolveClassicyAlertSound(pack, undefined)).toBe(
+			"ClassicyAlertDing",
+		);
+		expect(resolveClassicyAlertSound(pack, "ClassicyAlertSosumi")).toBe(
+			"ClassicyAlertDing",
+		);
+		expect(resolveClassicyAlertSound(pack, "ClassicyAlertSosumi", "stop")).toBe(
+			"ClassicyAlertChord",
+		);
+		expect(resolveClassicyAlertSound(pack, "ClassicyAlertTada", "stop")).toBe(
+			"ClassicyAlertTada",
+		);
+		// The pack defines every alert and alert-type sound it names.
+		const missing = classicySoundPackMissingSprites(pack);
+		for (const id of [
+			...(pack.alerts ?? []).map((a) => a.value),
+			...Object.values(pack.alertTypeSounds ?? {}),
+		])
+			expect(missing, id).not.toContain(id);
 	});
 
 	// Its fonts are the family the themes name first: the stack resolves to

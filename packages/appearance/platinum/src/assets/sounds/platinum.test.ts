@@ -2,6 +2,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { assetSourceFile } from "@/__tests__/assetSourceFile";
 import {
+	CLASSICY_OPTIONAL_SOUND_SPRITE_IDS,
 	CLASSICY_SOUND_SPRITE_IDS,
 	classicySoundPackMissingSprites,
 	getClassicySoundPack,
@@ -22,6 +23,16 @@ describe("platinum sound pack", () => {
 			[...CLASSICY_SOUND_SPRITE_IDS].sort(),
 		);
 		expect(classicySoundPackMissingSprites(platinumSoundPack)).toEqual([]);
+	});
+
+	// The optional sprites (Windows 98's Empty Trash sound) and the alert
+	// type sounds are another pack's: Platinum's defines neither, so it plays
+	// nothing when the Trash is emptied, stands in for no other pack's, and
+	// plays its alert for every alert box.
+	it("defines no optional sprite and no alert type sound", () => {
+		for (const id of CLASSICY_OPTIONAL_SOUND_SPRITE_IDS)
+			expect(Object.keys(platinumSoundPack.sprite)).not.toContain(id);
+		expect(platinumSoundPack.alertTypeSounds).toBeUndefined();
 	});
 
 	it("declares its seven alerts with Sosumi as the default", () => {

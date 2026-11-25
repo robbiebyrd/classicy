@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type {
@@ -8,6 +9,7 @@ import type {
 } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "../windows98Apps";
+import { windows98SoundPack } from "./sounds/windows98";
 import { WINDOWS98_CURSORS, WINDOWS98_SYSTEM_ART } from "./windows98Assets";
 import { WINDOWS98_FONT_FACES } from "./windows98Fonts.internal";
 import { WINDOWS98_ICON_FILES, WINDOWS98_ICON_REUSE } from "./windows98Icons";
@@ -141,6 +143,33 @@ describe("docs/windows98-asset-inventory.md", () => {
 				file: `fonts/${file}.woff2`,
 			})),
 		);
+	});
+
+	// Each sprite's WAV is the CD's file, byte for byte (its SHA-256), every
+	// WAV a sprite of the pack, and the Alert column the Sound tab's list.
+	it("lists every sprite once, each WAV the file it names, and the alerts", () => {
+		const rows = sectionRows("Sounds");
+		const sprites = path.join(import.meta.dirname, "sounds/windows98/sprites");
+		expect(rows.map(([sprite]) => code(sprite))).toEqual(
+			Object.keys(windows98SoundPack.sprite).sort(),
+		);
+		expect(
+			readdirSync(sprites)
+				.map((file) => file.replace(/\.wav$/, ""))
+				.sort(),
+		).toEqual(rows.map(([sprite]) => code(sprite)));
+		for (const [sprite, , , , hash] of rows)
+			expect(
+				createHash("sha256")
+					.update(readFileSync(path.join(sprites, `${code(sprite)}.wav`)))
+					.digest("hex"),
+				code(sprite),
+			).toBe(code(hash));
+		expect(
+			rows
+				.filter(([, , , alert]) => alert !== "—")
+				.map(([sprite, , , label]) => ({ value: code(sprite), label })),
+		).toEqual(windows98SoundPack.alerts);
 	});
 
 	it("gives each app the name, icon and description the package declares", () => {

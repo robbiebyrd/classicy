@@ -98,10 +98,17 @@ and `nodenext` resolution).
   height, which a larger UI font raises on its own) and of tabs; and the
   desktop labels' text-shadow offset (1 px; 0 removes the shadow, which
   stock Windows 98 drew only with the Active Desktop).
-- **A sound pack**, `windows98`: four alert tones, Chimes, Chord, Ding (the
-  default) and Exclamation, named after the roles Windows gave its sounds
-  but synthesized for the package (Windows' own sounds are Microsoft's), plus
-  the beep. The package plays no interface feedback.
+- **Windows 98's sounds**, `windows98`, Windows 98 Second Edition's own
+  WAVs from its CD, played where Windows 98's default sound scheme played
+  them: The Microsoft Sound at startup, Ding for the beep and for a click
+  outside a modal window (the Default sound), Chord when an alert box opens
+  (Asterisk, Exclamation and Critical Stop), Notify for new mail and Recycle
+  when the Trash is emptied (Empty Recycle Bin). The Sound tab offers the
+  eight short sounds of Windows' Media folder as the alert sound, Chimes,
+  Chord, Ding (the default), Logoff, Notify, Recycle, Start and Tada; once
+  the user picks one, every alert plays it. Like the scheme, the package
+  plays nothing on opening, closing, maximizing or minimizing a window or on
+  a menu (no interface feedback).
 - **Its font**, `"Pixelated MS Sans Serif"`, regular and bold: the family
   every theme names first for its interface text, at 11 px. Windows 98 drew
   its interface in MS Sans Serif, a bitmap font (`sserife.fon`) no browser
@@ -149,9 +156,10 @@ and `nodenext` resolution).
 
 - `.`: the package entry (ES and UMD bundles, with types). Importing it
   registers Windows 98, its icons, system art, cursors and fonts, and its
-  sound pack. It also exports `WINDOWS98_APPEARANCE_PACKAGE_ID`,
-  `windows98Json` (the themes, layout, knobs and color families,
-  deep-frozen and typed with the core's types, as `Windows98Json`),
+  sound pack (Windows 98's sounds). It also exports
+  `WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json` (the themes, layout,
+  knobs and color families, deep-frozen and typed with the core's types, as
+  `Windows98Json`),
   `windows98SoundPack`, `WINDOWS98_SYSTEM_ART` (the system art it
   registers), `WINDOWS98_CURSORS` (its cursors by role, each with its
   hotspot), `WINDOWS98_APPS` and `WINDOWS98_DESKTOP_ICONS` (its `apps` and
@@ -254,12 +262,13 @@ package.
 
 ## Asset sources
 
-Every image and cursor the package ships is Windows 98 Second Edition's own,
-read from the English Windows 98 SE CD (archive.org item
+Every image, cursor and sound the package ships is Windows 98 Second
+Edition's own, read from the English Windows 98 SE CD (archive.org item
 `windows-98-second-edition_202103`): its install cabinets (`WIN98_21.CAB` to
 `WIN98_74.CAB`, `BASE4` to `BASE6`, `PRECOPY1` and `PRECOPY2`), unpacked
-with `cabextract`, and each binary's `RT_GROUP_ICON`, `RT_GROUP_CURSOR` and
-`RT_BITMAP` resources written out unchanged. An icon file is the group's 32 px or 16 px
+with `cabextract`, its sounds taken as they are and each binary's
+`RT_GROUP_ICON`, `RT_GROUP_CURSOR` and `RT_BITMAP` resources written out
+unchanged. An icon file is the group's 32 px or 16 px
 image at the group's highest color depth (256 colors where the group has
 one), its AND mask made alpha; every file is a lossless WebP of those pixels
 (`bin/classicyWebp.ts`), with no color profile. The clones of
@@ -382,6 +391,27 @@ resource declares:
 | `user-cursor-108.png` | `user.exe` cursor 108 | Vertical Resize | `resizeUd`, `resizeU`, `resizeD` | 15, 16 |
 | `user-cursor-114.png` | `user.exe` cursor 114 | Link Select | `hand` | 5, 0 |
 
+`src/assets/sounds/windows98/sprites/`: the CD's WAVs, unchanged, each
+renamed to the sprite it plays (`pnpm build:audio` encodes them into
+`windows98.ogg` and `windows98.m4a`). Every one installs to
+`C:\WINDOWS\MEDIA`; the events are mapped as the CD's `MMOPT.INF` and
+`MOTOWN.INF` map Windows 98's default scheme. Eight are byte for byte
+98.js's `audio/` copies, and winhistory.de's `o98.wav` and
+`win98logoff.wav` are The Microsoft Sound and `logoff.wav`; 98.js's
+`START.WAV` is a re-encode, so the CD's original is used.
+
+| Files | Windows 98 SE file | What Windows played it for |
+| --- | --- | --- |
+| `ClassicyBoot.wav` | `The Microsoft Sound.wav` (`logon.wav` in `WIN98_54.CAB`) | Start Windows |
+| `ClassicyAlertDing.wav`, `ClassicyBeep.wav` | `ding.wav` (`WIN98_70.CAB`) | Default sound |
+| `ClassicyAlertChord.wav`, `ClassicyAlertExclamation.wav` | `chord.wav` (`WIN98_70.CAB`) | Asterisk, Critical Stop, Exclamation, Question |
+| `ClassicyAlertChimes.wav` | `chimes.wav` (`WIN98_70.CAB`) | (no event in the default scheme) |
+| `ClassicyAlertLogoff.wav` | `logoff.wav` (`WIN98_71.CAB`, `WIN98_72.CAB`) | Exit Windows |
+| `ClassicyAlertNotify.wav`, `ClassicyEmailNewMail.wav` | `notify.wav` (`WIN98_72.CAB`) | New Mail Notification |
+| `ClassicyAlertRecycle.wav`, `ClassicyTrashEmpty.wav` | `recycle.wav` (`WIN98_72.CAB`) | Empty Recycle Bin |
+| `ClassicyAlertStart.wav` | `start.wav` (`WIN98_55.CAB`, 4-bit ADPCM) | Internet Explorer's Start Navigation |
+| `ClassicyAlertTada.wav` | `tada.wav` (`WIN98_73.CAB`) | (no event in the default scheme) |
+
 `src/assets/fonts/`: not Microsoft's. Windows 98's MS Sans Serif
 (`sserife.fon`) is a bitmap font no browser loads; these are
 [98.css](https://github.com/jdan/98.css)'s woff2 conversions (`fonts/converted`)
@@ -410,16 +440,18 @@ pnpm --filter @classicy/appearance-windows98 build
 ```
 
 `pnpm build:audio` rebuilds the sound pack's sprite sheet from
-`src/assets/sounds/windows98/sprites/`.
+`src/assets/sounds/windows98/sprites/` (Windows 98's WAVs, one per sprite,
+named by its id).
 
 ## License
 
 The package's code and stylesheets are provided free and in the public
 domain under [The Unlicense](https://unlicense.org/). See [LICENSE](LICENSE).
 Microsoft maintains the copyright on the Windows 95 and 98 icons, bitmaps,
-cursors and interface the package reproduces (under "Asset sources" above),
-which Classicy uses under the fair use doctrine, as it uses Apple's Mac OS art
-under Platinum and System 7; they are not covered by the Unlicense. The two
+cursors, sounds and interface the package reproduces (under "Asset
+sources" above), which Classicy uses under the fair use doctrine, as it uses
+Apple's Mac OS art under Platinum and System 7; they are not covered by the
+Unlicense. The two
 font faces in `src/assets/fonts/` are lou's FontStruct recreations of MS Sans
 Serif, licensed [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
 (their readme and license files ship with them), not the Unlicense.
