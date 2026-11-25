@@ -77,6 +77,20 @@ describe("ClassicyControlStripManager", () => {
 		]);
 	});
 
+	// Mac OS 8.5's Control Strip 2.0 draws its contents on white (the 8.5
+	// audit's F13; 8.1's control panel drew #EEEEEE): the window's own
+	// document face, with no face of the panel's own.
+	it("draws its contents on the window's document face", () => {
+		const { container } = renderOpen();
+		const contents = container.querySelector(
+			".classicyWindowContents",
+		) as HTMLElement;
+		expect(contents).not.toBeNull();
+		expect(
+			contents.style.getPropertyValue("--classicy-window-contents-bg"),
+		).toBe("");
+	});
+
 	it("shows and hides the whole strip", () => {
 		renderOpen();
 		const show = screen.getByRole("checkbox", { name: "Show Control Strip" });

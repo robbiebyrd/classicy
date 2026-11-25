@@ -129,7 +129,10 @@ export function ClassicyControlStripManager() {
 				initialSize={[360, 0]}
 				initialPosition={[340, 100]}
 				modal={false}
-				backgroundColor="var(--color-system-03)"
+				// Its contents on the window's document face (white under
+				// Platinum and System 7), as Mac OS 8.5's Control Strip 2.0
+				// draws them (the 8.5 audit's F13: #FFFFFF, where 8.1's control
+				// panel was #EEEEEE).
 				appMenu={[
 					{
 						id: `${APP_ID}_file`,
