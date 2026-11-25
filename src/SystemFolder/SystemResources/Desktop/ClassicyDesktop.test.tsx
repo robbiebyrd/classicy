@@ -8,7 +8,8 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import { Calculator } from "@/SystemFolder/Calculator/Calculator";
 import { CALCULATOR_APP_ID } from "@/SystemFolder/Calculator/CalculatorManifest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -23,6 +24,35 @@ import {
 	classicyDisabledDefaultAppIds,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDisabledDefaultApps";
 import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import {
+	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
+	classicyDesktopItemIconAction,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import {
+	ClassicyFileSystem,
+	resetClassicyFileSystemSharedTrees,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+
+// C4's window activation, watched through the module's own function.
+const activateDropWindow = vi.hoisted(() => vi.fn());
+vi.mock(
+	"@/SystemFolder/SystemResources/File/ClassicyFileMove",
+	async (importOriginal) => {
+		const actual =
+			await importOriginal<
+				typeof import("@/SystemFolder/SystemResources/File/ClassicyFileMove")
+			>();
+		return {
+			...actual,
+			activateClassicyDropWindow: (
+				...args: Parameters<typeof actual.activateClassicyDropWindow>
+			) => {
+				activateDropWindow(...args);
+				return actual.activateClassicyDropWindow(...args);
+			},
+		};
+	},
+);
 
 // The bundled apps pass showDesktopIcon={false}, so they register HIDDEN
 // app-shortcut icons: present in the store (which is what the derived
@@ -456,5 +486,99 @@ describe("ClassicyDesktop Control Strip", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		expect(screen.queryByRole("toolbar", { name: "Control Strip" })).toBeNull();
+	});
+});
+
+// Hand-off C4 (the remaining chapters' audit's 5.31, 5.34, A.8): a desktop
+// file icon let go on a folder is moved, copied or linked by the drop's
+// effect (`transferClassicyFileSystemItems`), and once something went the
+// Finder window the folder is drawn in comes forward
+// (`activateClassicyDropWindow`, inert without `transfer.activateDropWindow`).
+describe("ClassicyDesktop drops on a folder (C4)", () => {
+	const DESKTOP_FOLDER = "Macintosh HD:Desktop Folder";
+	// Each test its own names: a tree saved by an earlier test's desktop
+	// may still be read back.
+	let run = 0;
+	let FILE = "";
+	let ARCHIVE = "";
+	let restore: (() => void) | null = null;
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		resetClassicyFileSystemSharedTrees();
+		run += 1;
+		FILE = `${DESKTOP_FOLDER}:Plan ${run}.txt`;
+		ARCHIVE = `Macintosh HD:Archive ${run}`;
+		useAppManager.setState(DefaultAppManagerState, true);
+		activateDropWindow.mockClear();
+	});
+	afterEach(() => {
+		restore?.();
+		restore = null;
+		cleanup();
+	});
+	const renderWithFile = () => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		const fs = new ClassicyFileSystem();
+		fs.mkDir(DESKTOP_FOLDER);
+		fs.mkDir(ARCHIVE);
+		fs.writeFile(FILE, "plan");
+		const action = classicyDesktopItemIconAction(fs, FILE, [100, 100]);
+		if (action) act(() => dispatch(action));
+		const icon = document.getElementById(
+			`${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${FILE}.shortcut`,
+		) as HTMLElement;
+		return { fs, icon };
+	};
+	const dropOn = (icon: Element, folderPath: string, ctrlKey: boolean) => {
+		const folder = document.createElement("div");
+		folder.setAttribute("data-classicy-drop-folder", folderPath);
+		document.body.append(folder);
+		const original = document.elementsFromPoint;
+		document.elementsFromPoint = () => [folder];
+		try {
+			fireEvent.mouseDown(icon, { button: 0, clientX: 110, clientY: 110 });
+			fireEvent.mouseMove(document, { clientX: 200, clientY: 200, ctrlKey });
+			fireEvent.mouseUp(document, { clientX: 200, clientY: 200, ctrlKey });
+		} finally {
+			document.elementsFromPoint = original;
+			folder.remove();
+		}
+		return folder;
+	};
+
+	it("copies with the copy modifier and brings the folder's window forward under the Windows transfer keys", () => {
+		restore = activateTestWindowsKeysPackage({
+			transfer: { copyModifier: "ctrl", activateDropWindow: true },
+		});
+		const { fs, icon } = renderWithFile();
+		const folder = dropOn(icon, ARCHIVE, true);
+		expect(fs.resolve(`${ARCHIVE}:Plan ${run}.txt`)?._data).toBe("plan");
+		expect(fs.resolve(FILE)).toBeDefined();
+		expect(activateDropWindow).toHaveBeenCalledTimes(1);
+		expect(activateDropWindow.mock.calls[0][0]).toMatchObject({
+			element: folder,
+			destination: { kind: "folder", path: ARCHIVE },
+		});
+	});
+
+	it("brings no window forward when nothing went", () => {
+		restore = activateTestWindowsKeysPackage({
+			transfer: { copyModifier: "ctrl", activateDropWindow: true },
+		});
+		const { icon } = renderWithFile();
+		dropOn(icon, "Macintosh HD:Nowhere", false);
+		expect(activateDropWindow).not.toHaveBeenCalled();
+	});
+
+	it("moves, Control held or not, under Platinum", () => {
+		const { fs, icon } = renderWithFile();
+		dropOn(icon, ARCHIVE, true);
+		expect(fs.resolve(`${ARCHIVE}:Plan ${run}.txt`)?._data).toBe("plan");
+		expect(fs.resolve(FILE)).toBeUndefined();
 	});
 });

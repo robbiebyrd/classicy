@@ -189,9 +189,12 @@ export const useClassicyFileDropMenu = (): ClassicyFileDropMenuApi => {
 				},
 				onMenu: (target, point, outlineTopLeft, effect) => {
 					const transfer = transferAt(target, point, outlineTopLeft);
+					// No leading Help item: Windows' drop menu holds the
+					// transfer commands and Cancel alone.
 					showContextMenu(
 						classicyFileDropMenuItems(effects(target), effect, ak, transfer),
 						point,
+						{ helpItem: false },
 					);
 				},
 			};

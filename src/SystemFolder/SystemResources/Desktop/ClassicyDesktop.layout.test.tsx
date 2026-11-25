@@ -625,6 +625,12 @@ describe("ClassicyDesktop layout", () => {
 			// No menu bar crosses the top of the screen: the screen bar is
 			// headless and its band is 0.
 			expect(container.querySelector(".classicyDesktopMenuBar")).toBeNull();
+			// No menu title, Edit included, is drawn outside a window (C9).
+			expect(
+				Array.from(
+					container.querySelectorAll(".classicyDesktopMenu > li"),
+				).filter((title) => !title.closest(".classicyWindow")),
+			).toEqual([]);
 			expect(root.getAttribute("data-classicy-menu-bar")).toBe("window");
 			expect(root.style.getPropertyValue("--menu-bar-height")).toBe("0px");
 
@@ -699,6 +705,27 @@ describe("ClassicyDesktop layout", () => {
 			expect(windowRoot()).not.toHaveClass("classicyWindowMinimized");
 			expect(button).toHaveClass("active");
 			expect(button).not.toHaveClass("collapsed");
+		});
+
+		// Section C's desktop wiring under the package itself: Explorer's
+		// white-space menu (C1), a button-2 press that starts the rectangle
+		// rather than a menu (C2: `selection.secondaryButton` "select"), and
+		// the desktop drawn as a multiple-selection list box (C3).
+		it("gives the desktop Explorer's menu, button 2's rectangle and the list box role", () => {
+			const { container } = renderDesktopWithWindow();
+			const root = desktopRoot(container) as HTMLElement;
+			expect(root.getAttribute("role")).toBe("listbox");
+			expect(root.getAttribute("aria-multiselectable")).toBe("true");
+			fireEvent.mouseDown(root, { button: 2, clientX: 300, clientY: 300 });
+			expect(root.querySelector(".classicyDesktopSelect")).not.toBeNull();
+			expect(document.querySelector(".classicyContextMenuWrapper")).toBeNull();
+			fireEvent.mouseUp(root, { button: 2, clientX: 300, clientY: 300 });
+			fireEvent.contextMenu(root, { button: 2, clientX: 300, clientY: 300 });
+			const menu = document.querySelector(
+				".classicyContextMenuWrapper",
+			) as HTMLElement;
+			expect(menu.textContent).toContain("Arrange Icons");
+			expect(menu.textContent).not.toContain("Special");
 		});
 
 		it("draws the Control Strip and the screen bar again on a switch back to Platinum, the minimized window shaded there", () => {

@@ -80,13 +80,21 @@ import {
 	ClassicyControlStrip,
 	type ClassicyControlStripProps,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
+import { useClassicyDesktopCommands } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopCommands.internal";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { markClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import {
 	type ArrowDirection,
+	classicyDesktopKeyCommand,
+	classicyDesktopListboxAttributes,
 	nearestIconInDirection,
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
+import {
+	type ClassicyDesktopSelectPress,
+	classicyDesktopBoxSelection,
+	classicyDesktopSelectPress,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopSelectBox.internal";
 import {
 	classicyDisabledDefaultAppCleanup,
 	classicyDisabledDefaultAppIds,
@@ -99,13 +107,16 @@ import {
 	SYSTEM_DIALOG_WINDOW_IDS,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import { transferClassicyFileSystemItems } from "@/SystemFolder/SystemResources/File/ClassicyFileCommands.internal";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	type ClassicyFileDropDestination,
+	type ClassicyFileDropEffect,
+	type ClassicyFileDropTarget,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
+	activateClassicyDropWindow,
 	classicyStartupDisk,
-	moveClassicyFileSystemItems,
 	moveClassicyItemsToTrash,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
@@ -117,8 +128,10 @@ import {
 	emptyClassicyTrash,
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyShellDialogs } from "@/SystemFolder/SystemResources/Taskbar/ClassicyShellDialogs.internal";
 import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
@@ -315,12 +328,17 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const focusedAppId = useAppManager(
 		(s) => s.System.Manager.Applications.focusedAppId,
 	);
+	// The active package's arrangement (resolved from Appearance.packageId,
+	// never activeTheme.package), as root attributes and variables beside the
+	// theme's; getThemeVars only sees the theme. classicyLayoutThemeVars
+	// overrides the theme variables the layout changes (window placement's
+	// 0px `--menu-bar-height`), so it is spread after the theme's.
+	const layout = useClassicyAppearanceLayout();
 	// Under `window.collapse: "minimize"` (the Windows shell) a minimized
 	// Finder window (and a palette hidden with it) is off the screen, so it
 	// leaves the bar to the desktop; under every other package any open
 	// window holds it, a shaded one included.
-	const windowsMinimize =
-		useClassicyAppearanceLayout().window.collapse === "minimize";
+	const windowsMinimize = layout.window.collapse === "minimize";
 	const finderHasOpenWindow = useAppManager((s) => {
 		const finder = s.System.Manager.Applications.apps["Finder.app"];
 		return listAppWindows(finder).some((w) =>
@@ -329,6 +347,14 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	});
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
+	// Explorer's desktop commands (WIG Ch.5 "Transfer Commands", p.45; Ch.10
+	// p.206; Windows 98 SE's desktop menus), built by the Finder commands'
+	// module: the bar's File, Edit and View and the white-space menu, both
+	// undefined unless the layout declares `finder.commands: "windows"`.
+	const desktopCommands = useClassicyDesktopCommands();
+	// The user's own keys for the bundled items (`keyboard.editableShortcuts`);
+	// without the key every item keeps its chord.
+	const menuShortcut = useClassicyMenuItemShortcuts();
 
 	const defaultApps = useContext(ClassicyDefaultAppsContext);
 	const {
@@ -491,6 +517,39 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				});
 			};
 
+			// Windows' desktop keys (WIG Ch.5 Table 5.1, pp.35-36, "Keyboard
+			// Selection", p.43; App. B Table B.1, p.357), each gated by its
+			// layout key: the arrows, Home, End and the page keys move the
+			// focus icon (`selection.iconNavigation` "roving"), Shift extends
+			// from the anchor, Control (or ⌘, Option) moves the focus alone
+			// and Space toggles it (`selection.keyboard` "windows"). Without
+			// the keys the command is "none" and today's branches below run.
+			const command = classicyDesktopKeyCommand(e, {
+				icons: desktopIcons,
+				selectedIds: selectedIcons,
+				focusIconId: useAppManager.getState().System.Manager.Desktop.focusIcon,
+				layout,
+			});
+			if (command.type !== "none") {
+				e.preventDefault();
+				if (command.type === "select") {
+					selectIconFromKeyboard(command.iconId);
+				} else if (command.type === "focus") {
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconMoveFocus",
+						iconId: command.iconId,
+					});
+				} else {
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconSelect",
+						iconId: command.iconId,
+						mode: command.type,
+					});
+				}
+				document.getElementById(`${command.iconId}.shortcut`)?.focus();
+				return;
+			}
+
 			if (
 				(e.key === "Backspace" || e.key === "Delete") &&
 				!e.altKey &&
@@ -534,23 +593,58 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			selectedIcons,
 			desktopEventDispatch,
 			trashSelectedDesktopItems,
+			layout,
 		],
 	);
 
+	// The press that started the rectangle (`classicyDesktopSelectPress`),
+	// the selection it found (kept by a Shift or Control press, and put back
+	// by Escape) and, for a Control rectangle, whether the first icon it
+	// covered was selected (WIG App. A Table A.3's note 4, p.356).
+	const selectPressRef = useRef<ClassicyDesktopSelectPress | null>(null);
+	const selectBaseRef = useRef<string[]>([]);
+	const firstCoveredRef = useRef<boolean | undefined>(undefined);
+
+	// A press on the empty desktop, by its button and the layout: button 1
+	// (and, absent `layout.mouse`, the middle button) starts the rectangle;
+	// any other button shows the desktop's menu at the press, or leaves it
+	// to the `contextmenu` event (`contextMenu.openOn` "release"), or starts
+	// the rectangle too (`selection.secondaryButton` "select"); under
+	// `mouse` "windows" a third button does nothing. Absent every key, as
+	// before: buttons 0 and 1 select, any other opens the menu.
 	const startSelectBox = (e: MouseEvent<HTMLDivElement>) => {
-		if ("id" in e.target && e.target.id === "classicyDesktop") {
-			if (e.button > 1) {
-				toggleDesktopContextMenu(e);
-			} else {
-				desktopRef.current?.focus();
-				clearActives(e);
-				selectionIconElementsRef.current =
-					document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
-				setSelectBox(true);
-				setSelectBoxStart([e.clientX, e.clientY]);
-				setSelectBoxSize([0, 0]);
-			}
+		if (!("id" in e.target) || e.target.id !== "classicyDesktop") return;
+		const press = classicyDesktopSelectPress(e, layout);
+		if (press.action === "ignore") return;
+		if (press.action === "menu") {
+			if (!press.deferMenu) toggleDesktopContextMenu(e);
+			return;
 		}
+		desktopRef.current?.focus();
+		selectPressRef.current = press;
+		firstCoveredRef.current = undefined;
+		if (press.keep === "none") {
+			selectBaseRef.current = [];
+			clearActives(e);
+		} else {
+			// Shift or Control on white space keeps the selection and adds to
+			// it or toggles in it (`selection.modifiers` "windows").
+			selectBaseRef.current = [
+				...(useAppManager.getState().System.Manager.Desktop.selectedIcons ??
+					[]),
+			];
+			desktopEventDispatch({
+				type: "ClassicyDesktopFocus",
+				e: e,
+				menuBar: defaultMenuItems,
+				keepIconSelection: true,
+			});
+		}
+		selectionIconElementsRef.current =
+			document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
+		setSelectBox(true);
+		setSelectBoxStart([e.clientX, e.clientY]);
+		setSelectBoxSize([0, 0]);
 	};
 
 	const getNormalizedSelectRect = (
@@ -608,10 +702,22 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			const newSize = [x - selectBoxStart[0], y - selectBoxStart[1]];
 			setSelectBoxSize(newSize);
 
-			const selectedIds = getIconsInSelectBox(selectBoxStart, newSize);
+			const boxed = getIconsInSelectBox(selectBoxStart, newSize);
+			const keep = selectPressRef.current?.keep ?? "none";
+			if (
+				keep === "toggle" &&
+				firstCoveredRef.current === undefined &&
+				boxed.length > 0
+			)
+				firstCoveredRef.current = selectBaseRef.current.includes(boxed[0]);
 			desktopEventDispatch({
 				type: "ClassicyDesktopIconSelectBox",
-				iconIds: selectedIds,
+				iconIds: classicyDesktopBoxSelection(
+					selectBaseRef.current,
+					boxed,
+					keep,
+					firstCoveredRef.current,
+				),
 			});
 
 			rafIdRef.current = null;
@@ -620,10 +726,28 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 
 	const clearSelectBox = () => {
 		selectionIconElementsRef.current = null;
+		selectPressRef.current = null;
 		setSelectBoxSize([0, 0]);
 		setSelectBoxStart([0, 0]);
 		setSelectBox(false);
 	};
+
+	// Escape takes the rectangle back (`input.escapeCancels`, WIG Ch.4
+	// "Shortcut Keys", p.27): the selection the press found comes back (none
+	// after a plain press, which cleared it) and the rectangle ends.
+	useClassicyEscapeCancel(selectBox, () => {
+		const base = selectBaseRef.current;
+		// A frame still pending would select what the rectangle covered.
+		if (rafIdRef.current !== null) {
+			cancelAnimationFrame(rafIdRef.current);
+			rafIdRef.current = null;
+		}
+		clearSelectBox();
+		desktopEventDispatch({
+			type: "ClassicyDesktopIconSelectBox",
+			iconIds: [...base],
+		});
+	});
 
 	// The pointer stream lost mid-selection (the window blurred, a
 	// pointercancel, the page hidden): the rectangle ends where it is, as a
@@ -651,73 +775,88 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		// so currentTarget is always the desktop).
 		e.preventDefault();
 		if ((e.target as HTMLElement).id === "classicyDesktop") {
-			showContextMenu(defaultMenuItems, [e.clientX, e.clientY]);
+			const at: [number, number] = [e.clientX, e.clientY];
+			// Explorer's white-space menu (`finder.commands` "windows"), else
+			// the desktop's menus.
+			showContextMenu(
+				desktopCommands.whiteSpaceMenu?.(at) ?? defaultMenuItems,
+				at,
+			);
 		}
 	};
 
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(
 		() => [
-			{
-				id: "finder_file",
-				title: "File",
-				menuChildren: [
-					{
-						id: "finder_file_move_to_trash",
-						title: "Move To Trash",
-						keyboardShortcut: "⌃⌫",
-						onClickFunc: () => {
-							trashSelectedDesktopItems();
+			// Explorer's File, Edit and View (`finder.commands` "windows"; the
+			// same ids), else the desktop's own; Special follows either.
+			...(desktopCommands.barMenu ?? [
+				{
+					id: "finder_file",
+					title: "File",
+					menuChildren: [
+						{
+							id: "finder_file_move_to_trash",
+							title: "Move To Trash",
+							keyboardShortcut: menuShortcut("finder_file_move_to_trash", "⌃⌫"),
+							onClickFunc: () => {
+								trashSelectedDesktopItems();
+							},
 						},
-					},
-				],
-			},
-			{
-				id: "finder_edit",
-				title: "Edit",
-				disabled: true,
-			},
-			{
-				id: "finder_view",
-				title: "View",
-				menuChildren: [
-					{
-						id: "finder.app_CleanupDesktopIcons",
-						title: "Clean up",
-						onClickFunc: () => {
-							desktopEventDispatch({
-								type: "ClassicyDesktopIconCleanup",
-							});
+					],
+				},
+				{
+					id: "finder_edit",
+					title: "Edit",
+					disabled: true,
+				},
+				{
+					id: "finder_view",
+					title: "View",
+					menuChildren: [
+						{
+							id: "finder.app_CleanupDesktopIcons",
+							title: "Clean up",
+							onClickFunc: () => {
+								desktopEventDispatch({
+									type: "ClassicyDesktopIconCleanup",
+								});
+							},
 						},
-					},
-					{
-						id: "finder.app_ArrangeDesktopIconsName",
-						title: "Arrange By Name",
-						onClickFunc: () => {
-							desktopEventDispatch({
-								type: "ClassicyDesktopIconSort",
-								sortBy: "name",
-							});
+						{
+							id: "finder.app_ArrangeDesktopIconsName",
+							title: "Arrange By Name",
+							onClickFunc: () => {
+								desktopEventDispatch({
+									type: "ClassicyDesktopIconSort",
+									sortBy: "name",
+								});
+							},
 						},
-					},
-					{
-						id: "finder.app_ArrangeDesktopIconsKind",
-						title: "Arrange By Type",
-						onClickFunc: () => {
-							desktopEventDispatch({
-								type: "ClassicyDesktopIconSort",
-								sortBy: "kind",
-							});
+						{
+							id: "finder.app_ArrangeDesktopIconsKind",
+							title: "Arrange By Type",
+							onClickFunc: () => {
+								desktopEventDispatch({
+									type: "ClassicyDesktopIconSort",
+									sortBy: "kind",
+								});
+							},
 						},
-					},
-				],
-			},
+					],
+				},
+			]),
 			{
 				id: "finder_special",
 				title: "Special",
 				menuChildren: classicySpecialMenuItems(desktopEventDispatch, "finder"),
 			},
 		],
-		[desktopEventDispatch, trashSelectedDesktopItems],
+		[
+			desktopEventDispatch,
+			trashSelectedDesktopItems,
+			desktopCommands,
+			menuShortcut,
+		],
 	);
 
 	// When focus settles on the desktop — Finder is the focused app (or nothing
@@ -781,12 +920,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			`Appearance Package "${storedPackageId}" is not registered; drawing "${appearancePackageId}" instead.`,
 		);
 	}, [storedPackageId, appearancePackageId]);
-	// The active package's arrangement (resolved from Appearance.packageId,
-	// never activeTheme.package), as root attributes and variables beside the
-	// theme's; getThemeVars only sees the theme. classicyLayoutThemeVars
-	// overrides the theme variables the layout changes (window placement's
-	// 0px `--menu-bar-height`), so it is spread after the theme's.
-	const layout = useClassicyAppearanceLayout();
 	// The Windows shell's window keys (WIG App. B, Table B.2, p.358):
 	// ALT+SPACE opens the focused window's pop-up menu and ALT+F4 closes it,
 	// only under a layout that gives windows the system menu; under every
@@ -829,14 +962,28 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		},
 		[getFileSystem, desktopEventDispatch],
 	);
+	// A desktop file icon dropped on a folder: moved, copied (the copy
+	// modifier, `transfer.copyModifier`) or linked (Create Shortcut(s) Here)
+	// by the drop's effect, a move without one; once something went, the
+	// Finder window the folder is drawn in comes forward when the layout
+	// declares `transfer.activateDropWindow` (WIG Ch.5 p.52), else nothing
+	// else happens, as before.
 	const moveDesktopItems = useCallback(
-		(paths: string[], destination: ClassicyFileDropDestination) => {
-			moveClassicyFileSystemItems(
+		(
+			paths: string[],
+			destination: ClassicyFileDropDestination,
+			target?: ClassicyFileDropTarget,
+			effect?: ClassicyFileDropEffect,
+		) => {
+			const done = transferClassicyFileSystemItems(
 				getFileSystem(),
 				paths,
 				destination,
 				desktopEventDispatch,
+				effect,
 			);
+			if (done.length > 0)
+				activateClassicyDropWindow(target, desktopEventDispatch);
 		},
 		[getFileSystem, desktopEventDispatch],
 	);
@@ -844,6 +991,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	return (
 		<div
 			role="application"
+			// `role="listbox"` and `aria-multiselectable` under
+			// `selection.keyboard` "windows"; nothing otherwise.
+			{...classicyDesktopListboxAttributes(layout)}
 			id={"classicyDesktop"}
 			data-classicy-appearance={appearancePackageId}
 			data-classicy-menu-bar={layout.menuBar.placement}
@@ -865,7 +1015,12 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		>
 			{selectBox && (
 				<div
-					className={"classicyDesktopSelect"}
+					className={classNames(
+						"classicyDesktopSelect",
+						selectBoxSize[0] === 0 &&
+							selectBoxSize[1] === 0 &&
+							"classicyDesktopSelectEmpty",
+					)}
 					style={{
 						left: Math.min(
 							selectBoxStart[0],
