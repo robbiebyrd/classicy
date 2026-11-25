@@ -1348,6 +1348,7 @@ describe("the Windows 98 appearance package", () => {
 				accessKeys: "auto",
 				shortcutSpelling: "names",
 				emptySubmenus: "placeholder",
+				itemHelp: "statusBar",
 			},
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: {
@@ -1373,6 +1374,12 @@ describe("the Windows 98 appearance package", () => {
 			balloonHelp: {
 				placement: "pointer",
 				contextHelp: "whatsThis",
+				unlabeledTips: true,
+				delayMs: 500,
+				autoPopMs: 5000,
+				reshowMs: 100,
+				hideOnPress: true,
+				activeWindowOnly: true,
 			},
 			text: { wordSelect: "trailingSpace" },
 			edit: { scope: "window", menu: "windows" },
@@ -1459,12 +1466,33 @@ describe("the Windows 98 appearance package", () => {
 		await import("./index");
 		expect(
 			getClassicyAppearancePackage("windows98")?.layout.balloonHelp,
-		).toEqual({ placement: "pointer", contextHelp: "whatsThis" });
+		).toMatchObject({ placement: "pointer", contextHelp: "whatsThis" });
 		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
 			expect(theme.measurements.tooltip.shadow, theme.id).toBe(6);
 		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
 			"--tooltip-shadow": "6px",
 		});
+	});
+
+	// ToolTips timed and shown as Windows' (the WIG audit's 12.9, 12.11,
+	// 12.12; WIG Ch.12 "Tooltips", p.276; Wine's tooltips.c, TTDT_AUTOMATIC
+	// on the 500 ms double-click time): an icon-only bevel button named by
+	// one, half a second's wait, gone after five seconds or on a press, a
+	// tenth of a second from one tip to the next, none in an inactive window;
+	// and a highlighted menu item's help in the window's status bar, not a
+	// balloon (12.13; "Status Bar Messages", pp.276-277, Figure 12.7).
+	it("names unlabeled buttons by ToolTips on Windows' timing, in the active window only, and puts menu help in the status bar", async () => {
+		await import("./index");
+		const layout = getClassicyAppearancePackage("windows98")?.layout;
+		expect(layout?.balloonHelp).toMatchObject({
+			unlabeledTips: true,
+			delayMs: 500,
+			autoPopMs: 5000,
+			reshowMs: 100,
+			hideOnPress: true,
+			activeWindowOnly: true,
+		});
+		expect(layout?.menu?.itemHelp).toBe("statusBar");
 	});
 
 	// The Help menu's built-in topic in Windows' words, "how" steps (12.18;

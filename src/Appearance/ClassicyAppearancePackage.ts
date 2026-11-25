@@ -186,6 +186,21 @@ export type ClassicyAppearanceLayout = {
 		 * menu and Favorites): a submenu holding one dimmed "(Empty)" item.
 		 */
 		emptySubmenus?: "leaf" | "placeholder";
+		/**
+		 * Where a menu item's help (`ClassicyMenuItem.balloon`) goes.
+		 * `"balloon"` (the default, Mac OS 8's Balloon Help): a balloon
+		 * beside the item while balloons are on. `"statusBar"` (Windows; WIG
+		 * Ch.12 "Status Bar Messages", pp.276-277, Figure 12.7): no balloon;
+		 * while the item is highlighted (the pointer on it, or the keyboard's
+		 * focus) its `balloon.content`, or `balloon.disabledContent` while it
+		 * is disabled, is the menus' status text
+		 * (`useClassicyMenuStatusText`), an item with no help giving none,
+		 * until the menu closes; a `ClassicyPlacard` with `menuStatus` in the
+		 * active window shows it in place of its children meanwhile. The
+		 * menus of a `ClassicyBevelButtonPopup` outside any window (the
+		 * taskbar's Start menu and tray, the Control Strip's) give none.
+		 */
+		itemHelp?: "balloon" | "statusBar";
 	};
 	desktop: {
 		iconGridOrigin: "top-right" | "top-left" | "bottom-right" | "bottom-left";
@@ -546,6 +561,57 @@ export type ClassicyAppearanceLayout = {
 		 * once.
 		 */
 		contextHelp?: "whatsThis";
+		/**
+		 * Absent or `false` (Platinum, System 7), an icon-only
+		 * `ClassicyBevelButton` has its accessible name only. `true` (Windows;
+		 * WIG Ch.12 "Tooltips", p.276, Figure 12.6; App. C "User
+		 * Assistance", p.364): a `ClassicyBevelButton` with no text children
+		 * and an accessible name (`aria-label`, else `iconAlt`) shows that
+		 * name as its ToolTip, whether or not balloon help is on
+		 * (`useClassicyBalloonHelp`'s `force`).
+		 */
+		unlabeledTips?: boolean;
+		/**
+		 * The wait before a tip shows, in ms, where its config names no
+		 * `delay`. Absent, 600 (Mac OS 8's balloons). Windows 98: 500, the
+		 * double-click time (Wine's `tooltips.c`, TTDT_AUTOMATIC).
+		 */
+		delayMs?: number;
+		/**
+		 * Absent, a shown tip stays until the pointer leaves. Given (Windows
+		 * 98: 5000, ten times the delay), a shown tip hides after this many
+		 * ms without a pointer move over its element (each move restarts
+		 * it, as `tooltips.c`'s ID_TIMERPOP), and stays hidden until the
+		 * pointer leaves.
+		 */
+		autoPopMs?: number;
+		/**
+		 * Absent, every tip waits its delay. Given (Windows 98: 100, a fifth
+		 * of the delay), a tip whose pointer arrives within this many ms of
+		 * leaving another shown tip's element (any anchor's, page-wide) waits
+		 * this long instead, for its whole visit (`tooltips.c`'s TTDT_RESHOW:
+		 * "moved from one to another"; WIG Ch.12 "Tooltips", p.276: "ignore
+		 * the time-out").
+		 */
+		reshowMs?: number;
+		/**
+		 * Absent, a press hides a tip only at the pointer (`placement`
+		 * `"pointer"`); a balloon at the anchor (Mac OS 8's) stays through
+		 * it. `true` (Windows 98; WIG Ch.12
+		 * "Tooltips", p.276: "until the user presses the button"; Ch.7
+		 * "Tooltip Controls", p.133): a press hides the tip, or cancels its
+		 * wait, until the pointer leaves, under either `placement`.
+		 */
+		hideOnPress?: boolean;
+		/**
+		 * Absent, a tip shows in any window. `true` (Windows; WIG Ch.12
+		 * "Status Bar Messages", p.276: "Like tooltips, the window typically
+		 * must be active"): an element in an inactive window
+		 * (`ClassicyWindowActiveContext` false) shows no tip, and a shown tip
+		 * hides when its window goes inactive; elements outside any window
+		 * (the desktop's icons, the taskbar) are unaffected.
+		 */
+		activeWindowOnly?: boolean;
 	};
 	/**
 	 * How a text field selects its text (`ClassicyInput`,

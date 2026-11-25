@@ -9063,7 +9063,8 @@
 			"disabledItems": "browse",
 			"accessKeys": "auto",
 			"shortcutSpelling": "names",
-			"emptySubmenus": "placeholder"
+			"emptySubmenus": "placeholder",
+			"itemHelp": "statusBar"
 		},
 		"desktop": {
 			"iconGridOrigin": "top-left"
@@ -9102,7 +9103,13 @@
 		},
 		"balloonHelp": {
 			"placement": "pointer",
-			"contextHelp": "whatsThis"
+			"contextHelp": "whatsThis",
+			"unlabeledTips": true,
+			"delayMs": 500,
+			"autoPopMs": 5000,
+			"reshowMs": 100,
+			"hideOnPress": true,
+			"activeWindowOnly": true
 		},
 		"text": {
 			"wordSelect": "trailingSpace"

@@ -14,6 +14,11 @@ vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	() => ({
 		useAppManagerDispatch: () => vi.fn(),
+		// An item's balloon reads the Balloon Help toggle.
+		useAppManager: (selector: (state: unknown) => unknown) =>
+			selector({
+				System: { Manager: { Desktop: { disableBalloonHelp: false } } },
+			}),
 	}),
 );
 vi.mock(
@@ -46,6 +51,11 @@ import {
 	type ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import {
+	ClassicyMenuStatusContext,
+	resetClassicyMenuStatusTextForTests,
+	useClassicyMenuStatusText,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 // The store is mocked, so nothing connects the active package id; stand in
@@ -1546,5 +1556,137 @@ describe("ClassicyMenu — duplicate access keys", () => {
 		});
 		render(<ClassicyMenu name="m" menuItems={items} open={true} />);
 		expect(entries.filter((e) => e.subsystem === "Menu")).toHaveLength(0);
+	});
+});
+
+// The remaining chapters' audit's 12.13 (WIG Ch.12 "Status Bar Messages",
+// pp.276-277, Figure 12.7; "Guidelines for Writing Status Bar Messages",
+// p.278): under `layout.menu.itemHelp` "statusBar" a menu item's help is no
+// balloon but the menus' status text while it is highlighted, by the
+// pointer or the keyboard (its `disabledContent` while it is disabled),
+// none for an item without help, until the menu closes; a bevel pop-up
+// outside any window gives none. Under a Mac layout the balloon stands and
+// no text is given.
+describe("ClassicyMenu — item help in the status bar (layout.menu.itemHelp)", () => {
+	afterEach(() => resetClassicyMenuStatusTextForTests());
+	const Status = () => {
+		const text = useClassicyMenuStatusText();
+		return <output data-testid="status">{text ?? "(none)"}</output>;
+	};
+	const status = () => screen.getByTestId("status").textContent;
+	const helpItems: ClassicyMenuItem[] = [
+		{
+			id: "file",
+			title: "File",
+			balloon: { content: "Contains commands for working with files." },
+			menuChildren: [
+				{
+					id: "open",
+					title: "Open",
+					balloon: { content: "Opens a document." },
+				},
+				{
+					id: "save",
+					title: "Save",
+					disabled: true,
+					balloon: {
+						content: "Saves the document.",
+						disabledContent:
+							"This command is not available because nothing has changed.",
+					},
+				},
+				{
+					id: "print",
+					title: "Print",
+					disabled: true,
+					balloon: { content: "Prints the document." },
+				},
+				{ id: "quit", title: "Quit" },
+			],
+		},
+	];
+	const renderHelpBar = (scope = true) =>
+		render(
+			<ClassicyMenuProvider>
+				<Status />
+				<ClassicyMenuStatusContext.Provider value={scope}>
+					<ClassicyMenu
+						name="bar"
+						menuItems={helpItems}
+						navClass="classicyDesktopMenu"
+						subNavClass="classicySubMenu"
+					/>
+				</ClassicyMenuStatusContext.Provider>
+			</ClassicyMenuProvider>,
+		);
+
+	it("gives the highlighted item's help as the status text until the menu closes, with no balloons, under the Windows 98 layout", () => {
+		activePackage.id = "windows-menus";
+		const { unmount } = renderHelpBar();
+		expect(document.querySelector(".classicyMenuItemBalloonAnchor")).toBeNull();
+		// No menu shown: no status text, the title's help kept for its menu.
+		fireEvent.mouseOver(item("file"));
+		expect(status()).toBe("(none)");
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		expect(item("file")).toHaveClass("open");
+		expect(status()).toBe("Contains commands for working with files.");
+		fireEvent.mouseOver(item("open"));
+		expect(status()).toBe("Opens a document.");
+		fireEvent.mouseLeave(item("open"));
+		expect(status()).toBe("");
+		// A disabled item gives its reason, else its help.
+		fireEvent.mouseOver(item("save"));
+		expect(status()).toBe(
+			"This command is not available because nothing has changed.",
+		);
+		fireEvent.mouseLeave(item("save"));
+		fireEvent.mouseOver(item("print"));
+		expect(status()).toBe("Prints the document.");
+		fireEvent.mouseLeave(item("print"));
+		// An item with no help gives none.
+		fireEvent.mouseOver(item("quit"));
+		expect(status()).toBe("");
+		fireEvent.mouseLeave(item("quit"));
+		// The keyboard's focus is a highlight too.
+		fireEvent.focus(item("open"));
+		expect(status()).toBe("Opens a document.");
+		fireEvent.blur(item("open"));
+		expect(status()).toBe("");
+		fireEvent.focus(item("open"));
+		unmount();
+		render(<Status />);
+		expect(status()).toBe("(none)");
+	});
+
+	it("ends the status text when the menu closes", () => {
+		activePackage.id = "windows-menus";
+		renderHelpBar();
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		fireEvent.mouseOver(item("open"));
+		expect(status()).toBe("Opens a document.");
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		expect(item("file")).not.toHaveClass("open");
+		expect(status()).toBe("(none)");
+	});
+
+	it("gives no status text, and draws no balloon, in a menu that gives none (a bevel pop-up outside a window)", () => {
+		activePackage.id = "windows-menus";
+		renderHelpBar(false);
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		fireEvent.mouseOver(item("open"));
+		expect(status()).toBe("(none)");
+		expect(document.querySelector(".classicyMenuItemBalloonAnchor")).toBeNull();
+	});
+
+	it("keeps each item's balloon and gives no status text under a Mac layout", () => {
+		renderHelpBar();
+		// The title's and its three items' (a closed menu's items are drawn
+		// hidden).
+		expect(
+			document.querySelectorAll(".classicyMenuItemBalloonAnchor"),
+		).toHaveLength(4);
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		fireEvent.mouseOver(item("open"));
+		expect(status()).toBe("(none)");
 	});
 });

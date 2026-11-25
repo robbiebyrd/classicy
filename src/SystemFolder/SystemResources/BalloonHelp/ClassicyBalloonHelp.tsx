@@ -13,7 +13,10 @@ interface ClassicyBalloonHelpProps extends PropsWithChildren {
 	title?: string;
 	/** The help text. Plain text only. */
 	content: string;
-	/** Hover delay in ms before the balloon appears. Defaults to `600`. */
+	/**
+	 * Hover delay in ms before the balloon appears. Defaults to the package's
+	 * `layout.balloonHelp.delayMs`, else `600`.
+	 */
 	delay?: number;
 	/**
 	 * Preferred side and alignment of the balloon relative to the wrapped

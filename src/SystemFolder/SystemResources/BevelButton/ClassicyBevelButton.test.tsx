@@ -1,8 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 // The test packages' default theme names Platinum's sound pack.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
-import { render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage as registerTipsPackage,
+	resetClassicyAppearancePackagesForTests as resetTipsPackages,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -352,5 +364,104 @@ describe("ClassicyBevelButton: a disabled button's image", () => {
 			vi.restoreAllMocks();
 			vi.unstubAllGlobals();
 		}
+	});
+});
+
+// An icon-only toolbar button is named by a ToolTip (the WIG audit's 12.9;
+// WIG Ch.12 "Tooltips", p.276, Figure 12.6; App. C "User Assistance",
+// p.364) under the package's `layout.balloonHelp.unlabeledTips`, shown
+// whether or not balloon help is on; a button with text, one with no name,
+// and every button under a Mac layout show none.
+describe("ClassicyBevelButton — the ToolTip of an unlabeled button", () => {
+	afterEach(() => {
+		resetTipsPackages();
+		vi.useRealTimers();
+	});
+	const useWindowsLayout = () =>
+		registerTipsPackage({
+			id: "windows-bevels",
+			name: "Windows bevels",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-bevels-default",
+				package: "windows-bevels",
+			},
+			layout: windows98.layout as never,
+		});
+	const hover = (name: string) => {
+		fireEvent.mouseEnter(screen.getByRole("button", { name }), {
+			clientX: 10,
+			clientY: 10,
+		});
+		act(() => {
+			vi.advanceTimersByTime(500);
+		});
+	};
+	const tooltip = () => document.querySelector(".classicyBalloonHelp");
+
+	it("shows the icon's name, and the aria-label over it, under the Windows layout", () => {
+		vi.useFakeTimers();
+		useWindowsLayout();
+		const { unmount } = render(
+			<ClassicyBevelButton icon="/icons/cut.png" iconAlt="Cut" />,
+		);
+		hover("Cut");
+		expect(tooltip()).toHaveTextContent("Cut");
+		expect(tooltip()).toHaveAttribute("role", "tooltip");
+		expect(screen.getByRole("button", { name: "Cut" })).toHaveAttribute(
+			"aria-describedby",
+			tooltip()?.id,
+		);
+		// A press hides it.
+		fireEvent.mouseDown(screen.getByRole("button", { name: "Cut" }));
+		expect(tooltip()).toBeNull();
+		unmount();
+		render(
+			<ClassicyBevelButton
+				icon="/icons/cut.png"
+				iconAlt="Scissors"
+				aria-label="Cut"
+				aria-describedby="hint"
+			/>,
+		);
+		hover("Cut");
+		expect(tooltip()).toHaveTextContent("Cut");
+		expect(screen.getByRole("button", { name: "Cut" })).toHaveAttribute(
+			"aria-describedby",
+			`hint ${tooltip()?.id}`,
+		);
+	});
+
+	it("shows none for a button with text, or with no name, under the Windows layout", () => {
+		vi.useFakeTimers();
+		useWindowsLayout();
+		render(
+			<>
+				<ClassicyBevelButton icon="/icons/cut.png" iconAlt="Cut">
+					Cut
+				</ClassicyBevelButton>
+				<ClassicyBevelButton icon="/icons/copy.png" data-testid="nameless" />
+			</>,
+		);
+		fireEvent.mouseEnter(screen.getAllByRole("button")[0]);
+		fireEvent.mouseEnter(screen.getByTestId("nameless"));
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(tooltip()).toBeNull();
+	});
+
+	it("shows none under a Mac layout, and adds nothing to the button", () => {
+		vi.useFakeTimers();
+		render(<ClassicyBevelButton icon="/icons/cut.png" iconAlt="Cut" />);
+		hover("Cut");
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(tooltip()).toBeNull();
+		expect(screen.getByRole("button", { name: "Cut" })).not.toHaveAttribute(
+			"aria-describedby",
+		);
 	});
 });

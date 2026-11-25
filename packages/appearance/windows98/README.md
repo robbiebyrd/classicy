@@ -196,6 +196,19 @@ and `nodenext` resolution).
   and Escape disarms it before it deselects a part. The Mac packages keep
   their pager, their fixed Help window, their "About Help" topic and their
   tools as they were.
+- **Its ToolTips and status bar.** ToolTips keep Windows' timing: half a
+  second's rest shows one, it goes after five seconds or when the control
+  is clicked, and moving straight on to the next control shows its ToolTip
+  a tenth of a second later; a window that is not the active one shows
+  none. A toolbar button that shows only a picture is named by its
+  ToolTip, whether or not Balloon Help is on; a desktop icon's ToolTip gives
+  its name and description in plain text, on two lines; the rich text
+  editor's toolbar buttons (Bold, Italic, Undo…) show ToolTips too. A menu
+  item's help goes to the window's status bar while the item is
+  highlighted, as WordPad's does, never into a balloon beside the menu, and
+  an unavailable item can say why it is unavailable. The Mac packages keep
+  their balloons as they were; the rich text editor's toolbar buttons show
+  them a help balloon now, where they showed unstyled text.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),

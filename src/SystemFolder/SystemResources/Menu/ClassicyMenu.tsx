@@ -46,6 +46,12 @@ import {
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { classicyMenuBounds } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import {
+	ClassicyMenuStatusContext,
+	markClassicyMenuStatusShown,
+	publishClassicyMenuStatusText,
+	withdrawClassicyMenuStatusText,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
+import {
 	type ClassicyMenuItemHandle,
 	type ClassicyMenuKeyboardEnv,
 	type ClassicyMenuListHandle,
@@ -208,11 +214,24 @@ export interface ClassicyMenuItem {
 	 * It is never rendered as a DOM `part` (shadow-parts) attribute.
 	 */
 	part?: string;
-	/** Balloon help for the item, shown while balloons are on. */
+	/**
+	 * Help for the item: a balloon shown while balloons are on, or, under a
+	 * package whose `layout.menu.itemHelp` is `"statusBar"` (Windows 98), no
+	 * balloon and `content` as the menus' status text while the item is
+	 * highlighted (a `ClassicyPlacard` with `menuStatus` shows it).
+	 */
 	balloon?: {
 		title?: string;
 		content: string;
 		position?: ClassicyBalloonPosition;
+		/**
+		 * The status text while the item is disabled, in place of `content`,
+		 * under `layout.menu.itemHelp` `"statusBar"`: why it is unavailable
+		 * (WIG Ch.12 "Guidelines for Writing Status Bar Messages", p.278:
+		 * "This command is not available because no text is selected.").
+		 * Absent, `content` stands. A balloon never shows it.
+		 */
+		disabledContent?: string;
 	};
 }
 
@@ -364,6 +383,16 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// Absent, no access keys at all (Mac OS 8 and System 7 had none).
 	const accessKeyMode = layout.menu?.accessKeys;
 	const emptySubmenus = layout.menu?.emptySubmenus ?? "leaf";
+	// Where the items' help goes (`layout.menu.itemHelp`): a balloon beside
+	// each (Mac OS 8), or the menus' status text, which a bevel button's
+	// pop-up outside any window does not give (ClassicyMenuStatusText).
+	const statusScope = useContext(ClassicyMenuStatusContext);
+	const itemHelp: ClassicyMenuItemHelp =
+		layout.menu?.itemHelp !== "statusBar"
+			? "balloon"
+			: statusScope
+				? "status"
+				: "none";
 	// The access keys of this list's items, siblings resolved together: an
 	// explicit key is reserved first, then, under `"auto"`, every other titled
 	// item takes the first free character of its title. None without the
@@ -610,6 +639,12 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		if (!treeShown || !windowsKeys) return;
 		return markClassicyMenuShown();
 	}, [treeShown, windowsKeys]);
+	// Shown under `layout.menu.itemHelp` "statusBar", the tree's highlighted
+	// item gives the status text until it closes.
+	useEffect(() => {
+		if (!treeShown || itemHelp !== "status") return;
+		return markClassicyMenuStatusShown();
+	}, [treeShown, itemHelp]);
 	useEffect(() => {
 		if (!treeShown || !tree || !windowsKeys) return;
 		const onKey = (e: globalThis.KeyboardEvent) => {
@@ -1025,6 +1060,7 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 								accessKeyChar={accessKeys[index]?.key ?? null}
 								accessKeyIndex={accessKeys[index]?.index ?? -1}
 								emptySubmenus={emptySubmenus}
+								itemHelp={itemHelp}
 							/>
 						),
 					)}
@@ -1060,6 +1096,13 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	);
 };
 
+/**
+ * Where an item's help goes: its balloon (`"balloon"`), the menus' status
+ * text (`"status"`), or nowhere (`"none"`: status-bar help in a menu that
+ * gives no status text).
+ */
+type ClassicyMenuItemHelp = "balloon" | "status" | "none";
+
 const ClassicyMenuItemComponent: FunctionalComponent<{
 	menuItem: ClassicyMenuItem;
 	subNavClass: string;
@@ -1080,6 +1123,8 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	accessKeyIndex: number;
 	/** The package's `layout.menu.emptySubmenus`. */
 	emptySubmenus: "leaf" | "placeholder";
+	/** Where its help goes (`layout.menu.itemHelp`, its menu's scope). */
+	itemHelp: ClassicyMenuItemHelp;
 }> = memo((props) => {
 	const {
 		menuItem,
@@ -1093,6 +1138,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		accessKeyChar,
 		accessKeyIndex,
 		emptySubmenus,
+		itemHelp,
 	} = props;
 	const accessKey = useMemo(
 		(): ClassicyAccessKey | null =>
@@ -1365,6 +1411,27 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const isOwnMouseOver = (e: React.MouseEvent) =>
 		(e.target as Element).closest(".classicyMenuItem") === e.currentTarget;
 
+	// Highlighted (the pointer over its own row, or the keyboard's focus on
+	// it) under `layout.menu.itemHelp` "statusBar", the item's help is the
+	// menus' status text: `disabledContent` while it is disabled, where given,
+	// else `content`, else none (WIG Ch.12 "Status Bar Messages",
+	// pp.276-277, Figure 12.7).
+	const statusOwnerRef = useRef({});
+	const statusText =
+		(menuItem.disabled ? menuItem.balloon?.disabledContent : undefined) ??
+		menuItem.balloon?.content ??
+		"";
+	const publishStatus = () => {
+		if (itemHelp === "status")
+			publishClassicyMenuStatusText(statusOwnerRef.current, statusText);
+	};
+	const withdrawStatus = () =>
+		withdrawClassicyMenuStatusText(statusOwnerRef.current);
+	useEffect(
+		() => () => withdrawClassicyMenuStatusText(statusOwnerRef.current),
+		[],
+	);
+
 	// A checkable item is a menuitemcheckbox, whose aria-checked carries the
 	// state: the ✓ and – are package CSS in an aria-hidden gutter, so without
 	// it the state would reach assistive technology only through the look.
@@ -1414,27 +1481,34 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			onMouseEnter={handleMouseEnter}
 			onFocus={(e: React.FocusEvent) => {
 				track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
-				if (isOwnFocusEvent(e))
+				if (isOwnFocusEvent(e)) {
+					publishStatus();
 					appearance.emit(
 						"focus",
 						withClassicyAppearanceInput({ itemId: menuItem.id }),
 					);
+				}
 			}}
 			onBlur={(e: React.FocusEvent) => {
-				if (isOwnFocusEvent(e))
+				if (isOwnFocusEvent(e)) {
+					withdrawStatus();
 					appearance.emit(
 						"blur",
 						withClassicyAppearanceInput({ itemId: menuItem.id }),
 					);
+				}
 			}}
 			onAnimationEnd={handleAnimationEnd}
 			onMouseOver={(e: React.MouseEvent) => {
 				track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
-				if (isOwnMouseOver(e))
+				if (isOwnMouseOver(e)) {
+					publishStatus();
 					appearance.emit("focus", { itemId: menuItem.id, input: "pointer" });
+				}
 			}}
 			onMouseLeave={() => {
 				clearOpenTimer();
+				withdrawStatus();
 				appearance.emit("blur", { itemId: menuItem.id, input: "pointer" });
 			}}
 			className={classNames(
@@ -1536,7 +1610,8 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		</li>
 	);
 
-	return menuItem.balloon ? (
+	// Status-bar help draws no balloon (Windows' menus show none).
+	return menuItem.balloon && itemHelp === "balloon" ? (
 		<ClassicyBalloonHelp
 			title={menuItem.balloon.title}
 			content={menuItem.balloon.content}

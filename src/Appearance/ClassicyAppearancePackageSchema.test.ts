@@ -683,6 +683,49 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// ToolTips (the WIG audit's 12.9, 12.11-12.13): the timing and gating
+	// keys beside `placement` in `balloonHelp`, and `menu.itemHelp`, each
+	// optional; a time outside 0-60000 ms (the auto-pop from 1), or another
+	// keyword, is refused.
+	it("takes the ToolTip keys and menu.itemHelp, and refuses another value", () => {
+		const input = platinumShaped();
+		const tips = {
+			placement: "pointer",
+			unlabeledTips: true,
+			delayMs: 500,
+			autoPopMs: 5000,
+			reshowMs: 100,
+			hideOnPress: true,
+			activeWindowOnly: true,
+		};
+		(input.layout as Record<string, unknown>).balloonHelp = tips;
+		(input.layout as Record<string, unknown>).menu = { itemHelp: "statusBar" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.balloonHelp).toEqual(tips);
+		expect(result.data?.layout.menu).toEqual({ itemHelp: "statusBar" });
+		for (const [group, key, value] of [
+			["balloonHelp", "delayMs", -1],
+			["balloonHelp", "delayMs", 60_001],
+			["balloonHelp", "autoPopMs", 0],
+			["balloonHelp", "reshowMs", 1.5],
+			["balloonHelp", "hideOnPress", "yes"],
+			["balloonHelp", "unlabeledTips", 1],
+			["balloonHelp", "activeWindowOnly", "true"],
+			["menu", "itemHelp", "tooltip"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, `${group}.${key} ${value}`).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
 	it("accepts defaults that name the package", () => {
 		const input = {
 			...platinumShaped(),

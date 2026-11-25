@@ -8,6 +8,7 @@ import {
 	type MouseEventHandler,
 	type PropsWithChildren,
 	type RefObject,
+	useContext,
 	useEffect,
 	useRef,
 	useState,
@@ -18,6 +19,8 @@ import {
 	useClassicyKeyPress,
 	useClassicyPointerPress,
 } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { useClassicyMenuStatusText } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 export type ClassicyPlacardMenuItem = {
 	/** Value passed to `onSelect` when the item is chosen. */
@@ -40,6 +43,17 @@ type ClassicyPlacardProps = PropsWithChildren<{
 	onClick?: MouseEventHandler<HTMLElement>;
 	/** Fired with the id of a chosen pop-up menu item. */
 	onSelect?: (id: string) => void;
+	/**
+	 * Make it the window's status bar for the menus' help (WIG Ch.12 "Status
+	 * Bar Messages", pp.276-277, Figure 12.7): under a package whose
+	 * `layout.menu.itemHelp` is `"statusBar"` (Windows 98), while a menu is
+	 * shown and the placard's window is active (or it is in none), it shows
+	 * the highlighted item's help (`ClassicyMenuItem.balloon.content`, or
+	 * `disabledContent` while the item is disabled), or nothing for an item
+	 * with none, in place of its children, until the menu closes. Defaults
+	 * to `false`; under any other package it never changes.
+	 */
+	menuStatus?: boolean;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -74,11 +88,17 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	menuItems,
 	onClick,
 	onSelect,
+	menuStatus = false,
 	children,
 	className,
 	style,
 }) => {
 	const hasMenu = Array.isArray(menuItems) && menuItems.length > 0;
+	// The menus' status text in its children's place (`menuStatus`), in the
+	// active window only; `null` (no menu giving it shown) keeps them.
+	const statusText = useClassicyMenuStatusText(menuStatus);
+	const windowActive = useContext(ClassicyWindowActiveContext);
+	const showsStatus = statusText !== null && windowActive !== false;
 	const interactive = !disabled && (hasMenu || Boolean(onClick));
 
 	const [pressed, setPressed] = useState(false);
@@ -176,7 +196,9 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 
 	const body = (
 		<>
-			<span className="classicyPlacardContent">{children}</span>
+			<span className="classicyPlacardContent">
+				{showsStatus ? statusText : children}
+			</span>
 			{hasMenu && <span className="classicyPlacardArrow" aria-hidden={true} />}
 		</>
 	);

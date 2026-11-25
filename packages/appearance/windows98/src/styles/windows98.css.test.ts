@@ -1036,4 +1036,50 @@ describe("windows98.scss (compiled)", () => {
 			);
 		});
 	});
+
+	// ToolTips (the WIG audit's 12.7 and 12.10; WIG Ch.12 "Tooltips", p.276,
+	// Figures 12.5 and 12.6; Ch.7 "Tooltip Controls", p.133): a tip's title
+	// is its first line in the same weight with no gap (Figure 12.5's icon
+	// help), and the rich text editor's toolbar tips (MDXEditor's Radix
+	// tooltips, opened in the desktop) are ToolTips, the balloon's box.
+	describe("ToolTips", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const rule = (selector: string) => {
+			const at = css.indexOf(`${selector} {`);
+			return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+		};
+
+		it("sets a tip's title as its first line, plain, with no gap", () => {
+			const title = rule(
+				`${scope} .classicyBalloonHelp .classicyBalloonHelpTitle`,
+			);
+			expect(title).toContain("font-weight: normal");
+			expect(title).toContain("margin-bottom: 0");
+		});
+
+		it("draws the rich text editor's toolbar tips as ToolTips", () => {
+			const box = [
+				"min-width: 0",
+				"padding: var(--tooltip-padding-y) var(--tooltip-padding-x)",
+				"border: var(--window-border-size) solid var(--color-window-border)",
+				"border-radius: 0",
+				"color: var(--package-color-tooltip-text, var(--color-black))",
+				"background: var(--package-color-tooltip-face, var(--color-window-document))",
+			];
+			const tip = rule(
+				`${scope} .classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > *`,
+			);
+			for (const declaration of [
+				...box,
+				"font-family: var(--ui-font)",
+				"font-size: var(--ui-font-size)",
+				"line-height: 1.3",
+				"white-space: nowrap",
+			])
+				expect(tip).toContain(declaration);
+			// The same box as the balloon's.
+			const balloon = rule(`${scope} .classicyBalloonHelp`);
+			for (const declaration of box) expect(balloon).toContain(declaration);
+		});
+	});
 });

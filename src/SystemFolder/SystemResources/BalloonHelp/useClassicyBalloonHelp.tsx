@@ -1,10 +1,18 @@
 import type { CSSProperties, FC, ReactNode, RefObject } from "react";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+	useContext,
+	useEffect,
+	useId,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { registerClassicyHelpAnchor } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 export type ClassicyBalloonPosition =
 	| "top-left"
@@ -23,9 +31,28 @@ export interface ClassicyIconBalloonHelp {
 	content: string;
 	/** Preferred placement; flipped when off screen. Defaults to `"top-left"`. */
 	position?: ClassicyBalloonPosition;
-	/** Hover delay in ms before the balloon appears. Defaults to `600`. */
+	/**
+	 * Hover delay in ms before the balloon appears. Defaults to the
+	 * package's `layout.balloonHelp.delayMs`, else `600`.
+	 */
 	delay?: number;
 }
+
+/** How `useClassicyBalloonHelp` treats the global Balloon Help toggle. */
+export interface ClassicyBalloonHelpOptions {
+	/**
+	 * Show the balloon even while balloon help is turned off
+	 * (`disableBalloonHelp`): a tooltip, not a help balloon. Default `false`.
+	 */
+	force?: boolean;
+}
+
+// When a shown tip last lost its pointer (`Date.now()`), page-wide: a tip
+// whose pointer arrives within the package's `layout.balloonHelp.reshowMs`
+// of it waits that long instead of its delay, as Windows' ToolTip does when
+// the pointer moves from one tool to another (Wine's tooltips.c,
+// TTDT_RESHOW).
+let lastShownTipLeftAt = Number.NEGATIVE_INFINITY;
 
 // Read --window-control-size from the desktop element at the time of display
 // (the default theme's 12 px before the desktop mounts).
@@ -360,6 +387,24 @@ const BalloonTail: FC<{ className: string }> = ({ className }) => (
  * as a pop-up (`ClassicyWhatsThis.internal.ts`), whether or not balloons are
  * shown.
  *
+ * `options.force` shows the balloon even while balloon help is turned off
+ * (`System.Manager.Desktop.disableBalloonHelp`): for a surface whose tip is
+ * a tooltip, which Windows shows whatever Balloon Help says (an icon-only
+ * bevel button's name under `layout.balloonHelp.unlabeledTips`, WIG Ch.12
+ * "Tooltips", p.276). Omitted, the global toggle hides it as before.
+ *
+ * The package's `layout.balloonHelp` times it as Windows times a ToolTip
+ * (WIG Ch.12 "Tooltips", p.276; Wine's tooltips.c), each key absent keeping
+ * today's timing: `delayMs` is the wait where `config.delay` names none
+ * (else 600); after `reshowMs` a tip whose pointer arrives within that long
+ * of leaving another shown tip's element waits only that long, for the whole
+ * visit; `autoPopMs` hides a shown tip after that long without a pointer
+ * move over its element, until the pointer leaves; `hideOnPress` hides it,
+ * or cancels its wait, on a press until the pointer leaves, at the anchor
+ * too; and `activeWindowOnly` shows none in an inactive window
+ * (`ClassicyWindowActiveContext` false), hiding a shown one when its window
+ * goes inactive, while an anchor outside any window is unaffected.
+ *
  * ```tsx
  * const ref = useRef<HTMLDivElement>(null);
  * const { handlers, balloon } = useClassicyBalloonHelp(ref, { content: "Hi", position: "top-right" });
@@ -369,6 +414,7 @@ const BalloonTail: FC<{ className: string }> = ({ className }) => (
 export const useClassicyBalloonHelp = (
 	anchorRef: RefObject<HTMLElement | null>,
 	config?: ClassicyIconBalloonHelp,
+	options?: ClassicyBalloonHelpOptions,
 ): {
 	handlers: {
 		onMouseEnter: () => void;
@@ -381,20 +427,32 @@ export const useClassicyBalloonHelp = (
 	const disableBalloonHelp = useAppManager(
 		(s) => s.System.Manager.Desktop.disableBalloonHelp,
 	);
-	const atPointer =
-		useClassicyAppearanceLayout().balloonHelp?.placement === "pointer";
+	const tipLayout = useClassicyAppearanceLayout().balloonHelp;
+	const atPointer = tipLayout?.placement === "pointer";
+	// A tooltip shows whatever the global toggle says (`options.force`).
+	const hiddenByToggle = disableBalloonHelp && options?.force !== true;
+	// An element in an inactive window shows no tip under the package's
+	// `activeWindowOnly`; one outside any window (the context's `undefined`)
+	// is unaffected.
+	const windowActive = useContext(ClassicyWindowActiveContext);
+	const inactiveWindow =
+		tipLayout?.activeWindowOnly === true && windowActive === false;
+	const hideOnPress = atPointer || tipLayout?.hideOnPress === true;
+	const autoPopMs = tipLayout?.autoPopMs;
+	const reshowMs = tipLayout?.reshowMs;
 	// The balloon is the tooltip (#310); the target points at it while shown.
 	const balloonId = useId();
 	const [visible, setVisible] = useState(false);
 	const [rect, setRect] = useState<DOMRect | null>(null);
 	const [controlSize, setControlSize] = useState(0);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const popTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	// Null until the balloon has been measured; the preferred position stands in
 	// for that first layout pass.
 	const [placed, setPlaced] = useState<ClassicyBalloonPosition | null>(null);
 
-	const delay = config?.delay ?? 600;
+	const delay = config?.delay ?? tipLayout?.delayMs ?? 600;
 	const position = config?.position ?? "top-left";
 
 	// Pointer placement: where the tip opens (the pointer's last position when
@@ -403,17 +461,26 @@ export const useClassicyBalloonHelp = (
 	const [pointerFix, setPointerFix] =
 		useState<ClassicyBalloonPointerPlacement | null>(null);
 	// The pointer's last position over the anchor, whether it is over the
-	// anchor at all, and whether a press there has hidden the tip until it
-	// leaves; read by the anchor's own listeners, which outlive a render.
+	// anchor at all, and whether a press there (or the auto-pop) has hidden
+	// the tip until it leaves; read by the anchor's own listeners, which
+	// outlive a render.
 	const lastPointRef = useRef<ClassicyBalloonPoint | null>(null);
 	const hoveringRef = useRef(false);
 	const pressedRef = useRef(false);
 	const visibleRef = useRef(false);
 	visibleRef.current = visible;
+	// The tip is on the page (shown, not held back by the toggle or an
+	// inactive window): its pointer leaving stamps `lastShownTipLeftAt`,
+	// under a package with a reshow time.
+	const shownRef = useRef(false);
+	// This visit's wait: the delay, or the reshow time when the pointer came
+	// straight from another shown tip; restarts within the visit keep it.
+	const waitRef = useRef(delay);
 	// The newest start, so a listener added once restarts the current wait.
 	const startRef = useRef<() => void>(() => {});
 
 	const start = () => {
+		if (inactiveWindow) return;
 		if (atPointer && timerRef.current !== null) clearTimeout(timerRef.current);
 		timerRef.current = setTimeout(() => {
 			if (anchorRef.current) {
@@ -432,70 +499,128 @@ export const useClassicyBalloonHelp = (
 				setPointerFix(null);
 			}
 			setVisible(true);
-		}, delay);
+		}, waitRef.current);
 	};
 	startRef.current = start;
 
 	const show = (event?: { clientX: number; clientY: number }) => {
-		if (atPointer) {
-			hoveringRef.current = true;
-			pressedRef.current = false;
-			if (event && typeof event.clientX === "number")
-				lastPointRef.current = { x: event.clientX, y: event.clientY };
-		}
+		hoveringRef.current = true;
+		pressedRef.current = false;
+		const sinceLastTip = Date.now() - lastShownTipLeftAt;
+		waitRef.current =
+			reshowMs !== undefined && sinceLastTip >= 0 && sinceLastTip <= reshowMs
+				? reshowMs
+				: delay;
+		if (atPointer && event && typeof event.clientX === "number")
+			lastPointRef.current = { x: event.clientX, y: event.clientY };
 		start();
+	};
+
+	const clearPop = () => {
+		if (popTimerRef.current !== null) clearTimeout(popTimerRef.current);
+		popTimerRef.current = null;
 	};
 
 	const hide = () => {
 		if (timerRef.current !== null) clearTimeout(timerRef.current);
+		clearPop();
+		if (shownRef.current && reshowMs !== undefined)
+			lastShownTipLeftAt = Date.now();
 		setVisible(false);
 		setRect(null);
 		setPlaced(null);
+		hoveringRef.current = false;
+		pressedRef.current = false;
 		if (atPointer) {
 			timerRef.current = null;
-			hoveringRef.current = false;
-			pressedRef.current = false;
 			setPoint(null);
 			setPointerFix(null);
 		}
 	};
 
-	// Pointer placement follows the pointer over the anchor and hides on a
-	// press, through listeners on the anchor element itself (the caller's own
-	// handlers stay its own). A move restarts the wait while no tip shows, as
-	// a ToolTip waits for the pointer to rest; a shown tip stays where it
+	// Hide the tip, or cancel its wait, until the pointer leaves: a press
+	// under `hideOnPress` (or at the pointer), and the auto-pop.
+	const holdOffRef = useRef<() => void>(() => {});
+	holdOffRef.current = () => {
+		pressedRef.current = true;
+		if (timerRef.current !== null) clearTimeout(timerRef.current);
+		timerRef.current = null;
+		clearPop();
+		setVisible(false);
+		setPoint(null);
+		setPointerFix(null);
+	};
+
+	// The auto-pop (`autoPopMs`): armed when the tip shows, restarted by each
+	// pointer move over the anchor while it shows (the listeners below).
+	const armPopRef = useRef<() => void>(() => {});
+	armPopRef.current = () => {
+		clearPop();
+		if (autoPopMs === undefined) return;
+		popTimerRef.current = setTimeout(() => {
+			popTimerRef.current = null;
+			holdOffRef.current();
+		}, autoPopMs);
+	};
+	useEffect(() => {
+		if (!visible || autoPopMs === undefined) return;
+		armPopRef.current();
+		return () => {
+			if (popTimerRef.current !== null) clearTimeout(popTimerRef.current);
+			popTimerRef.current = null;
+		};
+	}, [visible, autoPopMs]);
+
+	// An inactive window (`activeWindowOnly`) takes its shown tip away, and
+	// any wait; the pointer's next arrival, once it is active, starts again.
+	useEffect(() => {
+		if (!inactiveWindow) return;
+		if (timerRef.current !== null) clearTimeout(timerRef.current);
+		timerRef.current = null;
+		setVisible(false);
+		setPoint(null);
+		setPointerFix(null);
+	}, [inactiveWindow]);
+
+	// The pointer over the anchor and a press there, through listeners on
+	// the anchor element itself (the caller's own handlers stay its own).
+	// Pointer placement: a move restarts the wait while no tip shows, as a
+	// ToolTip waits for the pointer to rest; a shown tip stays where it
 	// opened. A press hides the tip, or cancels the wait, until the pointer
 	// leaves (WIG Ch.7 "Tooltip Controls", p.133: removed "when the user
-	// clicks the control").
-	const listening = atPointer && !!config && !disableBalloonHelp;
+	// clicks the control"), at the pointer or under `hideOnPress`; a move
+	// while a tip shows restarts its auto-pop.
+	const listening =
+		(hideOnPress || autoPopMs !== undefined) && !!config && !hiddenByToggle;
 	useEffect(() => {
 		const anchor = anchorRef.current;
 		if (!listening || !anchor) return;
 		const onMove = (e: MouseEvent) => {
 			lastPointRef.current = { x: e.clientX, y: e.clientY };
-			if (!hoveringRef.current || pressedRef.current || visibleRef.current)
+			if (visibleRef.current) {
+				if (popTimerRef.current !== null) armPopRef.current();
 				return;
+			}
+			if (!atPointer || !hoveringRef.current || pressedRef.current) return;
 			startRef.current();
 		};
 		const onDown = () => {
-			pressedRef.current = true;
-			if (timerRef.current !== null) clearTimeout(timerRef.current);
-			timerRef.current = null;
-			setVisible(false);
-			setPoint(null);
-			setPointerFix(null);
+			if (hideOnPress) holdOffRef.current();
 		};
 		anchor.addEventListener("mousemove", onMove);
+		anchor.addEventListener("pointerdown", onDown);
 		anchor.addEventListener("mousedown", onDown);
 		return () => {
 			anchor.removeEventListener("mousemove", onMove);
+			anchor.removeEventListener("pointerdown", onDown);
 			anchor.removeEventListener("mousedown", onDown);
 		};
-	}, [listening, anchorRef]);
+	}, [listening, anchorRef, atPointer, hideOnPress]);
 
 	useEffect(
 		() => () => {
 			if (timerRef.current !== null) clearTimeout(timerRef.current);
+			if (popTimerRef.current !== null) clearTimeout(popTimerRef.current);
 		},
 		[],
 	);
@@ -546,7 +671,12 @@ export const useClassicyBalloonHelp = (
 
 	const pointerSide = pointerFix?.side ?? "below";
 	const balloon =
-		!config || disableBalloonHelp || !visible || !rect || (atPointer && !point)
+		!config ||
+		hiddenByToggle ||
+		inactiveWindow ||
+		!visible ||
+		!rect ||
+		(atPointer && !point)
 			? null
 			: createPortal(
 					<div
@@ -580,6 +710,7 @@ export const useClassicyBalloonHelp = (
 					</div>,
 					document.getElementById("classicyDesktop") ?? document.body,
 				);
+	shownRef.current = balloon !== null;
 
 	return {
 		handlers: {

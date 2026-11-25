@@ -12,10 +12,13 @@ import {
 	UndoRedo,
 } from "@mdxeditor/editor";
 import classNames from "classnames";
-import type {
-	CSSProperties,
-	FC as FunctionalComponent,
-	RefObject,
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	type RefObject,
+	useLayoutEffect,
+	useRef,
+	useState,
 } from "react";
 import { useClassicyTextFieldContextMenu } from "@/SystemFolder/SystemResources/App/ClassicyTextFieldMenu.internal";
 
@@ -122,6 +125,14 @@ const editableOf = (target: EventTarget, root: HTMLElement): Element | null => {
  * Copy, Paste, Delete, Select All) instead of the window's; the toolbar
  * keeps the window's.
  *
+ * The toolbar buttons' tooltips (MDXEditor's, Radix tooltips) open in the
+ * desktop the editor is in: in a `classicyRichTextEditorPopups` element the
+ * editor appends to its root's `.classicyDesktop` (`document.body` outside
+ * one) and passes as MDXEditor's `overlayContainer`, so the active
+ * Appearance Package draws them (`.classicyRichTextEditorPopups
+ * [data-radix-popper-content-wrapper] > *`): Platinum's and System 7's help
+ * balloon, Windows 98's ToolTip (WIG Ch.12 "Tooltips", p.276, Figure 12.6).
+ *
  * ```tsx
  * <ClassicyRichTextEditor content={"# Notes"} onChangeFunc={setMarkdown} />
  * ```
@@ -130,9 +141,28 @@ export const ClassicyRichTextEditor: FunctionalComponent<
 	ClassicyRichTextEditorProps
 > = ({ content, editorRef, onChangeFunc, className, style }) => {
 	const textMenu = useClassicyTextFieldContextMenu(editableOf);
+	// Where MDXEditor puts its pop-ups (the toolbar's tooltips): one element
+	// for the editor's life, so MDXEditor appends its popup container to it
+	// once, from its first effect, and its tooltips never portal into a
+	// container it has dropped. Made before the first render, it joins the
+	// desktop the editor is in once the editor's root is in the document.
+	const rootRef = useRef<HTMLDivElement>(null);
+	const [popups] = useState(() => {
+		if (typeof document === "undefined") return undefined;
+		const element = document.createElement("div");
+		element.className = "classicyRichTextEditorPopups";
+		return element;
+	});
+	useLayoutEffect(() => {
+		if (!popups) return;
+		const desktop = rootRef.current?.closest(".classicyDesktop");
+		(desktop ?? document.body).appendChild(popups);
+		return () => popups.remove();
+	}, [popups]);
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: the right-click belongs to the content editable inside, which the handler finds
 		<div
+			ref={rootRef}
 			className={classNames("classicyRichTextEditor", className)}
 			style={style}
 			onMouseDown={textMenu?.onMouseDown}
@@ -144,6 +174,7 @@ export const ClassicyRichTextEditor: FunctionalComponent<
 				contentEditableClassName="prose"
 				plugins={editorPlugins}
 				onChange={onChangeFunc}
+				overlayContainer={popups}
 			/>
 		</div>
 	);

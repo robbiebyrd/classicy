@@ -42,6 +42,7 @@
 @use "components/SplitView";
 @use "components/WindowFrame";
 @use "components/AppearanceManager";
+@use "components/BalloonHelp";
 @use "screenSavers";
 
 @include package.classicy-package("platinum") {
@@ -86,6 +87,10 @@
   @include SplitView.splitView;
   @include WindowFrame.windowFrame;
   @include AppearanceManager.appearanceManager;
+  // Out of bundle order, last: the help balloon of surfaces the core's
+  // balloon does not draw (the rich text editor's toolbar tips), matched by
+  // no other partial's rule.
+  @include BalloonHelp.balloonHelp;
   // The screen savers (plan 0016-vbq §2.1): in the package layer, but at its
   // root, outside the package scope, keyed on their own classes (see
   // _screenSavers.scss).

@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 
 // MDXEditor does not run under jsdom: a stand-in draws a toolbar and the
-// content editable the editor's text is.
+// content editable the editor's text is, and keeps each `overlayContainer`
+// it is given.
+const overlays = vi.hoisted(() => [] as (HTMLElement | undefined)[]);
 vi.mock("@mdxeditor/editor", () => {
 	const plugin = () => ({});
 	const Nothing = () => null;
@@ -18,21 +20,30 @@ vi.mock("@mdxeditor/editor", () => {
 		CodeToggle: Nothing,
 		InsertThematicBreak: Nothing,
 		UndoRedo: Nothing,
-		MDXEditor: ({ markdown }: { markdown: string }) => (
-			<div>
-				<div role="toolbar">
-					<button type="button">Bold</button>
+		MDXEditor: ({
+			markdown,
+			overlayContainer,
+		}: {
+			markdown: string;
+			overlayContainer?: HTMLElement;
+		}) => {
+			overlays.push(overlayContainer);
+			return (
+				<div>
+					<div role="toolbar">
+						<button type="button">Bold</button>
+					</div>
+					<div
+						data-testid="text"
+						contentEditable
+						suppressContentEditableWarning
+						className="prose"
+					>
+						{markdown}
+					</div>
 				</div>
-				<div
-					data-testid="text"
-					contentEditable
-					suppressContentEditableWarning
-					className="prose"
-				>
-					{markdown}
-				</div>
-			</div>
-		),
+			);
+		},
 	};
 });
 vi.mock(
@@ -95,5 +106,54 @@ describe("ClassicyRichTextEditor under textField.contextMenu", () => {
 		expect(fireEvent.mouseDown(text, { button: 2 })).toBe(true);
 		expect(fireEvent.contextMenu(text, { clientX: 5, clientY: 5 })).toBe(true);
 		expect(document.getElementById("classicy-text-field-copy")).toBeNull();
+	});
+});
+
+// The toolbar's tooltips (MDXEditor's Radix tooltips) open in the desktop
+// the editor is in, where the active package draws them (the WIG audit's
+// 12.10; WIG Ch.12 "Tooltips", p.276): one `classicyRichTextEditorPopups`
+// element for the editor's life, appended to its root's `.classicyDesktop`
+// (`document.body` outside one) and passed as MDXEditor's
+// `overlayContainer` from the first render, whichever package draws the
+// desktop.
+describe("ClassicyRichTextEditor's pop-ups", () => {
+	beforeEach(() => {
+		overlays.length = 0;
+	});
+
+	it.each([
+		"platinum",
+		"system7",
+		"windows98",
+	])("opens them in the desktop it is in under %s", (id) => {
+		const { rerender, unmount } = render(
+			<div className="classicyDesktop" data-classicy-appearance={id}>
+				<ClassicyRichTextEditor content="hello" />
+			</div>,
+		);
+		const desktop = document.querySelector(".classicyDesktop");
+		const popups = desktop?.querySelector(
+			":scope > .classicyRichTextEditorPopups",
+		);
+		expect(popups).not.toBeNull();
+		expect(overlays.length).toBeGreaterThan(0);
+		expect(new Set(overlays)).toEqual(new Set([popups]));
+		rerender(
+			<div className="classicyDesktop" data-classicy-appearance={id}>
+				<ClassicyRichTextEditor content="hello again" />
+			</div>,
+		);
+		expect(new Set(overlays)).toEqual(new Set([popups]));
+		unmount();
+		expect(popups?.isConnected).toBe(false);
+	});
+
+	it("opens them in the document's body outside a desktop", () => {
+		const { unmount } = render(<ClassicyRichTextEditor content="hello" />);
+		const popups = overlays[0];
+		expect(popups).toHaveClass("classicyRichTextEditorPopups");
+		expect(popups?.parentElement).toBe(document.body);
+		unmount();
+		expect(popups?.isConnected).toBe(false);
 	});
 });

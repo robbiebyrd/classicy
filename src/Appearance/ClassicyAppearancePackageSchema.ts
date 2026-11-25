@@ -52,6 +52,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			accessKeys: z.enum(["explicit", "auto"]).optional(),
 			shortcutSpelling: z.enum(["glyphs", "names"]).optional(),
 			emptySubmenus: z.enum(["leaf", "placeholder"]).optional(),
+			itemHelp: z.enum(["balloon", "statusBar"]).optional(),
 		})
 		.optional(),
 	desktop: z.object({
@@ -131,6 +132,13 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			placement: z.enum(["anchor", "pointer"]).optional(),
 			contextHelp: z.enum(["whatsThis"]).optional(),
+			unlabeledTips: z.boolean().optional(),
+			// A minute is the longest a ToolTip waits or stays.
+			delayMs: z.number().int().min(0).max(60_000).optional(),
+			autoPopMs: z.number().int().min(1).max(60_000).optional(),
+			reshowMs: z.number().int().min(0).max(60_000).optional(),
+			hideOnPress: z.boolean().optional(),
+			activeWindowOnly: z.boolean().optional(),
 		})
 		.optional(),
 	text: z

@@ -37,6 +37,7 @@
 			"classicyPixelm",
 			"classicyPixeln"
 		],
+		"RichTextEditor": ["classicyRichTextEditorPopups"],
 		"Tabs": [
 			"classicyTabActiveContent",
 			"classicyTabButton",
