@@ -261,6 +261,9 @@
 				"rate": 60,
 				"width": 2,
 				"tileSize": 2
+			},
+			"applicationSwitcher": {
+				"namedButtonWidth": 150
 			}
 		},
 		"desktop": {

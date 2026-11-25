@@ -426,6 +426,9 @@ describe("the Application Switcher", () => {
 			expect(classicyCssLengthPx("min(100%, 200px)", 300)).toBe(200);
 			expect(classicyCssLengthPx("max(50%, 200px, 10px)", 300)).toBe(200);
 			expect(classicyCssLengthPx("clamp(10px, 50%, 100px)", 300)).toBe(100);
+			// A minimum above the maximum wins, as CSS has it (review G round 3,
+			// F12): a browser keeps this clamp as written in a computed value.
+			expect(classicyCssLengthPx("clamp(200px, 50%, 100px)", 300)).toBe(200);
 			expect(classicyCssLengthPx("calc(min(100%, 500px) - 54px)", 300)).toBe(
 				246,
 			);
@@ -442,6 +445,9 @@ describe("the Application Switcher", () => {
 				"clamp(1px, 2px)",
 				"calc(1px, 2px)",
 				"100% - 54px)",
+				// Units it cannot read, never their number alone (F12).
+				"10em",
+				"calc(100% - 2vh)",
 			])
 				expect(classicyCssLengthPx(none, 300)).toBeUndefined();
 		});
@@ -474,6 +480,9 @@ describe("the Application Switcher", () => {
 			let desktopReads = 0;
 			// How often the palette's own box was read: each count does once.
 			let paletteReads = 0;
+			// While set, each box read, and each copy's insertion and removal,
+			// in order (review G round 3, F12).
+			let readLog: string[] | null = null;
 			// Each hidden copy of the list a measure placed beside it, as it was
 			// while in the document.
 			type Copy = {
@@ -537,6 +546,7 @@ describe("the Application Switcher", () => {
 				naturalWidths = {};
 				desktopReads = 0;
 				paletteReads = 0;
+				readLog = null;
 				copies = [];
 				computedStyles = () => ({});
 				observed.length = 0;
@@ -550,7 +560,8 @@ describe("the Application Switcher", () => {
 						if (
 							node instanceof HTMLElement &&
 							node.classList.contains("classicyApplicationSwitcherButtons")
-						)
+						) {
+							readLog?.push("insert");
 							copies.push({
 								className: node.className,
 								lines: node.style.getPropertyValue(
@@ -570,6 +581,15 @@ describe("the Application Switcher", () => {
 								).length,
 								ids: node.querySelectorAll("[id]").length + (node.id ? 1 : 0),
 							});
+						}
+				});
+				const removeNode = Element.prototype.remove;
+				vi.spyOn(Element.prototype, "remove").mockImplementation(function (
+					this: Element,
+				) {
+					if (this.classList.contains("classicyApplicationSwitcherButtons"))
+						readLog?.push("remove");
+					removeNode.call(this);
 				});
 				const computed = window.getComputedStyle.bind(window);
 				const camel = (property: string) =>
@@ -639,6 +659,7 @@ describe("the Application Switcher", () => {
 				const original = Element.prototype.getBoundingClientRect;
 				vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
 					function (this: Element) {
+						readLog?.push("read");
 						if (this.id === "classicy-floating-layer") {
 							desktopReads++;
 							return rect(0, 0, desktopWidth, desktopHeight);
@@ -1187,6 +1208,90 @@ describe("the Application Switcher", () => {
 				expect(
 					document.querySelectorAll(".classicyApplicationSwitcherButtons"),
 				).toHaveLength(1);
+			});
+
+			// Review G round 3, F12: a count that builds the copy reads the
+			// document once, every box while the copy is in it, so no read
+			// follows its removal (which would lay the page out again from
+			// script). Each observer notification is its own segment, which
+			// first reads the buttons' boxes, as the browser laid them out
+			// before it notified, to tell whether to count at all.
+			it("reads every box of a count while its copy is in the document", () => {
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				// Taller buttons (a metric edit, a late font): read and counted.
+				buttonHeight = 40;
+				const log: string[] = [];
+				readLog = log;
+				act(() => {
+					for (const o of observed.filter((o) => isButton(o.target))) {
+						log.push("notified");
+						o.run();
+					}
+				});
+				readLog = null;
+				const segments = log
+					.join(" ")
+					.split("notified")
+					.map((segment) => segment.trim().split(" ").filter(Boolean));
+				const counted = segments.filter((segment) =>
+					segment.includes("insert"),
+				);
+				expect(counted).toHaveLength(1);
+				const [count] = counted;
+				const inserted = count.indexOf("insert");
+				// The three buttons' boxes, then the copy goes in.
+				expect(count.slice(0, inserted)).toEqual(["read", "read", "read"]);
+				// The count's reads, then the copy comes out, and nothing after.
+				expect(count.slice(inserted + 1, -1).length).toBeGreaterThan(3);
+				expect(count.slice(inserted + 1, -1).every((e) => e === "read")).toBe(
+					true,
+				);
+				expect(count.at(-1)).toBe("remove");
+				// Three 40-pixel buttons still fit the desktop's column.
+				expect(lines()).toBe("");
+			});
+
+			// Review G round 3, F9: an application swapped for another of the
+			// same name (one quits and the other opens in one commit) replaces
+			// its button, keyed by the application's id. The count follows the
+			// new buttons and watches them, never the button that is gone, whose
+			// box is empty: the frame above the buttons would drop out of the
+			// count, and a column the desktop cannot hold would not wrap.
+			it("counts and watches the buttons that are there after an application is swapped for one of the same name", () => {
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON * 3 - 1;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 200]);
+				expect(lines()).toBe("2");
+				const calc = button("Calc");
+				act(() => {
+					useAppManager.setState((state) =>
+						produce(state, (d) => {
+							const running = d.System.Manager.Applications.apps;
+							delete running["Calc.app"];
+							running["Calc2.app"] = app("Calc2.app", {
+								name: "Calc",
+								lastFocusedAt: 2,
+								hidden: true,
+							});
+						}),
+					);
+				});
+				expect(button("Calc")).not.toBe(calc);
+				const watched = () =>
+					observed.filter((o) => isButton(o.target)).map((o) => o.target);
+				expect(watched().every((b) => b.isConnected)).toBe(true);
+				expect(new Set(watched())).toEqual(new Set(buttons()));
+				// Room for two: still two a column.
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON * 2;
+				resize(isLayer);
+				expect(lines()).toBe("2");
+				// Taller buttons: the new one is watched, and counted.
+				buttonHeight = 40;
+				resize(isButton);
+				expect(lines()).toBe("1");
 			});
 		});
 

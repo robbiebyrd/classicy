@@ -89,8 +89,10 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // families and 107 keys; story 0228-e9l's selection rectangle, the
 // selectionMarquee family's pen and checker, made 26 families and 109 keys;
 // story 0230-n6c's zoom rectangles, the zoomRects family's six path and
-// pace knobs and its pen and checker, made 27 families and 117 keys).
-const PLATINUM_KNOB_COUNT = 117;
+// pace knobs and its pen and checker, made 27 families and 117 keys; the
+// Application Switcher palette's named buttons' least width, Mac OS 8.5's
+// 150, made 28 families and 118 keys, integration review G round 3, F5).
+const PLATINUM_KNOB_COUNT = 118;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

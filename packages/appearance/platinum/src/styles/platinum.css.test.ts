@@ -1455,6 +1455,51 @@ describe("platinum.scss (compiled)", () => {
 		);
 	});
 
+	// Integration review G round 3, F4: 8.5's icon is 4 pixels in from the
+	// button's edge on every side (`platinum-85-switcher-no-names.png`: a
+	// 24 x 24 button, the icon at 4, 4; `-large-icons.png`: 40 x 40), and the
+	// name's box 23 pixels in, its first ink at 24 (`-palette.png`).
+	it("pads the palette's buttons 4 pixels on every side, the name 23 pixels in", () => {
+		const palette = `${P} .classicyWindow.classicyWindowUtility.classicyApplicationSwitcherPalette`;
+		const button = `${palette} .classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton`;
+		expect(rule(button).props.padding).toBe("var(--control-padding-loose)");
+		expect(rule(`${button} .classicyBevelButtonLabel`).props.gap).toBe(
+			"calc(var(--control-padding-loose) - var(--window-border-size))",
+		);
+	});
+
+	// Integration review G round 3, F5: 8.5's palette with names is 158
+	// pixels wide whatever the names (150-pixel buttons, in every capture
+	// with names), so a named button is never narrower; the knob is Platinum's.
+	it("draws named buttons at least 8.5's 150 pixels wide, none without names", () => {
+		const palette = `${P} .classicyWindow.classicyWindowUtility.classicyApplicationSwitcherPalette`;
+		const named = rule(
+			`${palette}:not(.classicyApplicationSwitcherNoNames) .classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton`,
+		).props;
+		expect(named["min-width"]).toBe(
+			"var(--application-switcher-named-button-width)",
+		);
+		expect(named["box-sizing"]).toBe("border-box");
+		expect(
+			JSON.parse(readPlatinum("platinum.json")).defaults.measurements
+				.applicationSwitcher,
+		).toEqual({ namedButtonWidth: 150 });
+	});
+
+	// Integration review G round 3, F2: down a column the palette collapses
+	// to its bar; across, the base sheet keeps its height and shows its side
+	// bar alone, so this rule must not reach a horizontal palette.
+	it("collapses only a vertical palette to its bar", () => {
+		const palette = `${P} .classicyWindow.classicyWindowUtility.classicyApplicationSwitcherPalette`;
+		expect(
+			rule(`${palette}.collapsed:not(.classicyApplicationSwitcherHorizontal)`)
+				.props.height,
+		).toBe(
+			"calc(var(--window-utility-title-bar-height) + var(--window-border-size) + var(--window-border-size))",
+		);
+		expect(() => rule(`${palette}.collapsed`)).toThrow();
+	});
+
 	// The inactive window's scroll-bar rules targeted the window root, which
 	// never scrolls (its contents do), and tied the desktop's `& *` rules and
 	// lost on order anyway: dead, so removed (0082-lgo d). Nothing styles the

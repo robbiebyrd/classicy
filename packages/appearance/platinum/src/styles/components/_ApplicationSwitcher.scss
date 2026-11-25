@@ -17,11 +17,13 @@
 //   a #CCCCCC face inside two bevels (#666666 / #333333 outside, white /
 //   #888888 inside), the held one (the front application's, or one the
 //   mouse is pressing) #888888 inside #111111 / #444444 and #555555 /
-//   #AAAAAA; the icon 4 pixels in from the inner bevel and 2 down, the name
-//   just after it;
+//   #AAAAAA; the icon 4 pixels in from the button's edge on every side (2
+//   inside its inner bevel), the name's first ink 24 pixels in; with names
+//   a button 150 pixels wide at the least;
 // - down the side (horizontal): the bar 12 columns wide, the close box at
 //   its top, the zoom and collapse boxes at its bottom, the dots between;
-// - collapsed: the frame around the bar.
+// - collapsed: the frame around the bar (down the side, the bar the
+//   palette's height, its three boxes kept).
 //
 // 8.5's grays between Platinum's seven are the theme's black mixed toward
 // its white (`classicy-tint`): exact under Platinum, and they follow an
@@ -172,7 +174,9 @@ $palette: ".classicyWindow.classicyWindowUtility.classicyApplicationSwitcherPale
     // rules (three classes).
     .classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton {
       margin: 0;
-      padding: var(--control-padding-loose) var(--window-padding-size);
+      // The icon 4 pixels in from the button's edge on every side: 24 x 24
+      // with a small icon and 40 x 40 with a large one, without names.
+      padding: var(--control-padding-loose);
       color: var(--color-black);
       background-color: var(--color-system-03);
       border: 0;
@@ -191,9 +195,20 @@ $palette: ".classicyWindow.classicyWindowUtility.classicyApplicationSwitcherPale
           inset calc(#{$bevel} * -1) calc(#{$bevel} * -1) 0 0 var(--color-system-04);
       }
 
+      // The name's box 23 pixels in from the button's edge, its first ink a
+      // pixel further (Geneva's side bearing), at 8.5's column 24.
       .classicyBevelButtonLabel {
-        gap: $px;
+        gap: calc(var(--control-padding-loose) - #{$px});
       }
+    }
+
+    // With names, a button is at least 8.5's 150 pixels wide, whatever the
+    // names (158-pixel palettes in `platinum-85-switcher-palette.png`,
+    // `-notification.png`, `-modal.png` and `-click.png`, whose longest name
+    // is "Stickies"); a longer name than it holds widens it.
+    &:not(.classicyApplicationSwitcherNoNames) .classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton {
+      box-sizing: border-box;
+      min-width: var(--application-switcher-named-button-width);
     }
 
     // The name's line is the small icon's height, a row up: its letters
@@ -209,7 +224,9 @@ $palette: ".classicyWindow.classicyWindowUtility.classicyApplicationSwitcherPale
       background: none;
     }
 
-    &.collapsed {
+    // Down a column it collapses to its bar; across, the base sheet keeps its
+    // height and shows the bar down its side alone.
+    &.collapsed:not(.classicyApplicationSwitcherHorizontal) {
       height: $bar;
     }
   }

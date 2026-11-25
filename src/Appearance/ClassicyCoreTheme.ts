@@ -25,7 +25,7 @@ const deepFreeze = <T>(value: T): Readonly<T> => {
  * The measurements every theme is completed with, whatever its package
  * (`classicyThemeMeasurementDefaults` merges the registered package's own
  * values over these): the core five families (`CLASSICY_DEFAULT_THEME_METRICS`)
- * and every structural knob ("Structural: yes", AGENT-REFERENCE §8), the 114
+ * and every structural knob ("Structural: yes", AGENT-REFERENCE §8), the 115
  * knobs a base stylesheet (`classicy.base`), component code (the `zoomRects`
  * path and pace) or the SCSS vocabulary (`dither.tileSize`) reads, and those
  * Platinum's own partials read without a fallback: `ChangeTheme` may draw
@@ -33,7 +33,8 @@ const deepFreeze = <T>(value: T): Readonly<T> => {
  * variables (story 0225-ci7: the menu marks' grid, the checkbox's, the
  * slider, the menu frame, the scroll-bar grip, the windoid texture, the
  * Control Strip's bevel and the QuickTime caption's shadow; stories 0228-e9l
- * and 0230-n6c: the selection and zoom rectangles' pens and checkers; since
+ * and 0230-n6c: the selection and zoom rectangles' pens and checkers; the
+ * Application Switcher palette's named buttons' least width; since
  * story 0235-xgi such a theme is also completed from the drawing package's
  * own defaults, `classicyDrawnThemeMeasurements`, and they stay here so no
  * theme's variables change). Only
@@ -217,6 +218,10 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 			width: 2,
 			tileSize: 2,
 		},
+		// The Application Switcher palette's named buttons' least width,
+		// Mac OS 8.5's 150 (Platinum's _ApplicationSwitcher.scss), on the floor
+		// for 0225-ci7's reason (integration review G round 3, F5).
+		applicationSwitcher: { namedButtonWidth: 150 },
 	});
 
 /**

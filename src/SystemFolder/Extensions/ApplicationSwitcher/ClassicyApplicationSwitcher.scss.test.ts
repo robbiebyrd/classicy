@@ -94,4 +94,19 @@ describe("the Application Switcher's stylesheet", () => {
 		expect(across.flex).toBe("none");
 		expect(across.height).toBeUndefined();
 	});
+
+	// Integration review G round 3, F2: collapsed across, the palette took a
+	// utility window's collapsed height, a bar across the top, which cut off
+	// the zoom and collapse boxes at its side bar's bottom: it could not be
+	// expanded from them. It keeps its height and shows its side bar alone.
+	it("keeps a collapsed horizontal palette's height and shows its side bar alone", () => {
+		const collapsed = declarations(
+			".classicyWindow.classicyWindowUtility.classicyApplicationSwitcherHorizontal.collapsed",
+		);
+		expect(collapsed.height).toBe("auto");
+		const contents = declarations(
+			".classicyWindow.classicyWindowUtility.classicyApplicationSwitcherHorizontal.collapsed > .classicyWindowContents",
+		);
+		expect(contents["max-width"]).toBe("0");
+	});
 });

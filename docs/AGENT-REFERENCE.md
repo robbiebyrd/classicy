@@ -2344,20 +2344,34 @@ a font that loads late; the copy is built only when a button's box is no
 longer what it was when the sizes were last read, and a resize the wrap
 alone caused counts nothing),
 when the theme changes (the frame and the menu bar's height) and when its
-buttons, options or collapse state change, never on a move, so a palette
+buttons (each keyed by its application's id, so another application of the
+same name is another button, counted and watched), options or collapse
+state change, never on a move, so a palette
 dragged partly past an edge keeps its
 shape and clips like any window. Across (horizontal), the window's contents
 lay the list out as a stretched flex item, so the list's whole box, a
 package's margin and border around the buttons included, fits the height
 the drag bar gives the window (Platinum's well closes at the bottom, as
-8.5's does). `node bin/check-app-switcher-palette.ts --port <n> [--browser
-chromium|firefox]` checks all of it in a browser, in a served static
-Storybook's `ManyApplications` story (jsdom lays nothing out: the unit tests
-run on a layout model): down a column and across a row, with large and small
-icons, on desktops of several sizes, the palette settles, the window cuts no
-button and no part of the list, the count is the most the desktop holds, and
-the copy it read was hidden, unwrapped and as large as each button alone;
-under System 7 no palette is drawn. Firefox needs a Playwright that has it
+8.5's does). Collapsed across, it keeps its height and shows its drag bar
+alone, down its side, so its close, zoom and collapse boxes stay in reach
+(the base sheet: the hidden contents keep their height and give the window
+no width; a utility window's collapsed height, a bar across the top, cut
+off the zoom and collapse boxes there); down a column it collapses to its
+bar, as 8.5's does (`platinum-85-switcher-collapsed.png`).
+`node bin/check-app-switcher-palette.ts --port <n> [--browser
+chromium|firefox]` checks it in a browser, in a served static Storybook's
+`ManyApplications` story (jsdom lays nothing out: the unit tests run on a
+layout model): down a column with large and small icons, and across a row
+with large and small icons, on desktops of several sizes, and after a
+reload with a wrapped column, the palette settles, the window cuts no
+button and no part of the list, the count is the most the desktop holds,
+the copy it read was hidden and unwrapped, and each copy's size along the
+line was that button's laid out alone; across, the list with its margin
+fills the window's contents from top to bottom; after the reload it is
+counted, and counted again on a resize; collapsed across, its three boxes
+lie inside it and are what a click there hits, and a click on the collapse
+box expands it with its list where it was; in the `Palette` story the
+palette with names is 158 pixels wide; under System 7 no palette is drawn. Firefox needs a Playwright that has it
 (`$PARITY_PLAYWRIGHT`). 8.5's palette with more applications than
 its screen holds was not observed (the emulator hung while they were
 launched); Classicy wraps only a line the desktop cannot hold at all. Like 8.5's, the switcher shows no icon in the startup
@@ -2375,7 +2389,14 @@ against its ends, three rows of raised dots on a 3 x 3 grid (white, then
 #777777 down and right) broken by the title in the small UI font, bold,
 centered on the window (no dots in the narrow palette); a sunken well
 around a black line holding the buttons with no gap, each a #CCCCCC face in
-two one-pixel bevels, the held one #888888; the names in the small UI font
+two one-pixel bevels, the held one #888888, its icon 4 pixels in from its
+edge on every side (`--control-padding-loose`: 24 x 24 and 40 x 40 without
+names, as `-no-names.png` and `-large-icons.png` draw them) and its name's
+box 23 pixels in, its first ink at 8.5's column 24; with names a button is
+at least 150 pixels wide (`applicationSwitcher.namedButtonWidth`, §8, on
+the core floor), so the palette is 8.5's 158 whatever the names
+(`-palette.png`, `-notification.png`, `-modal.png` and `-click.png`), and
+a longer name than it holds widens it; the names in the small UI font
 (the theme's `--ui-font-small`, else the body font) at
 `--ui-font-size-small`, 8 rows tall as 8.5's. 8.5's grays between
 Platinum's seven are the theme's black mixed toward its white.
@@ -6326,7 +6347,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 27 families of its own (117 keys)
+**Package knob families.** Platinum adds 28 families of its own (118 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -6341,7 +6362,7 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 21 families are emitted and editable in
+  groups under Platinum. The other 22 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -6356,19 +6377,21 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 114 of the 117 are
+  overriding the knob's value, never the base CSS. 115 of the 118 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift), the 22 only Platinum's
+  table, so the floor and the column cannot drift), the 23 only Platinum's
   partials read among them (`_ControlStrip.scss`'s bevel, the
   `platinum-menu-frame` and `platinum-scrollbars` mixins'
   `--menu-frame-*` and `--scrollbar-thumb-grip-*`, `_Window.scss`'s windoid
   texture, `_QuickTimeMovieEmbed.scss`'s caption shadow, `_Slider.scss`'s
-  seven, and the selection and zoom rectangles' pens and checkers,
-  `_SelectionMarquee.scss`'s and `_ZoomRects.scss`'s two each): until story
+  seven, the selection and zoom rectangles' pens and checkers,
+  `_SelectionMarquee.scss`'s and `_ZoomRects.scss`'s two each, and
+  `_ApplicationSwitcher.scss`'s named buttons' least width): until story
   0225-ci7 the first 18 were look-only, Platinum's alone, and a theme of
   another package drawn under Platinum emitted none of them; the
-  rectangles' four (stories 0228-e9l and 0230-n6c) are on the floor for the
-  same reason.
+  rectangles' four (stories 0228-e9l and 0230-n6c) and the palette's one
+  (integration review G round 3, F5) are on the floor for the same
+  reason.
   Since story 0235-xgi a theme drawn under another package is completed
   from the drawing package's own defaults ("A theme drawn under another
   package", below), which supplies those knobs whatever the floor holds;
@@ -6589,6 +6612,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `zoomRects.rate` | `--zoom-rects-rate` | 60 | — | yes | ClassicyZoomRects.ts |
 | `zoomRects.width` | `--zoom-rects-width` | 2 | — | yes | _ZoomRects.scss (on the floor for the same reason) |
 | `zoomRects.tileSize` | `--zoom-rects-tile-size` | 2 | — | yes | _ZoomRects.scss |
+| `applicationSwitcher.namedButtonWidth` | `--application-switcher-named-button-width` | 150 | — | yes | _ApplicationSwitcher.scss (the palette's named buttons' least width, Mac OS 8.5's; on the floor for the same reason) |
 
 `formControl.fileInputHiddenSize` is the `formControl` family's first knob.
 The family holds the sizes of form-control parts outside dialogs, which no

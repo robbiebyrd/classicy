@@ -1,10 +1,10 @@
 // Browser check: the Application Switcher's palette counts its lines as the
-// browser lays it out (integration review G round 2, F1 to F4; the unit
-// tests in ClassicyApplicationSwitcher.test.tsx run on a layout model, since
-// jsdom lays nothing out, so a window's computed `max-height`, the size of a
-// button's copy and what the window clips are browser facts). Run it against
-// a served static Storybook build, as the parity tools are
-// (bin/parity/README.md):
+// browser lays it out (integration review G round 2, F1 to F4, and round 3,
+// F2, F5 and F11; the unit tests in ClassicyApplicationSwitcher.test.tsx run
+// on a layout model, since jsdom lays nothing out, so a window's computed
+// `max-height`, the size of a button's copy, what the window clips and what
+// a click hits are browser facts). Run it against a served static Storybook
+// build, as the parity tools are (bin/parity/README.md):
 //
 //   node bin/check-app-switcher-palette.ts --port <n> [--browser chromium|firefox] [storyId]
 //
@@ -12,8 +12,9 @@
 // (eight applications, large icons). `--browser firefox` needs a Playwright
 // with Firefox installed: point `$PARITY_PLAYWRIGHT` at one that has it
 // (bin/parity/parityBrowser.ts). Under Platinum it lays the palette down a
-// column and across a row, with large and small icons, on desktops of
-// several sizes, and at each checks that:
+// column with large and small icons, and across a row with large and small
+// icons, on desktops of several sizes, and reloads the page with a wrapped
+// column; at each it checks that:
 //
 // - the palette settles: one size and one line count over 30 frames, with
 //   no hidden copy of its list built meanwhile;
@@ -25,11 +26,19 @@
 //   window's maximum height), and one more button a line would not;
 // - the copy the count read was hidden, out of the flow and unwrapped, and
 //   each button's copy was as large along the line as that button laid out
-//   alone.
+//   alone (across the line the copies stretch to the largest, as the
+//   palette's own buttons do);
+// - across, the list with its margin fills the window's contents from top
+//   to bottom: the well is stretched to the drag bar's height, not short.
 //
-// Then it drags the wrapped palette partly past the desktop's right edge
-// (its shape must not change), and under System 7 checks that no palette is
-// drawn.
+// After the reload the palette is counted again (the window's record exists
+// a render before the floating layer draws it), and a desktop resize counts
+// it again. Collapsed across, its close, zoom and collapse boxes lie inside
+// it and are what a click there hits; a click on the collapse box expands
+// it, its list where it was. Then it drags the wrapped palette partly past
+// the desktop's right edge (its shape must not change); in the `Palette`
+// story (two short names) the palette with names is Mac OS 8.5's 158 pixels
+// wide; and under System 7 it checks that no palette is drawn.
 //
 // Exit codes: 0 when every check passes, 1 when one fails, 2 on a usage or
 // environment error. Build script, not library code: it reports through
@@ -44,6 +53,7 @@ import {
 import { storyUrl } from "./parity/parityStories.ts";
 
 const DEFAULT_STORY = "desktop-application-switcher--many-applications";
+const NAMED_STORY = "desktop-application-switcher--palette";
 const PALETTE = ".classicyApplicationSwitcherPalette";
 
 const usage = () => {
@@ -141,6 +151,9 @@ type Geometry = {
 	gap: number;
 	/** Each button's size along the line, laid out alone. */
 	alone: number[];
+	/** How far the list's margin box stops short of the window contents'
+	 * content box, above and below (0 when the well is stretched). */
+	wellShort: [number, number];
 	copies: Copy[];
 };
 
@@ -213,6 +226,22 @@ const measure = (page: Page): Promise<Geometry | undefined> =>
 			list.style.getPropertyValue("--application-switcher-lines"),
 			10,
 		);
+		const contents = list.closest<HTMLElement>(".classicyWindowContents");
+		const listBox = list.getBoundingClientRect();
+		let wellShort: [number, number] = [0, 0];
+		if (contents) {
+			const c = contents.getBoundingClientRect();
+			const cs = getComputedStyle(contents);
+			wellShort = [
+				listBox.top -
+					px(listStyle.marginTop) -
+					(c.top + px(cs.borderTopWidth) + px(cs.paddingTop)),
+				c.bottom -
+					px(cs.borderBottomWidth) -
+					px(cs.paddingBottom) -
+					(listBox.bottom + px(listStyle.marginBottom)),
+			];
+		}
 		return {
 			horizontal,
 			along: horizontal ? box.width : box.height,
@@ -233,6 +262,7 @@ const measure = (page: Page): Promise<Geometry | undefined> =>
 			height: box.height,
 			gap: px(horizontal ? listStyle.columnGap : listStyle.rowGap),
 			alone,
+			wellShort,
 			copies: (window as unknown as { __paletteCopies: Copy[] })
 				.__paletteCopies,
 		};
@@ -297,20 +327,20 @@ const report = (ok: boolean, pkg: string, what: string) => {
 	);
 };
 
-const load = async (pkg: string) => {
+const load = async (pkg: string, id = story) => {
 	const { ctx, page } = await newStoryPage(browser);
 	const errors: string[] = [];
 	page.on("pageerror", (e) => errors.push(e.message));
 	await page.addInitScript(recordCopies);
 	try {
 		await page.goto(
-			`${storyUrl(baseUrl, story)}&globals=appearancePackage:${pkg}`,
+			`${storyUrl(baseUrl, id)}&globals=appearancePackage:${pkg}`,
 			{ waitUntil: "load", timeout: 90000 },
 		);
 		await waitForStoryReady(page);
 	} catch (e) {
 		environmentError(
-			`cannot load story ${story} from ${baseUrl}: ${String(e).split("\n")[0]}`,
+			`cannot load story ${id} from ${baseUrl}: ${String(e).split("\n")[0]}`,
 		);
 	}
 	if (
@@ -318,7 +348,7 @@ const load = async (pkg: string) => {
 			document.body.classList.contains("sb-show-errordisplay"),
 		)
 	)
-		environmentError(`story ${story} did not render (is the id right?)`);
+		environmentError(`story ${id} did not render (is the id right?)`);
 	// The story tears the palette off a moment after it mounts.
 	await page.waitForTimeout(1200);
 	const drawn = await page.evaluate(
@@ -387,6 +417,70 @@ const checkAt = async (page: Page, label: string, size: [number, number]) => {
 		"platinum",
 		`${where}: the count read each button's natural size from a hidden, unwrapped copy (${copy ? `${read.map((s) => +s.toFixed(2)).join(",")} against ${g.alone.map((s) => +s.toFixed(2)).join(",")}; wrapped ${copy.wrapped}, position ${copy.position}, visibility ${copy.visibility}` : "no copy was built"})`,
 	);
+	if (g.horizontal)
+		report(
+			Math.abs(g.wellShort[0]) < 0.01 && Math.abs(g.wellShort[1]) < 0.01,
+			"platinum",
+			`${where}: the list with its margin fills the window's contents from top to bottom (short by ${g.wellShort.map((n) => n.toFixed(2)).join(" above, ")} below)`,
+		);
+};
+
+/** Where a box of the palette is, and what a click at its center hits. */
+type Box = {
+	control: string;
+	inside: boolean;
+	hitsItself: boolean;
+	hit: string;
+};
+
+/** The palette's state: collapsed, its size, its boxes, its list's place. */
+const paletteState = (page: Page) =>
+	page.evaluate((selector) => {
+		const palette = document.querySelector<HTMLElement>(selector);
+		const list = palette?.querySelector<HTMLElement>(
+			".classicyApplicationSwitcherButtons",
+		);
+		if (!palette || !list) return undefined;
+		const box = palette.getBoundingClientRect();
+		const boxes: Box[] = ["close", "zoom", "collapse"].map((control) => {
+			const el = palette.querySelector(`[data-classicy-control="${control}"]`);
+			if (!el)
+				return { control, inside: false, hitsItself: false, hit: "absent" };
+			const r = el.getBoundingClientRect();
+			const hit = document.elementFromPoint(
+				r.left + r.width / 2,
+				r.top + r.height / 2,
+			);
+			return {
+				control,
+				inside:
+					r.left >= box.left - 0.01 &&
+					r.right <= box.right + 0.01 &&
+					r.top >= box.top - 0.01 &&
+					r.bottom <= box.bottom + 0.01,
+				hitsItself: !!hit && el.contains(hit),
+				hit: hit ? `${hit.tagName}.${[...hit.classList].join(".")}` : "none",
+			};
+		});
+		return {
+			collapsed: palette.classList.contains("collapsed"),
+			width: box.width,
+			height: box.height,
+			listTop: list.getBoundingClientRect().top - box.top,
+			scrolled: palette.scrollTop + palette.scrollLeft,
+			boxes,
+		};
+	}, PALETTE);
+
+/** A click at the center of the palette's `control` box, as the mouse does. */
+const clickBox = async (page: Page, control: string) => {
+	const box = await page
+		.locator(`${PALETTE} [data-classicy-control="${control}"]`)
+		.boundingBox();
+	if (!box) return false;
+	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+	await page.waitForTimeout(500);
+	return true;
 };
 
 {
@@ -416,6 +510,23 @@ const checkAt = async (page: Page, label: string, size: [number, number]) => {
 		];
 		for (const size of heights)
 			await checkAt(page, "a column, large icons", size);
+		// Reloaded with a wrapped column, in the story's own options (so its
+		// tear-off after mounting changes none of them): counted once the
+		// floating layer draws it, and again on a desktop resize.
+		await page.setViewportSize({ width: 1024, height: 360 });
+		await page.waitForTimeout(500);
+		await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+		await page.reload({ waitUntil: "load", timeout: 90000 });
+		await waitForStoryReady(page);
+		await page.waitForTimeout(1200);
+		const reloaded = await measure(page);
+		report(
+			!!reloaded && reloaded.perLine < reloaded.count,
+			"platinum",
+			`after a reload the column is counted and wraps (${reloaded?.perLine} a line of ${reloaded?.count})`,
+		);
+		await checkAt(page, "a column after a reload", [1024, 360]);
+		await checkAt(page, "a column after a reload, resized", [1024, 300]);
 		await page.setViewportSize({ width: 1024, height: 768 });
 		await zoomBox(page, ["Alt"]);
 		for (const size of [
@@ -436,6 +547,49 @@ const checkAt = async (page: Page, label: string, size: [number, number]) => {
 			[400, 768],
 		] as [number, number][])
 			await checkAt(page, "a row, large icons", size);
+		// Across with small icons: the list sized to the drag bar's height
+		// (review G round 3, F11).
+		await page.setViewportSize({ width: 1200, height: 768 });
+		await zoomBox(page, ["Alt"]);
+		for (const size of [
+			[1200, 768],
+			[800, 768],
+			[400, 768],
+		] as [number, number][])
+			await checkAt(page, "a row, small icons", size);
+		// Collapsed across, its three boxes stay in reach, and a click on the
+		// collapse box expands it with its list where it was (review G round
+		// 3, F2: the boxes were cut off, and in Firefox a scroll into view
+		// left the list at the window's top).
+		await page.setViewportSize({ width: 1200, height: 768 });
+		await page.waitForTimeout(500);
+		const open = await paletteState(page);
+		await clickBox(page, "collapse");
+		const shut = await paletteState(page);
+		report(
+			!!open &&
+				!!shut &&
+				shut.collapsed &&
+				shut.height === open.height &&
+				shut.width < open.width &&
+				shut.boxes.every((b) => b.inside && b.hitsItself),
+			"platinum",
+			`collapsed across, it keeps its height and its close, zoom and collapse boxes lie inside it and are hit (${shut?.width}x${shut?.height}, open ${open?.width}x${open?.height}; ${shut?.boxes.map((b) => `${b.control} ${b.inside ? "inside" : "outside"}, hits ${b.hit}`).join("; ")})`,
+		);
+		await clickBox(page, "collapse");
+		const again = await paletteState(page);
+		report(
+			!!open &&
+				!!again &&
+				!again.collapsed &&
+				again.height === open.height &&
+				again.width === open.width &&
+				again.listTop === open.listTop &&
+				again.scrolled === 0,
+			"platinum",
+			`a click on its collapse box expands it, its list ${again?.listTop} from its top as before (${open?.listTop}), scrolled ${again?.scrolled}`,
+		);
+		await zoomBox(page, ["Alt"]);
 		// Dragged partly past the right edge, a wrapped palette keeps its shape.
 		await page.setViewportSize({ width: 640, height: 768 });
 		await page.waitForTimeout(500);
@@ -461,6 +615,39 @@ const checkAt = async (page: Page, label: string, size: [number, number]) => {
 				moved.perLine === before.perLine,
 			"platinum",
 			`a wrapped row dragged partly past the right edge keeps its shape (${before?.along}x${before?.across} at ${before?.perLine} a line, then ${moved?.along}x${moved?.across} at ${moved?.perLine})`,
+		);
+		report(
+			errors.length === 0,
+			"platinum",
+			`no page errors ${errors.slice(0, 3).join("; ")}`,
+		);
+	} finally {
+		await ctx.close();
+	}
+}
+
+// With names, Mac OS 8.5's palette is 158 pixels wide whatever the names
+// (150-pixel buttons; review G round 3, F5): the Palette story's Notes,
+// Calendar and Finder.
+if (story === DEFAULT_STORY) {
+	const { ctx, page, errors } = await load("platinum", NAMED_STORY);
+	try {
+		const named = await page.evaluate((selector) => {
+			const palette = document.querySelector<HTMLElement>(selector);
+			return palette
+				? {
+						width: palette.getBoundingClientRect().width,
+						buttons: Array.from(
+							palette.querySelectorAll(".classicyApplicationSwitcherButton"),
+							(b) => b.getBoundingClientRect().width,
+						),
+					}
+				: undefined;
+		}, PALETTE);
+		report(
+			named?.width === 158 && named.buttons.every((w) => w === 150),
+			"platinum",
+			`the palette with names is 158 pixels wide, its buttons 150 (${named?.width}; ${named?.buttons.join(", ")})`,
 		);
 		report(
 			errors.length === 0,

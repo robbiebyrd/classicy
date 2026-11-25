@@ -269,15 +269,16 @@ const classicyAppSwitcherSizer = (list: HTMLElement): HTMLElement => {
  *   first notification reads nothing, and a resize the wrap alone caused
  *   builds one copy and counts nothing;
  * - when the theme changes (the frame around the buttons and the menu bar
- *   with it), and when the buttons, the options or the collapse state
- *   change (`deps`).
+ *   with it), and when the buttons (each keyed by its application's id, so
+ *   another application of the same name is another button), the options
+ *   or the collapse state change (`deps`).
  *
  * Never on a move, so a palette dragged partly past an edge keeps its shape
- * and clips like any window. Each count reads the document once, while the
- * copy is in it. `undefined` while every button fits in one line. Mac OS
- * 8.5's palette with more applications than the screen holds was not
- * observed (the emulator hung while they were launched): Classicy wraps
- * only a line the desktop cannot hold at all.
+ * and clips like any window. Each count reads the document once (while the
+ * copy is in it, when one is built). `undefined` while every button fits in
+ * one line. Mac OS 8.5's palette with more applications than the screen
+ * holds was not observed (the emulator hung while they were launched):
+ * Classicy wraps only a line the desktop cannot hold at all.
  */
 const useClassicyPaletteLines = (
 	list: HTMLElement | null,
@@ -314,7 +315,9 @@ const useClassicyPaletteLines = (
 			let sizer: HTMLElement | undefined;
 			let fit: number;
 			try {
-				// The copy goes in first, so every read below is of one layout.
+				// The copy goes in first and comes out last, so every read below
+				// is of the one layout the copy forces; the layout its removal
+				// needs is left to the browser's next frame.
 				if (from !== "desktop") {
 					sizer = classicyAppSwitcherSizer(list);
 					const natural = Array.from(sizer.children, (copy) => {
@@ -466,6 +469,9 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 		large,
 		showNames,
 		entries.map((e) => e.name).join("\n"),
+		// A button is keyed by its application's id: another application of
+		// the same name replaces it (review G round 3, F9).
+		entries.map((e) => e.id).join("\n"),
 		theme,
 	]);
 

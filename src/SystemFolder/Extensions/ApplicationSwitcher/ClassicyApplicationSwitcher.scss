@@ -134,6 +134,23 @@
   }
 }
 
+// Collapsed across, the palette keeps its height and shows its drag bar
+// alone, down its left side, so its close, zoom and collapse boxes stay in
+// reach: the hidden contents (`.classicyWindowContents.collapsed`) keep
+// their height and give the window no width. A utility window's collapsed
+// height (`.classicyWindowUtility.collapsed`) is the height of a bar across
+// the top, which down the side cut off the zoom and collapse boxes at the
+// bar's bottom, so the palette could not be expanded from them (integration
+// review G round 3, F2). Down a column it collapses to its bar, as Mac OS
+// 8.5 does (`platinum-85-switcher-collapsed.png`).
+.classicyWindow.classicyWindowUtility.classicyApplicationSwitcherHorizontal.collapsed {
+  height: auto;
+
+  > .classicyWindowContents {
+    max-width: 0;
+  }
+}
+
 // The outline a tear-off drags across the desktop, the size of the
 // Application menu (`platinum-85-tearoff-outline.png`): fixed to the
 // viewport, above the menus, and never under the pointer's events.
