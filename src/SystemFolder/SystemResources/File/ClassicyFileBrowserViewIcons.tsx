@@ -58,8 +58,10 @@ import {
 import { useClassicyFileCutPaths } from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
 import type {
 	ClassicyFileDropDestination,
+	ClassicyFileDropEffect,
 	ClassicyFileDropTarget,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import { classicyFileDropEffects } from "@/SystemFolder/SystemResources/File/ClassicyFileDropMenu";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	ClassicyFileSystemEntryFileType,
@@ -178,13 +180,18 @@ export type ClassicyFileBrowserViewCommands = {
  * folder or the desktop. `outlineTopLeft` is where their outline was released
  * (client px), for placing them on the desktop; `target` is the drop target
  * itself, its marked element included (Finder activates an inactive window
- * dropped into, `activateClassicyDropWindow`).
+ * dropped into, `activateClassicyDropWindow`); `effect` is what the drop
+ * does: `"move"`, else, under the package's `layout.transfer` (Windows 98),
+ * `"copy"` (Control held at the release, or Copy Here) or `"link"`
+ * (Control and Shift, or Create Shortcut(s) Here), the two that are also
+ * called for a drop in the items' own folder.
  */
 export type ClassicyFileBrowserMoveItems = (
 	paths: string[],
 	destination: ClassicyFileDropDestination,
 	outlineTopLeft: [number, number],
 	target?: ClassicyFileDropTarget,
+	effect?: ClassicyFileDropEffect,
 ) => void;
 
 type iconType = {
@@ -915,17 +922,21 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				});
 			const groupMoveIdRef = useRef(0);
 			// Let go in this same folder: rearrange (return false), the other
-			// icons it carried moving as far. Over another folder or the
-			// desktop: move them there. Anywhere else: they stay put.
+			// icons it carried moving as far; a copy or shortcut (`effect`,
+			// under `layout.transfer`) is made beside its item instead. Over
+			// another folder or the desktop: move (copy, link) them there.
+			// Anywhere else: they stay put.
 			const dropIcon = (
 				itemPath: string,
 				target: ClassicyFileDropTarget | null,
 				outlineTopLeft: [number, number],
 				moved: [number, number],
+				effect: ClassicyFileDropEffect = "move",
 			): boolean => {
 				const dragged = draggedPaths(itemPath);
 				if (dragsSelection) draggedRef.current = itemPath;
 				if (
+					effect === "move" &&
 					target?.destination.kind === "folder" &&
 					target.destination.path === path
 				) {
@@ -949,7 +960,13 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					return false;
 				}
 				if (target && onMoveItems) {
-					onMoveItems(dragged, target.destination, outlineTopLeft, target);
+					onMoveItems(
+						dragged,
+						target.destination,
+						outlineTopLeft,
+						target,
+						effect,
+					);
 				}
 				return true;
 			};
@@ -1206,8 +1223,15 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 									: {})}
 								key={mountKey}
 								onClickFunc={() => openIcon(item)}
-								onFileDrag={(target, _point, outlineTopLeft, moved) =>
-									dropIcon(item.filePath, target, outlineTopLeft, moved)
+								onFileDrag={(target, _point, outlineTopLeft, moved, effect) =>
+									dropIcon(item.filePath, target, outlineTopLeft, moved, effect)
+								}
+								fileDropEffects={(target) =>
+									classicyFileDropEffects(
+										fs,
+										draggedPaths(item.filePath),
+										target.destination,
+									)
 								}
 								fileDragParts={
 									dragsSelection ? () => dragParts(item.filePath) : undefined

@@ -94,6 +94,10 @@
     background: b.$highlight;
   }
 
+  // The pointer during a file drag (_Desktop.scss): after every element's
+  // own pointer, which it outranks.
+  @include Desktop.file-drag-pointers;
+
   // Last: under forced colors (Windows' High Contrast), the tokens above
   // become the user's system colors.
   @include ForcedColors.forced-colors;

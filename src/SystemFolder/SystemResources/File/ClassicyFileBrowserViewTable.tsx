@@ -33,12 +33,18 @@ import { useClassicyFileCutPaths } from "@/SystemFolder/SystemResources/File/Cla
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
+	type ClassicyFileDropEffect,
+	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
 	classicyFileDragAppearanceCallbacks,
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import {
+	classicyFileDropEffects,
+	useClassicyFileDropMenu,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDropMenu";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	ClassicyFileSystemEntryFileType,
@@ -200,13 +206,16 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 
 			// A row drag in progress ends (canceled) before the list unmounts.
 			const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
+			// Button 2 drags too, ending in Windows 98 SE's transfer menu
+			// (`layout.transfer.secondaryButton` "menu").
+			const dropMenu = useClassicyFileDropMenu();
 			const startRowDrag = useCallback(
 				(
 					e: MouseEvent<HTMLDivElement>,
 					rowPath: string,
 					emitDrag: ClassicyTableCellContext["emitDrag"],
 				) => {
-					if (e.button !== 0 || !onMoveItems) return;
+					if (!dropMenu.startsDrag(e) || !onMoveItems) return;
 					const table = (e.currentTarget as HTMLElement).closest(
 						".classicyFileBrowserViewTableContainer",
 					);
@@ -238,22 +247,19 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 								),
 							)
 							.filter((el): el is Element => el !== undefined);
-					const abandon = startClassicyFileDrag({
-						start: { clientX: e.clientX, clientY: e.clientY },
-						// Read when the outline is first drawn.
-						get parts() {
-							return cellsOf(draggedPaths()).map((cell) => ({
-								image: cell.querySelector("img"),
-								label: cell.querySelector(
-									".classicyFileBrowserViewTableRowIconLabel",
-								),
-							}));
-						},
-						source: e.currentTarget,
-						...(emitDrag && classicyFileDragAppearanceCallbacks(emitDrag)),
-						onDrop: (target, _point, outlineTopLeft) => {
-							if (!target) return;
+					// The drop: into another folder or the desktop, by its effect;
+					// let go in the list's own folder, a move does nothing, a copy
+					// or shortcut is made beside its item ("Copy of", "Shortcut
+					// to").
+					const transferAt =
+						(
+							target: ClassicyFileDropTarget,
+							_point: [number, number],
+							outlineTopLeft: [number, number],
+						) =>
+						(effect: ClassicyFileDropEffect) => {
 							if (
+								effect === "move" &&
 								target.destination.kind === "folder" &&
 								target.destination.path === path
 							) {
@@ -264,12 +270,42 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 								target.destination,
 								outlineTopLeft,
 								target,
+								effect,
 							);
+						};
+					const appearanceCallbacks =
+						emitDrag && classicyFileDragAppearanceCallbacks(emitDrag);
+					const abandon = startClassicyFileDrag({
+						start: {
+							clientX: e.clientX,
+							clientY: e.clientY,
+							ctrlKey: e.ctrlKey,
+							shiftKey: e.shiftKey,
+						},
+						// Read when the outline is first drawn.
+						get parts() {
+							return cellsOf(draggedPaths()).map((cell) => ({
+								image: cell.querySelector("img"),
+								label: cell.querySelector(
+									".classicyFileBrowserViewTableRowIconLabel",
+								),
+							}));
+						},
+						source: e.currentTarget,
+						...appearanceCallbacks,
+						...dropMenu.dragOptions(e, {
+							effects: (target) =>
+								classicyFileDropEffects(fs, draggedPaths(), target.destination),
+							onStart: appearanceCallbacks?.onStart,
+							transferAt,
+						}),
+						onDrop: (target, point, outlineTopLeft, effect) => {
+							if (target) transferAt(target, point, outlineTopLeft)(effect);
 						},
 					});
 					endFileDragOnUnmount(abandon);
 				},
-				[onMoveItems, path, endFileDragOnUnmount],
+				[onMoveItems, path, endFileDragOnUnmount, dropMenu, fs],
 			);
 			// Derive the effective options once, so an omitted prop reproduces
 			// today's rendering — three columns, sizes computed, no dates.

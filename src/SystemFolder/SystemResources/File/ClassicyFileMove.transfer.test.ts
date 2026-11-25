@@ -7,6 +7,10 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import {
+	linkClassicyFileSystemItems,
+	transferClassicyFileSystemItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileCommands.internal";
 import type { ClassicyFileDropTarget } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
 	activateClassicyDropWindow,
@@ -104,7 +108,11 @@ describe("copyClassicyFileSystemItems", () => {
 			dispatch,
 			{ desktopLocationFor: where },
 		);
-		expect(where.mock.calls.map(([i]) => i)).toEqual([0, 1]);
+		expect(where.mock.calls).toEqual([
+			// The index, and the original the icon's item is a copy of.
+			[0, "Macintosh HD:Documents:Plan.txt"],
+			[1, "Macintosh HD:Documents:Notes.txt"],
+		]);
 		expect(
 			dispatch.mock.calls
 				.map(([a]) => a)
@@ -332,5 +340,131 @@ describe("activateClassicyDropWindow", () => {
 		).toBe(false);
 		expect(dispatch).not.toHaveBeenCalled();
 		expect(focused(DOCUMENTS)).toBe(false);
+	});
+});
+
+// A drop by its effect (the remaining chapters' audit's 5.33 and 5.34):
+// `transferClassicyFileSystemItems` moves, copies or makes shortcuts
+// (`linkClassicyFileSystemItems`, Create Shortcut(s) Here and a Control
+// and Shift drag).
+describe("transferClassicyFileSystemItems", () => {
+	it("moves for a move (and by default), copies for a copy", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		transferClassicyFileSystemItems(
+			fs,
+			["Macintosh HD:Documents:Plan.txt"],
+			{ kind: "folder", path: "Macintosh HD:Archive" },
+			dispatch,
+			"copy",
+		);
+		expect(fs.resolve("Macintosh HD:Documents:Plan.txt")).toBeDefined();
+		expect(fs.resolve("Macintosh HD:Archive:Plan.txt")?._data).toBe("p");
+		transferClassicyFileSystemItems(
+			fs,
+			["Macintosh HD:Documents:Plan.txt"],
+			{ kind: "folder", path: "Macintosh HD:Locked" },
+			dispatch,
+		);
+		// The default is a move, refused here as a move is.
+		expect(dispatch).toHaveBeenLastCalledWith({
+			type: "ClassicyDesktopShowErrorDialog",
+			message:
+				"“Plan.txt” can’t be moved, because it or “Locked” is locked or used by the system software.",
+		});
+	});
+
+	it("makes a shortcut beside nothing but in the destination for a link", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		const made = transferClassicyFileSystemItems(
+			fs,
+			["Macintosh HD:Documents:Plan.txt"],
+			{ kind: "folder", path: "Macintosh HD:Archive" },
+			dispatch,
+			"link",
+		);
+		expect(made).toEqual([
+			{
+				from: "Macintosh HD:Documents:Plan.txt",
+				to: "Macintosh HD:Archive:Shortcut to Plan.txt",
+			},
+		]);
+		expect(
+			fs.resolve("Macintosh HD:Archive:Shortcut to Plan.txt")?._targetPath,
+		).toBe("Macintosh HD:Documents:Plan.txt");
+		expect(fs.resolve("Macintosh HD:Documents:Plan.txt")).toBeDefined();
+	});
+});
+
+describe("linkClassicyFileSystemItems", () => {
+	it("places the desktop's new shortcuts and selects them", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		linkClassicyFileSystemItems(
+			fs,
+			["Macintosh HD:Documents:Plan.txt", "Macintosh HD:Documents:Notes.txt"],
+			{ kind: "desktop" },
+			dispatch,
+			{ desktopLocation: [100, 50] },
+		);
+		const actions = dispatch.mock.calls.map(([a]) => a);
+		expect(
+			actions
+				.filter((a) => a.type === "ClassicyDesktopIconAdd")
+				.map((a) => [a.filePath, a.location, a.kind]),
+		).toEqual([
+			[
+				"Macintosh HD:Desktop Folder:Shortcut to Plan.txt",
+				[100, 50],
+				ClassicyFileSystemEntryFileType.FileShortcut,
+			],
+			[
+				"Macintosh HD:Desktop Folder:Shortcut to Notes.txt",
+				[100, 122],
+				ClassicyFileSystemEntryFileType.FileShortcut,
+			],
+		]);
+		expect(actions.at(-1)).toEqual({
+			type: "ClassicyDesktopIconSelectBox",
+			iconIds: [
+				"classicy-desktop-item:Macintosh HD:Desktop Folder:Shortcut to Plan.txt",
+				"classicy-desktop-item:Macintosh HD:Desktop Folder:Shortcut to Notes.txt",
+			],
+		});
+	});
+
+	it("offers the desktop for a folder that takes no new item, making nothing", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		expect(
+			linkClassicyFileSystemItems(
+				fs,
+				["Macintosh HD:Documents:Plan.txt"],
+				{ kind: "folder", path: "Macintosh HD:Locked" },
+				dispatch,
+			),
+		).toEqual([]);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppFinderOfferDesktopShortcut",
+			paths: ["Macintosh HD:Documents:Plan.txt"],
+		});
+		expect(
+			fs.resolve("Macintosh HD:Locked:Shortcut to Plan.txt"),
+		).toBeUndefined();
+	});
+
+	it("skips what is gone or in the Trash", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		expect(
+			linkClassicyFileSystemItems(
+				fs,
+				["Macintosh HD:Documents:Gone.txt"],
+				{ kind: "folder", path: "Macintosh HD:Archive" },
+				dispatch,
+			),
+		).toEqual([]);
+		expect(dispatch).not.toHaveBeenCalled();
 	});
 });

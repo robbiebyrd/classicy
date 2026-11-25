@@ -4,6 +4,7 @@ import {
 	POINTER_STREAM_LOSSES,
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
@@ -184,6 +185,8 @@ describe("startClassicyFileDrag", () => {
 			[40, 30],
 			// No outline could be measured in jsdom, so no grab offset.
 			[40, 30],
+			// Without the package's copy modifier every drop moves.
+			"move",
 		);
 		// Everything is cleaned up.
 		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
@@ -305,7 +308,7 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 			canceled: false,
 			lost: false,
 		});
-		expect(onDrop).toHaveBeenCalledWith(null, [40, 30], [40, 30]);
+		expect(onDrop).toHaveBeenCalledWith(null, [40, 30], [40, 30], "move");
 	});
 
 	it("ends once, canceled, on Escape, and the release after it ends nothing", () => {
@@ -720,5 +723,447 @@ describe("startClassicyFileDrag automatic scrolling", () => {
 		vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS * 5);
 		expect(scrollBy).not.toHaveBeenCalled();
 		fire("mouseup", 151, 191);
+	});
+});
+
+// The drop feedback on the desktop root (the remaining chapters' audit's
+// 4.6 / 5.32: WIG Ch.4 Table 4.1, Ch.13 p.316, Ch.5 p.62 and Figure 5.17):
+// `data-classicy-drop="none"` while nothing under the pointer takes the
+// drop, under every package (only a package's stylesheet reads it).
+describe("startClassicyFileDrag's drop feedback", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		document.body.className = "";
+	});
+
+	const fire = (type: string, x: number, y: number) =>
+		document.dispatchEvent(
+			new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }),
+		);
+
+	// A desktop holding a folder; `hits` is what lies under the pointer.
+	const setup = (
+		options: Partial<Parameters<typeof startClassicyFileDrag>[0]> = {},
+	) => {
+		document.body.innerHTML = `<div id="classicyDesktop" class="classicyDesktop" ${CLASSICY_DROP_DESKTOP_ATTRIBUTE}><div id="icon"></div><div id="folder" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="HD:Archive"></div><div class="classicyWindow" id="window"></div></div>`;
+		const desktop = document.getElementById("classicyDesktop") as Element;
+		const folder = document.getElementById("folder") as Element;
+		const windowEl = document.getElementById("window") as Element;
+		let hits: Element[] = [];
+		const onDrop = vi.fn();
+		const abandon = startClassicyFileDrag({
+			start: { clientX: 10, clientY: 10 },
+			parts: [],
+			source: document.getElementById("icon"),
+			onDrop,
+			elementsFromPoint: () => hits,
+			...options,
+		});
+		return {
+			desktop,
+			folder,
+			windowEl,
+			onDrop,
+			abandon,
+			over: (el: Element | null) => {
+				hits = el ? [el] : [];
+			},
+		};
+	};
+	const drop = (desktop: Element) => desktop.getAttribute("data-classicy-drop");
+
+	it("reads none over nothing that takes the drop, and the drop's effect over a target", () => {
+		const { desktop, folder, windowEl, over } = setup();
+		over(windowEl);
+		// Before the threshold: no drag, no feedback.
+		fire("mousemove", 11, 11);
+		expect(drop(desktop)).toBeNull();
+		fire("mousemove", 40, 40);
+		expect(drop(desktop)).toBe("none");
+		over(folder);
+		fire("mousemove", 50, 40);
+		expect(drop(desktop)).toBe("move");
+		over(desktop);
+		fire("mousemove", 60, 40);
+		expect(drop(desktop)).toBe("move");
+		over(null);
+		fire("mousemove", 70, 40);
+		expect(drop(desktop)).toBe("none");
+		fire("mouseup", 70, 40);
+		expect(drop(desktop)).toBeNull();
+	});
+
+	it("is removed when the drag ends otherwise: Escape, a lost stream, the source abandoning it", () => {
+		for (const end of [
+			() =>
+				document.dispatchEvent(
+					new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+				),
+			() => losePointerStream("blur"),
+		]) {
+			const { desktop, over } = setup();
+			over(null);
+			fire("mousemove", 40, 40);
+			expect(drop(desktop)).toBe("none");
+			end();
+			expect(drop(desktop)).toBeNull();
+		}
+		const { desktop, over, abandon } = setup();
+		over(null);
+		fire("mousemove", 40, 40);
+		abandon();
+		expect(drop(desktop)).toBeNull();
+	});
+
+	it("treats a target canDrop refuses as none: not highlighted, not dropped on", () => {
+		const { desktop, folder, over, onDrop } = setup({
+			canDrop: (target) => target.destination.kind === "desktop",
+		});
+		over(folder);
+		fire("mousemove", 40, 40);
+		expect(folder).not.toHaveClass("classicyFileDropTarget");
+		expect(drop(desktop)).toBe("none");
+		fire("mouseup", 40, 40);
+		expect(onDrop).toHaveBeenCalledWith(null, [40, 40], [40, 40], "move");
+	});
+
+	it("treats a target taking no effect as none", () => {
+		const { desktop, folder, over, onDrop } = setup({ effects: () => [] });
+		over(folder);
+		fire("mousemove", 40, 40);
+		expect(drop(desktop)).toBe("none");
+		fire("mouseup", 40, 40);
+		expect(onDrop.mock.calls[0][0]).toBeNull();
+	});
+});
+
+// A button-2 drag (the remaining chapters' audit's 5.33 / 11.7 / A.5; WIG
+// Ch.5 "Nondefault Drag and Drop", pp.62-63): it ends at its button's
+// release alone, in the source's transfer menu, and the browser's
+// `contextmenu` after the release is swallowed.
+describe("startClassicyFileDrag on button 2", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		document.body.className = "";
+	});
+
+	const fire = (type: string, x: number, y: number, button = 2) =>
+		document.dispatchEvent(
+			new MouseEvent(type, { clientX: x, clientY: y, button, bubbles: true }),
+		);
+	const contextMenuReaches = () => {
+		const event = new MouseEvent("contextmenu", {
+			bubbles: true,
+			cancelable: true,
+		});
+		const heard = vi.fn();
+		document.body.addEventListener("contextmenu", heard);
+		document.body.dispatchEvent(event);
+		document.body.removeEventListener("contextmenu", heard);
+		return heard.mock.calls.length > 0;
+	};
+
+	const setup = (hits: () => Element[]) => {
+		const onDrop = vi.fn();
+		const onMenu = vi.fn();
+		const onClick = vi.fn();
+		startClassicyFileDrag({
+			start: { clientX: 10, clientY: 10 },
+			parts: [],
+			button: 2,
+			onDrop,
+			onMenu,
+			onClick,
+			elementsFromPoint: hits,
+		});
+		return { onDrop, onMenu, onClick };
+	};
+
+	it("ends at button 2's release over a target with onMenu, not onDrop, and swallows the contextmenu after it", () => {
+		document.body.innerHTML = `<div id="folder" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="HD:Archive"></div>`;
+		const folder = document.getElementById("folder") as Element;
+		const { onDrop, onMenu } = setup(() => [folder]);
+		fire("mousemove", 40, 40);
+		// Another button's release does not end it.
+		fire("mouseup", 40, 40, 0);
+		expect(document.querySelector(".classicyFileDragGhost")).not.toBeNull();
+		fire("mouseup", 40, 40);
+		expect(onDrop).not.toHaveBeenCalled();
+		expect(onMenu).toHaveBeenCalledWith(
+			{ destination: { kind: "folder", path: "HD:Archive" }, element: folder },
+			[40, 40],
+			[40, 40],
+			// What a plain drop there would do: the menu's default.
+			"move",
+		);
+		expect(contextMenuReaches()).toBe(false);
+		// Only the one.
+		expect(contextMenuReaches()).toBe(true);
+	});
+
+	it("drops nothing over no target, still swallowing the contextmenu", () => {
+		const { onDrop, onMenu } = setup(() => []);
+		fire("mousemove", 40, 40);
+		fire("mouseup", 40, 40);
+		expect(onMenu).not.toHaveBeenCalled();
+		expect(onDrop).toHaveBeenCalledWith(null, [40, 40], [40, 40], "move");
+		expect(contextMenuReaches()).toBe(false);
+	});
+
+	it("leaves a right-click that never dragged its contextmenu", () => {
+		const { onClick, onMenu } = setup(() => []);
+		fire("mouseup", 10, 10);
+		expect(onClick).toHaveBeenCalledOnce();
+		expect(onMenu).not.toHaveBeenCalled();
+		expect(contextMenuReaches()).toBe(true);
+	});
+});
+
+// The copy modifier (the remaining chapters' audit's 5.34 / A.8; WIG Ch.5
+// "Shortcut Keys for Transfer Operations", pp.67-68; App. A Table A.3
+// notes 2-3): under `layout.transfer.copyModifier` "ctrl", Control at the
+// release copies, Control with Shift makes shortcuts, read on each move,
+// on Control and Shift presses and at the release, never at the press.
+describe("startClassicyFileDrag's copy modifier", () => {
+	let restore: () => void = () => {};
+	afterEach(() => {
+		restore();
+		restore = () => {};
+		document.body.innerHTML = "";
+		document.body.className = "";
+		vi.restoreAllMocks();
+	});
+
+	const mouse = (
+		type: string,
+		x: number,
+		y: number,
+		keys: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+	) =>
+		document.dispatchEvent(
+			new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, ...keys }),
+		);
+	const key = (
+		type: "keydown" | "keyup",
+		name: string,
+		keys: { ctrlKey?: boolean; shiftKey?: boolean },
+	) =>
+		document.dispatchEvent(
+			new KeyboardEvent(type, { key: name, bubbles: true, ...keys }),
+		);
+
+	// A drag whose target is a folder element apart from its source.
+	const drag = (
+		folderPath = "HD:Archive",
+		start: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+		effects?: Parameters<typeof startClassicyFileDrag>[0]["effects"],
+	) => {
+		document.body.innerHTML = `<div class="classicyDesktop" id="desktop"><div id="icon"></div><div id="folder" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="${folderPath}"></div></div>`;
+		const desktop = document.getElementById("desktop") as Element;
+		const folder = document.getElementById("folder") as Element;
+		const onDrop = vi.fn();
+		startClassicyFileDrag({
+			start: { clientX: 10, clientY: 10, ...start },
+			parts: [],
+			source: document.getElementById("icon"),
+			onDrop,
+			...(effects ? { effects } : {}),
+			elementsFromPoint: () => [folder],
+		});
+		return { desktop, onDrop, effect: () => onDrop.mock.calls[0]?.[3] };
+	};
+	const windowsLayout = () => {
+		restore = activateTestWindowsKeysPackage({
+			transfer: { copyModifier: "ctrl" },
+		});
+	};
+
+	it("copies with Control held at the release, and shows it on the desktop root", () => {
+		windowsLayout();
+		const { desktop, effect } = drag();
+		mouse("mousemove", 40, 40, { ctrlKey: true });
+		expect(desktop.getAttribute("data-classicy-drop")).toBe("copy");
+		mouse("mouseup", 40, 40, { ctrlKey: true });
+		expect(effect()).toBe("copy");
+		// Gone once the drag ends.
+		expect(desktop.hasAttribute("data-classicy-drop")).toBe(false);
+	});
+
+	it("reads the release, not the press: Control let go before it moves", () => {
+		windowsLayout();
+		const { effect } = drag("HD:Archive", { ctrlKey: true });
+		mouse("mousemove", 40, 40, { ctrlKey: true });
+		mouse("mouseup", 40, 40);
+		expect(effect()).toBe("move");
+	});
+
+	it("follows Control and Shift pressed and let go under a still pointer", () => {
+		windowsLayout();
+		const { desktop, effect } = drag();
+		mouse("mousemove", 40, 40);
+		expect(desktop.getAttribute("data-classicy-drop")).toBe("move");
+		key("keydown", "Control", { ctrlKey: true });
+		expect(desktop.getAttribute("data-classicy-drop")).toBe("copy");
+		key("keydown", "Shift", { ctrlKey: true, shiftKey: true });
+		expect(desktop.getAttribute("data-classicy-drop")).toBe("link");
+		key("keyup", "Shift", { ctrlKey: true });
+		expect(desktop.getAttribute("data-classicy-drop")).toBe("copy");
+		key("keyup", "Control", {});
+		expect(desktop.getAttribute("data-classicy-drop")).toBe("move");
+		mouse("mouseup", 40, 40, { ctrlKey: true, shiftKey: true });
+		expect(effect()).toBe("link");
+	});
+
+	it("moves into the Trash whatever is held, and where the target takes no copy", () => {
+		windowsLayout();
+		const trash = drag("Trash");
+		mouse("mousemove", 40, 40, { ctrlKey: true });
+		expect(trash.desktop.getAttribute("data-classicy-drop")).toBe("move");
+		mouse("mouseup", 40, 40, { ctrlKey: true });
+		expect(trash.effect()).toBe("move");
+		const moveOnly = drag("HD:Archive", {}, () => ["move"]);
+		mouse("mousemove", 40, 40, { ctrlKey: true });
+		mouse("mouseup", 40, 40, { ctrlKey: true });
+		expect(moveOnly.effect()).toBe("move");
+	});
+
+	it("moves throughout a press that began with Control on a Mac host", () => {
+		windowsLayout();
+		vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+		const { desktop, effect } = drag("HD:Archive", { ctrlKey: true });
+		mouse("mousemove", 40, 40, { ctrlKey: true });
+		expect(desktop.getAttribute("data-classicy-drop")).toBe("move");
+		mouse("mouseup", 40, 40, { ctrlKey: true });
+		expect(effect()).toBe("move");
+	});
+
+	it("always moves without the key, as Mac OS 8's Finder does", () => {
+		const { desktop, effect } = drag();
+		mouse("mousemove", 40, 40, { ctrlKey: true });
+		expect(desktop.getAttribute("data-classicy-drop")).toBe("move");
+		mouse("mouseup", 40, 40, { ctrlKey: true, shiftKey: true });
+		expect(effect()).toBe("move");
+	});
+});
+
+// The velocity rule (the remaining chapters' audit's 5.35; WIG Ch.5
+// "Scrolling When Transferring by Dragging", pp.64-65, Figure 5.14;
+// Windows 98 SE's DAD_AutoScroll): under `layout.transfer.autoScroll`.
+describe("startClassicyFileDrag's velocity rule", () => {
+	let restore: () => void = () => {};
+	let unregister: (() => void) | null = null;
+	afterEach(() => {
+		restore();
+		restore = () => {};
+		unregister?.();
+		unregister = null;
+		document.body.innerHTML = "";
+		document.body.className = "";
+		vi.useRealTimers();
+	});
+
+	const fire = (type: string, x: number, y: number) =>
+		document.dispatchEvent(
+			new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }),
+		);
+
+	/** A registered viewport 300 x 200 at the origin over 300 x 1000 px. */
+	const viewportOf = () => {
+		document.body.innerHTML = `<div id="classicyDesktop" style="--desktop-icon-size: 32px; --icon-small-size: 16px"><div id="viewport"><div id="row" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="HD:Archive"></div></div></div>`;
+		const viewport = document.getElementById("viewport") as HTMLElement;
+		const row = document.getElementById("row") as HTMLElement;
+		const position = { top: 0 };
+		for (const [k, value] of Object.entries({
+			scrollWidth: 300,
+			scrollHeight: 1000,
+			clientWidth: 300,
+			clientHeight: 200,
+			scrollLeft: 0,
+		})) {
+			Object.defineProperty(viewport, k, { value, configurable: true });
+		}
+		Object.defineProperty(viewport, "scrollTop", {
+			configurable: true,
+			get: () => position.top,
+		});
+		vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(
+			DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 200 }),
+		);
+		const scrollBy = vi.fn((_dx: number, dy: number) => {
+			position.top = Math.min(Math.max(position.top + dy, 0), 800);
+		});
+		unregister = registerClassicyScrollViewport(viewport, {
+			lineStep: () => 16,
+			scrollBy,
+		});
+		return { row, scrollBy };
+	};
+	const start = (row: Element) =>
+		startClassicyFileDrag({
+			start: { clientX: 150, clientY: 100 },
+			parts: [],
+			onDrop: vi.fn(),
+			elementsFromPoint: () => [row],
+		});
+
+	it("scrolls a line once the pointer rests in the zone, then every 250 ms", () => {
+		vi.useFakeTimers();
+		restore = activateTestWindowsKeysPackage({
+			transfer: { autoScroll: true },
+		});
+		const { row, scrollBy } = viewportOf();
+		start(row);
+		// 20 px inside the bottom edge (the zone is the 32 px icon size).
+		fire("mousemove", 150, 180);
+		// Two samples: not yet three.
+		vi.advanceTimersByTime(100);
+		expect(scrollBy).not.toHaveBeenCalled();
+		// The third, the pointer still: velocity 0, a line down.
+		vi.advanceTimersByTime(100);
+		expect(scrollBy).toHaveBeenCalledTimes(1);
+		expect(scrollBy).toHaveBeenLastCalledWith(0, 16);
+		// Not again before 250 ms: the 300 ms sample is the next.
+		vi.advanceTimersByTime(200);
+		expect(scrollBy).toHaveBeenCalledTimes(1);
+		vi.advanceTimersByTime(100);
+		expect(scrollBy).toHaveBeenCalledTimes(2);
+		fire("mouseup", 150, 180);
+		vi.advanceTimersByTime(1000);
+		expect(scrollBy).toHaveBeenCalledTimes(2);
+	});
+
+	it("scrolls nothing while the pointer moves fast in the zone, or rests outside it", () => {
+		vi.useFakeTimers();
+		restore = activateTestWindowsKeysPackage({
+			transfer: { autoScroll: true },
+		});
+		const { row, scrollBy } = viewportOf();
+		start(row);
+		// Moving along the bottom edge, 20 px a sample.
+		for (let i = 0; i < 6; i++) {
+			fire("mousemove", 40 + i * 20, 180);
+			vi.advanceTimersByTime(50);
+		}
+		expect(scrollBy).not.toHaveBeenCalled();
+		// Resting in the middle.
+		fire("mousemove", 150, 100);
+		vi.advanceTimersByTime(1000);
+		expect(scrollBy).not.toHaveBeenCalled();
+		fire("mouseup", 150, 100);
+	});
+
+	it("keeps today's band and rate without the key", () => {
+		vi.useFakeTimers();
+		const { row, scrollBy } = viewportOf();
+		start(row);
+		// 20 px inside: outside today's line-step band, so nothing.
+		fire("mousemove", 150, 180);
+		vi.advanceTimersByTime(1000);
+		expect(scrollBy).not.toHaveBeenCalled();
+		// In the band: a line per press-repeat interval.
+		fire("mousemove", 150, 190);
+		vi.advanceTimersByTime(CLASSICY_PRESS_REPEAT_INTERVAL_MS);
+		expect(scrollBy).toHaveBeenCalledTimes(1);
+		fire("mouseup", 150, 190);
 	});
 });

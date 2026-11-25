@@ -256,3 +256,39 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     @include b.sunken;
   }
 }
+
+// The pointer during a file drag, Windows' drop effect, from the desktop
+// root's `data-classicy-drop`, which the core's drag engine sets for the
+// whole drag (its outline shown): the arrow over everything, whatever the
+// element under the pointer would show, no I-beam over a text field and no
+// hand over a link (WIG Ch.5 "Direct Manipulation Transfers" (p.67),
+// Figure 5.16: the arrow for a move); the no-drop pointer while nothing
+// there takes the drop (a window, the menu bar, a folder the drag refuses;
+// WIG Ch.4 Table 4.1, Ch.13 p.316, Ch.5 Figure 5.17); the arrow with a plus
+// for a copy, Control held, and with the shortcut curl for shortcuts,
+// Control and Shift held (Figure 5.16). The host's own pointers until the
+// package registers Windows 98's. Keyed on the desktop root's id
+// (`#classicyDesktop`, which ClassicyDesktop always gives it), so they
+// outrank every element's own pointer rule, and included last in the
+// package, each effect after the arrow.
+@mixin file-drag-pointers {
+  &#classicyDesktop[data-classicy-drop],
+  &#classicyDesktop[data-classicy-drop] * {
+    cursor: default;
+  }
+
+  &#classicyDesktop[data-classicy-drop='none'],
+  &#classicyDesktop[data-classicy-drop='none'] * {
+    cursor: no-drop;
+  }
+
+  &#classicyDesktop[data-classicy-drop='copy'],
+  &#classicyDesktop[data-classicy-drop='copy'] * {
+    cursor: copy;
+  }
+
+  &#classicyDesktop[data-classicy-drop='link'],
+  &#classicyDesktop[data-classicy-drop='link'] * {
+    cursor: alias;
+  }
+}

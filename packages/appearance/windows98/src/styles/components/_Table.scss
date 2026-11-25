@@ -193,6 +193,20 @@ $finder: ".classicyFileBrowserViewTableContainer";
     background: b.$highlight;
   }
 
+  // The folder row under a file drag (LVIS_DROPHILITED; WIG Ch.5 "Direct
+  // Manipulation Transfers" (p.67): "use visual feedback to indicate the
+  // receptivity of potential destinations ... selection highlighting"):
+  // drawn as a selected row is, its name in Hilight and its icon dithered
+  // (below), in place of the base's Mac OS 8 darkening.
+  .classicyFileBrowserViewTableRowContainer.classicyFileDropTarget {
+    filter: none;
+
+    .classicyFileBrowserViewTableRowIconLabel {
+      color: b.$highlight-text;
+      background: b.$highlight;
+    }
+  }
+
   // A name being edited (Explorer's Rename, New and F2 in the details
   // view): the list view's edit control where the name was, WindowText on
   // Window in a one-pixel WindowFrame border, the list's font.
@@ -227,7 +241,8 @@ $finder: ".classicyFileBrowserViewTableContainer";
   // centered on the row), and clipped to the icon's shape by the mask the
   // core publishes on the row, `--classicy-icon-mask`. The base's darkening
   // filter stands down. Sized by the list's icon size, which the core
-  // publishes on the container (`--classicy-file-browser-icon-size`).
+  // publishes on the container (`--classicy-file-browser-icon-size`). The
+  // folder row under a file drag takes the same dither (LVIS_DROPHILITED).
   :where(.classicyFileBrowserViewTableRow).selected
     .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
     filter: none;
@@ -238,6 +253,8 @@ $finder: ".classicyFileBrowserViewTableContainer";
   }
 
   :where(.classicyFileBrowserViewTableRow).selected
+    .classicyFileBrowserViewTableDisclosure::after,
+  .classicyFileBrowserViewTableRowContainer.classicyFileDropTarget
     .classicyFileBrowserViewTableDisclosure::after {
     content: "";
     position: absolute;

@@ -440,6 +440,63 @@ export type ClassicyAppearanceLayout = {
 		 * `File/ClassicyFileMove.ts`).
 		 */
 		activateDropWindow?: boolean;
+		/**
+		 * What a button-2 drag of files does. Absent (Mac OS 8's Finder): a
+		 * secondary press never drags, it opens the item's menu. `"menu"`
+		 * (WIG Ch.5 "Nondefault Drag and Drop" (pp.62-63), Figure 5.13;
+		 * Ch.11 "Direct Manipulation" (pp.224-225); App. A Table A.1;
+		 * Windows 98): the folder views' icons and rows and the desktop's
+		 * file icons drag on button 2 too, and the release over a target
+		 * shows Windows 98 SE's transfer menu at the pointer, shell32.dll's
+		 * menu 200 (Move Here, Copy Here, Create Shortcut(s) Here, —,
+		 * Cancel, the default drop's command bold; menu 201, Move Here and
+		 * Cancel, over the Trash), which does the transfer chosen or
+		 * nothing (`useClassicyFileDropMenu`, `File/ClassicyFileDropMenu.ts`).
+		 */
+		secondaryButton?: "menu";
+		/**
+		 * The modifier a file drag reads to change what its drop does.
+		 * Absent (Mac OS 8's Finder): every drop moves. `"ctrl"` (WIG Ch.5
+		 * "Shortcut Keys for Transfer Operations" (pp.67-68): "CTRL+drag
+		 * toggles the meaning of the default direct manipulation transfer
+		 * operation to be a copy operation"; App. A Table A.3 notes 2-3;
+		 * Windows 98): Control held at the release copies, Control with
+		 * Shift makes shortcuts (the shell's rule), read on every move and
+		 * every Control or Shift press while the outline is shown and at
+		 * the release, never at the press; a press that began with Control
+		 * on a Mac host (its secondary click) moves throughout. A
+		 * destination that takes a move alone (the Trash) takes a move.
+		 */
+		copyModifier?: "ctrl";
+		/**
+		 * How a file drag scrolls the area under it. Absent or `false`:
+		 * while the pointer rests within a line step of an edge, the area
+		 * scrolls a line per press-repeat interval (every package's
+		 * automatic scrolling). `true` (WIG Ch.5 "Scrolling When
+		 * Transferring by Dragging" (pp.64-65), Figure 5.14; Windows 98):
+		 * the WIG's velocity rule with Windows 98 SE's own figures
+		 * (shell32.dll's `DAD_AutoScroll`): the pointer sampled at the
+		 * drag's start, on every move and every 100 ms; a line toward the
+		 * edge when the last three samples' velocity
+		 * (`classicyDragScrollVelocity`) is at most 20, the pointer is
+		 * within the icon size inside the viewport's edge or the small icon
+		 * size outside it (over its scroll bar), and 250 ms (half the
+		 * double-click time) have passed since the last scroll.
+		 */
+		autoScroll?: boolean;
+		/**
+		 * How a desktop icon that stands for no file (an application, a
+		 * drive, the Trash) is dragged. Absent or `"live"` (Mac OS 8): the
+		 * icon itself follows the pointer. `"outline"` (WIG Ch.5 "Direct
+		 * Manipulation Transfers" (p.66): the source stays where it is
+		 * until the transfer completes; "Canceling a Drag and Drop
+		 * Transfer" (p.64); Windows 98): a dotted outline of the selected
+		 * icons follows the pointer, only the desktop takes it (a folder,
+		 * drive or the Trash neither highlights nor accepts it), the icons
+		 * move where it is let go, and Escape or a lost pointer stream
+		 * leaves them where they were.
+		 */
+		desktopIconDrag?: "live" | "outline";
 	};
 	/**
 	 * How the file browser (`ClassicyFileBrowser`, the Finder's windows)

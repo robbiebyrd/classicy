@@ -713,6 +713,8 @@ describe("the icon view under the Windows 98 layout", () => {
 				expect.objectContaining({
 					destination: { kind: "folder", path: "Elsewhere" },
 				}),
+				// A plain drag moves.
+				"move",
 			);
 			expect(outlines.parts).toHaveLength(1);
 			expect(outlines.parts[0].map((part) => part.label?.textContent)).toEqual([
@@ -1063,5 +1065,74 @@ describe("the list view's selection rectangle", () => {
 		expect(container.querySelector(".classicyFileBrowserSelect")).toBeNull();
 		fireEvent.mouseUp(document);
 		expect(rows(container)).toEqual(["apple"]);
+	});
+});
+
+// The icon view's transfers under Windows 98's `layout.transfer` (the
+// remaining chapters' audit's 5.33 and 5.34; WIG Ch.5 "Shortcut Keys for
+// Transfer Operations", pp.67-68): a copy or shortcut let go in the icons'
+// own folder is made there ("Copy of", "Shortcut to") instead of moving
+// the icons, and the transfer menu offers what the dragged items allow.
+describe("the icon view's transfers under the Windows 98 layout", () => {
+	const dropOn = (folderPath: string) => {
+		const folder = document.createElement("div");
+		folder.setAttribute("data-classicy-drop-folder", folderPath);
+		return folder;
+	};
+	const drag = (
+		from: HTMLElement,
+		over: HTMLElement,
+		{
+			button = 0,
+			ctrlKey = false,
+		}: { button?: number; ctrlKey?: boolean } = {},
+	) => {
+		const original = document.elementsFromPoint;
+		document.elementsFromPoint = () => [over];
+		try {
+			fireEvent.mouseDown(from, { button, detail: 1, clientX: 0, clientY: 0 });
+			fireEvent.mouseMove(document, { clientX: 40, clientY: 20, ctrlKey });
+			fireEvent.mouseUp(document, {
+				button,
+				clientX: 40,
+				clientY: 20,
+				ctrlKey,
+			});
+		} finally {
+			document.elementsFromPoint = original;
+		}
+	};
+
+	it("copies into the icons' own folder with Control held, the icon staying put", () => {
+		registerWindowsKeys();
+		const onMoveItems = vi.fn();
+		const { icon } = renderBrowser({ onMoveItems });
+		const before = [icon("apple").style.left, icon("apple").style.top];
+		drag(icon("apple"), dropOn("D"), { ctrlKey: true });
+		expect(onMoveItems).toHaveBeenCalledTimes(1);
+		expect(onMoveItems.mock.calls[0][0]).toEqual(["D:apple"]);
+		expect(onMoveItems.mock.calls[0][1]).toEqual({ kind: "folder", path: "D" });
+		expect(onMoveItems.mock.calls[0][4]).toBe("copy");
+		expect([icon("apple").style.left, icon("apple").style.top]).toEqual(before);
+	});
+
+	it("copies elsewhere with Control held, and moves without it", () => {
+		registerWindowsKeys();
+		const onMoveItems = vi.fn();
+		const { icon } = renderBrowser({ onMoveItems });
+		drag(icon("apple"), dropOn("Elsewhere"), { ctrlKey: true });
+		drag(icon("banana"), dropOn("Elsewhere"));
+		expect(onMoveItems.mock.calls.map((call) => call[4])).toEqual([
+			"copy",
+			"move",
+		]);
+	});
+
+	it("rearranges, never copies, in its own folder under the default layout", () => {
+		const onMoveItems = vi.fn();
+		const { icon } = renderBrowser({ onMoveItems });
+		drag(icon("apple"), dropOn("D"), { ctrlKey: true });
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(icon("apple").style.left).toBe("52px");
 	});
 });

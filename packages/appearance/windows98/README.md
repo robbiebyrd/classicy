@@ -113,7 +113,18 @@ and `nodenext` resolution).
   folder or copying the copied ones ("Copy of Plan.txt", "Copy (2) of
   Plan.txt" when the name is taken), the pasted items selected where the
   menu was opened, and Paste Shortcut making "Shortcut to Plan.txt", a drop
-  into an inactive folder window activating it,
+  into an inactive folder window activating it, a drag with the right
+  button ending in Windows 98's menu (Move Here, in bold, Copy Here, Create
+  Shortcut(s) Here and Cancel; Move Here and Cancel over the Recycle Bin),
+  Ctrl held as the button comes up copying the dragged items and Ctrl with
+  Shift making shortcuts to them (in their own folder too), the pointer
+  during a drag the arrow over everything, the no-drop sign where nothing
+  takes the drop and the arrow with a plus or the shortcut curl while a
+  copy or shortcuts would be made, a folder window scrolling under a drag
+  that rests near its edge (or over its scroll bar), a folder row under a
+  drag drawn as a selected one, and an application's, drive's or the
+  Recycle Bin's desktop icon dragged as an outline while it stays where it
+  is, which only the desktop takes and Escape takes back,
   an access key on every menu title, menu item, label of a control and
   push button (the first free letter of its text, underlined, unless the
   app gives it one; OK and Cancel take none, as Enter and Esc reach them;

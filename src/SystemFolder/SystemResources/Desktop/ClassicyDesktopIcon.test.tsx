@@ -68,6 +68,16 @@ vi.mock(
 
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 
+// Windows 98's layout with the icon itself following the pointer
+// (`transfer.desktopIconDrag` "live"): the press discipline and Escape of a
+// live icon drag (`mouse`, `input.escapeCancels`) are kept for a package
+// that declares them without Windows 98's outline drag, which
+// ClassicyDesktopIcon.fileDrag.test.tsx tests on the store.
+const windows98LiveIconLayout = {
+	...windows98.layout,
+	transfer: { ...windows98.layout.transfer, desktopIconDrag: "live" },
+};
+
 const defaultProps = {
 	appId: "TestApp",
 	appName: "Test Application",
@@ -368,7 +378,7 @@ describe("ClassicyDesktopIcon — the mouse under the Windows layout", () => {
 				id: "windows-icons-default",
 				package: "windows-icons",
 			},
-			layout: windows98.layout as never,
+			layout: windows98LiveIconLayout as never,
 		});
 	const iconMenu = [{ id: "open", title: "Open Item" }];
 	const renderIcon = () => {
@@ -544,7 +554,7 @@ describe("ClassicyDesktopIcon — selection under the Windows layout", () => {
 				id: "windows-selection-default",
 				package: "windows-selection",
 			},
-			layout: windows98.layout as never,
+			layout: windows98LiveIconLayout as never,
 		});
 	const renderIcon = (props: Partial<typeof defaultProps> = {}) => {
 		const onClickFunc = vi.fn();

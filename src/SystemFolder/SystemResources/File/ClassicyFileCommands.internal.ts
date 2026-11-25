@@ -20,12 +20,16 @@ import {
 	getClassicyFileClipboard,
 	setClassicyFileClipboard,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
-import type { ClassicyFileDropDestination } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import type {
+	ClassicyFileDropDestination,
+	ClassicyFileDropEffect,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
 	type ClassicyFileMoveOptions,
 	classicyDesktopDropLocation,
 	classicyDesktopFolderPath,
+	classicyDesktopIconLocation,
 	classicyDesktopItemIconAction,
 	copyClassicyFileSystemItems,
 	ensureClassicyDesktopFolder,
@@ -912,4 +916,118 @@ export const classicyPasteShortcuts = (
 	}
 	if (made.length > 0) options.commands?.select(made);
 	return made;
+};
+
+/**
+ * Makes a shortcut to each item of `paths` in `destination` (a drop's
+ * Create Shortcut(s) Here, or a Control and Shift drag; WIG Ch.5
+ * "Nondefault Drag and Drop", pp.62-63): "Shortcut to <name>" ("Shortcut
+ * (2) to <name>" on a clash) for each item in the tree and not in the
+ * Trash; on the desktop (its Desktop Folder, made on first use) each icon
+ * goes where `options` puts it (`classicyDesktopIconLocation`), else in the
+ * desktop's first free cell, and the new icons are selected, as Windows
+ * selects the shortcuts it made. A folder that takes no new item (the
+ * Trash, a read-only, system or derived folder) takes none: Windows 98's
+ * offer of the desktop instead (`ClassicyAppFinderOfferDesktopShortcut`,
+ * shell32.dll's "Windows cannot create a shortcut here") is asked. Returns
+ * the shortcuts made, `{ from, to }` (the target's path and the
+ * shortcut's).
+ */
+export const linkClassicyFileSystemItems = (
+	fs: ClassicyFileSystem,
+	paths: readonly string[],
+	destination: ClassicyFileDropDestination,
+	dispatch: Dispatch,
+	options: ClassicyFileMoveOptions = {},
+): { from: string; to: string }[] => {
+	const targets = paths.filter(
+		(path) => fs.resolve(path) && !isInClassicyTrash(fs, path),
+	);
+	if (targets.length === 0) return [];
+	const folder =
+		destination.kind === "desktop"
+			? ensureClassicyDesktopFolder(fs)
+			: destination.path;
+	if (folder === undefined) return [];
+	if (!classicyCanMakeItemIn(fs, folder)) {
+		dispatch({
+			type: "ClassicyAppFinderOfferDesktopShortcut",
+			paths: targets,
+		});
+		return [];
+	}
+	const made: { from: string; to: string }[] = [];
+	for (const target of targets) {
+		const to = createClassicyFileShortcut(fs, target, folder, {
+			appIcon: recordedAppIcon,
+		});
+		if (!to) continue;
+		if (destination.kind === "desktop") {
+			// Placed in the tick the shortcut is made, so the desktop's mirror
+			// of the Desktop Folder finds its icon placed.
+			const action = classicyDesktopItemIconAction(
+				fs,
+				to,
+				classicyDesktopIconLocation(options, made.length, target) ??
+					classicyNextFreeDesktopIconLocation(),
+			);
+			if (action) dispatch(action);
+		}
+		made.push({ from: target, to });
+	}
+	if (destination.kind === "desktop" && made.length > 0) {
+		dispatch({
+			type: "ClassicyDesktopIconSelectBox",
+			iconIds: desktopItemIconIds(made.map(({ to }) => to)),
+		});
+	}
+	return made;
+};
+
+/**
+ * Transfers `paths` into `destination` by a drop's `effect` (WIG Ch.5
+ * "Direct Manipulation Method", pp.62-64): moves them
+ * (`moveClassicyFileSystemItems`, a drop's default), copies them
+ * (`copyClassicyFileSystemItems`, "Copy of <name>" where the name is
+ * taken; a Control-drag, or Copy Here), or makes shortcuts to them
+ * (`linkClassicyFileSystemItems`; a Control and Shift drag, or Create
+ * Shortcut(s) Here), the desktop's icons placed by `options` as each
+ * wrapper places them. Returns what was transferred, `{ from, to }`; an
+ * empty list when nothing was (refusals are told as each wrapper tells
+ * them).
+ */
+export const transferClassicyFileSystemItems = (
+	fs: ClassicyFileSystem,
+	paths: string[],
+	destination: ClassicyFileDropDestination,
+	dispatch: Dispatch,
+	effect: ClassicyFileDropEffect = "move",
+	options: ClassicyFileMoveOptions = {},
+): { from: string; to: string }[] => {
+	switch (effect) {
+		case "copy":
+			return copyClassicyFileSystemItems(
+				fs,
+				paths,
+				destination,
+				dispatch,
+				options,
+			);
+		case "link":
+			return linkClassicyFileSystemItems(
+				fs,
+				paths,
+				destination,
+				dispatch,
+				options,
+			);
+		default:
+			return moveClassicyFileSystemItems(
+				fs,
+				paths,
+				destination,
+				dispatch,
+				options,
+			);
+	}
 };

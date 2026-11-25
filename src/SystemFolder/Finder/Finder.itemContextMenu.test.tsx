@@ -773,3 +773,68 @@ describe("a drop into an inactive Finder window", () => {
 		fs.rmDir(ARCHIVE);
 	});
 });
+
+// A drop's effect (the remaining chapters' audit's 5.33 and 5.34; WIG Ch.5
+// "Nondefault Drag and Drop", pp.62-63; "Shortcut Keys for Transfer
+// Operations", pp.67-68): Finder's drop handler copies the items or makes
+// shortcuts to them when the drop says so (a Control-drag, Copy Here,
+// Create Shortcut(s) Here under Windows 98's `layout.transfer`), and
+// moves them otherwise.
+describe("Finder's drop handler by the drop's effect", () => {
+	const ARCHIVE = "Macintosh HD:Archive";
+	const setUp = async () => {
+		const fs = new ClassicyFileSystem();
+		fs.mkDir(ARCHIVE);
+		fs.writeFile(`${ARCHIVE}:Plan.txt`, "p");
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		render(<Finder />);
+		await waitFor(() => expect(moveHandlers[DOCUMENTS]).toBeDefined());
+		return fs;
+	};
+	const dropIntoDocuments = (effect?: "move" | "copy" | "link") =>
+		act(() =>
+			moveHandlers[DOCUMENTS](
+				[`${ARCHIVE}:Plan.txt`],
+				{ kind: "folder", path: DOCUMENTS },
+				[0, 0],
+				undefined,
+				effect,
+			),
+		);
+	const tidy = (fs: ClassicyFileSystem) => {
+		for (const name of [
+			"Plan.txt",
+			"Copy of Plan.txt",
+			"Shortcut to Plan.txt",
+		]) {
+			if (fs.resolve(`${DOCUMENTS}:${name}`)) fs.rmDir(`${DOCUMENTS}:${name}`);
+		}
+		fs.rmDir(ARCHIVE);
+	};
+
+	it("copies the items for a copy, leaving the originals", async () => {
+		const fs = await setUp();
+		dropIntoDocuments("copy");
+		expect(fs.resolve(`${DOCUMENTS}:Plan.txt`)?._data).toBe("p");
+		expect(fs.resolve(`${ARCHIVE}:Plan.txt`)).toBeDefined();
+		tidy(fs);
+	});
+
+	it("makes shortcuts to the items for a link", async () => {
+		const fs = await setUp();
+		dropIntoDocuments("link");
+		expect(fs.resolve(`${DOCUMENTS}:Shortcut to Plan.txt`)?._targetPath).toBe(
+			`${ARCHIVE}:Plan.txt`,
+		);
+		expect(fs.resolve(`${ARCHIVE}:Plan.txt`)).toBeDefined();
+		tidy(fs);
+	});
+
+	it("moves the items for a move, and with no effect given", async () => {
+		const fs = await setUp();
+		dropIntoDocuments();
+		expect(fs.resolve(`${DOCUMENTS}:Plan.txt`)).toBeDefined();
+		expect(fs.resolve(`${ARCHIVE}:Plan.txt`)).toBeUndefined();
+		tidy(fs);
+	});
+});

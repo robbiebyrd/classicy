@@ -8813,7 +8813,11 @@
 			"extensions": "hideRegistered"
 		},
 		"transfer": {
-			"activateDropWindow": true
+			"activateDropWindow": true,
+			"secondaryButton": "menu",
+			"copyModifier": "ctrl",
+			"autoScroll": true,
+			"desktopIconDrag": "outline"
 		},
 		"fileBrowser": {
 			"keys": "windows",

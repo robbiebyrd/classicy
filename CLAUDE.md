@@ -971,6 +971,28 @@ icon-view icon dropped in its own folder counts the scroll in its travel.
   which `ClassicyListBox` shares) never runs there; under
   `selection.modifiers: "windows"` a double-click opens every selected item
   (`openItemsFunc`).
+- While the outline is shown the desktop root carries `data-classicy-drop`,
+  Windows' drop effect under the pointer (`none` over nothing that takes the
+  drop, else `move`, `copy` or `link`), under every package and read only by
+  Windows 98's stylesheet (its drag pointers, keyed on `#classicyDesktop` and
+  included last). The drop's effect reaches every callback
+  (`onDrop(…, effect)`, `onMoveItems`, `onFileDrag`, `onMoveFilePaths`; a
+  move unless the package says otherwise), and Finder transfers by it
+  (`transferClassicyFileSystemItems`, `ClassicyFileCommands.internal.ts`:
+  move, copy, or `linkClassicyFileSystemItems`' shortcuts). Windows 98's
+  `layout.transfer` adds Explorer's rules: `secondaryButton: "menu"` (button
+  2 drags too and ends in shell32's transfer menu, Move Here, Copy Here,
+  Create Shortcut(s) Here, Cancel, through `useClassicyFileDropMenu`,
+  `File/ClassicyFileDropMenu.ts`, the press's own item menu closed at the
+  drag's start and the browser's `contextmenu` after the release
+  swallowed), `copyModifier: "ctrl"` (Control at the release copies,
+  Control and Shift make shortcuts, never read from the press; a Mac host's
+  Control press moves), `autoScroll` (the WIG's velocity rule with
+  shell32's `DAD_AutoScroll` figures, `ClassicyFileDragAutoScroll.internal.ts`,
+  in place of the line-step band) and `desktopIconDrag: "outline"` (an
+  application's, drive's or the Trash's desktop icon drags as an outline
+  only the desktop takes, `canDrop`). The desktop's own `moveDesktopItems`
+  is the shell's to pass the effect on (hand-off C4).
 
 ### Trash
 

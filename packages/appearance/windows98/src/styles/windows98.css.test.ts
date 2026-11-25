@@ -642,6 +642,70 @@ describe("windows98.scss (compiled)", () => {
 			).toContain("opacity: 0.5");
 		});
 
+		// WIG Ch.5 "Direct Manipulation Transfers" (p.67), Figures 5.16 and
+		// 5.17; Ch.4 Table 4.1 (the audit's 5.37, 4.6 / 5.32, 5.34): the arrow
+		// over everything while a file drag lasts, then the pointer of the
+		// drop effect the core publishes on the desktop root
+		// (`data-classicy-drop`): no-drop where nothing takes it, the copy and
+		// shortcut pointers. Keyed on the root's id, so they outrank every
+		// element's own pointer, and after every other pointer rule.
+		it("draws the arrow during a file drag, and the drop effect's pointer", () => {
+			const root = `${scope}#classicyDesktop`;
+			const ruleAt = (full: string) => {
+				let declarations = "";
+				let at = css.indexOf(full);
+				while (at >= 0) {
+					const open = css.indexOf("{", at);
+					const header = css.slice(
+						Math.max(css.lastIndexOf("}", at), css.lastIndexOf("{", at)) + 1,
+						open,
+					);
+					if (splitSelectors(header.trim()).includes(full))
+						declarations += css.slice(open + 1, css.indexOf("}", open));
+					at = css.indexOf(full, open);
+				}
+				return declarations;
+			};
+			const dragging = `${root}[data-classicy-drop]`;
+			expect(ruleAt(dragging)).toContain("cursor: default");
+			expect(ruleAt(`${dragging} *`)).toContain("cursor: default");
+			for (const [value, cursor] of [
+				["none", "no-drop"],
+				["copy", "copy"],
+				["link", "alias"],
+			]) {
+				const effect = `${root}[data-classicy-drop=${value}]`;
+				expect(ruleAt(effect)).toContain(`cursor: ${cursor}`);
+				expect(ruleAt(`${effect} *`)).toContain(`cursor: ${cursor}`);
+				expect(css.indexOf(effect)).toBeGreaterThan(css.indexOf(dragging));
+			}
+			// After every other pointer rule in the sheet: only its own four
+			// follow the first.
+			expect(css.slice(css.indexOf(dragging)).match(/cursor:/g)).toHaveLength(
+				4,
+			);
+		});
+
+		// WIG Ch.5 "Direct Manipulation Transfers" (p.67), LVIS_DROPHILITED
+		// (the audit's 5.38): the details view's folder row under a drag is
+		// drawn as a selected one, the name in Hilight and the icon dithered,
+		// the base's darkening withdrawn.
+		it("draws a list row under a file drag as selected", () => {
+			const row =
+				".classicyFileBrowserViewTableRowContainer.classicyFileDropTarget";
+			expect(rule(row)).toContain("filter: none");
+			const label = rule(`${row} .classicyFileBrowserViewTableRowIconLabel`);
+			expect(label).toContain(
+				"color: var(--package-color-selection-text, var(--color-white))",
+			);
+			expect(label).toContain("background: var(--color-highlight)");
+			expect(
+				rule(`${row} .classicyFileBrowserViewTableDisclosure::after`),
+			).toContain(
+				"background: repeating-conic-gradient(var(--color-highlight) 0 25%, transparent 0 50%)",
+			);
+		});
+
 		// WIG Ch.5 "Region Selection" (p.42); Windows 98 as shipped,
 		// DrawFocusRect's XOR (the audit's 5.14): the desktop's rectangle is
 		// one-pixel white dots under `difference`, inverting what lies under

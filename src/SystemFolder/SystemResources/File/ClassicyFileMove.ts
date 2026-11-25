@@ -159,25 +159,35 @@ export type ClassicyFileMoveOptions = {
 	/**
 	 * For a desktop destination without `desktopLocation`: where each item's
 	 * icon goes, asked as each is placed (`index` its place among the items
-	 * moved or copied), so a caller may give each the desktop's next free
-	 * cell (Explorer's Paste from the keyboard). Undefined lays the desktop
-	 * out afresh, as an icon added with no location does.
+	 * moved or copied, `from` the original's path), so a caller may give
+	 * each the desktop's next free cell (Explorer's Paste from the keyboard)
+	 * or the place of the icon it copies (a Control-drag on the desktop).
+	 * Undefined lays the desktop out afresh, as an icon added with no
+	 * location does.
 	 */
-	desktopLocationFor?: (index: number) => [number, number] | undefined;
+	desktopLocationFor?: (
+		index: number,
+		from: string,
+	) => [number, number] | undefined;
 };
 
-/** Where `index`'s icon goes on the desktop, by the options. */
-const desktopIconLocation = (
+/**
+ * Where the icon of the `index`th item transferred to the desktop (from
+ * `from`) goes, by the options: `desktopLocation` stepping down by
+ * `desktopStep`, else `desktopLocationFor`, else undefined.
+ */
+export const classicyDesktopIconLocation = (
 	{
 		desktopLocation,
 		desktopStep = 72,
 		desktopLocationFor,
 	}: ClassicyFileMoveOptions,
 	index: number,
+	from: string,
 ): [number, number] | undefined =>
 	desktopLocation
 		? [desktopLocation[0], desktopLocation[1] + index * desktopStep]
-		: desktopLocationFor?.(index);
+		: desktopLocationFor?.(index, from);
 
 /**
  * Move `paths` into `destination`:
@@ -238,11 +248,11 @@ export function moveClassicyFileSystemItems(
 	if (moves.length > 0) {
 		dispatch({ type: "ClassicyAppFinderPathsMoved", moves });
 		if (destination.kind === "desktop") {
-			moves.forEach(({ to }, index) => {
+			moves.forEach(({ from, to }, index) => {
 				const action = classicyDesktopItemIconAction(
 					fs,
 					to,
-					desktopIconLocation(options, index),
+					classicyDesktopIconLocation(options, index, from),
 				);
 				if (action) dispatch(action);
 			});
@@ -323,11 +333,11 @@ export function copyClassicyFileSystemItems(
 		}
 	}
 	if (destination.kind === "desktop") {
-		copies.forEach(({ to }, index) => {
+		copies.forEach(({ from, to }, index) => {
 			const action = classicyDesktopItemIconAction(
 				fs,
 				to,
-				desktopIconLocation(options, index),
+				classicyDesktopIconLocation(options, index, from),
 			);
 			if (action) dispatch(action);
 		});

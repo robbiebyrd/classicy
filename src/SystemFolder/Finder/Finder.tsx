@@ -83,6 +83,7 @@ import {
 	classicyVerbMenuItems,
 	createClassicyDesktopShortcuts,
 	makeClassicyNewItem,
+	transferClassicyFileSystemItems,
 	useClassicyCreatableFileTypes,
 	useClassicyFileVerbs,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileCommands.internal";
@@ -92,7 +93,6 @@ import {
 	classicyDesktopDropLocation,
 	classicyDesktopFolderPath,
 	classicyDesktopItemIconAction,
-	moveClassicyFileSystemItems,
 	moveClassicyItemsToTrash,
 	renameClassicyFileSystemItem,
 	restoreClassicyTrashItems,
@@ -1096,14 +1096,17 @@ export const Finder = () => {
 	// their outline was let go.
 	// A drop that moved something into an inactive Finder window activates
 	// it under `layout.transfer.activateDropWindow` (5.31; WIG Ch.5 "Direct
-	// Manipulation Method", p.62).
+	// Manipulation Method", p.62). Under `layout.transfer`'s copy modifier
+	// and transfer menu (Windows 98) the drop's `effect` copies the items or
+	// makes shortcuts to them instead (5.33, 5.34).
 	const onMoveItems = useCallback<ClassicyFileBrowserMoveItems>(
-		(paths, destination, outlineTopLeft, target) => {
-			const moves = moveClassicyFileSystemItems(
+		(paths, destination, outlineTopLeft, target, effect = "move") => {
+			const moves = transferClassicyFileSystemItems(
 				fs,
 				paths,
 				destination,
 				desktopEventDispatch,
+				effect,
 				{
 					desktopLocation: classicyDesktopDropLocation(outlineTopLeft),
 				},

@@ -14,6 +14,7 @@ import {
 } from "@/Appearance/ClassicyAssetRegistry";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -930,5 +931,123 @@ describe("ClassicyFileBrowserViewTable — a row dragged and opened under the Wi
 		fireEvent.doubleClick(second.row(PLAN));
 		expect(openItemsFunc).not.toHaveBeenCalled();
 		expect(second.fileOnClickFunc).toHaveBeenCalledWith(PLAN);
+	});
+});
+
+// A row's transfers under Windows 98's `layout.transfer` (the remaining
+// chapters' audit's 5.33 and 5.34; WIG Ch.5 "Nondefault Drag and Drop",
+// pp.62-63; "Shortcut Keys for Transfer Operations", pp.67-68): a button-2
+// drag ends in the transfer menu, Control at the release copies, and a
+// copy let go in the list's own folder is made there.
+describe("ClassicyFileBrowserViewTable — a row's transfers under the Windows layout", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "test-windows-list-transfer",
+			name: "Windows list transfer",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-windows-list-transfer-default",
+				package: "test-windows-list-transfer",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				transfer: { secondaryButton: "menu", copyModifier: "ctrl" },
+			},
+		});
+	const PLAN = "Documents:Plan.txt";
+	const renderList = (key: string) => {
+		const cfs = new ClassicyFileSystem(key, {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"Plan.txt": { _type: ClassicyFileSystemEntryFileType.File },
+			},
+		});
+		const onMoveItems = vi.fn();
+		const view = render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyFileBrowserViewTable
+					fs={cfs}
+					path="Documents"
+					appId="Finder.app"
+					onMoveItems={onMoveItems}
+				/>
+			</ClassicyContextualMenuProvider>,
+		);
+		const cell = view.container.querySelector(
+			`[data-classicy-file-path="${PLAN}"]`,
+		) as HTMLElement;
+		return { cell, onMoveItems };
+	};
+	const folder = (path: string) => {
+		const el = document.createElement("div");
+		el.setAttribute("data-classicy-drop-folder", path);
+		return el;
+	};
+	const drag = (
+		cell: HTMLElement,
+		target: Element,
+		{
+			button = 0,
+			ctrlKey = false,
+		}: { button?: number; ctrlKey?: boolean } = {},
+	) =>
+		withElementsFromPoint([target], () => {
+			fireEvent.mouseDown(cell, { button, clientX: 10, clientY: 10 });
+			fireEvent.mouseMove(document, { clientX: 60, clientY: 50, ctrlKey });
+			fireEvent.mouseUp(document, {
+				button,
+				clientX: 60,
+				clientY: 50,
+				ctrlKey,
+			});
+		});
+	const menuText = () =>
+		document.querySelector(".classicyContextMenuWrapper")?.textContent ?? null;
+
+	it("ends a button-2 drag in the transfer menu, and does what is chosen", async () => {
+		useWindowsLayout();
+		const { cell, onMoveItems } = renderList("test-list-transfer-menu");
+		drag(cell, folder("Elsewhere"), { button: 2 });
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(menuText()).toContain("Move Here");
+		expect(menuText()).toContain("Copy Here");
+		fireEvent.click(
+			document.getElementById("classicy_file_drop_copy") as HTMLElement,
+		);
+		await waitFor(() => expect(onMoveItems).toHaveBeenCalledTimes(1));
+		expect(onMoveItems.mock.calls[0][0]).toEqual([PLAN]);
+		expect(onMoveItems.mock.calls[0][1]).toEqual({
+			kind: "folder",
+			path: "Elsewhere",
+		});
+		expect(onMoveItems.mock.calls[0][4]).toBe("copy");
+	});
+
+	it("copies with Control held at the release, also into the list's own folder", () => {
+		useWindowsLayout();
+		const { cell, onMoveItems } = renderList("test-list-transfer-copy");
+		drag(cell, folder("Elsewhere"), { ctrlKey: true });
+		expect(onMoveItems.mock.calls[0][4]).toBe("copy");
+		// Let go in its own folder: a copy is made there, a move nothing.
+		drag(cell, folder("Documents"), { ctrlKey: true });
+		expect(onMoveItems).toHaveBeenCalledTimes(2);
+		expect(onMoveItems.mock.calls[1][1]).toEqual({
+			kind: "folder",
+			path: "Documents",
+		});
+		drag(cell, folder("Documents"));
+		expect(onMoveItems).toHaveBeenCalledTimes(2);
+	});
+
+	it("drags on button 1 alone and always moves without the keys", () => {
+		const { cell, onMoveItems } = renderList("test-list-transfer-none");
+		drag(cell, folder("Elsewhere"), { button: 2 });
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(menuText()).toBeNull();
+		drag(cell, folder("Elsewhere"), { ctrlKey: true });
+		expect(onMoveItems.mock.calls[0][4]).toBe("move");
 	});
 });

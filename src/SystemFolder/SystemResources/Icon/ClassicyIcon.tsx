@@ -24,6 +24,7 @@ import {
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
+	type ClassicyFileDropEffect,
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
@@ -32,6 +33,8 @@ import {
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import { classicyFileDropDestinationEffects } from "@/SystemFolder/SystemResources/File/ClassicyFileDragTransfer.internal";
+import { useClassicyFileDropMenu } from "@/SystemFolder/SystemResources/File/ClassicyFileDropMenu";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyRenameField } from "@/SystemFolder/SystemResources/Icon/ClassicyRenameField.internal";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
@@ -120,14 +123,30 @@ interface ClassicyIconProps {
 	 * (or refused) elsewhere and the icon stays put. `moved` is how far the
 	 * pointer went across the icon's holder, less however far the holder
 	 * scrolled meanwhile: what the icon moves by on `false`, for a caller
-	 * moving other icons with it.
+	 * moving other icons with it. `effect` is what the drop does: `"move"`,
+	 * else, under the package's `layout.transfer` (Windows 98), `"copy"`
+	 * (Control held at the release, or the transfer menu's Copy Here) or
+	 * `"link"` (Control and Shift, or Create Shortcut(s) Here). Under
+	 * `layout.transfer.secondaryButton` "menu" button 2 drags too, and its
+	 * release over a target shows Windows 98 SE's transfer menu, whose
+	 * choice calls this with its effect (Cancel calls nothing).
 	 */
 	onFileDrag?: (
 		target: ClassicyFileDropTarget | null,
 		point: [number, number],
 		outlineTopLeft: [number, number],
 		moved: [number, number],
+		effect: ClassicyFileDropEffect,
 	) => boolean;
+	/**
+	 * With `onFileDrag`: the effects a target takes for what is dragged
+	 * (`classicyFileDropEffects`), which bound the copy modifier and the
+	 * transfer menu's items. Omitted, the target's own
+	 * (`classicyFileDropDestinationEffects`: a move alone into the Trash).
+	 */
+	fileDropEffects?: (
+		target: ClassicyFileDropTarget,
+	) => readonly ClassicyFileDropEffect[];
 	/**
 	 * With `onFileDrag`: what the outline traces, read once when the drag
 	 * begins (the pointer past the drag threshold) rather than at the press,
@@ -266,6 +285,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	dropFolderPath,
 	filePath,
 	onFileDrag,
+	fileDropEffects,
 	fileDragParts,
 	moveBy,
 	selected: selectedProp,
@@ -331,6 +351,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const dragEmittedRef = useRef(false);
 	// A file drag in progress ends (canceled) before the icon unmounts.
 	const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
+	// Button 2 drags too, ending in Windows 98 SE's transfer menu
+	// (`layout.transfer.secondaryButton` "menu").
+	const dropMenu = useClassicyFileDropMenu();
 
 	const id = `${appId}.shortcut`;
 
@@ -420,7 +443,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		// carries what it selected.
 		if (controlled) onSelectPress?.(e);
 		if (onFileDrag) {
-			if (e.button !== 0) return;
+			if (!dropMenu.startsDrag(e)) return;
 			const el = iconRef.current;
 			// Where the icons' holder is on screen at the press: the folder's
 			// contents may scroll under the drag (its window auto-scrolls near
@@ -429,32 +452,30 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			const ownParts = () => [
 				{ image: el?.querySelector("img"), label: el?.querySelector("p") },
 			];
-			const abandon = startClassicyFileDrag({
-				start: { clientX: e.clientX, clientY: e.clientY },
-				// Read when the outline is first drawn.
-				get parts() {
-					return fileDragParts ? fileDragParts() : ownParts();
-				},
-				source: el,
-				// The outline drags, not the icon: `dragging` stays off.
-				...classicyFileDragAppearanceCallbacks(appearance.emit),
-				onDrop: (target, point, outlineTopLeft) => {
-					// Dropped back in its own folder: the icon goes where its
-					// outline was let go, i.e. it moves as far as the pointer did
-					// across the contents, less however far they scrolled.
-					const holderNow = holder?.current?.getBoundingClientRect();
-					const scrolled =
-						holderAtPress && holderNow
-							? [
-									holderNow.left - holderAtPress.left,
-									holderNow.top - holderAtPress.top,
-								]
-							: [0, 0];
-					const moved: [number, number] = [
-						point[0] - e.clientX - scrolled[0],
-						point[1] - e.clientY - scrolled[1],
-					];
-					if (onFileDrag(target, point, outlineTopLeft, moved)) return;
+			// The release, measured as it comes (a transfer menu's choice
+			// comes later): how far the pointer went across the contents,
+			// less however far they scrolled. Then the drop by an effect:
+			// back in its own folder, a move takes the icon where its outline
+			// was let go.
+			const releaseAt = (
+				target: ClassicyFileDropTarget | null,
+				point: [number, number],
+				outlineTopLeft: [number, number],
+			) => {
+				const holderNow = holder?.current?.getBoundingClientRect();
+				const scrolled =
+					holderAtPress && holderNow
+						? [
+								holderNow.left - holderAtPress.left,
+								holderNow.top - holderAtPress.top,
+							]
+						: [0, 0];
+				const moved: [number, number] = [
+					point[0] - e.clientX - scrolled[0],
+					point[1] - e.clientY - scrolled[1],
+				];
+				return (effect: ClassicyFileDropEffect) => {
+					if (onFileDrag(target, point, outlineTopLeft, moved, effect)) return;
 					if (positionLocked) return;
 					const next: [number, number] = [
 						position[0] + moved[0],
@@ -462,7 +483,34 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					];
 					setPosition(snapTo ? snapToGrid(next, snapTo, snapOrigin) : next);
 					setFocus(true);
+				};
+			};
+			const appearanceCallbacks = classicyFileDragAppearanceCallbacks(
+				appearance.emit,
+			);
+			const abandon = startClassicyFileDrag({
+				start: {
+					clientX: e.clientX,
+					clientY: e.clientY,
+					ctrlKey: e.ctrlKey,
+					shiftKey: e.shiftKey,
 				},
+				// Read when the outline is first drawn.
+				get parts() {
+					return fileDragParts ? fileDragParts() : ownParts();
+				},
+				source: el,
+				// The outline drags, not the icon: `dragging` stays off.
+				...appearanceCallbacks,
+				...dropMenu.dragOptions(e, {
+					effects: (target) =>
+						fileDropEffects?.(target) ??
+						classicyFileDropDestinationEffects(target.destination),
+					onStart: appearanceCallbacks.onStart,
+					transferAt: releaseAt,
+				}),
+				onDrop: (target, point, outlineTopLeft, effect) =>
+					releaseAt(target, point, outlineTopLeft)(effect),
 			});
 			endFileDragOnUnmount(abandon);
 			return;

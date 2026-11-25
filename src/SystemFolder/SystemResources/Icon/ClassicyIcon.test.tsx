@@ -14,6 +14,7 @@ import {
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 // The Windows-layout package below needs a sound pack registered.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
 	ClassicyIcon,
 	snapToGrid,
@@ -576,5 +577,144 @@ describe("ClassicyIcon — the icon view's props", () => {
 		render(<ClassicyIcon {...props} onClickFunc={onClickFunc} />);
 		expect(fireEvent.keyDown(iconRoot(), { key: " " })).toBe(false);
 		expect(onClickFunc).toHaveBeenCalledOnce();
+	});
+});
+
+// An icon's file drag under Windows 98's `layout.transfer` (the remaining
+// chapters' audit's 5.33 / 11.7 / A.5 and 5.34 / A.8; WIG Ch.5
+// "Nondefault Drag and Drop", pp.62-63; "Shortcut Keys for Transfer
+// Operations", pp.67-68): button 2 drags too, ending in the transfer menu,
+// whose choice reaches `onFileDrag` with its effect; Control at the
+// release copies.
+describe("ClassicyIcon — a file drag's transfers", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useTransferLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "test-icon-transfer",
+			name: "Icon transfer",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-icon-transfer-default",
+				package: "test-icon-transfer",
+			},
+			layout: {
+				...(windows98.layout as never as Record<string, unknown>),
+				transfer: { secondaryButton: "menu", copyModifier: "ctrl" },
+			} as never,
+		});
+	const iconProps = {
+		appId: "Test.app",
+		name: "Plan",
+		icon: "/plan.png",
+	};
+	const root = () => document.querySelector(".classicyIcon") as HTMLElement;
+	const renderIcon = (
+		extra: Partial<Parameters<typeof ClassicyIcon>[0]> = {},
+	) => {
+		const holder = createRef<HTMLDivElement>();
+		const onFileDrag = vi.fn(() => true);
+		render(
+			<ClassicyContextualMenuProvider>
+				<div ref={holder}>
+					<ClassicyIcon
+						{...iconProps}
+						holder={holder}
+						onFileDrag={onFileDrag}
+						{...extra}
+					/>
+				</div>
+			</ClassicyContextualMenuProvider>,
+		);
+		return { onFileDrag };
+	};
+	const folder = (path: string) => {
+		const el = document.createElement("div");
+		el.setAttribute("data-classicy-drop-folder", path);
+		return el;
+	};
+	const drag = (
+		target: Element,
+		{
+			button = 0,
+			ctrlKey = false,
+		}: { button?: number; ctrlKey?: boolean } = {},
+	) => {
+		const original = document.elementsFromPoint;
+		document.elementsFromPoint = () => [target];
+		try {
+			fireEvent.mouseDown(root(), { button, clientX: 10, clientY: 10 });
+			fireEvent.mouseMove(document, { clientX: 40, clientY: 30, ctrlKey });
+			fireEvent.mouseUp(document, {
+				button,
+				clientX: 40,
+				clientY: 30,
+				ctrlKey,
+			});
+		} finally {
+			document.elementsFromPoint = original;
+		}
+	};
+	const menuItems = () =>
+		[...document.querySelectorAll(".classicyContextMenuWrapper li[id]")].map(
+			(li) => li.textContent,
+		);
+
+	it("ends a button-2 drag in the transfer menu, whose choice reaches onFileDrag", async () => {
+		useTransferLayout();
+		const { onFileDrag } = renderIcon();
+		drag(folder("Elsewhere"), { button: 2 });
+		expect(onFileDrag).not.toHaveBeenCalled();
+		expect(menuItems()).toEqual(
+			expect.arrayContaining([
+				"Move Here",
+				"Copy Here",
+				"Create Shortcut(s) Here",
+				"Cancel",
+			]),
+		);
+		fireEvent.click(
+			document.getElementById("classicy_file_drop_link") as HTMLElement,
+		);
+		await vi.waitFor(() => expect(onFileDrag).toHaveBeenCalledTimes(1));
+		const call = onFileDrag.mock.calls[0] as unknown[];
+		expect(call[0]).toMatchObject({
+			destination: { kind: "folder", path: "Elsewhere" },
+		});
+		// The pointer's travel at the release.
+		expect(call[3]).toEqual([30, 20]);
+		expect(call[4]).toBe("link");
+	});
+
+	it("offers only the effects fileDropEffects gives", () => {
+		useTransferLayout();
+		renderIcon({ fileDropEffects: () => ["move"] });
+		drag(folder("Elsewhere"), { button: 2 });
+		expect(menuItems()).not.toContain("Copy Here");
+		expect(menuItems()).toContain("Move Here");
+	});
+
+	it("offers a move alone over the Trash without fileDropEffects", () => {
+		useTransferLayout();
+		renderIcon();
+		drag(folder("Trash"), { button: 2 });
+		expect(menuItems()).not.toContain("Copy Here");
+		expect(menuItems()).not.toContain("Create Shortcut(s) Here");
+	});
+
+	it("copies with Control held at the release", () => {
+		useTransferLayout();
+		const { onFileDrag } = renderIcon();
+		drag(folder("Elsewhere"), { ctrlKey: true });
+		expect((onFileDrag.mock.calls[0] as unknown[])[4]).toBe("copy");
+	});
+
+	it("drags on button 1 alone and moves, without the keys", () => {
+		const { onFileDrag } = renderIcon();
+		drag(folder("Elsewhere"), { button: 2 });
+		expect(onFileDrag).not.toHaveBeenCalled();
+		expect(menuItems()).toEqual([]);
+		drag(folder("Elsewhere"), { ctrlKey: true });
+		expect((onFileDrag.mock.calls[0] as unknown[])[4]).toBe("move");
 	});
 });

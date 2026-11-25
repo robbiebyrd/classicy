@@ -215,6 +215,7 @@ export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable"
 export * from "./SystemFolder/SystemResources/File/ClassicyFileClipboard";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileDrag";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+export * from "./SystemFolder/SystemResources/File/ClassicyFileDropMenu";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileMove";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileNames";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileProperties";

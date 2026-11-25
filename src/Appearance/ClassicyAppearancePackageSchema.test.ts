@@ -377,6 +377,46 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// Explorer's drag transfers (the remaining chapters' audit's 5.33,
+	// 5.34, 5.35 and 5.36; WIG Ch.5 pp.62-68): transfer.secondaryButton,
+	// copyModifier, autoScroll and desktopIconDrag, optional, in the
+	// transfer group.
+	it("takes the transfer group's drag keys, and refuses other values", () => {
+		const good = {
+			secondaryButton: "menu",
+			copyModifier: "ctrl",
+			autoScroll: true,
+			desktopIconDrag: "outline",
+		};
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).transfer = good;
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.transfer).toEqual(good);
+		const live = platinumShaped();
+		(live.layout as Record<string, unknown>).transfer = {
+			autoScroll: false,
+			desktopIconDrag: "live",
+		};
+		expect(ClassicyAppearancePackageSchema.safeParse(live).success).toBe(true);
+		for (const [key, value] of [
+			["secondaryButton", "select"],
+			["copyModifier", "alt"],
+			["autoScroll", "yes"],
+			["desktopIconDrag", "ghost"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).transfer = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				"transfer",
+				key,
+			]);
+		}
+	});
+
 	// Which key a Command equivalent answers to (the remaining chapters'
 	// audit's 4.19; WIG Ch.4 "Shortcut Keys", p.28): keyboard.command,
 	// optional, beside contextMenuKey in the keyboard group.

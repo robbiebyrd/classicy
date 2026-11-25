@@ -32,9 +32,11 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import { classicyDesktopIconSelectMode } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopSelectBox.internal";
 import { useClassicyFileCut } from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
+import { transferClassicyFileSystemItems } from "@/SystemFolder/SystemResources/File/ClassicyFileCommands.internal";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	type ClassicyFileDropDestination,
+	type ClassicyFileDropEffect,
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
@@ -43,6 +45,10 @@ import {
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import {
+	classicyFileDropEffects,
+	useClassicyFileDropMenu,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDropMenu";
 import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
 	renameClassicyFileSystemItem,
@@ -159,15 +165,21 @@ interface ClassicyDesktopIconProps {
 	/**
 	 * Move file-backed desktop icons' items into a folder. Called with the
 	 * paths of every selected file-backed icon when the outline is let go on a
-	 * folder, a drive or a Finder window, and the drop target itself, its
+	 * folder, a drive or a Finder window, the drop target itself, its
 	 * marked element included (for `activateClassicyDropWindow`, which
 	 * activates an inactive Finder window a drop lands in under
-	 * `layout.transfer.activateDropWindow`). `ClassicyDesktop` supplies it.
+	 * `layout.transfer.activateDropWindow`), and what the drop does:
+	 * `"move"`, else, under the package's `layout.transfer` (Windows 98),
+	 * `"copy"` (Control held at the release, or the transfer menu's Copy
+	 * Here) or `"link"` (Control and Shift, or Create Shortcut(s) Here); a
+	 * copy or shortcut let go on the desktop itself is made by the icon.
+	 * `ClassicyDesktop` supplies it.
 	 */
 	onMoveFilePaths?: (
 		paths: string[],
 		destination: ClassicyFileDropDestination,
 		target?: ClassicyFileDropTarget,
+		effect?: ClassicyFileDropEffect,
 	) => void;
 	/**
 	 * Open a file-backed icon's item (a folder in Finder, a file in its app).
@@ -363,6 +375,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// Set when the press's file drag began: the click a release over
 			// the icon ends it with applies no deferred selection.
 			const fileDraggedRef = useRef(false);
+			// Set when the press's outline drag began (`layout.transfer.
+			// desktopIconDrag` "outline"): the click a release over the icon
+			// ends it with selects nothing, as after a drag of the icon itself.
+			const outlineDraggedRef = useRef(false);
 			// Windows' selection keys (`selection.keyboard`): Space selects and
 			// the icon is a list box option. One Tab stop on the desktop
 			// (`selection.iconNavigation` "roving"): the focus icon.
@@ -446,6 +462,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const dragEmittedRef = useRef(false);
 			// A file drag in progress ends (canceled) before the icon unmounts.
 			const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
+			// Button 2 drags a file icon too, ending in Windows 98 SE's
+			// transfer menu (`layout.transfer.secondaryButton` "menu").
+			const dropMenu = useClassicyFileDropMenu();
 
 			// Stock copy, the app's description and the title are resolved here,
 			// not stored on the icon record, so revised text ships with the
@@ -486,8 +505,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				e.stopPropagation();
 				const press = pressModeRef.current;
 				pressModeRef.current = undefined;
-				if (didDragRef.current) {
+				if (didDragRef.current || outlineDraggedRef.current) {
 					didDragRef.current = false;
+					outlineDraggedRef.current = false;
 					selectedOnPressRef.current = false;
 					return;
 				}
@@ -734,6 +754,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				didDragRef.current = false;
 				canceledRef.current = false;
 				fileDraggedRef.current = false;
+				outlineDraggedRef.current = false;
 				// Control, ⌘ or Shift under `selection.modifiers` "windows":
 				// an unselected icon takes the modified selection now (WIG App.
 				// A Table A.3, "CTRL+Press": "Selects the object"); a selected
@@ -762,11 +783,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				}
 
 				if (draggedAsFile(kind, filePath)) {
-					if (e.button === 0) startFileDrag(e);
+					if (dropMenu.startsDrag(e)) startFileDrag(e);
 					return;
 				}
 				// Button 2 selects (above) but drags only under the Mac's rule.
 				if (!isClassicyGestureButton(e, layout)) return;
+				// Under `layout.transfer.desktopIconDrag` "outline" (Windows 98)
+				// the icons stay put and an outline of them is dragged.
+				if (layout.transfer?.desktopIconDrag === "outline") {
+					if (e.button === 0) startOutlineDrag(e);
+					return;
+				}
 
 				const rect = iconRef.current.getBoundingClientRect();
 				setClickPosition([e.clientX - rect.left, e.clientY - rect.top]);
@@ -813,42 +840,156 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				const dragCallbacks = classicyFileDragAppearanceCallbacks(
 					appearance.emit,
 				);
+				const paths = dragged.flatMap((i) =>
+					i.filePath !== undefined && draggedAsFile(i.kind, i.filePath)
+						? [i.filePath]
+						: [],
+				);
+				// The drop by its effect: let go on the desktop, a move takes
+				// the icons where their outline was, a copy or shortcut is
+				// made there (each where its original's outline was); on a
+				// folder, `onMoveFilePaths` transfers the items.
+				const transferAt =
+					(target: ClassicyFileDropTarget, point: [number, number]) =>
+					(effect: ClassicyFileDropEffect) => {
+						track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
+						const delta: [number, number] = [
+							point[0] - start[0],
+							point[1] - start[1],
+						];
+						if (target.destination.kind !== "desktop") {
+							onMoveFilePaths?.(paths, target.destination, target, effect);
+							return;
+						}
+						const icons = useAppManager.getState().System.Manager.Desktop.icons;
+						if (effect !== "move") {
+							const placeOf = (path: string) =>
+								icons.find((i) => i.filePath === path)?.location;
+							transferClassicyFileSystemItems(
+								getItemFileSystem(),
+								paths,
+								target.destination,
+								desktopEventDispatch,
+								effect,
+								{
+									desktopLocationFor: (_index, from) => {
+										const place = placeOf(from);
+										return place
+											? [place[0] + delta[0], place[1] + delta[1]]
+											: undefined;
+									},
+								},
+							);
+							return;
+						}
+						// Moving one icon moves the selection with it (see the
+						// ClassicyDesktopIconMove reducer).
+						const from = icons.find((i) => i.appId === appId)?.location ?? [
+							0, 0,
+						];
+						desktopEventDispatch({
+							type: "ClassicyDesktopIconMove",
+							app: { id: appId },
+							location: [from[0] + delta[0], from[1] + delta[1]],
+						});
+					};
 				const abandon = startClassicyFileDrag({
-					start: { clientX: start[0], clientY: start[1] },
+					start: {
+						clientX: start[0],
+						clientY: start[1],
+						ctrlKey: e.ctrlKey,
+						shiftKey: e.shiftKey,
+					},
 					parts,
 					source: iconRef.current,
 					// The outline drags, not the icon: `dragging` stays off.
 					...dragCallbacks,
-					onStart: () => {
-						fileDraggedRef.current = true;
-						dragCallbacks.onStart();
+					...dropMenu.dragOptions(e, {
+						effects: (target) =>
+							classicyFileDropEffects(
+								getItemFileSystem(),
+								paths,
+								target.destination,
+							),
+						onStart: () => {
+							fileDraggedRef.current = true;
+							dragCallbacks.onStart();
+						},
+						transferAt,
+					}),
+					onDrop: (target, point, _outlineTopLeft, effect) => {
+						if (target) transferAt(target, point)(effect);
 					},
+				});
+				endFileDragOnUnmount(abandon);
+			};
+
+			// Under `layout.transfer.desktopIconDrag` "outline" (Windows 98; WIG
+			// Ch.5 "Direct Manipulation Transfers", p.66: the source stays
+			// where it is until the transfer completes): an icon that stands
+			// for no file drags as Finder items do, a dotted outline of every
+			// selected icon following the pointer while the icons stay put.
+			// Only the desktop takes it (a folder, drive or the Trash neither
+			// highlights nor accepts it, and shows the no-drop feedback); let
+			// go there, the icons move as far as the pointer did; Escape or a
+			// lost pointer stream leaves them where they were.
+			const startOutlineDrag = (e: MouseEvent<HTMLDivElement>) => {
+				const desktop = useAppManager.getState().System.Manager.Desktop;
+				const selected = new Set(desktop.selectedIcons ?? []);
+				selected.add(appId);
+				const parts: ClassicyFileDragOutlinePart[] = desktop.icons
+					.filter((i) => selected.has(i.appId))
+					.flatMap((i) => {
+						const el =
+							i.appId === appId
+								? iconRef.current
+								: document.getElementById(`${i.appId}.shortcut`);
+						return el
+							? [
+									{
+										image: el.querySelector<HTMLImageElement>(
+											".classicyDesktopIconMask img",
+										),
+										label: el.querySelector("p"),
+									},
+								]
+							: [];
+					});
+				const start: [number, number] = [e.clientX, e.clientY];
+				const abandon = startClassicyFileDrag({
+					start: { clientX: start[0], clientY: start[1] },
+					parts,
+					source: iconRef.current,
+					canDrop: (target) => target.destination.kind === "desktop",
+					effects: () => ["move"],
+					// The outline drags, not the icon: `dragging` stays off. The
+					// package hears the drag as it hears the icon's own.
+					onStart: () => {
+						outlineDraggedRef.current = true;
+						appearance.emit("dragStart");
+					},
+					onEnd: ({ canceled, lost }) =>
+						appearance.emit(
+							"dragEnd",
+							canceled && !lost ? { lost, canceled: true } : { lost },
+						),
 					onDrop: (target, point) => {
 						if (!target) return;
 						track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
-						if (target.destination.kind === "desktop") {
-							// Moving one icon moves the selection with it (see the
-							// ClassicyDesktopIconMove reducer).
-							const from = useAppManager
-								.getState()
-								.System.Manager.Desktop.icons.find((i) => i.appId === appId)
-								?.location ?? [0, 0];
-							desktopEventDispatch({
-								type: "ClassicyDesktopIconMove",
-								app: { id: appId },
-								location: [
-									from[0] + point[0] - start[0],
-									from[1] + point[1] - start[1],
-								],
-							});
-							return;
-						}
-						const paths = dragged.flatMap((i) =>
-							i.filePath !== undefined && draggedAsFile(i.kind, i.filePath)
-								? [i.filePath]
-								: [],
-						);
-						onMoveFilePaths?.(paths, target.destination, target);
+						// Moving one icon moves the selection with it (see the
+						// ClassicyDesktopIconMove reducer).
+						const from = useAppManager
+							.getState()
+							.System.Manager.Desktop.icons.find((i) => i.appId === appId)
+							?.location ?? [0, 0];
+						desktopEventDispatch({
+							type: "ClassicyDesktopIconMove",
+							app: { id: appId },
+							location: [
+								from[0] + point[0] - start[0],
+								from[1] + point[1] - start[1],
+							],
+						});
 					},
 				});
 				endFileDragOnUnmount(abandon);
