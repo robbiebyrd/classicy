@@ -162,6 +162,21 @@
 			"menuBar": {
 				"titleHeight": 18
 			},
+			"taskbar": {
+				"height": 28,
+				"buttonHeight": 22,
+				"startButtonWidth": 54,
+				"startGap": 4,
+				"buttonMaxWidth": 160,
+				"buttonMinWidth": 22,
+				"buttonGap": 3,
+				"buttonPaddingX": 3,
+				"iconGap": 3,
+				"trayIconSize": 16,
+				"trayIconPitch": 20,
+				"trayPaddingX": 3,
+				"clockPaddingX": 5
+			},
 			"menu": {
 				"popUpMaxHeight": 106
 			},
@@ -363,6 +378,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -562,6 +592,21 @@
 				},
 				"menuBar": {
 					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -765,6 +810,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -966,6 +1026,21 @@
 				},
 				"menuBar": {
 					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1169,6 +1244,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -1370,6 +1460,21 @@
 				},
 				"menuBar": {
 					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -1575,6 +1680,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -1775,6 +1895,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -1974,6 +2109,21 @@
 				},
 				"menuBar": {
 					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -2179,6 +2329,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -2381,6 +2546,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -2582,6 +2762,21 @@
 				},
 				"menuBar": {
 					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -2787,6 +2982,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -2988,6 +3198,21 @@
 				},
 				"menuBar": {
 					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3191,6 +3416,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -3393,6 +3633,21 @@
 				"menuBar": {
 					"titleHeight": 18
 				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
+				},
 				"menu": {
 					"popUpMaxHeight": 106
 				},
@@ -3592,6 +3847,21 @@
 				},
 				"menuBar": {
 					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
 				},
 				"menu": {
 					"popUpMaxHeight": 106
@@ -3796,6 +4066,21 @@
 				},
 				"menuBar": {
 					"titleHeight": 18
+				},
+				"taskbar": {
+					"height": 28,
+					"buttonHeight": 22,
+					"startButtonWidth": 54,
+					"startGap": 4,
+					"buttonMaxWidth": 160,
+					"buttonMinWidth": 22,
+					"buttonGap": 3,
+					"buttonPaddingX": 3,
+					"iconGap": 3,
+					"trayIconSize": 16,
+					"trayIconPitch": 20,
+					"trayPaddingX": 3,
+					"clockPaddingX": 5
 				},
 				"menu": {
 					"popUpMaxHeight": 106

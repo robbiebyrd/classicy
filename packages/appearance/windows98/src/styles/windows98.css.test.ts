@@ -469,4 +469,192 @@ describe("windows98.scss (compiled)", () => {
 			);
 		}
 	});
+
+	// The taskbar (plan 0020-w98 §7; WIG Ch.3 "The Taskbar", "The Start
+	// Button", "Window Buttons" and "The Status Area", pp.15-16, Figure 3.1;
+	// Ch.10 "Taskbar Integration", pp.211-212, Figure 10.2), drawn as Windows
+	// 98 draws it (Wine's comctl32 and DrawEdge tables, ReactOS's explorer).
+	describe("the taskbar", () => {
+		const selectors = selectorsOf(css);
+		const at = (tail: string) =>
+			selectors.findIndex((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(
+			([, head, body]) => ({ selectors: splitSelectors(head.trim()), body }),
+		);
+		const rulesOn = (pattern: RegExp) =>
+			rules.filter((rule) => rule.selectors.some((s) => pattern.test(s)));
+		const B = "var(--window-border-size)";
+		const B2 = `calc(${B} + ${B})`;
+		const NEG_B = `calc(${B} * -1)`;
+		const NEG_B2 = `calc(${B2} * -1)`;
+		// The soft raised edge (a push button's, `b.raised`) and the soft
+		// sunken one (`b.pressed`), as DrawEdge's BF_SOFT tables draw
+		// EDGE_RAISED and EDGE_SUNKEN.
+		const RAISED = `box-shadow: inset ${NEG_B} ${NEG_B} var(--color-system-07), inset ${B} ${B} var(--color-system-01), inset ${NEG_B2} ${NEG_B2} var(--color-system-05), inset ${B2} ${B2} var(--color-system-02)`;
+		const PUSHED = `box-shadow: inset ${NEG_B} ${NEG_B} var(--color-system-01), inset ${B} ${B} var(--color-system-07), inset ${NEG_B2} ${NEG_B2} var(--color-system-02), inset ${B2} ${B2} var(--color-system-05)`;
+		const CHECKER =
+			"background: repeating-conic-gradient(var(--color-system-01) 0 25%, var(--color-system-03) 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)";
+		const SHIFT = `translate: ${B} ${B}`;
+
+		// The bar: 28 px of ButtonFace, the raised edge on its top (a
+		// ButtonLight row over a ButtonHilight row, DrawEdge EDGE_RAISED
+		// BF_TOP), its contents 2 px above the bottom and as far under the
+		// edge, its sides 2 px in.
+		it("draws the bar with its raised top edge", () => {
+			const bar = block("=windows98] .classicyTaskbar");
+			expect(bar).toContain("height: var(--taskbar-height)");
+			expect(bar).toContain(
+				`padding: calc(var(--taskbar-height) - var(--taskbar-button-height) - ${B2}) ${B2} ${B2}`,
+			);
+			expect(bar).toContain("background: var(--color-system-03)");
+			expect(bar).toContain(
+				`box-shadow: inset 0 ${B} var(--color-system-02), inset 0 ${B2} var(--color-system-01)`,
+			);
+			expect(bar).toContain("font-family: var(--ui-font)");
+			expect(bar).toContain("font-size: var(--ui-font-size)");
+		});
+
+		// The Start button: a raised push button at least 54 wide, 22 tall,
+		// its label bold, the gap before the window buttons; pushed in while
+		// its menu is open, the contents a pixel down and right, never the
+		// checker (a pushed button, not a checked one); the focus rectangle
+		// three pixels in.
+		it("draws the Start button raised, and pushed in without the checker while open", () => {
+			const start = block("=windows98] .classicyTaskbarStart");
+			expect(start).toContain("min-width: var(--taskbar-start-button-width)");
+			expect(start).toContain("margin-right: var(--taskbar-start-gap)");
+			expect(start).toContain("height: var(--taskbar-button-height)");
+			expect(start).toContain("padding: 0 var(--taskbar-button-padding-x)");
+			expect(start).toContain("gap: var(--taskbar-icon-gap)");
+			expect(start).toContain("background: var(--color-system-03)");
+			expect(start).toContain(RAISED);
+			expect(start).not.toContain("margin: 0");
+			const open = block(".classicyTaskbarStart:is(.open, :active)");
+			expect(open).toContain(PUSHED);
+			expect(open).not.toContain("background");
+			expect(block(".classicyTaskbarStart:is(.open, :active) > *")).toContain(
+				SHIFT,
+			);
+			for (const rule of rulesOn(/\.classicyTaskbarStart\b/))
+				expect(rule.body, rule.selectors.join(", ")).not.toContain(
+					"repeating-conic-gradient",
+				);
+			expect(block(".classicyTaskbarStartLabel")).toContain(
+				"font-weight: bold",
+			);
+			expect(block(".classicyTaskbarStart:focus-visible")).toContain(
+				`outline-offset: calc(calc(${B2} + ${B}) * -1)`,
+			);
+		});
+
+		// The Start glyph: the package's own 16 x 14 pixel art (no Microsoft
+		// flag), a small window from the theme's tokens, each package color
+		// read with a core token behind it.
+		it("draws the Start glyph as pixel art from the window tokens", () => {
+			const glyph = block(".classicyTaskbarStartIcon");
+			expect(glyph).toContain("width: calc(var(--pixel-unit) * 16)");
+			expect(glyph).toContain("height: calc(var(--pixel-unit) * 14)");
+			for (const ink of [
+				"var(--color-system-07)",
+				"var(--color-system-03)",
+				"var(--package-color-title-bar-active, var(--color-highlight))",
+				"var(--package-color-title-bar-active-gradient, var(--color-highlight))",
+				"var(--package-color-title-bar-text, var(--color-white))",
+				"var(--color-window-document)",
+			])
+				expect(glyph).toContain(`linear-gradient(${ink}, ${ink})`);
+			expect(glyph).not.toMatch(/url\(/);
+			// The outline is the bottom layer, the whole 16 x 14 box.
+			expect(glyph).toMatch(
+				/linear-gradient\(var\(--color-system-07\), var\(--color-system-07\)\) 0 0\/calc\(var\(--pixel-unit\) \* 16\) calc\(var\(--pixel-unit\) \* 14\) no-repeat;\s*$/,
+			);
+		});
+
+		// A window button: an even share of the row up to 160 and never
+		// under 22, 3 px apart; raised at rest; pushed in on a plain face
+		// while held; the active window's pushed in over the
+		// ButtonHilight/ButtonFace checker with its title bold (comctl32's
+		// selected TCS_BUTTONS item), after the held rule so a press on it
+		// keeps the checker; a minimized window's an ordinary raised button;
+		// nothing under the pointer.
+		it("draws the window buttons raised, the active one pushed in over the checker", () => {
+			const item = block(".classicyTaskbarTasks > li");
+			expect(item).toContain("flex: 0 1 var(--taskbar-button-max-width)");
+			expect(item).toContain("min-width: var(--taskbar-button-min-width)");
+			const list = block(".classicyTaskbarTasks");
+			expect(list).toContain("gap: var(--taskbar-button-gap)");
+			expect(list).toContain("padding-right: var(--taskbar-button-gap)");
+			expect(list).toContain("overflow: hidden");
+			const task = block("=windows98] .classicyTaskbarTask");
+			expect(task).toContain("height: var(--taskbar-button-height)");
+			expect(task).toContain("padding: 0 var(--taskbar-button-padding-x)");
+			expect(task).toContain(RAISED);
+			expect(block(".classicyTaskbarTaskIcon")).toContain(
+				"width: var(--icon-small-size)",
+			);
+			const pressed = block(".classicyTaskbarTask.pressed");
+			expect(pressed).toContain(PUSHED);
+			expect(pressed).not.toContain("background");
+			expect(block(".classicyTaskbarTask.pressed > *")).toContain(SHIFT);
+			const active = block(".classicyTaskbarTask.active");
+			expect(active).toContain(CHECKER);
+			expect(active).toContain(PUSHED);
+			expect(block(".classicyTaskbarTask.active > *")).toContain(SHIFT);
+			expect(
+				block(".classicyTaskbarTask.active .classicyTaskbarTaskLabel"),
+			).toContain("font-weight: bold");
+			expect(at(".classicyTaskbarTask.active")).toBeGreaterThan(
+				at(".classicyTaskbarTask.pressed"),
+			);
+			expect(rulesOn(/\.classicyTaskbarTask\.collapsed/)).toEqual([]);
+			expect(
+				rulesOn(/\.classicyTaskbar(Start|Task|TrayIcon)\b[^ ]*:hover/),
+			).toEqual([]);
+		});
+
+		// The status area: a pane the buttons' height in one sunken ring
+		// (BDR_SUNKENOUTER), its icons flat in 20 px cells with no bevel at
+		// rest, held or open, the menu bar extensions at the same pitch and
+		// plain under the pointer, and the clock 5 px in from either side.
+		it("draws the status area as one sunken ring of flat icons and the clock", () => {
+			const tray = block("=windows98] .classicyTaskbarTray");
+			expect(tray).toContain("height: var(--taskbar-button-height)");
+			expect(tray).toContain("padding: 0 var(--taskbar-tray-padding-x)");
+			expect(tray).toContain(
+				`box-shadow: inset ${NEG_B} ${NEG_B} var(--color-system-01), inset ${B} ${B} var(--color-system-05);`,
+			);
+			const icon = block("=windows98] .classicyTaskbarTrayIcon");
+			expect(icon).toContain("width: var(--taskbar-tray-icon-pitch)");
+			expect(icon).toContain("background: transparent");
+			expect(icon).toContain("box-shadow: none");
+			const image = block(".classicyTaskbarTrayIcon img");
+			expect(image).toContain("width: var(--taskbar-tray-icon-size)");
+			expect(image).toContain("height: var(--taskbar-tray-icon-size)");
+			for (const rule of rulesOn(/\.classicyTaskbarTrayIcon\b/))
+				expect(rule.body, rule.selectors.join(", ")).not.toMatch(
+					/box-shadow: inset|repeating-conic-gradient/,
+				);
+			expect(rulesOn(/\.classicyTaskbarTrayIcon(\.open|:active)/)).toEqual([]);
+			const extension = block(
+				".classicyTaskbarTray .classicyDesktopMenuExtension",
+			);
+			expect(extension).toContain("width: var(--taskbar-tray-icon-pitch)");
+			const hovered = block(
+				".classicyTaskbarTray .classicyDesktopMenuExtension:hover",
+			);
+			expect(hovered).toContain("background: transparent");
+			expect(hovered).toContain("color: var(--color-black)");
+			expect(
+				block(".classicyTaskbarTray .classicyDesktopMenuExtensionTrigger img"),
+			).toContain("width: var(--taskbar-tray-icon-size)");
+			const clock = block(".classicyTaskbarClock");
+			expect(clock).toContain("padding: 0 var(--taskbar-clock-padding-x)");
+			expect(clock).toContain("font-size: var(--ui-font-size)");
+			expect(clock).toContain("font-variant-numeric: tabular-nums");
+		});
+	});
 });

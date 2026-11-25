@@ -140,6 +140,14 @@ and `nodenext` resolution).
     check, and one Help menu, last, whatever is focused: an application's
     own Help items join it after a separator (WIG Ch.7 "The Help Menu",
     p.99), so a Finder window adds no second Help title;
+  - the taskbar: a 28-pixel bar with Windows' raised edge along its top;
+    the Start button raised, its label bold beside a small window drawn in
+    the scheme's title-bar colors (the package's own art, not Windows'
+    flag), pushed in while the Start menu is open; a button per window,
+    160 pixels wide at most and sharing the bar evenly when it fills, the
+    active window's pushed in over a checkered face with its title in bold;
+    and the notification area in a sunken pane, its icons flat and the
+    clock at its right end, as Windows 98 drew them;
   - controls: 23-pixel push buttons with the default button's dark ring and
     the dotted focus rectangle, 13-pixel checkboxes, 12-pixel radio buttons,
     sunken text fields and lists, pop-up menus with their drop-down button,

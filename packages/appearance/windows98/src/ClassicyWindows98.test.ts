@@ -249,6 +249,61 @@ describe("the Windows 98 appearance package", () => {
 			});
 	});
 
+	// The taskbar's sizes (plan 0020-w98 §7; WIG Ch.3 "The Taskbar", p.15,
+	// Figure 3.1; Ch.10 "Taskbar Integration", pp.211-212, Figure 10.2), the
+	// package's `taskbar` knobs in every theme, which the stylesheet alone
+	// reads (the core reads no knob for the taskbar: its band is measured):
+	// the bar 28 px tall, its buttons and status area 22 (SM_CYSIZE 18 plus
+	// two edges), 2 px under its two-row edge and 2 px above the bottom; the
+	// Start button at least 54 wide, then the 4 px of SM_CXSIZEFRAME before
+	// the window buttons (ReactOS `traywnd.cpp`); a window button at most 160
+	// (SM_CXMINIMIZED) and at least 22 (SM_CXSIZE plus two edges) wide, 3 px
+	// apart (comctl32's BUTTON_SPACINGX; ReactOS `UpdateButtonsSize`), its
+	// icon 3 px in and 3 px before its label; the status area's 16 px icons in
+	// 20 px cells (explorer's `ICON_BORDER` of 2 each side), 3 px in from the
+	// pane's ends, and the clock's text 5 px from either side (ReactOS
+	// `TRAY_CLOCK_WND_SPACING_X`).
+	it("sizes the taskbar from its knobs in every theme", async () => {
+		const taskbar = {
+			height: 28,
+			buttonHeight: 22,
+			startButtonWidth: 54,
+			startGap: 4,
+			buttonMaxWidth: 160,
+			buttonMinWidth: 22,
+			buttonGap: 3,
+			buttonPaddingX: 3,
+			iconGap: 3,
+			trayIconSize: 16,
+			trayIconPitch: 20,
+			trayPaddingX: 3,
+			clockPaddingX: 5,
+		};
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements.taskbar, theme.id).toEqual(taskbar);
+		// The bar is the buttons and the rows around them, whole pixels only.
+		expect(taskbar.height).toBe(2 + 2 + taskbar.buttonHeight + 2);
+		await import("./index");
+		for (const theme of getAllThemes())
+			expect(getThemeVars(theme), theme.id).toMatchObject({
+				"--taskbar-height": "28px",
+				"--taskbar-button-height": "22px",
+				"--taskbar-start-button-width": "54px",
+				"--taskbar-start-gap": "4px",
+				"--taskbar-button-max-width": "160px",
+				"--taskbar-button-min-width": "22px",
+				"--taskbar-button-gap": "3px",
+				"--taskbar-button-padding-x": "3px",
+				"--taskbar-icon-gap": "3px",
+				"--taskbar-tray-icon-size": "16px",
+				"--taskbar-tray-icon-pitch": "20px",
+				"--taskbar-tray-padding-x": "3px",
+				"--taskbar-clock-padding-x": "5px",
+				"--icon-small-size": "16px",
+				"--pixel-unit": "1px",
+			});
+	});
+
 	// Windows 98 is the shell (plan 0020-w98): each window carries its own
 	// menu bar and no bar crosses the top of the screen (`menuBar.placement:
 	// "window"`; WIG Ch.7 "The Menu Bar and Drop-down Menus", p.97); a
