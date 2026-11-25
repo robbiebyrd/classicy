@@ -1,4 +1,6 @@
+import path from "node:path";
 import { act, cleanup, render, screen } from "@testing-library/react";
+import * as sass from "sass";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
@@ -89,6 +91,43 @@ describe("ClassicyControlStripManager", () => {
 		expect(
 			contents.style.getPropertyValue("--classicy-window-contents-bg"),
 		).toBe("");
+	});
+
+	// Each group title masks its frame on the face it sits on: the contents'
+	// own face (white under Platinum, as 8.5's panel draws its titles), not
+	// the package's gray window face (Platinum's legend default,
+	// `--color-system-03`). A host's `backgroundColor` is set inline on the
+	// legend, so it is compared with the contents rule's compiled background.
+	it("draws its group titles on the contents' face", () => {
+		const css = sass.compile(
+			path.resolve(
+				process.cwd(),
+				"src/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
+			),
+			{ style: "expanded" },
+		).css;
+		const contentsRule = css.match(
+			/^\.classicyWindow \.classicyWindowContents \{\n([^}]*)\}/m,
+		);
+		const contentsFace = contentsRule?.[1].match(
+			/background-color: ([^;]+);/,
+		)?.[1];
+		expect(contentsFace).toBe(
+			"var(--classicy-window-contents-bg, var(--color-window-document))",
+		);
+		const { container } = renderOpen();
+		const legends = [
+			...container.querySelectorAll<HTMLElement>(".classicyControlGroupLegend"),
+		];
+		expect(legends.map((l) => l.textContent)).toEqual([
+			"Control Strip",
+			"Modules",
+		]);
+		for (const legend of legends) {
+			expect(legend.style.getPropertyValue("background-color")).toBe(
+				contentsFace,
+			);
+		}
 	});
 
 	it("shows and hides the whole strip", () => {
