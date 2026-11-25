@@ -854,12 +854,14 @@ Not every declared state has a component row above:
   `active`, every other open window `inactive`. `ClassicyScrollArea` sets
   `inactive` on its root and bars from the window it is drawn in (through
   `ClassicyWindowActiveContext`), unless its `inactive` prop says otherwise.
-- `hover`, `focused` and `expanded` are declared for appearance packages and
-  hosts, but no Classicy component sets them and no Classicy rule reads them
-  yet. Classicy styles hover and focus with the `:hover` and `:focus-visible`
-  pseudo-classes, and an expanded disclosure or menu is `open`. A package or
-  host may add them itself (through `className`), knowing Classicy never
-  toggles them.
+- `hover` is declared for appearance packages and hosts, but no Classicy
+  component sets it and no Classicy rule reads it: Classicy styles hover and
+  focus with the `:hover` and `:focus-visible` pseudo-classes, and an
+  expanded disclosure or menu is `open`. A package or host may add it itself
+  (through `className`), knowing Classicy never toggles it. `focused` is set
+  by `ClassicyTable` on its one focus row, and `expanded` by `ClassicyWindow`
+  while it is zoomed (both above); no base rule reads either, Windows 98
+  reads both.
 
 `aria-*` attributes are still emitted alongside (for example `aria-expanded`
 on the Control Strip tab and `aria-pressed` where it applies); style the
@@ -1974,7 +1976,7 @@ two source trees:
 |  | `classicyWindowInactive` | `.classicyWindow.inactive` |
 |  | `classicyWindowCollapsed` | `.classicyWindow.collapsed` |
 |  | `classicyWindowDragging` | `.classicyWindow.dragging` |
-|  | `classicyWindowZoomed` | none (it had no rule; a zoomed window carries no class) |
+|  | `classicyWindowZoomed` | `.classicyWindow.expanded` (since 3.8; it had no rule, and before 3.8 a zoomed window carried no class) |
 |  | `hidden` | `.classicyWindowContents.collapsed` / `.classicyWindowContentsModal.collapsed` (the window's contents while collapsed); the global `.hidden` utility is gone |
 |  | `block` | none (the contents of an expanded window carry no extra class) |
 | ClassicyButton | `classicyButtonDefault` | `.classicyButton.default` |

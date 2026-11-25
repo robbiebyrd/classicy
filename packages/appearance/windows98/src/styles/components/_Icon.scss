@@ -31,8 +31,9 @@
 //   WIG Ch.13 "Option-Set Appearance" (p.305), Figure 13.13; Ch.7 "Wells"
 //   (p.133): "a special selection border drawn around the edge of the
 //   control"), drawn by an overlay so it lies over a picture that fills the
-//   well, where an inset shadow would hide under it; a drop target the
-//   dotted rectangle dashed; disabled, ButtonFace behind the faded picture.
+//   well, where an inset shadow would hide under it, the base's accent
+//   outline cleared; a drop target the dotted rectangle dashed; disabled,
+//   ButtonFace behind the faded picture.
 //   The well takes no keyboard focus (it is a frame, not a button), so it
 //   has no focus rectangle to draw.
 //
@@ -167,11 +168,17 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
   }
 
   // Set: the option-set border, WindowText outside ButtonHilight, the two
-  // rings inside the client edge (WIG Ch.13 Figure 13.13). An overlay, not
-  // more rings of the well's own inset shadow: a well is sized to its
-  // picture, which is painted over the well's shadows, so rings under it
-  // would never show; the overlay's rings lie over the picture's outer
-  // pixels, where the base's accent frame lay.
+  // rings inside the client edge (WIG Ch.13 Figure 13.13), and nothing
+  // else: the base draws a set well's accent frame as a solid outline, which
+  // would show around the sunken edge beside the rings, so it is cleared.
+  :where(.classicyImageWell).selected {
+    outline: none;
+  }
+
+  // The rings are an overlay, not more rings of the well's own inset
+  // shadow: a well is sized to its picture, which is painted over the well's
+  // shadows, so rings under it would never show; the overlay's rings lie
+  // over the picture's outer pixels, where the base's accent frame lay.
   :where(.classicyImageWell).selected::after {
     content: "";
     position: absolute;

@@ -138,7 +138,8 @@ describe("windows98.scss (compiled)", () => {
 	// The package pass of the audit's next round (13.7 and 13.10): a set image
 	// well wears the WIG's option-set border, two solid rings inside its
 	// client edge, WindowText outside ButtonHilight (Figure 13.13), as an
-	// overlay over the picture, the dotted rectangle gone from the set state;
+	// overlay over the picture, the dotted rectangle gone from the set state
+	// and the base's solid accent outline cleared;
 	// and the HyperCard editor's handles are Hilight squares in a one-ring
 	// HilightText border (Ch.13 "Handles", pp.319-320).
 	it("frames a set image well solid and fills the HyperCard handles from the highlight colors", () => {
@@ -150,7 +151,13 @@ describe("windows98.scss (compiled)", () => {
 				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
 			).exec(css)?.[1] ?? "";
 		expect(has(":where(.classicyImageWell).selected::after")).toBe(true);
-		expect(has(":where(.classicyImageWell).selected")).toBe(false);
+		// The set rule itself only clears the base's solid accent outline
+		// (which would otherwise draw beside the rings); no dotted line.
+		expect(has(":where(.classicyImageWell).selected")).toBe(true);
+		const set = block(":where(.classicyImageWell).selected");
+		expect(set).toContain("outline: none");
+		expect(set).not.toContain("dotted");
+		expect(set).not.toContain("box-shadow");
 		const well = block(":where(.classicyImageWell).selected::after");
 		expect(well).toContain(
 			"inset 0 0 0 var(--window-border-size) var(--color-black)",
@@ -187,5 +194,47 @@ describe("windows98.scss (compiled)", () => {
 				expect(at(disabled)).toBeGreaterThan(at(pressed));
 			}
 		}
+	});
+
+	// The menu hooks of the audit's second pass (7.13 and 7.14 / 13.9): the
+	// core marks an option item's gutter `classicyMenuItemBullet` beside the
+	// check's class and the default item `default`; the package draws the
+	// 6 x 6 bullet in the item's ink at the chosen option (embossed on a
+	// disabled item, plain again while it is tracked, as the check is) and
+	// the default item's title bold, on the title alone (WIG Ch.7 "Types of
+	// Menu Items", pp.108-109, Figure 7.5).
+	it("draws the option bullet and the bold default item in menus", () => {
+		const selectors = selectorsOf(css);
+		const has = (tail: string) =>
+			selectors.some((selector) => selector.endsWith(tail));
+		const at = (tail: string) =>
+			selectors.findIndex((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		const bullet = ".classicyMenuItemCheck.classicyMenuItemBullet";
+		expect(has(`${bullet}::before`)).toBe(true);
+		expect(block(`${bullet}::before`)).toContain("var(--pixel-unit)");
+		expect(has(`${bullet}.checked::before`)).toBe(true);
+		expect(block(`${bullet}.checked::before`)).toContain("currentColor");
+		expect(has(`.classicyMenuItem.disabled ${bullet}.checked::before`)).toBe(
+			true,
+		);
+		expect(
+			has(
+				`.classicyMenuItem.disabled:is(:hover, .open, :focus-visible) ${bullet}.checked::before`,
+			),
+		).toBe(true);
+		// Each after the check's rule it stands in for.
+		expect(at(`${bullet}.checked::before`)).toBeGreaterThan(
+			at(".classicyMenuItemCheck.checked::before"),
+		);
+		expect(has(".classicyMenuItem.default > p")).toBe(true);
+		expect(block(".classicyMenuItem.default > p")).toContain(
+			"font-weight: bold",
+		);
+		// On the title alone: no rule bolds the item itself.
+		expect(has(".classicyMenuItem.default")).toBe(false);
 	});
 });
