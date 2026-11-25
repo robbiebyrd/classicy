@@ -630,6 +630,16 @@ menu-item helpers `quitAppHelper`, `quitMenuItemHelper`,
 `closeWindowMenuItemHelper`, `closeAllWindowsMenuItemHelper`.
 `ClassicyAppIdContext` provides the current app id to descendants.
 
+`useClassicyHelpMenu(appId, items)` (`items` memoized) publishes `items` as
+`Desktop.helpMenu[appId]` (`ClassicyDesktopHelpMenuAdd`, removed on unmount by
+`ClassicyDesktopHelpMenuRemove`). The one Help menu shows them for the
+focused app after the system's items and a divider: the screen bar's
+`help-menu` in every package, and, under a taskbar, the Help menu at the end
+of each of the app's window bars. They are never hoisted into the Apple menu,
+and their chords are claimed in the system scope, as before. A top-level
+Help menu in an app's `appMenu` merges into the same menu after them (§4.5,
+`ClassicyDesktopMenuBar`), so both ways of publishing help end in one menu.
+
 Text your app draws that names the app (a window title, a proxy icon, an
 "Open … Control Panel" item) reads `useClassicyAppIdentity(id, { name, icon })`
 (§8, "App display overrides"), never the `name` prop directly; action types,
@@ -1647,8 +1657,8 @@ them otherwise.
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?`, `focusFirstItem?`, `keyboard?`, `anchor?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned. `focusFirstItem` focuses its first item once placed and gives the focus back, on unmount, to the element that had it; `keyboard` makes it take the keyboard while open (a capture-phase document listener: the up and down arrows walk its items, dimmed ones included, wrapping, from the focused one or, with none, Down from the first and Up from the last; ESC calls `onClose`; neither reaches anything else; every other key passes, so ENTER chooses the focused item) and drops its idle timeout. Both default to `false`. `anchor` (an `Element`) is the element it was opened from: a press on it is not a press outside the menu, so it is left to its owner (a menu opened by a press needs it, since its outside-press listener is in place before that press reaches the document) |
 | `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y], options?), hideContextMenu() }` | imperative API. `options` (`ClassicyContextualMenuOptions`, every key optional; none opens the menu as always): `helpItem` (default `true`; `false` leaves the leading Help item out), `placement` (`"click"`, the default: 1 px below and right of the point; `"corner"`: the menu's top-left at the point), `focusFirstItem`, `keyboard`, `anchor` (`ClassicyContextualMenu`'s, above). The Windows shell's window pop-up menu opens with `helpItem: false` and `keyboard: true`, from the title bar's icon with it as the `anchor` |
-| `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
-| `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the package layout's placement is `"window"`; usually not used directly. Root carries `data-classicy-part="window-menu-bar"`; the window root carries `classicyWindowWithMenuBar` while it draws one |
+| `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. It draws one Help menu (`help-menu`, the last standard menu) in every package: the system's items (About Balloon Help…, Show/Hide Balloons ⌥H), then, each after a divider, the focused app's registered items (`useClassicyHelpMenu`) and the items of the focused window's own top-level Help menus, which are merged in and not drawn as a second "Help" title (a top-level item with `menuChildren` whose `part` is `"help"`, whose id ends with `_help` or whose title is `"Help"`); the app's About is hoisted into the Apple menu first, and an app item whose `event` is `"ClassicyDesktopSetBalloonHelp"` is dropped, since the system Help has the toggle (HIGOS8 Ch.4 "Help menus", pp.91–92, Figure 4-2; HIG7 "The Help Menu", p.125). Chords keep their scopes: the app scope claims the raw `appMenu`'s, Help's included, and the system scope the Apple menu's, the system Help items' and the registered items'. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
+| `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the package layout's placement is `"window"`; usually not used directly. Under a taskbar (`layout.taskbar`) it ends with a Help menu (`` `${appId}_${windowId}_help-menu` ``, `data-classicy-part="help"`; §8, "Window menu bars"). Root carries `data-classicy-part="window-menu-bar"`; the window root carries `classicyWindowWithMenuBar` while it draws one |
 | `useClassicyMenuCloseOnOutsideMouseDown(ref)` | `ref` * (`RefObject<HTMLElement \| null>`) | call inside a `ClassicyMenuProvider`: while its menu bar is active (a title was clicked open), a mouse-down outside `ref`'s element closes the provider's menus. Both menu bars use it; a null ref closes nothing |
 | `ClassicyMenuBarExtension` | `id` *, `order?`, `icon?`, `title?`, `menuItems?`, `onClick?` | add a right-side menu bar item (like the clock). Its menu hangs from the item's left side, or, where that would pass the desktop's right edge, with its right side under the item's right side, as a title's pull-down does ("Where menus open") |
 
@@ -3859,7 +3869,10 @@ resolved where it is drawn:
   <display name>". It finds the item by `${appId}_about`, then any `_about`
   id, then a title of "About".
 - **A window's own menu bar** (`ClassicyWindowMenuBar`, window placement)
-  runs `withClassicyAppIdentityAboutItem`. It finds the item only by its exact
+  under a taskbar (`layout.taskbar`) moves the About item it finds (as the
+  screen bar finds it) to the end of its Help menu, always titled "About
+  <display name>". With no taskbar it runs
+  `withClassicyAppIdentityAboutItem`. That finds the item only by its exact
   id, `${appId}_about`, at any depth, and retitles it only when its title is
   `` `About ${record name}` ``. A plain "About" (the `useClassicyAboutMenu`
   item, which SimpleText, Web Viewer, Movie Player, Picture Viewer, PDF Viewer
@@ -4827,7 +4840,7 @@ how they look) has two halves:
 | `window.captionTooltips` (optional) | `false`, `true` | whether each title-bar box names itself in a tooltip. `false` (the default, every package but Windows 98): none. `true` (Windows 98 as shipped; Windows 95 had none, and the 1995 guidelines say nothing; Windows 98 declares it): a box shows its label ("Close"; "Maximize" or "Restore", "Minimize" under the shell's flags, else "Zoom" and "Collapse") after the pointer rests on it 500 ms, whatever Balloon Help says, hidden by a press on it (`ClassicyWindowTitleBar`'s `buttonTooltips`, §4.1). The root gains no class, attribute or custom property for it |
 | `dialog.caption` (optional group `dialog`) | `plain`, `titled` | how a `modal` window is captioned. `plain` (the default, Mac OS 8, every package but Windows 98): the title it is given, a Close box only when `closable`, and an alert or a `movable={false}` modal fixed in place. `titled` (Windows 95/98, WIG Ch.8 "Appearance and Behavior", p.145, Figure 8.1; "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17; Windows 98 declares it): every modal's caption has a title (its app's display name when it is given none), a Close box (closing a `closable` modal, running `onCaptionClose` for any other, drawn unavailable with neither, as for a Yes/No message box) whose path the window pop-up menu's Close and ALT+F4 follow, and moves the dialog, an alert included (no `classicyWindowModalFixed`) (§4.1, "Dialog and message box captions"). Every other window is unaffected. The root gains no attribute or custom property for it |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
-| `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (every shipped package today): `ClassicyDesktop` draws its Control Strip and no taskbar. Present: it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept); the taskbar's measured height is the band windows, Clean Up and every menu keep above. `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |
+| `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (every shipped package today): `ClassicyDesktop` draws its Control Strip and no taskbar. Present: it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept); the taskbar's measured height is the band windows, Clean Up and every menu keep above, and each window's menu bar ends with the Help menu ("Window menu bars", below). `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
 | `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open (a folder row with no icon of its own draws the package's `fileDialogFolderIcon` system art, else the folder icon), Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |
@@ -4902,9 +4915,25 @@ height is `--classicy-window-menu-bar-height` when a host or package sets it
 by it. While it draws the bar, the window root carries
 `classicyWindowWithMenuBar`, which keys that sizing; a separate
 `:has(> .classicyWindowMenuBar)` rule repeats it, so a browser without
-`:has()` still fits the window together. Limits of this placement: the Apple, Help
-and App Switcher menus, the clock and menu bar extensions have no home in a
-window bar and are not shown. A `ClassicyMenuBarExtension` renders nothing
+`:has()` still fits the window together. Limits of this placement without a
+taskbar (Storybook's `mirrored` package): the Apple, Help and App Switcher
+menus, the clock and menu bar extensions have no home in a window bar and are
+not shown, and the bar draws the `appMenu` as given (its About item retitled
+by `withClassicyAppIdentityAboutItem`, below). Under a taskbar
+(`layout.taskbar`, the Windows 95/98 shell), where no screen bar is drawn, the
+bar ends with Help, as a Windows menu bar does (WIG Ch.7 "The Menu Bar and
+Drop-down Menus", p.97; "The Help Menu", p.99): the `appMenu` with its About
+item (found as the screen bar finds it) and its top-level Help menus taken
+out, then a last menu titled "Help" (`` `${appId}_${windowId}_help-menu` ``,
+`data-classicy-part="help"`, base `order` 30, so it is last) holding the
+system's Help items (About Balloon Help…, Show/Hide Balloons ⌥H), then, each
+after a divider, the app's registered items (`useClassicyHelpMenu`) and the
+items of its own Help menus (an item repeating the balloon toggle dropped),
+then a divider and "About <display name>" when the app has an About item (no
+ellipsis, WIG p.99; the item keeps its handler, its title from
+`classicyAppIdentityFrom`). The window bars dispatch no keyboard
+equivalents: the headless screen bar still does, over the focused window's
+`appMenu` and the system Help. A `ClassicyMenuBarExtension` renders nothing
 while the placement is `window` and reappears in the screen bar's new
 extensions region when it returns to `screen`. It follows the package
 layout only: a bar forced to `placement="screen"` under a window-placement

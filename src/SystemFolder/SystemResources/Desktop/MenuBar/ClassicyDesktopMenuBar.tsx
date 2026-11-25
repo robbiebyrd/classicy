@@ -29,12 +29,17 @@ import {
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
-import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
-import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import {
 	appSwitcherAppsFrom,
 	withClassicyAppIdentityMenuItems,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import {
+	classicyHelpMenuChildren,
+	classicySystemHelpItems,
+	findClassicyAppAboutItem,
+	splitClassicyAppHelpMenus,
+	stripClassicyAboutItem,
+} from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyHelpMenu.internal";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 
@@ -52,84 +57,9 @@ export type ClassicyDesktopMenuBarProps = {
 	placement?: ClassicyAppearanceLayout["menuBar"]["placement"];
 };
 
-/**
- * Depth-first search of a menu tree for an app's "About" item. Apps publish
- * their About entry (id `${appId}_about`, title "About") nested somewhere in
- * their menu (typically under a Help or apple submenu — see
- * `useClassicyAboutMenu`). Preference order per the HIG #209 rule: an exact
- * `${appId}_about` id, then any id ending in `_about`, then a title of "About".
- */
-const findAppAboutItem = (
-	items: ClassicyMenuItem[] | undefined,
-	appId: string,
-): ClassicyMenuItem | undefined => {
-	if (!items) return undefined;
-	const matches = (item: ClassicyMenuItem): boolean =>
-		item.id === `${appId}_about` ||
-		item.id?.endsWith("_about") === true ||
-		item.title === "About";
-	const search = (
-		list: ClassicyMenuItem[],
-		predicate: (item: ClassicyMenuItem) => boolean,
-	): ClassicyMenuItem | undefined => {
-		for (const item of list) {
-			if (predicate(item)) return item;
-			if (item.menuChildren && item.menuChildren.length > 0) {
-				const found = search(item.menuChildren, predicate);
-				if (found) return found;
-			}
-		}
-		return undefined;
-	};
-	// Prefer the focused app's exact About id before the looser fallbacks so an
-	// unrelated `_about` entry can't shadow the real one.
-	return (
-		search(items, (item) => item.id === `${appId}_about`) ??
-		search(items, matches)
-	);
-};
-
 /** True for the systemMenu's own leading "About This Computer" entry. */
 const isAboutThisComputerItem = (item: ClassicyMenuItem): boolean =>
 	item.id === "about" || item.title === "About This Computer";
-
-/** Drop leading/trailing dividers and collapse runs left behind by a removal. */
-const trimSpacers = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
-	const trimmed: ClassicyMenuItem[] = [];
-	for (const item of items) {
-		if (
-			item.id === "spacer" &&
-			(trimmed.length === 0 || trimmed[trimmed.length - 1].id === "spacer")
-		) {
-			continue;
-		}
-		trimmed.push(item);
-	}
-	while (trimmed.length > 0 && trimmed[trimmed.length - 1].id === "spacer") {
-		trimmed.pop();
-	}
-	return trimmed;
-};
-
-/**
- * Remove the hoisted About entry (matched by reference — it came out of this
- * same tree via `findAppAboutItem`) from the app's published menus so About
- * renders only in the Apple menu. Menus emptied by the removal are dropped
- * entirely, and dividers left dangling by it are tidied away.
- */
-const stripAboutItem = (
-	items: ClassicyMenuItem[],
-	aboutItem: ClassicyMenuItem,
-): ClassicyMenuItem[] =>
-	items.flatMap((item) => {
-		if (item === aboutItem) return [];
-		if (!item.menuChildren || item.menuChildren.length === 0) return [item];
-		const menuChildren = trimSpacers(
-			stripAboutItem(item.menuChildren, aboutItem),
-		);
-		if (menuChildren.length === 0) return [];
-		return [{ ...item, menuChildren }];
-	});
 
 /**
  * The Mac OS 8 menu bar (HIGOS8 Ch.4, p.91) across the top of the desktop —
@@ -141,12 +71,15 @@ const stripAboutItem = (
  *
  * From left to right it shows the Apple menu (the system menu, led by "About
  * <focused app>" when that app publishes an About item — the item is moved
- * out of the app's own menus), the focused window's `appMenu`, the standard
- * Help menu (always the rightmost: About Balloon Help…, Show/Hide Balloons
- * ⌥H, then the focused app's `useClassicyHelpMenu` items), then, at the far
- * right, menu bar extensions (`ClassicyMenuBarExtension`), the clock and the
- * App Switcher. Menus are sticky (HIGOS8 p.92): a click leaves one open, and
- * it closes after 15 seconds idle or on a click outside the bar.
+ * out of the app's own menus), the focused window's `appMenu` less its Help
+ * menus, the one standard Help menu (always the rightmost: About Balloon
+ * Help…, Show/Hide Balloons ⌥H, then, each after a divider, the focused app's
+ * `useClassicyHelpMenu` items and the items of the app's own top-level Help
+ * menus, merged in rather than drawn as a second "Help" title, an app item
+ * repeating the balloon toggle dropped), then, at the far right, menu bar
+ * extensions (`ClassicyMenuBarExtension`), the clock and the App Switcher.
+ * Menus are sticky (HIGOS8 p.92): a click leaves one open, and it closes
+ * after 15 seconds idle or on a click outside the bar.
  *
  * It also runs the app-wide keyboard-equivalent dispatcher: a chord fires the
  * matching item of the focused app's menus, then the system menus, then an
@@ -308,46 +241,6 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		);
 	}, [apps]);
 
-	// Standard Help menu (HIG Ch. 4 "Menu Bar"): rightmost of the standard
-	// menus. About Balloon Help, a Show/Hide Balloons toggle wired to the
-	// existing balloon-help store flag, and a slot for app-supplied help items.
-	const helpMenuItem: ClassicyMenuItem = useMemo(() => {
-		const helpChildren: ClassicyMenuItem[] = [
-			{
-				id: "help-about-balloon",
-				title: "About Balloon Help…",
-				event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
-				eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
-			},
-			{
-				id: "help-toggle-balloons",
-				title: disableBalloonHelp ? "Show Balloons" : "Hide Balloons",
-				// Real working equivalent — Option-H rather than a ⌘ combo, since
-				// the browser reserves most ⌘/Ctrl+letter chords. Fires whether or
-				// not the Help menu is dropped down.
-				keyboardShortcut: "⌥H",
-				event: "ClassicyDesktopSetBalloonHelp",
-				eventData: { disableBalloonHelp: !disableBalloonHelp },
-			},
-		];
-		const appHelpMenu = focusedMenuApp?.id
-			? helpMenus?.[focusedMenuApp.id]
-			: undefined;
-		if (appHelpMenu && appHelpMenu.length > 0) {
-			helpChildren.push({ id: "spacer" }, ...appHelpMenu);
-		}
-		return {
-			id: "help-menu",
-			// The art replaces the word, which stays its accessible name.
-			...(helpMenuTitleArt
-				? { image: helpMenuTitleArt, imageAlt: "Help" }
-				: { title: "Help" }),
-			className: "classicyDesktopMenuHelp",
-			part: "help",
-			menuChildren: helpChildren,
-		};
-	}, [disableBalloonHelp, helpMenus, focusedMenuApp, helpMenuTitleArt]);
-
 	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
 	// the focused app (fallback Finder), *move* its About entry out of the app's
 	// published menu into the Apple menu — then splice in the rest of the system
@@ -359,7 +252,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					.name
 			: finderName;
 
-		const aboutItem = findAppAboutItem(appMenu, focusedAppId);
+		const aboutItem = findClassicyAppAboutItem(appMenu, focusedAppId);
 
 		let menuChildren: ClassicyMenuItem[];
 		if (aboutItem) {
@@ -398,7 +291,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			} satisfies ClassicyMenuItem,
 			// The hoisted About must not also render in the app's own menus.
 			strippedAppMenu:
-				aboutItem && appMenu ? stripAboutItem(appMenu, aboutItem) : appMenu,
+				aboutItem && appMenu
+					? stripClassicyAboutItem(appMenu, aboutItem)
+					: appMenu,
 		};
 	}, [
 		focusedMenuApp,
@@ -409,11 +304,55 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		finderName,
 	]);
 
+	// The app's own top-level Help menus are merged into the standard Help
+	// menu below, never drawn as a second "Help" title (HIGOS8 Ch.4 "Help
+	// menus", pp.91–92, Figure 4-2; HIG7 "The Help Menu", p.125). About was
+	// hoisted into the Apple menu first, so a Help menu that held only About
+	// is already gone.
+	const { appMenus, appHelpMenus } = useMemo(() => {
+		const { menus, helpMenus: ownHelpMenus } = splitClassicyAppHelpMenus(
+			strippedAppMenu ?? [],
+		);
+		return { appMenus: menus, appHelpMenus: ownHelpMenus };
+	}, [strippedAppMenu]);
+
+	// The system's own Help items (About Balloon Help…, Show/Hide Balloons ⌥H)
+	// and the focused app's registered ones (`useClassicyHelpMenu`): the Help
+	// menu the bar drew before the merge, and the one whose chords the system
+	// scope claims (below).
+	const systemHelpItems = useMemo(
+		() => classicySystemHelpItems(disableBalloonHelp),
+		[disableBalloonHelp],
+	);
+	const registeredHelpItems = focusedMenuApp?.id
+		? helpMenus?.[focusedMenuApp.id]
+		: undefined;
+
+	// Standard Help menu (HIG Ch. 4 "Menu Bar"): rightmost of the standard
+	// menus. The system's items, then the focused app's registered items, then
+	// the items of its own Help menus, an app item repeating the balloon
+	// toggle dropped (`classicyHelpMenuChildren`).
+	const helpMenuItem: ClassicyMenuItem = useMemo(
+		() => ({
+			id: "help-menu",
+			// The art replaces the word, which stays its accessible name.
+			...(helpMenuTitleArt
+				? { image: helpMenuTitleArt, imageAlt: "Help" }
+				: { title: "Help" }),
+			className: "classicyDesktopMenuHelp",
+			part: "help",
+			menuChildren: classicyHelpMenuChildren(
+				systemHelpItems,
+				registeredHelpItems,
+				appHelpMenus,
+			),
+		}),
+		[systemHelpItems, registeredHelpItems, appHelpMenus, helpMenuTitleArt],
+	);
+
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
-		if (strippedAppMenu) {
-			items.push(...strippedAppMenu.map((item) => ({ ...item, part: "app" })));
-		}
+		items.push(...appMenus.map((item) => ({ ...item, part: "app" })));
 		// Help is the rightmost standard menu; the App Switcher sits at the far
 		// right of the bar (8.5+ construct) and is kept last in the data. Where
 		// each one lands is set by its `part` (order via data-classicy-part; see
@@ -421,7 +360,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		items.push(helpMenuItem);
 		items.push(appSwitcherMenuMenuItem);
 		return items;
-	}, [appleMenuItem, strippedAppMenu, helpMenuItem, appSwitcherMenuMenuItem]);
+	}, [appleMenuItem, appMenus, helpMenuItem, appSwitcherMenuMenuItem]);
 
 	useClassicyShortcutDispatcher(defaultMenuItems);
 
@@ -449,14 +388,17 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// Sourced from the RESOLVED Apple menu (not the raw systemMenu) so a claimed
 	// chord is always resolvable — the dispatcher searches defaultMenuItems,
 	// whose Apple submenu strips "About This Computer" (⌃S) whenever the
-	// focused app publishes an About entry.
+	// focused app publishes an About entry. Help contributes its own items and
+	// the registered ones, not the app Help items merged in: those stay the
+	// app's (appChordsKey reads the raw appMenu), so each scope claims what it
+	// claimed before the merge.
 	const systemChordsKey = useMemo(
 		() =>
 			collectMenuChords([
 				...(appleMenuItem.menuChildren ?? []),
-				helpMenuItem,
+				...classicyHelpMenuChildren(systemHelpItems, registeredHelpItems, []),
 			]).join("|"),
-		[appleMenuItem, helpMenuItem],
+		[appleMenuItem, systemHelpItems, registeredHelpItems],
 	);
 	useEffect(() => {
 		desktopEventDispatch({

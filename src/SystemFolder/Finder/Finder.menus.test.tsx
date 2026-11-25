@@ -197,6 +197,45 @@ describe("Finder folder-window menu bar", () => {
 			expect(editItem("Select All")?.disabled).toBe(false);
 		});
 	});
+
+	// Plan 0020-w98 §4: the toggle is an event item, so the screen bar's
+	// Help merge knows it for the system's own Show/Hide Balloons and drops
+	// it. Its id and title are unchanged, so a window bar draws it as before.
+	it("makes Help's balloon toggle an event item that flips the flag", async () => {
+		await openDocuments();
+		const balloon = () =>
+			menuNamed("Help")?.menuChildren?.find((m) =>
+				m.id.endsWith("_help_balloon"),
+			);
+		expect(balloon()).toEqual({
+			id: `Finder.app_${DOCUMENTS_PATH}_help_balloon`,
+			title: "Hide Balloon Help",
+			event: "ClassicyDesktopSetBalloonHelp",
+			eventData: { disableBalloonHelp: true },
+		});
+		// About follows it, as before.
+		expect(menuNamed("Help")?.menuChildren?.map((m) => m.id)).toEqual([
+			`Finder.app_${DOCUMENTS_PATH}_help_balloon`,
+			"Finder.app_about",
+		]);
+
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopSetBalloonHelp",
+				disableBalloonHelp: true,
+			});
+		});
+		await waitFor(() => {
+			expect(balloon()?.title).toBe("Show Balloon Help");
+		});
+		expect(balloon()?.eventData).toEqual({ disableBalloonHelp: false });
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopSetBalloonHelp",
+				disableBalloonHelp: false,
+			});
+		});
+	});
 });
 
 describe("Finder folder-window keyboard focus (#270)", () => {

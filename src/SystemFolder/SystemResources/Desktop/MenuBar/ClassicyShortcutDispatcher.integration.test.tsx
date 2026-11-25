@@ -181,6 +181,89 @@ describe("ClassicyShortcutDispatcher — end-to-end via the real menu bar", () =
 		).toBe(true);
 	});
 
+	// Plan 0020-w98 §4: the Help merge moves an app's Help items into the
+	// system Help menu, but not their chords: the app scope still claims what
+	// its raw menus hold and the system scope the system's own Help items and
+	// the registered ones, exactly as before the merge, so the Keyboard
+	// Equivalent dialog's owner names stay the same. Every chord still fires.
+	it("keeps each scope's chords through the Help merge (a Finder window, a host Help item)", async () => {
+		const registeredAction = vi.fn();
+		const ownHelpAction = vi.fn();
+		const fileAction = vi.fn();
+		const finderWindowMenu: ClassicyMenuItem[] = [
+			{
+				id: "Finder.app_Macintosh HD_file",
+				title: "File",
+				menuChildren: [
+					{
+						id: "Finder.app_Macintosh HD_file_k",
+						title: "Get Info",
+						keyboardShortcut: "Ctrl+K",
+						onClickFunc: fileAction,
+					},
+				],
+			},
+			{
+				id: "Finder.app_Macintosh HD_help",
+				title: "Help",
+				menuChildren: [
+					{
+						id: "Finder.app_Macintosh HD_help_balloon",
+						title: "Hide Balloon Help",
+						event: "ClassicyDesktopSetBalloonHelp",
+						eventData: { disableBalloonHelp: true },
+					},
+					{
+						id: "Finder.app_shortcuts",
+						title: "Finder Shortcuts",
+						keyboardShortcut: "Ctrl+J",
+						onClickFunc: ownHelpAction,
+					},
+					{ id: "Finder.app_about", title: "About", onClickFunc: vi.fn() },
+				],
+			},
+		];
+
+		setStore((draft) => {
+			draft.System.Manager.Applications.focusedAppId = "Finder.app";
+			draft.System.Manager.Desktop.appMenu = finderWindowMenu;
+			draft.System.Manager.Desktop.helpMenu = {
+				"Finder.app": [
+					{
+						id: "host_finder_guide",
+						title: "Finder Guide",
+						keyboardShortcut: "Ctrl+G",
+						onClickFunc: registeredAction,
+					},
+				],
+			};
+		});
+
+		await act(async () => {
+			render(<ClassicyDesktopMenuBar />);
+		});
+
+		const keyboard = () => useAppManager.getState().System.Manager.Keyboard;
+		// The app scope: its raw menus' chords, its Help's included.
+		expect([...(keyboard().app["Finder.app"] ?? [])].sort()).toEqual([
+			"control+j",
+			"control+k",
+		]);
+		// The system scope: the balloon toggle and the registered item.
+		expect([...keyboard().system].sort()).toEqual(["control+g", "option+h"]);
+
+		fireEvent.keyDown(document, { key: "j", ctrlKey: true });
+		expect(ownHelpAction).toHaveBeenCalledTimes(1);
+		fireEvent.keyDown(document, { key: "g", ctrlKey: true });
+		expect(registeredAction).toHaveBeenCalledTimes(1);
+		fireEvent.keyDown(document, { key: "k", ctrlKey: true });
+		expect(fileAction).toHaveBeenCalledTimes(1);
+		fireEvent.keyDown(document, { key: "h", altKey: true });
+		expect(
+			useAppManager.getState().System.Manager.Desktop.disableBalloonHelp,
+		).toBe(true);
+	});
+
 	describe("with menus placed in windows", () => {
 		afterEach(() => {
 			resetClassicyAppearancePackagesForTests();

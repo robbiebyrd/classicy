@@ -88,7 +88,6 @@ type FinderWindowProps = {
 	getHeaderString: (dir: ClassicyFileSystemEntryMetadata) => string;
 	fs: ClassicyFileSystem;
 	disableBalloonHelp: boolean;
-	toggleBalloonHelp: () => void;
 	aboutMenuItem: ClassicyMenuItem;
 	openPreferences: () => void;
 	viewType: "icons" | "list";
@@ -120,7 +119,6 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	getHeaderString,
 	fs,
 	disableBalloonHelp,
-	toggleBalloonHelp,
 	aboutMenuItem,
 	openPreferences,
 	viewType,
@@ -261,12 +259,15 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				id: `${appId}_${op}_help`,
 				title: "Help",
 				menuChildren: [
+					// An event item, not a callback, so the screen bar's Help merge
+					// knows it for the system's Show/Hide Balloons and drops it.
 					{
 						id: `${appId}_${op}_help_balloon`,
 						title: disableBalloonHelp
 							? "Show Balloon Help"
 							: "Hide Balloon Help",
-						onClickFunc: toggleBalloonHelp,
+						event: "ClassicyDesktopSetBalloonHelp",
+						eventData: { disableBalloonHelp: !disableBalloonHelp },
 					},
 					aboutMenuItem,
 				],
@@ -279,7 +280,6 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			closeAllFolders,
 			setFolderView,
 			disableBalloonHelp,
-			toggleBalloonHelp,
 			aboutMenuItem,
 			openPreferences,
 			viewType,
@@ -381,12 +381,6 @@ export const Finder = () => {
 	const disableBalloonHelp = useAppManager(
 		(state) => state.System.Manager.Desktop.disableBalloonHelp,
 	);
-	const toggleBalloonHelp = useCallback(() => {
-		desktopEventDispatch({
-			type: "ClassicyDesktopSetBalloonHelp",
-			disableBalloonHelp: !disableBalloonHelp,
-		});
-	}, [desktopEventDispatch, disableBalloonHelp]);
 
 	const dateAndTime = useAppManager((s) => s.System.Manager.DateAndTime);
 	// Memoized on the primitive fields, not the DateAndTime object's identity —
@@ -755,7 +749,6 @@ export const Finder = () => {
 							getHeaderString={getHeaderString}
 							fs={fs}
 							disableBalloonHelp={disableBalloonHelp}
-							toggleBalloonHelp={toggleBalloonHelp}
 							aboutMenuItem={aboutMenuItem}
 							openPreferences={openPreferences}
 							// A path absent from folderViews follows the standard views'

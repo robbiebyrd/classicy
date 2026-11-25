@@ -89,9 +89,12 @@ export function useClassicyAboutMenu(
 
 /**
  * Publishes app-specific items into the standard Help menu (HIG Ch. 4), where
- * the menu bar renders them for the focused app only. Unlike an About entry in
- * the app's own `appMenu`, items registered here are never hoisted into the
- * Apple menu.
+ * the menu bar renders them for the focused app only, after the system's
+ * items and a divider; under a taskbar (`layout.taskbar`) each of the app's
+ * window menu bars ends with that Help menu instead. The items of a top-level
+ * Help menu in the app's own `appMenu` are merged in after them, so an app
+ * never shows a second "Help" title. Unlike an About entry in the app's own
+ * `appMenu`, items registered here are never hoisted into the Apple menu.
  *
  * `items` must be referentially stable — memoize it with `useMemo`, as apps
  * already do for `appMenu`. An array rebuilt every render re-fires this effect

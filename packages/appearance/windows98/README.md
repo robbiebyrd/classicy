@@ -98,7 +98,9 @@ and `nodenext` resolution).
     default item (the command a double-click runs: the Trash icon's Open) in
     bold and a round bullet at the chosen item of an option group (the
     Finder's View as Icons and View as List), where the Mac packages draw a
-    check;
+    check, and one Help menu, last, whatever is focused: an application's
+    own Help items join it after a separator (WIG Ch.7 "The Help Menu",
+    p.99), so a Finder window adds no second Help title;
   - controls: 23-pixel push buttons with the default button's dark ring and
     the dotted focus rectangle, 13-pixel checkboxes, 12-pixel radio buttons,
     sunken text fields and lists, pop-up menus with their drop-down button,

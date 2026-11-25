@@ -5,10 +5,21 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
+import {
+	classicyAppIdentityFrom,
+	useClassicyAppIdentityOverrides,
+} from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { withClassicyAppIdentityAboutItem } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import {
+	classicyHelpMenuChildren,
+	classicySystemHelpItems,
+	findClassicyAppAboutItem,
+	splitClassicyAppHelpMenus,
+	stripClassicyAboutItem,
+} from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyHelpMenu.internal";
 import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
@@ -43,10 +54,18 @@ export type ClassicyWindowMenuBarProps = {
  * bar's flex and `order` rules come from the screen bar's stylesheet, which
  * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
  *
- * Only the app's menus have a home here. The Apple, Help and App Switcher
- * menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
- * portals into the screen bar's extensions list) are not shown in window
- * placement. The headless screen bar reserves no band: the desktop root's
+ * Without a taskbar, only the app's menus have a home here: the Apple, Help
+ * and App Switcher menus, the clock and menu bar extensions
+ * (`ClassicyMenuBarExtension`, which portals into the screen bar's extensions
+ * list) are not shown in window placement. Under a taskbar
+ * (`layout.taskbar`, the Windows 95/98 shell, plan 0020-w98 §4), where no
+ * screen bar is drawn, the bar ends with the Help menu (WIG Ch.7 "The Menu
+ * Bar and Drop-down Menus", p.97; "The Help Menu", p.99): the app's menus,
+ * its About item and its own Help menus taken out, then a last "Help" menu
+ * (part `help`) holding the system's Help items, the app's registered items
+ * (`useClassicyHelpMenu`), the items of its own Help menus, and, after a
+ * divider, "About <display name>" when the app has an About item. The
+ * headless screen bar reserves no band: the desktop root's
  * `--menu-bar-height` is `0px` in this placement (`classicyLayoutThemeVars`),
  * so window geometry (`windowViewportFloor` in `ClassicyWindow.tsx`) lets a
  * window be placed, zoomed, dragged or resized up to the screen's top edge.
@@ -79,12 +98,69 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		(state) => state.System.Manager.Applications.apps[appId]?.name,
 	);
 	const overrides = useClassicyAppIdentityOverrides();
-	const items = useMemo(
-		() =>
-			withClassicyAppIdentityAboutItem(menuItems, appId, appName, overrides) ??
-			[],
-		[menuItems, appId, appName, overrides],
+	// Under a taskbar no screen bar is drawn, so the window's bar carries Help.
+	const helpInBar = useClassicyAppearanceLayout().taskbar !== undefined;
+	const disableBalloonHelp = useAppManager(
+		(state) => state.System.Manager.Desktop.disableBalloonHelp,
 	);
+	// The app's registered Help items (`useClassicyHelpMenu`), read
+	// defensively as the screen bar reads them.
+	const registeredHelpItems = useAppManager(
+		(state) => state.System.Manager.Desktop?.helpMenu?.[appId],
+	);
+	const items = useMemo(() => {
+		if (!helpInBar) {
+			return (
+				withClassicyAppIdentityAboutItem(
+					menuItems,
+					appId,
+					appName,
+					overrides,
+				) ?? []
+			);
+		}
+		// About leaves the app's menus for the end of Help, and the app's own
+		// Help menus are merged into the one Help menu, as the screen bar does.
+		const aboutItem = findClassicyAppAboutItem(menuItems, appId);
+		const { menus, helpMenus } = splitClassicyAppHelpMenus(
+			aboutItem ? stripClassicyAboutItem(menuItems, aboutItem) : menuItems,
+		);
+		const helpChildren = classicyHelpMenuChildren(
+			classicySystemHelpItems(disableBalloonHelp),
+			registeredHelpItems,
+			helpMenus,
+		);
+		if (aboutItem) {
+			// "About <application name>", no ellipsis (WIG p.99), by the name
+			// the active package shows; the item keeps its handler.
+			const { name } = classicyAppIdentityFrom(overrides, appId, {
+				name: appName ?? appId,
+				icon: "",
+			});
+			helpChildren.push(
+				{ id: "spacer" },
+				{ ...aboutItem, title: `About ${name}` },
+			);
+		}
+		return [
+			...menus,
+			{
+				id: `${appId}_${windowId}_help-menu`,
+				title: "Help",
+				part: "help",
+				menuChildren: helpChildren,
+			},
+		];
+	}, [
+		helpInBar,
+		menuItems,
+		appId,
+		windowId,
+		appName,
+		overrides,
+		disableBalloonHelp,
+		registeredHelpItems,
+	]);
 	return (
 		<div
 			ref={rootRef}
