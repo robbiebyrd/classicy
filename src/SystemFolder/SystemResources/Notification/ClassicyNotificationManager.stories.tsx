@@ -22,7 +22,11 @@ import {
  */
 const meta = {
 	title: "Desktop/Notification Manager",
-	parameters: desktopParameters,
+	// An object literal with a `docs` literal: Storybook writes the comment
+	// above into `parameters.docs.description`, and a `parameters` or a
+	// `docs` that is not a literal is replaced, not merged
+	// (StoryMetaParameters.repo.test.ts).
+	parameters: { ...desktopParameters, docs: { ...desktopParameters.docs } },
 } satisfies Meta;
 
 export default meta;
