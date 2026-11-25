@@ -83,8 +83,8 @@ describe("the SCSS export", () => {
 		}).css;
 
 	// Unlike System 7's, the whole sheet compiles through the export: it
-	// loads nothing of another package's (no screen savers), only the core's
-	// vocabulary.
+	// loads nothing of another package's (its screen savers' index ships
+	// beside it), only the core's vocabulary.
 	it("serves the package stylesheet at @classicy/appearance-windows98/scss/windows98, whole", () =>
 		expect(
 			compile('@use "pkg:@classicy/appearance-windows98/scss/windows98";'),
@@ -153,6 +153,10 @@ const styleSheets = readdirSync(path.join(packageDir, "src/styles"), {
 	.map((file) => String(file).split(path.sep).join("/"))
 	.filter((file) => file.endsWith(".scss"))
 	.map((file) => `src/styles/${file}`);
+// The screen savers' stylesheet index, which the whole sheet loads.
+const saverSheets = readdirSync(path.join(packageDir, "src/screenSavers"))
+	.filter((file) => file.endsWith(".scss"))
+	.map((file) => `src/screenSavers/${file}`);
 
 describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 	let packed: string[] | { unavailable: string };
@@ -166,6 +170,9 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 		skip,
 	}) => {
 		expect(styleSheets).toContain("src/styles/windows98.scss");
+		expect(saverSheets).toEqual([
+			"src/screenSavers/_windows98ScreenSavers.scss",
+		]);
 		expect(fontNotices).toEqual([
 			"src/assets/fonts/font-bold-license.txt",
 			"src/assets/fonts/font-bold-readme.txt",
@@ -178,6 +185,7 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 				"README.md",
 				"LICENSE",
 				...styleSheets,
+				...saverSheets,
 				...fontNotices,
 			]),
 		);
@@ -193,6 +201,7 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 				(file) =>
 					!["package.json", "README.md", "LICENSE"].includes(file) &&
 					!fontNotices.includes(file) &&
+					!saverSheets.includes(file) &&
 					!file.startsWith("dist/") &&
 					!file.startsWith("src/styles/"),
 			),

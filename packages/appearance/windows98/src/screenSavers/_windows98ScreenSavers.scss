@@ -1,0 +1,29 @@
+// The screen savers' styles, one index beside the registration module
+// (windows98ScreenSavers.ts) that registers the same savers. Every saver but
+// Blank Screen draws on a canvas, so the rules only lay each root over the
+// overlay and its canvas over the root, drawn whole pixels (one canvas pixel
+// is one CSS pixel, and Windows drew its savers unsmoothed at the screen's
+// resolution). Keyed on the savers' own classes, so the sheet that loads it
+// decides where they land (../styles/_screenSavers.scss). No saver sets
+// `cursor` (the overlay hides the pointer) or `animation-play-state` (the
+// savers run from script, and pause themselves under reduced motion).
+
+.classicySaverBlankScreen,
+.classicySaverCurvesAndColors,
+.classicySaverFlyingThroughSpace,
+.classicySaverFlyingWindows,
+.classicySaverMystify,
+.classicySaverPipes,
+.classicySaverScrollingMarquee {
+  position: absolute;
+  inset: 0;
+}
+
+.classicySaverWindows98Canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}

@@ -149,31 +149,60 @@ and `nodenext` resolution).
   theirs inverted the screen, which a CSS cursor cannot), and the four
   two-way size arrows, which also stand in for the one-way ones Windows
   never had. The size grip shows the diagonal one, as Windows' did.
-- **No wallpapers or screen savers of its own.** The Screen Saver control
-  panel reads "This appearance has no screen savers."
+- **Windows 98's wallpapers and desktop patterns**, offered in the
+  Appearance Manager's Desktop tab (its Patterns pop-up) while Windows 98 is
+  active: the nineteen wallpaper bitmaps of Windows 98 Second Edition (Black
+  Thatch to Waves, Clouds, Setup), every pixel kept, and the nineteen
+  desktop patterns its `shell.inf` lists (Bricks to Waffle's Revenge, each
+  labeled "… Pattern"), drawn as Windows drew them, black over the scheme's
+  desktop color, so a pattern follows every scheme. The desktop draws its
+  picture whole pixels, and the Desktop tab's preview shows it tiled over
+  the desktop color. No theme names one: Windows Standard keeps its plain
+  teal desktop.
+- **Windows 98's screen savers**, offered under Windows 98 only: Flying
+  Through Space, Flying Windows, Mystify Your Mind, Curves and Colors,
+  Scrolling Marquee, 3D Pipes and Blank Screen, each a port of its `.scr` on
+  the CD with the options its Settings dialog had and the defaults it read
+  (Scrolling Marquee's "Where do you want to go today?" among them). They run
+  on Windows 98's 55 ms timer tick, draw whole pixels on a canvas and erase
+  by drawing in black, as GDI did (Mystify and Curves and Colors with Clear
+  screen off draw over the desktop); Flying Windows draws Wingdings' own
+  Windows logo; 3D Pipes is drawn with WebGL (black without it). Under
+  reduced motion each draws one still frame, and each stops while the page
+  is hidden. Blank Screen is the default, since Windows 98 set none.
 
 ## Exports
 
 - `.`: the package entry (ES and UMD bundles, with types). Importing it
-  registers Windows 98, its icons, system art, cursors and fonts, and its
-  sound pack (Windows 98's sounds). It also exports
+  registers Windows 98, its icons, system art, cursors, wallpapers, desktop
+  patterns and fonts, its sound pack (Windows 98's sounds) and its screen
+  savers. It also exports
   `WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json` (the themes, layout,
   knobs and color families, deep-frozen and typed with the core's types, as
   `Windows98Json`),
   `windows98SoundPack`, `WINDOWS98_SYSTEM_ART` (the system art it
   registers), `WINDOWS98_CURSORS` (its cursors by role, each with its
   hotspot), `WINDOWS98_APPS` and `WINDOWS98_DESKTOP_ICONS` (its `apps` and
-  `desktopIcons`).
-- `./scss/*`: the package's SCSS: `bevels`, `pixel` and the `components/*`
-  partials, and `windows98`, the whole sheet, which a host may compile
-  through `pkg:@classicy/classicy/scss/*` (the package loads nothing of
-  another package's).
+  `desktopIcons`), `WINDOWS98_WALLPAPERS` and `WINDOWS98_DESKTOP_PATTERNS`
+  (each wallpaper's and pattern's label and identity filename, and a
+  wallpaper's CD bitmap and size or a pattern's eight bytes), and each
+  screen saver's component and options schema
+  (`ClassicyScreenSaverFlyingWindows` and `FlyingWindowsConfigSchema`, and
+  so on), with `WINDOWS98_SCREEN_SAVER_IDS` and
+  `WINDOWS98_DEFAULT_SCREEN_SAVER`, so a host can offer one under another
+  package by registering it again with that package's id added.
+- `./scss/*`: the package's SCSS: `bevels`, `pixel`, `screenSavers` and
+  the `components/*` partials, and `windows98`, the whole sheet, which a
+  host may compile through `pkg:@classicy/classicy/scss/*` (the package
+  loads nothing of another package's; the screen savers' index,
+  `src/screenSavers/_windows98ScreenSavers.scss`, ships beside the SCSS for
+  it).
 - `./classicy-windows98.css` and `./classicy-windows98.fonts.css`: the look
   and the fonts as stylesheets, for hosts whose Content-Security-Policy
   blocks inline `<style>` (below).
 
-The fonts, the art, the icons, the cursors and the sound sheet are files in
-`dist/assets/`, loaded as
+The fonts, the art, the icons, the cursors, the wallpapers, 3D Pipes'
+texture and the sound sheet are files in `dist/assets/`, loaded as
 `new URL("assets/…", import.meta.url)`. A Vite host keeps the packages out
 of the dev server's dependency pre-bundle, which would break those URLs:
 
@@ -214,8 +243,8 @@ drawn on a canvas and shown from a `data:` URL.
   (Restore while the window is zoomed), and the desktop keeps its icons. There is no taskbar and no Start menu.
 - **Windows' bitmaps where Windows drew bitmaps, tokens where it drew in
   the scheme's colors.** The icons, the Start flag, the Recycle Bin, the
-  shortcut overlay, the Windows logo and the cursors are Windows 98's own
-  images. The
+  shortcut overlay, the Windows logo, the wallpapers and the cursors are
+  Windows 98's own images, and the desktop patterns its own bytes. The
   title-bar buttons' marks, the scroll
   arrows, the checkmark, the radio ring, the pop-up and menu arrows and the
   slider's thumb, which Windows drew with Marlett in the scheme's colors,
@@ -262,8 +291,8 @@ package.
 
 ## Asset sources
 
-Every image, cursor and sound the package ships is Windows 98 Second
-Edition's own, read from the English Windows 98 SE CD (archive.org item
+Every image, cursor, sound and screen saver the package ships is Windows
+98 Second Edition's own, read from the English Windows 98 SE CD (archive.org item
 `windows-98-second-edition_202103`): its install cabinets (`WIN98_21.CAB` to
 `WIN98_74.CAB`, `BASE4` to `BASE6`, `PRECOPY1` and `PRECOPY2`), unpacked
 with `cabextract`, its sounds taken as they are and each binary's
@@ -412,6 +441,72 @@ renamed to the sprite it plays (`pnpm build:audio` encodes them into
 | `ClassicyAlertStart.wav` | `start.wav` (`WIN98_55.CAB`, 4-bit ADPCM) | Internet Explorer's Start Navigation |
 | `ClassicyAlertTada.wav` | `tada.wav` (`WIN98_73.CAB`) | (no event in the default scheme) |
 
+`src/assets/wallpapers/`: the CD's wallpaper bitmaps (`WIN98_22.CAB`),
+every pixel kept, each named for the long name Setup installed it under
+(`shell.inf` installs the first eleven with Windows, `applets.inf`'s Desktop
+Wallpaper component seven more, and `copy2.inf` copies `setup.bmp` to the
+Windows folder):
+
+| File | Label | Windows 98 SE file | Installed by |
+| --- | --- | --- | --- |
+| `black-thatch.webp` | Black Thatch | `thatch2.bmp` (`WIN98_22.CAB`), 31 x 30, 1-bit | Windows (`shell.inf`) |
+| `blue-rivets.webp` | Blue Rivets | `rivets2.bmp` (`WIN98_22.CAB`), 16 x 16, 4-bit | Windows (`shell.inf`) |
+| `bubbles.webp` | Bubbles | `bubbles.bmp` (`WIN98_22.CAB`), 64 x 64, 4-bit | Windows (`shell.inf`) |
+| `carved-stone.webp` | Carved Stone | `egypt.bmp` (`WIN98_22.CAB`), 32 x 32, 4-bit | Windows (`shell.inf`) |
+| `circles.webp` | Circles | `circles.bmp` (`WIN98_22.CAB`), 32 x 32, 1-bit | Windows (`shell.inf`) |
+| `clouds.webp` | Clouds | `clouds.bmp` (`WIN98_22.CAB`), 640 x 480, 8-bit | Desktop Wallpaper |
+| `forest.webp` | Forest | `forest.bmp` (`WIN98_22.CAB`), 256 x 256, 8-bit | Desktop Wallpaper |
+| `gold-weave.webp` | Gold Weave | `gator.bmp` (`WIN98_22.CAB`), 256 x 256, 4-bit | Desktop Wallpaper |
+| `houndstooth.webp` | Houndstooth | `hounds.bmp` (`WIN98_22.CAB`), 27 x 25, 4-bit | Windows (`shell.inf`) |
+| `metal-links.webp` | Metal Links | `mesh.bmp` (`WIN98_22.CAB`), 200 x 180, 8-bit | Desktop Wallpaper |
+| `pinstripe.webp` | Pinstripe | `pstripe.bmp` (`WIN98_22.CAB`), 30 x 32, 4-bit | Windows (`shell.inf`) |
+| `red-blocks.webp` | Red Blocks | `3dblocks.bmp` (`WIN98_22.CAB`), 54 x 96, 4-bit | Desktop Wallpaper |
+| `sandstone.webp` | Sandstone | `sand.bmp` (`WIN98_22.CAB`), 256 x 256, 4-bit | Desktop Wallpaper |
+| `setup.webp` | Setup | `setup.bmp` (`WIN98_22.CAB`), 640 x 480, 8-bit | Windows folder (`copy2.inf`) |
+| `stitches.webp` | Stitches | `weave2.bmp` (`WIN98_22.CAB`), 96 x 96, 4-bit | Desktop Wallpaper |
+| `straw-mat.webp` | Straw Mat | `bamboo.bmp` (`WIN98_22.CAB`), 30 x 32, 4-bit | Windows (`shell.inf`) |
+| `tiles.webp` | Tiles | `redtile.bmp` (`WIN98_22.CAB`), 32 x 32, 4-bit | Windows (`shell.inf`) |
+| `triangles.webp` | Triangles | `pyramid2.bmp` (`WIN98_22.CAB`), 16 x 16, 4-bit | Windows (`shell.inf`) |
+| `waves.webp` | Waves | `halftone.bmp` (`WIN98_22.CAB`), 32 x 32, 1-bit | Windows (`shell.inf`) |
+
+and the desktop patterns, which are no files in Windows: `shell.inf`'s
+`[patterns.inis]` writes each as eight bytes to `control.ini [Patterns]`,
+drawn here as an 8 x 8 tile, a 1 bit black and a 0 bit clear:
+
+| File | Label | Rows (decimal, top to bottom) |
+| --- | --- | --- |
+| `pattern-bricks.webp` | Bricks Pattern | 187 95 174 93 186 117 234 245 |
+| `pattern-buttons.webp` | Buttons Pattern | 170 125 198 71 198 127 190 85 |
+| `pattern-cargo-net.webp` | Cargo Net Pattern | 120 49 19 135 225 200 140 30 |
+| `pattern-circuits.webp` | Circuits Pattern | 82 41 132 66 148 41 66 132 |
+| `pattern-cobblestones.webp` | Cobblestones Pattern | 40 68 146 171 214 108 56 16 |
+| `pattern-colosseum.webp` | Colosseum Pattern | 130 1 1 1 171 85 170 85 |
+| `pattern-daisies.webp` | Daisies Pattern | 30 140 216 253 191 27 49 120 |
+| `pattern-dizzy.webp` | Dizzy Pattern | 62 7 225 7 62 112 195 112 |
+| `pattern-field-effect.webp` | Field Effect Pattern | 86 89 166 154 101 149 106 169 |
+| `pattern-key.webp` | Key Pattern | 254 2 250 138 186 162 190 128 |
+| `pattern-live-wire.webp` | Live Wire Pattern | 239 239 14 254 254 254 224 239 |
+| `pattern-plaid.webp` | Plaid Pattern | 240 240 240 240 170 85 170 85 |
+| `pattern-rounder.webp` | Rounder Pattern | 215 147 40 215 40 147 213 215 |
+| `pattern-scales.webp` | Scales Pattern | 225 42 37 146 85 152 62 247 |
+| `pattern-stone.webp` | Stone Pattern | 174 77 239 255 8 77 174 77 |
+| `pattern-thatches.webp` | Thatches Pattern | 248 116 34 71 143 23 34 113 |
+| `pattern-tile.webp` | Tile Pattern | 69 130 1 0 1 130 69 170 |
+| `pattern-triangles.webp` | Triangles Pattern | 135 7 6 4 0 247 231 199 |
+| `pattern-waffles-revenge.webp` | Waffle's Revenge Pattern | 77 154 8 85 239 154 77 154 |
+
+`src/screenSavers/`: the savers are ports of the CD's `.scr` files
+(`bezier.scr` and `scrnsave.scr` in `WIN98_51.CAB`; `ssflywin.scr`,
+`ssmarque.scr`, `ssmyst.scr`, `sspipes.scr` and `ssstars.scr` in
+`WIN98_52.CAB`), their options and defaults read from each file's dialog,
+string table and `control.ini` reader, their drawing from its timer
+handler. Two take data from the CD:
+
+| File | Windows 98 SE source | What it is |
+| --- | --- | --- |
+| `Pipes/pipes-texture.webp` | `sspipes.scr` resource 100/99, a 100 x 100 24-bit bitmap | 3D Pipes' own texture, red and white stripes, for Textured pipes |
+| `FlyingWindows/wingdingsFlag.ts` | `wingding.ttf` (`WIN98_53.CAB`), glyph 225 (character 0xFF) | the Windows logo Flying Windows drew, the font's TrueType outline written as an SVG path; Wingdings is Microsoft's, designed by Charles Bigelow and Kris Holmes |
+
 `src/assets/fonts/`: not Microsoft's. Windows 98's MS Sans Serif
 (`sserife.fon`) is a bitmap font no browser loads; these are
 [98.css](https://github.com/jdan/98.css)'s woff2 conversions (`fonts/converted`)
@@ -448,7 +543,8 @@ named by its id).
 The package's code and stylesheets are provided free and in the public
 domain under [The Unlicense](https://unlicense.org/). See [LICENSE](LICENSE).
 Microsoft maintains the copyright on the Windows 95 and 98 icons, bitmaps,
-cursors, sounds and interface the package reproduces (under "Asset
+cursors, sounds, wallpapers, screen savers, the Wingdings outline and the
+interface the package reproduces (under "Asset
 sources" above), which Classicy uses under the fair use doctrine, as it uses
 Apple's Mac OS art under Platinum and System 7; they are not covered by the
 Unlicense. The two

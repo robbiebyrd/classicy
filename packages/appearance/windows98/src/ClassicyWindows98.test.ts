@@ -376,8 +376,9 @@ describe("the Windows 98 appearance package", () => {
 	});
 
 	// Its fonts are the family the themes name first: the stack resolves to
-	// the package's own face before any host font.
-	it("registers the face its themes name first, and no screen saver or hooks", async () => {
+	// the package's own face before any host font. Its default saver is Blank
+	// Screen (Windows 98 named none), and it has no hooks.
+	it("registers the face its themes name first, Blank Screen as its default saver, and no hooks", async () => {
 		await import("./index");
 		const pkg = getClassicyAppearancePackage("windows98");
 		const faces =
@@ -389,7 +390,7 @@ describe("the Windows 98 appearance package", () => {
 				expect(theme?.typography[key], `${theme?.id} ${key}`).toMatch(
 					/^"Pixelated MS Sans Serif",/,
 				);
-		expect(pkg?.defaultScreenSaver).toBeUndefined();
+		expect(pkg?.defaultScreenSaver).toBe("blank-screen");
 		expect(pkg?.hooks).toBeUndefined();
 	});
 

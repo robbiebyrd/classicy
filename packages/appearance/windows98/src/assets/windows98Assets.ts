@@ -10,6 +10,7 @@ import {
 	registerClassicyCursors,
 	registerClassicyFonts,
 	registerClassicySystemArt,
+	registerClassicyWallpapers,
 } from "@classicy/classicy";
 import { WINDOWS98_FONT_FACES } from "./windows98Fonts.internal";
 import {
@@ -18,15 +19,22 @@ import {
 	WINDOWS98_OWN_ICON_FILES,
 	type Windows98IconFiles,
 } from "./windows98Icons";
+import {
+	WINDOWS98_DESKTOP_PATTERNS,
+	WINDOWS98_WALLPAPERS,
+	windows98WallpaperFile,
+} from "./windows98Wallpapers";
 
-// Windows 98's icons, system art, cursors and fonts
-// (docs/windows98-asset-inventory.md). The images are read from the Windows
-// 98 Second Edition CD: its icon groups' 32 px and 16 px images, Internet
-// Explorer 5's toolbar bitmaps, Explorer's Start flag, the About box's
-// Windows logo and Web View's sky, each a lossless WebP of the resource's own
-// pixels (bin/classicyWebp.ts), and USER.EXE's system cursors, PNG (the
-// format every browser takes for a CSS cursor). The fonts are 98.css's pixel
-// recreation of MS Sans Serif (windows98Fonts.internal.ts).
+// Windows 98's icons, system art, cursors, wallpapers, desktop patterns and
+// fonts (docs/windows98-asset-inventory.md). The images are read from the
+// Windows 98 Second Edition CD: its icon groups' 32 px and 16 px images,
+// Internet Explorer 5's toolbar bitmaps, Explorer's Start flag, the About
+// box's Windows logo, Web View's sky and the wallpaper bitmaps, each a
+// lossless WebP of the resource's own pixels (bin/classicyWebp.ts), the
+// desktop patterns `shell.inf` lists, drawn from their bytes, and USER.EXE's
+// system cursors, PNG (the format every browser takes for a CSS cursor). The
+// fonts are 98.css's pixel recreation of MS Sans Serif
+// (windows98Fonts.internal.ts).
 //
 // The glyphs Windows drew in the scheme's colors (the caption buttons'
 // marks, scroll arrows, check marks, radio dots, menu and pop-up arrows,
@@ -50,6 +58,10 @@ const artFiles = import.meta.glob("./art/*.webp", {
 	import: "default",
 }) as Record<string, string>;
 const cursorFiles = import.meta.glob("./cursors/*.png", {
+	eager: true,
+	import: "default",
+}) as Record<string, string>;
+const wallpaperFiles = import.meta.glob("./wallpapers/*.webp", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
@@ -186,6 +198,26 @@ export const WINDOWS98_CURSORS: Readonly<
 };
 
 registerClassicyCursors(WINDOWS98, WINDOWS98_CURSORS);
+
+/**
+ * Windows 98's wallpapers, then its desktop patterns (windows98Wallpapers.ts),
+ * each under its identity filename, the one a theme names in
+ * `desktop.backgroundImage`. The Appearance Manager's Desktop tab lists them,
+ * after the default package's, while Windows 98 is active. No theme names one:
+ * every Windows 98 preset keeps its scheme's plain Background, as Windows
+ * Standard's teal desktop had no wallpaper and the pattern (None). A pattern
+ * is black on clear, so the desktop's color shows between its black bits.
+ */
+registerClassicyWallpapers(
+	WINDOWS98,
+	[...WINDOWS98_WALLPAPERS, ...WINDOWS98_DESKTOP_PATTERNS].map(
+		({ label, file }) => ({
+			name: label,
+			src: wallpaperFiles[`./wallpapers/${windows98WallpaperFile(file)}`] ?? "",
+			file,
+		}),
+	),
+);
 
 /**
  * Windows 98's interface face, "Pixelated MS Sans Serif" regular and bold,

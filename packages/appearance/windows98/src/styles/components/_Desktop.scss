@@ -9,9 +9,15 @@
 //
 // - The desktop is a flat color, Background (`--desktop-background-color`,
 //   teal in Windows Standard), with no pattern: every Windows preset names
-//   no picture, and a picture a user picks in the Appearance Manager's
-//   Desktop tab is drawn by the base sheet as any wallpaper, so this partial
-//   leaves the face to the theme.
+//   no picture. A wallpaper or desktop pattern a user picks in the
+//   Appearance Manager's Desktop tab (the package registers Windows 98's
+//   nineteen of each, assets/windows98Wallpapers.ts) is drawn by the base
+//   sheet as any wallpaper, over the Background: a pattern is black on
+//   clear, so it shows in the scheme's color and black, as Windows drew it.
+//   Windows drew a bitmap's pixels one to one, never smoothed, so the
+//   picture is drawn whole pixels at any zoom (`image-rendering: pixelated`
+//   on the desktop, and `auto` again for everything in it, which sets its
+//   own), as System 7's partial does.
 // - The selection marquee is the one-pixel dotted rectangle the shell XORed
 //   onto the desktop, drawn in the desktop text color (the XOR over the
 //   Background read as a light dotted line), where the base draws a dotted
@@ -98,6 +104,16 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
   // rendering stands).
   & {
     -webkit-font-smoothing: none;
+  }
+
+  // --- The picture ----------------------------------------------------------
+  // Whole pixels at any zoom, the desktop's own picture only.
+  & {
+    image-rendering: pixelated;
+  }
+
+  & > * {
+    image-rendering: auto;
   }
 
   // --- The marquee ----------------------------------------------------------

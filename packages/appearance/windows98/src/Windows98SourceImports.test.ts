@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 // Windows 98's source reaches the core only through its public API, as
 // Platinum's and System 7's do: TypeScript imports `@classicy/classicy`,
 // never a core path (`@/…`, or a relative path out of the package) and
-// nothing of another Appearance Package (it bundles no screen savers, so
+// nothing of another Appearance Package (its screen savers are its own, so
 // not even Platinum's saver module); SCSS uses the vocabulary as
 // `pkg:@classicy/classicy/scss/<module>` and loads nothing outside the
 // package. Tests may still import core internals and test helpers.

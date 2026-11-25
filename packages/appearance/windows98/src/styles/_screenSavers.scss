@@ -1,0 +1,27 @@
+// The screen savers Windows 98 ships (../screenSavers/): their stylesheet,
+// loaded through the savers' one index,
+// ../screenSavers/_windows98ScreenSavers.scss. windows98.scss includes the
+// mixin inside its `classicy.package` layer block but at the root of it
+// (`@at-root`), outside the package scope, since the overlay is a portal, as
+// Platinum's and System 7's sheets include theirs.
+//
+// The savers draw on canvases from script, which pause themselves under
+// reduced motion (useWindows98Saver.ts); a package that ships savers in its
+// own layer still ends with the overlay's reduced-motion pause, after every
+// saver, as Platinum's does (the core's base-layer copy loses to any
+// `animation:` shorthand a later layer sets).
+//
+// The paths are relative to styles/: include the mixin from a stylesheet
+// there (windows98.scss).
+@use "sass:meta";
+
+@mixin screenSavers {
+  @include meta.load-css("../screenSavers/windows98ScreenSavers");
+
+  @media (prefers-reduced-motion: reduce) {
+    #classicy-screen-saver-overlay,
+    #classicy-screen-saver-overlay * {
+      animation-play-state: paused;
+    }
+  }
+}

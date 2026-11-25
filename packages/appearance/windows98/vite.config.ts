@@ -14,7 +14,11 @@ import { WINDOWS98_FONT_FACES } from "./src/assets/windows98Fonts.internal";
 // dependency and stays external in both formats, so a host's one copy of the
 // core's registries (package, asset, sound pack, log) is the one Windows 98
 // registers into (design 0014-ahm, anti-goal "Two copies of the registries").
-// `pnpm build` runs bin/verify-dist.mjs on the result.
+// `pnpm build` runs bin/verify-dist.mjs on the result. zod is bundled, as
+// Platinum bundles it (packages/appearance/platinum/vite.config.ts): the
+// screen savers' option schemas are zod's, and the core's schema forms read
+// their internals, so the package carries the zod its release was built with
+// (it is in `dependencies` for the declarations).
 
 const externalPackages = [
 	"@classicy/classicy",
@@ -60,7 +64,8 @@ const windows98Config = (mode: string): UserConfig => ({
 		},
 	},
 	// Every asset in the package ships as a file in dist/assets (its fonts,
-	// art, icons, cursors and sound sheet), nothing inlined.
+	// art, icons, cursors, wallpapers, 3D Pipes' texture and sound sheet),
+	// nothing inlined.
 	plugins: [
 		noInlineAppearanceAssetsPlugin(),
 		// dist/classicy-windows98.css and dist/classicy-windows98.fonts.css,
@@ -111,9 +116,9 @@ const windows98Config = (mode: string): UserConfig => ({
 			external: isExternal,
 			output: {
 				// Package assets go under dist/assets, each under its source
-				// name (no two share one: every name in fonts/, art/, icons/ and
-				// cursors/ is unique, and verify-dist fails two sources that
-				// would collide).
+				// name (no two share one: every name in fonts/, art/, icons/,
+				// cursors/, wallpapers/ and the savers' folders is unique, and
+				// verify-dist fails two sources that would collide).
 				assetFileNames: "assets/[name][extname]",
 				globals: {
 					"@classicy/classicy": "classicy",

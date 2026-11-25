@@ -51,33 +51,42 @@ describe("packages/appearance/windows98/package.json", () => {
 		});
 	});
 
-	// The package needs nothing a host does not already install: no screen
-	// savers, so not even zod comes along.
-	it("has no dependencies of its own", () =>
-		expect(pkg.dependencies).toBeUndefined());
+	// zod, at the core's and Platinum's range: its screen savers' option
+	// schemas are zod's, and its bundles carry the zod they were built with,
+	// as Platinum's do (its declarations name zod's types).
+	it("depends on zod alone, at the core's range, as Platinum does", () => {
+		expect(pkg.dependencies).toEqual({ zod: core.dependencies?.zod });
+		expect(pkg.dependencies).toEqual(platinum.dependencies);
+	});
 
-	// And the fonts' readme and license files, which CC BY-SA 3.0 and the
-	// readmes require to travel with the faces.
-	it("publishes dist, the SCSS, the fonts' notices, the README and the license", () =>
+	// The screen savers' stylesheet index beside the SCSS, which the whole
+	// sheet loads (so `./scss/windows98` compiles for a host); and the fonts'
+	// readme and license files, which CC BY-SA 3.0 and the readmes require to
+	// travel with the faces.
+	it("publishes dist, the SCSS, the savers' stylesheet, the fonts' notices, the README and the license", () =>
 		expect(pkg.files).toEqual([
 			"dist",
 			"src/styles",
+			"src/screenSavers/*.scss",
 			"src/assets/fonts/*.txt",
 			"README.md",
 			"LICENSE",
 		]));
 
 	// Importing the entry registers Windows 98. Its source modules that
-	// register at load (the icons and system art, the sound pack) are side
-	// effects too, since a bundler that builds the source (Storybook, the
-	// example's dev server) would otherwise drop
-	// `import "./assets/windows98Assets"` and `import "./assets/sounds/windows98"`.
+	// register at load (the icons, art, wallpapers, cursors and fonts, the
+	// sound pack, the screen savers) are side effects too, since a bundler that
+	// builds the source (Storybook, the example's dev server) would otherwise
+	// drop `import "./assets/windows98Assets"`,
+	// `import "./assets/sounds/windows98"` and
+	// `import "./screenSavers/windows98ScreenSavers"`.
 	it("marks the entry, the registering modules and the styles as side effects", () =>
 		expect(pkg.sideEffects).toEqual([
 			"./dist/*.js",
 			"./src/index.ts",
 			"./src/assets/windows98Assets.ts",
 			"./src/assets/sounds/windows98.ts",
+			"./src/screenSavers/windows98ScreenSavers.ts",
 			"**/*.css",
 			"**/*.scss",
 		]));

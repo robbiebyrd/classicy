@@ -8,11 +8,18 @@ import type {
 	ClassicySystemArtKey,
 } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { getClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+import { WINDOWS98_SCREEN_SAVER_IDS } from "../screenSavers/windows98ScreenSavers";
 import { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "../windows98Apps";
 import { windows98SoundPack } from "./sounds/windows98";
 import { WINDOWS98_CURSORS, WINDOWS98_SYSTEM_ART } from "./windows98Assets";
 import { WINDOWS98_FONT_FACES } from "./windows98Fonts.internal";
 import { WINDOWS98_ICON_FILES, WINDOWS98_ICON_REUSE } from "./windows98Icons";
+import {
+	WINDOWS98_DESKTOP_PATTERNS,
+	WINDOWS98_WALLPAPERS,
+	windows98WallpaperFile,
+} from "./windows98Wallpapers";
 
 // docs/windows98-asset-inventory.md is the map: each row's decision is what
 // Windows 98 registers for its key, so the two never drift apart, and a key
@@ -210,5 +217,61 @@ describe("docs/windows98-asset-inventory.md", () => {
 		expect(WINDOWS98_DESKTOP_ICONS.startupDisk?.icon).toMatch(
 			/\/explorer-100-32\.webp$/,
 		);
+	});
+
+	it("lists every wallpaper, its CD bitmap, size and file, in the Display control panel's order", () => {
+		const rows = sectionRows("Wallpapers");
+		expect(
+			rows.map(([file, label, source, , shipped]) => ({
+				file: code(file),
+				label,
+				cd: code(source),
+				size: /(\d+) x (\d+)/
+					.exec(source ?? "")
+					?.slice(1)
+					.map(Number),
+				shipped: code(shipped),
+			})),
+		).toEqual(
+			WINDOWS98_WALLPAPERS.map(({ file, label, cd, width, height }) => ({
+				file,
+				label,
+				cd,
+				size: [width, height],
+				shipped: `wallpapers/${windows98WallpaperFile(file)}`,
+			})),
+		);
+		for (const [, , , , , hash] of rows)
+			expect(code(hash)).toMatch(/^[0-9a-f]{64}$/);
+	});
+
+	it("lists every desktop pattern with its eight bytes", () => {
+		const rows = sectionRows("Desktop patterns");
+		expect(
+			rows.map(([file, label, bytes, shipped]) => ({
+				file: code(file),
+				label,
+				rows: (bytes ?? "").split(" ").map(Number),
+				shipped: code(shipped),
+			})),
+		).toEqual(
+			WINDOWS98_DESKTOP_PATTERNS.map(({ file, label, rows }) => ({
+				file,
+				label,
+				rows,
+				shipped: `wallpapers/${windows98WallpaperFile(file)}`,
+			})),
+		);
+	});
+
+	it("lists every screen saver once, by the name it registers", () => {
+		const rows = sectionRows("Screen savers");
+		expect(rows.map(([id]) => code(id))).toEqual([
+			...WINDOWS98_SCREEN_SAVER_IDS,
+		]);
+		for (const [id, name, file] of rows) {
+			expect(getClassicyScreenSaver(code(id))?.name, code(id)).toBe(name);
+			expect(code(file)).toMatch(/^[a-z0-9]+\.scr$/);
+		}
 	});
 });

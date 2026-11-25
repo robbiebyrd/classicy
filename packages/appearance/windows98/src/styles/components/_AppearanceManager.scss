@@ -10,10 +10,14 @@
 //   and Date & Time panels paint their content's background themselves).
 // - The Desktop tab's preview (Display Properties' Background page shows the
 //   desktop inside a monitor picture, desk.cpl's bitmap, which the package
-//   does not register) sits in
-//   a two-ring sunken well (`b.sunken`), the desktop's color behind its
-//   picture or standing alone as the None swatch, the picture inside the
-//   rings (the padding).
+//   does not register) sits in a two-ring sunken well (`b.sunken`) and
+//   shows the desktop as it is drawn: its color under its picture, laid
+//   with the theme's repeat, position and size, whole pixels, the rings
+//   drawn over its edge, so an 8 x 8 desktop pattern previews tiled in
+//   the scheme's color as Windows' monitor did, not as one blown-up tile.
+//   The picture element's own image is pushed out of its box
+//   (`object-fit: none` at `100vw 100vh`, as System 7's preview does), and
+//   the None swatch is the bare color.
 // - Swatches are color wells: the Colors tab's color-picker swatches (the
 //   base: a black border under a raised Platinum bevel) sunken two rings,
 //   the dotted focus rectangle inside the rings when the keyboard has one;
@@ -55,7 +59,14 @@
   .classicyAppearanceManagerDesktopPreview {
     box-sizing: border-box;
     padding: b.$b2;
+    object-fit: none;
+    object-position: 100vw 100vh;
     background-color: var(--desktop-background-color);
+    background-image: var(--desktop-background-image);
+    background-repeat: var(--desktop-background-repeat);
+    background-position: var(--desktop-background-position);
+    background-size: var(--desktop-background-size);
+    image-rendering: pixelated;
 
     @include b.sunken;
   }

@@ -65,7 +65,8 @@ its own `dist/assets/`. The Windows 98 package, `@classicy/appearance-windows98`
 (§8, "Windows 98"), is installed and imported the same way; it ships
 `classicy-windows98.css`, `classicy-windows98.fonts.css` (its
 `"Pixelated MS Sans Serif"` faces) and its `dist/assets/` (its fonts, its
-package icon, its art and icons, its cursors and its sprites).
+package icon, its art and icons, its cursors, its wallpapers, 3D Pipes'
+texture and its sprites).
 
 The desktop fills the window with no host CSS. When it is the page (mounted
 in a child of `body`, directly or through up to four wrappers that each hold
@@ -4317,10 +4318,10 @@ nothing of Platinum's or System 7's; `Windows98SourceImports.test.ts`). It
 registers Windows 98 Second Edition's own icons and system art, read from
 the Windows 98 SE CD (`docs/windows98-asset-inventory.md` maps every key to
 its resource), its cursors (USER.EXE's), its interface font (98.css's
-recreation of MS Sans Serif, CC BY-SA 3.0) and Windows 98's names for the
-bundled apps, the Trash and the startup disk; it registers no wallpapers or
-screen savers, and the glyphs Windows drew in the scheme's colors stay pixel
-art drawn from theme tokens. Install and import it like Platinum (§1); its
+recreation of MS Sans Serif, CC BY-SA 3.0), Windows 98's names for the
+bundled apps, the Trash and the startup disk, its wallpapers and desktop
+patterns, and its screen savers; the glyphs Windows drew in the scheme's
+colors stay pixel art drawn from theme tokens. Install and import it like Platinum (§1); its
 README lists what it ships and every asset's source.
 
 - **Themes.** Eighteen, every one `package: "windows98"`, `sound.pack:
@@ -4407,8 +4408,63 @@ README lists what it ships and every asset's source.
   the icon (`--alias-badge-size`), the size grip under the diagonal size
   cursor (`resizeNwse`, where the base reads `resizeLr`), and the desktop's
   text drawn unsmoothed (`-webkit-font-smoothing: none`, as Windows drew its
-  bitmap MS Sans Serif). With no package offering a screen saver the panel
-  reads "This appearance has no screen savers."
+  bitmap MS Sans Serif), and a desktop picture whole pixels
+  (`image-rendering: pixelated` on the desktop, `auto` again on its
+  children), the Desktop tab's preview showing the desktop's own background
+  (its color under its picture, tiled as the theme lays it; the `<img>`'s
+  own image pushed out with `object-fit: none` at `100vw 100vh`, as System
+  7's preview does).
+- **Wallpapers and desktop patterns** (`src/assets/windows98Wallpapers.ts`,
+  `WINDOWS98_WALLPAPERS`, `WINDOWS98_DESKTOP_PATTERNS`, exported;
+  `docs/windows98-asset-inventory.md`, "Wallpapers" and "Desktop
+  patterns"): registered with `registerClassicyWallpapers` under
+  `windows98`, so the Desktop tab lists them (after the default package's)
+  while Windows 98 is active. The nineteen wallpaper bitmaps of Windows 98 SE
+  (`WIN98_22.CAB`), every pixel kept, as `wallpapers/<name>.webp`, each
+  labeled by the long name Setup installed it under and held by a theme as
+  that name in lower case with hyphens (`black-thatch.bmp`, …; spaces are
+  not allowed in a wallpaper filename); and the nineteen desktop patterns
+  `shell.inf` writes to `control.ini [Patterns]` (not Windows 3.1's
+  thirteen), each an 8 x 8 tile drawn from its eight bytes, a 1 bit opaque
+  black and a 0 bit clear (`pattern-<name>.png`, shipped as
+  `pattern-<name>.webp`, labeled "<Name> Pattern"), so the desktop color
+  the base sheet draws under its picture shows through: a pattern is drawn
+  in the scheme's Background and black, as Windows drew it, and follows
+  every scheme. No preset names one (Windows Standard is plain teal).
+- **Screen savers** (`src/screenSavers/`, `windows98ScreenSavers.ts`;
+  inventory "Screen savers"): seven, offered under `windows98` only, each a
+  port of its `.scr` on the CD, named as `applets.inf` named its file, with
+  its Settings dialog's options as a zod `configSchema` (the derived form)
+  and its `control.ini` reader's defaults: Flying Through Space
+  (`flying-through-space`: warp speed 1-20, 10; stars 10-200, 25), Flying
+  Windows (`flying-windows`: warp 1-20, 20; windows 5-75, 25; Wingdings'
+  0xFF glyph, its outline read from the CD's `wingding.ttf`, in the default
+  palette's colors 1 to 14), Mystify Your Mind (`mystify-your-mind`: per
+  polygon Active, Lines 1-15, Two colors or Multiple random colors; Clear
+  screen), Curves and Colors (`curves-and-colors`: Speed 0-8, Lines 1-80,
+  Curves 2-10, Density 0-6, One color or Multiple random colors, Clear
+  screen), Scrolling Marquee (`scrolling-marquee`: Position, Background
+  color, Speed 1-60, Text, and Format Text's font, style, size, effects and
+  color; "Where do you want to go today?" in red bold 72-point Arial), 3D
+  Pipes (`3d-pipes`: Single or Multiple, Traditional with Elbow, Ball, Mixed
+  or Cycle joints or Flex, Resolution 0-200, Solid (its sixteen teapot
+  materials) or Textured (its own striped texture,
+  `Pipes/pipes-texture.webp`), drawn with WebGL, black without it) and Blank
+  Screen (`blank-screen`, the package's `defaultScreenSaver`: Windows 98 set
+  none). The canvas savers run through `useWindows98Saver`: they tick on
+  Windows 98's 55 ms timer tick (`windows98TimerPeriod`), draw on a canvas
+  one CSS pixel to a pixel (`image-rendering: pixelated`) with a software
+  surface that draws as GDI did (whole-pixel rectangles, Bresenham lines
+  with the last pixel left out, filled glyph outlines), erase by drawing in
+  black, draw one still frame under `prefers-reduced-motion: reduce` (and
+  stop or resume as the preference changes), stop while the page is hidden,
+  and start over when their box changes size. Mystify and Curves and Colors
+  are `transparentBackground` savers that paint the screen black themselves
+  while Clear screen is on, and draw over the desktop when it is off. Their
+  stylesheet (`_windows98ScreenSavers.scss`, through `styles/_screenSavers.scss`)
+  sits at the package layer's root, keyed on the savers' classes, and ends
+  with the reduced-motion pause; no saver sets `cursor`. Each saver's
+  component and schema are exported, as Platinum's are.
 - **Icons and system art** (`src/assets/windows98Assets.ts`, the key map in
   `windows98Icons.ts`, `docs/windows98-asset-inventory.md`): lossless WebP of
   Windows 98 SE's resources, one base tree for every theme. 85 icon keys draw
@@ -4472,8 +4528,10 @@ README lists what it ships and every asset's source.
 - **Build.** `pnpm --filter @classicy/appearance-windows98 build`: its
   `verify:dist` holds System 7's invariants for its own files, with
   nothing inlined (its `dist/assets` is its two woff2 faces, its package
-  icon, its art and icons, each byte for byte its WebP, its cursors, each
-  byte for byte its PNG, and the two sprites; invariant 6 holds
+  icon, its art, icons, wallpapers and pattern tiles and 3D Pipes' texture,
+  each byte for byte its WebP, its cursors, each byte for byte its PNG, and
+  the two sprites; zod is carried, as Platinum carries it, and is in
+  `dependencies`; invariant 6 holds
   `classicy-windows98.fonts.css` to the runtime's rules). Storybook
   registers it only through `storybook/.storybook/windows98.ts` (its own
   stories) or the Package toolbar.
@@ -6220,7 +6278,12 @@ when imported (ids: `bouncing-ball`, `fade-out`, `fish`, `flying-toasters`,
 host loading System 7 alone gets them too (§8, "System 7"); both packages
 name `defaultScreenSaver: "bouncing-ball"`. Platinum exports their components,
 config schemas and options UIs under the names `@classicy/classicy` exported
-them by in 3.0 (import them from the Platinum package now). The "Screen
+them by in 3.0 (import them from the Platinum package now). Windows 98
+(`@classicy/appearance-windows98`) registers its own seven, offered under
+`windows98` only (ids: `3d-pipes`, `blank-screen`, `curves-and-colors`,
+`flying-through-space`, `flying-windows`, `mystify-your-mind`,
+`scrolling-marquee`; `defaultScreenSaver: "blank-screen"`; §8, "Windows
+98"), canvas savers that pause themselves under reduced motion. The "Screen
 Saver" control panel (part of `ClassicyControlPanels`) exposes saver choice,
 timeout, on/off, and per-saver options.
 

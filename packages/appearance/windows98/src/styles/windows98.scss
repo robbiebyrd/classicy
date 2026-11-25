@@ -8,7 +8,8 @@
 // group boxes, the progress bars, the scroll bars, the desktop and its
 // icons, the tab control, the sliders, the placards and bevel buttons, the
 // ToolTips, the tables, the separators, the little arrows, the Appearance
-// Manager, the Control Strip and the HyperCard editor's handles.
+// Manager, the Control Strip and the HyperCard editor's handles; then, at the
+// block's root, the screen savers (_screenSavers.scss).
 @use "pkg:@classicy/classicy/scss/package";
 @use "bevels" as b;
 @use "components/Window";
@@ -37,6 +38,7 @@
 @use "components/AppearanceManager";
 @use "components/ControlStrip";
 @use "components/HyperCard";
+@use "screenSavers";
 
 @include package.classicy-package("windows98") {
   @include Window.window;
@@ -83,5 +85,12 @@
   *::selection {
     color: b.$highlight-text;
     background: b.$highlight;
+  }
+
+  // The screen savers' rules, keyed on their own classes, at the layer's root
+  // (outside the Windows 98 scope: the overlay is a portal). Last, so the
+  // reduced-motion pause that ends them follows every saver rule.
+  @at-root {
+    @include screenSavers.screenSavers;
   }
 }

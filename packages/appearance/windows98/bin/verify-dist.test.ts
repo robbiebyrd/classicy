@@ -16,7 +16,8 @@ import { WINDOWS98_FONT_FACES } from "../src/assets/windows98Fonts.internal";
 
 // The package's dist check, bin/verify-dist.mjs, run for real on a fixture
 // package folder: the shape Windows 98's takes (src/assets/fonts, art,
-// icons, cursors and sounds/windows98) with a few files each, and a dist/
+// icons, cursors, wallpapers and sounds/windows98, and a screen saver's art
+// under src/screenSavers) with a few files each, and a dist/
 // built to pass. Each case breaks one thing and expects the script to name
 // it, as System 7's verify-dist.test.ts does for its own invariants.
 
@@ -51,6 +52,11 @@ const SOURCES: Record<string, Buffer> = {
 	// The cursors stay PNG.
 	"src/assets/cursors/user-cursor-100.png": bytes(12),
 	"src/assets/cursors/user-cursor-105.png": bytes(13),
+	"src/assets/wallpapers/clouds.webp": bytes(14),
+	"src/assets/wallpapers/pattern-bricks.webp": bytes(15),
+	// A saver's art beside its code; the code itself is no asset.
+	"src/screenSavers/Pipes/pipes-texture.webp": bytes(16),
+	"src/screenSavers/Pipes/pipes.ts": Buffer.from("export {};"),
 	"src/assets/sounds/windows98/windows98.ogg": bytes(5),
 	"src/assets/sounds/windows98/windows98.m4a": bytes(6),
 	"src/assets/sounds/windows98/windows98.json": Buffer.from("{}"),
@@ -62,7 +68,8 @@ const SHIPPED = Object.keys(SOURCES).filter(
 		!file.includes("/sprites/") &&
 		!file.endsWith(".txt") &&
 		!file.endsWith(".json") &&
-		!file.endsWith(".sha256"),
+		!file.endsWith(".sha256") &&
+		!file.endsWith(".ts"),
 );
 const urls = SHIPPED.map(
 	(file) => `new URL("assets/${path.basename(file)}",import.meta.url).href`,
@@ -159,11 +166,30 @@ describe("bin/verify-dist.mjs", () => {
 			["windows98.svg", "art"],
 			["user-cursor-105.png", "cursors"],
 			["PixelatedMSSansSerif-bold-normal.woff2", "fonts"],
+			["clouds.webp", "wallpapers"],
+			["pattern-bricks.webp", "wallpapers"],
+			["pipes-texture.webp", "../screenSavers/Pipes"],
 		])("fails %s when it differs from its source", (file, folder) =>
 			expect(verify({ [`assets/${file}`]: Buffer.from("changed") })).toEqual({
 				status: 1,
 				stderr: `${path.join("dist", "assets", file)}: differs from ${path.join("src", "assets", folder, file)} -> package files ship byte for byte; check the build's plugins (an image optimizer?).`,
 			}));
+
+		it("fails a missing wallpaper and a missing saver's art, by name", () =>
+			expect(
+				verify({
+					"assets/pattern-bricks.webp": null,
+					"assets/pipes-texture.webp": null,
+				}).stderr.split("\n")[0],
+			).toBe(
+				`dist/assets: missing pattern-bricks.webp, pipes-texture.webp; extra none ${ASSET_RULE}`,
+			));
+
+		// A saver's code is source, not an asset: only its images ship.
+		it("ships no saver code in dist/assets", () =>
+			expect(verify({ "assets/pipes.ts": "export {};" }).stderr).toContain(
+				`dist/assets: missing none; extra pipes.ts ${ASSET_RULE}`,
+			));
 
 		// The icons and art ship as WebP: a PNG of one in dist/assets is a
 		// file nothing ships, and nothing loads it.
@@ -297,16 +323,38 @@ describe("bin/verify-dist.mjs", () => {
 // files can ship.
 it("reads every asset folder the package has", () => {
 	const assets = path.resolve(import.meta.dirname, "../src/assets");
-	const READ = ["fonts", "art", "icons", "cursors", "sounds"];
+	const READ = ["fonts", "art", "icons", "cursors", "wallpapers", "sounds"];
 	const folders = readdirSync(assets, { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
 		.map((entry) => entry.name);
 	expect(folders.filter((folder) => !READ.includes(folder))).toEqual([]);
-	for (const dir of ["fonts", "sounds/windows98", "icons", "art", "cursors"])
+	for (const dir of [
+		"fonts",
+		"sounds/windows98",
+		"icons",
+		"art",
+		"cursors",
+		"wallpapers",
+	])
 		expect(existsSync(path.join(assets, dir)), dir).toBe(true);
 	expect(
 		readdirSync(path.join(assets, "sounds"), { withFileTypes: true })
 			.filter((entry) => entry.isDirectory())
 			.map((entry) => entry.name),
 	).toEqual(["windows98"]);
+	// The screen savers' art is a WebP in a saver's own folder: none sits
+	// directly in src/screenSavers, and no saver folder holds a folder.
+	const savers = path.resolve(import.meta.dirname, "../src/screenSavers");
+	expect(
+		readdirSync(savers).filter((name) => /\.(?:webp|png|svg)$/.test(name)),
+	).toEqual([]);
+	for (const saver of readdirSync(savers, { withFileTypes: true }).filter(
+		(entry) => entry.isDirectory(),
+	))
+		expect(
+			readdirSync(path.join(savers, saver.name), {
+				withFileTypes: true,
+			}).filter((entry) => entry.isDirectory()),
+			saver.name,
+		).toEqual([]);
 });

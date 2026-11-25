@@ -19,19 +19,20 @@
 //    Start flag and the Windows logo), the icons (src/assets/icons: WebP,
 //    the Windows 98 SE icon groups' 32 px and 16 px images, IE 5's toolbar
 //    cells and Web View's sky), the cursors (src/assets/cursors: PNG,
-//    USER.EXE's) and the sound sheet
-//    (src/assets/sounds/windows98/windows98.{ogg,m4a}, not its JSON, its
-//    hash or its sprites/ WAV sources), each byte-identical to its source,
-//    so an image optimizer added to vite.config.ts fails here. Each ships
-//    under its own name (every name in fonts/, art/, icons/ and cursors/ is
-//    unique). A PNG left in a WebP folder is no source: nothing ships it.
-//    The package has no wallpapers of its own (its reads fall back to the
-//    default package's), and no screen savers. dist/ itself holds only the
-//    two bundles and their maps, the two strict-CSP stylesheets, assets/ and
-//    types/.
+//    USER.EXE's), the wallpapers (src/assets/wallpapers: WebP, the CD's
+//    wallpaper bitmaps and the desktop patterns' tiles), the screen savers'
+//    art (src/screenSavers/<Saver>/*.webp: 3D Pipes' texture) and the sound
+//    sheet (src/assets/sounds/windows98/windows98.{ogg,m4a}, not its JSON,
+//    its hash or its sprites/ WAV sources), each byte-identical to its
+//    source, so an image optimizer added to vite.config.ts fails here. Each
+//    ships under its own name (every name in those folders is unique). A PNG
+//    left in a WebP folder is no source: nothing ships it. dist/ itself holds
+//    only the two bundles and their maps, the two strict-CSP stylesheets,
+//    assets/ and types/.
 //
 // 3. NOTHING IS INLINED. No `data:` URI in either bundle: the package has no
-//    masks (its icons, art and cursors are images, and every glyph Windows
+//    masks (its icons, art, wallpapers and cursors are images, its desktop
+//    patterns black-on-clear tiles, and every glyph Windows
 //    drew in the scheme's colors is drawn from theme tokens in its
 //    stylesheet; the empty `data:,` a cursor declaration falls back to
 //    carries no file). The
@@ -192,16 +193,34 @@ const listFiles = async (dir, accept = () => true) =>
 		.map((entry) => join(dir, entry.name));
 // The fonts are woff2, flat in src/assets/fonts; the art SVG and WebP, flat
 // in src/assets/art; the icons WebP, flat in src/assets/icons; the cursors
-// PNG, flat in src/assets/cursors.
+// PNG, flat in src/assets/cursors; the wallpapers WebP, flat in
+// src/assets/wallpapers; a screen saver's art WebP, in its own folder under
+// src/screenSavers.
 const FONT = /\.woff2$/;
 const ART = /\.(?:svg|webp)$/;
-const ICON = /\.webp$/;
+const WEBP = /\.webp$/;
 const CURSOR = /\.png$/;
+const saverFolders = (
+	await readdir(join("src", "screenSavers"), { withFileTypes: true }).catch(
+		() => [],
+	)
+)
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => join("src", "screenSavers", entry.name))
+	.sort();
 const sources = [
 	...(await listFiles(join("src", "assets", "fonts"), (n) => FONT.test(n))),
 	...(await listFiles(join("src", "assets", "art"), (n) => ART.test(n))),
-	...(await listFiles(join("src", "assets", "icons"), (n) => ICON.test(n))),
+	...(await listFiles(join("src", "assets", "icons"), (n) => WEBP.test(n))),
 	...(await listFiles(join("src", "assets", "cursors"), (n) => CURSOR.test(n))),
+	...(await listFiles(join("src", "assets", "wallpapers"), (n) =>
+		WEBP.test(n),
+	)),
+	...(
+		await Promise.all(
+			saverFolders.map((dir) => listFiles(dir, (n) => WEBP.test(n))),
+		)
+	).flat(),
 	// The sheet's two formats, not its JSON, its hash or its sprites/ WAV
 	// sources.
 	...(await listFiles(join("src", "assets", "sounds", "windows98"), (n) =>
@@ -387,10 +406,12 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 				`${file}: relative specifier(s) without an extension (${bare.map((s) => JSON.stringify(s)).join(", ")}) -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
 			);
 	}
+	// Its own screenSavers/ declarations are Windows 98's; a folder named for
+	// another package is not.
 	const platinum = declarations.filter(
 		(file) =>
 			file.endsWith(".d.ts") &&
-			/(?:^|[\\/])(?:screenSavers|platinum|system7)[\\/]/i.test(file),
+			/(?:^|[\\/])(?:platinum|system7)[\\/]/i.test(file),
 	);
 	if (platinum.length)
 		problems.push(

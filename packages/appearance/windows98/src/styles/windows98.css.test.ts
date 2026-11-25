@@ -8,7 +8,8 @@ import { CLASSICY_LAYER_ORDER } from "../../../../../bin/classicyStyleInjector";
 // `@layer classicy.package` block, every rule scoped under the Windows 98
 // desktop root, so its look applies only while it is the active package
 // (design 0014-ahm; the core's _package.scss), as Platinum's and System 7's
-// are. No rule sits outside the scope: the package ships no screen savers.
+// are, but the screen savers', keyed on their own classes at the layer's
+// root, since the overlay is a portal (_screenSavers.scss).
 
 const STYLESHEET = path.join(import.meta.dirname, "windows98.scss");
 const WINDOWS98_SCOPE =
@@ -81,10 +82,63 @@ describe("windows98.scss (compiled)", () => {
 		).toBe(true);
 	});
 
-	it("holds rules, every one scoped under the windows98 root", () => {
+	it("holds rules, every one scoped under the windows98 root, but the screen savers'", () => {
 		const selectors = selectorsOf(css);
-		expect(selectors.length).toBeGreaterThan(0);
-		expect(selectors.filter((s) => !WINDOWS98_SCOPE.test(s))).toEqual([]);
+		const unscoped = selectors.filter((s) => !WINDOWS98_SCOPE.test(s));
+		expect(selectors.length).toBeGreaterThan(unscoped.length);
+		expect(unscoped).toEqual([
+			".classicySaverBlankScreen",
+			".classicySaverCurvesAndColors",
+			".classicySaverFlyingThroughSpace",
+			".classicySaverFlyingWindows",
+			".classicySaverMystify",
+			".classicySaverPipes",
+			".classicySaverScrollingMarquee",
+			".classicySaverWindows98Canvas",
+			// The savers' reduced-motion pause (_screenSavers.scss).
+			"#classicy-screen-saver-overlay",
+			"#classicy-screen-saver-overlay *",
+		]);
+	});
+
+	// The savers' rules: each root over the overlay, its canvas over the root
+	// drawn whole pixels; no saver sets the cursor (the overlay hides the
+	// pointer) or the play state; the sheet ends with its own reduced-motion
+	// pause, after every saver rule, as Platinum's and System 7's do.
+	it("lays the screen savers' canvases over the overlay, whole pixels, and ends with the reduced-motion pause", () => {
+		const saverCss = css.slice(css.indexOf(".classicySaverBlankScreen"));
+		expect(saverCss).toMatch(
+			/\.classicySaverWindows98Canvas \{[^}]*inset: 0;[^}]*image-rendering: pixelated;/,
+		);
+		expect(saverCss).not.toMatch(/cursor:/);
+		const pause =
+			/@media \(prefers-reduced-motion: reduce\) \{\s*#classicy-screen-saver-overlay,\s*#classicy-screen-saver-overlay \* \{\s*animation-play-state: paused;\s*\}\s*\}\s*\}\s*$/;
+		expect(css).toMatch(pause);
+		expect(saverCss.replace(pause, "")).not.toMatch(/animation-play-state/);
+	});
+
+	// A desktop picture is drawn whole pixels, as Windows drew a bitmap; the
+	// desktop's children draw their own way. The Desktop tab's preview shows
+	// the desktop's own background (its color under its tiled picture), so a
+	// pattern previews tiled in the scheme's color.
+	it("draws the desktop's picture whole pixels and previews it tiled", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		expect(css).toContain(`${scope} {\n    image-rendering: pixelated;`);
+		expect(css).toContain(`${scope} > * {\n    image-rendering: auto;`);
+		const preview = new RegExp(
+			`${scope.replace(/[.[\]]/g, "\\$&")} \\.classicyAppearanceManagerDesktopPreview \\{([^}]*)\\}`,
+		).exec(css)?.[1];
+		for (const declaration of [
+			"object-fit: none;",
+			"object-position: 100vw 100vh;",
+			"background-color: var(--desktop-background-color);",
+			"background-image: var(--desktop-background-image);",
+			"background-repeat: var(--desktop-background-repeat);",
+			"background-position: var(--desktop-background-position);",
+			"background-size: var(--desktop-background-size);",
+			"image-rendering: pixelated;",
+		])
+			expect(preview, declaration).toContain(declaration);
 	});
 
 	// The selector scan itself, so "every one scoped" cannot hold vacuously.

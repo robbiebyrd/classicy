@@ -1,8 +1,8 @@
 # Windows 98 asset inventory
 
-Every icon, system-art key, cursor, font face, sound and display name the Windows 98 Appearance Package (`@classicy/appearance-windows98`, `packages/appearance/windows98`) takes from Windows 98, and exactly which file each comes from. The package registers them from `src/assets/windows98Assets.ts` (the icons from the data in `src/assets/windows98Icons.ts`, the fonts from the face list in `src/assets/windows98Fonts.internal.ts`), `src/assets/sounds/windows98.ts` and `src/windows98Apps.ts`; `src/assets/windows98Inventory.test.ts` reads this file and fails if a row and the registration disagree.
+Every icon, system-art key, cursor, font face, sound, wallpaper, desktop pattern, screen saver and display name the Windows 98 Appearance Package (`@classicy/appearance-windows98`, `packages/appearance/windows98`) takes from Windows 98, and exactly which file each comes from. The package registers them from `src/assets/windows98Assets.ts` (the icons from the data in `src/assets/windows98Icons.ts`, the fonts from the face list in `src/assets/windows98Fonts.internal.ts`, the wallpapers and patterns from `src/assets/windows98Wallpapers.ts`), `src/assets/sounds/windows98.ts`, `src/screenSavers/windows98ScreenSavers.ts` and `src/windows98Apps.ts`; `src/assets/windows98Inventory.test.ts` reads this file and fails if a row and the registration disagree.
 
-Windows 95 and 98's icons, bitmaps, cursors, sounds and interface are Microsoft's; Classicy uses them under the fair use doctrine, as it uses Apple's Mac OS art under Platinum and System 7. The interface face is a recreation of MS Sans Serif by FontStruct user "lou", licensed CC BY-SA 3.0 (Fonts).
+Windows 95 and 98's icons, bitmaps, cursors, sounds, wallpapers, screen savers and interface are Microsoft's; Classicy uses them under the fair use doctrine, as it uses Apple's Mac OS art under Platinum and System 7. The interface face is a recreation of MS Sans Serif by FontStruct user "lou", licensed CC BY-SA 3.0 (Fonts).
 
 ## Sources and conversion
 
@@ -11,6 +11,8 @@ Windows 95 and 98's icons, bitmaps, cursors, sounds and interface are Microsoft'
 **Icons.** An icon group's 32 px and 16 px images, each the group's highest color depth (the 256-color image where there is one: Windows 98 drew it on a high-color screen), the AND mask made alpha (mask 1 is clear, every other pixel opaque; the few masked pixels whose XOR color is `#040404`, which Windows XORed onto the screen, are clear too). A group with no 16 px image registers its 32 px one alone, which Windows scaled. Files: `src/assets/icons/<binary>-<group id>-<size>.webp`.
 
 **Bitmaps.** The Start flag (`explorer.exe` bitmap 143) and the About box's Windows logo (`shell32.dll` bitmap 130, RLE-compressed) have a `#C0C0C0` ground, which Windows mapped to the button face as it loaded them: it is made clear, so each scheme's face shows through. Internet Explorer 5's toolbar cells are 20 x 20 cells of `browseui.dll` bitmaps 265 (gray, the buttons at rest) and 266 (color, the buttons under the pointer), their `#FF00FF` key made clear: `src/assets/icons/browseui-bitmap-<id>-cell-<n>.webp`. Web View's sky, `C:\WINDOWS\WEB\wvlogo.gif`, keeps every pixel. Files: `src/assets/art/<binary>-bitmap-<id>.webp`, `src/assets/icons/wvlogo.webp`.
+
+**Wallpapers.** The CD's wallpaper bitmaps (`WIN98_22.CAB`), 1-, 4- and 8-bit DIBs, every pixel kept, decoded twice (by the converter and by ffmpeg, which agree) before encoding. **Patterns** are no files in Windows: `shell.inf` writes each as eight decimal bytes, which are drawn as an 8 x 8 tile, a 1 bit opaque black and a 0 bit clear. Files: `src/assets/wallpapers/<name>.webp`. **3D Pipes' texture** is `sspipes.scr`'s resource 100/99, a 100 x 100 24-bit bitmap: `src/screenSavers/Pipes/pipes-texture.webp`.
 
 **Cursors.** `user.exe`'s `RT_GROUP_CURSOR` resources (Windows 98's system cursors), each one 32 x 32 1-bit image with its hotspot in the resource's own header: AND 0 and XOR 0 is black, AND 0 and XOR 1 white, AND 1 and XOR 0 clear, and AND 1 and XOR 1, a pixel that inverts the screen (every pixel of the I-beam and the cross), black, since a CSS cursor cannot invert. Files: `src/assets/cursors/user-cursor-<id>.png`.
 
@@ -440,6 +442,72 @@ The Alert column is the Sound tab's list (`alerts`): the eight short WAVs of the
 | `ClassicyTrashEmpty` | `recycle.wav` (`WIN98_72.CAB`), as `ClassicyAlertRecycle` | Empty Recycle Bin (`EmptyRecycleBin`): Special ▸ Empty Trash, once something is removed | — | `94b978244f9184b6792271c48fb3372dcc35f11c3d826c663c5973336acae010` |
 
 Eight of the nine are byte for byte 98.js's `audio/` copies, and winhistory.de's `o98.wav` and `win98logoff.wav` are The Microsoft Sound and `logoff.wav`; 98.js's `START.WAV` is a 16-bit re-encode, so the CD's ADPCM original is used. `ClassicyTrashEmpty` is an optional sprite (`CLASSICY_OPTIONAL_SOUND_SPRITE_IDS`): only a pack that defines it plays it, so Platinum's and System 7's play nothing when the Trash is emptied, and Platinum's pack never stands in for it.
+
+## Wallpapers
+
+The wallpapers registered with `registerClassicyWallpapers` (`WINDOWS98_WALLPAPERS`), Windows 98 Second Edition's nineteen: the eleven Setup installed with Windows (`shell.inf`), the seven of its Desktop Wallpaper component (`applets.inf`) and Setup's own picture (`setup.bmp`, which `copy2.inf` copies to the Windows folder). Each is listed by the long name Setup installed it under, the Display control panel's label; its identity filename (what a theme holds in `desktop.backgroundImage`) is that name in lower case, hyphens for its spaces. The Appearance Manager's Desktop tab lists them while Windows 98 is active, after the default package's; no preset names one (Windows Standard's desktop is teal, with no wallpaper and the pattern (None)).
+
+| File | Label | Windows 98 file | Component | Shipped as | SHA-256 of the bitmap |
+| --- | --- | --- | --- | --- | --- |
+| `black-thatch.bmp` | Black Thatch | `thatch2.bmp` (`WIN98_22.CAB`), 31 x 30, 1-bit | Windows (`shell.inf`) | `wallpapers/black-thatch.webp` | `7bcd355d19583ff539202301a5d17d3eb36d4a9eb07a7641fd8186e6de7c8bf7` |
+| `blue-rivets.bmp` | Blue Rivets | `rivets2.bmp` (`WIN98_22.CAB`), 16 x 16, 4-bit | Windows (`shell.inf`) | `wallpapers/blue-rivets.webp` | `4965fa67c7205c05fac8e447c5daaba0258ac2f653a8eab92896bc24ae251cfd` |
+| `bubbles.bmp` | Bubbles | `bubbles.bmp` (`WIN98_22.CAB`), 64 x 64, 4-bit | Windows (`shell.inf`) | `wallpapers/bubbles.webp` | `098b9eb1a95597b85008c8d7771737f52edcfb12961ee01fa806ed2c7fb3aa2d` |
+| `carved-stone.bmp` | Carved Stone | `egypt.bmp` (`WIN98_22.CAB`), 32 x 32, 4-bit | Windows (`shell.inf`) | `wallpapers/carved-stone.webp` | `156814a253fbcdc95e3601a704776d1be9f3b7c520abcd8c7e7e7f809d9b5530` |
+| `circles.bmp` | Circles | `circles.bmp` (`WIN98_22.CAB`), 32 x 32, 1-bit | Windows (`shell.inf`) | `wallpapers/circles.webp` | `1ed0543a88a2ff5c425889a4385399220348278e8c10ee057def8090d2b84f85` |
+| `clouds.bmp` | Clouds | `clouds.bmp` (`WIN98_22.CAB`), 640 x 480, 8-bit | Desktop Wallpaper | `wallpapers/clouds.webp` | `b3a198b53a09aa89bb85be8309af245b203046b8a3947180822b52303cf0b5e2` |
+| `forest.bmp` | Forest | `forest.bmp` (`WIN98_22.CAB`), 256 x 256, 8-bit | Desktop Wallpaper | `wallpapers/forest.webp` | `6bd41d17807714226f6c2f2b6b46feb3435862bd9a4522844b6f60d6d7c2c348` |
+| `gold-weave.bmp` | Gold Weave | `gator.bmp` (`WIN98_22.CAB`), 256 x 256, 4-bit | Desktop Wallpaper | `wallpapers/gold-weave.webp` | `c550232724708428f7ed39b7345fae3d815c2a206d98cd3ddeba2eef54116666` |
+| `houndstooth.bmp` | Houndstooth | `hounds.bmp` (`WIN98_22.CAB`), 27 x 25, 4-bit | Windows (`shell.inf`) | `wallpapers/houndstooth.webp` | `3c61173dae99572e47c35220375a7713dadb997ae9fd083d0a4223d3d462abed` |
+| `metal-links.bmp` | Metal Links | `mesh.bmp` (`WIN98_22.CAB`), 200 x 180, 8-bit | Desktop Wallpaper | `wallpapers/metal-links.webp` | `9d72f3b597db42ee9ce1e9d7469f101693b86b19369272f4d77618e28ced1f89` |
+| `pinstripe.bmp` | Pinstripe | `pstripe.bmp` (`WIN98_22.CAB`), 30 x 32, 4-bit | Windows (`shell.inf`) | `wallpapers/pinstripe.webp` | `415b6e90ab9b5e69dc01164eb2178ed8560fe60ffe2e437e849695dfeca301a7` |
+| `red-blocks.bmp` | Red Blocks | `3dblocks.bmp` (`WIN98_22.CAB`), 54 x 96, 4-bit | Desktop Wallpaper | `wallpapers/red-blocks.webp` | `22c78ca5707cdb5e3164b309cd57edfa8ac4d063657bf76dca4a17369137728d` |
+| `sandstone.bmp` | Sandstone | `sand.bmp` (`WIN98_22.CAB`), 256 x 256, 4-bit | Desktop Wallpaper | `wallpapers/sandstone.webp` | `184097b617d77c62d36c93cbe4a8cb13dc153cc0e8e01baa357a64a466892126` |
+| `setup.bmp` | Setup | `setup.bmp` (`WIN98_22.CAB`), 640 x 480, 8-bit | Windows folder (`copy2.inf`) | `wallpapers/setup.webp` | `aee82d0e24fe57d86a92838a913bc2ca6f7285907060bdd5f89a1fb64441d387` |
+| `stitches.bmp` | Stitches | `weave2.bmp` (`WIN98_22.CAB`), 96 x 96, 4-bit | Desktop Wallpaper | `wallpapers/stitches.webp` | `170000b85847616e4fb418c93f535766c04a8c6d353200c49a7d2f3ba25691c6` |
+| `straw-mat.bmp` | Straw Mat | `bamboo.bmp` (`WIN98_22.CAB`), 30 x 32, 4-bit | Windows (`shell.inf`) | `wallpapers/straw-mat.webp` | `0c30b6fb0183b6592e2dd6013407fd1c0aeabf03b485774b9899eff0aba2c617` |
+| `tiles.bmp` | Tiles | `redtile.bmp` (`WIN98_22.CAB`), 32 x 32, 4-bit | Windows (`shell.inf`) | `wallpapers/tiles.webp` | `1cc355b38ea43b7f32e39477a88619e8e35e093b79a4b1da073872a9403794b0` |
+| `triangles.bmp` | Triangles | `pyramid2.bmp` (`WIN98_22.CAB`), 16 x 16, 4-bit | Windows (`shell.inf`) | `wallpapers/triangles.webp` | `21b62a7e84a10780b26726b5a3f21c294ddbbf3f3e57a2d9444f564f7c9b4f6f` |
+| `waves.bmp` | Waves | `halftone.bmp` (`WIN98_22.CAB`), 32 x 32, 1-bit | Windows (`shell.inf`) | `wallpapers/waves.webp` | `b0c201bee1e5a36ee698ab098aa3480e20772869d8f5c788280e532fa3620667` |
+
+## Desktop patterns
+
+The patterns registered beside the wallpapers (`WINDOWS98_DESKTOP_PATTERNS`), each an 8 x 8 tile, black on clear: `shell.inf`'s `[patterns.inis]` writes nineteen to `control.ini [Patterns]` (Windows 3.1's thirteen, 50% Gray to Weave, are not Windows 98's but Thatches). Windows drew a pattern's 1 bits black and its 0 bits in the desktop color (the scheme's Background), so the tile's clear bits show the desktop's own color, which the base sheet draws under its picture, and a pattern follows every scheme. Windows listed patterns apart from wallpapers; Classicy's one Patterns pop-up lists both, so each pattern's label ends in " Pattern" (Triangles is both). Rows are the bytes top to bottom, the most significant bit leftmost.
+
+| File | Label | Rows | Shipped as |
+| --- | --- | --- | --- |
+| `pattern-bricks.png` | Bricks Pattern | 187 95 174 93 186 117 234 245 | `wallpapers/pattern-bricks.webp` |
+| `pattern-buttons.png` | Buttons Pattern | 170 125 198 71 198 127 190 85 | `wallpapers/pattern-buttons.webp` |
+| `pattern-cargo-net.png` | Cargo Net Pattern | 120 49 19 135 225 200 140 30 | `wallpapers/pattern-cargo-net.webp` |
+| `pattern-circuits.png` | Circuits Pattern | 82 41 132 66 148 41 66 132 | `wallpapers/pattern-circuits.webp` |
+| `pattern-cobblestones.png` | Cobblestones Pattern | 40 68 146 171 214 108 56 16 | `wallpapers/pattern-cobblestones.webp` |
+| `pattern-colosseum.png` | Colosseum Pattern | 130 1 1 1 171 85 170 85 | `wallpapers/pattern-colosseum.webp` |
+| `pattern-daisies.png` | Daisies Pattern | 30 140 216 253 191 27 49 120 | `wallpapers/pattern-daisies.webp` |
+| `pattern-dizzy.png` | Dizzy Pattern | 62 7 225 7 62 112 195 112 | `wallpapers/pattern-dizzy.webp` |
+| `pattern-field-effect.png` | Field Effect Pattern | 86 89 166 154 101 149 106 169 | `wallpapers/pattern-field-effect.webp` |
+| `pattern-key.png` | Key Pattern | 254 2 250 138 186 162 190 128 | `wallpapers/pattern-key.webp` |
+| `pattern-live-wire.png` | Live Wire Pattern | 239 239 14 254 254 254 224 239 | `wallpapers/pattern-live-wire.webp` |
+| `pattern-plaid.png` | Plaid Pattern | 240 240 240 240 170 85 170 85 | `wallpapers/pattern-plaid.webp` |
+| `pattern-rounder.png` | Rounder Pattern | 215 147 40 215 40 147 213 215 | `wallpapers/pattern-rounder.webp` |
+| `pattern-scales.png` | Scales Pattern | 225 42 37 146 85 152 62 247 | `wallpapers/pattern-scales.webp` |
+| `pattern-stone.png` | Stone Pattern | 174 77 239 255 8 77 174 77 | `wallpapers/pattern-stone.webp` |
+| `pattern-thatches.png` | Thatches Pattern | 248 116 34 71 143 23 34 113 | `wallpapers/pattern-thatches.webp` |
+| `pattern-tile.png` | Tile Pattern | 69 130 1 0 1 130 69 170 | `wallpapers/pattern-tile.webp` |
+| `pattern-triangles.png` | Triangles Pattern | 135 7 6 4 0 247 231 199 | `wallpapers/pattern-triangles.webp` |
+| `pattern-waffles-revenge.png` | Waffle's Revenge Pattern | 77 154 8 85 239 154 77 154 | `wallpapers/pattern-waffles-revenge.webp` |
+
+## Screen savers
+
+The savers registered with `registerClassicyScreenSaver` (`src/screenSavers/windows98ScreenSavers.ts`), offered under Windows 98 only, each a port of its `.scr` on the CD: the five of Setup's Additional Screen Savers component, Flying Windows and 3D Pipes (one of the OpenGL Screen Savers), by the names Setup gave their files (`applets.inf`). Their options are the Settings dialog's (`RT_DIALOG` 2003 in each file), their defaults what each file's `control.ini` reader falls back to. Every saver ticks on Windows 98's 55 ms timer tick (the files asked SetTimer for 9 to 50 ms), draws whole pixels on a canvas the screen's size and erases by drawing in black, as GDI did; under reduced motion it draws one still frame, and it stops while the page is hidden. Windows 98 set no saver (Setup wrote no `SCRNSAVE.EXE`), so the package's default is Blank Screen, the one that, like none, shows nothing.
+
+| Id | Name | Windows 98 file | Options (defaults) | SHA-256 of the file |
+| --- | --- | --- | --- | --- |
+| `3d-pipes` | 3D Pipes | `sspipes.scr` (`WIN98_52.CAB`) | Pipes Single or Multiple (Single); Pipe Style Traditional or Flex (Traditional), Joint Type Elbow, Ball, Mixed or Cycle (Elbow); Resolution 0-200 (0); Surface Style Solid or Textured (Solid). Its sixteen Solid materials and four Textured whites are its own table's; Textured draws its own texture (above); Choose Texture, which read a bitmap from disk, has no counterpart | `b479a0735e232252d381b37d794ffe6f9f2154bd415a89705e00dec27b0cde62` |
+| `blank-screen` | Blank Screen | `scrnsave.scr` (`WIN98_51.CAB`) | none ("This screen saver has no options that you can configure.") | `3c2a8dbaa0f7cc185a686aadc3d2405c9cd05833c8e6cb030d8ee54f9fbe3e23` |
+| `curves-and-colors` | Curves and Colors | `bezier.scr` (`WIN98_51.CAB`) | Speed 0-8 (8, Fast: a tick every 200 - 25 x Speed ms); Lines 1-80 (2); Curves 2-10 (10); Density 0-6 (6, Sparse: points move 2 to 3 + 3 x Density pixels a tick); Multiple random colors (on: one degree round the hue circle a copy) or One color (red; the sixteen basic colors here, where Choose Color offered any); Clear screen (on) | `012cbf992443904aa3db6cb3b5d5f7970c912e4811a414be7dfbfa5928f1930c` |
+| `flying-through-space` | Flying Through Space | `ssstars.scr` (`WIN98_52.CAB`) | Warp speed 1-20 (10); Number of stars 10-200 (25) | `5ce6a6f67b5a457504044dbf3a6c8177909233e8659549d76e1bf1b3fed16fa3` |
+| `flying-windows` | Flying Windows | `ssflywin.scr` (`WIN98_52.CAB`) | Warp speed 1-20 (20); Number of windows 5-75 (25). Each logo is Wingdings' character 0xFF, the outline read from the CD's `wingding.ttf` (`WIN98_53.CAB`), in one of the default palette's colors 1 to 14 | `c944a791eb42837576d026ab037a966ba277ff4b3bd1bbd132f6c9b2788b4e6c` |
+| `mystify-your-mind` | Mystify Your Mind | `ssmyst.scr` (`WIN98_52.CAB`) | For Polygon 1 and Polygon 2: Active (on), Lines 1-15 (5), Two colors (black and white, from the sixteen) or Multiple random colors (on); Clear screen (on) | `3dc6527fbba52899286bdcba9e7577891f9f2b640123d36e7d9f3950dd3af424` |
+| `scrolling-marquee` | Scrolling Marquee | `ssmarque.scr` (`WIN98_52.CAB`) | Position Centered or Random (Random); Background color, the default palette's twenty (black); Speed 1-60 (60); Text ("Where do you want to go today?"); Format Text: font (Arial), style (Bold), size 8-72 points (72), Strikeout and Underline (off), color (red, the Font dialog's sixteen) | `4f7c85cf581b55066ab634bd5c3e363f0f702186ecdfdedc670d3cb54ef3558a` |
 
 ## Apps
 
