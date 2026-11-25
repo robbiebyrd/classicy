@@ -8,6 +8,7 @@ import {
 	type ClassicyNodeImportKind,
 	findClassicyNodeImportProblems,
 } from "./classicyNodeImport";
+import { escapeClassicyRegExp } from "./classicyRegExpEscape";
 
 // The server-import invariant's check (story 0223-a0y), run for real: each
 // fixture is a bundle in a "type": "module" package, loaded in a child Node
@@ -197,7 +198,7 @@ describe("findClassicyNodeImportProblems", () => {
 		);
 		expect(problems).toHaveLength(1);
 		expect(problems[0]).toMatch(
-			new RegExp(`^${join(dir, "b.js").replaceAll(/[.\\]/g, "\\$&")}: `),
+			new RegExp(`^${escapeClassicyRegExp(join(dir, "b.js"))}: `),
 		);
 	});
 });

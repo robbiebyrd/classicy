@@ -185,11 +185,14 @@ describe("classicyUmdLoader", () => {
 	// setSourceMapsSupport's `generatedCode`), so the bundle's own map applies.
 	it("maps a stack trace through the bundle's source map under --enable-source-maps", () => {
 		const run = `try { require("mapped").run(5); } catch (e) { ${firstFrame}; }`;
-		expect(host(run).stdout).toMatch(
-			new RegExp(
-				`\\(${pathToFileURL(join(root, "node_modules/mapped/dist/mapped.umd.js")).href.replaceAll(/[.]/g, "\\.")}:1:\\d+\\)$`,
-			),
-		);
+		// Unmapped, the frame names the bundle's file URL, line 1: compared as
+		// text, since a RegExp built from the URL would read its characters
+		// as syntax (CodeQL alert 52, js/incomplete-sanitization).
+		const unmapped = host(run).stdout;
+		const bundle = `(${pathToFileURL(join(root, "node_modules/mapped/dist/mapped.umd.js")).href}:1:`;
+		const at = unmapped.lastIndexOf(bundle);
+		expect(at).toBeGreaterThanOrEqual(0);
+		expect(unmapped.slice(at + bundle.length)).toMatch(/^\d+\)$/);
 		expect(host(run, ["--enable-source-maps"]).stdout).toBe(
 			`at helper (${join(root, "mapped-src.js")}:3:11)`,
 		);
