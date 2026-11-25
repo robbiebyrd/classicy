@@ -1372,6 +1372,38 @@ export type ClassicyAppIdentityOverride = {
 };
 
 /**
+ * A package's display override for one of the desktop's own icons (its
+ * `desktopIcons`). Display only: the icon's record, its path, its analytics
+ * and saved state never change.
+ */
+export type ClassicyDesktopIconOverride = {
+	/** The icon's label, in place of its own name (a `label` prop still wins). */
+	name?: string;
+	/** The icon's image, in place of its own. */
+	icon?: ClassicyAssetSource;
+	/** The icon's balloon-help copy, in place of its stock copy. */
+	description?: string;
+};
+
+/**
+ * The desktop's own icons a package may show by another name, image or
+ * balloon copy (`desktopIcons`): the Trash (Windows 98's Recycle Bin) and the
+ * startup disk (its My Computer).
+ */
+export type ClassicyDesktopIconOverrides = {
+	/**
+	 * The Trash's desktop icon (`kind: "trash"`): its label and balloon copy.
+	 * Its image is the package's `trashEmpty`/`trashFull` art already.
+	 */
+	trash?: Omit<ClassicyDesktopIconOverride, "icon">;
+	/**
+	 * The startup disk's desktop icon (the first drive, `classicyStartupDisk`):
+	 * its label, image and balloon copy. Other drives keep theirs.
+	 */
+	startupDisk?: ClassicyDesktopIconOverride;
+};
+
+/**
  * An Appearance Package: a complete look (CSS, default theme, presets,
  * arrangement, assets, sounds, behavior hooks) that the desktop can switch
  * to as a unit. Register one with `registerClassicyAppearancePackage`.
@@ -1433,6 +1465,12 @@ export type ClassicyAppearancePackage = {
 	fileTypeNames?: Readonly<
 		Partial<Record<ClassicyFileSystemEntryFileType, string>>
 	>;
+	/**
+	 * Display overrides for the desktop's own icons, the Trash and the startup
+	 * disk; read with `useClassicyDesktopIconIdentity`. Absent, each keeps its
+	 * own label, image and stock balloon copy.
+	 */
+	desktopIcons?: Readonly<ClassicyDesktopIconOverrides>;
 	/**
 	 * The id of the screen saver this package prefers: in effect when the
 	 * user's stored choice is not offered under the package. A registered saver

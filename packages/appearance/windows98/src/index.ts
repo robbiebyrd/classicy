@@ -37,17 +37,51 @@ import { createElement } from "react";
 // `sound.pack` must name a registered pack. The package lists the pack; it
 // never registers it a second time.
 import "./assets/sounds/windows98";
+// Registers at module load: Windows 98's icons, system art, cursors,
+// wallpapers and desktop patterns, from the Windows 98 Second Edition CD, and
+// its interface font (docs/windows98-asset-inventory.md).
+import "./assets/windows98Assets";
+// Registers at module load: Windows 98's screen savers, before the package,
+// whose `defaultScreenSaver` names one of them.
+import "./screenSavers/windows98ScreenSavers";
 // The package's own icon (the Appearance Manager's Themes tab): a window on
 // the teal desktop.
 import windows98Icon from "./assets/art/windows98.svg";
 import { windows98SoundPack } from "./assets/sounds/windows98";
+import { WINDOWS98_DEFAULT_SCREEN_SAVER } from "./screenSavers/windows98ScreenSavers";
 import windows98Css from "./styles/windows98.scss?inline";
 import windows98JsonSource from "./windows98.json";
+import { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "./windows98Apps";
 import { type DeepReadonly, deepFreeze } from "./windows98DeepFreeze.internal";
 import { windows98FileTypeNames } from "./windows98FileTypeNames";
 import { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 export * from "./assets/sounds/windows98";
+export {
+	WINDOWS98_CURSORS,
+	WINDOWS98_SYSTEM_ART,
+} from "./assets/windows98Assets";
+export {
+	WINDOWS98_DESKTOP_PATTERNS,
+	WINDOWS98_WALLPAPERS,
+	type Windows98DesktopPattern,
+	type Windows98Wallpaper,
+	type Windows98WallpaperBitmap,
+} from "./assets/windows98Wallpapers";
+// The screen savers' parts, so a host can offer one under another package by
+// re-registering it with that package's id added.
+export * from "./screenSavers/BlankScreen/ClassicyScreenSaverBlankScreen";
+export * from "./screenSavers/CurvesAndColors/ClassicyScreenSaverCurvesAndColors";
+export * from "./screenSavers/FlyingThroughSpace/ClassicyScreenSaverFlyingThroughSpace";
+export * from "./screenSavers/FlyingWindows/ClassicyScreenSaverFlyingWindows";
+export * from "./screenSavers/Mystify/ClassicyScreenSaverMystify";
+export * from "./screenSavers/Pipes/ClassicyScreenSaverPipes";
+export * from "./screenSavers/ScrollingMarquee/ClassicyScreenSaverScrollingMarquee";
+export {
+	WINDOWS98_DEFAULT_SCREEN_SAVER,
+	WINDOWS98_SCREEN_SAVER_IDS,
+} from "./screenSavers/windows98ScreenSavers";
+export { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "./windows98Apps";
 export { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 /**
@@ -163,9 +197,12 @@ const windows98ColorLabels: Readonly<Record<string, string>> = Object.freeze({
 	"--desktop-background-color": "Desktop",
 });
 
-// One hook (above), playing no interface feedback (Windows' sounds are
-// Microsoft's) and decorating nothing else. No screen savers: it names none, so the
-// Screen Saver control panel reads "This appearance has no screen savers."
+// One hook (above), playing no interface feedback (Windows 98's default
+// sound scheme gave the controls none) and decorating nothing else. Its
+// screen savers are Windows 98's seven (screenSavers/windows98ScreenSavers.ts),
+// Blank Screen the default, since Windows 98 named none. Its `apps` and
+// `desktopIcons` show the bundled apps, the Trash and the startup disk by
+// Windows 98's names (windows98Apps.ts).
 // A disabled control's image is embossed as Windows draws one (DrawState's
 // DSS_DISABLED): its ink in ButtonShadow over a copy one pixel down and right
 // in ButtonHilight, the scheme's two colors. Load Theme… reads Windows
@@ -200,6 +237,9 @@ registerClassicyAppearancePackage({
 	// Document", in the Kind column and a property sheet's Type.
 	fileTypeNames: windows98FileTypeNames,
 	hooks: windows98AppearanceHooks,
+	apps: WINDOWS98_APPS,
+	desktopIcons: WINDOWS98_DESKTOP_ICONS,
+	defaultScreenSaver: WINDOWS98_DEFAULT_SCREEN_SAVER,
 });
 
 // The Help menu's built-in topic in Windows' words, offered under this

@@ -9,9 +9,17 @@
 //
 // - The desktop is a flat color, Background (`--desktop-background-color`,
 //   teal in Windows Standard), with no pattern: every Windows preset names
-//   no picture, and a picture a user picks in the Appearance Manager's
-//   Desktop tab is drawn by the base sheet as any wallpaper, so this partial
-//   leaves the face to the theme.
+//   no picture. A wallpaper or desktop pattern a user picks in the
+//   Appearance Manager's Desktop tab (the package registers Windows 98's
+//   nineteen of each, assets/windows98Wallpapers.ts) is drawn by the base
+//   sheet as any wallpaper, over the Background: a pattern is black on
+//   clear, so it shows in the scheme's color and black, as Windows drew it.
+//   Windows drew a bitmap's pixels one to one, never smoothed, so the
+//   picture is drawn whole pixels at any zoom (`image-rendering: pixelated`
+//   on the desktop, and `auto` again for everything in it, which sets its
+//   own, except the desktop icons, which the base draws pixelated: an `auto`
+//   in this layer would beat that rule and blur Windows' icons at any zoom
+//   or device-pixel ratio but 1).
 // - The selection marquee is the one-pixel dotted rectangle the shell XORed
 //   onto the desktop with DrawFocusRect: white dots under `difference`
 //   invert the pixels beneath them, as the XOR did in 8-bit color (over the
@@ -30,9 +38,11 @@
 //   no box, a one-pixel black drop shadow under the text so it reads over
 //   any Background, as the Active Desktop drew labels; 3 px of air between
 //   the image and the label, 1 px above and below the text and 2 px either
-//   side inside the label's rectangle. A shortcut keeps its arrow badge (the
-//   alias badge, the default package's art) but its label is upright:
-//   Windows never italicized a shortcut.
+//   side inside the label's rectangle. A shortcut's badge is Windows' own
+//   shortcut overlay (the package's `aliasBadge`, shell32's #30: an arrow box
+//   at the bottom left of a clear icon-sized image, which Windows drew over
+//   the whole icon), so the badge is the icon's size, not the base's
+//   quarter; its label is upright: Windows never italicized a shortcut.
 // - Selected, the label's rectangle fills with Hilight under HilightText,
 //   the drop shadow goes (the dotted focus rectangle is the focus icon's
 //   alone, below, LVIS_FOCUSED, not every selected label's), and
@@ -94,6 +104,29 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
 }
 
 @mixin desktop {
+  // --- The interface font -----------------------------------------------------
+  // MS Sans Serif, the face every theme names first (the package's
+  // "Pixelated MS Sans Serif", windows98Fonts.internal.ts), was a bitmap font
+  // (sserife.fon), which Windows drew as pixels whatever its font smoothing
+  // setting. The base smooths the desktop's text (`antialiased`); here the
+  // recreation's square pixels are drawn unsmoothed, where the browser takes
+  // the setting (WebKit and Blink on macOS; elsewhere the platform's own
+  // rendering stands).
+  & {
+    -webkit-font-smoothing: none;
+  }
+
+  // --- The picture ----------------------------------------------------------
+  // Whole pixels at any zoom, the desktop's own picture only. The desktop
+  // icons keep the base's own `pixelated` (ClassicyDesktopIcon.scss).
+  & {
+    image-rendering: pixelated;
+  }
+
+  & > :not(.classicyDesktopIcon) {
+    image-rendering: auto;
+  }
+
   // --- The marquee ----------------------------------------------------------
   .classicyDesktopSelect {
     z-index: 11;
@@ -158,7 +191,12 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     }
   }
 
-  // A shortcut's label is upright.
+  // A shortcut's overlay covers the whole icon (its arrow box is drawn at
+  // the image's bottom left), and its label is upright.
+  .classicyDesktopIconAliasBadge {
+    --alias-badge-size: var(--desktop-icon-size);
+  }
+
   .classicyDesktopIconAlias > p {
     font-style: normal;
   }

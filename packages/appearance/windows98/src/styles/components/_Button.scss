@@ -66,7 +66,8 @@
 //   height). Its pop-up arrow and pop-up panel are _PopUpMenu.scss's.
 // - The help button: the caption help "?" (DFCS_CAPTIONHELP, 6 x 10) as
 //   pixel art centered on the bevel button's 20 x 21 box, in place of the
-//   registered art (the package registers none).
+//   default package's art (the package registers no `helpButton` art:
+//   Windows drew the mark in the scheme's colors).
 // - The disclosure triangle: Windows' tree-view button, a 9 x 9 box in a
 //   ButtonShadow line on Window white with a black + while closed and a -
 //   while open, drawn centered on the component's 17 x 17 box in place of

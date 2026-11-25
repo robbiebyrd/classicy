@@ -15,6 +15,7 @@ import type {
 	ClassicyAppearancePackage,
 	ClassicyAppearanceThemeFileImporter,
 	ClassicyAppIdentityOverride,
+	ClassicyDesktopIconOverrides,
 } from "./ClassicyAppearancePackage";
 
 // A component's pattern origin (`patternOrigin`), every component's key
@@ -388,26 +389,28 @@ const displayName = z
 		{ error: DISPLAY_NAME_ERROR },
 	);
 
+// An override's fields, shared by `apps` and `desktopIcons`.
+const overrideIcon = z.string().refine(isClassicyAssetSource, {
+	error: "must be an asset source (a URL or a data: URI)",
+});
+const overrideDescription = z
+	.string()
+	.min(1)
+	.max(512)
+	.refine((text) => text === text.trim(), {
+		error: "must not start or end with whitespace",
+	});
+
 /** One app's display override in a package's `apps`. Unknown keys are refused. */
 export const ClassicyAppIdentityOverrideSchema = z
 	.strictObject({
 		name: displayName
 			.optional()
 			.describe("Shown wherever the app's name is shown, in place of its own."),
-		icon: z
-			.string()
-			.refine(isClassicyAssetSource, {
-				error: "must be an asset source (a URL or a data: URI)",
-			})
+		icon: overrideIcon
 			.optional()
 			.describe("Shown wherever the app's icon is shown, in place of its own."),
-		description: z
-			.string()
-			.min(1)
-			.max(512)
-			.refine((text) => text === text.trim(), {
-				error: "must not start or end with whitespace",
-			})
+		description: overrideDescription
 			.optional()
 			.describe(
 				"Balloon-help copy for the app's desktop icon when the app supplies none.",
@@ -416,6 +419,43 @@ export const ClassicyAppIdentityOverrideSchema = z
 	.describe(
 		"A package's display override for one app. Display only: the app's id, action types, routing and saved state never change.",
 	) satisfies z.ZodType<ClassicyAppIdentityOverride>;
+
+const desktopIconName = displayName
+	.optional()
+	.describe("The icon's label, in place of its own name.");
+const desktopIconDescription = overrideDescription
+	.optional()
+	.describe("The icon's balloon-help copy, in place of its stock copy.");
+
+/**
+ * A package's `desktopIcons`: display overrides for the desktop's own icons,
+ * the Trash (a label and balloon copy; its image is the package's Trash art)
+ * and the startup disk (a label, image and balloon copy). The names follow
+ * the `apps` rules. Unknown keys are refused at every level.
+ */
+export const ClassicyDesktopIconOverridesSchema = z
+	.strictObject({
+		trash: z
+			.strictObject({
+				name: desktopIconName,
+				description: desktopIconDescription,
+			})
+			.optional()
+			.describe("The Trash's desktop icon."),
+		startupDisk: z
+			.strictObject({
+				name: desktopIconName,
+				icon: overrideIcon
+					.optional()
+					.describe("The icon's image, in place of its own."),
+				description: desktopIconDescription,
+			})
+			.optional()
+			.describe("The startup disk's (the first drive's) desktop icon."),
+	})
+	.describe(
+		"A package's display overrides for the desktop's own icons. Display only: the icons' records, paths, analytics and saved state never change.",
+	) satisfies z.ZodType<ClassicyDesktopIconOverrides>;
 
 const appsRecord = z.record(appIdKey, ClassicyAppIdentityOverrideSchema);
 
@@ -596,6 +636,7 @@ export const ClassicyAppearancePackageSchema = z
 			.describe(
 				'Names for file types, keyed by type ("text_file"), shown in a list view\'s Kind column and a property sheet\'s Type in place of the core\'s ("Text file"): title case, at most 40 characters. Display only.',
 			),
+		desktopIcons: ClassicyDesktopIconOverridesSchema.optional(),
 		iconDimming: iconDimming
 			.optional()
 			.describe(

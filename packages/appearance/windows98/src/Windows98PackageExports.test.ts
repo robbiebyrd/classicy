@@ -32,7 +32,7 @@ const pkg = JSON.parse(
 };
 
 describe("the exports", () => {
-	it("are the bundles with their types, the SCSS and the strict-CSP stylesheet (no fonts: no fonts stylesheet)", () =>
+	it("are the bundles with their types, the SCSS and the two strict-CSP stylesheets", () =>
 		expect(pkg.exports).toEqual({
 			".": {
 				types: "./dist/types/index.d.ts",
@@ -41,6 +41,7 @@ describe("the exports", () => {
 			},
 			"./scss/*": "./src/styles/*",
 			"./classicy-windows98.css": "./dist/classicy-windows98.css",
+			"./classicy-windows98.fonts.css": "./dist/classicy-windows98.fonts.css",
 		}));
 
 	it("name the types and the bundles at the top level too", () => {
@@ -82,8 +83,8 @@ describe("the SCSS export", () => {
 		}).css;
 
 	// Unlike System 7's, the whole sheet compiles through the export: it
-	// loads nothing of another package's (no screen savers), only the core's
-	// vocabulary.
+	// loads nothing of another package's (its screen savers' index ships
+	// beside it), only the core's vocabulary.
 	it("serves the package stylesheet at @classicy/appearance-windows98/scss/windows98, whole", () =>
 		expect(
 			compile('@use "pkg:@classicy/appearance-windows98/scss/windows98";'),
@@ -138,6 +139,13 @@ const pack = ({ command, args, files }: (typeof PACKERS)[number]) =>
 		),
 	);
 
+// The fonts' readme and license files, which the fonts' license (CC BY-SA
+// 3.0) and readmes require to travel with the faces.
+const fontNotices = readdirSync(path.join(packageDir, "src/assets/fonts"))
+	.filter((file) => file.endsWith(".txt"))
+	.sort()
+	.map((file) => `src/assets/fonts/${file}`);
+
 // Every stylesheet ships: the package loads nothing a tarball lacks.
 const styleSheets = readdirSync(path.join(packageDir, "src/styles"), {
 	recursive: true,
@@ -145,6 +153,10 @@ const styleSheets = readdirSync(path.join(packageDir, "src/styles"), {
 	.map((file) => String(file).split(path.sep).join("/"))
 	.filter((file) => file.endsWith(".scss"))
 	.map((file) => `src/styles/${file}`);
+// The screen savers' stylesheet index, which the whole sheet loads.
+const saverSheets = readdirSync(path.join(packageDir, "src/screenSavers"))
+	.filter((file) => file.endsWith(".scss"))
+	.map((file) => `src/screenSavers/${file}`);
 
 describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 	let packed: string[] | { unavailable: string };
@@ -154,19 +166,32 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 	const files = (skip: (note: string) => never) =>
 		Array.isArray(packed) ? packed : skip(packed.unavailable);
 
-	it("ships every stylesheet, the README and the license", ({ skip }) => {
+	it("ships every stylesheet, the README, the license and the fonts' notices", ({
+		skip,
+	}) => {
 		expect(styleSheets).toContain("src/styles/windows98.scss");
+		expect(saverSheets).toEqual([
+			"src/screenSavers/_windows98ScreenSavers.scss",
+		]);
+		expect(fontNotices).toEqual([
+			"src/assets/fonts/font-bold-license.txt",
+			"src/assets/fonts/font-bold-readme.txt",
+			"src/assets/fonts/font-license.txt",
+			"src/assets/fonts/font-readme.txt",
+		]);
 		expect(files(skip)).toEqual(
 			expect.arrayContaining([
 				"package.json",
 				"README.md",
 				"LICENSE",
 				...styleSheets,
+				...saverSheets,
+				...fontNotices,
 			]),
 		);
 	});
 
-	it("ships no test, no other source, no build script and nothing from resources/ or assets/", ({
+	it("ships no test, no other source, no build script and nothing else from resources/ or assets/", ({
 		skip,
 	}) => {
 		const shipped = files(skip);
@@ -175,6 +200,8 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 			shipped.filter(
 				(file) =>
 					!["package.json", "README.md", "LICENSE"].includes(file) &&
+					!fontNotices.includes(file) &&
+					!saverSheets.includes(file) &&
 					!file.startsWith("dist/") &&
 					!file.startsWith("src/styles/"),
 			),

@@ -6,6 +6,7 @@ import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclar
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
 import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText";
+import { WINDOWS98_FONT_FACES } from "./src/assets/windows98Fonts.internal";
 
 // @classicy/appearance-windows98's library build: ES and UMD bundles of the
 // Windows 98 Appearance Package, built as System 7's is
@@ -13,11 +14,11 @@ import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText"
 // dependency and stays external in both formats, so a host's one copy of the
 // core's registries (package, asset, sound pack, log) is the one Windows 98
 // registers into (design 0014-ahm, anti-goal "Two copies of the registries").
-// `pnpm build` runs bin/verify-dist.mjs on the result.
-//
-// The package ships no fonts: Windows' MS Sans Serif is Microsoft's, so its
-// themes name a stack a host may satisfy ("Pixelated MS Sans Serif" first,
-// then the system faces), and there is no classicy-windows98.fonts.css.
+// `pnpm build` runs bin/verify-dist.mjs on the result. zod is bundled, as
+// Platinum bundles it (packages/appearance/platinum/vite.config.ts): the
+// screen savers' option schemas are zod's, and the core's schema forms read
+// their internals, so the package carries the zod its release was built with
+// (it is in `dependencies` for the declarations).
 
 const externalPackages = [
 	"@classicy/classicy",
@@ -62,13 +63,17 @@ const windows98Config = (mode: string): UserConfig => ({
 			scss: { importers: [new NodePackageImporter()] },
 		},
 	},
-	// Every asset in the package ships as a file in dist/assets (its art and
-	// its sound sheet), nothing inlined.
+	// Every asset in the package ships as a file in dist/assets (its fonts,
+	// art, icons, cursors, wallpapers, 3D Pipes' texture and sound sheet),
+	// nothing inlined.
 	plugins: [
 		noInlineAppearanceAssetsPlugin(),
-		// dist/classicy-windows98.css, the stylesheet strict-CSP hosts link
-		// after the core's classicy.css. No fonts: no fonts stylesheet.
-		classicyPackageStylesheetsPlugin({ packageId: "windows98" }),
+		// dist/classicy-windows98.css and dist/classicy-windows98.fonts.css,
+		// the stylesheets strict-CSP hosts link after the core's classicy.css.
+		classicyPackageStylesheetsPlugin({
+			packageId: "windows98",
+			fonts: { faces: WINDOWS98_FONT_FACES, dir: "src/assets/fonts" },
+		}),
 		...(mode === "bundle-test"
 			? []
 			: [
@@ -111,7 +116,9 @@ const windows98Config = (mode: string): UserConfig => ({
 			external: isExternal,
 			output: {
 				// Package assets go under dist/assets, each under its source
-				// name (no two share one: the art and the sound sheet).
+				// name (no two share one: every name in fonts/, art/, icons/,
+				// cursors/, wallpapers/ and the savers' folders is unique, and
+				// verify-dist fails two sources that would collide).
 				assetFileNames: "assets/[name][extname]",
 				globals: {
 					"@classicy/classicy": "classicy",

@@ -12,21 +12,32 @@
 //    anti-goal "Two copies of the registries"). No external specifier
 //    carries a Vite query (the core's invariant 1).
 //
-// 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the art
-//    (src/assets/art: SVG and WebP) and the sound sheet
-//    (src/assets/sounds/windows98/windows98.{ogg,m4a}, not its JSON, its
-//    hash or its sprites/ WAV sources), each byte-identical to its source,
-//    so an image optimizer added to vite.config.ts fails here. Each ships
-//    under its own name. The package has no fonts (Windows' faces are
-//    Microsoft's), no icons, cursors or wallpapers of its own (the active
-//    package's reads fall back to the default package's), and no screen
-//    savers. dist/ itself holds only the two bundles and their maps, the
-//    strict-CSP stylesheet, assets/ and types/.
+// 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
+//    (src/assets/fonts: the two woff2 faces, not their readme and license
+//    files, which ship in the tarball beside them), the art
+//    (src/assets/art: the package's SVG icon and the WebP bitmaps, the
+//    Start flag and the Windows logo), the icons (src/assets/icons: WebP,
+//    the Windows 98 SE icon groups' 32 px and 16 px images, IE 5's toolbar
+//    cells and Web View's sky), the cursors (src/assets/cursors: PNG,
+//    USER.EXE's), the wallpapers (src/assets/wallpapers: WebP, the CD's
+//    wallpaper bitmaps and the desktop patterns' tiles), the screen savers'
+//    art (src/screenSavers/<Saver>/*.webp: 3D Pipes' texture) and the sound
+//    sheet (src/assets/sounds/windows98/windows98.{ogg,m4a}, not its JSON,
+//    its hash or its sprites/ WAV sources), each byte-identical to its
+//    source, so an image optimizer added to vite.config.ts fails here. Each
+//    ships under its own name (every name in those folders is unique). A PNG
+//    left in a WebP folder is no source: nothing ships it. dist/ itself holds
+//    only the two bundles and their maps, the two strict-CSP stylesheets,
+//    assets/ and types/.
 //
 // 3. NOTHING IS INLINED. No `data:` URI in either bundle: the package has no
-//    masks, and every glyph is drawn from theme tokens in its stylesheet.
-//    The ES bundle's `new URL("assets/…", import.meta.url)` references each
-//    name a file in dist/assets, and every file there is referenced.
+//    masks (its icons, art, wallpapers and cursors are images, its desktop
+//    patterns black-on-clear tiles, and every glyph Windows
+//    drew in the scheme's colors is drawn from theme tokens in its
+//    stylesheet; the empty `data:,` a cursor declaration falls back to
+//    carries no file). The
+//    ES bundle's `new URL("assets/…", import.meta.url)` references each name
+//    a file in dist/assets, and every file there is referenced.
 //
 // 4. THE LOOK SHIPS IN BOTH BUNDLES AND AS dist/classicy-windows98.css. Each
 //    bundle carries the package stylesheet (`windows98.scss?inline`) as
@@ -40,8 +51,10 @@
 //    (the core's invariant 9): a linked file served without an HTTP charset
 //    takes a non-UTF-8 page's encoding.
 //
-// 6. NO FONT STYLESHEET. The package registers no fonts, so its build emits
-//    no classicy-windows98.fonts.css; one in dist/ would be a stray file.
+// 6. THE FONTS SHIP AS A STYLESHEET TOO. dist/classicy-windows98.fonts.css
+//    holds only unlayered `@font-face` rules, exactly one per face the
+//    runtime registers (WINDOWS98_FONT_FACES), each the rule the runtime
+//    writes, and every url() names the face's own file in dist/assets.
 //
 // 7. DIST/TYPES DECLARES THE PACKAGE. dist/types/index.d.ts (the `types`
 //    export) exists, and no declaration is for a test, a test helper, a story,
@@ -92,10 +105,14 @@ import {
 	findClassicyJsonDeclarations,
 	findClassicyTestDeclarations,
 } from "../../../../bin/classicyDistTypes.ts";
-import { classicyFontStylesheetFile } from "../../../../bin/classicyFontStylesheet.ts";
+import {
+	classicyFontStylesheetFile,
+	findClassicyFontStylesheetProblems,
+} from "../../../../bin/classicyFontStylesheet.ts";
 import { findClassicyPackageCssProblems } from "../../../../bin/classicyPackageCss.ts";
 import { findClassicySourceMapTextProblems } from "../../../../bin/classicySourceMapText.ts";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector.ts";
+import { WINDOWS98_FONT_FACES } from "../src/assets/windows98Fonts.internal.ts";
 
 const DIST = "dist";
 const ES = join(DIST, "appearance-windows98.es.js");
@@ -174,10 +191,36 @@ const listFiles = async (dir, accept = () => true) =>
 	(await readdir(dir, { withFileTypes: true }).catch(() => []))
 		.filter((entry) => entry.isFile() && accept(entry.name))
 		.map((entry) => join(dir, entry.name));
-// The art is SVG and WebP, flat in src/assets/art.
+// The fonts are woff2, flat in src/assets/fonts; the art SVG and WebP, flat
+// in src/assets/art; the icons WebP, flat in src/assets/icons; the cursors
+// PNG, flat in src/assets/cursors; the wallpapers WebP, flat in
+// src/assets/wallpapers; a screen saver's art WebP, in its own folder under
+// src/screenSavers.
+const FONT = /\.woff2$/;
 const ART = /\.(?:svg|webp)$/;
+const WEBP = /\.webp$/;
+const CURSOR = /\.png$/;
+const saverFolders = (
+	await readdir(join("src", "screenSavers"), { withFileTypes: true }).catch(
+		() => [],
+	)
+)
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => join("src", "screenSavers", entry.name))
+	.sort();
 const sources = [
+	...(await listFiles(join("src", "assets", "fonts"), (n) => FONT.test(n))),
 	...(await listFiles(join("src", "assets", "art"), (n) => ART.test(n))),
+	...(await listFiles(join("src", "assets", "icons"), (n) => WEBP.test(n))),
+	...(await listFiles(join("src", "assets", "cursors"), (n) => CURSOR.test(n))),
+	...(await listFiles(join("src", "assets", "wallpapers"), (n) =>
+		WEBP.test(n),
+	)),
+	...(
+		await Promise.all(
+			saverFolders.map((dir) => listFiles(dir, (n) => WEBP.test(n))),
+		)
+	).flat(),
 	// The sheet's two formats, not its JSON, its hash or its sprites/ WAV
 	// sources.
 	...(await listFiles(join("src", "assets", "sounds", "windows98"), (n) =>
@@ -196,10 +239,9 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 			);
 		sourceOf.set(name, source);
 	}
-	// The build emits byte-identical files once (an alert icon is the same
-	// 1-bit image in icons/color/32 and icons/bw/32), under the name of
-	// whichever is imported first: each set of identical sources ships as
-	// exactly one of its names.
+	// The build emits byte-identical files once, under the name of whichever
+	// is imported first: each set of identical sources ships as exactly one
+	// of its names.
 	const twins = new Map();
 	for (const [name, source] of sourceOf) {
 		const bytes = (
@@ -241,13 +283,14 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		"appearance-windows98.umd.js",
 		"appearance-windows98.umd.js.map",
 		basename(STYLESHEET),
+		basename(FONT_STYLESHEET),
 		"assets",
 		"types",
 	]);
 	for (const name of (await readdir(DIST).catch(() => [])).sort())
 		if (!top.has(name))
 			problems.push(
-				`${join(DIST, name)}: not a file the package ships -> the package's dist holds its two bundles and their maps, ${basename(STYLESHEET)}, assets/ and types/.`,
+				`${join(DIST, name)}: not a file the package ships -> the package's dist holds its two bundles and their maps, ${basename(STYLESHEET)}, ${basename(FONT_STYLESHEET)}, assets/ and types/.`,
 			);
 	report(
 		problems,
@@ -318,16 +361,18 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 	);
 }
 
-// Invariant 6: no font stylesheet.
+// Invariant 6: the font stylesheet.
 {
 	const css = await read(FONT_STYLESHEET);
+	const assets = new Set(shipped);
 	report(
-		css === null
-			? []
-			: [
-					`${FONT_STYLESHEET}: present -> the package registers no fonts; check classicyPackageStylesheetsPlugin in vite.config.ts.`,
-				],
-		`${FONT_STYLESHEET}: absent, as the package registers no fonts`,
+		findClassicyFontStylesheetProblems(
+			FONT_STYLESHEET,
+			css,
+			WINDOWS98_FONT_FACES,
+			(url) => url.startsWith("assets/") && assets.has(url.slice(7)),
+		),
+		`${FONT_STYLESHEET}: the ${WINDOWS98_FONT_FACES.length} @font-face rules the runtime writes, unlayered, each url() its own file in assets/`,
 	);
 }
 
@@ -361,10 +406,12 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 				`${file}: relative specifier(s) without an extension (${bare.map((s) => JSON.stringify(s)).join(", ")}) -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
 			);
 	}
+	// Its own screenSavers/ declarations are Windows 98's; a folder named for
+	// another package is not.
 	const platinum = declarations.filter(
 		(file) =>
 			file.endsWith(".d.ts") &&
-			/(?:^|[\\/])(?:screenSavers|platinum|system7)[\\/]/i.test(file),
+			/(?:^|[\\/])(?:platinum|system7)[\\/]/i.test(file),
 	);
 	if (platinum.length)
 		problems.push(
@@ -386,7 +433,7 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		];
 		if (outside.length)
 			problems.push(
-				`${file}: references another package or a file outside ${TYPES} (${outside.map((s) => JSON.stringify(s)).join(", ")}) -> a host that installs only Windows 98 resolves none of it; import nothing of the othavers.`,
+				`${file}: references another package or a file outside ${TYPES} (${outside.map((s) => JSON.stringify(s)).join(", ")}) -> a host that installs only Windows 98 resolves none of it; import nothing of the other packages.`,
 			);
 	}
 	const json = findClassicyJsonDeclarations(declarations);

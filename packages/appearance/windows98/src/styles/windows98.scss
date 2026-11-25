@@ -9,8 +9,9 @@
 // icons, the tab control, the sliders, the placards and bevel buttons, the
 // ToolTips, the wizards and the Help topic window, the tables, the
 // separators, the little arrows, the Appearance Manager, the Control Strip,
-// the HyperCard editor and the PDF viewer's pointer; and, last, the High
-// Contrast block that keeps them all under forced colors.
+// the HyperCard editor and the PDF viewer's pointer; then the High Contrast
+// block that keeps them all under forced colors; and, at the block's root,
+// the screen savers (_screenSavers.scss).
 @use "pkg:@classicy/classicy/scss/package";
 @use "bevels" as b;
 @use "components/Window";
@@ -43,6 +44,7 @@
 @use "components/HyperCard";
 @use "components/PDFViewer";
 @use "components/ForcedColors";
+@use "screenSavers";
 
 @include package.classicy-package("windows98") {
   @include Window.window;
@@ -105,7 +107,14 @@
   // own pointer, which it outranks.
   @include Desktop.file-drag-pointers;
 
-  // Last: under forced colors (Windows' High Contrast), the tokens above
+  // Last in the scope: under forced colors (Windows' High Contrast), the tokens above
   // become the user's system colors.
   @include ForcedColors.forced-colors;
+
+  // The screen savers' rules, keyed on their own classes, at the layer's root
+  // (outside the Windows 98 scope: the overlay is a portal). Last, so the
+  // reduced-motion pause that ends them follows every saver rule.
+  @at-root {
+    @include screenSavers.screenSavers;
+  }
 }

@@ -2,6 +2,7 @@ import { platinumSoundPack } from "@classicy/appearance-platinum";
 import { describe, expect, it } from "vitest";
 import {
 	ClassicyAppearancePackageSchema,
+	ClassicyDesktopIconOverridesSchema,
 	classicyKnobsToSchema,
 } from "@/Appearance/ClassicyAppearancePackageSchema";
 // getAllThemes() serves the registered packages' themes: Platinum's here.
@@ -1400,4 +1401,58 @@ describe("ClassicyAppearancePackageSchema fileTypeNames", () => {
 			).success,
 		).toBe(false);
 	});
+});
+
+// `desktopIcons`: the Trash's label and balloon copy, the startup disk's
+// label, image and balloon copy, under the `apps` rules; nothing else.
+describe("ClassicyAppearancePackageSchema desktopIcons", () => {
+	const valid = platinumShaped();
+	const issues = (desktopIcons: unknown) => {
+		const result = ClassicyAppearancePackageSchema.safeParse({
+			...valid,
+			desktopIcons,
+		});
+		return result.success ? [] : result.error.issues;
+	};
+
+	it("accepts the Trash's and the startup disk's overrides, and none", () => {
+		expect(
+			issues({
+				trash: { name: "Recycle Bin", description: "Holds deleted files." },
+				startupDisk: {
+					name: "My Computer",
+					icon: "data:image/png;base64,AA==",
+					description: "Shows what is on this computer.",
+				},
+			}),
+		).toEqual([]);
+		expect(issues({})).toEqual([]);
+		expect(issues({ trash: {} })).toEqual([]);
+		expect(
+			ClassicyAppearancePackageSchema.safeParse(valid).data?.desktopIcons,
+		).toBeUndefined();
+	});
+
+	it.each([
+		["another icon", { network: { name: "Network" } }],
+		["an image for the Trash", { trash: { icon: "/bin.png" } }],
+		["an unknown field", { startupDisk: { label: "C:" } }],
+		["a script image", { startupDisk: { icon: "javascript:alert(1)" } }],
+		["a name that is no display name", { trash: { name: "_Bin" } }],
+		["a name holding the path separator", { startupDisk: { name: "C:" } }],
+		["a padded description", { trash: { description: " Bin " } }],
+	])("refuses %s", (_what, desktopIcons) =>
+		expect(issues(desktopIcons).length).toBeGreaterThan(0));
+
+	it("reports the field it refuses", () =>
+		expect(issues({ trash: { name: "_Bin" } })[0]?.path).toEqual([
+			"desktopIcons",
+			"trash",
+			"name",
+		]));
+
+	it("describes the field", () =>
+		expect(ClassicyDesktopIconOverridesSchema.description).toMatch(
+			/desktop's own icons/,
+		));
 });

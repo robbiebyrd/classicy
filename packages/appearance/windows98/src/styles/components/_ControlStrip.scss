@@ -15,8 +15,9 @@
 //   module whose menu is open stays sunken on the 50% checker of ButtonFace
 //   and ButtonHilight that Windows fills a latched button with
 //   (DFCS_CHECKED). The keyboard focus is the dotted rectangle two pixels
-//   inside the frame. The package registers no art, so the Platinum glyphs
-//   the cells would fall back to are hidden and the Windows marks drawn in
+//   inside the frame. The package registers no Control Strip art (Windows
+//   drew such marks in the scheme's colors), so the Platinum glyphs the
+//   cells would fall back to are hidden and the Windows marks drawn in
 //   their place as pixel art on the cell's face, at the base's glyph
 //   positions plus a fixed offset: the collapse box's a 6 x 2 Minimize bar
 //   (the strip collapses to its tab as a window minimizes), the scroll

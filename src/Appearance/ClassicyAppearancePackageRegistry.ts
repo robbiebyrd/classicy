@@ -14,6 +14,7 @@ import {
 import type {
 	ClassicyAppearancePackage,
 	ClassicyAppIdentityOverride,
+	ClassicyDesktopIconOverride,
 } from "./ClassicyAppearancePackage";
 import { ClassicyAppearancePackageSchema } from "./ClassicyAppearancePackageSchema";
 import {
@@ -88,6 +89,20 @@ const frozenFileTypeNamesCopy = (
 ): NonNullable<ClassicyAppearancePackage["fileTypeNames"]> =>
 	Object.freeze({ ...names });
 
+/**
+ * A frozen copy of a package's validated `desktopIcons`, each override frozen
+ * too, for the same reason as `apps`.
+ */
+const frozenDesktopIconsCopy = (
+	desktopIcons: NonNullable<ClassicyAppearancePackage["desktopIcons"]>,
+): NonNullable<ClassicyAppearancePackage["desktopIcons"]> => {
+	const copy: Record<string, Readonly<ClassicyDesktopIconOverride>> = {};
+	for (const [icon, override] of Object.entries(desktopIcons)) {
+		if (override !== undefined) copy[icon] = Object.freeze({ ...override });
+	}
+	return Object.freeze(copy);
+};
+
 // Savers register before their package (as Platinum's assets do), so the
 // check can run here; the package registers either way.
 const warnOnUnusableDefaultScreenSaver = (pkg: ClassicyAppearancePackage) => {
@@ -108,10 +123,10 @@ const warnOnUnusableDefaultScreenSaver = (pkg: ClassicyAppearancePackage) => {
  * The package is validated against `ClassicyAppearancePackageSchema` (all but
  * `css`, `options` and `hooks`); an invalid one is logged as an error and not
  * registered. On success its CSS is injected (`injectClassicyAppearanceStyles`)
- * and the package object itself is stored, except that a package with `apps`
- * or `fileTypeNames` is stored as a shallow copy whose `apps` and
- * `fileTypeNames` are frozen copies of the validated values: mutating the
- * caller's objects afterward changes nothing.
+ * and the package object itself is stored, except that a package with `apps`,
+ * `fileTypeNames` or `desktopIcons` is stored as a shallow copy whose `apps`,
+ * `fileTypeNames` and `desktopIcons` are frozen copies of the validated
+ * values: mutating the caller's objects afterward changes nothing.
  * Re-registering an id replaces the package and keeps its position.
  */
 export function registerClassicyAppearancePackage(
@@ -136,9 +151,12 @@ export function registerClassicyAppearancePackage(
 	warnOnUnusableDefaultScreenSaver(pkg);
 	const apps = parsed.data?.apps;
 	const fileTypeNames = parsed.data?.fileTypeNames;
+	const desktopIcons = parsed.data?.desktopIcons;
 	registry.set(
 		pkg.id,
-		apps === undefined && fileTypeNames === undefined
+		apps === undefined &&
+			fileTypeNames === undefined &&
+			desktopIcons === undefined
 			? pkg
 			: {
 					...pkg,
@@ -146,6 +164,9 @@ export function registerClassicyAppearancePackage(
 					...(fileTypeNames === undefined
 						? {}
 						: { fileTypeNames: frozenFileTypeNamesCopy(fileTypeNames) }),
+					...(desktopIcons === undefined
+						? {}
+						: { desktopIcons: frozenDesktopIconsCopy(desktopIcons) }),
 				},
 	);
 	publish();

@@ -21,6 +21,7 @@ import {
 	type ReactNode,
 	type RefObject,
 	useCallback,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
@@ -62,6 +63,7 @@ import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+import { ClassicyWindowAlertTypeContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowAlertType.internal";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
 	type ClassicyWindowRect,
@@ -645,6 +647,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const currentWindow = getAppWindow(currentApp, id);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
+	// The alert box this window holds (`ClassicyAlert`), read by the opening
+	// error sound below; a ref, so a type change never sounds it again.
+	const alertType = useContext(ClassicyWindowAlertTypeContext);
+	const alertTypeRef = useRef(alertType);
+	alertTypeRef.current = alertType;
 	const { showContextMenu } = useClassicyContextualMenu();
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
@@ -1540,7 +1547,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// This ensures that once a window has opened it becomes the focus.
 		// setActive();
 		if (modal && type === "error") {
-			player({ type: "ClassicySoundPlayError" });
+			// An alert box's carries its type, for the pack's type sound.
+			const openingType = alertTypeRef.current;
+			player(
+				openingType
+					? { type: "ClassicySoundPlayError", alertType: openingType }
+					: { type: "ClassicySoundPlayError" },
+			);
 		}
 	}, [modal, player, type]);
 

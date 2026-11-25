@@ -265,6 +265,52 @@ describe("ClassicyAlert", () => {
 	// the message finishing load -- must re-run centering against the real,
 	// current size and re-clamp to the viewport, not leave the box pinned
 	// near the pre-image midpoint.
+	// The error sound an alert plays on opening carries its type, which a
+	// sound pack may give its own sound (`alertTypeSounds`: Windows 98's
+	// message box icon events); a pack without one plays its alert, as before.
+	describe("its opening sound", () => {
+		const errorSounds = () =>
+			mockPlayer.mock.calls
+				.map((call) => call[0] as { type: string })
+				.filter((action) => action.type === "ClassicySoundPlayError");
+
+		it("sends a fixed alert's type with its window's error sound, once", () => {
+			render(<ClassicyAlert alertType="stop" label="s" />);
+			expect(errorSounds()).toEqual([
+				{ type: "ClassicySoundPlayError", alertType: "stop" },
+			]);
+		});
+
+		it("sends a movable alert's type with its own error sound, once", () => {
+			render(<ClassicyAlert alertType="caution" label="c" movable />);
+			expect(errorSounds()).toEqual([
+				{ type: "ClassicySoundPlayError", alertType: "caution" },
+			]);
+		});
+
+		it("sends note for an alert with no alertType", () => {
+			render(<ClassicyAlert label="n" />);
+			expect(errorSounds()).toEqual([
+				{ type: "ClassicySoundPlayError", alertType: "note" },
+			]);
+		});
+
+		it("never sounds again when the type changes while open", () => {
+			const { rerender } = render(<ClassicyAlert alertType="note" label="n" />);
+			rerender(<ClassicyAlert alertType="stop" label="n" />);
+			const movable = render(
+				<ClassicyAlert id="m" alertType="note" label="m" movable />,
+			);
+			movable.rerender(
+				<ClassicyAlert id="m" alertType="caution" label="m" movable />,
+			);
+			expect(errorSounds()).toEqual([
+				{ type: "ClassicySoundPlayError", alertType: "note" },
+				{ type: "ClassicySoundPlayError", alertType: "note" },
+			]);
+		});
+	});
+
 	describe("re-centers when the message grows after mount (#248)", () => {
 		// jsdom has no ResizeObserver; this captures the callback ClassicyWindow
 		// registers so the test can invoke it manually once the image "loads" --

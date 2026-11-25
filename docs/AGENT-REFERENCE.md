@@ -63,8 +63,10 @@ files has a System 7 twin: `classicy-system7.css`,
 `classicy-system7.fonts.css` (the same Chicago, Geneva and Monaco faces) and
 its own `dist/assets/`. The Windows 98 package, `@classicy/appearance-windows98`
 (§8, "Windows 98"), is installed and imported the same way; it ships
-`classicy-windows98.css` and its `dist/assets/` (its icon and sprites), and
-no fonts stylesheet, since it registers no fonts.
+`classicy-windows98.css`, `classicy-windows98.fonts.css` (its
+`"Pixelated MS Sans Serif"` faces) and its `dist/assets/` (its fonts, its
+package icon, its art and icons, its cursors, its wallpapers, 3D Pipes'
+texture and its sprites).
 
 The desktop fills the window with no host CSS. When it is the page (mounted
 in a child of `body`, directly or through up to four wrappers that each hold
@@ -1675,7 +1677,7 @@ function key), `classicyShortcutFromChord(chord)` (`"control+o"` → `"⌃O"`),
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?, accessKey?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once. A button's `accessKey` is its `ClassicyButton`'s; omitted, a message box's own buttons take Windows' under a package with access keys (`layout.menu.accessKeys`; user.exe's "&Yes", "&No", "&Retry", "&Abort", "&Ignore", read from the Windows 98 SE CD), OK and Cancel none (Return and Escape reach them, WIG Appendix B Table B.5), others the automatic pick; under Platinum and System 7 none |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?, accessKey?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound on opening, sent with its `alertType` (`ClassicySoundPlayError { alertType }`), so a pack's `alertTypeSounds` may give each type its own (§10; Windows 98's Chord). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once. A button's `accessKey` is its `ClassicyButton`'s; omitted, a message box's own buttons take Windows' under a package with access keys (`layout.menu.accessKeys`; user.exe's "&Yes", "&No", "&Retry", "&Abort", "&Ignore", read from the Windows 98 SE CD), OK and Cancel none (Return and Escape reach them, WIG Appendix B Table B.5), others the automatic pick; under Platinum and System 7 none |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field; or a function of the field's value returning it, as the file dialog's New Folder says why a name is refused under `layout.files.names` "windows"), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`; by name, `Ctrl+Alt+S`, under the package's `layout.menu.shortcutSpelling` `"names"`, ⌘ `Ctrl` under its `layout.keyboard.command` `"ctrl"`: `spellKeyboardEquivalent(shortcut, layout?)`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`). Under `layout.keyboard.command` `"ctrl"` Control records as ⌘ on any host, a key pressed with the Windows key records nothing, and Windows+period does not cancel |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -1724,7 +1726,7 @@ plain integers (`0xRRGGBB`).
 |---|---|---|
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
 | `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
-| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination, target, effect)` moves the selection's items (`target` the drop target, its marked element included, for `activateClassicyDropWindow`; `effect` the drop's, `"move"` unless the package's `layout.transfer` made it `"copy"` or `"link"`, §8). `ClassicyDesktop` wires both callbacks. Under `layout.transfer.secondaryButton: "menu"` a file icon drags on button 2 too, ending in Windows 98 SE's transfer menu (`useClassicyFileDropMenu`); under `copyModifier: "ctrl"` Control at the release copies and Control and Shift make shortcuts; a copy or shortcut let go on the desktop itself is made by the icon (`transferClassicyFileSystemItems`), each new icon where its original's outline was let go. Under `layout.transfer.desktopIconDrag: "outline"` (Windows 98) an icon that stands for no file drags as an outline of the selected icons, which stay put until it is let go on the desktop (a folder, drive or the Trash refuses it); Escape or a lost pointer stream leaves them where they were. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon`. Right-clicking selects the icon (collapsing a multiple selection to it) before its `contextMenu` shows; under a package whose layout says `selection.secondaryButton: "select"` (§8; Windows 98, WIG Ch.5 pp.37-38) the button-2 press selects an unselected icon and a right-click on a selected one keeps the whole selection, so its menu acts on every selected icon (Finder's Move To Trash does), the icon still taking focus. A non-file icon follows the pointer from its first move on any button; under `mouse: "windows"` only button 1 drags it (button 2 selects it, the middle button and the others do nothing), and it moves only once the pointer is 4 px from the press, keeping where it was grabbed; under `input.escapeCancels`, Escape mid-drag moves it back where the press found it (`ClassicyDesktopIconMove`, so the selection it carried goes back too), ends the drag (`dragEnd` with `canceled: true`) and swallows the release's click. Under `selection.modifiers: "windows"` (WIG Ch.5 "Selection Adjustment", pp.38-39; App. A Tables A.2, A.3) a button-1 Control- or ⌘-click toggles it, a Shift-click selects the anchor's rectangle to it, both set that rectangle to the anchor's state, through `ClassicyDesktopIconSelect { iconId, mode: "toggle" \| "range" \| "addRange" }` (`classicyDesktopIconSelectMode`); the press's modifiers decide, an unselected icon taking the selection at the press (Table A.3, "CTRL+Press": selects) and a selected one at the click, so a drag from it, a file drag included, carries the selection, and a modified press never collapses the selection. Under `selection.keyboard: "windows"` it is `role="option"` with `aria-selected` (an option of the desktop's list box, `classicyDesktopListboxAttributes`): Space selects it alone (`ClassicyDesktopIconFocus`), Control or ⌘ with Space toggles it, Shift with Space extends to it, Option with Space does nothing, and the key stops there; Enter alone opens it. Under `selection.iconNavigation: "roving"` its `tabIndex` is 0 only while it is the desktop's focus icon (`classicyDesktopFocusIconId`: `Desktop.focusIcon`, else the first icon), else -1, and a press on a selected icon makes it the focus icon (`ClassicyDesktopIconMoveFocus`). Without the keys a modified click selects it alone, Space and Enter open it, and every icon is a Tab stop. A Desktop Folder item's name is edited in place while `startClassicyDesktopIconRename(appId)` (`Desktop/ClassicyDesktopIconRename.internal.ts`, session state outside the store) names it: the label becomes `classicyDesktopIconRename` (structure in the base sheet, Windows 98's list view edit control), Return or a click elsewhere renames the item (`renameClassicyFileSystemItem`, its refusals told as any rename's) and selects its icon under the new name, Escape cancels; Explorer's Rename and New on the desktop start it under `layout.finder.commands` "windows", and F2 on the one selected item under `layout.fileBrowser.keys` "windows". Under `layout.files.extensions: "hideRegistered"` a Desktop Folder item's label and its rename field show the name without a registered type's extension, the rename keeping it (`useClassicyDisplayFileName`). Under `layout.finder.commands: "windows"` Alt+Enter on the focused icon and an Alt double-click on it show its Properties (WIG App. B Table B.2, p.358; Ch.5 "View Shortcuts", p.47): the property sheet of the desktop's selection when the icon is in it, else of its item or application (`classicyDesktopIconPropertiesTarget`, `ClassicyAppFinderPropertiesOpen`), the key's default prevented and the icon not opened; without the key they do what Enter and a double-click do. A file or folder icon whose `filePath` the file clipboard holds as cut (Explorer's Cut, `useClassicyFileCut`, §7 "Cut, Copy and Paste") carries `classicyFileCut` until the Paste, another Cut or Copy, or Escape; only Windows 98's stylesheet draws it (the image blended with the Background) |
+| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `startupDisk? (false)`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination, target, effect)` moves the selection's items (`target` the drop target, its marked element included, for `activateClassicyDropWindow`; `effect` the drop's, `"move"` unless the package's `layout.transfer` made it `"copy"` or `"link"`, §8). `ClassicyDesktop` wires both callbacks. Under `layout.transfer.secondaryButton: "menu"` a file icon drags on button 2 too, ending in Windows 98 SE's transfer menu (`useClassicyFileDropMenu`); under `copyModifier: "ctrl"` Control at the release copies and Control and Shift make shortcuts; a copy or shortcut let go on the desktop itself is made by the icon (`transferClassicyFileSystemItems`), each new icon where its original's outline was let go. Under `layout.transfer.desktopIconDrag: "outline"` (Windows 98) an icon that stands for no file drags as an outline of the selected icons, which stay put until it is let go on the desktop (a folder, drive or the Trash refuses it); Escape or a lost pointer stream leaves them where they were. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. A `trash` icon, and a `drive` icon with `startupDisk` (`ClassicyDesktop` sets it on the first drive's), show the package's `desktopIcons` name, image and balloon copy instead (§8, "Desktop icon overrides"). The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, for the Trash and the startup disk the package's `desktopIcons` description, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon`. Right-clicking selects the icon (collapsing a multiple selection to it) before its `contextMenu` shows; under a package whose layout says `selection.secondaryButton: "select"` (§8; Windows 98, WIG Ch.5 pp.37-38) the button-2 press selects an unselected icon and a right-click on a selected one keeps the whole selection, so its menu acts on every selected icon (Finder's Move To Trash does), the icon still taking focus. A non-file icon follows the pointer from its first move on any button; under `mouse: "windows"` only button 1 drags it (button 2 selects it, the middle button and the others do nothing), and it moves only once the pointer is 4 px from the press, keeping where it was grabbed; under `input.escapeCancels`, Escape mid-drag moves it back where the press found it (`ClassicyDesktopIconMove`, so the selection it carried goes back too), ends the drag (`dragEnd` with `canceled: true`) and swallows the release's click. Under `selection.modifiers: "windows"` (WIG Ch.5 "Selection Adjustment", pp.38-39; App. A Tables A.2, A.3) a button-1 Control- or ⌘-click toggles it, a Shift-click selects the anchor's rectangle to it, both set that rectangle to the anchor's state, through `ClassicyDesktopIconSelect { iconId, mode: "toggle" \| "range" \| "addRange" }` (`classicyDesktopIconSelectMode`); the press's modifiers decide, an unselected icon taking the selection at the press (Table A.3, "CTRL+Press": selects) and a selected one at the click, so a drag from it, a file drag included, carries the selection, and a modified press never collapses the selection. Under `selection.keyboard: "windows"` it is `role="option"` with `aria-selected` (an option of the desktop's list box, `classicyDesktopListboxAttributes`): Space selects it alone (`ClassicyDesktopIconFocus`), Control or ⌘ with Space toggles it, Shift with Space extends to it, Option with Space does nothing, and the key stops there; Enter alone opens it. Under `selection.iconNavigation: "roving"` its `tabIndex` is 0 only while it is the desktop's focus icon (`classicyDesktopFocusIconId`: `Desktop.focusIcon`, else the first icon), else -1, and a press on a selected icon makes it the focus icon (`ClassicyDesktopIconMoveFocus`). Without the keys a modified click selects it alone, Space and Enter open it, and every icon is a Tab stop. A Desktop Folder item's name is edited in place while `startClassicyDesktopIconRename(appId)` (`Desktop/ClassicyDesktopIconRename.internal.ts`, session state outside the store) names it: the label becomes `classicyDesktopIconRename` (structure in the base sheet, Windows 98's list view edit control), Return or a click elsewhere renames the item (`renameClassicyFileSystemItem`, its refusals told as any rename's) and selects its icon under the new name, Escape cancels; Explorer's Rename and New on the desktop start it under `layout.finder.commands` "windows", and F2 on the one selected item under `layout.fileBrowser.keys` "windows". Under `layout.files.extensions: "hideRegistered"` a Desktop Folder item's label and its rename field show the name without a registered type's extension, the rename keeping it (`useClassicyDisplayFileName`). Under `layout.finder.commands: "windows"` Alt+Enter on the focused icon and an Alt double-click on it show its Properties (WIG App. B Table B.2, p.358; Ch.5 "View Shortcuts", p.47): the property sheet of the desktop's selection when the icon is in it, else of its item or application (`classicyDesktopIconPropertiesTarget`, `ClassicyAppFinderPropertiesOpen`), the key's default prevented and the icon not opened; without the key they do what Enter and a double-click do. A file or folder icon whose `filePath` the file clipboard holds as cut (Explorer's Cut, `useClassicyFileCut`, §7 "Cut, Copy and Paste") carries `classicyFileCut` until the Paste, another Cut or Copy, or Escape; only Windows 98's stylesheet draws it (the image blended with the Background) |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
@@ -3134,7 +3136,11 @@ Trash. Special menu:
 `ClassicyDesktopShowSystemDialog { dialog: "emptyTrash" | "resetPram" | null }`
 (`Desktop.systemDialog`, never persisted, like the refusal alerts'
 `Desktop.errorDialog`); `classicySpecialMenuItems(dispatch,
-idPrefix)` and `ClassicyEmptyTrashAlert` are the shared pieces.
+idPrefix)` and `ClassicyEmptyTrashAlert` are the shared pieces. Once the
+alert's OK removes something, the desktop plays `ClassicyTrashEmpty`
+(`ClassicySoundPlayInterrupt`), an optional sprite (§10): Windows 98's pack
+plays its Empty Recycle Bin sound, and a pack without it, Platinum's and
+System 7's, plays nothing.
 
 ### Entry format
 
@@ -4010,6 +4016,7 @@ registerClassicyAppearancePackage({
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
 | `fileTypeNames` | `Partial<Record<ClassicyFileSystemEntryFileType, string>>`: the package's names for the file types (WIG Ch.10 "The Application Identifier Key", pp.197-198: title case, at most 40 characters; every word must begin with a character that is no lower-case letter, a display name's character rules apply, a key must be a type and none may be `__proto__`, `constructor` or `prototype`), shown in a list view's Kind column (`ClassicyFileBrowser`) and a property sheet's Type (`ClassicyFilePropertiesWindow`) in place of the core's ("Text file", "Directory", "Pdf"); a type it names not keeps the core's. Display only. Stored as a frozen copy, as `apps` is. Read with `fileTypeDisplayName(type, packageId?)` (`File/ClassicyFileBrowserUtils.ts`; the active package's without an id), `getClassicyFileTypeNames(packageId?)` (store-free, `src/Appearance/ClassicyFileTypeNames.ts`) or, live in components, `useClassicyFileTypeDisplayName()` / `useClassicyFileTypeNames()`. Windows 98 names directory "File Folder", drive "Local Disk", text_file "Text Document", video "Video Clip", app_shortcut "Application", shortcut "Internet Shortcut", file_shortcut "Shortcut", stack "HyperCard Stack" and pdf "PDF Document" (`windows98FileTypeNames.ts`); Platinum and System 7 declare none. The core's "Pdf" stays under the Mac packages: changing a core default would change their Kind column and needs its own HIGOS8 check (the audit's 10.2) |
+| `desktopIcons` | `{ trash?: { name?, description? }, startupDisk?: { name?, icon?, description? } }` (`ClassicyDesktopIconOverrides`): display overrides for the desktop's own icons, the Trash and the startup disk; read with `useClassicyDesktopIconIdentity` / `resolveClassicyDesktopIconIdentity`. See "Desktop icon overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
 **Registering.** `registerClassicyAppearancePackage(pkg)` runs at module
@@ -4495,6 +4502,64 @@ first fallback is `label`. With `label` omitted, `name` is the own label.
   agree on every state the UI can reach. On a close with no record, the PDF
   reducer creates one; on a close with invalid `data`, it replaces `data` with
   `{ openFiles: [] }`.
+
+#### Desktop icon overrides
+
+A package's `desktopIcons` shows the desktop's own icons by other names, as
+`apps` shows the apps: the Trash (Windows 98's Recycle Bin) and the startup
+disk (its My Computer). Display only, and absent by default: a package that
+declares none (Platinum, System 7) draws today's labels, images and stock
+balloons.
+
+```ts
+registerClassicyAppearancePackage({
+    id: 'windows98',
+    // name, css, defaults, layout, apps, … as above
+    desktopIcons: {
+        trash: { name: 'Recycle Bin', description: 'Contains the files and folders that you have deleted.' },
+        startupDisk: { name: 'My Computer', icon: myComputerIcon, description: 'Displays the contents of your computer.' },
+    },
+})
+```
+
+- **`trash`** (`kind: "trash"`, the Trash Finder adds, `filePath:
+  "Trash"`): `name` and `description`. Its image is the package's
+  `trashEmpty`/`trashFull` art already, so there is no `icon`.
+- **`startupDisk`**: `name`, `icon` and `description` for the drive icon
+  standing for the startup disk, the first drive (`classicyStartupDisk(fs)`).
+  `ClassicyDesktop` reads it through the file-system accessor only while the
+  active package declares `startupDisk`, and passes `startupDisk` to that
+  drive's `ClassicyDesktopIcon`; other drives keep theirs.
+
+**Where it shows.** The icon's label, image, alt text and mask; its balloon
+(title the shown name; the `description` in place of the kind's stock copy;
+a stored balloon still wins); and desktop type-select, which matches the
+shown name. A non-empty `label` beats the override, as for `apps`.
+
+**What never changes.** The icons' records (`appId`, `appName`, `icon`,
+`filePath`), the Trash's path and the drive's, the open actions, analytics
+payloads and persisted state. Window titles and menus that say "Trash"
+(Special ▸ Empty Trash…, the Trash window's title, the empty alert) are not
+desktop icons and keep their words.
+
+**Validation.** `ClassicyDesktopIconOverridesSchema`, strict at every level
+(only `trash` and `startupDisk`; the Trash takes no `icon`), each `name` under
+the `apps` display-name rules, each `icon` an asset source, each
+`description` 1–512 characters with no surrounding whitespace. The registry
+stores a frozen copy of the validated value, as for `apps`.
+
+**Reading it.** In `ClassicyAppIdentity.ts`, store-free like the rest:
+
+```ts
+type ClassicyDesktopSystemIcon = "trash" | "startupDisk"
+
+useClassicyDesktopIconIdentity(icon: ClassicyDesktopSystemIcon | undefined, fallback: ClassicyAppIdentity): ClassicyAppIdentity
+useClassicyDesktopIconOverrides(): Readonly<ClassicyDesktopIconOverrides>
+resolveClassicyDesktopIconIdentity(icon: ClassicyDesktopSystemIcon, fallback: ClassicyAppIdentity, packageId?: string): ClassicyAppIdentity
+getClassicyDesktopIconOverrides(packageId?: string): Readonly<ClassicyDesktopIconOverrides>
+classicyDesktopIconIdentityFrom(overrides, icon, fallback): ClassicyAppIdentity
+CLASSICY_NO_DESKTOP_ICON_OVERRIDES   // the frozen {} of a package with no `desktopIcons`
+```
 
 #### Icon dimming
 
@@ -5223,10 +5288,15 @@ own logo registry, which then diverges from System 7's.
 third Appearance Package: Windows 95 and 98, as 98.css, os-gui and React95
 re-create them, on Classicy's structure. It is built as a third-party
 package would be (it reaches the core only as `@classicy/classicy`, and
-nothing of Platinum's or System 7's; `Windows98SourceImports.test.ts`), and
-it is the worked example of a package that registers **no assets**: no
-fonts, art, icons, cursors, wallpapers or screen savers. Install and import
-it like Platinum (§1); its README lists what it ships.
+nothing of Platinum's or System 7's; `Windows98SourceImports.test.ts`). It
+registers Windows 98 Second Edition's own icons and system art, read from
+the Windows 98 SE CD (`docs/windows98-asset-inventory.md` maps every key to
+its resource), its cursors (USER.EXE's), its interface font (98.css's
+recreation of MS Sans Serif, CC BY-SA 3.0), Windows 98's names for the
+bundled apps, the Trash and the startup disk, its wallpapers and desktop
+patterns, and its screen savers; the glyphs Windows drew in the scheme's
+colors stay pixel art drawn from theme tokens. Install and import it like Platinum (§1); its
+README lists what it ships and every asset's source.
 
 - **Themes.** Thirty-four, every one `package: "windows98"`, `sound.pack:
   "windows98"`, no `assetVariant`, `dither.tileSize: 0`: the thirty-three
@@ -5267,9 +5337,9 @@ it like Platinum (§1); its README lists what it ships.
   the size GDI draws it (the largest of its 11, 13, 16, 18, 24 and 32 px
   faces at or under the request, 11 for any smaller), the pixel face named
   first only at 11 px, its one cut. The UI font stays 11 px MS Sans Serif in
-  every scheme (`"Pixelated MS Sans Serif"`, MS Sans Serif, Microsoft Sans
-  Serif, Tahoma, Arial; Fixedsys, Lucida Console, Courier New for monospaced
-  text): a dialog's font is its template's, not the scheme's. The desktop
+  every scheme (`"Pixelated MS Sans Serif"`, the package's own face, then MS
+  Sans Serif, Microsoft Sans Serif, Tahoma, Arial; Fixedsys, Lucida Console,
+  Courier New for monospaced text, which the host supplies): a dialog's font is its template's, not the scheme's. The desktop
   labels are white, black on High Contrast White's white desktop.
 - **Color families** ("Package color families"): `titleBar` (`active`,
   `activeGradient`, `inactive`, `inactiveGradient`, `text`, `inactiveText`:
@@ -5517,9 +5587,112 @@ it like Platinum (§1); its README lists what it ships.
   (`forced-color-adjust: none`) with every token pointed at a CSS system
   color (ButtonFace, ButtonBorder, ButtonText, Canvas, CanvasText,
   Highlight, HighlightText, GrayText, LinkText), the wallpaper hidden (WIG
-  Ch.14 "Color", p.334). Icons, cursors and system
-  art resolve to the default package's (§5), and with no package offering
-  a screen saver the panel reads "This appearance has no screen savers."
+  Ch.14 "Color", p.334). It also draws a shortcut's badge (Windows' overlay, drawn over the whole icon) sized to
+  the icon (`--alias-badge-size`), the size grip under the diagonal size
+  cursor (`resizeNwse`, where the base reads `resizeLr`), and the desktop's
+  text drawn unsmoothed (`-webkit-font-smoothing: none`, as Windows drew its
+  bitmap MS Sans Serif), and a desktop picture whole pixels
+  (`image-rendering: pixelated` on the desktop, `auto` again on its
+  children but the desktop icons, which keep the base's `pixelated`), the
+  Desktop tab's preview showing the desktop's own background
+  (its color under its picture, tiled as the theme lays it; the `<img>`'s
+  own image pushed out with `object-fit: none` at `100vw 100vh`, as System
+  7's preview does).
+- **Wallpapers and desktop patterns** (`src/assets/windows98Wallpapers.ts`,
+  `WINDOWS98_WALLPAPERS`, `WINDOWS98_DESKTOP_PATTERNS`, exported;
+  `docs/windows98-asset-inventory.md`, "Wallpapers" and "Desktop
+  patterns"): registered with `registerClassicyWallpapers` under
+  `windows98`, so the Desktop tab lists them (after the default package's)
+  while Windows 98 is active. The nineteen wallpaper bitmaps of Windows 98 SE
+  (`WIN98_22.CAB`), every pixel kept, as `wallpapers/<name>.webp`, each
+  labeled by the long name Setup installed it under and held by a theme as
+  that name in lower case with hyphens (`black-thatch.bmp`, …; spaces are
+  not allowed in a wallpaper filename); and the nineteen desktop patterns
+  `shell.inf` writes to `control.ini [Patterns]` (not Windows 3.1's
+  thirteen), each an 8 x 8 tile drawn from its eight bytes, a 1 bit opaque
+  black and a 0 bit clear (`pattern-<name>.png`, shipped as
+  `pattern-<name>.webp`, labeled "<Name> Pattern"), so the desktop color
+  the base sheet draws under its picture shows through: a pattern is drawn
+  in the scheme's Background and black, as Windows drew it, and follows
+  every scheme. No preset names one (Windows Standard is plain teal).
+- **Screen savers** (`src/screenSavers/`, `windows98ScreenSavers.ts`;
+  inventory "Screen savers"): seven, offered under `windows98` only, each a
+  port of its `.scr` on the CD, named as `applets.inf` named its file, with
+  its Settings dialog's options as a zod `configSchema` (the derived form)
+  and its `control.ini` reader's defaults: Flying Through Space
+  (`flying-through-space`: warp speed 1-20, 10; stars 10-200, 25), Flying
+  Windows (`flying-windows`: warp 1-20, 20; windows 5-75, 25; Wingdings'
+  0xFF glyph, its outline read from the CD's `wingding.ttf`, in the default
+  palette's colors 1 to 14), Mystify Your Mind (`mystify-your-mind`: per
+  polygon Active, Lines 1-15, Two colors or Multiple random colors; Clear
+  screen), Curves and Colors (`curves-and-colors`: Speed 0-8, Lines 1-80,
+  Curves 2-10, Density 0-6, One color or Multiple random colors, Clear
+  screen), Scrolling Marquee (`scrolling-marquee`: Position, Background
+  color, Speed 1-60, Text, and Format Text's font, style, size, effects and
+  color; "Where do you want to go today?" in red bold 72-point Arial), 3D
+  Pipes (`3d-pipes`: Single or Multiple, Traditional with Elbow, Ball, Mixed
+  or Cycle joints or Flex, Resolution 0-200, Solid (its sixteen teapot
+  materials) or Textured (its own striped texture,
+  `Pipes/pipes-texture.webp`), drawn with WebGL, black without it) and Blank
+  Screen (`blank-screen`, the package's `defaultScreenSaver`: Windows 98 set
+  none). The canvas savers run through `useWindows98Saver`: they tick on
+  Windows 98's 55 ms timer tick (`windows98TimerPeriod`), draw on a canvas
+  one CSS pixel to a pixel (`image-rendering: pixelated`) with a software
+  surface that draws as GDI did (whole-pixel rectangles, Bresenham lines
+  with the last pixel left out, filled glyph outlines), erase by drawing in
+  black, draw one still frame under `prefers-reduced-motion: reduce` (and
+  stop or resume as the preference changes), stop while the page is hidden,
+  and start over when their box changes size. Mystify and Curves and Colors
+  are `transparentBackground` savers that paint the screen black themselves
+  while Clear screen is on, and draw over the desktop when it is off. Their
+  stylesheet (`_windows98ScreenSavers.scss`, through `styles/_screenSavers.scss`)
+  sits at the package layer's root, keyed on the savers' classes, and ends
+  with the reduced-motion pause; no saver sets `cursor`. Each saver's
+  component and schema are exported, as Platinum's are.
+- **Icons and system art** (`src/assets/windows98Assets.ts`, the key map in
+  `windows98Icons.ts`, `docs/windows98-asset-inventory.md`): lossless WebP of
+  Windows 98 SE's resources, one base tree for every theme. 85 icon keys draw
+  a file: an icon group's 32 px image with its own 16 px one (`{ src, small }`
+  leaves, `icons/<binary>-<group>-<size>.webp`), a 16 px image alone (the
+  tray's volume icons), a cell of IE 5's toolbar (`browseui.dll` bitmaps 265
+  and 266) or Web View's sky (`classicy.bg`); 110 reuse another key's (the
+  Fallback rule: a system folder a plain folder, a DVD the CD-ROM drive, …);
+  the other 101 are the core's. Its own leaves `windows98.explorer`,
+  `windows98.recycleBinEmpty` and `windows98.recycleBinFull` give the
+  Finder's override icon and the Trash their 16 px images. System art:
+  `appleMenu` (Explorer's Start flag), `trashEmpty`/`trashFull` (the Recycle
+  Bin), `aliasBadge` (the shortcut overlay), `startupLogo`/`aboutLogo` (the
+  About box's Windows logo), `openFolderIcon` and `fileDialogFolderIcon`;
+  the other keys resolve to the default package's art, which the stylesheet
+  hides or draws over from tokens. A core icon URL follows (§5): under
+  Windows 98 a stored folder draws `shell32.dll`'s folder.
+- **Cursors** (`WINDOWS98_CURSORS`, exported): USER.EXE's system cursors
+  (`cursors/user-cursor-<id>.png`, 32 x 32, black, white and clear, a pixel
+  that inverted the screen drawn black), every `ClassicyCursorRole`
+  registered `{ src, hotspot }` at the resource's own hotspot (cursor id,
+  then hotspot): `arrow` 100 at 0, 0; `watch` 102, the hourglass, at 16, 16;
+  `hand` 114, IDC_HAND, at 5, 0; `ibeam` 101 and `crosshair` 103 at 15, 16;
+  `resizeLr` 107 at 16, 16; `resizeUd` 108 at 15, 16; `resizeNwse` 105 and
+  `resizeNesw` 106 at 16, 16; `help` 112, Help Select (What's This?'s
+  pointer), at 5, 7. Windows had no one-way size cursors, so
+  `resizeU`/`resizeD` draw 108 and `resizeL`/`resizeR` 107.
+- **Fonts** (`src/assets/windows98Fonts.internal.ts`,
+  `WINDOWS98_FONT_FACES`): `"Pixelated MS Sans Serif"` normal and bold
+  (`fonts/PixelatedMSSansSerif-<weight>-normal.woff2`), lou's FontStruct
+  recreations of MS Sans Serif 8 pt as 98.css converted them, licensed CC
+  BY-SA 3.0; their four readme and license files sit beside them and ship in
+  the tarball (`files: "src/assets/fonts/*.txt"`). No face is shared with
+  another package. Registered at runtime as `<style
+  id="classicy-fonts-windows98">`, and emitted as
+  `dist/classicy-windows98.fonts.css` for strict-CSP hosts.
+- **Names** (`src/windows98Apps.ts`): `apps` shows the Finder as Windows
+  Explorer (with its icon), SimpleText as Notepad, the Appearance Manager as
+  Display, the Sound Manager as Sounds, Date and Time as Date/Time, the
+  Control Strip as Taskbar & Start Menu, Apple Guide as Windows Help, Movie
+  Player as Media Player, Picture Viewer as Imaging and Web Viewer as
+  Internet Explorer, with Windows 98's descriptions; `desktopIcons` shows the
+  Trash as the Recycle Bin and the startup disk as My Computer ("Desktop icon
+  overrides").
 - **Documents.** `document: { confirmUnsavedClose: true, reopenActivates:
   true }`, `window.restoreViewState: true` and `menu.standardShortcuts:
   "windows"` (§8, "Layout declarations"): SimpleText asks Notepad's "The
@@ -5611,9 +5784,22 @@ it like Platinum (§1); its README lists what it ships.
   when a package registers it (case aside, else none; `TileWallpaper` tiles,
   `WallpaperStyle=2` stretches), and `[Theme] DisplayName`, else the file
   name, names it. Sounds, cursors, icons and screen savers are not read.
-- **Sound.** One pack, `windows98`: `ClassicyBeep` and four alert tones
-  (Chimes, Chord, Ding, Exclamation; `defaultAlert` Ding), synthesized for
-  the package (Windows' sounds are Microsoft's), ogg and m4a. The package's
+- **Sound** (`src/assets/sounds/windows98.ts`). One pack, `windows98`,
+  ogg and m4a, from Windows 98 SE's own WAVs (the CD's `C:\WINDOWS\MEDIA`
+  files, `src/assets/sounds/windows98/sprites/<sprite>.wav`), mapped as
+  its default scheme (`MMOPT.INF`, `MOTOWN.INF`) maps the events:
+  `ClassicyBoot` The Microsoft Sound (Start Windows), `ClassicyBeep` Ding
+  (Default sound), `ClassicyEmailNewMail` Notify (New Mail Notification),
+  `ClassicyTrashEmpty` Recycle (Empty Recycle Bin; an optional sprite).
+  `alerts` are the Media folder's eight short WAVs (Chimes, Chord, Ding,
+  Logoff, Notify, Recycle, Start, Tada; `defaultAlert` Ding, the Default
+  sound an error beep plays), and `alertTypeSounds` gives an alert box
+  Chord, its icon's event (Asterisk for a note, Exclamation for a caution,
+  `ClassicyAlertExclamation`, Critical Stop for a stop) while the user has
+  picked no alert. `ClassicyAlertExclamation` (Chord again) is kept from
+  the earlier pack but no longer offered. Each WAV's file and SHA-256 is in
+  `docs/windows98-asset-inventory.md`, "Sounds". The scheme gives opening,
+  closing, maximizing, minimizing and menus no sound, and the package's
   one hook (below) plays nothing, so controls play no feedback.
 - **Dialogs, menus, the Colors tab and the pointers** (the remaining
   chapters' audit's L4-K). `hooks` (`windows98AppearanceHooks`, exported,
@@ -5641,7 +5827,7 @@ it like Platinum (§1); its README lists what it ships.
   button is a 75 x 23 push button reading its accessible name ("Help"),
   last in the row (WIG Ch.12 "The Help Command Button", p.278, Figure 12.8;
   12.14). The startup screen shows no extensions parade (1.16; the boot
-  sound is lane 3's The Microsoft Sound). The pointers follow Table 4.1
+  sound is The Microsoft Sound). The pointers follow Table 4.1
   (WIG Ch.4 "Mouse Pointers", pp.23-24), each in the cursor registry's
   idiom with the host's keyword behind it (`b.registry-cursor`,
   `_bevels.scss`): the arrow over list and tree rows, the list view's expand
@@ -5654,11 +5840,15 @@ it like Platinum (§1); its README lists what it ships.
   PDF viewer's "Loading…" (`_PDFViewer.scss`; 4.5). ClassicyLink's hand and
   the HyperCard editor's handles stay.
 - **Build.** `pnpm --filter @classicy/appearance-windows98 build`: its
-  `verify:dist` holds System 7's invariants for its own files, with no
-  fonts stylesheet and nothing inlined (its `dist/assets` is its icon and
-  the two sprites). Storybook registers it only through
-  `storybook/.storybook/windows98.ts` (its own stories) or the Package
-  toolbar.
+  `verify:dist` holds System 7's invariants for its own files, with
+  nothing inlined (its `dist/assets` is its two woff2 faces, its package
+  icon, its art, icons, wallpapers and pattern tiles and 3D Pipes' texture,
+  each byte for byte its WebP, its cursors, each byte for byte its PNG, and
+  the two sprites; zod is carried, as Platinum carries it, and is in
+  `dependencies`; invariant 6 holds
+  `classicy-windows98.fonts.css` to the runtime's rules). Storybook
+  registers it only through `storybook/.storybook/windows98.ts` (its own
+  stories) or the Package toolbar.
 
 ### Layout declarations
 
@@ -7351,8 +7541,26 @@ rewritten, so switching packs and back restores it. The default state seeds
 no `alertSound`, so a first session plays the active pack's default. The
 store-free readers are `classicyPackAlerts(pack)`,
 `classicyPackDefaultAlert(pack)` (`defaultAlert` when it is one of the
-alerts, else the first) and `resolveClassicyAlertSound(pack, stored)` (the
-stored choice or Platinum's default when no pack is known).
+alerts, else the first) and `resolveClassicyAlertSound(pack, stored,
+alertType?)` (the stored choice or Platinum's default when no pack is
+known).
+**Alert types** (3.8): a pack may give each alert type its own sound,
+`alertTypeSounds: { note?, caution?, stop? }` (`ClassicyAlertTypeSounds`,
+each a sprite id of the pack; `ClassicyAlertSoundType` is `ClassicyAlert`'s
+`alertType` union). `ClassicyAlert` sends its type with the error sound it
+plays on opening, `ClassicySoundPlayError { alertType }` (the fixed
+variant's window sends it, through an internal context the alert provides;
+every other error sound, a scrim click, a fixed modal's Escape, the
+Assistant's refusal, carries none). While the stored choice is not one of
+the pack's `alerts` (the default state stores none), such an alert plays
+its type's sprite, else the default alert; a stored choice the pack offers
+wins for every alert, and a type naming a sprite the pack lacks falls back
+to the default (and is listed by `classicySoundPackMissingSprites`). Only
+the pack's own: a pack never takes the default pack's. Windows 98's gives
+every type Chord, Windows' message-box sound, beside its Ding beep;
+Platinum's and System 7's declare none, so their alerts resolve exactly as
+before (`classicyPackAlertTypeSound(pack, alertType)` is the store-free
+reader).
 `CLASSICY_ALERT_SOUNDS` (Platinum's seven) and `DEFAULT_ALERT_SOUND`
 (`"ClassicyAlertSosumi"`) are deprecated: they are Platinum's values, kept
 for existing imports; read the active pack instead.
@@ -7379,7 +7587,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 })
 ```
 
-- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite, alerts?, defaultAlert? }`
+- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite, alerts?, defaultAlert?, alertTypeSounds? }`
   (`ClassicySoundPackSchema` validates it; an invalid pack is rejected with a
   `classicyLog` warning). `sprite` is `Record<string, [offsetMs, durationMs, loop?]>`.
   `src` entries must be resolvable by the page: `http(s)` URLs or `data:`
@@ -7427,6 +7635,20 @@ registerClassicySoundPack({            // module scope, like the other registrie
   `ClassicyAlertTabitha`, `ClassicyAlertWildEep`), the first seven entries of
   `CLASSICY_SOUND_SPRITE_IDS`; a pack that declares no `alerts` should define
   them.
+- **Optional sprites** (3.8): `CLASSICY_OPTIONAL_SOUND_SPRITES` (`{ id,
+  group, label, description }[]`; its ids `CLASSICY_OPTIONAL_SOUND_SPRITE_IDS`,
+  `isClassicyOptionalSoundSprite(id)`) are dispatched by Classicy but not
+  part of the contract: a pack may leave one out, its absence is never
+  reported missing, and it plays only from the active pack when that pack
+  defines it. The default pack never stands in for one, so a pack that
+  lacks it plays nothing and stops nothing for it, even on
+  `ClassicySoundPlayInterrupt`. While a pack that defines one plays, its
+  label joins the sound state's `labels` (the Sound control panel's
+  Disable Sounds list and HyperCard's sound picker), and leaves it when a
+  pack without it loads; a pack that defines none keeps the labels array as
+  it was. The one so far is `ClassicyTrashEmpty` ("System", "Empty
+  Trash"), played after Special ▸ Empty Trash removes something; only
+  Windows 98's pack defines it (Recycle, Windows' Empty Recycle Bin sound).
 - **Single source of truth**: the active theme's `sound.pack` decides which
   pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption
   { path: "sound.pack", value: "<pack id>" }` (the Sound tab's action: the pack
@@ -7522,7 +7744,12 @@ when imported (ids: `bouncing-ball`, `fade-out`, `fish`, `flying-toasters`,
 host loading System 7 alone gets them too (§8, "System 7"); both packages
 name `defaultScreenSaver: "bouncing-ball"`. Platinum exports their components,
 config schemas and options UIs under the names `@classicy/classicy` exported
-them by in 3.0 (import them from the Platinum package now). The "Screen
+them by in 3.0 (import them from the Platinum package now). Windows 98
+(`@classicy/appearance-windows98`) registers its own seven, offered under
+`windows98` only (ids: `3d-pipes`, `blank-screen`, `curves-and-colors`,
+`flying-through-space`, `flying-windows`, `mystify-your-mind`,
+`scrolling-marquee`; `defaultScreenSaver: "blank-screen"`; §8, "Windows
+98"), canvas savers that pause themselves under reduced motion. The "Screen
 Saver" control panel (part of `ClassicyControlPanels`) exposes saver choice,
 timeout, on/off, and per-saver options.
 

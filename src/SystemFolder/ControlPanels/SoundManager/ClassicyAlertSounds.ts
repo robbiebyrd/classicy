@@ -1,6 +1,7 @@
 import {
 	CLASSICY_DEFAULT_SOUND_PACK_ID,
 	type ClassicyAlertSoundOption,
+	type ClassicyAlertSoundType,
 	type ClassicySoundPack,
 	getClassicySoundPack,
 } from "./ClassicySoundPacks";
@@ -57,17 +58,37 @@ export const classicyPackDefaultAlert = (
 };
 
 /**
- * The alert to play: the stored choice when `pack` offers it, else the pack's
- * default; undefined when the pack has no alerts. Never rewrites the stored
- * choice. With no pack known (none loaded), the stored choice or Platinum's
- * default, as before packs declared alerts.
+ * The sprite `pack` plays for an alert of `alertType` while no stored choice
+ * applies (`alertTypeSounds`), or undefined when it declares none for that
+ * type or names a sprite it lacks. Only the pack's own: never the default
+ * pack's.
+ */
+export const classicyPackAlertTypeSound = (
+	pack: ClassicySoundPack | undefined,
+	alertType: ClassicyAlertSoundType | undefined,
+): string | undefined => {
+	if (!pack || !alertType) return undefined;
+	const sound = pack.alertTypeSounds?.[alertType];
+	return sound && Object.hasOwn(pack.sprite, sound) ? sound : undefined;
+};
+
+/**
+ * The alert to play: the stored choice when `pack` offers it, else the
+ * sound `pack` gives alerts of `alertType` (`alertTypeSounds`), else the
+ * pack's default; undefined when the pack has neither. Never rewrites the
+ * stored choice. With no pack known (none loaded), the stored choice or
+ * Platinum's default, as before packs declared alerts.
  */
 export const resolveClassicyAlertSound = (
 	pack: ClassicySoundPack | undefined,
 	stored: string | undefined,
+	alertType?: ClassicyAlertSoundType,
 ): string | undefined => {
 	if (!pack) return stored ?? DEFAULT_ALERT_SOUND;
 	const alerts = classicyPackAlerts(pack);
 	if (stored && alerts.some((a) => a.value === stored)) return stored;
-	return classicyPackDefaultAlert(pack);
+	return (
+		classicyPackAlertTypeSound(pack, alertType) ??
+		classicyPackDefaultAlert(pack)
+	);
 };
