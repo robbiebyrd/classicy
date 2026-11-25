@@ -98,6 +98,7 @@
 			"AccessoryIconLg",
 			"AccessoryIconMd",
 			"AccessoryIconSm",
+			"Back",
 			"Body",
 			"BodyViewport",
 			"Footer",
@@ -106,6 +107,7 @@
 			"HeaderLabelIcon",
 			"HeaderTitle",
 			"Nav",
+			"Next",
 			"PageIndicator"
 		],
 		"BalloonHelp": [

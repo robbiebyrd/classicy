@@ -1,12 +1,14 @@
 // Platinum's hooks play the control sounds these tests rely on.
 import "@classicy/appearance-platinum";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
+import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import {
 	ClassicyAssistant,
 	type ClassicyAssistantPage,
 } from "@/SystemFolder/SystemResources/Assistant/ClassicyAssistant";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 // Stable sound-dispatch spy shared across tests so page-change/error sounds
 // can be asserted. Hoisted so it is defined before the vi.mock factory runs.
@@ -21,18 +23,29 @@ vi.mock(
 	() => ({}),
 );
 // Render ClassicyButton as a plain <button> so footer-button assertions read
-// its label and click without pulling in the real button's sound/analytics.
+// its label and click without pulling in the real button's sound/analytics;
+// its class and the access key it is given ride along as attributes.
 vi.mock("@/SystemFolder/SystemResources/Button/ClassicyButton", () => ({
 	ClassicyButton: ({
 		children,
 		onClickFunc,
 		disabled,
+		className,
+		accessKey,
 	}: {
 		children: ReactNode;
 		onClickFunc?: () => void;
 		disabled?: boolean;
+		className?: string;
+		accessKey?: string;
 	}) => (
-		<button type="button" disabled={disabled} onClick={onClickFunc}>
+		<button
+			type="button"
+			className={className}
+			data-access-key={accessKey}
+			disabled={disabled}
+			onClick={onClickFunc}
+		>
 			{children}
 		</button>
 	),
@@ -349,5 +362,114 @@ describe("ClassicyAssistant — keyboard & a11y", () => {
 		expect(
 			screen.getByRole("group", { name: "Introduction" }),
 		).toBeInTheDocument();
+	});
+});
+
+// The remaining chapters' audit's 12.22 (WIG Ch.12 "Wizard Buttons", p.289,
+// Figures 12.17 and 12.18): under a package whose layout declares
+// `assistant.navigation: "buttons"` (Windows 98) the pager gives way to the
+// wizard's "< Back" and "Next >" push buttons (comctl32.dll's "< &Back" and
+// "&Next >"), through the pager's own handlers; without it the pager stays.
+describe("ClassicyAssistant — Windows' wizard buttons (assistant.navigation)", () => {
+	let probe: ReturnType<typeof installClassicyAppearanceProbe> | undefined;
+	const useWindowsLayout = () => {
+		probe = installClassicyAppearanceProbe({
+			layout: windows98.layout as never,
+		});
+	};
+	afterEach(() => {
+		probe?.uninstall();
+		probe = undefined;
+	});
+	const back = () => screen.getByRole("button", { name: "< Back" });
+	const next = () => screen.getByRole("button", { name: "Next >" });
+
+	it("draws < Back and Next > in the nav in the pager's place, with B and N, and no page number", () => {
+		useWindowsLayout();
+		const { container } = render(<ClassicyAssistant pages={pages} />);
+		const nav = container.querySelector(".classicyAssistantNav");
+		expect(nav?.querySelectorAll("button")).toHaveLength(2);
+		expect(nav?.contains(back())).toBe(true);
+		expect(back()).toHaveClass("classicyAssistantBack");
+		expect(next()).toHaveClass("classicyAssistantNext");
+		expect(back()).toHaveAttribute("data-access-key", "B");
+		expect(next()).toHaveAttribute("data-access-key", "N");
+		expect(screen.queryByRole("button", { name: "Next page" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Previous page" })).toBeNull();
+		expect(
+			container.querySelector(".classicyAssistantPageIndicator"),
+		).toBeNull();
+	});
+
+	it("disables < Back on the first page and Next > on the last", async () => {
+		useWindowsLayout();
+		const user = userEvent.setup();
+		const onPageChange = vi.fn();
+		render(<ClassicyAssistant pages={pages} onPageChange={onPageChange} />);
+		expect(back()).toBeDisabled();
+		expect(next()).toBeEnabled();
+		await user.click(next());
+		expect(screen.getByText("Network Settings")).toBeInTheDocument();
+		expect(back()).toBeEnabled();
+		await user.click(next());
+		expect(screen.getByText("Finish")).toBeInTheDocument();
+		expect(next()).toBeDisabled();
+		await user.click(back());
+		expect(screen.getByText("Network Settings")).toBeInTheDocument();
+		expect(onPageChange.mock.calls).toEqual([[1], [2], [1]]);
+	});
+
+	it("keeps a page's canAdvance on Next >, and never gates < Back", async () => {
+		useWindowsLayout();
+		const gated: ClassicyAssistantPage[] = [
+			{ title: "One", content: <p>one</p> },
+			{ title: "Two", content: <p>two</p>, canAdvance: () => false },
+			{ title: "Three", content: <p>three</p> },
+		];
+		const user = userEvent.setup();
+		render(<ClassicyAssistant pages={gated} initialPage={1} />);
+		await user.click(next());
+		expect(screen.getByText("Two")).toBeInTheDocument();
+		expect(soundDispatch).toHaveBeenCalledWith({
+			type: "ClassicySoundPlayError",
+		});
+		await user.click(back());
+		expect(screen.getByText("One")).toBeInTheDocument();
+	});
+
+	it("reports the buttons through onPageChange in controlled mode", async () => {
+		useWindowsLayout();
+		const user = userEvent.setup();
+		const onPageChange = vi.fn();
+		render(
+			<ClassicyAssistant pages={pages} page={1} onPageChange={onPageChange} />,
+		);
+		await user.click(next());
+		await user.click(back());
+		expect(onPageChange.mock.calls).toEqual([[2], [0]]);
+		expect(screen.getByText("Network Settings")).toBeInTheDocument();
+	});
+
+	it("keeps the page's own buttons beside them", () => {
+		useWindowsLayout();
+		const { container } = render(
+			<ClassicyAssistant
+				pages={pages}
+				buttons={[{ title: "Cancel", onClick: () => {} }]}
+			/>,
+		);
+		expect(
+			container.querySelector(".classicyAssistantFooterButtons")?.textContent,
+		).toBe("Cancel");
+	});
+
+	it("keeps the pager and the page number without the key", () => {
+		const { container } = render(<ClassicyAssistant pages={pages} />);
+		expect(screen.getByRole("button", { name: "Next page" })).toBeEnabled();
+		expect(screen.queryByRole("button", { name: "Next >" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "< Back" })).toBeNull();
+		expect(
+			container.querySelector(".classicyAssistantPageIndicator")?.textContent,
+		).toBe("1");
 	});
 });

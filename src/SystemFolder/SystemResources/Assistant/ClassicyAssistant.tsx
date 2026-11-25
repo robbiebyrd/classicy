@@ -11,9 +11,11 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { ClassicyPager } from "@/SystemFolder/SystemResources/Pager/ClassicyPager";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
@@ -105,7 +107,13 @@ const clamp = (value: number, min: number, max: number): number =>
  * the Help menu's "About Balloon Help…") is built on it.
  *
  * Page changes play `ClassicyTabClickUp` under Platinum (its `change` hook);
- * the → and ← keys page while focus is inside the assistant. A page's
+ * the → and ← keys page while focus is inside the assistant. Under a
+ * package whose layout declares `assistant.navigation: "buttons"` (Windows
+ * 98's wizard, WIG Ch.12 "Wizard Buttons", p.289) the pager gives way to
+ * two push buttons, "< Back" (`classicyAssistantBack`) and "Next >"
+ * (`classicyAssistantNext`), disabled on the first and the last page and
+ * carrying the access keys B and N, which move through the same handlers
+ * as the arrows; no page number is drawn. A page's
  * `canAdvance` can refuse a forward move, which plays the error sound
  * instead. Uncontrolled by default (starting at
  * `initialPage`); pass `page` + `onPageChange` to own the current page.
@@ -138,6 +146,11 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 	const player = useSoundDispatch();
 	const rootRef = useRef<HTMLDivElement>(null);
 	const appearance = useClassicyAppearance("Assistant", {}, rootRef);
+	// Windows' wizard buttons in the pager's place (`assistant.navigation`),
+	// their access keys only where the package has access keys.
+	const wizardButtons =
+		useClassicyAppearanceLayout().assistant?.navigation === "buttons";
+	const accessKey = useClassicyBundledAccessKeys();
 
 	const isControlled = page !== undefined;
 	const currentPage = clamp(
@@ -260,14 +273,42 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 					))}
 				</div>
 				<div className={"classicyAssistantNav"}>
-					{/* The pager only ever asks for an adjacent page, so route its
-					    request through the same gated handlers the arrow keys use. */}
-					<ClassicyPager
-						page={currentPage}
-						pageCount={pages.length}
-						onPageChange={(next) => (next > currentPage ? goNext() : goPrev())}
-						pageClassName={"classicyAssistantPageIndicator"}
-					/>
+					{wizardButtons ? (
+						// comctl32.dll's wizard buttons, "< &Back" and "&Next >"
+						// (Windows 98 SE), through the handlers the arrow keys use,
+						// so `canAdvance` gates Next as it gates the pager.
+						<>
+							<ClassicyButton
+								className={"classicyAssistantBack"}
+								buttonSize="small"
+								disabled={currentPage === 0}
+								accessKey={accessKey("B")}
+								onClickFunc={goPrev}
+							>
+								{"< Back"}
+							</ClassicyButton>
+							<ClassicyButton
+								className={"classicyAssistantNext"}
+								buttonSize="small"
+								disabled={currentPage === lastIndex}
+								accessKey={accessKey("N")}
+								onClickFunc={goNext}
+							>
+								{"Next >"}
+							</ClassicyButton>
+						</>
+					) : (
+						// The pager only ever asks for an adjacent page, so route its
+						// request through the same gated handlers the arrow keys use.
+						<ClassicyPager
+							page={currentPage}
+							pageCount={pages.length}
+							onPageChange={(next) =>
+								next > currentPage ? goNext() : goPrev()
+							}
+							pageClassName={"classicyAssistantPageIndicator"}
+						/>
+					)}
 				</div>
 			</div>
 		</div>

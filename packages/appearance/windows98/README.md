@@ -53,7 +53,8 @@ and `nodenext` resolution).
   title-bar colors, the selected text's, the ToolTip's (each scheme's own:
   Brick's dark red on its pale face), the desktop labels', ButtonText,
   GrayText, the scroll bar's and the window borders' are the package's own
-  color families, editable in the Colors tab beside the palette, and its
+  color families, editable in the Colors tab beside the palette (Help's
+  green jumps among them, the same in every scheme), and its
   fonts the package's own font rows in the Fonts tab (Times New Roman in
   Eggplant's and Rose's captions and menus, Arial in Brick's caption and
   Lilac's, larger faces in the large schemes).
@@ -168,6 +169,18 @@ and `nodenext` resolution).
   Undo, Cut, Copy, Paste, Delete and Select All, at the pointer, keeping
   the selection; Shift+F10 or the Application key opens it at the field's
   center. The Mac packages keep their text fields as they were.
+- **Its wizards and Help.** An assistant is a wizard: "< Back" and
+  "Next >" push buttons (Alt+B, Alt+N) in place of the page arrows and the
+  page number, Back dimmed on the first page and Next on the last, standing
+  together before the page's own Finish and Cancel, on a ButtonFace page
+  ruled off by etched lines under its title and above its buttons, as
+  Windows 98's wizards are. The Help topic window (Help ▸ About Balloon
+  Help…) reads as a WinHelp topic: cream (InfoWindow) behind the title and
+  the text, both in the system font at 8 point, a black line under the
+  title, and green jumps (the Colors tab's Help ▸ Jump text). In
+  HyperCard's editor, an armed part tool shows as a latched toolbar button,
+  and Escape disarms it before it deselects a part. The Mac packages keep
+  their pager, their Help window and their tools as they were.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),

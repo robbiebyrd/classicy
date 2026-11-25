@@ -1,0 +1,62 @@
+// The Windows 98 Help topic window, included by windows98.scss inside the
+// package wrapper, after _BalloonHelp.scss and _Assistant.scss; overrides
+// the Mac OS 8 "About Help" look that AppleGuide.scss gives the assistant
+// in Apple Guide's window (`.appleGuideWindow`). Under Windows the window is
+// a WinHelp task topic window (WIG Ch.12 "Task Topic Windows", p.280,
+// Figures 12.10 and 12.11):
+//
+// - The interior is the Help window color, InfoWindow (cream in Windows
+//   Standard, the ToolTip's own system color), the topic InfoText, both the
+//   topic's title band and its text in the system (UI) font, the title bold
+//   (the base's); their sizes are the theme's `appleGuide.headerFontSize`
+//   and `bodyFontSize` knobs (11, MS Sans Serif 8, where Platinum's are 13
+//   and 14).
+// - The title band is a nonscrolling region with a line along its bottom
+//   (WIG Ch.12 "Nonscrolling Regions", p.283; Figure 12.12): a one-ring
+//   WindowFrame line, in the place of the wizard header's etched line (the
+//   audit's 12.19 over 1.5), the body scrolling below it.
+// - The footer (its browse buttons) stays the wizard's ButtonFace band.
+// - A text jump is green and underlined (WIG Ch.12 "Jumps", p.283: "The
+//   default system presentation for text jumps is green underlined text";
+//   WinHelp's JUMPCOLOR, winhlp32.exe on the Windows 98 SE CD), hovered or
+//   pressed alike; the package's `help.jump` color (#008000 in every scheme:
+//   WinHelp's jump color is its own win.ini setting, which a display scheme
+//   does not change), an unavailable jump keeping _Placard.scss's emboss.
+//   The underline and the hand already set a jump apart (ClassicyLink.scss).
+//
+//   Windows color     token
+//   InfoWindow        --package-color-tooltip-face (--color-window-document)
+//   InfoText          --package-color-tooltip-text (--color-black)
+//   WindowFrame       --color-window-border
+//   ButtonFace        --color-system-03
+//   (Help's jump)     --package-color-help-jump    (--color-theme-04)
+//
+// Every length is a ring (`b.$b`) or a knob, every color a token or a
+// package color with a token fallback.
+@use "../bevels" as b;
+
+@mixin apple-guide {
+  .appleGuideWindow .classicyAssistantHeader,
+  .appleGuideWindow .classicyAssistantBody {
+    color: var(--package-color-tooltip-text, var(--color-black));
+    background: var(--package-color-tooltip-face, var(--color-window-document));
+    font-family: var(--ui-font), sans-serif;
+  }
+
+  // The nonscrolling region's line (12.19), in the etched line's place.
+  .appleGuideWindow .classicyAssistantHeader {
+    border-bottom: b.$b solid var(--color-window-border);
+    box-shadow: none;
+  }
+
+  .appleGuideWindow .classicyAssistantFooter {
+    background: b.$face;
+    --classicy-pager-band: #{b.$face};
+  }
+
+  // A jump (12.20). `:not(.disabled)` outweighs the placard partial's
+  // hover and active rules and leaves an unavailable jump embossed.
+  .appleGuideWindow .classicyLink:not(.disabled) {
+    color: var(--package-color-help-jump, var(--color-theme-04));
+  }
+}

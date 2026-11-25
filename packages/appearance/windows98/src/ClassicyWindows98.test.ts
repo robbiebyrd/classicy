@@ -191,6 +191,7 @@ describe("the Windows 98 appearance package", () => {
 			"text",
 			"scrollBar",
 			"sizingBorder",
+			"help",
 		]);
 		for (const [family, { colors }] of Object.entries(
 			windows98Json.colorFamilies,
@@ -1369,6 +1370,7 @@ describe("the Windows 98 appearance package", () => {
 			text: { wordSelect: "trailingSpace" },
 			edit: { scope: "window", menu: "windows" },
 			textField: { contextMenu: "edit" },
+			assistant: { navigation: "buttons" },
 			selection: {
 				secondaryButton: "select",
 				selectOn: "press",
@@ -1417,6 +1419,54 @@ describe("the Windows 98 appearance package", () => {
 		expect(layout?.text).toEqual({ wordSelect: "trailingSpace" });
 		expect(layout?.edit).toEqual({ scope: "window", menu: "windows" });
 		expect(layout?.textField).toEqual({ contextMenu: "edit" });
+	});
+
+	// A paged assistant is a wizard: "< Back" and "Next >" push buttons in
+	// the pager's place (`assistant.navigation` "buttons", 12.22; WIG Ch.12
+	// "Wizard Buttons", p.289, Figures 12.17 and 12.18).
+	it("moves through an assistant with the wizard's Back and Next buttons", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("windows98")?.layout.assistant).toEqual(
+			{ navigation: "buttons" },
+		);
+	});
+
+	// The Help topic window (Apple Guide's) sets its title and its topic in
+	// the system font at MS Sans Serif 8's 11 px, where the core floor's
+	// (Platinum's) `appleGuide` sizes are 13 and 14 (12.17; WIG Ch.12 "Task
+	// Topic Windows", p.280); the family's other keys stay the floor's.
+	it("sets the Help topic window's title and text at 11 px in every theme", async () => {
+		await import("./index");
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements.appleGuide, theme.id).toEqual({
+				headerFontSize: 11,
+				bodyFontSize: 11,
+			});
+		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
+			"--apple-guide-header-font-size": "11px",
+			"--apple-guide-body-font-size": "11px",
+			"--apple-guide-header-height": "42px",
+			"--apple-guide-footer-height": "48px",
+		});
+	});
+
+	// A text jump in a Help topic is green (WIG Ch.12 "Jumps", p.283: "The
+	// default system presentation for text jumps is green underlined text";
+	// WinHelp's JUMPCOLOR, winhlp32.exe on the Windows 98 SE CD): the
+	// package's `help` family, #008000 in every scheme (WinHelp's jump color
+	// is its own setting, which a display scheme does not change), editable
+	// in the Colors tab (12.20).
+	it("colors Help's jumps green in every theme, from its help family", async () => {
+		await import("./index");
+		expect(windows98Json.colorFamilies.help).toEqual({
+			label: "Help",
+			colors: { jump: { label: "Jump text" } },
+		});
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.color.families.help, theme.id).toEqual({ jump: 0x008000 });
+		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
+			"--package-color-help-jump": "#008000",
+		});
 	});
 
 	// The core's `dialog` family is structural (every theme emits it from the

@@ -597,6 +597,34 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// The wizard's buttons (the WIG audit's 12.22): `assistant.navigation`,
+	// an optional group of one optional keyword.
+	it("takes an optional assistant navigation, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).assistant = {
+			navigation: "buttons",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.assistant).toEqual({ navigation: "buttons" });
+		for (const value of [{}, { navigation: "pager" }]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).assistant = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).assistant = {
+			navigation: "wizard",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"assistant",
+			"navigation",
+		]);
+	});
+
 	it("accepts defaults that name the package", () => {
 		const input = {
 			...platinumShaped(),

@@ -29,6 +29,7 @@
 //   the inactive caption          InactiveTitle      Canvas, GrayText
 //   the ToolTip                   InfoWindow         Canvas, CanvasText
 //   the accent (links)            Hilight's shades   LinkText, VisitedText
+//   Help's jumps (`help.jump`)    WinHelp's green    LinkText
 //
 // so every edge is a whole outline (its outer ring ButtonBorder on the
 // light sides) whose dark sides are heavier, ButtonText inside ButtonBorder
@@ -94,6 +95,7 @@
       --package-color-scroll-bar-track: ButtonFace;
       --package-color-sizing-border-active: ButtonFace;
       --package-color-sizing-border-inactive: ButtonFace;
+      --package-color-help-jump: LinkText;
       --scroll-bar-solid-track: 0px;
     }
   }

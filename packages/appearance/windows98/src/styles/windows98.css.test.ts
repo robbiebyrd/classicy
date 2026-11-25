@@ -779,12 +779,147 @@ describe("windows98.scss (compiled)", () => {
 					"--package-color-text-gray: GrayText",
 					"--package-color-title-bar-active: Highlight",
 					"--package-color-title-bar-text: HighlightText",
+					"--package-color-help-jump: LinkText",
 					"--scroll-bar-solid-track: 0px",
 				])
 					expect(block, declaration).toContain(declaration);
 				// Last in the sheet, so its tokens win over nothing they must not.
 				expect(css.lastIndexOf("@media (forced-colors: active)")).toBe(start);
 			});
+		});
+	});
+
+	// The remaining chapters' audit's L4-J1: HyperCard's armed part tool
+	// (1.3), the wizard (1.5, 12.23) and the Help topic window (12.17, 12.19,
+	// 12.20), each rule keyed on a class the core already sets.
+	describe("the assistant, the Help topic window and HyperCard's armed tool", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		// The declarations of every rule whose selector list holds `selector`.
+		const rule = (selector: string) => {
+			const full = `${scope} ${selector}`;
+			let declarations = "";
+			let at = css.indexOf(full);
+			while (at >= 0) {
+				const open = css.indexOf("{", at);
+				const header = css.slice(
+					Math.max(css.lastIndexOf("}", at), css.lastIndexOf("{", at)) + 1,
+					open,
+				);
+				if (splitSelectors(header.trim()).includes(full))
+					declarations += css.slice(open + 1, css.indexOf("}", open));
+				at = css.indexOf(full, open);
+			}
+			return declarations;
+		};
+		const etched =
+			"inset 0 calc(var(--window-border-size) * -1) var(--color-system-01), inset 0 calc(calc(var(--window-border-size) + var(--window-border-size)) * -1) var(--color-system-05)";
+		const flat = (text: string) => text.replace(/\s+/g, " ");
+
+		// WIG Ch.13 "Option-Set Appearance" (pp.304-305), Figure 13.12: the
+		// armed entry is a latched toolbar button, the pressed rings round the
+		// ButtonHilight / ButtonFace checker, its label WindowText.
+		it("latches HyperCard's armed part tool: the checker in the pressed rings", () => {
+			const armed = flat(rule(".classicyHyperCardPaletteEntry.selected"));
+			expect(armed).toContain("color: var(--color-black)");
+			expect(armed).toContain(
+				"background: repeating-conic-gradient(var(--color-system-01) 0 25%, var(--color-system-03) 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)",
+			);
+			// `b.pressed`: ButtonHilight outside at the bottom and right,
+			// ButtonDkShadow at the top and left.
+			expect(armed).toContain(
+				"inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-01)",
+			);
+			expect(armed).toContain(
+				"inset var(--window-border-size) var(--window-border-size) var(--color-system-07)",
+			);
+			// An idle entry keeps the base's look.
+			expect(rule(".classicyHyperCardPaletteEntry")).toBe("");
+		});
+
+		// WIG Ch.12 "Guidelines for Writing Text for Wizards" (pp.289-290),
+		// Figures 12.17 and 12.18; Ch.1 "Consistency" (p.2): a dialog face,
+		// the title band ruled off by the etched line, the etched line above
+		// the buttons, Back and Next first and touching (comctl32's
+		// template), push-button sized, and no page number.
+		it("draws the assistant as a wizard: a ButtonFace page, etched lines, Back and Next first", () => {
+			expect(rule(".classicyAssistant")).toContain("color: var(--color-black)");
+			expect(flat(rule(".classicyAssistantHeader"))).toContain(
+				`box-shadow: ${etched}`,
+			);
+			expect(rule(".classicyAssistantBody")).toContain(
+				"background: var(--color-system-03)",
+			);
+			const footer = flat(rule(".classicyAssistantFooter"));
+			expect(footer).toContain("justify-content: flex-end");
+			expect(footer).toContain("column-gap: 0");
+			expect(footer).toContain("background: var(--color-system-03)");
+			expect(footer).toContain(
+				"border-top: var(--window-border-size) solid var(--color-system-05)",
+			);
+			expect(footer).toContain(
+				"box-shadow: inset 0 var(--window-border-size) var(--color-system-01)",
+			);
+			expect(footer).toContain("--classicy-pager-band: var(--color-system-03)");
+			const nav = rule(".classicyAssistantNav");
+			expect(nav).toContain("order: 1");
+			expect(nav).toContain("column-gap: 0");
+			expect(rule(".classicyAssistantBack")).toContain("margin-inline-end: 0");
+			expect(rule(".classicyAssistantNext")).toContain(
+				"margin-inline-start: 0",
+			);
+			const buttons = rule(".classicyAssistantFooterButtons");
+			expect(buttons).toContain("order: 2");
+			expect(buttons).toContain("column-gap: 0");
+			expect(rule(".classicyAssistantPageIndicator")).toContain(
+				"display: none",
+			);
+			const push = rule(
+				".classicyAssistantFooter .classicyButton.classicyButtonSmall",
+			);
+			expect(push).toContain("min-height: var(--push-button-height)");
+			expect(push).toContain("min-width: var(--button-min-width)");
+		});
+
+		// WIG Ch.12 "Task Topic Windows" (p.280), "Nonscrolling Regions"
+		// (p.283), "Jumps" (p.283): the topic on InfoWindow in the UI font, a
+		// WindowFrame line under the title band in the etched line's place, a
+		// ButtonFace footer, and a green jump that leaves an unavailable one
+		// embossed.
+		it("draws the Help topic window on InfoWindow, its title band ruled, its jumps green", () => {
+			for (const part of [
+				".classicyAssistantHeader",
+				".classicyAssistantBody",
+			]) {
+				const face = rule(`.appleGuideWindow ${part}`);
+				expect(face, part).toContain(
+					"color: var(--package-color-tooltip-text, var(--color-black))",
+				);
+				expect(face, part).toContain(
+					"background: var(--package-color-tooltip-face, var(--color-window-document))",
+				);
+				expect(face, part).toContain("font-family: var(--ui-font), sans-serif");
+			}
+			const band = rule(".appleGuideWindow .classicyAssistantHeader");
+			expect(band).toContain(
+				"border-bottom: var(--window-border-size) solid var(--color-window-border)",
+			);
+			expect(band).toContain("box-shadow: none");
+			// After the wizard's header rule, so the line takes its place.
+			expect(
+				css.indexOf(`${scope} .appleGuideWindow .classicyAssistantHeader`),
+			).toBeGreaterThan(css.indexOf(`${scope} .classicyAssistantHeader {`));
+			const footer = rule(".appleGuideWindow .classicyAssistantFooter");
+			expect(footer).toContain("background: var(--color-system-03)");
+			expect(footer).toContain("--classicy-pager-band: var(--color-system-03)");
+			expect(rule(".appleGuideWindow .classicyLink:not(.disabled)")).toContain(
+				"color: var(--package-color-help-jump, var(--color-theme-04))",
+			);
+			// The jump rule comes after the placard partial's link rules, and
+			// no rule colors an unavailable jump green.
+			expect(
+				css.indexOf(`${scope} .appleGuideWindow .classicyLink`),
+			).toBeGreaterThan(css.indexOf(`${scope} :where(.classicyLink).disabled`));
+			expect(css).not.toMatch(/[^(]\.disabled[^{]*\{[^}]*help-jump/);
 		});
 	});
 });

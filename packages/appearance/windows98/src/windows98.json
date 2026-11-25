@@ -52,6 +52,9 @@
 				"sizingBorder": {
 					"active": 12632256,
 					"inactive": 12632256
+				},
+				"help": {
+					"jump": 32768
 				}
 			}
 		},
@@ -205,6 +208,10 @@
 				"alertMaxWidth": 415,
 				"inputMaxWidth": 415
 			},
+			"appleGuide": {
+				"headerFontSize": 11,
+				"bodyFontSize": 11
+			},
 			"slider": {
 				"pixel": 1,
 				"channel": 4,
@@ -302,6 +309,9 @@
 					"sizingBorder": {
 						"active": 12632256,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -455,6 +465,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -551,6 +565,9 @@
 					"sizingBorder": {
 						"active": 12632256,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -704,6 +721,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -802,6 +823,9 @@
 					"sizingBorder": {
 						"active": 12763045,
 						"inactive": 12763045
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -955,6 +979,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -1053,6 +1081,9 @@
 					"sizingBorder": {
 						"active": 14011579,
 						"inactive": 14011579
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -1206,6 +1237,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -1304,6 +1339,9 @@
 					"sizingBorder": {
 						"active": 9482408,
 						"inactive": 9482408
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -1457,6 +1495,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -1553,6 +1595,9 @@
 					"sizingBorder": {
 						"active": 255,
 						"inactive": 65535
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -1705,6 +1750,10 @@
 				"dialog": {
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
 				},
 				"slider": {
 					"pixel": 1,
@@ -1802,6 +1851,9 @@
 					"sizingBorder": {
 						"active": 255,
 						"inactive": 65535
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -1955,6 +2007,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -2051,6 +2107,9 @@
 					"sizingBorder": {
 						"active": 255,
 						"inactive": 65535
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -2204,6 +2263,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -2300,6 +2363,9 @@
 					"sizingBorder": {
 						"active": 65535,
 						"inactive": 255
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -2453,6 +2519,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -2549,6 +2619,9 @@
 					"sizingBorder": {
 						"active": 65535,
 						"inactive": 255
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -2702,6 +2775,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -2798,6 +2875,9 @@
 					"sizingBorder": {
 						"active": 65535,
 						"inactive": 255
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -2950,6 +3030,10 @@
 				"dialog": {
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
 				},
 				"slider": {
 					"pixel": 1,
@@ -3049,6 +3133,9 @@
 					"sizingBorder": {
 						"active": 16776960,
 						"inactive": 32768
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -3202,6 +3289,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -3300,6 +3391,9 @@
 					"sizingBorder": {
 						"active": 16776960,
 						"inactive": 32768
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -3453,6 +3547,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -3551,6 +3649,9 @@
 					"sizingBorder": {
 						"active": 16776960,
 						"inactive": 32768
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -3704,6 +3805,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -3800,6 +3905,9 @@
 					"sizingBorder": {
 						"active": 8421504,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -3953,6 +4061,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -4049,6 +4161,9 @@
 					"sizingBorder": {
 						"active": 8421504,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -4202,6 +4317,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -4298,6 +4417,9 @@
 					"sizingBorder": {
 						"active": 8421504,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -4451,6 +4573,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -4549,6 +4675,9 @@
 					"sizingBorder": {
 						"active": 11446489,
 						"inactive": 11446489
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -4702,6 +4831,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -4800,6 +4933,9 @@
 					"sizingBorder": {
 						"active": 11446489,
 						"inactive": 11446489
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -4953,6 +5089,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -5053,6 +5193,9 @@
 					"sizingBorder": {
 						"active": 14732440,
 						"inactive": 14732440
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -5206,6 +5349,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -5302,6 +5449,9 @@
 					"sizingBorder": {
 						"active": 8962232,
 						"inactive": 8962232
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -5455,6 +5605,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -5553,6 +5707,9 @@
 					"sizingBorder": {
 						"active": 11049104,
 						"inactive": 11049104
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -5706,6 +5863,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -5806,6 +5967,9 @@
 					"sizingBorder": {
 						"active": 15783072,
 						"inactive": 15783072
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -5959,6 +6123,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -6057,6 +6225,9 @@
 					"sizingBorder": {
 						"active": 8427696,
 						"inactive": 8427696
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -6210,6 +6381,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -6308,6 +6483,9 @@
 					"sizingBorder": {
 						"active": 12632256,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -6461,6 +6639,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -6561,6 +6743,9 @@
 					"sizingBorder": {
 						"active": 13610935,
 						"inactive": 13610935
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -6714,6 +6899,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -6814,6 +7003,9 @@
 					"sizingBorder": {
 						"active": 13676728,
 						"inactive": 13676728
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -6967,6 +7159,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -7065,6 +7261,9 @@
 					"sizingBorder": {
 						"active": 10336712,
 						"inactive": 10336712
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -7218,6 +7417,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -7316,6 +7519,9 @@
 					"sizingBorder": {
 						"active": 10668201,
 						"inactive": 10668201
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -7469,6 +7675,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -7567,6 +7777,9 @@
 					"sizingBorder": {
 						"active": 12632256,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -7719,6 +7932,10 @@
 				"dialog": {
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
 				},
 				"slider": {
 					"pixel": 1,
@@ -7816,6 +8033,9 @@
 					"sizingBorder": {
 						"active": 12632256,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -7968,6 +8188,10 @@
 				"dialog": {
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
+				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
 				},
 				"slider": {
 					"pixel": 1,
@@ -8069,6 +8293,9 @@
 					"sizingBorder": {
 						"active": 14737568,
 						"inactive": 14737568
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -8222,6 +8449,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -8318,6 +8549,9 @@
 					"sizingBorder": {
 						"active": 12632256,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -8471,6 +8705,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -8567,6 +8805,9 @@
 					"sizingBorder": {
 						"active": 12632256,
 						"inactive": 12632256
+					},
+					"help": {
+						"jump": 32768
 					}
 				}
 			},
@@ -8720,6 +8961,10 @@
 					"alertMaxWidth": 415,
 					"inputMaxWidth": 415
 				},
+				"appleGuide": {
+					"headerFontSize": 11,
+					"bodyFontSize": 11
+				},
 				"slider": {
 					"pixel": 1,
 					"channel": 4,
@@ -8832,6 +9077,9 @@
 		},
 		"textField": {
 			"contextMenu": "edit"
+		},
+		"assistant": {
+			"navigation": "buttons"
 		},
 		"selection": {
 			"secondaryButton": "select",
@@ -9022,6 +9270,14 @@
 				},
 				"inactive": {
 					"label": "Inactive"
+				}
+			}
+		},
+		"help": {
+			"label": "Help",
+			"colors": {
+				"jump": {
+					"label": "Jump text"
 				}
 			}
 		}

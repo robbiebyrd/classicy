@@ -62,8 +62,8 @@ export type Windows98Json = {
 	 * Labels for the Windows colors no palette slot holds: the title bars'
 	 * (`titleBar`), the selected text's (`selection`), the ToolTip's
 	 * (`tooltip`), the desktop icon labels' (`desktop`), ButtonText and
-	 * GrayText (`text`), the scroll bar's track (`scrollBar`) and the sizing
-	 * border's (`sizingBorder`).
+	 * GrayText (`text`), the scroll bar's track (`scrollBar`), the sizing
+	 * border's (`sizingBorder`) and a Help topic's text jumps (`help`).
 	 */
 	readonly colorFamilies: Readonly<ClassicyAppearanceColorFamilies>;
 	/**

@@ -601,6 +601,28 @@ export type ClassicyAppearanceLayout = {
 		contextMenu?: "none" | "edit";
 	};
 	/**
+	 * How a paged assistant (`ClassicyAssistant`, Apple Guide's topic
+	 * window) is moved through. Optional, as is each key.
+	 */
+	assistant?: {
+		/**
+		 * `"pager"` (the default, the Mac OS Setup Assistant's): a
+		 * `ClassicyPager` at the footer's right, its back and forward arrows
+		 * around the page number, the page's own buttons at the left.
+		 * `"buttons"` (a Windows wizard; WIG Ch.12 "Wizard Buttons", p.289,
+		 * Figures 12.17 and 12.18; comctl32.dll's wizard strings on the
+		 * Windows 98 SE CD, "< &Back" and "&Next >"): two push buttons in
+		 * `.classicyAssistantNav` in the pager's place, "< Back"
+		 * (`classicyAssistantBack`, disabled on the first page, access key B)
+		 * and "Next >" (`classicyAssistantNext`, disabled on the last, access
+		 * key N), through the same handlers as the pager's arrows, so a
+		 * page's `canAdvance` and the `change` hook hold; the page number is
+		 * not drawn. The package's stylesheet orders them before the page's
+		 * own buttons (Finish, Cancel).
+		 */
+		navigation?: "pager" | "buttons";
+	};
+	/**
 	 * What the mouse's buttons and the keyboard do to a selection.
 	 * Optional, as is each key.
 	 */
@@ -823,6 +845,10 @@ export type ClassicyAppearanceLayout = {
 		 * table's column edge is dragged, Escape puts it back where the press
 		 * found it and ends the drag, the key going no further
 		 * (`useClassicyEscapeCancel`).
+		 * In HyperCard's editor, Escape on the card or in the Tools palette
+		 * first disarms an armed part tool (the one-shot placing mode, WIG
+		 * Ch.1 "User in Control", p.1: a mode is easy to cancel), and only
+		 * at the next press deselects the part.
 		 */
 		escapeCancels?: boolean;
 	};
