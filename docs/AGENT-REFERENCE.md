@@ -63,9 +63,9 @@ files has a System 7 twin: `classicy-system7.css`,
 `classicy-system7.fonts.css` (the same Chicago, Geneva and Monaco faces) and
 its own `dist/assets/`. The Windows 98 package, `@classicy/appearance-windows98`
 (§8, "Windows 98"), is installed and imported the same way; it ships
-`classicy-windows98.css` and its `dist/assets/` (its package icon, its art
-and icons, and its sprites), and no fonts stylesheet, since it registers no
-fonts.
+`classicy-windows98.css`, `classicy-windows98.fonts.css` (its
+`"Pixelated MS Sans Serif"` faces) and its `dist/assets/` (its fonts, its
+package icon, its art and icons, its cursors and its sprites).
 
 The desktop fills the window with no host CSS. When it is the page (mounted
 in a child of `body`, directly or through up to four wrappers that each hold
@@ -4312,11 +4312,12 @@ package would be (it reaches the core only as `@classicy/classicy`, and
 nothing of Platinum's or System 7's; `Windows98SourceImports.test.ts`). It
 registers Windows 98 Second Edition's own icons and system art, read from
 the Windows 98 SE CD (`docs/windows98-asset-inventory.md` maps every key to
-its resource), and Windows 98's names for the bundled apps, the Trash and the
-startup disk; it registers no fonts, cursors, wallpapers or screen savers,
-and the glyphs Windows drew in the scheme's colors stay pixel art drawn from
-theme tokens. Install and import it like Platinum (§1); its README lists
-what it ships and every asset's source.
+its resource), its cursors (USER.EXE's), its interface font (98.css's
+recreation of MS Sans Serif, CC BY-SA 3.0) and Windows 98's names for the
+bundled apps, the Trash and the startup disk; it registers no wallpapers or
+screen savers, and the glyphs Windows drew in the scheme's colors stay pixel
+art drawn from theme tokens. Install and import it like Platinum (§1); its
+README lists what it ships and every asset's source.
 
 - **Themes.** Eighteen, every one `package: "windows98"`, `sound.pack:
   "windows98"`, no `assetVariant`, `dither.tileSize: 0`: `windows98`
@@ -4328,10 +4329,9 @@ what it ships and every asset's source.
   sixteen classic schemes from the `[Control Panel\Colors]` block of each
   Windows theme file (`windows98Brick` … `windows98Wheat`, named as the
   Display control panel named them). The typography is a font stack
-  (`"Pixelated MS Sans Serif"`, MS Sans Serif, Microsoft Sans Serif, Tahoma,
-  Arial, at 11 px; Fixedsys, Lucida Console, Courier New for monospaced
-  text), since MS Sans Serif is Microsoft's; a host that loads 98.css's face
-  gets the bitmap look.
+  (`"Pixelated MS Sans Serif"`, the package's own face, then MS Sans Serif,
+  Microsoft Sans Serif, Tahoma, Arial, at 11 px; Fixedsys, Lucida Console,
+  Courier New for monospaced text, which the host supplies).
 - **Color families** ("Package color families"): `titleBar` (`active`,
   `activeGradient`, `inactive`, `inactiveGradient`, `text`, `inactiveText`:
   ActiveTitle, GradientActiveTitle, InactiveTitle, GradientInactiveTitle,
@@ -4400,8 +4400,10 @@ what it ships and every asset's source.
   HyperCard editor's handles as Hilight squares in a one-ring HilightText
   border (`_HyperCard.scss`; WIG Ch.13 "Handles", pp.319-320), and a
   shortcut's badge (Windows' overlay, drawn over the whole icon) sized to
-  the icon (`--alias-badge-size`). Cursors resolve to the default
-  package's (§5), and with no package offering a screen saver the panel
+  the icon (`--alias-badge-size`), the size grip under the diagonal size
+  cursor (`resizeNwse`, where the base reads `resizeLr`), and the desktop's
+  text drawn unsmoothed (`-webkit-font-smoothing: none`, as Windows drew its
+  bitmap MS Sans Serif). With no package offering a screen saver the panel
   reads "This appearance has no screen savers."
 - **Icons and system art** (`src/assets/windows98Assets.ts`, the key map in
   `windows98Icons.ts`, `docs/windows98-asset-inventory.md`): lossless WebP of
@@ -4420,6 +4422,24 @@ what it ships and every asset's source.
   the other keys resolve to the default package's art, which the stylesheet
   hides or draws over from tokens. A core icon URL follows (§5): under
   Windows 98 a stored folder draws `shell32.dll`'s folder.
+- **Cursors** (`WINDOWS98_CURSORS`, exported): USER.EXE's system cursors
+  (`cursors/user-cursor-<id>.png`, 32 x 32, black, white and clear, a pixel
+  that inverted the screen drawn black), every `ClassicyCursorRole`
+  registered `{ src, hotspot }` at the resource's own hotspot (cursor id,
+  then hotspot): `arrow` 100 at 0, 0; `watch` 102, the hourglass, at 16, 16;
+  `hand` 114, IDC_HAND, at 5, 0; `ibeam` 101 and `crosshair` 103 at 15, 16;
+  `resizeLr` 107 at 16, 16; `resizeUd` 108 at 15, 16; `resizeNwse` 105 and
+  `resizeNesw` 106 at 16, 16. Windows had no one-way size cursors, so
+  `resizeU`/`resizeD` draw 108 and `resizeL`/`resizeR` 107.
+- **Fonts** (`src/assets/windows98Fonts.internal.ts`,
+  `WINDOWS98_FONT_FACES`): `"Pixelated MS Sans Serif"` normal and bold
+  (`fonts/PixelatedMSSansSerif-<weight>-normal.woff2`), lou's FontStruct
+  recreations of MS Sans Serif 8 pt as 98.css converted them, licensed CC
+  BY-SA 3.0; their four readme and license files sit beside them and ship in
+  the tarball (`files: "src/assets/fonts/*.txt"`). No face is shared with
+  another package. Registered at runtime as `<style
+  id="classicy-fonts-windows98">`, and emitted as
+  `dist/classicy-windows98.fonts.css` for strict-CSP hosts.
 - **Names** (`src/windows98Apps.ts`): `apps` shows the Finder as Windows
   Explorer (with its icon), SimpleText as Notepad, the Appearance Manager as
   Display, the Sound Manager as Sounds, Date and Time as Date/Time, the
@@ -4433,12 +4453,13 @@ what it ships and every asset's source.
   the package (Windows' sounds are Microsoft's), ogg and m4a. The package
   declares no `hooks`, so controls play no feedback.
 - **Build.** `pnpm --filter @classicy/appearance-windows98 build`: its
-  `verify:dist` holds System 7's invariants for its own files, with no
-  fonts stylesheet and nothing inlined (its `dist/assets` is its package
-  icon, its art and icons, each byte for byte its WebP, and the two
-  sprites). Storybook registers it only through
-  `storybook/.storybook/windows98.ts` (its own stories) or the Package
-  toolbar.
+  `verify:dist` holds System 7's invariants for its own files, with
+  nothing inlined (its `dist/assets` is its two woff2 faces, its package
+  icon, its art and icons, each byte for byte its WebP, its cursors, each
+  byte for byte its PNG, and the two sprites; invariant 6 holds
+  `classicy-windows98.fonts.css` to the runtime's rules). Storybook
+  registers it only through `storybook/.storybook/windows98.ts` (its own
+  stories) or the Package toolbar.
 
 ### Layout declarations
 

@@ -88,6 +88,18 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
 }
 
 @mixin desktop {
+  // --- The interface font -----------------------------------------------------
+  // MS Sans Serif, the face every theme names first (the package's
+  // "Pixelated MS Sans Serif", windows98Fonts.internal.ts), was a bitmap font
+  // (sserife.fon), which Windows drew as pixels whatever its font smoothing
+  // setting. The base smooths the desktop's text (`antialiased`); here the
+  // recreation's square pixels are drawn unsmoothed, where the browser takes
+  // the setting (WebKit and Blink on macOS; elsewhere the platform's own
+  // rendering stands).
+  & {
+    -webkit-font-smoothing: none;
+  }
+
   // --- The marquee ----------------------------------------------------------
   .classicyDesktopSelect {
     border: b.$b dotted var(--package-color-desktop-text, var(--color-white));

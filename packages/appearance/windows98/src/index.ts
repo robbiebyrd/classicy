@@ -29,8 +29,9 @@ import {
 // `sound.pack` must name a registered pack. The package lists the pack; it
 // never registers it a second time.
 import "./assets/sounds/windows98";
-// Registers at module load: Windows 98's icons and system art, from the
-// Windows 98 Second Edition CD (docs/windows98-asset-inventory.md).
+// Registers at module load: Windows 98's icons, system art and cursors, from
+// the Windows 98 Second Edition CD, and its interface font
+// (docs/windows98-asset-inventory.md).
 import "./assets/windows98Assets";
 // The package's own icon (the Appearance Manager's Themes tab): a window on
 // the teal desktop.
@@ -42,7 +43,10 @@ import { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "./windows98Apps";
 import { deepFreeze } from "./windows98DeepFreeze.internal";
 
 export * from "./assets/sounds/windows98";
-export { WINDOWS98_SYSTEM_ART } from "./assets/windows98Assets";
+export {
+	WINDOWS98_CURSORS,
+	WINDOWS98_SYSTEM_ART,
+} from "./assets/windows98Assets";
 export { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "./windows98Apps";
 
 /**

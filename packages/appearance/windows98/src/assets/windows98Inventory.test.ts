@@ -3,11 +3,13 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type {
 	ClassicyAssetTree,
+	ClassicyCursorRole,
 	ClassicySystemArtKey,
 } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "../windows98Apps";
-import { WINDOWS98_SYSTEM_ART } from "./windows98Assets";
+import { WINDOWS98_CURSORS, WINDOWS98_SYSTEM_ART } from "./windows98Assets";
+import { WINDOWS98_FONT_FACES } from "./windows98Fonts.internal";
 import { WINDOWS98_ICON_FILES, WINDOWS98_ICON_REUSE } from "./windows98Icons";
 
 // docs/windows98-asset-inventory.md is the map: each row's decision is what
@@ -52,11 +54,16 @@ const iconLeaves = (tree: ClassicyAssetTree, trail = ""): string[] =>
 		return typeof value === "string" ? [keyPath] : iconLeaves(value, keyPath);
 	});
 const ICON_KEYS = iconLeaves(ClassicyIcons);
-const ART_KEYS = [
-	...(
-		/export type ClassicySystemArtKey =([^;]+);/.exec(registrySource)?.[1] ?? ""
-	).matchAll(/"([^"]+)"/g),
-].map((m) => m[1]) as ClassicySystemArtKey[];
+const unionMembers = (typeName: string): string[] =>
+	[
+		...(
+			new RegExp(`export type ${typeName} =([^;]+);`).exec(
+				registrySource,
+			)?.[1] ?? ""
+		).matchAll(/"([^"]+)"/g),
+	].map((m) => m[1] ?? "");
+const ART_KEYS = unionMembers("ClassicySystemArtKey") as ClassicySystemArtKey[];
+const CURSOR_ROLES = unionMembers("ClassicyCursorRole") as ClassicyCursorRole[];
 
 describe("docs/windows98-asset-inventory.md", () => {
 	it("lists every icon key once, in the core tree's order", () =>
@@ -102,6 +109,38 @@ describe("docs/windows98-asset-inventory.md", () => {
 				expect(WINDOWS98_SYSTEM_ART[key], key).toBeUndefined();
 			}
 		}
+	});
+
+	it("lists every cursor role once, each drawing its file at its hotspot", () => {
+		const rows = sectionRows("Cursors");
+		expect(rows.map(([role]) => code(role))).toEqual(CURSOR_ROLES);
+		for (const [roleCell, , , file, hotspot] of rows) {
+			const role = code(roleCell) as ClassicyCursorRole;
+			const { src, hotspot: registered } = WINDOWS98_CURSORS[role];
+			expect(src, role).toMatch(
+				new RegExp(`/${code(file).replace(".", "\\.")}$`),
+			);
+			expect(registered.join(", "), role).toBe(hotspot);
+		}
+	});
+
+	it("lists every font face the package registers, in order", () => {
+		const rows = sectionRows("Fonts");
+		expect(
+			rows.map(([family, weight, style, file]) => ({
+				family: code(family),
+				weight,
+				style,
+				file: code(file),
+			})),
+		).toEqual(
+			WINDOWS98_FONT_FACES.map(({ family, weight, style, file }) => ({
+				family,
+				weight,
+				style,
+				file: `fonts/${file}.woff2`,
+			})),
+		);
 	});
 
 	it("gives each app the name, icon and description the package declares", () => {

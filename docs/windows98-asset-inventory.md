@@ -1,18 +1,22 @@
 # Windows 98 asset inventory
 
-Every icon, system-art key and display name the Windows 98 Appearance Package (`@classicy/appearance-windows98`, `packages/appearance/windows98`) takes from Windows 98, and exactly which file each comes from. The package registers them from `src/assets/windows98Assets.ts` (the icons from the data in `src/assets/windows98Icons.ts`) and `src/windows98Apps.ts`; `src/assets/windows98Inventory.test.ts` reads this file and fails if a row and the registration disagree.
+Every icon, system-art key, cursor, font face and display name the Windows 98 Appearance Package (`@classicy/appearance-windows98`, `packages/appearance/windows98`) takes from Windows 98, and exactly which file each comes from. The package registers them from `src/assets/windows98Assets.ts` (the icons from the data in `src/assets/windows98Icons.ts`, the fonts from the face list in `src/assets/windows98Fonts.internal.ts`) and `src/windows98Apps.ts`; `src/assets/windows98Inventory.test.ts` reads this file and fails if a row and the registration disagree.
 
-Windows 95 and 98's icons, bitmaps and interface are Microsoft's; Classicy uses them under the fair use doctrine, as it uses Apple's Mac OS art under Platinum and System 7.
+Windows 95 and 98's icons, bitmaps, cursors and interface are Microsoft's; Classicy uses them under the fair use doctrine, as it uses Apple's Mac OS art under Platinum and System 7. The interface face is a recreation of MS Sans Serif by FontStruct user "lou", licensed CC BY-SA 3.0 (Fonts).
 
 ## Sources and conversion
 
-**Every file is Windows 98 Second Edition's own.** The English Windows 98 SE CD (archive.org item `windows-98-second-edition_202103`) was read: its install cabinets (`WIN98_21.CAB` to `WIN98_74.CAB`, `BASE4` to `BASE6`, `PRECOPY1` and `PRECOPY2`) unpacked, and each binary's `RT_GROUP_ICON` and `RT_BITMAP` resources written out unchanged. The clones of 98.js, wieslawsoltes/win98 and lolstring/window98-html-css-js carry re-encoded copies of some of these (98.js's toolbar strip, for one, is a high-color screenshot of IE's, black as `#040404` and `#F8F8F8` as white); each was matched against the CD and the CD's bytes taken.
+**Every image and cursor is Windows 98 Second Edition's own** (the fonts are a recreation, below). The English Windows 98 SE CD (archive.org item `windows-98-second-edition_202103`) was read: its install cabinets (`WIN98_21.CAB` to `WIN98_74.CAB`, `BASE4` to `BASE6`, `PRECOPY1` and `PRECOPY2`) unpacked, and each binary's `RT_GROUP_ICON`, `RT_GROUP_CURSOR` and `RT_BITMAP` resources written out unchanged. The clones of 98.js, wieslawsoltes/win98 and lolstring/window98-html-css-js carry re-encoded copies of some of these (98.js's toolbar strip, for one, is a high-color screenshot of IE's, black as `#040404` and `#F8F8F8` as white); each was matched against the CD and the CD's bytes taken.
 
 **Icons.** An icon group's 32 px and 16 px images, each the group's highest color depth (the 256-color image where there is one: Windows 98 drew it on a high-color screen), the AND mask made alpha (mask 1 is clear, every other pixel opaque; the few masked pixels whose XOR color is `#040404`, which Windows XORed onto the screen, are clear too). A group with no 16 px image registers its 32 px one alone, which Windows scaled. Files: `src/assets/icons/<binary>-<group id>-<size>.webp`.
 
 **Bitmaps.** The Start flag (`explorer.exe` bitmap 143) and the About box's Windows logo (`shell32.dll` bitmap 130, RLE-compressed) have a `#C0C0C0` ground, which Windows mapped to the button face as it loaded them: it is made clear, so each scheme's face shows through. Internet Explorer 5's toolbar cells are 20 x 20 cells of `browseui.dll` bitmaps 265 (gray, the buttons at rest) and 266 (color, the buttons under the pointer), their `#FF00FF` key made clear: `src/assets/icons/browseui-bitmap-<id>-cell-<n>.webp`. Web View's sky, `C:\WINDOWS\WEB\wvlogo.gif`, keeps every pixel. Files: `src/assets/art/<binary>-bitmap-<id>.webp`, `src/assets/icons/wvlogo.webp`.
 
-**Format.** Lossless WebP with `exact`, one `VP8L` chunk and no color profile (the DIB colors are Windows' stored values), written by `bin/classicyWebp.ts`; no partial alpha.
+**Cursors.** `user.exe`'s `RT_GROUP_CURSOR` resources (Windows 98's system cursors), each one 32 x 32 1-bit image with its hotspot in the resource's own header: AND 0 and XOR 0 is black, AND 0 and XOR 1 white, AND 1 and XOR 0 clear, and AND 1 and XOR 1, a pixel that inverts the screen (every pixel of the I-beam and the cross), black, since a CSS cursor cannot invert. Files: `src/assets/cursors/user-cursor-<id>.png`.
+
+**Fonts.** Windows 98 drew its interface in MS Sans Serif, `sserife.fon`, a bitmap font no browser loads. The package ships 98.css's recreation of it instead: lou's FontStruct "MS Sans Serif" and "MS Sans Serif Bold", the woff2 files 98.css converted (`fonts/converted` in jdan/98.css), as copied unchanged by wieslawsoltes/win98's `assets/`, renamed only. Their readme and license files sit beside them, unchanged, and ship in the package's tarball, as the readmes require.
+
+**Format.** Images: lossless WebP with `exact`, one `VP8L` chunk and no color profile (the DIB colors are Windows' stored values), written by `bin/classicyWebp.ts`; no partial alpha. Cursors: PNG, the format every browser takes for a CSS cursor, 8-bit RGBA with no ancillary chunk. Fonts: woff2, as authored.
 
 ## Icons
 
@@ -379,6 +383,39 @@ Each `ClassicySystemArtKey`. "register" keys draw Windows 98's file; "default" k
 | `downArrow` | default | — | — | Windows drew it with Marlett in the text color: the package's stylesheet draws it from tokens |
 | `ditherChecker` | default | — | — | Windows drew it with Marlett in the text color: the package's stylesheet draws it from tokens |
 | `helpMenuTitle` | default | — | — | Windows titles Help in words; Platinum registers none either, so the word shows |
+
+## Cursors
+
+Each `ClassicyCursorRole`, registered with `registerClassicyCursors` at its resource's own hotspot (`[x, y]` from the image's top left). Windows had no one-way size cursors (a window edge at its limit kept the two-way arrow), so the four one-way roles draw the two-way cursors. The package's stylesheet shows `resizeNwse` over the size grip, where the base reads the Mac grow box's `resizeLr`.
+
+| Role | Windows 98 cursor | Source | File | Hotspot | Note |
+| --- | --- | --- | --- | --- | --- |
+| `arrow` | Normal Select | `user.exe` cursor 100 | `cursors/user-cursor-100.png` | 0, 0 | the white arrow with its black outline |
+| `watch` | Busy | `user.exe` cursor 102 | `cursors/user-cursor-102.png` | 16, 16 | the default scheme's static hourglass |
+| `hand` | Link Select | `user.exe` cursor 114 | `cursors/user-cursor-114.png` | 5, 0 | the pointing hand Windows 98 added (IDC_HAND); the PDF viewer's pan tool |
+| `ibeam` | Text Select | `user.exe` cursor 101 | `cursors/user-cursor-101.png` | 15, 16 | every pixel inverts: drawn black |
+| `crosshair` | Precision Select | `user.exe` cursor 103 | `cursors/user-cursor-103.png` | 15, 16 | every pixel inverts: drawn black |
+| `resizeLr` | Horizontal Resize | `user.exe` cursor 107 | `cursors/user-cursor-107.png` | 16, 16 | a split view's vertical divider |
+| `resizeUd` | Vertical Resize | `user.exe` cursor 108 | `cursors/user-cursor-108.png` | 15, 16 | a split view's horizontal divider |
+| `resizeNwse` | Diagonal Resize 1 | `user.exe` cursor 105 | `cursors/user-cursor-105.png` | 16, 16 | the size grip (the package's stylesheet) |
+| `resizeNesw` | Diagonal Resize 2 | `user.exe` cursor 106 | `cursors/user-cursor-106.png` | 16, 16 | |
+| `resizeU` | Vertical Resize | `user.exe` cursor 108 | `cursors/user-cursor-108.png` | 15, 16 | no one-way cursor in Windows |
+| `resizeD` | Vertical Resize | `user.exe` cursor 108 | `cursors/user-cursor-108.png` | 15, 16 | no one-way cursor in Windows |
+| `resizeL` | Horizontal Resize | `user.exe` cursor 107 | `cursors/user-cursor-107.png` | 16, 16 | no one-way cursor in Windows |
+| `resizeR` | Horizontal Resize | `user.exe` cursor 107 | `cursors/user-cursor-107.png` | 16, 16 | no one-way cursor in Windows |
+
+USER.EXE's other cursors have no role: Up Arrow (Alternate Select, 104), Move (109), Unavailable (110), Working in Background (111), Help Select (112) and Handwriting (113). The CD's loose cursor files are the other schemes' (Windows Standard large and extra large, Windows Black and Windows Inverted, each at three sizes: `arrow_l.cur`, `arrow_m.cur`, `arrow_r.cur`, `cross_i.cur`, …), the animated cursors (`appstart.ani`, `globe.ani`, …) and the Desktop Themes', none of them the default scheme's.
+
+## Fonts
+
+The faces registered with `registerClassicyFonts` (and written to `dist/classicy-windows98.fonts.css` for strict-CSP hosts), under the family every theme names first in its `ui`, `header` and `body` stacks. The monospaced stacks (`mono`, `digital`) name `"Fixedsys"` first, a face the package does not ship: Windows' own (`vgafix.fon`) is a bitmap font, so the host's Fixedsys, Lucida Console or Courier New draws them.
+
+| Family | Weight | Style | File | Source | License |
+| --- | --- | --- | --- | --- | --- |
+| `Pixelated MS Sans Serif` | normal | normal | `fonts/PixelatedMSSansSerif-normal-normal.woff2` | FontStruct "MS Sans Serif" by lou (fontstruct.com/fontstructions/show/1384746), 98.css's woff2 (`ms_sans_serif.woff2`) | CC BY-SA 3.0: `fonts/font-readme.txt`, `fonts/font-license.txt` |
+| `Pixelated MS Sans Serif` | bold | normal | `fonts/PixelatedMSSansSerif-bold-normal.woff2` | FontStruct "MS Sans Serif Bold" by lou (fontstruct.com/fontstructions/show/1384862), 98.css's woff2 (`ms_sans_serif_bold.woff2`) | CC BY-SA 3.0: `fonts/font-bold-readme.txt`, `fonts/font-bold-license.txt` |
+
+The recreation draws MS Sans Serif 8 pt at 96 dpi, the size the themes set (11 px); the package's stylesheet draws it unsmoothed (`-webkit-font-smoothing: none`), as Windows drew its bitmap face.
 
 ## Apps
 

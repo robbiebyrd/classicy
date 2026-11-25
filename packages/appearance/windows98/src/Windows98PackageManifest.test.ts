@@ -56,8 +56,16 @@ describe("packages/appearance/windows98/package.json", () => {
 	it("has no dependencies of its own", () =>
 		expect(pkg.dependencies).toBeUndefined());
 
-	it("publishes dist, the SCSS, the README and the license", () =>
-		expect(pkg.files).toEqual(["dist", "src/styles", "README.md", "LICENSE"]));
+	// And the fonts' readme and license files, which CC BY-SA 3.0 and the
+	// readmes require to travel with the faces.
+	it("publishes dist, the SCSS, the fonts' notices, the README and the license", () =>
+		expect(pkg.files).toEqual([
+			"dist",
+			"src/styles",
+			"src/assets/fonts/*.txt",
+			"README.md",
+			"LICENSE",
+		]));
 
 	// Importing the entry registers Windows 98. Its source modules that
 	// register at load (the icons and system art, the sound pack) are side

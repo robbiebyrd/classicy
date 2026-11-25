@@ -193,6 +193,34 @@ describe("windows98.scss (compiled)", () => {
 		);
 	});
 
+	// The cursors and the font (L3-C): the size grip shows Windows' diagonal
+	// size cursor (`resizeNwse`, USER.EXE's IDC_SIZENWSE) at its hotspot, where
+	// the base reads the Mac grow box's `resizeLr` (Windows' horizontal one),
+	// and the desktop draws MS Sans Serif's recreation unsmoothed, as Windows
+	// drew its bitmap face, where the base smooths the desktop's text.
+	it("shows the diagonal size cursor over the grip and draws the interface font unsmoothed", () => {
+		// Every block whose selector is exactly `selector`.
+		const blocks = (selector: string) =>
+			[
+				...css.matchAll(
+					new RegExp(
+						`(?:^|\\n)\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+						"g",
+					),
+				),
+			].map((match) => match[1] ?? "");
+		expect(
+			blocks(
+				".classicyDesktop[data-classicy-appearance=windows98] .classicyWindow .classicyWindowResizer",
+			).join("\n"),
+		).toContain(
+			'cursor: var(--classicy-cursor-resize-nwse, url("data:,")) var(--classicy-cursor-resize-nwse-hotspot, 16 16), nwse-resize;',
+		);
+		expect(
+			blocks(".classicyDesktop[data-classicy-appearance=windows98]").join("\n"),
+		).toContain("-webkit-font-smoothing: none;");
+	});
+
 	// The scroll-arrow hook of the audit's second pass (6.8 / 7.24): the core
 	// sets `disabled` on the arrow at the end of its travel, and the package
 	// embosses that one arrow as it embosses a fitting bar's, each rule after

@@ -18,8 +18,9 @@ import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import windows98Json from "./windows98.json";
 
 // The Windows 98 package registers on import: package `windows98` with its
-// eighteen themes, its layout, its color families and its sound pack, alone,
-// with no other package registered (the test setup registers none).
+// eighteen themes, its layout, its color families, its sound pack and its
+// fonts, alone, with no other package registered (the test setup registers
+// none).
 
 const BLACK = 0x000000;
 const WHITE = 0xffffff;
@@ -313,10 +314,20 @@ describe("the Windows 98 appearance package", () => {
 		expect(getClassicyAppearancePackage("windows98")?.sounds).toEqual([pack]);
 	});
 
-	it("registers no fonts, no screen saver and no hooks", async () => {
+	// Its fonts are the family the themes name first: the stack resolves to
+	// the package's own face before any host font.
+	it("registers the face its themes name first, and no screen saver or hooks", async () => {
 		await import("./index");
 		const pkg = getClassicyAppearancePackage("windows98");
-		expect(document.getElementById("classicy-fonts-windows98")).toBeNull();
+		const faces =
+			document.getElementById("classicy-fonts-windows98")?.textContent ?? "";
+		expect(faces.match(/@font-face/g)).toHaveLength(2);
+		expect(faces).toContain('font-family:"Pixelated MS Sans Serif"');
+		for (const theme of [pkg?.defaults, ...(pkg?.presets ?? [])])
+			for (const key of ["ui", "header", "body"] as const)
+				expect(theme?.typography[key], `${theme?.id} ${key}`).toMatch(
+					/^"Pixelated MS Sans Serif",/,
+				);
 		expect(pkg?.defaultScreenSaver).toBeUndefined();
 		expect(pkg?.hooks).toBeUndefined();
 	});

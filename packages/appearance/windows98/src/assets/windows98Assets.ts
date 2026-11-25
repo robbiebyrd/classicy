@@ -1,11 +1,17 @@
 import {
 	type ClassicyAssetSource,
 	type ClassicyAssetTree,
+	type ClassicyCursorLeaf,
+	type ClassicyCursorRole,
+	type ClassicyFontFace,
 	type ClassicyIconLeaf,
 	type ClassicySystemArtKey,
 	registerClassicyAssets,
+	registerClassicyCursors,
+	registerClassicyFonts,
 	registerClassicySystemArt,
 } from "@classicy/classicy";
+import { WINDOWS98_FONT_FACES } from "./windows98Fonts.internal";
 import {
 	WINDOWS98_ICON_FILES,
 	WINDOWS98_ICON_REUSE,
@@ -13,11 +19,14 @@ import {
 	type Windows98IconFiles,
 } from "./windows98Icons";
 
-// Windows 98's icons and system art (docs/windows98-asset-inventory.md),
-// read from the Windows 98 Second Edition CD: its icon groups' 32 px and
-// 16 px images, Internet Explorer 5's toolbar bitmaps, Explorer's Start
-// flag, the About box's Windows logo and Web View's sky, each a lossless
-// WebP of the resource's own pixels (bin/classicyWebp.ts).
+// Windows 98's icons, system art, cursors and fonts
+// (docs/windows98-asset-inventory.md). The images are read from the Windows
+// 98 Second Edition CD: its icon groups' 32 px and 16 px images, Internet
+// Explorer 5's toolbar bitmaps, Explorer's Start flag, the About box's
+// Windows logo and Web View's sky, each a lossless WebP of the resource's own
+// pixels (bin/classicyWebp.ts), and USER.EXE's system cursors, PNG (the
+// format every browser takes for a CSS cursor). The fonts are 98.css's pixel
+// recreation of MS Sans Serif (windows98Fonts.internal.ts).
 //
 // The glyphs Windows drew in the scheme's colors (the caption buttons'
 // marks, scroll arrows, check marks, radio dots, menu and pop-up arrows,
@@ -37,6 +46,14 @@ const iconFiles = import.meta.glob("./icons/*.webp", {
 	import: "default",
 }) as Record<string, string>;
 const artFiles = import.meta.glob("./art/*.webp", {
+	eager: true,
+	import: "default",
+}) as Record<string, string>;
+const cursorFiles = import.meta.glob("./cursors/*.png", {
+	eager: true,
+	import: "default",
+}) as Record<string, string>;
+const fontFiles = import.meta.glob("./fonts/*.woff2", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
@@ -122,3 +139,70 @@ export const WINDOWS98_SYSTEM_ART: Readonly<
 };
 
 registerClassicySystemArt(WINDOWS98, WINDOWS98_SYSTEM_ART);
+
+/** The emitted URL of a file in cursors/ by its stem, or `""`. */
+const cursorFile = (stem: string): ClassicyAssetSource =>
+	cursorFiles[`./cursors/${stem}.png`] ?? "";
+
+/** A USER.EXE cursor (`user-cursor-<id>.png`) at the resource's own hotspot. */
+const userCursor = (
+	id: number,
+	hotspot: readonly [x: number, y: number],
+): ClassicyCursorLeaf => ({ src: cursorFile(`user-cursor-${id}`), hotspot });
+
+const horizontalResize = userCursor(107, [16, 16]);
+const verticalResize = userCursor(108, [15, 16]);
+
+/**
+ * Windows 98's cursors by role: USER.EXE's system cursors (its
+ * `RT_GROUP_CURSOR` resources, 32 x 32 and 1-bit), each at the hotspot the
+ * resource declares. Normal Select is the arrow; Busy, the static hourglass,
+ * the watch; Link Select, the pointing hand Windows 98 added (IDC_HAND, the
+ * PDF viewer's pan tool); Text Select the I-beam and Precision Select the
+ * cross, both drawn black (every pixel of theirs inverts the screen, which a
+ * CSS cursor cannot); the four two-way size cursors resize. Windows had no
+ * one-way size cursors (a window edge at its limit kept the two-way arrow),
+ * so `resizeU` and `resizeD` draw the vertical one and `resizeL` and
+ * `resizeR` the horizontal one. The package's stylesheet gives the size grip
+ * the diagonal cursor (`resizeNwse`), as Windows did, where the base reads the
+ * Mac grow box's `resizeLr`.
+ */
+export const WINDOWS98_CURSORS: Readonly<
+	Record<ClassicyCursorRole, ClassicyCursorLeaf>
+> = {
+	arrow: userCursor(100, [0, 0]),
+	watch: userCursor(102, [16, 16]),
+	hand: userCursor(114, [5, 0]),
+	ibeam: userCursor(101, [15, 16]),
+	crosshair: userCursor(103, [15, 16]),
+	resizeLr: horizontalResize,
+	resizeUd: verticalResize,
+	resizeNwse: userCursor(105, [16, 16]),
+	resizeNesw: userCursor(106, [16, 16]),
+	resizeU: verticalResize,
+	resizeD: verticalResize,
+	resizeL: horizontalResize,
+	resizeR: horizontalResize,
+};
+
+registerClassicyCursors(WINDOWS98, WINDOWS98_CURSORS);
+
+/**
+ * Windows 98's interface face, "Pixelated MS Sans Serif" regular and bold,
+ * woff2 only, from the list dist/classicy-windows98.fonts.css is built from.
+ * Importing this module (a side effect, listed in `package.json`
+ * `sideEffects`) registers them. Each names its `file`, which no other
+ * package ships, so the faces are Windows 98's alone.
+ */
+registerClassicyFonts(
+	WINDOWS98,
+	WINDOWS98_FONT_FACES.map(
+		({ family, file, weight, style }): ClassicyFontFace => ({
+			family,
+			src: fontFiles[`./fonts/${file}.woff2`] ?? "",
+			weight,
+			style,
+			file,
+		}),
+	),
+);

@@ -1,15 +1,24 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { classicyFontStylesheet } from "../../../../bin/classicyFontStylesheet";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector";
+import { WINDOWS98_FONT_FACES } from "../src/assets/windows98Fonts.internal";
 
 // The package's dist check, bin/verify-dist.mjs, run for real on a fixture
-// package folder: the shape Windows 98's takes (src/assets/art, icons and
-// sounds/windows98) with a few files each, and a dist/ built to pass. Each
-// case breaks one thing and expects the script to name it, as System 7's
-// verify-dist.test.ts does for its own invariants.
+// package folder: the shape Windows 98's takes (src/assets/fonts, art,
+// icons, cursors and sounds/windows98) with a few files each, and a dist/
+// built to pass. Each case breaks one thing and expects the script to name
+// it, as System 7's verify-dist.test.ts does for its own invariants.
 
 const SCRIPT = path.resolve(import.meta.dirname, "verify-dist.mjs");
 const root = mkdtempSync(path.join(tmpdir(), "windows98-verify-dist-"));
@@ -23,14 +32,25 @@ const PACKAGE_LITERAL = String.raw`"@layer classicy.package{.classicyDesktop[dat
 const bytes = (seed: number, n = 64) =>
 	Buffer.from(Array.from({ length: n }, (_, i) => (i * 31 + seed) % 256));
 
-// Source file → its bytes. Every one but the sound sheet's JSON, hash and
-// WAV sources ships in dist/assets under its own name.
+// Source file → its bytes. Every one but the fonts' notices and the sound
+// sheet's JSON, hash and WAV sources ships in dist/assets under its own name.
 const SOURCES: Record<string, Buffer> = {
+	...Object.fromEntries(
+		WINDOWS98_FONT_FACES.map((face, i) => [
+			`src/assets/fonts/${face.file}.woff2`,
+			bytes(20 + i),
+		]),
+	),
+	"src/assets/fonts/font-readme.txt": Buffer.from("readme"),
+	"src/assets/fonts/font-license.txt": Buffer.from("license"),
 	"src/assets/art/windows98.svg": Buffer.from("<svg/>"),
 	"src/assets/art/explorer-bitmap-143.webp": bytes(1),
 	"src/assets/icons/shell32-4-32.webp": bytes(2),
 	"src/assets/icons/shell32-4-16.webp": bytes(3),
 	"src/assets/icons/browseui-bitmap-266-cell-4.webp": bytes(4),
+	// The cursors stay PNG.
+	"src/assets/cursors/user-cursor-100.png": bytes(12),
+	"src/assets/cursors/user-cursor-105.png": bytes(13),
 	"src/assets/sounds/windows98/windows98.ogg": bytes(5),
 	"src/assets/sounds/windows98/windows98.m4a": bytes(6),
 	"src/assets/sounds/windows98/windows98.json": Buffer.from("{}"),
@@ -40,6 +60,7 @@ const SOURCES: Record<string, Buffer> = {
 const SHIPPED = Object.keys(SOURCES).filter(
 	(file) =>
 		!file.includes("/sprites/") &&
+		!file.endsWith(".txt") &&
 		!file.endsWith(".json") &&
 		!file.endsWith(".sha256"),
 );
@@ -48,6 +69,11 @@ const urls = SHIPPED.map(
 ).join(",");
 const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-windows98.es.js.map\n`;
 const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy")):f(g.classicyAppearanceWindows98={},g.classicy)})(this,function(e,c){const i=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/windows98.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
+const FONTS = classicyFontStylesheet(
+	WINDOWS98_FONT_FACES,
+	(face) => `assets/${face.file}.woff2`,
+	"classicy-windows98.fonts.css",
+);
 // A source map as the library build writes it: Classicy's own text kept.
 const MAP = JSON.stringify({
 	version: 3,
@@ -62,6 +88,7 @@ const DIST: Record<string, string | Buffer> = {
 	"appearance-windows98.umd.js": UMD,
 	"appearance-windows98.umd.js.map": MAP,
 	"classicy-windows98.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE}`,
+	"classicy-windows98.fonts.css": FONTS,
 	"types/index.d.ts": 'export * from "./windows98Apps.js";\n',
 	"types/windows98Apps.d.ts": "export declare const a: number;\n",
 	...Object.fromEntries(
@@ -111,8 +138,9 @@ describe("bin/verify-dist.mjs", () => {
 	it("passes a dist that holds what the package ships", () =>
 		expect(verify()).toEqual({ status: 0, stderr: "" }));
 
-	// Invariant 2: exactly the package's files (the art, the icons and the
-	// sound sheet), each byte for byte, each under its own name.
+	// Invariant 2: exactly the package's files (the fonts, the art, the icons,
+	// the cursors and the sound sheet), each byte for byte, each under its own
+	// name.
 	describe("2. dist/assets holds every package file, as authored", () => {
 		it("fails a missing icon, by name", () =>
 			expect(verify({ "assets/shell32-4-16.webp": null })).toEqual({
@@ -129,6 +157,8 @@ describe("bin/verify-dist.mjs", () => {
 			["browseui-bitmap-266-cell-4.webp", "icons"],
 			["explorer-bitmap-143.webp", "art"],
 			["windows98.svg", "art"],
+			["user-cursor-105.png", "cursors"],
+			["PixelatedMSSansSerif-bold-normal.woff2", "fonts"],
 		])("fails %s when it differs from its source", (file, folder) =>
 			expect(verify({ [`assets/${file}`]: Buffer.from("changed") })).toEqual({
 				status: 1,
@@ -159,6 +189,27 @@ describe("bin/verify-dist.mjs", () => {
 				`${path.join("src", "assets", "icons", "shell32-4-16.webp")}: shares its name with ${path.join("src", "assets", "art", "shell32-4-16.webp")} -> both would ship as dist/assets/shell32-4-16.webp; rename one.`,
 			));
 
+		it("fails a missing cursor and a missing font, by name", () =>
+			expect(
+				verify({
+					"assets/user-cursor-100.png": null,
+					"assets/PixelatedMSSansSerif-normal-normal.woff2": null,
+				}).stderr.split("\n")[0],
+			).toBe(
+				`dist/assets: missing PixelatedMSSansSerif-normal-normal.woff2, user-cursor-100.png; extra none ${ASSET_RULE}`,
+			));
+
+		// The fonts' readme and license files travel in the tarball beside
+		// their faces (package.json `files`); nothing loads them.
+		it("ships no font notice in dist/assets", () =>
+			expect(verify({ "assets/font-readme.txt": "readme" })).toEqual({
+				status: 1,
+				stderr: [
+					`dist/assets: missing none; extra font-readme.txt ${ASSET_RULE}`,
+					"dist/appearance-windows98.es.js: references no new URL() for font-readme.txt in dist/assets -> nothing loads it.",
+				].join("\n"),
+			}));
+
 		it("fails a stray file beside the bundles", () =>
 			expect(verify({ "stray.txt": "x" }).stderr).toMatch(
 				/^dist\/stray\.txt: not a file the package ships /,
@@ -181,6 +232,20 @@ describe("bin/verify-dist.mjs", () => {
 					"dist/appearance-windows98.es.js: inlines image/webp -> Windows 98 inlines nothing; check noInlineAppearanceAssetsPlugin.",
 			}));
 
+		it("fails a cursor the ES bundle never loads", () =>
+			expect(
+				verify({
+					"appearance-windows98.es.js": ES.replace(
+						'new URL("assets/user-cursor-105.png",import.meta.url).href,',
+						"",
+					),
+				}),
+			).toEqual({
+				status: 1,
+				stderr:
+					"dist/appearance-windows98.es.js: references no new URL() for user-cursor-105.png in dist/assets -> nothing loads it.",
+			}));
+
 		it("fails an icon the ES bundle never loads", () =>
 			expect(
 				verify({
@@ -195,4 +260,53 @@ describe("bin/verify-dist.mjs", () => {
 					"dist/appearance-windows98.es.js: references no new URL() for shell32-4-32.webp in dist/assets -> nothing loads it.",
 			}));
 	});
+
+	// Invariant 6: the fonts' static twin, for strict-CSP hosts.
+	describe("6. the font stylesheet", () => {
+		it.each(["normal", "bold"])("fails a missing %s face", (weight) =>
+			expect(
+				verify({
+					"classicy-windows98.fonts.css": FONTS.split("\n")
+						.filter((rule) => !rule.includes(`font-weight:${weight}`))
+						.join("\n"),
+				}),
+			).toEqual({
+				status: 1,
+				stderr: `dist/classicy-windows98.fonts.css: no @font-face for "Pixelated MS Sans Serif" ${weight} normal, which the runtime registers.`,
+			}));
+
+		it("expects the two faces the runtime registers", () =>
+			expect(
+				WINDOWS98_FONT_FACES.map(({ family, weight, style }) =>
+					[family, weight, style].join(" "),
+				),
+			).toEqual([
+				"Pixelated MS Sans Serif normal normal",
+				"Pixelated MS Sans Serif bold normal",
+			]));
+
+		it("fails a missing file", () =>
+			expect(verify({ "classicy-windows98.fonts.css": null }).stderr).toMatch(
+				/^dist\/classicy-windows98\.fonts\.css: missing/,
+			));
+	});
+});
+
+// The fixture mirrors the package's layout, and the script reads every asset
+// folder the package has: a new one must be added to invariant 2 before its
+// files can ship.
+it("reads every asset folder the package has", () => {
+	const assets = path.resolve(import.meta.dirname, "../src/assets");
+	const READ = ["fonts", "art", "icons", "cursors", "sounds"];
+	const folders = readdirSync(assets, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => entry.name);
+	expect(folders.filter((folder) => !READ.includes(folder))).toEqual([]);
+	for (const dir of ["fonts", "sounds/windows98", "icons", "art", "cursors"])
+		expect(existsSync(path.join(assets, dir)), dir).toBe(true);
+	expect(
+		readdirSync(path.join(assets, "sounds"), { withFileTypes: true })
+			.filter((entry) => entry.isDirectory())
+			.map((entry) => entry.name),
+	).toEqual(["windows98"]);
 });

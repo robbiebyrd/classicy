@@ -102,10 +102,17 @@ and `nodenext` resolution).
   default) and Exclamation, named after the roles Windows gave its sounds
   but synthesized for the package (Windows' own sounds are Microsoft's), plus
   the beep. The package plays no interface feedback.
-- **No fonts.** MS Sans Serif is Microsoft's, so the themes name a stack a
-  host may satisfy: `"Pixelated MS Sans Serif"` first (the face 98.css
-  ships, if the host loads it), then Microsoft Sans Serif, Tahoma and Arial,
-  at 11 px; Fixedsys, Lucida Console or Courier New for monospaced text.
+- **Its font**, `"Pixelated MS Sans Serif"`, regular and bold: the family
+  every theme names first for its interface text, at 11 px. Windows 98 drew
+  its interface in MS Sans Serif, a bitmap font (`sserife.fon`) no browser
+  loads; this is 98.css's pixel-for-pixel recreation of it at 8 pt, lou's
+  FontStruct "MS Sans Serif" and "MS Sans Serif Bold", licensed
+  [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) (not the
+  Unlicense: its readme and license files ship beside the faces, in
+  `src/assets/fonts/`). The stylesheet draws it unsmoothed, as Windows drew
+  its bitmap face. Microsoft Sans Serif, Tahoma and Arial follow it in the
+  stack; monospaced text names Fixedsys, Lucida Console or Courier New, which
+  the host supplies.
 - **Windows 98's icons and system art**, Windows 98 Second Edition's own,
   read from its CD (every file's source is under "Asset sources" below, and
   `docs/windows98-asset-inventory.md` in the repository maps every key):
@@ -129,27 +136,36 @@ and `nodenext` resolution).
   their desktop ToolTips; the Trash shows as the Recycle Bin and the
   startup disk as My Computer. Display only: their ids, records and saved
   state keep their own names.
-- **No cursors, wallpapers or screen savers of its own.** Cursors resolve
-  to the default package's (Platinum's, when it is loaded), and the Screen
-  Saver control panel reads "This appearance has no screen savers."
+- **Windows 98's cursors**, `USER.EXE`'s own, at their own hotspots: the
+  arrow, the hourglass (Busy), the pointing hand (Link Select, the PDF
+  viewer's pan tool), the I-beam and the cross (drawn black: every pixel of
+  theirs inverted the screen, which a CSS cursor cannot), and the four
+  two-way size arrows, which also stand in for the one-way ones Windows
+  never had. The size grip shows the diagonal one, as Windows' did.
+- **No wallpapers or screen savers of its own.** The Screen Saver control
+  panel reads "This appearance has no screen savers."
 
 ## Exports
 
 - `.`: the package entry (ES and UMD bundles, with types). Importing it
-  registers Windows 98, its icons and system art, and its sound pack. It
-  also exports `WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json` (the
-  themes, layout, knobs and color families, deep-frozen and typed with the
-  core's types, as `Windows98Json`), `windows98SoundPack`,
-  `WINDOWS98_SYSTEM_ART` (the system art it registers), `WINDOWS98_APPS`
-  and `WINDOWS98_DESKTOP_ICONS` (its `apps` and `desktopIcons`).
+  registers Windows 98, its icons, system art, cursors and fonts, and its
+  sound pack. It also exports `WINDOWS98_APPEARANCE_PACKAGE_ID`,
+  `windows98Json` (the themes, layout, knobs and color families,
+  deep-frozen and typed with the core's types, as `Windows98Json`),
+  `windows98SoundPack`, `WINDOWS98_SYSTEM_ART` (the system art it
+  registers), `WINDOWS98_CURSORS` (its cursors by role, each with its
+  hotspot), `WINDOWS98_APPS` and `WINDOWS98_DESKTOP_ICONS` (its `apps` and
+  `desktopIcons`).
 - `./scss/*`: the package's SCSS: `bevels`, `pixel` and the `components/*`
   partials, and `windows98`, the whole sheet, which a host may compile
   through `pkg:@classicy/classicy/scss/*` (the package loads nothing of
   another package's).
-- `./classicy-windows98.css`: the look as a stylesheet, for hosts whose
-  Content-Security-Policy blocks inline `<style>` (below).
+- `./classicy-windows98.css` and `./classicy-windows98.fonts.css`: the look
+  and the fonts as stylesheets, for hosts whose Content-Security-Policy
+  blocks inline `<style>` (below).
 
-The art, the icons and the sound sheet are files in `dist/assets/`, loaded as
+The fonts, the art, the icons, the cursors and the sound sheet are files in
+`dist/assets/`, loaded as
 `new URL("assets/…", import.meta.url)`. A Vite host keeps the packages out
 of the dev server's dependency pre-bundle, which would break those URLs:
 
@@ -167,13 +183,15 @@ there too when the host loads them.
 
 ## Strict CSP
 
-The package injects its look as `<style id="classicy-appearance-windows98">`.
-Under a policy that blocks inline `<style>`, link the stylesheets first in
-`<head>`, in this order: the core's, then this package's.
+The package injects its look as `<style id="classicy-appearance-windows98">`
+and its fonts as `<style id="classicy-fonts-windows98">`. Under a policy that
+blocks inline `<style>`, link the stylesheets first in `<head>`, in this
+order: the core's, then this package's look, then its fonts.
 
 ```html
 <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
 <link rel="stylesheet" href="/node_modules/@classicy/appearance-windows98/dist/classicy-windows98.css">
+<link rel="stylesheet" href="/node_modules/@classicy/appearance-windows98/dist/classicy-windows98.fonts.css">
 ```
 
 Serve this package's `dist/assets/` beside them. Allow `data:` in `img-src`
@@ -188,7 +206,8 @@ drawn on a canvas and shown from a `data:` URL.
   (Restore while the window is zoomed), and the desktop keeps its icons. There is no taskbar and no Start menu.
 - **Windows' bitmaps where Windows drew bitmaps, tokens where it drew in
   the scheme's colors.** The icons, the Start flag, the Recycle Bin, the
-  shortcut overlay and the Windows logo are Windows 98's own images. The
+  shortcut overlay, the Windows logo and the cursors are Windows 98's own
+  images. The
   title-bar buttons' marks, the scroll
   arrows, the checkmark, the radio ring, the pop-up and menu arrows and the
   slider's thumb, which Windows drew with Marlett in the scheme's colors,
@@ -211,8 +230,9 @@ The look was checked against these; keep them at hand for later work on the
 package.
 
 - [98.css](https://jdan.github.io/98.css/) (jdan): the CSS recipes for the
-  bevels, the title-bar buttons' marks and the controls, and the
-  `"Pixelated MS Sans Serif"` face the themes name first.
+  bevels, the title-bar buttons' marks and the controls, and the woff2
+  files of the `"Pixelated MS Sans Serif"` face the package ships (lou's
+  FontStruct recreation of MS Sans Serif, under "Asset sources").
 - [os-gui](https://os-gui.js.org) (1j01): Windows 98's menus, windows and
   the classic color schemes' `.theme` files (`[Control Panel\Colors]`),
   which the sixteen schemes here are read from.
@@ -234,12 +254,12 @@ package.
 
 ## Asset sources
 
-Every image the package ships is Windows 98 Second Edition's own, read from
-the English Windows 98 SE CD (archive.org item
+Every image and cursor the package ships is Windows 98 Second Edition's own,
+read from the English Windows 98 SE CD (archive.org item
 `windows-98-second-edition_202103`): its install cabinets (`WIN98_21.CAB` to
 `WIN98_74.CAB`, `BASE4` to `BASE6`, `PRECOPY1` and `PRECOPY2`), unpacked
-with `cabextract`, and each binary's `RT_GROUP_ICON` and `RT_BITMAP`
-resources written out unchanged. An icon file is the group's 32 px or 16 px
+with `cabextract`, and each binary's `RT_GROUP_ICON`, `RT_GROUP_CURSOR` and
+`RT_BITMAP` resources written out unchanged. An icon file is the group's 32 px or 16 px
 image at the group's highest color depth (256 colors where the group has
 one), its AND mask made alpha; every file is a lossless WebP of those pixels
 (`bin/classicyWebp.ts`), with no color profile. The clones of
@@ -345,6 +365,36 @@ carries a re-encoded copy, the CD's bytes were taken.
 | `shell32-bitmap-130.webp` | `shell32.dll` bitmap 130 | the About Windows box's "Microsoft Windows" logo (the startup and About logo); its `#C0C0C0` ground made clear |
 | `windows98.svg` | drawn for the package | the package's own icon in the Appearance Manager: a window on the teal desktop |
 
+`src/assets/cursors/`: `user.exe`'s `RT_GROUP_CURSOR` resources, each 32 x
+32 and 1-bit, as an RGBA PNG with no ancillary chunk (black, white, clear;
+a pixel that inverted the screen drawn black), registered at the hotspot the
+resource declares:
+
+| File | Windows 98 SE resource | Windows' name | Roles | Hotspot |
+| --- | --- | --- | --- | --- |
+| `user-cursor-100.png` | `user.exe` cursor 100 | Normal Select | `arrow` | 0, 0 |
+| `user-cursor-101.png` | `user.exe` cursor 101 | Text Select | `ibeam` | 15, 16 |
+| `user-cursor-102.png` | `user.exe` cursor 102 | Busy | `watch` | 16, 16 |
+| `user-cursor-103.png` | `user.exe` cursor 103 | Precision Select | `crosshair` | 15, 16 |
+| `user-cursor-105.png` | `user.exe` cursor 105 | Diagonal Resize 1 | `resizeNwse` | 16, 16 |
+| `user-cursor-106.png` | `user.exe` cursor 106 | Diagonal Resize 2 | `resizeNesw` | 16, 16 |
+| `user-cursor-107.png` | `user.exe` cursor 107 | Horizontal Resize | `resizeLr`, `resizeL`, `resizeR` | 16, 16 |
+| `user-cursor-108.png` | `user.exe` cursor 108 | Vertical Resize | `resizeUd`, `resizeU`, `resizeD` | 15, 16 |
+| `user-cursor-114.png` | `user.exe` cursor 114 | Link Select | `hand` | 5, 0 |
+
+`src/assets/fonts/`: not Microsoft's. Windows 98's MS Sans Serif
+(`sserife.fon`) is a bitmap font no browser loads; these are
+[98.css](https://github.com/jdan/98.css)'s woff2 conversions (`fonts/converted`)
+of its recreation by FontStruct user "lou", as copied, unchanged, by
+wieslawsoltes/win98's `assets/`, renamed only. They are licensed
+[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), and their
+readme and license files, which must accompany them, ship beside them:
+
+| File | Face | Original | Notices |
+| --- | --- | --- | --- |
+| `PixelatedMSSansSerif-normal-normal.woff2` | `"Pixelated MS Sans Serif"`, normal | ["MS Sans Serif"](https://fontstruct.com/fontstructions/show/1384746) by lou (98.css `ms_sans_serif.woff2`) | `font-readme.txt`, `font-license.txt` |
+| `PixelatedMSSansSerif-bold-normal.woff2` | `"Pixelated MS Sans Serif"`, bold | ["MS Sans Serif Bold"](https://fontstruct.com/fontstructions/show/1384862) by lou (98.css `ms_sans_serif_bold.woff2`) | `font-bold-readme.txt`, `font-bold-license.txt` |
+
 ## Developing
 
 This package lives in the Classicy repository, at
@@ -366,7 +416,10 @@ pnpm --filter @classicy/appearance-windows98 build
 
 The package's code and stylesheets are provided free and in the public
 domain under [The Unlicense](https://unlicense.org/). See [LICENSE](LICENSE).
-Microsoft maintains the copyright on the Windows 95 and 98 icons, bitmaps
-and interface the package reproduces (under "Asset sources" above), which
-Classicy uses under the fair use doctrine, as it uses Apple's Mac OS art
-under Platinum and System 7; they are not covered by the Unlicense.
+Microsoft maintains the copyright on the Windows 95 and 98 icons, bitmaps,
+cursors and interface the package reproduces (under "Asset sources" above),
+which Classicy uses under the fair use doctrine, as it uses Apple's Mac OS art
+under Platinum and System 7; they are not covered by the Unlicense. The two
+font faces in `src/assets/fonts/` are lou's FontStruct recreations of MS Sans
+Serif, licensed [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
+(their readme and license files ship with them), not the Unlicense.

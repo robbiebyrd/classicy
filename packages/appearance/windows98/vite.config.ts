@@ -6,6 +6,7 @@ import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclar
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
 import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText";
+import { WINDOWS98_FONT_FACES } from "./src/assets/windows98Fonts.internal";
 
 // @classicy/appearance-windows98's library build: ES and UMD bundles of the
 // Windows 98 Appearance Package, built as System 7's is
@@ -14,10 +15,6 @@ import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText"
 // core's registries (package, asset, sound pack, log) is the one Windows 98
 // registers into (design 0014-ahm, anti-goal "Two copies of the registries").
 // `pnpm build` runs bin/verify-dist.mjs on the result.
-//
-// The package ships no fonts: Windows' MS Sans Serif is Microsoft's, so its
-// themes name a stack a host may satisfy ("Pixelated MS Sans Serif" first,
-// then the system faces), and there is no classicy-windows98.fonts.css.
 
 const externalPackages = [
 	"@classicy/classicy",
@@ -62,13 +59,16 @@ const windows98Config = (mode: string): UserConfig => ({
 			scss: { importers: [new NodePackageImporter()] },
 		},
 	},
-	// Every asset in the package ships as a file in dist/assets (its art, its
-	// icons and its sound sheet), nothing inlined.
+	// Every asset in the package ships as a file in dist/assets (its fonts,
+	// art, icons, cursors and sound sheet), nothing inlined.
 	plugins: [
 		noInlineAppearanceAssetsPlugin(),
-		// dist/classicy-windows98.css, the stylesheet strict-CSP hosts link
-		// after the core's classicy.css. No fonts: no fonts stylesheet.
-		classicyPackageStylesheetsPlugin({ packageId: "windows98" }),
+		// dist/classicy-windows98.css and dist/classicy-windows98.fonts.css,
+		// the stylesheets strict-CSP hosts link after the core's classicy.css.
+		classicyPackageStylesheetsPlugin({
+			packageId: "windows98",
+			fonts: { faces: WINDOWS98_FONT_FACES, dir: "src/assets/fonts" },
+		}),
 		...(mode === "bundle-test"
 			? []
 			: [
@@ -111,8 +111,9 @@ const windows98Config = (mode: string): UserConfig => ({
 			external: isExternal,
 			output: {
 				// Package assets go under dist/assets, each under its source
-				// name (no two share one: every name in art/ and icons/ is
-				// unique, and verify-dist fails two sources that would collide).
+				// name (no two share one: every name in fonts/, art/, icons/ and
+				// cursors/ is unique, and verify-dist fails two sources that
+				// would collide).
 				assetFileNames: "assets/[name][extname]",
 				globals: {
 					"@classicy/classicy": "classicy",

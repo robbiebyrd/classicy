@@ -14,6 +14,7 @@ import {
 	listClassicyScreenSavers,
 } from "@classicy/classicy";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { WINDOWS98_FONT_FACES } from "./assets/windows98Fonts.internal";
 
 // "One registry, not two" (design 0014-ahm anti-goal "Two copies of the
 // registries"), as System7OneRegistry.test.ts checks it for System 7: the
@@ -91,8 +92,12 @@ describe("the built bundle and the core's registries", () => {
 			bundle.windows98SoundPack,
 		);
 		expect(bundle.WINDOWS98_APPEARANCE_PACKAGE_ID).toBe("windows98");
-		// No fonts: the core's font registry wrote nothing for it.
-		expect(document.getElementById("classicy-fonts-windows98")).toBeNull();
+		// The fonts too: the core's font registry wrote Windows 98's faces.
+		expect(
+			document
+				.getElementById("classicy-fonts-windows98")
+				?.textContent?.match(/@font-face/g),
+		).toHaveLength(WINDOWS98_FONT_FACES.length);
 		// And no screen savers: the package names none and bundles none.
 		expect(listClassicyScreenSavers()).toEqual([]);
 		expect(
@@ -131,7 +136,7 @@ describe("the built bundle and the core's registries", () => {
 		expect(es).toContain('new URL("assets/windows98.svg"');
 	});
 
-	it("emits its art, icons and sound sheet into dist/assets, byte for byte", () => {
+	it("emits its fonts, art, icons, cursors and sound sheet into dist/assets, byte for byte", () => {
 		const assets = readdirSync(path.join(outDir, "assets")).sort();
 		const sources = (
 			readdirSync(path.join(packageDir, "src/assets"), {
@@ -141,7 +146,8 @@ describe("the built bundle and the core's registries", () => {
 			.map((file) => path.join("src/assets", file))
 			.filter(
 				(file) =>
-					/\.(webp|svg)$/.test(file) ||
+					/\.(webp|svg|woff2)$/.test(file) ||
+					/^src\/assets\/cursors\/[^/]+\.png$/.test(file) ||
 					/^src\/assets\/sounds\/windows98\/windows98\.(ogg|m4a)$/.test(file),
 			);
 		expect(assets).toEqual(sources.map((file) => path.basename(file)).sort());
@@ -152,12 +158,31 @@ describe("the built bundle and the core's registries", () => {
 				),
 				source,
 			).toBe(true);
+		for (const { file } of WINDOWS98_FONT_FACES)
+			expect(assets, file).toContain(`${file}.woff2`);
+		// The art and icons ship as WebP: the only PNGs are the cursors.
+		expect(assets.filter((name) => name.endsWith(".png"))).toEqual(
+			readdirSync(path.join(packageDir, "src/assets/cursors")).sort(),
+		);
+		// The fonts' readme and license files are not assets.
+		expect(assets.filter((name) => name.endsWith(".txt"))).toEqual([]);
 	});
 
-	it("emits the strict-CSP stylesheet, and no fonts stylesheet", () => {
+	it("emits the two strict-CSP stylesheets", () => {
 		const files = readdirSync(outDir);
-		expect(files).toContain("classicy-windows98.css");
-		expect(files).not.toContain("classicy-windows98.fonts.css");
+		expect(files).toEqual(
+			expect.arrayContaining([
+				"classicy-windows98.css",
+				"classicy-windows98.fonts.css",
+			]),
+		);
+		// The fonts stylesheet names each face's emitted file.
+		const fonts = readFileSync(
+			path.join(outDir, "classicy-windows98.fonts.css"),
+			"utf8",
+		);
+		for (const { file } of WINDOWS98_FONT_FACES)
+			expect(fonts).toContain(`url("assets/${file}.woff2")`);
 		expect(
 			readFileSync(path.join(outDir, "classicy-windows98.css"), "utf8"),
 		).toMatch(

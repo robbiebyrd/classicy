@@ -33,7 +33,11 @@
 //   sunken two pixels (WS_EX_CLIENTEDGE: `b.sunken`) around its viewport and
 //   scroll bars, white; the size grip in the scroll bars' corner, three
 //   diagonal ridges of ButtonHilight over two of ButtonShadow,
-//   `--grow-box-inset` (2) from the corner.
+//   `--grow-box-inset` (2) from the corner, under the diagonal size cursor
+//   (USER.EXE's IDC_SIZENWSE, the package's `resizeNwse`), where the base
+//   reads the Mac grow box's `resizeLr`, which is Windows' horizontal one;
+//   it stays while the grip is dragged (the base's grabbing hand is
+//   Classicy's own), as Windows kept the size cursor through a resize.
 // - A header strip (the Finder's) as a flat ButtonFace band with an etched
 //   line under it; a window's own menu bar flat ButtonFace, no bevel, as
 //   Windows 98 draws a menu bar (the package's layout places menus on the
@@ -476,6 +480,12 @@ $grip-shadow: runs($grip, "s");
       height: var(--window-scrollbar-size);
       overflow: hidden;
       background: b.$face;
+      // The diagonal size cursor, at its own hotspot (the center of a 32 x 32
+      // Windows cursor without one); outside a desktop, or with no cursor
+      // registered, the image never loads and the keyword cursor shows.
+      cursor:
+        var(--classicy-cursor-resize-nwse, url('data:,')) var(--classicy-cursor-resize-nwse-hotspot, 16 16),
+        nwse-resize;
 
       &::before {
         content: none;

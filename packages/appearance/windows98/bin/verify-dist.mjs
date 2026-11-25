@@ -12,24 +12,29 @@
 //    anti-goal "Two copies of the registries"). No external specifier
 //    carries a Vite query (the core's invariant 1).
 //
-// 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the art
+// 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
+//    (src/assets/fonts: the two woff2 faces, not their readme and license
+//    files, which ship in the tarball beside them), the art
 //    (src/assets/art: the package's SVG icon and the WebP bitmaps, the
 //    Start flag and the Windows logo), the icons (src/assets/icons: WebP,
 //    the Windows 98 SE icon groups' 32 px and 16 px images, IE 5's toolbar
-//    cells and Web View's sky) and the sound sheet
+//    cells and Web View's sky), the cursors (src/assets/cursors: PNG,
+//    USER.EXE's) and the sound sheet
 //    (src/assets/sounds/windows98/windows98.{ogg,m4a}, not its JSON, its
 //    hash or its sprites/ WAV sources), each byte-identical to its source,
 //    so an image optimizer added to vite.config.ts fails here. Each ships
-//    under its own name (every name in art/ and icons/ is unique). A PNG
-//    left in a WebP folder is no source: nothing ships it. The package has
-//    no fonts, cursors or wallpapers of its own (its reads fall back to the
+//    under its own name (every name in fonts/, art/, icons/ and cursors/ is
+//    unique). A PNG left in a WebP folder is no source: nothing ships it.
+//    The package has no wallpapers of its own (its reads fall back to the
 //    default package's), and no screen savers. dist/ itself holds only the
-//    two bundles and their maps, the strict-CSP stylesheet, assets/ and
+//    two bundles and their maps, the two strict-CSP stylesheets, assets/ and
 //    types/.
 //
 // 3. NOTHING IS INLINED. No `data:` URI in either bundle: the package has no
-//    masks (its icons and art are images, and every glyph Windows drew in
-//    the scheme's colors is drawn from theme tokens in its stylesheet). The
+//    masks (its icons, art and cursors are images, and every glyph Windows
+//    drew in the scheme's colors is drawn from theme tokens in its
+//    stylesheet; the empty `data:,` a cursor declaration falls back to
+//    carries no file). The
 //    ES bundle's `new URL("assets/…", import.meta.url)` references each name
 //    a file in dist/assets, and every file there is referenced.
 //
@@ -45,8 +50,10 @@
 //    (the core's invariant 9): a linked file served without an HTTP charset
 //    takes a non-UTF-8 page's encoding.
 //
-// 6. NO FONT STYLESHEET. The package registers no fonts, so its build emits
-//    no classicy-windows98.fonts.css; one in dist/ would be a stray file.
+// 6. THE FONTS SHIP AS A STYLESHEET TOO. dist/classicy-windows98.fonts.css
+//    holds only unlayered `@font-face` rules, exactly one per face the
+//    runtime registers (WINDOWS98_FONT_FACES), each the rule the runtime
+//    writes, and every url() names the face's own file in dist/assets.
 //
 // 7. DIST/TYPES DECLARES THE PACKAGE. dist/types/index.d.ts (the `types`
 //    export) exists, and no declaration is for a test, a test helper, a story,
@@ -97,10 +104,14 @@ import {
 	findClassicyJsonDeclarations,
 	findClassicyTestDeclarations,
 } from "../../../../bin/classicyDistTypes.ts";
-import { classicyFontStylesheetFile } from "../../../../bin/classicyFontStylesheet.ts";
+import {
+	classicyFontStylesheetFile,
+	findClassicyFontStylesheetProblems,
+} from "../../../../bin/classicyFontStylesheet.ts";
 import { findClassicyPackageCssProblems } from "../../../../bin/classicyPackageCss.ts";
 import { findClassicySourceMapTextProblems } from "../../../../bin/classicySourceMapText.ts";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector.ts";
+import { WINDOWS98_FONT_FACES } from "../src/assets/windows98Fonts.internal.ts";
 
 const DIST = "dist";
 const ES = join(DIST, "appearance-windows98.es.js");
@@ -179,13 +190,18 @@ const listFiles = async (dir, accept = () => true) =>
 	(await readdir(dir, { withFileTypes: true }).catch(() => []))
 		.filter((entry) => entry.isFile() && accept(entry.name))
 		.map((entry) => join(dir, entry.name));
-// The art is SVG and WebP, flat in src/assets/art; the icons WebP, flat in
-// src/assets/icons.
+// The fonts are woff2, flat in src/assets/fonts; the art SVG and WebP, flat
+// in src/assets/art; the icons WebP, flat in src/assets/icons; the cursors
+// PNG, flat in src/assets/cursors.
+const FONT = /\.woff2$/;
 const ART = /\.(?:svg|webp)$/;
 const ICON = /\.webp$/;
+const CURSOR = /\.png$/;
 const sources = [
+	...(await listFiles(join("src", "assets", "fonts"), (n) => FONT.test(n))),
 	...(await listFiles(join("src", "assets", "art"), (n) => ART.test(n))),
 	...(await listFiles(join("src", "assets", "icons"), (n) => ICON.test(n))),
+	...(await listFiles(join("src", "assets", "cursors"), (n) => CURSOR.test(n))),
 	// The sheet's two formats, not its JSON, its hash or its sprites/ WAV
 	// sources.
 	...(await listFiles(join("src", "assets", "sounds", "windows98"), (n) =>
@@ -248,13 +264,14 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		"appearance-windows98.umd.js",
 		"appearance-windows98.umd.js.map",
 		basename(STYLESHEET),
+		basename(FONT_STYLESHEET),
 		"assets",
 		"types",
 	]);
 	for (const name of (await readdir(DIST).catch(() => [])).sort())
 		if (!top.has(name))
 			problems.push(
-				`${join(DIST, name)}: not a file the package ships -> the package's dist holds its two bundles and their maps, ${basename(STYLESHEET)}, assets/ and types/.`,
+				`${join(DIST, name)}: not a file the package ships -> the package's dist holds its two bundles and their maps, ${basename(STYLESHEET)}, ${basename(FONT_STYLESHEET)}, assets/ and types/.`,
 			);
 	report(
 		problems,
@@ -325,16 +342,18 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 	);
 }
 
-// Invariant 6: no font stylesheet.
+// Invariant 6: the font stylesheet.
 {
 	const css = await read(FONT_STYLESHEET);
+	const assets = new Set(shipped);
 	report(
-		css === null
-			? []
-			: [
-					`${FONT_STYLESHEET}: present -> the package registers no fonts; check classicyPackageStylesheetsPlugin in vite.config.ts.`,
-				],
-		`${FONT_STYLESHEET}: absent, as the package registers no fonts`,
+		findClassicyFontStylesheetProblems(
+			FONT_STYLESHEET,
+			css,
+			WINDOWS98_FONT_FACES,
+			(url) => url.startsWith("assets/") && assets.has(url.slice(7)),
+		),
+		`${FONT_STYLESHEET}: the ${WINDOWS98_FONT_FACES.length} @font-face rules the runtime writes, unlayered, each url() its own file in assets/`,
 	);
 }
 

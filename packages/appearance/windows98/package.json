@@ -30,11 +30,13 @@
 			"require": "./dist/appearance-windows98.umd.js"
 		},
 		"./scss/*": "./src/styles/*",
-		"./classicy-windows98.css": "./dist/classicy-windows98.css"
+		"./classicy-windows98.css": "./dist/classicy-windows98.css",
+		"./classicy-windows98.fonts.css": "./dist/classicy-windows98.fonts.css"
 	},
 	"files": [
 		"dist",
 		"src/styles",
+		"src/assets/fonts/*.txt",
 		"README.md",
 		"LICENSE"
 	],
