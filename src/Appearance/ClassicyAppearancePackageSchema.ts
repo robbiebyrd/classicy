@@ -69,6 +69,7 @@ export const ClassicyAppearanceLayoutSchema = z
 			frameEdges: z.enum(["move", "resize"]).optional(),
 			systemMenu: z.boolean().optional(),
 			captionTooltips: z.boolean().optional(),
+			utilityTitle: z.boolean().optional(),
 		}),
 		menuBar: z.object({
 			placement: z.enum(["screen", "window"]),

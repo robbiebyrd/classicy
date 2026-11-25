@@ -2142,6 +2142,27 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 				expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toBeNull();
 			});
 
+			// SM_CXFRAME is the scheme's: a package that sets the frame on its
+			// windows (Windows 98's large High Contrast schemes, 9 px) moves the
+			// cascade's step with it, read from a window rather than the
+			// desktop.
+			it("steps the cascade by the frame a window carries", async () => {
+				renderShell(arranged);
+				for (const el of document.querySelectorAll<HTMLElement>(
+					".classicyWindow",
+				))
+					el.style.setProperty("--window-frame-inset", "9px");
+				const wide = Math.round(
+					9 + readClassicyThemeVar("--window-title-bar-height"),
+				);
+				expect(wide).not.toBe(step());
+				openTaskbarMenu();
+				await choose(CLASSICY_TASKBAR_MENU_IDS.cascade, () =>
+					expect(rectOf("main").position).toEqual([0, 0]),
+				);
+				expect(rectOf("second").position).toEqual([wide, wide]);
+			});
+
 			it("tiles the windows side by side, vertically, and stacked, horizontally", async () => {
 				renderShell(arranged);
 				openTaskbarMenu();

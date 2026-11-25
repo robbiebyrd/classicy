@@ -1104,6 +1104,20 @@ describe("the Windows 98 appearance package", () => {
 			// SM_CXSIZE - 2 by SM_CYSIZE - 4, Windows' caption buttons.
 			expect(m.titleBar.buttonWidth, id).toBe(metrics.caption - 2);
 			expect(m.titleBar.buttonHeight, id).toBe(metrics.caption - 4);
+			// Their marks at twice their size in a button 24 or more tall, as
+			// Marlett draws them at the button's height.
+			expect(m.titleBar.markUnit, id).toBe(metrics.caption - 4 >= 24 ? 2 : 1);
+			// One row of ButtonFace under the caption: SM_CYCAPTION is
+			// iCaptionHeight + 1.
+			expect(m.titleBar.gap, id).toBe(1);
+			// SM_CXFRAME, SM_CXDLGFRAME (3) plus iBorderWidth.
+			expect(m.sizingBorder.frame, id).toBe(3 + metrics.border);
+			// A tool window's Close is 11 x 11 whatever the small caption
+			// (Wine's `draw_close_button`).
+			expect(
+				[m.utilityTitleBar.buttonWidth, m.utilityTitleBar.buttonHeight],
+				id,
+			).toEqual([11, 11]);
 			const caption = theme.typography.families.caption;
 			expect(caption.weight, id).toBe(weight >= 600 ? 700 : 400);
 			if (face === "MS Sans Serif") {
@@ -1169,6 +1183,7 @@ describe("the Windows 98 appearance package", () => {
 			theme("windows98HighContrastBlackLarge").measurements.sizingBorder,
 		).toEqual({
 			width: 6,
+			frame: 9,
 		});
 	});
 
@@ -1269,8 +1284,25 @@ describe("the Windows 98 appearance package", () => {
 			"--scroll-bar-solid-track": "1px",
 			"--toolbar-rest-bevel": "0px",
 			"--sizing-border-width": "1px",
+			"--sizing-border-frame": "4px",
+			"--title-bar-mark-unit": "1px",
+			"--title-bar-gap": "1px",
+			"--utility-title-bar-button-width": "11px",
+			"--utility-title-bar-button-height": "11px",
 			"--menu-bar-title-height": "18px",
 			"--window-scrollbar-size": "13px",
+		});
+		// The large High Contrast schemes' frame and marks: SM_CXFRAME 9,
+		// twice-size marks in their 29 x 27 buttons.
+		expect(
+			getThemeVars(
+				getTheme("windows98HighContrastBlackLarge") as ClassicyTheme,
+			),
+		).toMatchObject({
+			"--sizing-border-width": "6px",
+			"--sizing-border-frame": "9px",
+			"--title-bar-mark-unit": "2px",
+			"--title-bar-button-height": "27px",
 		});
 		// The icon font's size is the theme's desktop.iconFontSize.
 		expect(vars).not.toHaveProperty("--package-font-icon-size");
@@ -1353,8 +1385,37 @@ describe("the Windows 98 appearance package", () => {
 			gripperGap: 4,
 			bandEndGap: 4,
 		};
-		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
-			expect(theme.measurements.taskbar, theme.id).toEqual(taskbar);
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets]) {
+			// The active button's face is solid Scrollbar where ButtonHilight
+			// is not the Window color (comctl32's `TAB_EraseTabInterior`).
+			const solidActive =
+				theme.color.system[0] === theme.color.window.document ? 0 : 1;
+			expect(theme.measurements.taskbar, theme.id).toEqual({
+				...taskbar,
+				solidActive,
+			});
+			expect(
+				getThemeVars(theme as unknown as ClassicyTheme),
+				theme.id,
+			).toMatchObject({
+				"--taskbar-solid-active": `${solidActive}px`,
+			});
+		}
+		expect(
+			[windows98Json.defaults, ...windows98Json.presets]
+				.filter((theme) => theme.measurements.taskbar.solidActive === 0)
+				.map((theme) => theme.id),
+		).toEqual([
+			"windows98",
+			"windows98",
+			"windows95",
+			"windows98Plum",
+			"windows98RedWhiteBlue",
+			"windows98Storm",
+			"windows98Teal",
+			"windows98ExtraLarge",
+			"windows98Large",
+		]);
 		// The bar is the buttons and the rows around them, whole pixels only.
 		expect(taskbar.height).toBe(2 + 2 + taskbar.buttonHeight + 2);
 		await import("./index");
@@ -1541,6 +1602,7 @@ describe("the Windows 98 appearance package", () => {
 				frameEdges: "resize",
 				systemMenu: true,
 				captionTooltips: true,
+				utilityTitle: true,
 			},
 			menuBar: { placement: "window", idleTimeoutMs: 0 },
 			menu: {

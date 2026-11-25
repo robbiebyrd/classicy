@@ -23,7 +23,8 @@ export type ClassicyWindowTitleBarProps = {
 	hideIcon?: boolean;
 	/**
 	 * `"document"` (the default) draws the side bands around the title;
-	 * `"utility"` (a windoid) draws one center band and no title text.
+	 * `"utility"` (a windoid) draws one center band and no title text,
+	 * unless `utilityTitle`.
 	 */
 	variant?: "document" | "utility";
 	/** A modal dialog's bar: adds `classicyWindowTitleBarModal`, never a zoom box. */
@@ -128,6 +129,15 @@ export type ClassicyWindowTitleBarProps = {
 	 * handler.
 	 */
 	buttonTooltips?: boolean;
+	/**
+	 * A `"utility"` bar draws its title too: the title text (no icon, no side
+	 * bands) before the center band, as a Windows tool window's small caption
+	 * carries its title (Wine's `draw_nc_caption` for WS_EX_TOOLWINDOW).
+	 * `ClassicyWindow` passes it under a layout whose `window.utilityTitle` is
+	 * `true` (Windows 98). Without it, or with an empty `title`, a utility bar
+	 * renders as before, one title-less band; a document bar ignores it.
+	 */
+	utilityTitle?: boolean;
 	/** Extra class names, after the bar's own. */
 	className?: string;
 	/** Inline style for the bar's root element. */
@@ -280,6 +290,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 	onIconDoubleClick,
 	labels,
 	buttonTooltips = false,
+	utilityTitle = false,
 	className,
 	style,
 }) => (
@@ -338,6 +349,13 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 						<p>{title}</p>
 					</div>
 					<div className={"classicyWindowTitleRight"}></div>
+				</>
+			) : title !== "" && utilityTitle ? (
+				<>
+					<div className={"classicyWindowTitleText"}>
+						<p>{title}</p>
+					</div>
+					<div className={"classicyWindowTitleCenter"}></div>
 				</>
 			) : (
 				<div className={"classicyWindowTitleCenter"}></div>

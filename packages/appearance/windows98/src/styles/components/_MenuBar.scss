@@ -17,13 +17,17 @@
 // area one row below the bar):
 //
 // - The band: ButtonFace, one row above the titles, the titles
-//   `--menu-bar-title-height` tall (18: `SM_CYMENU` 19, the 270-twip menu
-//   height plus one, less the row above), and one row below them, 20 px in
-//   all. Wine fills the bar's 19 rows with the menu color and draws the row
-//   below in ButtonFace (`LineTo` at the bar's bottom; the client area
-//   starts after it), so the band is the bar and that row. The band's
-//   height is _Window.scss's (`with-menu-bar`); a screen bar takes it here.
-// - A title: its text in MenuText with one average character
+//   `--menu-bar-title-height` tall (the scheme's iMenuHeight: 18 in Windows
+//   Standard, up to 38), `SM_CYMENU` (iMenuHeight plus one) in all, 19 px in
+//   Windows Standard. Wine's `calc_menu_bar_size` starts the bar with that
+//   row and the client area starts at the bar's height, so the ButtonFace
+//   line `DrawMenuBarTemp` draws at its bottom lies under the client edge.
+//   The band's height is _Window.scss's (`with-menu-bar`); a screen bar
+//   takes it here.
+// - A title: its text in the scheme's menu font (`--package-font-menu*`:
+//   MS Sans Serif 8 in Windows Standard, Arial 18 in the large High
+//   Contrast schemes) and in MenuText (ButtonText's token, white in High
+//   Contrast #1, where WindowText is yellow) with one average character
 //   (`--menu-item-padding-x`, 6) on each side, centered on the band.
 //   Nothing under the pointer alone: Windows 98's menu bar tracks no hover
 //   (Wine's `MENU_DrawMenuItem` draws a title only plain or highlighted; the
@@ -59,7 +63,8 @@
 //                                         ring, the disabled emboss
 //   ButtonShadow      --color-system-05   a sunken title's top-left ring,
 //                                         GrayText
-//   ButtonText        --color-black       the titles' ink, MenuText
+//   MenuText          --package-color-text-button   the titles' ink
+//                                         (--color-black behind it)
 @use "../bevels" as b;
 
 // The bars this partial draws.
@@ -68,8 +73,8 @@ $bars: ".classicyWindowMenuBar, .classicyDesktopMenuBar";
 // A top-level title: the plain one, and the one a balloon-help anchor wraps.
 $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem";
 
-// The band: the titles and a row above and below them.
-$band: calc(var(--menu-bar-title-height) + #{b.$b2});
+// The band, SM_CYMENU: a row above the titles and the titles.
+$band: calc(var(--menu-bar-title-height) + #{b.$b});
 
 @mixin menu-bar {
   // A window's bar: the band in ButtonFace, its height the window's
@@ -84,15 +89,15 @@ $band: calc(var(--menu-bar-title-height) + #{b.$b2});
   }
 
   // The list: ButtonFace with no bevel, rounding or side padding (the base
-  // gives the bar Mac OS 8's), one row of face above and below the titles.
-  // A window's list fills its bar; a screen bar's is the band, since the
-  // layout's window placement zeroes `--menu-bar-height`.
+  // gives the bar Mac OS 8's), one row of face above the titles. A window's
+  // list fills its bar; a screen bar's is the band, since the layout's
+  // window placement zeroes `--menu-bar-height`.
   :is(#{$bars}) .classicyDesktopMenu {
     box-sizing: border-box;
     height: 100%;
-    padding: b.$b 0;
+    padding: b.$b 0 0;
     border-radius: 0;
-    color: b.$text;
+    color: b.$button-text;
     background-color: b.$face;
     box-shadow: none;
   }
@@ -107,11 +112,11 @@ $band: calc(var(--menu-bar-title-height) + #{b.$b2});
     height: 100%;
   }
 
-  // A title: MenuText with one average character each side, centered on the
-  // titles' row; plain under the pointer (the base highlights a hovered
-  // title). A title drawn as art (the Help balloon the default package
-  // registers, the Apple menu's mark on a forced screen bar) is a small
-  // icon.
+  // A title: the menu font in MenuText with one average character each
+  // side, centered on the titles' row; plain under the pointer (the base
+  // highlights a hovered title). A title drawn as art (the Help balloon the
+  // default package registers, the Apple menu's mark on a forced screen
+  // bar) is a small icon.
   :is(#{$bars}) :is(#{$titles}) {
     position: relative;
     box-sizing: border-box;
@@ -119,7 +124,10 @@ $band: calc(var(--menu-bar-title-height) + #{b.$b2});
     height: 100%;
     margin: 0;
     padding: 0 var(--menu-item-padding-x);
-    color: b.$text;
+    font-family: b.$menu-font;
+    font-size: b.$menu-font-size;
+    font-weight: b.$menu-font-weight;
+    color: b.$button-text;
     background-color: transparent;
     box-shadow: none;
     white-space: nowrap;
@@ -128,6 +136,7 @@ $band: calc(var(--menu-bar-title-height) + #{b.$b2});
     > p {
       height: auto;
       padding: 0;
+      font: inherit;
     }
 
     > p a {
@@ -141,7 +150,7 @@ $band: calc(var(--menu-bar-title-height) + #{b.$b2});
     }
 
     &:hover {
-      color: b.$text;
+      color: b.$button-text;
       background-color: transparent;
     }
 
@@ -149,7 +158,7 @@ $band: calc(var(--menu-bar-title-height) + #{b.$b2});
     &.open,
     &:focus-visible {
       outline: none;
-      color: b.$text;
+      color: b.$button-text;
       background-color: transparent;
 
       @include b.sunken-thin;

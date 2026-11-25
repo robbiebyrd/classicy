@@ -21,8 +21,8 @@
 //   their place as pixel art on the cell's face, at the base's glyph
 //   positions plus a fixed offset: the collapse box's a 6 x 2 Minimize bar
 //   (the strip collapses to its tab as a window minimizes), the scroll
-//   arrows a 4 x 7 solid triangle each, a scroll bar's, embossed (GrayText
-//   over a ButtonHilight copy one ring down and right) when the arrow is
+//   arrows a 4 x 7 solid triangle each, a scroll bar's, embossed
+//   (ButtonShadow over a ButtonHilight copy one ring down and right) when the arrow is
 //   disabled, and a module's pop-up arrow a 5 x 3 drop-down triangle, a
 //   toolbar button's, in place of the Mac's rightward one, since the menu
 //   opens below. Held, every mark steps down and right by the base's
@@ -45,7 +45,7 @@
 //   ButtonHilight       --color-system-01   the raised ring's top and left,
 //                                           the emboss, the checker's light
 //   ButtonShadow        --color-system-05   the raised ring's bottom and
-//                                           right, GrayText, the gripper's
+//                                           right, the emboss, the gripper's
 //                                           dark line
 //   WindowText          --color-black       the marks, the focus rectangle
 //
@@ -98,11 +98,12 @@ $drop-arrow-y: at(var(--control-strip-module-arrow-top), 3);
   @return calc(#{$len} + var(--control-strip-pressed-shift));
 }
 
-// A mark embossed: GrayText over a ButtonHilight copy one ring down and
-// right.
+// A mark embossed: ButtonShadow over a ButtonHilight copy one ring down and
+// right, as DrawFrameControl embosses a DFCS_INACTIVE glyph (GrayText is
+// for text, and differs from ButtonShadow only in High Contrast).
 @function embossed($rects, $dx, $dy) {
   @return list.join(
-    pixel-art(b.$gray-text, $rects, $dx, $dy),
+    pixel-art(b.$shadow, $rects, $dx, $dy),
     pixel-art(b.$hilight, $rects, calc(#{$dx} + #{b.$b}), calc(#{$dy} + #{b.$b})),
     $separator: comma
   );

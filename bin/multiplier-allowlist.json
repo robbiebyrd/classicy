@@ -45,6 +45,18 @@
 			"reason": "The solid scroll track's switch: the `scrollBar.solidTrack` knob is 0 or 1 (Windows fills a track with the solid Scrollbar brush only where ButtonHilight is not Window), and the inset fill's spread is it times ten thousand pixels, nothing at 0 and the whole track at 1. An on/off switch, not a theme proportion (H-R7, as the desktop labels' shadow)."
 		}
 	],
+	"packages/appearance/windows98/src/styles/components/_Taskbar.scss": [
+		{
+			"count": 1,
+			"reason": "The active task button's solid face switch: the `taskbar.solidActive` knob is 0 or 1 (comctl32's TAB_EraseTabInterior fills a selected TCS_BUTTONS item with the 0x55AA checker only where ButtonHilight is Window, else with the solid Scrollbar brush), and the inset fill's spread is it times ten thousand pixels, nothing at 0 and the whole button at 1. An on/off switch, not a theme proportion (H-R7, as the scroll track's)."
+		}
+	],
+	"packages/appearance/windows98/src/styles/components/_Window.scss": [
+		{
+			"count": 1,
+			"reason": "The caption marks' centering (one site in the centered() helper): the 16 x 14 mark grid of a Windows Standard button is placed half the button's overhang in from its corner ((button - grid) / 2), so a larger scheme's button draws its marks in its middle as Marlett does; geometry, not a role (H-R21)."
+		}
+	],
 	"src/SystemFolder/HyperCard/HyperCard.scss": [
 		{
 			"count": 12,

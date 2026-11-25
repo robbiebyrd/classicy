@@ -429,7 +429,11 @@ and `nodenext` resolution).
     window that cannot be sized (the control panels, the About windows, the
     Calculator), dialogs on a flat face with the title and Close alone in
     their caption (no icon, no Minimize; an unavailable Close embossed),
-    palette windows with Close alone,
+    palette windows with their title in the small caption font and an
+    11 x 11 Close alone, each scheme's caption font, caption height and
+    caption buttons (their marks centered, and twice their size in the
+    large schemes' buttons), each scheme's sizing border (wider, and High
+    Contrast Black's yellow, in the large High Contrast schemes),
     a modeless dialog's frame flattened to a plain ButtonFace box;
   - the Finder's icon view: a label being renamed in the list view's edit
     box (WindowText on white in a one-pixel black border; a name renamed in
@@ -439,7 +443,9 @@ and `nodenext` resolution).
     as Windows XORed it, nothing drawn until the pointer moves, and
     the dotted focus rectangle on the focused icon's label alone (in icon
     views and on the desktop), never around every selected label;
-  - menus: each window's menu bar a flat 20-pixel band under its title bar,
+  - menus: each window's menu bar a flat band under its title bar, 19
+    pixels in Windows Standard and taller in the large schemes, its titles
+    in the scheme's menu font,
     as Windows 98 draws one, its titles plain under the pointer and sunken
     while their menu is open or the keyboard is on them, an unavailable
     title embossed; raised pull-down and contextual menus with an

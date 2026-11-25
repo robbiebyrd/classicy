@@ -150,7 +150,8 @@
 				"endInset": 2,
 				"iconInset": 2,
 				"textInset": 3,
-				"gap": 2
+				"gap": 1,
+				"markUnit": 1
 			},
 			"pushButton": {
 				"height": 23,
@@ -228,7 +229,8 @@
 				"gripperWidth": 3,
 				"gripperInset": 2,
 				"gripperGap": 4,
-				"bandEndGap": 4
+				"bandEndGap": 4,
+				"solidActive": 0
 			},
 			"startMenu": {
 				"bannerWidth": 21,
@@ -290,7 +292,7 @@
 			"utilityTitleBar": {
 				"textureWidth": 4,
 				"textureHeight": 3,
-				"buttonWidth": 12,
+				"buttonWidth": 11,
 				"buttonHeight": 11
 			},
 			"desktopLabel": {
@@ -301,7 +303,8 @@
 				"bodyFontSize": 11
 			},
 			"sizingBorder": {
-				"width": 1
+				"width": 1,
+				"frame": 4
 			},
 			"scrollBar": {
 				"solidTrack": 0
@@ -471,7 +474,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -549,7 +553,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 0
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -611,7 +616,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -622,7 +627,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 0
@@ -791,7 +797,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -869,7 +876,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 0
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -931,7 +939,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -942,7 +950,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 0
@@ -1113,7 +1122,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -1191,7 +1201,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -1253,7 +1264,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -1264,7 +1275,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -1435,7 +1447,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -1513,7 +1526,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -1575,7 +1589,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -1586,7 +1600,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -1757,7 +1772,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -1835,7 +1851,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -1897,7 +1914,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -1908,7 +1925,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -2077,7 +2095,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -2160,14 +2179,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"menuBar": {
 					"titleHeight": 18
@@ -2197,7 +2217,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -2397,7 +2418,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -2480,14 +2502,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 6
+					"width": 6,
+					"frame": 9
 				},
 				"menuBar": {
 					"titleHeight": 38
@@ -2517,7 +2540,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -2717,7 +2741,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -2800,14 +2825,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 6
+					"width": 6,
+					"frame": 9
 				},
 				"menuBar": {
 					"titleHeight": 30
@@ -2837,7 +2863,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -3037,7 +3064,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -3120,14 +3148,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"menuBar": {
 					"titleHeight": 18
@@ -3157,7 +3186,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -3357,7 +3387,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -3440,14 +3471,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 6
+					"width": 6,
+					"frame": 9
 				},
 				"menuBar": {
 					"titleHeight": 38
@@ -3477,7 +3509,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -3677,7 +3710,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -3760,14 +3794,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 6
+					"width": 6,
+					"frame": 9
 				},
 				"menuBar": {
 					"titleHeight": 30
@@ -3797,7 +3832,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -3999,7 +4035,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -4082,14 +4119,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"menuBar": {
 					"titleHeight": 18
@@ -4119,7 +4157,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -4321,7 +4360,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -4404,14 +4444,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 6
+					"width": 6,
+					"frame": 9
 				},
 				"menuBar": {
 					"titleHeight": 38
@@ -4441,7 +4482,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -4643,7 +4685,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -4726,14 +4769,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 6
+					"width": 6,
+					"frame": 9
 				},
 				"menuBar": {
 					"titleHeight": 30
@@ -4763,7 +4807,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -4963,7 +5008,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -5046,14 +5092,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"menuBar": {
 					"titleHeight": 18
@@ -5083,7 +5130,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -5283,7 +5331,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -5366,14 +5415,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 6
+					"width": 6,
+					"frame": 9
 				},
 				"menuBar": {
 					"titleHeight": 38
@@ -5403,7 +5453,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -5603,7 +5654,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -5686,14 +5738,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 7
+					"width": 7,
+					"frame": 10
 				},
 				"menuBar": {
 					"titleHeight": 27
@@ -5723,7 +5776,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -5925,7 +5979,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -6003,7 +6058,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -6065,7 +6121,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -6076,7 +6132,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -6247,7 +6304,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -6330,14 +6388,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"menuBar": {
 					"titleHeight": 21
@@ -6367,7 +6426,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -6571,7 +6631,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -6649,7 +6710,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -6711,7 +6773,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -6722,7 +6784,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -6891,7 +6954,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -6969,7 +7033,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -7031,7 +7096,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -7042,7 +7107,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -7213,7 +7279,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -7291,7 +7358,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 0
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -7353,7 +7421,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -7364,7 +7432,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 0
@@ -7537,7 +7606,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -7615,7 +7685,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -7677,7 +7748,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -7688,7 +7759,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -7859,7 +7931,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -7937,7 +8010,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -7999,7 +8073,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -8010,7 +8084,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -8181,7 +8256,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -8259,7 +8335,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 0
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -8321,7 +8398,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -8332,7 +8409,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 0
@@ -8505,7 +8583,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -8583,7 +8662,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -8645,7 +8725,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -8656,7 +8736,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -8829,7 +8910,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 2
 				},
 				"pushButton": {
 					"height": 23,
@@ -8912,14 +8994,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 2
+					"width": 2,
+					"frame": 5
 				},
 				"menuBar": {
 					"titleHeight": 22
@@ -8949,7 +9032,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -9151,7 +9235,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -9229,7 +9314,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -9291,7 +9377,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -9302,7 +9388,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -9473,7 +9560,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -9551,7 +9639,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -9613,7 +9702,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -9624,7 +9713,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -9795,7 +9885,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -9873,7 +9964,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 0
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -9935,7 +10027,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -9946,7 +10038,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 0
@@ -10115,7 +10208,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -10193,7 +10287,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 0
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -10255,7 +10350,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -10266,7 +10361,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 0
@@ -10439,7 +10535,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -10517,7 +10614,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 1
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -10579,7 +10677,7 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
@@ -10590,7 +10688,8 @@
 					"bodyFontSize": 11
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"scrollBar": {
 					"solidTrack": 1
@@ -10759,7 +10858,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -10842,14 +10942,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"menuBar": {
 					"titleHeight": 21
@@ -10879,7 +10980,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 0
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -11079,7 +11181,8 @@
 					"endInset": 2,
 					"iconInset": 2,
 					"textInset": 3,
-					"gap": 2
+					"gap": 1,
+					"markUnit": 1
 				},
 				"pushButton": {
 					"height": 23,
@@ -11162,14 +11265,15 @@
 				"utilityTitleBar": {
 					"textureWidth": 4,
 					"textureHeight": 3,
-					"buttonWidth": 12,
+					"buttonWidth": 11,
 					"buttonHeight": 11
 				},
 				"desktopLabel": {
 					"shadow": 1
 				},
 				"sizingBorder": {
-					"width": 1
+					"width": 1,
+					"frame": 4
 				},
 				"menuBar": {
 					"titleHeight": 18
@@ -11199,7 +11303,8 @@
 					"gripperWidth": 3,
 					"gripperInset": 2,
 					"gripperGap": 4,
-					"bandEndGap": 4
+					"bandEndGap": 4,
+					"solidActive": 0
 				},
 				"startMenu": {
 					"bannerWidth": 21,
@@ -11261,6 +11366,7 @@
 			"frameEdges": "resize",
 			"systemMenu": true,
 			"captionTooltips": true,
+			"utilityTitle": true,
 			"restoreViewState": true
 		},
 		"menuBar": {
@@ -11412,7 +11518,7 @@
 				"label": "Gap below",
 				"min": 0,
 				"max": 8,
-				"default": 2
+				"default": 1
 			}
 		},
 		"progressBar": {

@@ -109,7 +109,8 @@ export type ClassicyWindowMenuBarProps = {
  * classes (`classicyDesktopMenu`) inside its own `ClassicyMenuProvider`: its
  * menus open and stick as the screen bar's do, and close on a selection, a
  * re-click of the open title, a mouse-down anywhere outside the bar or the
- * provider's 15 s idle timeout. The
+ * package's idle time-out (`layout.menuBar.idleTimeoutMs`, 15 s when it
+ * declares none; Windows 98 never). The
  * bar's flex and `order` rules come from the screen bar's stylesheet, which
  * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
  *

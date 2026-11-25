@@ -385,15 +385,187 @@ describe("windows98.scss (compiled)", () => {
 		);
 		expect(box).toContain("var(--color-black)");
 		expect(box).toContain("var(--color-system-03)");
-		// The top bar of the "?" (1, 0) 4 wide, moved to (6, 2).
+		// The top bar of the "?" (1, 0) 4 wide, moved to (6, 2) of the marks'
+		// grid, which the button centers on itself.
 		expect(box).toContain(
-			"calc(var(--pixel-unit) * 6) calc(var(--pixel-unit) * 2)/calc(var(--pixel-unit) * 4) var(--pixel-unit)",
+			"calc(var(--windows98-mark-x) + calc(var(--pixel-unit) * 6)) calc(var(--windows98-mark-y) + calc(var(--pixel-unit) * 2))/calc(var(--pixel-unit) * 4) var(--pixel-unit)",
 		);
+		// One device pixel down and right while pressed, whatever the grid.
 		const pressed = block(
 			".classicyWindow .classicyWindowTitleBar .classicyWindowHelpBox:active",
 		);
 		expect(pressed).toContain(
-			"calc(var(--pixel-unit) * 7) calc(var(--pixel-unit) * 3)/calc(var(--pixel-unit) * 4) var(--pixel-unit)",
+			"calc(calc(var(--windows98-mark-x) + var(--window-border-size)) + calc(var(--pixel-unit) * 6)) calc(calc(var(--windows98-mark-y) + var(--window-border-size)) + calc(var(--pixel-unit) * 2))/calc(var(--pixel-unit) * 4) var(--pixel-unit)",
+		);
+	});
+
+	// L2-F's per-scheme caption (plan 0020-w98 integration): the caption
+	// buttons' marks are pixel art on a 16 x 14 grid centered on the button,
+	// each grid pixel the scheme's `--title-bar-mark-unit` (2 px in a button
+	// 24 or more tall, where Marlett draws the marks at twice their size:
+	// Wine's `draw_frame_caption` sizes the glyph to the button), inked in
+	// ButtonText (DFC_CAPTION's COLOR_BTNTEXT); the title in the scheme's
+	// caption font; the gap under the caption one row (SM_CYCAPTION is
+	// iCaptionHeight + 1).
+	it("centers and scales the caption marks, inks them in ButtonText and sets the caption font", () => {
+		const block = (tail: string) =>
+			[
+				...css.matchAll(
+					new RegExp(
+						`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+						"g",
+					),
+				),
+			]
+				.map((m) => m[1])
+				.join("\n");
+		const boxes = block(
+			".classicyWindow .classicyWindowTitleBar .classicyWindowHelpBox",
+		);
+		expect(boxes).toContain(
+			"--pixel-unit: var(--title-bar-mark-unit, var(--window-border-size));",
+		);
+		expect(boxes).toContain(
+			"--windows98-mark-x: calc((var(--title-bar-button-width) - calc(var(--pixel-unit) * 16)) / 2);",
+		);
+		expect(boxes).toContain(
+			"--windows98-mark-y: calc((var(--title-bar-button-height) - calc(var(--pixel-unit) * 14)) / 2);",
+		);
+		for (const box of ["Close", "Zoom", "Collapse", "Help"]) {
+			const look = block(
+				`.classicyWindow .classicyWindowTitleBar .classicyWindow${box}Box`,
+			);
+			expect(look, box).toContain(
+				"linear-gradient(var(--package-color-text-button, var(--color-black)), var(--package-color-text-button, var(--color-black)))",
+			);
+			expect(look, box).not.toMatch(
+				/linear-gradient\(var\(--color-black\), var\(--color-black\)\)/,
+			);
+		}
+		const title = block(
+			".classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleText",
+		);
+		expect(title).toContain(
+			"font-family: var(--package-font-caption, var(--ui-font))",
+		);
+		expect(title).toContain(
+			"font-size: var(--package-font-caption-size, var(--ui-font-size))",
+		);
+		expect(title).toContain(
+			"font-weight: var(--package-font-caption-weight, bold)",
+		);
+		expect(
+			block(
+				".classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleText > p",
+			),
+		).toContain("font: inherit");
+		expect(block("] .classicyWindow .classicyWindowTitleBar")).toContain(
+			"margin: 0 0 var(--title-bar-gap)",
+		);
+	});
+
+	// L2-F's sizing border: a sizable window's frame is SM_CXFRAME, the
+	// scheme's `--sizing-border-frame` (3 plus iBorderWidth), set as its
+	// `--window-frame-inset` (so the core's padding, frame edges, grip, drag
+	// band and keyboard sizing follow it), with iBorderWidth of ActiveBorder
+	// (InactiveBorder behind an inactive window) between the two-pixel edge
+	// and the last ring of ButtonFace (Wine's `draw_nc_frame`); a dialog and
+	// a window that cannot be sized keep the edge alone, after the inactive
+	// rule.
+	it("draws the sizing border from the scheme's width and ActiveBorder colors", () => {
+		const selectors = selectorsOf(css);
+		const last = (tail: string) =>
+			selectors.findLastIndex((selector) => selector.endsWith(tail));
+		const blocks = (selector: string) =>
+			[
+				...css.matchAll(
+					new RegExp(
+						`(?:^|\\n)\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+						"g",
+					),
+				),
+			].map((match) => match[1] ?? "");
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const window = blocks(`${scope} .classicyWindow`).join("\n");
+		expect(window).toContain(
+			"--window-frame-inset: var(--sizing-border-frame, calc(calc(calc(var(--window-border-size) + var(--window-border-size)) + var(--window-border-size)) + var(--window-border-size)));",
+		);
+		const band = (color: string) =>
+			`inset 0 0 0 calc(calc(var(--window-border-size) + var(--window-border-size)) + var(--sizing-border-width, var(--window-border-size))) var(--package-color-sizing-border-${color}, var(--color-system-03))`;
+		expect(window).toContain(band("active"));
+		const inactive = blocks(`${scope} .classicyWindow.inactive`).join("\n");
+		expect(inactive).toContain(band("inactive"));
+		const fixed = blocks(
+			`${scope} .classicyWindow.classicyWindowModal,\n  ${scope} .classicyWindow.classicyWindowNoResize`,
+		).join("\n");
+		expect(fixed).toContain("box-shadow:");
+		expect(fixed).not.toContain("sizing-border");
+		expect(last(".classicyWindow.classicyWindowNoResize")).toBeGreaterThan(
+			last(".classicyWindow.inactive"),
+		);
+	});
+
+	// A tool window (L2-F, the 98.js report's 2.4): its caption carries its
+	// title in the small caption font (the core draws it under
+	// `window.utilityTitle`), and its one Close is 11 x 11 in a cell the
+	// caption's height plus two wide at the bar's end, centered (Wine's
+	// `draw_close_button`: (SM_CYSMCAPTION - 12) / 2 down, 3 px in from the
+	// right in Windows Standard), its X drawn one pixel a grid pixel.
+	// L2-F's glyph rule: a disabled Control Strip scroll arrow is embossed
+	// as DrawFrameControl embosses a DFCS_INACTIVE glyph, ButtonShadow over
+	// a ButtonHilight copy, never GrayText (text's color, green in High
+	// Contrast).
+	it("embosses the Control Strip's disabled arrows in ButtonShadow", () => {
+		for (const arrow of [
+			".classicyControlStripScrollStart:disabled",
+			".classicyControlStripScroll:not(.classicyControlStripScrollStart):disabled",
+		]) {
+			const look =
+				new RegExp(
+					`${arrow.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+				).exec(css)?.[1] ?? "";
+			expect(look, arrow).toContain(
+				"linear-gradient(var(--color-system-05), var(--color-system-05))",
+			);
+			expect(look, arrow).toContain(
+				"linear-gradient(var(--color-system-01), var(--color-system-01))",
+			);
+			expect(look, arrow).not.toContain("--package-color-text-gray");
+		}
+	});
+
+	it("titles a tool window in the small caption font and centers its 11 x 11 Close", () => {
+		const block = (tail: string) =>
+			[
+				...css.matchAll(
+					new RegExp(
+						`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+						"g",
+					),
+				),
+			]
+				.map((m) => m[1])
+				.join("\n");
+		const bar = ".classicyWindow.classicyWindowUtility .classicyWindowTitleBar";
+		expect(block(bar)).toContain("padding-right: 0");
+		const title = block(`${bar} .classicyWindowTitle .classicyWindowTitleText`);
+		expect(title).toContain(
+			"font-family: var(--package-font-small-caption, var(--ui-font))",
+		);
+		expect(title).toContain(
+			"font-size: var(--package-font-small-caption-size, var(--ui-font-size))",
+		);
+		const cell = block(`${bar} .classicyWindowControlBox`);
+		expect(cell).toContain(
+			"width: calc(var(--window-utility-title-bar-height) + calc(var(--window-border-size) + var(--window-border-size)))",
+		);
+		expect(cell).toContain("justify-content: center");
+		const close = block(`${bar} .classicyWindowCloseBox`);
+		expect(close).toContain("--pixel-unit: inherit");
+		expect(close).toContain("width: var(--utility-title-bar-button-width)");
+		// The X's top-left run at (2, 3), from the button's corner.
+		expect(close).toContain(
+			"calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 3)/calc(var(--pixel-unit) * 2) var(--pixel-unit)",
 		);
 	});
 
@@ -435,13 +607,15 @@ describe("windows98.scss (compiled)", () => {
 
 	// Plan 0020-w98 §7, step 17: a window's menu bar is the band Windows 98
 	// draws under the caption (WIG Ch.7 "The Menu Bar and Drop-down Menus",
-	// p.97, Figure 7.1; Wine's `MENU_MenuBarCalcSize`, `DrawMenuBarTemp` and
-	// `NC_DoNCPaint`): ButtonFace, the titles `--menu-bar-title-height` (18)
-	// tall between a row above and a row below, 20 px in all, where the
+	// p.97, Figure 7.1; Wine's `calc_menu_bar_size`, `DrawMenuBarTemp` and
+	// `NC_DoNCPaint`): ButtonFace, a row above the titles
+	// `--menu-bar-title-height` (iMenuHeight, 18) tall, SM_CYMENU in all
+	// (19 px in Windows Standard; the client area starts at the bar's height,
+	// so the line drawn at its bottom lies under the client edge), where the
 	// core's derived `--window-menu-bar-height` is 21; a host's
 	// `--classicy-window-menu-bar-height` still wins, as the base sheet reads
 	// it. The contents below give up the same band.
-	it("draws a window's menu bar as Windows 98's 20 px band", () => {
+	it("draws a window's menu bar as Windows 98's SM_CYMENU band", () => {
 		const selectors = selectorsOf(css);
 		const has = (tail: string) =>
 			selectors.some((selector) => selector.endsWith(tail));
@@ -450,7 +624,7 @@ describe("windows98.scss (compiled)", () => {
 				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
 			).exec(css)?.[1] ?? "";
 		const band =
-			"var(--classicy-window-menu-bar-height, calc(var(--menu-bar-title-height) + calc(var(--window-border-size) + var(--window-border-size))))";
+			"var(--classicy-window-menu-bar-height, calc(var(--menu-bar-title-height) + var(--window-border-size)))";
 		for (const root of [
 			".classicyWindow.classicyWindowWithMenuBar",
 			".classicyWindow:has(> .classicyWindowMenuBar)",
@@ -467,25 +641,31 @@ describe("windows98.scss (compiled)", () => {
 			).toContain(`- ${band})`);
 		}
 		expect(css).not.toContain("--window-menu-bar-height");
-		// The list: flat ButtonFace, a row of face above and below the titles,
-		// no side padding; a forced screen bar's list is the same band.
+		// The list: flat ButtonFace, a row of face above the titles and none
+		// below, no side padding; a forced screen bar's list is the same band.
 		const list = block(
 			":is(.classicyWindowMenuBar, .classicyDesktopMenuBar) .classicyDesktopMenu",
 		);
-		expect(list).toContain("padding: var(--window-border-size) 0");
+		expect(list).toContain("padding: var(--window-border-size) 0 0;");
+		// MenuText, the scheme's ButtonText (white in High Contrast #1, where
+		// WindowText is yellow).
+		expect(list).toContain(
+			"color: var(--package-color-text-button, var(--color-black))",
+		);
 		expect(list).toContain("background-color: var(--color-system-03)");
 		expect(list).toContain("box-shadow: none");
 		expect(list).toContain("border-radius: 0");
 		expect(block(".classicyDesktopMenuBar .classicyDesktopMenu")).toContain(
-			"height: calc(var(--menu-bar-title-height) + calc(var(--window-border-size) + var(--window-border-size)))",
+			"height: calc(var(--menu-bar-title-height) + var(--window-border-size))",
 		);
 		expect(block("=windows98] .classicyWindowMenuBar")).toContain(
 			"background-color: var(--color-system-03)",
 		);
 	});
 
-	// Its titles, as Wine's `MENU_DrawMenuItem` draws a menu bar's: MenuText
-	// with one average character each side; nothing under the pointer alone
+	// Its titles, as Wine's `MENU_DrawMenuItem` draws a menu bar's: the
+	// scheme's menu font (its own `<p>` inheriting it) in MenuText (the
+	// `text` family's ButtonText) with one average character each side; nothing under the pointer alone
 	// (Windows 98's menu bar tracks no hover; the raised title is Explorer's
 	// command bar, os-gui's note); open or tracked by the keyboard, one
 	// sunken ring (BDR_SUNKENOUTER: ButtonShadow at the top and left,
@@ -507,12 +687,24 @@ describe("windows98.scss (compiled)", () => {
 		const plain = block(title);
 		expect(plain).toContain("padding: 0 var(--menu-item-padding-x)");
 		expect(plain).toContain("height: 100%");
-		expect(plain).toContain("color: var(--color-black)");
+		const menuText =
+			"color: var(--package-color-text-button, var(--color-black))";
+		expect(plain).toContain(menuText);
+		expect(plain).toContain(
+			"font-family: var(--package-font-menu, var(--ui-font))",
+		);
+		expect(plain).toContain(
+			"font-size: var(--package-font-menu-size, var(--ui-font-size))",
+		);
+		expect(plain).toContain(
+			"font-weight: var(--package-font-menu-weight, normal)",
+		);
+		expect(block(`${title} > p`)).toContain("font: inherit");
 		expect(plain).toContain("background-color: transparent");
 		expect(plain).toContain("box-shadow: none");
 		const hover = block(`${title}:hover`);
 		expect(hover).toContain("background-color: transparent");
-		expect(hover).toContain("color: var(--color-black)");
+		expect(hover).toContain(menuText);
 		expect(hover).not.toContain("box-shadow");
 		// The open rule and the keyboard's share one block.
 		expect(at(`${title}.open`)).toBeGreaterThanOrEqual(0);
@@ -521,7 +713,7 @@ describe("windows98.scss (compiled)", () => {
 			"box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-01), inset var(--window-border-size) var(--window-border-size) var(--color-system-05)",
 		);
 		expect(open).toContain("outline: none");
-		expect(open).toContain("color: var(--color-black)");
+		expect(open).toContain(menuText);
 		expect(open).toContain("background-color: transparent");
 		// The text stays where it is: the shared rule is the only one keyed on
 		// an open title, and it moves nothing.
@@ -830,6 +1022,13 @@ describe("windows98.scss (compiled)", () => {
 			const active = block(".classicyTaskbarTask.active");
 			expect(active).toContain(CHECKER);
 			expect(active).toContain(PUSHED);
+			// comctl32's `TAB_EraseTabInterior`: the checker only where
+			// ButtonHilight is the Window color, else solid Scrollbar, spread
+			// under the pushed bevel by the scheme's switch (the last
+			// box-shadow, so it wins over the mixin's).
+			expect(active).toMatch(
+				/box-shadow: inset calc\(var\(--window-border-size\) \* -1\) calc\(var\(--window-border-size\) \* -1\) var\(--color-system-01\), inset var\(--window-border-size\) var\(--window-border-size\) var\(--color-system-07\), [^;]*, inset 0 0 0 calc\(var\(--taskbar-solid-active\) \* 10000\) var\(--package-color-scroll-bar-track, var\(--color-system-03\)\);/,
+			);
 			expect(block(".classicyTaskbarTask.active > *")).toContain(SHIFT);
 			expect(
 				block(".classicyTaskbarTask.active .classicyTaskbarTaskLabel"),

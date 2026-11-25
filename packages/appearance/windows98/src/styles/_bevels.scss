@@ -33,6 +33,12 @@
 // A scheme's own fonts (`typography.families`, the core's package fonts):
 // the caption's, small caption's, menu's, message box's and icon's, each read
 // with the UI font behind it, for a theme of another package.
+$caption-font: var(--package-font-caption, var(--ui-font));
+$caption-font-size: var(--package-font-caption-size, var(--ui-font-size));
+$caption-font-weight: var(--package-font-caption-weight, bold);
+$small-caption-font: var(--package-font-small-caption, var(--ui-font));
+$small-caption-font-size: var(--package-font-small-caption-size, var(--ui-font-size));
+$small-caption-font-weight: var(--package-font-small-caption-weight, bold);
 $menu-font: var(--package-font-menu, var(--ui-font));
 $menu-font-size: var(--package-font-menu-size, var(--ui-font-size));
 $menu-font-weight: var(--package-font-menu-weight, normal);

@@ -72,6 +72,46 @@ describe("ClassicyWindowTitleBar", () => {
 		).not.toBeNull();
 	});
 
+	// `utilityTitle` (a Windows tool window's small caption): the title text,
+	// then the center band, no icon and no side bands; nothing new without a
+	// title, and a document bar ignores it.
+	it("renders a utility bar's title before its center band under utilityTitle", () => {
+		const { container, rerender } = render(
+			<ClassicyWindowTitleBar
+				title="Tools"
+				icon="tools.png"
+				variant="utility"
+				utilityTitle
+			/>,
+		);
+		const title = container.querySelector(".classicyWindowTitle");
+		expect(
+			[...(title?.children ?? [])].map((child) => child.className),
+		).toEqual(["classicyWindowTitleText", "classicyWindowTitleCenter"]);
+		expect(
+			container.querySelector(".classicyWindowTitleText p"),
+		).toHaveTextContent("Tools");
+		expect(container.querySelector(".classicyWindowIcon")).toBeNull();
+		rerender(
+			<ClassicyWindowTitleBar title="" variant="utility" utilityTitle />,
+		);
+		expect(container.querySelector(".classicyWindowTitleText")).toBeNull();
+		expect(
+			container.querySelector(".classicyWindowTitleCenter"),
+		).not.toBeNull();
+		rerender(<ClassicyWindowTitleBar title="Letter" utilityTitle />);
+		expect(
+			[
+				...(container.querySelector(".classicyWindowTitle")?.children ?? []),
+			].map((child) => child.className),
+		).toEqual([
+			"classicyWindowTitleLeft",
+			"classicyWindowIcon",
+			"classicyWindowTitleText",
+			"classicyWindowTitleRight",
+		]);
+	});
+
 	it("renders the side bands, icon and title text for a titled document bar", () => {
 		const { container } = render(
 			<ClassicyWindowTitleBar title="Letter" icon="letter.png" />,

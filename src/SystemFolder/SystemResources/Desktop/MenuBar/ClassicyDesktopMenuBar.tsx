@@ -79,7 +79,8 @@ const isAboutThisComputerItem = (item: ClassicyMenuItem): boolean =>
  * repeating the balloon toggle dropped), then, at the far right, menu bar
  * extensions (`ClassicyMenuBarExtension`), the clock and the App Switcher.
  * Menus are sticky (HIGOS8 p.92): a click leaves one open, and it closes
- * after 15 seconds idle or on a click outside the bar.
+ * after the package's idle time-out (`layout.menuBar.idleTimeoutMs`, 15 s
+ * when it declares none; Windows 98 never) or on a click outside the bar.
  *
  * It also runs the app-wide keyboard-equivalent dispatcher: a chord fires the
  * matching item of the focused app's menus, then the system menus, then an

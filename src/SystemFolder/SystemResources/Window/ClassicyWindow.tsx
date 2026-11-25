@@ -3871,6 +3871,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// Each box names itself in a tooltip
 				// (`layout.window.captionTooltips`, Windows 98 as shipped).
 				buttonTooltips={layout.window.captionTooltips === true}
+				// A palette's bar shows its title (`layout.window.utilityTitle`,
+				// a Windows tool window's small caption).
+				utilityTitle={layout.window.utilityTitle === true}
 				onZoom={zoomsByBox ? toggleZoom : undefined}
 				// Under maximize, Windows' pair: the box a primary window
 				// lacks, drawn unavailable beside the one it has.

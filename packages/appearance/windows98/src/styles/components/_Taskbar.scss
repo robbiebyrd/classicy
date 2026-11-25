@@ -39,7 +39,12 @@
 //   checker inside its two-pixel edge, its title bold and its contents one
 //   pixel down and right (comctl32's `TAB_EraseTabInterior` fills a
 //   selected TCS_BUTTONS item with the 0x55AA brush, and `TAB_DrawItem`
-//   sinks it and offsets it one pixel; Figure 3.1's "Document" button). A press
+//   sinks it and offsets it one pixel; Figure 3.1's "Document" button); in
+//   a scheme whose ButtonHilight is not its Window color (every color
+//   scheme but Windows Standard's, Plum, Red, White, and Blue, Storm and
+//   Teal; the High Contrast schemes) `TAB_EraseTabInterior` fills it with
+//   the Scrollbar color instead, solid (the `taskbar.solidActive` switch,
+//   as `scrollBar.solidTrack` switches the track), so its title reads. A press
 //   held on another (`pressed`) is pushed in on a plain face, the contents
 //   moved likewise; a press on the active one keeps its checker (the
 //   selected button's drawing wins in comctl32). A minimized window's
@@ -183,6 +188,13 @@ $show-desktop-art:
 // The 50% checker of ButtonHilight and ButtonFace on the pixel grid, the face
 // of the active window's button.
 $checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
+
+// The active button's solid face (`taskbar.solidActive` 1): Scrollbar, an
+// inset fill spread over the whole button under its bevel, ten thousand
+// pixels a ring (a switch: 0 draws nothing, 1 covers any button), over the
+// checker.
+$active-solid: calc(var(--taskbar-solid-active) * 10000);
+$active-solid-face: var(--package-color-scroll-bar-track, var(--color-system-03));
 
 // The bar's raised edge on its top: a ButtonLight row over a ButtonHilight
 // row (DrawEdge EDGE_RAISED, BF_TOP).
@@ -345,7 +357,18 @@ $edge: b.$b2;
   // the held press, so a press on it keeps the checker.
   .classicyTaskbarTask.active {
     background: $checker;
-    @include taskbar-button-pushed;
+    // `taskbar-button-pushed`'s bevel over the solid face, which the switch
+    // spreads to nothing in a scheme whose ButtonHilight is its Window color.
+    box-shadow:
+      inset #{b.$neg-b} #{b.$neg-b} b.$hilight,
+      inset b.$b b.$b b.$dkshadow,
+      inset #{b.$neg-b2} #{b.$neg-b2} b.$light,
+      inset b.$b2 b.$b2 b.$shadow,
+      inset 0 0 0 $active-solid $active-solid-face;
+
+    > * {
+      translate: b.$b b.$b;
+    }
 
     .classicyTaskbarTaskLabel {
       font-weight: bold;

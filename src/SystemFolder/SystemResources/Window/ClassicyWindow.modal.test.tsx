@@ -913,3 +913,79 @@ describe("ClassicyWindow's What's This? box (C8)", () => {
 		expect(helpBox()).toBeNull();
 	});
 });
+
+// `layout.window.utilityTitle` (Windows 98's tool windows, whose small
+// caption carries the title): a palette's bar draws its title text before
+// its band; under Platinum's layout (no flag) the bar stays one title-less
+// band, and a document window's bar is the same either way.
+describe("ClassicyWindow's utility title (window.utilityTitle)", () => {
+	const UTILITY_TITLE_PACKAGE_ID = "test-utility-title";
+	const titleParts = () =>
+		[
+			...(document.querySelector(
+				"#TestApp_TestWindow > .classicyWindowTitleBar .classicyWindowTitle",
+			)?.children ?? []),
+		].map((child) => child.className);
+	const palette = (windowType?: "utility") => (
+		<ClassicyWindow
+			id="TestWindow"
+			appId="TestApp"
+			title="Tools"
+			windowType={windowType}
+		>
+			<p>body</p>
+		</ClassicyWindow>
+	);
+
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockStore.focused = false;
+	});
+
+	afterEach(() => {
+		activePackage.id = "platinum";
+		unregisterClassicyAppearancePackage(UTILITY_TITLE_PACKAGE_ID);
+	});
+
+	it("draws a palette's title under the flag", () => {
+		registerTestTaskbarPackage(
+			{
+				...TEST_DIALOG_CAPTION_LAYOUT,
+				window: { ...TEST_DIALOG_CAPTION_LAYOUT.window, utilityTitle: true },
+			},
+			UTILITY_TITLE_PACKAGE_ID,
+		);
+		activePackage.id = UTILITY_TITLE_PACKAGE_ID;
+		render(palette("utility"));
+		expect(titleParts()).toEqual([
+			"classicyWindowTitleText",
+			"classicyWindowTitleCenter",
+		]);
+		expect(
+			document.querySelector("#TestApp_TestWindow .classicyWindowTitleText p"),
+		).toHaveTextContent("Tools");
+	});
+
+	it("draws none under Platinum's layout", () => {
+		render(palette("utility"));
+		expect(titleParts()).toEqual(["classicyWindowTitleCenter"]);
+	});
+
+	it("leaves a document window's bar as it was under the flag", () => {
+		registerTestTaskbarPackage(
+			{
+				...TEST_DIALOG_CAPTION_LAYOUT,
+				window: { ...TEST_DIALOG_CAPTION_LAYOUT.window, utilityTitle: true },
+			},
+			UTILITY_TITLE_PACKAGE_ID,
+		);
+		activePackage.id = UTILITY_TITLE_PACKAGE_ID;
+		render(palette());
+		expect(titleParts()).toEqual([
+			"classicyWindowTitleLeft",
+			"classicyWindowIcon",
+			"classicyWindowTitleText",
+			"classicyWindowTitleRight",
+		]);
+	});
+});

@@ -1647,6 +1647,7 @@ dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
 | `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
 | `onIconMouseDown` / `onIconDoubleClick` | `(e: MouseEvent<HTMLDivElement>) => void` | on the proxy icon (`.classicyWindowIcon`), before the title area hears the event (a double-click handler calls `e.stopPropagation()` to keep it from `onTitleDoubleClick`). Without them the icon is inert, and its element carries its class alone. `ClassicyWindow` passes them under `layout.window.systemMenu`: the press opens the window pop-up menu, the double-click closes the window (WIG Ch.6 "Title Bar Icons", p.78) |
 | `labels` | `{ close?, zoom?, collapse?, help? }` (`ClassicyWindowTitleBarLabels`) | the boxes' accessible names, each defaulting to `"Close"`, `"Zoom"`, `"Collapse"`, `"Help"`; `ClassicyWindow` names the collapse box `"Minimize"` under `layout.window.collapse: "minimize"`, and the zoom box `"Maximize"`, `"Restore"` while maximized, under `layout.window.zoom: "maximize"` (WIG Ch.6 "Title Bar Buttons", p.80; "Maximizing Windows", p.84) |
+| `utilityTitle` | `boolean` | a `"utility"` bar draws its title too: `.classicyWindowTitleText` (no icon, no side bands) before the `.classicyWindowTitleCenter` band. `ClassicyWindow` passes it under `layout.window.utilityTitle: true` (Windows 98: a tool window's small caption carries its title). Without it, or with an empty `title`, a utility bar renders as before; a document bar ignores it |
 | `buttonTooltips` | `boolean` | each box names itself (its label) in a tooltip once the pointer has rested on it 500 ms (Windows' automatic delay, Wine's `TTDT_AUTOMATIC`), whatever Balloon Help says (`useClassicyBalloonHelp`'s `force`), below the box, `aria-describedby` pointing at it while shown; a press on the box hides it until the pointer comes back. `ClassicyWindow` passes it under `layout.window.captionTooltips: true`. Without it no box runs the balloon hook, and the boxes render as before |
 | `className` / `style` | passthrough | onto the root |
 
@@ -5886,7 +5887,14 @@ README lists what it ships and every asset's source.
   `titleBar.buttonWidth`/`buttonHeight` (SM_CXSIZE − 2 by SM_CYSIZE − 4,
   Wine's caption buttons), `window.utilityTitleBarHeight`
   (iSmCaptionHeight), `menuBar.titleHeight` (iMenuHeight), `sizingBorder.width`
-  (iBorderWidth); the fonts the scheme's caption, small caption, menu,
+  (iBorderWidth) and `sizingBorder.frame` (SM_CXFRAME, 3 plus it, which the
+  stylesheet sets as each window's `--window-frame-inset`, so the frame's
+  padding, edges, grip, drag band, keyboard sizing and the taskbar's
+  Cascade step follow it), `titleBar.markUnit` (2 in a caption button 24
+  or more tall, where the marks are drawn at twice their size, else 1),
+  `titleBar.gap` (1: SM_CYCAPTION's last row) and `utilityTitleBar`'s
+  11 x 11 tool-window Close in every scheme (Wine's `draw_close_button`);
+  the fonts the scheme's caption, small caption, menu,
   message box and icon fonts (`typography.families`, "Package font
   families"; the icon font's size `desktop.iconFontSize`): Arial and Times
   New Roman where Windows 98 names them; MS Sans Serif, a bitmap face, at
@@ -5923,9 +5931,9 @@ README lists what it ships and every asset's source.
   `tabControl` (`height`, a tab's, 21; the radius, lift and padding),
   `progressBar` (block width and gap, the stripe, the inset), `tooltip` (`paddingX`, `paddingY` and `pointerOffset`, 20: a ToolTip at the pointer stands that far under its hot spot; `shadow`, 6: how far right and down What's This?'s pop-up casts its shadow, Figure 12.3),
   `menuItem`, `menuBar` (`titleHeight`, 18: a window menu bar's titles,
-  which the band draws between a row of ButtonFace above and below, 20 px
-  in all, as Wine's `MENU_MenuBarCalcSize` and `NC_DoNCPaint` lay out a
-  menu bar: `SM_CYMENU` 19 and the row under it; the core's derived
+  which the band draws under a row of ButtonFace, 19 px in all, as Wine's
+  `calc_menu_bar_size` and `NC_DoNCPaint` lay out a menu bar: `SM_CYMENU`;
+  the titles in the scheme's menu font and MenuText; the core's derived
   `--window-menu-bar-height` is 21, and a host's
   `--classicy-window-menu-bar-height` still wins), `taskbar` (the
   taskbar's sizes, which only the package's stylesheet reads, the core's
@@ -5996,8 +6004,13 @@ README lists what it ships and every asset's source.
   sends the shadow out of the desktop, the stock Windows 98 label),
   `scrollBar` (`solidTrack`: 1 where ButtonHilight is not Window, the track
   then the solid Scrollbar brush, Wine's DEFWND_ControlColor; 0 the 50%
-  checker), `sizingBorder` (`width`, iBorderWidth: 1, 2 in Rose (large), 6
-  or 7 in the large High Contrast schemes) and `menuBar` (`titleHeight`,
+  checker), `taskbar.solidActive` (the same switch for the active task
+  button: comctl32's `TAB_EraseTabInterior` fills a selected TCS_BUTTONS
+  item with the checker only where ButtonHilight is Window, else with
+  Scrollbar), `sizingBorder` (`width`, iBorderWidth: 1, 2 in Rose (large), 6
+  or 7 in the large High Contrast schemes, the band of ActiveBorder or
+  InactiveBorder between the window's edge and its last ring of ButtonFace;
+  `frame`, SM_CXFRAME) and `menuBar` (`titleHeight`,
   iMenuHeight: 18, up to 38), the last two read by the window frame and the
   menu bar, and `desktopIconGrid` (`rowGap` and `columnGap` 43: Windows'
   75 px IconSpacing over a 32 px icon); `knobs`, and so the Options tab,
@@ -6166,7 +6179,8 @@ README lists what it ships and every asset's source.
   right-click on a taskbar button opens its window's menu (WIG Ch.7
   "Command Buttons", p.112). `window: { captionTooltips: true }`: each
   caption button names itself in a tooltip after 500 ms (Windows 98 as
-  shipped); and `dialog: { caption: "titled" }`: every dialog and message
+  shipped); `window: { utilityTitle: true }`: a palette's (tool window's)
+  caption shows its title, in the small caption font; and `dialog: { caption: "titled" }`: every dialog and message
   box has a titled caption (its app's name when untitled; an About box
   "About <name>") with a Close box, its Cancel (a message box's only
   button when it has no Cancel; embossed and unavailable on a Yes/No
@@ -6698,6 +6712,7 @@ how they look) has two halves:
 | `window.frameEdges` (optional) | `move`, `resize` | what the four frame edges do. `move` (the default, Mac OS 8, whose frame is a drag region; every package but Windows 98): a press on an edge moves the window, as the title bar does. `resize` (Windows 95/98, WIG Ch.6 "Sizing Borders", p.83; the audit's 6.5; Windows 98 declares it): a resizable window drawn at its size has a sizing border, its root carrying `classicyWindowSizingBorder`: each edge (the frame's width, `--window-frame-inset`, `SM_CXFRAME`) sizes it from that edge and eight corner arms (`classicyWindowFrameCorner-<corner>-<h\|v>`, reaching `--window-title-bar-height` past the inside of the frame along each edge, as Wine's `NC_HandleNCHitTest` makes a corner `SM_CXSIZE` long) size both edges of their corner, with the registry's resize cursors; a press activates the window and takes the pointer's capture, the moving edges follow the pointer (`computeClassicyWindowEdgeResize`, below) and stop at the work area, the minimum size and the height reserve's cap, so the release clamp never moves a window just sized. A non-resizable window's edges (modals included) do nothing, and a maximized window draws none (§4.1, "Frame-edge sizing"). The root gains no attribute or custom property for it |
 | `window.systemMenu` (optional) | `false`, `true` | whether windows have the window pop-up (system) menu. `false` (the default, every package but Windows 98): a right-click on the title bar shows the window's or its app's `contextMenu`, as anywhere in the window, the title bar's icon is inert, the window registry's `systemMenu` command reports `false`, and no key is bound. `true` (Windows 95/98, WIG Ch.6 "Title Bars", "Title Bar Icons", "Title Bar Buttons", pp.76–80; Ch.7 "The Window Pop-up Menu", p.102; Ch.8, pp.145 and 164; App. B, Table B.2, p.358; the audit's 6.2, 6.3, 7.10 and 8.7; Windows 98 declares it): the menu (Restore, Move, Size, Minimize, Maximize and Close; Move and Close on a modal; Move, Size and Close on a palette; each enabled as Wine's `MENU_InitSysMenuPopup` enables it; Close the bold default with ALT+F4; `classicyWindowSystemMenuItems`, below) opens at the pointer on a right-click anywhere in the title bar and on a window button's right-click on the taskbar, and drops from the caption's bottom-left on a press on its icon and on ALT+SPACE (the first item selected), with no Help item, the arrows walking it and ESC closing it; a double-click on the icon and ALT+F4 close the window through its Close box's path (veto included; nothing when it cannot close), and the menu's Move and Size run the keyboard modes (§4.1, "The window pop-up (system) menu"). `ClassicyDesktop` binds ALT+SPACE and ALT+F4 only under it. The root gains no class, attribute or custom property for it |
 | `window.captionTooltips` (optional) | `false`, `true` | whether each title-bar box names itself in a tooltip. `false` (the default, every package but Windows 98): none. `true` (Windows 98 as shipped; Windows 95 had none, and the 1995 guidelines say nothing; Windows 98 declares it): a box shows its label ("Close"; "Maximize" or "Restore", "Minimize" under the shell's flags, else "Zoom" and "Collapse"; "Help" for a help box) after the pointer rests on it 500 ms, whatever Balloon Help says, hidden by a press on it (`ClassicyWindowTitleBar`'s `buttonTooltips`, §4.1). The root gains no class, attribute or custom property for it |
+| `window.utilityTitle` (optional) | `false`, `true` | whether a utility window's (palette's) title bar shows its title. `false` (the default, every package but Windows 98): one title-less band, as Mac OS 8's and System 7's windoids. `true` (Windows 98: a WS_EX_TOOLWINDOW caption carries its title in the small caption font, Wine's `draw_nc_caption`; WIG Ch.8 "Palette Windows", p.163): the bar draws the title text before its band, no icon (`ClassicyWindowTitleBar`'s `utilityTitle`, §4.1). The root gains no class, attribute or custom property for it |
 | `dialog.caption` (optional group `dialog`) | `plain`, `titled` | how a `modal` window is captioned. `plain` (the default, Mac OS 8, every package but Windows 98): the title it is given, a Close box only when `closable`, and an alert or a `movable={false}` modal fixed in place. `titled` (Windows 95/98, WIG Ch.8 "Appearance and Behavior", p.145, Figure 8.1; "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17; Windows 98 declares it): every modal's caption has a title (its app's display name when it is given none), a Close box (closing a `closable` modal, running `onCaptionClose` for any other, drawn unavailable with neither, as for a Yes/No message box) whose path the window pop-up menu's Close and ALT+F4 follow, and moves the dialog, an alert included (no `classicyWindowModalFixed`) (§4.1, "Dialog and message box captions"). Every other window is unaffected. The root gains no attribute or custom property for it |
 | `menuBar.placement` | `screen`, `window` | `screen` (Platinum, System 7): the one menu bar across the top. `window` (Windows 98, under its taskbar; Storybook's `mirrored` package, with none): the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (Platinum, System 7): `ClassicyDesktop` draws its Control Strip and no taskbar. Present (Windows 98: `{ startLabel: "Start", startBanner: { title: "Windows", edition: "98" } }`): it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept; its modules are the taskbar's notification icons, and the menu bar extensions sit beside them); the taskbar's measured height is the band windows, Clean Up and every menu keep above, and each window's menu bar ends with the Help menu ("Window menu bars", below). The Start button opens the Start menu, and CTRL+ESC does too (§4.7, `ClassicyTaskbar`). `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label and the Start menu's accessible name. `startBanner` (`{ title, edition? }`, each one line of 1–24 characters, trimmed, no control character; absent, no banner) is the Start menu's banner, the vertical strip down its left side (`classicyStartMenuBanner`, its first child): `title` (`classicyStartMenuBannerTitle`), then `edition` (`classicyStartMenuBannerEdition`), which the package sets reading upward, the title bold. It is text in the layout, not art in the theme, so it is the same under every scheme, as Windows 98 drew its banner under every color scheme. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |

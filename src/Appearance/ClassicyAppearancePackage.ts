@@ -161,6 +161,17 @@ export type ClassicyAppearanceLayout = {
 		 * is on.
 		 */
 		captionTooltips?: boolean;
+		/**
+		 * Whether a utility window's (a palette's) title bar shows its title.
+		 * Optional. `false` (the default): a windoid's bar is one title-less
+		 * band, as Mac OS 8's and System 7's are. `true` (Windows 98: a tool
+		 * window's small caption carries its title in the small caption font,
+		 * Wine's `draw_nc_caption` for WS_EX_TOOLWINDOW; WIG Ch.8 "Palette
+		 * Windows", p.163, Figure 8.15): the bar draws the title text, with
+		 * no icon and no side bands (`ClassicyWindowTitleBar`'s
+		 * `utilityTitle`).
+		 */
+		utilityTitle?: boolean;
 	};
 	menuBar: {
 		placement: "screen" | "window";

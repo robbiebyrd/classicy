@@ -475,13 +475,25 @@ export function useClassicyTaskbarCommands(): ClassicyTaskbarCommands {
 			const targets = classicyTaskbarArrangeTargets(live);
 			if (targets.length === 0) return;
 			const desktop = document.getElementById("classicyDesktop");
+			// SM_CXFRAME is the scheme's sizing border: a package may set the
+			// frame on its windows (Windows 98's `sizingBorder.frame`), so it
+			// is read from a window, else from the desktop.
+			const desktopFrame = readClassicyThemeVar(
+				"--window-frame-inset",
+				undefined,
+				desktop,
+			);
 			const { step, minimum } = classicyArrangeMetrics({
 				titleBarHeight: readClassicyThemeVar(
 					"--window-title-bar-height",
 					undefined,
 					desktop,
 				),
-				frame: readClassicyThemeVar("--window-frame-inset", undefined, desktop),
+				frame: readClassicyThemeVar(
+					"--window-frame-inset",
+					desktopFrame,
+					desktop?.querySelector(".classicyWindow") ?? desktop,
+				),
 				border: readClassicyThemeVar(
 					"--window-border-size",
 					undefined,
