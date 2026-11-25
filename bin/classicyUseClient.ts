@@ -62,10 +62,47 @@ export function findClassicyUseClientProblems(
 	];
 }
 
-// A "use client" directive in a bundle's directive prologue, after any
-// whitespace and comments.
-const USE_CLIENT_PROLOGUE =
-	/^(?:\s|\/\*[\s\S]*?\*\/|\/\/[^\n]*\n|(["'])(?!use client\1)[^"'\\\n]*\1\s*;?)*(["'])use client\2/;
+const WHITESPACE = /\s/;
+
+/**
+ * Whether `source`'s directive prologue holds a "use client" directive:
+ * reading from the start past whitespace, block comments (each ending at its
+ * first `*\/`), line comments (each ending at a line break) and other
+ * string-literal directives (text with no quote, backslash or line break,
+ * then optional whitespace and an optional semicolon), it reaches
+ * `"use client"` or `'use client'`. One pass, each character read once, so
+ * no bundle can make it slow (it replaced a regular expression whose nested
+ * repetition backtracked exponentially on `/*` followed by many `*\//`,
+ * CodeQL js/redos).
+ */
+export function hasClassicyUseClientDirective(source: string): boolean {
+	let at = 0;
+	while (at < source.length) {
+		const char = source[at];
+		if (WHITESPACE.test(char)) {
+			at += 1;
+		} else if (source.startsWith("/*", at)) {
+			const end = source.indexOf("*/", at + 2);
+			if (end < 0) return false;
+			at = end + 2;
+		} else if (source.startsWith("//", at)) {
+			const end = source.indexOf("\n", at + 2);
+			if (end < 0) return false;
+			at = end + 1;
+		} else if (char === '"' || char === "'") {
+			if (source.startsWith(`use client${char}`, at + 1)) return true;
+			let end = at + 1;
+			while (end < source.length && !`"'\\\n`.includes(source[end])) end += 1;
+			if (source[end] !== char) return false;
+			at = end + 1;
+			while (at < source.length && WHITESPACE.test(source[at])) at += 1;
+			if (source[at] === ";") at += 1;
+		} else {
+			return false;
+		}
+	}
+	return false;
+}
 
 /**
  * verify:dist's problems with an Appearance Package's ES bundle: `source`
@@ -78,7 +115,7 @@ export function findClassicyNoUseClientProblems(
 	source: string | null,
 ): string[] {
 	if (source === null) return [`${file}: missing`];
-	if (!USE_CLIENT_PROLOGUE.test(source)) return [];
+	if (!hasClassicyUseClientDirective(source)) return [];
 	return [
 		`${file}: starts with a "use client" directive -> an Appearance Package registers itself when it loads: as a client module, a server component's import of it builds but never runs in the browser, and the desktop draws no package; unmarked, that import fails the host's build, and a client module's import of it works. Leave classicyUseClientPlugin out of the package's vite.config.ts (bin/classicyUseClient.ts).`,
 	];
