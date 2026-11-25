@@ -74,6 +74,10 @@ import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/Scroll
 import { useClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import {
+	classicyModalOpensInBackground,
+	classicyUserIsActive,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowAttention.internal";
+import {
 	type ClassicyWindowArrowKey,
 	type ClassicyWindowKeyboardMode,
 	type ClassicyWindowKeyboardModeEnd,
@@ -1517,6 +1521,36 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (becameFocused) focusInitialTarget();
 	}, [modal, ws.closed, collapsedOrMinimized, ws.focused, focusInitialTarget]);
 
+	// Under the Windows shell a modal that an inactive app opens while the
+	// user is not working in the page opens in the background, its app's
+	// taskbar button flashing (`classicyModalOpensInBackground`, plan 0020-w98
+	// E3). Decided once, as the window first renders.
+	const opensInBackgroundRef = useRef<boolean | null>(null);
+	if (opensInBackgroundRef.current === null) {
+		opensInBackgroundRef.current = classicyModalOpensInBackground({
+			modal,
+			hasTaskbar: layout.taskbar !== undefined,
+			appFocused: currentApp?.focused === true,
+			userActive: classicyUserIsActive(),
+		});
+	}
+	const opensInBackground = opensInBackgroundRef.current;
+	// Such a dialog takes the keyboard only once the user activates it: its
+	// initial focus (the default button, else its first control) moves in
+	// then, unless the click that activated it already put the focus inside.
+	useEffect(() => {
+		if (!opensInBackground || !modal || ws.closed || !ws.focused) return;
+		const root = windowRef.current;
+		if (!root || root.contains(document.activeElement)) return;
+		const target =
+			initialFocusRef?.current ??
+			root.querySelector<HTMLElement>(
+				'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
+			) ??
+			root;
+		target.focus({ preventScroll: true });
+	}, [opensInBackground, modal, ws.closed, ws.focused, initialFocusRef]);
+
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);
 	useEffect(() => {
@@ -1532,13 +1566,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// reducer for the cascade (`autoPosition`); [0, 0] opens at [0, 0].
 			desktopEventDispatch({
 				type: "ClassicyWindowOpen",
-				window: { ...ws, collapsable, modal },
+				window: {
+					...ws,
+					collapsable,
+					modal,
+					...(opensInBackground ? { background: true } : {}),
+				},
 				app: {
 					id: appId,
 				},
 			});
 		}
-	}, [appId, ws, collapsable, modal, desktopEventDispatch]);
+	}, [appId, ws, collapsable, modal, opensInBackground, desktopEventDispatch]);
 
 	// A modal window is ephemeral: it carries no persisted geometry, and
 	// leaving its record in the store makes the next open a "known id", which
@@ -2635,7 +2674,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	useFocusTrap({
 		ref: windowRef,
 		enabled: modal,
-		autoFocus: modal,
+		// A dialog opened in the background takes no focus as it opens (the
+		// effect above gives it the focus once the user activates it).
+		autoFocus: modal && !opensInBackground,
 		initialFocusRef,
 	});
 	useKeyboardEquivalents({

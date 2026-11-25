@@ -65,6 +65,11 @@ export function markAppFocused(ds: ClassicyStore, appId: string) {
 	app.focused = true;
 	app.lastFocusedAt = Date.now();
 	if (app.hidden) app.hidden = false;
+	// The app is activated, so its task button stops asking for attention
+	// (`ClassicyAppRequestAttention`; WIG Ch.10 "Message Notification",
+	// p.212: "until the user activates the window"). Set only under the
+	// Windows shell, so under every other package there is nothing to clear.
+	for (const w of listAppWindows(app)) if (w.attention) delete w.attention;
 	ds.System.Manager.Applications.focusedAppId = appId;
 }
 
@@ -79,6 +84,16 @@ export function markAppFocused(ds: ClassicyStore, appId: string) {
 export const classicyWindowsMinimize = (ds: ClassicyStore): boolean =>
 	getClassicyAppearanceLayout(ds.System.Manager.Appearance?.packageId).window
 		.collapse === "minimize";
+
+/**
+ * Whether the package `ds` is drawn with is the Windows 95/98 shell (its
+ * layout declares `taskbar`, plan 0020-w98 §2), read store-free for the
+ * stored package id, as `classicyWindowsMinimize` reads its flag. Under every
+ * other package the desktop has no taskbar and nothing keyed on it runs.
+ */
+export const classicyHasTaskbar = (ds: ClassicyStore): boolean =>
+	getClassicyAppearanceLayout(ds.System.Manager.Appearance?.packageId)
+		.taskbar !== undefined;
 
 type ClassicyWindowKind = Pick<
 	ClassicyStoreSystemAppWindow,
@@ -192,6 +207,56 @@ export function classicyVisibleSuccession(
 	if (ownApp(ds, "Finder.app")) markAppFocused(ds, "Finder.app");
 	else deFocusApps(ds);
 	return ds;
+}
+
+/**
+ * The window whose taskbar button stands for `app` when it asks for the
+ * user's attention (`ClassicyAppRequestAttention`): `windowId` when it names
+ * one of the app's open primary windows, else the app's front open primary
+ * window (the highest `zOrder`), a minimized one included, since its button
+ * is still on the taskbar. A modal or palette has no button, so it never is
+ * one; `undefined` when the app has no open primary window.
+ */
+export function classicyAttentionWindow(
+	app: ClassicyStoreSystemApp | undefined,
+	windowId?: string,
+): ClassicyStoreSystemAppWindow | undefined {
+	const primary = listAppWindows(app).filter(
+		(w) => !w.closed && isClassicyPrimaryWindow(w),
+	);
+	if (windowId !== undefined) {
+		const named = primary.find((w) => w.id === windowId);
+		if (named) return named;
+	}
+	return mostRecentAppWindow(primary);
+}
+
+/**
+ * Flags `appId`'s window for attention (plan 0020-w98 E3, the shell addendum's
+ * B17; WIG Ch.10 "Message Notification", p.212, Figure 10.3: "flash the
+ * application's taskbar button ... until the user activates the window"),
+ * as Windows' `FlashWindowEx` with `FLASHW_TRAY` does: sets the session-only
+ * `attention` on `classicyAttentionWindow(app, windowId)`, whose taskbar
+ * button then flashes. Only under the Windows shell (`classicyHasTaskbar`),
+ * only for an open app that is not the focused one (an active app's button
+ * is already pressed in), and only when the app has a window with a button.
+ * Returns whether it set the flag. The flag is cleared when the app is
+ * activated (`markAppFocused`) and when the window closes, and never
+ * persisted (`sanitizeStateForPersistence`).
+ */
+export function requestClassicyAppAttention(
+	ds: ClassicyStore,
+	appId: string,
+	windowId?: string,
+): boolean {
+	if (!classicyHasTaskbar(ds)) return false;
+	const app = ownApp(ds, appId);
+	if (!app?.open) return false;
+	if (ds.System.Manager.Applications.focusedAppId === appId) return false;
+	const win = classicyAttentionWindow(app, windowId);
+	if (!win) return false;
+	win.attention = true;
+	return true;
 }
 
 export function focusWindow(

@@ -415,6 +415,81 @@ describe("ClassicyWindowTitleBar", () => {
 	// Plan 0020-w98 §1 (`window.captionTooltips`): each box names itself in a
 	// tooltip after Windows' 500 ms (Wine's `TTDT_AUTOMATIC`), whatever
 	// Balloon Help says.
+	// Plan 0020-w98 E3: Windows' "?" caption button (a dialog's What's
+	// This?), drawn only for `onHelp`, last in the DOM (a package orders it),
+	// named "Help" unless `labels.help` names it, pressed by a click, Enter or
+	// Space, and named in a tooltip under `buttonTooltips`.
+	describe("onHelp", () => {
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it("draws no help box without it", () => {
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" onClose={vi.fn()} modal />,
+			);
+			expect(container.querySelector(".classicyWindowHelpBox")).toBeNull();
+			expect(
+				container.querySelector('[data-classicy-control="help"]'),
+			).toBeNull();
+		});
+
+		it('draws the help box last, named "Help", on a modal bar too', () => {
+			const { container } = render(
+				<ClassicyWindowTitleBar
+					title="T"
+					modal
+					onClose={vi.fn()}
+					onHelp={vi.fn()}
+				/>,
+			);
+			const bar = container.querySelector(
+				".classicyWindowTitleBar",
+			) as HTMLElement;
+			const wrapper = bar.lastElementChild;
+			expect(wrapper).toHaveAttribute("data-classicy-control", "help");
+			const box = wrapper?.querySelector(".classicyWindowHelpBox");
+			expect(box).toHaveAttribute("role", "button");
+			expect(box).toHaveAttribute("aria-label", "Help");
+			expect(box).toHaveAttribute("tabindex", "0");
+		});
+
+		it("is pressed by a click, Enter or Space, and named by labels.help", () => {
+			const onHelp = vi.fn();
+			const { container } = render(
+				<ClassicyWindowTitleBar
+					title="T"
+					onHelp={onHelp}
+					labels={{ help: "Aide" }}
+				/>,
+			);
+			const box = container.querySelector(
+				".classicyWindowHelpBox",
+			) as HTMLElement;
+			expect(box).toHaveAttribute("aria-label", "Aide");
+			fireEvent.click(box);
+			fireEvent.keyDown(box, { key: "Enter" });
+			fireEvent.keyDown(box, { key: " " });
+			fireEvent.keyDown(box, { key: "a" });
+			expect(onHelp).toHaveBeenCalledTimes(3);
+			expect(onHelp).toHaveBeenCalledWith();
+		});
+
+		it("names itself in a tooltip under buttonTooltips", () => {
+			vi.useFakeTimers();
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" onHelp={vi.fn()} buttonTooltips />,
+			);
+			fireEvent.mouseEnter(
+				container.querySelector(".classicyWindowHelpBox") as Element,
+			);
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+			expect(tooltipText()).toBe("Help");
+		});
+	});
+
 	describe("buttonTooltips", () => {
 		afterEach(() => {
 			vi.useRealTimers();

@@ -82,12 +82,16 @@ and `nodenext` resolution).
     each named in a tooltip. Toolbars ▸ Quick Launch in the taskbar's menu
     hides it and shows it again, and the choice is kept.
   - **A button for each open window** (not for dialogs or palettes), in
-    the order the windows opened, the active window's pressed. Clicking a
+    the order the windows opened, the active window's pressed. The Start
+    button says "Click here to begin." in a tooltip. Clicking a
     button activates its window, minimizes it when it is already active,
     and restores it when it is minimized; right-clicking it opens the
     window's pop-up menu; a title cut short shows whole in a tooltip; and
     a file dragged from a folder and held over a button brings its window
-    up for the drop. When too many windows are open for the buttons to
+    up for the drop. When an application in the background puts up a
+    message while you are working elsewhere, its message waits behind your
+    window and its button flashes (three times, then it stays highlighted)
+    until you switch to it, as Windows 98 did. When too many windows are open for the buttons to
     fit, they shrink to their icons and show a row at a time, with small
     up and down arrows at the right to move between the rows.
   - **The notification area**, at its right, holds the Control Strip's
@@ -175,7 +179,8 @@ and `nodenext` resolution).
     the scheme's title-bar colors (the package's own art, not Windows'
     flag), pushed in while the Start menu is open; a button per window,
     160 pixels wide at most and sharing the bar evenly when it fills, the
-    active window's pushed in over a checkered face with its title in bold;
+    active window's pushed in over a checkered face with its title in bold,
+    a flashing one in the scheme's highlight color;
     and the notification area in a sunken pane, its icons flat and the
     clock at its right end, as Windows 98 drew them;
   - the Start menu, sitting on the taskbar's top edge in one raised frame

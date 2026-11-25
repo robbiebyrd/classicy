@@ -542,6 +542,7 @@
 			"StartIcon",
 			"StartLabel",
 			"Task",
+			"TaskAttention",
 			"TaskIcon",
 			"TaskLabel",
 			"Tasks",
@@ -607,6 +608,7 @@
 			"HeaderAboveHead",
 			"HeaderDimmed",
 			"HeaderList",
+			"HelpBox",
 			"Icon",
 			"Maximized",
 			"Menu",
@@ -658,7 +660,7 @@
 		"fits"
 	],
 	"attributes": {
-		"data-classicy-control": ["close", "zoom", "collapse"],
+		"data-classicy-control": ["close", "zoom", "collapse", "help"],
 		"data-classicy-role": ["default", "cancel", "other"],
 		"data-classicy-selection": ["all", "tail"],
 		"data-classicy-part": [

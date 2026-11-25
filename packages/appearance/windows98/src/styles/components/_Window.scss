@@ -36,7 +36,10 @@
 //   Close whose SC_CLOSE is grayed or gone; and under its maximize
 //   (`window.zoom: "maximize"`) a window with Minimize or Maximize alone
 //   draws the other so, Windows 95's pair (Wine's `NC_DrawCaption`; the
-//   Calculator's grayed Maximize).
+//   Calculator's grayed Maximize). A dialog given the core's help box
+//   (`classicyWindowHelpBox`, Windows' What's This? button) draws it the
+//   same way just left of Close, Close apart by its gap, its mark the
+//   6 x 9 question mark.
 // - `--title-bar-gap` (2) of frame below the caption, then the client area,
 //   sunken two pixels (WS_EX_CLIENTEDGE: `b.sunken`) around its viewport and
 //   scroll bars, white; the size grip in the scroll bars' corner, three
@@ -151,6 +154,15 @@ $maximize: runs(
   "x"
 );
 $minimize: runs(("xxxxxx", "xxxxxx"), "x");
+
+// Help, a dialog's What's This? button (the core's help box; Marlett's
+// DFCS_CAPTIONHELP glyph, Wine's `draw_frame_caption`): the question mark
+// 6 x 9 at (5, 2), as Windows 98 drew it (98.css's help.svg traces the same
+// pixels at the same offset).
+$help: runs(
+  (".xxxx.", "xx..xx", "xx..xx", "...xx.", "..xx..", "..xx..", "......", "..xx..", "..xx.."),
+  "x"
+);
 
 // Restore, the Maximize box's mark while the window is zoomed (WIG Ch.6
 // "Maximizing Windows", pp.84-85; "Title Bar Buttons", p.80): two
@@ -274,6 +286,12 @@ $grip-shadow: runs($grip, "s");
       margin-left: var(--title-bar-close-gap);
     }
 
+    // A dialog's Help ("?") box stands just left of Close, Close apart from
+    // it by the same gap (the core puts it last).
+    [data-classicy-control=help] {
+      order: 35;
+    }
+
     // The boxes' wrappers are the buttons' size, with no padding, and show
     // on an inactive window too.
     .classicyWindowControlBox {
@@ -290,7 +308,8 @@ $grip-shadow: runs($grip, "s");
     // focusable buttons) shows Windows' dotted rectangle inside the bevel.
     .classicyWindowCloseBox,
     .classicyWindowZoomBox,
-    .classicyWindowCollapseBox {
+    .classicyWindowCollapseBox,
+    .classicyWindowHelpBox {
       position: relative;
       width: var(--title-bar-button-width);
       height: var(--title-bar-button-height);
@@ -321,6 +340,10 @@ $grip-shadow: runs($grip, "s");
 
     .classicyWindowCollapseBox {
       @include caption-button($minimize, 4, 9);
+    }
+
+    .classicyWindowHelpBox {
+      @include caption-button($help, 5, 2);
     }
 
     // A dialog's Close it cannot carry out (the core's `closeDisabled`,

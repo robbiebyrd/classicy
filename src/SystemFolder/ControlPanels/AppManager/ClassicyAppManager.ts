@@ -27,6 +27,7 @@ import {
 	loadApp,
 	openApp,
 	pickSuccessorApp,
+	requestClassicyAppAttention,
 	showAllApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
@@ -127,6 +128,13 @@ export interface ClassicyStoreSystemAppWindow {
 	// front. Stripped before persistence, so a reload's re-registration of a
 	// closed window never steals focus.
 	closedThisSession?: boolean;
+	/**
+	 * Session-only: the window's app asks for the user's attention, so its
+	 * taskbar button flashes (`ClassicyAppRequestAttention`, set only under
+	 * the Windows shell, plan 0020-w98 E3). Cleared when the app is
+	 * activated or the window closes; stripped before persistence.
+	 */
+	attention?: boolean;
 	// Platinum window class (#205). Utility (tool-palette) windows are excluded
 	// from automatic focus succession; absent ⇒ treated as "document".
 	windowType?: "document" | "utility";
@@ -387,6 +395,21 @@ export const classicyAppEventHandler = (
 		}
 		case "ClassicyAppShowAll": {
 			showAllApps(ds);
+			break;
+		}
+		// The Windows shell's attention signal (plan 0020-w98 E3): the app's
+		// taskbar button flashes until the app is activated. A no-op under
+		// every package without a taskbar.
+		case "ClassicyAppRequestAttention": {
+			if (hasApp(action)) {
+				const windowId =
+					typeof action.window === "object" &&
+					action.window !== null &&
+					typeof (action.window as { id?: unknown }).id === "string"
+						? (action.window as { id: string }).id
+						: undefined;
+				requestClassicyAppAttention(ds, action.app.id, windowId);
+			}
 			break;
 		}
 		case "ClassicyAppActivate": {

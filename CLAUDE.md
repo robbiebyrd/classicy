@@ -208,6 +208,20 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   same app+id has mounted again by then (StrictMode's phantom remount, or a
   replacement instance). Modal windows are destroyed instead, as before.
 - `ClassicyWindowClose` promotes the app's highest-`zOrder` open sibling.
+- Under a layout with `taskbar` (plan 0020-w98 E3, WIG Ch.10 "Message
+  Notification" p.212), `ClassicyAppRequestAttention { app: { id },
+  window? }` sets the session-only `attention` on the app's named (else
+  front) open primary window, minimized included, when the app is open and
+  not focused (`requestClassicyAppAttention`, `ClassicyAppHelpers.ts`); its
+  taskbar button flashes until any focus of the app (`markAppFocused`)
+  clears it; a close clears it, `sanitizeStateForPersistence` strips it,
+  and it is a no-op under every other package. `ClassicyWindow` sends
+  `ClassicyWindowOpen`'s `window.background` for a modal an inactive app
+  opens while the page has no transient user activation
+  (`classicyModalOpensInBackground`, `Window/ClassicyWindowAttention.internal.ts`;
+  no User Activation API counts as active); the reducer then opens it
+  unfocused and requests attention instead, when that succeeds, and the
+  window takes no DOM focus until the store focuses it.
 - Under `layout.window.collapse: "minimize"` (the Windows shell, plan
   0020-w98 §5; Windows 98 declares it; absent, `"shade"`, every other
   package is as above) the
@@ -691,7 +705,9 @@ Under a package whose layout declares `taskbar` (Windows 98, beside
 0020-w98 §2), `ClassicyDesktop` mounts `ClassicyTaskbar` (`Taskbar/`) in the
 strip's place,
 at the same point among its children, and no strip: a `<nav>` along the
-bottom (z-index 355) with the Start button (`taskbar-start`, `open`), a
+bottom (z-index 355) with the Start button (`taskbar-start`, `open`; its
+tooltip Windows 98's "Click here to begin.", forced, 500 ms, never over the
+open menu), a
 button per open primary window from the window registry (`taskbar-tasks`;
 no modal or palette; `active` for the active window or, under its app's
 dialog or palette, the app's front window; `collapsed`; `pressed`; a click
@@ -699,7 +715,9 @@ restores, minimizes or activates through the registry, button 2 asks for
 the window's `systemMenu`; creation order for the session; a cut-short title
 is a forced 500 ms tooltip; each carries `data-classicy-drop-activate`, so a
 file drag resting on it 500 ms restores or activates its window, never
-minimizing it, WIG Ch.3 p.16) and the status area (`taskbar-tray`). It takes
+minimizing it, WIG Ch.3 p.16; `classicyTaskbarTaskAttention` while its
+record's session-only `attention` is set, below) and the status area
+(`taskbar-tray`). It takes
 `controlStrip`'s `disabledModules` (published for the control panel, as the
 strip does) and `hideModules` for `controlStrip={false}`, and publishes its
 measured height as the taskbar band.

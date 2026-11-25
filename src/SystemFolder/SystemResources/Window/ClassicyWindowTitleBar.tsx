@@ -70,6 +70,19 @@ export type ClassicyWindowTitleBarProps = {
 	collapseDisabled?: boolean;
 	/** Called by Enter or Space on the collapse box; without it they click the box. */
 	onCollapseKey?: () => void;
+	/**
+	 * Draws the help box, Windows' "?" caption button (a dialog's What's
+	 * This? button, WIG Ch.8 "Appearance and Behavior", p.145; Ch.12
+	 * "Context-Sensitive Help", p.273), and is called, with no arguments, by
+	 * its click, Enter or Space. Its wrapper carries
+	 * `data-classicy-control="help"` and its box the class
+	 * `classicyWindowHelpBox`; it is named "Help" (`labels.help`) and comes
+	 * last in the DOM, so a package places it with `order` (Windows 98: just
+	 * left of Close). No package's own window passes it yet (plan 0020-w98
+	 * E3: `ClassicyWindow` wires it to What's This? once that mode is
+	 * merged). Without it no box is drawn and the bar renders as before.
+	 */
+	onHelp?: () => void;
 	/** Mouse-down on the title area (the drag handle). */
 	onTitleMouseDown?: (e: MouseEvent<HTMLDivElement>) => void;
 	/** Double-click on the title area. */
@@ -100,7 +113,7 @@ export type ClassicyWindowTitleBarProps = {
 	labels?: ClassicyWindowTitleBarLabels;
 	/**
 	 * Each control box names itself in a tooltip: its label (`labels`, else
-	 * "Close", "Zoom", "Collapse") once the pointer has rested on it for
+	 * "Close", "Zoom", "Collapse", "Help") once the pointer has rested on it for
 	 * 500 ms (Windows' automatic delay, the double-click time: Wine's
 	 * `TTDT_AUTOMATIC`), whether or not balloon help is on
 	 * (`useClassicyBalloonHelp`'s `force`), below the box; a press on the box
@@ -125,6 +138,8 @@ export type ClassicyWindowTitleBarLabels = {
 	zoom?: string;
 	/** The collapse box's name; `"Collapse"` when absent. */
 	collapse?: string;
+	/** The help box's name; `"Help"` when absent (Windows' "?" button). */
+	help?: string;
 };
 
 /** Enter or Space on a control box, the keys that press a button. */
@@ -228,7 +243,8 @@ const ClassicyWindowTitleBarControlBox: FunctionalComponent<
  * `useClassicyBalloonHelp`); the window owns the behavior and passes it in. The boxes are buttons named "Close", "Zoom"
  * and "Collapse", unless `labels` names them otherwise; `closeDisabled`,
  * `zoomDisabled` and `collapseDisabled` draw a box unavailable, and
- * `buttonTooltips` gives each box its name as a tooltip.
+ * `buttonTooltips` gives each box its name as a tooltip; `onHelp` adds
+ * Windows' "?" box.
  *
  * Its styles exist only under a `.classicyWindow` or `.classicyWindowFrame`
  * root (`ClassicyWindowTitleBar.scss` is included by those two sheets), so
@@ -253,6 +269,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 	onCollapse,
 	collapseDisabled = false,
 	onCollapseKey,
+	onHelp,
 	onTitleMouseDown,
 	onTitleDoubleClick,
 	onIconMouseDown,
@@ -363,6 +380,22 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 									else e.currentTarget.click();
 								}
 					}
+				/>
+			</div>
+		)}
+		{onHelp && (
+			<div
+				className={"classicyWindowControlBox"}
+				{...{ [CLASSICY_PART_ATTRIBUTE.control]: "help" }}
+			>
+				<ClassicyWindowTitleBarControlBox
+					tooltip={buttonTooltips}
+					className={"classicyWindowHelpBox"}
+					label={labels?.help ?? "Help"}
+					onClick={() => onHelp()}
+					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+						if (isPressKey(e)) onHelp();
+					}}
 				/>
 			</div>
 		)}

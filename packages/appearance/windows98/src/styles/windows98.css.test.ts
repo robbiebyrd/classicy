@@ -239,6 +239,48 @@ describe("windows98.scss (compiled)", () => {
 		expect(has(".classicyMenuItem.default")).toBe(false);
 	});
 
+	// Plan 0020-w98 E3: a dialog's Help ("?") box, the core's help box, is a
+	// caption button like Close, just left of it (Close apart by its gap),
+	// its mark the 6 x 9 question mark at (5, 2) and one pixel further down
+	// and right while pressed.
+	it("draws the help box as a caption button left of Close", () => {
+		const order = (control: string) =>
+			Number(
+				new RegExp(
+					`\\[data-classicy-control=${control}\\][^{]*\\{[^}]*order: (\\d+)`,
+				).exec(css)?.[1],
+			);
+		expect(order("help")).toBeGreaterThan(order("zoom"));
+		expect(order("help")).toBeLessThan(order("close"));
+		// Every rule whose selector list ends with `tail`, its bodies joined.
+		const block = (tail: string) =>
+			[
+				...css.matchAll(
+					new RegExp(
+						`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+						"g",
+					),
+				),
+			]
+				.map((m) => m[1])
+				.join("\n");
+		const box = block(
+			".classicyWindow .classicyWindowTitleBar .classicyWindowHelpBox",
+		);
+		expect(box).toContain("var(--color-black)");
+		expect(box).toContain("var(--color-system-03)");
+		// The top bar of the "?" (1, 0) 4 wide, moved to (6, 2).
+		expect(box).toContain(
+			"calc(var(--pixel-unit) * 6) calc(var(--pixel-unit) * 2)/calc(var(--pixel-unit) * 4) var(--pixel-unit)",
+		);
+		const pressed = block(
+			".classicyWindow .classicyWindowTitleBar .classicyWindowHelpBox:active",
+		);
+		expect(pressed).toContain(
+			"calc(var(--pixel-unit) * 7) calc(var(--pixel-unit) * 3)/calc(var(--pixel-unit) * 4) var(--pixel-unit)",
+		);
+	});
+
 	// Plan 0020-w98 §6 (`dialog.caption: "titled"`): a dialog that cannot
 	// close draws its Close box `disabled`, raised, its X embossed in
 	// ButtonShadow over a ButtonHilight copy one pixel down and right
@@ -615,6 +657,43 @@ describe("windows98.scss (compiled)", () => {
 			expect(
 				rulesOn(/\.classicyTaskbar(Start|Task|TrayIcon)\b[^ ]*:hover/),
 			).toEqual([]);
+		});
+
+		// A window whose app asks for attention (plan 0020-w98 E3, B17; WIG
+		// Ch.10 "Message Notification", p.212): raised, its interior Hilight
+		// and its title HilightText (comctl32's TCIS_HIGHLIGHTED button),
+		// toggling with the plain face three times, 530 ms a phase, then held;
+		// not animated under reduced motion; before the held press, which
+		// pushes it in on that face.
+		it("flashes an attention button Hilight three times, then holds it", () => {
+			const attention = block("=windows98] .classicyTaskbarTaskAttention");
+			expect(attention).toContain("background: var(--color-highlight)");
+			expect(attention).toContain(
+				"color: var(--package-color-selection-text, var(--color-white))",
+			);
+			expect(attention).toContain(
+				"animation: classicyWindows98TaskAttention 1060ms step-end 3",
+			);
+			expect(attention).not.toContain("box-shadow");
+			const frames =
+				/@keyframes classicyWindows98TaskAttention\s*\{([\s\S]*?\})\s*\}/.exec(
+					css,
+				)?.[1] ?? "";
+			expect(frames).toMatch(
+				/0%\s*\{[^}]*background: var\(--color-highlight\)/,
+			);
+			expect(frames).toMatch(
+				/50%,\s*100%\s*\{[^}]*background: var\(--color-system-03\)/,
+			);
+			expect(css).toMatch(
+				/@media \(prefers-reduced-motion: reduce\)\s*\{[^{}]*\.classicyTaskbarTaskAttention\s*\{\s*animation: none;/,
+			);
+			expect(at(".classicyTaskbarTaskAttention")).toBeGreaterThan(
+				at("=windows98] .classicyTaskbarTask"),
+			);
+			expect(at(".classicyTaskbarTask.pressed")).toBeGreaterThan(
+				at(".classicyTaskbarTaskAttention"),
+			);
 		});
 
 		// The status area: a pane the buttons' height in one sunken ring

@@ -15,6 +15,7 @@ import {
 	focusApp,
 	focusWindow,
 	isClassicyPrimaryWindow,
+	requestClassicyAppAttention,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
@@ -186,7 +187,21 @@ export const classicyWindowEventHandler = (
 				windowType?: "document" | "utility";
 				collapsable?: unknown;
 				modal?: unknown;
+				background?: unknown;
 			};
+			// Under the Windows shell, a modal dialog an inactive app opens
+			// while the user is not working in it (`background`, set by
+			// `ClassicyWindow` from `classicyModalOpensInBackground`) does not
+			// take the foreground: its app's taskbar button flashes instead,
+			// until the user activates the app (WIG Ch.10 "Message
+			// Notification", p.212; Windows 98's foreground lock, which turns a
+			// background SetForegroundWindow into FlashWindowEx). It opens
+			// focused as always when the app has no window with a button to
+			// flash, or under any package without a taskbar.
+			const opensInBackground = () =>
+				win.background === true &&
+				win.modal === true &&
+				requestClassicyAppAttention(ds, action.app.id);
 			// #278: persist the window's collapsable/modal props so Option-click
 			// collapse-all can skip windows that opted out. Only real booleans
 			// are written — a malformed payload leaves the record untouched.
@@ -220,7 +235,7 @@ export const classicyWindowEventHandler = (
 				} as ClassicyStoreSystemAppWindow);
 				// A genuinely new window opens focused (Mac behavior); re-registered
 				// persisted windows must not steal focus.
-				ds = focusWindow(ds, action.app.id, win.id);
+				if (!opensInBackground()) ds = focusWindow(ds, action.app.id, win.id);
 			} else {
 				const existing = getAppWindow(app, win.id);
 				// A window closed earlier this session and now registering again
@@ -236,7 +251,7 @@ export const classicyWindowEventHandler = (
 					closedThisSession: false,
 					...flags,
 				});
-				if (reopening) {
+				if (reopening && !opensInBackground()) {
 					ds = focusWindow(ds, action.app.id, win.id);
 				}
 			}
@@ -266,6 +281,12 @@ export const classicyWindowEventHandler = (
 				closedThisSession: true,
 				focused: false,
 			});
+			// A closed window has no taskbar button left to flash.
+			const closedRecord = getAppWindow(
+				ds.System.Manager.Applications.apps[action.app.id],
+				action.window.id,
+			);
+			if (closedRecord?.attention) delete closedRecord.attention;
 			// Promote a sibling only when this app holds focus — closing a
 			// background app's window must not steal global focus.
 			if (ds.System.Manager.Applications.focusedAppId !== action.app.id) {

@@ -834,6 +834,10 @@ export function sanitizeStateForPersistence(
 			delete app.hidden;
 			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
+				// A taskbar button's call for attention (the Windows shell's
+				// `ClassicyAppRequestAttention`) belongs to the session that
+				// raised it.
+				delete w.attention;
 				delete w.resizing;
 				delete w.dragging;
 				delete w.moving;

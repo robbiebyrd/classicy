@@ -43,7 +43,9 @@
 //   held on another (`pressed`) is pushed in on a plain face, the contents
 //   moved likewise; a press on the active one keeps its checker (the
 //   selected button's drawing wins in comctl32). A minimized window's
-//   (`collapsed`) is an ordinary raised button. Nothing changes under the
+//   (`collapsed`) is an ordinary raised button. One whose app asks for
+//   attention (`classicyTaskbarTaskAttention`) flashes Hilight three times
+//   and then stays Hilight until the app is activated. Nothing changes under the
 //   pointer (the taskbar tracks no hover). The keyboard focus is the dotted
 //   rectangle three pixels in. Once the buttons at their least width no
 //   longer fit the row (`classicyTaskbarTasksPaged`), each takes exactly that
@@ -297,6 +299,41 @@ $edge: b.$b2;
   .classicyTaskbarTaskIcon {
     width: var(--icon-small-size);
     height: var(--icon-small-size);
+  }
+
+  // A window whose app asks for attention (the core's
+  // `classicyTaskbarTaskAttention`, WIG Ch.10 "Message Notification",
+  // p.212, Figure 10.3): its button keeps its raised edge and its interior
+  // turns Hilight, the title HilightText, as comctl32 fills a TCIS_HIGHLIGHTED
+  // button (Wine's `TAB_EraseTabInterior` and `TAB_DrawItem`). It toggles
+  // with the plain face three times at the caret-blink rate (530 ms a phase,
+  // Windows' FlashWindowEx with a zero timeout, ForegroundFlashCount 3), then
+  // stays highlighted until the app is activated; under reduced motion it
+  // stays highlighted from the start. Before the held press, which pushes it
+  // in on the same face.
+  @keyframes classicyWindows98TaskAttention {
+    0% {
+      color: b.$highlight-text;
+      background: b.$highlight;
+    }
+
+    50%,
+    100% {
+      color: b.$text;
+      background: b.$face;
+    }
+  }
+
+  .classicyTaskbarTaskAttention {
+    color: b.$highlight-text;
+    background: b.$highlight;
+    animation: classicyWindows98TaskAttention 1060ms step-end 3;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .classicyTaskbarTaskAttention {
+      animation: none;
+    }
   }
 
   // A press held on a button: pushed in on a plain face.

@@ -3,6 +3,7 @@ import {
 	registerTestTaskbarPackage,
 	TEST_MINIMIZE_LAYOUT,
 	TEST_MINIMIZE_PACKAGE_ID,
+	TEST_TASKBAR_PACKAGE_ID,
 } from "@/__tests__/testTaskbarPackage";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
@@ -12,6 +13,8 @@ import type {
 	ClassicyStoreSystemApp,
 	ClassicyStoreSystemAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	countAppWindows,
 	getAppWindow,
@@ -1626,6 +1629,235 @@ describe("minimize (window.collapse)", () => {
 		expect(recordOf(ds, "A.app", "b")).toMatchObject({
 			collapsed: false,
 			focused: true,
+		});
+	});
+});
+
+// Plan 0020-w98 E3 (the shell addendum's B17; WIG Ch.10 "Message
+// Notification", p.212): under the Windows shell an inactive app asks for
+// attention (`ClassicyAppRequestAttention`, and a modal it opens in the
+// background), its front primary window's taskbar button flashing until the
+// app is activated. Under a package without a taskbar nothing changes.
+describe("the attention signal (ClassicyAppRequestAttention)", () => {
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+	});
+
+	const win = (
+		id: string,
+		overrides: Partial<ClassicyStoreSystemAppWindow> = {},
+	): ClassicyStoreSystemAppWindow => ({
+		id,
+		closed: false,
+		focused: false,
+		size: [100, 100],
+		position: [0, 0],
+		minimumSize: [0, 0],
+		...overrides,
+	});
+
+	// A.app holds focus; B.app is in the background with two documents, the
+	// front one minimized. `taskbar` decides the drawing package.
+	const shell = (taskbar: boolean) => {
+		const ds = makeStore();
+		if (taskbar) {
+			registerTestTaskbarPackage();
+			ds.System.Manager.Appearance.packageId = TEST_TASKBAR_PACKAGE_ID;
+		}
+		const apps = ds.System.Manager.Applications.apps;
+		apps["Finder.app"].focused = false;
+		apps["A.app"] = {
+			id: "A.app",
+			name: "A",
+			icon: "",
+			open: true,
+			focused: true,
+			data: {},
+			windows: windowsRecord(win("doc", { focused: true, zOrder: 50 })),
+		};
+		apps["B.app"] = {
+			id: "B.app",
+			name: "B",
+			icon: "",
+			open: true,
+			focused: false,
+			data: {},
+			windows: windowsRecord(
+				win("back", { zOrder: 10 }),
+				win("front", { zOrder: 20, collapsed: true }),
+				win("palette", { zOrder: 30, windowType: "utility" }),
+			),
+		};
+		ds.System.Manager.Applications.focusedAppId = "A.app";
+		return ds;
+	};
+	const b = (ds: ClassicyStore, id: string) =>
+		getAppWindow(ds.System.Manager.Applications.apps["B.app"], id);
+	const attention = (ds: ClassicyStore) =>
+		Object.values(ds.System.Manager.Applications.apps).flatMap((a) =>
+			listAppWindows(a)
+				.filter((w) => w.attention)
+				.map((w) => `${a.id}:${w.id}`),
+		);
+	const request = (ds: ClassicyStore, window?: { id: string }) =>
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppRequestAttention",
+			app: { id: "B.app" },
+			...(window ? { window } : {}),
+		});
+	const openModal = (ds: ClassicyStore, background: boolean) =>
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "B.app" },
+			window: {
+				id: "alert",
+				position: [10, 10],
+				size: [200, 100],
+				minimumSize: [0, 0],
+				modal: true,
+				...(background ? { background: true } : {}),
+			},
+		});
+
+	it("flags the app's front primary window, a minimized one included, never a palette", () => {
+		const ds = request(shell(true));
+		expect(attention(ds)).toEqual(["B.app:front"]);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("A.app");
+	});
+
+	it("flags the window it names, when that is an open primary window", () => {
+		expect(attention(request(shell(true), { id: "back" }))).toEqual([
+			"B.app:back",
+		]);
+		expect(attention(request(shell(true), { id: "palette" }))).toEqual([
+			"B.app:front",
+		]);
+	});
+
+	it("does nothing for the focused app, a closed app or an app with no primary window", () => {
+		const ds = shell(true);
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppRequestAttention",
+			app: { id: "A.app" },
+		});
+		expect(attention(ds)).toEqual([]);
+		const closed = shell(true);
+		closed.System.Manager.Applications.apps["B.app"].open = false;
+		expect(attention(request(closed))).toEqual([]);
+		const palettesOnly = shell(true);
+		palettesOnly.System.Manager.Applications.apps["B.app"].windows =
+			windowsRecord(win("palette", { windowType: "utility" }));
+		expect(attention(request(palettesOnly))).toEqual([]);
+	});
+
+	it("does nothing under a package without a taskbar", () => {
+		expect(attention(request(shell(false)))).toEqual([]);
+	});
+
+	it("is not open to untrusted actions (a stack script's)", () => {
+		const ds = shell(true);
+		classicyDesktopStateEventReducer(
+			ds,
+			{ type: "ClassicyAppRequestAttention", app: { id: "B.app" } },
+			"untrusted",
+		);
+		expect(attention(ds)).toEqual([]);
+	});
+
+	it("is cleared when the app is activated, by any window or the app itself", () => {
+		const byWindow = request(shell(true));
+		classicyWindowEventHandler(byWindow, {
+			type: "ClassicyWindowFocus",
+			app: { id: "B.app" },
+			window: { id: "back" },
+		});
+		expect(attention(byWindow)).toEqual([]);
+		const byApp = request(shell(true));
+		classicyDesktopStateEventReducer(byApp, {
+			type: "ClassicyAppFocus",
+			app: { id: "B.app" },
+		});
+		expect(attention(byApp)).toEqual([]);
+	});
+
+	it("is cleared when its window closes", () => {
+		const ds = request(shell(true));
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "B.app" },
+			window: { id: "front" },
+		});
+		expect(b(ds, "front")?.attention).toBeUndefined();
+	});
+
+	it("is never persisted", () => {
+		const ds = request(shell(true));
+		expect(
+			b(sanitizeStateForPersistence(ds), "front")?.attention,
+		).toBeUndefined();
+	});
+
+	describe("a modal opened in the background", () => {
+		it("opens without focus under the shell, the app's button flashing", () => {
+			const ds = openModal(shell(true), true);
+			expect(b(ds, "alert")?.focused).not.toBe(true);
+			expect(b(ds, "alert")?.closed).toBe(false);
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("A.app");
+			expect(attention(ds)).toEqual(["B.app:front"]);
+		});
+
+		it("opens focused when it is not marked background", () => {
+			const ds = openModal(shell(true), false);
+			expect(b(ds, "alert")?.focused).toBe(true);
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("B.app");
+			expect(attention(ds)).toEqual([]);
+		});
+
+		it("opens focused under a package without a taskbar, background or not", () => {
+			const ds = openModal(shell(false), true);
+			expect(b(ds, "alert")?.focused).toBe(true);
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("B.app");
+			expect(attention(ds)).toEqual([]);
+		});
+
+		it("opens focused when its app has no window with a button to flash", () => {
+			const ds = shell(true);
+			ds.System.Manager.Applications.apps["B.app"].windows = {};
+			openModal(ds, true);
+			expect(b(ds, "alert")?.focused).toBe(true);
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("B.app");
+		});
+
+		it("opens focused when its app is the focused one", () => {
+			const ds = shell(true);
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowOpen",
+				app: { id: "A.app" },
+				window: {
+					id: "alert",
+					position: [10, 10],
+					size: [200, 100],
+					minimumSize: [0, 0],
+					modal: true,
+					background: true,
+				},
+			});
+			expect(
+				getAppWindow(ds.System.Manager.Applications.apps["A.app"], "alert")
+					?.focused,
+			).toBe(true);
+			expect(attention(ds)).toEqual([]);
+		});
+
+		it("takes focus, and the flash stops, once the user activates it", () => {
+			const ds = openModal(shell(true), true);
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowFocus",
+				app: { id: "B.app" },
+				window: { id: "alert" },
+			});
+			expect(b(ds, "alert")?.focused).toBe(true);
+			expect(attention(ds)).toEqual([]);
 		});
 	});
 });

@@ -14,6 +14,7 @@ import {
 	registerTestTaskbarPackage,
 	TEST_DIALOG_CAPTION_LAYOUT,
 	TEST_DIALOG_CAPTION_PACKAGE_ID,
+	TEST_TASKBAR_PACKAGE_ID,
 } from "@/__tests__/testTaskbarPackage";
 import { classicyWindowDomSnapshot } from "@/__tests__/windowDomSnapshot";
 import { windowsRecord } from "@/__tests__/windowsRecord";
@@ -718,5 +719,100 @@ describe("ClassicyWindow modal captions (dialog.caption)", () => {
 				type: "ClassicySoundPlayError",
 			});
 		});
+	});
+});
+
+// Plan 0020-w98 E3 (the shell addendum's B17): under the Windows shell a
+// modal an inactive app opens while the user is not working in the page
+// (no transient user activation) asks to open in the background: its
+// ClassicyWindowOpen carries `background`, and it takes no focus until the
+// store focuses it. With the user active, under a layout without a
+// taskbar, or where the browser has no User Activation API, it opens as
+// before.
+describe("ClassicyWindow modal opened in the background", () => {
+	const setActivation = (isActive: boolean | undefined) =>
+		Object.defineProperty(navigator, "userActivation", {
+			configurable: true,
+			value: isActive === undefined ? undefined : { isActive },
+		});
+	const openCalls = () =>
+		mockDispatch.mock.calls
+			.map((c) => c[0] as { type: string; window?: { background?: unknown } })
+			.filter((a) => a.type === "ClassicyWindowOpen");
+	// The dialog's default button, its initial focus (as a bundled alert
+	// hands it its default button).
+	const okButton = () => screen.getByRole("button", { name: "OK" });
+	const focusInDialog = () => document.activeElement === okButton();
+	const Dialog = () => {
+		const defaultRef = useRef<HTMLButtonElement | null>(null);
+		return (
+			<ClassicyWindow
+				id="TestWindow"
+				appId="TestApp"
+				title="Dialog"
+				modal
+				initialFocusRef={defaultRef}
+			>
+				<button type="button">Cancel</button>
+				<button type="button" ref={defaultRef}>
+					OK
+				</button>
+			</ClassicyWindow>
+		);
+	};
+
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockStore.focused = false;
+		registerTestTaskbarPackage();
+		activePackage.id = TEST_TASKBAR_PACKAGE_ID;
+	});
+
+	afterEach(() => {
+		setActivation(undefined);
+		mockStore.focused = false;
+		activePackage.id = "platinum";
+		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+	});
+
+	it("asks for the background and takes no focus, under the shell with the user idle", () => {
+		setActivation(false);
+		render(<Dialog />);
+		expect(openCalls()[0]?.window?.background).toBe(true);
+		expect(focusInDialog()).toBe(false);
+	});
+
+	it("takes the focus once the store focuses it", () => {
+		setActivation(false);
+		const { rerender } = render(<Dialog />);
+		expect(focusInDialog()).toBe(false);
+		mockStore.focused = true;
+		rerender(<Dialog />);
+		expect(focusInDialog()).toBe(true);
+	});
+
+	it.each([
+		["the user is active", true],
+		["the browser has no User Activation API", undefined],
+	])("opens as before when %s", (_name, active) => {
+		setActivation(active);
+		render(<Dialog />);
+		expect(openCalls()[0]?.window).not.toHaveProperty("background");
+		expect(focusInDialog()).toBe(true);
+	});
+
+	it("opens as before when its app is the focused one", () => {
+		setActivation(false);
+		mockStore.focused = true;
+		render(<Dialog />);
+		expect(openCalls()[0]?.window).not.toHaveProperty("background");
+	});
+
+	it("opens as before under a layout without a taskbar", () => {
+		setActivation(false);
+		activePackage.id = "platinum";
+		render(<Dialog />);
+		expect(openCalls()[0]?.window).not.toHaveProperty("background");
+		expect(focusInDialog()).toBe(true);
 	});
 });

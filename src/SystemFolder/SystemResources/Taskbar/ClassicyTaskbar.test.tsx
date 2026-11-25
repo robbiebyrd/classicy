@@ -45,7 +45,10 @@ import {
 	CLASSICY_DROP_ACTIVATE_EVENT,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
-import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
+import {
+	CLASSICY_TASKBAR_START_TOOLTIP,
+	ClassicyTaskbar,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
 import { getClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import {
 	CLASSICY_TASKBAR_MENU_IDS,
@@ -186,6 +189,26 @@ describe("classicyTaskbarTasks", () => {
 			zOrder: 42,
 			minimized: true,
 		});
+	});
+
+	// Plan 0020-w98 E3 (the shell addendum's B17): a window whose record asks
+	// for attention flashes its button, unless it is the active one.
+	it("carries the record's attention, never on the active button", () => {
+		const tasks = classicyTaskbarTasks(
+			[entry("A.app", "one"), entry("A.app", "two"), entry("B.app", "doc")],
+			appsOf(
+				app("A.app", [win("one", { attention: true }), win("two")]),
+				app("B.app", [win("doc", { attention: true, focused: true })], {
+					focused: true,
+				}),
+			),
+			NONE,
+		);
+		expect(tasks.map((t) => [t.key, t.attention, t.active])).toEqual([
+			[k("A.app", "one"), true, false],
+			[k("A.app", "two"), false, false],
+			[k("B.app", "doc"), false, true],
+		]);
 	});
 
 	describe("the active button", () => {
@@ -745,6 +768,70 @@ describe("ClassicyTaskbar", () => {
 			expect(start()).not.toHaveClass("open");
 			expect(document.activeElement).toBe(start());
 		});
+
+		// Plan 0020-w98 E3: Windows 98 SE's Start button tooltip
+		// (explorer.exe's string 533), after the ToolTip delay, whatever
+		// Balloon Help says; never while the menu is open.
+		describe("the tooltip", () => {
+			const balloonText = () =>
+				document.querySelector(".classicyBalloonHelpContent")?.textContent;
+
+			it('reads "Click here to begin." after 500 ms, Balloon Help off', () => {
+				vi.useFakeTimers();
+				act(() =>
+					dispatch({
+						type: "ClassicyDesktopSetBalloonHelp",
+						disableBalloonHelp: true,
+					}),
+				);
+				render(<ClassicyTaskbar />);
+				fireEvent.mouseEnter(start());
+				act(() => {
+					vi.advanceTimersByTime(CLASSICY_TASKBAR_TOOLTIP_DELAY_MS - 1);
+				});
+				expect(balloonText()).toBeUndefined();
+				act(() => {
+					vi.advanceTimersByTime(1);
+				});
+				expect(balloonText()).toBe(CLASSICY_TASKBAR_START_TOOLTIP);
+				expect(CLASSICY_TASKBAR_START_TOOLTIP).toBe("Click here to begin.");
+				expect(start()).toHaveAttribute("aria-describedby");
+				fireEvent.mouseLeave(start());
+				expect(balloonText()).toBeUndefined();
+			});
+
+			it("goes at a press, and never shows over the open menu", () => {
+				vi.useFakeTimers();
+				render(<ClassicyTaskbar />);
+				fireEvent.mouseEnter(start());
+				act(() => {
+					vi.advanceTimersByTime(CLASSICY_TASKBAR_TOOLTIP_DELAY_MS);
+				});
+				expect(balloonText()).toBe(CLASSICY_TASKBAR_START_TOOLTIP);
+				fireEvent.mouseDown(start(), { button: 0 });
+				expect(start()).toHaveClass("open");
+				expect(balloonText()).toBeUndefined();
+				fireEvent.mouseLeave(start());
+				fireEvent.mouseEnter(start());
+				act(() => {
+					vi.advanceTimersByTime(CLASSICY_TASKBAR_TOOLTIP_DELAY_MS * 2);
+				});
+				expect(balloonText()).toBeUndefined();
+			});
+
+			it("goes when the menu opens from the keyboard", () => {
+				vi.useFakeTimers();
+				render(<ClassicyTaskbar />);
+				fireEvent.mouseEnter(start());
+				act(() => {
+					vi.advanceTimersByTime(CLASSICY_TASKBAR_TOOLTIP_DELAY_MS);
+				});
+				expect(balloonText()).toBe(CLASSICY_TASKBAR_START_TOOLTIP);
+				fireEvent.click(start(), { detail: 0 });
+				expect(start()).toHaveClass("open");
+				expect(balloonText()).toBeUndefined();
+			});
+		});
 	});
 
 	describe("window buttons", () => {
@@ -1123,6 +1210,37 @@ describe("ClassicyTaskbar", () => {
 				});
 				expect(balloonText()).toBeUndefined();
 			});
+		});
+
+		// Plan 0020-w98 E3 (B17): the button of a window that asks for
+		// attention carries `classicyTaskbarTaskAttention` until the app is
+		// activated, which clears the record's flag.
+		it("flashes the button of a window asking for attention until its app is activated", () => {
+			registerTestTaskbarPackage();
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: TEST_TASKBAR_PACKAGE_ID,
+				}),
+			);
+			register(entry("A.app", "one", { title: "One" }));
+			register(entry("B.app", "doc", { title: "Doc" }));
+			setApps(
+				app("A.app", [win("one")]),
+				app("B.app", [win("doc", { focused: true })], { focused: true }),
+			);
+			render(<ClassicyTaskbar />);
+			expect(taskButton("One")).not.toHaveClass("classicyTaskbarTaskAttention");
+			act(() =>
+				dispatch({
+					type: "ClassicyAppRequestAttention",
+					app: { id: "A.app" },
+				}),
+			);
+			expect(taskButton("One")).toHaveClass("classicyTaskbarTaskAttention");
+			expect(taskButton("Doc")).not.toHaveClass("classicyTaskbarTaskAttention");
+			act(() => dispatch({ type: "ClassicyAppFocus", app: { id: "A.app" } }));
+			expect(taskButton("One")).not.toHaveClass("classicyTaskbarTaskAttention");
 		});
 	});
 

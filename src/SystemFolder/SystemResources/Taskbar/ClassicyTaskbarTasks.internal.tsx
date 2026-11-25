@@ -80,6 +80,14 @@ export type ClassicyTaskbarTask = {
 	 * an owner's button pressed under its dialog.
 	 */
 	readonly active: boolean;
+	/**
+	 * The window's app asks for the user's attention (the record's
+	 * `attention`, `ClassicyAppRequestAttention`; WIG Ch.10 "Message
+	 * Notification", p.212), so the button flashes: it carries
+	 * `classicyTaskbarTaskAttention` until the app is activated. Never on
+	 * the active button.
+	 */
+	readonly attention: boolean;
 };
 
 /** The key of a window's button. */
@@ -108,7 +116,7 @@ const isSecondary = (window: {
 const activeTaskKey = (
 	entries: readonly ClassicyWindowEntry[],
 	apps: Readonly<Record<string, ClassicyStoreSystemApp>>,
-	tasks: readonly Omit<ClassicyTaskbarTask, "active">[],
+	tasks: readonly Omit<ClassicyTaskbarTask, "active" | "attention">[],
 ): string | undefined => {
 	const app = Object.values(apps).find((a) => a.open && a.focused);
 	if (!app) return undefined;
@@ -123,7 +131,7 @@ const activeTaskKey = (
 		(e) => e.appId === app.id && e.windowId === focused.id,
 	);
 	if (!isSecondary(entry ?? focused)) return undefined;
-	let front: Omit<ClassicyTaskbarTask, "active"> | undefined;
+	let front: Omit<ClassicyTaskbarTask, "active" | "attention"> | undefined;
 	for (const t of own)
 		if (!t.minimized && (front === undefined || t.zOrder > front.zOrder))
 			front = t;
@@ -143,7 +151,8 @@ export function classicyTaskbarTasks(
 	apps: Readonly<Record<string, ClassicyStoreSystemApp>>,
 	overrides: ClassicyAppIdentityOverrides,
 ): ClassicyTaskbarTask[] {
-	const tasks: Omit<ClassicyTaskbarTask, "active">[] = [];
+	const tasks: Omit<ClassicyTaskbarTask, "active" | "attention">[] = [];
+	const attention = new Set<string>();
 	for (const entry of entries) {
 		if (isSecondary(entry)) continue;
 		const app = ownApp(apps, entry.appId);
@@ -157,8 +166,10 @@ export function classicyTaskbarTasks(
 						name: app.name,
 						icon: app.icon,
 					}).name;
+		const key = classicyTaskbarTaskKey(entry.appId, entry.windowId);
+		if (record.attention === true) attention.add(key);
 		tasks.push({
-			key: classicyTaskbarTaskKey(entry.appId, entry.windowId),
+			key,
 			entry,
 			label,
 			icon: entry.icon,
@@ -167,7 +178,11 @@ export function classicyTaskbarTasks(
 		});
 	}
 	const active = activeTaskKey(entries, apps, tasks);
-	return tasks.map((t) => ({ ...t, active: t.key === active }));
+	return tasks.map((t) => ({
+		...t,
+		active: t.key === active,
+		attention: t.key !== active && attention.has(t.key),
+	}));
 }
 
 /**
@@ -331,6 +346,7 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 				type="button"
 				className={classNames(
 					"classicyTaskbarTask",
+					{ classicyTaskbarTaskAttention: task.attention },
 					classicyStateClasses({
 						active: task.active,
 						collapsed: task.minimized,

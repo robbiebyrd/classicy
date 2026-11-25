@@ -16,6 +16,7 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { setClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
@@ -25,7 +26,10 @@ import {
 import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import { useClassicyTaskbarCommands } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
 import { ClassicyTaskbarQuickLaunch } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarQuickLaunch.internal";
-import { ClassicyTaskbarTasks } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
+import {
+	CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
+	ClassicyTaskbarTasks,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
 import { ClassicyTaskbarTray } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTray.internal";
 import {
 	classicyDesktopHasOpenModal,
@@ -57,6 +61,13 @@ const TASKBAR_STATUS_AREA = [
  * Button", p.15, Figure 3.1).
  */
 export const CLASSICY_TASKBAR_DEFAULT_START_LABEL = "Start";
+
+/**
+ * The Start button's tooltip, Windows 98 SE's (explorer.exe's string 533,
+ * "Click here to begin."), shown after the ToolTip delay while the menu is
+ * closed.
+ */
+export const CLASSICY_TASKBAR_START_TOOLTIP = "Click here to begin.";
 
 export type ClassicyTaskbarProps = {
 	/**
@@ -134,14 +145,18 @@ const useClassicyTaskbarBandPublisher = (
  *   it, leaving the focus on the button (handed back to it from the menu).
  *   Nothing opens it while a modal dialog is open on the desktop. Its label
  *   is the layout's `taskbar.startLabel` (`"Start"` when absent); its icon
- *   is an empty span the package draws.
+ *   is an empty span the package draws. Its tooltip, after 500 ms whatever
+ *   Balloon Help says, is Windows 98's "Click here to begin."
+ *   (`CLASSICY_TASKBAR_START_TOOLTIP`), never over the open menu.
  * - **A window button** (`classicyTaskbarTask`) shows the window's icon and
  *   title (its app's display name when untitled), cut with an ellipsis and
  *   then shown whole as a tooltip after 500 ms, whatever Balloon Help says.
  *   It is `active` (and `aria-pressed`) for the active window, or for the
  *   front window of an app whose modal or palette holds focus; `collapsed`
  *   while its window is collapsed (minimized under a layout that minimizes);
- *   `pressed` while a press is held on it. A click restores a minimized
+ *   `pressed` while a press is held on it; `classicyTaskbarTaskAttention`
+ *   while its window asks for attention (`ClassicyAppRequestAttention`),
+ *   which the package draws flashing. A click restores a minimized
  *   window, minimizes the active one, and activates any other; button 2
  *   activates the window (unless it is minimized) and opens its pop-up menu
  *   at the pointer, where the window has one. Every command runs through
@@ -236,11 +251,33 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 		else openStartMenu();
 	};
 	useClassicyTaskbarKeys(rootRef, startOpen, openStartMenu, closeStartMenu);
+	// Its tooltip, "Click here to begin.", after Windows' initial ToolTip
+	// delay (the double-click time), whatever Balloon Help says; never over
+	// the open menu, and put away by a press, as a Windows tooltip is.
+	const { handlers: startTip, balloon: startTipBalloon } =
+		useClassicyBalloonHelp(
+			startRef,
+			{
+				content: CLASSICY_TASKBAR_START_TOOLTIP,
+				delay: CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
+			},
+			{ force: true },
+		);
 	// A press opens or closes it, as a menu title does; Enter and Space reach
 	// it as a click with no press count.
 	const onStartMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
+		startTip.onMouseLeave();
 		if (e.button === 0) toggleStartMenu();
 	};
+	const onStartMouseEnter = () => {
+		if (!startOpen) startTip.onMouseEnter();
+	};
+	// However the menu opens (a press, CTRL+ESC, Enter), the tooltip goes.
+	const hideStartTipRef = useRef(startTip.onMouseLeave);
+	hideStartTipRef.current = startTip.onMouseLeave;
+	useEffect(() => {
+		if (startOpen) hideStartTipRef.current();
+	}, [startOpen]);
 	const onStartClick = (e: MouseEvent<HTMLButtonElement>) => {
 		if (e.detail === 0) toggleStartMenu();
 	};
@@ -296,13 +333,17 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				aria-haspopup="menu"
 				aria-expanded={startOpen}
 				aria-controls={startOpen ? CLASSICY_START_MENU_ID : undefined}
+				aria-describedby={startTip["aria-describedby"]}
 				onMouseDown={onStartMouseDown}
+				onMouseEnter={onStartMouseEnter}
+				onMouseLeave={startTip.onMouseLeave}
 				onClick={onStartClick}
 				onKeyDown={onStartKeyDown}
 			>
 				<span className="classicyTaskbarStartIcon" aria-hidden="true" />
 				<span className="classicyTaskbarStartLabel">{startLabel}</span>
 			</button>
+			{startTipBalloon}
 			{startAnchor && (
 				<ClassicyStartMenu
 					anchor={startAnchor}
