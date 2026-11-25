@@ -365,6 +365,10 @@ describe("ClassicyDesktop layout", () => {
 			const { container } = renderDesktop();
 			expect(container.querySelector(".classicyControlStrip")).not.toBeNull();
 			expect(container.querySelector(".classicyTaskbar")).toBeNull();
+			// Nothing a resting file drag activates (the taskbar's buttons).
+			expect(
+				container.querySelector("[data-classicy-drop-activate]"),
+			).toBeNull();
 			const list = children(container);
 			// The menu bar, then the apps' containers, then the strip, then
 			// the desktop icons.

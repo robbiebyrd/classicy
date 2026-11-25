@@ -5,9 +5,13 @@ import {
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
 import {
+	CLASSICY_DROP_ACTIVATE_ATTRIBUTE,
+	CLASSICY_DROP_ACTIVATE_DELAY_MS,
+	CLASSICY_DROP_ACTIVATE_EVENT,
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_DRAG_THRESHOLD,
+	findClassicyFileDropActivator,
 	findClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
@@ -128,6 +132,281 @@ describe("findClassicyFileDropTarget", () => {
 				elementsFromPoint: at(el("text"), el("row")),
 			}),
 		).toBeNull();
+	});
+});
+
+// Plan 0020-w98 §2, "Drops": the Windows shell's taskbar takes no drops,
+// and its window buttons answer a drag resting on them (WIG Ch.3 "Window
+// Buttons", p.16; Ch.10 "Taskbar Window Buttons", p.211).
+describe("the taskbar and drop activation", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+	});
+
+	const build = () => {
+		document.body.innerHTML = `
+			<div id="desk" ${CLASSICY_DROP_DESKTOP_ATTRIBUTE}>
+				<div id="bare"></div>
+				<div id="folder" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="Macintosh HD:Archive"><span id="folderLabel"></span></div>
+				<div id="finder" class="classicyWindow"><p id="text"></p></div>
+				<nav id="taskbar" class="classicyTaskbar">
+					<button id="start" class="classicyTaskbarStart"></button>
+					<ul id="tasks" class="classicyTaskbarTasks">
+						<li id="slot"><button id="task" class="classicyTaskbarTask" ${CLASSICY_DROP_ACTIVATE_ATTRIBUTE}><img id="taskIcon"><span id="taskLabel"></span></button></li>
+					</ul>
+					<div id="tray" class="classicyTaskbarTray"></div>
+				</nav>
+			</div>`;
+		return (id: string) => document.getElementById(id) as Element;
+	};
+	const at =
+		(...elements: Element[]) =>
+		() =>
+			elements;
+
+	it("refuses a drop anywhere on the taskbar, though the desktop holds it", () => {
+		const el = build();
+		for (const id of ["taskbar", "start", "tasks", "slot", "tray"]) {
+			expect(
+				findClassicyFileDropTarget(0, 0, { elementsFromPoint: at(el(id)) }),
+			).toBeNull();
+		}
+	});
+
+	it("refuses a drop on a button a resting drag activates", () => {
+		const el = build();
+		for (const id of ["task", "taskIcon", "taskLabel"]) {
+			expect(
+				findClassicyFileDropTarget(0, 0, { elementsFromPoint: at(el(id)) }),
+			).toBeNull();
+		}
+	});
+
+	it("finds the marked button under the pointer, or its child, before the taskbar's block", () => {
+		const el = build();
+		for (const id of ["task", "taskIcon", "taskLabel"]) {
+			expect(
+				findClassicyFileDropActivator(0, 0, { elementsFromPoint: at(el(id)) }),
+			).toBe(el("task"));
+		}
+	});
+
+	it("finds nothing to activate over the rest of the taskbar, a window, a folder or the desktop", () => {
+		const el = build();
+		for (const id of [
+			"taskbar",
+			"start",
+			"slot",
+			"tray",
+			"text",
+			"folderLabel",
+			"bare",
+		]) {
+			expect(
+				findClassicyFileDropActivator(0, 0, { elementsFromPoint: at(el(id)) }),
+			).toBeNull();
+		}
+		expect(
+			findClassicyFileDropActivator(0, 0, { elementsFromPoint: at() }),
+		).toBe(null);
+	});
+
+	it("only considers the topmost element, the dragged one skipped", () => {
+		const el = build();
+		// Something over the button hides it.
+		expect(
+			findClassicyFileDropActivator(0, 0, {
+				elementsFromPoint: at(el("text"), el("task")),
+			}),
+		).toBeNull();
+		// The dragged element is not what is over it.
+		expect(
+			findClassicyFileDropActivator(0, 0, {
+				exclude: el("finder"),
+				elementsFromPoint: at(el("text"), el("taskLabel")),
+			}),
+		).toBe(el("task"));
+	});
+
+	it("leaves folder and desktop targets as they were", () => {
+		const el = build();
+		expect(
+			findClassicyFileDropTarget(0, 0, {
+				elementsFromPoint: at(el("folderLabel")),
+			}),
+		).toEqual({
+			destination: { kind: "folder", path: "Macintosh HD:Archive" },
+			element: el("folder"),
+		});
+		expect(
+			findClassicyFileDropTarget(0, 0, { elementsFromPoint: at(el("bare")) }),
+		).toEqual({ destination: { kind: "desktop" }, element: el("desk") });
+	});
+
+	describe("a drag resting on the button", () => {
+		// Every drag a case starts, ended after it, so none outlives its case.
+		const drags: Array<() => void> = [];
+		afterEach(() => {
+			for (const abandon of drags.splice(0)) abandon();
+			document.body.className = "";
+			vi.useRealTimers();
+		});
+
+		const fire = (type: string, x: number, y: number) =>
+			document.dispatchEvent(
+				new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }),
+			);
+
+		// A drag from (10, 10): the pointer is over the folder left of x = 100,
+		// over the button from x = 100 to 199, and over the bare desktop from
+		// x = 200.
+		const setup = () => {
+			vi.useFakeTimers();
+			const el = build();
+			const activations: Event[] = [];
+			el("task").addEventListener(CLASSICY_DROP_ACTIVATE_EVENT, (e) =>
+				activations.push(e),
+			);
+			// An event that bubbled would reach the taskbar.
+			const bubbled = vi.fn();
+			el("taskbar").addEventListener(CLASSICY_DROP_ACTIVATE_EVENT, bubbled);
+			const onDrop = vi.fn();
+			const onClick = vi.fn();
+			const onEnd = vi.fn();
+			const abandon = startClassicyFileDrag({
+				start: { clientX: 10, clientY: 10 },
+				parts: [],
+				onDrop,
+				onClick,
+				onEnd,
+				elementsFromPoint: (x) =>
+					x < 100
+						? [el("folderLabel")]
+						: x < 200
+							? [el("taskLabel")]
+							: [el("bare")],
+			});
+			drags.push(abandon);
+			const wait = (ms: number) => vi.advanceTimersByTime(ms);
+			return {
+				el,
+				activations,
+				bubbled,
+				onDrop,
+				onClick,
+				onEnd,
+				abandon,
+				wait,
+			};
+		};
+
+		it("activates the button once it has rested on it for 500 ms, with an event that does not bubble", () => {
+			const { el, activations, bubbled, wait } = setup();
+			fire("mousemove", 150, 10);
+			wait(CLASSICY_DROP_ACTIVATE_DELAY_MS - 1);
+			expect(activations).toHaveLength(0);
+			wait(1);
+			expect(activations).toHaveLength(1);
+			expect(activations[0].type).toBe("classicy:dropactivate");
+			expect(activations[0].target).toBe(el("task"));
+			expect(activations[0].bubbles).toBe(false);
+			expect(bubbled).not.toHaveBeenCalled();
+			expect(CLASSICY_DROP_ACTIVATE_DELAY_MS).toBe(500);
+		});
+
+		it("activates it once, however long the drag stays or moves about on it", () => {
+			const { activations, wait } = setup();
+			fire("mousemove", 150, 10);
+			wait(300);
+			// Moving on the button does not start the wait again.
+			fire("mousemove", 160, 12);
+			wait(200);
+			expect(activations).toHaveLength(1);
+			fire("mousemove", 170, 14);
+			wait(CLASSICY_DROP_ACTIVATE_DELAY_MS * 4);
+			expect(activations).toHaveLength(1);
+		});
+
+		it("stops waiting when the drag leaves the button, and starts again when it comes back", () => {
+			const { activations, wait } = setup();
+			fire("mousemove", 150, 10);
+			wait(CLASSICY_DROP_ACTIVATE_DELAY_MS - 1);
+			fire("mousemove", 250, 10);
+			wait(CLASSICY_DROP_ACTIVATE_DELAY_MS * 2);
+			expect(activations).toHaveLength(0);
+			fire("mousemove", 150, 10);
+			wait(CLASSICY_DROP_ACTIVATE_DELAY_MS);
+			expect(activations).toHaveLength(1);
+			// Left and back once it has fired: a second activation.
+			fire("mousemove", 50, 10);
+			fire("mousemove", 150, 10);
+			wait(CLASSICY_DROP_ACTIVATE_DELAY_MS);
+			expect(activations).toHaveLength(2);
+		});
+
+		it("does not highlight the button, and a release on it drops nothing", () => {
+			const { el, onDrop, onEnd } = setup();
+			fire("mousemove", 50, 10);
+			expect(el("folder")).toHaveClass("classicyFileDropTarget");
+			fire("mousemove", 150, 10);
+			expect(el("folder")).not.toHaveClass("classicyFileDropTarget");
+			expect(el("task")).not.toHaveClass("classicyFileDropTarget");
+			fire("mouseup", 150, 10);
+			expect(onEnd).toHaveBeenCalledWith({
+				dropped: false,
+				canceled: false,
+				lost: false,
+			});
+			expect(onDrop).toHaveBeenCalledWith(null, [150, 10], [150, 10]);
+		});
+
+		it("stops waiting however the drag ends", () => {
+			const ends: Array<(s: ReturnType<typeof setup>) => void> = [
+				() => fire("mouseup", 150, 10),
+				() =>
+					document.dispatchEvent(
+						new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+					),
+				({ abandon }) => abandon(),
+				() => losePointerStream("blur"),
+			];
+			for (const end of ends) {
+				const drag = setup();
+				fire("mousemove", 150, 10);
+				drag.wait(CLASSICY_DROP_ACTIVATE_DELAY_MS - 1);
+				end(drag);
+				drag.wait(CLASSICY_DROP_ACTIVATE_DELAY_MS * 2);
+				expect(drag.activations).toHaveLength(0);
+				expect(drag.onEnd).toHaveBeenCalledOnce();
+				vi.useRealTimers();
+			}
+		});
+
+		it("activates nothing while the press has not become a drag", () => {
+			const { activations, onClick, wait } = setup();
+			// Within the threshold: a click in the making, which hit-tests nothing.
+			fire("mousemove", 10 + CLASSICY_FILE_DRAG_THRESHOLD - 1, 10);
+			wait(CLASSICY_DROP_ACTIVATE_DELAY_MS * 2);
+			fire("mouseup", 10 + CLASSICY_FILE_DRAG_THRESHOLD - 1, 10);
+			expect(onClick).toHaveBeenCalledOnce();
+			expect(activations).toHaveLength(0);
+		});
+
+		it("sends nothing to a button that left the document while the drag rested on it", () => {
+			const { el, activations, onEnd, wait } = setup();
+			fire("mousemove", 150, 10);
+			const button = el("task");
+			button.remove();
+			wait(CLASSICY_DROP_ACTIVATE_DELAY_MS);
+			expect(activations).toHaveLength(0);
+			// The drag goes on.
+			fire("mouseup", 250, 10);
+			expect(onEnd).toHaveBeenCalledWith({
+				dropped: true,
+				canceled: false,
+				lost: false,
+			});
+		});
 	});
 });
 

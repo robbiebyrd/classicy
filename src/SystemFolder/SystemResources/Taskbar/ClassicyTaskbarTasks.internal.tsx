@@ -23,6 +23,10 @@ import {
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import {
+	CLASSICY_DROP_ACTIVATE_ATTRIBUTE,
+	CLASSICY_DROP_ACTIVATE_EVENT,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
@@ -199,6 +203,19 @@ export const classicyTaskbarClickCommand = (
 ): ClassicyWindowCommand["type"] =>
 	task.minimized ? "restore" : task.active ? "minimize" : "activate";
 
+/**
+ * What a file drag resting on a window's button does (WIG Ch.3 "Window
+ * Buttons", p.16: "When the user drags over a taskbar button, the system
+ * activates the associated window, allowing the user to drop within that
+ * window"; Ch.10 "Taskbar Window Buttons", p.211: "the system automatically
+ * restores the window"): a minimized window is restored and activated, and
+ * any other window is activated. Unlike a click, it never minimizes the
+ * active window, which the drop is meant for.
+ */
+export const classicyTaskbarDropActivateCommand = (
+	task: Pick<ClassicyTaskbarTask, "minimized">,
+): ClassicyWindowCommand["type"] => (task.minimized ? "restore" : "activate");
+
 // The button's task as the store stands now, not as the render saw it: a
 // click decides on the live state.
 const liveTask = (
@@ -246,6 +263,24 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 		runClassicyWindowCommand(appId, windowId, {
 			type,
 		} as ClassicyWindowCommand);
+
+	// A file drag that has rested on the button (`ClassicyFileDrag.ts`, which
+	// finds the button by its `CLASSICY_DROP_ACTIVATE_ATTRIBUTE`) brings its
+	// window up for the drop, decided on the live state as a click is.
+	useEffect(() => {
+		const button = buttonRef.current;
+		if (!button) return;
+		const onDropActivate = () => {
+			const live = liveTask(task.key, overrides);
+			if (live)
+				runClassicyWindowCommand(appId, windowId, {
+					type: classicyTaskbarDropActivateCommand(live),
+				} as ClassicyWindowCommand);
+		};
+		button.addEventListener(CLASSICY_DROP_ACTIVATE_EVENT, onDropActivate);
+		return () =>
+			button.removeEventListener(CLASSICY_DROP_ACTIVATE_EVENT, onDropActivate);
+	}, [task.key, overrides, appId, windowId]);
 
 	const onMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
 		if (e.button !== 0) return;
@@ -304,6 +339,7 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 				)}
 				aria-pressed={task.active}
 				aria-describedby={handlers["aria-describedby"]}
+				{...{ [CLASSICY_DROP_ACTIVATE_ATTRIBUTE]: "" }}
 				onMouseDown={onMouseDown}
 				onMouseEnter={onMouseEnter}
 				onMouseLeave={onMouseLeave}
@@ -332,7 +368,9 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
  * The taskbar's list of window buttons (`.classicyTaskbarTasks`,
  * `data-classicy-part="taskbar-tasks"`). Each button runs its window's own
  * commands through the window registry, so the window's sounds, analytics
- * and geometry stay in `ClassicyWindow`.
+ * and geometry stay in `ClassicyWindow`, and carries
+ * `data-classicy-drop-activate`, so a file drag resting on it brings its
+ * window up (`classicyTaskbarDropActivateCommand`).
  */
 export const ClassicyTaskbarTasks: FunctionalComponent = () => {
 	const entries = useClassicyWindowEntries();

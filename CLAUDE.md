@@ -682,7 +682,9 @@ no modal or palette; `active` for the active window or, under its app's
 dialog or palette, the app's front window; `collapsed`; `pressed`; a click
 restores, minimizes or activates through the registry, button 2 asks for
 the window's `systemMenu`; creation order for the session; a cut-short title
-is a forced 500 ms tooltip) and the status area (`taskbar-tray`). It takes
+is a forced 500 ms tooltip; each carries `data-classicy-drop-activate`, so a
+file drag resting on it 500 ms restores or activates its window, never
+minimizing it, WIG Ch.3 p.16) and the status area (`taskbar-tray`). It takes
 `controlStrip`'s `disabledModules` (published for the control panel, as the
 strip does) and `hideModules` for `controlStrip={false}`, and publishes its
 measured height as the taskbar band.
@@ -838,8 +840,13 @@ end where they are instead, as a release there would). Targets are hit-tested
 with `elementsFromPoint` against
 `data-classicy-drop-folder="<path>"` (folder/drive icons, list rows' name cells,
 each file browser's root) and `data-classicy-drop-desktop` (the desktop root);
-`.classicyWindow`, the menu bar, Control Strip and dialogs block. Folder targets
-get `.classicyFileDropTarget` (darkened icon/row, framed window).
+`.classicyWindow`, the menu bar, Control Strip, the taskbar (`.classicyTaskbar`)
+and dialogs block. Folder targets get `.classicyFileDropTarget` (darkened
+icon/row, framed window). An element marked `data-classicy-drop-activate`
+(the taskbar's window buttons), found before the blocking check, takes no
+drop: once the drag has rested on it 500 ms (`CLASSICY_DROP_ACTIVATE_DELAY_MS`)
+it gets one non-bubbling `classicy:dropactivate`, the wait stopped by leaving
+it or the drag ending.
 
 - `fs.move(path, toFolder)` does the move (refusals: `missing`, `not-a-folder`,
   `same-folder`, `into-itself`, `locked`, `exists`; journal op `"move"` with

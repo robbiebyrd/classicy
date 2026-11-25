@@ -38,6 +38,12 @@ import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/Contr
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { useClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import {
+	CLASSICY_DROP_ACTIVATE_ATTRIBUTE,
+	CLASSICY_DROP_ACTIVATE_DELAY_MS,
+	CLASSICY_DROP_ACTIVATE_EVENT,
+	startClassicyFileDrag,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
 import { getClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import {
@@ -49,6 +55,7 @@ import {
 import {
 	CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
 	classicyTaskbarClickCommand,
+	classicyTaskbarDropActivateCommand,
 	classicyTaskbarOrder,
 	classicyTaskbarTaskKey,
 	classicyTaskbarTasks,
@@ -291,6 +298,17 @@ describe("classicyTaskbarClickCommand", () => {
 		expect(
 			classicyTaskbarClickCommand({ minimized: false, active: false }),
 		).toBe("activate");
+	});
+});
+
+describe("classicyTaskbarDropActivateCommand", () => {
+	it("restores a minimized window and activates any other, the active one included", () => {
+		expect(classicyTaskbarDropActivateCommand({ minimized: true })).toBe(
+			"restore",
+		);
+		expect(classicyTaskbarDropActivateCommand({ minimized: false })).toBe(
+			"activate",
+		);
 	});
 });
 
@@ -834,6 +852,113 @@ describe("ClassicyTaskbar", () => {
 			]);
 		});
 
+		// Plan 0020-w98 §2, "Drops" (WIG Ch.3 "Window Buttons", p.16; Ch.10,
+		// p.211): a file drag resting on a button brings its window up.
+		describe("a file drag resting on it", () => {
+			const dropActivate = (button: HTMLButtonElement) =>
+				act(() => {
+					button.dispatchEvent(new Event(CLASSICY_DROP_ACTIVATE_EVENT));
+				});
+
+			it("marks every window button as one a resting drag activates", () => {
+				register(entry("A.app", "one", { title: "One" }));
+				register(entry("A.app", "two", { title: "Two" }));
+				setApps(app("A.app", [win("one"), win("two", { collapsed: true })]));
+				render(<ClassicyTaskbar />);
+				for (const button of taskButtons())
+					expect(button).toHaveAttribute(CLASSICY_DROP_ACTIVATE_ATTRIBUTE, "");
+				// The Start button takes no part.
+				expect(
+					document.querySelector(".classicyTaskbarStart"),
+				).not.toHaveAttribute(CLASSICY_DROP_ACTIVATE_ATTRIBUTE);
+			});
+
+			it("restores a minimized window and activates any other, never minimizing the active one", () => {
+				register(entry("A.app", "one", { title: "One" }));
+				register(entry("A.app", "two", { title: "Two" }));
+				register(entry("A.app", "three", { title: "Three" }));
+				setApps(
+					app(
+						"A.app",
+						[
+							win("one", { focused: true }),
+							win("two"),
+							win("three", { collapsed: true }),
+						],
+						{ focused: true },
+					),
+				);
+				render(<ClassicyTaskbar />);
+				expect(taskButton("One")).toHaveClass("active");
+				dropActivate(taskButton("One"));
+				dropActivate(taskButton("Two"));
+				dropActivate(taskButton("Three"));
+				expect(commands).toEqual([
+					"one:activate",
+					"two:activate",
+					"three:restore",
+				]);
+			});
+
+			it("decides on the store as it stands, not as it was drawn", () => {
+				register(entry("A.app", "one", { title: "One" }));
+				setApps(app("A.app", [win("one")]));
+				render(<ClassicyTaskbar />);
+				// Minimized since the last render, with no render in between.
+				useAppManager.setState((state) =>
+					produce(state, (draft) => {
+						draft.System.Manager.Applications.apps[
+							"A.app"
+						].windows.one.collapsed = true;
+					}),
+				);
+				dropActivate(taskButton("One"));
+				expect(commands).toEqual(["one:restore"]);
+			});
+
+			it("is told by the drag engine once the drag has rested on it for 500 ms", () => {
+				register(entry("A.app", "one", { title: "One" }));
+				setApps(app("A.app", [win("one", { collapsed: true })]));
+				render(<ClassicyTaskbar />);
+				vi.useFakeTimers();
+				const one = taskButton("One");
+				const label = one.querySelector(".classicyTaskbarTaskLabel") as Element;
+				const onDrop = vi.fn();
+				const abandon = startClassicyFileDrag({
+					start: { clientX: 40, clientY: 400 },
+					parts: [],
+					onDrop,
+					elementsFromPoint: () => [label],
+				});
+				try {
+					fireEvent.mouseMove(document, { clientX: 40, clientY: 700 });
+					act(() => {
+						vi.advanceTimersByTime(CLASSICY_DROP_ACTIVATE_DELAY_MS - 1);
+					});
+					expect(commands).toEqual([]);
+					act(() => {
+						vi.advanceTimersByTime(1);
+					});
+					expect(commands).toEqual(["one:restore"]);
+					// Released on the button, nothing is dropped.
+					fireEvent.mouseUp(document, { clientX: 40, clientY: 700 });
+					expect(onDrop).toHaveBeenCalledWith(null, [40, 700], [40, 700]);
+				} finally {
+					abandon();
+				}
+			});
+
+			it("stops listening once the button is gone", () => {
+				register(entry("A.app", "one", { title: "One" }));
+				setApps(app("A.app", [win("one")]));
+				const { unmount } = render(<ClassicyTaskbar />);
+				const one = taskButton("One");
+				unmount();
+				one.dispatchEvent(new Event(CLASSICY_DROP_ACTIVATE_EVENT));
+				expect(commands).toEqual([]);
+			});
+		});
+
 		describe("the tooltip", () => {
 			const truncate = (button: HTMLButtonElement, cut: boolean) => {
 				const label = button.querySelector(
@@ -1151,6 +1276,68 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 		expect(windowRoot("second")).not.toHaveClass("classicyWindowMinimized");
 		expect(button("Second")).toHaveClass("active");
 		expect(ownButtons().map((b) => b.textContent)).toEqual(["Main", "Second"]);
+	});
+
+	// Plan 0020-w98 §2, "Drops": "When the user drags an object over a
+	// taskbar window button, the system automatically restores the window.
+	// The user can then drop the object in the window" (WIG Ch.10, p.211).
+	it("restores a minimized window through its own path when a file drag rests on its button", () => {
+		registerTestTaskbarPackage(TEST_MINIMIZE_LAYOUT, TEST_MINIMIZE_PACKAGE_ID);
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: TEST_MINIMIZE_PACKAGE_ID,
+			}),
+		);
+		renderShell(
+			<>
+				<ClassicyWindow id="main" appId={APP_ID} title="Main">
+					<p>main</p>
+				</ClassicyWindow>
+				<ClassicyWindow id="second" appId={APP_ID} title="Second">
+					<p>second</p>
+				</ClassicyWindow>
+			</>,
+		);
+		fireEvent.click(button("Second"));
+		expect(getAppWindow(appRecord(), "second")?.collapsed).toBe(true);
+		expect(getAppWindow(appRecord(), "main")?.focused).toBe(true);
+
+		vi.useFakeTimers();
+		const onDrop = vi.fn();
+		// Hit-testing as the browser would: the button, inside the taskbar,
+		// inside the desktop that holds it.
+		const abandon = startClassicyFileDrag({
+			start: { clientX: 40, clientY: 300 },
+			parts: [],
+			onDrop,
+			elementsFromPoint: () => [button("Second")],
+		});
+		try {
+			fireEvent.mouseMove(document, { clientX: 140, clientY: 760 });
+			act(() => {
+				vi.advanceTimersByTime(CLASSICY_DROP_ACTIVATE_DELAY_MS);
+			});
+			expect(getAppWindow(appRecord(), "second")).toMatchObject({
+				collapsed: false,
+				focused: true,
+			});
+			expect(document.getElementById(`${APP_ID}_second`)).not.toHaveClass(
+				"classicyWindowMinimized",
+			);
+			expect(button("Second")).toHaveClass("active");
+			// Resting on: the window is not minimized again.
+			act(() => {
+				vi.advanceTimersByTime(CLASSICY_DROP_ACTIVATE_DELAY_MS * 4);
+			});
+			expect(getAppWindow(appRecord(), "second")?.collapsed).toBe(false);
+			// The taskbar takes no drop.
+			fireEvent.mouseUp(document, { clientX: 140, clientY: 760 });
+			expect(onDrop).toHaveBeenCalledWith(null, [140, 760], [140, 760]);
+		} finally {
+			abandon();
+			vi.useRealTimers();
+		}
 	});
 
 	it("drops a closed window's button", () => {
