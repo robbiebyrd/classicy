@@ -130,6 +130,13 @@ commentary:
 - Re-registering an id merges additively (HyperCard.app spans two modules:
   player and editor prefixes); the same prefix twice is a no-op, actions
   merge first-wins, and the first `state` schema wins.
+- `creates` (optional): the document types the app makes from File ▸ New
+  under `layout.finder.commands` "windows" (Explorer's ShellNew entries),
+  `{ fileType, typeName, extension?, data? }[]`, each validated by
+  `ClassicyAppCreatesEntrySchema` (a failing one dropped with a warning),
+  merged first-wins; `listClassicyCreatableFileTypes(appIds?)` lists them by
+  name, and New ▸ lists the mounted apps'. SimpleText declares Text Document
+  (`.txt`).
 - Read side: `getAppManifest`, `listAppManifests`, `listScriptableActions`,
   `describeAppAction`/`describeAppState` (balloon-ready `{title, content}`),
   and `parseAppData` (typed guard replacing hand-rolled `isXData` functions).
@@ -803,6 +810,38 @@ The desktop's keys (`classicyDesktopKeyCommand`, `classicyDesktopListboxAttribut
 in `Desktop/ClassicyDesktopKeyNav.ts`) and the rectangle's wiring
 (`classicyDesktopSelectEmpty` while 0 x 0) are the shell's to wire into
 `ClassicyDesktop` (its hand-offs C2 and C3).
+
+### Explorer's Commands in Finder
+
+`layout.finder.commands: "windows"` (Windows 98) gives Finder's and the
+desktop's menus Windows 98 SE Explorer's commands (shell32.dll's items and
+access keys); `mac` and absent keep Mac OS 8's menus byte for byte. The
+shared pieces are `File/ClassicyFileCommands.internal.ts` (New ▸, Arrange
+Icons ▸, Line Up Icons, Delete with a native Del, Rename, the rules
+`classicyCanMakeItemIn` and `classicyCanRename`, and
+`classicyDeleteConfirmation`'s three Windows 98 boxes). A folder window's File
+menu is Open ⌃O, New ▸, Delete, Rename, Close; its View menu Large Icons,
+Details, Arrange Icons ▸, Line Up Icons; its white space's menu is
+`ClassicyFileBrowser`'s `backgroundContextMenu(at)`; an item's menu Open,
+Delete, Rename (an Extension's Properties first: its control panel,
+`classicyExtensionControlPanelId`, which its double-click opens too, in
+FinderContext); app shortcuts' and drives' menus lead with Open too. The
+desktop's are `useClassicyDesktopCommands()` (`barMenu`, `whiteSpaceMenu(at)`,
+`Desktop/ClassicyDesktopCommands.internal.tsx`), hand-off C1 for the shell to
+wire. New makes "New Folder" (2)… or a registered `creates` type in the
+folder (`classicyFirstFreeName`), places, selects and renames it in place
+through `ClassicyFileBrowserCommands` (`place`, `select`, `rename`; both
+views edit names in place, the list view in `classicyFileBrowserViewTableRename`)
+or, on the desktop, `startClassicyDesktopIconRename`
+(`Desktop/ClassicyDesktopIconRename.internal.ts`, session state, the field
+`classicyDesktopIconRename`). Every Delete route asks first while Finder is
+mounted: `moveClassicyItemsToTrash` hands the paths to Finder
+(`ClassicyAppFinderConfirmDelete`, Finder's session-only `confirmDelete`,
+stripped by `sanitizeStateForPersistence`) and Finder's Yes moves them with
+`{ confirmed: true }`. `layout.files.names: "windows"` refuses `\ / : * ? " < >
+|` in names (`isClassicyValidFileName`, `ClassicyFileNames.ts`; renames in
+Windows 98's "Rename" box, the file dialog's Save and New Folder) and offers
+New Folder's first free name.
 
 ### Finder Drag and Drop
 

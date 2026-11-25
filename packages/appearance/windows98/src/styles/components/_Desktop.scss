@@ -195,6 +195,23 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     outline-color: b.$highlight-text;
   }
 
+  // A desktop item's name being edited (Explorer's Rename, New and F2, the
+  // desktop list view's edit control): WindowText on Window in a one-pixel
+  // WindowFrame border where the label was, the label's font, no shadow.
+  .classicyDesktopIcon .classicyDesktopIconRename {
+    margin-top: px(3);
+    padding: 0 px(2);
+    border: b.$b solid b.$text;
+    border-radius: 0;
+    outline: none;
+    font-family: b.$icon-font;
+    font-size: var(--desktop-icon-font-size);
+    font-weight: b.$icon-font-weight;
+    line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
+    color: b.$text;
+    background: b.$window;
+  }
+
   // Opened: as any other icon. The base inverts the shape and hides the
   // image; the image stays, unfiltered, selected or not.
   .classicyDesktopIcon.open .classicyDesktopIconMaskOuter {

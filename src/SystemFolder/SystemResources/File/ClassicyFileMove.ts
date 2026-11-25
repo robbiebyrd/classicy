@@ -1,8 +1,16 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import type { ClassicyActionTrust } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type { ClassicyFileDropDestination } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import {
+	CLASSICY_WINDOWS_RENAME_TITLE,
+	classicyFileNameRefusal,
+	isClassicyValidFileName,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileNames";
 import type {
 	ClassicyFileSystem,
 	ClassicyFileSystemMoveRefusal,
@@ -26,7 +34,7 @@ export const CLASSICY_DESKTOP_FOLDER_NAME = "Desktop Folder";
 /** `appId` prefix of the desktop icons that stand for Desktop Folder items. */
 export const CLASSICY_DESKTOP_ITEM_ICON_PREFIX = "classicy-desktop-item:";
 
-type Dispatch = (action: ActionMessage) => void;
+type Dispatch = (action: ActionMessage, trust?: ClassicyActionTrust) => void;
 
 /** The startup disk: the first drive at the root of the tree, if any. */
 export const classicyStartupDisk = (
@@ -246,17 +254,59 @@ const desktopIconLocations = (
 	return locations;
 };
 
+/** Options for `moveClassicyItemsToTrash`. */
+export type ClassicyTrashMoveOptions = {
+	/**
+	 * The Delete confirmation was answered Yes (Finder's box): move without
+	 * asking again. Omitted, Explorer's commands ask first.
+	 */
+	confirmed?: boolean;
+	/**
+	 * The trust the request arrived with, kept with a pending confirmation
+	 * (`ClassicyAppFinderConfirmDelete` is dispatched under it). Defaults to
+	 * the kernel's `"trusted"`.
+	 */
+	trust?: ClassicyActionTrust;
+};
+
+/**
+ * Whether a Delete asks before anything moves: under Explorer's commands
+ * (`layout.finder.commands` "windows"; Windows 98 SE's Recycle Bin, whose
+ * "Display delete confirmation dialog box" is on by default), while Finder,
+ * which shows the box, is mounted. Store-free: the active package's layout.
+ */
+export const classicyDeleteConfirms = (): boolean =>
+	getClassicyAppearanceLayout().finder?.commands === "windows" &&
+	isClassicyAppMounted("Finder.app");
+
 /**
  * Move `paths` to the Trash (Finder's Move To Trash, ⌃⌫/Delete, or a drop on
  * the Trash): Finder windows follow trashed folders, desktop items remember
  * where their icons were, and the first refusal is reported in an alert.
  * Returns the moves that happened.
+ *
+ * Under Explorer's commands (`classicyDeleteConfirms`; WIG Ch.5
+ * "Specialized Transfer Commands", p.67) every route asks first, the menus,
+ * the Delete and ⌃⌫ keys and a drop on the Trash alike: the paths are
+ * handed to Finder (`ClassicyAppFinderConfirmDelete`, under `trust`), which
+ * shows Windows 98 SE's "Confirm File Delete" box and calls this again with
+ * `confirmed` on Yes; nothing moves, and `[]` is returned, until then.
  */
 export function moveClassicyItemsToTrash(
 	fs: ClassicyFileSystem,
 	paths: string[],
 	dispatch: Dispatch,
+	{ confirmed = false, trust }: ClassicyTrashMoveOptions = {},
 ): { from: string; to: string }[] {
+	if (!confirmed && paths.length > 0 && classicyDeleteConfirms()) {
+		const action: ActionMessage = {
+			type: "ClassicyAppFinderConfirmDelete",
+			paths: [...paths],
+		};
+		if (trust === undefined) dispatch(action);
+		else dispatch(action, trust);
+		return [];
+	}
 	const { moves, refusal } = trashClassicyFileSystemItems(
 		fs,
 		paths,
@@ -369,9 +419,26 @@ export function renameClassicyFileSystemItem(
 	const oldName = parts.pop() ?? path;
 	const folder = parts.join(fs.separator);
 	if (name === oldName) return undefined;
+	// Windows' names (`layout.files.names` "windows"): none of `\ / : * ?
+	// " < > |`, refused in Windows 98's own message box (shell32.dll's
+	// "Rename" and its text).
+	const windowsRefusal = classicyFileNameRefusal();
+	if (
+		windowsRefusal !== undefined &&
+		name.trim() !== "" &&
+		!isClassicyValidFileName(name)
+	) {
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			title: CLASSICY_WINDOWS_RENAME_TITLE,
+			message: windowsRefusal,
+		});
+		return undefined;
+	}
 	if (
 		name.trim() === "" ||
 		name.includes(fs.separator) ||
+		!isClassicyValidFileName(name) ||
 		name.startsWith("_")
 	) {
 		dispatch({

@@ -145,3 +145,70 @@ export const cleanupIcon = (
 		origin[1] + Math.floor(pitch[1] * startY),
 	];
 };
+
+/**
+ * Explorer's Line Up Icons (Windows 98 SE's View ▸ Line Up Icons, the
+ * Finder's Clean Up): each icon, in the order given, moves to the cell of
+ * the lattice (`pitch` from `origin`) nearest where it is that no earlier
+ * icon took, never left of or above the lattice's first cell. Pure: `places`
+ * are the icons' top-left corners, as the icons draw them.
+ */
+export const classicyLineUpIconPlaces = (
+	places: readonly (readonly [number, number])[],
+	pitch: readonly [number, number],
+	origin: readonly [number, number],
+): [number, number][] => {
+	const taken = new Set<string>();
+	return places.map(([x, y]) => {
+		const home: [number, number] = [
+			Math.max(0, Math.round((x - origin[0]) / pitch[0])),
+			Math.max(0, Math.round((y - origin[1]) / pitch[1])),
+		];
+		const at = ([c, r]: [number, number]): [number, number] => [
+			origin[0] + c * pitch[0],
+			origin[1] + r * pitch[1],
+		];
+		// Rings of cells around the nearest one, nearest first: the lattice
+		// has a cell free for every icon, so a ring always holds one.
+		for (let ring = 0; ; ring++) {
+			const cells: [number, number][] = [];
+			for (let dc = -ring; dc <= ring; dc++) {
+				for (let dr = -ring; dr <= ring; dr++) {
+					if (Math.max(Math.abs(dc), Math.abs(dr)) !== ring) continue;
+					const cell: [number, number] = [home[0] + dc, home[1] + dr];
+					if (cell[0] >= 0 && cell[1] >= 0) cells.push(cell);
+				}
+			}
+			const distance = (cell: [number, number]) => {
+				const [cx, cy] = at(cell);
+				return (cx - x) ** 2 + (cy - y) ** 2;
+			};
+			cells.sort((a, b) => distance(a) - distance(b));
+			const free = cells.find((cell) => !taken.has(`${cell[0]},${cell[1]}`));
+			if (free) {
+				taken.add(`${free[0]},${free[1]}`);
+				return at(free);
+			}
+		}
+	});
+};
+
+/**
+ * The first of `cells` (an icon view's cells, in its layout order) that no
+ * icon at `taken` covers, a cover being within half a `pitch` on both axes:
+ * where Explorer's New puts an item made from the menu bar. Undefined when
+ * every cell is covered (give one more cell than there are icons).
+ */
+export const classicyFreeIconCell = (
+	taken: readonly (readonly [number, number])[],
+	cells: readonly [number, number][],
+	pitch: readonly [number, number],
+): [number, number] | undefined =>
+	cells.find(
+		(cell) =>
+			!taken.some(
+				([x, y]) =>
+					Math.abs(x - cell[0]) < pitch[0] / 2 &&
+					Math.abs(y - cell[1]) < pitch[1] / 2,
+			),
+	);

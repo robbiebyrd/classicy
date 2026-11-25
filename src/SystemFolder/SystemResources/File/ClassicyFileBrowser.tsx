@@ -34,7 +34,9 @@ import {
 	startClassicyFileBrowserMarquee,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import {
+	type ClassicyFileBrowserArrangeKey,
 	type ClassicyFileBrowserMoveItems,
+	type ClassicyFileBrowserViewCommands,
 	ClassicyFileBrowserViewIcons,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
@@ -52,6 +54,34 @@ import { classicySecondaryButtonSelects } from "@/SystemFolder/SystemResources/U
 export type ClassicyFileBrowserCommands = {
 	/** Paths of the selected items: highlighted icons, or selected list rows. */
 	selectedPaths(): string[];
+	/**
+	 * Makes `paths` the selection, alone, in the view shown: once they are
+	 * listed, so a caller may ask right after making an item (Explorer's
+	 * New, under `layout.finder.commands` "windows").
+	 */
+	select(paths: string[]): void;
+	/**
+	 * Begins editing the item's name in place (Explorer's Rename, and New's
+	 * new item), in either view, once it is listed, when it may be renamed
+	 * and the browser was given `onRenameItem`.
+	 */
+	rename(path: string): void;
+	/**
+	 * Where a new item's icon goes in the icon view: at the client point
+	 * `at` (where a white-space menu was opened), else the folder's first
+	 * free cell. Call it before the item is listed. The list view places
+	 * nothing.
+	 */
+	place(path: string, at?: [number, number]): void;
+	/**
+	 * Arrange Icons: lays the icon view's icons out once in `key`'s order,
+	 * or sorts the list view by that column.
+	 */
+	arrange(key: ClassicyFileBrowserArrangeKey): void;
+	/** Line Up Icons: each icon to its nearest free cell (the icon view). */
+	lineUp(): void;
+	/** The view shown, which Arrange Icons and Line Up Icons act on. */
+	display(): "icons" | "list";
 };
 
 type ClassicyFileBrowserProps = {
@@ -148,14 +178,26 @@ type ClassicyFileBrowserProps = {
 	/** Receives `{ selectedPaths() }`, for menu commands that act on the selection. */
 	commandsRef?: RefObject<ClassicyFileBrowserCommands | null>;
 	/**
-	 * Rename an item (icon view): called with its path and the name typed
-	 * when the user commits a rename, begun by a click on a selected icon's
-	 * name that no second click follows (Mac OS 8's Finder and Windows
-	 * Explorer alike). Return the item's new path when it was renamed. Finder
-	 * renames through `renameClassicyFileSystemItem`. Without it, names are
-	 * not editable.
+	 * Rename an item: called with its path and the name typed when the user
+	 * commits a rename, begun in the icon view by a click on a selected
+	 * icon's name that no second click follows (Mac OS 8's Finder and
+	 * Windows Explorer alike), and in either view by `commandsRef`'s
+	 * `rename` (Explorer's Rename and New) or, under
+	 * `layout.fileBrowser.keys` "windows", F2. Return the item's new path
+	 * when it was renamed. Finder renames through
+	 * `renameClassicyFileSystemItem`. Without it, names are not editable.
 	 */
 	onRenameItem?: (path: string, name: string) => string | undefined;
+	/**
+	 * The contextual menu for the view's white space (a right-click on no
+	 * item), built when it is opened: given the client point it was opened
+	 * at. Return nothing to fall back to the window's or app's menu. Finder
+	 * gives Explorer's (View, Arrange Icons, Line Up Icons, New) under
+	 * `layout.finder.commands` "windows".
+	 */
+	backgroundContextMenu?: (
+		at: [number, number],
+	) => ClassicyMenuItem[] | undefined;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -238,10 +280,13 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	itemContextMenu,
 	commandsRef,
 	onRenameItem,
+	backgroundContextMenu,
 	className,
 	style,
 }) => {
 	const holderRef = useRef<HTMLDivElement>(null);
+	// The shown view's commands (select, rename, place, arrange, line up).
+	const viewCommandsRef = useRef<ClassicyFileBrowserViewCommands | null>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const { showContextMenu } = useClassicyContextualMenu();
 	const layout = useClassicyAppearanceLayout();
@@ -279,11 +324,39 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	);
 	useImperativeHandle(
 		commandsRef,
-		() => ({ selectedPaths: currentSelection }),
-		[currentSelection],
+		() => ({
+			selectedPaths: currentSelection,
+			select: (paths) => viewCommandsRef.current?.select(paths),
+			rename: (itemPath) => viewCommandsRef.current?.rename(itemPath),
+			place: (itemPath, at) => viewCommandsRef.current?.place(itemPath, at),
+			arrange: (key) => viewCommandsRef.current?.arrange(key),
+			lineUp: () => viewCommandsRef.current?.lineUp(),
+			display: () => display,
+		}),
+		[currentSelection, display],
 	);
 
 	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		// Windows: F2 renames the one selected row (Explorer's Rename), as
+		// the icon view takes it itself.
+		if (
+			e.key === "F2" &&
+			display === "list" &&
+			layout.fileBrowser?.keys === "windows" &&
+			!e.defaultPrevented &&
+			!e.shiftKey &&
+			!e.altKey &&
+			!e.ctrlKey &&
+			!e.metaKey &&
+			!(e.target as HTMLElement).closest("input, textarea")
+		) {
+			const only = currentSelection();
+			if (only.length === 1 && onRenameItem) {
+				e.preventDefault();
+				viewCommandsRef.current?.rename(only[0]);
+			}
+			return;
+		}
 		if (!onDeleteItems || e.defaultPrevented) return;
 		if (e.key !== "Backspace" && e.key !== "Delete") return;
 		if (e.altKey || e.shiftKey) return;
@@ -358,12 +431,23 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	};
 
 	const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
-		if (!itemContextMenu || e.defaultPrevented) return;
+		if (e.defaultPrevented) return;
 		const item = (e.target as Element).closest(
 			`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
 		);
 		const path = item?.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE);
-		if (!item || !path || !rootRef.current?.contains(item)) return;
+		if (!item || !path || !rootRef.current?.contains(item)) {
+			// The white space: the view's own menu, when it has one.
+			if (!backgroundContextMenu || item) return;
+			if ((e.target as Element).closest("thead, .classicyScrollAreaHead"))
+				return;
+			const menu = backgroundContextMenu([e.clientX, e.clientY]);
+			if (!menu || menu.length === 0) return;
+			e.preventDefault();
+			showContextMenu(menu, [e.clientX, e.clientY]);
+			return;
+		}
+		if (!itemContextMenu) return;
 		const menu = itemContextMenu(path, currentSelection());
 		if (!menu || menu.length === 0) return;
 		e.preventDefault();
@@ -453,6 +537,8 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					}
 					onSelectionChange={trackListSelection}
 					focusTargetRef={focusTargetRef}
+					onRenameItem={onRenameItem}
+					viewCommandsRef={viewCommandsRef}
 				/>
 			) : (
 				<ClassicyFileBrowserViewIcons
@@ -470,6 +556,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					onRenameItem={onRenameItem}
 					openItemsFunc={openItemsFunc}
 					onSelectionChange={trackIconSelection}
+					viewCommandsRef={viewCommandsRef}
 				/>
 			)}
 			{listMarquee && (

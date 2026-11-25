@@ -35,9 +35,11 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	type ClassicyDesktopIconMetrics,
+	classicyDesktopFreeIconLocation,
 	classicyDesktopIconEventHandler,
 	classicyDesktopIconGridPosition,
 	classicyDesktopIconMetrics,
+	classicyDesktopLineUpLocations,
 	getIconSize,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
@@ -846,5 +848,79 @@ describe("the desktop's anchor, focus icon and modified selection", () => {
 		expect(saved.selectedIcons).toEqual(["E"]);
 		expect("selectionAnchor" in saved).toBe(false);
 		expect("focusIcon" in saved).toBe(false);
+	});
+});
+
+// Explorer's desktop commands (the remaining chapters' audit's 5.40 and A.4;
+// Windows 98 SE's desktop menu): New puts an item made from the menu bar at
+// the first free cell, and Line Up Icons moves each icon to its nearest free
+// cell, the others staying where they are.
+describe("the desktop's free cell and Line Up Icons", () => {
+	beforeEach(() => setViewport(1024, 768));
+	afterEach(() => {
+		setViewport(...originalViewport);
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	const theme = produce(getTheme("default"), (draft) => {
+		draft.desktop.iconSize = 64;
+	});
+	const metrics = classicyDesktopIconMetrics(theme);
+	const cell = (col: number, row: number) =>
+		classicyDesktopIconGridPosition(metrics, col, row);
+
+	it("finds the first cell, down the first column, no drawn icon covers", () => {
+		expect(classicyDesktopFreeIconLocation(theme, [])).toEqual(cell(1, 0));
+		expect(
+			classicyDesktopFreeIconLocation(theme, [
+				{ location: cell(1, 0) },
+				{ location: [cell(1, 1)[0] + 5, cell(1, 1)[1] - 5] },
+				{ location: cell(1, 2), hidden: true },
+			]),
+		).toEqual(cell(1, 2));
+	});
+
+	it("lines each drawn icon up on its nearest free cell, in the desktop's order", () => {
+		const lined = classicyDesktopLineUpLocations(theme, [
+			{ appId: "A", location: [cell(1, 0)[0] - 20, cell(1, 0)[1] + 10] },
+			{ appId: "B", location: [cell(1, 0)[0] + 3, cell(1, 0)[1] + 3] },
+			{ appId: "C", location: cell(2, 1), hidden: true },
+			{ appId: "D" },
+		]);
+		expect(lined.get("A")).toEqual(cell(1, 0));
+		expect(lined.get("B")).not.toEqual(cell(1, 0));
+		expect(lined.has("C")).toBe(false);
+		expect(lined.has("D")).toBe(false);
+	});
+
+	it("ClassicyDesktopIconLineUp moves the icons and keeps the selection", () => {
+		useAppManager.setState(
+			produce(DefaultAppManagerState, (draft) => {
+				draft.System.Manager.Appearance.activeTheme.desktop.iconSize = 64;
+				draft.System.Manager.Desktop.icons = [
+					{
+						appId: "A.app",
+						appName: "A",
+						icon: "a.png",
+						kind: "app_shortcut",
+						location: [cell(1, 1)[0] + 9, cell(1, 1)[1] - 7],
+					},
+				];
+				draft.System.Manager.Desktop.selectedIcons = ["A.app"];
+			}),
+			true,
+		);
+		dispatch({ type: "ClassicyDesktopIconLineUp" });
+		const desktop = useAppManager.getState().System.Manager.Desktop;
+		expect(desktop.icons[0].location).toEqual(
+			classicyDesktopIconGridPosition(
+				classicyDesktopIconMetrics(
+					useAppManager.getState().System.Manager.Appearance.activeTheme,
+				),
+				1,
+				1,
+			),
+		);
+		expect(desktop.selectedIcons).toEqual(["A.app"]);
 	});
 });

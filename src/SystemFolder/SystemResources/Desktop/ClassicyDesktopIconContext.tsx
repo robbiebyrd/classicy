@@ -325,6 +325,89 @@ const cleanupDesktopIcons = (
 	return newDesktopIcons;
 };
 
+/**
+ * The first cell of the desktop's grid, walked as Clean Up walks it (down
+ * each column from the package's icon grid origin), that no drawn icon of
+ * `icons` covers (within half a cell's step on both axes): where Explorer's
+ * New on the desktop puts an item made from the menu bar (WIG Ch.5 "New
+ * Command", p.69). Pure: the metrics come from `theme`, as Clean Up's do.
+ * Undefined only when every cell of the screen is covered.
+ */
+export const classicyDesktopFreeIconLocation = (
+	theme: ClassicyTheme,
+	icons: readonly Pick<
+		ClassicyStoreSystemDesktopManagerIcon,
+		"location" | "hidden"
+	>[],
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
+		.desktop.iconGridOrigin,
+): [number, number] | undefined => {
+	const metrics = classicyDesktopIconMetrics(theme);
+	const [columns, rows] = createGrid(metrics, origin);
+	const halfX = columnStep(metrics) / 2;
+	const halfY = rowStep(metrics) / 2;
+	const taken = icons.flatMap((icon) =>
+		!icon.hidden && icon.location ? [icon.location] : [],
+	);
+	for (let col = 1; col < Math.max(2, columns); col++) {
+		for (let row = 0; row < Math.max(1, rows); row++) {
+			const cell = classicyDesktopIconGridPosition(metrics, col, row, origin);
+			if (
+				!taken.some(
+					([x, y]) =>
+						Math.abs(x - cell[0]) < halfX && Math.abs(y - cell[1]) < halfY,
+				)
+			)
+				return cell;
+		}
+	}
+	return undefined;
+};
+
+/**
+ * Explorer's Line Up Icons on the desktop (Windows 98 SE's Line &Up Icons;
+ * the Finder's Clean Up lays every icon out afresh instead): each drawn icon,
+ * in the desktop's order, moves to the free cell of the screen's grid
+ * nearest where it is. Pure; hidden icons and icons with no location keep
+ * theirs. Returns each icon's new location, by `appId`.
+ */
+export const classicyDesktopLineUpLocations = (
+	theme: ClassicyTheme,
+	icons: readonly Pick<
+		ClassicyStoreSystemDesktopManagerIcon,
+		"appId" | "location" | "hidden"
+	>[],
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
+		.desktop.iconGridOrigin,
+): Map<string, [number, number]> => {
+	const metrics = classicyDesktopIconMetrics(theme);
+	const [columns, rows] = createGrid(metrics, origin);
+	const cells: [number, number][] = [];
+	for (let col = 1; col < Math.max(2, columns); col++) {
+		for (let row = 0; row < Math.max(1, rows); row++) {
+			cells.push(classicyDesktopIconGridPosition(metrics, col, row, origin));
+		}
+	}
+	const free = cells.slice();
+	const lined = new Map<string, [number, number]>();
+	for (const icon of icons) {
+		if (icon.hidden || !icon.location || free.length === 0) continue;
+		const [x, y] = icon.location;
+		let best = 0;
+		let bestDistance = Number.POSITIVE_INFINITY;
+		free.forEach(([cx, cy], index) => {
+			const distance = (cx - x) ** 2 + (cy - y) ** 2;
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = index;
+			}
+		});
+		const [cell] = free.splice(best, 1);
+		lined.set(icon.appId, cell);
+	}
+	return lined;
+};
+
 // Actions arrive untyped, and whatever lands here is persisted to localStorage,
 // so balloon payloads are validated field by field rather than cast.
 const readBalloonHelp = (
@@ -387,6 +470,21 @@ export const classicyDesktopIconEventHandler = (
 				ds.System.Manager.Desktop.icons,
 				iconGridOrigin(ds),
 			);
+			break;
+		}
+		case "ClassicyDesktopIconLineUp": {
+			// Explorer's Line Up Icons (`useClassicyDesktopCommands`, under
+			// `layout.finder.commands` "windows"): each icon to its nearest
+			// free cell, the others' places kept.
+			const lined = classicyDesktopLineUpLocations(
+				ds.System.Manager.Appearance.activeTheme,
+				ds.System.Manager.Desktop.icons,
+				iconGridOrigin(ds),
+			);
+			for (const icon of ds.System.Manager.Desktop.icons) {
+				const location = lined.get(icon.appId);
+				if (location) icon.location = location;
+			}
 			break;
 		}
 		case "ClassicyDesktopIconSort": {

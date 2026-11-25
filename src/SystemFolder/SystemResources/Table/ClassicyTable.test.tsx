@@ -582,6 +582,44 @@ describe("ClassicyTable — Select All", () => {
 		expect(onSelectionChange).toHaveBeenCalledWith(albums.map((a) => a.id));
 	});
 
+	// Explorer's New selects the item it made, and Arrange Icons sorts the
+	// details view by a column (the remaining chapters' audit's 5.40 and
+	// A.4): `select` and `sortBy` beside `selectAll`.
+	it("selects given rows and sorts by a column through the selection API", () => {
+		const onSelectionChange = vi.fn();
+		const apiRef = createRef<ClassicyTableSelectionApi>();
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode={"multi"}
+				onSelectionChange={onSelectionChange}
+				selectionApiRef={apiRef}
+			/>,
+		);
+		act(() => apiRef.current?.select?.(["pepper"]));
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper"]);
+		expect(
+			container.querySelector('tr[data-row-id="pepper"]')?.classList,
+		).toContain("selected");
+		act(() => apiRef.current?.sortBy?.("year", true));
+		expect(rowTitles(container)).toEqual([
+			"Abbey Road",
+			"Sgt. Pepper",
+			"Rubber Soul",
+		]);
+		act(() => apiRef.current?.sortBy?.("title"));
+		expect(rowTitles(container)).toEqual([
+			"Abbey Road",
+			"Rubber Soul",
+			"Sgt. Pepper",
+		]);
+		// A column the table does not have changes nothing.
+		act(() => apiRef.current?.sortBy?.("missing"));
+		expect(rowTitles(container)[0]).toBe("Abbey Road");
+	});
+
 	it("includes rows disclosed under an expanded parent", () => {
 		const onSelectionChange = vi.fn();
 		const apiRef = createRef<ClassicyTableSelectionApi>();

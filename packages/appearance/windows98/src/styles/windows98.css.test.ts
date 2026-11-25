@@ -554,6 +554,31 @@ describe("windows98.scss (compiled)", () => {
 			expect(rule(".classicyIcon:focus-visible")).toContain("outline: none");
 		});
 
+		// Explorer's Rename and New (the remaining chapters' audit's 5.40 and
+		// 10.3; WIG Ch.5 "Creation Operations", p.69): a name edited in the
+		// details view or on the desktop is the list view's edit control too,
+		// WindowText on Window in a one-pixel WindowFrame border, where the
+		// name was.
+		it("draws a name being edited in the list view and on the desktop as the edit control", () => {
+			for (const selector of [
+				".classicyFileBrowserViewTableRowContainer .classicyFileBrowserViewTableRename",
+				".classicyDesktopIcon .classicyDesktopIconRename",
+			]) {
+				const field = rule(selector);
+				expect(field, selector).toContain(
+					"border: var(--window-border-size) solid var(--color-black)",
+				);
+				expect(field, selector).toContain(
+					"background: var(--color-window-document)",
+				);
+				expect(field, selector).toContain("color: var(--color-black)");
+				expect(field, selector).toContain("outline: none");
+			}
+			expect(rule(".classicyDesktopIcon .classicyDesktopIconRename")).toContain(
+				"font-size: var(--desktop-icon-font-size)",
+			);
+		});
+
 		// WIG Ch.5 "Keyboard Selection" (p.43), "Selection Feedback" (p.36);
 		// comctl32's LVIS_FOCUSED (the audit's 5.15): the dotted focus
 		// rectangle lies on the focus item's label alone, while it has the

@@ -1,7 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+// The Windows-layout package below needs a sound pack registered: the core
+// default theme names Platinum's.
+import "../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	classicyDesktopStateEventReducer,
+	DefaultAppManagerState,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	classicyFinderEventHandler,
@@ -819,5 +832,175 @@ describe("classicyFinderEventHandler — ClassicyAppFinderPathsMoved", () => {
 			"trusted",
 		);
 		expect(openPaths(ds)).toEqual(["HD:Docs:Projects 2"]);
+	});
+});
+
+// The remaining chapters' audit's 9.3 (WIG Ch.9 "Single Document Window
+// Interface", p.176): under Explorer's commands (`layout.finder.commands`
+// "windows") a double-click on an Extension runs its Properties, the control
+// panel that sets it up; without the key, or with no panel, Mac OS 8's alert.
+describe("classicyFinderEventHandler — an Extension under Explorer's commands", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const windowsStore = (panels: string[] = []) => {
+		registerClassicyAppearancePackage({
+			id: "windows-finder",
+			name: "Windows Finder",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-finder-default",
+				package: "windows-finder",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				finder: { commands: "windows" },
+			},
+		});
+		const ds = makeStore();
+		ds.System.Manager.Appearance.packageId = "windows-finder";
+		for (const id of panels) {
+			ds.System.Manager.Applications.apps[id] = {
+				id,
+				name: id.replace(".app", ""),
+				icon: "",
+				windows: {},
+				open: false,
+				data: {},
+			} as never;
+		}
+		return ds;
+	};
+	const openExtension = (
+		ds: ClassicyStore,
+		file: Record<string, unknown>,
+		trust: "trusted" | "untrusted" = "trusted",
+	) =>
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFile",
+				file: { _type: ClassicyFileSystemEntryFileType.Extension, ...file },
+				path: "Macintosh HD:System Folder:Extensions:X",
+			},
+			trust,
+		);
+
+	it("opens the Screen Saver extension's control panel", () => {
+		const ds = openExtension(windowsStore(["ScreenSaverManager.app"]), {
+			_creator: "ScreenSaver.app",
+		});
+		expect(
+			ds.System.Manager.Applications.apps["ScreenSaverManager.app"].open,
+		).toBe(true);
+		expect(ds.System.Manager.Desktop.errorDialog).toBeFalsy();
+	});
+
+	it("opens the Control Strip control panel for a Control Strip module", () => {
+		const ds = openExtension(windowsStore(["ControlStripManager.app"]), {
+			_creator: "AppearanceManager.app",
+			_format: "ControlStripModule",
+		});
+		expect(
+			ds.System.Manager.Applications.apps["ControlStripManager.app"].open,
+		).toBe(true);
+	});
+
+	it("keeps the alert for an extension no panel sets up, or a panel not loaded", () => {
+		for (const ds of [
+			openExtension(windowsStore(["ScreenSaverManager.app"]), {
+				_creator: "ClockExt.app",
+			}),
+			openExtension(windowsStore(), { _creator: "ScreenSaver.app" }),
+		]) {
+			expect(ds.System.Manager.Desktop.errorDialog?.title).toBe("Library");
+		}
+	});
+
+	// The open is ClassicyAppOpen's, which the untrusted allowlist holds by
+	// default (a stack opens apps with no host configuration).
+	it("opens it for an untrusted open as ClassicyAppOpen would", () => {
+		const ds = openExtension(
+			windowsStore(["ScreenSaverManager.app"]),
+			{ _creator: "ScreenSaver.app" },
+			"untrusted",
+		);
+		expect(
+			ds.System.Manager.Applications.apps["ScreenSaverManager.app"].open,
+		).toBe(true);
+	});
+
+	it("keeps Mac OS 8's alert without the key", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["ScreenSaverManager.app"] = {
+			id: "ScreenSaverManager.app",
+			name: "Screen Saver",
+			icon: "",
+			windows: {},
+			open: false,
+			data: {},
+		} as never;
+		openExtension(ds, { _creator: "ScreenSaver.app" });
+		expect(ds.System.Manager.Desktop.errorDialog?.title).toBe("Library");
+		expect(
+			ds.System.Manager.Applications.apps["ScreenSaverManager.app"].open,
+		).toBe(false);
+	});
+});
+
+// The remaining chapters' audit's 5.39: a Delete waiting for Windows 98's
+// confirmation, kept with the trust it arrived with, and dismissed.
+describe("classicyFinderEventHandler — ClassicyAppFinderConfirmDelete", () => {
+	const data = (ds: ClassicyStore) =>
+		ds.System.Manager.Applications.apps["Finder.app"].data as {
+			confirmDelete?: unknown;
+		};
+
+	it("keeps the paths and the trust, and its Close takes them away", () => {
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderConfirmDelete",
+				paths: ["Macintosh HD:a", "", 3],
+			},
+			"untrusted",
+		);
+		expect(data(ds).confirmDelete).toEqual({
+			paths: ["Macintosh HD:a"],
+			trust: "untrusted",
+		});
+		classicyFinderEventHandler(
+			ds,
+			{ type: "ClassicyAppFinderConfirmDeleteClose" },
+			"trusted",
+		);
+		expect(data(ds).confirmDelete).toBeUndefined();
+	});
+
+	it("is never persisted, and a store without one is saved as it was", () => {
+		const pending = classicyFinderEventHandler(
+			structuredClone(DefaultAppManagerState),
+			{ type: "ClassicyAppFinderConfirmDelete", paths: ["Macintosh HD:a"] },
+			"trusted",
+		);
+		expect(data(pending).confirmDelete).toBeDefined();
+		expect(
+			data(sanitizeStateForPersistence(pending)).confirmDelete,
+		).toBeUndefined();
+		const plain = structuredClone(DefaultAppManagerState);
+		expect(
+			sanitizeStateForPersistence(plain).System.Manager.Applications.apps[
+				"Finder.app"
+			]?.data,
+		).toEqual(plain.System.Manager.Applications.apps["Finder.app"]?.data);
+	});
+
+	it("ignores a request without paths", () => {
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{ type: "ClassicyAppFinderConfirmDelete", paths: [] },
+			"trusted",
+		);
+		expect(data(ds).confirmDelete).toBeUndefined();
 	});
 });

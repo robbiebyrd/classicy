@@ -1353,6 +1353,7 @@ describe("the Windows 98 appearance package", () => {
 			},
 			keyboard: { contextMenuKey: true, command: "ctrl" },
 			finder: { commands: "windows" },
+			files: { names: "windows" },
 			fileBrowser: {
 				keys: "windows",
 				iconSelection: "view",

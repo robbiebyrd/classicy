@@ -17,7 +17,10 @@ import {
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import type { FinderIconViewOptions } from "@/SystemFolder/Finder/FinderContext";
+import type {
+	FinderIconViewOptions,
+	FinderSortKey,
+} from "@/SystemFolder/Finder/FinderContext";
 import {
 	asFinderDate,
 	finderEntryComparator,
@@ -45,6 +48,8 @@ import {
 	startClassicyFileBrowserMarquee,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import {
+	classicyFreeIconCell,
+	classicyLineUpIconPlaces,
 	cleanupIcon,
 	iconGridLattice,
 	iconImageByType,
@@ -115,10 +120,55 @@ export type ClassicyFileBrowserViewIconsProps = {
 	onRenameItem?: (path: string, name: string) => string | undefined;
 	/** Receives `{ selectAll }`, for Edit ▸ Select All. */
 	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
+	/**
+	 * Receives the view's commands (`ClassicyFileBrowserViewCommands`): the
+	 * browser's `commandsRef` runs Explorer's New, Rename, Arrange Icons and
+	 * Line Up Icons through them.
+	 */
+	viewCommandsRef?: RefObject<ClassicyFileBrowserViewCommands | null>;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style for the root element. */
 	style?: CSSProperties;
+};
+
+/**
+ * What Arrange Icons orders a folder's icons by (Windows 98 SE Explorer's
+ * "by Name", "by Type", "by Size", "by Date"; the Finder's sort keys
+ * `name`, `kind`, `size` and `modified`).
+ */
+export type ClassicyFileBrowserArrangeKey = Extract<
+	FinderSortKey,
+	"name" | "kind" | "size" | "modified"
+>;
+
+/**
+ * A file browser view's commands, behind `ClassicyFileBrowserCommands`.
+ * Each acts on an item once it is listed, so a caller may run it right
+ * after the change to the tree that makes the item (Explorer's New).
+ */
+export type ClassicyFileBrowserViewCommands = {
+	/** Makes `paths` the selection, alone, the first the anchor. */
+	select(paths: string[]): void;
+	/**
+	 * Begins editing `path`'s name in place, as a slow click on a selected
+	 * name does, when the item may be renamed (and the view was given
+	 * `onRenameItem`).
+	 */
+	rename(path: string): void;
+	/**
+	 * Where a new item's icon goes (the icon view): at the client point
+	 * `at` (the point a white-space menu was opened at), else the folder's
+	 * first free cell. The list view places nothing.
+	 */
+	place(path: string, at?: [number, number]): void;
+	/**
+	 * Arranges the items once by `key` (the icon view lays its icons out
+	 * afresh in that order; the list view sorts by that column).
+	 */
+	arrange(key: ClassicyFileBrowserArrangeKey): void;
+	/** Moves every icon to its nearest free grid cell (the icon view). */
+	lineUp(): void;
 };
 
 /**
@@ -148,6 +198,12 @@ type iconType = {
 	filePath: string;
 	/** A folder or a drive: listed first under `fileList.foldersFirst`. */
 	isFolder: boolean;
+	/**
+	 * The icon's React key: its name, and the layout epoch once Arrange
+	 * Icons or Line Up Icons has laid the view out (remounting the icon at
+	 * its new place).
+	 */
+	mountKey: string;
 };
 
 const ARROWS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
@@ -176,6 +232,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			onMoveItems,
 			onRenameItem,
 			selectionApiRef,
+			viewCommandsRef,
 			className,
 			style,
 		}) => {
@@ -215,8 +272,29 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			const resolvedHolderRef = holderRef ?? internalHolderRef;
 
 			const [items, setItems] = useState<iconType[]>([]);
-			// Where a renamed item's icon goes: where it was under its old name.
+			// Where a renamed item's icon goes: where it was under its old
+			// name. And where a new item's goes (`place`), and every icon
+			// after Line Up Icons.
 			const renamedPlacesRef = useRef(new Map<string, [number, number]>());
+			// Arrange Icons and Line Up Icons: the order chosen (kept for the
+			// view's life, as Explorer keeps a folder's), and each request,
+			// which lays the icons out afresh (remounting them, since an icon
+			// keeps its own place once drawn).
+			const [arrangedBy, setArrangedBy] = useState<
+				ClassicyFileBrowserArrangeKey | undefined
+			>(undefined);
+			const [layoutRequest, setLayoutRequest] = useState<{
+				kind: "arrange" | "lineUp";
+				id: number;
+			} | null>(null);
+			const appliedLayoutRequestRef = useRef(0);
+			const layoutEpochRef = useRef(0);
+			// The lattice and measures the last layout used, for `place`.
+			const latticeRef = useRef<{
+				cells: (count: number) => [number, number][];
+				pitch: [number, number];
+				origin: [number, number];
+			} | null>(null);
 
 			// The desktop-icon metrics, read from the desktop once per active
 			// theme rather than once per icon: the layout effect re-runs on every
@@ -272,32 +350,34 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					);
 
 				const entries = Object.entries(directoryListing);
-				const sorted =
-					arrangement === "sorted" && keepArrangedBy
-						? [...entries].sort((a, b) =>
-								finderEntryComparator(keepArrangedBy)(
-									{
-										name: a[0],
-										// asFinderDate, not the raw field: the tree round-trips
-										// through JSON, so these are ISO strings at runtime and
-										// .getTime() inside the comparator would throw.
-										modifiedOn: asFinderDate(a[1]._modifiedOn),
-										createdOn: asFinderDate(a[1]._createdOn),
-										size: a[1]._size,
-										kind: a[1]._type,
-										label: a[1]._label,
-									},
-									{
-										name: b[0],
-										modifiedOn: asFinderDate(b[1]._modifiedOn),
-										createdOn: asFinderDate(b[1]._createdOn),
-										size: b[1]._size,
-										kind: b[1]._type,
-										label: b[1]._label,
-									},
-								),
-							)
-						: entries;
+				// Arrange Icons' order, else the view options' kept order.
+				const sortKey: FinderSortKey | undefined =
+					arrangedBy ?? (arrangement === "sorted" ? keepArrangedBy : undefined);
+				const sorted = sortKey
+					? [...entries].sort((a, b) =>
+							finderEntryComparator(sortKey)(
+								{
+									name: a[0],
+									// asFinderDate, not the raw field: the tree round-trips
+									// through JSON, so these are ISO strings at runtime and
+									// .getTime() inside the comparator would throw.
+									modifiedOn: asFinderDate(a[1]._modifiedOn),
+									createdOn: asFinderDate(a[1]._createdOn),
+									size: a[1]._size,
+									kind: a[1]._type,
+									label: a[1]._label,
+								},
+								{
+									name: b[0],
+									modifiedOn: asFinderDate(b[1]._modifiedOn),
+									createdOn: asFinderDate(b[1]._createdOn),
+									size: b[1]._size,
+									kind: b[1]._type,
+									label: b[1]._label,
+								},
+							),
+						)
+					: entries;
 				// Folders (and drives) first, each group in its own order, under
 				// a package that lists them so (Windows Explorer).
 				const isFolderEntry = (properties: ClassicyFileSystemEntryMetadata) =>
@@ -333,9 +413,67 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				// via `snapTo`. "none" is unrestricted, exactly as today.
 				const positionLocked = arrangement === "sorted";
 
+				const cellAt = (index: number, count: number) =>
+					cleanupIcon(
+						activeTheme,
+						index,
+						count,
+						containerMeasure,
+						iconSize,
+						iconMetrics,
+					);
+				latticeRef.current = {
+					cells: (count) =>
+						Array.from({ length: count }, (_, i) => cellAt(i, count)),
+					pitch: lattice.pitch,
+					origin: lattice.origin,
+				};
+				// A layout request not yet applied: Arrange Icons drops every
+				// kept place (the icons go to the cells of the new order), Line
+				// Up Icons keeps each icon at the free cell nearest where it is.
+				if (
+					layoutRequest &&
+					layoutRequest.id !== appliedLayoutRequestRef.current
+				) {
+					appliedLayoutRequestRef.current = layoutRequest.id;
+					layoutEpochRef.current = layoutRequest.id;
+					if (layoutRequest.kind === "arrange") {
+						renamedPlacesRef.current.clear();
+					} else {
+						const drawn = new Map<string, HTMLElement>();
+						for (const el of resolvedHolderRef.current.querySelectorAll<HTMLElement>(
+							".classicyIcon[data-classicy-file-path]",
+						)) {
+							const at = el.getAttribute("data-classicy-file-path");
+							if (at) drawn.set(at, el);
+						}
+						const current = ordered.map(([filename], index) => {
+							const itemPath = `${path}${fs.separator}${filename}`;
+							const el = drawn.get(itemPath);
+							return el
+								? iconElementPlace(el)
+								: (renamedPlacesRef.current.get(itemPath) ??
+										cellAt(index, ordered.length));
+						});
+						const lined = classicyLineUpIconPlaces(
+							current,
+							lattice.pitch,
+							lattice.origin,
+						);
+						ordered.forEach(([filename], index) => {
+							renamedPlacesRef.current.set(
+								`${path}${fs.separator}${filename}`,
+								lined[index],
+							);
+						});
+					}
+				}
+				const epoch = layoutEpochRef.current;
+
 				const updatedIcons = ordered.map(([filename, properties], index) => {
 					const itemPath = `${path}${fs.separator}${filename}`;
 					return {
+						mountKey: epoch > 0 ? `${filename}\u0000${epoch}` : filename,
 						filePath: itemPath,
 						isFolder: isFolderEntry(properties),
 						dropFolderPath:
@@ -354,14 +492,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 						// A renamed icon stays where it was (its old name's place).
 						initialPosition:
 							renamedPlacesRef.current.get(itemPath) ??
-							cleanupIcon(
-								activeTheme,
-								index,
-								ordered.length,
-								containerMeasure,
-								iconSize,
-								iconMetrics,
-							),
+							cellAt(index, ordered.length),
 						size: iconSize,
 						snapTo,
 						snapOrigin: lattice.origin,
@@ -385,6 +516,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				iconSizeStep,
 				trashIcon,
 				foldersFirst,
+				arrangedBy,
+				layoutRequest,
 			]);
 
 			// --- Selection --------------------------------------------------
@@ -419,7 +552,9 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 
 			const itemsRef = useRef(items);
 			itemsRef.current = items;
-			// Paths no longer listed leave the selection.
+			// Paths no longer listed leave the selection; a command waiting for
+			// an item now listed runs.
+			// biome-ignore lint/correctness/useExhaustiveDependencies: the listing is the trigger; the pending commands are read from refs
 			useEffect(() => {
 				const listed = new Set(items.map((item) => item.filePath));
 				setSelection((prev) => {
@@ -439,8 +574,12 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					cursorRef.current = undefined;
 				}
 				for (const key of renamedPlacesRef.current.keys()) {
-					if (!listed.has(key)) renamedPlacesRef.current.delete(key);
+					// A new item's place waits for the item (`place`).
+					if (!listed.has(key) && !pendingPlacesRef.current.has(key))
+						renamedPlacesRef.current.delete(key);
+					if (listed.has(key)) pendingPlacesRef.current.delete(key);
 				}
+				applyPendingCommands();
 			}, [items]);
 
 			// The selection in the view's order: what a drag, a double-click
@@ -471,6 +610,83 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				}),
 				[],
 			);
+
+			// Explorer's commands (`viewCommandsRef`): a selection or a rename
+			// asked for an item not listed yet (New makes it, then asks) waits
+			// for the listing that shows it; so does a new item's place.
+			const pendingCommandsRef = useRef<{
+				select?: string[];
+				rename?: string;
+			}>({});
+			const pendingPlacesRef = useRef(new Set<string>());
+			const applyPendingCommands = () => {
+				const listed = new Set(itemsRef.current.map((item) => item.filePath));
+				const pending = pendingCommandsRef.current;
+				if (pending.select?.every((p) => listed.has(p))) {
+					const paths = pending.select;
+					pending.select = undefined;
+					setSelection({ selected: paths, anchor: paths[0] });
+					setCursor(paths[0]);
+				}
+				if (pending.rename !== undefined && listed.has(pending.rename)) {
+					const target = pending.rename;
+					pending.rename = undefined;
+					if (renamable(target)) {
+						cancelRenameTimer();
+						setRenaming(target);
+					}
+				}
+			};
+			useImperativeHandle(viewCommandsRef, () => ({
+				select: (paths) => {
+					pendingCommandsRef.current.select = [...paths];
+					applyPendingCommands();
+				},
+				rename: (itemPath) => {
+					pendingCommandsRef.current.rename = itemPath;
+					applyPendingCommands();
+				},
+				place: (itemPath, at) => {
+					const holder = resolvedHolderRef.current;
+					const lattice = latticeRef.current;
+					// Kept arranged, every icon's place is its order's.
+					if (!holder || !lattice || arrangement === "sorted") return;
+					let place: [number, number] | undefined;
+					if (at) {
+						const rect = holder.getBoundingClientRect();
+						place = [
+							Math.round(at[0] - rect.left),
+							Math.round(at[1] - rect.top),
+						];
+					} else {
+						const taken = itemsRef.current.map((item) => {
+							const el = iconElement(item.filePath);
+							return el ? iconElementPlace(el) : item.initialPosition;
+						});
+						place = classicyFreeIconCell(
+							taken,
+							lattice.cells(taken.length + 1),
+							lattice.pitch,
+						);
+					}
+					if (!place) return;
+					renamedPlacesRef.current.set(itemPath, place);
+					if (!itemsRef.current.some((item) => item.filePath === itemPath))
+						pendingPlacesRef.current.add(itemPath);
+				},
+				arrange: (key) => {
+					setArrangedBy(key);
+					setLayoutRequest((prev) => ({
+						kind: "arrange",
+						id: (prev?.id ?? 0) + 1,
+					}));
+				},
+				lineUp: () =>
+					setLayoutRequest((prev) => ({
+						kind: "lineUp",
+						id: (prev?.id ?? 0) + 1,
+					})),
+			}));
 
 			const iconElement = (itemPath: string): HTMLElement | undefined => {
 				const holder = resolvedHolderRef.current;
@@ -954,10 +1170,10 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					onMouseDown={onMouseDown}
 					onKeyDown={onKeyDown}
 				>
-					{items.map(({ isFolder: _isFolder, ...item }) => (
+					{items.map(({ isFolder: _isFolder, mountKey, ...item }) => (
 						<ClassicyIcon
 							{...item}
-							key={item.name}
+							key={mountKey}
 							onClickFunc={() => openIcon(item)}
 							onFileDrag={(target, _point, outlineTopLeft, moved) =>
 								dropIcon(item.filePath, target, outlineTopLeft, moved)

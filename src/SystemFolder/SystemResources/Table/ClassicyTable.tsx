@@ -126,7 +126,21 @@ export type ClassicyTableColumn<T> = {
 export type ClassicyTableSelectionMode = "none" | "single" | "multi";
 
 /** Imperative operations a menu command needs, e.g. Edit → Select All. */
-export type ClassicyTableSelectionApi = { selectAll: () => void };
+export type ClassicyTableSelectionApi = {
+	selectAll: () => void;
+	/**
+	 * Makes the rows `ids` the selection (the first the anchor and the
+	 * keyboard's row): Explorer's New selects the item it made. `ClassicyTable`
+	 * provides it; a view built otherwise may not.
+	 */
+	select?: (ids: string[]) => void;
+	/**
+	 * Sorts the rows by the column `columnId` (ascending unless `desc`), as
+	 * a click on its title would: Explorer's Arrange Icons in the details
+	 * view. A column the table does not have changes nothing.
+	 */
+	sortBy?: (columnId: string, desc?: boolean) => void;
+};
 
 type ClassicyTableProps<T> = {
 	/** Column definitions, left to right. The first column drives type-select. */
@@ -564,13 +578,31 @@ export function ClassicyTable<T>({
 
 	// Assigned in an effect rather than during render so a parent that reads
 	// the handle in its own effect always sees the current closure.
+	const selectRows = useCallback(
+		(ids: string[]) => {
+			if (selectionMode === "none") return;
+			const next = selectionMode === "single" ? ids.slice(0, 1) : ids;
+			anchorId.current = next[0];
+			setCursorId(next[0]);
+			commit(next);
+		},
+		[selectionMode, commit],
+	);
+	const sortBy = useCallback(
+		(columnId: string, desc = false) => {
+			if (!columns.some((c) => c.id === columnId && c.sortable !== false))
+				return;
+			setSorting([{ id: columnId, desc }]);
+		},
+		[columns],
+	);
 	useEffect(() => {
 		if (!selectionApiRef) return;
-		selectionApiRef.current = { selectAll };
+		selectionApiRef.current = { selectAll, select: selectRows, sortBy };
 		return () => {
 			selectionApiRef.current = null;
 		};
-	}, [selectionApiRef, selectAll]);
+	}, [selectionApiRef, selectAll, selectRows, sortBy]);
 
 	// Selection semantics over the CURRENT visual (sorted) order. Clicks and
 	// the keyboard (arrows, Home/End, type-select) all select through here.

@@ -9,7 +9,6 @@ import {
 	useContext,
 	useEffect,
 	useId,
-	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
@@ -34,6 +33,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyRenameField } from "@/SystemFolder/SystemResources/Icon/ClassicyRenameField.internal";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import { classicyWindowsSelectionKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
@@ -187,60 +187,6 @@ interface ClassicyIconProps {
 	 */
 	style?: CSSProperties;
 }
-
-/**
- * The caption's text field while an icon is renamed: the name, selected
- * whole, focused once it mounts. Return or a click elsewhere (the field's
- * blur) commits the text once; Escape cancels. Its presses, clicks and keys
- * stop here, so the icon neither drags, selects nor opens under them.
- */
-const ClassicyIconRenameField: FunctionalComponent<{
-	name: string;
-	onCommit: (value: string) => void;
-	onCancel: () => void;
-}> = ({ name, onCommit, onCancel }) => {
-	const inputRef = useRef<HTMLInputElement>(null);
-	const doneRef = useRef(false);
-	useLayoutEffect(() => {
-		const input = inputRef.current;
-		if (!input) return;
-		input.focus({ preventScroll: true });
-		input.select();
-	}, []);
-	const finish = (commit: boolean) => {
-		if (doneRef.current) return;
-		doneRef.current = true;
-		if (commit) onCommit(inputRef.current?.value ?? name);
-		else onCancel();
-	};
-	const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
-	return (
-		<input
-			ref={inputRef}
-			className={"classicyIconRename"}
-			type={"text"}
-			defaultValue={name}
-			aria-label={"Name"}
-			spellCheck={false}
-			onMouseDown={stop}
-			onMouseUp={stop}
-			onClick={stop}
-			onDoubleClick={stop}
-			onContextMenu={stop}
-			onKeyDown={(e) => {
-				e.stopPropagation();
-				if (e.key === "Enter") {
-					e.preventDefault();
-					finish(true);
-				} else if (e.key === "Escape") {
-					e.preventDefault();
-					finish(false);
-				}
-			}}
-			onBlur={() => finish(true)}
-		/>
-	);
-};
 
 /**
  * Rounds a dropped icon's position to the nearest cell of the lattice with the
@@ -551,7 +497,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const iconId = useId();
 
 	const labelEl = renaming ? (
-		<ClassicyIconRenameField
+		<ClassicyRenameField
+			className={"classicyIconRename"}
 			name={name}
 			onCommit={(value) => onRenameCommit?.(value)}
 			onCancel={() => onRenameCancel?.()}

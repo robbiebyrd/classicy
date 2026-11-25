@@ -14,6 +14,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import type { ClassicyCreatableFileType } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { toLocalDate } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 import {
@@ -30,6 +31,7 @@ import {
 } from "@/SystemFolder/Finder/FinderContext";
 import { FinderPreferences } from "@/SystemFolder/Finder/FinderPreferences";
 import { useFinderFolderSize } from "@/SystemFolder/Finder/useFinderFolderSize";
+import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -39,13 +41,31 @@ import {
 	closeAllWindowsMenuItemHelper,
 	closeWindowMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import { startClassicyDesktopIconRename } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconRename.internal";
 import { classicySpecialMenuItems } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import {
 	ClassicyFileBrowser,
 	type ClassicyFileBrowserCommands,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
-import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import type {
+	ClassicyFileBrowserArrangeKey,
+	ClassicyFileBrowserMoveItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import {
+	type ClassicyNewItemKind,
+	classicyArrangeIconsMenuItem,
+	classicyCanMakeItemIn,
+	classicyCanRename,
+	classicyDeleteConfirmation,
+	classicyDeleteMenuItem,
+	classicyLineUpIconsMenuItem,
+	classicyNewItemPath,
+	classicyNewMenuItem,
+	classicyRenameMenuItem,
+	makeClassicyNewItem,
+	useClassicyCreatableFileTypes,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileCommands.internal";
 import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
 	classicyDesktopDropLocation,
@@ -58,6 +78,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import { classicyExtensionControlPanelId } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
@@ -109,9 +130,29 @@ type FinderWindowProps = {
 	itemContextMenu: (
 		path: string,
 		selectedPaths: string[],
+		commands: ClassicyFileBrowserCommands | null,
 	) => ClassicyMenuItem[] | undefined;
 	/** The active package's Trash art, full or empty: the Trash window's icon. */
 	trashIcon: string;
+	/**
+	 * Explorer's commands in the window's menus (`layout.finder.commands`
+	 * "windows"): File ▸ Open, New ▸, Delete and Rename, View ▸ Large Icons,
+	 * Details, Arrange Icons ▸ and Line Up Icons, and the white space's menu.
+	 */
+	windowsCommands: boolean;
+	/** The document types File ▸ New lists (the mounted apps' `creates`). */
+	creatableTypes: ClassicyCreatableFileType[];
+	/**
+	 * Makes a new folder or document in `folder` and begins editing its name
+	 * in the window's browser (`commands`), its icon at the client point `at`
+	 * (a white-space menu's) or the first free cell.
+	 */
+	newItem: (
+		folder: string,
+		what: ClassicyNewItemKind,
+		commands: ClassicyFileBrowserCommands | null,
+		at?: [number, number],
+	) => void;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -142,6 +183,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	renameItem,
 	itemContextMenu,
 	trashIcon,
+	windowsCommands,
+	creatableTypes,
+	newItem,
 }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
 	// The bundled menus' access keys under a package that has them (WIG
@@ -180,46 +224,203 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 		target.focus({ preventScroll: true });
 	}, [viewType, windowFocused]);
 
+	// Explorer's commands (`layout.finder.commands` "windows"; Windows 98 SE
+	// Explorer's menus, shell32.dll; WIG Ch.1 "Understanding Users", p.8):
+	// File ▸ Open, New ▸, Delete, Rename and Close, View ▸ Large Icons and
+	// Details, Arrange Icons ▸ and Line Up Icons, acting on the browser's
+	// selection, and the same view commands, with New, on the white space.
+	const canMakeHere = windowsCommands && classicyCanMakeItemIn(fs, op);
+	const offeredArrangements: ClassicyFileBrowserArrangeKey[] =
+		viewType === "icons"
+			? ["name", "kind", "size", "modified"]
+			: [
+					"name",
+					...(listViewOptions.columns.kind ? (["kind"] as const) : []),
+					...(listViewOptions.columns.size ? (["size"] as const) : []),
+					...(listViewOptions.columns.modified ? (["modified"] as const) : []),
+				];
+	const offeredArrangementsKey = offeredArrangements.join(",");
+	const windowsViewItems = useCallback(
+		(idPrefix: string): ClassicyMenuItem[] => [
+			{
+				id: `${idPrefix}_large_icons`,
+				title: "Large Icons",
+				...(ak("g") !== undefined ? { accessKey: ak("g") } : {}),
+				checked: viewType === "icons",
+				mark: "bullet" as const,
+				onClickFunc: () => setFolderView(op, "icons"),
+			},
+			{
+				id: `${idPrefix}_details`,
+				title: "Details",
+				...(ak("D") !== undefined ? { accessKey: ak("D") } : {}),
+				checked: viewType === "list",
+				mark: "bullet" as const,
+				onClickFunc: () => setFolderView(op, "list"),
+			},
+		],
+		[ak, viewType, setFolderView, op],
+	);
+	const windowsArrangeItems = useCallback(
+		(idPrefix: string): ClassicyMenuItem[] => [
+			classicyArrangeIconsMenuItem(
+				idPrefix,
+				ak,
+				offeredArrangementsKey.split(",") as ClassicyFileBrowserArrangeKey[],
+				(key) => commandsRef.current?.arrange(key),
+			),
+			// Windows 98 SE dims Line Up Icons in the details view.
+			classicyLineUpIconsMenuItem(
+				idPrefix,
+				ak,
+				() => commandsRef.current?.lineUp(),
+				viewType === "list",
+			),
+		],
+		[ak, offeredArrangementsKey, viewType],
+	);
+	const backgroundContextMenu = useCallback(
+		(at: [number, number]): ClassicyMenuItem[] | undefined =>
+			windowsCommands
+				? [
+						{
+							id: `${appId}_${op}_ws_view`,
+							title: "View",
+							...(ak("V") !== undefined ? { accessKey: ak("V") } : {}),
+							menuChildren: windowsViewItems(`${appId}_${op}_ws_view`),
+						},
+						{ id: "spacer" },
+						...windowsArrangeItems(`${appId}_${op}_ws`),
+						...(canMakeHere
+							? [
+									{ id: "spacer" },
+									classicyNewMenuItem(
+										`${appId}_${op}_ws`,
+										ak,
+										creatableTypes,
+										(what) => newItem(op, what, commandsRef.current, at),
+									),
+								]
+							: []),
+					]
+				: undefined,
+		[
+			windowsCommands,
+			appId,
+			op,
+			ak,
+			windowsViewItems,
+			windowsArrangeItems,
+			canMakeHere,
+			creatableTypes,
+			newItem,
+		],
+	);
+	const windowsItemContextMenu = useCallback(
+		(path: string, selectedPaths: string[]) =>
+			itemContextMenu(path, selectedPaths, commandsRef.current),
+		[itemContextMenu],
+	);
+
 	const appMenu = useMemo(
 		() => [
 			{
 				id: `${appId}_${op}_file`,
 				title: "File",
 				accessKey: ak("f"),
-				menuChildren: [
-					closeWindowMenuItemHelper(
-						`${appId}_${op}_file_closew`,
-						() =>
-							closeWindow(op, {
-								type: "ClassicyAppFinderCloseFolder",
-								path: op,
-							}),
-						ak("c"),
-					),
-					closeAllWindowsMenuItemHelper(
-						`${appId}_${op}_file_closews`,
-						closeAllFolders,
-					),
-					{ id: "spacer" },
-					{
-						id: `${appId}_${op}_file_move_to_trash`,
-						title: "Move To Trash",
-						keyboardShortcut: "⌃⌫",
-						disabled: inTrash,
-						onClickFunc: () =>
-							trashItems(commandsRef.current?.selectedPaths() ?? []),
-					},
-					...(op === CLASSICY_TRASH_PATH
-						? [
-								{
-									id: `${appId}_${op}_file_restore`,
-									title: "Restore",
-									onClickFunc: () =>
-										restoreItems(commandsRef.current?.selectedPaths() ?? []),
-								},
-							]
-						: []),
-				],
+				menuChildren: windowsCommands
+					? [
+							{
+								id: `${appId}_${op}_file_open`,
+								title: "Open",
+								...(ak("o") !== undefined ? { accessKey: ak("o") } : {}),
+								keyboardShortcut: "⌘O",
+								onClickFunc: () =>
+									openItems(commandsRef.current?.selectedPaths() ?? []),
+							},
+							{ id: "spacer" },
+							...(inTrash
+								? []
+								: [
+										classicyNewMenuItem(
+											`${appId}_${op}_file`,
+											ak,
+											creatableTypes,
+											(what) => newItem(op, what, commandsRef.current),
+											!canMakeHere,
+										),
+										{ id: "spacer" },
+										classicyDeleteMenuItem(`${appId}_${op}_file`, ak, () =>
+											trashItems(commandsRef.current?.selectedPaths() ?? []),
+										),
+										classicyRenameMenuItem(`${appId}_${op}_file`, ak, () => {
+											const only = commandsRef.current?.selectedPaths() ?? [];
+											if (only.length === 1 && classicyCanRename(fs, only[0]))
+												commandsRef.current?.rename(only[0]);
+										}),
+										{ id: "spacer" },
+									]),
+							...(op === CLASSICY_TRASH_PATH
+								? [
+										{
+											id: `${appId}_${op}_file_restore`,
+											title: "Restore",
+											...(ak("e") !== undefined ? { accessKey: ak("e") } : {}),
+											onClickFunc: () =>
+												restoreItems(
+													commandsRef.current?.selectedPaths() ?? [],
+												),
+										},
+										{ id: "spacer" },
+									]
+								: []),
+							{
+								id: `${appId}_${op}_file_closew`,
+								title: "Close",
+								...(ak("c") !== undefined ? { accessKey: ak("c") } : {}),
+								onClickFunc: () =>
+									closeWindow(op, {
+										type: "ClassicyAppFinderCloseFolder",
+										path: op,
+									}),
+							},
+						]
+					: [
+							closeWindowMenuItemHelper(
+								`${appId}_${op}_file_closew`,
+								() =>
+									closeWindow(op, {
+										type: "ClassicyAppFinderCloseFolder",
+										path: op,
+									}),
+								ak("c"),
+							),
+							closeAllWindowsMenuItemHelper(
+								`${appId}_${op}_file_closews`,
+								closeAllFolders,
+							),
+							{ id: "spacer" },
+							{
+								id: `${appId}_${op}_file_move_to_trash`,
+								title: "Move To Trash",
+								keyboardShortcut: "⌃⌫",
+								disabled: inTrash,
+								onClickFunc: () =>
+									trashItems(commandsRef.current?.selectedPaths() ?? []),
+							},
+							...(op === CLASSICY_TRASH_PATH
+								? [
+										{
+											id: `${appId}_${op}_file_restore`,
+											title: "Restore",
+											onClickFunc: () =>
+												restoreItems(
+													commandsRef.current?.selectedPaths() ?? [],
+												),
+										},
+									]
+								: []),
+						],
 			},
 			// Built inline rather than from useClassicyEditMenu: that hook's Select
 			// All calls classicyEditCommands.selectAll, which acts on the focused
@@ -254,22 +455,30 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				// as Mac OS 8's View menu checks it (Platinum and System 7 draw
 				// their check) and Windows draws the chosen option's bullet (WIG
 				// Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button").
-				menuChildren: [
-					{
-						id: `${appId}_${op}_view_as_icons`,
-						title: "View as Icons",
-						checked: viewType === "icons",
-						mark: "bullet" as const,
-						onClickFunc: () => setFolderView(op, "icons"),
-					},
-					{
-						id: `${appId}_${op}_view_as_list`,
-						title: "View as List",
-						checked: viewType === "list",
-						mark: "bullet" as const,
-						onClickFunc: () => setFolderView(op, "list"),
-					},
-				],
+				// Explorer's View menu holds its views, then Arrange Icons ▸ and
+				// Line Up Icons.
+				menuChildren: windowsCommands
+					? [
+							...windowsViewItems(`${appId}_${op}_view`),
+							{ id: "spacer" },
+							...windowsArrangeItems(`${appId}_${op}_view`),
+						]
+					: [
+							{
+								id: `${appId}_${op}_view_as_icons`,
+								title: "View as Icons",
+								checked: viewType === "icons",
+								mark: "bullet" as const,
+								onClickFunc: () => setFolderView(op, "icons"),
+							},
+							{
+								id: `${appId}_${op}_view_as_list`,
+								title: "View as List",
+								checked: viewType === "list",
+								mark: "bullet" as const,
+								onClickFunc: () => setFolderView(op, "list"),
+							},
+						],
 			},
 			{
 				id: `${appId}_${op}_special`,
@@ -312,6 +521,14 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			restoreItems,
 			desktopEventDispatch,
 			ak,
+			windowsCommands,
+			openItems,
+			creatableTypes,
+			newItem,
+			canMakeHere,
+			fs,
+			windowsViewItems,
+			windowsArrangeItems,
 		],
 	);
 
@@ -357,9 +574,12 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				// as in Mac OS 8; the header counts them as hidden.
 				showInvisible={false}
 				onDeleteItems={inTrash ? undefined : trashItems}
-				itemContextMenu={itemContextMenu}
+				itemContextMenu={windowsItemContextMenu}
 				commandsRef={commandsRef}
 				onRenameItem={renameItem}
+				backgroundContextMenu={
+					windowsCommands ? backgroundContextMenu : undefined
+				}
 			/>
 		</ClassicyWindow>
 	);
@@ -391,6 +611,54 @@ const FinderFolderWindow: FunctionalComponent<FinderFolderWindowProps> = ({
 };
 
 const FinderFolderWindowMemo = memo(FinderFolderWindow);
+
+/**
+ * Windows 98 SE's Delete confirmation (Explorer's commands; shell32.dll's
+ * "Confirm File Delete", "Confirm Folder Delete" and "Confirm Multiple File
+ * Delete" boxes, Yes and No): shown while Finder's data holds a pending
+ * Delete. Yes moves the items still there to the Trash under the trust the
+ * request arrived with; No, Escape or closing moves nothing.
+ */
+const FinderDeleteConfirmation: FunctionalComponent<{
+	appId: string;
+	fs: ClassicyFileSystem;
+	paths: string[];
+	trust: "trusted" | "untrusted";
+}> = ({ appId, fs, paths, trust }) => {
+	const desktopEventDispatch = useAppManagerDispatch();
+	const present = paths.filter((path) => fs.resolve(path));
+	const { title, message } = classicyDeleteConfirmation(fs, present);
+	return (
+		<ClassicyAlert
+			id={"finder_confirm_delete"}
+			appId={appId}
+			alertType={"caution"}
+			movable={true}
+			title={title}
+			label={message}
+			buttons={[
+				{
+					id: "yes",
+					label: "Yes",
+					role: "default",
+					onClick: () => {
+						if (present.length > 0)
+							moveClassicyItemsToTrash(
+								fs,
+								present,
+								(action) => desktopEventDispatch(action, trust),
+								{ confirmed: true, trust },
+							);
+					},
+				},
+				{ id: "no", label: "No", role: "cancel" },
+			]}
+			onClose={() =>
+				desktopEventDispatch({ type: "ClassicyAppFinderConfirmDeleteClose" })
+			}
+		/>
+	);
+};
 
 export const Finder = () => {
 	// Two icons on purpose (K-R1). The record's icon, which the App Switcher
@@ -577,7 +845,11 @@ export const Finder = () => {
 				kind: "drive",
 				// Marks the drive icon as a drop target for Finder drags.
 				filePath: path,
-				contextMenu: buildDriveContextMenu(path, isDriveSyncConnected()),
+				contextMenu: buildDriveContextMenu(path, isDriveSyncConnected(), {
+					// Explorer's drives lead with Open, the default (5.23).
+					open: windowsCommands,
+					openAccessKey: ak("o"),
+				}),
 			});
 		});
 
@@ -589,7 +861,7 @@ export const Finder = () => {
 				});
 			});
 		};
-	}, [drivesKey, desktopEventDispatch]);
+	}, [drivesKey, desktopEventDispatch, windowsCommands, ak]);
 
 	// Finder drags: move dragged items into a folder, a drive or the desktop
 	// (its Desktop Folder), with icons dropped on the desktop placed where
@@ -707,6 +979,27 @@ export const Finder = () => {
 		},
 		[fs, openFolder, openFile],
 	);
+	// Explorer's File ▸ New ▸ (5.40, 10.3): a folder, or a registered type
+	// (the mounted apps' `creates`), named "New Folder", "New Folder (2)"…
+	// (10.10), made in `folder`, its icon where the menu was opened (else
+	// the first free cell), selected alone and its name edited at once.
+	const creatableTypes = useClassicyCreatableFileTypes();
+	const newItem = useCallback(
+		(
+			folder: string,
+			what: ClassicyNewItemKind,
+			commands: ClassicyFileBrowserCommands | null,
+			at?: [number, number],
+		) => {
+			if (!classicyCanMakeItemIn(fs, folder)) return;
+			const path = classicyNewItemPath(fs, folder, what);
+			commands?.place(path, at);
+			if (!makeClassicyNewItem(fs, path, what)) return;
+			commands?.select([path]);
+			commands?.rename(path);
+		},
+		[fs],
+	);
 	// Every item of a selection a double-click opens (the list view, under
 	// `layout.selection.modifiers` "windows"), each as openItem opens it.
 	const openItems = useCallback(
@@ -726,31 +1019,67 @@ export const Finder = () => {
 	// Windows' (Tables 7.1-7.2); the menus keep the commands Classicy has,
 	// and it has no Make Alias or Get Info.
 	const itemContextMenu = useCallback(
-		(path: string, selectedPaths: string[]): ClassicyMenuItem[] | undefined => {
+		(
+			path: string,
+			selectedPaths: string[],
+			commands: ClassicyFileBrowserCommands | null,
+		): ClassicyMenuItem[] | undefined => {
 			const targets = selectedPaths.includes(path) ? selectedPaths : [path];
-			const open: ClassicyMenuItem[] = windowsCommands
-				? [
-						{
-							id: "finder_item_open",
-							title: "Open",
-							accessKey: ak("o"),
-							isDefault: true,
-							onClickFunc: () => openItem(path),
-						},
-					]
-				: [];
+			// An Extension's menu leads with Properties, its default: the
+			// control panel that sets it up (9.3; WIG Ch.9 p.176), which a
+			// double-click opens too.
+			const panelId = windowsCommands
+				? classicyExtensionControlPanelId(fs.resolve(path))
+				: undefined;
+			const open: ClassicyMenuItem[] = !windowsCommands
+				? []
+				: panelId
+					? [
+							{
+								id: "finder_item_properties",
+								title: "Properties",
+								accessKey: ak("r"),
+								isDefault: true,
+								onClickFunc: () => openItem(path),
+							},
+						]
+					: [
+							{
+								id: "finder_item_open",
+								title: "Open",
+								accessKey: ak("o"),
+								isDefault: true,
+								onClickFunc: () => openItem(path),
+							},
+						];
 			if (isClassicyTrashItem(fs, path)) {
 				return [
 					...open,
 					{
 						id: "finder_item_restore",
 						title: "Restore",
+						...(ak("e") !== undefined ? { accessKey: ak("e") } : {}),
 						onClickFunc: () => restoreItems(targets),
 					},
 				];
 			}
 			if (isInClassicyTrash(fs, path))
 				return open.length > 0 ? open : undefined;
+			if (windowsCommands) {
+				// Explorer's item menu (Windows 98 SE, shell32.dll): Open, then
+				// Delete and Rename; Rename only for one item that may be.
+				return [
+					...open,
+					{ id: "spacer" },
+					classicyDeleteMenuItem("finder_item", ak, () => trashItems(targets)),
+					classicyRenameMenuItem(
+						"finder_item",
+						ak,
+						() => commands?.rename(path),
+						targets.length !== 1 || !classicyCanRename(fs, path),
+					),
+				];
+			}
 			return [
 				...open,
 				{
@@ -774,32 +1103,43 @@ export const Finder = () => {
 		openItemRef.current = openItem;
 	}, [openItem]);
 	const desktopItemContextMenu = useCallback(
-		(path: string): ClassicyMenuItem[] => [
-			{
-				id: "finder_item_open",
-				title: "Open",
-				...(ak("o") !== undefined ? { accessKey: ak("o") } : {}),
-				isDefault: true,
-				onClickFunc: () => openItemRef.current(path),
-			},
-			{
-				id: "finder_item_move_to_trash",
-				title: "Move To Trash",
-				onClickFunc: () => {
-					const desktop = useAppManager.getState().System.Manager.Desktop;
-					const selected = new Set(desktop.selectedIcons ?? []);
-					const selectedPaths = desktop.icons.flatMap((icon) =>
-						icon.filePath !== undefined &&
-						icon.appId.startsWith(CLASSICY_DESKTOP_ITEM_ICON_PREFIX) &&
-						selected.has(icon.appId)
-							? [icon.filePath]
-							: [],
-					);
-					trashItems(selectedPaths.includes(path) ? selectedPaths : [path]);
+		(path: string): ClassicyMenuItem[] => {
+			const selectedDesktopPaths = () => {
+				const desktop = useAppManager.getState().System.Manager.Desktop;
+				const selected = new Set(desktop.selectedIcons ?? []);
+				return desktop.icons.flatMap((icon) =>
+					icon.filePath !== undefined &&
+					icon.appId.startsWith(CLASSICY_DESKTOP_ITEM_ICON_PREFIX) &&
+					selected.has(icon.appId)
+						? [icon.filePath]
+						: [],
+				);
+			};
+			const targets = () => {
+				const selectedPaths = selectedDesktopPaths();
+				return selectedPaths.includes(path) ? selectedPaths : [path];
+			};
+			return [
+				{
+					id: "finder_item_open",
+					title: "Open",
+					...(ak("o") !== undefined ? { accessKey: ak("o") } : {}),
+					isDefault: true,
+					onClickFunc: () => openItemRef.current(path),
 				},
-			},
-		],
-		[trashItems, ak],
+				{ id: "spacer" },
+				// Explorer's Delete and Rename (Windows 98 SE, shell32.dll),
+				// Delete for the desktop's selected items when this is one.
+				classicyDeleteMenuItem("finder_item", ak, () => trashItems(targets())),
+				classicyRenameMenuItem("finder_item", ak, () => {
+					if (targets().length === 1 && classicyCanRename(fs, path))
+						startClassicyDesktopIconRename(
+							`${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`,
+						);
+				}),
+			];
+		},
+		[trashItems, ak, fs],
 	);
 
 	// Mirror the Desktop Folder onto the desktop: an icon for each item in it,
@@ -909,9 +1249,20 @@ export const Finder = () => {
 							renameItem={renameItem}
 							itemContextMenu={itemContextMenu}
 							trashIcon={trashIcon}
+							windowsCommands={windowsCommands}
+							creatableTypes={creatableTypes}
+							newItem={newItem}
 						/>
 					))
 				: null}
+			{finderData.confirmDelete ? (
+				<FinderDeleteConfirmation
+					appId={appId}
+					fs={fs}
+					paths={finderData.confirmDelete.paths}
+					trust={finderData.confirmDelete.trust}
+				/>
+			) : null}
 			{aboutWindow}
 			{appState.data?.showAboutThisComputer ? (
 				<FinderAboutThisComputer />

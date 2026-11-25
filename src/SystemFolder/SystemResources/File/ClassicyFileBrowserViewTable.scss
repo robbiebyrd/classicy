@@ -64,6 +64,17 @@
   text-overflow: ellipsis;
 }
 
+// A name being edited in place (the list view's `onRenameItem`, begun by
+// Explorer's Rename, New and F2 under a package's `layout.finder.commands`
+// or `layout.fileBrowser.keys` "windows"), where the name was: structure
+// only; its frame and colors are the package's.
+.classicyFileBrowserViewTableRowContainer .classicyFileBrowserViewTableRename {
+  box-sizing: border-box;
+  min-width: 0;
+  font: inherit;
+  user-select: text;
+}
+
 :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
   color: var(--color-white);
   background: var(--color-system-07);

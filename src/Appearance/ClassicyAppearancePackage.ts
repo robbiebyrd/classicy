@@ -350,9 +350,39 @@ export type ClassicyAppearanceLayout = {
 		 * item"). `"windows"` (Windows Explorer; WIG Ch.7 "Icon Pop-up
 		 * Menus" (pp.102-103)): every item's contextual menu, a desktop
 		 * file's or folder's included, leads with Open, its default item, the
-		 * command a double-click runs.
+		 * command a double-click runs. Under it (WIG Ch.1 "Understanding
+		 * Users" (p.8); Windows 98 SE Explorer's menus, shell32.dll), Finder's
+		 * folder-window File menu is Open ⌃O, New ▸, Delete (Del), Rename and
+		 * Close; an item's menu Open, Delete and Rename; a folder's white
+		 * space View ▸, Arrange Icons ▸, Line Up Icons and New ▸ (the
+		 * desktop's, `useClassicyDesktopCommands`, Arrange Icons ▸, Line Up
+		 * Icons and New ▸); Delete asks Windows 98's "Confirm File Delete"
+		 * first, on every route (a drag onto the Trash included); New ▸
+		 * makes a folder or a registered document type (`registerApp`'s
+		 * `creates`) and starts its name's edit; an Extension's menu leads
+		 * with Properties, its control panel, which a double-click opens; app
+		 * shortcuts and drives lead with Open too. `"mac"` and absent keep
+		 * Mac OS 8's menus byte for byte.
 		 */
 		commands?: "mac" | "windows";
+	};
+	/**
+	 * How the file system's names are written (`isClassicyValidFileName`,
+	 * `classicyFirstFreeName`, `File/ClassicyFileNames.ts`). Optional, as is
+	 * each key.
+	 */
+	files?: {
+		/**
+		 * `"mac"` (the default, Mac OS 8's HFS): a name may hold anything but
+		 * the path separator, `:`; the file dialog's New Folder prompt opens
+		 * empty. `"windows"` (WIG Ch.10 "File Naming Conventions" (p.210);
+		 * Windows 98 as shipped, shell32.dll): a name may hold none of
+		 * `\ / : * ? " < > |`, a refusal reading "A filename cannot contain
+		 * any of the following characters:" and the nine; New Folder's name
+		 * is the first free of "New Folder", "New Folder (2)", "New Folder
+		 * (3)"…, selected.
+		 */
+		names?: "mac" | "windows";
 	};
 	/**
 	 * How the file browser (`ClassicyFileBrowser`, the Finder's windows)

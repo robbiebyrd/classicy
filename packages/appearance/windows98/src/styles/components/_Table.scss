@@ -190,6 +190,18 @@ $finder: ".classicyFileBrowserViewTableContainer";
     background: b.$highlight;
   }
 
+  // A name being edited (Explorer's Rename, New and F2 in the details
+  // view): the list view's edit control where the name was, WindowText on
+  // Window in a one-pixel WindowFrame border, the list's font.
+  .classicyFileBrowserViewTableRowContainer .classicyFileBrowserViewTableRename {
+    padding: 0 px(2);
+    border: b.$b solid b.$text;
+    border-radius: 0;
+    outline: none;
+    color: b.$text;
+    background: b.$window;
+  }
+
   // The Finder's focus item: the focus rectangle on the `focused` row's name
   // alone, as Explorer's details view rings its focus item's label,
   // WindowText on a white name and HilightText on a selected one; with

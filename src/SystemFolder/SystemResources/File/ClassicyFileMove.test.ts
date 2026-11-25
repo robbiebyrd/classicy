@@ -1,10 +1,22 @@
 // @vitest-environment node
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+// The Windows-layout package below needs a sound pack registered: the core
+// default theme names Platinum's.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
+	classicyDeleteConfirms,
 	classicyDesktopFolderPath,
 	classicyDesktopItemIconAction,
 	moveClassicyFileSystemItems,
+	moveClassicyItemsToTrash,
 	renameClassicyFileSystemItem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import {
@@ -290,5 +302,108 @@ describe("renameClassicyFileSystemItem", () => {
 				}),
 			}),
 		);
+	});
+});
+
+// The remaining chapters' audit's 5.39 and 10.9 (WIG Ch.5 "Specialized
+// Transfer Commands", p.67; Ch.10 p.210; Windows 98 SE, shell32.dll): under
+// Explorer's commands every Delete asks before anything moves, a drop on
+// the Trash included, while Finder (which shows the box) is mounted; under
+// Windows' names a rename to a refused character is told in Windows 98's
+// "Rename" box.
+describe("Explorer's Delete and names", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const windowsPackage = (
+		layout: Record<string, unknown> = { finder: { commands: "windows" } },
+	) =>
+		registerClassicyAppearancePackage({
+			id: "test-explorer",
+			name: "Explorer",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-explorer-default",
+				package: "test-explorer",
+			},
+			layout: { ...CLASSICY_DEFAULT_APPEARANCE_LAYOUT, ...layout },
+		});
+	const PLAN = "Macintosh HD:Documents:Plan.txt";
+
+	it("asks Finder first on every route, then moves when confirmed", () => {
+		windowsPackage();
+		const release = markClassicyAppMounted("Finder.app");
+		try {
+			expect(classicyDeleteConfirms()).toBe(true);
+			const fs = makeFs();
+			const dispatch = vi.fn();
+			expect(
+				moveClassicyItemsToTrash(fs, [PLAN], dispatch, { trust: "untrusted" }),
+			).toEqual([]);
+			expect(dispatch).toHaveBeenCalledWith(
+				{ type: "ClassicyAppFinderConfirmDelete", paths: [PLAN] },
+				"untrusted",
+			);
+			expect(fs.resolve(PLAN)).toBeDefined();
+			// A drop on the Trash asks the same.
+			dispatch.mockClear();
+			expect(
+				moveClassicyFileSystemItems(
+					fs,
+					[PLAN],
+					{ kind: "folder", path: "Trash" },
+					dispatch,
+				),
+			).toEqual([]);
+			expect(dispatch).toHaveBeenCalledWith({
+				type: "ClassicyAppFinderConfirmDelete",
+				paths: [PLAN],
+			});
+			const moves = moveClassicyItemsToTrash(fs, [PLAN], dispatch, {
+				confirmed: true,
+			});
+			expect(moves).toHaveLength(1);
+			expect(fs.resolve(PLAN)).toBeUndefined();
+		} finally {
+			release();
+		}
+	});
+
+	it("moves at once without the key, or with no Finder mounted", () => {
+		const fs = makeFs();
+		expect(classicyDeleteConfirms()).toBe(false);
+		expect(moveClassicyItemsToTrash(fs, [PLAN], vi.fn())).toHaveLength(1);
+		windowsPackage();
+		const fs2 = makeFs();
+		expect(classicyDeleteConfirms()).toBe(false);
+		expect(
+			moveClassicyItemsToTrash(
+				fs2,
+				["Macintosh HD:Documents:Notes.txt"],
+				vi.fn(),
+			),
+		).toHaveLength(1);
+	});
+
+	it("refuses a Windows name in Windows 98's Rename box, Mac OS 8's names as before", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		// Mac OS 8: a question mark is a name's.
+		expect(renameClassicyFileSystemItem(fs, PLAN, "Plan?.txt", dispatch)).toBe(
+			"Macintosh HD:Documents:Plan?.txt",
+		);
+		windowsPackage({ files: { names: "windows" } });
+		const fs2 = makeFs();
+		const dispatch2 = vi.fn();
+		expect(
+			renameClassicyFileSystemItem(fs2, PLAN, "Plan?.txt", dispatch2),
+		).toBeUndefined();
+		expect(dispatch2).toHaveBeenCalledWith({
+			type: "ClassicyDesktopShowErrorDialog",
+			title: "Rename",
+			message:
+				'A filename cannot contain any of the following characters:\n\\ / : * ? " < > |',
+		});
+		expect(fs2.resolve(PLAN)).toBeDefined();
 	});
 });

@@ -21,6 +21,11 @@ import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/Cl
 import { takeClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 import {
+	startClassicyDesktopIconRename,
+	stopClassicyDesktopIconRename,
+	useClassicyDesktopIconRenaming,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconRename.internal";
+import {
 	type ClassicyDesktopIconSelectMode,
 	classicyDesktopFocusIconId,
 	classicyDesktopSpaceSelection,
@@ -36,8 +41,14 @@ import {
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import {
+	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
+	renameClassicyFileSystemItem,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyRenameField } from "@/SystemFolder/SystemResources/Icon/ClassicyRenameField.internal";
 import {
 	classicyIconsRoveFocus,
 	classicyWindowsSelectionKeys,
@@ -221,6 +232,45 @@ const draggedAsFile = (kind: string, filePath: string | undefined) =>
  * });
  * ```
  */
+/**
+ * A Desktop Folder item's name field while it is renamed in place
+ * (`startClassicyDesktopIconRename`): Return or a click elsewhere renames
+ * the item through `renameClassicyFileSystemItem` (its refusals told as
+ * any rename's) and selects its icon under the new name; Escape cancels.
+ */
+const ClassicyDesktopIconRenameField: FunctionalComponent<{
+	iconId: string;
+	filePath: string;
+}> = ({ iconId, filePath }) => {
+	const getFileSystem = useClassicyFileSystemAccessor();
+	const desktopEventDispatch = useAppManagerDispatch();
+	const fs = getFileSystem();
+	const name = filePath.split(fs.separator).pop() ?? filePath;
+	return (
+		<ClassicyRenameField
+			className={"classicyDesktopIconRename"}
+			name={name}
+			onCommit={(value) => {
+				stopClassicyDesktopIconRename(iconId);
+				if (value === name) return;
+				const renamed = renameClassicyFileSystemItem(
+					getFileSystem(),
+					filePath,
+					value,
+					desktopEventDispatch,
+				);
+				if (renamed) {
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconFocus",
+						iconId: `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${renamed}`,
+					});
+				}
+			}}
+			onCancel={() => stopClassicyDesktopIconRename(iconId)}
+		/>
+	);
+};
+
 export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> =
 	memo(
 		({
@@ -296,6 +346,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// (`selection.iconNavigation` "roving"): the focus icon.
 			const windowsKeys = classicyWindowsSelectionKeys(layout);
 			const roving = classicyIconsRoveFocus(layout);
+			// A Desktop Folder item's name, edited in place (Explorer's Rename
+			// and New, F2): only an item's icon has a name to edit.
+			const isDesktopItem =
+				filePath !== undefined &&
+				appId.startsWith(CLASSICY_DESKTOP_ITEM_ICON_PREFIX);
+			const renaming = useClassicyDesktopIconRenaming(appId) && isDesktopItem;
 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
@@ -770,6 +826,24 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: {})}
 					onClick={clickFocus}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+						// Windows: F2 renames the item (Explorer's Rename), the
+						// one selected (`layout.fileBrowser.keys` "windows").
+						if (
+							e.key === "F2" &&
+							layout.fileBrowser?.keys === "windows" &&
+							isDesktopItem &&
+							isSelected &&
+							!isMultipleSelection &&
+							!e.shiftKey &&
+							!e.altKey &&
+							!e.ctrlKey &&
+							!e.metaKey
+						) {
+							e.preventDefault();
+							e.stopPropagation();
+							startClassicyDesktopIconRename(appId);
+							return;
+						}
 						// Space is the Select key under Windows' selection keys
 						// (WIG Ch.5 "Keyboard Selection", p.43; comctl32's
 						// `LISTVIEW_KeySelection`): it selects the icon, Control or
@@ -873,7 +947,14 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							</div>
 						)}
 					</div>
-					<p>{shownName}</p>
+					{renaming && filePath !== undefined ? (
+						<ClassicyDesktopIconRenameField
+							iconId={appId}
+							filePath={filePath}
+						/>
+					) : (
+						<p>{shownName}</p>
+					)}
 					{balloon}
 				</div>
 			);

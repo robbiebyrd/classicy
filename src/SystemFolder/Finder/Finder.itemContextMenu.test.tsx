@@ -1,4 +1,11 @@
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import {
@@ -55,6 +62,8 @@ const desktopIcon = (path: string) =>
 			(i) => i.appId === `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`,
 		);
 const NOTES = "Macintosh HD:Desktop Folder:Notes.txt";
+const titles = (menu: ClassicyMenuItem[] | undefined) =>
+	(menu ?? []).map((item) => (item.id === "spacer" ? "—" : item.title));
 
 // Mac OS 8's Finder sets no default item in a contextual menu (HIGOS8
 // "Contextual Menus", pp.94-95: "you should not set a default item"): with
@@ -103,7 +112,7 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 	});
 	afterEach(() => restore());
 
-	it("puts Open, the default item, before Move To Trash, and opens a folder with it", async () => {
+	it("puts Open, the default item, before Delete and Rename, and opens a folder with it", async () => {
 		const fs = new ClassicyFileSystem();
 		fs.mkDir(`${DOCUMENTS}:Projects`);
 		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
@@ -111,7 +120,9 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
 
 		const menu = itemMenus[DOCUMENTS](`${DOCUMENTS}:Projects`, []) ?? [];
-		expect(menu.map((item) => item.title)).toEqual(["Open", "Move To Trash"]);
+		// Windows 98 SE Explorer's item menu (shell32.dll): Open, then Delete
+		// and Rename (the audit's 1.21, 5.39 and 10.3).
+		expect(titles(menu)).toEqual(["Open", "—", "Delete", "Rename"]);
 		expect(menu[0].isDefault).toBe(true);
 		expect(menu.slice(1).some((item) => item.isDefault)).toBe(false);
 
@@ -140,9 +151,11 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 		render(<Finder />);
 		await waitFor(() => {
 			const icon = desktopIcon(NOTES);
-			expect(icon?.contextMenu?.map((item) => item.title)).toEqual([
+			expect(titles(icon?.contextMenu)).toEqual([
 				"Open",
-				"Move To Trash",
+				"—",
+				"Delete",
+				"Rename",
 			]);
 			expect(icon?.contextMenu?.[0].isDefault).toBe(true);
 		});
@@ -152,5 +165,107 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 		await waitFor(() =>
 			expect(desktopIcon(NOTES)?.contextMenu).toBeUndefined(),
 		);
+	});
+});
+
+// The remaining chapters' audit's 5.39 and 9.3 (WIG Ch.5 "Specialized
+// Transfer Commands", p.67; Ch.9 p.176; Windows 98 SE, shell32.dll): under
+// Explorer's commands Delete asks first in Windows 98's box, Rename is for one
+// item that may be renamed, and an Extension's menu leads with Properties,
+// its control panel.
+describe("Explorer's Delete, Rename and Properties in Finder's item menus", () => {
+	let restore: () => void;
+	beforeEach(() => {
+		restore = activateTestWindowsKeysPackage();
+	});
+	afterEach(() => {
+		restore();
+		dispatch({ type: "ClassicyAppFinderConfirmDeleteClose" });
+	});
+
+	const confirmDelete = () =>
+		(
+			useAppManager.getState().System.Manager.Applications.apps["Finder.app"]
+				?.data as { confirmDelete?: { paths: string[] } } | undefined
+		)?.confirmDelete;
+
+	it("dims Rename for two items or one that may not be renamed", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS}:a.txt`, "a");
+		fs.writeFile(`${DOCUMENTS}:b.txt`, "b");
+		fs.writeFile(`${DOCUMENTS}:locked.txt`, "c", { _readOnly: true });
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+		const rename = (path: string, selected: string[]) =>
+			itemMenus[DOCUMENTS](path, selected)?.find(
+				(item) => item.title === "Rename",
+			);
+		expect(rename(`${DOCUMENTS}:a.txt`, [])?.disabled).toBe(false);
+		expect(
+			rename(`${DOCUMENTS}:a.txt`, [`${DOCUMENTS}:a.txt`, `${DOCUMENTS}:b.txt`])
+				?.disabled,
+		).toBe(true);
+		expect(rename(`${DOCUMENTS}:locked.txt`, [])?.disabled).toBe(true);
+	});
+
+	it("asks Windows 98's question before Delete moves anything; Yes moves, No does not", async () => {
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS}:Plan.txt`, "a");
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+		const del = () =>
+			itemMenus[DOCUMENTS](`${DOCUMENTS}:Plan.txt`, [])?.find(
+				(item) => item.title === "Delete",
+			);
+		act(() => del()?.onClickFunc?.());
+		expect(fs.resolve(`${DOCUMENTS}:Plan.txt`)).toBeDefined();
+		expect(confirmDelete()?.paths).toEqual([`${DOCUMENTS}:Plan.txt`]);
+		expect(
+			await screen.findByText(
+				"Are you sure you want to send 'Plan.txt' to the Trash?",
+			),
+		).toBeTruthy();
+		expect(screen.getAllByText("Confirm File Delete").length).toBeGreaterThan(
+			0,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "No" }));
+		await waitFor(() => expect(confirmDelete()).toBeUndefined());
+		expect(fs.resolve(`${DOCUMENTS}:Plan.txt`)).toBeDefined();
+
+		act(() => del()?.onClickFunc?.());
+		fireEvent.click(await screen.findByRole("button", { name: "Yes" }));
+		await waitFor(() => expect(confirmDelete()).toBeUndefined());
+		expect(fs.resolve(`${DOCUMENTS}:Plan.txt`)).toBeUndefined();
+		expect(fs.resolve("Trash:Plan.txt")).toBeDefined();
+	});
+
+	it("leads an Extension's menu with Properties, which opens its control panel", async () => {
+		const fs = new ClassicyFileSystem();
+		const saver = `${DOCUMENTS}:Screen Saver`;
+		fs.writeFile(saver, "", {
+			_type: "extension",
+			_creator: "ScreenSaver.app",
+		} as never);
+		dispatch({
+			type: "ClassicyAppLoad",
+			app: { id: "ScreenSaverManager.app", name: "Screen Saver", icon: "" },
+		});
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+		const menu = itemMenus[DOCUMENTS](saver, []) ?? [];
+		expect(titles(menu)[0]).toBe("Properties");
+		expect(menu[0].isDefault).toBe(true);
+		act(() => menu[0].onClickFunc?.());
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps[
+				"ScreenSaverManager.app"
+			]?.open,
+		).toBe(true);
+		expect(
+			useAppManager.getState().System.Manager.Desktop.errorDialog,
+		).toBeFalsy();
 	});
 });

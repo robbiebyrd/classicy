@@ -67,6 +67,19 @@ and `nodenext` resolution).
   Windows' does, Shift+F10 and the Application key opening the focused
   item's contextual menu, Finder's item menus leading with Open, their
   default item, as Explorer's do (the Mac packages' keep the Mac Finder's),
+  Explorer's commands in Finder's menus (a folder window's File menu Open,
+  New, Delete, Rename and Close; its View menu Large Icons, Details, Arrange
+  Icons by Name, Type, Size or Date and Line Up Icons; the same, with New, on
+  a right-click in its white space; an item's menu Open, Delete and Rename;
+  an extension's Properties, its control panel, which a double-click opens
+  too; an app's and a drive's desktop icon leading with Open), New making a
+  "New Folder" ("New Folder (2)" on a clash) or a "New Text Document.txt"
+  (SimpleText's) where the menu was opened and its name edited at once, in
+  either view and on the desktop, F2 renaming in both views and on the
+  desktop, every Delete (the menus, the Delete key, Ctrl+Backspace, a drop on
+  the Trash) asking Windows 98's "Confirm File Delete" first, names refusing
+  \ / : * ? " < > | in Windows 98's words, and the file dialog's New Folder
+  offering "New Folder" (or its first free number),
   an access key on every menu title, menu item, label of a control and
   push button (the first free letter of its text, underlined, unless the
   app gives it one; OK and Cancel take none, as Enter and Esc reach them;
@@ -156,7 +169,8 @@ and `nodenext` resolution).
     their caption (no icon, no Minimize), palette windows with Close alone,
     a modeless dialog's frame flattened to a plain ButtonFace box;
   - the Finder's icon view: a label being renamed in the list view's edit
-    box (WindowText on white in a one-pixel black border), a drag across
+    box (WindowText on white in a one-pixel black border; a name renamed in
+    the details view or on the desktop alike), a drag across
     empty space (in the list view too, and on the desktop, over its icons)
     drawing the dotted selection rectangle inverted over what lies under it,
     as Windows XORed it, nothing drawn until the pointer moves, and

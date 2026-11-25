@@ -288,6 +288,31 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// How names are written (the remaining chapters' audit's 10.9 and
+	// 10.10; WIG Ch.10 "File Naming Conventions", p.210): files.names,
+	// optional, its own group.
+	it("takes an optional files.names, and refuses another value", () => {
+		for (const names of ["mac", "windows"] as const) {
+			const input = platinumShaped();
+			(input.layout as Record<string, unknown>).files = { names };
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.success, names).toBe(true);
+			expect(result.data?.layout.files).toEqual({ names });
+		}
+		const empty = platinumShaped();
+		(empty.layout as Record<string, unknown>).files = {};
+		expect(ClassicyAppearancePackageSchema.safeParse(empty).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).files = { names: "dos" };
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"files",
+			"names",
+		]);
+	});
+
 	// Which key a Command equivalent answers to (the remaining chapters'
 	// audit's 4.19; WIG Ch.4 "Shortcut Keys", p.28): keyboard.command,
 	// optional, beside contextMenuKey in the keyboard group.

@@ -260,6 +260,7 @@
 			"Image",
 			"Mask",
 			"MaskOuter",
+			"Rename",
 			"SelectedImage"
 		],
 		"DesktopMenu": [
@@ -285,6 +286,7 @@
 			"ViewTableContainer",
 			"ViewTableDisclosure",
 			"ViewTableDisclosureTriangle",
+			"ViewTableRename",
 			"ViewTableRow",
 			"ViewTableRowContainer",
 			"ViewTableRowIcon",

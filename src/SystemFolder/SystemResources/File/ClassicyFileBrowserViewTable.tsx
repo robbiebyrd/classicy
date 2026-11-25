@@ -12,6 +12,7 @@ import {
 	type RefObject,
 	useCallback,
 	useEffect,
+	useImperativeHandle,
 	useMemo,
 	useRef,
 	useState,
@@ -22,7 +23,11 @@ import {
 	asFinderDate,
 	formatFinderDate,
 } from "@/SystemFolder/Finder/FinderViewOptions";
-import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import type {
+	ClassicyFileBrowserArrangeKey,
+	ClassicyFileBrowserMoveItems,
+	ClassicyFileBrowserViewCommands,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
@@ -43,6 +48,7 @@ import {
 	useClassicyTrashIcon,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { ClassicyRenameField } from "@/SystemFolder/SystemResources/Icon/ClassicyRenameField.internal";
 import {
 	ClassicyTable,
 	type ClassicyTableCellContext,
@@ -72,6 +78,23 @@ const folderRowGroup = (row: FileRow): number =>
 // case, when the component still re-renders on every size resolution) would
 // invalidate the memo constantly — the same DOM-remount hazard fixed for
 // renderers by 99fc5dd2.
+/** The list's column for each Arrange Icons order. */
+const ARRANGE_COLUMNS: Record<ClassicyFileBrowserArrangeKey, string> = {
+	name: "_name",
+	kind: "_type",
+	size: "_size",
+	modified: "_modifiedOn",
+};
+
+/** Every row path listed, disclosed folders' rows included. */
+const listedRowPaths = (rows: FileRow[], into = new Set<string>()) => {
+	for (const row of rows) {
+		if (row._path) into.add(row._path);
+		if (row.subRows) listedRowPaths(row.subRows, into);
+	}
+	return into;
+};
+
 const DEFAULT_LIST_COLUMN_FLAGS: FinderListViewOptions["columns"] = {
 	modified: false,
 	created: false,
@@ -113,6 +136,19 @@ type ClassicyFileBrowserViewTableProps = {
 	focusTargetRef?: RefObject<HTMLDivElement | null>;
 	/** Move items dragged out of the list (see `ClassicyFileBrowser`). */
 	onMoveItems?: ClassicyFileBrowserMoveItems;
+	/**
+	 * Rename an item: called with its path and the name typed when a rename
+	 * begun through `viewCommandsRef` (Explorer's Rename, New, F2) is
+	 * committed. Return the item's new path when it was renamed, so the
+	 * list keeps it selected. Without it, names are not editable.
+	 */
+	onRenameItem?: (path: string, name: string) => string | undefined;
+	/**
+	 * Receives the list's commands (`ClassicyFileBrowserViewCommands`):
+	 * select, rename in place, and sort by a column (Arrange Icons); it
+	 * places nothing and lines nothing up.
+	 */
+	viewCommandsRef?: RefObject<ClassicyFileBrowserViewCommands | null>;
 	/** Extra class names, merged onto the table's root after the component's own. */
 	className?: string;
 	/** Inline style for the table's root. */
@@ -141,6 +177,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			onSelectionChange,
 			focusTargetRef,
 			onMoveItems,
+			onRenameItem,
+			viewCommandsRef,
 			className,
 			style,
 		}) => {
@@ -369,6 +407,87 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				};
 			}, [data, fs, sizes, computeFolderSizes]);
 
+			// Explorer's commands (`viewCommandsRef`): the table's own selection
+			// and sort, through a handle forwarded to the caller's
+			// `selectionApiRef`; a selection or a rename asked for a row not
+			// listed yet (New makes the item, then asks) waits for the listing
+			// that shows it.
+			const tableApiRef = useRef<ClassicyTableSelectionApi | null>(null);
+			useImperativeHandle(
+				selectionApiRef,
+				() => ({
+					selectAll: () => tableApiRef.current?.selectAll(),
+					select: (ids) => tableApiRef.current?.select?.(ids),
+					sortBy: (columnId, desc) =>
+						tableApiRef.current?.sortBy?.(columnId, desc),
+				}),
+				[],
+			);
+			const [renaming, setRenaming] = useState<string | null>(null);
+			const pendingCommandsRef = useRef<{
+				select?: string[];
+				rename?: string;
+			}>({});
+			const renamable = (rowPath: string): boolean => {
+				if (!onRenameItem) return false;
+				const entry = fs.resolve(rowPath);
+				const parent = fs.resolve(
+					rowPath.split(fs.separator).slice(0, -1).join(fs.separator),
+				);
+				return (
+					!!entry &&
+					entry._type !== ClassicyFileSystemEntryFileType.Drive &&
+					entry._system !== true &&
+					entry._readOnly !== true &&
+					entry._derived !== true &&
+					parent?._readOnly !== true
+				);
+			};
+			const applyPendingCommands = () => {
+				const listed = listedRowPaths(data);
+				const pending = pendingCommandsRef.current;
+				if (pending.select?.every((p) => listed.has(p))) {
+					const paths = pending.select;
+					pending.select = undefined;
+					tableApiRef.current?.select?.(paths);
+				}
+				if (pending.rename !== undefined && listed.has(pending.rename)) {
+					const target = pending.rename;
+					pending.rename = undefined;
+					if (renamable(target)) setRenaming(target);
+				}
+			};
+			// biome-ignore lint/correctness/useExhaustiveDependencies: the listing is the trigger; the pending commands are read from a ref
+			useEffect(() => {
+				applyPendingCommands();
+			}, [data]);
+			useImperativeHandle(viewCommandsRef, () => ({
+				select: (paths) => {
+					pendingCommandsRef.current.select = [...paths];
+					applyPendingCommands();
+				},
+				rename: (rowPath) => {
+					pendingCommandsRef.current.rename = rowPath;
+					applyPendingCommands();
+				},
+				place: () => {},
+				arrange: (key) =>
+					tableApiRef.current?.sortBy?.(ARRANGE_COLUMNS[key], false),
+				lineUp: () => {},
+			}));
+			const commitRename = useCallback(
+				(rowPath: string, name: string) => {
+					setRenaming(null);
+					const oldName = rowPath.split(fs.separator).pop() ?? "";
+					if (name === oldName) return;
+					const renamed = onRenameItem?.(rowPath, name);
+					if (typeof renamed === "string" && renamed !== rowPath) {
+						pendingCommandsRef.current.select = [renamed];
+					}
+				},
+				[fs, onRenameItem],
+			);
+
 			const columns = useMemo<ClassicyTableColumn<FileRow>[]>(() => {
 				const cols: ClassicyTableColumn<FileRow>[] = [
 					{
@@ -433,9 +552,20 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 										selectable
 										selected={expansion.selected === true}
 									/>
-									<span className={"classicyFileBrowserViewTableRowIconLabel"}>
-										{row._name}
-									</span>
+									{renaming !== null && row._path === renaming ? (
+										<ClassicyRenameField
+											className={"classicyFileBrowserViewTableRename"}
+											name={row._name ?? ""}
+											onCommit={(name) => commitRename(renaming, name)}
+											onCancel={() => setRenaming(null)}
+										/>
+									) : (
+										<span
+											className={"classicyFileBrowserViewTableRowIconLabel"}
+										>
+											{row._name}
+										</span>
+									)}
 								</div>
 							);
 						},
@@ -534,6 +664,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				relativeDates,
 				computeFolderSizes,
 				startRowDrag,
+				renaming,
+				commitRename,
 			]);
 
 			return (
@@ -575,7 +707,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					// ClassicyTable puts `selected` on a selected row itself.
 					rowClassName={() => "classicyFileBrowserViewTableRow"}
 					selectionMode={"multi"}
-					selectionApiRef={selectionApiRef}
+					selectionApiRef={tableApiRef}
 					selected={selectedPaths}
 					onSelectionChange={trackSelection}
 					containerRef={focusTargetRef}

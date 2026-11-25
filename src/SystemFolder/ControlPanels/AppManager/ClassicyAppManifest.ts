@@ -39,6 +39,49 @@ export interface ClassicyAppActionManifestEntry {
 	scriptable?: boolean;
 }
 
+/**
+ * One document type an app makes from Explorer's File ▸ New (WIG Ch.10
+ * "Supporting Creation", pp.199-200: the `ShellNew` registry entry). The
+ * menu lists its `typeName`; choosing it makes "New <typeName>" (with
+ * `extension`, numbered "(2)"… on a clash) holding `data`, typed
+ * `fileType`, and begins editing its name.
+ */
+export const ClassicyAppCreatesEntrySchema = z.object({
+	fileType: z
+		.string()
+		.min(1)
+		.describe(
+			"The made file's `_type`: a ClassicyFileSystemEntryFileType value, e.g. `text_file`.",
+		),
+	typeName: z
+		.string()
+		.min(1)
+		.max(40)
+		.refine((name) => name.trim() === name && !/[\\/:*?"<>|]/.test(name), {
+			message:
+				'a type name has no surrounding spaces and none of \\ / : * ? " < > |',
+		})
+		.describe(
+			'The type\'s name in the New submenu and the new file\'s name, title case: "Text Document" makes "New Text Document".',
+		),
+	extension: z
+		.string()
+		.regex(/^[A-Za-z0-9]{1,8}$/)
+		.optional()
+		.describe(
+			'The new file\'s extension, without its dot: `txt` names it "New Text Document.txt".',
+		),
+	data: z
+		.string()
+		.optional()
+		.describe("The new file's contents (`_data`); empty when omitted."),
+});
+
+/** One entry of a manifest's `creates`. */
+export type ClassicyAppCreatesEntry = z.infer<
+	typeof ClassicyAppCreatesEntrySchema
+>;
+
 /** What an app passes to `registerApp`. */
 export interface ClassicyAppManifestDefinition {
 	id: string;
@@ -56,6 +99,14 @@ export interface ClassicyAppManifestDefinition {
 	 * empty before the app's first action.
 	 */
 	state?: z.ZodType;
+	/**
+	 * The document types the app makes from File ▸ New under
+	 * `layout.finder.commands` "windows" (Explorer's ShellNew entries;
+	 * `ClassicyAppCreatesEntrySchema`). An entry that fails the schema is
+	 * dropped with a warning. Re-registering adds entries for types not
+	 * listed yet (first wins, by `fileType` and `typeName`).
+	 */
+	creates?: ClassicyAppCreatesEntry[];
 }
 
 /** The stored, merged manifest for one app id. */
@@ -65,6 +116,8 @@ export interface ClassicyAppManifest {
 	prefixes: string[];
 	actions: Record<string, ClassicyAppActionManifestEntry>;
 	state?: z.ZodType;
+	/** The document types the app makes from File ▸ New, validated. */
+	creates?: ClassicyAppCreatesEntry[];
 }
 
 const manifests = new Map<string, ClassicyAppManifest>();
@@ -117,6 +170,28 @@ export function registerApp(def: ClassicyAppManifestDefinition): void {
 			);
 		}
 	}
+	for (const raw of def.creates ?? []) {
+		const parsed = ClassicyAppCreatesEntrySchema.safeParse(raw);
+		if (!parsed.success) {
+			classicyLog(
+				"warn",
+				"registerApp",
+				"Ignoring a `creates` entry that fails its schema",
+				{ appId: def.id, entry: raw, issues: parsed.error.issues },
+			);
+			continue;
+		}
+		const creates = manifest.creates ?? [];
+		if (
+			creates.some(
+				(entry) =>
+					entry.fileType === parsed.data.fileType &&
+					entry.typeName === parsed.data.typeName,
+			)
+		)
+			continue;
+		manifest.creates = [...creates, Object.freeze(parsed.data)];
+	}
 	if (def.prefix && def.handler && !manifest.prefixes.includes(def.prefix)) {
 		manifest.prefixes.push(def.prefix);
 		prefixIndex.set(def.prefix, def.id);
@@ -146,6 +221,36 @@ export function getAppManifest(appId: string): ClassicyAppManifest | undefined {
 /** Snapshot of all registered manifests. */
 export function listAppManifests(): ClassicyAppManifest[] {
 	return [...manifests.values()];
+}
+
+/** A `creates` entry with the app that declared it. */
+export type ClassicyCreatableFileType = ClassicyAppCreatesEntry & {
+	appId: string;
+};
+
+/**
+ * Every registered app's `creates` entries (or only those of `appIds`,
+ * e.g. the mounted apps), sorted by type name without case, as Explorer's
+ * New submenu lists them; a type name two apps declare is listed once, the
+ * first registered's.
+ */
+export function listClassicyCreatableFileTypes(
+	appIds?: ReadonlySet<string>,
+): ClassicyCreatableFileType[] {
+	const seen = new Set<string>();
+	const list: ClassicyCreatableFileType[] = [];
+	for (const manifest of manifests.values()) {
+		if (appIds && !appIds.has(manifest.id)) continue;
+		for (const entry of manifest.creates ?? []) {
+			const key = entry.typeName.toLowerCase();
+			if (seen.has(key)) continue;
+			seen.add(key);
+			list.push({ ...entry, appId: manifest.id });
+		}
+	}
+	return list.sort((a, b) =>
+		a.typeName.toLowerCase().localeCompare(b.typeName.toLowerCase()),
+	);
 }
 
 /** One script-callable action, flattened for discovery. */

@@ -9,11 +9,13 @@ import type {
 	ClassicyStore,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
+	ClassicyAppCreatesEntrySchema,
 	describeAppAction,
 	describeAppState,
 	getAppManifest,
 	getScriptableAction,
 	listAppManifests,
+	listClassicyCreatableFileTypes,
 	listScriptableActions,
 	parseAppData,
 	registerApp,
@@ -251,5 +253,75 @@ describe("manifest metadata walkers", () => {
 		).toBeUndefined();
 		expect(parseAppData<T3Data>("T3None.app", {})).toBeUndefined();
 		expect(parseAppData<T3Data>("T3Walk.app", undefined)).toEqual({});
+	});
+});
+
+// The remaining chapters' audit's 10.3 (WIG Ch.10 "Supporting Creation",
+// pp.199-200): an app declares the document types File ▸ New makes, the
+// ShellNew entry, validated, merged first-wins and listed by type name.
+describe("registerApp's creates", () => {
+	it("validates each entry, dropping one that fails", () => {
+		expect(
+			ClassicyAppCreatesEntrySchema.safeParse({
+				fileType: "text_file",
+				typeName: "Text Document",
+				extension: "txt",
+			}).success,
+		).toBe(true);
+		for (const bad of [
+			{ fileType: "", typeName: "Doc" },
+			{ fileType: "text_file", typeName: "" },
+			{ fileType: "text_file", typeName: " Doc" },
+			{ fileType: "text_file", typeName: "A/B" },
+			{ fileType: "text_file", typeName: 'Say "Hi"' },
+			{ fileType: "text_file", typeName: "Doc", extension: ".txt" },
+			{ fileType: "text_file", typeName: "x".repeat(41) },
+		])
+			expect(
+				ClassicyAppCreatesEntrySchema.safeParse(bad).success,
+				JSON.stringify(bad),
+			).toBe(false);
+		registerApp({
+			id: "T10Creates.app",
+			description: "Makes documents.",
+			creates: [
+				{ fileType: "text_file", typeName: "Zebra Note", extension: "zbr" },
+				{ fileType: "text_file", typeName: "A/B" },
+			],
+		});
+		expect(getAppManifest("T10Creates.app")?.creates).toEqual([
+			{ fileType: "text_file", typeName: "Zebra Note", extension: "zbr" },
+		]);
+	});
+
+	it("merges additively, first wins, and lists the types by name, an app's alone when asked", () => {
+		registerApp({
+			id: "T10Merge.app",
+			description: "Makes more documents.",
+			creates: [{ fileType: "markdown", typeName: "Aardvark Page" }],
+		});
+		registerApp({
+			id: "T10Merge.app",
+			description: "Makes more documents.",
+			creates: [
+				{ fileType: "markdown", typeName: "Aardvark Page", data: "second" },
+				{ fileType: "pdf", typeName: "Memo" },
+			],
+		});
+		expect(getAppManifest("T10Merge.app")?.creates).toEqual([
+			{ fileType: "markdown", typeName: "Aardvark Page" },
+			{ fileType: "pdf", typeName: "Memo" },
+		]);
+		const names = listClassicyCreatableFileTypes().map((t) => t.typeName);
+		expect(names.indexOf("Aardvark Page")).toBeLessThan(names.indexOf("Memo"));
+		expect(listClassicyCreatableFileTypes(new Set(["T10Merge.app"]))).toEqual([
+			{
+				fileType: "markdown",
+				typeName: "Aardvark Page",
+				appId: "T10Merge.app",
+			},
+			{ fileType: "pdf", typeName: "Memo", appId: "T10Merge.app" },
+		]);
+		expect(listClassicyCreatableFileTypes(new Set())).toEqual([]);
 	});
 });

@@ -120,6 +120,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	finder: z
 		.object({ commands: z.enum(["mac", "windows"]).optional() })
 		.optional(),
+	files: z.object({ names: z.enum(["mac", "windows"]).optional() }).optional(),
 	fileList: z.object({ foldersFirst: z.boolean().optional() }).optional(),
 	tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),
 	balloonHelp: z

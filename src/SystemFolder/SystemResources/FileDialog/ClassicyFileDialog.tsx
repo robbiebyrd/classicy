@@ -20,6 +20,12 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import {
+	CLASSICY_WINDOWS_FILE_NAME_REFUSAL,
+	classicyFirstFreeNameAmong,
+	classicyWindowsFileNames,
+	isClassicyValidFileName,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileNames";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
@@ -206,7 +212,11 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const desktopVolumeOffered = volumes.find((v) => v.id === "desktop");
 	// A fixed modal dialog box under a package whose layout says so (System
 	// 7); else the movable modal window of HIGOS8 p.59.
-	const dialogLayout = useClassicyAppearanceLayout().fileDialog;
+	const appearanceLayout = useClassicyAppearanceLayout();
+	const dialogLayout = appearanceLayout.fileDialog;
+	// Windows' names (`layout.files.names` "windows"; WIG Ch.10 p.210): none
+	// of `\ / : * ? " < > |`, and New Folder named "New Folder" (2)…
+	const windowsNames = classicyWindowsFileNames(appearanceLayout);
 	const fixedFrame = dialogLayout?.frame === "fixed";
 	// System 7.5's Standard File browses one folder at a time (the package's
 	// `fileDialog.navigation: "flat"`): its contents only, a folder entered by
@@ -669,7 +679,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const canSave =
 		mode === "save" &&
 		strippedBase.trim().length > 0 &&
-		!trimmedName.includes(":") &&
+		isClassicyValidFileName(trimmedName) &&
 		activeVolume?.write !== undefined &&
 		activeFormat !== undefined &&
 		!saving;
@@ -762,11 +772,19 @@ export const ClassicyFileDialog: FunctionalComponent<
 		}
 	};
 
+	// The names already in the folder New Folder makes its folder in (the
+	// listing loaded for it; none while it loads).
+	const newFolderTakenNames = (): string[] => {
+		if (!activeVolume) return [];
+		const listing = folders.get(cacheKey(activeVolume.id, selectedFolderPath));
+		return Array.isArray(listing) ? listing.map((entry) => entry.name) : [];
+	};
+
 	const handleCreateFolder = async (rawName: string) => {
 		if (props.mode !== "save") return;
 		if (!activeVolume?.mkDir) return;
 		const name = rawName.trim();
-		if (name.length === 0 || name.includes(":")) return;
+		if (name.length === 0 || !isClassicyValidFileName(name)) return;
 		const path = selectedFolderPath;
 		try {
 			await activeVolume.mkDir(path, name);
@@ -1191,10 +1209,25 @@ export const ClassicyFileDialog: FunctionalComponent<
 					id={`${id}-new-folder`}
 					appId={appId}
 					title={"New Folder"}
-					prompt={"Name of new folder:"}
+					// Under Windows' names a refused character turns the prompt
+					// into Windows 98's message (shell32.dll), and the name
+					// offered is the folder's first free "New Folder", selected
+					// (WIG Ch.10 p.210; Windows 98's "New Folder (2)").
+					prompt={(name) =>
+						windowsNames && !isClassicyValidFileName(name)
+							? CLASSICY_WINDOWS_FILE_NAME_REFUSAL
+							: "Name of new folder:"
+					}
+					initialValue={
+						windowsNames
+							? classicyFirstFreeNameAmong(newFolderTakenNames(), "New Folder")
+							: undefined
+					}
 					placeholder={"untitled folder"}
 					confirmLabel={"Create"}
-					validate={(name) => name.trim().length > 0 && !name.includes(":")}
+					validate={(name) =>
+						name.trim().length > 0 && isClassicyValidFileName(name)
+					}
 					onConfirm={(name) => void handleCreateFolder(name)}
 					onCancel={() => setNewFolderOpen(false)}
 				/>

@@ -8807,6 +8807,9 @@
 		"finder": {
 			"commands": "windows"
 		},
+		"files": {
+			"names": "windows"
+		},
 		"fileBrowser": {
 			"keys": "windows",
 			"iconSelection": "view",

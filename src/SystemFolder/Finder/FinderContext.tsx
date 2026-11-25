@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	hasFinderFile,
 	hasPath,
@@ -7,6 +8,7 @@ import {
 import {
 	type ClassicyActionTrust,
 	checkClassicyActionTrust,
+	classicyActionTrustOf,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	focusWindow,
@@ -36,6 +38,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { classicyExtensionControlPanelId } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
@@ -131,6 +134,15 @@ export const FinderDataSchema = z.looseObject({
 		.optional()
 		.describe(
 			"Explicit per-folder view type. A path absent from this map follows the standard views.",
+		),
+	confirmDelete: z
+		.object({
+			paths: z.array(z.string()),
+			trust: z.enum(["trusted", "untrusted"]),
+		})
+		.optional()
+		.describe(
+			"A Delete waiting for its confirmation (Explorer's commands, `layout.finder.commands` \"windows\"): the items' paths and the trust the request arrived with. Session-only: never persisted.",
 		),
 });
 
@@ -348,6 +360,27 @@ export const classicyFinderEventHandler = (
 			};
 			break;
 		}
+		case "ClassicyAppFinderConfirmDelete": {
+			// A Delete under Explorer's commands asks first (the trash
+			// wrapper's `classicyDeleteConfirms`): Finder shows Windows 98
+			// SE's "Confirm File Delete" box over these paths, and its Yes
+			// moves them under the trust the request arrived with.
+			if (!hasPaths(action)) break;
+			const paths = (action.paths as string[]).filter(
+				(p) => typeof p === "string" && p !== "",
+			);
+			if (paths.length === 0) break;
+			appData = {
+				...appData,
+				confirmDelete: { paths, trust: classicyActionTrustOf(trust) },
+			};
+			break;
+		}
+		case "ClassicyAppFinderConfirmDeleteClose": {
+			const { confirmDelete: _answered, ...rest } = appData;
+			appData = rest;
+			break;
+		}
 		case "ClassicyAppFinderEmptyTrash": {
 			// TODO: What will this do?
 			break;
@@ -362,6 +395,22 @@ export const classicyFinderEventHandler = (
 				return ds;
 			}
 			if (file?._type === ClassicyFileSystemEntryFileType.Extension) {
+				// Explorer's commands (`layout.finder.commands` "windows"; WIG
+				// Ch.9 p.176): a double-click runs the entry's Properties,
+				// the control panel that sets it up, when one does.
+				const panelId = classicyExtensionControlPanelId(file);
+				const panel = panelId
+					? ds.System.Manager.Applications.apps[panelId]
+					: undefined;
+				if (
+					panel &&
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId)
+						.finder?.commands === "windows"
+				) {
+					if (!checkClassicyActionTrust(trust, "ClassicyAppOpen")) return ds;
+					openApp(ds, panel.id, panel.name, panel.icon);
+					return ds;
+				}
 				// Mac OS 8 behavior: extensions add functionality at boot and are
 				// not openable documents or applications.
 				ds.System.Manager.Desktop.errorDialog = {
@@ -575,6 +624,19 @@ registerApp({
 					)
 					.describe("Each moved item's old and new path."),
 			}),
+		},
+		ClassicyAppFinderConfirmDelete: {
+			description:
+				"Ask before moving items to the Trash (Explorer's commands: Windows 98 SE's Confirm File Delete box). Its Yes moves them under the trust this arrived with; it moves nothing itself.",
+			params: z.object({
+				paths: z
+					.array(z.string())
+					.describe("Absolute paths of the items to move to the Trash."),
+			}),
+		},
+		ClassicyAppFinderConfirmDeleteClose: {
+			description:
+				"Dismiss a pending Delete confirmation (its Yes or No was chosen).",
 		},
 		ClassicyAppFinderEmptyTrash: {
 			description:

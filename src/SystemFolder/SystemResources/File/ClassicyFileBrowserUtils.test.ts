@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	capitalizeFirst,
+	classicyFreeIconCell,
+	classicyLineUpIconPlaces,
 	cleanupIcon,
 	createGrid,
 	fileTypeDisplayName,
@@ -170,4 +172,77 @@ describe("icon-view layout reads --desktop-icon-*", () => {
 			padding: 12,
 			cell: 96,
 		}));
+});
+
+// Explorer's Line Up Icons and New's free cell (the remaining chapters'
+// audit's A.4 and 5.40; Windows 98 SE's View ▸ Line Up Icons).
+describe("classicyLineUpIconPlaces", () => {
+	const pitch: [number, number] = [64, 64];
+	const origin: [number, number] = [4, 4];
+
+	it("moves each icon to its nearest cell, never left of or above the first", () => {
+		expect(
+			classicyLineUpIconPlaces(
+				[
+					[70, 10],
+					[-30, -30],
+					[200, 140],
+				],
+				pitch,
+				origin,
+			),
+		).toEqual([
+			[68, 4],
+			[4, 4],
+			[196, 132],
+		]);
+	});
+
+	it("gives a later icon wanting a taken cell the nearest free one", () => {
+		const lined = classicyLineUpIconPlaces(
+			[
+				[6, 6],
+				[10, 8],
+				[2, 70],
+			],
+			pitch,
+			origin,
+		);
+		expect(lined[0]).toEqual([4, 4]);
+		expect(lined[1]).toEqual([68, 4]);
+		expect(lined[2]).toEqual([4, 68]);
+		expect(new Set(lined.map((p) => p.join(","))).size).toBe(3);
+	});
+});
+
+describe("classicyFreeIconCell", () => {
+	it("returns the first cell no icon covers, within half a pitch", () => {
+		const cells: [number, number][] = [
+			[4, 4],
+			[4, 68],
+			[68, 4],
+		];
+		expect(classicyFreeIconCell([], cells, [64, 64])).toEqual([4, 4]);
+		expect(
+			classicyFreeIconCell(
+				[
+					[10, 10],
+					[30, 80],
+				],
+				cells,
+				[64, 64],
+			),
+		).toEqual([68, 4]);
+		expect(
+			classicyFreeIconCell(
+				[
+					[4, 4],
+					[4, 68],
+					[68, 4],
+				],
+				cells,
+				[64, 64],
+			),
+		).toBeUndefined();
+	});
 });

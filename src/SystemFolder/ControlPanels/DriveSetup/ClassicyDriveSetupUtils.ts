@@ -68,8 +68,36 @@ export function isDriveSyncConnected(): boolean {
 export function buildDriveContextMenu(
 	drive: string,
 	isConnected: boolean,
+	options: {
+		/**
+		 * Lead with Open, the menu's default item (Explorer's commands,
+		 * `layout.finder.commands` "windows"; WIG Ch.5 "Default Operations
+		 * and Shortcut Techniques", p.45): it opens the drive's window, the
+		 * command a double-click runs. Mac OS 8's Finder sets no default item
+		 * in a contextual menu (HIGOS8 "Contextual Menus", pp.94-95), so it is
+		 * off unless asked for.
+		 */
+		open?: boolean;
+		/** Open's access key, when the package gives one (shell32.dll's "&Open"). */
+		openAccessKey?: string;
+	} = {},
 ): ClassicyMenuItem[] {
 	return [
+		...(options.open
+			? [
+					{
+						id: `drive_${drive}_open`,
+						title: "Open",
+						...(options.openAccessKey !== undefined
+							? { accessKey: options.openAccessKey }
+							: {}),
+						isDefault: true,
+						event: "ClassicyAppFinderOpenFolder",
+						eventData: { path: drive },
+					},
+					{ id: "spacer" },
+				]
+			: []),
 		{
 			id: `drive_${drive}_initialize`,
 			title: "Initialize…",

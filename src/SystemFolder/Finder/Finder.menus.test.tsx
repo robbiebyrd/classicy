@@ -2,13 +2,16 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import type { ReactNode, RefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { FinderData } from "@/SystemFolder/Finder/FinderContext";
+import type { ClassicyFileBrowserCommands } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import system7 from "../../../packages/appearance/system7/src/system7.json";
 
 // Captures the `appMenu` each window is handed, keyed by window id. Mocking
 // ClassicyWindow (rather than ClassicyFileBrowser, as Finder.folderView does)
@@ -36,6 +39,17 @@ const capturedFocusTargetRefByPath: Record<
 	RefObject<HTMLDivElement | null> | undefined
 > = {};
 
+// The browser's commands handle and its white space's menu (Explorer's
+// commands, `layout.finder.commands` "windows").
+const capturedCommandsRefByPath: Record<
+	string,
+	RefObject<ClassicyFileBrowserCommands | null> | undefined
+> = {};
+const capturedBackgroundMenuByPath: Record<
+	string,
+	((at: [number, number]) => ClassicyMenuItem[] | undefined) | undefined
+> = {};
+
 vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 	ClassicyWindow: ({
 		id,
@@ -59,13 +73,21 @@ vi.mock("@/SystemFolder/SystemResources/File/ClassicyFileBrowser", () => ({
 		path,
 		selectionApiRef,
 		focusTargetRef,
+		commandsRef,
+		backgroundContextMenu,
 	}: {
 		path: string;
 		selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
 		focusTargetRef?: RefObject<HTMLDivElement | null>;
+		commandsRef?: RefObject<ClassicyFileBrowserCommands | null>;
+		backgroundContextMenu?: (
+			at: [number, number],
+		) => ClassicyMenuItem[] | undefined;
 	}) => {
 		capturedSelectionRefByPath[path] = selectionApiRef;
 		capturedFocusTargetRefByPath[path] = focusTargetRef;
+		capturedCommandsRefByPath[path] = commandsRef;
+		capturedBackgroundMenuByPath[path] = backgroundContextMenu;
 		return <div data-testid={`classicy-file-browser-${path}`} />;
 	},
 }));
@@ -229,10 +251,24 @@ describe("Finder folder-window menus' access keys", () => {
 			await openDocuments();
 			const [file, edit, view, special, help] = keysOf();
 			expect(file.slice(0, 2)).toEqual(["File", "f"]);
-			expect(file[2]).toContainEqual(["Close Window", "c"]);
+			// Explorer's File menu (the test package's `finder.commands`
+			// "windows"; shell32.dll's letters).
+			expect(file[2]).toEqual([
+				["Open", "o"],
+				["New", "w"],
+				["Delete", "D"],
+				["Rename", "m"],
+				["Close", "c"],
+			]);
 			expect(edit.slice(0, 2)).toEqual(["Edit", "e"]);
 			expect(edit[2]).toContainEqual(["Select All", "a"]);
 			expect(view.slice(0, 2)).toEqual(["View", "v"]);
+			expect(view[2]).toEqual([
+				["Large Icons", "g"],
+				["Details", "D"],
+				["Arrange Icons", "I"],
+				["Line Up Icons", "U"],
+			]);
 			expect(special.slice(0, 2)).toEqual(["Special", "s"]);
 			expect(help.slice(0, 2)).toEqual(["Help", "h"]);
 			expect(help[2]).toContainEqual([expect.stringMatching(/^About/), "a"]);
@@ -248,6 +284,174 @@ describe("Finder folder-window menus' access keys", () => {
 			expect(key).toBeUndefined();
 			for (const [, itemKey] of items as [string, string | undefined][])
 				expect(itemKey).toBeUndefined();
+		}
+	});
+});
+
+// The remaining chapters' audit's 1.21, 5.23, 5.39, 5.40, 10.3 and A.4
+// (WIG Ch.1 "Understanding Users", p.8; Ch.5 pp.45, 61, 67, 69; App. A
+// Table A.1 note 3, p.350): under Explorer's commands
+// (`layout.finder.commands` "windows") a folder window's File menu is
+// Windows 98 SE Explorer's (shell32.dll): Open ⌃O, New ▸, Delete (Del),
+// Rename, Close; its View menu the views, Arrange Icons ▸ and Line Up Icons;
+// its white space the same, with New. Platinum's and System 7's are as
+// they were.
+describe("Finder folder-window menus under Explorer's commands", () => {
+	const titlesOf = (items: ClassicyMenuItem[] | undefined) =>
+		(items ?? []).map((item) => (item.id === "spacer" ? "—" : item.title));
+	const fileItems = () => menuNamed("File")?.menuChildren;
+	const fileItem = (title: string) =>
+		fileItems()?.find((item) => item.title === title);
+	const fakeCommands = (selected: string[]) => {
+		const commands = {
+			selectedPaths: () => selected,
+			select: vi.fn(),
+			rename: vi.fn(),
+			place: vi.fn(),
+			arrange: vi.fn(),
+			lineUp: vi.fn(),
+			display: () => "list" as const,
+		};
+		const ref = capturedCommandsRefByPath[DOCUMENTS_PATH];
+		if (ref) ref.current = commands;
+		return commands;
+	};
+
+	it("gives Explorer's File and View menus and the white space's", async () => {
+		const restore = activateTestWindowsKeysPackage();
+		try {
+			dispatch({
+				type: "ClassicyAppFinderSetFolderView",
+				path: DOCUMENTS_PATH,
+				viewType: "list",
+			});
+			await openDocuments();
+			expect(titlesOf(fileItems())).toEqual([
+				"Open",
+				"—",
+				"New",
+				"—",
+				"Delete",
+				"Rename",
+				"—",
+				"Close",
+			]);
+			expect(fileItem("Open")?.keyboardShortcut).toBe("⌘O");
+			expect(fileItem("Delete")).toMatchObject({
+				keyboardShortcut: "⌦",
+				nativeShortcut: true,
+			});
+			expect(titlesOf(fileItem("New")?.menuChildren)).toContain("Folder");
+			const view = menuNamed("View")?.menuChildren;
+			expect(titlesOf(view)).toEqual([
+				"Large Icons",
+				"Details",
+				"—",
+				"Arrange Icons",
+				"Line Up Icons",
+			]);
+			// The list view (a folder opens in it): its shown columns' orders,
+			// and no Line Up Icons.
+			expect(
+				titlesOf(view?.find((i) => i.title === "Arrange Icons")?.menuChildren),
+			).toEqual(["by Name", "by Type", "by Size", "by Date"]);
+			expect(view?.find((i) => i.title === "Line Up Icons")?.disabled).toBe(
+				true,
+			);
+			expect(
+				titlesOf(capturedBackgroundMenuByPath[DOCUMENTS_PATH]?.([1, 2])),
+			).toEqual(["View", "—", "Arrange Icons", "Line Up Icons", "—", "New"]);
+		} finally {
+			restore();
+		}
+	});
+
+	it("runs Open, Rename, Arrange Icons and New on the window's browser", async () => {
+		const restore = activateTestWindowsKeysPackage();
+		const { ClassicyFileSystem } = await import(
+			"@/SystemFolder/SystemResources/File/ClassicyFileSystem"
+		);
+		const fs = new ClassicyFileSystem();
+		fs.mkDir(`${DOCUMENTS_PATH}:Projects`);
+		try {
+			await openDocuments();
+			const commands = fakeCommands([`${DOCUMENTS_PATH}:Projects`]);
+			act(() => fileItem("Open")?.onClickFunc?.());
+			expect(finderData().openPaths).toContain(`${DOCUMENTS_PATH}:Projects`);
+			act(() => fileItem("Rename")?.onClickFunc?.());
+			expect(commands.rename).toHaveBeenCalledWith(
+				`${DOCUMENTS_PATH}:Projects`,
+			);
+			const arrange = menuNamed("View")?.menuChildren?.find(
+				(i) => i.title === "Arrange Icons",
+			);
+			act(() =>
+				arrange?.menuChildren
+					?.find((i) => i.title === "by Size")
+					?.onClickFunc?.(),
+			);
+			expect(commands.arrange).toHaveBeenCalledWith("size");
+			const newMenu = capturedBackgroundMenuByPath[DOCUMENTS_PATH]?.([
+				30, 40,
+			])?.find((i) => i.title === "New");
+			act(() =>
+				newMenu?.menuChildren
+					?.find((i) => i.title === "Folder")
+					?.onClickFunc?.(),
+			);
+			const made = `${DOCUMENTS_PATH}:New Folder`;
+			expect(commands.place).toHaveBeenCalledWith(made, [30, 40]);
+			expect(commands.select).toHaveBeenCalledWith([made]);
+			expect(commands.rename).toHaveBeenLastCalledWith(made);
+			expect(fs.resolve(made)?._type).toBe("directory");
+			fs.rmDir(made);
+		} finally {
+			fs.rmDir(`${DOCUMENTS_PATH}:Projects`);
+			dispatch({
+				type: "ClassicyAppFinderCloseFolder",
+				path: `${DOCUMENTS_PATH}:Projects`,
+			});
+			restore();
+		}
+	});
+
+	it("keeps Platinum's File and View menus, with no white-space menu", async () => {
+		await openDocuments();
+		expect(titlesOf(fileItems())).toEqual([
+			"Close Window",
+			"Close All Windows",
+			"—",
+			"Move To Trash",
+		]);
+		expect(titlesOf(menuNamed("View")?.menuChildren)).toEqual([
+			"View as Icons",
+			"View as List",
+		]);
+		expect(capturedBackgroundMenuByPath[DOCUMENTS_PATH]).toBeUndefined();
+	});
+
+	it("keeps System 7's too", async () => {
+		const restore = activateTestWindowsKeysPackage({
+			...(system7.layout as unknown as Partial<ClassicyAppearanceLayout>),
+			finder: undefined,
+			menu: undefined,
+			keyboard: undefined,
+		});
+		try {
+			await openDocuments();
+			expect(titlesOf(fileItems())).toEqual([
+				"Close Window",
+				"Close All Windows",
+				"—",
+				"Move To Trash",
+			]);
+			expect(titlesOf(menuNamed("View")?.menuChildren)).toEqual([
+				"View as Icons",
+				"View as List",
+			]);
+			expect(capturedBackgroundMenuByPath[DOCUMENTS_PATH]).toBeUndefined();
+		} finally {
+			restore();
 		}
 	});
 });
