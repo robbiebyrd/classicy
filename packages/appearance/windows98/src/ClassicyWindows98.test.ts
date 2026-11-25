@@ -239,10 +239,20 @@ describe("the Windows 98 appearance package", () => {
 	// dialog or alert lands on whole pixels, so its one-pixel bevels and
 	// glyphs stay on the grid (`window.centering`, the audit's 8.8; WIG Ch.8
 	// "Window Placement", p.147; Ch.13 "Design of Graphic Images", p.313).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels", async () => {
+	// The Maximize button fills the screen less the taskbar and Restore
+	// returns the window (`window.zoom`, the audit's 6.6; WIG Ch.6
+	// "Maximizing Windows" and "Restoring Windows", pp.84-85), and a
+	// double-click on the caption maximizes or restores it, as Windows 98
+	// shipped (`window.titleDoubleClick`; Wine `NC_HandleNCLButtonDblClk`).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
-			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
+			window: {
+				growBoxCorner: "bottom-right",
+				centering: "wholePixel",
+				zoom: "maximize",
+				titleDoubleClick: "zoom",
+			},
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: { fitsBars: "shown" },

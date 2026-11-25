@@ -103,6 +103,15 @@ export interface ClassicyStoreSystemAppWindow {
 	default?: boolean;
 	resizing?: boolean;
 	zoomed?: boolean;
+	/**
+	 * The rect a maximized window returns to, written only by a window
+	 * maximized under `layout.window.zoom: "maximize"` (the Windows shell,
+	 * plan 0020-w98 §5: `ClassicyWindowZoom`'s `restore`) and deleted when the
+	 * window un-zooms. Persisted, so Restore survives a reload; absent means
+	 * none, so no other package's session ever writes it. Its reader uses it
+	 * only when both pairs are finite numbers (`isClassicyWindowRestoreRect`).
+	 */
+	restoreRect?: ClassicyStoreSystemAppWindowRect;
 	collapsed?: boolean;
 	// Mirrors the window's `collapsable` prop (#278). Absent ⇒ collapsable;
 	// only an explicit `false` opts the window out of Option-click
@@ -122,6 +131,16 @@ export interface ClassicyStoreSystemAppWindow {
 	// from automatic focus succession; absent ⇒ treated as "document".
 	windowType?: "document" | "utility";
 	options?: Record<string, JsonValue>[];
+}
+
+/**
+ * A window's rect as the window applies it: its outer left/top (`position`)
+ * and its content-box size (`size`), in px. A maximized window's
+ * `restoreRect`.
+ */
+export interface ClassicyStoreSystemAppWindowRect {
+	position: [number, number];
+	size: [number, number];
 }
 
 /** An app's windows, keyed by window id (each entry's `id` equals its key). */

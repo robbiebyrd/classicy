@@ -828,7 +828,7 @@ component's root class, never folded into a longer class name and never in a
 
 | Component (root class) | States it sets |
 |---|---|
-| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed` (shaded: WindowShade, the store's `collapsed` under every layout but `window.collapse: "minimize"`, where a minimized window carries none and is marked `classicyWindowMinimized` instead, §4.1), `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all) |
+| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed` (shaded: WindowShade, the store's `collapsed` under every layout but `window.collapse: "minimize"`, where a minimized window carries none and is marked `classicyWindowMinimized` instead, §4.1), `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all. Under `window.zoom: "maximize"` a zoomed window is maximized and also carries the part class `classicyWindowMaximized`, §4.1) |
 | `ClassicyButton` | `default` (`isDefault`), `pressed` (`depressed`) |
 | `ClassicyBevelButton` | `checked`, `pressed`, `mixed`, `disabled`, `open` (its menu or panel is showing) |
 | `ClassicyCheckbox`, `ClassicyRadioInput` | `checked`, `mixed`, `disabled`, `default` |
@@ -1035,7 +1035,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `appId` * | `string` | — |
 | `title` | `string` | `""` |
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
-| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll`. The collapse box shades the window (WindowShade), or, under `layout.window.collapse: "minimize"`, is Minimize (below; a `modal` or utility window draws none there) |
+| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll`. The collapse box shades the window (WindowShade), or, under `layout.window.collapse: "minimize"`, is Minimize (below; a `modal` or utility window draws none there). The zoom box toggles the standard state, or, under `layout.window.zoom: "maximize"`, is Maximize and Restore (below; a utility window draws none there) |
 | `fitsScrollBars` | `boolean` | the package's `layout.scrollBar.fitsBars` for a resizable, non-utility window, else `false`: keep both bars (`fits`) while the content fits |
 | `modal` | `boolean` | `false` |
 | `movable` | `boolean` | `true` (modal only) |
@@ -1043,7 +1043,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `initialSize` / `minimumSize` | `[w, h]`, each `number \| "\${number}%"` | `[350, 0]` / `[300, 0]` (0 = auto) |
 | `initialPosition` | `[x, y]` — x: `number \| "left" \| "center" \| "right"`, y: `number \| "top" \| "center" \| "bottom"` | `[110, 110]` |
 | `windowType` | `"document" \| "utility"` | `"document"` |
-| `zoomMode` | `"full" \| "horizontal" \| "vertical"` | `"full"` |
+| `zoomMode` | `"full" \| "horizontal" \| "vertical"` | `"full"` (ignored under `layout.window.zoom: "maximize"`) |
 | `headerVariant` | `"standard" \| "list"` | `"standard"` |
 | `header` / `placard` | `ReactNode` | — |
 | `appMenu` / `contextMenu` | `ClassicyMenuItem[]` | — |
@@ -1051,7 +1051,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `analyticsPath` / `analyticsExclude` | `string` / `boolean` | derived / `false` (see §9) |
 | `onCloseFunc` | `(id: string) => void` | — |
 | `onBeforeClose` | `(id: string) => boolean \| Promise<boolean>` | — (close always proceeds) |
-| `idealSize` | `[w, h]`, each `number \| "\${number}%"` | — (zoom fits the content) |
+| `idealSize` | `[w, h]`, each `number \| "\${number}%"` | — (zoom fits the content; ignored under `layout.window.zoom: "maximize"`) |
 | `hidden` | `boolean` | `false` |
 | `growable` | `boolean` | `false` |
 | `type` | `"default" \| "error"` | `"default"` |
@@ -1200,12 +1200,74 @@ shades, its click bubbles, a collapse clears `zoomed` and keeps the focus,
 a close promotes the app's highest-`zOrder` open sibling (shaded or not), and
 focusing a window never touches `collapsed`.
 
+**Maximize and restore** (`layout.window.zoom: "maximize"`, the Windows
+shell, plan 0020-w98 §5; WIG Ch.6 "Maximizing Windows" and "Restoring
+Windows", pp.84–85). The zoom box, named "Maximize", and "Restore" while the
+window is maximized (`ClassicyWindowTitleBar`'s `labels`), still writes the
+store's `zoomed` flag, but the window takes the work area, not the standard
+state: its content box is the desktop less the menu bar's band (0 under
+window placement) and the taskbar's, and its frame lies just outside it
+(`classicyMaximizedWindowRect`, below), as Windows grows a maximized
+window's rect by its frame, so the caption meets the screen's top and sides
+(the desktop's `overflow: hidden` clips the frame; the taskbar covers its
+bottom). `zoomMode` and `idealSize` are ignored: Windows has one maximized
+state. The zoom carries the rect the window had (`ClassicyWindowZoom`'s
+`restore`, its outer left/top and content size), which the reducer stores on
+the record as `restoreRect` and deletes when the window un-zooms, whatever
+un-zooms it; it is persisted, so Restore survives a reload. While maximized
+the root carries `classicyWindowMaximized` (base rule `max-height: none`, so
+the height reserve, `--window-max-height-reserve`, does not stop it short of
+the taskbar) beside `expanded`; the window is not clamped on screen (its
+frame is off it by design), its caption's drag is refused (dragging a
+maximized window does nothing in Windows 95/98), its frame edges and grow
+box are not drawn, and it is not re-centered as its content resizes; it
+takes the work area again on mount (a reload, a package switch: the record
+says zoomed, its geometry may be another package's standard state), when it
+comes back from a minimize, when the menu bar's or the taskbar's band changes
+and when the desktop resizes (a `ResizeObserver` on `#classicyDesktop`, the
+viewport's `resize` without one). Restore returns it to the rect this mount
+remembers, else the record's `restoreRect` (read under every package, and
+only when both pairs are finite numbers), else the rect the window opened
+at. A minimize keeps the zoom (`window.collapse: "minimize"`), so it comes
+back maximized. Only a primary window maximizes: a utility window has no
+Maximize button (WIG Ch.8 "Palette Windows", p.164, Figure 8.16: Close
+alone), so under the flag it draws no zoom box, the registry publishes
+`zoomable: false` and refuses `maximize`, and a zoom stored by another
+package is drawn as it is, unmaximized; a modal draws no zoom box under any
+layout. Under every other layout (`"standard"`, the default) the zoom box
+toggles the standard state, the window is clamped and moves and sizes as
+always, no `restore` is sent, and only a record that already holds a
+`restoreRect` (a window maximized under Windows 98, then the package
+switched) is un-zoomed to it; its root never carries
+`classicyWindowMaximized`.
+
+The pure `classicyMaximizedWindowRect({ width, height, top, bottomBand,
+chrome })` (`ClassicyWindowMaximize.ts`, exported) returns `{ position, size }`:
+`position` is `[−chrome.left, top − chrome.top]` and `size` is `[width,
+height − top − bottomBand]` (never below 0), for a desktop `width` × `height`,
+the menu bar's band `top`, the taskbar's `bottomBand` and the window's
+`chrome`, the padding plus border of each side, which
+`classicyWindowChromeEdges(el)` measures off the window's computed style
+(`{ left, top, right, bottom }`; `classicyWindowChromeSize` is each axis's
+sum).
+
+**The caption's double-click** (`layout.window.titleDoubleClick`). Under
+`"collapse"` (the default) it collapses the window while the desktop's
+`doubleClickTitleToCollapse` preference is on, as always. Under `"zoom"`
+(Windows 95/98 as shipped: Wine's `NC_HandleNCLButtonDblClk` sends
+`SC_MAXIMIZE` or `SC_RESTORE` when the window has a Maximize box) it runs the
+zoom box's toggle on a window that draws one, whatever the preference says
+(it stays stored, and applies again under another package), and does nothing
+on a window that cannot zoom (`zoomable={false}`, a palette under maximize)
+or on a modal's caption: it never falls back to a collapse.
+
 Each mounted window, modals included, also registers in the core's window
 registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
 a surface that lists windows or acts on one, such as the Windows 98 shell's
 taskbar (plan 0020-w98). Its entry holds what the store record does not:
 `appId`, `windowId`, `title`, the resolved `icon`, `modal`, `windowType`,
-`closable`, `zoomable`, `collapsable` (whether it draws a collapse box:
+`closable`, `zoomable` (whether it draws a zoom box: `false` for a modal or
+utility window under `window.zoom: "maximize"`), `collapsable` (whether it draws a collapse box:
 `false` for a modal or utility window under `window.collapse: "minimize"`),
 `resizable` and `movable` (`false` for a fixed modal), and `run(command)`, which carries a command out through the
 path the window's own box or click takes, so its sounds, analytics, the
@@ -1215,7 +1277,8 @@ or utility window lacks under `window.collapse: "minimize"`, or when already
 collapsed); `restore` expands a collapsed window (a minimized one comes back
 as it was, maximized included), else un-zooms a zoomed one, then focuses it
 (`false` when it is neither; a modal's or palette's ignored collapse under
-minimize is neither); `maximize` zooms it, then
+minimize, or its ignored zoom under maximize, is neither); `maximize` zooms
+it (maximizes it under `window.zoom: "maximize"`), then
 focuses it (`false` without a zoom box, on a modal, or when already zoomed);
 `close` runs the close box's path, veto included (`false` when it is not
 `closable`). `systemMenu`, `move` and `size` report `false`, and so does every
@@ -1248,7 +1311,7 @@ dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
 | `onCollapse` | `(e: MouseEvent<HTMLDivElement>) => void` | draws the collapse box; called by its click |
 | `onCollapseKey` | `() => void` | Enter or Space on the collapse box; without it those keys click the box |
 | `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
-| `labels` | `{ close?, zoom?, collapse? }` (`ClassicyWindowTitleBarLabels`) | the boxes' accessible names, each defaulting to `"Close"`, `"Zoom"`, `"Collapse"`; `ClassicyWindow` names the collapse box `"Minimize"` under `layout.window.collapse: "minimize"` (WIG Ch.6 "Title Bar Buttons", p.80) |
+| `labels` | `{ close?, zoom?, collapse? }` (`ClassicyWindowTitleBarLabels`) | the boxes' accessible names, each defaulting to `"Close"`, `"Zoom"`, `"Collapse"`; `ClassicyWindow` names the collapse box `"Minimize"` under `layout.window.collapse: "minimize"`, and the zoom box `"Maximize"`, `"Restore"` while maximized, under `layout.window.zoom: "maximize"` (WIG Ch.6 "Title Bar Buttons", p.80; "Maximizing Windows", p.84) |
 | `className` / `style` | passthrough | onto the root |
 
 The structure is two SCSS mixins in `Window/ClassicyWindowTitleBar.scss`
@@ -4397,10 +4460,17 @@ it like Platinum (§1); its README lists what it ships.
   "wholePixel"` (a centered alert or dialog lands on whole pixels, as under
   System 7, so its pixel-grid bevels stay sharp), `scrollBar.fitsBars:
   "shown"`, a window's bars drawn, disabled, where its content fits, as
-  Windows kept them, and `fileDialog: { frame: "movable", navigation:
+  Windows kept them, `fileDialog: { frame: "movable", navigation:
   "flat", saveName: "selected" }`: the Open and Save As boxes titled and
   movable, one folder at a time under the path pop-up (Windows' Look in),
-  Save As opening with the name selected (WIG Ch.8, Figures 8.6 and 8.7).
+  Save As opening with the name selected (WIG Ch.8, Figures 8.6 and 8.7),
+  and `window: { zoom: "maximize", titleDoubleClick: "zoom" }`: the
+  Maximize button fills the screen below the menu bar (and above a taskbar)
+  with the frame off the screen, Restore (drawn on `expanded`) returns the
+  window to the rect it had, even after a reload, a maximized window neither
+  moves nor sizes and has no size grip, and a double-click on the caption
+  maximizes or restores it (WIG Ch.6 "Maximizing Windows" and "Restoring
+  Windows", pp.84–85; §4.1, "Maximize and restore").
 - **The look** (`src/styles/windows98.scss`, one `components/_<Name>.scss`
   partial per component, `_bevels.scss` and `_pixel.scss`): the four-ring
   bevels as inset box-shadows of the system tokens (`raised`, `pressed`,
@@ -4467,6 +4537,8 @@ how they look) has two halves:
 | `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?, bottomBand?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7 and Windows 98): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `window.collapse` (optional) | `shade`, `minimize` | what the collapse box does (and Option-click collapse-all, and a `ClassicyWindowCollapse` dispatch). `shade` (the default, Mac OS 8's WindowShade, every shipped package today): the window rolls up into its title bar. `minimize` (Windows 95/98, WIG Ch.6 "Minimizing Windows", p.85): the box is "Minimize", a primary window leaves the screen (`classicyWindowMinimized`, `display: none`, its tree kept mounted) and keeps its taskbar button, the box's click does not bubble, the zoom is kept, focus passes to the next window down that is on screen (the app's own, else another app's by `zOrder`, else the desktop; `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy` too), and focusing the window again restores it (§4.1, "Minimize"). A modal or utility window draws no collapse box there and its collapse is refused (a stored one drawn expanded and kept), and an app's palettes are hidden while every one of its open primary windows is minimized (WIG Ch.8, p.145). Either way it is the store's `collapsed` flag, so a window minimized under one package is shaded under another. Requires `taskbar` (the schema refuses it without one: a minimized window comes back through its taskbar button). The root gains no attribute or custom property for it |
+| `window.zoom` (optional) | `standard`, `maximize` | what the zoom box does (and the window registry's `maximize` and `restore`). `standard` (the default, Mac OS 8, every package but Windows 98): it toggles the window between the rect the user gave it and its standard state, the content's ideal size within the desktop less `--window-zoom-margin` (`zoomMode`, `idealSize`). `maximize` (Windows 95/98, WIG Ch.6 "Maximizing Windows" and "Restoring Windows", pp.84–85; the audit's 6.6; Windows 98 declares it): the box is "Maximize", "Restore" while maximized; the window's content box takes the work area (the desktop less the menu bar's band and the taskbar's) with its frame just outside it, as Windows grows a maximized window's rect by its frame (`classicyMaximizedWindowRect`); `zoomMode` and `idealSize` are ignored; the rect it had goes with the zoom (`ClassicyWindowZoom`'s `restore`) and is stored as the record's `restoreRect`, deleted on un-zoom, so Restore survives a reload; while maximized the root carries `classicyWindowMaximized` (base rule `max-height: none`) beside `expanded`, the window is not clamped on screen, its caption's drag is refused, its frame edges and grow box are not drawn, and it takes the work area again on mount, on a band change and on a desktop resize (§4.1, "Maximize and restore"). A utility window has no Maximize button there (WIG Ch.8, p.164, Figure 8.16), so it draws no zoom box and a stored zoom is drawn unmaximized. Either way it is the store's `zoomed` flag, so a window maximized under one package is a zoomed one under another (clamped back on screen, un-zoomed to its `restoreRect`). The root gains no attribute or custom property for it |
+| `window.titleDoubleClick` (optional) | `collapse`, `zoom` | what a double-click on the caption does. `collapse` (the default, Mac OS 8): it collapses the window while the desktop's `doubleClickTitleToCollapse` preference is on. `zoom` (Windows 95/98 as shipped, Wine's `NC_HandleNCLButtonDblClk`; Windows 98 declares it): it runs the zoom box's toggle (maximize or restore, under `window.zoom: "maximize"`) whatever the preference says (the preference stays stored and applies again under another package), and does nothing on a window that draws no zoom box or on a modal's caption, never a collapse (§4.1, "The caption's double-click"). The root gains no attribute or custom property for it |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (every shipped package today): `ClassicyDesktop` draws its Control Strip and no taskbar. Present: it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept); the taskbar's measured height is the band windows, Clean Up and every menu keep above. `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |

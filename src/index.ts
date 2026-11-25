@@ -294,6 +294,7 @@ export * from "./SystemFolder/SystemResources/Window/ClassicyWindow";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowContext";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowFrame";
+export * from "./SystemFolder/SystemResources/Window/ClassicyWindowMaximize";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowResize";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";

@@ -11,7 +11,9 @@
 // Platinum and System 7 read it not at all. A window that cannot be sized
 // (`resizable={false}`) carries `classicyWindowNoResize` the same way (WIG
 // Ch.6 "Window Frames" (p.76): no sizing border); the base draws no grow box
-// for it and reads nothing else.
+// for it and reads nothing else. Under `layout.window.zoom: "maximize"` a
+// zoomed window is maximized and carries `classicyWindowMaximized`, whose one
+// base rule (below) lifts the height reserve; no other layout emits it.
 
 // Layout: the base `.classicyWindow` rule, then its parts, then the window
 // variants, then every state. A state wins because it comes later in this
@@ -497,6 +499,16 @@
 // the class, so no other package's window ever matches.
 .classicyWindow.classicyWindowMinimized {
   display: none;
+}
+
+// Maximized (`layout.window.zoom: "maximize"`, the Windows shell): the
+// window's content box is the whole work area (WIG Ch.6 "Maximizing
+// Windows", p.84), so the height reserve the base rule above keeps
+// (`--window-max-height-reserve`, 53 px under Windows 98) would stop it short
+// of the taskbar. Only that layout emits the class, so no other package's
+// window ever matches.
+.classicyWindow.classicyWindowMaximized {
+  max-height: none;
 }
 
 // The header and contents dim before the drag and resize rules: dragging or

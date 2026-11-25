@@ -3783,7 +3783,9 @@
 	"layout": {
 		"window": {
 			"growBoxCorner": "bottom-right",
-			"centering": "wholePixel"
+			"centering": "wholePixel",
+			"zoom": "maximize",
+			"titleDoubleClick": "zoom"
 		},
 		"menuBar": {
 			"placement": "screen"

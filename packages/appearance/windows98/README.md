@@ -49,8 +49,14 @@ and `nodenext` resolution).
   window's scroll bars kept where its content fits, and the Open and Save
   boxes as titled, movable dialogs showing one folder at a time under a
   pop-up that runs the path upward (Windows' Look in), Save As opening with
-  the file name selected, and dialogs and alerts centered on whole pixels,
-  so their one-pixel bevels and glyphs stay sharp.
+  the file name selected, dialogs and alerts centered on whole pixels,
+  so their one-pixel bevels and glyphs stay sharp, and windows that
+  maximize: the Maximize button fills the screen below the menu bar with
+  the window's frame off the screen, the maximized window neither moves nor
+  sizes and shows no size grip, Restore returns it to the size and place it
+  had (after a reload too), and a double-click on the caption maximizes or
+  restores it, as Windows 98 did (palettes, which have no Maximize button,
+  do neither).
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),

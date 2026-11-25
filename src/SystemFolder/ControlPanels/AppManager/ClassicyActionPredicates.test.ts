@@ -46,6 +46,7 @@ import {
 	hasWindowPosition,
 	hasWindowResizing,
 	hasWindowZoomed,
+	isClassicyWindowRestoreRect,
 } from "./ClassicyActionPredicates";
 
 type Msg = Record<string, unknown> & { type: string };
@@ -233,6 +234,69 @@ describe("hasWindowZoomed", () => {
 			zoomed: "yes",
 		};
 		expect(hasWindowZoomed(m)).toBe(false);
+	});
+
+	// Plan 0020-w98 §5: a window maximized under `window.zoom: "maximize"`
+	// sends the rect it returns to; every other zoom sends none.
+	it("returns true with a valid restore rect", () => {
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			zoomed: true,
+			restore: { position: [50, -4], size: [400, 0] },
+		};
+		expect(hasWindowZoomed(m)).toBe(true);
+	});
+
+	it.each([
+		["a string", "rect"],
+		["null", null],
+		[
+			"an array",
+			[
+				[1, 2],
+				[3, 4],
+			],
+		],
+		["no size", { position: [1, 2] }],
+		["no position", { size: [1, 2] }],
+		["a NaN", { position: [Number.NaN, 2], size: [1, 2] }],
+		["an Infinity", { position: [1, 2], size: [Number.POSITIVE_INFINITY, 2] }],
+		["a string pair member", { position: ["1", 2], size: [1, 2] }],
+		["a three-member pair", { position: [1, 2, 3], size: [1, 2] }],
+	])("returns false with a restore rect that is %s", (_, restore) => {
+		const m: Msg = {
+			type: "X",
+			app: { id: "A.app" },
+			window: { id: "w1" },
+			zoomed: true,
+			restore,
+		};
+		expect(hasWindowZoomed(m)).toBe(false);
+	});
+});
+
+describe("isClassicyWindowRestoreRect", () => {
+	it("accepts two pairs of finite numbers", () => {
+		expect(
+			isClassicyWindowRestoreRect({ position: [0, 0], size: [0, 0] }),
+		).toBe(true);
+		expect(
+			isClassicyWindowRestoreRect({ position: [-4.5, 26], size: [1024, 714] }),
+		).toBe(true);
+	});
+
+	it("refuses anything else", () => {
+		for (const v of [
+			undefined,
+			null,
+			{},
+			{ position: [1, 2] },
+			{ position: [1, 2], size: [Number.NaN, 2] },
+			{ position: [1], size: [1, 2] },
+		])
+			expect(isClassicyWindowRestoreRect(v)).toBe(false);
 	});
 });
 

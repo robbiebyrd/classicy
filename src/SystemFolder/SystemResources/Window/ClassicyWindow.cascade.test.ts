@@ -70,8 +70,22 @@ describe("ClassicyWindow.scss cascade", () => {
 			".classicyWindowPlacardBarDimmed",
 			".classicyWindowContentsFramedDimmed",
 			".classicyWindow.classicyWindowMinimized",
+			".classicyWindow.classicyWindowMaximized",
 		])
 			expect(at(s)).toBeGreaterThan(base);
+	});
+
+	// Plan 0020-w98 §5 "Maximize and restore": a maximized window
+	// (`window.zoom: "maximize"`, the only layout that emits the class)
+	// fills the work area, so the base rule's height reserve is lifted. Two
+	// classes and later than the base rule, so it wins.
+	it("a maximized window keeps no height reserve", () => {
+		expect(rule(".classicyWindow")["max-height"]).toBe(
+			"calc(100% - var(--window-max-height-reserve))",
+		);
+		expect(rule(".classicyWindow.classicyWindowMaximized")).toEqual({
+			"max-height": "none",
+		});
 	});
 
 	// Plan 0020-w98 §5: a minimized window (`window.collapse: "minimize"`,

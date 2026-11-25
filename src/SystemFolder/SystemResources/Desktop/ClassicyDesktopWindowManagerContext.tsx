@@ -108,6 +108,15 @@ export type ClassicyWindowAction =
 			app: { id: string };
 			window: { id: string };
 			zoomed: boolean;
+			/**
+			 * The rect a window maximized under `layout.window.zoom:
+			 * "maximize"` returns to (its outer left/top and content size
+			 * before the zoom), stored as the record's `restoreRect` so
+			 * Restore survives a reload. Sent only by such a window, with
+			 * `zoomed: true`; a malformed one (not two pairs of finite
+			 * numbers) refuses the action (`hasWindowZoomed`).
+			 */
+			restore?: { position: [number, number]; size: [number, number] };
 	  }
 	// Set a Window's Position
 	| {
@@ -376,7 +385,24 @@ export const classicyWindowEventHandler = (
 		}
 		case "ClassicyWindowZoom": {
 			if (!hasWindowZoomed(action)) break;
-			updateWindow(action.app.id, action.window.id, { zoomed: action.zoomed });
+			const { zoomed, restore } = action;
+			updateWindow(action.app.id, action.window.id, (w) => {
+				w.zoomed = zoomed;
+				// A maximized window's rect to return to (plan 0020-w98 §5): kept
+				// while it stays zoomed, gone once it un-zooms, whatever un-zooms
+				// it (its Restore, a resize, a WindowShade collapse, another
+				// package's zoom box). Only a window maximized under
+				// `layout.window.zoom: "maximize"` sends one, so every other
+				// package's record never gains the key.
+				if (!zoomed) {
+					if ("restoreRect" in w) delete w.restoreRect;
+				} else if (restore) {
+					w.restoreRect = {
+						position: [restore.position[0], restore.position[1]],
+						size: [restore.size[0], restore.size[1]],
+					};
+				}
+			});
 			break;
 		}
 		case "ClassicyWindowCollapse": {

@@ -35,6 +35,7 @@ import {
 	isValidThemeMetric,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
+import type { ClassicyStoreSystemAppWindowRect } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 type Msg = Record<string, unknown> & { type: string };
@@ -52,6 +53,10 @@ function isNumberTuple2(v: unknown): v is [number, number] {
 		typeof v[0] === "number" &&
 		typeof v[1] === "number"
 	);
+}
+
+function isFiniteNumberTuple2(v: unknown): v is [number, number] {
+	return isNumberTuple2(v) && Number.isFinite(v[0]) && Number.isFinite(v[1]);
 }
 
 // ─── App identity ─────────────────────────────────────────────────────────────
@@ -108,11 +113,40 @@ export function hasWindowDragging(m: Msg): m is Msg & {
 	return hasAppAndWindow(m) && typeof m.dragging === "boolean";
 }
 
-/** Action has app+window ids plus `zoomed: boolean` */
-export function hasWindowZoomed(
-	m: Msg,
-): m is Msg & { app: { id: string }; window: { id: string }; zoomed: boolean } {
-	return hasAppAndWindow(m) && typeof m.zoomed === "boolean";
+/**
+ * `v` is a window rect to restore: `{ position, size }`, each a pair of
+ * finite numbers (a maximized window's `restoreRect`, `ClassicyWindowZoom`'s
+ * `restore`). A rect that fails it is never stored and never applied, so a
+ * hand-edited store cannot place a window at `NaN`.
+ */
+export function isClassicyWindowRestoreRect(
+	v: unknown,
+): v is ClassicyStoreSystemAppWindowRect {
+	return (
+		isObject(v) &&
+		isFiniteNumberTuple2(v.position) &&
+		isFiniteNumberTuple2(v.size)
+	);
+}
+
+/**
+ * Action has app+window ids plus `zoomed: boolean`, and, when it carries the
+ * optional `restore` (the rect a window maximized under `layout.window.zoom:
+ * "maximize"` returns to), a valid one (`isClassicyWindowRestoreRect`). A
+ * payload without `restore`, the only kind a window sends under every other
+ * layout, is checked exactly as before.
+ */
+export function hasWindowZoomed(m: Msg): m is Msg & {
+	app: { id: string };
+	window: { id: string };
+	zoomed: boolean;
+	restore?: ClassicyStoreSystemAppWindowRect;
+} {
+	return (
+		hasAppAndWindow(m) &&
+		typeof m.zoomed === "boolean" &&
+		(m.restore === undefined || isClassicyWindowRestoreRect(m.restore))
+	);
 }
 
 /** Action has app+window ids plus `resizing: boolean` and `size: [number, number]` */

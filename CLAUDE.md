@@ -221,6 +221,20 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   on-screen primary window, else another open, unhidden app's by `zOrder`,
   else the desktop (Finder, no window); it never picks a minimized window.
   `focusWindow` restores a minimized window it focuses.
+- Under `layout.window.zoom: "maximize"` (Windows 98 declares it; absent,
+  `"standard"`, the zoom box toggles Mac OS 8's standard state) the zoom box
+  is Maximize/Restore: the same `zoomed` flag, but the content box takes the
+  work area (desktop less the menu bar's and taskbar's bands) with the frame
+  outside it (`classicyMaximizedWindowRect`, `ClassicyWindowMaximize.ts`),
+  the root carries `classicyWindowMaximized` (`max-height: none`), the clamp,
+  the caption drag, the frame edges and the grow box are off, and the rect is
+  re-applied on mount, band changes and desktop resizes. The zoom sends
+  `restore` (the rect it had), stored as the record's persisted
+  `restoreRect` and deleted on un-zoom; Restore uses this mount's rect, else
+  `restoreRect` (under every package, validated by
+  `isClassicyWindowRestoreRect`), else the opening rect. A palette or modal
+  never maximizes there. `layout.window.titleDoubleClick: "zoom"` makes the
+  caption's double-click the zoom box's toggle, never a collapse.
 - The Application menu's Hide <app>, Hide Others and Show All dispatch
   `ClassicyAppHide`, `ClassicyAppHideOthers` and `ClassicyAppShowAll`
   (HIG7 p.127). `apps[id].hidden` is **session state**: `sanitizeStateForPersistence`

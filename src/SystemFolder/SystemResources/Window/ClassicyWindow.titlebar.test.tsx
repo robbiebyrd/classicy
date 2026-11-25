@@ -2,15 +2,22 @@
 // the icon tree registers itself in ClassicyIcons.ts, which Platinum's assets
 // import and read at load, and a mock of a different shape broke that module.
 import "@classicy/appearance-platinum";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
+import {
+	registerTestTaskbarPackage,
+	TEST_MAXIMIZE_LAYOUT,
+	TEST_MAXIMIZE_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
 import { classicyWindowDomSnapshot } from "@/__tests__/windowDomSnapshot";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockPlayer = vi.hoisted(() => vi.fn());
-const mockWindowState = vi.hoisted(() => ({ collapsed: false }));
+const mockWindowState = vi.hoisted(() => ({ collapsed: false, zoomed: false }));
 const mockDesktop = vi.hoisted(() => ({ doubleClickTitleToCollapse: true }));
 
 vi.mock(
@@ -36,7 +43,7 @@ vi.mock(
 										dragging: false,
 										moving: false,
 										resizing: false,
-										zoomed: false,
+										zoomed: mockWindowState.zoomed,
 										closed: false,
 										size: [350, 200] as [number, number],
 										position: [110, 110] as [number, number],
@@ -74,6 +81,15 @@ vi.mock(
 	"@/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
 	() => ({}),
 );
+
+// The store is mocked, so nothing connects the active package id; stand in
+// for the store's connection (`Appearance.packageId`), Platinum's unless a
+// case switches it.
+const activePackage = { id: "platinum" };
+connectClassicyAssetPackageSource({
+	getId: () => activePackage.id,
+	subscribe: () => () => {},
+});
 
 function renderWindow(
 	props: Partial<Parameters<typeof ClassicyWindow>[0]> = {},
@@ -270,5 +286,105 @@ describe("ClassicyWindow DOM under Platinum's layout", () => {
 			<div class="classicyWindowControlBox" data-classicy-control="collapse">
 			<div class="classicyWindowCollapseBox" role="button" aria-label="Collapse" tabindex="0"></div></div></div>"
 		`);
+	});
+});
+
+// Plan 0020-w98 §5, "The caption's double-click": `layout.window
+// .titleDoubleClick` decides what a double-click on the caption does.
+describe("ClassicyWindow caption double-click under window.titleDoubleClick", () => {
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockWindowState.collapsed = false;
+		mockWindowState.zoomed = false;
+		mockDesktop.doubleClickTitleToCollapse = true;
+	});
+
+	afterEach(() => {
+		activePackage.id = "platinum";
+		unregisterClassicyAppearancePackage(TEST_MAXIMIZE_PACKAGE_ID);
+	});
+
+	const zooming = () => {
+		registerTestTaskbarPackage(TEST_MAXIMIZE_LAYOUT, TEST_MAXIMIZE_PACKAGE_ID);
+		activePackage.id = TEST_MAXIMIZE_PACKAGE_ID;
+	};
+
+	const zoomAndCollapseEvents = () =>
+		dispatchedTypes().filter((e) =>
+			[
+				"ClassicyWindowZoom",
+				"ClassicyWindowCollapse",
+				"ClassicyWindowExpand",
+			].includes(e.type),
+		);
+
+	it("collapses, never zooms, under the default layout", () => {
+		const { titleBar } = renderWindow();
+		fireEvent.dblClick(titleBar);
+		// A collapse clears the zoom flag, as it always has; nothing zooms in.
+		expect(dispatchedTypes()).not.toContainEqual(
+			expect.objectContaining({ type: "ClassicyWindowZoom", zoomed: true }),
+		);
+		expect(dispatchedTypes()).toContainEqual(
+			expect.objectContaining({ type: "ClassicyWindowCollapse" }),
+		);
+	});
+
+	describe('under "zoom"', () => {
+		beforeEach(zooming);
+
+		it("maximizes the window, never collapsing it", () => {
+			const { titleBar } = renderWindow();
+			fireEvent.dblClick(titleBar);
+			expect(zoomAndCollapseEvents()).toEqual([
+				expect.objectContaining({
+					type: "ClassicyWindowZoom",
+					zoomed: true,
+					restore: { position: [110, 110], size: [350, 200] },
+				}),
+			]);
+		});
+
+		it("zooms whatever the desktop's collapse preference says", () => {
+			mockDesktop.doubleClickTitleToCollapse = false;
+			const { titleBar } = renderWindow();
+			fireEvent.dblClick(titleBar);
+			expect(zoomAndCollapseEvents()).toEqual([
+				expect.objectContaining({ type: "ClassicyWindowZoom", zoomed: true }),
+			]);
+		});
+
+		it("restores a maximized window", () => {
+			mockWindowState.zoomed = true;
+			const { titleBar } = renderWindow();
+			fireEvent.dblClick(titleBar);
+			expect(zoomAndCollapseEvents()).toEqual([
+				expect.objectContaining({ type: "ClassicyWindowZoom", zoomed: false }),
+			]);
+		});
+
+		it("does nothing on a window that cannot zoom, not even a collapse", () => {
+			const { titleBar } = renderWindow({ zoomable: false });
+			fireEvent.dblClick(titleBar);
+			expect(zoomAndCollapseEvents()).toHaveLength(0);
+		});
+
+		it("does nothing on a palette, which has no Maximize button", () => {
+			const { container } = renderWindow({ windowType: "utility" });
+			const title = container.querySelector(
+				".classicyWindowTitle",
+			) as HTMLElement;
+			fireEvent.dblClick(title);
+			expect(zoomAndCollapseEvents()).toHaveLength(0);
+		});
+
+		it("does nothing on a modal's caption", () => {
+			renderWindow({ modal: true });
+			const title = document.querySelector(
+				".classicyWindowModal .classicyWindowTitle",
+			) as HTMLElement;
+			fireEvent.dblClick(title);
+			expect(zoomAndCollapseEvents()).toHaveLength(0);
+		});
 	});
 });

@@ -54,3 +54,24 @@ export const registerTestTaskbarPackage = (
 		layout,
 	});
 };
+
+/** The id of the test package that maximizes (`TEST_MAXIMIZE_LAYOUT`). */
+export const TEST_MAXIMIZE_PACKAGE_ID = "test-maximize";
+
+/**
+ * Windows 98's window behavior from plan 0020-w98 step 6: the zoom box
+ * maximizes (`window.zoom: "maximize"`) and a double-click on the caption
+ * zooms (`window.titleDoubleClick: "zoom"`), with the menu bar on the screen
+ * and no taskbar, as the package declares them before its shell lands. Every
+ * other window behavior keeps the core's default. Register it with
+ * `registerTestTaskbarPackage(TEST_MAXIMIZE_LAYOUT, TEST_MAXIMIZE_PACKAGE_ID)`.
+ */
+export const TEST_MAXIMIZE_LAYOUT: ClassicyAppearanceLayout = {
+	window: {
+		growBoxCorner: "bottom-right",
+		zoom: "maximize",
+		titleDoubleClick: "zoom",
+	},
+	menuBar: { placement: "screen" },
+	desktop: { iconGridOrigin: "top-left" },
+};

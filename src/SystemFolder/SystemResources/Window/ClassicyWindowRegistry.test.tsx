@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, renderHook } from "@/__tests__/test-utils";
 import {
 	registerTestTaskbarPackage,
+	TEST_MAXIMIZE_LAYOUT,
+	TEST_MAXIMIZE_PACKAGE_ID,
 	TEST_MINIMIZE_LAYOUT,
 	TEST_MINIMIZE_PACKAGE_ID,
 } from "@/__tests__/testTaskbarPackage";
@@ -675,5 +677,79 @@ describe('ClassicyWindow\'s commands under window.collapse: "minimize"', () => {
 		);
 		expect(run("tools", { type: "restore" })).toBe(false);
 		expect(record("tools")?.collapsed).toBe(true);
+	});
+});
+
+// Plan 0020-w98 §5, "Maximize and restore": under `window.zoom: "maximize"`
+// the `maximize` and `restore` commands take the zoom box's path, which
+// maximizes to the work area; a palette or a dialog has no Maximize button.
+describe('ClassicyWindow\'s commands under window.zoom: "maximize"', () => {
+	beforeEach(() => {
+		mockPlayer.mockClear();
+		seedApp();
+		registerTestTaskbarPackage(TEST_MAXIMIZE_LAYOUT, TEST_MAXIMIZE_PACKAGE_ID);
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: TEST_MAXIMIZE_PACKAGE_ID,
+			}),
+		);
+	});
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_MAXIMIZE_PACKAGE_ID);
+	});
+
+	it("maximizes a primary window, storing the rect it restores", () => {
+		render(
+			<ClassicyWindow
+				id="main"
+				appId={APP}
+				title="Main"
+				initialSize={[400, 300]}
+				initialPosition={[50, 60]}
+			>
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		expect(getClassicyWindowEntry(APP, "main")?.zoomable).toBe(true);
+		expect(run("main", { type: "maximize" })).toBe(true);
+		expect(record("main")).toMatchObject({
+			zoomed: true,
+			focused: true,
+			size: [window.innerWidth, expect.any(Number)],
+			restoreRect: { position: [50, 60], size: [400, 300] },
+		});
+		expect(run("main", { type: "restore" })).toBe(true);
+		expect(record("main")).toMatchObject({
+			zoomed: false,
+			position: [50, 60],
+			size: [400, 300],
+		});
+		expect(record("main")?.restoreRect).toBeUndefined();
+	});
+
+	it("publishes no zoom box for a palette or a dialog, and refuses to maximize either", () => {
+		render(
+			<>
+				<ClassicyWindow
+					id="tools"
+					appId={APP}
+					title="Tools"
+					windowType="utility"
+				>
+					<p>tools</p>
+				</ClassicyWindow>
+				<ClassicyWindow id="dialog" appId={APP} title="Dialog" modal>
+					<p>dialog</p>
+				</ClassicyWindow>
+			</>,
+		);
+		expect(getClassicyWindowEntry(APP, "tools")?.zoomable).toBe(false);
+		expect(getClassicyWindowEntry(APP, "dialog")?.zoomable).toBe(false);
+		expect(run("tools", { type: "maximize" })).toBe(false);
+		expect(run("dialog", { type: "maximize" })).toBe(false);
+		expect(record("tools")?.zoomed).toBe(false);
+		expect(record("dialog")?.zoomed).toBe(false);
 	});
 });

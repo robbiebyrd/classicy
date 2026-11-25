@@ -462,6 +462,70 @@ describe("ClassicyWindowZoom", () => {
 			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.zoomed,
 		).toBe(false);
 	});
+
+	// Plan 0020-w98 §5, "Maximize and restore": a window maximized under
+	// `window.zoom: "maximize"` sends the rect it returns to, stored as its
+	// record's `restoreRect` so Restore survives a reload.
+	describe("the restore rect", () => {
+		const w1 = (ds: ClassicyStore) =>
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
+		const zoom = (
+			ds: ClassicyStore,
+			zoomed: boolean,
+			restore?: unknown,
+		): ClassicyStore =>
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowZoom",
+				app: { id: "TestApp" },
+				window: { id: "w1" },
+				zoomed,
+				...(restore === undefined ? {} : { restore }),
+			});
+
+		it("writes only `zoomed` for a zoom without one, as before", () => {
+			const ds = makeStoreWithWindows();
+			const before = { ...w1(ds) };
+			zoom(ds, true);
+			expect(w1(ds)).toEqual({ ...before, zoomed: true });
+			expect("restoreRect" in (w1(ds) ?? {})).toBe(false);
+			zoom(ds, false);
+			expect(w1(ds)).toEqual({ ...before, zoomed: false });
+		});
+
+		it("stores the rect a maximize sends, as a copy", () => {
+			const ds = makeStoreWithWindows();
+			const restore = { position: [100, 100], size: [400, 300] };
+			zoom(ds, true, restore);
+			expect(w1(ds)).toMatchObject({
+				zoomed: true,
+				restoreRect: { position: [100, 100], size: [400, 300] },
+			});
+			restore.position[0] = 5;
+			expect(w1(ds)?.restoreRect?.position).toEqual([100, 100]);
+		});
+
+		it("refuses a zoom whose rect is malformed, writing nothing", () => {
+			const ds = makeStoreWithWindows();
+			const before = { ...w1(ds) };
+			zoom(ds, true, { position: [Number.NaN, 0], size: [400, 300] });
+			zoom(ds, true, { position: [1, 2] });
+			zoom(ds, true, "maximized");
+			expect(w1(ds)).toEqual(before);
+		});
+
+		it("keeps the rect through a zoom without one, and deletes it on un-zoom", () => {
+			const ds = makeStoreWithWindows();
+			zoom(ds, true, { position: [100, 100], size: [400, 300] });
+			zoom(ds, true);
+			expect(w1(ds)?.restoreRect).toEqual({
+				position: [100, 100],
+				size: [400, 300],
+			});
+			zoom(ds, false);
+			expect(w1(ds)?.zoomed).toBe(false);
+			expect("restoreRect" in (w1(ds) ?? {})).toBe(false);
+		});
+	});
 });
 
 describe("ClassicyWindowCollapse", () => {
