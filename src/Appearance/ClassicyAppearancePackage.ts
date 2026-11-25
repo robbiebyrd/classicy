@@ -60,6 +60,87 @@ export type ClassicyAppearanceLayout = {
 		 * draws its one-pixel lines and text crisp in every engine.
 		 */
 		centering?: "exact" | "wholePixel";
+		/**
+		 * What the collapse box does (and Option-click collapse-all, and a
+		 * `ClassicyWindowCollapse` dispatch). Optional. `"shade"` (the default,
+		 * Mac OS 8's WindowShade): the window rolls up into its title bar.
+		 * `"minimize"` (Windows 95/98, WIG Ch.6 "Minimizing Windows", p.85): the
+		 * window leaves the screen and keeps its taskbar button, focus passes to
+		 * the next window, and activating the window again (its taskbar button,
+		 * its app) restores it, maximized if it was. It is the store's
+		 * `collapsed` flag either way, so a window minimized under one package
+		 * is shaded under another. A modal or utility window has no taskbar
+		 * button, so it is never minimized (a stored `collapsed` is drawn
+		 * expanded), and an app's palettes are hidden while every one of its
+		 * open document windows is minimized (WIG Ch.8, p.145). Requires
+		 * `taskbar`: the schema refuses `"minimize"` without one, since a
+		 * minimized window comes back only through its taskbar button.
+		 */
+		collapse?: "shade" | "minimize";
+		/**
+		 * What the zoom box does. Optional. `"standard"` (the default, Mac OS
+		 * 8): it toggles the window between the size the user gave it and its
+		 * standard state, the content's ideal size within the desktop less
+		 * `--window-zoom-margin` (`zoomMode`, `idealSize`). `"maximize"`
+		 * (Windows 95/98, WIG Ch.6 "Maximizing Windows" and "Restoring
+		 * Windows", pp.84–85): it fills the desktop less the menu bar's band and
+		 * the taskbar's, with the frame just outside that area, so the caption
+		 * meets the screen's top and sides. While maximized the window neither
+		 * moves nor sizes, and the zoom box, now Restore, returns it to the rect
+		 * it had, which is stored (`restoreRect`) so a reload restores it too.
+		 * `zoomMode` and `idealSize` are ignored: Windows has one maximized
+		 * state.
+		 */
+		zoom?: "standard" | "maximize";
+		/**
+		 * What a double-click on the title bar's caption does. Optional.
+		 * `"collapse"` (the default, Mac OS 8): it collapses the window while
+		 * the desktop's `doubleClickTitleToCollapse` preference is on, and does
+		 * nothing otherwise. `"zoom"` (Windows 95/98 as shipped, Wine's
+		 * `NC_HandleNCLButtonDblClk`): it maximizes or restores a zoomable
+		 * window whatever the preference says (the preference stays stored and
+		 * applies again under another package); on a window that cannot zoom,
+		 * or a modal's caption, it does nothing, never falling back to a
+		 * collapse.
+		 */
+		titleDoubleClick?: "collapse" | "zoom";
+		/**
+		 * What the four frame edges do. Optional. `"move"` (the default, Mac OS
+		 * 8, whose frame is a drag region): dragging an edge moves the window.
+		 * `"resize"` (Windows 95/98, WIG Ch.6 "Sizing Borders", p.83): dragging
+		 * an edge sizes a resizable window from that edge, and eight corner
+		 * arms, each a title bar's height along its edge (Wine's
+		 * `NC_HandleNCHitTest`), size both edges of their corner. A
+		 * non-resizable or maximized window's edges do nothing, as a fixed
+		 * border neither moves nor sizes a window in Windows.
+		 */
+		frameEdges?: "move" | "resize";
+		/**
+		 * Whether windows have the window pop-up (system) menu. Optional.
+		 * `false` (the default): none, so a right-click on the title bar shows
+		 * the window's or its app's `contextMenu`, as anywhere in the window,
+		 * and the title bar's icon is inert. `true` (Windows 95/98, WIG Ch.6
+		 * "Title Bars", "Title Bar Icons" and "Title Bar Buttons", pp.76–80;
+		 * Ch.7 "The Window Pop-up Menu", p.102; Ch.8, pp.145 and 164): the menu
+		 * opens on a right-click anywhere in the title bar, a press on its icon,
+		 * ALT+SPACE and a right-click on the window's taskbar button. It holds
+		 * Restore, Move, Size, Minimize, Maximize and Close for a document
+		 * window, Move and Close for a modal, Move, Size and Close for a
+		 * palette, each enabled as Windows enables it (Wine's
+		 * `MENU_InitSysMenuPopup`), Close the default. A double-click on the
+		 * icon and ALT+F4 close the window, and the menu's Move and Size move
+		 * and size it with the arrow keys and ENTER, ESC putting it back.
+		 */
+		systemMenu?: boolean;
+		/**
+		 * Whether each title-bar box names itself in a tooltip. Optional.
+		 * `false` (the default): none. `true` (Windows 98 as shipped; Windows
+		 * 95 had none, and the 1995 guidelines say nothing): a caption button
+		 * shows its label ("Minimize", "Maximize" or "Restore", "Close") once
+		 * the pointer has rested on it for 500 ms, whether or not balloon help
+		 * is on.
+		 */
+		captionTooltips?: boolean;
 	};
 	menuBar: { placement: "screen" | "window" };
 	desktop: {
@@ -194,6 +275,65 @@ export type ClassicyAppearanceLayout = {
 		 * `classicyWindowHeaderAboveHead` meanwhile.
 		 */
 		listColumnTitles?: "inList" | "aboveList";
+	};
+	/**
+	 * The Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16,
+	 * Figure 3.1; Ch.9 "Single Document Window Interface", p.175; Ch.10
+	 * "Taskbar Integration", pp.211–212). Optional: absent (the default),
+	 * the desktop draws its Control Strip and no taskbar. Present,
+	 * `ClassicyDesktop` mounts a taskbar along its bottom edge in the Control
+	 * Strip's place: the Start button at its left, whose Start menu opens
+	 * upward with the Apple menu's, the Applications folder's, Help's and the
+	 * Special menu's commands; a button for each open primary window (not a
+	 * modal or a palette, WIG Ch.8, p.145); and at its right the status
+	 * area, where the Control Strip's modules show as tray icons beside the
+	 * menu bar extensions and the clock. No Control Strip is drawn (its
+	 * stored settings are kept for a package that draws it). Window
+	 * geometry, the desktop icon grid and every menu keep above the
+	 * taskbar's band, and each window's menu bar ends with the Help menu.
+	 * Requires `menuBar.placement: "window"`: the schema refuses a taskbar
+	 * beside a screen menu bar, whose Apple, Help and App Switcher menus the
+	 * Start menu, the window menu bars and the task buttons would repeat.
+	 */
+	taskbar?: {
+		/**
+		 * The Start button's label. Optional: `"Start"` (Figure 3.1) when
+		 * absent; a host relabels it (in its own language, say). One line of
+		 * 1–24 characters, with no space at either end and no control
+		 * character.
+		 */
+		startLabel?: string;
+		/**
+		 * The Start menu's banner, the vertical strip down its left side,
+		 * reading upward: `title` in bold, then `edition` (Windows 98's
+		 * "Windows" "98"). Optional: absent, the Start menu has no banner.
+		 * Text, not art, so it is the layout's and the same under every theme,
+		 * as Windows 98 drew its banner under every color scheme. Each part is
+		 * one line of 1–24 characters, with no space at either end and no
+		 * control character.
+		 */
+		startBanner?: { title: string; edition?: string };
+	};
+	/**
+	 * How a modal window (`ClassicyWindow`'s `modal`: an alert, a file, input
+	 * or keyboard-equivalent dialog, an About box) is captioned. Optional, as
+	 * is each key.
+	 */
+	dialog?: {
+		/**
+		 * `"plain"` (the default, Mac OS 8): a modal shows the title it is
+		 * given (an alert, usually none), a Close box only when it is
+		 * `closable`, and an alert of `type="error"` is fixed in place.
+		 * `"titled"` (Windows 95/98, WIG Ch.8 "Appearance and Behavior",
+		 * p.145, Figure 8.1; "Message Boxes", p.164; "Message Box Types",
+		 * p.166, Figure 8.17): every modal's caption has a title, its app's
+		 * display name when it is given none (a message box's title names its
+		 * context), and a Close box, which closes a `closable` modal, runs its
+		 * `onCaptionClose` otherwise, and is drawn unavailable when it has
+		 * neither; and every modal moves by its caption, an error alert
+		 * included.
+		 */
+		caption?: "plain" | "titled";
 	};
 };
 

@@ -15,72 +15,135 @@ import type {
 // optional; another key is refused (CLASSICY_PATTERN_ORIGIN_COMPONENTS).
 const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
 
+// Text the core draws from the layout (the Start button's label, the Start
+// menu's banner): one line of 1–24 characters, with no whitespace at either
+// end and no control character (C0, DEL, C1) or line or paragraph separator.
+// Refinements, never `.trim()`: the registry keeps the package as given, so
+// the layout the core reads must be the one that was checked. The length
+// checks keep zod's own messages, which name the bound.
+const LAYOUT_TEXT_ERROR =
+	"must be one line of text with no space at either end and no control character";
+const LAYOUT_TEXT_FORBIDDEN = /[\p{Cc}\u2028\u2029]/u;
+const layoutText = z
+	.string()
+	.min(1)
+	.max(24)
+	.refine((text) => text === text.trim() && !LAYOUT_TEXT_FORBIDDEN.test(text), {
+		error: LAYOUT_TEXT_ERROR,
+	});
+
 /**
  * The three arrangement groups, every one required, and the optional
  * behavior groups (`scrollBar`, `patternOrigin`, `slider`, `fileDialog`,
- * `fileBrowser`), each key of which is optional too.
+ * `fileBrowser`, `taskbar`, `dialog`), each key of which is optional too, as
+ * are the `window` group's behavior keys. Two rules tie the shell's keys
+ * together: a `taskbar` needs `menuBar.placement: "window"`, and
+ * `window.collapse: "minimize"` needs a `taskbar`.
  */
-export const ClassicyAppearanceLayoutSchema = z.object({
-	window: z.object({
-		growBoxCorner: z.enum([
-			"bottom-right",
-			"bottom-left",
-			"top-right",
-			"top-left",
-		]),
-		centering: z.enum(["exact", "wholePixel"]).optional(),
-	}),
-	menuBar: z.object({ placement: z.enum(["screen", "window"]) }),
-	desktop: z.object({
-		iconGridOrigin: z.enum([
-			"top-right",
-			"top-left",
-			"bottom-right",
-			"bottom-left",
-		]),
-	}),
-	scrollBar: z
-		.object({
-			thumbDrag: z.enum(["live", "onRelease"]).optional(),
-			fitsBars: z.enum(["hidden", "shown"]).optional(),
-			patternOrigin: z.enum(["element", "window"]).optional(),
-		})
-		.optional(),
-	patternOrigin: z
-		.strictObject({
-			ControlGroup: patternOrigin,
-			PopUpMenu: patternOrigin,
-			Separator: patternOrigin,
-			Slider: patternOrigin,
-			elements: z
-				.array(
-					z.strictObject({
-						// Not parsed here: a selector newer than the browser
-						// would refuse the whole package; the core skips it.
-						selector: z.string().trim().min(1).max(1024),
-						origin: z.enum(["window", "desktop"]),
-					}),
-				)
-				.readonly()
-				.optional(),
-		})
-		.optional(),
-	slider: z
-		.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
-		.optional(),
-	fileDialog: z
-		.object({
-			frame: z.enum(["movable", "fixed"]).optional(),
-			navigation: z.enum(["tree", "flat"]).optional(),
-			saveName: z.enum(["plain", "selected"]).optional(),
-		})
-		.optional(),
-	fileBrowser: z
-		.object({
-			listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
-		})
-		.optional(),
-}) satisfies z.ZodType<ClassicyAppearanceLayout>;
+export const ClassicyAppearanceLayoutSchema = z
+	.object({
+		window: z.object({
+			growBoxCorner: z.enum([
+				"bottom-right",
+				"bottom-left",
+				"top-right",
+				"top-left",
+			]),
+			centering: z.enum(["exact", "wholePixel"]).optional(),
+			collapse: z.enum(["shade", "minimize"]).optional(),
+			zoom: z.enum(["standard", "maximize"]).optional(),
+			titleDoubleClick: z.enum(["collapse", "zoom"]).optional(),
+			frameEdges: z.enum(["move", "resize"]).optional(),
+			systemMenu: z.boolean().optional(),
+			captionTooltips: z.boolean().optional(),
+		}),
+		menuBar: z.object({ placement: z.enum(["screen", "window"]) }),
+		desktop: z.object({
+			iconGridOrigin: z.enum([
+				"top-right",
+				"top-left",
+				"bottom-right",
+				"bottom-left",
+			]),
+		}),
+		scrollBar: z
+			.object({
+				thumbDrag: z.enum(["live", "onRelease"]).optional(),
+				fitsBars: z.enum(["hidden", "shown"]).optional(),
+				patternOrigin: z.enum(["element", "window"]).optional(),
+			})
+			.optional(),
+		patternOrigin: z
+			.strictObject({
+				ControlGroup: patternOrigin,
+				PopUpMenu: patternOrigin,
+				Separator: patternOrigin,
+				Slider: patternOrigin,
+				elements: z
+					.array(
+						z.strictObject({
+							// Not parsed here: a selector newer than the browser
+							// would refuse the whole package; the core skips it.
+							selector: z.string().trim().min(1).max(1024),
+							origin: z.enum(["window", "desktop"]),
+						}),
+					)
+					.readonly()
+					.optional(),
+			})
+			.optional(),
+		slider: z
+			.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
+			.optional(),
+		fileDialog: z
+			.object({
+				frame: z.enum(["movable", "fixed"]).optional(),
+				navigation: z.enum(["tree", "flat"]).optional(),
+				saveName: z.enum(["plain", "selected"]).optional(),
+			})
+			.optional(),
+		fileBrowser: z
+			.object({
+				listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
+			})
+			.optional(),
+		taskbar: z
+			.object({
+				startLabel: layoutText.optional(),
+				startBanner: z
+					.object({ title: layoutText, edition: layoutText.optional() })
+					.optional(),
+			})
+			.optional(),
+		dialog: z
+			.object({ caption: z.enum(["plain", "titled"]).optional() })
+			.optional(),
+	})
+	.check((ctx) => {
+		const { taskbar, menuBar, window: windows } = ctx.value;
+		// A screen bar beside a taskbar would repeat its Apple, Help and App
+		// Switcher menus in the Start menu, the window bars and the task
+		// buttons.
+		if (taskbar !== undefined && menuBar.placement !== "window") {
+			ctx.issues.push({
+				code: "custom",
+				input: taskbar,
+				path: ["taskbar"],
+				message:
+					'requires menuBar.placement "window": a screen menu bar beside a taskbar would repeat its Apple, Help and App Switcher menus',
+			});
+		}
+		// Nothing but a taskbar button brings a minimized window back.
+		if (windows.collapse === "minimize" && taskbar === undefined) {
+			ctx.issues.push({
+				code: "custom",
+				input: windows.collapse,
+				path: ["window", "collapse"],
+				message:
+					'"minimize" requires a taskbar: a minimized window comes back only through its taskbar button',
+			});
+		}
+	}) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
 // Every ClassicyAssetKind, once. The `satisfies` and the check below fail the
 // type check when the registry gains or loses a kind.
