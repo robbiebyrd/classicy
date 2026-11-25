@@ -1,0 +1,32 @@
+// The Windows 98 HyperCard editor, included by windows98.scss inside the
+// package wrapper; overrides the look of HyperCard.scss's editor overlay
+// (the structure, the geometry and the tools palette stay the base's). The
+// one rule is the selection handles, as WIG Ch.13 "Handles" (pp.319-320),
+// Figure 13.32, has them: "the typical handle is a solid, filled square box
+// that appears on the edge of the object"; "use the system highlighted text
+// color for the border of normal handles and the selection highlight for
+// the handle's fill color" (a hollow handle, which marks a selection that is
+// no control point, takes the opposite, a Hilight border around a HilightText
+// fill; the editor draws none, every handle being a resize point); sized "on
+// the current system settings for window border and edge metrics". So each
+// handle is the `--hyper-card-handle-size` square the base sizes and places
+// (the core's `hyperCard.handleSize`, 6), filled Hilight inside a one-ring
+// (`--window-border-size`) HilightText border, drawn as an inset shadow so
+// the handle keeps the base's box, in place of the base's solid black. The
+// dashed selection rectangle stays the base's.
+//
+//   Windows color     token
+//   Hilight           --color-highlight                 the fill
+//   HilightText       --package-color-selection-text    the border
+//                     (--color-white)
+//
+// Every length is a ring (`b.$b`) or the base's handle size, every color a
+// token or a package color with a token fallback.
+@use "../bevels" as b;
+
+@mixin hyper-card {
+  .classicyHyperCardEditorHandle {
+    background: b.$highlight;
+    box-shadow: inset 0 0 0 b.$b b.$highlight-text;
+  }
+}

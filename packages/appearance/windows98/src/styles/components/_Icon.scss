@@ -24,13 +24,23 @@
 //   as the base draws it, its window open or not (Explorer's "Show all
 //   files" draws hidden files faint).
 // - The image well: the client edge (`b.sunken`, WS_EX_CLIENTEDGE) around
-//   Window white, in place of the base's black line and its recess; selected,
-//   the dotted focus rectangle just inside the edge; a drop target the same
-//   rectangle dashed; disabled, ButtonFace behind the faded picture.
+//   Window white, in place of the base's black line and its recess; set
+//   (`selected`), the well's option-set border, two solid rings just inside
+//   the edge, WindowText outside ButtonHilight ("place a border around the
+//   control, using the text color and the color of the button highlight",
+//   WIG Ch.13 "Option-Set Appearance" (p.305), Figure 13.13; Ch.7 "Wells"
+//   (p.133): "a special selection border drawn around the edge of the
+//   control"), drawn by an overlay so it lies over a picture that fills the
+//   well, where an inset shadow would hide under it; a drop target the
+//   dotted rectangle dashed; disabled, ButtonFace behind the faded picture.
+//   The well takes no keyboard focus (it is a frame, not a button), so it
+//   has no focus rectangle to draw.
 //
 //   Windows color       token
 //   Window              --color-window-document   the well's face
-//   WindowText          --color-black             labels, the focus rectangle
+//   WindowText          --color-black             labels, the focus rectangle,
+//                                                 the set well's outer ring
+//   ButtonHilight       --color-system-01         the set well's inner ring
 //   Hilight             --color-highlight         the selected label and the
 //                                                 blend
 //   HilightText         --package-color-selection-text (--color-white)
@@ -149,15 +159,27 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
 
   // --- The image well --------------------------------------------------------
   .classicyImageWell {
+    position: relative;
     padding: b.$b2;
     background-color: b.$window;
     border: 0;
     @include b.sunken;
   }
 
-  :where(.classicyImageWell).selected {
-    outline: b.$b dotted b.$text;
-    outline-offset: b.$neg-b2;
+  // Set: the option-set border, WindowText outside ButtonHilight, the two
+  // rings inside the client edge (WIG Ch.13 Figure 13.13). An overlay, not
+  // more rings of the well's own inset shadow: a well is sized to its
+  // picture, which is painted over the well's shadows, so rings under it
+  // would never show; the overlay's rings lie over the picture's outer
+  // pixels, where the base's accent frame lay.
+  :where(.classicyImageWell).selected::after {
+    content: "";
+    position: absolute;
+    inset: b.$b2;
+    pointer-events: none;
+    box-shadow:
+      inset 0 0 0 b.$b b.$text,
+      inset 0 0 0 b.$b2 b.$hilight;
   }
 
   .classicyImageWellDragOver {

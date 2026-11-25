@@ -8,7 +8,7 @@
 // group boxes, the progress bars, the scroll bars, the desktop and its
 // icons, the tab control, the sliders, the placards and bevel buttons, the
 // ToolTips, the tables, the separators, the little arrows, the Appearance
-// Manager and the Control Strip.
+// Manager, the Control Strip and the HyperCard editor's handles.
 @use "pkg:@classicy/classicy/scss/package";
 @use "bevels" as b;
 @use "components/Window";
@@ -36,6 +36,7 @@
 @use "components/LittleArrows";
 @use "components/AppearanceManager";
 @use "components/ControlStrip";
+@use "components/HyperCard";
 
 @include package.classicy-package("windows98") {
   @include Window.window;
@@ -63,6 +64,7 @@
   @include LittleArrows.little-arrows;
   @include AppearanceManager.appearance-manager;
   @include ControlStrip.control-strip;
+  @include HyperCard.hyper-card;
 
   // The browser's own controls take the highlight color (Hilight, navy in
   // Windows Standard), where the base sheet's accent is `--color-theme-04`.

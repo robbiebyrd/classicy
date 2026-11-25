@@ -67,7 +67,7 @@ $edge: var(--layout-dialog-edge);
 // fields' partial (_TextField.scss) sizes its fields: the knob (21), or, at
 // a UI font size the knob no longer holds, the font plus the text's inset
 // and the two rings above and below it, so the hot-key box follows the
-// Fonts tab (WIG Ch.14 "Scalability" (p.327)).
+// Fonts tab (WIG Ch.14 "Scalability" (p.334)).
 $field-height: max(
   var(--field-height),
   calc(var(--ui-font-size) + var(--field-padding-y) + var(--field-padding-y) + #{b.$b2} + #{b.$b2})

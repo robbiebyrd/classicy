@@ -21,7 +21,7 @@
 // focused list with nothing selected rings its first row (the Finder's,
 // the first row's name): Windows' list view always keeps a focus item, the
 // first until one is selected, and it is the row Down Arrow and Home select
-// here (WIG Ch.14 "The User's Point of Focus" (p.327); App. C
+// here (WIG Ch.14 "The User's Point of Focus" (p.333); App. C
 // "Accessibility" (p.365): the keyboard focus is always indicated). The
 // Finder's list (Explorer's details view) has the window's client edge for
 // its frame (_Window.scss) and no second one, and selects the name alone:
@@ -152,7 +152,7 @@ $finder: ".classicyFileBrowserViewTableContainer";
   // and not on every selected row). With nothing selected that is the first
   // row, as Windows' list view keeps its focus item on the first item until
   // one is selected (the row Down Arrow and Home select; WIG Ch.14 "The
-  // User's Point of Focus" (p.327), App. C "Accessibility" (p.365)).
+  // User's Point of Focus" (p.333), App. C "Accessibility" (p.365)).
   #{$list}:focus :where(.classicyTableRow).focused {
     @include b.focus-rect(b.$b);
   }

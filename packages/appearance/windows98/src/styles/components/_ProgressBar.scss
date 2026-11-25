@@ -24,7 +24,7 @@
 //   track, one period per second in whole-pixel steps, so the blocks stay
 //   sharp as they move; nothing fades at the ends. Under reduced motion the
 //   slide stops and the blocks stand still: the WIG asks for a way to turn
-//   animation off (Ch.13 "Animation" (p.325)), and the core pauses its
+//   animation off (Ch.13 "Animation" (p.321)), and the core pauses its
 //   screen savers the same way.
 // - The chasing arrows (Mac OS 8's, no Windows equivalent) are Hilight.
 // - A meter is the progress bar: the sunken ButtonFace track, its fill the
@@ -116,7 +116,7 @@ $period: calc(var(--progress-bar-block-width) + var(--progress-bar-block-gap));
   }
 
   // Reduced motion: no slide, the blocks standing still (WIG Ch.13
-  // "Animation" (p.325): offer a way to turn animation off).
+  // "Animation" (p.321): offer a way to turn animation off).
   @media (prefers-reduced-motion: reduce) {
     .classicyProgressIndeterminate progress[value] {
       &::-webkit-progress-value,

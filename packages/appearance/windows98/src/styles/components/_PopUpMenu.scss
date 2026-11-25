@@ -8,7 +8,7 @@
 // in the Options tab; or, at a UI font size it no longer holds, as tall as
 // the value's band, a pixel and the bevel ask, so the control follows the
 // Fonts tab as a combo box is sized from its font: WIG Ch.14 "Scalability"
-// (p.327)) in the sunken two-ring bevel, its current value 4 px in, a
+// (p.334)) in the sunken two-ring bevel, its current value 4 px in, a
 // raised ButtonFace
 // button `--pop-up-button-width` wide inside the frame at the right with a
 // 7 x 4 black triangle, pressed flat (one ring of ButtonShadow, the
@@ -20,7 +20,7 @@
 // with GrayText and the triangle embossed. Its size variants all set the
 // one UI font size: interface text is one size, the 8-point system font
 // every control label and item is set in (WIG Ch.13 "Font and Size"
-// (p.312)), and the pixel face is cut for it. The open list is Windows':
+// (p.310)), and the pixel face is cut for it. The open list is Windows':
 // a Window-white box in a one-pixel ButtonDkShadow line, rows the face's
 // height in a pixel of padding (13 px), the tracked row a Hilight band, a
 // group's title in GrayText embossed, no check against the current item
@@ -28,7 +28,7 @@
 // opens), and no taller than eight rows and the line (the theme's
 // `menu.popUpMaxHeight`, 106, read by the core's placement: a drop-down's
 // open list shows three to eight items, WIG Ch.7 "Drop-down List Boxes"
-// (p.123)). A long list's scroll indicators are raised ButtonFace rows with
+// (p.122)). A long list's scroll indicators are raised ButtonFace rows with
 // the arrow (_Menu.scss draws the shared indicator). A bevel button's
 // pop-up panel is a menu frame around a ButtonFace face; its pop-up arrows
 // are the triangle, pointing where the surface opens.
@@ -77,7 +77,7 @@ $arrow-right: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x"
 // below, and the bevel's two rings above and below (11 + 4 + 2 + 4 = 21 at
 // the default: the knob's own figure), so a combo box set in a larger font
 // grows with it and its band still clears the bevel (WIG Ch.14
-// "Scalability" (p.327)).
+// "Scalability" (p.334)).
 $field-height: max(
   var(--pop-up-height),
   calc(var(--ui-font-size) + #{b.$b2} + #{b.$b2} + #{b.$b} + #{b.$b} + #{b.$b2} + #{b.$b2})
@@ -157,7 +157,7 @@ $field-height: max(
 
   // The size variants keep the face's field and the one UI font size (the
   // base's smaller and larger faces give way: interface text is one size,
-  // WIG Ch.13 "Font and Size" (p.312), as the push button's small variant
+  // WIG Ch.13 "Font and Size" (p.310), as the push button's small variant
   // gives way in _Button.scss); the large one still grows to its text.
   .classicyPopUpMenu.classicyPopUpMenuSizeSmall {
     font-size: var(--ui-font-size);

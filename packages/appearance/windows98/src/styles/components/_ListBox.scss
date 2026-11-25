@@ -4,7 +4,7 @@
 // under the two-ring sunken edge (`b.sunken`, one ring `--window-border-size`
 // each), the rows and the list's scroll bar inside the rings; rows 13 px
 // (`--list-box-row-height`, `listBox.rowHeight`: the 8-point MS Sans Serif
-// row of WIG Ch.7 "Single Selection List Boxes" (p.122, Fig. 7.13), and the
+// row of WIG Ch.7 "Single Selection List Boxes" (p.120, Fig. 7.13), and the
 // package's own drop-down rows) in WindowText, the text two pixels in
 // (`--layout-item-gap-half`), the list capped at eight rows (the WIG's three
 // to eight); the selected row Hilight with HilightText across the row; the
@@ -22,7 +22,7 @@
 // GrayText, its icon as it is (a tree view has no disabled items); and the
 // hierarchy lines Windows' tree view draws beside its buttons (TVS_HASLINES
 // with TVS_LINESATROOT, as Explorer's; WIG Ch.7 "Tree View Controls"
-// (p.125-126, Fig. 7.16): "it is best to include" both): dotted
+// (pp.123-124, Fig. 7.16): "it is best to include" both): dotted
 // ButtonShadow, a pixel on and a pixel off on the pixel grid, down the
 // middle of each item's button column (the disclosure box's 12 px, so 6 in
 // from the row's indent) and from there 8 px out toward the item's icon at

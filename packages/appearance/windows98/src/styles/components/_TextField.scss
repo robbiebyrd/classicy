@@ -7,7 +7,7 @@
 // knob: Windows' edit and combo box stand at one height), or, at a UI font
 // size the knob no longer holds, the font plus the text's inset and the two
 // rings above and below it, so the field follows the Fonts tab as a Windows
-// edit control is sized from its font (WIG Ch.14 "Scalability" (p.327): the
+// edit control is sized from its font (WIG Ch.14 "Scalability" (p.334): the
 // system's fonts and controls scale, and every element is sized by the same
 // metrics), the text `--field-padding-y` x
 // `--field-padding-x` (3 x 4) inside the edge in WindowText, the insertion
@@ -18,7 +18,7 @@
 // static control embosses it). The one read-only field is the output well
 // (below): the read-only edit, ES_READONLY, WindowText on ButtonFace inside
 // the same edge, the gray interior Windows paints a read-only text box with
-// (WIG Ch.13 "Button Border Styles" (p.303) gives read-only text boxes the
+// (WIG Ch.13 "Button Border Styles" (p.301) gives read-only text boxes the
 // button-down border, and Figure 13.21's read-only text box shows the
 // ButtonFace interior); no input here passes `readOnly`.
 //
@@ -64,7 +64,7 @@ $fields: ".classicyInput, .classicySpinner";
 // or, at a UI font size the knob no longer holds, the font plus the text's
 // inset and the two rings above and below it (11 + 3 + 3 + 2 + 2 = 21 at the
 // default), so a field set in a larger font grows with it instead of
-// clipping its text (WIG Ch.14 "Scalability" (p.327)).
+// clipping its text (WIG Ch.14 "Scalability" (p.334)).
 $field-height: max(
   var(--field-height),
   calc(var(--ui-font-size) + var(--field-padding-y) + var(--field-padding-y) + #{b.$b2} + #{b.$b2})
@@ -236,7 +236,7 @@ $remove-x: runs(
   // height, the text at the field's inset in the line that is left inside
   // it, and ButtonFace inside the sunken edge, the gray interior Windows
   // paints a read-only text box with (WIG Ch.13 "Button Border Styles"
-  // (p.303), Figure 13.21's read-only text box), not the editable field's
+  // (p.301), Figure 13.21's read-only text box), not the editable field's
   // white.
   .classicyOutputInset {
     min-height: $field-height;

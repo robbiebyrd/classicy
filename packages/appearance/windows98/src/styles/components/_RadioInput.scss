@@ -29,7 +29,7 @@
 //   dot GrayText.
 // - Mixed: the empty circle, whatever the group's setting, as the WIG's
 //   mixed-value appearance has every button of the group drawn without a
-//   setting dot (WIG Ch.7 "Option Buttons" (p.117, Fig. 7.10)).
+//   setting dot (WIG Ch.7 "Option Buttons" (p.115, Fig. 7.10)).
 // - The keyboard focus is the dotted rectangle around the label's text (the
 //   circle's own, a pixel out, when it has no label), while anything in the
 //   item has focus (`:focus-within`, as the checkbox's). A disabled label is

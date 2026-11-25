@@ -4280,8 +4280,13 @@ it like Platinum (§1); its README lists what it ships.
   21: Windows' edit and combo box height, plus the text's padding),
   `tabControl` (`height`, a tab's, 21; the radius, lift and padding),
   `progressBar` (block width and gap, the stripe, the inset), `tooltip`,
-  `menuFrame`, `menuItem`, `menu` (`popUpMaxHeight`, 106: a drop-down's
+  `menuItem`, `menu` (`popUpMaxHeight`, 106: a drop-down's
   open list eight 13-px rows and its line, the WIG's three to eight items),
+  `dialog` (`alertMaxWidth` and `inputMaxWidth`, 415: the core's structural
+  family set to the WIG's largest secondary window, 234 dialog base units,
+  so a message box or input dialog never grows to the core's 460; the
+  package declares no `menuFrame`, its menu frame being `window-frame` from
+  `--window-border-size`),
   `listBox` (`rowHeight`, 13: the 8-point MS Sans Serif row), `toolbar`
   (`buttonWidth`/`buttonHeight`, 24 x 22, and `largeButtonWidth`/
   `largeButtonHeight`, 32 x 30: the WIG's two toolbar button sizes, for a
@@ -4292,7 +4297,9 @@ it like Platinum (§1); its README lists what it ships.
   and so the Options tab, covers `titleBar`, `progressBar`, `field`,
   `popUp` (`height`), `tabControl` and `desktopLabel`. Layout: grow box
   bottom right, menu bar
-  on the screen, icon grid from the top left, `scrollBar.fitsBars:
+  on the screen, icon grid from the top left, `window.centering:
+  "wholePixel"` (a centered alert or dialog lands on whole pixels, as under
+  System 7, so its pixel-grid bevels stay sharp), `scrollBar.fitsBars:
   "shown"`, a window's bars drawn, disabled, where its content fits, as
   Windows kept them, and `fileDialog: { frame: "movable", navigation:
   "flat", saveName: "selected" }`: the Open and Save As boxes titled and
@@ -4321,7 +4328,11 @@ it like Platinum (§1); its README lists what it ships.
   the track's `--classicy-scroll-page-start`/`-length` (§4.4 "Scroll bars"),
   and a scroll arrow at the end of its travel embossed as a fitting bar's
   are (the core's `disabled` on the arrow, §4.0.1; WIG Ch.6 "Scroll
-  Arrows", p.87). Icons, cursors and system
+  Arrows", p.87), a set image well's option-set border (two solid rings
+  inside its client edge, WindowText outside ButtonHilight, WIG Ch.13
+  Figure 13.13, drawn as an overlay so it lies over the picture) and the
+  HyperCard editor's handles as Hilight squares in a one-ring HilightText
+  border (`_HyperCard.scss`; WIG Ch.13 "Handles", pp.319-320). Icons, cursors and system
   art resolve to the default package's (§5), and with no package offering
   a screen saver the panel reads "This appearance has no screen savers."
 - **Sound.** One pack, `windows98`: `ClassicyBeep` and four alert tones
@@ -4356,7 +4367,7 @@ how they look) has two halves:
 
 | Key | Values (Platinum's first) | Drives |
 |---|---|---|
-| `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
+| `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7 and Windows 98): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |

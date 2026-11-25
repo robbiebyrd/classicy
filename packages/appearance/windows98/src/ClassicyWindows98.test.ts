@@ -235,11 +235,14 @@ describe("the Windows 98 appearance package", () => {
 	// and Save As dialogs are titled, movable boxes showing one folder at a
 	// time under a pop-up that runs the path upward (Look in), and Save As
 	// opens with the file name selected (WIG Ch.8 "Open Dialog Box" and
-	// "Save As Dialog Box", pp.155-157, Figures 8.6 and 8.7).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs", async () => {
+	// "Save As Dialog Box", pp.155-157, Figures 8.6 and 8.7); and a centered
+	// dialog or alert lands on whole pixels, so its one-pixel bevels and
+	// glyphs stay on the grid (`window.centering`, the audit's 8.8; WIG Ch.8
+	// "Window Placement", p.147; Ch.13 "Design of Graphic Images", p.313).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
-			window: { growBoxCorner: "bottom-right" },
+			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: { fitsBars: "shown" },
@@ -249,6 +252,42 @@ describe("the Windows 98 appearance package", () => {
 				saveName: "selected",
 			},
 		});
+	});
+
+	// The core's `dialog` family is structural (every theme emits it from the
+	// core floor); the package sets the two widths Windows caps a secondary
+	// window at, 234 dialog base units, 415 px (WIG Ch.13 "Font and Size",
+	// p.311; the audit's 8.10), so a message box or input dialog never grows
+	// to the core's 460. The family's other keys stay the floor's.
+	it("caps the alert and input dialogs at the WIG's 415 px in every theme", async () => {
+		await import("./index");
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements.dialog, theme.id).toEqual({
+				alertMaxWidth: 415,
+				inputMaxWidth: 415,
+			});
+		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
+			"--dialog-alert-max-width": "415px",
+			"--dialog-input-max-width": "415px",
+			"--dialog-alert-min-width": "280px",
+			"--dialog-keyboard-equivalent-max-width": "420px",
+		});
+	});
+
+	// The menu frame is `b.window-frame` from `--window-border-size`, so the
+	// `menuFrame` family (Platinum's menu border, bevel and shadow knobs) is
+	// read by nothing in this package: no theme declares it, the Options tab
+	// does not offer it, and no `--menu-frame-*` variable is emitted for a
+	// Windows 98 theme (the family is not in the core floor).
+	it("declares no menuFrame family and emits no --menu-frame-* variable", async () => {
+		await import("./index");
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements, theme.id).not.toHaveProperty("menuFrame");
+		expect(windows98Json.knobs).not.toHaveProperty("menuFrame");
+		const vars = getThemeVars(getTheme("windows98") as ClassicyTheme);
+		expect(
+			Object.keys(vars).filter((name) => name.startsWith("--menu-frame-")),
+		).toEqual([]);
 	});
 
 	// The pack: four alert tones synthesized for the package (Windows' own

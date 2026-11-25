@@ -49,7 +49,8 @@ and `nodenext` resolution).
   window's scroll bars kept where its content fits, and the Open and Save
   boxes as titled, movable dialogs showing one folder at a time under a
   pop-up that runs the path upward (Windows' Look in), Save As opening with
-  the file name selected.
+  the file name selected, and dialogs and alerts centered on whole pixels,
+  so their one-pixel bevels and glyphs stay sharp.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
@@ -70,7 +71,9 @@ and `nodenext` resolution).
     the dotted focus rectangle, 13-pixel checkboxes, 12-pixel radio buttons,
     sunken text fields and lists, pop-up menus with their drop-down button,
     rectangular tabs on a raised panel, the block progress bar, etched group
-    boxes, trackbar sliders, raised placards and bevel buttons;
+    boxes, trackbar sliders, raised placards and bevel buttons, and image
+    wells that mark their set value with a solid border, the text color
+    outside the button highlight, inside the sunken edge;
   - scroll bars: an arrow at each end on a checkered track, a raised scroll
     box, the paged side of the track inverted while the mouse holds it, an
     arrow embossed (disabled) at the end of its travel (the up arrow at the
@@ -81,8 +84,12 @@ and `nodenext` resolution).
     (as Explorer drew it) on the desktop, in icon views and in the Finder's
     list, ToolTips in place of balloon help, and the Appearance Manager
     and Control Strip under the same bevels;
-  - message boxes with their buttons centered, as Windows centers them
-    (a dialog's OK and Cancel stay at the right).
+  - message boxes and input dialogs no wider than 415 px, the largest
+    secondary window the Windows Interface Guidelines allow, a message box's
+    buttons centered, as Windows centers them (a dialog's OK and Cancel
+    stay at the right);
+  - the HyperCard editor's selection handles as squares of the highlight
+    color ringed in the highlighted text color, as Windows drew handles.
 - **Its knobs**, in the Appearance Manager's Options tab: the title-bar
   buttons' width and height, the gap before Close and the gap under the
   bar; the progress bar's block width and gap; the height of single-line

@@ -135,6 +135,36 @@ describe("windows98.scss (compiled)", () => {
 		).toBe(true);
 	});
 
+	// The package pass of the audit's next round (13.7 and 13.10): a set image
+	// well wears the WIG's option-set border, two solid rings inside its
+	// client edge, WindowText outside ButtonHilight (Figure 13.13), as an
+	// overlay over the picture, the dotted rectangle gone from the set state;
+	// and the HyperCard editor's handles are Hilight squares in a one-ring
+	// HilightText border (Ch.13 "Handles", pp.319-320).
+	it("frames a set image well solid and fills the HyperCard handles from the highlight colors", () => {
+		const selectors = selectorsOf(css);
+		const has = (tail: string) =>
+			selectors.some((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		expect(has(":where(.classicyImageWell).selected::after")).toBe(true);
+		expect(has(":where(.classicyImageWell).selected")).toBe(false);
+		const well = block(":where(.classicyImageWell).selected::after");
+		expect(well).toContain(
+			"inset 0 0 0 var(--window-border-size) var(--color-black)",
+		);
+		expect(well).toContain("var(--color-system-01)");
+		expect(well).not.toContain("dotted");
+		expect(has(".classicyHyperCardEditorHandle")).toBe(true);
+		const handle = block(".classicyHyperCardEditorHandle");
+		expect(handle).toContain("background: var(--color-highlight)");
+		expect(handle).toContain(
+			"box-shadow: inset 0 0 0 var(--window-border-size) var(--package-color-selection-text, var(--color-white))",
+		);
+	});
+
 	// The scroll-arrow hook of the audit's second pass (6.8 / 7.24): the core
 	// sets `disabled` on the arrow at the end of its travel, and the package
 	// embosses that one arrow as it embosses a fitting bar's, each rule after
