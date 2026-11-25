@@ -11,10 +11,14 @@ import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/Clas
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
 import {
+	type ClassicyEditTargetState,
 	classicyEditCommands,
 	ensureEditTracker,
+	getEditTargetStateServerSnapshot,
+	getEditTargetStateSnapshot,
 	getUndoStateServerSnapshot,
 	getUndoStateSnapshot,
+	subscribeEditTargetState,
 	subscribeUndoState,
 } from "@/SystemFolder/SystemResources/App/ClassicyEditCommands";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
@@ -123,6 +127,10 @@ export function useClassicyHelpMenu(
 	}, [dispatch, appId, items]);
 }
 
+// The target state's stand-in while the Mac form is drawn: nothing is
+// subscribed, so the selection is never watched for it.
+const noTargetSubscription = () => () => {};
+
 /**
  * Builds a standard HIG Edit menu (Undo / Cut / Copy / Paste / Clear / Select
  * All) whose commands act on the last-focused text field. Keyboard equivalents
@@ -141,6 +149,23 @@ export function useClassicyHelpMenu(
  * "Del", as those menus do (WIG Ch.5 "Shortcut Keys for Transfer
  * Operations", pp.67-68), a native key the browser's editing answers.
  * Platinum and System 7 keep Mac OS 8's menu: no keys, no Clear shortcut.
+ *
+ * Under the package's `layout.edit.menu` `"windows"` (Windows 98) it takes
+ * Windows 98 SE's Notepad's form (notepad.exe's Edit menu: "&Undo\tCtrl+Z",
+ * "Cu&t\tCtrl+X", "&Copy\tCtrl+C", "&Paste\tCtrl+V", "De&lete\tDel",
+ * "Select &All"; WIG Ch.5 "Command Method", p.59): Undo is "Undo" alone,
+ * dimmed with nothing to undo (never "Can't Undo" or "Undo Typing"), a
+ * divider, Cut, Copy, Paste, Delete in Clear's place with Notepad's letter l
+ * and the Delete key, a divider, and Select All. Its items are dimmed as
+ * Notepad's menu dims them (Wine's `NOTEPAD_InitMenuPopup`): Cut, Copy and
+ * Delete while the target field has no selection, Select All while it holds
+ * no text, and every command while there is no target
+ * (`subscribeEditTargetState`); Cut, Paste and Delete also while it is
+ * read-only, and Cut and Copy in a password field, as user.exe's edit menu
+ * has them. Paste is not dimmed by the clipboard, which a page cannot read
+ * without the user's permission. Select All keeps ⌘A (Ctrl+A), Explorer's
+ * and WordPad's chord, which the browser's editing answers; Notepad's own
+ * carried none. The ids are the Mac form's (Delete is `${idPrefix}_clear`).
  *
  * `preferencesItem`, when supplied, is appended after a divider at the BOTTOM of
  * the Edit menu — the position Mac OS 8 standardized for the Preferences command
@@ -170,10 +195,29 @@ export function useClassicyEditMenu(
 			: "Undo"
 		: "Can't Undo";
 	const ak = useClassicyBundledAccessKeys();
-	const clearShowsDel =
-		useClassicyAppearanceLayout().menu?.shortcutSpelling === "names";
+	const layout = useClassicyAppearanceLayout();
+	const clearShowsDel = layout.menu?.shortcutSpelling === "names";
+	const windowsForm = layout.edit?.menu === "windows";
+	const target = useSyncExternalStore(
+		windowsForm ? subscribeEditTargetState : noTargetSubscription,
+		windowsForm ? getEditTargetStateSnapshot : getEditTargetStateServerSnapshot,
+		getEditTargetStateServerSnapshot,
+	);
 
-	return useMemo(
+	const windowsMenu = useMemo(
+		() =>
+			windowsForm
+				? windowsEditMenu(
+						idPrefix,
+						undoState.canUndo,
+						target,
+						ak,
+						preferencesItem,
+					)
+				: undefined,
+		[windowsForm, idPrefix, undoState.canUndo, target, ak, preferencesItem],
+	);
+	const macMenu = useMemo(
 		() => ({
 			id: `${idPrefix}_edit`,
 			title: "Edit",
@@ -248,4 +292,87 @@ export function useClassicyEditMenu(
 			clearShowsDel,
 		],
 	);
+	return windowsMenu ?? macMenu;
 }
+
+/**
+ * Notepad's Edit menu (`edit.menu: "windows"`), its items dimmed from the
+ * target's state as Notepad's menu-init dims them.
+ */
+const windowsEditMenu = (
+	idPrefix: string,
+	canUndo: boolean,
+	target: ClassicyEditTargetState,
+	ak: (key: string) => string | undefined,
+	preferencesItem?: ClassicyMenuItem,
+): ClassicyMenuItem => {
+	const noSelection = !target.target || !target.selection;
+	return {
+		id: `${idPrefix}_edit`,
+		title: "Edit",
+		accessKey: ak("e"),
+		menuChildren: [
+			{
+				id: `${idPrefix}_undo`,
+				title: "Undo",
+				accessKey: ak("u"),
+				disabled: !canUndo,
+				keyboardShortcut: "⌘Z",
+				nativeShortcut: true,
+				onClickFunc: classicyEditCommands.undo,
+			},
+			{ id: "spacer" },
+			{
+				id: `${idPrefix}_cut`,
+				title: "Cut",
+				accessKey: ak("t"),
+				disabled: noSelection || target.readOnly || target.password,
+				keyboardShortcut: "⌘X",
+				nativeShortcut: true,
+				onClickFunc: classicyEditCommands.cut,
+			},
+			{
+				id: `${idPrefix}_copy`,
+				title: "Copy",
+				accessKey: ak("c"),
+				disabled: noSelection || target.password,
+				keyboardShortcut: "⌘C",
+				nativeShortcut: true,
+				onClickFunc: classicyEditCommands.copy,
+			},
+			{
+				id: `${idPrefix}_paste`,
+				title: "Paste",
+				accessKey: ak("p"),
+				disabled: !target.target || target.readOnly,
+				keyboardShortcut: "⌘V",
+				nativeShortcut: true,
+				onClickFunc: () => {
+					void classicyEditCommands.paste();
+				},
+			},
+			{
+				id: `${idPrefix}_clear`,
+				title: "Delete",
+				accessKey: ak("l"),
+				disabled: noSelection || target.readOnly,
+				keyboardShortcut: "⌦",
+				nativeShortcut: true,
+				onClickFunc: classicyEditCommands.clear,
+			},
+			{ id: "spacer" },
+			{
+				id: `${idPrefix}_select_all`,
+				title: "Select All",
+				accessKey: ak("A"),
+				disabled: !target.target || !target.text,
+				keyboardShortcut: "⌘A",
+				nativeShortcut: true,
+				onClickFunc: classicyEditCommands.selectAll,
+			},
+			...(preferencesItem
+				? [{ id: "spacer" } as ClassicyMenuItem, preferencesItem]
+				: []),
+		],
+	};
+};

@@ -1,9 +1,7 @@
 import {
-	createContext,
 	type FC as FunctionalComponent,
 	type PropsWithChildren,
 	useCallback,
-	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -12,6 +10,10 @@ import {
 import { createPortal } from "react-dom";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
+import {
+	type ClassicyContextMenuOptions,
+	ClassicyContextualMenuContext,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuContext.internal";
 import { useClassicyContextMenuKey } from "@/SystemFolder/SystemResources/ContextualMenu/useClassicyContextMenuKey.internal";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -22,38 +24,11 @@ interface OpenContextMenu {
 	position: [number, number];
 }
 
-/** The imperative contextual-menu API returned by `useClassicyContextualMenu`. */
-export interface ClassicyContextualMenuAPI {
-	/**
-	 * Open `items` as the contextual menu, 1 px below and right of `clickAt`
-	 * (viewport `[x, y]`), replacing any menu already open. A disabled Help
-	 * item is put first unless the items include one. Under a package whose
-	 * layout says `contextMenu.openOn: "release"` (Windows 98), a call made
-	 * while button 2 is down is held, and the menu opens when that button
-	 * comes up.
-	 */
-	showContextMenu: (
-		items: ClassicyMenuItem[],
-		clickAt: [number, number],
-	) => void;
-	/** Close the open contextual menu, if any, and drop a held one. */
-	hideContextMenu: () => void;
-}
-
-const noop = () => {};
-
-const ClassicyContextualMenuContext = createContext<ClassicyContextualMenuAPI>({
-	showContextMenu: noop,
-	hideContextMenu: noop,
-});
-
-/**
- * Opens and closes the desktop's single contextual menu from code, e.g. in a
- * custom `onContextMenu` handler. Outside a `ClassicyContextualMenuProvider`
- * both functions are no-ops.
- */
-export const useClassicyContextualMenu = (): ClassicyContextualMenuAPI =>
-	useContext(ClassicyContextualMenuContext);
+export type {
+	ClassicyContextMenuOptions,
+	ClassicyContextualMenuAPI,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuContext.internal";
+export { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuContext.internal";
 
 // HIG "Contextual Menus" (Ch. 4): the menu opens 1 px down and to the right of
 // the click point, so the pointer sits just outside the top-left corner.
@@ -156,9 +131,13 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 	}, [onRelease, dropHeldMenu]);
 
 	const showContextMenu = useCallback(
-		(items: ClassicyMenuItem[], clickAt: [number, number]) => {
+		(
+			items: ClassicyMenuItem[],
+			clickAt: [number, number],
+			options?: ClassicyContextMenuOptions,
+		) => {
 			const menu: OpenContextMenu = {
-				items: withHelpItem(items),
+				items: options?.helpItem === false ? items : withHelpItem(items),
 				position: [clickAt[0] + clickOffset[0], clickAt[1] + clickOffset[1]],
 			};
 			if (onRelease && secondaryButtonRef.current !== null) {

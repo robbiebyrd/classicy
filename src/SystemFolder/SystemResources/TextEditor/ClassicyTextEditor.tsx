@@ -12,6 +12,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyTextFieldContextMenu } from "@/SystemFolder/SystemResources/App/ClassicyTextFieldMenu.internal";
+import { useClassicyWordSelect } from "@/SystemFolder/SystemResources/App/ClassicyWordSelect.internal";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -133,6 +135,11 @@ const fontSizeClass: Record<ClassicyControlLabelSize, string> = {
  * content is a full-size editor should pass `scrollable={false}`, since the
  * textarea scrolls itself.
  *
+ * Under a package whose layout says `text.wordSelect: "trailingSpace"`
+ * (Windows) a double-click takes the spaces after its word too, and under
+ * `textField.contextMenu: "edit"` a right-click shows the field's own Edit
+ * menu (Undo, Cut, Copy, Paste, Delete, Select All) instead of the window's.
+ *
  * ```tsx
  * <ClassicyTextEditor
  *     id="notes"
@@ -211,6 +218,9 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 			field.style.removeProperty("height");
 		};
 	}, [autoHeight, value]);
+
+	const wordSelect = useClassicyWordSelect();
+	const textMenu = useClassicyTextFieldContextMenu();
 
 	const handleChange = useCallback(
 		(e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -309,6 +319,9 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 						ref={viewport.ref}
 						onScroll={viewport.onScroll}
 						onSelect={handleSelect}
+						onDoubleClick={wordSelect}
+						onMouseDown={textMenu?.onMouseDown}
+						onContextMenu={textMenu?.onContextMenu}
 						id={id}
 						disabled={disabled}
 						className={classNames(

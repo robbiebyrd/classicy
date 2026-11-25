@@ -1,6 +1,8 @@
 import { createRef } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, userEvent } from "@/__tests__/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 
 vi.mock(
@@ -428,5 +430,79 @@ describe("ClassicyInput's selected state", () => {
 		} finally {
 			rect.mockRestore();
 		}
+	});
+});
+
+// The remaining chapters' audit's 5.19 (WIG Ch.5 "Selection Shortcuts",
+// p.44) and 5.29 ("Command Method", p.59): under Windows' text keys a
+// double-click takes the spaces after its word, and a right-click shows
+// the field's own Edit menu, user.exe's.
+describe("ClassicyInput under Windows' text keys", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+	const textbox = () => screen.getByRole("textbox") as HTMLInputElement;
+
+	it("takes the spaces after a double-clicked word under text.wordSelect", () => {
+		restore = activateTestWindowsKeysPackage({
+			text: { wordSelect: "trailingSpace" },
+		});
+		render(<ClassicyInput id="f" prefillValue="one two  three" />);
+		textbox().setSelectionRange(4, 7);
+		fireEvent.doubleClick(textbox());
+		expect([textbox().selectionStart, textbox().selectionEnd]).toEqual([4, 9]);
+	});
+
+	it("keeps the browser's word by default", () => {
+		render(<ClassicyInput id="f" prefillValue="one two  three" />);
+		textbox().setSelectionRange(4, 7);
+		fireEvent.doubleClick(textbox());
+		expect([textbox().selectionStart, textbox().selectionEnd]).toEqual([4, 7]);
+	});
+
+	it("shows its own Edit menu on a right-click and on Shift+F10, at the field's center, under textField.contextMenu", () => {
+		restore = activateTestWindowsKeysPackage({
+			textField: { contextMenu: "edit" },
+		});
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyInput id="f" prefillValue="hello" />
+			</ClassicyContextualMenuProvider>,
+		);
+		expect(fireEvent.mouseDown(textbox(), { button: 2 })).toBe(false);
+		expect(fireEvent.contextMenu(textbox(), { clientX: 20, clientY: 10 })).toBe(
+			false,
+		);
+		expect(document.activeElement).toBe(textbox());
+		expect(
+			document.getElementById("classicy-text-field-delete"),
+		).not.toBeNull();
+		fireEvent.mouseDown(document.body);
+		expect(document.getElementById("classicy-text-field-delete")).toBeNull();
+		textbox().getBoundingClientRect = () =>
+			({ left: 10, top: 20, right: 110, bottom: 40 }) as DOMRect;
+		fireEvent.keyDown(textbox(), { key: "F10", shiftKey: true });
+		expect(
+			document.getElementById("classicy-text-field-delete"),
+		).not.toBeNull();
+		const menu = document.querySelector<HTMLElement>(
+			".classicyContextMenuWrapper",
+		);
+		expect([menu?.style.left, menu?.style.top]).toEqual(["61px", "31px"]);
+	});
+
+	it("leaves the right-click to the window by default (Platinum)", () => {
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyInput id="f" prefillValue="hello" />
+			</ClassicyContextualMenuProvider>,
+		);
+		expect(fireEvent.mouseDown(textbox(), { button: 2 })).toBe(true);
+		expect(fireEvent.contextMenu(textbox(), { clientX: 20, clientY: 10 })).toBe(
+			true,
+		);
+		expect(document.getElementById("classicy-text-field-delete")).toBeNull();
 	});
 });

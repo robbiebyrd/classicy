@@ -548,6 +548,55 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// Text (the WIG audit's 5.19, 5.21, 5.29 and the Edit menu's Windows
+	// form of 5.44): `text.wordSelect`, `edit.scope`, `edit.menu` and
+	// `textField.contextMenu`, three optional groups of optional keywords.
+	it("takes optional text, edit and textField keys, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.text = { wordSelect: "trailingSpace" };
+		layout.edit = { scope: "window", menu: "windows" };
+		layout.textField = { contextMenu: "edit" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.text).toEqual({ wordSelect: "trailingSpace" });
+		expect(result.data?.layout.edit).toEqual({
+			scope: "window",
+			menu: "windows",
+		});
+		expect(result.data?.layout.textField).toEqual({ contextMenu: "edit" });
+		for (const [group, value] of [
+			["text", {}],
+			["text", { wordSelect: "native" }],
+			["edit", {}],
+			["edit", { scope: "any" }],
+			["edit", { menu: "mac" }],
+			["textField", { contextMenu: "none" }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[group] = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success, group).toBe(
+				true,
+			);
+		}
+		for (const [group, key, value] of [
+			["text", "wordSelect", "word"],
+			["edit", "scope", "app"],
+			["edit", "menu", "windows98"],
+			["textField", "contextMenu", true],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
 	it("accepts defaults that name the package", () => {
 		const input = {
 			...platinumShaped(),

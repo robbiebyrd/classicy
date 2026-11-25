@@ -157,6 +157,17 @@ and `nodenext` resolution).
   was closed with. And File ▸ Open… and Save answer to Ctrl+O and Ctrl+S,
   instead of the browser's Open and Save Page. The Mac packages keep
   SimpleText as it was.
+- **Its text**, edited as Windows 98 edited it. A double-click selects the
+  word and the spaces after it, never the comma or the line break that
+  follows. The Edit commands act on a field of the active window only, so
+  Delete chosen in one window never deletes a word selected in another.
+  The Edit menu is Notepad's: Undo (dimmed with nothing to undo), Cut,
+  Copy, Paste, Delete (Del, in place of Clear) and Select All, Cut, Copy
+  and Delete dimmed while nothing is selected. And a right-click on any
+  text field, a combo box's or a spinner's included, shows its own menu,
+  Undo, Cut, Copy, Paste, Delete and Select All, at the pointer, keeping
+  the selection; Shift+F10 or the Application key opens it at the field's
+  center. The Mac packages keep their text fields as they were.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),

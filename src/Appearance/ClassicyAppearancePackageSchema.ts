@@ -21,6 +21,7 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
  * The three arrangement groups, every one required, and the optional
  * behavior groups (`menu`, `scrollBar`, `patternOrigin`, `slider`,
  * `fileDialog`, `fileBrowser`, `fileList`, `tree`, `balloonHelp`,
+ * `text`, `edit`, `textField`,
  * `selection`, `contextMenu`, `input`), each key of which is optional too,
  * as are `menuBar.idleTimeoutMs` and `mouse`.
  */
@@ -126,6 +127,18 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),
 	balloonHelp: z
 		.object({ placement: z.enum(["anchor", "pointer"]).optional() })
+		.optional(),
+	text: z
+		.object({ wordSelect: z.enum(["native", "trailingSpace"]).optional() })
+		.optional(),
+	edit: z
+		.object({
+			scope: z.enum(["any", "window"]).optional(),
+			menu: z.enum(["mac", "windows"]).optional(),
+		})
+		.optional(),
+	textField: z
+		.object({ contextMenu: z.enum(["none", "edit"]).optional() })
 		.optional(),
 	selection: z
 		.object({

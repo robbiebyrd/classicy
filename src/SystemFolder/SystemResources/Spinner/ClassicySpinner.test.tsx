@@ -1,6 +1,8 @@
 import { act, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 
 vi.mock(
@@ -331,5 +333,49 @@ describe("ClassicySpinner — the arrow keys and wrap", () => {
 			expect(unbounded).toBeGreaterThan(99);
 			expect(hold({ maxValue: 99, wrap: true })).toBe(unbounded % 100);
 		});
+	});
+});
+
+// The remaining chapters' audit's 5.29 (WIG Ch.5 "Command Method", p.59):
+// the spinner's field shows its own Edit menu under Windows' text keys; a
+// number field's selection cannot be read, so its text counts as selected.
+describe("ClassicySpinner's field under textField.contextMenu", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+	const renderSpinner = () =>
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicySpinner id="count" prefillValue={12} maxValue={99} />
+			</ClassicyContextualMenuProvider>,
+		);
+
+	it("shows the field's own Edit menu, Cut lit by its text", () => {
+		restore = activateTestWindowsKeysPackage({
+			textField: { contextMenu: "edit" },
+		});
+		renderSpinner();
+		expect(fireEvent.contextMenu(input(), { clientX: 5, clientY: 5 })).toBe(
+			false,
+		);
+		expect(document.activeElement).toBe(input());
+		const cut = document.getElementById("classicy-text-field-cut");
+		expect(cut).not.toBeNull();
+		expect(cut?.classList.contains("disabled")).toBe(false);
+		expect(
+			document
+				.getElementById("classicy-text-field-undo")
+				?.classList.contains("disabled"),
+		).toBe(true);
+	});
+
+	it("shows none by default", () => {
+		renderSpinner();
+		expect(fireEvent.contextMenu(input(), { clientX: 5, clientY: 5 })).toBe(
+			true,
+		);
+		expect(document.getElementById("classicy-text-field-cut")).toBeNull();
 	});
 });

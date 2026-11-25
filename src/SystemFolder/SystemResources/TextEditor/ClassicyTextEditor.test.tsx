@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 
 vi.mock(
@@ -249,5 +251,51 @@ describe("ClassicyTextEditor caret view state", () => {
 		fireEvent.scroll(field());
 		vi.advanceTimersByTime(300);
 		expect(onScrollSettled).toHaveBeenCalledWith([0, field().scrollTop]);
+	});
+});
+
+// The remaining chapters' audit's 5.19 and 5.29 (WIG Ch.5 pp.44, 59): the
+// textarea viewport takes the spaces after a double-clicked word and shows
+// its own Edit menu under Windows' text keys.
+describe("ClassicyTextEditor under Windows' text keys", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+	const area = () => screen.getByRole("textbox") as HTMLTextAreaElement;
+	const renderEditor = () =>
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyTextEditor id="t" content={"one two \nthree"} />
+			</ClassicyContextualMenuProvider>,
+		);
+
+	it("takes the spaces after a double-clicked word, never the line break, and shows its own menu", () => {
+		restore = activateTestWindowsKeysPackage({
+			text: { wordSelect: "trailingSpace" },
+			textField: { contextMenu: "edit" },
+		});
+		renderEditor();
+		area().setSelectionRange(4, 7);
+		fireEvent.doubleClick(area());
+		expect([area().selectionStart, area().selectionEnd]).toEqual([4, 8]);
+		expect(fireEvent.mouseDown(area(), { button: 2 })).toBe(false);
+		expect(fireEvent.contextMenu(area(), { clientX: 5, clientY: 5 })).toBe(
+			false,
+		);
+		expect(document.getElementById("classicy-text-field-cut")).not.toBeNull();
+		expect([area().selectionStart, area().selectionEnd]).toEqual([4, 8]);
+	});
+
+	it("keeps the browser's word and the window's right-click by default", () => {
+		renderEditor();
+		area().setSelectionRange(4, 7);
+		fireEvent.doubleClick(area());
+		expect(area().selectionEnd).toBe(7);
+		expect(fireEvent.contextMenu(area(), { clientX: 5, clientY: 5 })).toBe(
+			true,
+		);
+		expect(document.getElementById("classicy-text-field-cut")).toBeNull();
 	});
 });

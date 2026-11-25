@@ -8823,6 +8823,16 @@
 		"balloonHelp": {
 			"placement": "pointer"
 		},
+		"text": {
+			"wordSelect": "trailingSpace"
+		},
+		"edit": {
+			"scope": "window",
+			"menu": "windows"
+		},
+		"textField": {
+			"contextMenu": "edit"
+		},
 		"selection": {
 			"secondaryButton": "select",
 			"selectOn": "press",

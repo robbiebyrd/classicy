@@ -1366,6 +1366,9 @@ describe("the Windows 98 appearance package", () => {
 			fileList: { foldersFirst: true },
 			tree: { keys: "windows" },
 			balloonHelp: { placement: "pointer" },
+			text: { wordSelect: "trailingSpace" },
+			edit: { scope: "window", menu: "windows" },
+			textField: { contextMenu: "edit" },
 			selection: {
 				secondaryButton: "select",
 				selectOn: "press",
@@ -1399,6 +1402,21 @@ describe("the Windows 98 appearance package", () => {
 		});
 		expect(layout?.window.restoreViewState).toBe(true);
 		expect(layout?.menu?.standardShortcuts).toBe("windows");
+	});
+
+	// Text as Windows 98 edited it: a double-click takes the word and the
+	// space after it (`text.wordSelect`, 5.19; WIG Ch.5 "Selection
+	// Shortcuts", p.44), the Edit commands keep to the active window
+	// (`edit.scope`, 5.21; "Operations for a Multiple Selection", p.44), the
+	// Edit menu takes Notepad's form (`edit.menu`, the shell's 5.44; "Command
+	// Method", p.59), and a text field's right-click shows user.exe's edit
+	// menu (`textField.contextMenu`, 5.29; p.59).
+	it("takes the space after a double-clicked word, keeps the Edit commands to the active window, draws Notepad's Edit menu and gives text fields their own pop-up menu", async () => {
+		await import("./index");
+		const layout = getClassicyAppearancePackage("windows98")?.layout;
+		expect(layout?.text).toEqual({ wordSelect: "trailingSpace" });
+		expect(layout?.edit).toEqual({ scope: "window", menu: "windows" });
+		expect(layout?.textField).toEqual({ contextMenu: "edit" });
 	});
 
 	// The core's `dialog` family is structural (every theme emits it from the

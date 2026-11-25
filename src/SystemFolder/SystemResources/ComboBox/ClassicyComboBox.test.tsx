@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	fireEvent,
 	render,
@@ -7,6 +7,8 @@ import {
 	userEvent,
 	within,
 } from "@/__tests__/test-utils";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -270,5 +272,42 @@ describe("ClassicyComboBox — grouped options", () => {
 		await user.type(input, "peach");
 		fireEvent.mouseDown(document.body);
 		expect(input).toHaveValue("Peach");
+	});
+});
+
+// The remaining chapters' audit's 5.29 (WIG Ch.5 "Command Method", p.59):
+// the combo box's field shows its own Edit menu under Windows' text keys.
+describe("ClassicyComboBox's field under textField.contextMenu", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+	const renderBox = () =>
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyComboBox id="fruit" options={options} />
+			</ClassicyContextualMenuProvider>,
+		);
+
+	it("shows the field's own Edit menu, and leaves its list closed", () => {
+		restore = activateTestWindowsKeysPackage({
+			textField: { contextMenu: "edit" },
+		});
+		renderBox();
+		const field = screen.getByRole("combobox");
+		expect(fireEvent.contextMenu(field, { clientX: 5, clientY: 5 })).toBe(
+			false,
+		);
+		expect(document.activeElement).toBe(field);
+		expect(document.getElementById("classicy-text-field-paste")).not.toBeNull();
+		expect(screen.queryByRole("listbox")).toBeNull();
+	});
+
+	it("shows none by default", () => {
+		renderBox();
+		const field = screen.getByRole("combobox");
+		expect(fireEvent.contextMenu(field, { clientX: 5, clientY: 5 })).toBe(true);
+		expect(document.getElementById("classicy-text-field-paste")).toBeNull();
 	});
 });

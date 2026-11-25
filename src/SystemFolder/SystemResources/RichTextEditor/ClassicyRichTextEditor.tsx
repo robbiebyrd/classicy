@@ -17,6 +17,7 @@ import type {
 	FC as FunctionalComponent,
 	RefObject,
 } from "react";
+import { useClassicyTextFieldContextMenu } from "@/SystemFolder/SystemResources/App/ClassicyTextFieldMenu.internal";
 
 // MDXEditor's `MDXEditorMethods`, restated so the published declarations name
 // no `@mdxeditor/editor` type: the bundle carries MDXEditor inside it
@@ -94,6 +95,16 @@ const editorPlugins = [
 ];
 
 /**
+ * The editor's text, the content editable a right-click lands in (never its
+ * toolbar), for its own contextual menu.
+ */
+const editableOf = (target: EventTarget, root: HTMLElement): Element | null => {
+	if (!(target instanceof Element)) return null;
+	const editable = target.closest('[contenteditable="true"]');
+	return editable && root.contains(editable) ? editable : null;
+};
+
+/**
  * A Markdown rich-text editor built on MDXEditor, framed as a Platinum edit
  * field (HIGOS8 Ch.2 "Edit Text Fields", p.41, 2px recessed frame). Use it
  * where `ClassicyTextEditor`'s plain `<textarea>` is not enough — SimpleText
@@ -106,6 +117,11 @@ const editorPlugins = [
  * Markdown after each edit, and `editorRef` exposes MDXEditor's methods
  * (e.g. `setMarkdown`) for replacing the document later.
  *
+ * Under a package whose layout says `textField.contextMenu: "edit"`
+ * (Windows) a right-click on the text shows its own Edit menu (Undo, Cut,
+ * Copy, Paste, Delete, Select All) instead of the window's; the toolbar
+ * keeps the window's.
+ *
  * ```tsx
  * <ClassicyRichTextEditor content={"# Notes"} onChangeFunc={setMarkdown} />
  * ```
@@ -113,10 +129,14 @@ const editorPlugins = [
 export const ClassicyRichTextEditor: FunctionalComponent<
 	ClassicyRichTextEditorProps
 > = ({ content, editorRef, onChangeFunc, className, style }) => {
+	const textMenu = useClassicyTextFieldContextMenu(editableOf);
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: the right-click belongs to the content editable inside, which the handler finds
 		<div
 			className={classNames("classicyRichTextEditor", className)}
 			style={style}
+			onMouseDown={textMenu?.onMouseDown}
+			onContextMenu={textMenu?.onContextMenu}
 		>
 			<MDXEditor
 				ref={editorRef}

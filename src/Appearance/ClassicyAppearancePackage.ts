@@ -526,6 +526,81 @@ export type ClassicyAppearanceLayout = {
 		placement?: "anchor" | "pointer";
 	};
 	/**
+	 * How a text field selects its text (`ClassicyInput`,
+	 * `ClassicyTextEditor`). Optional, as is each key.
+	 */
+	text?: {
+		/**
+		 * What a double-click selects. `"native"` (the default, Mac OS 8's
+		 * TextEdit): what the browser selects, the word alone on macOS and
+		 * Linux hosts. `"trailingSpace"` (Windows; WIG Ch.5 "Selection
+		 * Shortcuts", p.44: a double-click selects the word and the space
+		 * after it, not punctuation): once the browser has selected the
+		 * word, the selection is extended forward over the spaces (U+0020,
+		 * U+00A0) that follow it, never over a line break or a punctuation
+		 * mark; on a Windows host the browser has taken them already, and
+		 * nothing changes.
+		 */
+		wordSelect?: "native" | "trailingSpace";
+	};
+	/**
+	 * What the Edit commands act on, and how the bundled Edit menu reads
+	 * (`classicyEditCommands`, `useClassicyEditMenu`). Optional, as is each
+	 * key.
+	 */
+	edit?: {
+		/**
+		 * Which text field Undo, Cut, Copy, Paste, Clear and Select All act
+		 * on when the focus is not in one (a menu click took it). `"any"`
+		 * (the default, today's rule): the text field last focused, wherever
+		 * it is. `"window"` (Windows; WIG Ch.5 "Operations for a Multiple
+		 * Selection", p.44: an operation keeps to its selection's scope): the
+		 * last focused field only while its window is an active one (its
+		 * `.classicyWindow` root carries `active`), else none, so the
+		 * commands do nothing and Undo has nothing to undo; a field outside
+		 * every window is never the target then. A focused field is the
+		 * target under either.
+		 */
+		scope?: "any" | "window";
+		/**
+		 * The form of the bundled Edit menu (`useClassicyEditMenu`). `"mac"`
+		 * (the default, Mac OS 8, HIG 4.6): Undo named after the last edit
+		 * ("Undo Typing") or "Can't Undo", a divider, Cut, Copy, Paste, Clear
+		 * and Select All. `"windows"` (Windows 98 SE's Notepad; WIG Ch.5
+		 * "Command Method", p.59, "Shortcut Keys for Transfer Operations",
+		 * pp.67-68): "Undo", dimmed with nothing to undo, a divider, Cut,
+		 * Copy, Paste, Delete (in Clear's place, with the Delete key, "Del"),
+		 * a divider, and Select All; Cut, Copy and Delete are dimmed while
+		 * the target field has no selection (Cut and Copy in a password
+		 * field), Cut, Paste and Delete while it is read-only, Select All
+		 * while it is empty, and every command while there is no target, as
+		 * Notepad's menu dims them.
+		 */
+		menu?: "mac" | "windows";
+	};
+	/**
+	 * What a text field does with a right-click. Optional, as is each key.
+	 */
+	textField?: {
+		/**
+		 * `"none"` (the default, Mac OS 8, whose text fields had no
+		 * contextual menu of their own): the right-click goes on to the
+		 * window's or the app's menu. `"edit"` (Windows; WIG Ch.5 "Command
+		 * Method", p.59; user.exe's edit-control pop-up menu): a right-click
+		 * on a text field (`ClassicyInput`, `ClassicyTextEditor`,
+		 * `ClassicyRichTextEditor`'s text, `ClassicyComboBox`'s field,
+		 * `ClassicySpinner`'s) focuses it, keeping its selection, and shows
+		 * the field's own menu, Undo, a divider, Cut, Copy, Paste, Delete, a
+		 * divider and Select All, each acting on that field: Undo is dimmed
+		 * with nothing to undo, Cut, Copy and Delete with an empty selection,
+		 * Cut and Copy in a password field, Undo, Cut, Paste and Delete in a
+		 * read-only one, and Select All while everything is selected.
+		 * Shift+F10 and the Application key (`keyboard.contextMenuKey`) open
+		 * it at the field's center.
+		 */
+		contextMenu?: "none" | "edit";
+	};
+	/**
 	 * What the mouse's buttons and the keyboard do to a selection.
 	 * Optional, as is each key.
 	 */
