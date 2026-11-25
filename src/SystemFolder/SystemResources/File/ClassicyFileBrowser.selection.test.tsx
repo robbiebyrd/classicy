@@ -15,6 +15,7 @@ import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 // The Windows-layout package below needs a sound pack registered.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
 	ClassicyFileBrowser,
 	type ClassicyFileBrowserCommands,
@@ -324,6 +325,61 @@ describe("ClassicyFileBrowser — button 2 in the list view (layout.selection.se
 		expect(selected()).toEqual(["Documents:apple.pdf"]);
 		expect(itemContextMenu).toHaveBeenCalledWith("Documents:mango.pdf", [
 			"Documents:apple.pdf",
+		]);
+	});
+});
+
+// Shift+F10 and the Application key (the remaining chapters' audit's 4.17 /
+// 11.4; WIG Ch.4 "Shortcut Keys", p.28; App. B Table B.2): the view's
+// selection's menu, the first selected item's `itemContextMenu`, whatever
+// element of the view holds focus.
+describe("ClassicyFileBrowser — the context-menu keys (layout.keyboard.contextMenuKey)", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	it.each([
+		"icons",
+		"list",
+	] as const)("opens the selected item's menu from the %s view", (display) => {
+		registerClassicyAppearancePackage({
+			id: "windows-browser-keys",
+			name: "Windows browser keys",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-browser-keys-default",
+				package: "windows-browser-keys",
+			},
+			layout: windows98.layout as never,
+		});
+		const itemContextMenu = vi.fn(() => [{ id: "x", title: "Delete" }]);
+		const view = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyContextualMenuProvider>
+					<ClassicyFileBrowser
+						fs={makeFs(`test-browser-menu-key-${display}`)}
+						path="Documents"
+						appId="Finder.app"
+						display={display}
+						itemContextMenu={itemContextMenu}
+					/>
+				</ClassicyContextualMenuProvider>
+			</ClassicyAppManagerProvider>,
+		);
+		const item = view.container.querySelector(
+			'[data-classicy-file-path="Documents:mango.pdf"]',
+		) as HTMLElement;
+		fireEvent.mouseDown(item);
+		fireEvent.mouseUp(item);
+		fireEvent.click(item);
+		itemContextMenu.mockClear();
+		const focusable = view.container.querySelector(
+			".classicyFileBrowserFill",
+		) as HTMLElement;
+		focusable.tabIndex = -1;
+		focusable.focus();
+		fireEvent.keyDown(focusable, { key: "F10", shiftKey: true });
+		expect(itemContextMenu).toHaveBeenCalledWith("Documents:mango.pdf", [
+			"Documents:mango.pdf",
 		]);
 	});
 });

@@ -58,6 +58,7 @@ import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/Fi
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { openClassicyAppAtTab } from "@/SystemFolder/SystemResources/Tabs/useClassicySessionTab";
 
 /** The desktop's Explorer commands (`useClassicyDesktopCommands`). */
@@ -211,6 +212,9 @@ export const classicyOpenDesktopIcon = (
 export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 	const windowsCommands = useClassicyWindowsFinderCommands();
 	const ak = useClassicyBundledAccessKeys();
+	// The user's own Open and Select All keys (`keyboard.editableShortcuts`),
+	// shared with the Finder windows' items of the same ids.
+	const shortcut = useClassicyMenuItemShortcuts();
 	const dispatch = useAppManagerDispatch();
 	const getFileSystem = useClassicyFileSystemAccessor();
 	const creatableTypes = useClassicyCreatableFileTypes();
@@ -391,7 +395,7 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 						id: "finder_file_open",
 						title: "Open",
 						...key("o"),
-						keyboardShortcut: "⌘O",
+						keyboardShortcut: shortcut("finder_file_open", "⌘O"),
 						onClickFunc: open,
 					},
 					{ id: "spacer" },
@@ -418,7 +422,7 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 						id: "finder_edit_select_all",
 						title: "Select All",
 						...key("a"),
-						keyboardShortcut: "⌘A",
+						keyboardShortcut: shortcut("finder_edit_select_all", "⌘A"),
 						onClickFunc: selectAll,
 					},
 				],
@@ -442,5 +446,13 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 			propertiesItem("finder_desktop", displayProperties),
 		];
 		return { barMenu, whiteSpaceMenu };
-	}, [windowsCommands, ak, dispatch, getFileSystem, creatableTypes, clipboard]);
+	}, [
+		windowsCommands,
+		ak,
+		dispatch,
+		getFileSystem,
+		creatableTypes,
+		clipboard,
+		shortcut,
+	]);
 };

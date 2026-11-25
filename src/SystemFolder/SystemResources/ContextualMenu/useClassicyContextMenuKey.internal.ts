@@ -31,6 +31,106 @@ export const classicyContextMenuKeyPoint = (el: Element): [number, number] => {
 	return [Math.round((left + right) / 2), Math.round((top + bottom) / 2)];
 };
 
+// A file view's item and the selected look it carries: the icon view's
+// `.classicyIcon.selected`, the list view's selected row around its name
+// cell's container (`ClassicyFileBrowser`'s views).
+const FILE_ITEM = "[data-classicy-file-path]";
+const isSelectedFileItem = (el: Element): boolean =>
+	el.classList.contains("selected") ||
+	el.closest("tr")?.classList.contains("selected") === true;
+
+/**
+ * The element whose `contextmenu` stands for the focused selection, when
+ * the keyboard opens a menu from `from` (WIG Ch.4 "Shortcut Keys" (p.28),
+ * Appendix B Tables B.2 and B.3: Shift+F10 and the Application key display
+ * "the pop-up menu for the selected item"): in a file view
+ * (`.classicyFileBrowserFill`), the focused item when it is selected, else
+ * the view's first selected item (icons or rows, in the view's order); on
+ * the desktop (its root, or a desktop icon outside any window), the
+ * focused icon when it is selected, else the desktop's first selected icon.
+ * `null` when nothing there is selected, so the key falls back to the
+ * element itself (the white space's menu), and for a text field, whose
+ * own menu it opens.
+ * @internal
+ */
+export const classicyContextMenuKeySelectionTarget = (
+	from: Element,
+	desktop: Element | null,
+): Element | null => {
+	// A text field (an icon's rename field included) opens its own menu.
+	if (from.closest("input, textarea, [contenteditable='true']")) return null;
+	const view = from.closest(".classicyFileBrowserFill");
+	if (view) {
+		const own = from.closest(FILE_ITEM);
+		if (own && view.contains(own) && isSelectedFileItem(own)) return own;
+		for (const item of view.querySelectorAll(FILE_ITEM))
+			if (isSelectedFileItem(item)) return item;
+		return null;
+	}
+	if (!desktop) return null;
+	const ownIcon = from.closest(".classicyDesktopIcon");
+	const onDesktop =
+		from === desktop ||
+		(ownIcon !== null &&
+			desktop.contains(ownIcon) &&
+			ownIcon.closest(".classicyWindow") === null);
+	if (!onDesktop) return null;
+	if (ownIcon?.classList.contains("selected")) return ownIcon;
+	for (const icon of desktop.querySelectorAll(".classicyDesktopIcon.selected"))
+		if (icon.closest(".classicyWindow") === null) return icon;
+	return null;
+};
+
+/**
+ * Where a menu the keyboard opens for a selected item goes: the lower left
+ * of the item (Appendix B Table B.2's "pop-up menu for the selected item",
+ * dropped from the item as a menu drops from its title), kept in the
+ * viewport, whole pixels.
+ * @internal
+ */
+export const classicyContextMenuKeyItemPoint = (
+	el: Element,
+): [number, number] => {
+	const rect = el.getBoundingClientRect();
+	const width = window.innerWidth || rect.right;
+	const height = window.innerHeight || rect.bottom;
+	const left = Math.min(Math.max(rect.left, 0), Math.max(width - 1, 0));
+	const bottom = Math.min(Math.max(rect.bottom, 0), Math.max(height - 1, 0));
+	return [Math.round(left), Math.round(bottom)];
+};
+
+/**
+ * Whether a `contextmenu` event came from the keyboard: no pointer position
+ * (both coordinates 0) and no button (`button` 0, or `detail` 0), as
+ * browsers send the one the Application key raises when the page did not
+ * see the key itself.
+ * @internal
+ */
+export const isClassicyKeyboardContextMenuEvent = (e: MouseEvent): boolean =>
+	e.clientX === 0 && e.clientY === 0 && (e.button === 0 || e.detail === 0);
+
+/**
+ * A keyboard-raised `contextmenu` (`isClassicyKeyboardContextMenuEvent`)
+ * inside the desktop is taken (`preventDefault`, no other listener sees
+ * it) and `open` sends the key's own event to the focused selection
+ * instead. Returns whether it took the event; a pointer's event, or one
+ * outside the desktop, is left alone.
+ * @internal
+ */
+export const classicyRedirectKeyboardContextMenu = (
+	e: MouseEvent,
+	open: () => boolean,
+	desktop: Element | null,
+): boolean => {
+	if (!isClassicyKeyboardContextMenuEvent(e)) return false;
+	const target = e.target instanceof Element ? e.target : null;
+	if (!target || (desktop && !desktop.contains(target))) return false;
+	e.preventDefault();
+	e.stopImmediatePropagation();
+	open();
+	return true;
+};
+
 /**
  * Shift+F10 and the Application key open the contextual menu of the
  * selection (WIG Ch.7 "Pop-up Menu Interaction" (p.101)), for every target
@@ -44,6 +144,14 @@ export const classicyContextMenuKeyPoint = (el: Element): [number, number] => {
  * the desktop (`#classicyDesktop`), a key a handler already took
  * (`defaultPrevented`) and auto-repeats are left alone; the browser's own
  * `contextmenu` for the key, which some browsers also fire, is swallowed.
+ * The menu is the focused selection's
+ * (`classicyContextMenuKeySelectionTarget`): in a file view the selected
+ * item's (`itemContextMenu`), on the desktop the selected icon's, at the
+ * lower left of the item (`classicyContextMenuKeyItemPoint`). A
+ * `contextmenu` the browser raises with no pointer position
+ * (`isClassicyKeyboardContextMenuEvent`: the key reached the page as that
+ * event alone) is taken back and sent the same way. A text field's opens
+ * at its center, as Windows' edit control places it.
  * Only while `enabled` (the package's `layout.keyboard.contextMenuKey`:
  * Windows'; Mac OS 8's and System 7's contextual menus open from a
  * Control-click alone, HIGOS8 "Contextual Menus" (p.93), so neither key is
@@ -66,35 +174,55 @@ export const useClassicyContextMenuKey = (enabled: boolean): void => {
 			if (e.target instanceof Element)
 				lastPress = { target: e.target, x: e.clientX, y: e.clientY };
 		};
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.defaultPrevented || e.repeat || !isContextMenuKey(e)) return;
+		// Where the key's menu goes: the focused element, else where the
+		// pointer last went down, else the desktop; then the selection there.
+		const openForFocus = (): boolean => {
 			const desktop = desktopOf();
 			const inScope = (node: Node | null): node is Element =>
 				node instanceof Element && (desktop ? desktop.contains(node) : true);
 			let target: Element | null = document.activeElement;
 			let at: [number, number] | null = null;
 			if (!target || target === document.body || target === desktop) {
-				if (lastPress?.target.isConnected && inScope(lastPress.target)) {
+				const pressedInWindow =
+					lastPress?.target.isConnected &&
+					inScope(lastPress.target) &&
+					lastPress.target.closest(".classicyWindow") !== null;
+				const desktopSelection =
+					desktop && !pressedInWindow
+						? classicyContextMenuKeySelectionTarget(desktop, desktop)
+						: null;
+				if (desktopSelection) {
+					target = desktopSelection;
+				} else if (lastPress?.target.isConnected && inScope(lastPress.target)) {
 					target = lastPress.target;
 					at = [lastPress.x, lastPress.y];
 				} else {
 					target = desktop;
 				}
 			}
-			if (!inScope(target)) return;
+			if (!inScope(target)) return false;
+			const selected = classicyContextMenuKeySelectionTarget(target, desktop);
+			if (selected) {
+				target = selected;
+				at = classicyContextMenuKeyItemPoint(selected);
+			}
+			const [clientX, clientY] = at ?? classicyContextMenuKeyPoint(target);
+			const event = new MouseEvent("contextmenu", {
+				bubbles: true,
+				cancelable: true,
+				composed: true,
+				clientX,
+				clientY,
+				button: 2,
+			});
+			target.dispatchEvent(event);
+			return true;
+		};
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.defaultPrevented || e.repeat || !isContextMenuKey(e)) return;
+			if (!openForFocus()) return;
 			e.preventDefault();
 			swallowNativeUntil = Date.now() + NATIVE_MENU_WINDOW_MS;
-			const [clientX, clientY] = at ?? classicyContextMenuKeyPoint(target);
-			target.dispatchEvent(
-				new MouseEvent("contextmenu", {
-					bubbles: true,
-					cancelable: true,
-					composed: true,
-					clientX,
-					clientY,
-					button: 2,
-				}),
-			);
 		};
 		// The Menu key's keyup is where Chrome on Windows would open its own.
 		const onKeyUp = (e: KeyboardEvent) => {
@@ -107,10 +235,16 @@ export const useClassicyContextMenuKey = (enabled: boolean): void => {
 			}
 		};
 		const onContextMenu = (e: MouseEvent) => {
-			if (!e.isTrusted || Date.now() >= swallowNativeUntil) return;
-			swallowNativeUntil = 0;
-			e.preventDefault();
-			e.stopImmediatePropagation();
+			if (!e.isTrusted) return;
+			if (Date.now() < swallowNativeUntil) {
+				swallowNativeUntil = 0;
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				return;
+			}
+			// The key reached the page only as its menu event: send it to
+			// the focused selection, as the key would have been.
+			classicyRedirectKeyboardContextMenu(e, openForFocus, desktopOf());
 		};
 
 		document.addEventListener("mousedown", onMouseDown, true);

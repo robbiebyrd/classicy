@@ -9086,7 +9086,8 @@
 		},
 		"keyboard": {
 			"contextMenuKey": true,
-			"command": "ctrl"
+			"command": "ctrl",
+			"editableShortcuts": true
 		},
 		"finder": {
 			"commands": "windows"

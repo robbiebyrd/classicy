@@ -394,6 +394,23 @@ export type ClassicyAppearanceLayout = {
 		 * `"names"` a ⌘ chord is then spelled `Ctrl+`.
 		 */
 		command?: "metaOrCtrl" | "ctrl";
+		/**
+		 * `true` (Windows; WIG Ch.4 "Shortcut Keys" (p.27): "let the user
+		 * change shortcut assignments where possible"): the bundled apps'
+		 * keyboard shortcuts take the user's own, stored in
+		 * `System.Manager.Desktop.shortcutOverrides` (menu-item id to
+		 * canonical chord, `ClassicyDesktopSetShortcutOverride` and
+		 * `ClassicyDesktopResetShortcutOverrides`, written only under this
+		 * key) and applied where each menu is built
+		 * (`useClassicyMenuItemShortcut`), so the menu bar's claims, the
+		 * shortcut dispatcher and the chord a menu shows all follow; and the
+		 * Keyboard control panel (`ClassicyKeyboardManager`, its Shortcuts
+		 * page) is mounted to edit them. Absent or `false` (Mac OS 8 and
+		 * System 7, whose menus' equivalents are the application's own):
+		 * every chord is the one the app declares, a stored override is kept
+		 * but never applied, and no Keyboard panel is listed.
+		 */
+		editableShortcuts?: boolean;
 	};
 	/**
 	 * Which commands the Finder's menus offer (`Finder`). Optional, as is

@@ -31,6 +31,7 @@ import {
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { ClassicyOutput } from "@/SystemFolder/SystemResources/Output/ClassicyOutput";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -126,6 +127,9 @@ export const Calculator: FunctionalComponent = () => {
 	// The menus' access keys under a package that has them (WIG Appendix B
 	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
 	const ak = useClassicyBundledAccessKeys();
+	// The user's own Close and Quit keys under a package that lets them be
+	// edited (`keyboard.editableShortcuts`; WIG Ch.4 "Shortcut Keys", p.27).
+	const shortcut = useClassicyMenuItemShortcuts();
 	const windowClose = useClassicyWindowClose(APP_ID);
 
 	const [state, setState] = useState<CalculatorState>(CALCULATOR_INITIAL_STATE);
@@ -188,13 +192,13 @@ export const Calculator: FunctionalComponent = () => {
 						windowClose(WINDOW_ID, quit),
 					),
 					accessKey: ak("c"),
-					keyboardShortcut: "⌥W",
+					keyboardShortcut: shortcut(`${APP_ID}_close_window`, "⌥W"),
 				},
 				{ id: "spacer" },
 				{
 					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
 					accessKey: ak(""),
-					keyboardShortcut: "⌥Q",
+					keyboardShortcut: shortcut(`${APP_ID}_quit`, "⌥Q"),
 				},
 			],
 		},

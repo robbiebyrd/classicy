@@ -24,6 +24,7 @@ import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/Classi
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -53,6 +54,9 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 	// The menus' access keys under a package that has them (WIG Appendix B
 	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
 	const ak = useClassicyBundledAccessKeys();
+	// The user's own Close and Quit keys under a package that lets them be
+	// edited (`keyboard.editableShortcuts`; WIG Ch.4 "Shortcut Keys", p.27).
+	const shortcut = useClassicyMenuItemShortcuts();
 	const windowClose = useClassicyWindowClose(APP_ID);
 
 	// Toggles only the "*" mute flag, so the per-sound choices below survive
@@ -113,13 +117,13 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
 					),
 					accessKey: ak("c"),
-					keyboardShortcut: "⌥W",
+					keyboardShortcut: shortcut(`${APP_ID}_close_window`, "⌥W"),
 				},
 				{ id: "spacer" },
 				{
 					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
 					accessKey: ak(""),
-					keyboardShortcut: "⌥Q",
+					keyboardShortcut: shortcut(`${APP_ID}_quit`, "⌥Q"),
 				},
 			],
 		},

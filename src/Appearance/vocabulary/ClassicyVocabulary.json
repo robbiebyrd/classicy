@@ -392,6 +392,7 @@
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
 		"Kbd": ["Inline", "Keycap", "Keycaps", "Modifier"],
+		"KeyboardManager": ["Buttons", "Content", "Shortcuts"],
 		"KeyboardEquivalent": [
 			"Buttons",
 			"Description",

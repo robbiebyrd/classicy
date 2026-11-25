@@ -6,6 +6,7 @@ import {
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { portableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import { activatableClassicyPackageTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal";
 import {
@@ -84,7 +85,13 @@ import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { canonicalChord } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	classicyEditableShortcuts,
+	classicyShortcutOverrideChord,
+	isClassicyShortcutOverrideId,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuShortcutOverrides";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
@@ -230,6 +237,18 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Bumped on each request so the controller's effect re-fires even for a
 	 *  repeated identical request. */
 	openUrlRequestId?: number;
+	/**
+	 * The user's own keyboard shortcuts for the bundled apps' menu items
+	 * (WIG Ch.4 "Shortcut Keys", p.27): a stable shortcut id
+	 * (`CLASSICY_BUNDLED_MENU_SHORTCUTS`) to a canonical chord
+	 * (`"control+o"`). Written only under the active package's
+	 * `layout.keyboard.editableShortcuts` (`ClassicyDesktopSetShortcutOverride`,
+	 * `ClassicyDesktopResetShortcutOverrides`) and applied only under it
+	 * (`useClassicyMenuItemShortcut`); absent from the default state, kept
+	 * by `sanitizeStateForPersistence`, validated on load
+	 * (`migrateClassicyState`).
+	 */
+	shortcutOverrides?: Record<string, string>;
 }
 
 /** The default Control Strip arrangement: shown, nothing hidden or reordered. */
@@ -731,6 +750,60 @@ export const classicyDesktopEventHandler = (
 				break;
 			}
 			ds.System.Manager.Appearance.availableThemes = themes;
+			break;
+		}
+		case "ClassicyDesktopSetShortcutOverride": {
+			// Only a package that lets the user edit shortcuts writes one
+			// (Windows 98), so another package's persisted bytes never change.
+			if (
+				!classicyEditableShortcuts(
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId),
+				)
+			)
+				break;
+			const { itemId } = action as { itemId?: unknown };
+			if (!isClassicyShortcutOverrideId(itemId)) break;
+			const chord = classicyShortcutOverrideChord(
+				(action as { shortcut?: unknown }).shortcut,
+			);
+			if (!chord) break;
+			const desktop = ds.System.Manager.Desktop;
+			// The item's own chord again is no override: the map keeps only
+			// what differs, and loses the key when nothing does.
+			const own = (action as { defaultShortcut?: unknown }).defaultShortcut;
+			if (typeof own === "string" && canonicalChord(own) === chord) {
+				if (desktop.shortcutOverrides) {
+					delete desktop.shortcutOverrides[itemId];
+					if (Object.keys(desktop.shortcutOverrides).length === 0)
+						delete desktop.shortcutOverrides;
+				}
+				break;
+			}
+			desktop.shortcutOverrides ??= {};
+			desktop.shortcutOverrides[itemId] = chord;
+			break;
+		}
+		case "ClassicyDesktopResetShortcutOverrides": {
+			if (
+				!classicyEditableShortcuts(
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId),
+				)
+			)
+				break;
+			const desktop = ds.System.Manager.Desktop;
+			if (!desktop.shortcutOverrides) break;
+			const { itemIds } = action as { itemIds?: unknown };
+			if (Array.isArray(itemIds)) {
+				for (const id of itemIds) {
+					if (
+						isClassicyShortcutOverrideId(id) &&
+						Object.hasOwn(desktop.shortcutOverrides, id)
+					)
+						delete desktop.shortcutOverrides[id];
+				}
+				if (Object.keys(desktop.shortcutOverrides).length > 0) break;
+			}
+			delete desktop.shortcutOverrides;
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {

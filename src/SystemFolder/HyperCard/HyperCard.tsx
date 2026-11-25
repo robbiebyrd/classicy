@@ -2,6 +2,7 @@ import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 /**
  * HyperCard.app — a JSON-driven HyperCard stack player for Classicy.
  *
@@ -136,6 +137,8 @@ export const HyperCard: FunctionalComponent = () => {
 	// Table B.5: File F, About A, New N, Open O, Save S, Edit E, Undo U, Copy
 	// C, Paste P, Delete D, View V, Next N, Back B; Quit unmarked).
 	const ak = useClassicyBundledAccessKeys();
+	// The user's own palette keys (`keyboard.editableShortcuts`).
+	const menuShortcut = useClassicyMenuItemShortcuts();
 
 	const [savedStacksOpen, setSavedStacksOpen] = useState(false);
 	const [saveStackOpen, setSaveStackOpen] = useState(false);
@@ -621,7 +624,7 @@ export const HyperCard: FunctionalComponent = () => {
 		): ClassicyMenuItem => ({
 			id: `view_${windowId}`,
 			title,
-			keyboardShortcut: shortcut,
+			keyboardShortcut: menuShortcut(`view_${windowId}`, shortcut),
 			disabled: !palettesMounted,
 			checked: palettesMounted && !closed,
 			onClickFunc: () => {
@@ -985,6 +988,7 @@ export const HyperCard: FunctionalComponent = () => {
 		handleQuit,
 		appIcon,
 		ak,
+		menuShortcut,
 	]);
 
 	// Keep the menu bar in sync with the dynamic edit-mode menus. Focus

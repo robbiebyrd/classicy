@@ -66,7 +66,8 @@ and `nodenext` resolution).
   item, Escape a level at a time, an open contextual menu included; the
   Mac packages' menus take Return alone), stopping on dimmed items as
   Windows' does, Shift+F10 and the Application key opening the focused
-  item's contextual menu, Finder's item menus leading with Open, their
+  item's contextual menu (in a folder window or on the desktop, the
+  selected item's, dropped from its lower left), Finder's item menus leading with Open, their
   default item, as Explorer's do (the Mac packages' keep the Mac Finder's),
   Explorer's commands in Finder's menus (a folder window's File menu Open,
   New, Create Shortcut, Delete, Rename and Close; its View menu Large Icons,
@@ -138,7 +139,11 @@ and `nodenext` resolution).
   Alt shortcut of a menu item, keyboard shortcuts spelled as Windows' menus
   spell them (Ctrl+Backspace, Alt+Shift+F, Ctrl+X, the Edit menu's Clear
   Del) and answering to Ctrl alone, so the Windows key with a letter or a
-  period runs nothing, an empty submenu showing a dimmed
+  period runs nothing, the bundled applications' shortcuts the user's to
+  change in a Keyboard control panel (its Shortcuts tab lists each
+  application's commands with their keys, a Change… button for each and
+  Reset; the Mac packages list no such panel and keep every application's
+  own keys), an empty submenu showing a dimmed
   "(Empty)", desktop icons from the top left, as Windows laid them, a
   window's scroll bars kept where its content fits, a dragged scroll box
   that snaps back, the document with it, when the pointer strays well away

@@ -448,6 +448,41 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// Editable shortcuts (the remaining chapters' audit's 4.15; WIG Ch.4
+	// "Shortcut Keys", p.27): keyboard.editableShortcuts, optional, beside
+	// the group's other keys.
+	it("takes an optional keyboard.editableShortcuts beside the group's other keys, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).keyboard = {
+			contextMenuKey: true,
+			command: "ctrl",
+			editableShortcuts: true,
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.keyboard).toEqual({
+			contextMenuKey: true,
+			command: "ctrl",
+			editableShortcuts: true,
+		});
+		const alone = platinumShaped();
+		(alone.layout as Record<string, unknown>).keyboard = {
+			editableShortcuts: false,
+		};
+		expect(ClassicyAppearancePackageSchema.safeParse(alone).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).keyboard = {
+			editableShortcuts: "yes",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"keyboard",
+			"editableShortcuts",
+		]);
+	});
+
 	// The tree's keys and the help's placement (the WIG audit's 7.21 and
 	// 7.27): optional groups with optional keys, each kept as given.
 	it("takes optional tree.keys and balloonHelp.placement, and refuses another value", () => {

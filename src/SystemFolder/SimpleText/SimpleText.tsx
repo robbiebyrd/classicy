@@ -30,6 +30,7 @@ import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialo
 import { ClassicyFileSaveDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
@@ -272,6 +273,8 @@ export const SimpleText = () => {
 	// &As..."; wordpad.exe "F&ormat"; WIG Appendix B Table B.5: Close C,
 	// Help H); Quit is unmarked.
 	const ak = useClassicyBundledAccessKeys();
+	// The user's own Open and Save keys (`keyboard.editableShortcuts`).
+	const shortcut = useClassicyMenuItemShortcuts();
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		appId,
 		appName,
@@ -630,7 +633,9 @@ export const SimpleText = () => {
 							id: `${doc.windowId}_open`,
 							title: "Open…",
 							accessKey: ak("o"),
-							...(standardShortcuts ? { keyboardShortcut: "⌃O" } : {}),
+							...(standardShortcuts
+								? { keyboardShortcut: shortcut(`${appId}_file_open`, "⌃O") }
+								: {}),
 							onClickFunc: () => setShowOpenDialog(true),
 						},
 						{ id: "spacer" },
@@ -644,7 +649,9 @@ export const SimpleText = () => {
 							id: `${doc.windowId}_save`,
 							title: "Save",
 							accessKey: ak("s"),
-							...(standardShortcuts ? { keyboardShortcut: "⌃S" } : {}),
+							...(standardShortcuts
+								? { keyboardShortcut: shortcut(`${appId}_file_save`, "⌃S") }
+								: {}),
 							onClickFunc: () => saveDoc(doc.target),
 						},
 						{
@@ -689,6 +696,7 @@ export const SimpleText = () => {
 			closeDocNow,
 			confirmsUnsaved,
 			standardShortcuts,
+			shortcut,
 			handleQuit,
 			editMenu,
 			aboutMenuItem,

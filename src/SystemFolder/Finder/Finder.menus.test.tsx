@@ -309,6 +309,74 @@ describe("Finder folder-window menus' access keys", () => {
 	});
 });
 
+// The user's own shortcuts (the remaining chapters' audit's 4.15; WIG Ch.4
+// "Shortcut Keys", p.27): under `layout.keyboard.editableShortcuts` a folder
+// window's items carry the chord stored for their shortcut id, shared with
+// the desktop's; without the key a stored one is ignored.
+describe("Finder folder-window menus' editable shortcuts (layout.keyboard.editableShortcuts)", () => {
+	const fileItem = (title: string) =>
+		menuNamed("File")?.menuChildren?.find((m) => m.title === title);
+	const setOverrides = (overrides: Record<string, string> | undefined) =>
+		act(() => {
+			useAppManager.setState((state) => ({
+				...state,
+				System: {
+					...state.System,
+					Manager: {
+						...state.System.Manager,
+						Desktop: {
+							...state.System.Manager.Desktop,
+							shortcutOverrides: overrides,
+						},
+					},
+				},
+			}));
+		});
+	afterEach(() => setOverrides(undefined));
+
+	it("carries the stored chords under the key, and follows a change", async () => {
+		const restore = activateTestWindowsKeysPackage({
+			keyboard: { contextMenuKey: true, editableShortcuts: true },
+		});
+		try {
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopSetShortcutOverride",
+					itemId: "finder_edit_select_all",
+					shortcut: "⌃⌘A",
+				});
+			});
+			await openDocuments();
+			expect(editItem("Select All")?.keyboardShortcut).toBe("⌃⌘A");
+			expect(fileItem("Open")?.keyboardShortcut).toBe("⌘O");
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopSetShortcutOverride",
+					itemId: "finder_file_open",
+					shortcut: "⌘K",
+				});
+			});
+			await waitFor(() =>
+				expect(fileItem("Open")?.keyboardShortcut).toBe("⌘K"),
+			);
+			act(() => {
+				dispatch({ type: "ClassicyDesktopResetShortcutOverrides" });
+			});
+			await waitFor(() =>
+				expect(editItem("Select All")?.keyboardShortcut).toBe("⌘A"),
+			);
+		} finally {
+			restore();
+		}
+	});
+
+	it("ignores a stored chord without the key (Platinum)", async () => {
+		setOverrides({ finder_edit_select_all: "control+command+a" });
+		await openDocuments();
+		expect(editItem("Select All")?.keyboardShortcut).toBe("⌘A");
+	});
+});
+
 // The remaining chapters' audit's 1.21, 5.23, 5.39, 5.40, 10.3 and A.4
 // (WIG Ch.1 "Understanding Users", p.8; Ch.5 pp.45, 61, 67, 69; App. A
 // Table A.1 note 3, p.350): under Explorer's commands

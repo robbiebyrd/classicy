@@ -126,6 +126,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -266,6 +267,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	// Appendix B Table B.5: File F, Close C, Edit E, Select All A, View V,
 	// Help H; Special S, its first letter).
 	const ak = useClassicyBundledAccessKeys();
+	// The user's own shortcuts (`keyboard.editableShortcuts`; WIG Ch.4
+	// "Shortcut Keys", p.27), under the ids the desktop's menus share.
+	const shortcut = useClassicyMenuItemShortcuts();
 	// The browser's selection, for File ▸ Move To Trash and Restore.
 	const commandsRef = useRef<ClassicyFileBrowserCommands | null>(null);
 	const inTrash = isInClassicyTrash(fs, op);
@@ -446,7 +450,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 								id: `${appId}_${op}_file_open`,
 								title: "Open",
 								...(ak("o") !== undefined ? { accessKey: ak("o") } : {}),
-								keyboardShortcut: "⌘O",
+								keyboardShortcut: shortcut("finder_file_open", "⌘O"),
 								onClickFunc: () =>
 									openItems(commandsRef.current?.selectedPaths() ?? []),
 							},
@@ -534,7 +538,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 							{
 								id: `${appId}_${op}_file_move_to_trash`,
 								title: "Move To Trash",
-								keyboardShortcut: "⌃⌫",
+								keyboardShortcut: shortcut("finder_file_move_to_trash", "⌃⌫"),
 								disabled: inTrash,
 								onClickFunc: () =>
 									trashItems(commandsRef.current?.selectedPaths() ?? []),
@@ -587,7 +591,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 						id: `${appId}_${op}_edit_select_all`,
 						title: "Select All",
 						accessKey: ak("a"),
-						keyboardShortcut: "⌘A",
+						keyboardShortcut: shortcut("finder_edit_select_all", "⌘A"),
 						// Either view: the icon view keeps one selection too.
 						onClickFunc: () => selectionApiRef.current?.selectAll(),
 					},
@@ -686,6 +690,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			cutItems,
 			copyItems,
 			pasteMenuItems,
+			shortcut,
 		],
 	);
 

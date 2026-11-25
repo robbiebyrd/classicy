@@ -1,6 +1,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
@@ -75,6 +76,45 @@ describe("ClassicyControlStripManager", () => {
 			undefined,
 			"Quit",
 		]);
+	});
+
+	// The user's own Close and Quit keys (the remaining chapters' audit's
+	// 4.15; WIG Ch.4 "Shortcut Keys", p.27): under
+	// `layout.keyboard.editableShortcuts` the panel's File menu carries the
+	// chord stored for each item's id; without the key, its own.
+	it("carries the stored Close Window and Quit keys under keyboard.editableShortcuts, and its own without", () => {
+		const fileItems = () => {
+			const window = getAppWindow(
+				useAppManager.getState().System.Manager.Applications.apps[
+					CONTROL_STRIP_MANAGER_APP_ID
+				],
+				WINDOW_ID,
+			);
+			return (
+				(window?.menuBar as ClassicyMenuItem[]).find((m) => m.title === "File")
+					?.menuChildren ?? []
+			).map((c) => [c.title, c.keyboardShortcut]);
+		};
+		useAppManager.setState((state) => {
+			const next = structuredClone(state);
+			next.System.Manager.Desktop.shortcutOverrides = {
+				[`${CONTROL_STRIP_MANAGER_APP_ID}_close_window`]: "control+command+w",
+			};
+			return next;
+		}, true);
+		const view = renderOpen();
+		expect(fileItems()).toContainEqual(["Close Window", "⌥W"]);
+		view.unmount();
+		const restore = activateTestWindowsKeysPackage({
+			keyboard: { contextMenuKey: true, editableShortcuts: true },
+		});
+		try {
+			renderOpen();
+			expect(fileItems()).toContainEqual(["Close Window", "⌃⌘W"]);
+			expect(fileItems()).toContainEqual(["Quit", "⌥Q"]);
+		} finally {
+			restore();
+		}
 	});
 
 	it("shows and hides the whole strip", () => {

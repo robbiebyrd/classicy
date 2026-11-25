@@ -126,6 +126,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			contextMenuKey: z.boolean().optional(),
 			command: z.enum(["metaOrCtrl", "ctrl"]).optional(),
+			editableShortcuts: z.boolean().optional(),
 		})
 		.optional(),
 	finder: z

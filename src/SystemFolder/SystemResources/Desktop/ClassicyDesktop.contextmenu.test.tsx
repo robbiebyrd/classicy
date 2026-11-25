@@ -1,6 +1,6 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -119,5 +119,52 @@ describe("ClassicyDesktop contextual menu scoping", () => {
 			".classicyContextMenuWrapper",
 		) as HTMLElement;
 		expect(within(wrapper).getByText("Empty Trash…")).toBeInTheDocument();
+	});
+
+	// The remaining chapters' audit's 4.17 / B.6 (WIG Ch.4 "Shortcut Keys",
+	// p.28; App. B Table B.2): with the desktop itself focused and an icon
+	// selected, the key opens the selected icon's menu, not the desktop's.
+	it("opens the selected icon's menu, not the desktop's, with the desktop focused", () => {
+		restore = activateTestWindowsKeysPackage();
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		const trash = screen
+			.getAllByText("Trash")
+			.map((label) => label.closest<HTMLElement>(".classicyDesktopIcon"))
+			.find(Boolean) as HTMLElement;
+		// Selected from the store, with no press: the key's fallback to where
+		// the pointer last went down cannot be what finds it.
+		const trashId = useAppManager
+			.getState()
+			.System.Manager.Desktop.icons.find(
+				(icon) => icon.kind === "trash",
+			)?.appId;
+		act(() => {
+			useAppManager.setState((state) => ({
+				...state,
+				System: {
+					...state.System,
+					Manager: {
+						...state.System.Manager,
+						Desktop: {
+							...state.System.Manager.Desktop,
+							selectedIcons: [trashId as string],
+						},
+					},
+				},
+			}));
+		});
+		expect(trash.classList.contains("selected")).toBe(true);
+		const desktop = document.getElementById("classicyDesktop") as HTMLElement;
+		desktop.focus();
+		fireEvent.keyDown(desktop, { key: "F10", shiftKey: true });
+		const wrapper = document.querySelector(
+			".classicyContextMenuWrapper",
+		) as HTMLElement;
+		expect(within(wrapper).getByText("Empty Trash…")).toBeInTheDocument();
+		expect(within(wrapper).queryByText("Special")).not.toBeInTheDocument();
 	});
 });

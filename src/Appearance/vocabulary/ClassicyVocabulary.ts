@@ -70,6 +70,7 @@ export const CLASSICY_COMPONENT = {
 	Input: "classicyInput",
 	InputDialog: "classicyInputDialog",
 	Kbd: "classicyKbd",
+	KeyboardManager: "classicyKeyboardManager",
 	KeyboardEquivalent: "classicyKeyboardEquivalent",
 	Link: "classicyLink",
 	ListBox: "classicyListBox",
