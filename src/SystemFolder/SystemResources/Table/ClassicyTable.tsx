@@ -13,6 +13,7 @@ import {
 	type CSSProperties,
 	type KeyboardEvent,
 	type ReactElement,
+	type MouseEvent as ReactMouseEvent,
 	type ReactNode,
 	type RefObject,
 	useCallback,
@@ -38,7 +39,16 @@ import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyScrollAreaHead } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollAreaHead.internal";
 import {
+	classicyListDragSelection,
+	classicyRangeSetTo,
+	classicySameSelection,
+	startClassicyListRangeDrag,
+} from "@/SystemFolder/SystemResources/Utils/ClassicyListPressSelection.internal";
+import {
+	classicyDragSelectsRange,
 	classicySecondaryButtonSelects,
+	classicySelectsOnPress,
+	classicyWindowsSelectionModifiers,
 	isClassicyGestureButton,
 } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
@@ -126,6 +136,25 @@ type ClassicyTableProps<T> = {
 	onSelectionChange?: (ids: string[]) => void;
 	/** Double-click or Enter on a row — the "open it" gesture. */
 	onActivateRow?: (id: string, row: T) => void;
+	/**
+	 * A double-click's "open it" for the whole selection, under a package
+	 * whose layout says `selection.modifiers: "windows"` (WIG App. A Tables
+	 * A.2, pp.352-353, and A.3, p.356: a modified double-click adjusts the
+	 * selection, then runs the default command on the set): called, in
+	 * place of `onActivateRow`, with the ids of the selected rows shown, in
+	 * the visual order, as the double-click's own clicks left them (not
+	 * called when they left none). Absent, under any other layout, or with
+	 * `selectionMode="none"`, a double-click calls `onActivateRow` with its
+	 * row. Enter still calls `onActivateRow`.
+	 */
+	onActivateSelection?: (ids: string[]) => void;
+	/**
+	 * Whether the rows start drags of their own (the file browser's list
+	 * view drags them as Finder items): a press dragged across them then
+	 * never selects a range, under any layout (`selection.dragRange` is for
+	 * lists whose rows stay put). Defaults to `false`.
+	 */
+	rowsDrag?: boolean;
 	/** Initial sort column (ascending unless `desc`). Unsorted when omitted. */
 	defaultSort?: { columnId: string; desc?: boolean };
 	/** The header stays pinned while the container scrolls. Defaults to `true`. */
@@ -203,6 +232,12 @@ type SelectionModifiers = {
 	ctrlKey: boolean;
 };
 
+const NO_MODIFIERS: SelectionModifiers = {
+	shiftKey: false,
+	metaKey: false,
+	ctrlKey: false,
+};
+
 /**
  * The general-purpose `<table>` equivalent: a Platinum list view (the same
  * look as the Finder's list mode) over arbitrary row data. Sortable,
@@ -229,7 +264,14 @@ type SelectionModifiers = {
  * its `contextmenu`, and leaves a selected row's selection as it is;
  * `mouse: "windows"` lets only button 1 resize a column; and
  * `input.escapeCancels` makes Escape mid-resize put the column back as the
- * press found it.
+ * press found it. `selection.selectOn: "press"` selects a row at the
+ * button-1 press (an unselected row, or any modified press; a plain press
+ * on a selected row waits for its click to reset the selection to it, as
+ * comctl32's list view does), and `selection.dragRange` then selects the
+ * rows a press drags across, unless `rowsDrag`; `selection.modifiers:
+ * "windows"` makes Control (or ⌘) with Shift set the anchor's range to the
+ * anchor's state, keeping the rest, and hands a double-click's selection to
+ * `onActivateSelection`.
  *
  * ```tsx
  * <ClassicyTable
@@ -253,6 +295,8 @@ export function ClassicyTable<T>({
 	selected,
 	onSelectionChange,
 	onActivateRow,
+	onActivateSelection,
+	rowsDrag = false,
 	defaultSort,
 	stickyHeader = true,
 	className,
@@ -294,6 +338,10 @@ export function ClassicyTable<T>({
 	// the selection so a controlled `selected` never has to round-trip it.
 	const [cursorId, setCursorId] = useState<string>();
 	const effectiveSelected = selected ?? internalSelected;
+	// The selection as it last stood (a commit's, else the render's), for a
+	// drag and a double-click that read it between renders.
+	const selectionRef = useRef(effectiveSelected);
+	selectionRef.current = effectiveSelected;
 
 	// The Shift-range anchor: the id of the last plain (non-Shift) selection.
 	// An id (not an index) so re-sorting between clicks keeps it meaningful.
@@ -310,9 +358,20 @@ export function ClassicyTable<T>({
 	);
 	// The container had no state class; `selected` stays on rows and headers.
 	const appearance = useClassicyAppearance("Table", {}, containerRef);
-	// Button 2's selection, the buttons that resize a column and Escape's
-	// cancel: the active package's layout.
+	// Button 2's selection, the buttons that resize a column, Escape's
+	// cancel, when button 1 selects, the drag across rows and Windows'
+	// modified clicks: the active package's layout.
 	const layout = useClassicyAppearanceLayout();
+	const selectsOnPress = classicySelectsOnPress(layout);
+	const dragsRange = classicyDragSelectsRange(layout) && !rowsDrag;
+	const windowsModifiers = classicyWindowsSelectionModifiers(layout);
+	// The row a button-1 press last landed on under `selectOn: "press"`, and
+	// whether it left the selection for the click to reset (a plain press
+	// on a selected row: comctl32's `nLButtonDownItem`).
+	const pressRef = useRef<{ id: string; deferred: boolean } | null>(null);
+	// The drag across rows in progress, stopped if the table unmounts.
+	const stopRangeDragRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => stopRangeDragRef.current?.(), []);
 	// `inactive` while the window it is drawn in is not the active one (as
 	// ClassicyScrollArea reads it; outside a window, never), so a package can
 	// draw the selection as an inactive window's (Windows 98: ButtonFace, as
@@ -453,6 +512,7 @@ export function ClassicyTable<T>({
 	// assigns `selectionApiRef` would re-run on every render.
 	const commit = useCallback(
 		(ids: string[]) => {
+			selectionRef.current = ids;
 			setInternalSelected(ids);
 			onSelectionChange?.(ids);
 		},
@@ -485,6 +545,35 @@ export function ClassicyTable<T>({
 				withClassicyAppearanceInput({ rowId, selected }),
 			);
 		if (selectionMode === "multi") {
+			// Windows' Control-Shift (`selection.modifiers` "windows"; WIG
+			// Ch.5 "Selection Adjustment", p.39; comctl32's
+			// LISTVIEW_AddGroupSelection keeps the anchor too): the other
+			// selections stay, and the anchor's range takes the anchor's
+			// state, as p.39 has it (Wine's reimplementation selects it
+			// whatever that state); the anchor stays.
+			if (
+				windowsModifiers &&
+				mods.shiftKey &&
+				(mods.metaKey || mods.ctrlKey) &&
+				anchorId.current
+			) {
+				const anchor = anchorId.current;
+				const ai = visual.findIndex((r) => r.id === anchor);
+				const bi = visual.findIndex((r) => r.id === rowId);
+				if (ai >= 0 && bi >= 0) {
+					const [from, to] = ai <= bi ? [ai, bi] : [bi, ai];
+					const state = effectiveSelected.includes(anchor);
+					emitSelect(state);
+					commit(
+						classicyRangeSetTo(
+							effectiveSelected,
+							visual.slice(from, to + 1).map((r) => r.id),
+							state,
+						),
+					);
+					return;
+				}
+			}
 			if (mods.shiftKey && anchorId.current) {
 				const ai = visual.findIndex((r) => r.id === anchorId.current);
 				const bi = visual.findIndex((r) => r.id === rowId);
@@ -509,6 +598,89 @@ export function ClassicyTable<T>({
 		anchorId.current = rowId;
 		emitSelect(true);
 		commit([rowId]);
+	};
+
+	// A drag from a press across the rows (`selection.dragRange`, rows that
+	// do not drag): the row under the pointer, the first or last shown
+	// outside the list, is the range's other end, the modifiers held at the
+	// press governing until the release (WIG Ch.5 "Selection Adjustment",
+	// p.39). `before` is the selection the press found; the press has
+	// already selected.
+	const startRangeDrag = (
+		e: ReactMouseEvent,
+		rowId: string,
+		before: string[],
+		deferred: boolean,
+	) => {
+		const root = containerRef.current;
+		if (!root) return;
+		stopRangeDragRef.current?.();
+		const multi = selectionMode === "multi";
+		const shift = multi && e.shiftKey;
+		const toggle = multi && (e.metaKey || e.ctrlKey);
+		// A Control (or ⌘) drag, and a Control-Shift one under Windows'
+		// modifiers, keep the selection the press found and set the range
+		// to the anchor's state; a plain or Shift drag selects the range.
+		const keep = toggle && (!shift || windowsModifiers);
+		const anchor = deferred ? rowId : (anchorId.current ?? rowId);
+		const anchorState = selectionRef.current.includes(anchor);
+		stopRangeDragRef.current = startClassicyListRangeDrag({
+			root,
+			rowSelector: "tr[data-row-id]",
+			rowIdOf: (el) => el.getAttribute("data-row-id"),
+			startId: rowId,
+			onRow: (id) => {
+				const order = visualRowsOf().map((r) => r.id);
+				const next = multi
+					? classicyListDragSelection({
+							order,
+							anchor,
+							row: id,
+							base: keep ? before : undefined,
+							anchorState,
+						})
+					: order.includes(id)
+						? [id]
+						: null;
+				if (!next) return;
+				if (multi) anchorId.current = anchor;
+				setCursorId(id);
+				if (classicySameSelection(next, selectionRef.current)) return;
+				appearance.emit(
+					"select",
+					withClassicyAppearanceInput({
+						rowId: id,
+						selected: next.includes(id),
+					}),
+				);
+				commit(next);
+			},
+		});
+	};
+
+	// A button-1 press on a row under `selection.selectOn: "press"` (WIG
+	// Ch.5 "Selection with the Mouse", pp.37-38; comctl32's
+	// LISTVIEW_LButtonDown): an unselected row, or any modified press,
+	// selects at once and sets the anchor, so a drag that follows (the
+	// Finder's file drag reads the selection when it starts) carries what
+	// is drawn selected; a plain press on a selected row leaves it for the
+	// click to reset the selection to that row; the second press of a
+	// double-click changes nothing (Win32's WM_LBUTTONDBLCLK). With
+	// `dragRange`, and rows that do not drag, a drag across the rows
+	// follows.
+	const pressRow = (e: ReactMouseEvent, rowId: string) => {
+		if (!selectsOnPress || selectionMode === "none") return;
+		if (e.detail > 1) {
+			pressRef.current = { id: rowId, deferred: false };
+			return;
+		}
+		const before = selectionRef.current;
+		const modified = e.shiftKey || e.metaKey || e.ctrlKey;
+		const deferred = !modified && before.includes(rowId);
+		pressRef.current = { id: rowId, deferred };
+		setCursorId(rowId);
+		if (!deferred) applySelection(rowId, e);
+		if (dragsRange) startRangeDrag(e, rowId, before, deferred);
 	};
 
 	const moveCursorTo = (rowId: string, mods: SelectionModifiers) => {
@@ -809,6 +981,10 @@ export function ClassicyTable<T>({
 							rowClassName?.(row.original, effectiveSelected.includes(row.id)),
 						)}
 						onMouseDown={(e) => {
+							if (e.button === 0) {
+								pressRow(e, row.id);
+								return;
+							}
 							// Button 2 on an unselected row, under a package whose
 							// layout says `selection.secondaryButton: "select"`
 							// (Windows; WIG Ch.5 "Selection with the Mouse",
@@ -830,10 +1006,39 @@ export function ClassicyTable<T>({
 							});
 						}}
 						onClick={(e) => {
+							// The click ending a press that selected (`selectOn`
+							// "press") adds nothing, unless the press left it to
+							// reset the selection to this row.
+							const press = pressRef.current;
+							pressRef.current = null;
+							if (press?.id === row.id) {
+								if (press.deferred) {
+									setCursorId(row.id);
+									applySelection(row.id, NO_MODIFIERS);
+								}
+								return;
+							}
+							// Windows' second click of a double-click adjusts
+							// nothing (the double-click acts on the set).
+							if (windowsModifiers && e.detail > 1) return;
 							setCursorId(row.id);
 							applySelection(row.id, e);
 						}}
-						onDoubleClick={() => onActivateRow?.(row.id, row.original)}
+						onDoubleClick={() => {
+							if (
+								windowsModifiers &&
+								onActivateSelection &&
+								selectionMode !== "none"
+							) {
+								const held = new Set(selectionRef.current);
+								const ids = visualRowsOf()
+									.map((r) => r.id)
+									.filter((id) => held.has(id));
+								if (ids.length > 0) onActivateSelection(ids);
+								return;
+							}
+							onActivateRow?.(row.id, row.original);
+						}}
 					>
 						{row.getVisibleCells().map((cell) => {
 							const column = columnById.get(cell.column.id);

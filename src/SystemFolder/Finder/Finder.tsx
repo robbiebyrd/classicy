@@ -88,6 +88,8 @@ type FinderWindowProps = {
 	setFolderView: (path: string, viewType: "icons" | "list") => void;
 	openFolder: (path: string) => void;
 	openFile: (path: string) => void;
+	/** Opens every item given, as a double-click on each does. */
+	openItems: (paths: string[]) => void;
 	getHeaderString: (dir: ClassicyFileSystemEntryMetadata) => string;
 	fs: ClassicyFileSystem;
 	disableBalloonHelp: boolean;
@@ -121,6 +123,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	setFolderView,
 	openFolder,
 	openFile,
+	openItems,
 	getHeaderString,
 	fs,
 	disableBalloonHelp,
@@ -321,6 +324,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				path={op}
 				dirOnClickFunc={openFolder}
 				fileOnClickFunc={openFile}
+				// A double-click opens every selected item under Windows'
+				// modifiers (WIG App. A Tables A.2 and A.3).
+				openItemsFunc={openItems}
 				display={viewType}
 				iconViewOptions={iconViewOptions}
 				listViewOptions={listViewOptions}
@@ -674,6 +680,14 @@ export const Finder = () => {
 		},
 		[fs, openFolder, openFile],
 	);
+	// Every item of a selection a double-click opens (the list view, under
+	// `layout.selection.modifiers` "windows"), each as openItem opens it.
+	const openItems = useCallback(
+		(paths: string[]) => {
+			for (const path of paths) openItem(path);
+		},
+		[openItem],
+	);
 	// Right-click on an item: Open first, the menu's default item, the
 	// command a double-click runs (Mac OS 8's contextual menus led with Open
 	// too; Windows draws the default bold, WIG Ch.7 "Icon Pop-up Menus",
@@ -835,6 +849,7 @@ export const Finder = () => {
 							setFolderView={setFolderView}
 							openFolder={openFolder}
 							openFile={openFile}
+							openItems={openItems}
 							getHeaderString={getHeaderString}
 							fs={fs}
 							disableBalloonHelp={disableBalloonHelp}

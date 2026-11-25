@@ -782,6 +782,16 @@ icon-view icon dropped in its own folder counts the scroll in its travel.
   accessor.
 - Dropped back in its own folder, an icon-view icon repositions by the pointer's
   travel (snapping when the arrangement is a grid).
+- A list-view row's drag carries the selection when the row is in it, else the
+  row alone, read when the drag begins, not at the press: under
+  `layout.selection.selectOn: "press"` (Windows 98) the table's own row handler,
+  below the name cell's, selects at the press, so the drag carries what is
+  drawn selected. The list passes `rowsDrag` to `ClassicyTable`, so
+  `selection.dragRange` (a press dragged across rows selecting them,
+  `startClassicyListRangeDrag`, `Utils/ClassicyListPressSelection.internal.ts`,
+  which `ClassicyListBox` shares) never runs there; under
+  `selection.modifiers: "windows"` a double-click opens every selected item
+  (`openItemsFunc`).
 
 ### Trash
 

@@ -112,7 +112,12 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({ placement: z.enum(["anchor", "pointer"]).optional() })
 		.optional(),
 	selection: z
-		.object({ secondaryButton: z.enum(["menu", "select"]).optional() })
+		.object({
+			secondaryButton: z.enum(["menu", "select"]).optional(),
+			selectOn: z.enum(["click", "press"]).optional(),
+			dragRange: z.boolean().optional(),
+			modifiers: z.enum(["mac", "windows"]).optional(),
+		})
 		.optional(),
 	contextMenu: z
 		.object({ openOn: z.enum(["event", "release"]).optional() })

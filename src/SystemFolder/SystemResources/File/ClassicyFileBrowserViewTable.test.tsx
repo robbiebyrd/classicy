@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the core default theme names.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { withElementsFromPoint } from "@/__tests__/withElementsFromPoint";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -770,5 +771,164 @@ describe("ClassicyFileBrowserViewTable's column titles", () => {
 				...(head?.querySelectorAll(".classicyTableDetachedHeader th") ?? []),
 			].map((th) => th.textContent),
 		).toEqual(["Filename", "Size", "Kind"]);
+	});
+});
+
+// Under a package that selects at the press (`selection.selectOn` "press",
+// the audit's 5.5 / A.2; WIG App. A Table A.1, p.349: "Drag. Unselected
+// object: ... selects the object"), a row dragged before it was selected is
+// drawn selected at the press, and the drag carries the selection as the
+// press left it, read when the drag begins (comctl32 begins a drag from the
+// selection its button-down made). A double-click opens the whole selection
+// through `openItemsFunc` under `selection.modifiers` "windows" (A.9).
+describe("ClassicyFileBrowserViewTable — a row dragged and opened under the Windows layout", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "test-windows-list-drag",
+			name: "Windows list drag",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-windows-list-drag-default",
+				package: "test-windows-list-drag",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				selection: {
+					selectOn: "press",
+					dragRange: true,
+					modifiers: "windows",
+				},
+			},
+		});
+	const PLAN = "Documents:Plan.txt";
+	const ARCHIVE = "Documents:Archive";
+	const renderList = (
+		key: string,
+		props: { openItemsFunc?: (paths: string[]) => void } = {},
+	) => {
+		const cfs = new ClassicyFileSystem(key, {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"Plan.txt": {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_data: "plan",
+				},
+				Archive: { _type: ClassicyFileSystemEntryFileType.Directory },
+			},
+		});
+		const onMoveItems = vi.fn();
+		const fileOnClickFunc = vi.fn();
+		const view = render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+				onMoveItems={onMoveItems}
+				fileOnClickFunc={fileOnClickFunc}
+				{...props}
+			/>,
+		);
+		const cell = (path: string) =>
+			view.container.querySelector(
+				`[data-classicy-file-path="${path}"]`,
+			) as HTMLElement;
+		const row = (path: string) => cell(path).closest("tr") as HTMLElement;
+		return { ...view, cell, row, onMoveItems, fileOnClickFunc };
+	};
+	const elsewhere = () => {
+		const el = document.createElement("div");
+		el.setAttribute("data-classicy-drop-folder", "Macintosh HD:Elsewhere");
+		return el;
+	};
+	const dragFrom = (
+		cell: HTMLElement,
+		init: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+		whilePressed: () => void = () => {},
+	) =>
+		withElementsFromPoint([elsewhere()], () => {
+			fireEvent.mouseDown(cell, {
+				button: 0,
+				detail: 1,
+				clientX: 10,
+				clientY: 10,
+				...init,
+			});
+			whilePressed();
+			fireEvent.mouseMove(document, { clientX: 60, clientY: 50 });
+			fireEvent.mouseUp(document, { clientX: 60, clientY: 50 });
+		});
+
+	it("selects an unselected row at the press, and its drag carries that row alone", () => {
+		useWindowsLayout();
+		const { cell, row, onMoveItems } = renderList("test-press-drag-one");
+		fireEvent.click(row(ARCHIVE));
+		dragFrom(cell(PLAN), {}, () => {
+			expect(row(PLAN)).toHaveClass("selected");
+			expect(row(ARCHIVE)).not.toHaveClass("selected");
+		});
+		expect(onMoveItems).toHaveBeenCalledTimes(1);
+		expect(onMoveItems.mock.calls[0][0]).toEqual([PLAN]);
+	});
+
+	it("carries the whole selection a Control press added the row to", () => {
+		useWindowsLayout();
+		const { cell, row, onMoveItems } = renderList("test-press-drag-ctrl");
+		fireEvent.click(row(ARCHIVE));
+		dragFrom(cell(PLAN), { ctrlKey: true });
+		expect(onMoveItems.mock.calls[0][0]).toEqual([ARCHIVE, PLAN]);
+	});
+
+	it("carries the whole selection from a selected row, the press keeping it", () => {
+		useWindowsLayout();
+		const { cell, row, onMoveItems } = renderList("test-press-drag-kept");
+		fireEvent.click(row(ARCHIVE));
+		fireEvent.click(row(PLAN), { metaKey: true });
+		dragFrom(cell(PLAN));
+		expect(onMoveItems.mock.calls[0][0]).toEqual([ARCHIVE, PLAN]);
+	});
+
+	it("leaves the selection as it was at the press without the key", () => {
+		const { cell, row, onMoveItems } = renderList("test-click-drag");
+		fireEvent.click(row(ARCHIVE));
+		dragFrom(cell(PLAN), { ctrlKey: true }, () => {
+			expect(row(PLAN)).not.toHaveClass("selected");
+		});
+		expect(onMoveItems.mock.calls[0][0]).toEqual([PLAN]);
+	});
+
+	it("opens the whole selection at a double-click through openItemsFunc", () => {
+		useWindowsLayout();
+		const openItemsFunc = vi.fn();
+		const { row, fileOnClickFunc } = renderList("test-open-selection", {
+			openItemsFunc,
+		});
+		fireEvent.click(row(ARCHIVE));
+		fireEvent.click(row(PLAN), { metaKey: true });
+		fireEvent.doubleClick(row(PLAN));
+		expect(openItemsFunc).toHaveBeenCalledWith(
+			expect.arrayContaining([ARCHIVE, PLAN]),
+		);
+		expect(fileOnClickFunc).not.toHaveBeenCalled();
+	});
+
+	it("opens the double-clicked row alone without openItemsFunc, or without the key", () => {
+		useWindowsLayout();
+		const first = renderList("test-open-row");
+		fireEvent.click(first.row(ARCHIVE));
+		fireEvent.click(first.row(PLAN), { metaKey: true });
+		fireEvent.doubleClick(first.row(PLAN));
+		expect(first.fileOnClickFunc).toHaveBeenCalledWith(PLAN);
+		first.unmount();
+		resetClassicyAppearancePackagesForTests();
+		const openItemsFunc = vi.fn();
+		const second = renderList("test-open-row-mac", { openItemsFunc });
+		fireEvent.click(second.row(ARCHIVE));
+		fireEvent.click(second.row(PLAN), { metaKey: true });
+		fireEvent.doubleClick(second.row(PLAN));
+		expect(openItemsFunc).not.toHaveBeenCalled();
+		expect(second.fileOnClickFunc).toHaveBeenCalledWith(PLAN);
 	});
 });

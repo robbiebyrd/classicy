@@ -283,14 +283,20 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
-	// The mouse conventions (the WIG audit's 5.6, 5.7, 4.8-4.10, 1.18):
-	// `selection.secondaryButton`, `contextMenu.openOn` and
+	// The mouse conventions (the WIG audit's 5.6, 5.7, 4.8-4.10, 1.18, and
+	// 5.3, 5.5, 5.9 and A.9's `selection.selectOn`, `dragRange` and
+	// `modifiers`): `selection.secondaryButton`, `contextMenu.openOn` and
 	// `input.escapeCancels` optional groups with optional keys, `mouse` a
 	// top-level keyword, each kept as given.
 	it("takes optional selection, contextMenu, mouse and input, and refuses another value", () => {
 		const input = platinumShaped();
 		const layout = input.layout as Record<string, unknown>;
-		layout.selection = { secondaryButton: "select" };
+		layout.selection = {
+			secondaryButton: "select",
+			selectOn: "press",
+			dragRange: true,
+			modifiers: "windows",
+		};
 		layout.contextMenu = { openOn: "release" };
 		layout.mouse = "windows";
 		layout.input = { escapeCancels: true };
@@ -298,6 +304,9 @@ describe("ClassicyAppearancePackageSchema", () => {
 		expect(result.success).toBe(true);
 		expect(result.data?.layout.selection).toEqual({
 			secondaryButton: "select",
+			selectOn: "press",
+			dragRange: true,
+			modifiers: "windows",
 		});
 		expect(result.data?.layout.contextMenu).toEqual({ openOn: "release" });
 		expect(result.data?.layout.mouse).toBe("windows");
@@ -305,6 +314,9 @@ describe("ClassicyAppearancePackageSchema", () => {
 		for (const [key, value] of [
 			["selection", {}],
 			["selection", { secondaryButton: "menu" }],
+			["selection", { selectOn: "click" }],
+			["selection", { dragRange: false }],
+			["selection", { modifiers: "mac" }],
 			["contextMenu", {}],
 			["contextMenu", { openOn: "event" }],
 			["mouse", "mac"],
@@ -319,6 +331,9 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 		for (const [group, key, value] of [
 			["selection", "secondaryButton", "both"],
+			["selection", "selectOn", "release"],
+			["selection", "dragRange", "yes"],
+			["selection", "modifiers", "linux"],
 			["contextMenu", "openOn", "press"],
 			["input", "escapeCancels", "yes"],
 		]) {

@@ -1456,3 +1456,287 @@ describe("ClassicyTable — the mouse under the Windows layout", () => {
 		fireEvent.mouseUp(document, { clientX: 150 });
 	});
 });
+
+// Under the Windows 98 layout a row is selected at the button-1 press
+// (`selection.selectOn` "press", the audit's 5.5 / A.2; WIG Ch.5 "Selection
+// with the Mouse", pp.37-38; comctl32's LISTVIEW_LButtonDown), a press
+// dragged across rows that do not drag selects them (`selection.dragRange`,
+// 5.3; pp.37-39), and Control with Shift keeps the other selections while a
+// double-click opens the whole selection (`selection.modifiers` "windows",
+// 5.9 / A.9; p.39; App. A Tables A.2 and A.3). The default layout declares
+// none of it: the tests above select at the click.
+describe("ClassicyTable — selection by the mouse under the Windows layout", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		// biome-ignore lint/suspicious/noExplicitAny: jsdom has no elementFromPoint of its own
+		delete (document as any).elementFromPoint;
+	});
+	const useLayout = (selection: Record<string, unknown>) =>
+		registerClassicyAppearancePackage({
+			id: "windows-table-selection",
+			name: "Windows table selection",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-table-selection-default",
+				package: "windows-table-selection",
+			},
+			layout: { ...windows98.layout, selection } as never,
+		});
+	const useWindowsLayout = () => useLayout(windows98.layout.selection);
+	const tracks: Album[] = [
+		...albums,
+		{ id: "help", title: "Help!", year: 1965 },
+		{ id: "revolver", title: "Revolver", year: 1966 },
+	];
+	const row = (container: HTMLElement, id: string) =>
+		container.querySelector(`tr[data-row-id="${id}"]`) as HTMLElement;
+	const selectedIds = (container: HTMLElement) =>
+		[...container.querySelectorAll("tr.classicyTableRow.selected")].map((r) =>
+			r.getAttribute("data-row-id"),
+		);
+	const renderTable = (
+		props: Partial<Parameters<typeof ClassicyTable<Album>>[0]> = {},
+	) => {
+		const onSelectionChange = vi.fn();
+		const view = render(
+			<ClassicyTable
+				columns={columns}
+				rows={tracks}
+				getRowId={(a) => a.id}
+				selectionMode="multi"
+				onSelectionChange={onSelectionChange}
+				{...props}
+			/>,
+		);
+		return { ...view, onSelectionChange };
+	};
+	const press = (
+		el: HTMLElement,
+		init: Partial<MouseEventInit & { detail: number }> = {},
+	) => fireEvent.mouseDown(el, { button: 0, detail: 1, ...init });
+	// Lays the rows (unsorted: rubber, pepper, abbey, help, revolver) out 20
+	// px apart from y 100 in a 60-px viewport, and answers the hit test by y.
+	const layOut = (container: HTMLElement) => {
+		const rows = [...container.querySelectorAll<HTMLElement>("tbody tr")];
+		const viewport = container.querySelector(
+			".classicyScrollAreaViewport",
+		) as HTMLElement;
+		const box = (top: number, height: number) =>
+			({
+				top,
+				bottom: top + height,
+				left: 0,
+				right: 300,
+				width: 300,
+				height,
+				x: 0,
+				y: top,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		viewport.getBoundingClientRect = () => box(100, 60);
+		rows.forEach((r, i) => {
+			r.getBoundingClientRect = () => box(100 + i * 20, 20);
+		});
+		document.elementFromPoint = vi.fn(
+			(_x: number, y: number) =>
+				rows.find((_, i) => y >= 100 + i * 20 && y < 120 + i * 20) ?? null,
+		);
+	};
+	const moveTo = (index: number) =>
+		fireEvent.mouseMove(document, { clientX: 50, clientY: 110 + index * 20 });
+
+	it("selects an unselected row at the press, its click adding nothing", () => {
+		useWindowsLayout();
+		const { container, onSelectionChange } = renderTable();
+		press(row(container, "pepper"));
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper"]);
+		expect(selectedIds(container)).toEqual(["pepper"]);
+		fireEvent.click(row(container, "pepper"), { detail: 1 });
+		expect(onSelectionChange).toHaveBeenCalledTimes(1);
+	});
+
+	it("selects at the click alone without the key", () => {
+		const { container, onSelectionChange } = renderTable();
+		press(row(container, "pepper"));
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		fireEvent.click(row(container, "pepper"), { detail: 1 });
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper"]);
+	});
+
+	it("leaves a selected row's selection to its click, which resets it to that row", () => {
+		useWindowsLayout();
+		const { container, onSelectionChange } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		fireEvent.click(row(container, "abbey"), { shiftKey: true });
+		onSelectionChange.mockClear();
+		press(row(container, "pepper"));
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		expect(selectedIds(container)).toEqual(["rubber", "pepper", "abbey"]);
+		fireEvent.click(row(container, "pepper"), { detail: 1 });
+		expect(selectedIds(container)).toEqual(["pepper"]);
+	});
+
+	it("applies a modified press at once, even on a selected row", () => {
+		useWindowsLayout();
+		const { container } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		press(row(container, "abbey"), { ctrlKey: true });
+		expect(selectedIds(container)).toEqual(["rubber", "abbey"]);
+		fireEvent.click(row(container, "abbey"), { detail: 1, ctrlKey: true });
+		expect(selectedIds(container)).toEqual(["rubber", "abbey"]);
+		press(row(container, "rubber"), { metaKey: true });
+		expect(selectedIds(container)).toEqual(["abbey"]);
+		press(row(container, "help"), { shiftKey: true });
+		// The anchor is rubber, the Control press's row.
+		expect(selectedIds(container)).toEqual([
+			"rubber",
+			"pepper",
+			"abbey",
+			"help",
+		]);
+	});
+
+	it("sets the anchor's range to the anchor's state at a Control-Shift click, keeping the rest", () => {
+		useLayout({ modifiers: "windows" });
+		const { container } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		fireEvent.click(row(container, "abbey"), { metaKey: true });
+		fireEvent.click(row(container, "revolver"), {
+			ctrlKey: true,
+			shiftKey: true,
+		});
+		expect(selectedIds(container)).toEqual([
+			"rubber",
+			"abbey",
+			"help",
+			"revolver",
+		]);
+		// An unselected anchor takes its range out.
+		fireEvent.click(row(container, "help"), { metaKey: true });
+		fireEvent.click(row(container, "abbey"), { metaKey: true, shiftKey: true });
+		expect(selectedIds(container)).toEqual(["rubber", "revolver"]);
+	});
+
+	it("lets Shift win at a Control-Shift click without the key", () => {
+		const { container } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		fireEvent.click(row(container, "abbey"), { metaKey: true });
+		fireEvent.click(row(container, "revolver"), {
+			ctrlKey: true,
+			shiftKey: true,
+		});
+		expect(selectedIds(container)).toEqual(["abbey", "help", "revolver"]);
+	});
+
+	it("opens the selection a double-click's clicks leave, its second press changing nothing", () => {
+		useWindowsLayout();
+		const onActivateSelection = vi.fn();
+		const onActivateRow = vi.fn();
+		const { container } = renderTable({ onActivateSelection, onActivateRow });
+		fireEvent.click(row(container, "rubber"));
+		const abbey = row(container, "abbey");
+		press(abbey, { shiftKey: true });
+		fireEvent.click(abbey, { detail: 1, shiftKey: true });
+		press(abbey, { detail: 2, shiftKey: true });
+		fireEvent.click(abbey, { detail: 2, shiftKey: true });
+		fireEvent.doubleClick(abbey, { shiftKey: true });
+		expect(onActivateSelection).toHaveBeenCalledWith([
+			"rubber",
+			"pepper",
+			"abbey",
+		]);
+		expect(onActivateRow).not.toHaveBeenCalled();
+	});
+
+	it("opens the double-clicked row alone without the key, without onActivateSelection, or with no selection mode", () => {
+		const onActivateSelection = vi.fn();
+		const onActivateRow = vi.fn();
+		const first = renderTable({ onActivateSelection, onActivateRow });
+		fireEvent.click(row(first.container, "rubber"));
+		fireEvent.click(row(first.container, "abbey"), { metaKey: true });
+		fireEvent.doubleClick(row(first.container, "abbey"));
+		expect(onActivateRow).toHaveBeenLastCalledWith("abbey", tracks[2]);
+		first.unmount();
+		useWindowsLayout();
+		const second = renderTable({ onActivateRow });
+		fireEvent.doubleClick(row(second.container, "pepper"));
+		expect(onActivateRow).toHaveBeenLastCalledWith("pepper", tracks[1]);
+		second.unmount();
+		const third = renderTable({
+			onActivateSelection,
+			onActivateRow,
+			selectionMode: "none",
+		});
+		fireEvent.doubleClick(row(third.container, "help"));
+		expect(onActivateRow).toHaveBeenLastCalledWith("help", tracks[3]);
+		expect(onActivateSelection).not.toHaveBeenCalled();
+	});
+
+	it("selects the rows a press drags across, and scrolls toward a pointer below the list", () => {
+		useWindowsLayout();
+		const frames: FrameRequestCallback[] = [];
+		vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+			frames.push(cb);
+			return frames.length;
+		});
+		vi.stubGlobal("cancelAnimationFrame", () => {});
+		try {
+			const { container, onSelectionChange } = renderTable();
+			layOut(container);
+			press(row(container, "pepper"), { clientY: 130 });
+			moveTo(2);
+			expect(selectedIds(container)).toEqual(["pepper", "abbey"]);
+			expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper", "abbey"]);
+			moveTo(0);
+			expect(selectedIds(container)).toEqual(["rubber", "pepper"]);
+			// Below the viewport: its last shown row, then a frame's scroll.
+			fireEvent.mouseMove(document, { clientX: 50, clientY: 300 });
+			expect(selectedIds(container)).toEqual(["pepper", "abbey"]);
+			expect(frames.length).toBeGreaterThan(0);
+			fireEvent.mouseUp(document);
+			moveTo(4);
+			expect(selectedIds(container)).toEqual(["pepper", "abbey"]);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("keeps the selection a Control drag found", () => {
+		useWindowsLayout();
+		const { container } = renderTable();
+		layOut(container);
+		fireEvent.click(row(container, "revolver"));
+		press(row(container, "rubber"), { ctrlKey: true, clientY: 110 });
+		moveTo(1);
+		expect(selectedIds(container)).toEqual(["rubber", "pepper", "revolver"]);
+		fireEvent.mouseUp(document);
+	});
+
+	it("selects no range across rows that drag, without the key, or with a press selection alone", () => {
+		useWindowsLayout();
+		const dragging = renderTable({ rowsDrag: true });
+		layOut(dragging.container);
+		press(row(dragging.container, "rubber"), { clientY: 110 });
+		moveTo(2);
+		fireEvent.mouseUp(document);
+		expect(selectedIds(dragging.container)).toEqual(["rubber"]);
+		dragging.unmount();
+		resetClassicyAppearancePackagesForTests();
+		useLayout({ selectOn: "press" });
+		const pressOnly = renderTable();
+		layOut(pressOnly.container);
+		press(row(pressOnly.container, "rubber"), { clientY: 110 });
+		moveTo(2);
+		fireEvent.mouseUp(document);
+		expect(selectedIds(pressOnly.container)).toEqual(["rubber"]);
+		pressOnly.unmount();
+		resetClassicyAppearancePackagesForTests();
+		const plain = renderTable();
+		layOut(plain.container);
+		press(row(plain.container, "rubber"), { clientY: 110 });
+		moveTo(2);
+		fireEvent.mouseUp(document);
+		expect(selectedIds(plain.container)).toEqual([]);
+	});
+});

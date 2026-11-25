@@ -89,6 +89,13 @@ type ClassicyFileBrowserViewTableProps = {
 	iconSize?: number;
 	dirOnClickFunc?: (path: string) => void;
 	fileOnClickFunc?: (path: string) => void;
+	/**
+	 * Opens every selected item at once, when a double-click opens the
+	 * selection (ClassicyTable's `onActivateSelection`, under
+	 * `layout.selection.modifiers: "windows"`). Omitted, a double-click
+	 * opens its own row through `dirOnClickFunc` / `fileOnClickFunc`.
+	 */
+	openItemsFunc?: (paths: string[]) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
 	/** List entries marked `_invisible`. Defaults to true. */
@@ -124,6 +131,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			appId,
 			dirOnClickFunc = () => {},
 			fileOnClickFunc = () => {},
+			openItemsFunc,
 			hideFilesCreatedAfter = null,
 			showInvisible = true,
 			listViewOptions,
@@ -159,29 +167,48 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					emitDrag: ClassicyTableCellContext["emitDrag"],
 				) => {
 					if (e.button !== 0 || !onMoveItems) return;
-					const selection = selectionRef.current;
-					const paths = selection.includes(rowPath) ? selection : [rowPath];
 					const table = (e.currentTarget as HTMLElement).closest(
 						".classicyFileBrowserViewTableContainer",
 					);
-					const cells = paths
-						.map((p) =>
-							Array.from(
-								table?.querySelectorAll(`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`) ??
-									[],
-							).find(
-								(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) === p,
-							),
-						)
-						.filter((el): el is Element => el !== undefined);
+					// What the drag carries: the selection when the row is in it,
+					// else the row alone, read once, when the drag begins (the
+					// pointer past the threshold) or ends, rather than at this
+					// press, which the table's own handler (below this cell's)
+					// may still select with (`selection.selectOn` "press";
+					// comctl32 begins a drag from the selection the press made).
+					// Under a package that selects at the click the press changes
+					// nothing, so it is the selection the press found either way.
+					let dragged: string[] | null = null;
+					const draggedPaths = () => {
+						if (!dragged) {
+							const selection = selectionRef.current;
+							dragged = selection.includes(rowPath) ? selection : [rowPath];
+						}
+						return dragged;
+					};
+					const cellsOf = (paths: string[]) =>
+						paths
+							.map((p) =>
+								Array.from(
+									table?.querySelectorAll(
+										`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+									) ?? [],
+								).find(
+									(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) === p,
+								),
+							)
+							.filter((el): el is Element => el !== undefined);
 					const abandon = startClassicyFileDrag({
 						start: { clientX: e.clientX, clientY: e.clientY },
-						parts: cells.map((cell) => ({
-							image: cell.querySelector("img"),
-							label: cell.querySelector(
-								".classicyFileBrowserViewTableRowIconLabel",
-							),
-						})),
+						// Read when the outline is first drawn.
+						get parts() {
+							return cellsOf(draggedPaths()).map((cell) => ({
+								image: cell.querySelector("img"),
+								label: cell.querySelector(
+									".classicyFileBrowserViewTableRowIconLabel",
+								),
+							}));
+						},
 						source: e.currentTarget,
 						...(emitDrag && classicyFileDragAppearanceCallbacks(emitDrag)),
 						onDrop: (target, _point, outlineTopLeft) => {
@@ -192,7 +219,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							) {
 								return;
 							}
-							onMoveItems(paths, target.destination, outlineTopLeft);
+							onMoveItems(draggedPaths(), target.destination, outlineTopLeft);
 						},
 					});
 					endFileDragOnUnmount(abandon);
@@ -541,6 +568,10 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					headerPlacement={headerPlacement}
 					sortGroup={foldersFirst ? folderRowGroup : undefined}
 					onActivateRow={(_, row) => openFileOrFolder(row, row._path ?? "")}
+					onActivateSelection={openItemsFunc}
+					// Rows drag as Finder items when they can be moved, so a
+					// press dragged across them never selects a range.
+					rowsDrag={onMoveItems !== undefined}
 					// ClassicyTable puts `selected` on a selected row itself.
 					rowClassName={() => "classicyFileBrowserViewTableRow"}
 					selectionMode={"multi"}

@@ -56,6 +56,16 @@ type ClassicyFileBrowserProps = {
 	/** Called with a file's full path when it is opened (double-click; Return in the list view). */
 	fileOnClickFunc?: (path: string) => void;
 	/**
+	 * Called with every selected item's path when a double-click opens the
+	 * whole selection: in the list view, under a package whose layout says
+	 * `selection.modifiers: "windows"` (Windows 98; WIG App. A Tables A.2,
+	 * pp.352-353, and A.3, p.356), the selection as the double-click's own
+	 * clicks left it. Finder opens each. Omitted, or under any other layout,
+	 * a double-click opens its own item through `dirOnClickFunc` /
+	 * `fileOnClickFunc`.
+	 */
+	openItemsFunc?: (paths: string[]) => void;
+	/**
 	 * When set, files whose `_createdOn` is after this moment are hidden from
 	 * the listing. Pass the current Classicy date/time to hide "future" files.
 	 * Defaults to `null` (show everything).
@@ -191,6 +201,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	appId,
 	dirOnClickFunc,
 	fileOnClickFunc,
+	openItemsFunc,
 	hideFilesCreatedAfter = null,
 	showInvisible = true,
 	listViewOptions,
@@ -316,6 +327,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					onMoveItems={onMoveItems}
 					fileOnClickFunc={fileOnClickFunc ?? defaultFileOnClick}
 					dirOnClickFunc={dirOnClickFunc ?? defaultDirOnClick}
+					openItemsFunc={openItemsFunc}
 					fs={fs}
 					path={path}
 					appId={appId}

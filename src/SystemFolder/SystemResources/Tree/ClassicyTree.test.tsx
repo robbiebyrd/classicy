@@ -1,7 +1,7 @@
 // The Windows-layout package below needs a sound pack registered: Platinum's.
 import "@classicy/appearance-platinum";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, userEvent } from "@/__tests__/test-utils";
+import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
@@ -541,5 +541,109 @@ describe("ClassicyTree — inactive", () => {
 		unmount();
 		render(<ClassicyTree nodes={nodes} />);
 		expect(tree().className).toBe("classicyTree");
+	});
+});
+
+// Under the Windows 98 layout a selectable row is chosen at its button-1
+// press (`selection.selectOn` "press", the audit's 5.5 / A.2; WIG Ch.5
+// "Selection with the Mouse", pp.37-38; comctl32's tree view selects on
+// WM_LBUTTONDOWN), the click that ends it choosing nothing more; Platinum's
+// default layout chooses at the click (the tests above).
+describe("ClassicyTree — chosen at the press (layout.selection.selectOn)", () => {
+	const holder = (label: string) =>
+		screen
+			.getByText(label)
+			.closest(".classicyTreeNodeLabelHolder") as HTMLElement;
+	const tree: ClassicyTreeNode[] = [
+		{
+			id: "pick",
+			label: "Pick",
+			branchSelectable: true,
+			children: [{ id: "inner", label: "Inner" }],
+		},
+		{
+			id: "plain",
+			label: "Plain",
+			children: [{ id: "under", label: "Under" }],
+		},
+		{ id: "leaf", label: "Leaf" },
+		{ id: "fixed", label: "Fixed", selectable: false },
+	];
+	const renderTree = () => {
+		const onSelectNode = vi.fn();
+		const onActivateNode = vi.fn();
+		const onToggleNode = vi.fn();
+		render(
+			<ClassicyTree
+				nodes={tree}
+				selectionMode="single"
+				selectedIds={[]}
+				onSelectNode={onSelectNode}
+				onActivateNode={onActivateNode}
+				onToggleNode={onToggleNode}
+			/>,
+		);
+		return { onSelectNode, onActivateNode, onToggleNode };
+	};
+
+	it("chooses a leaf at the press, its click choosing nothing more", () => {
+		activePackage.id = "windows-trees";
+		const { onSelectNode } = renderTree();
+		fireEvent.mouseDown(holder("Leaf"), { button: 0, detail: 1 });
+		expect(onSelectNode).toHaveBeenCalledTimes(1);
+		expect(onSelectNode.mock.calls[0][0]).toBe("leaf");
+		expect(onSelectNode.mock.calls[0][2].type).toBe("mousedown");
+		fireEvent.click(holder("Leaf"), { detail: 1 });
+		expect(onSelectNode).toHaveBeenCalledTimes(1);
+	});
+
+	it("chooses a selectable branch at the press, neither its click nor its press toggling it", () => {
+		activePackage.id = "windows-trees";
+		const { onSelectNode, onToggleNode } = renderTree();
+		fireEvent.mouseDown(holder("Pick"), { button: 0, detail: 1 });
+		fireEvent.click(holder("Pick"), { detail: 1 });
+		expect(onSelectNode).toHaveBeenCalledTimes(1);
+		expect(onSelectNode.mock.calls[0][0]).toBe("pick");
+		expect(onToggleNode).not.toHaveBeenCalled();
+		// Its double-click still expands it.
+		fireEvent.doubleClick(holder("Pick"));
+		expect(onToggleNode).toHaveBeenCalledWith("pick", true);
+	});
+
+	it("leaves a plain branch to its click, which toggles it, and an unselectable leaf alone", () => {
+		activePackage.id = "windows-trees";
+		const { onSelectNode, onToggleNode } = renderTree();
+		fireEvent.mouseDown(holder("Plain"), { button: 0, detail: 1 });
+		expect(onToggleNode).not.toHaveBeenCalled();
+		fireEvent.click(holder("Plain"), { detail: 1 });
+		expect(onToggleNode).toHaveBeenCalledWith("plain", true);
+		fireEvent.mouseDown(holder("Fixed"), { button: 0, detail: 1 });
+		fireEvent.click(holder("Fixed"), { detail: 1 });
+		expect(onSelectNode).not.toHaveBeenCalled();
+	});
+
+	it("chooses nothing at a button-2 press, or at a double-click's second press", () => {
+		activePackage.id = "windows-trees";
+		const { onSelectNode, onActivateNode } = renderTree();
+		fireEvent.mouseDown(holder("Leaf"), { button: 2, detail: 1 });
+		expect(onSelectNode).not.toHaveBeenCalled();
+		fireEvent.mouseDown(holder("Leaf"), { button: 0, detail: 1 });
+		fireEvent.click(holder("Leaf"), { detail: 1 });
+		fireEvent.mouseDown(holder("Leaf"), { button: 0, detail: 2 });
+		fireEvent.click(holder("Leaf"), { detail: 2 });
+		fireEvent.doubleClick(holder("Leaf"));
+		expect(onSelectNode).toHaveBeenCalledTimes(1);
+		expect(onActivateNode).toHaveBeenCalledWith("leaf", tree[2]);
+	});
+
+	it("chooses at the click alone without the key", () => {
+		const { onSelectNode } = renderTree();
+		fireEvent.mouseDown(holder("Leaf"), { button: 0, detail: 1 });
+		fireEvent.mouseDown(holder("Pick"), { button: 0, detail: 1 });
+		expect(onSelectNode).not.toHaveBeenCalled();
+		fireEvent.click(holder("Leaf"), { detail: 1 });
+		fireEvent.click(holder("Pick"), { detail: 1 });
+		expect(onSelectNode.mock.calls.map((c) => c[0])).toEqual(["leaf", "pick"]);
+		expect(onSelectNode.mock.calls[0][2].type).toBe("click");
 	});
 });

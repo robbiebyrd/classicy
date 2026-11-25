@@ -2,9 +2,9 @@ import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePa
 
 /**
  * The mouse's press discipline, as the active package's layout declares it
- * (`layout.mouse`, `layout.selection.secondaryButton`,
- * `layout.contextMenu.openOn`; WIG Ch.4 "Mouse Actions", pp.24-25; Ch.5
- * "Selection with the Mouse", pp.37-38). Pure: each reader takes the layout
+ * (`layout.mouse`, `layout.selection`, `layout.contextMenu.openOn`; WIG
+ * Ch.4 "Mouse Actions", pp.24-25; Ch.5 "Selection with the Mouse",
+ * pp.37-38, "Selection Adjustment", pp.38-39). Pure: each reader takes the layout
  * (a component's `useClassicyAppearanceLayout()`, or store-free code's
  * `getClassicyAppearanceLayout()`), so the rule is tested without a desktop.
  * Every reader gives today's rule when its key is absent.
@@ -80,3 +80,34 @@ export const classicySecondaryButtonSelects = (
 export const classicyContextMenuOpensOnRelease = (
 	layout: Pick<ClassicyAppearanceLayout, "contextMenu">,
 ): boolean => layout.contextMenu?.openOn === "release";
+
+/**
+ * Whether button 1 selects a list box's, a table's or a tree's row at the
+ * press (`layout.selection.selectOn` `"press"`, as user32's list box and
+ * comctl32's list and tree views do) rather than when the button comes up
+ * over it (absent or `"click"`, today's rule, Mac OS 8's List Manager).
+ */
+export const classicySelectsOnPress = (
+	layout: Pick<ClassicyAppearanceLayout, "selection">,
+): boolean => layout.selection?.selectOn === "press";
+
+/**
+ * Whether a press dragged across a list's rows selects them
+ * (`layout.selection.dragRange`), which only a selection made at the press
+ * (`selectOn` `"press"`) can do: `false`, today's rule, otherwise.
+ */
+export const classicyDragSelectsRange = (
+	layout: Pick<ClassicyAppearanceLayout, "selection">,
+): boolean =>
+	classicySelectsOnPress(layout) && layout.selection?.dragRange === true;
+
+/**
+ * Whether a list's modified clicks follow Windows (`layout.selection.modifiers`
+ * `"windows"`: Control or ⌘ with Shift adds the anchor's range in the
+ * anchor's state, the second click of a double-click changes nothing, and
+ * a double-click opens the whole selection) rather than the Mac's (absent
+ * or `"mac"`, today's rule: Shift wins, and a double-click opens its row).
+ */
+export const classicyWindowsSelectionModifiers = (
+	layout: Pick<ClassicyAppearanceLayout, "selection">,
+): boolean => layout.selection?.modifiers === "windows";

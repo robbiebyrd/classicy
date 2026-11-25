@@ -398,3 +398,377 @@ describe("ClassicyListBox — inactive", () => {
 		expect(screen.getByRole("listbox")).not.toHaveClass("inactive");
 	});
 });
+
+// Under the Windows 98 layout a row is selected at the button-1 press
+// (`selection.selectOn` "press", the audit's 5.5 / A.2; WIG Ch.5 "Selection
+// with the Mouse", pp.37-38), a press dragged across the rows selects them
+// (`selection.dragRange`, 5.3; pp.37-39), and Control with Shift keeps the
+// other selections while a double-click opens the whole selection
+// (`selection.modifiers` "windows", 5.9 / A.9; p.39; App. A Tables A.2 and
+// A.3). Without a package the default layout declares none of it: the
+// tests above select at the click.
+describe("ClassicyListBox — the mouse under the Windows layout", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		// biome-ignore lint/suspicious/noExplicitAny: jsdom has no elementFromPoint of its own
+		delete (document as any).elementFromPoint;
+	});
+	const useLayout = (selection: Record<string, unknown>) =>
+		registerClassicyAppearancePackage({
+			id: "windows-list",
+			name: "Windows list",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-list-default",
+				package: "windows-list",
+			},
+			layout: { ...CLASSICY_DEFAULT_APPEARANCE_LAYOUT, selection },
+		});
+	const useWindowsLayout = () =>
+		useLayout({
+			secondaryButton: "select",
+			selectOn: "press",
+			dragRange: true,
+			modifiers: "windows",
+		});
+	const row = (name: string) => screen.getByRole("option", { name });
+	const chosen = () =>
+		screen
+			.getAllByRole("option")
+			.filter((o) => o.getAttribute("aria-selected") === "true")
+			.map((o) => o.textContent);
+	// Lays the rows out 20 px apart from y 100 in an 80-px viewport (four
+	// rows show) and answers the hit test by y, as a browser would.
+	const layOut = (container: HTMLElement) => {
+		const rows = screen.getAllByRole("option");
+		const viewport = container.querySelector(
+			".classicyListBoxViewport",
+		) as HTMLElement;
+		const box = (top: number, height: number) =>
+			({
+				top,
+				bottom: top + height,
+				left: 0,
+				right: 200,
+				width: 200,
+				height,
+				x: 0,
+				y: top,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		viewport.getBoundingClientRect = () => box(100, 80);
+		rows.forEach((r, i) => {
+			r.getBoundingClientRect = () => box(100 + i * 20, 20);
+		});
+		document.elementFromPoint = vi.fn(
+			(_x: number, y: number) =>
+				rows.find((_r, i) => y >= 100 + i * 20 && y < 120 + i * 20) ?? null,
+		);
+	};
+	const yOf = (index: number) => 110 + index * 20;
+	const moveTo = (index: number) =>
+		fireEvent.mouseMove(document, { clientX: 50, clientY: yOf(index) });
+
+	it("selects a row at the button-1 press, and its click adds nothing", () => {
+		useWindowsLayout();
+		const onChange = vi.fn();
+		render(
+			<ClassicyListBox id="lb" options={options} onChangeFunc={onChange} />,
+		);
+		fireEvent.mouseDown(row("Beta"), { button: 0, detail: 1 });
+		expect(onChange).toHaveBeenLastCalledWith(["b"]);
+		expect(chosen()).toEqual(["Beta"]);
+		fireEvent.mouseUp(row("Beta"));
+		fireEvent.click(row("Beta"), { detail: 1 });
+		expect(onChange).toHaveBeenCalledTimes(1);
+	});
+
+	it("selects at the click alone without the key", () => {
+		const onChange = vi.fn();
+		render(
+			<ClassicyListBox id="lb" options={options} onChangeFunc={onChange} />,
+		);
+		fireEvent.mouseDown(row("Beta"), { button: 0, detail: 1 });
+		expect(onChange).not.toHaveBeenCalled();
+		fireEvent.click(row("Beta"), { detail: 1 });
+		expect(onChange).toHaveBeenLastCalledWith(["b"]);
+	});
+
+	it("keeps a multiple selection a plain press lands in until its click resets it to that row", () => {
+		useWindowsLayout();
+		const onChange = vi.fn();
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				selectionMode="multi"
+				onChangeFunc={onChange}
+			/>,
+		);
+		fireEvent.click(row("Alpha"));
+		fireEvent.click(row("Gamma"), { metaKey: true });
+		expect(chosen()).toEqual(["Alpha", "Gamma"]);
+		onChange.mockClear();
+		fireEvent.mouseDown(row("Gamma"), { button: 0, detail: 1 });
+		expect(onChange).not.toHaveBeenCalled();
+		expect(chosen()).toEqual(["Alpha", "Gamma"]);
+		fireEvent.click(row("Gamma"), { detail: 1 });
+		expect(onChange).toHaveBeenLastCalledWith(["c"]);
+	});
+
+	it("toggles at a Control press, the click toggling nothing more", () => {
+		useWindowsLayout();
+		render(<ClassicyListBox id="lb" options={options} selectionMode="multi" />);
+		fireEvent.click(row("Alpha"));
+		fireEvent.mouseDown(row("Gamma"), { button: 0, detail: 1, ctrlKey: true });
+		expect(chosen()).toEqual(["Alpha", "Gamma"]);
+		fireEvent.click(row("Gamma"), { detail: 1, ctrlKey: true });
+		expect(chosen()).toEqual(["Alpha", "Gamma"]);
+	});
+
+	it("never selects at a button-2 or middle press", () => {
+		useWindowsLayout();
+		const onChange = vi.fn();
+		render(
+			<ClassicyListBox id="lb" options={options} onChangeFunc={onChange} />,
+		);
+		fireEvent.mouseDown(row("Beta"), { button: 2, detail: 1 });
+		fireEvent.mouseDown(row("Beta"), { button: 1, detail: 1 });
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it("toggles a check list's row at the press", () => {
+		useWindowsLayout();
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				selectionMode="multi"
+				checkboxes
+			/>,
+		);
+		fireEvent.mouseDown(row("Beta"), { button: 0, detail: 1 });
+		expect(chosen()).toEqual(["Beta"]);
+		fireEvent.click(row("Beta"), { detail: 1 });
+		expect(chosen()).toEqual(["Beta"]);
+		fireEvent.mouseDown(row("Delta"), { button: 0, detail: 1 });
+		expect(chosen()).toEqual(["Beta", "Delta"]);
+	});
+
+	it("sets the anchor's range to the anchor's state at a Control-Shift click, keeping the rest", () => {
+		useLayout({ modifiers: "windows" });
+		render(<ClassicyListBox id="lb" options={options} selectionMode="multi" />);
+		fireEvent.click(row("Alpha"));
+		fireEvent.click(row("Gamma"), { metaKey: true });
+		// The anchor is Gamma, selected: Gamma to Delta is selected, Alpha kept.
+		fireEvent.click(row("Delta"), { metaKey: true, shiftKey: true });
+		expect(chosen()).toEqual(["Alpha", "Gamma", "Delta"]);
+		// The anchor did not move: Gamma to Beta is selected now.
+		fireEvent.click(row("Beta"), { ctrlKey: true, shiftKey: true });
+		expect(chosen()).toEqual(["Alpha", "Beta", "Gamma", "Delta"]);
+		// Unselected, the anchor clears its range.
+		fireEvent.click(row("Gamma"), { metaKey: true });
+		fireEvent.click(row("Alpha"), { metaKey: true, shiftKey: true });
+		expect(chosen()).toEqual(["Delta"]);
+	});
+
+	it("lets Shift win at a Control-Shift click without the key", () => {
+		render(<ClassicyListBox id="lb" options={options} selectionMode="multi" />);
+		fireEvent.click(row("Alpha"));
+		fireEvent.click(row("Gamma"), { metaKey: true });
+		fireEvent.click(row("Delta"), { metaKey: true, shiftKey: true });
+		expect(chosen()).toEqual(["Gamma", "Delta"]);
+	});
+
+	it("opens the selection a double-click's clicks leave, its second press changing nothing", () => {
+		useWindowsLayout();
+		const onActivateSelection = vi.fn();
+		const onActivate = vi.fn();
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				selectionMode="multi"
+				onActivateFunc={onActivate}
+				onActivateSelection={onActivateSelection}
+			/>,
+		);
+		fireEvent.click(row("Alpha"));
+		// A Control double-click on Gamma: the first press adds it, the
+		// second (WM_LBUTTONDBLCLK) leaves it, and the set opens.
+		fireEvent.mouseDown(row("Gamma"), { button: 0, detail: 1, ctrlKey: true });
+		fireEvent.click(row("Gamma"), { detail: 1, ctrlKey: true });
+		fireEvent.mouseDown(row("Gamma"), { button: 0, detail: 2, ctrlKey: true });
+		fireEvent.click(row("Gamma"), { detail: 2, ctrlKey: true });
+		fireEvent.doubleClick(row("Gamma"), { ctrlKey: true });
+		expect(chosen()).toEqual(["Alpha", "Gamma"]);
+		expect(onActivateSelection).toHaveBeenCalledWith(["a", "c"]);
+		expect(onActivate).not.toHaveBeenCalled();
+	});
+
+	it("opens the double-clicked row alone without the key, or without onActivateSelection", () => {
+		const onActivateSelection = vi.fn();
+		const onActivate = vi.fn();
+		const { unmount } = render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				selectionMode="multi"
+				onActivateFunc={onActivate}
+				onActivateSelection={onActivateSelection}
+			/>,
+		);
+		fireEvent.click(row("Alpha"));
+		fireEvent.click(row("Gamma"), { metaKey: true });
+		fireEvent.doubleClick(row("Gamma"));
+		expect(onActivate).toHaveBeenCalledWith("c");
+		expect(onActivateSelection).not.toHaveBeenCalled();
+		unmount();
+		useWindowsLayout();
+		onActivate.mockClear();
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				selectionMode="multi"
+				onActivateFunc={onActivate}
+			/>,
+		);
+		fireEvent.doubleClick(row("Beta"));
+		expect(onActivate).toHaveBeenCalledWith("b");
+	});
+
+	it("selects the rows a press drags across, from the press to the release", () => {
+		useWindowsLayout();
+		const onChange = vi.fn();
+		const { container } = render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				selectionMode="multi"
+				onChangeFunc={onChange}
+			/>,
+		);
+		layOut(container);
+		fireEvent.mouseDown(row("Beta"), { button: 0, detail: 1, clientY: yOf(1) });
+		moveTo(3);
+		expect(chosen()).toEqual(["Beta", "Gamma", "Delta"]);
+		expect(onChange).toHaveBeenLastCalledWith(["b", "c", "d"]);
+		// Back up past the anchor: the range turns round it.
+		moveTo(0);
+		expect(chosen()).toEqual(["Alpha", "Beta"]);
+		fireEvent.mouseUp(document);
+		moveTo(3);
+		expect(chosen()).toEqual(["Alpha", "Beta"]);
+	});
+
+	it("keeps the selection a Control drag found, setting its range to the anchor's state", () => {
+		useWindowsLayout();
+		const { container } = render(
+			<ClassicyListBox id="lb" options={options} selectionMode="multi" />,
+		);
+		layOut(container);
+		fireEvent.click(row("Delta"));
+		fireEvent.mouseDown(row("Alpha"), {
+			button: 0,
+			detail: 1,
+			ctrlKey: true,
+			clientY: yOf(0),
+		});
+		moveTo(1);
+		expect(chosen()).toEqual(["Alpha", "Beta", "Delta"]);
+		// Released with Control up: the press's modifiers still govern.
+		fireEvent.mouseUp(document);
+		// A Control drag from a selected row takes its range out.
+		fireEvent.mouseDown(row("Beta"), {
+			button: 0,
+			detail: 1,
+			ctrlKey: true,
+			clientY: yOf(1),
+		});
+		moveTo(3);
+		expect(chosen()).toEqual(["Alpha"]);
+		fireEvent.mouseUp(document);
+	});
+
+	it("drags a Shift range from the anchor, and moves a single selection with the pointer", () => {
+		useWindowsLayout();
+		const { container, unmount } = render(
+			<ClassicyListBox id="lb" options={options} selectionMode="multi" />,
+		);
+		layOut(container);
+		fireEvent.click(row("Beta"));
+		fireEvent.mouseDown(row("Gamma"), {
+			button: 0,
+			detail: 1,
+			shiftKey: true,
+			clientY: yOf(2),
+		});
+		expect(chosen()).toEqual(["Beta", "Gamma"]);
+		moveTo(3);
+		expect(chosen()).toEqual(["Beta", "Gamma", "Delta"]);
+		fireEvent.mouseUp(document);
+		unmount();
+		const single = render(<ClassicyListBox id="lb" options={options} />);
+		layOut(single.container);
+		fireEvent.mouseDown(row("Alpha"), {
+			button: 0,
+			detail: 1,
+			clientY: yOf(0),
+		});
+		moveTo(2);
+		expect(chosen()).toEqual(["Gamma"]);
+		fireEvent.mouseUp(document);
+	});
+
+	it("passes over a dimmed row and counts the last row shown below the list", () => {
+		useWindowsLayout();
+		const dimmed = options.map((o) =>
+			o.value === "c" ? { ...o, disabled: true } : o,
+		);
+		const { container } = render(
+			<ClassicyListBox id="lb" options={dimmed} selectionMode="multi" />,
+		);
+		layOut(container);
+		fireEvent.mouseDown(row("Alpha"), {
+			button: 0,
+			detail: 1,
+			clientY: yOf(0),
+		});
+		moveTo(2);
+		expect(chosen()).toEqual(["Alpha"]);
+		fireEvent.mouseMove(document, { clientX: 50, clientY: 400 });
+		expect(chosen()).toEqual(["Alpha", "Beta", "Delta"]);
+		fireEvent.mouseUp(document);
+	});
+
+	it("selects nothing across a drag without the key, or with a press selection alone", () => {
+		const { container, unmount } = render(
+			<ClassicyListBox id="lb" options={options} selectionMode="multi" />,
+		);
+		layOut(container);
+		fireEvent.mouseDown(row("Alpha"), {
+			button: 0,
+			detail: 1,
+			clientY: yOf(0),
+		});
+		moveTo(2);
+		fireEvent.mouseUp(document);
+		expect(chosen()).toEqual([]);
+		unmount();
+		useLayout({ selectOn: "press" });
+		const pressOnly = render(
+			<ClassicyListBox id="lb" options={options} selectionMode="multi" />,
+		);
+		layOut(pressOnly.container);
+		fireEvent.mouseDown(row("Alpha"), {
+			button: 0,
+			detail: 1,
+			clientY: yOf(0),
+		});
+		moveTo(2);
+		fireEvent.mouseUp(document);
+		expect(chosen()).toEqual(["Alpha"]);
+	});
+});

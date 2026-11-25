@@ -5,10 +5,13 @@ import windows98 from "../../../../packages/appearance/windows98/src/windows98.j
 import {
 	CLASSICY_MOUSE_DRAG_THRESHOLD,
 	classicyContextMenuOpensOnRelease,
+	classicyDragSelectsRange,
 	classicyIconDragThreshold,
 	classicySecondaryButtonSelects,
+	classicySelectsOnPress,
 	classicyTabSelectsOnPress,
 	classicyTraveledPast,
+	classicyWindowsSelectionModifiers,
 	isClassicyGestureButton,
 } from "./ClassicyMousePolicy";
 
@@ -65,6 +68,44 @@ describe("the layout's other mouse rules", () => {
 			classicySecondaryButtonSelects({
 				selection: { secondaryButton: "menu" },
 			}),
+		).toBe(false);
+	});
+
+	it('selects a list\'s row at the press under `selection.selectOn` "press" only', () => {
+		expect(classicySelectsOnPress(windows)).toBe(true);
+		expect(classicySelectsOnPress(mac)).toBe(false);
+		expect(classicySelectsOnPress({ selection: { selectOn: "click" } })).toBe(
+			false,
+		);
+	});
+
+	it("selects across a drag under `selection.dragRange` with a press selection only", () => {
+		expect(classicyDragSelectsRange(windows)).toBe(true);
+		expect(classicyDragSelectsRange(mac)).toBe(false);
+		// The range starts at the press, so a click selection has none.
+		expect(classicyDragSelectsRange({ selection: { dragRange: true } })).toBe(
+			false,
+		);
+		expect(
+			classicyDragSelectsRange({
+				selection: { selectOn: "click", dragRange: true },
+			}),
+		).toBe(false);
+		expect(
+			classicyDragSelectsRange({
+				selection: { selectOn: "press", dragRange: false },
+			}),
+		).toBe(false);
+		expect(classicyDragSelectsRange({ selection: { selectOn: "press" } })).toBe(
+			false,
+		);
+	});
+
+	it('takes Windows\' modified clicks under `selection.modifiers` "windows" only', () => {
+		expect(classicyWindowsSelectionModifiers(windows)).toBe(true);
+		expect(classicyWindowsSelectionModifiers(mac)).toBe(false);
+		expect(
+			classicyWindowsSelectionModifiers({ selection: { modifiers: "mac" } }),
 		).toBe(false);
 	});
 

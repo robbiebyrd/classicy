@@ -398,6 +398,58 @@ export type ClassicyAppearanceLayout = {
 		 * does.
 		 */
 		secondaryButton?: "menu" | "select";
+		/**
+		 * When button 1 selects a row of a list box (`ClassicyListBox`), a
+		 * table (`ClassicyTable`, the Finder's list view) or a tree
+		 * (`ClassicyTree`). `"click"` (the default, Mac OS 8's List Manager):
+		 * when the button comes up over it, so a press shows nothing. `"press"`
+		 * (Windows; WIG Ch.5 "Selection with the Mouse", pp.37-38; Ch.13
+		 * "Highlighting", p.318; App. A Table A.1, p.349): at the press, which
+		 * also sets the anchor, so a row dragged before it was selected is
+		 * drawn selected as it goes. An unmodified press on a row already
+		 * selected (in a multiple selection list box, in any table) keeps the
+		 * selection, and the click that ends it resets the selection to that
+		 * row, as comctl32's list view does (`nLButtonDownItem`), so a drag
+		 * from it carries the whole selection. The second press of a
+		 * double-click changes nothing (Win32's WM_LBUTTONDBLCLK takes the
+		 * place of its WM_LBUTTONDOWN). A check list (`checkboxes`) toggles at
+		 * the press.
+		 */
+		selectOn?: "click" | "press";
+		/**
+		 * Whether dragging across a list's rows selects them (WIG Ch.5
+		 * "Mouse Selection", "Selection with the Mouse", p.37; "Selection
+		 * Adjustment", pp.38-39). Meaningful with `selectOn: "press"`, for a
+		 * `ClassicyListBox` (not a check list) and a `ClassicyTable` whose
+		 * rows do not drag (`rowsDrag`; the Finder's list view drags its
+		 * files instead). Absent or `false` (Mac OS 8): a drag selects
+		 * nothing. `true` (Windows, as user32's list box and comctl32's list
+		 * view track the pointer): from the press to the release (or a lost
+		 * pointer stream), the row under the pointer counts, the first or
+		 * last shown row while the pointer is above or below the list, which
+		 * then scrolls a line step a frame toward it. A single selection list
+		 * selects that row; a multiple selection list selects the anchor's
+		 * row to it (no modifier, or Shift), or keeps the selection the press
+		 * found and sets that range to the anchor's state (Control or ⌘;
+		 * with Shift too under `modifiers: "windows"`), the modifiers held at
+		 * the press governing to the release.
+		 */
+		dragRange?: boolean;
+		/**
+		 * What Control (or ⌘) with Shift does to a multiple selection list
+		 * box's or a table's selection, and what a double-click opens.
+		 * `"mac"` (the default): Shift wins, the range from the anchor
+		 * replacing the selection, and a double-click opens the row under
+		 * the pointer. `"windows"` (WIG Ch.5 "Selection Adjustment", p.39;
+		 * App. A Tables A.2, pp.352-353, and A.3, p.356): the other disjoint
+		 * selections stay, and every row from the anchor to the one clicked
+		 * takes the anchor's state, the anchor staying where it is; the
+		 * second click of a double-click changes no selection; and a
+		 * double-click hands the whole selection as it then stands to
+		 * `onActivateSelection` (`ClassicyListBox`, `ClassicyTable`; the
+		 * Finder opens every selected item), where one is given.
+		 */
+		modifiers?: "mac" | "windows";
 	};
 	/**
 	 * When a contextual menu opens (`ClassicyContextualMenuProvider`).

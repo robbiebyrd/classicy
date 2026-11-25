@@ -4,6 +4,7 @@ import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEventHandler,
+	type MutableRefObject,
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent as ReactMouseEvent,
 	type ReactNode,
@@ -24,6 +25,7 @@ import {
 	ClassicyTriangle,
 	type ClassicyTriangleDirection,
 } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
+import { classicySelectsOnPress } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 /**
@@ -101,7 +103,12 @@ type ClassicyTreeProps = {
 	 * selection of its own, so update this from `onSelectNode`.
 	 */
 	selectedIds?: string[];
-	/** Fired when a selectable node is clicked or chosen with Enter/Space. */
+	/**
+	 * Fired when a selectable node is clicked or chosen with Enter/Space;
+	 * under a package whose layout says `selection.selectOn: "press"`
+	 * (Windows 98), at its button-1 press instead (`e` is the `mousedown`),
+	 * the click that ends it firing nothing.
+	 */
 	onSelectNode?: (
 		id: string,
 		node: ClassicyTreeNode,
@@ -186,6 +193,38 @@ type SharedRowContext = {
 		e: ReactMouseEvent | ReactKeyboardEvent,
 	) => void;
 	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
+	/**
+	 * Whether a selectable row is chosen at its button-1 press
+	 * (`layout.selection.selectOn` "press") rather than at its click.
+	 */
+	selectOnPress: boolean;
+	/** The row such a press last chose, for the click ending it to skip. */
+	pressedRef: MutableRefObject<string | null>;
+};
+
+/**
+ * A selectable row's press under `selectOnPress` (WIG Ch.5 "Selection with
+ * the Mouse", pp.37-38; comctl32's tree view selects on WM_LBUTTONDOWN):
+ * button 1 chooses it at once; the second press of a double-click changes
+ * nothing (Win32's WM_LBUTTONDBLCLK), the double-click still opening or
+ * toggling it.
+ */
+const pressSelectableRow = (
+	ctx: SharedRowContext,
+	node: ClassicyTreeNode,
+	e: ReactMouseEvent,
+) => {
+	if (!ctx.selectOnPress || e.button !== 0) return;
+	ctx.pressedRef.current = node.id;
+	if (e.detail > 1) return;
+	ctx.onSelectNode?.(node.id, node, e);
+};
+
+/** Whether a click ends a press that already chose its row (and clears it). */
+const clickEndsPress = (ctx: SharedRowContext, node: ClassicyTreeNode) => {
+	const pressed = ctx.pressedRef.current === node.id;
+	ctx.pressedRef.current = null;
+	return pressed;
 };
 
 type ClassicyTreeNodeItemProps = {
@@ -271,12 +310,17 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 								selected: canSelectBranch && isBranchSelected,
 							}),
 						)}
+						onMouseDown={(e) => {
+							if (canSelectBranch) pressSelectableRow(ctx, node, e);
+						}}
 						onClick={(e) => {
 							if (node.disabled) return;
 							// A branch opted into selection (e.g. the Save dialog's
-							// folder-target tree) is picked with a single click;
+							// folder-target tree) is picked with a single click
+							// (or its press, under `selectOn` "press");
 							// double-click still expands/collapses it below.
 							if (canSelectBranch) {
+								if (clickEndsPress(ctx, node)) return;
 								ctx.onSelectNode?.(node.id, node, e);
 								return;
 							}
@@ -303,7 +347,11 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 							"classicyTreeNodeSelectable",
 							classicyStateClasses({ selected: isSelected }),
 						)}
-						onClick={(e) => ctx.onSelectNode?.(node.id, node, e)}
+						onMouseDown={(e) => pressSelectableRow(ctx, node, e)}
+						onClick={(e) => {
+							if (clickEndsPress(ctx, node)) return;
+							ctx.onSelectNode?.(node.id, node, e);
+						}}
 						onDoubleClick={() => ctx.onActivateNode?.(node.id, node)}
 						onFocus={onFocus}
 					>
@@ -388,9 +436,13 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
  * package whose layout declares `tree.keys: "windows"` (Windows 98; WIG
  * Ch.7 "Tree View Controls", pp.123-124) a bare Right Arrow also expands a
  * closed branch or moves to an open one's first child, and a bare Left
- * Arrow collapses an open branch or moves to the row's parent. Drawn in a
- * window that is not the active one, the root carries the `inactive` state
- * (`ClassicyWindowActiveContext`), as `ClassicyScrollArea` does.
+ * Arrow collapses an open branch or moves to the row's parent. Under
+ * `selection.selectOn: "press"` (Windows 98; WIG Ch.5 "Selection with the
+ * Mouse", pp.37-38) a selectable leaf or branch is chosen at its button-1
+ * press, the click ending it choosing nothing more; button 2 never chooses.
+ * Drawn in a window that is not the active one, the root carries the
+ * `inactive` state (`ClassicyWindowActiveContext`), as `ClassicyScrollArea`
+ * does.
  *
  * ```tsx
  * <ClassicyTree
@@ -438,8 +490,12 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	} = useListNavigation(navRows);
 
 	// Windows' tree view takes the bare arrows along a branch (`tree.keys`);
-	// Mac OS 8's list views took ⌘→ / ⌘← alone.
-	const windowsKeys = useClassicyAppearanceLayout().tree?.keys === "windows";
+	// Mac OS 8's list views took ⌘→ / ⌘← alone. It chooses a row at the
+	// press (`selection.selectOn`), Mac OS 8's at the click.
+	const layout = useClassicyAppearanceLayout();
+	const windowsKeys = layout.tree?.keys === "windows";
+	const selectOnPress = classicySelectsOnPress(layout);
+	const pressedRef = useRef<string | null>(null);
 
 	const rootRef = useRef<HTMLUListElement>(null);
 	// The root's one state: `inactive` while the window it is drawn in is not
@@ -503,6 +559,8 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 		selectedIds: resolvedSelectedIds,
 		onSelectNode: selectNode,
 		onActivateNode,
+		selectOnPress,
+		pressedRef,
 	};
 
 	const handleKeyDown = useCallback(

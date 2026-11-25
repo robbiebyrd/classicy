@@ -79,7 +79,13 @@ and `nodenext` resolution).
   conventions too: a right-click on an unselected desktop icon or list row
   selects it first, and one on a selected item keeps the whole selection,
   which its menu then acts on; a pop-up menu opens when the right button
-  comes up; a tab is chosen as the button goes down; an icon dragged by
+  comes up; a list, a table, the Finder's list view and a tree select a row
+  as the left button goes down, so a file dragged before it was selected is
+  drawn selected; dragging across a list's rows selects them (the list
+  scrolls while the pointer is past its top or bottom); Ctrl+Shift-click
+  extends from the anchor without losing the other selected items; a
+  double-click, Ctrl- or Shift-double-click included, opens every selected
+  item; a tab is chosen as the button goes down; an icon dragged by
   itself moves only once the pointer is 4 px from where it was pressed, and
   only the left button drags (the middle button does nothing); and Escape
   takes back a drag in progress: a split view's divider, a slider's thumb,

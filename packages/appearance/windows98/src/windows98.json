@@ -3845,7 +3845,10 @@
 			"placement": "pointer"
 		},
 		"selection": {
-			"secondaryButton": "select"
+			"secondaryButton": "select",
+			"selectOn": "press",
+			"dragRange": true,
+			"modifiers": "windows"
 		},
 		"contextMenu": {
 			"openOn": "release"
