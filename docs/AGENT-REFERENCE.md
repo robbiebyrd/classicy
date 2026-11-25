@@ -4410,7 +4410,8 @@ README lists what it ships and every asset's source.
   text drawn unsmoothed (`-webkit-font-smoothing: none`, as Windows drew its
   bitmap MS Sans Serif), and a desktop picture whole pixels
   (`image-rendering: pixelated` on the desktop, `auto` again on its
-  children), the Desktop tab's preview showing the desktop's own background
+  children but the desktop icons, which keep the base's `pixelated`), the
+  Desktop tab's preview showing the desktop's own background
   (its color under its picture, tiled as the theme lays it; the `<img>`'s
   own image pushed out with `object-fit: none` at `100vw 100vh`, as System
   7's preview does).

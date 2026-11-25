@@ -17,7 +17,9 @@
 //   Windows drew a bitmap's pixels one to one, never smoothed, so the
 //   picture is drawn whole pixels at any zoom (`image-rendering: pixelated`
 //   on the desktop, and `auto` again for everything in it, which sets its
-//   own), as System 7's partial does.
+//   own, except the desktop icons, which the base draws pixelated: an `auto`
+//   in this layer would beat that rule and blur Windows' icons at any zoom
+//   or device-pixel ratio but 1).
 // - The selection marquee is the one-pixel dotted rectangle the shell XORed
 //   onto the desktop, drawn in the desktop text color (the XOR over the
 //   Background read as a light dotted line), where the base draws a dotted
@@ -107,12 +109,13 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
   }
 
   // --- The picture ----------------------------------------------------------
-  // Whole pixels at any zoom, the desktop's own picture only.
+  // Whole pixels at any zoom, the desktop's own picture only. The desktop
+  // icons keep the base's own `pixelated` (ClassicyDesktopIcon.scss).
   & {
     image-rendering: pixelated;
   }
 
-  & > * {
+  & > :not(.classicyDesktopIcon) {
     image-rendering: auto;
   }
 

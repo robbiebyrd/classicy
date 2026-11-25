@@ -445,13 +445,13 @@ right, two-pixel bevels from the system colors, checkered scroll-bar tracks
 with an arrow at each end, raised menus and rectangular controls, in
 "Windows Standard", "Windows 95" and the sixteen classic color schemes of
 the Display control panel (Brick, Desert, Rainy Day, …), each a recoloring
-of one stylesheet. It ships Windows 98's own icons, the Start flag, the
-Recycle Bin, the shortcut overlay, the Windows logo and the cursors, a pixel
-recreation of MS Sans Serif as its font, shows the bundled apps, the Trash
-and the startup disk by Windows 98's names (Notepad, Display, Recycle Bin, My
-Computer, …), and plays Windows 98's own sounds where its default sound
-scheme did (The Microsoft Sound at startup, Ding, Chord, and Recycle when the
-Trash is emptied). The Desktop tab offers Windows 98's nineteen wallpapers
+of one stylesheet. It ships Windows 98's own icons, Start flag, Recycle Bin,
+shortcut overlay, Windows logo and cursors, and a pixel recreation of MS Sans
+Serif as its font; it shows the bundled apps, the Trash and the startup disk
+by Windows 98's names (Notepad, Display, Recycle Bin, My Computer, …) and
+plays Windows 98's own sounds where its default sound scheme did (The
+Microsoft Sound at startup, Ding, Chord, and Recycle when the Trash is
+emptied). The Desktop tab offers Windows 98's nineteen wallpapers
 and nineteen desktop patterns (drawn black over the scheme's desktop color,
 as Windows drew them), and the Screen Saver panel its screen savers: Flying
 Through Space, Flying Windows, Mystify Your Mind, Curves and Colors,

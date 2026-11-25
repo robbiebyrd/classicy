@@ -291,8 +291,9 @@ package.
 
 ## Asset sources
 
-Every image, cursor, sound and screen saver the package ships is Windows
-98 Second Edition's own, read from the English Windows 98 SE CD (archive.org item
+Every image (but the package's own icon, `windows98.svg`), cursor, sound
+and screen saver the package ships is Windows 98 Second Edition's own, read
+from the English Windows 98 SE CD (archive.org item
 `windows-98-second-edition_202103`): its install cabinets (`WIN98_21.CAB` to
 `WIN98_74.CAB`, `BASE4` to `BASE6`, `PRECOPY1` and `PRECOPY2`), unpacked
 with `cabextract`, its sounds taken as they are and each binary's

@@ -118,13 +118,23 @@ describe("windows98.scss (compiled)", () => {
 	});
 
 	// A desktop picture is drawn whole pixels, as Windows drew a bitmap; the
-	// desktop's children draw their own way. The Desktop tab's preview shows
-	// the desktop's own background (its color under its tiled picture), so a
-	// pattern previews tiled in the scheme's color.
+	// desktop's children draw their own way, but its icons, which the base
+	// draws pixelated (a package-layer `auto` on them would beat the base's
+	// rule and blur them). The Desktop tab's preview shows the desktop's own
+	// background (its color under its tiled picture), so a pattern previews
+	// tiled in the scheme's color.
 	it("draws the desktop's picture whole pixels and previews it tiled", () => {
 		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
 		expect(css).toContain(`${scope} {\n    image-rendering: pixelated;`);
-		expect(css).toContain(`${scope} > * {\n    image-rendering: auto;`);
+		expect(css).toContain(
+			`${scope} > :not(.classicyDesktopIcon) {\n    image-rendering: auto;`,
+		);
+		// No other rule sets the desktop's children back to `auto`.
+		expect(
+			[...css.matchAll(/([^{}]*)\{[^{}]*image-rendering: auto;/g)].map(
+				(match) => (match[1] ?? "").trim(),
+			),
+		).toEqual([`${scope} > :not(.classicyDesktopIcon)`]);
 		const preview = new RegExp(
 			`${scope.replace(/[.[\]]/g, "\\$&")} \\.classicyAppearanceManagerDesktopPreview \\{([^}]*)\\}`,
 		).exec(css)?.[1];
