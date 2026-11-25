@@ -95,9 +95,12 @@ describe("the Apple menu's width", () => {
 	]);
 
 	/**
-	 * The menu bar as it draws, its Apple menu holding a submenu with a
-	 * submenu of its own: the Apple menu's lists are its pull-down and those
-	 * two.
+	 * The menu bar as it draws, inside the root `ClassicyDesktop` gives it
+	 * (its id and class, `data-classicy-appearance`, `data-classicy-menu-bar`
+	 * and `data-classicy-grow-box`, as ClassicyDesktop.tsx renders them), so a
+	 * rule scoped by the desktop root reaches the lists as in a page; its
+	 * Apple menu holding a submenu with a submenu of its own: the Apple
+	 * menu's lists are its pull-down and those two.
 	 */
 	const appleMenuLists = () => {
 		act(() => {
@@ -118,7 +121,19 @@ describe("the Apple menu's width", () => {
 				true,
 			);
 		});
-		const { container } = render(createElement(ClassicyDesktopMenuBar));
+		const { container } = render(
+			createElement(
+				"div",
+				{
+					id: "classicyDesktop",
+					className: "classicyDesktop",
+					"data-classicy-appearance": "platinum",
+					"data-classicy-menu-bar": "screen",
+					"data-classicy-grow-box": "bottom-right",
+				},
+				createElement(ClassicyDesktopMenuBar),
+			),
+		);
 		const apple = container.querySelector(".classicyDesktopMenuApple");
 		return {
 			apple,
@@ -126,12 +141,38 @@ describe("the Apple menu's width", () => {
 		};
 	};
 
+	/** A user-action pseudo-class (`:hover`, `:focus`…). */
+	const USER_ACTION = /:(?:hover|active|focus-visible|focus-within|focus)\b/g;
+
+	/**
+	 * `selector` with each user-action pseudo-class taken as held or not, in
+	 * every combination: held, it matches every element; not held, none. So
+	 * `ul:hover` is found as held and `ul:not(:hover)` as not held, which a
+	 * rewrite taking them all as held turned into `:not(:not(…))`, matching
+	 * nothing.
+	 */
+	const userActionStates = (selector: string): string[] => {
+		const count = selector.match(USER_ACTION)?.length ?? 0;
+		const states: string[] = [];
+		for (let held = 0; held < 2 ** count; held++) {
+			let at = 0;
+			states.push(
+				selector.replace(USER_ACTION, () => {
+					const isHeld = (held >> at) & 1;
+					at += 1;
+					return isHeld ? ":not([data-never-set])" : "[data-never-set]";
+				}),
+			);
+		}
+		return states;
+	};
+
 	/**
 	 * Every width the rules of `css` give one of the Apple menu's lists, with
-	 * the menu closed and open: a rule of a selector that matches a list once
-	 * user-action pseudo-classes are taken as held (`:hover`, `:focus`…).
-	 * Selectors of a pseudo-element are left out (they size a generated box,
-	 * not the list).
+	 * the menu closed and open: a rule of a selector that matches a list with
+	 * its user-action pseudo-classes (`:hover`, `:focus`…) held or not, in
+	 * any combination. Selectors of a pseudo-element are left out (they size
+	 * a generated box, not the list).
 	 */
 	const appleListWidths = (css: string) => {
 		const { apple, lists } = appleMenuLists();
@@ -154,12 +195,9 @@ describe("the Apple menu's width", () => {
 				for (const selector of selectors) {
 					if (/::|:(?:before|after|first-line|first-letter)\b/.test(selector))
 						continue;
-					const held = selector.replace(
-						/:(?:hover|active|focus-visible|focus-within|focus)\b/g,
-						":not([data-never-set])",
-					);
+					const states = userActionStates(selector);
 					lists.forEach((list, at) => {
-						if (list.matches(held))
+						if (states.some((state) => list.matches(state)))
 							for (const width of widths)
 								found.add(`list ${at}: ${selector} { ${width} }`);
 					});
@@ -215,6 +253,21 @@ describe("the Apple menu's width", () => {
 		[".classicyDesktopMenuApple.open .classicySubMenu", "max-width: 50%"],
 		[".classicyDesktopMenuApple:hover ul", "inline-size: 12rem"],
 		[".classicyDesktopMenu .classicySubMenu", "min-inline-size: 10em"],
+		// Scoped by the desktop root, as base sheets scope rules
+		// (ClassicyDesktop.scss, ClassicyDesktopIcon.scss), and not held
+		// (integration review G round 5, finding 2).
+		[".classicyDesktop .classicyDesktopMenuApple div ul", "min-width: 16em"],
+		[
+			"[data-classicy-menu-bar=screen] .classicyDesktopMenuApple ul",
+			"min-width: 16em",
+		],
+		["#classicyDesktop .classicyDesktopMenuApple ul", "min-width: 16em"],
+		[
+			'.classicyDesktop[data-classicy-appearance="platinum"] .classicyDesktopMenuApple ul',
+			"min-width: 16em",
+		],
+		[".classicyDesktopMenuApple ul:not(:hover)", "min-width: 16em"],
+		[".classicyDesktopMenuApple:hover ul:not(:focus)", "min-width: 16em"],
 	])("finds %s { %s } by its width", (selector, width) =>
 		expect(
 			appleListWidths(`${menuBarCss}\n${selector} {\n  ${width};\n}\n`).found,
