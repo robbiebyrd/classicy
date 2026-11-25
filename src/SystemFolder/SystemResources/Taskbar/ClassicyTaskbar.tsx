@@ -6,6 +6,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	type RefObject,
+	useCallback,
 	useEffect,
 	useLayoutEffect,
 	useRef,
@@ -14,9 +15,18 @@ import {
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { setClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+import {
+	CLASSICY_START_MENU_ID,
+	ClassicyStartMenu,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyStartMenu.internal";
 import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import { ClassicyTaskbarTasks } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
+import {
+	classicyDesktopHasOpenModal,
+	useClassicyTaskbarKeys,
+} from "@/SystemFolder/SystemResources/Taskbar/useClassicyTaskbarKeys.internal";
 
 /**
  * The Start button's label when the layout gives none (WIG Ch.3 "The Start
@@ -85,10 +95,15 @@ const useClassicyTaskbarBandPublisher = (
  * `hideModules`; with no `taskbar` in the layout it is never mounted, so
  * Platinum and System 7 draw the Control Strip as always.
  *
- * - **The Start button** carries `open` while its menu is open: a press
- *   toggles it, as do Enter and Space, and Escape closes it, leaving the
- *   focus on the button. Its label is the layout's `taskbar.startLabel`
- *   (`"Start"` when absent); its icon is an empty span the package draws.
+ * - **The Start button** opens the Start menu (`ClassicyStartMenu.internal.tsx`:
+ *   About This Computer, Programs, Settings, Help, Empty Trash… and Reset
+ *   PRAM…, beside the layout's `taskbar.startBanner`), and carries `open`
+ *   while it is open: a press toggles it, as do Enter, Space and CTRL+ESC
+ *   anywhere on the page (WIG App. B, Table B.2, p.358), and Escape closes
+ *   it, leaving the focus on the button (handed back to it from the menu).
+ *   Nothing opens it while a modal dialog is open on the desktop. Its label
+ *   is the layout's `taskbar.startLabel` (`"Start"` when absent); its icon
+ *   is an empty span the package draws.
  * - **A window button** (`classicyTaskbarTask`) shows the window's icon and
  *   title (its app's display name when untitled), cut with an ellipsis and
  *   then shown whole as a tooltip after 500 ms, whatever Balloon Help says.
@@ -116,7 +131,9 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	const layout = useClassicyAppearanceLayout();
 	const startLabel =
 		layout.taskbar?.startLabel ?? CLASSICY_TASKBAR_DEFAULT_START_LABEL;
+	const startBanner = layout.taskbar?.startBanner;
 	const rootRef = useRef<HTMLElement>(null);
+	const startRef = useRef<HTMLButtonElement>(null);
 	const appearance = useClassicyAppearance("Taskbar", {}, rootRef);
 	useClassicyTaskbarBandPublisher(rootRef);
 
@@ -128,19 +145,43 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 		return () => setClassicyControlStripDisabledModules([]);
 	}, [disabledKey]);
 
-	const [startOpen, setStartOpen] = useState(false);
+	// The Start button's rect while its menu is open, else null: the menu is
+	// placed against the button as it stood when it opened.
+	const [startAnchor, setStartAnchor] = useState<ClassicyBevelPopupRect | null>(
+		null,
+	);
+	const startOpen = startAnchor !== null;
+	const openStartMenu = useCallback(() => {
+		const button = startRef.current;
+		// A modal dialog blocks the taskbar as it blocks the desktop.
+		if (!button || classicyDesktopHasOpenModal(rootRef.current)) return;
+		const { top, bottom, left, right } = button.getBoundingClientRect();
+		setStartAnchor({ top, bottom, left, right });
+	}, []);
+	const closeStartMenu = useCallback(() => {
+		setStartAnchor(null);
+		// Hand the focus back to the button when it was in the menu (the
+		// keyboard, Escape), as Windows leaves it on the Start button.
+		const menu = document.getElementById(CLASSICY_START_MENU_ID);
+		if (menu?.contains(document.activeElement)) startRef.current?.focus();
+	}, []);
+	const toggleStartMenu = () => {
+		if (startOpen) closeStartMenu();
+		else openStartMenu();
+	};
+	useClassicyTaskbarKeys(rootRef, startOpen, openStartMenu, closeStartMenu);
 	// A press opens or closes it, as a menu title does; Enter and Space reach
 	// it as a click with no press count.
 	const onStartMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
-		if (e.button === 0) setStartOpen((open) => !open);
+		if (e.button === 0) toggleStartMenu();
 	};
 	const onStartClick = (e: MouseEvent<HTMLButtonElement>) => {
-		if (e.detail === 0) setStartOpen((open) => !open);
+		if (e.detail === 0) toggleStartMenu();
 	};
 	const onStartKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
 		if (e.key === "Escape" && startOpen) {
 			e.preventDefault();
-			setStartOpen(false);
+			closeStartMenu();
 		}
 	};
 	// The browser's own menu never opens over the taskbar.
@@ -156,6 +197,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 			onContextMenu={suppressContextMenu}
 		>
 			<button
+				ref={startRef}
 				type="button"
 				className={classNames(
 					"classicyTaskbarStart",
@@ -164,6 +206,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				data-classicy-part="taskbar-start"
 				aria-haspopup="menu"
 				aria-expanded={startOpen}
+				aria-controls={startOpen ? CLASSICY_START_MENU_ID : undefined}
 				onMouseDown={onStartMouseDown}
 				onClick={onStartClick}
 				onKeyDown={onStartKeyDown}
@@ -171,6 +214,15 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				<span className="classicyTaskbarStartIcon" aria-hidden="true" />
 				<span className="classicyTaskbarStartLabel">{startLabel}</span>
 			</button>
+			{startAnchor && (
+				<ClassicyStartMenu
+					anchor={startAnchor}
+					buttonRef={startRef}
+					label={startLabel}
+					banner={startBanner}
+					onClose={closeStartMenu}
+				/>
+			)}
 			<ClassicyTaskbarTasks />
 			{/* biome-ignore lint/a11y/useSemanticElements: the status area is a flex row of icons and the clock, not a form; a fieldset would bring a legend and form-control semantics */}
 			<div

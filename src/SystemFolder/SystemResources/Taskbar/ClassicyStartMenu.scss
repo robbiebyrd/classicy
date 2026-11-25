@@ -1,0 +1,28 @@
+// The Windows shell's Start menu (plan 0020-w98 §3; WIG Ch.3 "The Start
+// Button", p.15, Figure 3.1): a pop-up surface (ClassicyBevelButtonPopup)
+// that the taskbar's Start button opens, its banner beside its menu. The
+// taskbar mounts it only under a layout that declares `taskbar`, so no rule
+// here reaches a package without one.
+//
+// Structure only: the banner sits first, at the menu's left, the full
+// height of the surface, and the menu beside it. The package draws the
+// frame, the banner's colors and its upward text, and sizes the items.
+
+.classicyBevelButtonPopup.classicyStartMenu {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.classicyStartMenuBanner {
+  flex: 0 0 auto;
+  display: flex;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.classicyStartMenuBannerTitle,
+.classicyStartMenuBannerEdition {
+  flex: 0 0 auto;
+}

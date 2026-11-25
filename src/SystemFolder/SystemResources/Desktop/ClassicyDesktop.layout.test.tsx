@@ -459,6 +459,80 @@ describe("ClassicyDesktop layout", () => {
 		});
 	});
 
+	// Plan 0020-w98 §2 "Keyboard" and §3: CTRL+ESC and the Start menu belong
+	// to the taskbar, so they exist only where a layout mounts one.
+	describe("the Start menu and CTRL+ESC", () => {
+		const ctrlEscape = () =>
+			fireEvent.keyDown(document.body, {
+				key: "Escape",
+				code: "Escape",
+				ctrlKey: true,
+			});
+		const startMenu = () => document.getElementById("classicy-start-menu");
+		const submenu = (id: string) =>
+			Array.from(
+				document
+					.getElementById(id)
+					?.querySelectorAll<HTMLElement>(
+						":scope > .classicyMenuWrapper > ul > li.classicyMenuItem",
+					) ?? [],
+			);
+
+		it("leaves CTRL+ESC to the browser under Platinum", () => {
+			renderDesktop();
+			expect(ctrlEscape()).toBe(true);
+			expect(startMenu()).toBeNull();
+		});
+
+		it("opens the Start menu on CTRL+ESC under a taskbar, its Programs and Control Panel from the desktop's apps", () => {
+			registerTestTaskbarPackage();
+			activate(TEST_TASKBAR_PACKAGE_ID);
+			renderDesktop();
+			expect(ctrlEscape()).toBe(false);
+			expect(startMenu()).not.toBeNull();
+			// The bundled control panels that keep out of Applications, by name.
+			const panels = submenu("start-menu_control-panel");
+			expect(panels.map((li) => li.id).sort()).toEqual(
+				[
+					"AppearanceManager.app",
+					"ControlStripManager.app",
+					"DateAndTimeManager.app",
+					"ScreenSaverManager.app",
+					"SoundManager.app",
+				].map((appId) => `start-menu_control-panel_${appId}`),
+			);
+			const names = panels.map((li) => li.textContent ?? "");
+			expect(names).toEqual(
+				[...names].sort((a, b) =>
+					a.localeCompare(b, undefined, { sensitivity: "base" }),
+				),
+			);
+			// Calculator and Drive Setup are listed in Applications: Programs.
+			const programs = submenu("start-menu_programs").map((li) => li.id);
+			expect(programs).toEqual(
+				expect.arrayContaining([
+					"start-menu_programs_Calculator.app",
+					"start-menu_programs_DriveSetup.app",
+				]),
+			);
+			expect(programs.some((id) => id.endsWith("Manager.app"))).toBe(false);
+			expect(ctrlEscape()).toBe(false);
+			expect(startMenu()).toBeNull();
+		});
+
+		it("opens nothing on CTRL+ESC while a modal dialog is open", () => {
+			registerTestTaskbarPackage();
+			activate(TEST_TASKBAR_PACKAGE_ID);
+			act(() => openApp());
+			renderDesktopWithWindow({ modal: true, appMenu: undefined });
+			expect(
+				document.querySelector(".classicyWindowModalScrim"),
+			).not.toBeNull();
+			expect(ctrlEscape()).toBe(true);
+			expect(startMenu()).toBeNull();
+		});
+	});
+
 	// Plan 0020-w98 §5: the desktop binds the shell's window keys
 	// (`useClassicyWindowShellKeys`) only under a layout with the system menu.
 	describe("window.systemMenu", () => {

@@ -89,10 +89,15 @@ export const classicyDerivedAppEntryNames = (
 	});
 };
 
-/** An icon belongs in the derived Applications folder when it is an app
- *  shortcut that has not opted out. Undefined `inApplications` means opted in,
- *  so icons persisted before the field existed keep appearing. */
-const isApplicationsEntry = (
+/**
+ * Whether a desktop icon record is listed in the derived Applications
+ * folder: an app shortcut (`kind: "app_shortcut"`, every icon `ClassicyApp`
+ * registers) that has not opted out. An undefined `inApplications` means
+ * opted in, so icons persisted before the field existed keep appearing.
+ * `buildApplicationsFolder` lists these, and the Windows shell's Start ▸
+ * Programs reads the same records (plan 0020-w98 §3).
+ */
+export const isClassicyApplicationsEntry = (
 	icon: ClassicyStoreSystemDesktopManagerIcon,
 ): boolean =>
 	icon.kind === APP_SHORTCUT_ICON_KIND && icon.inApplications !== false;
@@ -122,7 +127,7 @@ export const buildApplicationsFolder = (
 		_readOnly: true,
 	};
 
-	const listed = icons.filter(isApplicationsEntry);
+	const listed = icons.filter(isClassicyApplicationsEntry);
 	const identities = listed.map((icon) =>
 		classicyAppIdentityFrom(overrides, icon.appId, {
 			name: icon.appName,
@@ -176,7 +181,7 @@ export const withApplicationsFolder = (
 
 	const current = tree[driveKey].Applications;
 	const kept = withoutDerivedEntries(current);
-	const hasApps = icons.some(isApplicationsEntry);
+	const hasApps = icons.some(isClassicyApplicationsEntry);
 	if (!hasApps && kept === current) return tree;
 	return {
 		...tree,

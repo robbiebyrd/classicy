@@ -491,6 +491,7 @@
 		"SoundManager": ["Content"],
 		"Spinner": ["Default", "Holder", "InputGroup"],
 		"SplitView": ["Divider", "Horizontal", "Pane", "Vertical"],
+		"StartMenu": ["Banner", "BannerEdition", "BannerTitle"],
 		"StartupScreen": ["Extensions", "Logo", "Panel", "Progress", "Wordmark"],
 		"Storage": [],
 		"SubMenu": ["FlipLeft"],
@@ -653,7 +654,8 @@
 			"menu-scroll-down",
 			"taskbar-start",
 			"taskbar-tasks",
-			"taskbar-tray"
+			"taskbar-tray",
+			"start-menu-banner"
 		]
 	}
 }

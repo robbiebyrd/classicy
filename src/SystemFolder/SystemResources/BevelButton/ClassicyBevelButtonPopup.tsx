@@ -13,6 +13,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+	CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR,
+	classicyBevelPopupShownItems,
+} from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupItems.internal";
+import {
 	type ClassicyBevelPopupAlign,
 	type ClassicyBevelPopupRect,
 	type ClassicyBevelPopupSide,
@@ -33,11 +37,6 @@ import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/Classi
 const PANEL_FOCUS_SELECTOR =
 	'[tabindex]:not([tabindex="-1"]), input, button, select, textarea';
 
-// Plain and checkable items alike (ClassicyMenu renders a checkable item as
-// a menuitemcheckbox, an option item, `mark: "bullet"`, as a menuitemradio).
-const MENU_ITEM_SELECTOR =
-	'li:is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]):not(.disabled)';
-
 type ClassicyBevelButtonPopupProps = {
 	/** DOM id of the surface; the button points `aria-controls` at it. */
 	id: string;
@@ -51,6 +50,13 @@ type ClassicyBevelButtonPopupProps = {
 	menuItems?: ClassicyMenuItem[];
 	/** …or any other surface, such as a slider (HIG Figure 2-16). */
 	content?: ReactNode;
+	/**
+	 * Drawn as the surface root's first child, before the menu or panel: the
+	 * Windows Start menu's vertical banner (plan 0020-w98 §3). Placement
+	 * measures the whole surface, so it is placed with what it holds. Absent
+	 * (every other surface), the surface's DOM is as it was.
+	 */
+	aside?: ReactNode;
 	/** Accessible name for the menu or panel. */
 	label?: string;
 	/** Move focus onto the first enabled item — set when opened by keyboard. */
@@ -84,6 +90,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	align = "start",
 	menuItems,
 	content,
+	aside,
 	label,
 	focusFirstItem = false,
 	buttonRef,
@@ -151,7 +158,9 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	useLayoutEffect(() => {
 		if (!focusFirstItem || !position) return;
 		const first = wrapperRef.current?.querySelector<HTMLElement>(
-			menuItems ? MENU_ITEM_SELECTOR : PANEL_FOCUS_SELECTOR,
+			menuItems
+				? CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR
+				: PANEL_FOCUS_SELECTOR,
 		);
 		first?.focus();
 	}, [focusFirstItem, position, menuItems]);
@@ -194,13 +203,12 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		};
 	}, [buttonRef, onClose]);
 
-	// Menu items keep focus off the button, so arrow keys walk them here.
+	// Menu items keep focus off the button, so arrow keys walk them here:
+	// the items shown, so a closed submenu's (drawn `display: none`, which
+	// takes no focus) are passed over rather than walked into.
 	const onMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-		const items = Array.from(
-			wrapperRef.current?.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR) ??
-				[],
-		);
+		const items = classicyBevelPopupShownItems(wrapperRef.current);
 		if (items.length === 0) return;
 		e.preventDefault();
 		const current = items.indexOf(document.activeElement as HTMLElement);
@@ -234,6 +242,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 				style={style}
 				onKeyDown={onMenuKeyDown}
 			>
+				{aside}
 				<ClassicyMenu
 					name={id}
 					menuItems={menuItems}
@@ -255,6 +264,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 			)}
 			style={style}
 		>
+			{aside}
 			{content}
 		</div>
 	);

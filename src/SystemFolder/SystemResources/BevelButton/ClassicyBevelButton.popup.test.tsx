@@ -14,6 +14,8 @@ import {
 	waitFor,
 } from "@/__tests__/test-utils";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
+import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
+import { classicyBevelPopupShownItems } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupItems.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 vi.mock(
@@ -707,5 +709,111 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(lasso, { button: 0 });
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+// Plan 0020-w98 §3: the surface's optional `aside` (the Windows Start menu's
+// banner), and the keyboard walking only the items a menu shows.
+describe("ClassicyBevelButtonPopup", () => {
+	const anchor = { top: 100, bottom: 120, left: 10, right: 40 };
+	const Surface = (
+		props: Partial<Parameters<typeof ClassicyBevelButtonPopup>[0]>,
+	) => {
+		const buttonRef = { current: null };
+		return (
+			<ClassicyBevelButtonPopup
+				id="surface"
+				anchor={anchor}
+				side="below"
+				buttonRef={buttonRef}
+				onClose={vi.fn()}
+				label="Surface"
+				{...props}
+			/>
+		);
+	};
+	const nested: ClassicyMenuItem[] = [
+		{ id: "one", title: "One", onClickFunc: vi.fn() },
+		{
+			id: "more",
+			title: "More",
+			menuChildren: [
+				{ id: "more-a", title: "A", onClickFunc: vi.fn() },
+				{ id: "more-b", title: "B", onClickFunc: vi.fn() },
+			],
+		},
+		{ id: "two", title: "Two", onClickFunc: vi.fn() },
+	];
+
+	it("draws the same DOM with no aside: the menu, or the panel's content, alone", () => {
+		render(<Surface menuItems={lassoItems(vi.fn())} />);
+		const menu = screen.getByRole("menu", { name: "Surface" });
+		expect(Array.from(menu.children, (el) => el.className)).toEqual([
+			"classicyMenuWrapper",
+		]);
+		const { unmount } = render(
+			<Surface id="panel" content={<input aria-label="Level" />} />,
+		);
+		const panel = screen.getByRole("dialog", { name: "Surface" });
+		expect(Array.from(panel.children, (el) => el.tagName)).toEqual(["INPUT"]);
+		unmount();
+	});
+
+	it("draws an aside as the surface's first child, before a menu or a panel's content", () => {
+		const aside = <div className="banner" aria-hidden="true" />;
+		render(<Surface menuItems={lassoItems(vi.fn())} aside={aside} />);
+		const menu = screen.getByRole("menu", { name: "Surface" });
+		expect(Array.from(menu.children, (el) => el.className)).toEqual([
+			"banner",
+			"classicyMenuWrapper",
+		]);
+		// The menu's items are still the surface's.
+		expect(screen.getByRole("menuitemcheckbox", { name: "Shrink" })).toBe(
+			menu.querySelector("#shrink"),
+		);
+		render(
+			<Surface
+				id="panel"
+				content={<input aria-label="Level" />}
+				aside={aside}
+			/>,
+		);
+		const panel = screen.getByRole("dialog", { name: "Surface" });
+		expect(
+			Array.from(panel.children, (el) => el.className || el.tagName),
+		).toEqual(["banner", "INPUT"]);
+	});
+
+	it("walks only the items shown: a closed submenu's are passed over", () => {
+		render(<Surface menuItems={nested} focusFirstItem />);
+		const menu = screen.getByRole("menu", { name: "Surface" });
+		expect(classicyBevelPopupShownItems(menu).map((el) => el.id)).toEqual([
+			"one",
+			"more",
+			"two",
+		]);
+		expect(document.getElementById("one")).toHaveFocus();
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.getElementById("more")).toHaveFocus();
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.getElementById("two")).toHaveFocus();
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowUp" });
+		// Opened, its items show, so they are walked, in document order.
+		fireEvent.keyDown(document.getElementById("more") as Element, {
+			key: "Enter",
+		});
+		expect(classicyBevelPopupShownItems(menu).map((el) => el.id)).toEqual([
+			"one",
+			"more",
+			"more-a",
+			"more-b",
+			"two",
+		]);
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.getElementById("more-a")).toHaveFocus();
+	});
+
+	it("finds no item outside a surface", () => {
+		expect(classicyBevelPopupShownItems(null)).toEqual([]);
 	});
 });

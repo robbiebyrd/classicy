@@ -95,6 +95,7 @@ export const CLASSICY_COMPONENT = {
 	SoundManager: "classicySoundManager",
 	Spinner: "classicySpinner",
 	SplitView: "classicySplitView",
+	StartMenu: "classicyStartMenu",
 	StartupScreen: "classicyStartupScreen",
 	Storage: "classicyStorage",
 	SubMenu: "classicySubMenu",

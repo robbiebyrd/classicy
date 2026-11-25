@@ -609,7 +609,12 @@ in every browser (Firefox now shows Platinum's full bars).
   behavior and only a long press opens the surface; the click ending that
   press is swallowed (`suppressClickRef`).
 - Keyboard: a click with `detail === 0` (Enter/Space) toggles a click-trigger
-  surface; Down Arrow opens either kind with the first item focused.
+  surface; Down Arrow opens either kind with the first item focused. In a
+  menu the arrows walk only the items shown (a closed submenu's, drawn
+  `display: none`, are passed over).
+- The surface itself, `ClassicyBevelButtonPopup`, takes an optional `aside`,
+  drawn as its first child before the menu or panel (the Windows Start
+  menu's banner, plan 0020-w98 §3); without it the DOM is unchanged.
 
 ### Menu Frame
 
