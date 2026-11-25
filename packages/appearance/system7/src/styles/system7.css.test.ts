@@ -2432,6 +2432,30 @@ describe("system7.scss (compiled)", () => {
 	// Plan 0018-dbd §3.7: the desktop, its icons, the Control Strip, the tab
 	// control and the Appearance Manager, from the 7.5 desktop captures and
 	// the Control Strip panel's own bitmaps.
+	// The rich text editor's toolbar tips (MDXEditor's Radix tooltips), now
+	// opened in the desktop (the WIG audit's 12.10, a defect under every
+	// package): System 7's help balloon box (HIG (1995) Ch.11 "Balloon
+	// Help", pp.316-317, Figure 11-8), the base `.classicyBalloonHelp`'s
+	// declarations and text.
+	it("draws the rich text editor's toolbar tips as its help balloon", () => {
+		const tip = rule(
+			".classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > *",
+		);
+		for (const declaration of [
+			"min-width: var(--balloon-help-min-width);",
+			"max-width: var(--balloon-help-max-width);",
+			"padding: var(--window-padding-size);",
+			"border: var(--window-border-size) solid var(--color-black);",
+			"border-radius: var(--balloon-help-corner-radius);",
+			"color: var(--color-black);",
+			"background: var(--color-white);",
+			"font-family: var(--ui-font);",
+			"font-size: var(--balloon-help-font-size);",
+			"line-height: 1.3;",
+		])
+			expect(tip).toContain(declaration);
+	});
+
 	describe("desktop, icons, Control Strip and tabs", () => {
 		const CORE_BACKGROUND = [
 			/background-color: var\(--desktop-background-color\);/,

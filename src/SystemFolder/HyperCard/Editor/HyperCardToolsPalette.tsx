@@ -2,17 +2,20 @@
  * Tools palette content: Browse/Pointer mode buttons plus the parts list. Each
  * part entry supports both drag-to-canvas (HTML5 DnD with the part-type MIME)
  * and click-to-arm placement (ClassicyAppHCEditSetPlacing); a second press
- * on the armed entry disarms it.
+ * on the armed entry disarms it, and so does Escape in the palette under a
+ * package whose layout declares `input.escapeCancels` (Windows 98).
  */
 
 import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { HYPERCARD_PART_DRAG_MIME } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorOverlay";
 import { paletteEntries } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorSchemas";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { classicyEscapeCancels } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 
 interface HyperCardToolsPaletteProps {
 	stackId: string;
@@ -27,6 +30,9 @@ export const HyperCardToolsPalette: FunctionalComponent<
 	HyperCardToolsPaletteProps
 > = ({ stackId, edit, className, style }) => {
 	const dispatch = useAppManagerDispatch();
+	// Escape in the palette disarms the armed entry (`input.escapeCancels`),
+	// as it does on the card: the press that armed it left the focus here.
+	const escapeDisarms = classicyEscapeCancels(useClassicyAppearanceLayout());
 
 	const setTool = (tool: HCEditState["tool"]) =>
 		dispatch({ type: "ClassicyAppHCEditSetTool", stackId, tool });
@@ -87,6 +93,17 @@ export const HyperCardToolsPalette: FunctionalComponent<
 								if (e.key === "Enter" || e.key === " ") {
 									e.preventDefault();
 									toggle();
+								} else if (
+									e.key === "Escape" &&
+									edit.placing &&
+									escapeDisarms
+								) {
+									e.preventDefault();
+									dispatch({
+										type: "ClassicyAppHCEditSetPlacing",
+										stackId,
+										partType: undefined,
+									});
 								}
 							}}
 						>

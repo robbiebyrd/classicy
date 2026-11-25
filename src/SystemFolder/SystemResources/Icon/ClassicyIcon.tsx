@@ -12,6 +12,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
@@ -210,6 +211,18 @@ interface ClassicyIconProps {
 	onRenameCommit?: (name: string) => void;
 	/** With `renaming`: Escape. */
 	onRenameCancel?: () => void;
+	/**
+	 * The icon stands for something stored elsewhere (a shortcut: an
+	 * `app_shortcut` or `shortcut` entry, `isAliasKind`). Under the package's
+	 * `layout.icon.aliasBadge` `"everywhere"` (Windows: WIG Ch.11
+	 * "Displaying Objects", p.230, Figure 11.11) the image and a second mask
+	 * pair carrying the `aliasBadge` system art,
+	 * `classicyIconMaskOuter classicyIconAliasBadge`, are drawn inside a
+	 * `classicyIconImage` element, as the desktop draws its shortcuts';
+	 * otherwise (Mac OS 8: the desktop alone badges aliases) it changes
+	 * nothing.
+	 */
+	alias?: boolean;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/**
@@ -297,6 +310,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	renameText,
 	onRenameCommit,
 	onRenameCancel,
+	alias = false,
 	className,
 	style,
 }) => {
@@ -593,7 +607,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		size ?? themeIconSize ?? Number.POSITIVE_INFINITY,
 		active,
 	);
-	const iconEl = (
+	const imageEl = (
 		<div
 			className={classNames(
 				"classicyIconMaskOuter",
@@ -606,6 +620,28 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				<img src={image} alt={name} />
 			</div>
 		</div>
+	);
+	// A shortcut's badge, under `layout.icon.aliasBadge` "everywhere" only:
+	// the image and the badge's own mask pair in one box, as
+	// ClassicyDesktopIcon draws a shortcut.
+	const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
+	const badged = alias && layout.icon?.aliasBadge === "everywhere";
+	const iconEl = badged ? (
+		<div className={"classicyIconImage"}>
+			{imageEl}
+			<div
+				className={"classicyIconMaskOuter classicyIconAliasBadge"}
+				style={
+					{ "--classicy-icon-mask": `url("${aliasBadge}")` } as CSSProperties
+				}
+			>
+				<div className={"classicyIconMask"}>
+					<img src={aliasBadge} alt="" aria-hidden="true" />
+				</div>
+			</div>
+		</div>
+	) : (
+		imageEl
 	);
 
 	return (

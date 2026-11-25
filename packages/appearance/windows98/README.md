@@ -53,7 +53,8 @@ and `nodenext` resolution).
   title-bar colors, the selected text's, the ToolTip's (each scheme's own:
   Brick's dark red on its pale face), the desktop labels', ButtonText,
   GrayText, the scroll bar's and the window borders' are the package's own
-  color families, editable in the Colors tab beside the palette, and its
+  color families, editable in the Colors tab beside the palette (Help's
+  green jumps among them, the same in every scheme), and its
   fonts the package's own font rows in the Fonts tab (Times New Roman in
   Eggplant's and Rose's captions and menus, Arial in Brick's caption and
   Lilac's, larger faces in the large schemes).
@@ -203,6 +204,87 @@ and `nodenext` resolution).
   only the left button drags (the middle button does nothing); and Escape
   takes back a drag in progress: a split view's divider, a slider's thumb,
   an icon or a column edge goes back to where it was.
+- **Its documents**, kept as Notepad and Explorer kept them. SimpleText
+  asks before a changed document closes, with Notepad's own message box
+  ("The text in the Letter.txt file has changed." / "Do you want to save the
+  changes?", or "the Untitled file" for a new one): Yes saves it (a new one
+  through Save As) and closes, No closes without saving, Cancel keeps it
+  open; its close box, File ▸ Close and Quit all ask, Quit once for each
+  changed document. Opening a document or folder that is already open
+  brings its own window to the front, from Finder or the desktop. A
+  plain-text document comes back with the caret and the scroll position it
+  was closed with. And File ▸ Open… and Save answer to Ctrl+O and Ctrl+S,
+  instead of the browser's Open and Save Page. The Mac packages keep
+  SimpleText as it was.
+- **Its text**, edited as Windows 98 edited it. A double-click selects the
+  word and the spaces after it, never the comma or the line break that
+  follows. The Edit commands act on a field of the active window only, so
+  Delete chosen in one window never deletes a word selected in another.
+  The Edit menu is Notepad's: Undo (dimmed with nothing to undo), Cut,
+  Copy, Paste, Delete (Del, in place of Clear) and Select All, Cut, Copy
+  and Delete dimmed while nothing is selected. And a right-click on any
+  text field, a combo box's or a spinner's included, shows its own menu,
+  Undo, Cut, Copy, Paste, Delete and Select All, at the pointer, keeping
+  the selection; Shift+F10 or the Application key opens it at the field's
+  center. The Mac packages keep their text fields as they were.
+- **Its wizards and Help.** An assistant is a wizard: "< Back" and
+  "Next >" push buttons (Alt+B, Alt+N) in place of the page arrows and the
+  page number, Back dimmed on the first page and Next on the last, standing
+  together before the page's own Finish and Cancel, on a ButtonFace page
+  ruled off by etched lines under its title and above its buttons, as
+  Windows 98's wizards are. The Help topic window (Help ▸ About Balloon
+  Help…) reads as a WinHelp topic: cream (InfoWindow) behind the title and
+  the text, both in the system font at 8 point, a black line under the
+  title, and green jumps (the Colors tab's Help ▸ Jump text). It is a
+  window you can size, and Help Topics, Back and Options (Alt+T, Alt+O)
+  stand in a row above the topic: Back shows the previous page, and
+  Options ▸ Copy puts the page's text on the clipboard. Help Topics opens
+  WinHelp's "Help Topics" dialog: its Contents tab lists the help topics in
+  books, and Display (or a double-click, or Return) shows the chosen topic,
+  Open and Close open and close a book, and Cancel or Escape closes the
+  dialog. The Help menu's own topic is "Using Help": point to an item for
+  its ToolTip, or use What's This?. What's This? (Shift+F1) turns the
+  pointer over the active window into the arrow with a question mark; then
+  a click on a control shows what it does in a cream pop-up with a shadow,
+  and Escape, a click outside the window or Shift+F1 again leaves the mode.
+  F1 shows the same pop-up for the control that has the focus, or opens
+  Help Topics where there is none; right-clicking a control with help that
+  has no menu of its own offers What's This? (Alt+W). In
+  HyperCard's editor, an armed part tool shows as a latched toolbar button,
+  and Escape disarms it before it deselects a part. The Mac packages keep
+  their pager, their fixed Help window, their "About Help" topic and their
+  tools as they were.
+- **Its ToolTips and status bar.** ToolTips keep Windows' timing: half a
+  second's rest shows one, it goes after five seconds or when the control
+  is clicked, and moving straight on to the next control shows its ToolTip
+  a tenth of a second later; a window that is not the active one shows
+  none. A toolbar button that shows only a picture is named by its
+  ToolTip, whether or not Balloon Help is on; a desktop icon's ToolTip gives
+  its name and description in plain text, on two lines; the rich text
+  editor's toolbar buttons (Bold, Italic, Undo…) show ToolTips too. A menu
+  item's help goes to the window's status bar while the item is
+  highlighted, as WordPad's does, never into a balloon beside the menu, and
+  an unavailable item can say why it is unavailable. The Mac packages keep
+  their balloons as they were; the rich text editor's toolbar buttons show
+  them a help balloon now, where they showed unstyled text.
+- **Its menus, message boxes, colors and pointers.** A menu command runs
+  the moment you choose it, with no flash and no wait. Empty Trash and
+  Reset PRAM read without an ellipsis, as Windows writes a command that
+  only asks first. A Return held down from the command that raised a
+  message box no longer closes the box: it waits for a new press. A message
+  box's Help button is a push button reading "Help", as wide as OK and
+  Cancel, last in the row. The startup screen shows no row of extensions.
+  The Appearance Manager's Colors tab names the colors as Windows' Display
+  Properties does: 3D Objects, Selected Items, Window and Desktop, and
+  Button Highlight, Button Light, Button Shadow, Button Dark Shadow and
+  Window Text for the colors Windows derived from them. Shortcuts in the
+  Finder's windows, in either view, carry the shortcut arrow over their
+  icon, as on the desktop. And the pointer is Windows' arrow over list and
+  tree rows, sliders, the tab and pager arrows and the color swatches (the
+  hand stays on links), the two-headed sizing pointer over a split view's
+  divider, also while it is dragged, the hourglass while Windows starts and
+  the arrow with the hourglass while a PDF loads. The Mac packages keep
+  their menus, dialogs, labels and pointers as they were.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
@@ -313,8 +395,10 @@ and `nodenext` resolution).
   registers Windows 98 and its sound pack. It also exports
   `WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json` (the themes, layout,
   knobs, color families and font labels, deep-frozen and typed with the
-  core's types, as `Windows98Json`), `windows98SoundPack` and
-  `readWindows98ThemeFile` (the `.theme` reader Load Theme… uses).
+  core's types, as `Windows98Json`), `windows98SoundPack`,
+  `windows98AppearanceHooks` (its one hook, a chosen menu item's, deeply
+  frozen) and `readWindows98ThemeFile` (the `.theme` reader Load Theme…
+  uses).
 - `./scss/*`: the package's SCSS: `bevels`, `pixel` and the `components/*`
   partials, and `windows98`, the whole sheet, which a host may compile
   through `pkg:@classicy/classicy/scss/*` (the package loads nothing of

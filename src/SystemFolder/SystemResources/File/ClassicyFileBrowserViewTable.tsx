@@ -18,12 +18,14 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { FinderListViewOptions } from "@/SystemFolder/Finder/FinderContext";
 import {
 	asFinderDate,
 	formatFinderDate,
 } from "@/SystemFolder/Finder/FinderViewOptions";
+import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 import type {
 	ClassicyFileBrowserArrangeKey,
 	ClassicyFileBrowserMoveItems,
@@ -316,6 +318,11 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// Folders before files, whatever the sort (Windows Explorer), under
 			// a package that says so; else sorted together (the Finder).
 			const foldersFirst = layout.fileList?.foldersFirst === true;
+			// A shortcut's row icon takes the badge where the package draws one
+			// in windows too (`layout.icon.aliasBadge` "everywhere"; WIG Ch.11
+			// "Displaying Objects", p.230): the same art at the row's size.
+			const badgeAliases = layout.icon?.aliasBadge === "everywhere";
+			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
 			const columnFlags = listViewOptions?.columns ?? DEFAULT_LIST_COLUMN_FLAGS;
 			const computeFolderSizes = listViewOptions?.calculateFolderSizes ?? true;
 			const relativeDates = listViewOptions?.useRelativeDate ?? true;
@@ -601,15 +608,32 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 									{/* The Finder draws a selected item's icon selected: the
 									active package's selected image when it has one,
 									else the stylesheet's darkening. */}
-									<ClassicyIconImage
-										src={iconSrc}
-										drawnAt={iconSize}
-										width={iconSize}
-										alt={row._path}
-										className={"classicyFileBrowserViewTableRowIcon"}
-										selectable
-										selected={expansion.selected === true}
-									/>
+									{(() => {
+										const rowIcon = (
+											<ClassicyIconImage
+												src={iconSrc}
+												drawnAt={iconSize}
+												width={iconSize}
+												alt={row._path}
+												className={"classicyFileBrowserViewTableRowIcon"}
+												selectable
+												selected={expansion.selected === true}
+											/>
+										);
+										return badgeAliases && isAliasKind(row._type) ? (
+											<span className={"classicyIconImage"}>
+												{rowIcon}
+												<span
+													className={"classicyIconAliasBadge"}
+													aria-hidden={true}
+												>
+													<img src={aliasBadge} alt="" />
+												</span>
+											</span>
+										) : (
+											rowIcon
+										);
+									})()}
 									{renaming !== null && row._path === renaming ? (
 										<ClassicyRenameField
 											className={"classicyFileBrowserViewTableRename"}
@@ -727,6 +751,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				typeName,
 				shownNames,
 				cutPaths,
+				badgeAliases,
+				aliasBadge,
 			]);
 
 			return (

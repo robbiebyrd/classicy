@@ -255,6 +255,18 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     background: b.$window;
     @include b.sunken;
   }
+
+  // While Windows starts: the hourglass over the startup screen (the
+  // registry's `watch`, the host's `wait` without one; WIG Ch.4 "Mouse
+  // Pointers", p.23, Table 4.1; the audit's 4.5), and no extensions parade
+  // (Windows 98 showed none; the audit's 1.16).
+  .classicyStartupScreen {
+    @include b.registry-cursor(watch, wait, 8 8);
+  }
+
+  .classicyStartupScreenExtensions {
+    display: none;
+  }
 }
 
 // The pointer during a file drag, Windows' drop effect, from the desktop

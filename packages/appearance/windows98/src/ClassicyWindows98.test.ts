@@ -14,6 +14,10 @@ import {
 	getClassicySoundPack,
 	listClassicySoundPacks,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import {
+	ABOUT_BALLOON_HELP_TOPIC_ID,
+	getAppleGuideTopic,
+} from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import windows98Json from "./windows98.json";
 
@@ -191,6 +195,7 @@ describe("the Windows 98 appearance package", () => {
 			"text",
 			"scrollBar",
 			"sizingBorder",
+			"help",
 		]);
 		for (const [family, { colors }] of Object.entries(
 			windows98Json.colorFamilies,
@@ -1329,15 +1334,22 @@ describe("the Windows 98 appearance package", () => {
 	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus on Windows' keys, kept open and cascades on a time-out, the context-menu keys, Command equivalents on Control alone, Explorer's Open first, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, lists selecting at the press and across a drag, Control with Shift adding a range and a double-click opening the selection, the page keys moving a list's row, Space, Control and Add mode building a selection, a drag carrying the icon view's selection, the list view's selection rectangle, one Tab stop for the icons, Windows' press discipline, Escape taking a drag back", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
-			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
+			window: {
+				restoreViewState: true,
+				growBoxCorner: "bottom-right",
+				centering: "wholePixel",
+			},
 			menuBar: { placement: "screen", idleTimeoutMs: 0 },
 			menu: {
+				standardShortcuts: "windows",
 				keys: "windows",
 				submenuDelayMs: 400,
 				disabledItems: "browse",
 				accessKeys: "auto",
 				shortcutSpelling: "names",
 				emptySubmenus: "placeholder",
+				itemHelp: "statusBar",
+				confirmEllipsis: false,
 			},
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: {
@@ -1372,7 +1384,21 @@ describe("the Windows 98 appearance package", () => {
 			},
 			fileList: { foldersFirst: true },
 			tree: { keys: "windows" },
-			balloonHelp: { placement: "pointer" },
+			balloonHelp: {
+				placement: "pointer",
+				contextHelp: "whatsThis",
+				unlabeledTips: true,
+				delayMs: 500,
+				autoPopMs: 5000,
+				reshowMs: 100,
+				hideOnPress: true,
+				activeWindowOnly: true,
+			},
+			text: { wordSelect: "trailingSpace" },
+			edit: { scope: "window", menu: "windows" },
+			textField: { contextMenu: "edit" },
+			assistant: { navigation: "buttons" },
+			help: { topicWindow: "winhelp" },
 			selection: {
 				secondaryButton: "select",
 				selectOn: "press",
@@ -1383,8 +1409,166 @@ describe("the Windows 98 appearance package", () => {
 				iconNavigation: "roving",
 			},
 			contextMenu: { openOn: "release" },
+			document: { confirmUnsavedClose: true, reopenActivates: true },
 			mouse: "windows",
 			input: { escapeCancels: true },
+			dialog: { flushInput: true },
+			icon: { aliasBadge: "everywhere" },
+		});
+	});
+
+	// Documents as Windows 98 kept them: Notepad's "The text in the … file
+	// has changed." before a changed document closes (1.17 / 5.25; WIG Ch.1
+	// "Forgiveness", pp.2-3; Ch.5 "View Operations", p.46, "Transactions",
+	// p.49), an open document's or folder's own window brought forward when
+	// it is opened again (5.24 / 9.2; Ch.5 p.46; Ch.9 "Single Document
+	// Window Interface", p.175), a window's scroll position and caret kept
+	// for when it is reopened (2.1; Ch.2 "Persistence", p.12), and CTRL+O
+	// and CTRL+S on the File menu (B.4; App. B Table B.2, p.358).
+	it("asks before a changed document closes, brings an open document's window forward, keeps its view state and puts Ctrl+O and Ctrl+S on Open and Save", async () => {
+		await import("./index");
+		const layout = getClassicyAppearancePackage("windows98")?.layout;
+		expect(layout?.document).toEqual({
+			confirmUnsavedClose: true,
+			reopenActivates: true,
+		});
+		expect(layout?.window.restoreViewState).toBe(true);
+		expect(layout?.menu?.standardShortcuts).toBe("windows");
+	});
+
+	// Text as Windows 98 edited it: a double-click takes the word and the
+	// space after it (`text.wordSelect`, 5.19; WIG Ch.5 "Selection
+	// Shortcuts", p.44), the Edit commands keep to the active window
+	// (`edit.scope`, 5.21; "Operations for a Multiple Selection", p.44), the
+	// Edit menu takes Notepad's form (`edit.menu`, the shell's 5.44; "Command
+	// Method", p.59), and a text field's right-click shows user.exe's edit
+	// menu (`textField.contextMenu`, 5.29; p.59).
+	it("takes the space after a double-clicked word, keeps the Edit commands to the active window, draws Notepad's Edit menu and gives text fields their own pop-up menu", async () => {
+		await import("./index");
+		const layout = getClassicyAppearancePackage("windows98")?.layout;
+		expect(layout?.text).toEqual({ wordSelect: "trailingSpace" });
+		expect(layout?.edit).toEqual({ scope: "window", menu: "windows" });
+		expect(layout?.textField).toEqual({ contextMenu: "edit" });
+	});
+
+	// A paged assistant is a wizard: "< Back" and "Next >" push buttons in
+	// the pager's place (`assistant.navigation` "buttons", 12.22; WIG Ch.12
+	// "Wizard Buttons", p.289, Figures 12.17 and 12.18).
+	it("moves through an assistant with the wizard's Back and Next buttons", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("windows98")?.layout.assistant).toEqual(
+			{ navigation: "buttons" },
+		);
+	});
+
+	// Help is WinHelp's: a topic's window sizable with its command buttons
+	// above the topic, and a Help Topics browser listing the topics
+	// (`help.topicWindow` "winhelp", 12.15, 12.16, 12.21; WIG Ch.12 "Task
+	// Topic Windows", pp.279-280, "The Help Topics Browser", pp.284-288).
+	it("shows Help in WinHelp's topic window and Help Topics browser", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("windows98")?.layout.help).toEqual({
+			topicWindow: "winhelp",
+		});
+	});
+
+	// Context-sensitive Help: What's This? and F1 (`balloonHelp.contextHelp`
+	// "whatsThis", 12.2-12.4 / B.5; WIG Ch.12 "Context-Sensitive Help",
+	// pp.273-275; App. B Table B.2, p.358), and the shadow of its pop-up,
+	// WinHelp's (Figure 12.3: six pixels right and down, measured at 600
+	// dpi), in every theme; `_BalloonHelp.scss` reads it.
+	it("takes What's This? and F1, and shadows the context-sensitive Help pop-up 6 px in every theme", async () => {
+		await import("./index");
+		expect(
+			getClassicyAppearancePackage("windows98")?.layout.balloonHelp,
+		).toMatchObject({ placement: "pointer", contextHelp: "whatsThis" });
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements.tooltip.shadow, theme.id).toBe(6);
+		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
+			"--tooltip-shadow": "6px",
+		});
+	});
+
+	// ToolTips timed and shown as Windows' (the WIG audit's 12.9, 12.11,
+	// 12.12; WIG Ch.12 "Tooltips", p.276; Wine's tooltips.c, TTDT_AUTOMATIC
+	// on the 500 ms double-click time): an icon-only bevel button named by
+	// one, half a second's wait, gone after five seconds or on a press, a
+	// tenth of a second from one tip to the next, none in an inactive window;
+	// and a highlighted menu item's help in the window's status bar, not a
+	// balloon (12.13; "Status Bar Messages", pp.276-277, Figure 12.7).
+	it("names unlabeled buttons by ToolTips on Windows' timing, in the active window only, and puts menu help in the status bar", async () => {
+		await import("./index");
+		const layout = getClassicyAppearancePackage("windows98")?.layout;
+		expect(layout?.balloonHelp).toMatchObject({
+			unlabeledTips: true,
+			delayMs: 500,
+			autoPopMs: 5000,
+			reshowMs: 100,
+			hideOnPress: true,
+			activeWindowOnly: true,
+		});
+		expect(layout?.menu?.itemHelp).toBe("statusBar");
+	});
+
+	// The Help menu's built-in topic in Windows' words, "how" steps (12.18;
+	// WIG Ch.12 "Guidelines for Writing Task Help Topics", pp.280-281),
+	// offered under Windows 98 alone: Platinum's and System 7's keep Apple
+	// Guide's "About Help".
+	it("words the built-in Help topic as Windows does, under Windows 98 alone", async () => {
+		await import("./index");
+		const using = getAppleGuideTopic(ABOUT_BALLOON_HELP_TOPIC_ID, "windows98");
+		expect(using?.title).toBe("Using Help");
+		expect(using?.packages).toEqual(["windows98"]);
+		expect(using?.pages).toHaveLength(1);
+		const { render } = await import("@testing-library/react");
+		const { container } = render(using?.pages[0] as never);
+		expect(
+			[...container.querySelectorAll("li")].map((li) => li.textContent),
+		).toEqual([
+			"Point to an item and wait: its ToolTip names it.",
+			"To learn what an item does, choose What's This? from the Help menu, then click the item.",
+		]);
+		for (const other of ["platinum", "system7"])
+			expect(
+				getAppleGuideTopic(ABOUT_BALLOON_HELP_TOPIC_ID, other)?.title,
+			).toBe("About Help");
+	});
+
+	// The Help topic window (Apple Guide's) sets its title and its topic in
+	// the system font at MS Sans Serif 8's 11 px, where the core floor's
+	// (Platinum's) `appleGuide` sizes are 13 and 14 (12.17; WIG Ch.12 "Task
+	// Topic Windows", p.280); the family's other keys stay the floor's.
+	it("sets the Help topic window's title and text at 11 px in every theme", async () => {
+		await import("./index");
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements.appleGuide, theme.id).toEqual({
+				headerFontSize: 11,
+				bodyFontSize: 11,
+			});
+		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
+			"--apple-guide-header-font-size": "11px",
+			"--apple-guide-body-font-size": "11px",
+			"--apple-guide-header-height": "42px",
+			"--apple-guide-footer-height": "48px",
+		});
+	});
+
+	// A text jump in a Help topic is green (WIG Ch.12 "Jumps", p.283: "The
+	// default system presentation for text jumps is green underlined text";
+	// WinHelp's JUMPCOLOR, winhlp32.exe on the Windows 98 SE CD): the
+	// package's `help` family, #008000 in every scheme (WinHelp's jump color
+	// is its own setting, which a display scheme does not change), editable
+	// in the Colors tab (12.20).
+	it("colors Help's jumps green in every theme, from its help family", async () => {
+		await import("./index");
+		expect(windows98Json.colorFamilies.help).toEqual({
+			label: "Help",
+			colors: { jump: { label: "Jump text" } },
+		});
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.color.families.help, theme.id).toEqual({ jump: 0x008000 });
+		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
+			"--package-color-help-jump": "#008000",
 		});
 	});
 
@@ -1419,6 +1603,7 @@ describe("the Windows 98 appearance package", () => {
 				paddingX: 4,
 				paddingY: 2,
 				pointerOffset: 20,
+				shadow: 6,
 			});
 		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
 			"--tooltip-pointer-offset": "20px",
@@ -1464,12 +1649,58 @@ describe("the Windows 98 appearance package", () => {
 		expect(getClassicyAppearancePackage("windows98")?.sounds).toEqual([pack]);
 	});
 
-	it("registers no fonts, no screen saver and no hooks", async () => {
+	it("registers no fonts and no screen saver", async () => {
 		await import("./index");
 		const pkg = getClassicyAppearancePackage("windows98");
 		expect(document.getElementById("classicy-fonts-windows98")).toBeNull();
 		expect(pkg?.defaultScreenSaver).toBeUndefined();
-		expect(pkg?.hooks).toBeUndefined();
+	});
+
+	// One hook, a chosen menu item's (1.19 / 4.7; WIG Ch.4 "Mouse Actions",
+	// p.24; Ch.7 "Drop-down Menu Interaction", p.97): its press class
+	// carries a 1 ms animation (_Menu.scss), whose end runs the command at
+	// once, with no flash and no sound; its release clears it. Deeply
+	// frozen, as Platinum's hooks are.
+	it("registers one hook, a chosen menu item's, frozen and silent", async () => {
+		const { windows98AppearanceHooks } = await import("./index");
+		const pkg = getClassicyAppearancePackage("windows98");
+		expect(pkg?.hooks).toBe(windows98AppearanceHooks);
+		expect(Object.keys(pkg?.hooks?.on ?? {})).toEqual(["MenuItem"]);
+		const item = pkg?.hooks?.on?.MenuItem;
+		expect(Object.keys(item ?? {})).toEqual(["press", "release"]);
+		expect(Object.isFrozen(windows98AppearanceHooks)).toBe(true);
+		expect(Object.isFrozen(windows98AppearanceHooks.on)).toBe(true);
+		expect(Object.isFrozen(item)).toBe(true);
+		const ctx = (event: "press" | "release") => ({
+			component: "MenuItem" as const,
+			event,
+			element: null,
+			state: {},
+			detail: { itemId: "x", input: "pointer" },
+		});
+		expect(item?.press?.(ctx("press"))).toEqual({
+			className: "windows98MenuItemChosen",
+		});
+		expect(item?.release?.(ctx("release"))).toEqual({});
+	});
+
+	// The Colors tab's names for the core's colors (1.2; WIG Ch.1 "User in
+	// Control", p.1, "Directness", pp.1-2): the Display Properties Items of
+	// Windows 98 SE's Appearance tab (deskcp16.dll) where one is the color,
+	// else the `[Control Panel\Colors]` name in words.
+	it("labels the core's colors in Windows' words", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("windows98")?.colorLabels).toEqual({
+			"--color-system-01": "Button Highlight",
+			"--color-system-02": "Button Light",
+			"--color-system-03": "3D Objects",
+			"--color-system-05": "Button Shadow",
+			"--color-system-07": "Button Dark Shadow",
+			"--color-black": "Window Text",
+			"--color-highlight": "Selected Items",
+			"--color-window-document": "Window",
+			"--desktop-background-color": "Desktop",
+		});
 	});
 
 	// A disabled control's image embossed in the scheme's ButtonHilight and

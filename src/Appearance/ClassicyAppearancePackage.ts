@@ -52,6 +52,23 @@ export {
  */
 export type ClassicyAppearanceLayout = {
 	window: {
+		/**
+		 * Whether a window's view state comes back with it (WIG Ch.2
+		 * "Persistence", p.12: "view state information, such as cursor
+		 * position, scroll position, and window size and location, should be
+		 * preserved so it can be restored when an object's view is
+		 * reopened"). Absent or `false` (Mac OS 8 and
+		 * System 7, today's behavior): a window's record keeps its size,
+		 * place, zoom and collapse alone, and a reopened window starts
+		 * scrolled to the top with the caret at the start. `true` (Windows):
+		 * once its scrolling settles, a scroll area given
+		 * `useClassicyWindowViewState`'s callbacks records its offsets on the
+		 * window's record (`scroll`, through `ClassicyWindowSetScroll`), and a
+		 * document's text editor its caret (`caret`; SimpleText's windows),
+		 * and both are put back when the window mounts again, this session or
+		 * after a reload.
+		 */
+		restoreViewState?: boolean;
 		growBoxCorner: "bottom-right" | "bottom-left" | "top-right" | "top-left";
 		/**
 		 * Where a window opened at a symbolic `"center"` position lands.
@@ -83,6 +100,19 @@ export type ClassicyAppearanceLayout = {
 	 * Mac OS behavior.
 	 */
 	menu?: {
+		/**
+		 * The standard shortcut keys a bundled document app's File menu
+		 * carries. Absent (Mac OS 8 and System 7, whose equivalents are
+		 * ⌘-keys the browser keeps): none, so SimpleText's Open… and Save
+		 * have no equivalent. `"windows"` (WIG Appendix B Table B.2, p.358,
+		 * the common shortcut keys, CTRL+O Open and CTRL+S Save: "Avoid
+		 * assigning these keys to functions other than those listed"): SimpleText's
+		 * Open… carries ⌃O and Save ⌃S (spelled Ctrl+O and Ctrl+S under
+		 * `shortcutSpelling: "names"`), so on a Windows host Ctrl+O and
+		 * Ctrl+S run them instead of the browser's Open and Save Page; the
+		 * menu-shortcut dispatcher prevents the browser's default.
+		 */
+		standardShortcuts?: "windows";
 		/**
 		 * How a menu takes the keyboard (`ClassicyMenu`). `"mac"` (the
 		 * default; Mac OS 8's and System 7's menus had no keyboard
@@ -157,6 +187,32 @@ export type ClassicyAppearanceLayout = {
 		 * menu and Favorites): a submenu holding one dimmed "(Empty)" item.
 		 */
 		emptySubmenus?: "leaf" | "placeholder";
+		/**
+		 * Where a menu item's help (`ClassicyMenuItem.balloon`) goes.
+		 * `"balloon"` (the default, Mac OS 8's Balloon Help): a balloon
+		 * beside the item while balloons are on. `"statusBar"` (Windows; WIG
+		 * Ch.12 "Status Bar Messages", pp.276-277, Figure 12.7): no balloon;
+		 * while the item is highlighted (the pointer on it, or the keyboard's
+		 * focus) its `balloon.content`, or `balloon.disabledContent` while it
+		 * is disabled, is the menus' status text
+		 * (`useClassicyMenuStatusText`), an item with no help giving none,
+		 * until the menu closes; a `ClassicyPlacard` with `menuStatus` in the
+		 * active window shows it in place of its children meanwhile. The
+		 * menus of a `ClassicyBevelButtonPopup` outside any window (the
+		 * taskbar's Start menu and tray, the Control Strip's) give none.
+		 */
+		itemHelp?: "balloon" | "statusBar";
+		/**
+		 * Whether an item that only asks first (`ClassicyMenuItem.confirms`:
+		 * Empty Trash, Reset PRAM, whose command opens a warning alert)
+		 * takes an ellipsis. Absent or `true` (Mac OS 8 and System 7: "Empty
+		 * Trash…", HIGOS8 Ch.4 "Menu Items"): the menu appends "…" to its
+		 * title. `false` (Windows: WIG Ch.7 "Types of Menu Items", pp.107-108,
+		 * "Don't use an ellipsis for commands that only display a message
+		 * confirming the action", as Explorer's Empty Recycle Bin reads):
+		 * the title as given.
+		 */
+		confirmEllipsis?: boolean;
 	};
 	desktop: {
 		iconGridOrigin: "top-right" | "top-left" | "bottom-right" | "bottom-left";
@@ -638,6 +694,203 @@ export type ClassicyAppearanceLayout = {
 		 * it until the pointer leaves.
 		 */
 		placement?: "anchor" | "pointer";
+		/**
+		 * Context-sensitive Help (WIG Ch.12 "Context-Sensitive Help",
+		 * pp.273-275, Figures 12.1-12.4; App. B Table B.2, p.358). Absent
+		 * (Platinum, System 7: Mac OS had no such mode), nothing: F1 and
+		 * Shift+F1 are left to the browser, and `startClassicyWhatsThis`
+		 * and `showClassicyContextHelp` do nothing. `"whatsThis"` (Windows
+		 * 98): What's This? (`startClassicyWhatsThis`, Shift+F1) sets a
+		 * session-only mode, `html.classicyWhatsThisMode`, showing the
+		 * `help` cursor over the active window; a click on an element
+		 * `useClassicyBalloonHelp` describes shows its help as a pop-up at
+		 * the click (`classicyBalloonHelp classicyBalloonHelpContext`) and
+		 * ends the mode, a click on nothing described keeps it, a menu
+		 * title or a button-2 press on a `ClassicyContextualMenuTarget`
+		 * passes through and keeps it until the menu closes, and Escape, a
+		 * press outside the window or the command again ends it. F1 shows
+		 * the focused element's help below it, or, with none, dispatches
+		 * Help Topics (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`); a right-click
+		 * on a described control in a window that opens no menu of its own
+		 * shows a menu holding "What's This?", which shows the help at
+		 * once.
+		 */
+		contextHelp?: "whatsThis";
+		/**
+		 * Absent or `false` (Platinum, System 7), an icon-only
+		 * `ClassicyBevelButton` has its accessible name only. `true` (Windows;
+		 * WIG Ch.12 "Tooltips", p.276, Figure 12.6; App. C "User
+		 * Assistance", p.364): a `ClassicyBevelButton` with no text children
+		 * and an accessible name (`aria-label`, else `iconAlt`) shows that
+		 * name as its ToolTip, whether or not balloon help is on
+		 * (`useClassicyBalloonHelp`'s `force`).
+		 */
+		unlabeledTips?: boolean;
+		/**
+		 * The wait before a tip shows, in ms, where its config names no
+		 * `delay`. Absent, 600 (Mac OS 8's balloons). Windows 98: 500, the
+		 * double-click time (Wine's `tooltips.c`, TTDT_AUTOMATIC).
+		 */
+		delayMs?: number;
+		/**
+		 * Absent, a shown tip stays until the pointer leaves. Given (Windows
+		 * 98: 5000, ten times the delay), a shown tip hides after this many
+		 * ms without a pointer move over its element (each move restarts
+		 * it, as `tooltips.c`'s ID_TIMERPOP), and stays hidden until the
+		 * pointer leaves.
+		 */
+		autoPopMs?: number;
+		/**
+		 * Absent, every tip waits its delay. Given (Windows 98: 100, a fifth
+		 * of the delay), a tip whose pointer arrives within this many ms of
+		 * leaving another shown tip's element (any anchor's, page-wide) waits
+		 * this long instead, for its whole visit (`tooltips.c`'s TTDT_RESHOW:
+		 * "moved from one to another"; WIG Ch.12 "Tooltips", p.276: "ignore
+		 * the time-out").
+		 */
+		reshowMs?: number;
+		/**
+		 * Absent, a press hides a tip only at the pointer (`placement`
+		 * `"pointer"`); a balloon at the anchor (Mac OS 8's) stays through
+		 * it. `true` (Windows 98; WIG Ch.12
+		 * "Tooltips", p.276: "until the user presses the button"; Ch.7
+		 * "Tooltip Controls", p.133): a press hides the tip, or cancels its
+		 * wait, until the pointer leaves, under either `placement`.
+		 */
+		hideOnPress?: boolean;
+		/**
+		 * Absent, a tip shows in any window. `true` (Windows; WIG Ch.12
+		 * "Status Bar Messages", p.276: "Like tooltips, the window typically
+		 * must be active"): an element in an inactive window (its
+		 * `.classicyWindow` root without the `active` state) shows no tip,
+		 * and a shown tip hides when its window goes inactive; elements
+		 * outside any window (the desktop's icons, the taskbar) are
+		 * unaffected.
+		 */
+		activeWindowOnly?: boolean;
+	};
+	/**
+	 * How a text field selects its text (`ClassicyInput`,
+	 * `ClassicyTextEditor`). Optional, as is each key.
+	 */
+	text?: {
+		/**
+		 * What a double-click selects. `"native"` (the default, Mac OS 8's
+		 * TextEdit): what the browser selects, the word alone on macOS and
+		 * Linux hosts. `"trailingSpace"` (Windows; WIG Ch.5 "Selection
+		 * Shortcuts", p.44: a double-click selects the word and the space
+		 * after it, not punctuation): once the browser has selected the
+		 * word, the selection is extended forward over the spaces (U+0020,
+		 * U+00A0) that follow it, never over a line break or a punctuation
+		 * mark; on a Windows host the browser has taken them already, and
+		 * nothing changes.
+		 */
+		wordSelect?: "native" | "trailingSpace";
+	};
+	/**
+	 * What the Edit commands act on, and how the bundled Edit menu reads
+	 * (`classicyEditCommands`, `useClassicyEditMenu`). Optional, as is each
+	 * key.
+	 */
+	edit?: {
+		/**
+		 * Which text field Undo, Cut, Copy, Paste, Clear and Select All act
+		 * on when the focus is not in one (a menu click took it). `"any"`
+		 * (the default, today's rule): the text field last focused, wherever
+		 * it is. `"window"` (Windows; WIG Ch.5 "Operations for a Multiple
+		 * Selection", p.44: an operation keeps to its selection's scope): the
+		 * last focused field only while its window is an active one (its
+		 * `.classicyWindow` root carries `active`), else none, so the
+		 * commands do nothing and Undo has nothing to undo; a field outside
+		 * every window is never the target then. A focused field is the
+		 * target under either.
+		 */
+		scope?: "any" | "window";
+		/**
+		 * The form of the bundled Edit menu (`useClassicyEditMenu`). `"mac"`
+		 * (the default, Mac OS 8, HIG 4.6): Undo named after the last edit
+		 * ("Undo Typing") or "Can't Undo", a divider, Cut, Copy, Paste, Clear
+		 * and Select All. `"windows"` (Windows 98 SE's Notepad; WIG Ch.5
+		 * "Command Method", p.59, "Shortcut Keys for Transfer Operations",
+		 * pp.67-68): "Undo", dimmed with nothing to undo, a divider, Cut,
+		 * Copy, Paste, Delete (in Clear's place, with the Delete key, "Del"),
+		 * a divider, and Select All; Cut, Copy and Delete are dimmed while
+		 * the target field has no selection (Cut and Copy in a password
+		 * field), Cut, Paste and Delete while it is read-only, Select All
+		 * while it is empty, and every command while there is no target, as
+		 * Notepad's menu dims them.
+		 */
+		menu?: "mac" | "windows";
+	};
+	/**
+	 * What a text field does with a right-click. Optional, as is each key.
+	 */
+	textField?: {
+		/**
+		 * `"none"` (the default, Mac OS 8, whose text fields had no
+		 * contextual menu of their own): the right-click goes on to the
+		 * window's or the app's menu. `"edit"` (Windows; WIG Ch.5 "Command
+		 * Method", p.59; user.exe's edit-control pop-up menu): a right-click
+		 * on a text field (`ClassicyInput`, `ClassicyTextEditor`,
+		 * `ClassicyRichTextEditor`'s text, `ClassicyComboBox`'s field,
+		 * `ClassicySpinner`'s) focuses it, keeping its selection, and shows
+		 * the field's own menu, Undo, a divider, Cut, Copy, Paste, Delete, a
+		 * divider and Select All, each acting on that field: Undo is dimmed
+		 * with nothing to undo, Cut, Copy and Delete with an empty selection,
+		 * Cut and Copy in a password field, Undo, Cut, Paste and Delete in a
+		 * read-only one, and Select All while everything is selected.
+		 * Shift+F10 and the Application key (`keyboard.contextMenuKey`) open
+		 * it at the field's center.
+		 */
+		contextMenu?: "none" | "edit";
+	};
+	/**
+	 * How a paged assistant (`ClassicyAssistant`, Apple Guide's topic
+	 * window) is moved through. Optional, as is each key.
+	 */
+	assistant?: {
+		/**
+		 * `"pager"` (the default, the Mac OS Setup Assistant's): a
+		 * `ClassicyPager` at the footer's right, its back and forward arrows
+		 * around the page number, the page's own buttons at the left.
+		 * `"buttons"` (a Windows wizard; WIG Ch.12 "Wizard Buttons", p.289,
+		 * Figures 12.17 and 12.18; comctl32.dll's wizard strings on the
+		 * Windows 98 SE CD, "< &Back" and "&Next >"): two push buttons in
+		 * `.classicyAssistantNav` in the pager's place, "< Back"
+		 * (`classicyAssistantBack`, disabled on the first page, access key B)
+		 * and "Next >" (`classicyAssistantNext`, disabled on the last, access
+		 * key N), through the same handlers as the pager's arrows, so a
+		 * page's `canAdvance` and the `change` hook hold; the page number is
+		 * not drawn. The package's stylesheet orders them before the page's
+		 * own buttons (Finish, Cancel).
+		 */
+		navigation?: "pager" | "buttons";
+	};
+	/**
+	 * What kind of window Apple Guide's help topics open in, and whether a
+	 * window lists them. Optional, as is each key.
+	 */
+	help?: {
+		/**
+		 * Absent (the default, Mac OS 8's Apple Guide): a topic's window
+		 * (`AppleGuideWindow`) is fixed at 700 × 322 and pages with the
+		 * assistant's navigation alone, and no window lists the topics
+		 * (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT` shows the built-in
+		 * `ABOUT_BALLOON_HELP_TOPIC_ID` topic). `"winhelp"` (Windows Help;
+		 * WIG Ch.12 "Task Topic Windows", pp.279-280, Figure 12.10, and "The
+		 * Help Topics Browser", pp.284-288, Figure 12.13; winhlp32.exe on
+		 * the Windows 98 SE CD): a topic's window is a primary window the
+		 * user can size (at least 320 × 200), with a row of command buttons
+		 * above the topic (`appleGuideButtonBar`): "Help Topics" (access key
+		 * T), "Back" (the previous page, dimmed on the first) and "Options"
+		 * (O), a menu of "Copy" (o), which puts the page's text on the
+		 * clipboard; and `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT` opens the Help
+		 * Topics browser (`ClassicyHelpTopics`, "Help Topics: <Apple Guide's
+		 * display name>"), whose Contents tab lists the topics offered under
+		 * the active package, a book row per `book` and a page row per
+		 * topic, with Display (or Open and Close on a book) and Cancel.
+		 */
+		topicWindow?: "winhelp";
 	};
 	/**
 	 * What the mouse's buttons and the keyboard do to a selection.
@@ -803,6 +1056,38 @@ export type ClassicyAppearanceLayout = {
 		openOn?: "event" | "release";
 	};
 	/**
+	 * How a document's app treats its documents' windows. Optional, as is
+	 * each key.
+	 */
+	document?: {
+		/**
+		 * Whether closing a document with unsaved changes asks first (WIG
+		 * Ch.1 "Forgiveness", pp.2-3; Ch.5 "View Operations", p.46,
+		 * "Transactions", p.49). Absent or `false` (today's behavior under
+		 * Mac OS 8 and System 7, until their parity check): SimpleText's
+		 * close box, File ▸ Close and Quit close the window and discard the
+		 * working copy. `true` (Windows 98's Notepad): a document whose text
+		 * differs from its file (an untitled one: holds any text) shows
+		 * Notepad's message box, "The text in the <name> file has changed.",
+		 * "Do you want to save the changes?", with Yes (the default), No and
+		 * Cancel: Yes saves (an untitled one through Save As…) and closes once
+		 * saved, No discards and closes, Cancel keeps the window open. Quit
+		 * asks for each changed document in turn, a Cancel stopping it.
+		 */
+		confirmUnsavedClose?: boolean;
+		/**
+		 * What opening a document or folder that is already open does (WIG
+		 * Ch.5 "View Operations", p.46; Ch.9 "Single Document Window
+		 * Interface", p.175). Absent or `false` (today's behavior): the app is
+		 * brought forward with its last-focused window, which may be another
+		 * document's. `true` (Windows): the document's or folder's own window
+		 * comes forward and takes the focus (the kernel's generic `*OpenFile`
+		 * route, the PDF and Picture Viewers' OpenFile cases, the Finder's
+		 * `ClassicyAppFinderOpenFolder`).
+		 */
+		reopenActivates?: boolean;
+	};
+	/**
 	 * The mouse's press discipline (WIG Ch.4 "Mouse Actions", pp.24-25).
 	 * Optional. `"mac"` (the default): a tab is chosen when the button comes
 	 * up over it (`ClassicyTabs`); a non-file icon follows the pointer from
@@ -830,8 +1115,43 @@ export type ClassicyAppearanceLayout = {
 		 * table's column edge is dragged, Escape puts it back where the press
 		 * found it and ends the drag, the key going no further
 		 * (`useClassicyEscapeCancel`).
+		 * In HyperCard's editor, Escape on the card or in the Tools palette
+		 * first disarms an armed part tool (the one-shot placing mode, WIG
+		 * Ch.1 "User in Control", p.1: a mode is easy to cancel), and only
+		 * at the next press deselects the part.
 		 */
 		escapeCancels?: boolean;
+	};
+	/**
+	 * How a dialog takes the keyboard. Optional, as is each key.
+	 */
+	dialog?: {
+		/**
+		 * Whether a dialog ignores the keys pressed before it showed (WIG
+		 * Ch.10 "Message Notification", p.212). Absent or `false` (today's
+		 * behavior, until it is checked against HIGOS8 and HIG7):
+		 * `useKeyboardEquivalents` runs the default action on any Return
+		 * keydown, an auto-repeat of a Return held from the command that
+		 * raised the dialog included. `true` (Windows): it ignores every
+		 * auto-repeated keydown, and every keydown that came before the
+		 * dialog mounted, until a key comes up or a new key goes down.
+		 */
+		flushInput?: boolean;
+	};
+	/**
+	 * How icons are drawn. Optional, as is each key.
+	 */
+	icon?: {
+		/**
+		 * Where a shortcut's badge (the `aliasBadge` system art) is drawn.
+		 * Absent or `"desktop"` (Mac OS 8: the desktop's alias arrow): on the
+		 * desktop's icons alone. `"everywhere"` (Windows: WIG Ch.11
+		 * "Displaying Objects", p.230, Figure 11.11; the shell's shortcut
+		 * overlay in every view): also on a `ClassicyIcon` given `alias`
+		 * (the Finder's icon view) and on a shortcut's row in the list view,
+		 * each image and its badge inside a `classicyIconImage` element.
+		 */
+		aliasBadge?: "desktop" | "everywhere";
 	};
 };
 
@@ -1063,6 +1383,13 @@ export type ClassicyAppearancePackage = {
 	colorFamilies?: ClassicyAppearanceColorFamilies;
 	/** UI metadata per package font (`defaults.typography.families`). */
 	fontFamilies?: ClassicyAppearanceFontFamilies;
+	/**
+	 * The Colors tab's labels for the core's colors in the package's own
+	 * words, keyed by each target's `cssVar` (`"--color-system-03"`:
+	 * Windows 98's "3D Objects"); a color without one keeps the core's
+	 * label (`CLASSICY_THEME_COLOR_TARGETS`).
+	 */
+	colorLabels?: Readonly<Partial<Record<string, string>>>;
 	/**
 	 * Reads another system's theme files for Load Theme… while the package
 	 * is active (Windows 98's `.theme`); validated as a theme file's theme.

@@ -1,8 +1,16 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import { HyperCardToolsPalette } from "@/SystemFolder/HyperCard/Editor/HyperCardToolsPalette";
 import { registerHyperCardPartEditorMeta } from "@/SystemFolder/HyperCard/HyperCardPlugins";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 const dispatch = vi.fn();
 vi.mock(
@@ -135,5 +143,73 @@ describe("HyperCardToolsPalette", () => {
 			"aria-pressed",
 			"false",
 		);
+	});
+});
+
+// The remaining chapters' audit's 1.4, in the palette: pressing an entry
+// arms it and leaves the focus on it, so under `input.escapeCancels`
+// (Windows 98) Escape there disarms the armed tool as Escape on the card
+// does (WIG Ch.1 "User in Control", p.1; Ch.4 "Shortcut Keys", p.27);
+// without the key the palette ignores Escape.
+describe("HyperCardToolsPalette — Escape and the armed entry", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-palette",
+			name: "Windows palette",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-palette-default",
+				package: "windows-palette",
+			},
+			layout: windows98.layout as never,
+		});
+
+	it("disarms on Escape from any entry under the Windows layout", () => {
+		useWindowsLayout();
+		render(
+			<HyperCardToolsPalette
+				stackId={"demo"}
+				edit={{ ...makeEdit(), placing: "slider" }}
+			/>,
+		);
+		const other = screen.getByRole("button", { name: "Button" });
+		expect(fireEvent.keyDown(other, { key: "Escape" })).toBe(false);
+		expect(dispatch.mock.calls).toEqual([
+			[
+				{
+					type: "ClassicyAppHCEditSetPlacing",
+					stackId: "demo",
+					partType: undefined,
+				},
+			],
+		]);
+	});
+
+	it("does nothing on Escape with nothing armed under the Windows layout", () => {
+		useWindowsLayout();
+		render(<HyperCardToolsPalette stackId={"demo"} edit={makeEdit()} />);
+		expect(
+			fireEvent.keyDown(screen.getByRole("button", { name: "Slider" }), {
+				key: "Escape",
+			}),
+		).toBe(true);
+		expect(dispatch).not.toHaveBeenCalled();
+	});
+
+	it("ignores Escape without the key, the entry staying armed", () => {
+		render(
+			<HyperCardToolsPalette
+				stackId={"demo"}
+				edit={{ ...makeEdit(), placing: "slider" }}
+			/>,
+		);
+		expect(
+			fireEvent.keyDown(screen.getByRole("button", { name: "Slider" }), {
+				key: "Escape",
+			}),
+		).toBe(true);
+		expect(dispatch).not.toHaveBeenCalled();
 	});
 });

@@ -7,9 +7,10 @@
 // buttons, the checkboxes and radio buttons, the text fields and lists, the
 // group boxes, the progress bars, the scroll bars, the desktop and its
 // icons, the tab control, the sliders, the placards and bevel buttons, the
-// ToolTips, the tables, the separators, the little arrows, the Appearance
-// Manager, the Control Strip and the HyperCard editor's handles; and, last,
-// the High Contrast block that keeps them all under forced colors.
+// ToolTips, the wizards and the Help topic window, the tables, the
+// separators, the little arrows, the Appearance Manager, the Control Strip,
+// the HyperCard editor and the PDF viewer's pointer; and, last, the High
+// Contrast block that keeps them all under forced colors.
 @use "pkg:@classicy/classicy/scss/package";
 @use "bevels" as b;
 @use "components/Window";
@@ -32,12 +33,15 @@
 @use "components/Slider";
 @use "components/Placard";
 @use "components/BalloonHelp";
+@use "components/Assistant";
+@use "components/AppleGuide";
 @use "components/Table";
 @use "components/Separator";
 @use "components/LittleArrows";
 @use "components/AppearanceManager";
 @use "components/ControlStrip";
 @use "components/HyperCard";
+@use "components/PDFViewer";
 @use "components/ForcedColors";
 
 @include package.classicy-package("windows98") {
@@ -61,12 +65,15 @@
   @include Slider.slider;
   @include Placard.placard;
   @include BalloonHelp.balloon-help;
+  @include Assistant.assistant;
+  @include AppleGuide.apple-guide;
   @include Table.table;
   @include Separator.separator;
   @include LittleArrows.little-arrows;
   @include AppearanceManager.appearance-manager;
   @include ControlStrip.control-strip;
   @include HyperCard.hyper-card;
+  @include PDFViewer.pdf-viewer;
 
   // Text that sets no color of its own is WindowText, as a window's client
   // area draws it (white in High Contrast Black; the browser's black, the

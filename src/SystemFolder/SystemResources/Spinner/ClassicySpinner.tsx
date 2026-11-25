@@ -19,6 +19,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyTextFieldContextMenu } from "@/SystemFolder/SystemResources/App/ClassicyTextFieldMenu.internal";
 import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows";
 
 const REPEAT_INTERVAL_MS = 100;
@@ -95,7 +96,9 @@ interface ClassicySpinnerProps {
  * clamp, or `wrap`, as the arrows. The field keeps its own value and resets to
  * `prefillValue` when that prop changes; typed changes are reported to
  * analytics as `selected` events. For a stepper without the field, use
- * `ClassicyLittleArrows` directly.
+ * `ClassicyLittleArrows` directly. Under a package whose layout says
+ * `textField.contextMenu: "edit"` (Windows) a right-click on the field shows
+ * its own Edit menu (Undo, Cut, Copy, Paste, Delete, Select All).
  */
 export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 	forwardRef<HTMLInputElement, ClassicySpinnerProps>(function ClassicySpinner(
@@ -124,6 +127,7 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 		// The arrows need the field to hand focus to, and the consumer may want
 		// the same element, so one callback ref feeds both.
 		const inputRef = useRef<HTMLInputElement | null>(null);
+		const textMenu = useClassicyTextFieldContextMenu();
 		const setInputRef = (el: HTMLInputElement | null) => {
 			inputRef.current = el;
 			if (typeof ref === "function") ref(el);
@@ -272,6 +276,8 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 						tabIndex={0}
 						onChange={handleOnChangeFunc}
 						onKeyDown={handleOnKeyDown}
+						onMouseDown={textMenu?.onMouseDown}
+						onContextMenu={textMenu?.onContextMenu}
 						name={id}
 						type="number"
 						ref={setInputRef}

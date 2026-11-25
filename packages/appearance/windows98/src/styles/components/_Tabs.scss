@@ -293,4 +293,10 @@ $arrow-right: runs(("x..", "xx.", "xxx", "xx.", "x.."), "x");
       box-shadow: none;
     }
   }
+
+  // The arrow over the tab strip's scroll arrows, where the base shows the
+  // hand (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyTabScrollButton {
+    @include b.registry-cursor(arrow, default);
+  }
 }

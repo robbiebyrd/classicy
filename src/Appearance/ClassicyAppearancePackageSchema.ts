@@ -1,7 +1,10 @@
 import { z } from "zod";
 import type { ClassicyAssetKind } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
-import { isThemeColorTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
+import {
+	CLASSICY_THEME_COLOR_TARGETS,
+	isThemeColorTarget,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { ClassicyPackageThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicySoundPackSchema } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
@@ -22,11 +25,15 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
  * The three arrangement groups, every one required, and the optional
  * behavior groups (`menu`, `scrollBar`, `patternOrigin`, `slider`,
  * `fileDialog`, `fileBrowser`, `fileList`, `tree`, `balloonHelp`,
- * `selection`, `contextMenu`, `input`), each key of which is optional too,
+ * `text`, `edit`, `textField`,
+ * `assistant`,
+ * `help`,
+ * `selection`, `contextMenu`, `input`, `dialog`, `icon`), each key of which is optional too,
  * as are `menuBar.idleTimeoutMs` and `mouse`.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
+		restoreViewState: z.boolean().optional(),
 		growBoxCorner: z.enum([
 			"bottom-right",
 			"bottom-left",
@@ -42,12 +49,15 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	}),
 	menu: z
 		.object({
+			standardShortcuts: z.enum(["windows"]).optional(),
 			keys: z.enum(["mac", "windows"]).optional(),
 			submenuDelayMs: z.number().int().min(0).max(10_000).optional(),
 			disabledItems: z.enum(["skip", "browse"]).optional(),
 			accessKeys: z.enum(["explicit", "auto"]).optional(),
 			shortcutSpelling: z.enum(["glyphs", "names"]).optional(),
 			emptySubmenus: z.enum(["leaf", "placeholder"]).optional(),
+			itemHelp: z.enum(["balloon", "statusBar"]).optional(),
+			confirmEllipsis: z.boolean().optional(),
 		})
 		.optional(),
 	desktop: z.object({
@@ -140,8 +150,34 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	fileList: z.object({ foldersFirst: z.boolean().optional() }).optional(),
 	tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),
 	balloonHelp: z
-		.object({ placement: z.enum(["anchor", "pointer"]).optional() })
+		.object({
+			placement: z.enum(["anchor", "pointer"]).optional(),
+			contextHelp: z.enum(["whatsThis"]).optional(),
+			unlabeledTips: z.boolean().optional(),
+			// A minute is the longest a ToolTip waits or stays.
+			delayMs: z.number().int().min(0).max(60_000).optional(),
+			autoPopMs: z.number().int().min(1).max(60_000).optional(),
+			reshowMs: z.number().int().min(0).max(60_000).optional(),
+			hideOnPress: z.boolean().optional(),
+			activeWindowOnly: z.boolean().optional(),
+		})
 		.optional(),
+	text: z
+		.object({ wordSelect: z.enum(["native", "trailingSpace"]).optional() })
+		.optional(),
+	edit: z
+		.object({
+			scope: z.enum(["any", "window"]).optional(),
+			menu: z.enum(["mac", "windows"]).optional(),
+		})
+		.optional(),
+	textField: z
+		.object({ contextMenu: z.enum(["none", "edit"]).optional() })
+		.optional(),
+	assistant: z
+		.object({ navigation: z.enum(["pager", "buttons"]).optional() })
+		.optional(),
+	help: z.object({ topicWindow: z.enum(["winhelp"]).optional() }).optional(),
 	selection: z
 		.object({
 			secondaryButton: z.enum(["menu", "select"]).optional(),
@@ -156,8 +192,18 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	contextMenu: z
 		.object({ openOn: z.enum(["event", "release"]).optional() })
 		.optional(),
+	document: z
+		.object({
+			confirmUnsavedClose: z.boolean().optional(),
+			reopenActivates: z.boolean().optional(),
+		})
+		.optional(),
 	mouse: z.enum(["mac", "windows"]).optional(),
 	input: z.object({ escapeCancels: z.boolean().optional() }).optional(),
+	dialog: z.object({ flushInput: z.boolean().optional() }).optional(),
+	icon: z
+		.object({ aliasBadge: z.enum(["desktop", "everywhere"]).optional() })
+		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
 // Every ClassicyAssetKind, once. The `satisfies` and the check below fail the
@@ -225,6 +271,18 @@ const colorFamilies = z.record(
 const fontFamilies = z.record(
 	colorFamilyName,
 	z.object({ label: colorFamilyLabel }),
+);
+
+// The Colors tab's labels for the core's colors (`colorLabels`): keyed by a
+// color target's CSS variable, another key refused.
+const colorLabels = z.partialRecord(
+	z.enum(
+		CLASSICY_THEME_COLOR_TARGETS.map((info) => info.cssVar) as [
+			string,
+			...string[],
+		],
+	),
+	colorFamilyLabel,
 );
 
 // A theme file importer (`themeFileImporter`): its file name extensions
@@ -504,6 +562,11 @@ export const ClassicyAppearancePackageSchema = z
 			.optional()
 			.describe(
 				"Labels for the package's own fonts (defaults.typography.families), which the Appearance Manager's Fonts tab edits.",
+			),
+		colorLabels: colorLabels
+			.optional()
+			.describe(
+				"The Colors tab's labels for the core's colors in the package's own words, keyed by each color's CSS variable (CLASSICY_THEME_COLOR_TARGETS' cssVar); a color without one keeps the core's label.",
 			),
 		themeFileImporter: themeFileImporter
 			.optional()

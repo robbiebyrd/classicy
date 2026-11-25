@@ -162,3 +162,16 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
 @mixin title-bar-gradient($from, $to) {
   background: linear-gradient(90deg, $from, $to);
 }
+
+// A pointer in the cursor registry's idiom (as the base writes its resize
+// cursors, ClassicyWindow.scss): the role's registered image
+// (`--classicy-cursor-<role>`, published by the desktop, with its hotspot),
+// else the keyword, the host's own pointer of that shape. Outside a desktop
+// the variable is undefined, which would void the declaration, so it falls
+// back to an image that never loads and the browser moves on to the
+// keyword (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1).
+@mixin registry-cursor($role, $keyword, $hotspot: 0 0) {
+  cursor:
+    var(--classicy-cursor-#{$role}, url('data:,')) var(--classicy-cursor-#{$role}-hotspot, #{$hotspot}),
+    $keyword;
+}

@@ -290,4 +290,10 @@ $forward: runs(
     outline: none;
     @include b.raised;
   }
+
+  // The arrow over the pager's arrows, where the base shows the hand (WIG
+  // Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyPagerArrow {
+    @include b.registry-cursor(arrow, default);
+  }
 }

@@ -95,10 +95,12 @@
 
 // A tree row outside Standard File's well (whose rows the dialogs select
 // whole), its label holder and the row itself; the well is a list view, so
-// it draws no hierarchy lines either.
+// it draws no hierarchy lines either, and neither does the Help Topics
+// browser's Contents tree (winhlp32.exe's SysTreeView32 has no
+// TVS_HASLINES; _AppleGuide.scss).
 $tree-row: ".classicyTreeNodeLabelHolder:not(.classicyFileOpenDialogWell *)";
-$tree-lines-row: ".classicyTreeNodeRow:not(.classicyFileOpenDialogWell *)";
-$tree-lines-group: ".classicyTreeGroup:not(.classicyFileOpenDialogWell *)";
+$tree-lines-row: ".classicyTreeNodeRow:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)";
+$tree-lines-group: ".classicyTreeGroup:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)";
 
 // The tree's lines: ButtonShadow dots, one on and one off, running down and
 // running right.
@@ -334,5 +336,14 @@ $list-check: '[data-classicy-part="list-check"]';
   // children, at its own column (the group's parent column).
   .classicyTreeNode:not(:last-child) > #{$tree-lines-group} {
     background: $dots-down var(--windows98-tree-parent-column) 0 / px(1) 100% no-repeat;
+  }
+
+  // The arrow over a list's rows and a tree's, where the base shows the
+  // hand: Windows shows the normal select pointer over every control (WIG
+  // Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyListBoxOption,
+  .classicyTreeNodeBranch,
+  .classicyTreeNodeSelectable {
+    @include b.registry-cursor(arrow, default);
   }
 }

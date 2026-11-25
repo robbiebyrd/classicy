@@ -264,11 +264,15 @@ describe("System 7 asset inventory", () => {
 			expect(listed.filter((role) => !roles.includes(role))).toEqual([]);
 		});
 
+		// `none`: a role System 7 has no pointer for (`help`, Windows' What's
+		// This?), left unregistered.
 		it("gives every role a decision, a file and a hotspot", () => {
 			for (const row of rows()) {
 				const role = code(row.Role);
-				expect(["export", "draw", "core"], role).toContain(row.Decision ?? "");
-				if (row.Decision !== "core") {
+				expect(["export", "draw", "core", "none"], role).toContain(
+					row.Decision ?? "",
+				);
+				if (row.Decision === "export" || row.Decision === "draw") {
 					expect(code(row.File), role).toBe(`cursors/${kebab(role)}.png`);
 				}
 				expect(row["Hotspot (x, y)"], role).toMatch(/\S/);

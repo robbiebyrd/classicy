@@ -689,6 +689,29 @@ describe("platinum.scss (compiled)", () => {
 	// Story 0196-1i1: the pop-up menu's look left ClassicyPopUpMenu.scss (now
 	// pinned by ClassicyBaseHoldsNoControlLook) for this partial, value for
 	// value, so Platinum draws the same pixels.
+	// The rich text editor's toolbar tips (MDXEditor's Radix tooltips), now
+	// opened in the desktop (the WIG audit's 12.10, a defect under every
+	// package): Platinum's help balloon box (HIG (1995) Ch.11 "Balloon
+	// Help", pp.316-317, Figure 11-8), the base `.classicyBalloonHelp`'s
+	// declarations and text.
+	it("draws the rich text editor's toolbar tips as its help balloon", () => {
+		const { props } = rule(
+			`${P} .classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > *`,
+		);
+		expect(props).toEqual({
+			"min-width": "var(--balloon-help-min-width)",
+			"max-width": "var(--balloon-help-max-width)",
+			padding: "var(--window-padding-size)",
+			border: "var(--window-border-size) solid var(--color-black)",
+			"border-radius": "var(--balloon-help-corner-radius)",
+			color: "var(--color-black)",
+			background: "var(--color-white)",
+			"font-family": "var(--ui-font)",
+			"font-size": "var(--balloon-help-font-size)",
+			"line-height": "1.3",
+		});
+	});
+
 	describe("the pop-up menu's look, moved from the base sheet", () => {
 		it("dims a disabled box with the gradient over its fill", () =>
 			expect(rule(`${P} .classicyPopUpMenu.disabled`).props).toEqual({

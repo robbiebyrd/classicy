@@ -84,6 +84,15 @@ const isIconLeafShape = (value: unknown): value is ClassicyIconLeaf => {
 	);
 };
 
+/**
+ * A cursor a package may register (`registerClassicyCursors`), published on
+ * the desktop root as `--classicy-cursor-<role>`. `help` is the contextual
+ * Help pointer, the arrow with a question mark, shown over the active window
+ * while What's This? is on (WIG Ch.12 "Context-Sensitive Help", p.273,
+ * Figure 12.2; `ClassicyBalloonHelp.scss`): Mac OS had no such mode, so
+ * Platinum and System 7 register none, and without one the browser's `help`
+ * keyword shows.
+ */
 export type ClassicyCursorRole =
 	| "arrow"
 	| "watch"
@@ -97,7 +106,8 @@ export type ClassicyCursorRole =
 	| "resizeU"
 	| "resizeD"
 	| "resizeL"
-	| "resizeR";
+	| "resizeR"
+	| "help";
 
 export type ClassicySystemArtKey =
 	| "appleMenu"

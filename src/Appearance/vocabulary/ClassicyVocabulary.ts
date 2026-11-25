@@ -63,6 +63,7 @@ export const CLASSICY_COMPONENT = {
 	FileProperties: "classicyFileProperties",
 	Form: "classicyForm",
 	HelpButton: "classicyHelpButton",
+	HelpTopics: "classicyHelpTopics",
 	HyperCard: "classicyHyperCard",
 	Icon: "classicyIcon",
 	ImageWell: "classicyImageWell",

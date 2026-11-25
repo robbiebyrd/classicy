@@ -14,6 +14,11 @@ vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	() => ({
 		useAppManagerDispatch: () => vi.fn(),
+		// An item's balloon reads the Balloon Help toggle.
+		useAppManager: (selector: (state: unknown) => unknown) =>
+			selector({
+				System: { Manager: { Desktop: { disableBalloonHelp: false } } },
+			}),
 	}),
 );
 vi.mock(
@@ -31,10 +36,12 @@ vi.mock(
 
 vi.mock("@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss", () => ({}));
 
+import { windows98AppearanceHooks } from "@classicy/appearance-windows98";
 import { losePointerStream } from "@/__tests__/losePointerStream";
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { classicySpecialMenuItems } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import { resetClassicyAccessKeyReportsForTests } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import {
 	type ClassicyLogEntry,
@@ -44,8 +51,15 @@ import {
 import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
+	withClassicyConfirmEllipsis,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import {
+	ClassicyMenuStatusContext,
+	resetClassicyMenuStatusTextForTests,
+	useClassicyMenuStatusText,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
+import system7 from "../../../../packages/appearance/system7/src/system7.json";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 // The store is mocked, so nothing connects the active package id; stand in
@@ -1546,5 +1560,265 @@ describe("ClassicyMenu — duplicate access keys", () => {
 		});
 		render(<ClassicyMenu name="m" menuItems={items} open={true} />);
 		expect(entries.filter((e) => e.subsystem === "Menu")).toHaveLength(0);
+	});
+});
+
+// The remaining chapters' audit's 12.13 (WIG Ch.12 "Status Bar Messages",
+// pp.276-277, Figure 12.7; "Guidelines for Writing Status Bar Messages",
+// p.278): under `layout.menu.itemHelp` "statusBar" a menu item's help is no
+// balloon but the menus' status text while it is highlighted, by the
+// pointer or the keyboard (its `disabledContent` while it is disabled),
+// none for an item without help, until the menu closes; a bevel pop-up
+// outside any window gives none. Under a Mac layout the balloon stands and
+// no text is given.
+describe("ClassicyMenu — item help in the status bar (layout.menu.itemHelp)", () => {
+	afterEach(() => resetClassicyMenuStatusTextForTests());
+	const Status = () => {
+		const text = useClassicyMenuStatusText();
+		return <output data-testid="status">{text ?? "(none)"}</output>;
+	};
+	const status = () => screen.getByTestId("status").textContent;
+	const helpItems: ClassicyMenuItem[] = [
+		{
+			id: "file",
+			title: "File",
+			balloon: { content: "Contains commands for working with files." },
+			menuChildren: [
+				{
+					id: "open",
+					title: "Open",
+					balloon: { content: "Opens a document." },
+				},
+				{
+					id: "save",
+					title: "Save",
+					disabled: true,
+					balloon: {
+						content: "Saves the document.",
+						disabledContent:
+							"This command is not available because nothing has changed.",
+					},
+				},
+				{
+					id: "print",
+					title: "Print",
+					disabled: true,
+					balloon: { content: "Prints the document." },
+				},
+				{ id: "quit", title: "Quit" },
+			],
+		},
+	];
+	const renderHelpBar = (scope = true) =>
+		render(
+			<ClassicyMenuProvider>
+				<Status />
+				<ClassicyMenuStatusContext.Provider value={scope}>
+					<ClassicyMenu
+						name="bar"
+						menuItems={helpItems}
+						navClass="classicyDesktopMenu"
+						subNavClass="classicySubMenu"
+					/>
+				</ClassicyMenuStatusContext.Provider>
+			</ClassicyMenuProvider>,
+		);
+
+	it("gives the highlighted item's help as the status text until the menu closes, with no balloons, under the Windows 98 layout", () => {
+		activePackage.id = "windows-menus";
+		const { unmount } = renderHelpBar();
+		expect(document.querySelector(".classicyMenuItemBalloonAnchor")).toBeNull();
+		// No menu shown: no status text, the title's help kept for its menu.
+		fireEvent.mouseOver(item("file"));
+		expect(status()).toBe("(none)");
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		expect(item("file")).toHaveClass("open");
+		expect(status()).toBe("Contains commands for working with files.");
+		fireEvent.mouseOver(item("open"));
+		expect(status()).toBe("Opens a document.");
+		fireEvent.mouseLeave(item("open"));
+		expect(status()).toBe("");
+		// A disabled item gives its reason, else its help.
+		fireEvent.mouseOver(item("save"));
+		expect(status()).toBe(
+			"This command is not available because nothing has changed.",
+		);
+		fireEvent.mouseLeave(item("save"));
+		fireEvent.mouseOver(item("print"));
+		expect(status()).toBe("Prints the document.");
+		fireEvent.mouseLeave(item("print"));
+		// An item with no help gives none.
+		fireEvent.mouseOver(item("quit"));
+		expect(status()).toBe("");
+		fireEvent.mouseLeave(item("quit"));
+		// The keyboard's focus is a highlight too.
+		fireEvent.focus(item("open"));
+		expect(status()).toBe("Opens a document.");
+		fireEvent.blur(item("open"));
+		expect(status()).toBe("");
+		fireEvent.focus(item("open"));
+		unmount();
+		render(<Status />);
+		expect(status()).toBe("(none)");
+	});
+
+	it("ends the status text when the menu closes", () => {
+		activePackage.id = "windows-menus";
+		renderHelpBar();
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		fireEvent.mouseOver(item("open"));
+		expect(status()).toBe("Opens a document.");
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		expect(item("file")).not.toHaveClass("open");
+		expect(status()).toBe("(none)");
+	});
+
+	it("gives no status text, and draws no balloon, in a menu that gives none (a bevel pop-up outside a window)", () => {
+		activePackage.id = "windows-menus";
+		renderHelpBar(false);
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		fireEvent.mouseOver(item("open"));
+		expect(status()).toBe("(none)");
+		expect(document.querySelector(".classicyMenuItemBalloonAnchor")).toBeNull();
+	});
+
+	it("keeps each item's balloon and gives no status text under a Mac layout", () => {
+		renderHelpBar();
+		// The title's and its three items' (a closed menu's items are drawn
+		// hidden).
+		expect(
+			document.querySelectorAll(".classicyMenuItemBalloonAnchor"),
+		).toHaveLength(4);
+		fireEvent.click(item("file").querySelector("p") as HTMLElement);
+		fireEvent.mouseOver(item("open"));
+		expect(status()).toBe("(none)");
+	});
+});
+
+// A confirming item (`confirms`: Empty Trash, Reset PRAM, which only open a
+// warning alert) takes the ellipsis Mac OS 8 and System 7 wrote, and none
+// under `layout.menu.confirmEllipsis` false (Windows 98: WIG Ch.7 "Types of
+// Menu Items", pp.107-108; the audit's 1.13). The Special menu's and the
+// Trash icon's items carry it.
+describe("ClassicyMenu — a confirming item's ellipsis (layout.menu.confirmEllipsis)", () => {
+	registerClassicyAppearancePackage({
+		id: "system7-menus",
+		name: "System 7 menus",
+		css: "",
+		defaults: {
+			...CLASSICY_CORE_DEFAULT_THEME,
+			id: "system7-menus-default",
+			package: "system7-menus",
+		},
+		layout: system7.layout as never,
+	});
+	const titles = () =>
+		screen.getAllByRole("menuitem").map((el) => el.textContent);
+	const specialMenu = () =>
+		render(
+			<ClassicyMenu
+				name="special"
+				menuItems={[
+					...classicySpecialMenuItems(vi.fn(), "x"),
+					{ id: "trash_empty", title: "Empty Trash", confirms: true },
+					{ id: "plain", title: "Erase Disk" },
+				]}
+			/>,
+		);
+
+	it.each([
+		["platinum"],
+		["system7-menus"],
+	])("appends the ellipsis under %s, byte for byte", (id) => {
+		activePackage.id = id;
+		specialMenu();
+		expect(titles()).toEqual([
+			"Empty Trash…",
+			"Reset PRAM…",
+			"Empty Trash…",
+			"Erase Disk",
+		]);
+	});
+
+	it("writes the title as given under the Windows 98 layout", () => {
+		activePackage.id = "windows-menus";
+		specialMenu();
+		expect(titles()).toEqual([
+			"Empty Trash",
+			"Reset PRAM",
+			"Empty Trash",
+			"Erase Disk",
+		]);
+	});
+
+	it("leaves an array with no confirming item, or no ellipsis, as it is", () => {
+		const plain = [{ id: "a", title: "A" }];
+		expect(withClassicyConfirmEllipsis(plain, true)).toBe(plain);
+		const confirming = [{ id: "a", title: "A", confirms: true }];
+		expect(withClassicyConfirmEllipsis(confirming, false)).toBe(confirming);
+		expect(withClassicyConfirmEllipsis(confirming, true)[0].title).toBe("A…");
+		// The caller's item is never changed.
+		expect(confirming[0].title).toBe("A");
+	});
+});
+
+// Windows runs a chosen command at once, with no flash (WIG Ch.4 "Mouse
+// Actions", p.24; Ch.7 "Drop-down Menu Interaction", p.97; the audit's 1.19
+// / 4.7): the package's MenuItem press class carries a 1 ms animation whose
+// end runs the action, long before the 400 ms fallback; with no package
+// hook at all the fallback stands, and Platinum flashes.
+describe("ClassicyMenu — Windows 98's chosen item (its MenuItem hooks)", () => {
+	registerClassicyAppearancePackage({
+		id: "windows98-hooks",
+		name: "Windows 98 hooks",
+		css: "",
+		defaults: {
+			...CLASSICY_CORE_DEFAULT_THEME,
+			id: "windows98-hooks-default",
+			package: "windows98-hooks",
+		},
+		layout: windows98.layout as never,
+		hooks: windows98AppearanceHooks,
+	});
+
+	it("runs the item's action when its 1 ms animation ends, with no flash", () => {
+		vi.useFakeTimers();
+		activePackage.id = "windows98-hooks";
+		const onClickFunc = vi.fn();
+		render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[{ id: "save", title: "Save", onClickFunc }]}
+			/>,
+		);
+		const item = screen.getByRole("menuitem");
+		fireEvent.click(item);
+		expect(item).toHaveClass("windows98MenuItemChosen");
+		expect(item).not.toHaveClass("classicyMenuItemFlash");
+		dispatchAnimationEnd(item, "windows98MenuItemChosen");
+		// The menu closes, and the action runs on the next frame.
+		act(() => {
+			vi.advanceTimersByTime(20);
+		});
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
+		expect(item).not.toHaveClass("windows98MenuItemChosen");
+		act(() => {
+			vi.advanceTimersByTime(600);
+		});
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
+	});
+
+	it("keeps Platinum's flash under Platinum", () => {
+		activePackage.id = "platinum";
+		render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[{ id: "save", title: "Save", onClickFunc: vi.fn() }]}
+			/>,
+		);
+		const item = screen.getByRole("menuitem");
+		fireEvent.click(item);
+		expect(item).toHaveClass("classicyMenuItemFlash");
+		expect(item).not.toHaveClass("windows98MenuItemChosen");
 	});
 });

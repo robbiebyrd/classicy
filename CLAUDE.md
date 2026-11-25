@@ -242,6 +242,25 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   window via `pickWindowToRestore` when the app is focused but no window is,
   reading the **live** store, not the render snapshot, so a window that
   registered or took focus in the same commit is never covered back up.
+- Opening a document or folder that is already open, under a package's
+  `layout.document.reopenActivates` (Windows 98), focuses the object's own
+  window once the app has come forward: the generic `*OpenFile` route
+  (`${appId}_file_${path}`), the PDF Viewer's, Picture Viewer's and Movie
+  Player's OpenFile cases and `ClassicyAppFinderOpenFolder` call the
+  store-free `focusClassicyReopenedWindow(ds, appId, windowId, wasOpen)`
+  (`ClassicyDocumentReopen.ts`); without the key the app's last-focused
+  window comes forward, as before.
+- A window's view state, under `layout.window.restoreViewState`: `scroll`
+  (`[scrollLeft, scrollTop]`) and `caret` on its record, written only under
+  the key by `ClassicyWindowSetScroll` (finite values; a no-op otherwise, so
+  Platinum's and System 7's records never gain them) and kept by
+  `sanitizeStateForPersistence`. `useClassicyWindowViewState(appId,
+  windowId)` (`Window/ClassicyWindowViewState.internal.ts`) hands back the
+  record's values as the window mounted and the callbacks that write them,
+  for `ClassicyScrollArea`'s `initialScroll`/`onScrollSettled` and
+  `ClassicyTextEditor`'s `initialCaret`/`onCaretSettled`, all `undefined`
+  without the key; SimpleText's plain-text windows pass them. The store-free
+  rules the reducer uses are `ClassicyWindowViewStatePatch.internal.ts`.
 
 ### Analytics
 
@@ -548,6 +567,12 @@ in every browser (Firefox now shows Platinum's full bars).
   selector and layer; parts `menu-scroll-up` and `menu-scroll-down`), as
   HIG7 p.78 has it. The geometry is measured on open, placement and new rows;
   a scroll reads only the extents.
+- View state: `initialScroll` (`[scrollLeft, scrollTop]`, read at mount,
+  finite and non-negative) is tried on each measurement until the viewport
+  reaches it, the user scrolls, presses or types in the area, or two seconds
+  pass, so a list still filling is restored; `onScrollSettled` reports the
+  offsets 200 ms after the last scroll event when they changed (never the
+  offsets put back), and once more on unmount while due.
 
 ### Pop-Up Bevel Buttons
 
@@ -728,6 +753,8 @@ Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMen
 - Right-clicking a window focuses it first, so the active menu always tracks focus.
 - Shift+F10 and the Application key open the focused element's menu only under `layout.keyboard.contextMenuKey` (Windows 98; `useClassicyContextMenuKey`, mounted by the provider), and Escape closes an open one a level at a time only under `layout.menu.keys: "windows"`; a Mac OS package declares neither.
 - Under a package whose layout says `contextMenu.openOn: "release"` (Windows 98) the provider holds a `showContextMenu` made while button 2 is down (a capture-phase document `mousedown`/`mouseup` watch) and opens it at the release; under `selection.secondaryButton: "select"` a right-click on a selected desktop icon or table row keeps the selection for its menu, and an unselected one is selected alone at the press. The press discipline (`layout.mouse`, `isClassicyGestureButton`, `Utils/ClassicyMousePolicy.ts`) and Escape's cancel of a drag (`layout.input.escapeCancels`, `useClassicyEscapeCancel`/`onClassicyEscapeCancel`, `Keyboard/useClassicyEscapeCancel.internal.ts`) are read the same way; the desktop's empty-area press rule is `classicyDesktopSelectPress` (`Desktop/ClassicyDesktopSelectBox.internal.ts`).
+- Under `layout.textField.contextMenu: "edit"` (Windows 98) a text field is the innermost target: `ClassicyInput`, `ClassicyTextEditor`, `ClassicyRichTextEditor`'s text, `ClassicyComboBox`'s and `ClassicySpinner`'s fields put `useClassicyTextFieldContextMenu()` (`App/ClassicyTextFieldMenu.internal.ts`; `undefined` under other layouts, so no handler is attached) on the field, which keeps its selection through the button-2 press and opens user.exe's edit menu (Undo, Cut, Copy, Paste, Delete, Select All) with `showContextMenu(items, at, { helpItem: false })`, each item running `classicyEditCommandsFor(field)`. The hook reads the context from `ContextualMenu/ClassicyContextualMenuContext.internal.ts`, never the provider module: a field importing the provider's renderer moved the store's evaluation order and broke wallpaper healing at boot (`ClassicyWallpaperPersistence.test.ts`).
+- The Edit commands (`App/ClassicyEditCommands.ts`) act on the last focused field only while its window is active under `layout.edit.scope: "window"`, and the bundled Edit menu takes Notepad's form under `layout.edit.menu: "windows"` (dimmed from `subscribeEditTargetState`); `layout.text.wordSelect: "trailingSpace"` makes a double-click take the spaces after its word (`App/ClassicyWordSelect.internal.ts`).
 
 ### File System: Shared Live Tree
 

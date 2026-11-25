@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 
 vi.mock(
@@ -150,5 +152,150 @@ describe("ClassicyTextEditor autoHeight without field-sizing", () => {
 		expect(field(container).style.height).not.toBe("");
 		rerender(<ClassicyTextEditor id="t" content={"one\ntwo"} />);
 		expect(field(container).style.height).toBe("");
+	});
+});
+
+// A document's view state (the WIG audit's 2.1; WIG Ch.2 "Persistence",
+// p.12: "cursor position, scroll position"): the caret put back when the
+// editor mounts, and reported once it stops moving. Without either prop the
+// caret starts at the beginning and nothing is reported, as before.
+describe("ClassicyTextEditor caret view state", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+	const field = () => screen.getByRole("textbox") as HTMLTextAreaElement;
+
+	it("starts the caret at the beginning without initialCaret", () => {
+		render(<ClassicyTextEditor id="t" content="hello world" />);
+		expect(field().selectionStart).toBe(0);
+	});
+
+	it("puts the caret at initialCaret, clamped to the text, without focusing", () => {
+		render(
+			<ClassicyTextEditor id="t" content="hello world" initialCaret={6} />,
+		);
+		expect(field().selectionStart).toBe(6);
+		expect(field().selectionEnd).toBe(6);
+		expect(document.activeElement).not.toBe(field());
+	});
+
+	it("clamps an initialCaret past the end, and ignores one that is not finite", () => {
+		const { unmount } = render(
+			<ClassicyTextEditor id="t" content="hi" initialCaret={40} />,
+		);
+		expect(field().selectionStart).toBe(2);
+		unmount();
+		render(
+			<ClassicyTextEditor id="t" content="hi" initialCaret={Number.NaN} />,
+		);
+		expect(field().selectionStart).toBe(0);
+	});
+
+	it("reports the caret once it stops moving, only when it changes", () => {
+		vi.useFakeTimers();
+		const onCaretSettled = vi.fn();
+		render(
+			<ClassicyTextEditor
+				id="t"
+				content="hello world"
+				initialCaret={6}
+				onCaretSettled={onCaretSettled}
+			/>,
+		);
+		// The caret put back is never reported.
+		fireEvent.select(field());
+		vi.advanceTimersByTime(300);
+		expect(onCaretSettled).not.toHaveBeenCalled();
+		field().setSelectionRange(3, 3);
+		fireEvent.select(field());
+		vi.advanceTimersByTime(100);
+		field().setSelectionRange(9, 9);
+		fireEvent.select(field());
+		vi.advanceTimersByTime(150);
+		expect(onCaretSettled).not.toHaveBeenCalled();
+		vi.advanceTimersByTime(100);
+		expect(onCaretSettled).toHaveBeenCalledTimes(1);
+		expect(onCaretSettled).toHaveBeenLastCalledWith(9);
+	});
+
+	it("makes a report still due when it unmounts", () => {
+		vi.useFakeTimers();
+		const onCaretSettled = vi.fn();
+		const { unmount } = render(
+			<ClassicyTextEditor
+				id="t"
+				content="hello world"
+				onCaretSettled={onCaretSettled}
+			/>,
+		);
+		field().setSelectionRange(4, 4);
+		fireEvent.select(field());
+		unmount();
+		expect(onCaretSettled).toHaveBeenCalledWith(4);
+	});
+
+	it("hands initialScroll and onScrollSettled to its scroll area", () => {
+		vi.useFakeTimers();
+		const onScrollSettled = vi.fn();
+		render(
+			<ClassicyTextEditor
+				id="t"
+				content="hello"
+				initialScroll={[0, 0]}
+				onScrollSettled={onScrollSettled}
+			/>,
+		);
+		// jsdom lays nothing out, so the textarea's own setter keeps what it
+		// is given: a scroll reports it.
+		field().scrollTop = 30;
+		fireEvent.scroll(field());
+		vi.advanceTimersByTime(300);
+		expect(onScrollSettled).toHaveBeenCalledWith([0, field().scrollTop]);
+	});
+});
+
+// The remaining chapters' audit's 5.19 and 5.29 (WIG Ch.5 pp.44, 59): the
+// textarea viewport takes the spaces after a double-clicked word and shows
+// its own Edit menu under Windows' text keys.
+describe("ClassicyTextEditor under Windows' text keys", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+	const area = () => screen.getByRole("textbox") as HTMLTextAreaElement;
+	const renderEditor = () =>
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyTextEditor id="t" content={"one two \nthree"} />
+			</ClassicyContextualMenuProvider>,
+		);
+
+	it("takes the spaces after a double-clicked word, never the line break, and shows its own menu", () => {
+		restore = activateTestWindowsKeysPackage({
+			text: { wordSelect: "trailingSpace" },
+			textField: { contextMenu: "edit" },
+		});
+		renderEditor();
+		area().setSelectionRange(4, 7);
+		fireEvent.doubleClick(area());
+		expect([area().selectionStart, area().selectionEnd]).toEqual([4, 8]);
+		expect(fireEvent.mouseDown(area(), { button: 2 })).toBe(false);
+		expect(fireEvent.contextMenu(area(), { clientX: 5, clientY: 5 })).toBe(
+			false,
+		);
+		expect(document.getElementById("classicy-text-field-cut")).not.toBeNull();
+		expect([area().selectionStart, area().selectionEnd]).toEqual([4, 8]);
+	});
+
+	it("keeps the browser's word and the window's right-click by default", () => {
+		renderEditor();
+		area().setSelectionRange(4, 7);
+		fireEvent.doubleClick(area());
+		expect(area().selectionEnd).toBe(7);
+		expect(fireEvent.contextMenu(area(), { clientX: 5, clientY: 5 })).toBe(
+			true,
+		);
+		expect(document.getElementById("classicy-text-field-cut")).toBeNull();
 	});
 });

@@ -13,8 +13,21 @@ import {
 	userEvent,
 	waitFor,
 } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	resetClassicyMenuStatusTextForTests,
+	useClassicyMenuStatusText,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -707,5 +720,56 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(lasso, { button: 0 });
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+// The remaining chapters' audit's 12.13 (WIG Ch.12 "Status Bar Messages",
+// pp.276-277): under `layout.menu.itemHelp` "statusBar" a bevel button's
+// pop-up menu gives the menus' status text in a window, whose status bar
+// it belongs to, and none outside any (the taskbar's Start menu and tray,
+// the Control Strip's pop-ups).
+describe("ClassicyBevelButton pop-up menu and the status text", () => {
+	afterEach(() => {
+		resetClassicyMenuStatusTextForTests();
+		resetClassicyAppearancePackagesForTests();
+	});
+	const Status = () => (
+		<output data-testid="status">
+			{useClassicyMenuStatusText() ?? "(none)"}
+		</output>
+	);
+	const helpItems: ClassicyMenuItem[] = [
+		{ id: "shrink", title: "Shrink", balloon: { content: "Shrinks it." } },
+	];
+
+	it.each([
+		["in a window", true, "Shrinks it."],
+		["outside any window", undefined, "(none)"],
+	])("gives the highlighted item's help %s", (_, active, expected) => {
+		registerClassicyAppearancePackage({
+			id: "windows-popups",
+			name: "Windows pop-ups",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-popups-default",
+				package: "windows-popups",
+			},
+			layout: windows98.layout as never,
+		});
+		render(
+			<ClassicyWindowActiveContext.Provider value={active}>
+				<Status />
+				<ClassicyBevelButton
+					mode="popup"
+					aria-label="Marquee"
+					menuItems={helpItems}
+					popupHoldDelayMs={10_000}
+				/>
+			</ClassicyWindowActiveContext.Provider>,
+		);
+		quickClick(screen.getByRole("button", { name: "Marquee" }));
+		fireEvent.mouseOver(document.getElementById("shrink") as HTMLElement);
+		expect(screen.getByTestId("status")).toHaveTextContent(expected);
 	});
 });

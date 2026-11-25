@@ -583,19 +583,22 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		backgroundSize,
 	});
 
+	// The active theme's own package, as the reducer validates its colors
+	// (a theme of another package draws that package's, or none).
+	const themePackage = packages.find(
+		(pkg) =>
+			pkg.id ===
+			(appearanceState.activeTheme.package ??
+				CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
+	);
 	const colorsTab = useColorsTab({
 		theme: appearanceState.activeTheme,
 		editingCustomTheme: isCustomThemeActive(appearanceState),
 		changeColor,
 		appId: APP_ID,
-		// The active theme's own package's colors, as the reducer validates
-		// them (a theme of another package draws that package's, or none).
-		colorFamilies: packages.find(
-			(pkg) =>
-				pkg.id ===
-				(appearanceState.activeTheme.package ??
-					CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
-		)?.colorFamilies,
+		colorFamilies: themePackage?.colorFamilies,
+		// Its words for the core's colors (Windows 98's "3D Objects").
+		colorLabels: themePackage?.colorLabels,
 	});
 
 	const fontsTab = useFontsTab({

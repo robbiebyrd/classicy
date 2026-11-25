@@ -145,6 +145,9 @@ const PLATINUM_CURSORS: Record<ClassicyCursorRole, boolean> = {
 	resizeD: true,
 	resizeL: true,
 	resizeR: true,
+	// The contextual Help pointer of Windows' What's This? (WIG Ch.12
+	// "Context-Sensitive Help", p.273): Mac OS 8 had no such mode.
+	help: false,
 };
 
 describe("Platinum cursors", () => {

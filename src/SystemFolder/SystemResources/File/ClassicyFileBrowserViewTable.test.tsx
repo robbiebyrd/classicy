@@ -10,6 +10,7 @@ import {
 } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	registerClassicySelectedIconImages,
+	registerClassicySystemArt,
 	resetClassicyAssets,
 } from "@/Appearance/ClassicyAssetRegistry";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
@@ -1049,5 +1050,84 @@ describe("ClassicyFileBrowserViewTable — a row's transfers under the Windows l
 		expect(menuText()).toBeNull();
 		drag(cell, folder("Elsewhere"), { ctrlKey: true });
 		expect(onMoveItems.mock.calls[0][4]).toBe("move");
+	});
+});
+
+// A shortcut's badge in the list view (the audit's 11.2; WIG Ch.11
+// "Displaying Objects", p.230): under `layout.icon.aliasBadge` "everywhere"
+// a shortcut's row icon and the `aliasBadge` art share a
+// `classicyIconImage` box; absent, the row is as before.
+describe("ClassicyFileBrowserViewTable — shortcuts' badges (layout.icon.aliasBadge)", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		resetClassicyAssets();
+	});
+	const BADGE = "data:image/gif;base64,R0lGODlhAQABAAAAACw=#badge";
+	const usePackage = (aliasBadge?: "everywhere") => {
+		registerClassicyAppearancePackage({
+			id: "test-list-badge",
+			name: "List badge",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-list-badge-default",
+				package: "test-list-badge",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				...(aliasBadge ? { icon: { aliasBadge } } : {}),
+			},
+		});
+		registerClassicySystemArt("test-list-badge", { aliasBadge: BADGE });
+	};
+	const renderList = (key: string) =>
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={
+					new ClassicyFileSystem(key, {
+						_type: "directory",
+						Documents: {
+							_type: ClassicyFileSystemEntryFileType.Directory,
+							SimpleText: {
+								_type: ClassicyFileSystemEntryFileType.AppShortcut,
+							},
+							"plan.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
+						},
+					})
+				}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+	const rowOf = (name: string) =>
+		screen
+			.getByText(name)
+			.closest(".classicyFileBrowserViewTableRowContainer") as HTMLElement;
+
+	it("puts the badge after a shortcut's row icon under the key", () => {
+		usePackage("everywhere");
+		renderList("test-list-badge-on");
+		const box = rowOf("SimpleText").querySelector(
+			":scope > .classicyIconImage",
+		);
+		expect(box).not.toBeNull();
+		const [icon, badge] = Array.from(box?.children ?? []);
+		expect(icon).toHaveClass("classicyFileBrowserViewTableRowIcon");
+		expect(badge).toHaveClass("classicyIconAliasBadge");
+		expect(badge).toHaveAttribute("aria-hidden", "true");
+		expect(badge.querySelector("img")?.getAttribute("src")).toBe(BADGE);
+		expect(rowOf("plan.txt").querySelector(".classicyIconImage")).toBeNull();
+	});
+
+	it("draws no badge without it", () => {
+		usePackage();
+		renderList("test-list-badge-off");
+		expect(document.querySelector(".classicyIconImage")).toBeNull();
+		expect(document.querySelector(".classicyIconAliasBadge")).toBeNull();
+		expect(
+			rowOf("SimpleText").querySelector(
+				":scope > .classicyFileBrowserViewTableRowIcon",
+			),
+		).not.toBeNull();
 	});
 });

@@ -628,6 +628,233 @@ describe("ClassicyAppearancePackageSchema", () => {
 		);
 	});
 
+	// Documents (the WIG audit's 1.17 / 5.25, 5.24 / 9.2, 2.1 and B.4):
+	// `document.confirmUnsavedClose` and `reopenActivates`, an optional group
+	// of optional booleans, `window.restoreViewState` beside the required
+	// grow-box corner, and `menu.standardShortcuts`, one keyword.
+	it("takes optional document keys, window.restoreViewState and menu.standardShortcuts, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, Record<string, unknown>>;
+		layout.window.restoreViewState = true;
+		layout.menu = { standardShortcuts: "windows" };
+		layout.document = { confirmUnsavedClose: true, reopenActivates: true };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.window).toEqual({
+			restoreViewState: true,
+			growBoxCorner: "bottom-right",
+		});
+		expect(result.data?.layout.menu).toEqual({ standardShortcuts: "windows" });
+		expect(result.data?.layout.document).toEqual({
+			confirmUnsavedClose: true,
+			reopenActivates: true,
+		});
+		for (const value of [
+			{},
+			{ confirmUnsavedClose: false },
+			{ reopenActivates: false },
+		]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).document = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [group, key, value] of [
+			["document", "confirmUnsavedClose", "yes"],
+			["document", "reopenActivates", 1],
+			["window", "restoreViewState", "always"],
+			["menu", "standardShortcuts", "mac"],
+		] as const) {
+			const bad = platinumShaped();
+			const badLayout = bad.layout as Record<string, Record<string, unknown>>;
+			badLayout[group] = { ...badLayout[group], [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
+	// Text (the WIG audit's 5.19, 5.21, 5.29 and the Edit menu's Windows
+	// form of 5.44): `text.wordSelect`, `edit.scope`, `edit.menu` and
+	// `textField.contextMenu`, three optional groups of optional keywords.
+	it("takes optional text, edit and textField keys, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.text = { wordSelect: "trailingSpace" };
+		layout.edit = { scope: "window", menu: "windows" };
+		layout.textField = { contextMenu: "edit" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.text).toEqual({ wordSelect: "trailingSpace" });
+		expect(result.data?.layout.edit).toEqual({
+			scope: "window",
+			menu: "windows",
+		});
+		expect(result.data?.layout.textField).toEqual({ contextMenu: "edit" });
+		for (const [group, value] of [
+			["text", {}],
+			["text", { wordSelect: "native" }],
+			["edit", {}],
+			["edit", { scope: "any" }],
+			["edit", { menu: "mac" }],
+			["textField", { contextMenu: "none" }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[group] = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success, group).toBe(
+				true,
+			);
+		}
+		for (const [group, key, value] of [
+			["text", "wordSelect", "word"],
+			["edit", "scope", "app"],
+			["edit", "menu", "windows98"],
+			["textField", "contextMenu", true],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
+	// The wizard's buttons (the WIG audit's 12.22): `assistant.navigation`,
+	// an optional group of one optional keyword.
+	it("takes an optional assistant navigation, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).assistant = {
+			navigation: "buttons",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.assistant).toEqual({ navigation: "buttons" });
+		for (const value of [{}, { navigation: "pager" }]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).assistant = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).assistant = {
+			navigation: "wizard",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"assistant",
+			"navigation",
+		]);
+	});
+
+	// WinHelp's topic window and Help Topics browser (the WIG audit's 12.15,
+	// 12.16, 12.21): `help.topicWindow`, an optional group of one optional
+	// keyword.
+	it("takes an optional help topic window, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).help = {
+			topicWindow: "winhelp",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.help).toEqual({ topicWindow: "winhelp" });
+		const empty = platinumShaped();
+		(empty.layout as Record<string, unknown>).help = {};
+		expect(ClassicyAppearancePackageSchema.safeParse(empty).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).help = { topicWindow: "htmlhelp" };
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"help",
+			"topicWindow",
+		]);
+	});
+
+	// Context-sensitive Help, What's This? and F1 (the WIG audit's 12.2-12.4
+	// / B.5): `balloonHelp.contextHelp`, an optional keyword beside
+	// `placement` in the same optional group.
+	it("takes an optional balloonHelp.contextHelp, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).balloonHelp = {
+			placement: "pointer",
+			contextHelp: "whatsThis",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.balloonHelp).toEqual({
+			placement: "pointer",
+			contextHelp: "whatsThis",
+		});
+		const alone = platinumShaped();
+		(alone.layout as Record<string, unknown>).balloonHelp = {
+			contextHelp: "whatsThis",
+		};
+		expect(ClassicyAppearancePackageSchema.safeParse(alone).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).balloonHelp = {
+			contextHelp: "balloons",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"balloonHelp",
+			"contextHelp",
+		]);
+	});
+
+	// ToolTips (the WIG audit's 12.9, 12.11-12.13): the timing and gating
+	// keys beside `placement` in `balloonHelp`, and `menu.itemHelp`, each
+	// optional; a time outside 0-60000 ms (the auto-pop from 1), or another
+	// keyword, is refused.
+	it("takes the ToolTip keys and menu.itemHelp, and refuses another value", () => {
+		const input = platinumShaped();
+		const tips = {
+			placement: "pointer",
+			unlabeledTips: true,
+			delayMs: 500,
+			autoPopMs: 5000,
+			reshowMs: 100,
+			hideOnPress: true,
+			activeWindowOnly: true,
+		};
+		(input.layout as Record<string, unknown>).balloonHelp = tips;
+		(input.layout as Record<string, unknown>).menu = { itemHelp: "statusBar" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.balloonHelp).toEqual(tips);
+		expect(result.data?.layout.menu).toEqual({ itemHelp: "statusBar" });
+		for (const [group, key, value] of [
+			["balloonHelp", "delayMs", -1],
+			["balloonHelp", "delayMs", 60_001],
+			["balloonHelp", "autoPopMs", 0],
+			["balloonHelp", "reshowMs", 1.5],
+			["balloonHelp", "hideOnPress", "yes"],
+			["balloonHelp", "unlabeledTips", 1],
+			["balloonHelp", "activeWindowOnly", "true"],
+			["menu", "itemHelp", "tooltip"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, `${group}.${key} ${value}`).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
 	it("accepts defaults that name the package", () => {
 		const input = {
 			...platinumShaped(),
@@ -755,6 +982,73 @@ describe("ClassicyAppearancePackageSchema", () => {
 				"shadow",
 			]);
 		}
+	});
+});
+
+// The audit's 1.13, 10.20 and 11.2: `menu.confirmEllipsis`, the `dialog`
+// group's `flushInput` and the `icon` group's `aliasBadge`, each optional;
+// another value is refused at its path.
+describe("ClassicyAppearancePackageSchema confirmEllipsis, dialog and icon", () => {
+	const withLayout = (layout: Record<string, unknown>) => {
+		const input = platinumShaped();
+		Object.assign(input.layout as Record<string, unknown>, layout);
+		return ClassicyAppearancePackageSchema.safeParse(input);
+	};
+
+	it("takes each key, and the groups empty", () => {
+		const result = withLayout({
+			menu: { confirmEllipsis: false },
+			dialog: { flushInput: true },
+			icon: { aliasBadge: "everywhere" },
+		});
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menu).toEqual({ confirmEllipsis: false });
+		expect(result.data?.layout.dialog).toEqual({ flushInput: true });
+		expect(result.data?.layout.icon).toEqual({ aliasBadge: "everywhere" });
+		expect(
+			withLayout({ dialog: {}, icon: { aliasBadge: "desktop" } }).success,
+		).toBe(true);
+	});
+
+	it.each([
+		[
+			{ menu: { confirmEllipsis: "no" } },
+			["layout", "menu", "confirmEllipsis"],
+		],
+		[{ dialog: { flushInput: 1 } }, ["layout", "dialog", "flushInput"]],
+		[{ icon: { aliasBadge: "folders" } }, ["layout", "icon", "aliasBadge"]],
+	])("refuses %j", (layout, path) => {
+		const result = withLayout(layout);
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((i) => i.path)).toContainEqual(path);
+	});
+});
+
+// The Colors tab's labels for the core's colors (the audit's 1.2):
+// `colorLabels`, keyed by a color target's CSS variable; another key, or an
+// empty label, is refused.
+describe("ClassicyAppearancePackageSchema colorLabels", () => {
+	const withLabels = (colorLabels: unknown) =>
+		ClassicyAppearancePackageSchema.safeParse({
+			...platinumShaped(),
+			colorLabels,
+		});
+
+	it("takes labels keyed by the targets' CSS variables", () => {
+		const result = withLabels({
+			"--color-system-03": "3D Objects",
+			"--desktop-background-color": "Desktop",
+		});
+		expect(result.success).toBe(true);
+		expect(result.data?.colorLabels).toEqual({
+			"--color-system-03": "3D Objects",
+			"--desktop-background-color": "Desktop",
+		});
+	});
+
+	it("refuses a key that is no color target's, and an empty label", () => {
+		expect(withLabels({ "--color-menu": "Menu" }).success).toBe(false);
+		expect(withLabels({ "--color-system-03": " " }).success).toBe(false);
 	});
 });
 

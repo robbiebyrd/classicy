@@ -2,6 +2,7 @@ import { z } from "zod";
 import { openApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { focusClassicyReopenedWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDocumentReopen";
 import {
 	isMoviePlayerData,
 	MoviePlayerAppInfo,
@@ -92,16 +93,24 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 		// actual video/audio source (url or _data) at render time in MoviePlayer.tsx.
 		case "ClassicyAppMoviePlayerOpenFile": {
 			if (!action.path) break;
-			if (!appData.openFiles.includes(action.path)) {
+			const wasOpen = appData.openFiles.includes(action.path);
+			if (!wasOpen) {
 				appData.openFiles = [...appData.openFiles, action.path];
 			}
 			// Opening an already-open file still brings the app forward, as
-			// the generic OpenFile handler does.
+			// the generic OpenFile handler does, and under
+			// `document.reopenActivates` the file's own window with it.
 			openApp(
 				ds,
 				MoviePlayerAppInfo.id,
 				MoviePlayerAppInfo.name,
 				MoviePlayerAppInfo.icon,
+			);
+			focusClassicyReopenedWindow(
+				ds,
+				appId,
+				`${appId}_MoviePlayer_${action.path}`,
+				wasOpen,
 			);
 			break;
 		}

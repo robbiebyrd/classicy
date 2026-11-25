@@ -8,6 +8,12 @@ import {
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 // The Windows-layout package below needs a sound pack registered.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { ClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
+import {
+	getClassicyContextHelpPopup,
+	isClassicyWhatsThisActive,
+	resetClassicyWhatsThisForTests,
+} from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import {
 	ClassicyContextualMenuProvider,
 	useClassicyContextualMenu,
@@ -15,6 +21,22 @@ import {
 import { ClassicyContextualMenuTarget } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuTarget";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
+
+// F1's Help Topics, heard here rather than reduced (the provider's other
+// tests dispatch nothing).
+const { dispatched } = vi.hoisted(() => ({
+	dispatched: [] as { type: string }[],
+}));
+vi.mock(
+	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
+	async (importOriginal) => ({
+		...(await importOriginal<
+			typeof import("@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils")
+		>()),
+		useAppManagerDispatch: () => (action: { type: string }) =>
+			dispatched.push(action),
+	}),
+);
 
 const windows98Layout = windows98.layout;
 
@@ -545,5 +567,201 @@ describe("ClassicyContextualMenuProvider — menus at button 2's release (layout
 		fireEvent.click(screen.getByText("hide-show-b"));
 		fireEvent.mouseUp(first, { button: 2 });
 		expect(openMenu() ?? "").not.toContain("Alpha One");
+	});
+});
+
+// Context-sensitive Help (the WIG audit's 12.2-12.4 / B.5; WIG Ch.12
+// "Context-Sensitive Help", pp.273-275, Figure 12.4; App. B Table B.2,
+// p.358) under the package's `balloonHelp.contextHelp` "whatsThis" (Windows
+// 98): F1 shows the focused element's help below it, else Help Topics;
+// Shift+F1 starts What's This? on the active window; and a right-click on a
+// described control in a window that opens no menu of its own shows a menu
+// holding "What's This?". Under any other package none of it.
+describe("ClassicyContextualMenuProvider — F1, Shift+F1 and What's This? (layout.balloonHelp.contextHelp)", () => {
+	afterEach(() => {
+		resetClassicyWhatsThisForTests();
+		resetClassicyAppearancePackagesForTests();
+		dispatched.length = 0;
+	});
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-help",
+			name: "Windows help",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-help-default",
+				package: "windows-help",
+			},
+			layout: windows98Layout as never,
+		});
+	const openMenu = () =>
+		document.querySelector(".classicyContextMenuWrapper")?.textContent ?? null;
+	const settle = () =>
+		act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+	const renderDesk = () =>
+		render(
+			<ClassicyContextualMenuProvider>
+				<div id="classicyDesktop" className="classicyDesktop">
+					<div className="classicyWindow active" data-testid="window">
+						<ClassicyBalloonHelp content="Adjusts the speed.">
+							<button type="button">described</button>
+						</ClassicyBalloonHelp>
+						<ClassicyBalloonHelp content="Has a menu.">
+							<ClassicyContextualMenuTarget menuItems={menuA}>
+								<button type="button">targeted</button>
+							</ClassicyContextualMenuTarget>
+						</ClassicyBalloonHelp>
+						<button type="button">plain</button>
+					</div>
+					<ClassicyBalloonHelp content="On the desktop.">
+						<button type="button">loose</button>
+					</ClassicyBalloonHelp>
+				</div>
+				<button type="button">elsewhere</button>
+			</ClassicyContextualMenuProvider>,
+		);
+
+	it("binds neither key and adds no menu without the key", async () => {
+		renderDesk();
+		const described = screen.getByText("described");
+		described.focus();
+		expect(fireEvent.keyDown(described, { key: "F1" })).toBe(true);
+		expect(fireEvent.keyDown(described, { key: "F1", shiftKey: true })).toBe(
+			true,
+		);
+		expect(getClassicyContextHelpPopup()).toBeNull();
+		expect(isClassicyWhatsThisActive()).toBe(false);
+		expect(dispatched).toEqual([]);
+		fireEvent.contextMenu(described, { clientX: 10, clientY: 10 });
+		await settle();
+		expect(openMenu()).toBeNull();
+	});
+
+	it("F1 shows the focused element's help below it, taking the key", () => {
+		useWindowsLayout();
+		renderDesk();
+		const described = screen.getByText("described");
+		described.focus();
+		expect(fireEvent.keyDown(described, { key: "F1" })).toBe(false);
+		const popup = getClassicyContextHelpPopup();
+		expect(popup?.help.content).toBe("Adjusts the speed.");
+		expect(popup?.placement.kind).toBe("below");
+		expect(
+			document.querySelector(".classicyBalloonHelpContext"),
+		).toHaveTextContent("Adjusts the speed.");
+		expect(dispatched).toEqual([]);
+	});
+
+	it("F1 with nothing described focused opens Help Topics", () => {
+		useWindowsLayout();
+		renderDesk();
+		const plain = screen.getByText("plain");
+		plain.focus();
+		expect(fireEvent.keyDown(plain, { key: "F1" })).toBe(false);
+		expect(dispatched).toEqual([{ type: "ClassicyAppAppleGuideShowTopics" }]);
+		expect(getClassicyContextHelpPopup()).toBeNull();
+		// Focus on nothing at all: the same.
+		plain.blur();
+		expect(fireEvent.keyDown(document.body, { key: "F1" })).toBe(false);
+		expect(dispatched).toHaveLength(2);
+	});
+
+	it("leaves F1 alone outside the desktop, with a modifier, or already taken; takes a repeat but does nothing", () => {
+		useWindowsLayout();
+		renderDesk();
+		const elsewhere = screen.getByText("elsewhere");
+		elsewhere.focus();
+		expect(fireEvent.keyDown(elsewhere, { key: "F1" })).toBe(true);
+		const described = screen.getByText("described");
+		described.focus();
+		expect(fireEvent.keyDown(described, { key: "F1", ctrlKey: true })).toBe(
+			true,
+		);
+		const taken = (e: KeyboardEvent) => e.preventDefault();
+		described.addEventListener("keydown", taken);
+		fireEvent.keyDown(described, { key: "F1" });
+		described.removeEventListener("keydown", taken);
+		expect(getClassicyContextHelpPopup()).toBeNull();
+		expect(fireEvent.keyDown(described, { key: "F1", repeat: true })).toBe(
+			false,
+		);
+		expect(getClassicyContextHelpPopup()).toBeNull();
+		expect(dispatched).toEqual([]);
+	});
+
+	it("Shift+F1 starts What's This? on the active window, and ends it again", () => {
+		useWindowsLayout();
+		renderDesk();
+		const plain = screen.getByText("plain");
+		plain.focus();
+		expect(fireEvent.keyDown(plain, { key: "F1", shiftKey: true })).toBe(false);
+		expect(isClassicyWhatsThisActive()).toBe(true);
+		fireEvent.keyDown(plain, { key: "F1", shiftKey: true });
+		expect(isClassicyWhatsThisActive()).toBe(false);
+	});
+
+	it("a right-click on a described control in a window with no menu shows What's This?, which shows its help at the click", async () => {
+		useWindowsLayout();
+		renderDesk();
+		fireEvent.contextMenu(screen.getByText("described"), {
+			clientX: 30,
+			clientY: 40,
+		});
+		await settle();
+		const items = [...document.querySelectorAll(".classicyContextMenu > li")];
+		expect(items.map((item) => item.textContent)).toEqual(["What's This?"]);
+		// user.exe's "&What's This?": W underlined.
+		expect(
+			items[0]?.querySelector("[data-classicy-part=access-key]"),
+		).toHaveTextContent("W");
+		// The item runs once its flash is over (no package flash here: the
+		// 400 ms fallback).
+		fireEvent.click(items[0] as Element);
+		await act(() => new Promise((resolve) => setTimeout(resolve, 450)));
+		const popup = getClassicyContextHelpPopup();
+		expect(popup?.help.content).toBe("Adjusts the speed.");
+		expect(popup?.placement).toEqual({ kind: "point", at: [30, 40] });
+	});
+
+	it("answers a right-click once with two providers mounted", async () => {
+		useWindowsLayout();
+		renderDesk();
+		render(
+			<ClassicyContextualMenuProvider>
+				<span>second desktop</span>
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.contextMenu(screen.getByText("described"), {
+			clientX: 30,
+			clientY: 40,
+		});
+		await settle();
+		expect(
+			document.querySelectorAll(".classicyContextMenuWrapper"),
+		).toHaveLength(1);
+	});
+
+	it("leaves a control's own menu alone, and adds none outside a window or with no help", async () => {
+		useWindowsLayout();
+		renderDesk();
+		fireEvent.contextMenu(screen.getByText("targeted"), {
+			clientX: 5,
+			clientY: 5,
+		});
+		await settle();
+		expect(openMenu()).toContain("Alpha One");
+		expect(openMenu()).not.toContain("What's This?");
+		act(() => {
+			fireEvent.mouseDown(document.body);
+		});
+		for (const label of ["loose", "plain"]) {
+			fireEvent.contextMenu(screen.getByText(label), {
+				clientX: 5,
+				clientY: 5,
+			});
+			await settle();
+			expect(openMenu(), label).toBeNull();
+		}
 	});
 });

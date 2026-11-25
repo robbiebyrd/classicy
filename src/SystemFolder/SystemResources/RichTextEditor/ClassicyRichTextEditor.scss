@@ -88,3 +88,12 @@
     font-family: 'AppleGaramond', serif;
   }
 }
+
+// The toolbar's tips (MDXEditor's Radix tooltips), opened in the editor's
+// `classicyRichTextEditorPopups` element in the desktop
+// (ClassicyRichTextEditor.tsx): above the windows, as a balloon is
+// (ClassicyBalloonHelp.scss). Radix gives its positioned wrapper the
+// content's z-index. The Appearance Package draws the box.
+.classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > * {
+  z-index: 100000;
+}

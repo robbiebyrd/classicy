@@ -87,3 +87,21 @@
   right: var(--balloon-help-tail-inset);
   --classicy-balloon-tail-sx: -1;
 }
+
+// What's This? (`layout.balloonHelp.contextHelp` "whatsThis"; WIG Ch.12
+// "Context-Sensitive Help", pp.273-274, Figure 12.2): while the mode is on,
+// the document element carries `classicyWhatsThisMode`
+// (ClassicyWhatsThis.internal.ts) and the active window, "the active window
+// from which the What's This? command was chosen", shows the contextual Help
+// pointer: the package's `help` cursor (`--classicy-cursor-help`, published
+// on the desktop root, at its hotspot, else the arrow's tip), else the
+// browser's `help` keyword, Windows' own arrow and question mark on a Windows
+// host. The class is set only under that layout key, so no other package
+// meets this rule; a package that sets `cursor` on its controls repeats it in
+// its own layer.
+html.classicyWhatsThisMode .classicyWindow.active,
+html.classicyWhatsThisMode .classicyWindow.active * {
+  cursor:
+    var(--classicy-cursor-help, url('data:,')) var(--classicy-cursor-help-hotspot, 0 0),
+    help;
+}

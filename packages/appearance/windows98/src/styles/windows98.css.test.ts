@@ -11,8 +11,11 @@ import { CLASSICY_LAYER_ORDER } from "../../../../../bin/classicyStyleInjector";
 // are. No rule sits outside the scope: the package ships no screen savers.
 
 const STYLESHEET = path.join(import.meta.dirname, "windows98.scss");
+// A rule may be keyed on the What's This? mode's class on the document
+// element above the root (`html.classicyWhatsThisMode`, set only under the
+// package's `balloonHelp.contextHelp`): still scoped under the root.
 const WINDOWS98_SCOPE =
-	/^\.classicyDesktop\[data-classicy-appearance=("?)windows98\1\](?=$|[\s.:#[>+~])/;
+	/^(?:html\.classicyWhatsThisMode )?\.classicyDesktop\[data-classicy-appearance=("?)windows98\1\](?=$|[\s.:#[>+~])/;
 
 /** A selector list's selectors: its commas outside parentheses (`:is(a, b)`). */
 const splitSelectors = (header: string) => {
@@ -895,12 +898,455 @@ describe("windows98.scss (compiled)", () => {
 					"--package-color-text-gray: GrayText",
 					"--package-color-title-bar-active: Highlight",
 					"--package-color-title-bar-text: HighlightText",
+					"--package-color-help-jump: LinkText",
 					"--scroll-bar-solid-track: 0px",
 				])
 					expect(block, declaration).toContain(declaration);
 				// Last in the sheet, so its tokens win over nothing they must not.
 				expect(css.lastIndexOf("@media (forced-colors: active)")).toBe(start);
 			});
+		});
+	});
+
+	// The remaining chapters' audit's L4-J1: HyperCard's armed part tool
+	// (1.3), the wizard (1.5, 12.23) and the Help topic window (12.17, 12.19,
+	// 12.20), each rule keyed on a class the core already sets.
+	describe("the assistant, the Help topic window and HyperCard's armed tool", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		// The declarations of every rule whose selector list holds `selector`.
+		const rule = (selector: string) => {
+			const full = `${scope} ${selector}`;
+			let declarations = "";
+			let at = css.indexOf(full);
+			while (at >= 0) {
+				const open = css.indexOf("{", at);
+				const header = css.slice(
+					Math.max(css.lastIndexOf("}", at), css.lastIndexOf("{", at)) + 1,
+					open,
+				);
+				if (splitSelectors(header.trim()).includes(full))
+					declarations += css.slice(open + 1, css.indexOf("}", open));
+				at = css.indexOf(full, open);
+			}
+			return declarations;
+		};
+		const etched =
+			"inset 0 calc(var(--window-border-size) * -1) var(--color-system-01), inset 0 calc(calc(var(--window-border-size) + var(--window-border-size)) * -1) var(--color-system-05)";
+		const flat = (text: string) => text.replace(/\s+/g, " ");
+
+		// WIG Ch.13 "Option-Set Appearance" (pp.304-305), Figure 13.12: the
+		// armed entry is a latched toolbar button, the pressed rings round the
+		// ButtonHilight / ButtonFace checker, its label WindowText.
+		it("latches HyperCard's armed part tool: the checker in the pressed rings", () => {
+			const armed = flat(rule(".classicyHyperCardPaletteEntry.selected"));
+			expect(armed).toContain("color: var(--color-black)");
+			expect(armed).toContain(
+				"background: repeating-conic-gradient(var(--color-system-01) 0 25%, var(--color-system-03) 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)",
+			);
+			// `b.pressed`: ButtonHilight outside at the bottom and right,
+			// ButtonDkShadow at the top and left.
+			expect(armed).toContain(
+				"inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-01)",
+			);
+			expect(armed).toContain(
+				"inset var(--window-border-size) var(--window-border-size) var(--color-system-07)",
+			);
+			// An idle entry keeps the base's look.
+			expect(rule(".classicyHyperCardPaletteEntry")).toBe("");
+		});
+
+		// WIG Ch.12 "Guidelines for Writing Text for Wizards" (pp.289-290),
+		// Figures 12.17 and 12.18; Ch.1 "Consistency" (p.2): a dialog face,
+		// the title band ruled off by the etched line, the etched line above
+		// the buttons, Back and Next first and touching (comctl32's
+		// template), push-button sized, and no page number.
+		it("draws the assistant as a wizard: a ButtonFace page, etched lines, Back and Next first", () => {
+			expect(rule(".classicyAssistant")).toContain("color: var(--color-black)");
+			expect(flat(rule(".classicyAssistantHeader"))).toContain(
+				`box-shadow: ${etched}`,
+			);
+			expect(rule(".classicyAssistantBody")).toContain(
+				"background: var(--color-system-03)",
+			);
+			const footer = flat(rule(".classicyAssistantFooter"));
+			expect(footer).toContain("justify-content: flex-end");
+			expect(footer).toContain("column-gap: 0");
+			expect(footer).toContain("background: var(--color-system-03)");
+			expect(footer).toContain(
+				"border-top: var(--window-border-size) solid var(--color-system-05)",
+			);
+			expect(footer).toContain(
+				"box-shadow: inset 0 var(--window-border-size) var(--color-system-01)",
+			);
+			expect(footer).toContain("--classicy-pager-band: var(--color-system-03)");
+			const nav = rule(".classicyAssistantNav");
+			expect(nav).toContain("order: 1");
+			expect(nav).toContain("column-gap: 0");
+			expect(rule(".classicyAssistantBack")).toContain("margin-inline-end: 0");
+			expect(rule(".classicyAssistantNext")).toContain(
+				"margin-inline-start: 0",
+			);
+			const buttons = rule(".classicyAssistantFooterButtons");
+			expect(buttons).toContain("order: 2");
+			expect(buttons).toContain("column-gap: 0");
+			expect(rule(".classicyAssistantPageIndicator")).toContain(
+				"display: none",
+			);
+			const push = rule(
+				".classicyAssistantFooter .classicyButton.classicyButtonSmall",
+			);
+			expect(push).toContain("min-height: var(--push-button-height)");
+			expect(push).toContain("min-width: var(--button-min-width)");
+		});
+
+		// WIG Ch.12 "Task Topic Windows" (p.280), "Nonscrolling Regions"
+		// (p.283), "Jumps" (p.283): the topic on InfoWindow in the UI font, a
+		// WindowFrame line under the title band in the etched line's place, a
+		// ButtonFace footer, and a green jump that leaves an unavailable one
+		// embossed.
+		it("draws the Help topic window on InfoWindow, its title band ruled, its jumps green", () => {
+			for (const part of [
+				".classicyAssistantHeader",
+				".classicyAssistantBody",
+			]) {
+				const face = rule(`.appleGuideWindow ${part}`);
+				expect(face, part).toContain(
+					"color: var(--package-color-tooltip-text, var(--color-black))",
+				);
+				expect(face, part).toContain(
+					"background: var(--package-color-tooltip-face, var(--color-window-document))",
+				);
+				expect(face, part).toContain("font-family: var(--ui-font), sans-serif");
+			}
+			const band = rule(".appleGuideWindow .classicyAssistantHeader");
+			expect(band).toContain(
+				"border-bottom: var(--window-border-size) solid var(--color-window-border)",
+			);
+			expect(band).toContain("box-shadow: none");
+			// After the wizard's header rule, so the line takes its place.
+			expect(
+				css.indexOf(`${scope} .appleGuideWindow .classicyAssistantHeader`),
+			).toBeGreaterThan(css.indexOf(`${scope} .classicyAssistantHeader {`));
+			const footer = rule(".appleGuideWindow .classicyAssistantFooter");
+			expect(footer).toContain("background: var(--color-system-03)");
+			expect(footer).toContain("--classicy-pager-band: var(--color-system-03)");
+			expect(rule(".appleGuideWindow .classicyLink:not(.disabled)")).toContain(
+				"color: var(--package-color-help-jump, var(--color-theme-04))",
+			);
+			// The jump rule comes after the placard partial's link rules, and
+			// no rule colors an unavailable jump green.
+			expect(
+				css.indexOf(`${scope} .appleGuideWindow .classicyLink`),
+			).toBeGreaterThan(css.indexOf(`${scope} :where(.classicyLink).disabled`));
+			expect(css).not.toMatch(/[^(]\.disabled[^{]*\{[^}]*help-jump/);
+		});
+
+		// WIG Ch.12 "Task Topic Windows" (p.280), Figure 12.10: Help Topics,
+		// Back and Options touching on a ButtonFace band, push-button sized,
+		// a WindowFrame line between the band and the topic.
+		it("draws the Help topic window's command buttons as Figure 12.10's band", () => {
+			const band = flat(rule(".appleGuideButtonBar"));
+			expect(band).toContain("background: var(--color-system-03)");
+			expect(band).toContain(
+				"border-bottom: var(--window-border-size) solid var(--color-window-border)",
+			);
+			const button = rule(".appleGuideButtonBar > .classicyButton");
+			expect(button).toContain("min-height: var(--push-button-height)");
+			expect(button).toContain("min-width: var(--button-min-width)");
+			expect(button).toContain("margin: 0");
+		});
+
+		// WIG Ch.12 "The Help Topics Browser" and "The Help Topic Tabs"
+		// (pp.284-288), Figure 12.13; winhlp32.exe's DIALOG 909 and 112, in
+		// dialog units of MS Sans Serif 8: the tab control and the buttons 4
+		// units (6 px) in and apart, the Contents page 12 units right of the
+		// tab's edge and 27 below its top, the prompt over a tree view with
+		// the client edge and no lines or buttons.
+		it("lays out the Help Topics browser as winhlp32's dialog", () => {
+			const dialog = flat(rule(".classicyHelpTopics"));
+			expect(dialog).toContain("row-gap: calc(var(--pixel-unit) * 6)");
+			expect(dialog).toContain("padding: calc(var(--pixel-unit) * 6)");
+			expect(dialog).toContain("color: var(--color-black)");
+			expect(dialog).toContain("font-family: var(--ui-font), sans-serif");
+			expect(dialog).toContain("font-size: var(--ui-font-size)");
+			const page = flat(rule(".classicyHelpTopicsContents"));
+			expect(page).toContain("row-gap: calc(var(--pixel-unit) * 14)");
+			expect(page).toContain(
+				"padding: calc(var(--pixel-unit) * 9) calc(var(--pixel-unit) * 8) calc(var(--pixel-unit) * 4) calc(var(--pixel-unit) * 6)",
+			);
+			const list = flat(rule(".classicyHelpTopicsList"));
+			expect(list).toContain(
+				"padding: calc(var(--window-border-size) + var(--window-border-size))",
+			);
+			expect(list).toContain("background: var(--color-window-document)");
+			expect(list).toContain("box-shadow: inset");
+			expect(rule(".classicyHelpTopicsListViewport")).toContain(
+				"box-shadow: none",
+			);
+			expect(
+				rule(".classicyHelpTopicsList .classicyTreeNodeDisclosure"),
+			).toContain("display: none");
+			// No hierarchy lines in its tree, as in Standard File's well.
+			expect(css).toContain(
+				".classicyTreeNodeRow:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)",
+			);
+			expect(css).toContain(
+				".classicyTreeGroup:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)",
+			);
+			expect(rule(".classicyHelpTopicsButtons")).toContain(
+				"column-gap: calc(var(--pixel-unit) * 6)",
+			);
+			const button = rule(".classicyHelpTopicsButtons > .classicyButton");
+			expect(button).toContain("min-height: var(--push-button-height)");
+			expect(button).toContain("min-width: var(--button-min-width)");
+			expect(button).toContain("margin: 0");
+		});
+	});
+
+	// What's This? (`balloonHelp.contextHelp` "whatsThis", the audit's 12.2
+	// and 12.3; WIG Ch.12 "Context-Sensitive Help", pp.273-275): the help
+	// pointer over the active window while the mode is on, in this layer so
+	// it beats the package's own `cursor: default` on its controls, and the
+	// pop-up's shadow, Figure 12.3's: the box moved `--tooltip-shadow` right
+	// and down behind it, a one-pixel checker of WindowFrame and transparent.
+	describe("What's This?", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const rule = (selector: string) => {
+			const at = css.indexOf(`${selector} {`);
+			return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+		};
+		const flat = (text: string) => text.replace(/\s+/g, " ");
+
+		it("shows the help pointer over the active window in the mode, over the controls' own cursor", () => {
+			const pointer = flat(
+				rule(`html.classicyWhatsThisMode ${scope} .classicyWindow.active *`),
+			);
+			expect(pointer).toContain(
+				'cursor: var(--classicy-cursor-help, url("data:,")) var(--classicy-cursor-help-hotspot, 0 0), help',
+			);
+			expect(
+				css.includes(
+					`html.classicyWhatsThisMode ${scope} .classicyWindow.active,`,
+				),
+			).toBe(true);
+			// After the controls' `cursor: default`, at a greater weight.
+			expect(
+				css.indexOf(`html.classicyWhatsThisMode ${scope}`),
+			).toBeGreaterThan(css.indexOf(`${scope} .classicyButton {`));
+		});
+
+		it("shadows the context-sensitive Help pop-up as Figure 12.3 does", () => {
+			expect(rule(`${scope} .classicyBalloonHelpContext`)).toContain(
+				"position: relative",
+			);
+			const shadow = flat(rule(`${scope} .classicyBalloonHelpContext::after`));
+			expect(shadow).toContain('content: ""');
+			expect(shadow).toContain("position: absolute");
+			expect(shadow).toContain("z-index: -1");
+			expect(shadow).toContain("inset: calc(var(--window-border-size) * -1)");
+			expect(shadow).toContain(
+				"transform: translate(var(--tooltip-shadow), var(--tooltip-shadow))",
+			);
+			expect(shadow).toContain(
+				"background: repeating-conic-gradient(var(--color-window-border) 0 25%, transparent 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)",
+			);
+		});
+	});
+
+	// ToolTips (the WIG audit's 12.7 and 12.10; WIG Ch.12 "Tooltips", p.276,
+	// Figures 12.5 and 12.6; Ch.7 "Tooltip Controls", p.133): a tip's title
+	// is its first line in the same weight with no gap (Figure 12.5's icon
+	// help), and the rich text editor's toolbar tips (MDXEditor's Radix
+	// tooltips, opened in the desktop) are ToolTips, the balloon's box.
+	describe("ToolTips", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const rule = (selector: string) => {
+			const at = css.indexOf(`${selector} {`);
+			return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+		};
+
+		it("sets a tip's title as its first line, plain, with no gap", () => {
+			const title = rule(
+				`${scope} .classicyBalloonHelp .classicyBalloonHelpTitle`,
+			);
+			expect(title).toContain("font-weight: normal");
+			expect(title).toContain("margin-bottom: 0");
+		});
+
+		it("draws the rich text editor's toolbar tips as ToolTips", () => {
+			const box = [
+				"min-width: 0",
+				"padding: var(--tooltip-padding-y) var(--tooltip-padding-x)",
+				"border: var(--window-border-size) solid var(--color-window-border)",
+				"border-radius: 0",
+				"color: var(--package-color-tooltip-text, var(--color-black))",
+				"background: var(--package-color-tooltip-face, var(--color-window-document))",
+			];
+			const tip = rule(
+				`${scope} .classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > *`,
+			);
+			for (const declaration of [
+				...box,
+				"font-family: var(--ui-font)",
+				"font-size: var(--ui-font-size)",
+				"line-height: 1.3",
+				"white-space: nowrap",
+			])
+				expect(tip).toContain(declaration);
+			// The same box as the balloon's.
+			const balloon = rule(`${scope} .classicyBalloonHelp`);
+			for (const declaration of box) expect(balloon).toContain(declaration);
+		});
+	});
+
+	// The audit's L4-K findings, each rule pinned: Windows' pointers where
+	// the base shows the hand, the slashed circle or the Mac's one-way
+	// arrows (4.1, 4.2; WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1), the
+	// busy pointers (4.5), no extensions parade (1.16), a chosen menu item's
+	// 1 ms animation (1.19 / 4.7), the message box's Help push button
+	// (12.14) and a shortcut's badge in windows (11.2).
+	describe("pointers, the chosen item, the Help button and shortcuts' badges", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const rule = (selector: string) => {
+			const at = css.indexOf(`${selector} {`);
+			return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+		};
+		const flat = (text: string) => text.replace(/\s+/g, " ");
+		const registry = (role: string, keyword: string, hotspot: string) =>
+			`cursor: var(--classicy-cursor-${role}, url("data:,")) var(--classicy-cursor-${role}-hotspot, ${hotspot}), ${keyword}`;
+		const ARROW = registry("arrow", "default", "0 0");
+
+		it.each([
+			[".classicyListBoxOption,"],
+			[".classicyTreeNodeSelectable"],
+			[".classicyFileBrowserViewTableDisclosureTriangle"],
+			[".classicyTabScrollButton"],
+			[".classicyPagerArrow"],
+			[".classicySlider"],
+			[".classicySlider::-webkit-slider-thumb"],
+			[".classicySlider::-moz-range-thumb"],
+			[".classicyColorPickerCrayon"],
+		])("takes the arrow over %s", (selector) => {
+			const last = selector.endsWith(",");
+			// Each partial's rule comes last in it, after the look's own.
+			const at = css.lastIndexOf(`${scope} ${selector}${last ? "" : " {"}`);
+			expect(at).toBeGreaterThan(-1);
+			const block = css.slice(at, css.indexOf("}", at));
+			expect(flat(block)).toContain(ARROW);
+		});
+
+		it("lists the tree's rows and the swatches with them", () => {
+			expect(css).toContain(`${scope} .classicyTreeNodeBranch,`);
+			expect(css).toContain(`${scope} .classicyColorPickerSwatch,`);
+		});
+
+		it("keeps the two-headed sizing pointers on the split dividers, during a drag too", () => {
+			const lr = registry("resize-lr", "col-resize", "8 8");
+			const ud = registry("resize-ud", "row-resize", "8 8");
+			expect(
+				flat(
+					rule(
+						`${scope} .classicySplitViewHorizontal > .classicySplitViewDivider`,
+					),
+				),
+			).toContain(lr);
+			expect(
+				flat(
+					rule(
+						`${scope} .classicySplitViewVertical > .classicySplitViewDivider`,
+					),
+				),
+			).toContain(ud);
+			expect(
+				flat(
+					rule(
+						`${scope} .classicySplitView:is([data-drag-direction=l], [data-drag-direction=r]) .classicySplitViewSplitBox`,
+					),
+				),
+			).toContain(lr);
+			expect(
+				flat(
+					rule(
+						`${scope} .classicySplitView:is([data-drag-direction=u], [data-drag-direction=d]) .classicySplitViewSplitBox`,
+					),
+				),
+			).toContain(ud);
+		});
+
+		it("shows the busy pointers and no extensions parade", () => {
+			expect(flat(rule(`${scope} .classicyStartupScreen`))).toContain(
+				registry("watch", "wait", "8 8"),
+			);
+			expect(rule(`${scope} .classicyStartupScreenExtensions`)).toContain(
+				"display: none",
+			);
+			expect(rule(`${scope} .pdfViewerDocumentLoading`)).toContain(
+				"cursor: progress",
+			);
+		});
+
+		it("gives a chosen menu item a 1 ms animation that draws nothing", () => {
+			expect(
+				rule(`${scope} .classicyMenuItem.windows98MenuItemChosen`),
+			).toContain("animation: windows98MenuItemChosen 1ms steps(1, end)");
+			const at = css.indexOf("@keyframes windows98MenuItemChosen {");
+			expect(at).toBeGreaterThan(-1);
+			expect(
+				flat(css.slice(at, css.indexOf("}", css.indexOf("}", at) + 1))),
+			).toMatch(/to \{ opacity: 1; \}/);
+		});
+
+		it("draws the message box's Help button as a 75 x 23 push button with its word", () => {
+			const button = `${scope} .classicyAlertButtons .classicyBevelButton.classicyAlertHelpButton`;
+			const face = rule(button);
+			for (const declaration of [
+				"box-sizing: border-box",
+				"width: auto",
+				"min-width: var(--button-min-width)",
+				"height: var(--push-button-height)",
+				"padding: 0 var(--button-text-padding)",
+				"background: var(--color-system-03)",
+				"box-shadow:",
+			])
+				expect(face).toContain(declaration);
+			const label = rule(`${button}::after`);
+			expect(label).toContain("content: attr(aria-label)");
+			expect(label).toContain("font-size: var(--ui-font-size)");
+			expect(label).toContain("color: var(--color-black)");
+			expect(rule(`${button}:focus-visible`)).toContain("outline:");
+			const pressed = `${button}:not(.disabled):is(:active, .pressed)`;
+			expect(rule(pressed)).toContain("background: var(--color-system-03)");
+			const step = rule(`${pressed}::after`);
+			expect(step).toContain("top: var(--window-border-size)");
+			expect(step).toContain("left: var(--window-border-size)");
+			expect(rule(`${button}.disabled::after`)).toContain(
+				"color: var(--package-color-text-gray, var(--color-system-05))",
+			);
+		});
+
+		it("lays a shortcut's badge over its image in the icon view and the list view", () => {
+			const box = rule(`${scope} .classicyIcon .classicyIconImage`);
+			expect(box).toContain("position: relative");
+			expect(box).toContain("width: var(--desktop-icon-size)");
+			expect(box).toContain("height: var(--desktop-icon-size)");
+			const badge = rule(
+				`${scope} .classicyIcon .classicyIconMaskOuter.classicyIconAliasBadge`,
+			);
+			expect(badge).toContain("position: absolute");
+			expect(badge).toContain("inset: 0");
+			const row = rule(
+				`${scope} .classicyFileBrowserViewTableRowContainer > .classicyIconImage`,
+			);
+			expect(row).toContain("position: relative");
+			expect(row).toContain("margin: 0");
+			const rowBadge = rule(
+				`${scope} .classicyFileBrowserViewTableRowContainer > .classicyIconImage > .classicyIconAliasBadge`,
+			);
+			expect(rowBadge).toContain("position: absolute");
+			expect(rowBadge).toContain(
+				"width: var(--classicy-file-browser-icon-size)",
+			);
+			expect(rowBadge).toContain("left: var(--file-browser-list-icon-spacing)");
 		});
 	});
 });

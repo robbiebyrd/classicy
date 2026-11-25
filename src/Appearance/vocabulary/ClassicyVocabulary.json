@@ -3,6 +3,7 @@
 		"Tabs": "classicyTabContainer"
 	},
 	"extraClasses": {
+		"BalloonHelp": ["classicyWhatsThisMode"],
 		"Button": ["classicyButtonsHolder"],
 		"ControlLabel": [
 			"classicyLabelAbove",
@@ -37,6 +38,7 @@
 			"classicyPixelm",
 			"classicyPixeln"
 		],
+		"RichTextEditor": ["classicyRichTextEditorPopups"],
 		"Tabs": [
 			"classicyTabActiveContent",
 			"classicyTabButton",
@@ -99,6 +101,7 @@
 			"AccessoryIconLg",
 			"AccessoryIconMd",
 			"AccessoryIconSm",
+			"Back",
 			"Body",
 			"BodyViewport",
 			"Footer",
@@ -107,12 +110,14 @@
 			"HeaderLabelIcon",
 			"HeaderTitle",
 			"Nav",
+			"Next",
 			"PageIndicator"
 		],
 		"BalloonHelp": [
 			"Anchor",
 			"Container",
 			"Content",
+			"Context",
 			"PointerAbove",
 			"PointerBelow",
 			"Tail",
@@ -328,6 +333,14 @@
 		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
+		"HelpTopics": [
+			"Buttons",
+			"Contents",
+			"List",
+			"ListViewport",
+			"Prompt",
+			"Window"
+		],
 		"HyperCard": [
 			"ActionAddSelect",
 			"ActionList",
@@ -366,7 +379,9 @@
 			"StageInner"
 		],
 		"Icon": [
+			"AliasBadge",
 			"DimmedImage",
+			"Image",
 			"Invisible",
 			"Mask",
 			"MaskOuter",

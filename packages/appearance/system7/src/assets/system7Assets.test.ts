@@ -417,13 +417,16 @@ describe("System 7's assets", () => {
 	});
 
 	describe("cursors", () => {
-		it("registers every ClassicyCursorRole", () => {
+		// Every role but `help`, the contextual Help pointer of Windows' What's
+		// This? (WIG Ch.12 "Context-Sensitive Help", p.273): System 7 had no
+		// such mode, so it registers none.
+		it("registers every ClassicyCursorRole but help", () => {
 			expect(CURSOR_ROLES.length).toBeGreaterThan(10);
 			expect(
 				CURSOR_ROLES.filter(
 					(role) => !resolveClassicyAsset("cursors", role, SYSTEM7),
 				),
-			).toEqual([]);
+			).toEqual(["help"]);
 		});
 
 		it("points each cursor at its CURS hotspot, the arrow at its tip", () => {
@@ -448,6 +451,7 @@ describe("System 7's assets", () => {
 				resizeD: [8, 8],
 				resizeL: [8, 8],
 				resizeR: [8, 8],
+				help: undefined,
 			});
 		});
 	});

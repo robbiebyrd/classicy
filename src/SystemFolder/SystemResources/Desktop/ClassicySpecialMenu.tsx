@@ -15,7 +15,9 @@ export const SYSTEM_DIALOG_WINDOW_IDS: Record<
 
 /**
  * The Finder's Special menu: Empty Trash… and, below it, Reset PRAM… — each
- * opens its confirmation alert, which `ClassicyDesktop` draws. Shared by the
+ * opens its confirmation alert, which `ClassicyDesktop` draws, so each
+ * `confirms` (the menu adds the ellipsis Mac OS writes, and Windows 98
+ * leaves out: `layout.menu.confirmEllipsis`). Shared by the
  * desktop's menu bar and every Finder window's, so the commands are there
  * whichever has focus. `idPrefix` keeps the item ids unique per menu bar.
  */
@@ -25,7 +27,8 @@ export const classicySpecialMenuItems = (
 ): ClassicyMenuItem[] => [
 	{
 		id: `${idPrefix}_special_empty_trash`,
-		title: "Empty Trash…",
+		title: "Empty Trash",
+		confirms: true,
 		onClickFunc: () => {
 			dispatch({
 				type: "ClassicyDesktopShowSystemDialog",
@@ -36,7 +39,8 @@ export const classicySpecialMenuItems = (
 	{ id: "spacer" },
 	{
 		id: `${idPrefix}_special_reset_pram`,
-		title: "Reset PRAM…",
+		title: "Reset PRAM",
+		confirms: true,
 		onClickFunc: () => {
 			dispatch({
 				type: "ClassicyDesktopShowSystemDialog",

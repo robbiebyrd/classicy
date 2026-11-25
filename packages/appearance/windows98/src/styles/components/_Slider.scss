@@ -627,4 +627,20 @@ $horizontal: ":not(.classicySliderInputVertical)";
       background: $checker;
     }
   }
+
+  // The arrow over a trackbar and its slider, where the base shows the hand,
+  // and the slashed circle while it is disabled (WIG Ch.4 "Mouse Pointers",
+  // pp.23-24, Table 4.1; the audit's 4.1). The thumbs are pseudo-elements,
+  // each named apart.
+  .classicySlider {
+    @include b.registry-cursor(arrow, default);
+
+    &::-webkit-slider-thumb {
+      @include b.registry-cursor(arrow, default);
+    }
+
+    &::-moz-range-thumb {
+      @include b.registry-cursor(arrow, default);
+    }
+  }
 }

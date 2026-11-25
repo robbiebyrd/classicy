@@ -100,6 +100,15 @@ type ClassicyTreeProps = {
 	/** Fired whenever a branch node is expanded or collapsed. */
 	onToggleNode?: (id: string, open: boolean) => void;
 	/**
+	 * Ids of the open branches. Given, expansion is controlled: every
+	 * expansion path (a click, a double-click, the keys) reports through
+	 * `onToggleNode` and opens or closes nothing until the owner passes new
+	 * ids, so a control outside the tree can open a branch too (the Help
+	 * Topics browser's Open button). Absent (the default), the tree keeps
+	 * its own, seeded from each node's `defaultOpen`.
+	 */
+	openIds?: string[];
+	/**
 	 * `"none"` (the default) makes rows navigation-only. `"single"` and
 	 * `"multi"` both make enabled leaves (and `branchSelectable` branches)
 	 * report clicks and Enter/Space through `onSelectNode`; the tree does not
@@ -435,8 +444,8 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
  * `ClassicyTable` with `getSubRows` instead.
  *
  * Expansion is uncontrolled (seeded from each node's `defaultOpen`, reported
- * through `onToggleNode`); selection is fully controlled through
- * `selectedIds`. Clicking a branch toggles it unless it is
+ * through `onToggleNode`) unless `openIds` is given; selection is fully
+ * controlled through `selectedIds`. Clicking a branch toggles it unless it is
  * `branchSelectable`, in which case a click selects and a double-click
  * toggles. Keyboard: Up/Down, Home/End and type-select move focus through
  * the visible rows (without selecting), ⌘→ / ⌘← open and close the focused
@@ -471,6 +480,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	nodes,
 	direction = "right",
 	onToggleNode,
+	openIds,
 	selectionMode = "none",
 	selectedIds,
 	onSelectNode,
@@ -478,8 +488,14 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	className,
 	style,
 }) => {
-	const [openSet, setOpenSet] = useState<Set<string>>(() =>
+	const [ownOpenSet, setOwnOpenSet] = useState<Set<string>>(() =>
 		collectDefaultOpen(nodes),
+	);
+	// Controlled by `openIds` when given, else the tree's own.
+	const controlledOpen = openIds !== undefined;
+	const openSet = useMemo(
+		() => (openIds ? new Set(openIds) : ownOpenSet),
+		[openIds, ownOpenSet],
 	);
 
 	const visible = useMemo(
@@ -536,19 +552,20 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	// Every expansion path (click, double-click, ⌘→/⌘←, Enter/Space) runs here.
 	const setOpen = useCallback(
 		(id: string, open: boolean) => {
-			setOpenSet((prev) => {
-				const next = new Set(prev);
-				if (open) next.add(id);
-				else next.delete(id);
-				return next;
-			});
+			if (!controlledOpen)
+				setOwnOpenSet((prev) => {
+					const next = new Set(prev);
+					if (open) next.add(id);
+					else next.delete(id);
+					return next;
+				});
 			emitAppearance(
 				open ? "expand" : "collapse",
 				withClassicyAppearanceInput({ nodeId: id, open }),
 			);
 			onToggleNode?.(id, open);
 		},
-		[onToggleNode, emitAppearance],
+		[controlledOpen, onToggleNode, emitAppearance],
 	);
 
 	const toggle = useCallback(

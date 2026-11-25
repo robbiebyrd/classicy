@@ -37,13 +37,16 @@ vi.mock("@/SystemFolder/SystemResources/Alert/ClassicyAlert", () => ({
 }));
 
 describe("classicySpecialMenuItems", () => {
-	it("offers Empty Trash… then Reset PRAM…, each opening its alert", () => {
+	// Each only asks first (`confirms`): the menu writes "Empty Trash…" and
+	// "Reset PRAM…" under Mac OS, and no ellipsis under Windows 98
+	// (`layout.menu.confirmEllipsis`; ClassicyMenu.test.tsx).
+	it("offers Empty Trash then Reset PRAM, each confirming, each opening its alert", () => {
 		const dispatch = vi.fn();
 		const items = classicySpecialMenuItems(dispatch, "x");
-		expect(items.map((i) => i.title)).toEqual([
-			"Empty Trash…",
-			undefined,
-			"Reset PRAM…",
+		expect(items.map((i) => [i.title, i.confirms])).toEqual([
+			["Empty Trash", true],
+			[undefined, undefined],
+			["Reset PRAM", true],
 		]);
 		items[0].onClickFunc?.();
 		items[2].onClickFunc?.();

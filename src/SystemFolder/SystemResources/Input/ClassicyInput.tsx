@@ -23,6 +23,8 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyTextFieldContextMenu } from "@/SystemFolder/SystemResources/App/ClassicyTextFieldMenu.internal";
+import { useClassicyWordSelect } from "@/SystemFolder/SystemResources/App/ClassicyWordSelect.internal";
 
 // The characters a password field draws in place of its text: Blink and
 // WebKit draw a bullet (U+2022), Gecko a black circle (U+25CF).
@@ -128,6 +130,11 @@ interface ClassicyInputProps {
  * whenever that prop changes. `onEnterFunc` fires on Enter, and every change
  * is reported to analytics as a `selected` event. The ref is forwarded to the
  * native `<input>`.
+ *
+ * Under a package whose layout says `text.wordSelect: "trailingSpace"`
+ * (Windows) a double-click takes the spaces after its word too, and under
+ * `textField.contextMenu: "edit"` a right-click shows the field's own Edit
+ * menu (Undo, Cut, Copy, Paste, Delete, Select All) instead of the window's.
  *
  * ```tsx
  * <ClassicyInput id="name" labelTitle="Name:" labelPosition="left"
@@ -298,6 +305,9 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			if (onChangeFunc) onChangeFunc(e);
 		};
 
+		const wordSelect = useClassicyWordSelect();
+		const textMenu = useClassicyTextFieldContextMenu();
+
 		const handleOnKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
 			if (e.key === "Enter" && onEnterFunc) {
 				onEnterFunc();
@@ -327,6 +337,9 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					tabIndex={0}
 					onChange={handleOnChangeFunc}
 					onKeyDown={handleOnKeyDown}
+					onDoubleClick={wordSelect}
+					onMouseDown={textMenu?.onMouseDown}
+					onContextMenu={textMenu?.onContextMenu}
 					onFocus={(e) => {
 						appearance.emit("focus", withClassicyAppearanceInput());
 						onFocusFunc?.(e);

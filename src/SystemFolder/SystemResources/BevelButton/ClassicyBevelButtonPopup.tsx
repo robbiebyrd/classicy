@@ -6,6 +6,7 @@ import {
 	type KeyboardEvent,
 	type ReactNode,
 	type RefObject,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useRef,
@@ -28,6 +29,8 @@ import {
 	classicyMenuWholePixel,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import { ClassicyMenuStatusContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 // A panel (non-menu surface) gives keyboard focus to its first control.
 const PANEL_FOCUS_SELECTOR =
@@ -92,6 +95,8 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	style: consumerStyle,
 }) => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
+	// In a window (its React tree's), not the taskbar's or Control Strip's.
+	const inWindow = useContext(ClassicyWindowActiveContext) !== undefined;
 	// Null until measured: the first paint is hidden so the popup never flashes
 	// at an unplaced position.
 	const [position, setPosition] = useState<{
@@ -241,12 +246,17 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 				style={style}
 				onKeyDown={onMenuKeyDown}
 			>
-				<ClassicyMenu
-					name={id}
-					menuItems={menuItems}
-					navClass="classicyContextMenu"
-					subNavClass="classicyContextSubMenu"
-				/>
+				{/* Its items give the menus' status text (`layout.menu.itemHelp`)
+				    only in a window: the taskbar's and the Control Strip's
+				    pop-ups belong to no window's status bar. */}
+				<ClassicyMenuStatusContext.Provider value={inWindow}>
+					<ClassicyMenu
+						name={id}
+						menuItems={menuItems}
+						navClass="classicyContextMenu"
+						subNavClass="classicyContextSubMenu"
+					/>
+				</ClassicyMenuStatusContext.Provider>
 			</div>
 		</ClassicyMenuProvider>
 	) : (

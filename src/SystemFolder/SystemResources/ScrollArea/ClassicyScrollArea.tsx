@@ -141,7 +141,46 @@ export interface ClassicyScrollAreaProps
 	barAccessories?: Partial<
 		Record<ClassicyScrollBarOrientation, ClassicyScrollBarAccessories>
 	>;
+	/**
+	 * Where the viewport starts scrolled, `[scrollLeft, scrollTop]` in
+	 * pixels: a window's view state put back (`useClassicyWindowViewState`,
+	 * under a package's `layout.window.restoreViewState`). Read when the
+	 * area mounts; finite, non-negative values only. While the content is
+	 * not yet long enough to reach it (a list still filling) it is tried
+	 * again as the content grows, until it is reached, the user scrolls or
+	 * presses in the area, or two seconds pass. None by default: the
+	 * viewport starts at the top left.
+	 */
+	initialScroll?: [number, number];
+	/**
+	 * Called with the viewport's `[scrollLeft, scrollTop]` once scrolling
+	 * ends (no scroll event for 200 ms), when it differs from the last value
+	 * reported (or `initialScroll`), and once more if the area unmounts
+	 * while a report is due; never for `initialScroll` being put back. A
+	 * window records it as its view state (`useClassicyWindowViewState`).
+	 */
+	onScrollSettled?: (scroll: [number, number]) => void;
 }
+
+/**
+ * How long the viewport waits after its last scroll event before reporting
+ * the offsets (`onScrollSettled`), in milliseconds.
+ */
+const SCROLL_SETTLE_MS = 200;
+/**
+ * How long a pending `initialScroll` keeps being tried as the content grows,
+ * in milliseconds, before it is given up.
+ */
+const SCROLL_RESTORE_MS = 2000;
+
+/** `value` when it is a pair of finite, non-negative offsets other than the origin. */
+const classicyRestorableScroll = (value: unknown): [number, number] | null =>
+	Array.isArray(value) &&
+	value.length === 2 &&
+	value.every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0) &&
+	(value[0] > 0 || value[1] > 0)
+		? [value[0], value[1]]
+		: null;
 
 /** Controls at the ends of one bar (`barAccessories`). */
 export type ClassicyScrollBarAccessories = {
@@ -349,6 +388,8 @@ export const ClassicyScrollArea = forwardRef<
 		head,
 		onHeadChange,
 		barAccessories,
+		initialScroll,
+		onScrollSettled,
 		className,
 		style,
 		...rootProps
@@ -424,6 +465,27 @@ export const ClassicyScrollArea = forwardRef<
 	onOverflowChangeRef.current = onOverflowChange;
 	const overflowRef = useRef<ClassicyScrollBarsShown | null>(null);
 
+	// The view state put back (`initialScroll`), read at mount: tried on
+	// each measurement until the viewport reaches it, the user takes over,
+	// or SCROLL_RESTORE_MS pass. `restoreStartedRef` is when it was first
+	// tried.
+	const pendingRestoreRef = useRef<[number, number] | null | undefined>(
+		undefined,
+	);
+	if (pendingRestoreRef.current === undefined) {
+		pendingRestoreRef.current = classicyRestorableScroll(initialScroll);
+	}
+	const restoreStartedRef = useRef<number | null>(null);
+	// The offsets last reported (`onScrollSettled`), or put back, and the
+	// viewport's offsets at its last scroll event (read after it unmounts).
+	const settledRef = useRef<[number, number]>(
+		pendingRestoreRef.current ?? [0, 0],
+	);
+	const scrolledRef = useRef<[number, number] | null>(null);
+	const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const onScrollSettledRef = useRef(onScrollSettled);
+	onScrollSettledRef.current = onScrollSettled;
+
 	// The head: drawn when given, or while a descendant asks for one
 	// (useClassicyScrollAreaHead), which portals into it.
 	const [headRequests, setHeadRequests] = useState(0);
@@ -468,6 +530,25 @@ export const ClassicyScrollArea = forwardRef<
 	const update = useCallback(() => {
 		const el = viewportElRef.current;
 		if (!el) return;
+		// The view state put back, until the content lets the viewport
+		// reach it (a pixel off counts, as sub-pixel rounding does).
+		const restore = pendingRestoreRef.current;
+		if (restore) {
+			const now = Date.now();
+			restoreStartedRef.current ??= now;
+			if (now - restoreStartedRef.current > SCROLL_RESTORE_MS) {
+				pendingRestoreRef.current = null;
+			} else {
+				if (el.scrollLeft !== restore[0]) el.scrollLeft = restore[0];
+				if (el.scrollTop !== restore[1]) el.scrollTop = restore[1];
+				if (
+					Math.abs(el.scrollLeft - restore[0]) <= 1 &&
+					Math.abs(el.scrollTop - restore[1]) <= 1
+				) {
+					pendingRestoreRef.current = null;
+				}
+			}
+		}
 		// The head scrolls sideways with the viewport.
 		const headNow = headElRef.current;
 		if (headNow && headNow.scrollLeft !== el.scrollLeft) {
@@ -670,6 +751,77 @@ export const ClassicyScrollArea = forwardRef<
 		[viewportRef],
 	);
 
+	// The root, for the presses and keys that end a pending restore.
+	const rootElRef = useRef<HTMLDivElement | null>(null);
+	const rootRefCallback = useCallback(
+		(el: HTMLDivElement | null) => {
+			rootElRef.current = el;
+			setRef(ref, el);
+		},
+		[ref],
+	);
+	// The user scrolling or pressing anywhere in the area (a bar, the
+	// content, a key) takes over from a restore still pending, so a later
+	// measurement never moves the viewport back. Listened for only while an
+	// `initialScroll` is pending, from the mount.
+	useEffect(() => {
+		const root = rootElRef.current;
+		if (!root || !pendingRestoreRef.current) return;
+		const events = [
+			"wheel",
+			"pointerdown",
+			"mousedown",
+			"touchstart",
+			"keydown",
+		];
+		const takeOver = () => {
+			pendingRestoreRef.current = null;
+			for (const type of events) {
+				root.removeEventListener(type, takeOver, { capture: true });
+			}
+		};
+		for (const type of events) {
+			root.addEventListener(type, takeOver, { capture: true, passive: true });
+		}
+		return () => {
+			for (const type of events) {
+				root.removeEventListener(type, takeOver, { capture: true });
+			}
+		};
+	}, []);
+
+	// The offsets once scrolling has ended (`onScrollSettled`), when they
+	// changed; never while a restore is still pending.
+	const settle = useCallback(() => {
+		settleTimerRef.current = null;
+		const at = scrolledRef.current;
+		if (!at || pendingRestoreRef.current) return;
+		const last = settledRef.current;
+		if (at[0] === last[0] && at[1] === last[1]) return;
+		settledRef.current = at;
+		onScrollSettledRef.current?.(at);
+	}, []);
+	const onViewportScrolled = useCallback(
+		(el: HTMLElement) => {
+			scrolledRef.current = [el.scrollLeft, el.scrollTop];
+			if (!onScrollSettledRef.current) return;
+			if (settleTimerRef.current !== null) {
+				clearTimeout(settleTimerRef.current);
+			}
+			settleTimerRef.current = setTimeout(settle, SCROLL_SETTLE_MS);
+		},
+		[settle],
+	);
+	// A report still due when the area goes is made then.
+	useEffect(
+		() => () => {
+			if (settleTimerRef.current === null) return;
+			clearTimeout(settleTimerRef.current);
+			settle();
+		},
+		[settle],
+	);
+
 	const scrollBy = useCallback(
 		(orientation: ClassicyScrollBarOrientation, delta: number) => {
 			const el = viewportElRef.current;
@@ -747,7 +899,7 @@ export const ClassicyScrollArea = forwardRef<
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: the keys only reach a root its caller made focusable (with its role); the area adds none */}
 			<div
 				{...rootProps}
-				ref={ref}
+				ref={rootRefCallback}
 				onKeyDown={onRootKeyDown}
 				className={classNames(
 					"classicyScrollArea",
@@ -771,6 +923,7 @@ export const ClassicyScrollArea = forwardRef<
 							),
 							onScroll: (e) => {
 								update();
+								onViewportScrolled(e.currentTarget);
 								onScroll?.(e as UIEvent<HTMLDivElement>);
 							},
 						})
@@ -786,6 +939,7 @@ export const ClassicyScrollArea = forwardRef<
 							)}
 							onScroll={(e) => {
 								update();
+								onViewportScrolled(e.currentTarget);
 								onScroll?.(e);
 								viewportProps?.onScroll?.(e);
 							}}

@@ -6,6 +6,7 @@ import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyA
 import { DriveSetupList } from "@/SystemFolder/ControlPanels/DriveSetup/DriveSetupList";
 import { registerAppleGuideTopic } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { AppleGuideWindow } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
+import { ClassicyHelpTopics } from "@/SystemFolder/Extensions/AppleGuide/ClassicyHelpTopics";
 import { ClassicyFilePropertiesWindow } from "@/SystemFolder/Finder/ClassicyFilePropertiesWindow";
 import { ClassicyOpenWithDialog } from "@/SystemFolder/Finder/ClassicyOpenWithDialog";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
@@ -297,6 +298,11 @@ const cases: Row[] = [
 				style={STYLE}
 			/>
 		),
+		".classicyWindow",
+	],
+	[
+		"ClassicyHelpTopics (forwards to its window)",
+		() => <ClassicyHelpTopics className={HOST} style={STYLE} />,
 		".classicyWindow",
 	],
 	[
