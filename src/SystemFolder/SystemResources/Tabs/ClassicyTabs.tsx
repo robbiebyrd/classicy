@@ -14,9 +14,11 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { classicyTabSelectsOnPress } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 /**
  * Tab sizing. `medium` is the classic control-panel look and the default;
@@ -128,7 +130,9 @@ const NO_OVERFLOW: ScrollState = {
  * selection itself, reporting each change to `onTabChange`. Under Platinum, pressing a tab plays `ClassicyTabClickDown`,
  * releasing it plays `ClassicyTabClickUp` (the package's hooks), and the
  * release selects it (both also send analytics events of type
- * `ClassicyTab`). The tab strip is a roving-tabindex group:
+ * `ClassicyTab`); under a package whose layout says `mouse: "windows"`
+ * (Windows 98, whose tab control selects on WM_LBUTTONDOWN) the button-1
+ * press selects it instead. The tab strip is a roving-tabindex group:
  * Left/Up and Right/Down move (wrapping) and Home/End jump, with activation
  * following focus. When the tabs do not fit, scroll arrows appear at both
  * ends and step the strip by whole tabs.
@@ -170,6 +174,11 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	const rootRef = useRef<HTMLDivElement>(null);
 	// The container had no state class; `selected` stays on the tab buttons.
 	const appearance = useClassicyAppearance("Tabs", {}, rootRef);
+	// Chosen at the button-1 press (Windows: comctl32 selects on
+	// WM_LBUTTONDOWN; WIG Ch.4 "Mouse Actions", p.24), else at the release.
+	const selectsOnPress = classicyTabSelectsOnPress(
+		useClassicyAppearanceLayout(),
+	);
 
 	const selectTab = (tabId: number) => {
 		appearance.emit("select", withClassicyAppearanceInput({ tabId }));
@@ -386,8 +395,13 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 											"classicyTabButton",
 											classicyStateClasses({ selected: isActive }),
 										)}
-										onMouseDown={() => pressTab(index)}
-										onMouseUp={() => selectTab(index)}
+										onMouseDown={(e) => {
+											pressTab(index);
+											if (selectsOnPress && e.button === 0) selectTab(index);
+										}}
+										onMouseUp={
+											selectsOnPress ? undefined : () => selectTab(index)
+										}
 										onKeyDown={handleTabKeyDown}
 									>
 										{tab.icon && (

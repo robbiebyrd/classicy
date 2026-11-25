@@ -15,6 +15,7 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
@@ -33,6 +34,12 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
+import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
+import {
+	classicyIconDragThreshold,
+	classicyTraveledPast,
+	isClassicyGestureButton,
+} from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
@@ -219,7 +226,11 @@ export const snapToGrid = (
  * to the store. Size follows the theme's `--desktop-icon-size` unless `size`
  * is set. Drawn in a window that is not the active one, the root carries the
  * `inactive` state (`ClassicyWindowActiveContext`), for a package that draws
- * a selection in an inactive window apart.
+ * a selection in an inactive window apart. Under a package whose layout says
+ * `mouse: "windows"` (Windows 98), an icon without `onFileDrag` drags on
+ * button 1 alone and moves only once the pointer is 4 px from the press,
+ * keeping where it was grabbed; under `input.escapeCancels`, Escape
+ * mid-drag puts it back where the press found it.
  *
  * ```tsx
  * <div ref={holderRef} style={{ position: "relative", height: 200 }}>
@@ -263,6 +274,16 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	// A ref, not state: it must be readable inside the same mouseup that clears
 	// it, and it never affects what is rendered.
 	const movedWhileDragging = useRef<boolean>(false);
+	// The press discipline (`layout.mouse`, Escape's cancel): the active
+	// package's layout.
+	const layout = useClassicyAppearanceLayout();
+	// The press of a drag of the icon itself: where the pointer went down
+	// and where the icon was then, for the drag threshold, the grab offset
+	// and Escape.
+	const pressRef = useRef<{
+		point: [number, number];
+		position: [number, number];
+	}>({ point: [0, 0], position: [0, 0] });
 
 	const iconRef = useRef<HTMLDivElement>(null);
 	// `inactive` while the window the icon is drawn in is not the active one
@@ -348,6 +369,19 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	// there, instead of following the pointer back with no button held.
 	useClassicyPointerStreamLost(dragging, () => stopChangeIcon(true));
 
+	// Escape mid-drag, under a package whose layout says
+	// `input.escapeCancels` (Windows 98; WIG Ch.4 "Shortcut Keys", p.27):
+	// the icon goes back where the press found it, and the drag ends there.
+	useClassicyEscapeCancel(dragging, () => {
+		if (movedWhileDragging.current) setPosition(pressRef.current.position);
+		movedWhileDragging.current = false;
+		setDragging(false);
+		if (dragEmittedRef.current) {
+			dragEmittedRef.current = false;
+			appearance.emit("dragEnd", { lost: false, canceled: true });
+		}
+	});
+
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
 		if (renaming) return;
 		if (onFileDrag) {
@@ -391,7 +425,11 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			return;
 		}
 		if (positionLocked) return;
+		// Under `layout.mouse` "windows" only button 1 drags (WIG Ch.4 "Mouse
+		// Actions", pp.24-25).
+		if (!isClassicyGestureButton(e, layout)) return;
 		movedWhileDragging.current = false;
+		pressRef.current = { point: [e.clientX, e.clientY], position };
 		setDragging(true);
 		dragEmittedRef.current = true;
 		appearance.emit("dragStart");
@@ -399,8 +437,27 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 
 	const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
 		if (holder?.current && dragging && iconRef.current) {
+			// Under `layout.mouse` "windows" the icon moves only once the
+			// pointer is 4 px from the press (Windows' drag rectangle), and
+			// keeps where it was grabbed; else it centers under the pointer
+			// from the first move.
+			const threshold = classicyIconDragThreshold(layout);
+			const press = pressRef.current;
+			if (
+				!movedWhileDragging.current &&
+				!classicyTraveledPast(press.point, [e.clientX, e.clientY], threshold)
+			) {
+				return;
+			}
 			movedWhileDragging.current = true;
 			setFocus(true);
+			if (threshold > 0) {
+				setPosition([
+					press.position[0] + e.clientX - press.point[0],
+					press.position[1] + e.clientY - press.point[1],
+				]);
+				return;
+			}
 			setPosition([
 				e.clientX -
 					holder.current.getBoundingClientRect().left -

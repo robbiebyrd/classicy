@@ -1,10 +1,25 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+} from "@testing-library/react";
+import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import {
 	ClassicyIcon,
 	snapToGrid,
 } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 afterEach(cleanup);
 
@@ -240,5 +255,114 @@ describe("ClassicyIcon — renaming", () => {
 		fireEvent.keyDown(field(), { key: " " });
 		expect(onSelectClick).not.toHaveBeenCalled();
 		expect(onClickFunc).not.toHaveBeenCalled();
+	});
+});
+
+// An icon dragged by itself (no `onFileDrag`) under the Windows 98 layout,
+// against the default (Mac OS 8): it waits 4 px before it moves and keeps
+// where it was grabbed (`mouse` "windows", the audit's 4.9; WIG Ch.4 "Mouse
+// Actions", p.24), only button 1 drags it (4.10), and Escape puts it back
+// (`input.escapeCancels`, 1.18 / 4.16; Ch.4 "Shortcut Keys", p.27).
+describe("ClassicyIcon — dragging it under the Windows layout", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-icon",
+			name: "Windows icon",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-icon-default",
+				package: "windows-icon",
+			},
+			layout: windows98.layout as never,
+		});
+	const renderIcon = () => {
+		const holder = createRef<HTMLDivElement>();
+		render(
+			<div ref={holder}>
+				<ClassicyIcon
+					appId={"Test.app"}
+					name={"thing.pdf"}
+					icon={"data:image/gif;base64,R0lGODlhAQABAAAAACw="}
+					initialPosition={[50, 50]}
+					holder={holder}
+				/>
+			</div>,
+		);
+		return screen.getByRole("img").closest(".classicyIcon") as HTMLElement;
+	};
+	const at = (icon: HTMLElement) => [icon.style.left, icon.style.top];
+	const pressEscape = () => {
+		const event = new KeyboardEvent("keydown", {
+			key: "Escape",
+			bubbles: true,
+			cancelable: true,
+		});
+		act(() => {
+			document.body.dispatchEvent(event);
+		});
+		return event;
+	};
+
+	it("centers the icon under the pointer from the first move without the key", () => {
+		const icon = renderIcon();
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 61, clientY: 60 });
+		// The holder and the icon measure 0 here: the pointer is the corner.
+		expect(at(icon)).toEqual(["61px", "60px"]);
+		fireEvent.mouseUp(icon);
+	});
+
+	it("waits 4 px from the press, then keeps the grab, under the Windows layout", () => {
+		useWindowsLayout();
+		const icon = renderIcon();
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 62, clientY: 62 });
+		expect(at(icon)).toEqual(["50px", "50px"]);
+		fireEvent.mouseMove(icon, { clientX: 64, clientY: 60 });
+		expect(at(icon)).toEqual(["54px", "50px"]);
+		fireEvent.mouseMove(icon, { clientX: 70, clientY: 75 });
+		expect(at(icon)).toEqual(["60px", "65px"]);
+		fireEvent.mouseUp(icon);
+	});
+
+	it("drags on button 1 alone under the Windows layout, on any button without it", () => {
+		useWindowsLayout();
+		const windowsIcon = renderIcon();
+		fireEvent.mouseDown(windowsIcon, { button: 1, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(windowsIcon, { clientX: 90, clientY: 90 });
+		fireEvent.mouseUp(windowsIcon, { button: 1 });
+		expect(at(windowsIcon)).toEqual(["50px", "50px"]);
+		cleanup();
+		resetClassicyAppearancePackagesForTests();
+		const macIcon = renderIcon();
+		fireEvent.mouseDown(macIcon, { button: 1, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(macIcon, { clientX: 90, clientY: 90 });
+		fireEvent.mouseUp(macIcon, { button: 1 });
+		expect(at(macIcon)).toEqual(["90px", "90px"]);
+	});
+
+	it("puts the icon back on Escape under the Windows layout, and ends the drag", () => {
+		useWindowsLayout();
+		const icon = renderIcon();
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 80, clientY: 90 });
+		expect(at(icon)).toEqual(["70px", "80px"]);
+		expect(pressEscape().defaultPrevented).toBe(true);
+		expect(at(icon)).toEqual(["50px", "50px"]);
+		expect(icon).not.toHaveClass("dragging");
+		fireEvent.mouseMove(icon, { clientX: 100, clientY: 100 });
+		expect(at(icon)).toEqual(["50px", "50px"]);
+		fireEvent.mouseUp(icon);
+	});
+
+	it("leaves Escape alone mid-drag without the key", () => {
+		const icon = renderIcon();
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 80, clientY: 90 });
+		expect(pressEscape().defaultPrevented).toBe(false);
+		expect(at(icon)).toEqual(["80px", "90px"]);
+		fireEvent.mouseUp(icon);
 	});
 });

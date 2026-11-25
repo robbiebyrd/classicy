@@ -9,14 +9,22 @@ import {
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
 import { render } from "@/__tests__/test-utils";
-import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	type ClassicyGestureEnd,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import {
 	ClassicySplitView,
 	type ClassicySplitViewCommands,
 	classicySplitViewClosingPane,
 	computeSplitViewSizes,
 } from "@/SystemFolder/SystemResources/SplitView/ClassicySplitView";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/SplitView/ClassicySplitView.scss",
@@ -1031,6 +1039,138 @@ describe("ClassicySplitView Split command", () => {
 		expect(onResizeCommit).toHaveBeenCalledWith([41, 59], { lost: false });
 		expect(el).not.toHaveClass("dragging");
 		expect(paneGrows(container)).toEqual(["41", "59"]);
+	});
+});
+
+// A divider under the Windows 98 layout, against the default (Mac OS 8):
+// only button 1 drags it (`mouse` "windows", the audit's 4.10; WIG Ch.4
+// "Mouse Actions", pp.24-25), and Escape puts the split back as the press
+// found it, committing nothing (`input.escapeCancels`, 1.18 / 4.16; Ch.4
+// "Shortcut Keys", p.27).
+describe("ClassicySplitView — the mouse under the Windows layout", () => {
+	afterEach(() => {
+		document.body.style.cursor = "";
+		resetClassicyAppearancePackagesForTests();
+	});
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-split",
+			name: "Windows split",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-split-default",
+				package: "windows-split",
+			},
+			layout: windows98.layout as never,
+		});
+	const renderSplit = (
+		props: Partial<ComponentProps<typeof ClassicySplitView>> = {},
+	) => {
+		const onResize = vi.fn();
+		const onResizeCommit = vi.fn();
+		const onSplitChange = vi.fn();
+		const view = render(
+			<ClassicySplitView
+				onResize={onResize}
+				onResizeCommit={onResizeCommit}
+				onSplitChange={onSplitChange}
+				{...props}
+			>
+				<div>One</div>
+				<div>Two</div>
+			</ClassicySplitView>,
+		);
+		const root = mockRootRect(view.container, 400);
+		const divider = () =>
+			view.container.querySelector(
+				".classicySplitViewDivider",
+			) as HTMLElement | null;
+		return { ...view, root, divider, onResize, onResizeCommit, onSplitChange };
+	};
+	const pressEscape = () => {
+		const event = new KeyboardEvent("keydown", {
+			key: "Escape",
+			bubbles: true,
+			cancelable: true,
+		});
+		act(() => {
+			document.body.dispatchEvent(event);
+		});
+		return event;
+	};
+
+	it("drags a divider with button 1 alone under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, divider, onResizeCommit } = renderSplit();
+		for (const button of [1, 2]) {
+			fireEvent.mouseDown(divider() as HTMLElement, { button, clientX: 200 });
+			fireEvent.mouseMove(document, { clientX: 300 });
+			fireEvent.mouseUp(document);
+		}
+		expect(paneGrows(container)).toEqual(["50", "50"]);
+		expect(onResizeCommit).not.toHaveBeenCalled();
+		fireEvent.mouseDown(divider() as HTMLElement, { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 300 });
+		fireEvent.mouseUp(document);
+		expect(paneGrows(container)).toEqual(["75", "25"]);
+	});
+
+	it("drags a divider with any button without the key", () => {
+		const { container, divider } = renderSplit();
+		fireEvent.mouseDown(divider() as HTMLElement, { button: 1, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 300 });
+		fireEvent.mouseUp(document);
+		expect(paneGrows(container)).toEqual(["75", "25"]);
+	});
+
+	it("puts the split back on Escape under the Windows layout, committing nothing", () => {
+		useWindowsLayout();
+		const { container, root, divider, onResize, onResizeCommit } =
+			renderSplit();
+		fireEvent.mouseDown(divider() as HTMLElement, { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 300 });
+		expect(paneGrows(container)).toEqual(["75", "25"]);
+		expect(pressEscape().defaultPrevented).toBe(true);
+		expect(paneGrows(container)).toEqual(["50", "50"]);
+		expect(onResize).toHaveBeenLastCalledWith([50, 50]);
+		expect(root).not.toHaveAttribute("data-drag-direction");
+		expect(divider()).not.toHaveClass("dragging");
+		expect(document.body.style.cursor).toBe("");
+		// The drag is over: the pointer and the release that follow do nothing.
+		fireEvent.mouseMove(document, { clientX: 350 });
+		fireEvent.mouseUp(document);
+		expect(paneGrows(container)).toEqual(["50", "50"]);
+		expect(onResizeCommit).not.toHaveBeenCalled();
+	});
+
+	it("reopens a split a drag closed, on Escape under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, divider, onSplitChange, onResizeCommit } = renderSplit({
+			splittable: true,
+		});
+		vi.spyOn(divider() as HTMLElement, "getBoundingClientRect").mockReturnValue(
+			DOMRect.fromRect({ x: 0, y: 0, width: 6, height: 300 }),
+		);
+		fireEvent.mouseDown(divider() as HTMLElement, { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 398 });
+		expect(divider()).toBeNull();
+		pressEscape();
+		expect(divider()).not.toBeNull();
+		expect(paneGrows(container)).toEqual(["50", "50"]);
+		fireEvent.mouseUp(document);
+		expect(onSplitChange).not.toHaveBeenCalled();
+		expect(onResizeCommit).not.toHaveBeenCalled();
+	});
+
+	it("leaves Escape alone mid-drag without the key", () => {
+		const { container, divider, onResizeCommit } = renderSplit();
+		fireEvent.mouseDown(divider() as HTMLElement, { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 300 });
+		expect(pressEscape().defaultPrevented).toBe(false);
+		expect(paneGrows(container)).toEqual(["75", "25"]);
+		fireEvent.mouseUp(document);
+		expect(onResizeCommit).toHaveBeenCalledWith([75, 25], { lost: false });
 	});
 });
 

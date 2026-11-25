@@ -18,8 +18,9 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
 /**
  * The three arrangement groups, every one required, and the optional
  * behavior groups (`menu`, `scrollBar`, `patternOrigin`, `slider`,
- * `fileDialog`, `fileBrowser`, `fileList`, `tree`, `balloonHelp`), each key
- * of which is optional too, as is `menuBar.idleTimeoutMs`.
+ * `fileDialog`, `fileBrowser`, `fileList`, `tree`, `balloonHelp`,
+ * `selection`, `contextMenu`, `input`), each key of which is optional too,
+ * as are `menuBar.idleTimeoutMs` and `mouse`.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
@@ -110,6 +111,14 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	balloonHelp: z
 		.object({ placement: z.enum(["anchor", "pointer"]).optional() })
 		.optional(),
+	selection: z
+		.object({ secondaryButton: z.enum(["menu", "select"]).optional() })
+		.optional(),
+	contextMenu: z
+		.object({ openOn: z.enum(["event", "release"]).optional() })
+		.optional(),
+	mouse: z.enum(["mac", "windows"]).optional(),
+	input: z.object({ escapeCancels: z.boolean().optional() }).optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
 // Every ClassicyAssetKind, once. The `satisfies` and the check below fail the

@@ -1,6 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -278,5 +286,68 @@ describe("ClassicyTabs defaultTab and onTabChange", () => {
 		expect(onTabChange).toHaveBeenLastCalledWith(2);
 		await userEvent.click(screen.getByText("Second Tab"));
 		expect(onTabChange).toHaveBeenLastCalledWith(1);
+	});
+});
+
+// When a tab is chosen: at the release over it under the Mac's rule (every
+// package but Windows 98), at the button-1 press under `layout.mouse`
+// "windows" (comctl32's TAB_LButtonDown selects on WM_LBUTTONDOWN: Windows
+// 98 as shipped; WIG Ch.4 "Mouse Actions", p.24; App. A Table A.1, p.349).
+describe("ClassicyTabs — when a press chooses a tab (layout.mouse)", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-tabs",
+			name: "Windows tabs",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-tabs-default",
+				package: "windows-tabs",
+			},
+			layout: windows98.layout as never,
+		});
+	const chosen = () =>
+		screen
+			.getAllByRole("tab")
+			.filter((tab) => tab.getAttribute("aria-selected") === "true")
+			.map((tab) => tab.textContent);
+
+	it("chooses a tab at the release without the key", () => {
+		const onTabChange = vi.fn();
+		render(<ClassicyTabs tabs={tabs} onTabChange={onTabChange} />);
+		const second = screen.getByRole("tab", { name: "Second Tab" });
+		fireEvent.mouseDown(second, { button: 0 });
+		expect(chosen()).toEqual(["First Tab"]);
+		fireEvent.mouseUp(second, { button: 0 });
+		expect(chosen()).toEqual(["Second Tab"]);
+		expect(onTabChange).toHaveBeenCalledWith(1);
+	});
+
+	it("chooses a tab at the button-1 press under the Windows layout, and not again at the release", () => {
+		useWindowsLayout();
+		const onTabChange = vi.fn();
+		render(<ClassicyTabs tabs={tabs} onTabChange={onTabChange} />);
+		const second = screen.getByRole("tab", { name: "Second Tab" });
+		fireEvent.mouseDown(second, { button: 0 });
+		expect(chosen()).toEqual(["Second Tab"]);
+		expect(onTabChange).toHaveBeenCalledTimes(1);
+		// Let go over another tab: the press already chose, the release does not.
+		fireEvent.mouseUp(screen.getByRole("tab", { name: "Third Tab" }), {
+			button: 0,
+		});
+		expect(chosen()).toEqual(["Second Tab"]);
+		expect(onTabChange).toHaveBeenCalledTimes(1);
+	});
+
+	it("chooses nothing on another button's press under the Windows layout", () => {
+		useWindowsLayout();
+		render(<ClassicyTabs tabs={tabs} />);
+		const third = screen.getByRole("tab", { name: "Third Tab" });
+		for (const button of [1, 2]) {
+			fireEvent.mouseDown(third, { button });
+			fireEvent.mouseUp(third, { button });
+		}
+		expect(chosen()).toEqual(["First Tab"]);
 	});
 });

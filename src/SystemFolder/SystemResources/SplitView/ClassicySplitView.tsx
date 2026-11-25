@@ -19,10 +19,13 @@ import {
 } from "react";
 import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
 import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { onClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
+import { isClassicyGestureButton } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 /**
  * Axis along which the panes are arranged. `"horizontal"` (default) lays the
@@ -238,6 +241,10 @@ interface ClassicySplitViewProps {
  * `dragging` state, from the press to the release (and through the Split
  * command's keyboard mode). Sizes are uncontrolled after mount:
  * persist them from `onResizeCommit` and feed them back as `defaultSizes`.
+ * Under a package whose layout says `mouse: "windows"` (Windows 98) only
+ * button 1 drags a divider or a split box, and under `input.escapeCancels`
+ * Escape mid-drag puts the split back as the press found it (closed again
+ * if it was), committing nothing.
  * A window whose content is a split view should pass `scrollable={false}`,
  * since the panes scroll themselves. A `splittable` view can be closed to
  * one pane and reopened from its split box, and `commandsRef` gives a
@@ -295,6 +302,8 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	const rootRef = useRef<HTMLDivElement>(null);
 	const firstDividerRef = useRef<HTMLDivElement>(null);
 	const setCursor = useClassicyCursor();
+	// The buttons that drag a divider, and Escape's cancel.
+	const layout = useClassicyAppearanceLayout();
 	// The live drag's direction of travel, or null when no drag is running.
 	// Drives both the body-wide cursor (via useClassicyCursor, for wherever a
 	// fast drag takes the pointer) and the root's data-drag-direction stamp
@@ -411,6 +420,9 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	const startDrag =
 		(dividerIndex: number, from: ClassicySplitViewPane | null = null) =>
 		(e: ReactMouseEvent<HTMLDivElement>) => {
+			// Under `layout.mouse` "windows" only button 1 drags (WIG Ch.4
+			// "Mouse Actions", pp.24-25).
+			if (!isClassicyGestureButton(e, layout)) return;
 			const root = rootRef.current;
 			const total = axisTotal();
 			if (!root || total <= 0) return;
@@ -498,6 +510,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 			// window's move or resize ends where it is.
 			const detach = () => {
 				stopWatchingPointerStream();
+				stopWatchingEscape();
 				document.removeEventListener("mousemove", moveHandler);
 				document.removeEventListener("mouseup", upHandler);
 				dragCleanupRef.current = null;
@@ -517,11 +530,23 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 				if (latestSizes) onResizeCommit?.(latestSizes, { lost });
 			};
 			const upHandler = () => endDrag(false);
+			// Escape (under `input.escapeCancels`, Windows 98; WIG Ch.4
+			// "Shortcut Keys", p.27): the split goes back as the press found
+			// it, closed again if it was, and nothing is committed.
+			const cancelDrag = () => {
+				detach();
+				setDragDirection(null);
+				setMovingDivider(null);
+				setCursor();
+				if (latestSizes) applySizes(openSizes);
+				if (latestClosed !== startClosed) setClosed(startClosed);
+			};
 			document.addEventListener("mousemove", moveHandler);
 			document.addEventListener("mouseup", upHandler);
 			const stopWatchingPointerStream = onClassicyPointerStreamLost(() =>
 				endDrag(true),
 			);
+			const stopWatchingEscape = onClassicyEscapeCancel(cancelDrag, layout);
 			// Unmounted mid-drag: the listeners go, and the body cursor is
 			// put back; nothing is committed (the split view is gone).
 			dragCleanupRef.current = () => {

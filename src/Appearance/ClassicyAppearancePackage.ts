@@ -378,6 +378,76 @@ export type ClassicyAppearanceLayout = {
 		 */
 		placement?: "anchor" | "pointer";
 	};
+	/**
+	 * What the mouse's buttons do to a selection. Optional, as is each key.
+	 */
+	selection?: {
+		/**
+		 * What button 2 (the right button, or a Control-click) does to the
+		 * selection it presses on. `"menu"` (the default, Mac OS 8's
+		 * Control-click): it shows the object's contextual menu, a desktop
+		 * icon's collapsing the desktop's selection to that icon first, and
+		 * a table row under it changes nothing. `"select"` (Windows; WIG
+		 * Ch.5 "Selection with the Mouse", pp.37-38; Ch.11 "Accessing
+		 * Commands for Selected Objects", p.234; App. A Table A.1, p.349): a
+		 * press on an unselected desktop icon or table row (`ClassicyTable`,
+		 * the Finder's list view) selects it alone before its menu shows,
+		 * and a press on a selected one keeps the whole selection, which its
+		 * menu then acts on. A list box (`ClassicyListBox`) and a tree
+		 * (`ClassicyTree`) ignore button 2 under either, as user32's list box
+		 * does.
+		 */
+		secondaryButton?: "menu" | "select";
+	};
+	/**
+	 * When a contextual menu opens (`ClassicyContextualMenuProvider`).
+	 * Optional, as is each key.
+	 */
+	contextMenu?: {
+		/**
+		 * `"event"` (the default, Mac OS 8, whose contextual menus open at
+		 * the Control-press): the menu opens the moment `showContextMenu` is
+		 * called, which is at the press on macOS and Linux hosts and at the
+		 * release on Windows hosts, as the browser raises `contextmenu`.
+		 * `"release"` (Windows; WIG Ch.5 "Selection with the Mouse", p.38):
+		 * a call made while button 2 is down is held, and the menu opens
+		 * when that button comes up, on every host; a newer call replaces
+		 * the held one, and a lost pointer stream (the window blurs, a
+		 * `pointercancel`, the page is hidden) or `hideContextMenu` drops it.
+		 */
+		openOn?: "event" | "release";
+	};
+	/**
+	 * The mouse's press discipline (WIG Ch.4 "Mouse Actions", pp.24-25).
+	 * Optional. `"mac"` (the default): a tab is chosen when the button comes
+	 * up over it (`ClassicyTabs`); a non-file icon follows the pointer from
+	 * its first move (`ClassicyDesktopIcon` keeping where it was grabbed,
+	 * `ClassicyIcon` without `onFileDrag` centered under it); and any button
+	 * drags a split view's divider, a table's column edge and a non-file
+	 * icon. `"windows"`: a tab is chosen at the button-1 press (comctl32
+	 * selects on WM_LBUTTONDOWN: Windows 98 as shipped, over the 1995 text's
+	 * release); a non-file icon moves only once the pointer is 4 px from
+	 * the press (SM_CXDRAG), keeping where it was grabbed; and only button 1
+	 * drags (`isClassicyGestureButton`), a desktop icon ignoring the middle
+	 * button and the others altogether (button 2 still selects it).
+	 */
+	mouse?: "mac" | "windows";
+	/**
+	 * How the keyboard takes part in a gesture. Optional, as is each key.
+	 */
+	input?: {
+		/**
+		 * Whether Escape takes back a direct manipulation in progress (WIG
+		 * Ch.1 "Forgiveness", pp.2-3; Ch.4 "Shortcut Keys", p.27). Absent or
+		 * `false` (Mac OS 8): only a file drag, an on-release thumb drag, a
+		 * pop-up and a combo list cancel on Escape. `true` (Windows): while a
+		 * split view's divider, a slider's thumb, a non-file icon or a
+		 * table's column edge is dragged, Escape puts it back where the press
+		 * found it and ends the drag, the key going no further
+		 * (`useClassicyEscapeCancel`).
+		 */
+		escapeCancels?: boolean;
+	};
 };
 
 /**

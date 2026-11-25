@@ -31,10 +31,16 @@ import type {
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyScrollAreaHead } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollAreaHead.internal";
+import {
+	classicySecondaryButtonSelects,
+	isClassicyGestureButton,
+} from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 /**
@@ -218,6 +224,13 @@ type SelectionModifiers = {
  * table's container is its scroll area's root, which carries it already;
  * with `scrollable={false}` (the Finder's list) the table adds it itself.
  *
+ * Under the active package's layout: `selection.secondaryButton: "select"`
+ * (Windows 98) selects an unselected row alone at a button-2 press, before
+ * its `contextmenu`, and leaves a selected row's selection as it is;
+ * `mouse: "windows"` lets only button 1 resize a column; and
+ * `input.escapeCancels` makes Escape mid-resize put the column back as the
+ * press found it.
+ *
  * ```tsx
  * <ClassicyTable
  *     columns={[{ id: "name", title: "Name", accessor: (f) => f.name }]}
@@ -297,6 +310,9 @@ export function ClassicyTable<T>({
 	);
 	// The container had no state class; `selected` stays on rows and headers.
 	const appearance = useClassicyAppearance("Table", {}, containerRef);
+	// Button 2's selection, the buttons that resize a column and Escape's
+	// cancel: the active package's layout.
+	const layout = useClassicyAppearanceLayout();
 	// `inactive` while the window it is drawn in is not the active one (as
 	// ClassicyScrollArea reads it; outside a window, never), so a package can
 	// draw the selection as an inactive window's (Windows 98: ButtonFace, as
@@ -421,6 +437,16 @@ export function ClassicyTable<T>({
 			}
 		};
 	}, [resizingColumn, table, endColumnResize]);
+
+	// Escape mid-resize, under a package whose layout says
+	// `input.escapeCancels` (Windows 98; WIG Ch.4 "Shortcut Keys", p.27):
+	// the column goes back to the width the press found, and the resize
+	// ends, through TanStack's own release path as a lost stream ends it.
+	const sizingAtPressRef = useRef<Record<string, number>>({});
+	useClassicyEscapeCancel(!!resizingColumn, () => {
+		endColumnResize();
+		table.setColumnSizing(sizingAtPressRef.current);
+	});
 
 	// Wrapped in useCallback (rather than left as a plain function) so
 	// `selectAll` below gets a stable dependency — otherwise the effect that
@@ -715,11 +741,16 @@ export function ClassicyTable<T>({
 								// biome-ignore lint/a11y/noStaticElementInteractions: resize handle requires mouse events only; no keyboard equivalent
 								<div
 									onMouseDown={(e) => {
+										// Under `layout.mouse` "windows" only button 1 resizes
+										// (WIG Ch.4 "Mouse Actions", pp.24-25).
+										if (!isClassicyGestureButton(e, layout)) return;
 										resizeInputRef.current = "mouse";
+										sizingAtPressRef.current = table.getState().columnSizing;
 										header.getResizeHandler()(e);
 									}}
 									onTouchStart={(e) => {
 										resizeInputRef.current = "touch";
+										sizingAtPressRef.current = table.getState().columnSizing;
 										header.getResizeHandler()(e);
 									}}
 									className={classNames(
@@ -777,6 +808,27 @@ export function ClassicyTable<T>({
 							}),
 							rowClassName?.(row.original, effectiveSelected.includes(row.id)),
 						)}
+						onMouseDown={(e) => {
+							// Button 2 on an unselected row, under a package whose
+							// layout says `selection.secondaryButton: "select"`
+							// (Windows; WIG Ch.5 "Selection with the Mouse",
+							// pp.37-38): the row alone is selected before the
+							// `contextmenu` asks for its menu, which then acts on
+							// it; on a selected row the selection stays.
+							if (
+								e.button !== 2 ||
+								!classicySecondaryButtonSelects(layout) ||
+								effectiveSelected.includes(row.id)
+							) {
+								return;
+							}
+							setCursorId(row.id);
+							applySelection(row.id, {
+								shiftKey: false,
+								metaKey: false,
+								ctrlKey: false,
+							});
+						}}
 						onClick={(e) => {
 							setCursorId(row.id);
 							applySelection(row.id, e);

@@ -687,6 +687,7 @@ Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMen
 - Components with custom right-click behavior and no menu call `e.preventDefault()` in their own `onContextMenu`; every menu layer checks `e.defaultPrevented` and stays silent.
 - If neither a window nor its app defines a menu, right-click shows nothing (the native browser menu stays suppressed inside the desktop).
 - Right-clicking a window focuses it first, so the active menu always tracks focus.
+- Under a package whose layout says `contextMenu.openOn: "release"` (Windows 98) the provider holds a `showContextMenu` made while button 2 is down (a capture-phase document `mousedown`/`mouseup` watch) and opens it at the release; under `selection.secondaryButton: "select"` a right-click on a selected desktop icon or table row keeps the selection for its menu, and an unselected one is selected alone at the press. The press discipline (`layout.mouse`, `isClassicyGestureButton`, `Utils/ClassicyMousePolicy.ts`) and Escape's cancel of a drag (`layout.input.escapeCancels`, `useClassicyEscapeCancel`/`onClassicyEscapeCancel`, `Keyboard/useClassicyEscapeCancel.internal.ts`) are read the same way; the desktop's empty-area press rule is `classicyDesktopSelectPress` (`Desktop/ClassicyDesktopSelectBox.internal.ts`).
 
 ### File System: Shared Live Tree
 

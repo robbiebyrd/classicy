@@ -2,6 +2,7 @@ import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -31,7 +32,14 @@ import {
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	classicyIconDragThreshold,
+	classicySecondaryButtonSelects,
+	classicyTraveledPast,
+	isClassicyGestureButton,
+} from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 import "./ClassicyDesktopIcon.scss";
 import classNames from "classnames";
@@ -93,7 +101,10 @@ interface ClassicyDesktopIconProps {
 	noLaunch?: boolean;
 	/**
 	 * Right-click menu for this icon. Right-clicking selects the icon first;
-	 * with no menu it shows nothing.
+	 * with no menu it shows nothing. Under a package whose layout says
+	 * `selection.secondaryButton: "select"` (Windows 98), a right-click on
+	 * an icon that is already selected keeps the whole selection, so the
+	 * menu acts on every selected icon.
 	 */
 	contextMenu?: ClassicyMenuItem[];
 	/**
@@ -150,6 +161,14 @@ const draggedAsFile = (kind: string, filePath: string | undefined) =>
  * selection), and double-click — or Enter/Space when focused — opens it. The
  * icon of an open app, or of a folder with an open Finder window, draws in the
  * shaded "open" state.
+ *
+ * Under a package whose layout says `mouse: "windows"` (Windows 98), only
+ * button 1 drags an icon and a non-file icon moves only once the pointer is
+ * 4 px from the press; button 2 selects, and the middle button does
+ * nothing. Under `selection.secondaryButton: "select"`, a right-click on a
+ * selected icon keeps the whole selection for its menu; under
+ * `input.escapeCancels`, Escape mid-drag puts a non-file icon (and the
+ * selection it carries) back where the press found it.
  *
  * Icons whose `kind` is `app_shortcut` or `shortcut` — every icon `ClassicyApp`
  * registers — render the alias arrow over the bottom-left corner and an
@@ -219,6 +238,19 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			]);
 			const [dragging, setDragging] = useState<boolean>(false);
 			const didDragRef = useRef(false);
+			// The press discipline (`layout.mouse`, button 2's selection,
+			// Escape's cancel): the active package's layout.
+			const layout = useClassicyAppearanceLayout();
+			// The press of a drag of the icon itself (a non-file icon): where
+			// the pointer went down, to wait for the drag threshold, and the
+			// icon's location then, for Escape to put it back.
+			const pressRef = useRef<{
+				point: [number, number];
+				location: [number, number] | null;
+			}>({ point: [0, 0], location: null });
+			// Set when Escape took the drag back: the release ending its press
+			// reports no halt (`stopChangeIcon`), and its click selects nothing.
+			const canceledRef = useRef(false);
 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
@@ -338,6 +370,19 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
 				if (dragging) {
+					// Under `layout.mouse` "windows" the icon stays put until the
+					// pointer is 4 px from the press (Windows' drag rectangle),
+					// so a click that jitters is still a click.
+					if (
+						!didDragRef.current &&
+						!classicyTraveledPast(
+							pressRef.current.point,
+							[e.clientX, e.clientY],
+							classicyIconDragThreshold(layout),
+						)
+					) {
+						return;
+					}
 					didDragRef.current = true;
 					desktopEventDispatch({
 						type: "ClassicyDesktopIconMove",
@@ -439,7 +484,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				// in startDrag on mousedown, so `dragging` is already true for a
 				// plain click, while didDragRef is set in changeIcon only once
 				// the pointer moved while held down.
-				if (didDragRef.current) {
+				if (didDragRef.current && !canceledRef.current) {
 					track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				}
 				setDragging(false);
@@ -449,6 +494,32 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					appearance.emit("dragEnd", { lost });
 				}
 			};
+
+			// Escape mid-drag, under a package whose layout says
+			// `input.escapeCancels` (Windows 98; WIG Ch.4 "Shortcut Keys",
+			// p.27): the icon goes back where the press found it (and the
+			// selection it carried with it, ClassicyDesktopIconMove moving
+			// them by the same distance), and the drag ends there.
+			const cancelChangeIcon = () => {
+				const from = pressRef.current.location;
+				if (didDragRef.current && from) {
+					desktopEventDispatch({
+						type: "ClassicyDesktopIconMove",
+						app: { id: appId },
+						location: from,
+					});
+				}
+				canceledRef.current = true;
+				// The click ending the press must not select as a click would.
+				didDragRef.current = true;
+				setDragging(false);
+				setClickPosition([0, 0]);
+				if (dragEmittedRef.current) {
+					dragEmittedRef.current = false;
+					appearance.emit("dragEnd", { lost: false, canceled: true });
+				}
+			};
+			useClassicyEscapeCancel(dragging, cancelChangeIcon);
 
 			// The pointer stream lost mid-drag (the window blurred, a
 			// pointercancel, the page hidden): the icon stays where it was
@@ -460,9 +531,14 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				if (iconRef.current == null) {
 					return;
 				}
+				// Under `layout.mouse` "windows" only buttons 1 and 2 press an
+				// icon: the middle button and the others do nothing (WIG Ch.4
+				// "Mouse Actions", pp.24-25).
+				if (e.button !== 2 && !isClassicyGestureButton(e, layout)) return;
 
 				track("move", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				didDragRef.current = false;
+				canceledRef.current = false;
 
 				// If icon is not already selected, select just this one for the drag
 				selectedOnPressRef.current = !isSelected;
@@ -479,9 +555,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					if (e.button === 0) startFileDrag(e);
 					return;
 				}
+				// Button 2 selects (above) but drags only under the Mac's rule.
+				if (!isClassicyGestureButton(e, layout)) return;
 
 				const rect = iconRef.current.getBoundingClientRect();
 				setClickPosition([e.clientX - rect.left, e.clientY - rect.top]);
+				pressRef.current = {
+					point: [e.clientX, e.clientY],
+					location: iconLocation,
+				};
 
 				setDragging(true);
 				dragEmittedRef.current = true;
@@ -584,7 +666,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
 						if (e.defaultPrevented) return;
 						e.preventDefault();
-						clickFocus(e); // selects the icon and stops propagation
+						// Under `selection.secondaryButton` "select" (Windows; WIG
+						// Ch.5 "Selection with the Mouse", pp.37-38) a selected
+						// icon keeps the whole selection, which its menu acts on;
+						// the press (a discrete event, rendered before this one)
+						// already selected an unselected one.
+						if (classicySecondaryButtonSelects(layout) && isSelected) {
+							e.stopPropagation();
+							iconRef.current?.focus({ preventScroll: true });
+						} else {
+							clickFocus(e); // selects the icon and stops propagation
+						}
 						if (contextMenu && contextMenu.length > 0) {
 							showContextMenu(contextMenu, [e.clientX, e.clientY]);
 						}

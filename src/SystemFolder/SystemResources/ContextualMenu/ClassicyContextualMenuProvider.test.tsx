@@ -1,11 +1,21 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import {
 	ClassicyContextualMenuProvider,
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyContextualMenuTarget } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuTarget";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
+
+const windows98Layout = windows98.layout;
 
 const menuA: ClassicyMenuItem[] = [{ id: "a1", title: "Alpha One" }];
 const menuB: ClassicyMenuItem[] = [{ id: "b1", title: "Beta One" }];
@@ -366,5 +376,124 @@ describe("ClassicyContextualMenuProvider — the keyboard's context-menu keys", 
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+});
+
+// Under a package whose layout says `contextMenu.openOn: "release"` (Windows
+// 98; WIG Ch.5 "Selection with the Mouse", p.38; Ch.7 "Pop-up Menu
+// Interaction", p.101) a menu asked for while button 2 is down opens at its
+// release; under any other it opens at the call (Mac OS 8's Control-press).
+describe("ClassicyContextualMenuProvider — menus at button 2's release (layout.contextMenu.openOn)", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	// The open menu's text (the Windows layout underlines access keys, so a
+	// title is split across elements), or null with none open.
+	const openMenu = () =>
+		document.querySelector(".classicyContextMenuWrapper")?.textContent ?? null;
+	const useReleaseLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-release",
+			name: "Windows release",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-release-default",
+				package: "windows-release",
+			},
+			layout: windows98Layout as never,
+		});
+	const renderTargets = () =>
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyContextualMenuTarget menuItems={menuA}>
+					<button type="button">first</button>
+				</ClassicyContextualMenuTarget>
+				<ClassicyContextualMenuTarget menuItems={menuB}>
+					<button type="button">second</button>
+				</ClassicyContextualMenuTarget>
+				<Trigger items={menuB} label="show-b" />
+			</ClassicyContextualMenuProvider>,
+		);
+
+	it("opens at the call without the key, as a macOS host raises it at the press", () => {
+		renderTargets();
+		const first = screen.getByText("first");
+		fireEvent.mouseDown(first, { button: 2 });
+		fireEvent.contextMenu(first, { button: 2 });
+		expect(openMenu()).toContain("Alpha One");
+	});
+
+	it("holds a menu asked for while button 2 is down, and opens it at the release", () => {
+		useReleaseLayout();
+		renderTargets();
+		const first = screen.getByText("first");
+		fireEvent.mouseDown(first, { button: 2 });
+		fireEvent.contextMenu(first, { button: 2 });
+		expect(openMenu() ?? "").not.toContain("Alpha One");
+		// Another button's release is not button 2's.
+		fireEvent.mouseUp(first, { button: 0 });
+		expect(openMenu() ?? "").not.toContain("Alpha One");
+		fireEvent.mouseUp(first, { button: 2 });
+		expect(openMenu()).toContain("Alpha One");
+	});
+
+	it("opens at once when the event comes after the release, as a Windows host raises it", () => {
+		useReleaseLayout();
+		renderTargets();
+		const first = screen.getByText("first");
+		fireEvent.mouseDown(first, { button: 2 });
+		fireEvent.mouseUp(first, { button: 2 });
+		fireEvent.contextMenu(first, { button: 2 });
+		expect(openMenu()).toContain("Alpha One");
+	});
+
+	it("holds a macOS host's Control-click menu for that press's release too", () => {
+		useReleaseLayout();
+		renderTargets();
+		const first = screen.getByText("first");
+		fireEvent.mouseDown(first, { button: 0, ctrlKey: true });
+		fireEvent.contextMenu(first, { button: 0, ctrlKey: true });
+		expect(openMenu() ?? "").not.toContain("Alpha One");
+		fireEvent.mouseUp(first, { button: 0, ctrlKey: true });
+		expect(openMenu()).toContain("Alpha One");
+	});
+
+	it("lets a newer call replace the held menu", () => {
+		useReleaseLayout();
+		renderTargets();
+		const first = screen.getByText("first");
+		fireEvent.mouseDown(first, { button: 2 });
+		fireEvent.contextMenu(first, { button: 2 });
+		fireEvent.contextMenu(screen.getByText("second"), { button: 2 });
+		fireEvent.mouseUp(first, { button: 2 });
+		expect(openMenu() ?? "").not.toContain("Alpha One");
+		expect(openMenu()).toContain("Beta One");
+	});
+
+	it.each([
+		["window blur", () => fireEvent.blur(window)],
+		["pointercancel", () => fireEvent.pointerCancel(document)],
+	])("drops the held menu when the pointer stream is lost (%s)", (_, lose) => {
+		useReleaseLayout();
+		renderTargets();
+		const first = screen.getByText("first");
+		fireEvent.mouseDown(first, { button: 2 });
+		fireEvent.contextMenu(first, { button: 2 });
+		act(() => lose());
+		fireEvent.mouseUp(first, { button: 2 });
+		expect(openMenu() ?? "").not.toContain("Alpha One");
+		// The next call is no longer held: no button is down.
+		fireEvent.click(screen.getByText("show-b"));
+		expect(openMenu()).toContain("Beta One");
+	});
+
+	it("drops the held menu on hideContextMenu", () => {
+		useReleaseLayout();
+		renderTargets();
+		const first = screen.getByText("first");
+		fireEvent.mouseDown(first, { button: 2 });
+		fireEvent.contextMenu(first, { button: 2 });
+		fireEvent.click(screen.getByText("hide-show-b"));
+		fireEvent.mouseUp(first, { button: 2 });
+		expect(openMenu() ?? "").not.toContain("Alpha One");
 	});
 });

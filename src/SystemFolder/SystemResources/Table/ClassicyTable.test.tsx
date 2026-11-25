@@ -6,6 +6,13 @@ import {
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import {
 	ClassicyTable,
@@ -13,6 +20,7 @@ import {
 	type ClassicyTableSelectionApi,
 } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock("@/SystemFolder/SystemResources/Table/ClassicyTable.scss", () => ({}));
 
@@ -1306,5 +1314,145 @@ describe("ClassicyTable — sortGroup", () => {
 				r.getAttribute("data-row-id"),
 			),
 		).toEqual(["Z", "a", "b"]);
+	});
+});
+
+// Under the Windows 98 layout: button 2 selects an unselected row before its
+// menu (`selection.secondaryButton` "select"; WIG Ch.5 "Selection with the
+// Mouse", pp.37-38; App. A Table A.1, p.349), only button 1 resizes a
+// column (`mouse` "windows"; Ch.4 "Mouse Actions", pp.24-25), and Escape
+// takes a resize back (`input.escapeCancels`; Ch.4 "Shortcut Keys", p.27).
+// Without a package the default layout declares none of it.
+describe("ClassicyTable — the mouse under the Windows layout", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-table",
+			name: "Windows table",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-table-default",
+				package: "windows-table",
+			},
+			layout: windows98.layout as never,
+		});
+	const row = (container: HTMLElement, id: string) =>
+		container.querySelector(`tr[data-row-id="${id}"]`) as HTMLElement;
+	const selectedIds = (container: HTMLElement) =>
+		[...container.querySelectorAll("tr.classicyTableRow.selected")].map((r) =>
+			r.getAttribute("data-row-id"),
+		);
+	const renderTable = (onSelectionChange = vi.fn()) => {
+		const view = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode="multi"
+				onSelectionChange={onSelectionChange}
+			/>,
+		);
+		const header = view.container.querySelector("th") as HTMLElement;
+		const resizer = header.querySelector(".resizer") as HTMLElement;
+		return { ...view, header, resizer, onSelectionChange };
+	};
+	const pressEscape = () =>
+		act(() => {
+			document.body.dispatchEvent(
+				new KeyboardEvent("keydown", {
+					key: "Escape",
+					bubbles: true,
+					cancelable: true,
+				}),
+			);
+		});
+
+	it("selects an unselected row at a button-2 press, before its menu, under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, onSelectionChange } = renderTable();
+		const heard: (string | null)[][] = [];
+		// What a contextmenu handler above the table sees: the new selection.
+		container.addEventListener("contextmenu", () =>
+			heard.push(selectedIds(container)),
+		);
+		fireEvent.mouseDown(row(container, "pepper"), { button: 2 });
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper"]);
+		fireEvent.contextMenu(row(container, "pepper"), { button: 2 });
+		expect(heard).toEqual([["pepper"]]);
+	});
+
+	it("keeps a selection a button-2 press lands inside, under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, onSelectionChange } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		fireEvent.click(row(container, "abbey"), { metaKey: true });
+		expect(selectedIds(container)).toEqual(["rubber", "abbey"]);
+		onSelectionChange.mockClear();
+		fireEvent.mouseDown(row(container, "abbey"), { button: 2 });
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		expect(selectedIds(container)).toEqual(["rubber", "abbey"]);
+	});
+
+	it("leaves the selection to clicks without the key", () => {
+		const { container, onSelectionChange } = renderTable();
+		fireEvent.mouseDown(row(container, "pepper"), { button: 2 });
+		fireEvent.contextMenu(row(container, "pepper"), { button: 2 });
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		expect(selectedIds(container)).toEqual([]);
+	});
+
+	it("resizes a column with button 1 alone under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, header, resizer } = renderTable();
+		for (const button of [1, 2]) {
+			fireEvent.mouseDown(resizer, { button, clientX: 100 });
+			fireEvent.mouseMove(document, { clientX: 150 });
+			fireEvent.mouseUp(document, { clientX: 150 });
+			expect(header.style.width).toBe("150px");
+		}
+		fireEvent.mouseDown(resizer, { button: 0, clientX: 100 });
+		expect(container.querySelector(".isResizing")).not.toBeNull();
+		fireEvent.mouseMove(document, { clientX: 150 });
+		fireEvent.mouseUp(document, { clientX: 150 });
+		expect(header.style.width).toBe("200px");
+	});
+
+	it("resizes a column with any button without the key", () => {
+		const { header, resizer } = renderTable();
+		fireEvent.mouseDown(resizer, { button: 1, clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 130 });
+		fireEvent.mouseUp(document, { clientX: 130 });
+		expect(header.style.width).toBe("180px");
+	});
+
+	it("puts the column back and ends the resize on Escape under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, header, resizer } = renderTable();
+		// A first resize the second one starts from.
+		fireEvent.mouseDown(resizer, { button: 0, clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 120 });
+		fireEvent.mouseUp(document, { clientX: 120 });
+		expect(header.style.width).toBe("170px");
+		fireEvent.mouseDown(resizer, { button: 0, clientX: 120 });
+		fireEvent.mouseMove(document, { clientX: 200 });
+		expect(header.style.width).toBe("250px");
+		pressEscape();
+		expect(header.style.width).toBe("170px");
+		expect(container.querySelector(".isResizing")).toBeNull();
+		// The pointer moving on and the release that follows change nothing.
+		fireEvent.mouseMove(document, { clientX: 260 });
+		fireEvent.mouseUp(document, { clientX: 260 });
+		expect(header.style.width).toBe("170px");
+	});
+
+	it("leaves Escape alone mid-resize without the key", () => {
+		const { container, header, resizer } = renderTable();
+		fireEvent.mouseDown(resizer, { button: 0, clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 150 });
+		pressEscape();
+		expect(header.style.width).toBe("200px");
+		expect(container.querySelector(".isResizing")).not.toBeNull();
+		fireEvent.mouseUp(document, { clientX: 150 });
 	});
 });

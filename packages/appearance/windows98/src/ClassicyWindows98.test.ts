@@ -260,8 +260,17 @@ describe("the Windows 98 appearance package", () => {
 	// (`fileDialog.listFlow` "columns"; WIG Ch.8 Figure 8.6), the icon view
 	// takes Explorer's selection keys (`fileBrowser.keys` "windows"; WIG
 	// Ch.5 "Selection"), and file lists put folders first
-	// (`fileList.foldersFirst`, as Explorer sorts).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer", async () => {
+	// (`fileList.foldersFirst`, as Explorer sorts). Button 2 selects what it
+	// presses on, keeping a selection it presses inside
+	// (`selection.secondaryButton` "select", the audit's 5.6 / 11.3 / A.3;
+	// WIG Ch.5 "Selection with the Mouse", pp.37-38), and its menu opens at
+	// the release (`contextMenu.openOn` "release", 5.7; p.38); a tab is
+	// chosen at the press, an icon waits 4 px before it moves and only
+	// button 1 drags (`mouse` "windows", 4.8-4.10; WIG Ch.4 "Mouse
+	// Actions", pp.24-25); and Escape takes a drag back
+	// (`input.escapeCancels`, 1.18 / 4.16; WIG Ch.1 "Forgiveness",
+	// pp.2-3; Ch.4 "Shortcut Keys", p.27).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, Windows' press discipline, Escape taking a drag back", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
@@ -289,6 +298,10 @@ describe("the Windows 98 appearance package", () => {
 			fileList: { foldersFirst: true },
 			tree: { keys: "windows" },
 			balloonHelp: { placement: "pointer" },
+			selection: { secondaryButton: "select" },
+			contextMenu: { openOn: "release" },
+			mouse: "windows",
+			input: { escapeCancels: true },
 		});
 	});
 

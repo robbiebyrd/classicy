@@ -283,6 +283,65 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// The mouse conventions (the WIG audit's 5.6, 5.7, 4.8-4.10, 1.18):
+	// `selection.secondaryButton`, `contextMenu.openOn` and
+	// `input.escapeCancels` optional groups with optional keys, `mouse` a
+	// top-level keyword, each kept as given.
+	it("takes optional selection, contextMenu, mouse and input, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.selection = { secondaryButton: "select" };
+		layout.contextMenu = { openOn: "release" };
+		layout.mouse = "windows";
+		layout.input = { escapeCancels: true };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.selection).toEqual({
+			secondaryButton: "select",
+		});
+		expect(result.data?.layout.contextMenu).toEqual({ openOn: "release" });
+		expect(result.data?.layout.mouse).toBe("windows");
+		expect(result.data?.layout.input).toEqual({ escapeCancels: true });
+		for (const [key, value] of [
+			["selection", {}],
+			["selection", { secondaryButton: "menu" }],
+			["contextMenu", {}],
+			["contextMenu", { openOn: "event" }],
+			["mouse", "mac"],
+			["input", {}],
+			["input", { escapeCancels: false }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[key] = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success, key).toBe(
+				true,
+			);
+		}
+		for (const [group, key, value] of [
+			["selection", "secondaryButton", "both"],
+			["contextMenu", "openOn", "press"],
+			["input", "escapeCancels", "yes"],
+		]) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+		const badMouse = platinumShaped();
+		(badMouse.layout as Record<string, unknown>).mouse = "pen";
+		const refused = ClassicyAppearancePackageSchema.safeParse(badMouse);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"mouse",
+		]);
+	});
+
 	it("rejects defaults that belong to another package", () => {
 		const result = ClassicyAppearancePackageSchema.safeParse({
 			...platinumShaped(),

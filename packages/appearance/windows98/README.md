@@ -75,7 +75,15 @@ and `nodenext` resolution).
   it, Left collapses it or goes up to its parent), and help shown as a
   ToolTip: once the pointer rests on a control, just below and right of the
   pointer (moved left at the screen's right edge, above the control at its
-  bottom), gone when the control is clicked.
+  bottom), gone when the control is clicked. The mouse follows Windows'
+  conventions too: a right-click on an unselected desktop icon or list row
+  selects it first, and one on a selected item keeps the whole selection,
+  which its menu then acts on; a pop-up menu opens when the right button
+  comes up; a tab is chosen as the button goes down; an icon dragged by
+  itself moves only once the pointer is 4 px from where it was pressed, and
+  only the left button drags (the middle button does nothing); and Escape
+  takes back a drag in progress: a split view's divider, a slider's thumb,
+  an icon or a column edge goes back to where it was.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),

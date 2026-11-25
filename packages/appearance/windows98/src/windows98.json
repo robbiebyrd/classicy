@@ -3843,6 +3843,16 @@
 		},
 		"balloonHelp": {
 			"placement": "pointer"
+		},
+		"selection": {
+			"secondaryButton": "select"
+		},
+		"contextMenu": {
+			"openOn": "release"
+		},
+		"mouse": "windows",
+		"input": {
+			"escapeCancels": true
 		}
 	},
 	"knobs": {
