@@ -29,15 +29,21 @@ import {
 // `sound.pack` must name a registered pack. The package lists the pack; it
 // never registers it a second time.
 import "./assets/sounds/windows98";
+// Registers at module load: Windows 98's icons and system art, from the
+// Windows 98 Second Edition CD (docs/windows98-asset-inventory.md).
+import "./assets/windows98Assets";
 // The package's own icon (the Appearance Manager's Themes tab): a window on
 // the teal desktop.
 import windows98Icon from "./assets/art/windows98.svg";
 import { windows98SoundPack } from "./assets/sounds/windows98";
 import windows98Css from "./styles/windows98.scss?inline";
 import windows98JsonSource from "./windows98.json";
+import { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "./windows98Apps";
 import { deepFreeze } from "./windows98DeepFreeze.internal";
 
 export * from "./assets/sounds/windows98";
+export { WINDOWS98_SYSTEM_ART } from "./assets/windows98Assets";
+export { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "./windows98Apps";
 
 /**
  * Windows 98's theme data (`windows98.json`), typed with the core's own
@@ -100,9 +106,12 @@ const windows98Defaults =
 		(theme) => theme.id === windows98JsonSource.defaults.id,
 	) ?? windows98Theme(windows98JsonSource.defaults as unknown as ClassicyTheme);
 
-// No hooks: the package plays no interface feedback (Windows' sounds are
-// Microsoft's) and decorates nothing. No screen savers: it names none, so the
-// Screen Saver control panel reads "This appearance has no screen savers."
+// No hooks: the package plays no interface feedback (Windows 98's default
+// sound scheme gave the controls none) and decorates nothing. No screen
+// savers: it names none, so the Screen Saver control panel reads "This
+// appearance has no screen savers." Its `apps` and `desktopIcons` show the
+// bundled apps, the Trash and the startup disk by Windows 98's names
+// (windows98Apps.ts).
 registerClassicyAppearancePackage({
 	id: WINDOWS98_APPEARANCE_PACKAGE_ID,
 	name: windows98JsonSource.name,
@@ -115,4 +124,6 @@ registerClassicyAppearancePackage({
 	options: classicyKnobsToSchema(windows98JsonSource.knobs),
 	layout: windows98JsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [windows98SoundPack],
+	apps: WINDOWS98_APPS,
+	desktopIcons: WINDOWS98_DESKTOP_ICONS,
 });

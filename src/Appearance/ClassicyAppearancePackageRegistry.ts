@@ -14,6 +14,7 @@ import {
 import type {
 	ClassicyAppearancePackage,
 	ClassicyAppIdentityOverride,
+	ClassicyDesktopIconOverride,
 } from "./ClassicyAppearancePackage";
 import { ClassicyAppearancePackageSchema } from "./ClassicyAppearancePackageSchema";
 import {
@@ -79,6 +80,20 @@ const frozenAppsCopy = (
 	return Object.freeze(copy);
 };
 
+/**
+ * A frozen copy of a package's validated `desktopIcons`, each override frozen
+ * too, for the same reason as `apps`.
+ */
+const frozenDesktopIconsCopy = (
+	desktopIcons: NonNullable<ClassicyAppearancePackage["desktopIcons"]>,
+): NonNullable<ClassicyAppearancePackage["desktopIcons"]> => {
+	const copy: Record<string, Readonly<ClassicyDesktopIconOverride>> = {};
+	for (const [icon, override] of Object.entries(desktopIcons)) {
+		if (override !== undefined) copy[icon] = Object.freeze({ ...override });
+	}
+	return Object.freeze(copy);
+};
+
 // Savers register before their package (as Platinum's assets do), so the
 // check can run here; the package registers either way.
 const warnOnUnusableDefaultScreenSaver = (pkg: ClassicyAppearancePackage) => {
@@ -100,8 +115,9 @@ const warnOnUnusableDefaultScreenSaver = (pkg: ClassicyAppearancePackage) => {
  * `css`, `options` and `hooks`); an invalid one is logged as an error and not
  * registered. On success its CSS is injected (`injectClassicyAppearanceStyles`)
  * and the package object itself is stored, except that a package with `apps`
- * is stored as a shallow copy whose `apps` is a frozen copy of the validated
- * value: mutating the caller's `apps` afterward changes nothing.
+ * or `desktopIcons` is stored as a shallow copy whose `apps` and
+ * `desktopIcons` are frozen copies of the validated values: mutating the
+ * caller's objects afterward changes nothing.
  * Re-registering an id replaces the package and keeps its position.
  */
 export function registerClassicyAppearancePackage(
@@ -125,9 +141,18 @@ export function registerClassicyAppearancePackage(
 	injectClassicyAppearanceStyles(pkg.id, pkg.css);
 	warnOnUnusableDefaultScreenSaver(pkg);
 	const apps = parsed.data?.apps;
+	const desktopIcons = parsed.data?.desktopIcons;
 	registry.set(
 		pkg.id,
-		apps === undefined ? pkg : { ...pkg, apps: frozenAppsCopy(apps) },
+		apps === undefined && desktopIcons === undefined
+			? pkg
+			: {
+					...pkg,
+					...(apps === undefined ? {} : { apps: frozenAppsCopy(apps) }),
+					...(desktopIcons === undefined
+						? {}
+						: { desktopIcons: frozenDesktopIconsCopy(desktopIcons) }),
+				},
 	);
 	publish();
 }

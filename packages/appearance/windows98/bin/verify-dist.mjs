@@ -13,20 +13,25 @@
 //    carries a Vite query (the core's invariant 1).
 //
 // 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the art
-//    (src/assets/art: SVG and WebP) and the sound sheet
+//    (src/assets/art: the package's SVG icon and the WebP bitmaps, the
+//    Start flag and the Windows logo), the icons (src/assets/icons: WebP,
+//    the Windows 98 SE icon groups' 32 px and 16 px images, IE 5's toolbar
+//    cells and Web View's sky) and the sound sheet
 //    (src/assets/sounds/windows98/windows98.{ogg,m4a}, not its JSON, its
 //    hash or its sprites/ WAV sources), each byte-identical to its source,
 //    so an image optimizer added to vite.config.ts fails here. Each ships
-//    under its own name. The package has no fonts (Windows' faces are
-//    Microsoft's), no icons, cursors or wallpapers of its own (the active
-//    package's reads fall back to the default package's), and no screen
-//    savers. dist/ itself holds only the two bundles and their maps, the
-//    strict-CSP stylesheet, assets/ and types/.
+//    under its own name (every name in art/ and icons/ is unique). A PNG
+//    left in a WebP folder is no source: nothing ships it. The package has
+//    no fonts, cursors or wallpapers of its own (its reads fall back to the
+//    default package's), and no screen savers. dist/ itself holds only the
+//    two bundles and their maps, the strict-CSP stylesheet, assets/ and
+//    types/.
 //
 // 3. NOTHING IS INLINED. No `data:` URI in either bundle: the package has no
-//    masks, and every glyph is drawn from theme tokens in its stylesheet.
-//    The ES bundle's `new URL("assets/…", import.meta.url)` references each
-//    name a file in dist/assets, and every file there is referenced.
+//    masks (its icons and art are images, and every glyph Windows drew in
+//    the scheme's colors is drawn from theme tokens in its stylesheet). The
+//    ES bundle's `new URL("assets/…", import.meta.url)` references each name
+//    a file in dist/assets, and every file there is referenced.
 //
 // 4. THE LOOK SHIPS IN BOTH BUNDLES AND AS dist/classicy-windows98.css. Each
 //    bundle carries the package stylesheet (`windows98.scss?inline`) as
@@ -174,10 +179,13 @@ const listFiles = async (dir, accept = () => true) =>
 	(await readdir(dir, { withFileTypes: true }).catch(() => []))
 		.filter((entry) => entry.isFile() && accept(entry.name))
 		.map((entry) => join(dir, entry.name));
-// The art is SVG and WebP, flat in src/assets/art.
+// The art is SVG and WebP, flat in src/assets/art; the icons WebP, flat in
+// src/assets/icons.
 const ART = /\.(?:svg|webp)$/;
+const ICON = /\.webp$/;
 const sources = [
 	...(await listFiles(join("src", "assets", "art"), (n) => ART.test(n))),
+	...(await listFiles(join("src", "assets", "icons"), (n) => ICON.test(n))),
 	// The sheet's two formats, not its JSON, its hash or its sprites/ WAV
 	// sources.
 	...(await listFiles(join("src", "assets", "sounds", "windows98"), (n) =>
@@ -196,10 +204,9 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 			);
 		sourceOf.set(name, source);
 	}
-	// The build emits byte-identical files once (an alert icon is the same
-	// 1-bit image in icons/color/32 and icons/bw/32), under the name of
-	// whichever is imported first: each set of identical sources ships as
-	// exactly one of its names.
+	// The build emits byte-identical files once, under the name of whichever
+	// is imported first: each set of identical sources ships as exactly one
+	// of its names.
 	const twins = new Map();
 	for (const [name, source] of sourceOf) {
 		const bytes = (
@@ -386,7 +393,7 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		];
 		if (outside.length)
 			problems.push(
-				`${file}: references another package or a file outside ${TYPES} (${outside.map((s) => JSON.stringify(s)).join(", ")}) -> a host that installs only Windows 98 resolves none of it; import nothing of the othavers.`,
+				`${file}: references another package or a file outside ${TYPES} (${outside.map((s) => JSON.stringify(s)).join(", ")}) -> a host that installs only Windows 98 resolves none of it; import nothing of the other packages.`,
 			);
 	}
 	const json = findClassicyJsonDeclarations(declarations);

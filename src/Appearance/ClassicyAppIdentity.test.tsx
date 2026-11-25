@@ -3,8 +3,10 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	registerTestRenamePackage,
+	TEST_DESKTOP_ICONS,
 	TEST_RENAME_PACKAGE_ID,
 	TEST_RENAMED_ICON,
+	TEST_STARTUP_DISK_ICON,
 } from "@/__tests__/testRenamePackage";
 import {
 	type ClassicyAppearancePackage,
@@ -14,12 +16,18 @@ import {
 } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+	CLASSICY_NO_DESKTOP_ICON_OVERRIDES,
 	type ClassicyAppIdentity,
 	classicyAppIdentityFrom,
+	classicyDesktopIconIdentityFrom,
 	getClassicyAppIdentityOverrides,
+	getClassicyDesktopIconOverrides,
 	resolveClassicyAppIdentity,
+	resolveClassicyDesktopIconIdentity,
 	useClassicyAppIdentity,
 	useClassicyAppIdentityOverrides,
+	useClassicyDesktopIconIdentity,
+	useClassicyDesktopIconOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
@@ -269,6 +277,119 @@ describe("useClassicyAppIdentity", () => {
 		rerender();
 		expect(result.current.overrides).toBe(first.overrides);
 		expect(result.current.identity).toBe(first.identity);
+	});
+});
+
+// A package's `desktopIcons`: the Trash's and the startup disk's label,
+// image and balloon copy, display only, resolved like `apps`.
+describe("desktop icon identities", () => {
+	const trash: ClassicyAppIdentity = { name: "Trash", icon: "trash.png" };
+	const disk: ClassicyAppIdentity = { name: "Macintosh HD", icon: "hd.png" };
+
+	it("returns the fallback object itself under Platinum and under a package that declares none", () => {
+		registerTestRenamePackage();
+		expect(resolveClassicyDesktopIconIdentity("trash", trash)).toBe(trash);
+		for (const packageId of [
+			PLATINUM_APPEARANCE_PACKAGE_ID,
+			TEST_RENAME_PACKAGE_ID,
+			"irix",
+		]) {
+			expect(
+				resolveClassicyDesktopIconIdentity("trash", trash, packageId),
+				packageId,
+			).toBe(trash);
+			expect(
+				resolveClassicyDesktopIconIdentity("startupDisk", disk, packageId),
+				packageId,
+			).toBe(disk);
+			expect(getClassicyDesktopIconOverrides(packageId), packageId).toBe(
+				CLASSICY_NO_DESKTOP_ICON_OVERRIDES,
+			);
+		}
+	});
+
+	it("applies the fields a package declares, keeping the Trash's own image", () => {
+		registerTestRenamePackage({ desktopIcons: true });
+		expect(
+			resolveClassicyDesktopIconIdentity(
+				"trash",
+				trash,
+				TEST_RENAME_PACKAGE_ID,
+			),
+		).toEqual({
+			name: "Wastebasket",
+			icon: "trash.png",
+			description: "Holds what you throw away.",
+		});
+		expect(
+			resolveClassicyDesktopIconIdentity(
+				"startupDisk",
+				disk,
+				TEST_RENAME_PACKAGE_ID,
+			),
+		).toEqual({
+			name: "This Computer",
+			icon: TEST_STARTUP_DISK_ICON,
+			description: "Shows what is on this computer.",
+		});
+	});
+
+	it("stores a frozen copy of the validated overrides", () => {
+		registerTestRenamePackage({ desktopIcons: true });
+		const stored = getClassicyAppearancePackage(
+			TEST_RENAME_PACKAGE_ID,
+		)?.desktopIcons;
+		expect(stored).toEqual(TEST_DESKTOP_ICONS);
+		expect(stored).not.toBe(TEST_DESKTOP_ICONS);
+		expect(Object.isFrozen(stored)).toBe(true);
+		expect(Object.isFrozen(stored?.trash)).toBe(true);
+		expect(Object.isFrozen(stored?.startupDisk)).toBe(true);
+	});
+
+	it("is a frozen empty object for a package that declares none", () => {
+		expect(CLASSICY_NO_DESKTOP_ICON_OVERRIDES).toEqual({});
+		expect(Object.isFrozen(CLASSICY_NO_DESKTOP_ICON_OVERRIDES)).toBe(true);
+	});
+
+	it("never reads an inherited entry", () =>
+		expect(
+			classicyDesktopIconIdentityFrom(
+				Object.create({ trash: { name: "Bin" } }),
+				"trash",
+				trash,
+			),
+		).toBe(trash));
+
+	it("returns the fallback itself when the override changes no field", () =>
+		expect(
+			classicyDesktopIconIdentityFrom(
+				{ trash: { name: "Trash" } },
+				"trash",
+				trash,
+			),
+		).toBe(trash));
+
+	it("follows a package switch and back, live", () => {
+		registerTestRenamePackage({ desktopIcons: true });
+		const { result } = renderHook(() => ({
+			overrides: useClassicyDesktopIconOverrides(),
+			trash: useClassicyDesktopIconIdentity("trash", {
+				name: "Trash",
+				icon: "trash.png",
+			}),
+			other: useClassicyDesktopIconIdentity(undefined, disk),
+		}));
+		expect(result.current.overrides).toBe(CLASSICY_NO_DESKTOP_ICON_OVERRIDES);
+		expect(result.current.trash).toEqual(trash);
+		act(() => switchPackage(TEST_RENAME_PACKAGE_ID));
+		expect(result.current.overrides).toBe(
+			getClassicyAppearancePackage(TEST_RENAME_PACKAGE_ID)?.desktopIcons,
+		);
+		expect(result.current.trash.name).toBe("Wastebasket");
+		// Any other desktop icon keeps its own identity.
+		expect(result.current.other).toBe(disk);
+		act(() => switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID));
+		expect(result.current.trash).toEqual(trash);
 	});
 });
 

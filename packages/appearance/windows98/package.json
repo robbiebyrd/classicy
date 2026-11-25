@@ -41,6 +41,7 @@
 	"sideEffects": [
 		"./dist/*.js",
 		"./src/index.ts",
+		"./src/assets/windows98Assets.ts",
 		"./src/assets/sounds/windows98.ts",
 		"**/*.css",
 		"**/*.scss"

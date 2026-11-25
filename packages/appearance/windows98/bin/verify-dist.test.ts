@@ -1,0 +1,198 @@
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
+import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector";
+
+// The package's dist check, bin/verify-dist.mjs, run for real on a fixture
+// package folder: the shape Windows 98's takes (src/assets/art, icons and
+// sounds/windows98) with a few files each, and a dist/ built to pass. Each
+// case breaks one thing and expects the script to name it, as System 7's
+// verify-dist.test.ts does for its own invariants.
+
+const SCRIPT = path.resolve(import.meta.dirname, "verify-dist.mjs");
+const root = mkdtempSync(path.join(tmpdir(), "windows98-verify-dist-"));
+afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+const PACKAGE =
+	'@layer classicy.package{.classicyDesktop[data-classicy-appearance="windows98"] .classicyWindow{border:1px solid}}';
+// PACKAGE as the JavaScript string literal the fixture bundles carry, written
+// out so the fixture source is fixed text; a test keeps it equal to PACKAGE.
+const PACKAGE_LITERAL = String.raw`"@layer classicy.package{.classicyDesktop[data-classicy-appearance=\"windows98\"] .classicyWindow{border:1px solid}}"`;
+const bytes = (seed: number, n = 64) =>
+	Buffer.from(Array.from({ length: n }, (_, i) => (i * 31 + seed) % 256));
+
+// Source file → its bytes. Every one but the sound sheet's JSON, hash and
+// WAV sources ships in dist/assets under its own name.
+const SOURCES: Record<string, Buffer> = {
+	"src/assets/art/windows98.svg": Buffer.from("<svg/>"),
+	"src/assets/art/explorer-bitmap-143.webp": bytes(1),
+	"src/assets/icons/shell32-4-32.webp": bytes(2),
+	"src/assets/icons/shell32-4-16.webp": bytes(3),
+	"src/assets/icons/browseui-bitmap-266-cell-4.webp": bytes(4),
+	"src/assets/sounds/windows98/windows98.ogg": bytes(5),
+	"src/assets/sounds/windows98/windows98.m4a": bytes(6),
+	"src/assets/sounds/windows98/windows98.json": Buffer.from("{}"),
+	"src/assets/sounds/windows98/windows98.sprites.sha256": Buffer.from("0"),
+	"src/assets/sounds/windows98/sprites/ClassicyBeep.wav": bytes(7),
+};
+const SHIPPED = Object.keys(SOURCES).filter(
+	(file) =>
+		!file.includes("/sprites/") &&
+		!file.endsWith(".json") &&
+		!file.endsWith(".sha256"),
+);
+const urls = SHIPPED.map(
+	(file) => `new URL("assets/${path.basename(file)}",import.meta.url).href`,
+).join(",");
+const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-windows98.es.js.map\n`;
+const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy")):f(g.classicyAppearanceWindows98={},g.classicy)})(this,function(e,c){const i=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/windows98.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
+// A source map as the library build writes it: Classicy's own text kept.
+const MAP = JSON.stringify({
+	version: 3,
+	sources: ["../src/index.ts"],
+	sourcesContent: ["x"],
+	names: [],
+	mappings: "",
+});
+const DIST: Record<string, string | Buffer> = {
+	"appearance-windows98.es.js": ES,
+	"appearance-windows98.es.js.map": MAP,
+	"appearance-windows98.umd.js": UMD,
+	"appearance-windows98.umd.js.map": MAP,
+	"classicy-windows98.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE}`,
+	"types/index.d.ts": 'export * from "./windows98Apps.js";\n',
+	"types/windows98Apps.d.ts": "export declare const a: number;\n",
+	...Object.fromEntries(
+		SHIPPED.map((file) => [
+			`assets/${path.basename(file)}`,
+			SOURCES[file] as Buffer,
+		]),
+	),
+};
+
+let run = 0;
+/**
+ * Writes the fixture package (the sources, with `sources` over them, then
+ * dist/ with `changes` applied: a path to new content, or `null` to delete
+ * it) and runs the script in it.
+ */
+const verify = (
+	changes: Record<string, string | Buffer | null> = {},
+	sources: Record<string, Buffer> = {},
+) => {
+	const dir = path.join(root, `case-${run++}`);
+	for (const [file, content] of Object.entries({ ...SOURCES, ...sources })) {
+		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+		writeFileSync(path.join(dir, file), content);
+	}
+	for (const [file, content] of Object.entries({ ...DIST, ...changes })) {
+		if (content === null) continue;
+		const target = path.join(dir, "dist", file);
+		mkdirSync(path.dirname(target), { recursive: true });
+		writeFileSync(target, content);
+	}
+	const result = spawnSync(process.execPath, [SCRIPT], {
+		cwd: dir,
+		encoding: "utf8",
+	});
+	return { status: result.status, stderr: result.stderr.trim() };
+};
+
+const ASSET_RULE =
+	"-> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.";
+
+describe("bin/verify-dist.mjs", () => {
+	it("carries PACKAGE as its JavaScript string literal", () => {
+		expect(JSON.parse(PACKAGE_LITERAL)).toBe(PACKAGE);
+	});
+
+	it("passes a dist that holds what the package ships", () =>
+		expect(verify()).toEqual({ status: 0, stderr: "" }));
+
+	// Invariant 2: exactly the package's files (the art, the icons and the
+	// sound sheet), each byte for byte, each under its own name.
+	describe("2. dist/assets holds every package file, as authored", () => {
+		it("fails a missing icon, by name", () =>
+			expect(verify({ "assets/shell32-4-16.webp": null })).toEqual({
+				status: 1,
+				stderr: [
+					`dist/assets: missing shell32-4-16.webp; extra none ${ASSET_RULE}`,
+					// And the bundle's reference to it dangles (invariant 3).
+					"dist/appearance-windows98.es.js: new URL() names no file in dist/assets: assets/shell32-4-16.webp",
+				].join("\n"),
+			}));
+
+		it.each([
+			["shell32-4-32.webp", "icons"],
+			["browseui-bitmap-266-cell-4.webp", "icons"],
+			["explorer-bitmap-143.webp", "art"],
+			["windows98.svg", "art"],
+		])("fails %s when it differs from its source", (file, folder) =>
+			expect(verify({ [`assets/${file}`]: Buffer.from("changed") })).toEqual({
+				status: 1,
+				stderr: `${path.join("dist", "assets", file)}: differs from ${path.join("src", "assets", folder, file)} -> package files ship byte for byte; check the build's plugins (an image optimizer?).`,
+			}));
+
+		// The icons and art ship as WebP: a PNG of one in dist/assets is a
+		// file nothing ships, and nothing loads it.
+		it("fails a file nothing ships, a PNG icon included", () =>
+			expect(verify({ "assets/shell32-4-32.png": bytes(9) })).toEqual({
+				status: 1,
+				stderr: [
+					`dist/assets: missing none; extra shell32-4-32.png ${ASSET_RULE}`,
+					"dist/appearance-windows98.es.js: references no new URL() for shell32-4-32.png in dist/assets -> nothing loads it.",
+				].join("\n"),
+			}));
+
+		// A PNG left in a WebP folder is no source: the build imports WebP.
+		it("passes a PNG left in src/assets/icons, which nothing ships", () =>
+			expect(
+				verify({}, { "src/assets/icons/shell32-4-32.png": bytes(10) }),
+			).toEqual({ status: 0, stderr: "" }));
+
+		it("fails two sources that would ship under one name", () =>
+			expect(
+				verify({}, { "src/assets/art/shell32-4-16.webp": bytes(11) }).stderr,
+			).toContain(
+				`${path.join("src", "assets", "icons", "shell32-4-16.webp")}: shares its name with ${path.join("src", "assets", "art", "shell32-4-16.webp")} -> both would ship as dist/assets/shell32-4-16.webp; rename one.`,
+			));
+
+		it("fails a stray file beside the bundles", () =>
+			expect(verify({ "stray.txt": "x" }).stderr).toMatch(
+				/^dist\/stray\.txt: not a file the package ships /,
+			));
+	});
+
+	// Invariant 3: the icons and art are files, never inlined, each loaded.
+	describe("3. nothing is inlined", () => {
+		it("fails an inlined image", () =>
+			expect(
+				verify({
+					"appearance-windows98.es.js": ES.replace(
+						"const u=",
+						'const m="data:image/webp;base64,UklGRg==";const u=',
+					),
+				}),
+			).toEqual({
+				status: 1,
+				stderr:
+					"dist/appearance-windows98.es.js: inlines image/webp -> Windows 98 inlines nothing; check noInlineAppearanceAssetsPlugin.",
+			}));
+
+		it("fails an icon the ES bundle never loads", () =>
+			expect(
+				verify({
+					"appearance-windows98.es.js": ES.replace(
+						'new URL("assets/shell32-4-32.webp",import.meta.url).href,',
+						"",
+					),
+				}),
+			).toEqual({
+				status: 1,
+				stderr:
+					"dist/appearance-windows98.es.js: references no new URL() for shell32-4-32.webp in dist/assets -> nothing loads it.",
+			}));
+	});
+});

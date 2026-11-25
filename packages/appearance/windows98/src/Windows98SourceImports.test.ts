@@ -70,7 +70,13 @@ describe("Windows 98's TypeScript", () => {
 
 	it("covers the registering modules", () =>
 		expect(files).toEqual(
-			expect.arrayContaining(["index.ts", "assets/sounds/windows98.ts"]),
+			expect.arrayContaining([
+				"index.ts",
+				"windows98Apps.ts",
+				"assets/windows98Assets.ts",
+				"assets/windows98Icons.ts",
+				"assets/sounds/windows98.ts",
+			]),
 		));
 
 	it("imports the core only as @classicy/classicy, and nothing of another package", () =>

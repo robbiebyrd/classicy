@@ -131,7 +131,7 @@ describe("the built bundle and the core's registries", () => {
 		expect(es).toContain('new URL("assets/windows98.svg"');
 	});
 
-	it("emits its art and sound sheet into dist/assets, byte for byte", () => {
+	it("emits its art, icons and sound sheet into dist/assets, byte for byte", () => {
 		const assets = readdirSync(path.join(outDir, "assets")).sort();
 		const sources = (
 			readdirSync(path.join(packageDir, "src/assets"), {

@@ -22,9 +22,11 @@
 //   no box, a one-pixel black drop shadow under the text so it reads over
 //   any Background, as the Active Desktop drew labels; 3 px of air between
 //   the image and the label, 1 px above and below the text and 2 px either
-//   side inside the label's rectangle. A shortcut keeps its arrow badge (the
-//   alias badge, the default package's art) but its label is upright:
-//   Windows never italicized a shortcut.
+//   side inside the label's rectangle. A shortcut's badge is Windows' own
+//   shortcut overlay (the package's `aliasBadge`, shell32's #30: an arrow box
+//   at the bottom left of a clear icon-sized image, which Windows drew over
+//   the whole icon), so the badge is the icon's size, not the base's
+//   quarter; its label is upright: Windows never italicized a shortcut.
 // - Selected, the label's rectangle fills with Hilight under HilightText,
 //   the drop shadow goes, and the dotted focus rectangle lies on the
 //   rectangle's outer pixel ring (DrawFocusRect over the highlighted label);
@@ -142,7 +144,12 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     }
   }
 
-  // A shortcut's label is upright.
+  // A shortcut's overlay covers the whole icon (its arrow box is drawn at
+  // the image's bottom left), and its label is upright.
+  .classicyDesktopIconAliasBadge {
+    --alias-badge-size: var(--desktop-icon-size);
+  }
+
   .classicyDesktopIconAlias > p {
     font-style: normal;
   }

@@ -9,7 +9,8 @@
 // - The pages' faces are ButtonFace with WindowText (the Appearance, Sound
 //   and Date & Time panels paint their content's background themselves).
 // - The Desktop tab's preview (Display Properties' Background page shows the
-//   desktop inside a monitor picture; the package registers no art) sits in
+//   desktop inside a monitor picture, desk.cpl's bitmap, which the package
+//   does not register) sits in
 //   a two-ring sunken well (`b.sunken`), the desktop's color behind its
 //   picture or standing alone as the None swatch, the picture inside the
 //   rings (the padding).

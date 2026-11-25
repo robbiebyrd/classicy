@@ -59,14 +59,16 @@ describe("packages/appearance/windows98/package.json", () => {
 	it("publishes dist, the SCSS, the README and the license", () =>
 		expect(pkg.files).toEqual(["dist", "src/styles", "README.md", "LICENSE"]));
 
-	// Importing the entry registers Windows 98. Its source module that
-	// registers at load (the sound pack) is a side effect too, since a bundler
-	// that builds the source (Storybook, the example's dev server) would
-	// otherwise drop `import "./assets/sounds/windows98"`.
-	it("marks the entry, the registering module and the styles as side effects", () =>
+	// Importing the entry registers Windows 98. Its source modules that
+	// register at load (the icons and system art, the sound pack) are side
+	// effects too, since a bundler that builds the source (Storybook, the
+	// example's dev server) would otherwise drop
+	// `import "./assets/windows98Assets"` and `import "./assets/sounds/windows98"`.
+	it("marks the entry, the registering modules and the styles as side effects", () =>
 		expect(pkg.sideEffects).toEqual([
 			"./dist/*.js",
 			"./src/index.ts",
+			"./src/assets/windows98Assets.ts",
 			"./src/assets/sounds/windows98.ts",
 			"**/*.css",
 			"**/*.scss",

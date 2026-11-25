@@ -55,8 +55,11 @@ import {
 	useClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackage";
 import {
+	type ClassicyDesktopSystemIcon,
 	classicyAppIdentityFrom,
+	classicyDesktopIconIdentityFrom,
 	useClassicyAppIdentityOverrides,
+	useClassicyDesktopIconOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
 import {
 	useClassicyAsset,
@@ -99,6 +102,7 @@ import {
 	type ClassicyFileDropDestination,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
+	classicyStartupDisk,
 	moveClassicyFileSystemItems,
 	moveClassicyItemsToTrash,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
@@ -213,23 +217,67 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		() => allDesktopIcons.filter((i) => !i.hidden),
 		[allDesktopIcons],
 	);
+	// Desktop items (Desktop Folder files and folders) and the Trash are read
+	// through the shared file system at the moment of the event — the desktop
+	// itself doesn't re-render on file system changes.
+	const getFileSystem = useClassicyFileSystemAccessor();
+	// The desktop's own icons as the active package shows them (its
+	// `desktopIcons`): the Trash, and the startup disk, which is looked up
+	// only while the package shows it otherwise and a drive icon is on the
+	// desktop (Finder adds them once it has the tree), again whenever the
+	// drive icons change.
+	const desktopIconOverrides = useClassicyDesktopIconOverrides();
+	const relabelsStartupDisk = desktopIconOverrides.startupDisk !== undefined;
+	const drivePaths = desktopIcons
+		.filter((i) => i.kind === "drive" && i.filePath !== undefined)
+		.map((i) => i.filePath)
+		.join("\u0000");
+	const startupDisk = useMemo(
+		() =>
+			relabelsStartupDisk && drivePaths
+				? classicyStartupDisk(getFileSystem())
+				: undefined,
+		[relabelsStartupDisk, drivePaths, getFileSystem],
+	);
+	const desktopSystemIcon = (
+		icon: (typeof desktopIcons)[number],
+	): ClassicyDesktopSystemIcon | undefined =>
+		icon.kind === "trash"
+			? "trash"
+			: icon.kind === "drive" &&
+					startupDisk !== undefined &&
+					icon.filePath === startupDisk
+				? "startupDisk"
+				: undefined;
 	// Type-select matches the name each icon shows: an unlabeled app
-	// shortcut shows the active package's display name for its app.
+	// shortcut shows the active package's display name for its app, and the
+	// Trash and the startup disk the package's names for them.
 	const appIdentityOverrides = useClassicyAppIdentityOverrides();
+	// biome-ignore lint/correctness/useExhaustiveDependencies: desktopSystemIcon reads only startupDisk, listed
 	const typeaheadIcons = useMemo(
 		() =>
-			desktopIcons.map((i) =>
-				i.kind === APP_SHORTCUT_ICON_KIND && !i.label
-					? {
-							...i,
-							label: classicyAppIdentityFrom(appIdentityOverrides, i.appId, {
-								name: i.appName,
-								icon: i.icon,
-							}).name,
-						}
-					: i,
-			),
-		[desktopIcons, appIdentityOverrides],
+			desktopIcons.map((i) => {
+				if (i.label) return i;
+				const fallback = { name: i.appName, icon: i.icon };
+				if (i.kind === APP_SHORTCUT_ICON_KIND)
+					return {
+						...i,
+						label: classicyAppIdentityFrom(
+							appIdentityOverrides,
+							i.appId,
+							fallback,
+						).name,
+					};
+				const systemIcon = desktopSystemIcon(i);
+				if (systemIcon === undefined) return i;
+				const { name } = classicyDesktopIconIdentityFrom(
+					desktopIconOverrides,
+					systemIcon,
+					fallback,
+				);
+				return name === i.appName ? i : { ...i, label: name };
+			}),
+		[desktopIcons, appIdentityOverrides, desktopIconOverrides, startupDisk],
 	);
 	const selectedIcons = useAppManager(
 		(s) => s.System.Manager.Desktop.selectedIcons ?? [],
@@ -300,11 +348,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			});
 		}
 	}, [systemDialog, desktopEventDispatch]);
-
-	// Desktop items (Desktop Folder files and folders) and the Trash are read
-	// through the shared file system at the moment of the event — the desktop
-	// itself doesn't re-render on file system changes.
-	const getFileSystem = useClassicyFileSystemAccessor();
 
 	// Special ▸ Empty Trash, once confirmed: remove the Trash's contents for
 	// good, and close any Finder window open on a folder inside it.
@@ -830,6 +873,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					balloonHelp={i.balloonHelp}
 					noLaunch={i.noLaunch ?? i.appId === "Trash"}
 					filePath={i.filePath}
+					startupDisk={desktopSystemIcon(i) === "startupDisk"}
 					onMoveFilePaths={moveDesktopItems}
 					onOpenFilePath={openDesktopItem}
 				/>

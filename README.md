@@ -445,10 +445,14 @@ right, two-pixel bevels from the system colors, checkered scroll-bar tracks
 with an arrow at each end, raised menus and rectangular controls, in
 "Windows Standard", "Windows 95" and the sixteen classic color schemes of
 the Display control panel (Brick, Desert, Rainy Day, …), each a recoloring
-of one stylesheet. It ships its own alert tones but no fonts, art, icons,
-cursors, wallpapers or screen savers: every glyph is drawn from the theme's
-colors, and icons and cursors come from the default package's. Use it alone
-or beside the other packages; the Appearance Manager switches between them:
+of one stylesheet. It ships Windows 98's own icons, the Start flag, the
+Recycle Bin, the shortcut overlay and the Windows logo, shows the bundled
+apps, the Trash and the startup disk by Windows 98's names (Notepad,
+Display, Recycle Bin, My Computer, …), and has its own alert tones; it ships
+no fonts, cursors, wallpapers or screen savers, its cursors coming from the
+default package's, and the glyphs Windows drew in the scheme's colors are
+drawn from the theme's colors. Use it alone or beside the other packages;
+the Appearance Manager switches between them:
 
 ```sh
 pnpm add @classicy/classicy @classicy/appearance-windows98
@@ -517,6 +521,9 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
 - [`flyer`](https://www.masswerk.at/flyer/), for further inspiration
 - Robin Casady, from the legendary [Casady & Greene](https://en.wikipedia.org/wiki/Casady_%26_Greene) for releasing ChicagoFLF into the public domain
 - [Apple](https://www.apple.com), who maintains the copyright on the background patterns, icons and interface components
+- [Microsoft](https://www.microsoft.com), who maintains the copyright on the Windows 95 and 98 icons, cursors, fonts, sounds, wallpapers and interface components
+
+Classicy uses Microsoft's Windows 95 and 98 assets and Apple's Mac OS assets under the fair use doctrine.
 
 ## Features
 

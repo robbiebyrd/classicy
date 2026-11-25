@@ -1,4 +1,8 @@
-import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import {
+	type ClassicyDesktopSystemIcon,
+	useClassicyAppIdentity,
+	useClassicyDesktopIconIdentity,
+} from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
@@ -58,12 +62,15 @@ interface ClassicyDesktopIconProps {
 	/**
 	 * App name, used as the label when `label` is unset and as the image alt
 	 * text; for an `app_shortcut`, an Appearance Package's `apps` override is
-	 * shown instead. The open action and analytics always carry this name.
+	 * shown instead, and for the Trash and the startup disk its
+	 * `desktopIcons` override. The open action and analytics always carry
+	 * this name.
 	 */
 	appName: string;
 	/**
 	 * Icon image (URL or data URI); for an `app_shortcut`, an Appearance
-	 * Package's `apps` override is shown instead.
+	 * Package's `apps` override is shown instead, and for the startup disk its
+	 * `desktopIcons` override.
 	 */
 	icon: string;
 	/** Text under the icon. Defaults to the displayed app name. */
@@ -101,8 +108,10 @@ interface ClassicyDesktopIconProps {
 	 * label (or the displayed app name) when it has no title. When omitted, an
 	 * `app_shortcut` shows its app's description (an Appearance Package's
 	 * `apps` override, else the registered manifest's), `trash` and `drive`
-	 * icons use stock copy titled with the label, and other kinds show no
-	 * balloon. (`ClassicyApp` fills this from its `desktopIconBalloonHelp`.)
+	 * icons use stock copy titled with the label (the Trash's and the startup
+	 * disk's replaced by the package's `desktopIcons` description, when it
+	 * declares one), and other kinds show no balloon. (`ClassicyApp` fills
+	 * this from its `desktopIconBalloonHelp`.)
 	 */
 	balloonHelp?: ClassicyIconBalloonHelp;
 	/**
@@ -113,6 +122,14 @@ interface ClassicyDesktopIconProps {
 	 * there) or on a folder (`onMoveFilePaths`).
 	 */
 	filePath?: string;
+	/**
+	 * A `drive` icon that stands for the startup disk (the first drive,
+	 * `classicyStartupDisk`): the active Appearance Package's
+	 * `desktopIcons.startupDisk` override, when it declares one, gives it
+	 * another label, image and balloon copy (Windows 98's My Computer).
+	 * `ClassicyDesktop` sets it. Defaults to `false`.
+	 */
+	startupDisk?: boolean;
 	/**
 	 * Move file-backed desktop icons' items into a folder. Called with the
 	 * paths of every selected file-backed icon when the outline is let go on a
@@ -189,6 +206,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			contextMenu,
 			balloonHelp,
 			filePath,
+			startupDisk = false,
 			onMoveFilePaths,
 			onOpenFilePath,
 			className,
@@ -204,7 +222,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// for its app: drives share Finder.app's id, and other kinds name
 			// their own target.
 			const isAppShortcut = kind === APP_SHORTCUT_ICON_KIND;
-			const identity = useClassicyAppIdentity(
+			const appIdentity = useClassicyAppIdentity(
 				isAppShortcut ? appId : undefined,
 				{
 					name: appName,
@@ -214,6 +232,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: undefined,
 				},
 			);
+			// And how it shows the desktop's own icons, the Trash and the
+			// startup disk (its `desktopIcons`): display only, like `apps`.
+			const systemIcon: ClassicyDesktopSystemIcon | undefined =
+				kind === "trash"
+					? "trash"
+					: kind === "drive" && startupDisk
+						? "startupDisk"
+						: undefined;
+			const identity = useClassicyDesktopIconIdentity(systemIcon, appIdentity);
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
 			]);
@@ -286,9 +313,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// library rather than staying frozen in localStorage, and they follow
 			// the active package.
 			// The text under the icon, which also titles its balloon: an empty
-			// label falls back to the name too. (Only an app shortcut's name can
-			// differ from `appName`, and only kinds that are not one get stock
-			// copy.)
+			// label falls back to the name too. (Only an app shortcut's, the
+			// Trash's and the startup disk's name can differ from `appName`; a
+			// package's description for the Trash or the startup disk replaces
+			// the kind's stock copy.)
 			const shownName = label || identity.name;
 			const effectiveBalloonHelp = balloonHelp
 				? { ...balloonHelp, title: balloonHelp.title ?? shownName }

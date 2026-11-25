@@ -63,8 +63,9 @@ files has a System 7 twin: `classicy-system7.css`,
 `classicy-system7.fonts.css` (the same Chicago, Geneva and Monaco faces) and
 its own `dist/assets/`. The Windows 98 package, `@classicy/appearance-windows98`
 (§8, "Windows 98"), is installed and imported the same way; it ships
-`classicy-windows98.css` and its `dist/assets/` (its icon and sprites), and
-no fonts stylesheet, since it registers no fonts.
+`classicy-windows98.css` and its `dist/assets/` (its package icon, its art
+and icons, and its sprites), and no fonts stylesheet, since it registers no
+fonts.
 
 The desktop fills the window with no host CSS. When it is the page (mounted
 in a child of `body`, directly or through up to four wrappers that each hold
@@ -1418,7 +1419,7 @@ plain integers (`0xRRGGBB`).
 |---|---|---|
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
 | `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
-| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
+| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `startupDisk? (false)`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. A `trash` icon, and a `drive` icon with `startupDisk` (`ClassicyDesktop` sets it on the first drive's), show the package's `desktopIcons` name, image and balloon copy instead (§8, "Desktop icon overrides"). The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, for the Trash and the startup disk the package's `desktopIcons` description, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
@@ -3066,6 +3067,7 @@ registerClassicyAppearancePackage({
 | `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, desktop.iconGridOrigin, scrollBar?, slider?, fileDialog?, fileBrowser? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
+| `desktopIcons` | `{ trash?: { name?, description? }, startupDisk?: { name?, icon?, description? } }` (`ClassicyDesktopIconOverrides`): display overrides for the desktop's own icons, the Trash and the startup disk; read with `useClassicyDesktopIconIdentity` / `resolveClassicyDesktopIconIdentity`. See "Desktop icon overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
 **Registering.** `registerClassicyAppearancePackage(pkg)` runs at module
@@ -3550,6 +3552,64 @@ first fallback is `label`. With `label` omitted, `name` is the own label.
   agree on every state the UI can reach. On a close with no record, the PDF
   reducer creates one; on a close with invalid `data`, it replaces `data` with
   `{ openFiles: [] }`.
+
+#### Desktop icon overrides
+
+A package's `desktopIcons` shows the desktop's own icons by other names, as
+`apps` shows the apps: the Trash (Windows 98's Recycle Bin) and the startup
+disk (its My Computer). Display only, and absent by default: a package that
+declares none (Platinum, System 7) draws today's labels, images and stock
+balloons.
+
+```ts
+registerClassicyAppearancePackage({
+    id: 'windows98',
+    // name, css, defaults, layout, apps, … as above
+    desktopIcons: {
+        trash: { name: 'Recycle Bin', description: 'Contains the files and folders that you have deleted.' },
+        startupDisk: { name: 'My Computer', icon: myComputerIcon, description: 'Displays the contents of your computer.' },
+    },
+})
+```
+
+- **`trash`** (`kind: "trash"`, the Trash Finder adds, `filePath:
+  "Trash"`): `name` and `description`. Its image is the package's
+  `trashEmpty`/`trashFull` art already, so there is no `icon`.
+- **`startupDisk`**: `name`, `icon` and `description` for the drive icon
+  standing for the startup disk, the first drive (`classicyStartupDisk(fs)`).
+  `ClassicyDesktop` reads it through the file-system accessor only while the
+  active package declares `startupDisk`, and passes `startupDisk` to that
+  drive's `ClassicyDesktopIcon`; other drives keep theirs.
+
+**Where it shows.** The icon's label, image, alt text and mask; its balloon
+(title the shown name; the `description` in place of the kind's stock copy;
+a stored balloon still wins); and desktop type-select, which matches the
+shown name. A non-empty `label` beats the override, as for `apps`.
+
+**What never changes.** The icons' records (`appId`, `appName`, `icon`,
+`filePath`), the Trash's path and the drive's, the open actions, analytics
+payloads and persisted state. Window titles and menus that say "Trash"
+(Special ▸ Empty Trash…, the Trash window's title, the empty alert) are not
+desktop icons and keep their words.
+
+**Validation.** `ClassicyDesktopIconOverridesSchema`, strict at every level
+(only `trash` and `startupDisk`; the Trash takes no `icon`), each `name` under
+the `apps` display-name rules, each `icon` an asset source, each
+`description` 1–512 characters with no surrounding whitespace. The registry
+stores a frozen copy of the validated value, as for `apps`.
+
+**Reading it.** In `ClassicyAppIdentity.ts`, store-free like the rest:
+
+```ts
+type ClassicyDesktopSystemIcon = "trash" | "startupDisk"
+
+useClassicyDesktopIconIdentity(icon: ClassicyDesktopSystemIcon | undefined, fallback: ClassicyAppIdentity): ClassicyAppIdentity
+useClassicyDesktopIconOverrides(): Readonly<ClassicyDesktopIconOverrides>
+resolveClassicyDesktopIconIdentity(icon: ClassicyDesktopSystemIcon, fallback: ClassicyAppIdentity, packageId?: string): ClassicyAppIdentity
+getClassicyDesktopIconOverrides(packageId?: string): Readonly<ClassicyDesktopIconOverrides>
+classicyDesktopIconIdentityFrom(overrides, icon, fallback): ClassicyAppIdentity
+CLASSICY_NO_DESKTOP_ICON_OVERRIDES   // the frozen {} of a package with no `desktopIcons`
+```
 
 #### Icon dimming
 
@@ -4249,10 +4309,14 @@ own logo registry, which then diverges from System 7's.
 third Appearance Package: Windows 95 and 98, as 98.css, os-gui and React95
 re-create them, on Classicy's structure. It is built as a third-party
 package would be (it reaches the core only as `@classicy/classicy`, and
-nothing of Platinum's or System 7's; `Windows98SourceImports.test.ts`), and
-it is the worked example of a package that registers **no assets**: no
-fonts, art, icons, cursors, wallpapers or screen savers. Install and import
-it like Platinum (§1); its README lists what it ships.
+nothing of Platinum's or System 7's; `Windows98SourceImports.test.ts`). It
+registers Windows 98 Second Edition's own icons and system art, read from
+the Windows 98 SE CD (`docs/windows98-asset-inventory.md` maps every key to
+its resource), and Windows 98's names for the bundled apps, the Trash and the
+startup disk; it registers no fonts, cursors, wallpapers or screen savers,
+and the glyphs Windows drew in the scheme's colors stay pixel art drawn from
+theme tokens. Install and import it like Platinum (§1); its README lists
+what it ships and every asset's source.
 
 - **Themes.** Eighteen, every one `package: "windows98"`, `sound.pack:
   "windows98"`, no `assetVariant`, `dither.tileSize: 0`: `windows98`
@@ -4334,17 +4398,45 @@ it like Platinum (§1); its README lists what it ships.
   inside its client edge, WindowText outside ButtonHilight, WIG Ch.13
   Figure 13.13, drawn as an overlay so it lies over the picture) and the
   HyperCard editor's handles as Hilight squares in a one-ring HilightText
-  border (`_HyperCard.scss`; WIG Ch.13 "Handles", pp.319-320). Icons, cursors and system
-  art resolve to the default package's (§5), and with no package offering
-  a screen saver the panel reads "This appearance has no screen savers."
+  border (`_HyperCard.scss`; WIG Ch.13 "Handles", pp.319-320), and a
+  shortcut's badge (Windows' overlay, drawn over the whole icon) sized to
+  the icon (`--alias-badge-size`). Cursors resolve to the default
+  package's (§5), and with no package offering a screen saver the panel
+  reads "This appearance has no screen savers."
+- **Icons and system art** (`src/assets/windows98Assets.ts`, the key map in
+  `windows98Icons.ts`, `docs/windows98-asset-inventory.md`): lossless WebP of
+  Windows 98 SE's resources, one base tree for every theme. 85 icon keys draw
+  a file: an icon group's 32 px image with its own 16 px one (`{ src, small }`
+  leaves, `icons/<binary>-<group>-<size>.webp`), a 16 px image alone (the
+  tray's volume icons), a cell of IE 5's toolbar (`browseui.dll` bitmaps 265
+  and 266) or Web View's sky (`classicy.bg`); 110 reuse another key's (the
+  Fallback rule: a system folder a plain folder, a DVD the CD-ROM drive, …);
+  the other 101 are the core's. Its own leaves `windows98.explorer`,
+  `windows98.recycleBinEmpty` and `windows98.recycleBinFull` give the
+  Finder's override icon and the Trash their 16 px images. System art:
+  `appleMenu` (Explorer's Start flag), `trashEmpty`/`trashFull` (the Recycle
+  Bin), `aliasBadge` (the shortcut overlay), `startupLogo`/`aboutLogo` (the
+  About box's Windows logo), `openFolderIcon` and `fileDialogFolderIcon`;
+  the other keys resolve to the default package's art, which the stylesheet
+  hides or draws over from tokens. A core icon URL follows (§5): under
+  Windows 98 a stored folder draws `shell32.dll`'s folder.
+- **Names** (`src/windows98Apps.ts`): `apps` shows the Finder as Windows
+  Explorer (with its icon), SimpleText as Notepad, the Appearance Manager as
+  Display, the Sound Manager as Sounds, Date and Time as Date/Time, the
+  Control Strip as Taskbar & Start Menu, Apple Guide as Windows Help, Movie
+  Player as Media Player, Picture Viewer as Imaging and Web Viewer as
+  Internet Explorer, with Windows 98's descriptions; `desktopIcons` shows the
+  Trash as the Recycle Bin and the startup disk as My Computer ("Desktop icon
+  overrides").
 - **Sound.** One pack, `windows98`: `ClassicyBeep` and four alert tones
   (Chimes, Chord, Ding, Exclamation; `defaultAlert` Ding), synthesized for
   the package (Windows' sounds are Microsoft's), ogg and m4a. The package
   declares no `hooks`, so controls play no feedback.
 - **Build.** `pnpm --filter @classicy/appearance-windows98 build`: its
   `verify:dist` holds System 7's invariants for its own files, with no
-  fonts stylesheet and nothing inlined (its `dist/assets` is its icon and
-  the two sprites). Storybook registers it only through
+  fonts stylesheet and nothing inlined (its `dist/assets` is its package
+  icon, its art and icons, each byte for byte its WebP, and the two
+  sprites). Storybook registers it only through
   `storybook/.storybook/windows98.ts` (its own stories) or the Package
   toolbar.
 

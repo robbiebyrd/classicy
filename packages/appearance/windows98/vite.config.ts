@@ -62,8 +62,8 @@ const windows98Config = (mode: string): UserConfig => ({
 			scss: { importers: [new NodePackageImporter()] },
 		},
 	},
-	// Every asset in the package ships as a file in dist/assets (its art and
-	// its sound sheet), nothing inlined.
+	// Every asset in the package ships as a file in dist/assets (its art, its
+	// icons and its sound sheet), nothing inlined.
 	plugins: [
 		noInlineAppearanceAssetsPlugin(),
 		// dist/classicy-windows98.css, the stylesheet strict-CSP hosts link
@@ -111,7 +111,8 @@ const windows98Config = (mode: string): UserConfig => ({
 			external: isExternal,
 			output: {
 				// Package assets go under dist/assets, each under its source
-				// name (no two share one: the art and the sound sheet).
+				// name (no two share one: every name in art/ and icons/ is
+				// unique, and verify-dist fails two sources that would collide).
 				assetFileNames: "assets/[name][extname]",
 				globals: {
 					"@classicy/classicy": "classicy",

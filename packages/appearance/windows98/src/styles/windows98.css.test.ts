@@ -172,6 +172,27 @@ describe("windows98.scss (compiled)", () => {
 		);
 	});
 
+	// The shortcut overlay (shell32's #30, the package's `aliasBadge`) is a
+	// whole icon-sized image with its arrow box at the bottom left, which
+	// Windows drew over the whole icon: the badge takes the icon's size, where
+	// the base draws a quarter of it, and the label stays upright.
+	it("sizes the shortcut overlay to the icon and keeps its label upright", () => {
+		const selectors = selectorsOf(css);
+		const has = (tail: string) =>
+			selectors.some((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		expect(has("] .classicyDesktopIconAliasBadge")).toBe(true);
+		expect(block("] .classicyDesktopIconAliasBadge")).toContain(
+			"--alias-badge-size: var(--desktop-icon-size)",
+		);
+		expect(block(".classicyDesktopIconAlias > p")).toContain(
+			"font-style: normal",
+		);
+	});
+
 	// The scroll-arrow hook of the audit's second pass (6.8 / 7.24): the core
 	// sets `disabled` on the arrow at the end of its travel, and the package
 	// embosses that one arrow as it embosses a fitting bar's, each rule after
