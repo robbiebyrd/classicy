@@ -713,6 +713,16 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/margin: var\(--window-border-size\) 0 0;/);
 		});
 
+		// 7.5.5's Application menu title has no grip before it (Mac OS 8.5's
+		// is Platinum's; `*-755-appmenu-closed.png`): the core draws the grip
+		// part for every package, so System 7 hides it. Integration review G
+		// round 6, finding 4.
+		it("draws no grip before the Application menu's title", () => {
+			expect(rule(".classicyDesktopMenuAppSwitcherGrip")).toMatch(
+				/display: none;/,
+			);
+		});
+
 		// 7.5.5's Application menu title is the front application's small
 		// icon alone, in a title 34 px wide (`*-755-appmenu-closed.png`,
 		// story 0214-c61): the name is kept for screen readers, at no size.

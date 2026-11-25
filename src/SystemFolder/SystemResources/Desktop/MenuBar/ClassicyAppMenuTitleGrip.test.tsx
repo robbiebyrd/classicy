@@ -1,6 +1,6 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { produce } from "immer";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	type ClassicyStore,
 	DefaultAppManagerState,
@@ -117,6 +117,23 @@ describe("the Application menu title and its grip", () => {
 		expect(grip()).toHaveAttribute("aria-valuetext", "Name shown");
 	});
 
+	// A <ul> holds only <li> (HTML's content model), and a list's role owns
+	// listitems: the grip is an item of the bar's list, keeping its
+	// separator role (ARIA in HTML allows it on li). Integration review G
+	// round 6, finding 1.
+	it("is an item of the bar's list, as every child of the bar's <ul> is", () => {
+		render(<ClassicyDesktopMenuBar />);
+		expect(grip().tagName).toBe("LI");
+		expect(grip().parentElement).toHaveClass("classicyDesktopMenu");
+		const bar = document.querySelector(".classicyDesktopMenu") as HTMLElement;
+		expect(bar.tagName).toBe("UL");
+		for (const child of Array.from(bar.children))
+			expect(
+				`${child.tagName}${child.id ? `#${child.id}` : ""}`,
+				child.outerHTML.slice(0, 80),
+			).toMatch(/^LI(#|$)|^UL#classicyDesktopMenuExtensions$/);
+	});
+
 	it("draws the icon alone for every application when the setting is off, the name its icon's text", () => {
 		setStore((draft) => {
 			draft.System.Manager.Desktop.appMenuShowsName = false;
@@ -222,5 +239,80 @@ describe("the Application menu title and its grip", () => {
 		expect(showsName()).toBe(false);
 		fireEvent.keyDown(grip(), { key: "Enter" });
 		expect(showsName()).toBe(true);
+	});
+});
+
+// jsdom lays nothing out, so the title's border box is stubbed by the state
+// it is drawn in: the Finder's 74 px with its name, 29 with its icon alone
+// (8.5's, `appMenuTitle.css.test.ts`). Integration review G round 6,
+// finding 4.
+describe("the title's live width while the grip is held", () => {
+	const FULL = 74;
+	const ICON_ONLY = 29;
+	let restore: (() => void) | undefined;
+
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+		const original = HTMLElement.prototype.getBoundingClientRect;
+		HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+			if (this.getAttribute("data-classicy-part") !== "switcher")
+				return original.call(this);
+			const width = this.classList.contains("collapsed") ? ICON_ONLY : FULL;
+			return DOMRect.fromRect({ x: 0, y: 0, width, height: 20 });
+		};
+		restore = () => {
+			HTMLElement.prototype.getBoundingClientRect = original;
+		};
+	});
+	afterEach(() => restore?.());
+
+	const liveWidth = () =>
+		nav().style.getPropertyValue(CLASSICY_APP_MENU_TITLE_WIDTH_VAR);
+
+	it("starts at the title's width, follows the pointer and stops at the icon alone and the whole name", () => {
+		render(<ClassicyDesktopMenuBar />);
+		fireEvent.mouseDown(grip(), { button: 0, clientX: 100 });
+		expect(liveWidth()).toBe(`${FULL}px`);
+		fireEvent.mouseMove(document, { clientX: 120 });
+		expect(liveWidth()).toBe(`${FULL - 20}px`);
+		// Past the icon alone: no narrower.
+		fireEvent.mouseMove(document, { clientX: 200 });
+		expect(liveWidth()).toBe(`${ICON_ONLY}px`);
+		// Past the whole name: no wider.
+		fireEvent.mouseMove(document, { clientX: 40 });
+		expect(liveWidth()).toBe(`${FULL}px`);
+		fireEvent.mouseMove(document, { clientX: 111 });
+		expect(liveWidth()).toBe(`${FULL - 11}px`);
+		fireEvent.mouseUp(document, { clientX: 111 });
+		expect(liveWidth()).toBe("");
+	});
+
+	it("starts at the icon alone when collapsed, and widens no further than the whole name", () => {
+		setStore((draft) => {
+			draft.System.Manager.Desktop.appMenuShowsName = false;
+		});
+		render(<ClassicyDesktopMenuBar />);
+		fireEvent.mouseDown(grip(), { button: 0, clientX: 100 });
+		expect(liveWidth()).toBe(`${ICON_ONLY}px`);
+		fireEvent.mouseMove(document, { clientX: 90 });
+		expect(liveWidth()).toBe(`${ICON_ONLY + 10}px`);
+		fireEvent.mouseMove(document, { clientX: 0 });
+		expect(liveWidth()).toBe(`${FULL}px`);
+		fireEvent.mouseMove(document, { clientX: 150 });
+		expect(liveWidth()).toBe(`${ICON_ONLY}px`);
+		fireEvent.keyDown(document, { key: "Escape" });
+		expect(showsName()).toBe(false);
+	});
+
+	it("a press of another button starts nothing", () => {
+		render(<ClassicyDesktopMenuBar />);
+		for (const button of [1, 2]) {
+			fireEvent.mouseDown(grip(), { button, clientX: 100 });
+			expect(grip()).not.toHaveClass("pressed");
+			expect(liveWidth()).toBe("");
+			fireEvent.mouseMove(document, { clientX: 140 });
+			fireEvent.mouseUp(document, { clientX: 140 });
+			expect(showsName()).toBeUndefined();
+		}
 	});
 });

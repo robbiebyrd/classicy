@@ -25,12 +25,6 @@ const PLATINUM_SCOPE =
 	/^\.classicyDesktop\[data-classicy-appearance=("?)platinum\1\](?=$|[\s.:#[>+~])/;
 
 /**
- * Every style-rule selector in Sass's expanded output, and those not scoped
- * under the Platinum root. Steps through at-rules (`@supports`, `@media`,
- * `@layer`); the steps of a `@keyframes` are not selectors. A selector list
- * may span lines (`.a,\n.b {`), so every line ending in `,` counts too.
- */
-/**
  * A selector list split at its own commas, not at those inside a
  * pseudo-class's parentheses (`:is(a, b)`, `:not(a, b)`), so a scoped rule
  * whose selector holds such a list is read whole.
@@ -51,6 +45,12 @@ const splitSelectorList = (header: string): string[] => {
 	return parts;
 };
 
+/**
+ * Every style-rule selector in Sass's expanded output, and those not scoped
+ * under the Platinum root. Steps through at-rules (`@supports`, `@media`,
+ * `@layer`); the steps of a `@keyframes` are not selectors. A selector list
+ * may span lines (`.a,\n.b {`), so every line ending in `,` counts too.
+ */
 const scanSelectors = (css: string) => {
 	const selectors: string[] = [];
 	const stack: ("at" | "keyframes" | "rule")[] = [];

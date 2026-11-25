@@ -112,9 +112,10 @@ export interface ClassicyMenuItem {
 	/**
 	 * Labels this item's title may take over its lifetime. The item reserves the
 	 * width of the widest of them (rendered as hidden, non-measured siblings of
-	 * the title), so a title that changes at runtime — the menu bar's App
-	 * Switcher tracking the focused app — never resizes the item and shifts the
-	 * layout around it. Slack sits to the right of the title.
+	 * the title), so a title that changes at runtime never resizes the item and
+	 * shifts the layout around it. Slack sits to the right of the title. (Not
+	 * the Application menu's title, which follows its front application's own
+	 * name, as Mac OS 8.5 draws it.)
 	 */
 	titleWidthSamples?: string[];
 	/**

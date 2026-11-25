@@ -177,6 +177,18 @@ describe("Platinum's Application menu title geometry (Mac OS 8.5)", () => {
 		expect(title.padding).toBe(
 			"0 var(--menu-bar-switcher-title-end) 0 var(--menu-bar-switcher-title-start)",
 		);
+		// The icon at `titleArtSize`, `switcherTitleGap` before the name; the
+		// icon alone has no gap after it, so its box is 6 + 16 + 7 = 29
+		// (integration review G round 6, finding 5).
+		const switcher = `${P} :is(${bar} > .classicyMenuItem, ${bar} > .classicyMenuItemBalloonAnchor > .classicyMenuItem).classicyDesktopMenuAppSwitcher`;
+		expect(rule(`${switcher} > p > img`)).toEqual({
+			width: "var(--menu-bar-title-art-size)",
+			height: "var(--menu-bar-title-art-size)",
+			margin: "0 var(--menu-bar-switcher-title-gap) 0 0",
+		});
+		expect(rule(`${switcher}.collapsed > p > img`)).toEqual({
+			"margin-right": "0",
+		});
 		expect(rule(BAR)["padding-right"]).toBe("var(--menu-bar-end-inset)");
 		// Its menu's right side under the title's: the wrapper is the title's
 		// content box, so the list reaches out by the title's end padding.

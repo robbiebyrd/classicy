@@ -2295,7 +2295,8 @@ result is one setting for every application, `ClassicyDesktopSetAppMenuName`
 Manager: "It is now possible to remove the current application's name from
 the application menu"). Collapsed, the title carries the `collapsed` state
 and its name is not drawn; its accessible name is its icon's text, the
-application's name. The grip is an ARIA window splitter (`role="separator"`,
+application's name. The grip is an ARIA window splitter (`role="separator"` on an `<li>`, an
+item of the bar's list as every child of the bar's `<ul>` must be;
 `aria-valuenow` 100 with the name, 0 without), out of the Tab order as the
 bar's titles are (`tabIndex` -1: 8.5 has no key for it), and focused, it
 takes Left Arrow or Home (name), Right Arrow or End (icon alone) and Enter

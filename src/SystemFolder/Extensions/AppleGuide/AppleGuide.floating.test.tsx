@@ -140,7 +140,7 @@ describe("Apple Guide: a floating window over the front application", () => {
 		expect(display()).toBe("1");
 	});
 
-	it("stacks any number of topics by recency in one layer under the Control Strip, and a raise moves no node", () => {
+	it("stacks any number of topics by recency in one layer above the Control Strip, and a raise moves no node", () => {
 		const ids = Array.from({ length: 10 }, (_, i) => `many-topic-${i}`);
 		for (const id of ids)
 			registerAppleGuideTopic({ id, title: id, pages: [<p key={id}>{id}</p>] });

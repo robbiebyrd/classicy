@@ -214,10 +214,14 @@ export const useClassicyAppMenuTitleGrip = (
 		setShowsName(next);
 	};
 
+	// An item of the bar's list, as every child of the bar's `<ul>` must be
+	// (HTML's content model, and ARIA's list owns listitems): an `<li>`
+	// keeping its separator role, which ARIA in HTML allows on `li`.
 	const grip = (
-		// biome-ignore lint/a11y/useSemanticElements: a focusable, draggable window splitter is the ARIA separator-widget pattern; <hr> is the static separator
-		<div
+		// biome-ignore lint/a11y/useSemanticElements: a focusable, draggable window splitter is the ARIA separator-widget pattern; <hr> is the static separator, and no <hr> may be a child of the bar's <ul>
+		<li
 			key="app-menu-title-grip"
+			// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: ARIA in HTML allows the separator role on li, the one element the bar's <ul> may hold
 			role="separator"
 			tabIndex={-1}
 			aria-label="Application menu name"
