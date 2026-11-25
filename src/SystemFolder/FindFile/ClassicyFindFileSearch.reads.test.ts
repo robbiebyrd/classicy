@@ -343,8 +343,14 @@ describe("the contents criterion's bounds (fix round 2)", {
 
 	it("ends an inflation in flight as soon as the search aborts (24 files of 16 MB)", async () => {
 		// The re-review's case: 24 files that inflate to 16 MB each. Every
-		// inflated chunk is counted, and those made after the abort.
+		// inflated chunk is counted, and those made after the abort. The
+		// search is stopped when the first file reaches the limit, a point the
+		// test controls: no read has ended yet, so no lane has moved on to a
+		// fifth file, however fast this machine inflates (one file takes tens
+		// of milliseconds, so a stop after a fixed time could come after a
+		// fifth inflation had begun).
 		const Real = globalThis.DecompressionStream;
+		const controller = new AbortController();
 		let aborted = false;
 		let afterAbort = 0;
 		const perStream: number[] = [];
@@ -360,6 +366,10 @@ describe("the contents criterion's bounds (fix round 2)", {
 						transform(chunk, out) {
 							perStream[at] += chunk.byteLength;
 							if (aborted) afterAbort += chunk.byteLength;
+							else if (perStream[at] >= CLASSICY_FIND_CONTENTS_LIMIT) {
+								aborted = true;
+								controller.abort(new DOMException("stopped", "AbortError"));
+							}
 							out.enqueue(chunk);
 						},
 					}),
@@ -373,21 +383,18 @@ describe("the contents criterion's bounds (fix round 2)", {
 		const fs = new ClassicyFileSystem(`test-find-blobs-${++counter}`, {
 			"Macintosh HD": { _type: T.Drive, Blobs: folder },
 		});
-		const controller = new AbortController();
 		const search = searchClassicyFileSystem(fs, {
 			location: "local",
 			criteria: [row("contents", "contain", "needle")],
 			signal: controller.signal,
 			memory: createClassicyFindLookupMemory(),
 		});
-		await vi.waitFor(() => expect(perStream.length).toBeGreaterThan(0));
-		await new Promise((resolve) => setTimeout(resolve, 20));
-		aborted = true;
-		controller.abort(new DOMException("stopped", "AbortError"));
 		await expect(search).rejects.toThrow("stopped");
+		expect(aborted).toBe(true);
 		await new Promise((resolve) => setTimeout(resolve, 50));
-		// At most four inflations ran, each cut at the limit, and the abort
-		// ended them: what came after is a chunk or so each, not 16 MB.
+		// At most four inflations ran (one a place), none past the limit, and
+		// the abort ended them: what came after is a chunk or so each, not
+		// 16 MB.
 		expect(perStream.length).toBeLessThanOrEqual(CLASSICY_FIND_LOOKUPS);
 		for (const bytes of perStream) {
 			expect(bytes).toBeLessThanOrEqual(
@@ -404,13 +411,18 @@ describe("the contents criterion's bounds (fix round 2)", {
 		const fs = new ClassicyFileSystem(`test-find-docs-${++counter}`, {
 			"Macintosh HD": { _type: T.Drive, Docs: folder },
 		});
-		let last = performance.now();
-		let longest = 0;
+		// The read phase yields once a slice has run 8 ms of wall-clock time.
+		// A clock that moves 10 ms at each reading makes every file a slice of
+		// its own, so the test counts the turns the search hands the event
+		// loop instead of timing them (a timed gap measures the machine).
+		let clock = 0;
+		const now = vi
+			.spyOn(performance, "now")
+			.mockImplementation(() => (clock += 10));
+		let ticks = 0;
 		let ticking = true;
 		const tick = () => {
-			const now = performance.now();
-			longest = Math.max(longest, now - last);
-			last = now;
+			ticks += 1;
 			if (ticking) setTimeout(tick, 0);
 		};
 		setTimeout(tick, 0);
@@ -420,9 +432,13 @@ describe("the contents criterion's bounds (fix round 2)", {
 			memory: createClassicyFindLookupMemory(),
 		});
 		ticking = false;
+		now.mockRestore();
 		expect(done).toEqual([]);
-		// The read phase yields every few milliseconds (8 ms slices).
-		expect(longest).toBeLessThan(250);
+		// Each lane yields before each file, and the test's timer, queued
+		// behind the lanes' yields, runs once every few files (one turn a
+		// round of CLASSICY_FIND_LOOKUPS lanes): at least half that many
+		// turns, however the lanes interleave.
+		expect(ticks).toBeGreaterThanOrEqual(400 / CLASSICY_FIND_LOOKUPS / 2);
 		const controller = new AbortController();
 		const aborted = searchClassicyFileSystem(fs, {
 			location: "local",

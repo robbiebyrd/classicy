@@ -3,6 +3,7 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach } from "vitest";
 import { resetClassicyDefaultStateSeedForTests } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDefaultStateSeed.internal";
 import { resetClassicyFileSystemSharedTrees } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { flushClassicyFileSystemPending } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
 
 // Node 23+ ships an experimental, file-backed global `localStorage` that throws
 // `SecurityError: Cannot initialize local storage without a --localstorage-file
@@ -98,6 +99,13 @@ if (typeof window !== "undefined") {
 }
 
 beforeEach(() => {
+	// The last case's debounced file-system writes (500 ms) go to its own
+	// storage first: left pending, the next case's first ClassicyFileSystem
+	// would drain them into the fresh storage below and read them back as its
+	// stored tree, the last case's files and all (CI on PR #347: Find File's
+	// Items Found test searched the previous case's 100 files, not its own 6,
+	// whenever that case ended within 500 ms of a write).
+	flushClassicyFileSystemPending();
 	Object.defineProperty(globalThis, "localStorage", {
 		value: new MemoryStorage(),
 		configurable: true,

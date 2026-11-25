@@ -155,10 +155,17 @@ const drawnRows = () =>
 			[],
 	);
 
-/** Put `count` files behind URLs, with no data and no recorded size. */
+/**
+ * Put `count` files behind URLs, with no data and no recorded size, in an
+ * Archive that holds nothing else: the counts below are of this case's files
+ * alone (a previous case's debounced write once seeded its 100 files here,
+ * and the search read them too; `src/__tests__/setup.ts` now flushes it into
+ * that case's own storage).
+ */
 const seedArchive = (fs: ClassicyFileSystem, count: number) => {
 	fs.mkDir("Macintosh HD:Archive");
 	const folder = fs.resolve("Macintosh HD:Archive") as ClassicyFileSystemEntry;
+	expect(Object.keys(folder).filter((key) => !key.startsWith("_"))).toEqual([]);
 	for (let i = 0; i < count; i += 1) {
 		folder[`clip ${String(i).padStart(4, "0")}.mov`] = {
 			_type: T.Video,
@@ -167,7 +174,11 @@ const seedArchive = (fs: ClassicyFileSystem, count: number) => {
 	}
 };
 
-/** A fetch whose HEAD requests wait to be answered, counted. */
+/**
+ * A fetch whose HEAD requests wait to be answered, counted. Each request is
+ * answered (or aborted) once: answering it again does nothing, so a test may
+ * answer every request held, and `most` stays the most in flight at once.
+ */
 const heldHeads = () => {
 	const held: {
 		url: string;
@@ -188,14 +199,18 @@ const heldHeads = () => {
 		inFlight += 1;
 		most = Math.max(most, inFlight);
 		return new Promise<Response>((resolve, reject) => {
-			const done = () => {
+			let settled = false;
+			const settle = () => {
+				if (settled) return false;
+				settled = true;
 				inFlight -= 1;
+				return true;
 			};
 			held.push({
 				url: String(url),
 				signal: init.signal ?? undefined,
 				answer: (length) => {
-					done();
+					if (!settle()) return;
 					resolve({
 						ok: true,
 						headers: new Headers({ "Content-Length": String(length) }),
@@ -203,7 +218,7 @@ const heldHeads = () => {
 				},
 			});
 			init.signal?.addEventListener("abort", () => {
-				done();
+				if (!settle()) return;
 				reject(new DOMException("aborted", "AbortError"));
 			});
 			for (const wait of awaited.filter((w) => held.length >= w.count)) {
@@ -248,8 +263,11 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		const drawn = drawnRows().length;
 		expect(drawn).toBeGreaterThan(0);
 		expect(drawn).toBeLessThan(300);
-		// The drawn rows' reads start as they are drawn, a few at a time.
-		expect(heads.held).toHaveLength(CLASSICY_FIND_LOOKUPS);
+		// The drawn rows' reads start as they are drawn, a few at a time:
+		// with none answered, every place taken is held, and no other read
+		// can start.
+		await act(() => heads.issued(Math.min(drawn, CLASSICY_FIND_LOOKUPS)));
+		expect(heads.held.length).toBeLessThanOrEqual(CLASSICY_FIND_LOOKUPS);
 		// Answer each read as it comes: every drawn row, and only those.
 		for (let round = 0; round < 40 && heads.held.length < drawn; round += 1) {
 			await act(async () => {
@@ -278,17 +296,28 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		typeName("clip");
 		clickFind();
 		await searchEnds();
-		expect(heads.held).toHaveLength(CLASSICY_FIND_LOOKUPS);
+		const drawn = drawnRows().length;
+		await act(() => heads.issued(Math.min(drawn, CLASSICY_FIND_LOOKUPS)));
+		const asked = heads.held.length;
+		expect(asked).toBeLessThanOrEqual(CLASSICY_FIND_LOOKUPS);
 		act(() => {
 			menuItem("Close Window").onClickFunc?.();
 		});
 		await waitFor(() => expect(resultsWindow()).toBeFalsy());
 		expect(heads.held.every((h) => h.signal?.aborted)).toBe(true);
+		// Nothing answered, the reads waiting for a place given up: none
+		// starts after the close.
 		await new Promise((resolve) => setTimeout(resolve, 20));
-		expect(heads.fetchMock).toHaveBeenCalledTimes(CLASSICY_FIND_LOOKUPS);
+		expect(heads.fetchMock).toHaveBeenCalledTimes(asked);
 	});
 
 	it("spins the asynchronous arrows and counts what it found while it searches", async () => {
+		// What the search guarantees, and all this test counts: each clip's
+		// size is read once, at most CLASSICY_FIND_LOOKUPS at a time, and a
+		// place an answer frees goes to the next clip. So with `answered`
+		// answers handled, the search holds min(clips, LOOKUPS + answered)
+		// requests and can start no other until the test answers one: every
+		// count below is taken there, whatever order the lanes ran in.
 		const heads = heldHeads();
 		const clips = CLASSICY_FIND_LOOKUPS + 2;
 		seedArchive(new ClassicyFileSystem(), clips);
@@ -297,8 +326,7 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		typeName("clip");
 		fireEvent.click(screen.getByRole("button", { name: "More Choices" }));
 		clickFind();
-		// The size row reads each clip's size, a few at a time: the search
-		// waits on the first few.
+		// None answered: every place is taken, and the search waits.
 		await act(() => heads.issued(CLASSICY_FIND_LOOKUPS));
 		expect(heads.held).toHaveLength(CLASSICY_FIND_LOOKUPS);
 		const find = findWindow() as HTMLElement;
@@ -310,22 +338,25 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		expect(find.querySelector(".classicyFindFileProgress")?.textContent).toBe(
 			"Items Found:0",
 		);
-		// Their answers: four found, and the last two sizes asked for. Those
-		// may wait behind the read phase's yield to the event loop (a
-		// `setTimeout(0)` after 8 ms of wall-clock time), so the test waits
-		// for the requests themselves, not for a turn of the loop.
+		// Four answered: the last two clips take the freed places (perhaps
+		// behind the read phase's yield, a `setTimeout(0)` after 8 ms of
+		// wall-clock time, so the test waits for the requests themselves),
+		// and no clip is left to ask for. The turn after it lets the four
+		// answers' own handling (microtasks only: found, the count) finish,
+		// whichever lanes moved on first.
 		await act(async () => {
 			for (const h of heads.held) h.answer(1024);
 			await heads.issued(clips);
+			await new Promise((resolve) => setTimeout(resolve, 0));
 		});
 		expect(heads.held).toHaveLength(clips);
 		expect(find.querySelector(".classicyFindFileProgress")?.textContent).toBe(
 			"Items Found:4",
 		);
-		// The last two answers end the search: Items Found opens with what it
-		// found, and the arrows and the count go.
+		// Every clip answered: the search ends, Items Found opens with all of
+		// them, and the arrows and the count go.
 		await act(async () => {
-			for (const h of heads.held.slice(CLASSICY_FIND_LOOKUPS)) h.answer(1024);
+			for (const h of heads.held) h.answer(1024);
 			await searchEnded();
 		});
 		expect(resultsWindow()).toBeTruthy();
@@ -334,6 +365,8 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		).toBeInTheDocument();
 		expect(find.querySelector(".classicyFindFileBusy")).toBeNull();
 		expect(find.querySelector(".classicyFindFileProgress")).toBeNull();
+		expect(heads.fetchMock).toHaveBeenCalledTimes(clips);
+		expect(heads.most()).toBeLessThanOrEqual(CLASSICY_FIND_LOOKUPS);
 	});
 
 	it("sorted by size, reads every row's size", async () => {

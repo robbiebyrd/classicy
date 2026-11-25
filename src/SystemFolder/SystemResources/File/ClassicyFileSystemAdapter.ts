@@ -143,11 +143,20 @@ export function registerClassicyFileSystemPendingFlush(
 	pendingFlushes.set(flush, storageKey);
 	if (!pagehideListenerAttached && typeof window !== "undefined") {
 		pagehideListenerAttached = true;
-		window.addEventListener("pagehide", () => {
-			for (const pending of [...pendingFlushes.keys()]) {
-				pending();
-			}
-		});
+		window.addEventListener("pagehide", flushClassicyFileSystemPending);
+	}
+}
+
+/**
+ * Run every pending flush, whatever its storage key: what `pagehide` does.
+ * A test harness runs it before it gives the next case a fresh
+ * `localStorage`, so one case's debounced write lands in its own storage
+ * and never seeds the next case's tree (the next case's first instance
+ * drains whatever is still pending into the storage it reads).
+ */
+export function flushClassicyFileSystemPending(): void {
+	for (const pending of [...pendingFlushes.keys()]) {
+		pending();
 	}
 }
 
