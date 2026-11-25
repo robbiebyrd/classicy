@@ -797,6 +797,15 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(clock).toMatch(/margin-right: 0;/);
 			expect(clock).toMatch(/padding-right: var\(--menu-bar-clock-end\);/);
+			// Its readout is the bar's one Tab stop: the flat controls' ring,
+			// inside the bar (integration review G round 6).
+			const ring = rule(
+				".classicyDesktopMenu > .classicyMenuItem.classicyDesktopMenuTime > button:focus-visible",
+			);
+			expect(ring).toMatch(
+				/outline: calc\(var\(--box-pixel\) \* 2\) solid var\(--color-black\);/,
+			);
+			expect(ring).toMatch(/outline-offset: calc\(var\(--box-pixel\) \* -2\);/);
 		});
 
 		// The Apple and Help titles are their art, 16 px, in the highlight

@@ -12,6 +12,28 @@
   background: transparent;
 }
 
+// The clock's readout is a button, its keyboard path (Enter or Space toggles
+// the date): the native button's chrome is taken away, so the readout draws
+// as the item's text did. Its focus ring is the browser's, or the package's.
+.classicyDesktopMenuTime > button {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  word-spacing: inherit;
+  text-align: inherit;
+  text-transform: inherit;
+  text-indent: inherit;
+  text-shadow: inherit;
+  white-space: inherit;
+  cursor: inherit;
+  appearance: none;
+}
+
 .classicyDesktopMenuTimeSeparatorRight {
   margin-right: 0;
 }

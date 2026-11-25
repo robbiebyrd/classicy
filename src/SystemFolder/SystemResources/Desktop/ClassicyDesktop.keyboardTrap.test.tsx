@@ -120,21 +120,34 @@ describe("Tab on the desktop's icons leaves at the ends (no keyboard trap)", () 
 		expect(selected()).toEqual(["Gamma.app"]);
 	});
 
-	it("selects backward by name, then Shift-Tab at the first name moves back to the host's previous stop", () => {
+	// The page's stop before the icons is the menu-bar clock's button, the
+	// bar's one Tab stop (integration review G round 6: WCAG 2.1.1); the
+	// browser's own Shift-Tab goes on from there to the host's.
+	it("selects backward by name, then Shift-Tab at the first name moves back to the page's previous stop", () => {
 		renderEmbedded();
 		(document.getElementById("Gamma.app.shortcut") as HTMLElement).focus();
 		const seen: string[] = [];
+		const where = () =>
+			document.activeElement?.closest('[data-classicy-part="clock"]')
+				? "clock"
+				: (focused() ?? "");
 		for (let i = 0; i < 4; i++) {
 			tab(true);
-			seen.push(focused() ?? "");
+			seen.push(where());
 		}
 		expect(seen).toEqual([
 			"Gamma.app.shortcut",
 			"Beta.app.shortcut",
 			"Alpha.app.shortcut",
-			"hostBefore",
+			"clock",
 		]);
 		expect(selected()).toEqual(["Alpha.app"]);
+		// Before the clock, the host's own stop.
+		const order = classicyTabbableElements();
+		const clock = order.findIndex((el) =>
+			el.closest('[data-classicy-part="clock"]'),
+		);
+		expect(order[clock - 1]?.id).toBe("hostBefore");
 	});
 
 	it("leaves from the desktop itself too, and never wraps", () => {

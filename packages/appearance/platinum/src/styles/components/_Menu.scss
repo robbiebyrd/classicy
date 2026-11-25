@@ -94,6 +94,13 @@ $grip-dots-bottom-right: (3 5) (3 8) (3 11) (3 14);
   #{$bar} > .classicyMenuItem.classicyDesktopMenuTime {
     margin-right: 0;
     padding-right: var(--menu-bar-clock-end);
+
+    // The clock's keyboard ring (its readout is the bar's one Tab stop), the
+    // grip's, inside the bar; a press moves no focus, so a click shows none.
+    > button:focus-visible {
+      outline: var(--color-outline) solid var(--control-frame-width);
+      outline-offset: calc(var(--control-frame-width) * -1);
+    }
   }
 
   .classicyDesktopMenuAppSwitcherGrip {

@@ -201,6 +201,17 @@ describe("Platinum's Application menu title geometry (Mac OS 8.5)", () => {
 			"margin-right": "0",
 			"padding-right": "var(--menu-bar-clock-end)",
 		});
+		// The clock's readout is the bar's one Tab stop: the grip's keyboard
+		// ring, inside the bar (integration review G round 6, the clock as a
+		// Tab stop).
+		expect(
+			rule(
+				`${BAR} > .classicyMenuItem.classicyDesktopMenuTime > button:focus-visible`,
+			),
+		).toEqual({
+			outline: "var(--color-outline) solid var(--control-frame-width)",
+			"outline-offset": "calc(var(--control-frame-width) * -1)",
+		});
 	});
 
 	it("puts each part where 8.5 draws it with the Finder in front", () => {
@@ -252,5 +263,17 @@ describe("Platinum's Application menu title geometry (Mac OS 8.5)", () => {
 			640 - knobs.endInset - knobs.switcherTitleEnd - 1,
 		);
 		expect(knobs.switcherTitleStart + 16 + knobs.switcherTitleEnd).toBe(29);
+		// The clock follows the title: its last ink seven pixels of face
+		// before the grip's white rule here too (ink to x 586, rule at 594;
+		// 8.5 difference D24, which the same `clockEnd` gives).
+		expect(iconOnly(594, 8)).toBe("#FFFFFF");
+		let clock = -1;
+		for (let x = 400; x < 594; x++)
+			for (let y = 2; y <= 16; y++)
+				if (iconOnly(x, y) !== "#DDDDDD") {
+					clock = x;
+					break;
+				}
+		expect(594 - 1 - clock).toBe(knobs.clockEnd + 1);
 	});
 });
