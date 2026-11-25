@@ -321,6 +321,97 @@ export const isFunctionKey = (key: string): boolean =>
 	/^f([1-9]|1\d|2[0-4])$/i.test(key);
 
 /**
+ * The modifiers' names as Windows' keycaps and menus write them (WIG Ch.7
+ * "Shortcut Keys in Menu Items", p.110: "Display CTRL and SHIFT key
+ * combinations as Ctrl+key ... and Shift+key"): Control is Ctrl, Option the
+ * Alt key it is on a PC keyboard, Shift Shift, and Command, which has no
+ * Windows name, the Windows key it is matched against (`metaKey`).
+ */
+export const CLASSICY_MODIFIER_KEY_NAMES = {
+	control: "Ctrl",
+	option: "Alt",
+	shift: "Shift",
+	command: "Win",
+} as const satisfies Record<ClassicyModifierName, string>;
+
+// A key's glyph or name, lower-cased, and the name its keycap carries.
+const KEYCAP_NAMES: Readonly<Record<string, string>> = {
+	"⌫": "Backspace",
+	backspace: "Backspace",
+	"⌦": "Del",
+	delete: "Del",
+	del: "Del",
+	"↑": "Up",
+	arrowup: "Up",
+	up: "Up",
+	"↓": "Down",
+	arrowdown: "Down",
+	down: "Down",
+	"←": "Left",
+	arrowleft: "Left",
+	left: "Left",
+	"→": "Right",
+	arrowright: "Right",
+	right: "Right",
+	"⎋": "Esc",
+	escape: "Esc",
+	esc: "Esc",
+	"↩": "Enter",
+	"⏎": "Enter",
+	"⌤": "Enter",
+	return: "Enter",
+	enter: "Enter",
+	"⇥": "Tab",
+	tab: "Tab",
+	"␣": "Space",
+	space: "Space",
+	"⇞": "PgUp",
+	pageup: "PgUp",
+	pgup: "PgUp",
+	"⇟": "PgDn",
+	pagedown: "PgDn",
+	pgdn: "PgDn",
+	"↖": "Home",
+	home: "Home",
+	"↘": "End",
+	end: "End",
+	insert: "Ins",
+	ins: "Ins",
+};
+
+/**
+ * A shortcut's key as its keycap names it, for the names spelling: ⌫
+ * Backspace, ⌦ Del, the arrows Up, Down, Left and Right, Escape Esc, Return
+ * Enter, a function key as it is (F1), a single character upper-cased;
+ * anything else unchanged.
+ */
+export const classicyKeycapName = (key: string): string => {
+	const named = KEYCAP_NAMES[key.toLowerCase()];
+	if (named) return named;
+	if (isFunctionKey(key) || Array.from(key).length === 1)
+		return key.toUpperCase();
+	return key;
+};
+
+/**
+ * A shortcut spelled as Windows' menus write it: the modifiers' names in
+ * canonical order (Ctrl, Alt, Shift, Win), then the key's
+ * (`classicyKeycapName`), joined by `+` with no spaces: "Cmd+Shift+S" ->
+ * "Shift+Win+S", "⌃⌫" -> "Ctrl+Backspace", "F1" -> "F1". `formatKeyboardShortcut`
+ * is the glyph spelling.
+ */
+export const formatKeyboardShortcutNames = (
+	raw: string | undefined,
+): string => {
+	const p = parseKeyboardShortcut(raw);
+	const names: string[] = setModifiers(p).map(
+		(name) => CLASSICY_MODIFIER_KEY_NAMES[name],
+	);
+	if (p.key) names.push(classicyKeycapName(p.key));
+	return names.join("+");
+};
+
+/**
  * A shortcut broken into its displayed parts in HIG order, modifier glyphs
  * then the key: "Ctrl+Cmd+S" -> ["⌃", "⌘", "S"]. Joined with " + " this is the
  * spelled-out form a keyboard-equivalent field shows ("⌃ + ⌘ + S", HIGOS8

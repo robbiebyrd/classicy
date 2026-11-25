@@ -1,6 +1,7 @@
 import { createContext, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import type { ClassicyAppearanceInput } from "@/Appearance/ClassicyAppearancePackage";
+import { classicyAccessKeyFromEvent } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 
 /**
  * One menu tree's register: the root `ClassicyMenu` (the one rendered with
@@ -17,6 +18,12 @@ import type { ClassicyAppearanceInput } from "@/Appearance/ClassicyAppearancePac
 export type ClassicyMenuItemHandle = {
 	/** Its title, decoded (else its image's alt text): what typing matches. */
 	readonly label: string;
+	/**
+	 * Its access key, lower-cased (`ClassicyMenuItem.accessKey`, or the
+	 * automatic pick under the package's `layout.menu.accessKeys` `"auto"`);
+	 * null for none.
+	 */
+	readonly accessKey: string | null;
 	readonly disabled: boolean;
 	/** It has a submenu. */
 	readonly hasChildren: boolean;
@@ -178,6 +185,8 @@ export type ClassicyMenuKeyboardEnv = {
 
 export type ClassicyMenuKey = {
 	key: string;
+	/** The physical key (`KeyF`): an access key typed with Option on a Mac. */
+	code?: string;
 	shiftKey?: boolean;
 	ctrlKey?: boolean;
 	altKey?: boolean;
@@ -272,8 +281,8 @@ const edgeOf = (
 /**
  * Typing: the next item after `from` (wrapping) whose label starts with
  * `char`, case-insensitively. An access key, when items carry one, comes
- * first (WIG Ch.7 "Menu Titles" (p.106)); this is the jump typing makes
- * where none claims the key.
+ * first (`actOnAccessKey`; WIG Ch.7 "Menu Titles" (p.106)); this is the jump
+ * typing makes where none claims the key.
  */
 const typeaheadTarget = (
 	tree: ClassicyMenuTree,
@@ -318,6 +327,115 @@ const openAndEnter = (
 const closeChildOf = (tree: ClassicyMenuTree, list: Element | null) => {
 	const handle = list ? tree.lists.get(list)?.current : null;
 	if (handle && handle.openChildId !== null) handle.closeChild();
+};
+
+/**
+ * An access key typed in `list` (its `items`, `from` the current one's
+ * index, -1 for none), as Windows' menus take it (WIG Ch.7, p.97: "Pressing
+ * a subsequent alphanumeric key chooses the menu item ... with the matching
+ * access character"; Wine's `MENU_FindItemByKey`): the one item with that
+ * key is chosen as Return chooses it (a submenu opens on its first item, a
+ * title's menu opens, a leaf runs), a dimmed one only tracked where the
+ * package browses dimmed items; several sharing it are moved between, from
+ * the current one, wrapping, none chosen (WIG Ch.4 "Access Keys", p.27). False
+ * when no item of the list has it.
+ */
+const actOnAccessKey = (
+	tree: ClassicyMenuTree,
+	env: ClassicyMenuKeyboardEnv,
+	list: HTMLElement,
+	items: HTMLElement[],
+	from: number,
+	char: string,
+): boolean => {
+	const matches = items.filter(
+		(item) => handleOf(tree, item)?.accessKey === char,
+	);
+	if (matches.length === 0) return false;
+	// Moving within a menu closes a sibling's open submenu; on a menu bar the
+	// next title's menu replaces the open one as it opens.
+	const closeSiblings = () => {
+		if (list !== tree.rootRef.current || !env.horizontal)
+			closeChildOf(tree, list);
+	};
+	if (matches.length > 1) {
+		const current = from >= 0 ? items[from] : null;
+		const target = stepThrough(
+			tree,
+			env,
+			matches,
+			current ? matches.indexOf(current) : -1,
+			1,
+		);
+		if (target) {
+			closeSiblings();
+			env.focusItem(target);
+		}
+		return true;
+	}
+	const [item] = matches;
+	const handle = handleOf(tree, item);
+	if (!handle) return false;
+	if (handle.disabled) {
+		if (navigable(tree, env, item)) {
+			closeSiblings();
+			env.focusItem(item);
+		}
+		return true;
+	}
+	if (handle.hasChildren) return openAndEnter(tree, env, item);
+	closeSiblings();
+	env.focusItem(item);
+	handle.activate();
+	return true;
+};
+
+/**
+ * An access key typed in the menus: in the list `current` acts in
+ * (`actingList`), or, with focus outside the menus, in the deepest shown
+ * list (never a menu bar with nothing open).
+ */
+const accessKeyFrom = (
+	tree: ClassicyMenuTree,
+	env: ClassicyMenuKeyboardEnv,
+	current: HTMLElement | null,
+	char: string,
+): boolean => {
+	if (current) {
+		const acting = actingList(tree, env, current);
+		return acting
+			? actOnAccessKey(tree, env, acting.list, acting.items, acting.from, char)
+			: false;
+	}
+	const list = classicyMenuDeepestOpenList(tree);
+	if (!list || (list === tree.rootRef.current && env.horizontal)) return false;
+	const items = itemsOf(tree, env, list);
+	const from =
+		env.hovered && classicyMenuListOf(tree, env.hovered) === list
+			? items.indexOf(env.hovered)
+			: -1;
+	return actOnAccessKey(tree, env, list, items, from, char);
+};
+
+/**
+ * Alt and a title's access key, typed with the menu bar not yet in use
+ * (WIG Ch.7, p.97: "When the user presses an alphanumeric key while holding
+ * the ALT key ... the drop-down menu whose access key for the menu title
+ * matches ... is displayed"): that title's menu opens on its first item (a
+ * key several titles share moves between them, from the focused one). False
+ * when no title has it.
+ */
+export const handleClassicyMenuBarAccessKey = (
+	tree: ClassicyMenuTree,
+	env: ClassicyMenuKeyboardEnv,
+	char: string,
+): boolean => {
+	const root = tree.rootRef.current;
+	if (!root || !env.horizontal) return false;
+	const titles = itemsOf(tree, env, root);
+	const active = root.ownerDocument.activeElement;
+	const focused = active instanceof HTMLElement ? titles.indexOf(active) : -1;
+	return actOnAccessKey(tree, env, root, titles, focused, char);
 };
 
 /**
@@ -389,10 +507,11 @@ const actingList = (
  * and Space do what a click does (a submenu opens on its first item); Escape
  * closes one level: a submenu back to its item, a bar's menu back to its
  * title (which keeps focus), then the bar itself, focus going back where it
- * was, and a pop-up menu altogether; a printable character jumps to the
- * next item it starts. With focus outside the menus only Escape (one level)
- * and Up and Down (into the deepest shown list, first or last item) are the
- * menus'.
+ * was, and a pop-up menu altogether; a letter or digit that is an item's
+ * access key chooses it (`actOnAccessKey`), Alt held or not; any other
+ * printable character jumps to the next item it starts. With focus outside
+ * the menus only Escape (one level), Up and Down (into the deepest shown
+ * list, first or last item) and an access key of that list are the menus'.
  */
 export const handleClassicyMenuKey = (
 	tree: ClassicyMenuTree,
@@ -401,7 +520,13 @@ export const handleClassicyMenuKey = (
 	current: HTMLElement | null,
 ): boolean => {
 	const { key } = event;
-	if (event.ctrlKey || event.altKey || event.metaKey) return false;
+	if (event.ctrlKey || event.metaKey) return false;
+	const accessChar = classicyAccessKeyFromEvent(event);
+	// Alt held with a letter or digit is the access key (a Windows user keeps
+	// Alt down through Alt+F, X; Wine's menu loop takes WM_SYSCHAR as
+	// WM_CHAR); every other Alt chord is its owner's.
+	if (event.altKey)
+		return accessChar !== null && accessKeyFrom(tree, env, current, accessChar);
 
 	if (!current) {
 		const list = classicyMenuDeepestOpenList(tree);
@@ -435,6 +560,7 @@ export const handleClassicyMenuKey = (
 			env.focusItem(target);
 			return true;
 		}
+		if (accessChar !== null) return accessKeyFrom(tree, env, null, accessChar);
 		return false;
 	}
 
@@ -531,6 +657,8 @@ export const handleClassicyMenuKey = (
 		}
 		default: {
 			if (key.length !== 1 || key === " ") return false;
+			if (accessChar !== null && accessKeyFrom(tree, env, current, accessChar))
+				return true;
 			const acting = actingList(tree, env, current);
 			if (!acting) return false;
 			const target = typeaheadTarget(tree, env, acting.items, acting.from, key);

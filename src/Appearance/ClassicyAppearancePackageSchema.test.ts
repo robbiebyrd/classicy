@@ -170,6 +170,49 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// Access keys, the shortcuts' spelling and empty submenus (the WIG
+	// audit's 7.1, 8.9 and 7.15): optional, each kept as given.
+	it("takes optional menu.accessKeys, menu.shortcutSpelling and menu.emptySubmenus, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.menu = {
+			accessKeys: "auto",
+			shortcutSpelling: "names",
+			emptySubmenus: "placeholder",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menu).toEqual({
+			accessKeys: "auto",
+			shortcutSpelling: "names",
+			emptySubmenus: "placeholder",
+		});
+		for (const menu of [
+			{ accessKeys: "explicit" },
+			{ shortcutSpelling: "glyphs" },
+			{ emptySubmenus: "leaf" },
+		]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).menu = menu;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [key, value] of [
+			["accessKeys", "ampersand"],
+			["shortcutSpelling", "words"],
+			["emptySubmenus", "hidden"],
+		]) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).menu = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				"menu",
+				key,
+			]);
+		}
+	});
+
 	it("rejects defaults that belong to another package", () => {
 		const result = ClassicyAppearancePackageSchema.safeParse({
 			...platinumShaped(),

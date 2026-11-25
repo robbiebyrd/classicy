@@ -992,3 +992,357 @@ describe("ClassicyMenu — submenu time-outs (layout.menu.submenuDelayMs; WIG Ch
 		expect(item("dim")).not.toHaveClass("open");
 	});
 });
+
+describe("ClassicyMenu — access keys (WIG Ch.7, pp.97, 106, 109; the audit's 7.1)", () => {
+	const part = (id: string) =>
+		item(id).querySelector(
+			':scope > p [data-classicy-part="access-key"]',
+		) as HTMLElement | null;
+	const parts = () =>
+		document.querySelectorAll('[data-classicy-part="access-key"]');
+	const alt = (
+		k: string,
+		target: Element = document.activeElement as Element,
+	) =>
+		fireEvent.keyDown(target, {
+			key: k,
+			code: `Key${k.toUpperCase()}`,
+			altKey: true,
+		});
+	const pressAlt = (target: Element = document.activeElement as Element) => {
+		fireEvent.keyDown(target, { key: "Alt", code: "AltLeft", altKey: true });
+		fireEvent.keyUp(target, { key: "Alt", code: "AltLeft" });
+	};
+
+	it("draws none and leaves Alt to the browser under a package without access keys (Platinum)", () => {
+		renderBar();
+		expect(parts()).toHaveLength(0);
+		expect(document.querySelector("[aria-keyshortcuts]")).toBeNull();
+		const before = screen.getByText("before");
+		before.focus();
+		alt("f", before);
+		expect(item("file")).not.toHaveClass("open");
+		pressAlt(before);
+		expect(before).toHaveFocus();
+		// Typing still jumps by the first letter (L2-A's type-ahead).
+		item("file").focus();
+		key("ArrowDown");
+		key("q");
+		expect(item("quit")).toHaveFocus();
+	});
+
+	it("underlines an explicit key's first match, in its own case first, and chooses its item when typed", () => {
+		vi.useFakeTimers();
+		const open = vi.fn();
+		render(
+			<ClassicyMenuProvider>
+				<ClassicyMenu
+					name="bar"
+					navClass="classicyDesktopMenu"
+					subNavClass="classicySubMenu"
+					menuItems={[
+						{
+							id: "file",
+							title: "File",
+							accessKey: "F",
+							menuChildren: [
+								{ id: "save", title: "Save" },
+								{ id: "saveAs", title: "Save As", accessKey: "A" },
+								{
+									id: "open",
+									title: "Open",
+									accessKey: "p",
+									onClickFunc: open,
+								},
+							],
+						},
+					]}
+				/>
+			</ClassicyMenuProvider>,
+		);
+		expect(part("file")).toHaveTextContent("F");
+		// "A" is the start of "As", not the a of "Save"; the title keeps its space.
+		expect(part("saveAs")?.previousSibling?.textContent).toBe("Save ");
+		expect(item("saveAs").querySelector("p")).toHaveTextContent("Save As", {
+			normalizeWhitespace: false,
+		});
+		expect(part("save")).toBeNull();
+		item("file").focus();
+		key("ArrowDown");
+		key("p");
+		act(() => {
+			vi.advanceTimersByTime(450);
+		});
+		expect(open).toHaveBeenCalledTimes(1);
+	});
+
+	it("gives every title and item a key of its own under a package that declares menu.accessKeys auto (Windows 98)", () => {
+		vi.useFakeTimers();
+		activePackage.id = "windows-menus";
+		const { spies } = renderBar();
+		expect(part("file")).toHaveTextContent("F");
+		expect(part("edit")).toHaveTextContent("E");
+		expect(part("view")).toHaveTextContent("V");
+		expect(item("file")).toHaveAttribute("aria-keyshortcuts", "Alt+F");
+		item("file").focus();
+		key("ArrowDown");
+		expect(
+			["new", "open", "close", "export", "quit"].map(
+				(id) => part(id)?.textContent,
+			),
+		).toEqual(["N", "O", "C", "E", "Q"]);
+		expect(item("open")).toHaveAttribute("aria-keyshortcuts", "O");
+		// A submenu's key opens it on its first item.
+		key("e");
+		expect(item("export")).toHaveClass("open");
+		expect(item("pdf")).toHaveFocus();
+		// As PDF takes A; As Text, A taken, the next word's first letter.
+		expect(part("pdf")).toHaveTextContent("A");
+		expect(part("text")).toHaveTextContent("T");
+		key("a");
+		act(() => {
+			vi.advanceTimersByTime(450);
+		});
+		expect(spies.pdf).toHaveBeenCalledTimes(1);
+	});
+
+	it("opens a title's menu on Alt and its key, and takes Alt held through the item's key", () => {
+		vi.useFakeTimers();
+		activePackage.id = "windows-menus";
+		const { spies } = renderBar();
+		const before = screen.getByText("before");
+		before.focus();
+		alt("f", before);
+		expect(item("file")).toHaveClass("open");
+		expect(item("new")).toHaveFocus();
+		alt("q");
+		act(() => {
+			vi.advanceTimersByTime(450);
+		});
+		expect(spies.quit).toHaveBeenCalledTimes(1);
+		expect(before).toHaveFocus();
+	});
+
+	it("brings focus to the bar on Alt alone and back, and not when another key or a press comes between", () => {
+		activePackage.id = "windows-menus";
+		renderBar();
+		const before = screen.getByText("before");
+		before.focus();
+		pressAlt(before);
+		expect(item("file")).toHaveFocus();
+		expect(item("file")).not.toHaveClass("open");
+		// The bar has the keyboard: a title's key alone opens it.
+		key("e");
+		expect(item("edit")).toHaveClass("open");
+		expect(item("undo")).toHaveFocus();
+		pressAlt();
+		expect(item("edit")).not.toHaveClass("open");
+		expect(before).toHaveFocus();
+		// Alt, then another key: no toggle.
+		fireEvent.keyDown(before, { key: "Alt", altKey: true });
+		fireEvent.keyDown(before, { key: "Tab", altKey: true });
+		fireEvent.keyUp(before, { key: "Alt" });
+		expect(before).toHaveFocus();
+		fireEvent.keyDown(before, { key: "Alt", altKey: true });
+		fireEvent.mouseDown(before);
+		fireEvent.keyUp(before, { key: "Alt" });
+		expect(before).toHaveFocus();
+	});
+
+	it("leaves Alt and a key to a menu item's Option chord, and to a modal window the bar is not in", () => {
+		activePackage.id = "windows-menus";
+		render(
+			<ClassicyMenuProvider>
+				<button type="button">before</button>
+				<ClassicyMenu
+					name="bar"
+					navClass="classicyDesktopMenu"
+					subNavClass="classicySubMenu"
+					menuItems={[
+						{
+							id: "file",
+							title: "File",
+							menuChildren: [
+								{ id: "find", title: "Find", keyboardShortcut: "⌥F" },
+							],
+						},
+						{
+							id: "edit",
+							title: "Edit",
+							menuChildren: [{ id: "undo", title: "Undo" }],
+						},
+					]}
+				/>
+				<div className="classicyWindow classicyWindowModal">
+					<button type="button">in a dialog</button>
+				</div>
+			</ClassicyMenuProvider>,
+		);
+		const before = screen.getByText("before");
+		before.focus();
+		alt("f", before);
+		expect(item("file")).not.toHaveClass("open");
+		alt("e", before);
+		expect(item("edit")).toHaveClass("open");
+		fireEvent.keyDown(item("undo"), { key: "Escape" });
+		fireEvent.keyDown(item("edit"), { key: "Escape" });
+		const dialog = screen.getByText("in a dialog");
+		dialog.focus();
+		alt("e", dialog);
+		expect(item("edit")).not.toHaveClass("open");
+		pressAlt(dialog);
+		expect(dialog).toHaveFocus();
+	});
+
+	it("moves between items sharing a key without choosing one, and only tracks a dimmed one it browses", () => {
+		vi.useFakeTimers();
+		const one = vi.fn();
+		const two = vi.fn();
+		const items: ClassicyMenuItem[] = [
+			{
+				id: "menu",
+				title: "Menu",
+				menuChildren: [
+					{ id: "cut", title: "Cut", accessKey: "t", onClickFunc: one },
+					{ id: "tab", title: "Tab", accessKey: "t", onClickFunc: two },
+					{ id: "dim", title: "Dimmed", accessKey: "d", disabled: true },
+				],
+			},
+		];
+		const bar = () =>
+			render(
+				<ClassicyMenuProvider>
+					<ClassicyMenu
+						name="bar"
+						navClass="classicyDesktopMenu"
+						subNavClass="classicySubMenu"
+						menuItems={items}
+					/>
+				</ClassicyMenuProvider>,
+			);
+		const first = bar();
+		item("menu").focus();
+		key("ArrowDown");
+		expect(item("cut")).toHaveFocus();
+		key("t");
+		expect(item("tab")).toHaveFocus();
+		key("t");
+		expect(item("cut")).toHaveFocus();
+		// Dimmed, passed over (Platinum's skip): focus stays.
+		key("d");
+		expect(item("cut")).toHaveFocus();
+		act(() => {
+			vi.advanceTimersByTime(450);
+		});
+		expect(one).not.toHaveBeenCalled();
+		expect(two).not.toHaveBeenCalled();
+		first.unmount();
+		activePackage.id = "windows-menus";
+		bar();
+		item("menu").focus();
+		key("ArrowDown");
+		key("d");
+		expect(item("dim")).toHaveFocus();
+		expect(item("menu")).toHaveClass("open");
+	});
+
+	it("chooses a pop-up menu's item by its key with focus outside it, and passes on a key no item has", () => {
+		vi.useFakeTimers();
+		activePackage.id = "windows-menus";
+		const copy = vi.fn();
+		const onClose = vi.fn();
+		render(
+			<ClassicyMenuProvider startActive onClose={onClose}>
+				<input aria-label="field" />
+				<ClassicyMenu
+					name="popup"
+					navClass="classicyContextMenu"
+					subNavClass="classicyContextSubMenu"
+					menuItems={[
+						{ id: "copy", title: "Copy", onClickFunc: copy },
+						{ id: "paste", title: "Paste" },
+					]}
+				/>
+			</ClassicyMenuProvider>,
+		);
+		const field = screen.getByLabelText("field");
+		field.focus();
+		expect(fireEvent.keyDown(field, { key: "z" })).toBe(true);
+		expect(fireEvent.keyDown(field, { key: "c" })).toBe(false);
+		act(() => {
+			vi.advanceTimersByTime(450);
+		});
+		expect(copy).toHaveBeenCalledTimes(1);
+		expect(onClose).toHaveBeenCalled();
+	});
+
+	it("passes a pop-up menu's letters on under a package without access keys", () => {
+		const copy = vi.fn();
+		render(
+			<ClassicyMenuProvider startActive>
+				<input aria-label="field" />
+				<ClassicyMenu
+					name="popup"
+					navClass="classicyContextMenu"
+					menuItems={[{ id: "copy", title: "Copy", onClickFunc: copy }]}
+				/>
+			</ClassicyMenuProvider>,
+		);
+		const field = screen.getByLabelText("field");
+		field.focus();
+		expect(fireEvent.keyDown(field, { key: "c" })).toBe(true);
+		expect(field).toHaveFocus();
+	});
+});
+
+describe("ClassicyMenu — empty submenus (layout.menu.emptySubmenus)", () => {
+	const items = (onClickFunc = vi.fn()): ClassicyMenuItem[] => [
+		{
+			id: "start",
+			title: "Start",
+			menuChildren: [
+				{ id: "favorites", title: "Favorites", menuChildren: [], onClickFunc },
+			],
+		},
+	];
+	const renderStart = (onClickFunc = vi.fn()) =>
+		render(
+			<ClassicyMenuProvider>
+				<ClassicyMenu
+					name="bar"
+					navClass="classicyDesktopMenu"
+					subNavClass="classicySubMenu"
+					menuItems={items(onClickFunc)}
+				/>
+			</ClassicyMenuProvider>,
+		);
+
+	it("keeps an item with an empty submenu a plain item by default (Platinum)", () => {
+		vi.useFakeTimers();
+		const onClickFunc = vi.fn();
+		renderStart(onClickFunc);
+		fireEvent.click(item("start").querySelector("p") as HTMLElement);
+		expect(item("favorites")).not.toHaveClass(
+			"classicyMenuItemChildMenuIndicator",
+		);
+		expect(document.getElementById("favorites_empty")).toBeNull();
+		fireEvent.click(item("favorites"));
+		act(() => {
+			vi.advanceTimersByTime(450);
+		});
+		expect(onClickFunc).toHaveBeenCalledTimes(1);
+	});
+
+	it("shows one dimmed (Empty) item, with no access key, under a package that declares placeholder (Windows 98)", () => {
+		activePackage.id = "windows-menus";
+		renderStart();
+		fireEvent.click(item("start").querySelector("p") as HTMLElement);
+		expect(item("favorites")).toHaveClass("classicyMenuItemChildMenuIndicator");
+		fireEvent.click(item("favorites"));
+		expect(item("favorites")).toHaveClass("open");
+		const empty = document.getElementById("favorites_empty") as HTMLElement;
+		expect(empty).toHaveTextContent("(Empty)");
+		expect(empty).toHaveClass("disabled");
+		expect(empty.querySelector('[data-classicy-part="access-key"]')).toBeNull();
+	});
+});

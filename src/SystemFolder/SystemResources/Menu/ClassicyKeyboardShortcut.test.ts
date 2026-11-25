@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import {
 	CLASSICY_MODIFIER_GLYPHS,
+	CLASSICY_MODIFIER_KEY_NAMES,
 	CLASSICY_MODIFIER_ORDER,
 	canonicalChord,
 	canonicalChordsFromEvent,
+	classicyKeycapName,
 	collectMenuChords,
 	findMenuItemByShortcut,
 	formatKeyboardShortcut,
+	formatKeyboardShortcutNames,
 	isFunctionKey,
 	keyboardShortcutFromEvent,
 	keyboardShortcutModifiers,
@@ -487,5 +490,71 @@ describe("the Delete key glyph (⌃⌫, Move To Trash)", () => {
 
 	it("displays as the glyph", () => {
 		expect(formatKeyboardShortcut("⌃⌫")).toBe("⌃⌫");
+	});
+});
+
+// The audit's 7.15: Windows' spelling (WIG Ch.7 "Shortcut Keys in Menu
+// Items", p.110).
+describe("formatKeyboardShortcutNames / classicyKeycapName", () => {
+	it("names the modifiers Ctrl, Alt, Shift and Win, in canonical order, joined by +", () => {
+		expect(formatKeyboardShortcutNames("Ctrl+Shift+S")).toBe("Ctrl+Shift+S");
+		expect(formatKeyboardShortcutNames("⌃⌥⇧⌘K")).toBe("Ctrl+Alt+Shift+Win+K");
+		expect(formatKeyboardShortcutNames("Cmd+Shift+S")).toBe("Shift+Win+S");
+		expect(formatKeyboardShortcutNames("F5")).toBe("F5");
+		expect(formatKeyboardShortcutNames("")).toBe("");
+		expect(CLASSICY_MODIFIER_KEY_NAMES).toEqual({
+			control: "Ctrl",
+			option: "Alt",
+			shift: "Shift",
+			command: "Win",
+		});
+	});
+
+	it("names the keys as their keycaps do", () => {
+		expect(
+			[
+				"⌫",
+				"⌦",
+				"Delete",
+				"↑",
+				"ArrowDown",
+				"←",
+				"→",
+				"Escape",
+				"⎋",
+				"Return",
+				"Tab",
+				"Space",
+				"PageUp",
+				"⇟",
+				"Home",
+				"End",
+				"Insert",
+				"f12",
+				"s",
+				"-",
+			].map(classicyKeycapName),
+		).toEqual([
+			"Backspace",
+			"Del",
+			"Del",
+			"Up",
+			"Down",
+			"Left",
+			"Right",
+			"Esc",
+			"Esc",
+			"Enter",
+			"Tab",
+			"Space",
+			"PgUp",
+			"PgDn",
+			"Home",
+			"End",
+			"Ins",
+			"F12",
+			"S",
+			"-",
+		]);
 	});
 });

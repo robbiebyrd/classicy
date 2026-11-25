@@ -35,6 +35,12 @@ import {
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
+import {
+	type ClassicyAccessKey,
+	classicyAccessKeyFromEvent,
+	renderClassicyAccessKeyText,
+	resolveClassicyAccessKeys,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { classicyMenuBounds } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import {
@@ -49,6 +55,7 @@ import {
 	createClassicyMenuTree,
 	handleClassicyMenuKey,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuTree.internal";
+import { useClassicyMenuBarAccessKeys } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuBarAccessKeys.internal";
 import { useClassicyMenuPress } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuPress.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
@@ -115,6 +122,25 @@ export interface ClassicyMenuItem {
 	 * not at all, so a Mac menu is unchanged by it.
 	 */
 	isDefault?: boolean;
+	/**
+	 * The item's access key (mnemonic), one character: typed while its menu
+	 * is open (Alt held or not) it chooses the item, as Return does (a
+	 * submenu opens on its first item); on a menu bar's title, typed with
+	 * Alt (or once the bar has the keyboard, after F10 or Alt alone) it opens
+	 * the title's menu (WIG Ch.7 "Menu Titles" (p.106), "Menu Item Labels"
+	 * (p.109), "The Menu Bar and Drop-down Menus" (p.97)). Items of a menu
+	 * sharing a key are moved between instead, none chosen. Its first match
+	 * in the title, in the key's own case first (`"a"` on "Favorites" is its
+	 * second letter), is wrapped in `<span data-classicy-part="access-key">`,
+	 * which a package underlines (Windows 98 does; Platinum and System 7 draw
+	 * nothing for it), and the item's `aria-keyshortcuts` names it (`Alt+F`
+	 * on a bar's title). A key the title lacks still works, with nothing
+	 * drawn.
+	 * Under the package's `layout.menu.accessKeys` `"auto"` (Windows 98) an
+	 * item without one takes the first character of its title no sibling
+	 * holds, never one an explicit sibling holds; `""` gives the item none.
+	 */
+	accessKey?: string;
 	/** Icon drawn before the title. */
 	icon?: string;
 	/**
@@ -160,7 +186,12 @@ export interface ClassicyMenuItem {
 	eventData?: Record<string, unknown>;
 	/** Called when the item is chosen. Takes precedence over `event`. */
 	onClickFunc?: () => void;
-	/** Submenu items. The submenu opens to the right, flipping left at the viewport edge. */
+	/**
+	 * Submenu items. The submenu opens to the right, flipping left at the
+	 * viewport edge. An empty array is a plain item, unless the package's
+	 * `layout.menu.emptySubmenus` is `"placeholder"` (Windows 98): its submenu
+	 * then holds one dimmed "(Empty)" item.
+	 */
 	menuChildren?: ClassicyMenuItem[];
 	/** Extra class names for the item's `<li>`. */
 	className?: string;
@@ -317,6 +348,26 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	const layout = useClassicyAppearanceLayout();
 	const submenuDelayMs = layout.menu?.submenuDelayMs;
 	const disabledItems = layout.menu?.disabledItems ?? "skip";
+	const accessKeyMode = layout.menu?.accessKeys ?? "explicit";
+	const emptySubmenus = layout.menu?.emptySubmenus ?? "leaf";
+	// The access keys of this list's items, siblings resolved together: an
+	// explicit key is reserved first, then, under `"auto"`, every other titled
+	// item takes the first free character of its title.
+	const accessKeys = useMemo(
+		() =>
+			resolveClassicyAccessKeys(
+				(menuItems ?? []).map((item) =>
+					item?.id === "spacer"
+						? { text: "" }
+						: {
+								text: item?.title ? he.decode(item.title) : "",
+								accessKey: item?.accessKey,
+							},
+				),
+				accessKeyMode,
+			),
+		[menuItems, accessKeyMode],
+	);
 
 	// A root menu owns its tree's register; a submenu joins its root's.
 	const isRoot = open === undefined;
@@ -521,14 +572,21 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// Keys reaching the document while a root menu is shown but focus is
 	// outside it (a contextual menu opened by the pointer leaves focus on
 	// what was clicked): Escape closes a level, Up and Down move focus into
-	// it. In the capture phase, before the focused element (or a dialog
-	// around it) sees them.
+	// it, an access key of the deepest shown list chooses its item (a
+	// Windows menu takes the keyboard while it is shown; a key no item has
+	// passes on). In the capture phase, before the focused element (or a
+	// dialog around it) sees them.
 	const treeShown = isRoot && (popup === true || openChildId !== null);
 	useEffect(() => {
 		if (!treeShown || !tree) return;
 		const onKey = (e: globalThis.KeyboardEvent) => {
 			if (e.defaultPrevented) return;
-			if (e.key !== "Escape" && e.key !== "ArrowDown" && e.key !== "ArrowUp")
+			if (
+				e.key !== "Escape" &&
+				e.key !== "ArrowDown" &&
+				e.key !== "ArrowUp" &&
+				classicyAccessKeyFromEvent(e) === null
+			)
 				return;
 			const root = listRef.current;
 			if (!root || (e.target instanceof Node && root.contains(e.target)))
@@ -581,6 +639,31 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		restoreFocus,
 		keyboardEnv,
 	]);
+
+	// Alt and a title's access key opens its menu; Alt pressed and released
+	// alone brings focus to the bar and back, as F10 does (WIG Ch.7, p.97;
+	// Appendix B, Table B.2: "ALT Activate or inactivate menu bar mode").
+	// Only on a bar whose titles have access keys, so a bar without them
+	// leaves Alt to the browser as before.
+	const titleAccessKeys = useMemo(
+		() =>
+			new Set(
+				isRoot && horizontal
+					? accessKeys.flatMap((k) => (k ? [k.key] : []))
+					: [],
+			),
+		[isRoot, horizontal, accessKeys],
+	);
+	useClassicyMenuBarAccessKeys({
+		tree: isRoot && horizontal ? tree : null,
+		listRef,
+		windowActive,
+		titleKeys: titleAccessKeys,
+		menuItems,
+		keyboardEnv,
+		closeAll,
+		restoreFocus,
+	});
 
 	const onRootKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
 		if (e.defaultPrevented || !tree) return;
@@ -889,6 +972,9 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 								inBar={horizontal}
 								submenuDelayMs={submenuDelayMs}
 								onPointerEnter={handleItemPointerEnter}
+								accessKeyChar={accessKeys[index]?.key ?? null}
+								accessKeyIndex={accessKeys[index]?.index ?? -1}
+								emptySubmenus={emptySubmenus}
 							/>
 						),
 					)}
@@ -936,6 +1022,14 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	submenuDelayMs: number | undefined;
 	/** Its list's pointer time-outs: the pointer entered this item. */
 	onPointerEnter: (id: string, opensOnHover: boolean) => void;
+	/**
+	 * Its access key, resolved with its siblings', and where its title shows
+	 * it (primitives, so the memo holds while the list is rebuilt the same).
+	 */
+	accessKeyChar: string | null;
+	accessKeyIndex: number;
+	/** The package's `layout.menu.emptySubmenus`. */
+	emptySubmenus: "leaf" | "placeholder";
 }> = memo((props) => {
 	const {
 		menuItem,
@@ -946,7 +1040,17 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		inBar,
 		submenuDelayMs,
 		onPointerEnter,
+		accessKeyChar,
+		accessKeyIndex,
+		emptySubmenus,
 	} = props;
+	const accessKey = useMemo(
+		(): ClassicyAccessKey | null =>
+			accessKeyChar === null
+				? null
+				: { key: accessKeyChar, index: accessKeyIndex },
+		[accessKeyChar, accessKeyIndex],
+	);
 	const desktopDispatch = useAppManagerDispatch();
 	const { closeAll, menuBarActive, activateMenuBar, pokeActivity, popup } =
 		useContext(ClassicyMenuContext);
@@ -989,7 +1093,23 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		[menuItem],
 	);
 
-	const hasChildren = menuItem.menuChildren && menuItem.menuChildren.length > 0;
+	// An empty submenu shows one dimmed "(Empty)" item where the package asks
+	// for it (Windows 98's Start menu and Favorites); else the item is a leaf.
+	const submenuItems = useMemo(
+		(): ClassicyMenuItem[] | undefined =>
+			emptySubmenus === "placeholder" && menuItem.menuChildren?.length === 0
+				? [
+						{
+							id: `${menuItem.id}_empty`,
+							title: "(Empty)",
+							disabled: true,
+							accessKey: "",
+						},
+					]
+				: menuItem.menuChildren,
+		[emptySubmenus, menuItem.menuChildren, menuItem.id],
+	);
+	const hasChildren = submenuItems && submenuItems.length > 0;
 
 	// The visible title sits in the same grid cell as these, so it reserves its
 	// own width — only the *other* candidate labels need ghosts. Dropping the
@@ -1138,6 +1258,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const handleRef = useRef<ClassicyMenuItemHandle>(null as never);
 	handleRef.current = {
 		label: he.decode(menuItem.title ?? menuItem.imageAlt ?? ""),
+		accessKey: accessKey?.key ?? null,
 		disabled: menuItem.disabled === true,
 		hasChildren: hasChildren === true,
 		open: isOpen,
@@ -1223,6 +1344,14 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			{...appearance.attrs}
 			role={role}
 			aria-checked={ariaChecked}
+			// Its access key, for assistive technology (Windows' MSAA reports a
+			// menu's mnemonic the same way): Alt and it on a bar's title, the
+			// key alone in a menu.
+			aria-keyshortcuts={
+				accessKey
+					? `${inBar ? "Alt+" : ""}${accessKey.key.toUpperCase()}`
+					: undefined
+			}
 			tabIndex={-1}
 			ref={itemRef}
 			id={menuItem.id}
@@ -1308,7 +1437,12 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				{menuItem.title &&
 					(widthSamples.length > 0 ? (
 						<span className={"classicyMenuItemTitleSizer"}>
-							<span>{he.decode(menuItem.title)}</span>
+							<span>
+								{renderClassicyAccessKeyText(
+									he.decode(menuItem.title),
+									accessKey,
+								)}
+							</span>
 							{widthSamples.map((sample) => (
 								<span
 									key={sample}
@@ -1320,7 +1454,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 							))}
 						</span>
 					) : (
-						he.decode(menuItem.title)
+						renderClassicyAccessKeyText(he.decode(menuItem.title), accessKey)
 					))}
 			</p>
 			{menuItem.keyboardShortcut && (
@@ -1337,7 +1471,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				<ClassicyMenuPlacementEpoch.Provider value={submenuPlacement.epoch}>
 					<ClassicyMenu
 						name={`${menuItem.id}_subitem`}
-						menuItems={menuItem.menuChildren ?? []}
+						menuItems={submenuItems ?? []}
 						open={isOpen}
 						style={submenuPlacement.style}
 						subNavClass={subNavClass}

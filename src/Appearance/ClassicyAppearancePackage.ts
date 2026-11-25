@@ -106,6 +106,34 @@ export type ClassicyAppearanceLayout = {
 		 * it does not prevent the user from browsing or choosing it").
 		 */
 		disabledItems?: "skip" | "browse";
+		/**
+		 * Which menu titles and items have an access key, the character
+		 * typed to reach them, drawn as the `access-key` part (WIG Ch.7 "Menu
+		 * Titles" (p.106), "Menu Item Labels" (p.109)), and which control
+		 * labels do (`ClassicyControlLabel`; Ch.8 "Navigation in Secondary
+		 * Windows", pp.148-149). `"explicit"` (the default, Mac OS): only
+		 * those given an `accessKey`. `"auto"` (Windows): every other titled
+		 * item, and every other label of a focusable control, takes the first
+		 * character of its text no sibling holds (the first letter, a later
+		 * word's first letter, a consonant, a vowel: WIG Ch.4 "Access Keys",
+		 * p.27), an explicit key always winning and reserved first.
+		 */
+		accessKeys?: "explicit" | "auto";
+		/**
+		 * How `ClassicyKbd`'s inline form (a menu item's keyboard equivalent)
+		 * spells a shortcut. `"glyphs"` (the default, Mac OS): ⌃⌥⇧⌘ and the
+		 * key, `⇧⌘S`. `"names"` (Windows; WIG Ch.7 "Shortcut Keys in Menu
+		 * Items", p.110): the keycaps' names joined by `+`, `Ctrl+Shift+S`
+		 * (⌃ Ctrl, ⌥ Alt, ⇧ Shift, ⌘ Win; ⌫ Backspace, ⌦ Del, the arrows Up,
+		 * Down, Left and Right, Escape Esc, function keys as they are).
+		 */
+		shortcutSpelling?: "glyphs" | "names";
+		/**
+		 * An item given an empty `menuChildren`. `"leaf"` (the default): a
+		 * plain item, chosen as any other. `"placeholder"` (Windows 98's Start
+		 * menu and Favorites): a submenu holding one dimmed "(Empty)" item.
+		 */
+		emptySubmenus?: "leaf" | "placeholder";
 	};
 	desktop: {
 		iconGridOrigin: "top-right" | "top-left" | "bottom-right" | "bottom-left";

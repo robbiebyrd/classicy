@@ -739,7 +739,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, isDefault?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark` (default `"check"`) makes a checkable item an option button with `"bullet"`, one choice of an interdependent group: `role="menuitemradio"` with `aria-checked` `true` or `false` (`"mixed"` reads as unchecked there, ARIA 1.2 allowing it on a check box alone) and its gutter span carrying `classicyMenuItemBullet` beside `classicyMenuItemCheck`, so a package draws the Windows Interface Guidelines' round bullet there (WIG Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button") while Platinum and System 7, keyed on `.classicyMenuItemCheck.checked`, draw their check mark for either kind; `isDefault: true` marks the menu's default item, the command a double-click on the selection runs, emitted as the `default` state class on the item's `<li>`, which the WIG draws in bold (Ch.7 "Types of Menu Items" (pp.108–109), Figure 7.5 "Default Item"; Ch.13 "Font and Size" (p.311)) and Platinum and System 7 read not at all. Finder's View as Icons / View as List are a `"bullet"` group, and the Trash icon's Open is its menu's default item)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, isDefault?, accessKey?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`accessKey` is the item's access key, one character, its first match in the title (the key's own case first) wrapped in `<span data-classicy-part="access-key">` (in one `<span>` holding the whole title, so a flex row keeps its spaces), typed to choose the item or, on a bar's title, with Alt to open its menu ("Menu keyboard and press tracking", §4.5), and announced as the item's `aria-keyshortcuts` (`Alt+F` on a bar's title, `O` in a menu); under the package's `layout.menu.accessKeys` `"auto"` an item without one takes the first free character of its title, `""` opting it out; an empty `menuChildren` is a plain item unless the package's `layout.menu.emptySubmenus` is `"placeholder"`, which gives it a submenu of one dimmed "(Empty)" item, id `<id>_empty`, with no access key; `imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark` (default `"check"`) makes a checkable item an option button with `"bullet"`, one choice of an interdependent group: `role="menuitemradio"` with `aria-checked` `true` or `false` (`"mixed"` reads as unchecked there, ARIA 1.2 allowing it on a check box alone) and its gutter span carrying `classicyMenuItemBullet` beside `classicyMenuItemCheck`, so a package draws the Windows Interface Guidelines' round bullet there (WIG Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button") while Platinum and System 7, keyed on `.classicyMenuItemCheck.checked`, draw their check mark for either kind; `isDefault: true` marks the menu's default item, the command a double-click on the selection runs, emitted as the `default` state class on the item's `<li>`, which the WIG draws in bold (Ch.7 "Types of Menu Items" (pp.108–109), Figure 7.5 "Default Item"; Ch.13 "Font and Size" (p.311)) and Platinum and System 7 read not at all. Finder's View as Icons / View as List are a `"bullet"` group, and the Trash icon's Open is its menu's default item)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -912,7 +912,7 @@ on Classicy's internal class names carry one of four attributes
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
 | `data-classicy-selection` | `all`, `tail` | a `ClassicyInput`'s `<input>` while it is `selected`: `all` when the selection starts at the text's first character (the whole text), `tail` when it starts at a later one. A tail scrolled so its first character sits at the field's left edge publishes `--classicy-input-selection-start: 0px`, as the whole text does, so this is what tells them apart (System 7 highlights a tail from its first character's pen position, the whole line a pixel left of the text's). Absent while the field is not `selected` |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3) |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `access-key`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders (holding its name and `+` under `layout.menu.shortcutSpelling` `"names"`); the access key's character in a menu title, a menu item or a `ClassicyControlLabel` (`accessKey`, or the automatic pick under `layout.menu.accessKeys` `"auto"`; Windows 98 underlines it, Platinum and System 7 draw nothing for it); and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3) |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -1218,7 +1218,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyControlLabel` | `label?` (text or rich content, a `ReactNode`), `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?` | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc` |
+| `ClassicyControlLabel` | `label?` (text or rich content, a `ReactNode`), `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?`, `accessKey?` (one character; `""` for none) | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc`. `accessKey` (WIG Ch.4 "Access Keys" (p.27); Ch.8 "Navigation in Secondary Windows" (pp.148-149); the Windows 98 audit's 8.9): its first match in the label's text (the key's own case first; inside the element of a rich label that holds it) is wrapped in `<span data-classicy-part="access-key">`; Alt and the key, in the window holding focus (its `.classicyWindow`, else the document; with focus on the page, the front modal or active window), focuses the control (`labelFor`'s element, else the row itself when clickable, else the first focusable control among `children`) and, for a check box, an option button or a button, clicks it (a text field's text is selected), as Windows' dialog manager does; the key alone does the same while focus is on a check box, an option button or a button. Labels of one window sharing a key are moved between, none clicked; a disabled or hidden control is skipped. Left alone: a key a handler took, Control or Command held, a menu item's keyboard equivalent (an Option chord), a key a menu bar's title holds outside a modal window (the bar takes it, WIG Ch.7 p.143), focus in a menu, and on a Mac focus in a text entry (Option types a character there). Under the package's `layout.menu.accessKeys` `"auto"` (Windows 98) every label of a focusable control given none takes the first character of its text no other label of its window holds, an explicit key reserved first (labels resolved in document order, again whenever one mounts, unmounts or changes); a label with no key under `"explicit"` registers nothing |
 | `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default: the package's window face, Platinum `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
 | `ClassicyControlGroupFormRow` | `children` *, `justify? ("start"\|"end")` | full-width row inside a `layout="form"` group for anything that is not a label/control pair (checkbox, push button, text); `end` puts a button at the group's lower right |
 | `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--group-box-gap`); the content of a control panel that is a stack of groups |
@@ -1231,7 +1231,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyProgressBar` | `value?`, `max? (100)`, `indeterminate?`, `autoSwitch?`, `chasingArrows?`, `label?` | barber-pole when indeterminate (its stripes slide by animating the registered `--slide-var`; Safari 16.2–16.3 and Firefox 113–127 have no `@property`: in Safari, which draws the stripes, the bar carries `classicyProgressSlideByScript`, its keyframes stopped, and sets the offset on its `<progress>` from a frame loop along the same path, the period read once when it starts, the `<progress>` marked `data-classicy-paint-only-style` meanwhile so the pattern-origin watcher and the scroll area skip its per-frame writes; Firefox draws no stripes, `::-webkit-progress-value` being the only part they are drawn on, so nothing runs there); with `autoSwitch` an indeterminate bar becomes determinate as soon as it has a `value` |
 | `ClassicyMeter` | `value` *, `min?/max? (0/100)`, `low?/high?/optimum?`, `segments?`, `showValue?`, `label?` | native `<meter>` zone semantics: the region holding `optimum` is optimal (theme accent), adjacent is suboptimal (`--color-alert`), two away is bad (`--color-error`); `meterZone()` exported |
 | `ClassicyOutput` | `id` *, `value?` or children, `htmlFor?: string[]`, `variant? ("plain"\|"inset")`, `mono?`, `label?`, `disabled?` (dimmed) | real `<output>`; `inset` is the white beveled result well |
-| `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
+| `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it. Under the package's `layout.menu.shortcutSpelling` `"names"` (Windows 98; WIG Ch.7 "Shortcut Keys in Menu Items", p.110) `inline` spells the chord by its keycaps' names joined by `+` with no spaces, "Ctrl+Shift+S" (`formatKeyboardShortcutNames`: ⌃ Ctrl, ⌥ Alt, ⇧ Shift, ⌘ Win, in that order; the key by `classicyKeycapName`: ⌫ Backspace, ⌦ Del, the arrows Up, Down, Left and Right, Escape Esc, Return Enter, Page Up PgUp, a function key as it is, a single character upper-cased), each modifier's span holding its name and the `+` after it; `keycaps` keeps the glyphs |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list; a `disabled` node's `leftIcon` is dimmed by the active package's `iconDimming.disabledItem` rule where it declares one (§8, "Icon dimming") |
 | `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window); `headerPlacement? ("inList"\|"aboveList", "inList")` (`aboveList`: the column titles above the list's scrolling region, in its scroll area's head, its own or, with `scrollable={false}`, the scrolling ancestor's: a copy, `classicyTableDetachedHeader`, `aria-hidden`, taking the container's custom properties, its table and each column as wide as the list's, padded after by the head's room past the viewport so the two scroll as far sideways; the table's own header row stays for assistive technology, laid out with no height, `classicyTableHeaderHidden`; with no scroll area the titles stay in the list) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks. One row carries the state `focused`, the keyboard cursor (the row last clicked or arrowed to, else the first selected, else the first), whether or not the list has focus. The sorted column's body cells carry the part class `classicyTableCellSorted`, and the root publishes the sorted header's place from its left edge as `--classicy-table-sorted-start` and `--classicy-table-sorted-width` (px, both `0px` with nothing sorted; measured after each sort or column resize and as the table resizes), so a package can draw the sorted column below the last row too: Platinum draws it in `--color-system-02` in the Finder's list view only (`.classicyFileBrowserViewTableContainer`), cells and the empty list alike, as HIGOS8 Figs. 2-24 and 2-43 (Finder list views) do; generic tables keep one face |
@@ -1257,10 +1257,10 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `useClassicyMenuCloseOnOutsideMouseDown(ref)` | `ref` * (`RefObject<HTMLElement \| null>`) | call inside a `ClassicyMenuProvider`: while its menu bar is active (a title was clicked open), a mouse-down outside `ref`'s element closes the provider's menus. Both menu bars use it; a null ref closes nothing |
 | `ClassicyMenuBarExtension` | `id` *, `order?`, `icon?`, `title?`, `menuItems?`, `onClick?` | add a right-side menu bar item (like the clock). Its menu hangs from the item's left side, or, where that would pass the desktop's right edge, with its right side under the item's right side, as a title's pull-down does ("Where menus open") |
 
-**Menu keyboard and press tracking** (WIG Ch.7, pp.97-98, 101, 104-105;
-HIGOS8 "Sticky Menus", p.92; the Windows 98 audit's 7.5 to 7.9 and 7.12).
-Every package, no declaration needed, except the three layout keys named
-(§8, "Layout declarations"). A root `ClassicyMenu` (one rendered with no
+**Menu keyboard and press tracking** (WIG Ch.7, pp.97-98, 101, 104-106,
+109; HIGOS8 "Sticky Menus", p.92; the Windows 98 audit's 7.1, 7.5 to 7.9
+and 7.12). Every package, no declaration needed, except the layout keys
+named (§8, "Layout declarations"). A root `ClassicyMenu` (one rendered with no
 `open`) owns a register of its lists and items
 (`ClassicyMenuTree.internal.ts`) and handles, for its whole tree, keys that
 reach it and presses on it:
@@ -1285,11 +1285,33 @@ reach it and presses on it:
   previous title the same way. Home and End go to a list's ends; Return and
   Space do what a click does (a closed submenu opens on its first item; an
   open one closes every menu, as a second click does; a leaf is chosen);
-  a printable character jumps to the next item, wrapping, whose title (else
-  image alt text) starts with it, case-insensitively (an access key, where
-  items carry one, will come first). Moving off an item with an open
-  submenu closes that submenu. Keys with Control, Alt or Command are left
-  to their owners (the keyboard-equivalent dispatcher).
+  a letter or digit that is an item's access key acts on it (below);
+  any other printable character jumps to the next item, wrapping, whose
+  title (else image alt text) starts with it, case-insensitively. Moving off
+  an item with an open submenu closes that submenu. Keys with Control or
+  Command, and Alt with anything but an access key, are left to their
+  owners (the keyboard-equivalent dispatcher).
+- Access keys (`ClassicyMenuItem.accessKey`, or the automatic pick under
+  the package's `layout.menu.accessKeys` `"auto"`, Windows 98; resolved per
+  list, an explicit key reserved first, `ClassicyAccessKeys.internal.tsx`):
+  typed in a list, Alt held or not (a Windows user keeps Alt down through
+  Alt+F, X), the one item holding the key is chosen as Return chooses it (a
+  submenu or a title's menu opens on its first item, a leaf runs; a dimmed
+  one is only tracked, and only where the package browses dimmed items);
+  items sharing it are moved between, from the current one, wrapping, none
+  chosen (WIG Ch.4 "Access Keys", p.27). With the bar keyboard-active (a
+  title focused, after F10 or Alt alone), a title's key opens its menu.
+  Outside the menus, Alt and a title's key (`useClassicyMenuBarAccessKeys`,
+  a window `keydown`) opens that title's menu on its first item, and Alt
+  pressed and released alone, nothing else pressed between, brings focus to
+  the bar's first title and back (closing an open menu), as F10 does (WIG
+  Appendix B, Table B.2: "ALT Activate or inactivate menu bar mode"), both
+  only on a bar whose titles have access keys and, for a window's bar,
+  while its window is active; left alone when a menu item's keyboard
+  equivalent is that chord (an Option chord wins), when focus is in a modal
+  window (`.classicyWindowModal`) the bar is not in, and, on a Mac, Alt and
+  a key in a text entry (where Option types a character). A bar without
+  access keys (Platinum, System 7, given none) leaves Alt to the browser.
 - Escape closes one level: a submenu back to its item; a bar's menu back
   to its title, which keeps focus ("leaves its menu title highlighted"); a
   title with nothing open deactivates the bar, focus going back where it
@@ -1297,14 +1319,17 @@ reach it and presses on it:
   pop-up menu closes (its provider's `onClose`), focus going back the same
   way. F10 (no modifier) brings focus to a menu bar's first title, and back
   again: the screen bar, or a window's own bar while its window is active
-  (`ClassicyWindowActiveContext`). Alt alone is not claimed (browsers keep
-  it: Firefox shows its own menu bar).
+  (`ClassicyWindowActiveContext`). Alt alone does the same on a bar whose
+  titles have access keys (above); elsewhere it is not claimed (browsers
+  keep it: Firefox shows its own menu bar).
 - A root whose menu is shown while focus is outside it (a contextual menu
   opened by the pointer leaves focus on what was clicked; a pop-up bevel
-  button's opened by a click, on the button) takes Escape (one level) and
-  Up and Down (into the deepest shown list, at its first or last item) from
-  the document, in the capture phase, before the focused element or a
-  dialog around it sees them.
+  button's opened by a click, on the button) takes Escape (one level), Up
+  and Down (into the deepest shown list, at its first or last item) and an
+  access key of the deepest shown list (a key no item holds passes on, so
+  typing continues where no item has keys) from the document, in the
+  capture phase, before the focused element or a dialog around it sees
+  them.
 - Focus is given back where it was when the menus close (a selection, a
   close) only after the keyboard has moved it in the menus, so a menu used
   with the pointer alone leaves focus as it always did; a pop-up menu
@@ -1485,7 +1510,13 @@ Keyboard shortcut helpers: `parseKeyboardShortcut`, `formatKeyboardShortcut`,
 `useFocusTrap`, `useClassicyShortcutDispatcher`. The one modifier table is
 `CLASSICY_MODIFIER_GLYPHS` (`{ control: "⌃", option: "⌥", shift: "⇧",
 command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
-`CLASSICY_MODIFIER_ORDER`; every helper and `ClassicyKbd` reads it.
+`CLASSICY_MODIFIER_ORDER`; every helper and `ClassicyKbd` reads it. Windows'
+spelling (`layout.menu.shortcutSpelling` `"names"`) has its own:
+`CLASSICY_MODIFIER_KEY_NAMES` (`{ control: "Ctrl", option: "Alt", shift:
+"Shift", command: "Win" }`), `classicyKeycapName(key)` (⌫ → `Backspace`,
+⌦ → `Del`, `ArrowUp` → `Up`, `Escape` → `Esc`, `Return` → `Enter`, `f5`
+→ `F5`, `s` → `S`) and `formatKeyboardShortcutNames(raw)` (`"⌃⇧S"` →
+`"Ctrl+Shift+S"`), the names `formatKeyboardShortcut`'s glyphs stand for.
 
 ### 4.6 Alerts & dialogs
 
@@ -4405,9 +4436,16 @@ it like Platinum (§1); its README lists what it ships.
   `popUp` (`height`), `tabControl` and `desktopLabel`. Layout: grow box
   bottom right, menu bar
   on the screen with `idleTimeoutMs: 0` (an open menu stays until the next
-  click), `menu: { submenuDelayMs: 400, disabledItems: "browse" }` (a
-  cascading menu opens and closes on Windows' 400 ms time-out, a pop-up
-  menu's on hover too, and the keyboard browses dimmed items), icon grid
+  click), `menu: { submenuDelayMs: 400, disabledItems: "browse",
+  accessKeys: "auto", shortcutSpelling: "names", emptySubmenus:
+  "placeholder" }` (a cascading menu opens and closes on Windows' 400 ms
+  time-out, a pop-up menu's on hover too, the keyboard browses dimmed items,
+  every menu title, item and label of a focusable control takes an access
+  key, underlined by `_Menu.scss` and `_TextField.scss` (`b.access-key`: a
+  pixel thick, a pixel below the baseline, as `DrawText` draws a prefixed
+  character), so Alt+F opens File, Alt alone activates the bar and Alt and
+  a label's key reaches its control, a menu's shortcuts read
+  "Ctrl+Backspace", and an empty submenu shows a dimmed "(Empty)"), icon grid
   from the top left, `window.centering:
   "wholePixel"` (a centered alert or dialog lands on whole pixels, as under
   System 7, so its pixel-grid bevels stay sharp), `scrollBar.fitsBars:
@@ -4489,6 +4527,9 @@ how they look) has two halves:
 | `menuBar.idleTimeoutMs` (optional) | a whole number of ms, `0` to `3600000` | how long an open menu waits, untouched, before it closes itself: read by every `ClassicyMenuProvider` given no `idleTimeoutMs` (the screen and window bars, contextual menus, pop-up bevel buttons' menus) through `useClassicyMenuIdleTimeout`. Absent (Platinum, System 7): 15000, HIGOS8 "Sticky Menus" (p.92). `0` (Windows 98): never, as a Windows menu stays until the next click (WIG Ch.7 "Drop-down Menu Interaction", p.97; Ch.14 "Timing and Navigational Interfaces", p.333) |
 | `menu.submenuDelayMs` (optional) | a whole number of ms, `0` to `10000` | a cascading menu's pointer time-outs ("Menu keyboard and press tracking", §4.5). Absent (Platinum, System 7): a hovered submenu opens at once and stays open until another opens or the menus close, and a pop-up menu's submenus open on a click. Set (Windows 98: 400, `SPI_GETMENUSHOWDELAY`; WIG Ch.7 "Cascading Menus", pp.104-105): it waits that long under a resting pointer before opening (a leave cancels it), an open one closes that long after the pointer rests on another item of its list unless the pointer returns to it first, a pop-up menu's open on hover too, and a dimmed item's never on hover. Bar titles switch at once either way; a click, Return or an arrow key opens at once |
 | `menu.disabledItems` (optional) | `skip`, `browse` | how the menus' keyboard treats a dimmed item. `skip` (the default, as Mac OS menus and the pop-up bevel buttons' menus did): Up, Down, Home, End and typing pass over it. `browse` (Windows 98; WIG Ch.7 "Menu Items", p.107: disabling "does not prevent the user from browsing or choosing it"): it is tracked like any other, and choosing it does nothing |
+| `menu.accessKeys` (optional) | `explicit`, `auto` | which menu titles, menu items and control labels have an access key (`data-classicy-part="access-key"`; "Menu keyboard and press tracking", §4.5; `ClassicyControlLabel`, §4.4). `explicit` (the default, Platinum, System 7): those given an `accessKey` alone, so a Mac menu draws and takes nothing new. `auto` (Windows 98; WIG Ch.7 "Menu Titles" (p.106), "Menu Item Labels" (p.109); Ch.8 pp.148-149): every other titled item, and every other label of a focusable control, takes the first character of its text that no sibling (the menu's items, the bar's titles, the window's labels) holds: its first letter, a later word's first letter, a consonant, then a vowel (WIG Ch.4 "Access Keys", p.27), an explicit key reserved first, so the pick never takes it (Windows 98's Start menu, Favorites "a" and Find "F", passes both); `""` opts one out |
+| `menu.shortcutSpelling` (optional) | `glyphs`, `names` | how `ClassicyKbd`'s `inline` form, a menu item's keyboard equivalent, spells a chord. `glyphs` (the default, Platinum, System 7): ⌃⌥⇧⌘ and the key. `names` (Windows 98; WIG Ch.7 "Shortcut Keys in Menu Items", p.110: "Ctrl+key ... and Shift+key", "Fn"): the keycaps' names joined by `+`, "Ctrl+Shift+S", ⌘ as Win, ⌫ Backspace, ⌦ Del, Escape Esc, the arrows Up, Down, Left, Right (`formatKeyboardShortcutNames`). Display only: the chord fires as before |
+| `menu.emptySubmenus` (optional) | `leaf`, `placeholder` | an item given an empty `menuChildren`. `leaf` (the default): a plain item, chosen as any other. `placeholder` (Windows 98, as its Start menu and Favorites show an empty folder): a submenu of one dimmed "(Empty)" item (id `<id>_empty`, no access key) |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
 | `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open (a folder row with no icon of its own draws the package's `fileDialogFolderIcon` system art, else the folder icon), Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |

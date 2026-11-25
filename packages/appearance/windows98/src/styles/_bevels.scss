@@ -104,6 +104,21 @@ $highlight-text: var(--package-color-selection-text, var(--color-white));
   text-shadow: $b $b 0 $hilight;
 }
 
+// An access key's character (the core's `access-key` part on a menu title,
+// a menu item or a control label: the audit's 7.1 and 8.9): underlined in
+// its text's ink, a pixel thick, a pixel below the baseline, as Windows
+// 95/98's DrawText draws a prefixed character (`TEXT_DrawUnderscore` at the
+// ascent plus one; WIG Ch.7 "Menu Titles", p.106, Figure 7.4). Always shown:
+// hiding it until Alt is pressed came with Windows 2000. A disabled item's
+// emboss (`disabled-text`'s text-shadow) shadows it too, as DrawState
+// embosses the whole string.
+@mixin access-key {
+  text-decoration-line: underline;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: $b;
+  text-underline-offset: $b;
+}
+
 // The dotted keyboard-focus rectangle Windows draws inside a control,
 // `$inset` inside its edge.
 @mixin focus-rect($inset) {

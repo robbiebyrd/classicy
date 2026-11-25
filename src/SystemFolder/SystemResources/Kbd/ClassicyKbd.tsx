@@ -6,10 +6,13 @@ import type {
 	PropsWithChildren,
 	ReactNode,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	CLASSICY_MODIFIER_GLYPHS,
+	CLASSICY_MODIFIER_KEY_NAMES,
 	type ClassicyModifierName,
+	classicyKeycapName,
 	keyboardShortcutModifiers,
 	parseKeyboardShortcut,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
@@ -19,8 +22,11 @@ type ClassicyKbdProps = PropsWithChildren<{
 	 * A shortcut in any spelling `parseKeyboardShortcut` accepts ("Cmd+Shift+S",
 	 * "Command-O", "⌘N", "F1"). When set it renders in the canonical Platinum
 	 * glyph form (Control ⌃, Option ⌥, Shift ⇧, Command ⌘ order, then the key)
-	 * and `children` are ignored. Without it, `children` render verbatim —
-	 * useful for keys with no chord ("Esc", "Tab").
+	 * and `children` are ignored; `inline` spells it with the keycaps' names
+	 * instead ("Ctrl+Shift+S") under a package whose
+	 * `layout.menu.shortcutSpelling` is `"names"` (Windows 98). Without it,
+	 * `children` render verbatim — useful for keys with no chord ("Esc",
+	 * "Tab").
 	 */
 	shortcut?: string;
 	/**
@@ -36,28 +42,47 @@ type ClassicyKbdProps = PropsWithChildren<{
 }>;
 
 /**
- * One modifier's glyph, addressable by a package as
- * `[data-classicy-part="modifier-<name>"]`.
+ * One modifier's glyph (or, spelled by name, its name and the `+` after it),
+ * addressable by a package as `[data-classicy-part="modifier-<name>"]`.
  */
-const ModifierGlyph = ({ name }: { name: ClassicyModifierName }) => (
+const ModifierGlyph = ({
+	name,
+	children,
+}: {
+	name: ClassicyModifierName;
+	children?: ReactNode;
+}) => (
 	<span
 		className="classicyKbdModifier"
 		{...{ [CLASSICY_PART_ATTRIBUTE.part]: `modifier-${name}` }}
 	>
-		{CLASSICY_MODIFIER_GLYPHS[name]}
+		{children ?? CLASSICY_MODIFIER_GLYPHS[name]}
 	</span>
 );
 
 /**
  * The parts of a chord in canonical display order, one entry per key cap:
- * a span per modifier, then the key. "Cmd+Shift+S" → [⇧, ⌘, "S"].
+ * a span per modifier, then the key. "Cmd+Shift+S" → [⇧, ⌘, "S"]. Spelled
+ * by name, each modifier's span holds its name and the `+` joining it to
+ * what follows, and the key is its keycap's name: "Cmd+Shift+S" →
+ * ["Shift+", "Win+", "S"], read "Shift+Win+S" (WIG Ch.7 "Shortcut Keys in
+ * Menu Items", p.110).
  */
-const shortcutParts = (shortcut: string): ReactNode[] => {
+const shortcutParts = (shortcut: string, names = false): ReactNode[] => {
 	const parsed = parseKeyboardShortcut(shortcut);
-	const parts: ReactNode[] = keyboardShortcutModifiers(parsed).map((name) => (
-		<ModifierGlyph key={name} name={name} />
-	));
-	if (parsed.key) parts.push(parsed.key);
+	const modifiers = keyboardShortcutModifiers(parsed);
+	const parts: ReactNode[] = modifiers.map((name, i) =>
+		names ? (
+			<ModifierGlyph key={name} name={name}>
+				{CLASSICY_MODIFIER_KEY_NAMES[name]}
+				{parsed.key || i < modifiers.length - 1 ? "+" : ""}
+			</ModifierGlyph>
+		) : (
+			<ModifierGlyph key={name} name={name} />
+		),
+	);
+	if (parsed.key)
+		parts.push(names ? classicyKeycapName(parsed.key) : parsed.key);
 	return parts;
 };
 
@@ -70,8 +95,12 @@ const shortcutParts = (shortcut: string): ReactNode[] => {
  *
  * `inline` (default) is the menu-item glyph run — `ClassicyMenu` renders each
  * item's `keyboardShortcut` through this component — and `keycaps` draws one
- * raised key cap per key, for help text and documentation. It renders nothing
- * when the shortcut parses to no keys or there is nothing to show.
+ * raised key cap per key, for help text and documentation. Under a package
+ * whose `layout.menu.shortcutSpelling` is `"names"` (Windows 98), `inline`
+ * spells the shortcut as Windows' menus do, "Ctrl+Shift+S" (⌃ Ctrl, ⌥ Alt,
+ * ⇧ Shift, ⌘ Win; ⌫ Backspace, ⌦ Del, the arrows Up, Down, Left and Right,
+ * Escape Esc), each modifier's span holding its name and `+`. It renders
+ * nothing when the shortcut parses to no keys or there is nothing to show.
  *
  * ```tsx
  * <p>Save a copy with <ClassicyKbd shortcut="Cmd+Shift+S" />.</p>
@@ -84,7 +113,13 @@ export const ClassicyKbd: FunctionalComponent<ClassicyKbdProps> = ({
 	style,
 	children,
 }) => {
-	const parts = shortcut !== undefined ? shortcutParts(shortcut) : undefined;
+	// Windows spells a menu's shortcut by its keycaps' names (WIG Ch.7, p.110);
+	// key caps always draw the glyphs.
+	const names =
+		useClassicyAppearanceLayout().menu?.shortcutSpelling === "names" &&
+		variant === "inline";
+	const parts =
+		shortcut !== undefined ? shortcutParts(shortcut, names) : undefined;
 
 	if (parts !== undefined && parts.length === 0) return null;
 	if (parts === undefined && children === undefined) return null;

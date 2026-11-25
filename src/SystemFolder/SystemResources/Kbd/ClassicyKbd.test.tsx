@@ -1,8 +1,14 @@
+// The Windows-layout package below needs a sound pack registered: Platinum's.
+import "@classicy/appearance-platinum";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
+import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock("@/SystemFolder/SystemResources/Kbd/ClassicyKbd.scss", () => ({}));
 
@@ -29,6 +35,31 @@ vi.mock(
 		};
 	},
 );
+
+// Platinum (registered above) is the default layout, spelling shortcuts in
+// glyphs; `windows-kbd` carries the Windows 98 package's layout
+// (`menu.shortcutSpelling` "names"). The store is not mounted: stand in for
+// its connection of the active package id.
+const activePackage = { id: "platinum" };
+connectClassicyAssetPackageSource({
+	getId: () => activePackage.id,
+	subscribe: () => () => {},
+});
+registerClassicyAppearancePackage({
+	id: "windows-kbd",
+	name: "Windows shortcuts",
+	css: "",
+	defaults: {
+		...CLASSICY_CORE_DEFAULT_THEME,
+		id: "windows-kbd-default",
+		package: "windows-kbd",
+	},
+	layout: windows98.layout as never,
+});
+
+afterEach(() => {
+	activePackage.id = "platinum";
+});
 
 describe("ClassicyKbd", () => {
 	it("renders a semantic <kbd> with canonical Platinum glyphs", () => {
@@ -133,6 +164,60 @@ describe("ClassicyKbd", () => {
 		expect(shortcutSpies.modifiers).toHaveBeenCalledWith(
 			shortcutSpies.parse.mock.results[0].value,
 		);
+	});
+});
+
+// The audit's 7.15 (WIG Ch.7 "Shortcut Keys in Menu Items", p.110: "Display
+// CTRL and SHIFT key combinations as Ctrl+key ... and Shift+key").
+describe("ClassicyKbd — layout.menu.shortcutSpelling", () => {
+	it("spells the inline form by the keycaps' names under names (Windows 98), joined by + with no spaces", () => {
+		activePackage.id = "windows-kbd";
+		const text = (shortcut: string) =>
+			render(<ClassicyKbd shortcut={shortcut} />).container.querySelector("kbd")
+				?.textContent;
+		expect(text("Ctrl+Shift+S")).toBe("Ctrl+Shift+S");
+		expect(text("⌃⌫")).toBe("Ctrl+Backspace");
+		expect(text("⌃⌦")).toBe("Ctrl+Del");
+		expect(text("⌥⇧↑")).toBe("Alt+Shift+Up");
+		expect(text("Cmd+O")).toBe("Win+O");
+		expect(text("⌃Escape")).toBe("Ctrl+Esc");
+		expect(text("F1")).toBe("F1");
+		expect(text("⌃s")).toBe("Ctrl+S");
+	});
+
+	it("keeps each modifier its part, holding its name and the +", () => {
+		activePackage.id = "windows-kbd";
+		const { container } = render(<ClassicyKbd shortcut="Cmd+Shift+S" />);
+		const parts = [
+			...container.querySelectorAll("[data-classicy-part^='modifier-']"),
+		];
+		expect(
+			parts.map((p) => [p.getAttribute("data-classicy-part"), p.textContent]),
+		).toEqual([
+			["modifier-shift", "Shift+"],
+			["modifier-command", "Win+"],
+		]);
+		expect(container.querySelector("kbd")).toHaveTextContent("Shift+Win+S");
+		// Text, wrapped in spans: the accessible name reads the same.
+		render(
+			<button type="button">
+				<ClassicyKbd shortcut="Ctrl+S" />
+			</button>,
+		);
+		expect(screen.getByRole("button", { name: "Ctrl+S" })).toBeInTheDocument();
+	});
+
+	it("keeps the glyphs by default (Platinum) and in key caps", () => {
+		expect(
+			render(<ClassicyKbd shortcut="Ctrl+Shift+S" />).container.querySelector(
+				"kbd",
+			),
+		).toHaveTextContent("⌃⇧S");
+		activePackage.id = "windows-kbd";
+		const caps = render(
+			<ClassicyKbd shortcut="Ctrl+Shift+S" variant="keycaps" />,
+		).container.querySelectorAll(".classicyKbdKeycap");
+		expect([...caps].map((c) => c.textContent)).toEqual(["⌃", "⇧", "S"]);
 	});
 });
 

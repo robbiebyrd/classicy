@@ -48,7 +48,14 @@ and `nodenext` resolution).
   screen, menus that stay open until the next click, cascading menus that
   open and close on Windows' 400 ms time-out (a contextual menu's on hover
   too), a menu keyboard that stops on dimmed items as Windows' does,
-  desktop icons from the top left, as Windows laid them, a
+  an access key on every menu title, menu item and label of a control
+  (the first free letter of its text, underlined, unless the app gives it
+  one): Alt and a title's letter opens its menu, a letter in an open menu
+  chooses its item, Alt pressed alone (or F10) takes the menu bar, and Alt
+  and a label's letter moves to its control (clicking a check box, option
+  button or button), keyboard shortcuts spelled as Windows' menus spell
+  them (Ctrl+Backspace, Alt+Shift+F), an empty submenu showing a dimmed
+  "(Empty)", desktop icons from the top left, as Windows laid them, a
   window's scroll bars kept where its content fits, and the Open and Save
   boxes as titled, movable dialogs showing one folder at a time under a
   pop-up that runs the path upward (Windows' Look in), Save As opening with
@@ -67,7 +74,8 @@ and `nodenext` resolution).
   - menus: the flat menu bar, raised pull-down and contextual menus with an
     inverted highlight and embossed dimmed items (one item highlighted at a
     time: the keyboard's, while the arrow keys moved it last, the
-    pointer's otherwise), etched separators, the
+    pointer's otherwise), etched separators, the access key's letter
+    underlined in every title and item (in a control's label too), the
     default item (the command a double-click runs: the Trash icon's Open) in
     bold and a round bullet at the chosen item of an option group (the
     Finder's View as Icons and View as List), where the Mac packages draw a

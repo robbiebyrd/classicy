@@ -40,6 +40,9 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			submenuDelayMs: z.number().int().min(0).max(10_000).optional(),
 			disabledItems: z.enum(["skip", "browse"]).optional(),
+			accessKeys: z.enum(["explicit", "auto"]).optional(),
+			shortcutSpelling: z.enum(["glyphs", "names"]).optional(),
+			emptySubmenus: z.enum(["leaf", "placeholder"]).optional(),
 		})
 		.optional(),
 	desktop: z.object({

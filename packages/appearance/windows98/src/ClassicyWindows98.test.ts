@@ -245,13 +245,25 @@ describe("the Windows 98 appearance package", () => {
 	// and closes after Windows' 400 ms time-out (`menu.submenuDelayMs`, 7.12;
 	// WIG Ch.7 "Cascading Menus", pp.104-105), and the keyboard browses a
 	// dimmed item like any other (`menu.disabledItems`, 7.7; WIG Ch.7 "Menu
-	// Items", p.107).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels", async () => {
+	// Items", p.107). Every titled item and every label of a focusable
+	// control takes an access key of its own (`menu.accessKeys` "auto", 7.1
+	// and 8.9; WIG Ch.4 "Access Keys", p.27; Ch.7 "Menu Titles", p.106), a
+	// menu's shortcuts are spelled Ctrl+S (`menu.shortcutSpelling` "names",
+	// 7.15; WIG Ch.7 "Shortcut Keys in Menu Items", p.110), and an empty
+	// submenu shows a dimmed "(Empty)" (`menu.emptySubmenus` "placeholder",
+	// as Windows 98's Start menu does).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
 			menuBar: { placement: "screen", idleTimeoutMs: 0 },
-			menu: { submenuDelayMs: 400, disabledItems: "browse" },
+			menu: {
+				submenuDelayMs: 400,
+				disabledItems: "browse",
+				accessKeys: "auto",
+				shortcutSpelling: "names",
+				emptySubmenus: "placeholder",
+			},
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: { fitsBars: "shown" },
 			fileDialog: {

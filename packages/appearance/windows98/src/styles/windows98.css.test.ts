@@ -292,4 +292,37 @@ describe("windows98.scss (compiled)", () => {
 			),
 		).toContain("var(--color-system-01)");
 	});
+
+	// Access keys (the audit's 7.1 and 8.9): the core wraps an access key's
+	// character in `data-classicy-part="access-key"` in a menu title, a menu
+	// item or a control label; the package underlines it in the text's ink, a
+	// pixel thick, a pixel below the baseline, as Windows 95/98's DrawText
+	// draws a prefixed character (WIG Ch.7 "Menu Titles", p.106, Figure 7.4;
+	// Ch.8 "Navigation in Secondary Windows", pp.148-149).
+	it("underlines an access key in the menus, the menu bar and the control labels", () => {
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		for (const owner of [".classicyMenuItem", ".classicyControlLabel"]) {
+			const rule = block(`${owner} [data-classicy-part=access-key]`);
+			expect(rule, owner).toContain("text-decoration-line: underline");
+			expect(rule, owner).toContain("text-decoration-color: currentColor");
+			expect(rule, owner).toContain(
+				"text-decoration-thickness: var(--window-border-size)",
+			);
+			expect(rule, owner).toContain(
+				"text-underline-offset: var(--window-border-size)",
+			);
+		}
+		// One rule for every menu, the bar's titles included: not scoped to the
+		// pull-downs.
+		expect(
+			selectorsOf(css).filter((selector) =>
+				selector.endsWith(" .classicyMenuItem [data-classicy-part=access-key]"),
+			),
+		).toEqual([
+			".classicyDesktop[data-classicy-appearance=windows98] .classicyMenuItem [data-classicy-part=access-key]",
+		]);
+	});
 });

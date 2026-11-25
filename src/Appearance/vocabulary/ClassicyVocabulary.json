@@ -628,6 +628,7 @@
 			"modifier-option",
 			"modifier-shift",
 			"modifier-command",
+			"access-key",
 			"scrollbar",
 			"scroll-arrow-start",
 			"scroll-track",

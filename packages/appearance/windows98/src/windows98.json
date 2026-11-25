@@ -3791,7 +3791,10 @@
 		},
 		"menu": {
 			"submenuDelayMs": 400,
-			"disabledItems": "browse"
+			"disabledItems": "browse",
+			"accessKeys": "auto",
+			"shortcutSpelling": "names",
+			"emptySubmenus": "placeholder"
 		},
 		"desktop": {
 			"iconGridOrigin": "top-left"

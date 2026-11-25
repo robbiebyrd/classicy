@@ -213,6 +213,15 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     font-weight: bold;
   }
 
+  // An access key (the core's `access-key` part, 7.1): one character of
+  // every title and item, underlined, in the menus, the menu bar's titles and
+  // a window's own bar alike (WIG Ch.7 "Menu Titles", p.106, Figure 7.4;
+  // "Menu Item Labels", p.109). The layout's `menu.accessKeys` "auto" gives
+  // every titled item one.
+  .classicyMenuItem [data-classicy-part="access-key"] {
+    @include b.access-key;
+  }
+
   // While the pointer is over a menu it tracks the item under it alone, so
   // a keyboard-current item elsewhere in it shows plain (one open on its
   // submenu stays tracked), unless the keyboard moved the tracking last
