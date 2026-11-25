@@ -450,7 +450,14 @@ const computedPx = (value: string): number => {
 export const ClassicyTaskbarTasks: FunctionalComponent<{
 	/** Lead the band with its gripper (Quick Launch is shown beside it). */
 	gripper?: boolean;
-}> = ({ gripper = false }) => {
+	/**
+	 * The taskbar stands at a side (plan 0020-w98 E4): the buttons are
+	 * stacked, so a "row" is a column of them, measured down the band (its
+	 * height, the items' `min-height`, the list's `row-gap` and the control's
+	 * height below it), and the arrows walk the buttons up and down.
+	 */
+	vertical?: boolean;
+}> = ({ gripper = false, vertical = false }) => {
 	const entries = useClassicyWindowEntries();
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const overrides = useClassicyAppIdentityOverrides();
@@ -487,17 +494,24 @@ export const ClassicyTaskbarTasks: FunctionalComponent<{
 		let pagerWidth = 0;
 		if (pager) {
 			const style = getComputedStyle(pager);
-			pagerWidth =
-				pager.offsetWidth +
-				computedPx(style.marginLeft) +
-				computedPx(style.marginRight);
+			pagerWidth = vertical
+				? pager.offsetHeight +
+					computedPx(style.marginTop) +
+					computedPx(style.marginBottom)
+				: pager.offsetWidth +
+					computedPx(style.marginLeft) +
+					computedPx(style.marginRight);
 		}
+		const itemStyle = item ? getComputedStyle(item) : null;
+		const listStyle = getComputedStyle(list);
 		const next = classicyTaskbarTasksPerPage({
 			count,
-			listWidth: list.clientWidth,
+			listWidth: vertical ? list.clientHeight : list.clientWidth,
 			pagerWidth,
-			minWidth: item ? computedPx(getComputedStyle(item).minWidth) : 0,
-			gap: computedPx(getComputedStyle(list).columnGap),
+			minWidth: itemStyle
+				? computedPx(vertical ? itemStyle.minHeight : itemStyle.minWidth)
+				: 0,
+			gap: computedPx(vertical ? listStyle.rowGap : listStyle.columnGap),
 		});
 		const cap = next < count ? next : null;
 		setRowCap((current) => (current === cap ? current : cap));
@@ -505,7 +519,7 @@ export const ClassicyTaskbarTasks: FunctionalComponent<{
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the dependencies are the triggers (the ref reads fresh state): the buttons coming and going, and the control appearing or going
 	useLayoutEffect(() => {
 		measureRef.current();
-	}, [count, rowCap]);
+	}, [count, rowCap, vertical]);
 	useEffect(() => {
 		const list = listRef.current;
 		if (!list || typeof ResizeObserver !== "function") return;

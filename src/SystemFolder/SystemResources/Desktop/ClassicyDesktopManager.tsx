@@ -85,6 +85,10 @@ import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
+import {
+	type ClassicyTaskbarEdge,
+	isClassicyTaskbarEdge,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
 /**
@@ -261,7 +265,61 @@ export interface ClassicyStoreTaskbar {
 	 * Windows 98 remembered it ("Shutdown Setting"). Absent is Shut down;
 	 * `ClassicyDesktopTaskbarSetShutDownChoice` writes it (plan 0020-w98 E2). */
 	shutDownChoice?: ClassicyShutDownChoice;
+	/** The screen edge the taskbar is docked to (plan 0020-w98 E4), moved by
+	 * dragging the bar's empty area. Absent (the default) is the bottom, as
+	 * Windows 98 installs it; `ClassicyDesktopTaskbarSetEdge` writes it. */
+	edge?: ClassicyTaskbarEdge;
+	/** Taskbar Properties' "Always on top": the taskbar stays above every
+	 * window. Absent (the default) is on, as Windows 98 installs it; off, a
+	 * window covers it until it is pressed. `ClassicyDesktopTaskbarSetOptions`
+	 * writes it (plan 0020-w98 E4). */
+	alwaysOnTop?: boolean;
+	/** Taskbar Properties' "Auto hide": the taskbar slides off its edge,
+	 * leaving a 2 px strip, until the pointer reaches that edge. Absent (the
+	 * default) is off; `ClassicyDesktopTaskbarSetOptions` writes it. */
+	autoHide?: boolean;
+	/** Taskbar Properties' "Show small icons in Start menu": the Start menu's
+	 * first level takes small icons and no banner. Absent (the default) is
+	 * off; `ClassicyDesktopTaskbarSetOptions` writes it. */
+	smallStartMenuIcons?: boolean;
+	/** Taskbar Properties' "Show Clock": the clock in the status area. Absent
+	 * (the default) is shown; `ClassicyDesktopTaskbarSetOptions` writes it. A
+	 * host's `DateAndTime.show: false` hides it whatever this says. */
+	showClock?: boolean;
 }
+
+/**
+ * Taskbar Properties' options (plan 0020-w98 E4), as
+ * `ClassicyDesktopTaskbarSetOptions` takes them: any of them, each a boolean.
+ */
+export type ClassicyTaskbarOptions = Pick<
+	ClassicyStoreTaskbar,
+	"alwaysOnTop" | "autoHide" | "smallStartMenuIcons" | "showClock"
+>;
+
+/** The keys of `ClassicyTaskbarOptions`. */
+export const CLASSICY_TASKBAR_OPTION_KEYS: readonly (keyof ClassicyTaskbarOptions)[] =
+	["alwaysOnTop", "autoHide", "smallStartMenuIcons", "showClock"];
+
+/**
+ * Taskbar Properties' options as they stand, each with Windows 98's default
+ * when absent: Always on top and Show Clock on, Auto hide and small icons
+ * off.
+ */
+export const classicyTaskbarOptions = (
+	taskbar: ClassicyStoreTaskbar | undefined,
+): Required<ClassicyTaskbarOptions> => ({
+	alwaysOnTop: taskbar?.alwaysOnTop !== false,
+	autoHide: taskbar?.autoHide === true,
+	smallStartMenuIcons: taskbar?.smallStartMenuIcons === true,
+	showClock: taskbar?.showClock !== false,
+});
+
+/** The edge the taskbar is docked to: the stored one, else the bottom. */
+export const classicyTaskbarEdge = (
+	taskbar: ClassicyStoreTaskbar | undefined,
+): ClassicyTaskbarEdge =>
+	isClassicyTaskbarEdge(taskbar?.edge) ? taskbar.edge : "bottom";
 
 /**
  * What the Shut Down Windows dialog does (plan 0020-w98 E2), in the order
@@ -795,6 +853,34 @@ export const classicyDesktopEventHandler = (
 			if (!isClassicyShutDownChoice(action.choice)) break;
 			ds.System.Manager.Desktop.taskbar ??= {};
 			ds.System.Manager.Desktop.taskbar.shutDownChoice = action.choice;
+			break;
+		}
+		case "ClassicyDesktopTaskbarClearHistory": {
+			// Taskbar Properties' Clear (plan 0020-w98 E4): the Run dialog's
+			// history goes with Start ▸ Documents' (which is session state).
+			if (ds.System.Manager.Desktop.taskbar?.runHistory !== undefined)
+				delete ds.System.Manager.Desktop.taskbar.runHistory;
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetEdge": {
+			// Docking (plan 0020-w98 E4): written when a drag of the taskbar
+			// ends on another edge.
+			if (!isClassicyTaskbarEdge(action.edge)) break;
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.edge = action.edge;
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetOptions": {
+			// Taskbar Properties' OK and Apply (plan 0020-w98 E4): each boolean
+			// option given is written; anything else is ignored.
+			const options = action.options;
+			if (typeof options !== "object" || options === null) break;
+			for (const key of CLASSICY_TASKBAR_OPTION_KEYS) {
+				const value = (options as Record<string, unknown>)[key];
+				if (typeof value !== "boolean") continue;
+				ds.System.Manager.Desktop.taskbar ??= {};
+				ds.System.Manager.Desktop.taskbar[key] = value;
+			}
 			break;
 		}
 		case "ClassicyDesktopControlStripSetVisible": {

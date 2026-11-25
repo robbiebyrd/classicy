@@ -1,3 +1,8 @@
+import {
+	type ClassicyTaskbarBandArg,
+	classicyTaskbarInsetsOf,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+
 /**
  * A window's chrome on each side: its frame padding plus its border, which
  * sit outside the content box its inline width and height apply
@@ -24,10 +29,12 @@ export type ClassicyMaximizedWindowRectInput = {
 	 */
 	top: number;
 	/**
-	 * The taskbar's band along the desktop's bottom (`useClassicyTaskbarBand`;
-	 * 0 with no taskbar).
+	 * The taskbar's band: a number is its band along the desktop's bottom
+	 * (`useClassicyTaskbarBand`; 0 with no taskbar), else the bands on every
+	 * edge (`useClassicyTaskbarInsets`, a taskbar docked to any edge, plan
+	 * 0020-w98 E4).
 	 */
-	bottomBand: number;
+	bottomBand: ClassicyTaskbarBandArg;
 	/** The window's chrome on each side (`classicyWindowChromeEdges`). */
 	chrome: ClassicyWindowChromeEdges;
 };
@@ -53,7 +60,11 @@ export type ClassicyMaximizedWindowRect = {
  * on three sides and the taskbar covers it at the bottom.
  *
  * `position` is `[−chrome.left, top − chrome.top]` and `size` is
- * `[width, height − top − bottomBand]` (never below 0). Pure and exported, as
+ * `[width, height − top − bottomBand]` (never below 0). With a taskbar docked
+ * to another edge the work area starts past a left or top band and ends at a
+ * right one, so `position` is `[left − chrome.left, top + bandTop −
+ * chrome.top]` and the size loses every band; the frame on that side lies
+ * under the taskbar, drawn above it, as at the bottom. Pure and exported, as
  * `computeClassicyWindowResize` is, so it is unit-testable without a layout.
  */
 export const classicyMaximizedWindowRect = ({
@@ -62,11 +73,17 @@ export const classicyMaximizedWindowRect = ({
 	top,
 	bottomBand,
 	chrome,
-}: ClassicyMaximizedWindowRectInput): ClassicyMaximizedWindowRect => ({
-	// `0 - left`, not `-left`: no chrome gives 0, not -0.
-	position: [0 - chrome.left, top - chrome.top],
-	size: [Math.max(0, width), Math.max(0, height - top - bottomBand)],
-});
+}: ClassicyMaximizedWindowRectInput): ClassicyMaximizedWindowRect => {
+	const band = classicyTaskbarInsetsOf(bottomBand);
+	return {
+		// `0 - left`, not `-left`: no chrome gives 0, not -0.
+		position: [band.left - chrome.left, top + band.top - chrome.top],
+		size: [
+			Math.max(0, width - band.left - band.right),
+			Math.max(0, height - top - band.top - band.bottom),
+		],
+	};
+};
 
 /**
  * The window's chrome on each side, measured off `el`'s computed style: the

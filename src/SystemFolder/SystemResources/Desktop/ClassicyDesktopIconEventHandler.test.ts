@@ -955,6 +955,29 @@ describe("classicyDesktopIconEventHandler — Clean Up above the taskbar's band"
 		]);
 	});
 
+	// Plan 0020-w98 E4: the icons follow a taskbar docked to another edge.
+	it("starts the grid past a band docked at the left or the top", () => {
+		const before = cleanUp("top-left");
+		setClassicyTaskbarBand(60, undefined, "left");
+		expect(cleanUp("top-left")).toEqual(
+			before.map(([x, y]) => [x + 60, y] as [number, number]),
+		);
+		setClassicyTaskbarBand(28, undefined, "top");
+		const below = cleanUp("top-left");
+		expect(firstColumn(below)).toEqual([
+			60, 132, 204, 276, 348, 420, 492, 564, 636,
+		]);
+		expect(below.every(([x]) => x < 1024)).toBe(true);
+		setClassicyTaskbarBand(0, undefined, "top");
+	});
+
+	it("keeps a right origin's columns left of a band docked at the right", () => {
+		setClassicyTaskbarBand(60, undefined, "right");
+		for (const [x] of cleanUp("top-right"))
+			expect(x + CELL).toBeLessThanOrEqual(1024 - 60);
+		setClassicyTaskbarBand(0, undefined, "right");
+	});
+
 	it("keeps one row on screen when the band leaves room for none", () => {
 		setViewport(1024, 120);
 		setClassicyTaskbarBand(28);

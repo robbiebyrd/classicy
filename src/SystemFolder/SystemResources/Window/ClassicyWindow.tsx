@@ -71,7 +71,12 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
-import { useClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import {
+	type ClassicyTaskbarBandArg,
+	classicyTaskbarHasBand,
+	classicyTaskbarInsetsOf,
+	useClassicyTaskbarInsets,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import {
 	classicyModalOpensInBackground,
@@ -134,20 +139,34 @@ export type ClassicyWindowSizeDimension = number | `${number}%`;
 // taskbar). The same functions keep it out of the room, so a window keeps to
 // the work area (WIG Ch.6, p.84: "excluding the space used by the taskbar"),
 // and every one defaults it to 0, so a desktop with no taskbar computes what
-// it always computed.
-const windowViewportFloor = (menuBarHeight: number): [number, number] => [
-	0,
-	menuBarHeight,
-];
+// it always computed. A taskbar docked to another edge (plan 0020-w98 E4)
+// takes its band there instead: the same functions take the insets on every
+// edge (`ClassicyTaskbarBandArg`, a number being the bottom's), the floor
+// moving right of a left taskbar and below a top one, the room and the
+// ceiling stopping at a right one's left edge.
+const windowViewportFloor = (
+	menuBarHeight: number,
+	band: ClassicyTaskbarBandArg = 0,
+): [number, number] => {
+	const { left, top } = classicyTaskbarInsetsOf(band);
+	return [left, menuBarHeight + top];
+};
 
 // The largest right/bottom a resize that moves the right or bottom edge may
 // reach (`computeClassicyWindowResize`'s `ceiling`): no limit across, and the
 // taskbar's top down, the bottom clampWindowPositionToViewport keeps a window
 // above, so the resize and the release clamp agree.
-const windowViewportCeiling = (bottomBand: number): [number, number] => [
-	Number.POSITIVE_INFINITY,
-	(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand,
-];
+const windowViewportCeiling = (
+	band: ClassicyTaskbarBandArg,
+): [number, number] => {
+	const { right, bottom } = classicyTaskbarInsetsOf(band);
+	return [
+		right > 0
+			? (typeof window !== "undefined" ? window.innerWidth : 800) - right
+			: Number.POSITIVE_INFINITY,
+		(typeof window !== "undefined" ? window.innerHeight : 600) - bottom,
+	];
+};
 
 // The largest right/bottom a frame-edge sizing drag may reach
 // (`computeClassicyWindowEdgeResize`'s `ceiling`): the work area's right and
@@ -156,10 +175,15 @@ const windowViewportCeiling = (bottomBand: number): [number, number] => [
 // area (Wine's `sys_command_size_move` clips it to the monitor's `rcWork`),
 // so an edge never passes it; and the release clamp keeps a window inside
 // the same box, so it never moves a window the user has just sized.
-const windowWorkAreaCeiling = (bottomBand: number): [number, number] => [
-	typeof window !== "undefined" ? window.innerWidth : 800,
-	(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand,
-];
+const windowWorkAreaCeiling = (
+	band: ClassicyTaskbarBandArg,
+): [number, number] => {
+	const { right, bottom } = classicyTaskbarInsetsOf(band);
+	return [
+		(typeof window !== "undefined" ? window.innerWidth : 800) - right,
+		(typeof window !== "undefined" ? window.innerHeight : 600) - bottom,
+	];
+};
 
 // The eight corner arms of a sizing border (`layout.window.frameEdges:
 // "resize"`), each `[corner, arm]`: `h` lies along the top or bottom edge,
@@ -328,24 +352,30 @@ const themeMenuBarHeight = (
 // render path passes the value it already read, so no render forces a style
 // read (ClassicyWindow reads it once per theme and menu-bar placement).
 // `bottomBand` (default 0) is the taskbar's band along the desktop's bottom: a
-// percentage height is a share of the room left between the two bands.
+// percentage height is a share of the room left between the two bands. Given
+// as insets (a taskbar docked to another edge), a side band comes off the
+// width a percentage width is a share of, and a top band off the height.
 export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
-	bottomBand = 0,
+	bottomBand: ClassicyTaskbarBandArg = 0,
 ): [number, number] {
+	const band = classicyTaskbarInsetsOf(bottomBand);
 	const desktop =
 		typeof document !== "undefined"
 			? document.getElementById("classicyDesktop")
 			: null;
 	const dw =
-		desktop?.clientWidth ??
-		(typeof window !== "undefined" ? window.innerWidth : 800);
+		(desktop?.clientWidth ??
+			(typeof window !== "undefined" ? window.innerWidth : 800)) -
+		band.left -
+		band.right;
 	const dh =
 		(desktop?.clientHeight ??
 			(typeof window !== "undefined" ? window.innerHeight : 600)) -
 		menuBarHeight -
-		bottomBand;
+		band.top -
+		band.bottom;
 
 	const resolve = (dim: ClassicyWindowSizeDimension, max: number): number => {
 		if (typeof dim === "number") return dim;
@@ -407,40 +437,47 @@ export type ClassicyWindowCentering = NonNullable<
  * is odd), or, with `centering` `"wholePixel"`, rounded to a whole pixel.
  * `bottomBand` (default 0) is the taskbar's band along the bottom: a
  * `"center"` y centers within the height above it, and `"bottom"` sits on it.
+ * Given as insets (a taskbar docked to another edge), every axis keeps to
+ * the work area the bands leave: `"left"` and `"top"` start past a left or
+ * top band, `"right"` ends at a right one.
  */
 export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
 	centering: ClassicyWindowCentering = "exact",
-	bottomBand = 0,
+	bottomBand: ClassicyTaskbarBandArg = 0,
 ): [number, number] {
+	const band = classicyTaskbarInsetsOf(bottomBand);
 	const center = (free: number) =>
 		centering === "wholePixel" ? Math.round(free / 2) : free / 2;
-	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+	const vw =
+		(typeof window !== "undefined" ? window.innerWidth : 800) - band.right;
 	const vh =
-		(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand;
+		(typeof window !== "undefined" ? window.innerHeight : 600) - band.bottom;
+	const minX = band.left;
+	const minY = menuBarHeight + band.top;
 
 	let x: number;
 	if (typeof pos[0] === "number") {
 		x = pos[0];
 	} else if (pos[0] === "left") {
-		x = 0;
+		x = minX;
 	} else if (pos[0] === "right") {
-		x = Math.max(0, vw - windowSize[0]);
+		x = Math.max(minX, vw - windowSize[0]);
 	} else {
-		x = Math.max(0, center(vw - windowSize[0]));
+		x = Math.max(minX, minX + center(vw - minX - windowSize[0]));
 	}
 
 	let y: number;
 	if (typeof pos[1] === "number") {
 		y = pos[1];
 	} else if (pos[1] === "top") {
-		y = menuBarHeight;
+		y = minY;
 	} else if (pos[1] === "bottom") {
-		y = Math.max(menuBarHeight, vh - windowSize[1]);
+		y = Math.max(minY, vh - windowSize[1]);
 	} else {
-		y = Math.max(menuBarHeight, center(vh - windowSize[1]));
+		y = Math.max(minY, band.top + center(vh - band.top - windowSize[1]));
 	}
 
 	return [x, y];
@@ -454,17 +491,22 @@ export function resolvePosition(
  * without a real ResizeObserver. `bottomBand` (default 0) is the taskbar's
  * band along the bottom, which the window then stays above: `y` is capped at
  * `innerHeight − bottomBand − height`, never above the menu bar's floor.
+ * Given as insets (a taskbar docked to another edge), the window keeps to
+ * the work area on every side: right of a left band, below a top one, left
+ * of a right one.
  */
 export function clampWindowPositionToViewport(
 	position: [number, number],
 	windowSize: [number, number],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
-	bottomBand = 0,
+	bottomBand: ClassicyTaskbarBandArg = 0,
 ): [number, number] {
-	const [minX, minY] = windowViewportFloor(menuBarHeight);
-	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+	const band = classicyTaskbarInsetsOf(bottomBand);
+	const [minX, minY] = windowViewportFloor(menuBarHeight, band);
+	const vw =
+		(typeof window !== "undefined" ? window.innerWidth : 800) - band.right;
 	const vh =
-		(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand;
+		(typeof window !== "undefined" ? window.innerHeight : 600) - band.bottom;
 
 	const maxX = Math.max(minX, vw - windowSize[0]);
 	const maxY = Math.max(minY, vh - windowSize[1]);
@@ -979,11 +1021,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		),
 	);
 	const menuBarPlacement = layout.menuBar.placement;
-	// The taskbar's band along the desktop's bottom (0 with no taskbar, so
-	// every package without one computes what it always did): the geometry
-	// below keeps it out of the room it gives the window, and a re-render on
-	// its change re-clamps every record above it.
-	const taskbarBand = useClassicyTaskbarBand();
+	// The taskbar's bands on every edge (none with no taskbar, so every
+	// package without one computes what it always did; plan 0020-w98 E4 docks
+	// it to any edge): the geometry below keeps them out of the room it gives
+	// the window, and a re-render on their change re-clamps every record into
+	// the work area.
+	const taskbarBand = useClassicyTaskbarInsets();
 	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the placement, not the whole layout: only the placement changes --menu-bar-height
 	useLayoutEffect(() => {
 		setMenuBarHeight(
@@ -1745,12 +1788,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				resolvedMinimumSize[0],
 				collapsedOrMinimized ? 0 : resolvedMinimumSize[1],
 			],
-			windowViewportFloor(menuBarHeight),
+			windowViewportFloor(menuBarHeight, taskbarBand),
 			// The taskbar's top, which the release clamp keeps the window
 			// above: given only while a band is published (undefined takes the
 			// default, no limit), so a desktop with no taskbar resizes with
 			// today's numbers.
-			taskbarBand > 0 ? windowViewportCeiling(taskbarBand) : undefined,
+			classicyTaskbarHasBand(taskbarBand)
+				? windowViewportCeiling(taskbarBand)
+				: undefined,
 		);
 		pendingSizeRef.current = size;
 		const el = windowRef.current;
@@ -1781,7 +1826,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			[clientX, clientY],
 			chromeRef.current,
 			resolvedMinimumSize,
-			windowViewportFloor(menuBarHeight),
+			windowViewportFloor(menuBarHeight, taskbarBand),
 			windowWorkAreaCeiling(taskbarBand),
 			edgeResize.maximum,
 		);
@@ -2291,10 +2336,21 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// The room is the work area: below the menu bar, above the taskbar.
 		const el = windowRef.current;
 		const [chromeW, chromeH] = el ? classicyWindowChromeSize(el) : [0, 0];
-		const stdW = Math.max(resolvedMinimumSize[0], dw - margin * 2 - chromeW);
+		// A docked taskbar's band comes off the edge it lies on.
+		const bandLeft = taskbarBand.left;
+		const bandTop = menuBarHeight + taskbarBand.top;
+		const stdW = Math.max(
+			resolvedMinimumSize[0],
+			dw - taskbarBand.left - taskbarBand.right - margin * 2 - chromeW,
+		);
 		const stdH = Math.max(
 			resolvedMinimumSize[1],
-			dh - menuBarHeight - taskbarBand - margin * 2 - chromeH,
+			dh -
+				menuBarHeight -
+				taskbarBand.top -
+				taskbarBand.bottom -
+				margin * 2 -
+				chromeH,
 		);
 
 		// The axis a one-way zoom keeps is the size the window already applies,
@@ -2305,11 +2361,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const curTop = Math.round(rect?.top ?? ws.position[1]);
 
 		if (zoomMode === "horizontal") {
-			return { position: [margin, curTop], size: [stdW, curH] };
+			return { position: [bandLeft + margin, curTop], size: [stdW, curH] };
 		}
 		if (zoomMode === "vertical") {
 			return {
-				position: [curLeft, menuBarHeight + margin],
+				position: [curLeft, bandTop + margin],
 				size: [curW, stdH],
 			};
 		}
@@ -2354,7 +2410,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			}
 		}
 		return {
-			position: [margin, menuBarHeight + margin],
+			position: [bandLeft + margin, bandTop + margin],
 			size: [targetW, targetH],
 		};
 	};
@@ -2728,7 +2784,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			mode.travel,
 			mode.chrome,
 			resolvedMinimumSize,
-			windowViewportFloor(menuBarHeight),
+			windowViewportFloor(menuBarHeight, taskbarBand),
 			windowWorkAreaCeiling(taskbarBand),
 			mode.maximum,
 		);

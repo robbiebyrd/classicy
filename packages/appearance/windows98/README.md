@@ -108,8 +108,19 @@ and `nodenext` resolution).
     Windows, Tile Windows Horizontally (one above another) and Tile
     Windows Vertically (side by side), Minimize All Windows, then Undo
     Cascade, Undo Tile or Undo Minimize All to put the windows back, and
-    Properties, which opens the Control Strip control panel; right-click
-    the clock for Adjust Date/Time first.
+    Properties; right-click the clock for Adjust Date/Time first.
+  - **Taskbar Properties** (the taskbar menu's Properties, or Start ▸
+    Settings ▸ Taskbar & Start Menu, the Control Strip control panel under
+    Windows' name) offers Always on top (off, windows cover the taskbar
+    until you click it), Auto hide (it slides off its edge, leaving a thin
+    strip, and slides back when the pointer reaches that edge), Show small
+    icons in Start menu (small icons and no banner) and Show Clock, applied
+    on OK or Apply; its Start Menu Programs page's Clear empties Start ▸
+    Documents and the Run history.
+  - **Drag the taskbar** by an empty part of it to the top, left or right
+    edge of the screen, or back to the bottom; at a side its buttons stack.
+    Windows, maximized windows, desktop icons and menus keep clear of it
+    wherever it is, and it stays where you leave it.
 
   The Minimize button sends a window to its taskbar button, and the next
   window on screen takes the focus; an application's palettes leave the

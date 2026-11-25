@@ -100,6 +100,16 @@ const windows98Defaults =
 		(theme) => theme.id === windows98JsonSource.defaults.id,
 	) ?? windows98Theme(windows98JsonSource.defaults as unknown as ClassicyTheme);
 
+/**
+ * The apps Windows 98 shows by another name (the package's `apps`): the
+ * Control Strip control panel, whose face under the Windows shell is
+ * Taskbar Properties (plan 0020-w98 E4), is Windows 98's "Taskbar & Start
+ * Menu", as Start ▸ Settings and the Control Panels folder list it.
+ */
+export const WINDOWS98_APP_IDENTITIES = deepFreeze({
+	"ControlStripManager.app": { name: "Taskbar & Start Menu" },
+});
+
 // No hooks: the package plays no interface feedback (Windows' sounds are
 // Microsoft's) and decorates nothing. No screen savers: it names none, so the
 // Screen Saver control panel reads "This appearance has no screen savers."
@@ -115,4 +125,5 @@ registerClassicyAppearancePackage({
 	options: classicyKnobsToSchema(windows98JsonSource.knobs),
 	layout: windows98JsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [windows98SoundPack],
+	apps: WINDOWS98_APP_IDENTITIES,
 });

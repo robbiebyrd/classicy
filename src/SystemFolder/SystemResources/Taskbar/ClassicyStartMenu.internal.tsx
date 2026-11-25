@@ -17,7 +17,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
-import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
+import type {
+	ClassicyBevelPopupRect,
+	ClassicyBevelPopupSide,
+} from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import {
 	getClassicyFileSystemVersion,
@@ -54,6 +57,19 @@ type ClassicyStartMenuProps = {
 	onClose: () => void;
 	/** The signed-in user's name, for Log Off <name>… (E2); absent, no Log Off. */
 	userName?: string;
+	/**
+	 * The side of the Start button it opens on, toward the desktop (plan
+	 * 0020-w98 E4): `"below"` (the default, flipping above from a bottom
+	 * taskbar), or `"right"` beside a side taskbar (flipping left from a
+	 * right one).
+	 */
+	side?: ClassicyBevelPopupSide;
+	/**
+	 * Taskbar Properties' "Show small icons in Start menu": the first level
+	 * takes small icons (`classicyStartMenuSmallIcons`) and no banner, as
+	 * Windows 98's does.
+	 */
+	smallIcons?: boolean;
 };
 
 /**
@@ -201,9 +217,11 @@ const useClassicyStartMenuItems = (userName: string | undefined) => {
 
 /**
  * The Start menu: a pop-up surface (`ClassicyBevelButtonPopup`,
- * `classicyStartMenu`) placed against the Start button: below it where there
- * is room, else, as at the foot of the desktop, flipped above it onto the
- * taskbar band's top edge (the menu bounds end there), on whole pixels inside
+ * `classicyStartMenu`) placed against the Start button, toward the desktop:
+ * beside it to the right from a side taskbar (`side`, flipping left from a
+ * right one), else below it where there is room (from a top taskbar, on the
+ * band's bottom edge), else, as at the foot of the desktop, flipped above it
+ * onto the taskbar band's top edge (the menu bounds end there), on whole pixels inside
  * the desktop, its menu's scroll cap keeping no margin from that edge
  * (`menuScrollMargin`), so it is drawn whole wherever it fits. The layout's
  * `startBanner`, when it has one, is the surface's first child
@@ -225,28 +243,37 @@ export const ClassicyStartMenu: FunctionalComponent<ClassicyStartMenuProps> = ({
 	banner,
 	onClose,
 	userName,
+	side = "below",
+	smallIcons = false,
 }) => {
 	const menuItems = useClassicyStartMenuItems(userName);
 
-	const aside = banner ? (
-		<div
-			className="classicyStartMenuBanner"
-			{...{ [CLASSICY_PART_ATTRIBUTE.part]: "start-menu-banner" }}
-			aria-hidden="true"
-		>
-			<span className="classicyStartMenuBannerTitle">{banner.title}</span>
-			{banner.edition !== undefined && (
-				<span className="classicyStartMenuBannerEdition">{banner.edition}</span>
-			)}
-		</div>
-	) : undefined;
+	const aside =
+		banner && !smallIcons ? (
+			<div
+				className="classicyStartMenuBanner"
+				{...{ [CLASSICY_PART_ATTRIBUTE.part]: "start-menu-banner" }}
+				aria-hidden="true"
+			>
+				<span className="classicyStartMenuBannerTitle">{banner.title}</span>
+				{banner.edition !== undefined && (
+					<span className="classicyStartMenuBannerEdition">
+						{banner.edition}
+					</span>
+				)}
+			</div>
+		) : undefined;
 
 	return (
 		<ClassicyBevelButtonPopup
 			id={CLASSICY_START_MENU_ID}
-			className="classicyStartMenu"
+			className={
+				smallIcons
+					? "classicyStartMenu classicyStartMenuSmallIcons"
+					: "classicyStartMenu"
+			}
 			anchor={anchor}
-			side="below"
+			side={side}
 			align="start"
 			menuItems={menuItems}
 			label={label}

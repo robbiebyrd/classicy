@@ -89,7 +89,7 @@ export const useClassicyRecentDocuments = (): readonly string[] =>
 		getClassicyRecentDocuments,
 	);
 
-/** Empties the list (tests; a fresh session starts empty). */
+/** Empties the list: Taskbar Properties' Clear (plan 0020-w98 E4), and tests (a fresh session starts empty). */
 export const resetClassicyRecentDocuments = (): void => {
 	if (recent.length > 0) publish([]);
 };

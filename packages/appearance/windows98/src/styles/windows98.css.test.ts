@@ -561,6 +561,66 @@ describe("windows98.scss (compiled)", () => {
 			expect(bar).toContain("font-size: var(--ui-font-size)");
 		});
 
+		// Plan 0020-w98 E4: docked to another edge, the raised edge lies on
+		// the side facing the desktop (DrawEdge EDGE_RAISED on that side: its
+		// bottom and right rows dark, its top and left light), and down a side
+		// the bar is the Start button's width with its edge and margins, the
+		// regions stacked.
+		it("draws the bar's raised edge on the side facing the desktop on every edge", () => {
+			const top = block("=windows98] .classicyTaskbar.classicyTaskbarEdgeTop");
+			expect(top).toContain(
+				`padding: ${B2} ${B2} calc(var(--taskbar-height) - var(--taskbar-button-height) - ${B2})`,
+			);
+			expect(top).toContain(
+				`box-shadow: inset 0 ${NEG_B} var(--color-system-07), inset 0 ${NEG_B2} var(--color-system-05)`,
+			);
+			const left = block(
+				"=windows98] .classicyTaskbar.classicyTaskbarEdgeLeft",
+			);
+			expect(left).toContain(
+				`padding: ${B2} calc(var(--taskbar-height) - var(--taskbar-button-height) - ${B2}) ${B2} ${B2}`,
+			);
+			expect(left).toContain(
+				`box-shadow: inset ${NEG_B} 0 var(--color-system-07), inset ${NEG_B2} 0 var(--color-system-05)`,
+			);
+			const right = block(
+				"=windows98] .classicyTaskbar.classicyTaskbarEdgeRight",
+			);
+			expect(right).toContain(
+				`padding: ${B2} ${B2} ${B2} calc(var(--taskbar-height) - var(--taskbar-button-height) - ${B2})`,
+			);
+			expect(right).toContain(
+				`box-shadow: inset ${B} 0 var(--color-system-02), inset ${B2} 0 var(--color-system-01)`,
+			);
+			const side = block(
+				"=windows98] .classicyTaskbar.classicyTaskbarVertical",
+			);
+			expect(side).toContain(
+				"width: calc(var(--taskbar-start-button-width) + var(--taskbar-height) - var(--taskbar-button-height))",
+			);
+			expect(side).toContain("height: auto");
+		});
+
+		it("stacks the regions down a side taskbar, each window button the buttons' height", () => {
+			const item = block(
+				"=windows98] .classicyTaskbarVertical .classicyTaskbarTasksPaged > li",
+			);
+			expect(item).toContain("flex: 0 0 auto");
+			expect(item).toContain("min-height: var(--taskbar-button-height)");
+			expect(
+				block("=windows98] .classicyTaskbarVertical .classicyTaskbarStart"),
+			).toContain("margin-bottom: var(--taskbar-start-gap)");
+			const gripper = block(
+				"=windows98] .classicyTaskbarVertical .classicyTaskbarGripper",
+			);
+			expect(gripper).toContain("height: var(--taskbar-gripper-width)");
+			const clock = block(
+				"=windows98] .classicyTaskbarVertical .classicyTaskbarClock",
+			);
+			expect(clock).toContain("width: 100%");
+			expect(clock).toContain("height: var(--taskbar-button-height)");
+		});
+
 		// The Start button: a raised push button at least 54 wide, 22 tall,
 		// its label bold, the gap before the window buttons; pushed in while
 		// its menu is open, the contents a pixel down and right, never the
@@ -954,6 +1014,22 @@ describe("windows98.scss (compiled)", () => {
 			);
 			expect(submenuIcon).toContain("width: var(--icon-small-size)");
 			expect(submenuIcon).toContain("height: var(--icon-small-size)");
+		});
+
+		// Plan 0020-w98 E4: "Show small icons in Start menu" gives the first
+		// level a submenu's rows and 16 px icons.
+		it("gives the first level a submenu's rows and icons under small icons", () => {
+			const small =
+				".classicyStartMenu.classicyStartMenuSmallIcons > .classicyMenuWrapper > .classicyContextMenu";
+			const row = block(`=windows98] ${small} > .classicyMenuItem`);
+			expect(row).toContain("height: auto");
+			expect(row).toContain(
+				"padding: calc(var(--pixel-unit) * 3) var(--menu-item-padding-x)",
+			);
+			const icon = block(`${small} > .classicyMenuItem > p > img`);
+			expect(icon).toContain("width: var(--icon-small-size)");
+			expect(icon).toContain("height: var(--icon-small-size)");
+			expect(icon).toContain("margin-right: var(--layout-item-gap)");
 		});
 
 		// A tray icon's panel (the Sound slider) wears the dialog frame, as

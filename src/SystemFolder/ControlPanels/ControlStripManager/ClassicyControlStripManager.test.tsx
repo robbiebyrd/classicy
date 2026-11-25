@@ -1,6 +1,16 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+import {
+	registerTestTaskbarPackage,
+	TEST_TASKBAR_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
@@ -8,7 +18,10 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
-import { ClassicyControlStripManager } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
+import {
+	CLASSICY_TASKBAR_PROPERTIES_TITLE,
+	ClassicyControlStripManager,
+} from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
 import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import {
@@ -17,7 +30,16 @@ import {
 	setClassicyControlStripDisabledModules,
 	unregisterClassicyControlStripModule,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+import {
+	getClassicyRecentDocuments,
+	noteClassicyRecentDocument,
+	resetClassicyRecentDocuments,
+} from "@/SystemFolder/SystemResources/File/ClassicyRecentDocuments.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	CLASSICY_TASKBAR_PROPERTIES_CLEAR_TEXT,
+	CLASSICY_TASKBAR_PROPERTIES_OPTIONS,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarProperties.internal";
 
 const WINDOW_ID = "ControlStripManager_1";
 const TEST_IDS = ["cp-alpha", "cp-beta", "cp-gamma"];
@@ -161,5 +183,90 @@ describe("ClassicyControlStripManager under a renaming package", () => {
 		act(() => shown.click());
 		expect(strip()?.hiddenModules).toEqual(["cp-owned"]);
 		expect(optionLabels()).toContain("Owner Display (Hidden)");
+	});
+});
+
+// Plan 0020-w98 E4: under the Windows shell the panel is Taskbar Properties.
+describe("ClassicyControlStripManager under a taskbar", () => {
+	beforeEach(() => {
+		registerTestTaskbarPackage();
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: TEST_TASKBAR_PACKAGE_ID,
+			}),
+		);
+	});
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+		resetClassicyRecentDocuments();
+	});
+
+	const taskbar = () => useAppManager.getState().System.Manager.Desktop.taskbar;
+	const checkbox = (name: string) =>
+		screen.getByRole("checkbox", { name }) as HTMLInputElement;
+	const button = (name: string) => screen.getByRole("button", { name });
+
+	it("is the Taskbar Properties window, its options as Windows 98 installs them", () => {
+		renderOpen();
+		expect(screen.getByText(CLASSICY_TASKBAR_PROPERTIES_TITLE)).toBeTruthy();
+		expect(screen.queryByText("Show Control Strip")).toBeNull();
+		expect(screen.getByRole("tab", { name: "Taskbar Options" })).toBeTruthy();
+		expect(
+			screen.getByRole("tab", { name: "Start Menu Programs" }),
+		).toBeTruthy();
+		expect(
+			CLASSICY_TASKBAR_PROPERTIES_OPTIONS.map(({ label }) => [
+				label,
+				checkbox(label).checked,
+			]),
+		).toEqual([
+			["Always on top", true],
+			["Auto hide", false],
+			["Show small icons in Start menu", false],
+			["Show Clock", true],
+		]);
+		expect(button("Apply")).toBeDisabled();
+	});
+
+	it("stores its choices on Apply and OK, and none on Cancel", () => {
+		renderOpen();
+		fireEvent.click(checkbox("Auto hide"));
+		expect(taskbar()?.autoHide).toBeUndefined();
+		expect(button("Apply")).not.toBeDisabled();
+		fireEvent.click(button("Apply"));
+		expect(taskbar()?.autoHide).toBe(true);
+		expect(button("Apply")).toBeDisabled();
+		fireEvent.click(checkbox("Show Clock"));
+		fireEvent.click(button("OK"));
+		expect(taskbar()?.showClock).toBe(false);
+		cleanup();
+		renderOpen();
+		expect(taskbar()?.alwaysOnTop).toBe(true);
+		fireEvent.click(checkbox("Always on top"));
+		fireEvent.click(button("Cancel"));
+		expect(taskbar()?.alwaysOnTop).toBe(true);
+	});
+
+	it("clears Start ▸ Documents and the Run history", () => {
+		noteClassicyRecentDocument("Macintosh HD:Plan.txt");
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopTaskbarAddRunCommand",
+				command: "calc",
+			}),
+		);
+		renderOpen();
+		const tab = screen.getByRole("tab", { name: "Start Menu Programs" });
+		fireEvent.mouseDown(tab);
+		fireEvent.mouseUp(tab);
+		fireEvent.click(tab);
+		expect(
+			screen.getByText(CLASSICY_TASKBAR_PROPERTIES_CLEAR_TEXT),
+		).toBeTruthy();
+		fireEvent.click(button("Clear"));
+		expect(getClassicyRecentDocuments()).toEqual([]);
+		expect(taskbar()?.runHistory).toBeUndefined();
+		expect(button("Clear")).toBeDisabled();
 	});
 });

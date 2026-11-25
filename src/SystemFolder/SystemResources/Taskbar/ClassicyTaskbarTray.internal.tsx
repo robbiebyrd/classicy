@@ -16,7 +16,10 @@ import {
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
-import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
+import type {
+	ClassicyBevelPopupRect,
+	ClassicyBevelPopupSide,
+} from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
 	arrangeClassicyControlStripModules,
@@ -149,7 +152,8 @@ type TraySurface = {
  */
 const ClassicyTaskbarTrayIcon: FunctionalComponent<{
 	module: ClassicyControlStripModuleDefinition;
-}> = ({ module }) => {
+	popupSide: ClassicyBevelPopupSide;
+}> = ({ module, popupSide }) => {
 	const overrides = useClassicyAppIdentityOverrides();
 	const dispatch = useAppManagerDispatch();
 	const { showContextMenu } = useClassicyContextualMenu();
@@ -286,9 +290,11 @@ const ClassicyTaskbarTrayIcon: FunctionalComponent<{
 					id={popupId}
 					className="classicyTaskbarTrayPopup"
 					anchor={surface.anchor}
-					// Below where there is room; the menu bounds end at the
-					// taskbar's band, so from the tray it flips above the icon.
-					side="below"
+					// Toward the desktop: below where there is room, and the menu
+					// bounds end at the taskbar's band, so from a bottom tray it
+					// flips above the icon; beside a side taskbar (`popupSide`
+					// "right", flipping left from a right one).
+					side={popupSide}
 					// A menu starts at the icon's edge; a panel (the slider) is
 					// centered on it, as on the Control Strip.
 					align={opensContent ? "center" : "start"}
@@ -336,7 +342,20 @@ export const ClassicyTaskbarTray: FunctionalComponent<{
 		at: [number, number],
 		leading?: readonly ClassicyMenuItem[],
 	) => void;
-}> = ({ disabledModules, hideModules = false, showTaskbarMenu }) => {
+	/**
+	 * The side the icons' pop-ups open on (`"below"`, flipping above, unless
+	 * the taskbar stands at a side: `"right"`, flipping left).
+	 */
+	popupSide?: ClassicyBevelPopupSide;
+	/** Draw the clock (Taskbar Properties' "Show Clock"); default true. */
+	showClock?: boolean;
+}> = ({
+	disabledModules,
+	hideModules = false,
+	showTaskbarMenu,
+	popupSide = "below",
+	showClock = true,
+}) => {
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
 	const stored = useAppManager((s) => s.System.Manager.Desktop.controlStrip);
@@ -358,7 +377,10 @@ export const ClassicyTaskbarTray: FunctionalComponent<{
 			<ul className="classicyTaskbarTrayIcons">
 				{shown.map(({ definition, revision }) => (
 					<li key={`${definition.id}:${revision}`}>
-						<ClassicyTaskbarTrayIcon module={definition} />
+						<ClassicyTaskbarTrayIcon
+							module={definition}
+							popupSide={popupSide}
+						/>
 					</li>
 				))}
 			</ul>
@@ -369,7 +391,7 @@ export const ClassicyTaskbarTray: FunctionalComponent<{
 				className="classicyDesktopMenuExtensions classicyTaskbarTrayExtensions"
 				data-classicy-part="extensions"
 			/>
-			<ClassicyTaskbarClock showTaskbarMenu={showTaskbarMenu} />
+			{showClock && <ClassicyTaskbarClock showTaskbarMenu={showTaskbarMenu} />}
 		</div>
 	);
 };

@@ -4,6 +4,7 @@ import {
 	useClassicyAppIdentityOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -34,11 +35,17 @@ import {
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
+import { ClassicyTaskbarProperties } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarProperties.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const APP_ID = CONTROL_STRIP_MANAGER_APP_ID;
 const APP_NAME = CONTROL_STRIP_MANAGER_APP_NAME;
 const WINDOW_ID = "ControlStripManager_1";
+/** Its window under the Windows shell: Taskbar Properties (plan 0020-w98 E4). */
+const TASKBAR_WINDOW_ID = "ControlStripManager_taskbar";
+
+/** Taskbar Properties' title, Windows 98's. */
+export const CLASSICY_TASKBAR_PROPERTIES_TITLE = "Taskbar Properties";
 
 /**
  * The Control Strip control panel: show or hide the strip, and choose which
@@ -47,6 +54,13 @@ const WINDOW_ID = "ControlStripManager_1";
  *
  * Everything it edits lives in `System.Manager.Desktop.controlStrip` and
  * persists with the desktop.
+ *
+ * Under a layout that declares `taskbar` (the Windows shell, plan 0020-w98
+ * E4) there is no Control Strip: the panel is Taskbar Properties
+ * (`ClassicyTaskbarProperties`, its window "Taskbar Properties"), which the
+ * taskbar's menu's Properties opens, and the Windows 98 package names the
+ * panel "Taskbar & Start Menu" (its `apps` override), as Start ▸ Settings
+ * lists it. Its options persist in `System.Manager.Desktop.taskbar`.
  */
 export function ClassicyControlStripManager() {
 	const dispatch = useAppManagerDispatch();
@@ -88,6 +102,7 @@ export function ClassicyControlStripManager() {
 	const ids = modules.map((m) => m.id);
 
 	const [selectedId, setSelectedId] = useState<string | undefined>();
+	const taskbar = useClassicyAppearanceLayout().taskbar !== undefined;
 	const selected = modules.find((m) => m.id === selectedId) ?? modules[0];
 	const index = selected ? ids.indexOf(selected.id) : -1;
 	const selectedHidden = selected ? hiddenModules.includes(selected.id) : false;
@@ -111,127 +126,154 @@ export function ClassicyControlStripManager() {
 			id={APP_ID}
 			name={APP_NAME}
 			icon={appIcon}
-			defaultWindow={WINDOW_ID}
+			defaultWindow={taskbar ? TASKBAR_WINDOW_ID : WINDOW_ID}
 			showDesktopIcon={false}
 			showInApplicationsFolder={false}
 			addSystemMenu={true}
 		>
-			<ClassicyWindow
-				id={WINDOW_ID}
-				title={identity.name}
-				appId={APP_ID}
-				icon={identity.icon}
-				closable={true}
-				resizable={false}
-				zoomable={false}
-				scrollable={false}
-				collapsable={false}
-				initialSize={[360, 0]}
-				initialPosition={[340, 100]}
-				modal={false}
-				backgroundColor="var(--color-system-03)"
-				appMenu={[
-					{
-						id: `${APP_ID}_file`,
-						title: "File",
-						menuChildren: [
-							{ ...aboutMenuItem, title: `About ${APP_NAME}` },
-							{
-								...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
-									windowClose(
-										WINDOW_ID,
-										quitAppHelper(APP_ID, APP_NAME, appIcon),
+			{taskbar ? (
+				<ClassicyWindow
+					id={TASKBAR_WINDOW_ID}
+					title={CLASSICY_TASKBAR_PROPERTIES_TITLE}
+					appId={APP_ID}
+					icon={identity.icon}
+					closable={true}
+					resizable={false}
+					zoomable={false}
+					scrollable={false}
+					collapsable={false}
+					initialSize={[360, 0]}
+					initialPosition={["center", "center"]}
+					modal={false}
+					backgroundColor="var(--color-system-03)"
+				>
+					<ClassicyTaskbarProperties
+						onClose={() =>
+							windowClose(
+								TASKBAR_WINDOW_ID,
+								quitAppHelper(APP_ID, APP_NAME, appIcon),
+							)
+						}
+					/>
+				</ClassicyWindow>
+			) : (
+				<ClassicyWindow
+					id={WINDOW_ID}
+					title={identity.name}
+					appId={APP_ID}
+					icon={identity.icon}
+					closable={true}
+					resizable={false}
+					zoomable={false}
+					scrollable={false}
+					collapsable={false}
+					initialSize={[360, 0]}
+					initialPosition={[340, 100]}
+					modal={false}
+					backgroundColor="var(--color-system-03)"
+					appMenu={[
+						{
+							id: `${APP_ID}_file`,
+							title: "File",
+							menuChildren: [
+								{ ...aboutMenuItem, title: `About ${APP_NAME}` },
+								{
+									...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
+										windowClose(
+											WINDOW_ID,
+											quitAppHelper(APP_ID, APP_NAME, appIcon),
+										),
 									),
-								),
-								keyboardShortcut: "⌥W",
-							},
-							{ id: "spacer" },
-							{
-								...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
-								keyboardShortcut: "⌥Q",
-							},
-						],
-					},
-				]}
-			>
-				<div style={{ padding: "var(--window-padding-size)" }}>
-					<ClassicyControlGroup label="Control Strip">
-						<ClassicyCheckbox
-							id="ControlStripManager_visible"
-							label="Show Control Strip"
-							checked={visible}
-							onClickFunc={(checked) =>
-								dispatch({
-									type: "ClassicyDesktopControlStripSetVisible",
-									visible: checked,
-								})
-							}
-						/>
-					</ClassicyControlGroup>
-					<ClassicyControlGroup label="Modules">
-						{modules.length === 0 ? (
-							<span>No Control Strip modules are installed.</span>
-						) : (
-							<>
-								<ClassicyListBox
-									id="ControlStripManager_modules"
-									label="Installed modules"
-									visibleRows={6}
-									options={modules.map((m) => ({
-										value: m.id,
-										label: hiddenModules.includes(m.id)
-											? `${moduleLabel(m)} (Hidden)`
-											: moduleLabel(m),
-										icon: typeof m.icon === "string" ? m.icon : m.fileIcon,
-									}))}
-									selected={selected ? [selected.id] : []}
-									onChangeFunc={(values) => setSelectedId(values[0])}
-								/>
-								{selected && (
-									<ClassicyCheckbox
-										// Keyed per module so the checkbox re-reads its state
-										// when the selection changes.
-										key={selected.id}
-										id="ControlStripManager_moduleShown"
-										label={`Show “${moduleLabel(selected)}” in the Control Strip`}
-										checked={!selectedHidden}
-										onClickFunc={(checked) =>
+									keyboardShortcut: "⌥W",
+								},
+								{ id: "spacer" },
+								{
+									...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
+									keyboardShortcut: "⌥Q",
+								},
+							],
+						},
+					]}
+				>
+					<div style={{ padding: "var(--window-padding-size)" }}>
+						<ClassicyControlGroup label="Control Strip">
+							<ClassicyCheckbox
+								id="ControlStripManager_visible"
+								label="Show Control Strip"
+								checked={visible}
+								onClickFunc={(checked) =>
+									dispatch({
+										type: "ClassicyDesktopControlStripSetVisible",
+										visible: checked,
+									})
+								}
+							/>
+						</ClassicyControlGroup>
+						<ClassicyControlGroup label="Modules">
+							{modules.length === 0 ? (
+								<span>No Control Strip modules are installed.</span>
+							) : (
+								<>
+									<ClassicyListBox
+										id="ControlStripManager_modules"
+										label="Installed modules"
+										visibleRows={6}
+										options={modules.map((m) => ({
+											value: m.id,
+											label: hiddenModules.includes(m.id)
+												? `${moduleLabel(m)} (Hidden)`
+												: moduleLabel(m),
+											icon: typeof m.icon === "string" ? m.icon : m.fileIcon,
+										}))}
+										selected={selected ? [selected.id] : []}
+										onChangeFunc={(values) => setSelectedId(values[0])}
+									/>
+									{selected && (
+										<ClassicyCheckbox
+											// Keyed per module so the checkbox re-reads its state
+											// when the selection changes.
+											key={selected.id}
+											id="ControlStripManager_moduleShown"
+											label={`Show “${moduleLabel(selected)}” in the Control Strip`}
+											checked={!selectedHidden}
+											onClickFunc={(checked) =>
+												dispatch({
+													type: "ClassicyDesktopControlStripSetModuleHidden",
+													moduleId: selected.id,
+													hidden: !checked,
+												})
+											}
+										/>
+									)}
+									<ClassicyButton
+										disabled={index <= 0}
+										onClickFunc={() => move(-1)}
+									>
+										Move Left
+									</ClassicyButton>
+									<ClassicyButton
+										disabled={index < 0 || index >= ids.length - 1}
+										onClickFunc={() => move(1)}
+									>
+										Move Right
+									</ClassicyButton>
+									<ClassicyButton
+										disabled={(stored?.moduleOrder ?? []).length === 0}
+										onClickFunc={() =>
 											dispatch({
-												type: "ClassicyDesktopControlStripSetModuleHidden",
-												moduleId: selected.id,
-												hidden: !checked,
+												type: "ClassicyDesktopControlStripSetModuleOrder",
+												moduleOrder: [],
 											})
 										}
-									/>
-								)}
-								<ClassicyButton
-									disabled={index <= 0}
-									onClickFunc={() => move(-1)}
-								>
-									Move Left
-								</ClassicyButton>
-								<ClassicyButton
-									disabled={index < 0 || index >= ids.length - 1}
-									onClickFunc={() => move(1)}
-								>
-									Move Right
-								</ClassicyButton>
-								<ClassicyButton
-									disabled={(stored?.moduleOrder ?? []).length === 0}
-									onClickFunc={() =>
-										dispatch({
-											type: "ClassicyDesktopControlStripSetModuleOrder",
-											moduleOrder: [],
-										})
-									}
-								>
-									Use Standard Order
-								</ClassicyButton>
-							</>
-						)}
-					</ClassicyControlGroup>
-				</div>
-			</ClassicyWindow>
+									>
+										Use Standard Order
+									</ClassicyButton>
+								</>
+							)}
+						</ClassicyControlGroup>
+					</div>
+				</ClassicyWindow>
+			)}
 			{aboutWindow}
 		</ClassicyApp>
 	);

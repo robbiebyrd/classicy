@@ -34,7 +34,10 @@ import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/Syste
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { getClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import {
+	classicyTaskbarHasBand,
+	getClassicyTaskbarInsets,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 
 /**
  * The desktop-icon grid metrics, in px: the icon `size`, the `padding` around
@@ -91,11 +94,25 @@ const firstRowTop = ({ padding, top }: ClassicyDesktopIconMetrics) =>
 
 /**
  * The height the grid lays rows in: the viewport's, less the taskbar's band
- * along its bottom (`getClassicyTaskbarBand`, 0 with no taskbar, so every
- * package without one lays out exactly as before). Read from the module, as
- * `window.innerHeight` is, so the reducer path never touches the store.
+ * along its bottom or top (`getClassicyTaskbarInsets`, none with no taskbar,
+ * so every package without one lays out exactly as before). Read from the
+ * module, as `window.innerHeight` is, so the reducer path never touches the
+ * store. `gridWidth` is the width, less a band at either side, and
+ * `gridOffset` the work area's top-left corner, which a docked taskbar
+ * (plan 0020-w98 E4) moves past a left or top band: the icons follow it.
  */
-const gridHeight = () => window.innerHeight - getClassicyTaskbarBand();
+const gridHeight = () => {
+	const band = getClassicyTaskbarInsets();
+	return window.innerHeight - band.top - band.bottom;
+};
+const gridWidth = () => {
+	const band = getClassicyTaskbarInsets();
+	return window.innerWidth - band.left - band.right;
+};
+const gridOffset = (): [number, number] => {
+	const band = getClassicyTaskbarInsets();
+	return [band.left, band.top];
+};
 
 // One named derivation's value in px, rounded exactly as getThemeVars emits
 // it (px3), so the reducer's number equals the stylesheet's.
@@ -168,15 +185,14 @@ const createGrid = (
 	const { padding, cell } = metrics;
 	const pitch = rowStep(metrics);
 	const height = gridHeight();
-	const topRows =
-		getClassicyTaskbarBand() > 0
-			? Math.max(
-					1,
-					Math.floor((height - firstRowTop(metrics) - cell) / pitch) + 1,
-				)
-			: Math.floor(height / pitch);
+	const topRows = classicyTaskbarHasBand(getClassicyTaskbarInsets())
+		? Math.max(
+				1,
+				Math.floor((height - firstRowTop(metrics) - cell) / pitch) + 1,
+			)
+		: Math.floor(height / pitch);
 	return [
-		Math.floor(window.innerWidth / (cell + padding)),
+		Math.floor(gridWidth() / (cell + padding)),
 		origin.startsWith("bottom")
 			? Math.max(
 					1,
@@ -208,18 +224,21 @@ export const classicyDesktopIconGridPosition = (
 	const step = cell + padding;
 	const pitch = rowStep(metrics);
 	const top = firstRowTop(metrics);
+	const [offsetX, offsetY] = gridOffset();
 	return [
-		origin.endsWith("right")
-			? Math.floor(window.innerWidth - step * col)
-			: Math.floor(step * (col - 1) + padding),
-		origin.startsWith("top")
-			? Math.floor(pitch * row) + top
-			: // Never above the top origins' first row, so a row forced into a
-				// viewport too short for it stays on screen.
-				Math.max(
-					top,
-					Math.floor(gridHeight() - pitch * (row + 1)) - padding * 4,
-				),
+		offsetX +
+			(origin.endsWith("right")
+				? Math.floor(gridWidth() - step * col)
+				: Math.floor(step * (col - 1) + padding)),
+		offsetY +
+			(origin.startsWith("top")
+				? Math.floor(pitch * row) + top
+				: // Never above the top origins' first row, so a row forced into a
+					// viewport too short for it stays on screen.
+					Math.max(
+						top,
+						Math.floor(gridHeight() - pitch * (row + 1)) - padding * 4,
+					)),
 	];
 };
 

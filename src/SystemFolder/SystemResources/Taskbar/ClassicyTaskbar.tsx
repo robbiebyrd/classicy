@@ -15,15 +15,33 @@ import {
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	useAppManager,
+	useAppManagerDispatch,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { setClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
+	classicyTaskbarEdge,
+	classicyTaskbarOptions,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import {
 	CLASSICY_START_MENU_ID,
 	ClassicyStartMenu,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyStartMenu.internal";
-import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import {
+	type ClassicyTaskbarEdge,
+	setClassicyTaskbarBand,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import {
+	classicyTaskbarAutoHideDuration,
+	classicyTaskbarHiddenTranslate,
+	isClassicyTaskbarVertical,
+	useClassicyTaskbarAutoHide,
+	useClassicyTaskbarDock,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarDock.internal";
 import { useClassicyTaskbarCommands } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
 import { ClassicyTaskbarQuickLaunch } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarQuickLaunch.internal";
 import {
@@ -55,6 +73,20 @@ const TASKBAR_STATUS_AREA = [
 	".classicyTaskbarTrayIcons",
 	".classicyTaskbarTrayExtensions",
 ].join(", ");
+
+/**
+ * The taskbar's empty area a press moves it from (plan 0020-w98 E4): the
+ * bar itself, its bands around their buttons and the status area around its
+ * icons, but not a band's gripper, which belongs to its band.
+ */
+const isTaskbarBackground = (
+	target: EventTarget | null,
+	root: HTMLElement,
+): boolean =>
+	target === root ||
+	(target instanceof Element &&
+		!target.matches(".classicyTaskbarGripper") &&
+		(target.matches(TASKBAR_BAND_SITE) || target.matches(TASKBAR_STATUS_AREA)));
 
 /**
  * The Start button's label when the layout gives none (WIG Ch.3 "The Start
@@ -96,30 +128,78 @@ export type ClassicyTaskbarProps = {
 	style?: CSSProperties;
 };
 
+/** The root's class for each edge it is docked to (plan 0020-w98 E4). */
+const EDGE_CLASS: Record<ClassicyTaskbarEdge, string> = {
+	top: "classicyTaskbarEdgeTop",
+	right: "classicyTaskbarEdgeRight",
+	bottom: "classicyTaskbarEdgeBottom",
+	left: "classicyTaskbarEdgeLeft",
+};
+
 /**
  * The taskbar's band (`ClassicyTaskbarBand.internal.ts`): the root's
- * measured height, published once it is laid out and on each resize, and
- * withdrawn on unmount, so window geometry, the desktop icon grid and every
- * menu keep above it. Each mount owns its own band, so a second desktop's
- * taskbar on the page never clears this one's.
+ * measured thickness on the edge it is docked to (its height at the top or
+ * bottom, its width at a side), published once it is laid out and on each
+ * resize or move, and withdrawn on unmount, so window geometry, the desktop
+ * icon grid and every menu keep to the work area it leaves. An auto-hide
+ * taskbar (`reserve` false) takes no band, as Windows gives an auto-hide
+ * taskbar's edge back to the work area. Each mount owns its own band, so a
+ * second desktop's taskbar on the page never clears this one's. Returns the
+ * thickness last measured.
  */
 const useClassicyTaskbarBandPublisher = (
 	rootRef: RefObject<HTMLElement | null>,
-): void => {
+	edge: ClassicyTaskbarEdge,
+	reserve: boolean,
+): number => {
+	const [thickness, setThickness] = useState(0);
 	useLayoutEffect(() => {
 		const root = rootRef.current;
 		if (!root) return;
 		const owner = {};
-		const publish = () => setClassicyTaskbarBand(root.offsetHeight, owner);
+		const publish = () => {
+			const px = isClassicyTaskbarVertical(edge)
+				? root.offsetWidth
+				: root.offsetHeight;
+			setThickness(px);
+			setClassicyTaskbarBand(reserve ? px : 0, owner, edge);
+		};
 		publish();
 		const observer =
 			typeof ResizeObserver === "function" ? new ResizeObserver(publish) : null;
 		observer?.observe(root);
 		return () => {
 			observer?.disconnect();
-			setClassicyTaskbarBand(0, owner);
+			setClassicyTaskbarBand(0, owner, edge);
 		};
-	}, [rootRef]);
+	}, [rootRef, edge, reserve]);
+	return thickness;
+};
+
+/**
+ * Whether the taskbar was pressed or focused since a window last became the
+ * active one: under Taskbar Properties' "Always on top" off, it is drawn
+ * above the windows only then, as a taskbar that is not topmost comes to the
+ * front when used and goes behind the window activated next.
+ */
+const useClassicyTaskbarRaised = (): {
+	raised: boolean;
+	raise: () => void;
+} => {
+	const [raised, setRaised] = useState(false);
+	const activeWindow = useAppManager((s) => {
+		const app = Object.values(s.System.Manager.Applications.apps).find(
+			(a) => a.open && a.focused,
+		);
+		if (!app) return "";
+		const window = listAppWindows(app).find((w) => w.focused && !w.closed);
+		return window ? `${app.id}\u0000${window.id}` : "";
+	});
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the active window, which sends the taskbar back
+	useEffect(() => {
+		setRaised(false);
+	}, [activeWindow]);
+	return { raised, raise: () => setRaised(true) };
 };
 
 /**
@@ -195,8 +275,18 @@ const useClassicyTaskbarBandPublisher = (
  * - **Paging.** When the window buttons at their least width no longer fit
  *   the row, they show one row at a time behind an up/down control at the
  *   band's right (`ClassicyTaskbarTasks.internal.tsx`).
- * - **The band.** It publishes its height as the taskbar band, so windows,
- *   desktop icons and menus keep above it (`useClassicyTaskbarBand`).
+ * - **The band.** It publishes its thickness as the taskbar band on the
+ *   edge it is docked to, so windows, desktop icons and menus keep to the
+ *   work area it leaves (`useClassicyTaskbarInsets`).
+ * - **Docking and Taskbar Properties** (plan 0020-w98 E4,
+ *   `ClassicyTaskbarDock.internal.ts`): a drag of its empty area moves it to
+ *   the top, a side or the bottom (`classicyTaskbarEdge<Edge>`,
+ *   `classicyTaskbarVertical` at a side, `dragging` during the drag),
+ *   stored as `System.Manager.Desktop.taskbar.edge`; Taskbar Properties'
+ *   options (`classicyTaskbarOptions`) send it behind the windows while it
+ *   is not in use (`classicyTaskbarBelow`), slide it off its edge
+ *   (`classicyTaskbarAutoHide`, `collapsed` while hidden, no band), give the
+ *   Start menu small icons and drop the clock.
  *
  * It sits over windows and palettes (z-index 355, the Control Strip's band)
  * and under a modal dialog's scrim. Structure only: the package's stylesheet
@@ -216,7 +306,27 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	const rootRef = useRef<HTMLElement>(null);
 	const startRef = useRef<HTMLButtonElement>(null);
 	const appearance = useClassicyAppearance("Taskbar", {}, rootRef);
-	useClassicyTaskbarBandPublisher(rootRef);
+	const dispatch = useAppManagerDispatch();
+	// Taskbar Properties' options and the edge it is docked to (plan
+	// 0020-w98 E4), each with Windows 98's default when absent.
+	const stored = useAppManager((s) => s.System.Manager.Desktop.taskbar);
+	const options = classicyTaskbarOptions(stored);
+	// Docking: a drag of the bar's empty area carries it to another edge,
+	// drawn there while the drag lasts and stored at the release.
+	const dock = useClassicyTaskbarDock(
+		rootRef,
+		classicyTaskbarEdge(stored),
+		(edge) => dispatch({ type: "ClassicyDesktopTaskbarSetEdge", edge }),
+		isTaskbarBackground,
+	);
+	const edge = dock.edge;
+	const vertical = isClassicyTaskbarVertical(edge);
+	const thickness = useClassicyTaskbarBandPublisher(
+		rootRef,
+		edge,
+		!options.autoHide,
+	);
+	const { raised, raise } = useClassicyTaskbarRaised();
 
 	// Publish the host's choice for the Control Strip control panel, as the
 	// strip does: the panel keeps offering what the status area may show.
@@ -251,6 +361,13 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 		else openStartMenu();
 	};
 	useClassicyTaskbarKeys(rootRef, startOpen, openStartMenu, closeStartMenu);
+	// Auto hide: slid off its edge until the pointer reaches it, and shown
+	// while its Start menu is open (CTRL+ESC included) or it is being moved.
+	const autoHide = useClassicyTaskbarAutoHide(
+		rootRef,
+		options.autoHide,
+		startOpen || dock.dragging,
+	);
 	// Its tooltip, "Click here to begin.", after Windows' initial ToolTip
 	// delay (the double-click time), whatever Balloon Help says; never over
 	// the open menu, and put away by a press, as a Windows tooltip is.
@@ -313,14 +430,58 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 		(s) => s.System.Manager.Desktop.taskbar?.quickLaunch !== false,
 	);
 
+	// The pop-ups open toward the desktop: below (flipping above from a
+	// bottom taskbar), or beside a side one (flipping left from the right).
+	const popupSide = vertical ? "right" : "below";
+	// Auto hide's slide: off its edge but for the strip, at ReactOS's speeds.
+	const slide: CSSProperties = options.autoHide
+		? {
+				translate: autoHide.hidden
+					? classicyTaskbarHiddenTranslate(edge, thickness)
+					: "0 0",
+				transitionDuration: `${classicyTaskbarAutoHideDuration(
+					thickness,
+					autoHide.hidden,
+				)}ms`,
+			}
+		: {};
+	// Under "Always on top" off it goes behind the windows, but for while it
+	// is in use (pressed or focused since a window was last activated, its
+	// Start menu open, being moved).
+	const below = !options.alwaysOnTop && !raised && !startOpen && !dock.dragging;
+
 	return (
 		<nav
 			{...appearance.attrs}
 			ref={rootRef}
 			aria-label="Taskbar"
-			className={classNames("classicyTaskbar", appearance.className, className)}
-			style={{ ...appearance.style, ...style }}
+			className={classNames(
+				"classicyTaskbar",
+				EDGE_CLASS[edge],
+				{
+					classicyTaskbarVertical: vertical,
+					classicyTaskbarAutoHide: options.autoHide,
+					classicyTaskbarBelow: below,
+				},
+				classicyStateClasses({
+					collapsed: autoHide.hidden,
+					dragging: dock.dragging,
+				}),
+				appearance.className,
+				className,
+			)}
+			style={{ ...appearance.style, ...slide, ...style }}
 			onContextMenu={onContextMenu}
+			onMouseDown={(e) => {
+				raise();
+				dock.onMouseDown(e);
+			}}
+			onMouseEnter={autoHide.onMouseEnter}
+			onMouseLeave={autoHide.onMouseLeave}
+			onFocus={() => {
+				raise();
+				autoHide.onFocus();
+			}}
 		>
 			<button
 				ref={startRef}
@@ -352,6 +513,8 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 					banner={startBanner}
 					onClose={closeStartMenu}
 					userName={userName}
+					side={popupSide}
+					smallIcons={options.smallStartMenuIcons}
 				/>
 			)}
 			{quickLaunch && (
@@ -360,11 +523,13 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 					toggleDesktop={toggleDesktop}
 				/>
 			)}
-			<ClassicyTaskbarTasks gripper={quickLaunch} />
+			<ClassicyTaskbarTasks gripper={quickLaunch} vertical={vertical} />
 			<ClassicyTaskbarTray
 				disabledModules={disabledModules}
 				hideModules={hideModules}
 				showTaskbarMenu={showTaskbarMenu}
+				popupSide={popupSide}
+				showClock={options.showClock}
 			/>
 		</nav>
 	);

@@ -331,6 +331,60 @@ describe("ClassicyWindow geometry above the taskbar's band", () => {
 			).toEqual([0, 30]));
 	});
 
+	// Plan 0020-w98 E4: a taskbar docked to another edge takes its band
+	// there, given as insets on every edge.
+	describe("a band on another edge", () => {
+		const LEFT = { top: 0, right: 0, bottom: 0, left: 60 };
+		const TOP = { top: 28, right: 0, bottom: 0, left: 0 };
+		const RIGHT = { top: 0, right: 60, bottom: 0, left: 0 };
+
+		it("reads insets of the bottom alone as the number", () => {
+			const BOTTOM = { top: 0, right: 0, bottom: 28, left: 0 };
+			expect(
+				resolvePosition(["center", "center"], [300, 101], 0, "exact", BOTTOM),
+			).toEqual(
+				resolvePosition(["center", "center"], [300, 101], 0, "exact", 28),
+			);
+			expect(
+				clampWindowPositionToViewport([110, 700], [350, 200], 0, BOTTOM),
+			).toEqual(clampWindowPositionToViewport([110, 700], [350, 200], 0, 28));
+		});
+
+		it("takes a side band off a percentage width and a top band off the height", () => {
+			mountDesktop({}, [800, 600]);
+			expect(resolveSize(["100%", "100%"], 0, LEFT)).toEqual([740, 600]);
+			expect(resolveSize(["100%", "100%"], 0, TOP)).toEqual([800, 572]);
+		});
+
+		it("places left, top and centered windows inside the work area", () => {
+			expect(
+				resolvePosition(["left", "top"], [300, 100], 0, "exact", LEFT),
+			).toEqual([60, 0]);
+			expect(
+				resolvePosition(["left", "top"], [300, 100], 0, "exact", TOP),
+			).toEqual([0, 28]);
+			// (1024 − 60 − 300) / 2 past the band.
+			expect(
+				resolvePosition(["center", 50], [300, 100], 0, "exact", LEFT),
+			).toEqual([392, 50]);
+			expect(
+				resolvePosition(["right", 50], [300, 100], 0, "exact", RIGHT),
+			).toEqual([664, 50]);
+		});
+
+		it("clamps a window into the work area on every side", () => {
+			expect(
+				clampWindowPositionToViewport([10, 10], [350, 200], 0, LEFT),
+			).toEqual([60, 10]);
+			expect(
+				clampWindowPositionToViewport([10, 10], [350, 200], 0, TOP),
+			).toEqual([10, 28]);
+			expect(
+				clampWindowPositionToViewport([900, 10], [350, 200], 0, RIGHT),
+			).toEqual([614, 10]);
+		});
+	});
+
 	describe("clampWindowPositionToViewport", () => {
 		it("a band of 0 is today's clamp", () => {
 			for (const position of [

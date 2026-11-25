@@ -117,6 +117,34 @@ describe("classicyMenuBounds", () => {
 			});
 		});
 
+		// Plan 0020-w98 E4: a taskbar docked to another edge.
+		it("takes a band docked at the top, left or right off that edge", () => {
+			const root = desktopAt(embedded);
+			const owner = {};
+			setClassicyTaskbarBand(28, owner, "top");
+			expect(classicyMenuBounds(root)).toEqual({
+				left: 16,
+				top: 44,
+				right: 1008,
+				bottom: 752,
+			});
+			setClassicyTaskbarBand(60, owner, "left");
+			expect(classicyMenuBounds(root)).toEqual({
+				left: 76,
+				top: 16,
+				right: 1008,
+				bottom: 752,
+			});
+			setClassicyTaskbarBand(60, owner, "right");
+			expect(classicyMenuBounds(root)).toEqual({
+				left: 16,
+				top: 16,
+				right: 948,
+				bottom: 752,
+			});
+			setClassicyTaskbarBand(0, owner, "right");
+		});
+
 		it("measures the band from the desktop's own bottom, then cuts to the viewport", () => {
 			// The desktop ends 112 px below the window: its taskbar (bottom 880,
 			// top 852) is off screen, so the viewport's bottom still binds.

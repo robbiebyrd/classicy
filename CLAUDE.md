@@ -763,6 +763,27 @@ apps marked `showInQuickLaunch` (a runtime mark,
 `min-width` and `column-gap`, measured) the window buttons page
 (`classicyTaskbarTasksPaged`, an up/down `classicyTaskbarPager`).
 
+The taskbar docks to any edge (plan 0020-w98 E4,
+`Taskbar/ClassicyTaskbarDock.internal.ts`): a drag of its empty area moves it
+to the edge whose diagonal quarter of the desktop holds the pointer, stored
+as `Desktop.taskbar.edge` (`ClassicyDesktopTaskbarSetEdge`; root classes
+`classicyTaskbarEdge<Edge>`, `classicyTaskbarVertical` at a side, where the
+buttons stack and page down the band), and the band lies on that edge
+(`setClassicyTaskbarBand(px, owner, edge)`, `getClassicyTaskbarInsets`; every
+geometry function's band argument takes insets, a number being the
+bottom's), so windows, maximize, Cascade and Tile, Clean Up and menus keep to
+the work area, and the Start menu and tray pop-ups open toward the desktop.
+Under a taskbar the Control Strip control panel is Taskbar Properties
+(`Taskbar/ClassicyTaskbarProperties.internal.tsx`; Windows 98 names the panel
+"Taskbar & Start Menu" through its `apps`): Always on top (off:
+`classicyTaskbarBelow`, z-index 15, until the taskbar is used), Auto hide
+(`classicyTaskbarAutoHide`, `collapsed` while slid off to a 2 px strip, no
+band), Show small icons in Start menu (`classicyStartMenuSmallIcons`, no
+banner) and Show Clock, written together by `ClassicyDesktopTaskbarSetOptions`
+on OK or Apply (`Desktop.taskbar.alwaysOnTop|autoHide|smallStartMenuIcons|showClock`,
+defaults from `classicyTaskbarOptions`); Clear
+(`ClassicyDesktopTaskbarClearHistory`) empties Documents and the Run history.
+
 The Start menu (plan 0020-w98 E2) adds Documents ▸ (the session's recent
 documents, `File/ClassicyRecentDocuments.internal.ts`: Finder's
 `ClassicyAppFinderOpenFile` records each document it opens, trusted opens

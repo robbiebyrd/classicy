@@ -560,6 +560,108 @@ $edge: b.$b2;
     font-variant-numeric: tabular-nums;
   }
 
+  // --- Docked to another edge (plan 0020-w98 E4) -------------------------------
+  // The raised edge lies on the side facing the desktop, DrawEdge's
+  // EDGE_RAISED on that side (ReactOS `CTrayWindow::DrawEdge`): its bottom
+  // and right rows the dark ones (ButtonDkShadow outside, ButtonShadow
+  // inside), its top and left the light ones; the contents keep 2 px from
+  // the other sides and from the edge.
+  .classicyTaskbar.classicyTaskbarEdgeTop {
+    padding: b.$b2 b.$b2 calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2});
+    box-shadow:
+      inset 0 b.$neg-b b.$dkshadow,
+      inset 0 b.$neg-b2 b.$shadow;
+  }
+
+  // At a side: as wide as the Start button and the bar's edge and margins,
+  // the height of the desktop, the regions stacked down it (ReactOS sizes a
+  // side taskbar to its Start button, `CTrayWindow::CalculateValidSize`).
+  .classicyTaskbar.classicyTaskbarVertical {
+    width: calc(var(--taskbar-start-button-width) + var(--taskbar-height) - var(--taskbar-button-height));
+    height: auto;
+    gap: var(--taskbar-button-gap);
+  }
+
+  .classicyTaskbar.classicyTaskbarEdgeLeft {
+    padding: b.$b2 calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2}) b.$b2 b.$b2;
+    box-shadow:
+      inset b.$neg-b 0 b.$dkshadow,
+      inset b.$neg-b2 0 b.$shadow;
+  }
+
+  .classicyTaskbar.classicyTaskbarEdgeRight {
+    padding: b.$b2 b.$b2 b.$b2 calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2});
+    box-shadow:
+      inset b.$b 0 b.$light,
+      inset b.$b2 0 b.$hilight;
+  }
+
+  // Down a side every region takes the bar's width: the Start button and
+  // each window button the buttons' height, stacked `--taskbar-button-gap`
+  // apart, the gaps after the Start button and the bands below them.
+  .classicyTaskbarVertical {
+    .classicyTaskbarStart {
+      margin-right: 0;
+      margin-bottom: var(--taskbar-start-gap);
+    }
+
+    .classicyTaskbarTasks {
+      padding-right: 0;
+      padding-bottom: var(--taskbar-button-gap);
+    }
+
+    .classicyTaskbarTasks > li,
+    .classicyTaskbarTasksPaged > li {
+      flex: 0 0 auto;
+      min-width: 0;
+      min-height: var(--taskbar-button-height);
+    }
+
+    // A gripper lies across the band, above it.
+    .classicyTaskbarGripper {
+      align-self: stretch;
+      width: auto;
+      height: var(--taskbar-gripper-width);
+      margin: var(--taskbar-gripper-inset) var(--taskbar-gripper-inset) var(--taskbar-gripper-gap);
+    }
+
+    .classicyTaskbarQuickLaunch {
+      align-self: stretch;
+      height: auto;
+      padding-right: 0;
+      padding-bottom: var(--taskbar-band-end-gap);
+    }
+
+    .classicyTaskbarQuickLaunchButtons > li {
+      height: var(--taskbar-button-height);
+    }
+
+    // The up/down control under the buttons, its two halves side by side.
+    .classicyTaskbarPager {
+      align-self: center;
+      width: calc(var(--window-scrollbar-size) + var(--window-scrollbar-size));
+      height: var(--window-scrollbar-size);
+      margin-right: 0;
+      margin-bottom: var(--taskbar-button-gap);
+    }
+
+    // The status area: the icons in rows, the clock under them.
+    .classicyTaskbarTray {
+      height: auto;
+      padding: var(--taskbar-tray-padding-x) 0;
+    }
+
+    .classicyTaskbarTrayIcons > li {
+      height: var(--taskbar-tray-icon-pitch);
+    }
+
+    .classicyTaskbarClock {
+      justify-content: center;
+      width: 100%;
+      height: var(--taskbar-button-height);
+    }
+  }
+
   // --- The pop-ups -------------------------------------------------------------
   // A module's panel: the dialog frame around its content (three classes:
   // it outranks the bevel pop-up panel's own rule, which _PopUpMenu.scss

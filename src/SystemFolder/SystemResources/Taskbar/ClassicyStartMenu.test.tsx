@@ -257,7 +257,79 @@ describe("the Start menu", () => {
 		).toBeNull();
 	});
 
+	// Plan 0020-w98 E4: toward the desktop from a taskbar on any edge.
+	it("opens beside the Start button, to its right, from a taskbar at the left", () => {
+		act(() =>
+			dispatch({ type: "ClassicyDesktopTaskbarSetEdge", edge: "left" }),
+		);
+		renderTaskbar();
+		fireEvent.mouseDown(start(), { button: 0 });
+		const surface = menu() as HTMLElement;
+		expect(pxOf(surface.style.left)).toBe(START.right);
+		expect(pxOf(surface.style.top)).toBeLessThanOrEqual(START.top);
+	});
+
+	it("opens below the Start button from a taskbar along the top", () => {
+		act(() => dispatch({ type: "ClassicyDesktopTaskbarSetEdge", edge: "top" }));
+		vi.mocked(Element.prototype.getBoundingClientRect).mockImplementation(
+			function (this: Element) {
+				if (this.classList.contains("classicyDesktop"))
+					return box(DESKTOP.left, DESKTOP.top, DESKTOP.width, DESKTOP.height);
+				if (this.classList.contains("classicyTaskbarStart"))
+					return box(2, 4, 54, 22);
+				const surface = this.closest(".classicyBevelButtonPopup");
+				if (
+					surface &&
+					(this === surface || (this.tagName === "UL" && !this.closest("li")))
+				) {
+					const style = (surface as HTMLElement).style;
+					return box(
+						pxOf(style.left),
+						pxOf(style.top),
+						MENU.width,
+						MENU.height,
+					);
+				}
+				return box(0, 0, 0, 0);
+			},
+		);
+		renderTaskbar();
+		fireEvent.mouseDown(start(), { button: 0 });
+		// The menu bounds start under the band, so it sits on the band's
+		// bottom edge, as Windows' does from a top taskbar.
+		expect(pxOf((menu() as HTMLElement).style.top)).toBe(TASKBAR_HEIGHT);
+	});
+
 	describe("the banner", () => {
+		// Taskbar Properties' "Show small icons in Start menu" (plan 0020-w98
+		// E4): the first level's small icons, and no banner, as Windows 98.
+		it("is dropped, and the menu takes small icons, under Show small icons in Start menu", () => {
+			activate(BANNER_PACKAGE_ID);
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopTaskbarSetOptions",
+					options: { smallStartMenuIcons: true },
+				}),
+			);
+			renderTaskbar();
+			fireEvent.mouseDown(start(), { button: 0 });
+			const surface = menu() as HTMLElement;
+			expect(surface).toHaveClass(
+				"classicyStartMenu",
+				"classicyStartMenuSmallIcons",
+			);
+			expect(surface.querySelector(".classicyStartMenuBanner")).toBeNull();
+			expect(surface.firstElementChild).toHaveClass("classicyMenuWrapper");
+		});
+
+		it("is drawn, with large icons, by default", () => {
+			activate(BANNER_PACKAGE_ID);
+			renderTaskbar();
+			fireEvent.mouseDown(start(), { button: 0 });
+			expect(menu()).not.toHaveClass("classicyStartMenuSmallIcons");
+			expect(menu()?.querySelector(".classicyStartMenuBanner")).not.toBeNull();
+		});
+
 		it("is the surface's first child under a layout with a startBanner: the title, then the edition", () => {
 			activate(BANNER_PACKAGE_ID);
 			renderTaskbar();

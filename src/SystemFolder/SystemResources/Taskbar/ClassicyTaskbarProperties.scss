@@ -1,0 +1,34 @@
+// Taskbar Properties (plan 0020-w98 E4; ClassicyTaskbarProperties.internal.tsx):
+// the Windows shell's face of the Control Strip control panel, mounted only
+// under a layout that declares `taskbar`, so no rule here reaches a package
+// without one.
+//
+// Structure only: the tab control over the sheet's buttons, the page's
+// check boxes in a column, the buttons in a row at the right. The package
+// spaces and draws them.
+
+.classicyTaskbarProperties {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-group-gap);
+  padding: var(--layout-dialog-edge);
+  font-family: var(--ui-font), sans-serif;
+}
+
+.classicyTaskbarPropertiesPage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--layout-focus-gap);
+}
+
+.classicyTaskbarPropertiesText {
+  margin: 0;
+}
+
+.classicyTaskbarPropertiesButtons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: var(--layout-focus-gap);
+}

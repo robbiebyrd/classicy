@@ -26,6 +26,35 @@ describe("classicyMaximizedWindowRect", () => {
 		).toEqual({ position: [0, 0], size: [1024, 768] });
 	});
 
+	// Plan 0020-w98 E4: the work area of a taskbar docked to another edge.
+	it("starts past a left or top band and ends at a right one", () => {
+		const base = { width: 1024, height: 768, top: 0, chrome: FRAME };
+		expect(
+			classicyMaximizedWindowRect({
+				...base,
+				bottomBand: { top: 0, right: 0, bottom: 0, left: 60 },
+			}),
+		).toEqual({ position: [56, -4], size: [964, 768] });
+		expect(
+			classicyMaximizedWindowRect({
+				...base,
+				bottomBand: { top: 28, right: 0, bottom: 0, left: 0 },
+			}),
+		).toEqual({ position: [-4, 24], size: [1024, 740] });
+		expect(
+			classicyMaximizedWindowRect({
+				...base,
+				bottomBand: { top: 0, right: 60, bottom: 0, left: 0 },
+			}),
+		).toEqual({ position: [-4, -4], size: [964, 768] });
+		expect(
+			classicyMaximizedWindowRect({
+				...base,
+				bottomBand: { top: 0, right: 0, bottom: 28, left: 0 },
+			}),
+		).toEqual(classicyMaximizedWindowRect({ ...base, bottomBand: 28 }));
+	});
+
 	it("puts the frame outside the work area, so the caption meets the top and sides", () => {
 		expect(
 			classicyMaximizedWindowRect({

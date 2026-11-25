@@ -36,7 +36,9 @@
 //   sets the large-icon band's buttons no vertical padding). The tracked
 //   row's Hilight band, the submenu triangles, the separators and every
 //   submenu (16 px icons, 17 px rows: Programs, Settings, Control Panel)
-//   are _Menu.scss's.
+//   are _Menu.scss's. Under Taskbar Properties' "Show small icons in Start
+//   menu" (`classicyStartMenuSmallIcons`) the first level takes a submenu's
+//   rows and icons too, with no banner.
 //
 //   Windows color       token
 //   ButtonFace          --color-system-03   the face, the frame's inner ring
@@ -71,6 +73,8 @@ $banner-gradient-art: linear-gradient(
 
 // The menu's own list (the first level), not a submenu's.
 $first-level: ".classicyStartMenu > .classicyMenuWrapper > .classicyContextMenu";
+// The same list under small icons, ranked over it.
+$first-level-small: ".classicyStartMenu.classicyStartMenuSmallIcons > .classicyMenuWrapper > .classicyContextMenu";
 
 @mixin start-menu {
   // --- The frame --------------------------------------------------------------
@@ -127,5 +131,19 @@ $first-level: ".classicyStartMenu > .classicyMenuWrapper > .classicyContextMenu"
     width: var(--start-menu-icon-size);
     height: var(--start-menu-icon-size);
     margin-right: var(--start-menu-icon-gap);
+  }
+
+  // Taskbar Properties' "Show small icons in Start menu" (plan 0020-w98 E4):
+  // the first level takes a submenu's rows and 16 px icons (_Menu.scss's),
+  // and the core draws no banner, as Windows 98 drops the bitmap with them.
+  #{$first-level-small} > .classicyMenuItem {
+    height: auto;
+    padding: px(3) var(--menu-item-padding-x);
+  }
+
+  #{$first-level-small} > .classicyMenuItem > p > img {
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+    margin-right: var(--layout-item-gap);
   }
 }

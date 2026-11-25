@@ -14,7 +14,7 @@
 // measurement: the components publish the decision (ClassicyMenu's
 // `classicySubMenuFlipLeft`, a contextual menu's `left` and `top`).
 
-import { getClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import { getClassicyTaskbarInsets } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 
 /** A box in viewport pixels. */
 export type ClassicyMenuBox = {
@@ -52,9 +52,10 @@ const viewportBox = (): ClassicyMenuBox => ({
  * desktop, one with no box yet (not laid out) or one wholly outside the
  * viewport, the viewport's.
  *
- * A mounted taskbar's band (`getClassicyTaskbarBand`, 0 with none) comes off
- * the bottom of the desktop's box, or of the viewport's where that stands in
- * for it, before the overlap is taken: the box is the work area, as Windows
+ * A mounted taskbar's band (`getClassicyTaskbarInsets`, none with no
+ * taskbar) comes off the edge it is docked to (the bottom unless the user
+ * moved it, plan 0020-w98 E4) of the desktop's box, or of the viewport's
+ * where that stands in for it, before the overlap is taken: the box is the work area, as Windows
  * keeps a popup menu to the monitor's work area (Wine `MENU_ShowPopup`,
  * `rcWork`). A window's pull-downs live in its stacking context, under the
  * taskbar's, so a menu that ran into the band would be hidden behind it; it
@@ -64,16 +65,22 @@ const viewportBox = (): ClassicyMenuBox => ({
  */
 export const classicyMenuBounds = (el: Element | null): ClassicyMenuBox => {
 	const viewport = viewportBox();
-	const band = getClassicyTaskbarBand();
+	const band = getClassicyTaskbarInsets();
 	const desktop =
 		el?.closest(".classicyDesktop") ??
 		el?.ownerDocument?.querySelector(".classicyDesktop") ??
 		null;
 	const r = desktop?.getBoundingClientRect();
-	const area: ClassicyMenuBox =
+	const box: ClassicyMenuBox =
 		r && r.width > 0 && r.height > 0
-			? { left: r.left, top: r.top, right: r.right, bottom: r.bottom - band }
-			: { ...viewport, bottom: viewport.bottom - band };
+			? { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+			: viewport;
+	const area: ClassicyMenuBox = {
+		left: box.left + band.left,
+		top: box.top + band.top,
+		right: box.right - band.right,
+		bottom: box.bottom - band.bottom,
+	};
 	const shown = {
 		left: Math.max(area.left, viewport.left),
 		top: Math.max(area.top, viewport.top),

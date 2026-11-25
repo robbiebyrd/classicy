@@ -442,6 +442,15 @@ describe("the Windows 98 appearance package", () => {
 		});
 	});
 
+	// Plan 0020-w98 E4: the Control Strip control panel, Taskbar Properties
+	// under the Windows shell, is Windows 98's "Taskbar & Start Menu".
+	it("names the Control Strip control panel Taskbar & Start Menu, and no other app", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("windows98")?.apps).toEqual({
+			"ControlStripManager.app": { name: "Taskbar & Start Menu" },
+		});
+	});
+
 	// The core's `dialog` family is structural (every theme emits it from the
 	// core floor); the package sets the two widths Windows caps a secondary
 	// window at, 234 dialog base units, 415 px (WIG Ch.13 "Font and Size",

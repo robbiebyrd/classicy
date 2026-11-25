@@ -28,6 +28,77 @@
   user-select: none;
 }
 
+// Docked to another edge (plan 0020-w98 E4; ClassicyTaskbarDock.internal.ts):
+// along the top, or down a side, where the regions stack in a column, each
+// across the bar's width. The package sets a side bar's width.
+.classicyTaskbar.classicyTaskbarEdgeTop {
+  top: 0;
+  bottom: auto;
+}
+
+.classicyTaskbar.classicyTaskbarVertical {
+  top: 0;
+  bottom: 0;
+  flex-direction: column;
+}
+
+.classicyTaskbar.classicyTaskbarEdgeLeft {
+  right: auto;
+}
+
+.classicyTaskbar.classicyTaskbarEdgeRight {
+  left: auto;
+}
+
+.classicyTaskbarVertical {
+  .classicyTaskbarStart {
+    justify-content: flex-start;
+  }
+
+  .classicyTaskbarQuickLaunch,
+  .classicyTaskbarQuickLaunchButtons {
+    flex-wrap: wrap;
+  }
+
+  .classicyTaskbarTasks {
+    flex-direction: column;
+    min-height: 0;
+
+    > li {
+      flex: 0 0 auto;
+    }
+  }
+
+  .classicyTaskbarPager {
+    flex-direction: row;
+  }
+
+  .classicyTaskbarTray {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+// Auto hide: the taskbar slides off its edge (ClassicyTaskbar sets the
+// `translate` and the slide's duration, Windows' speeds), and not at all
+// under reduced motion.
+.classicyTaskbar.classicyTaskbarAutoHide {
+  transition-property: translate;
+  transition-timing-function: linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .classicyTaskbar.classicyTaskbarAutoHide {
+    transition-property: none;
+  }
+}
+
+// "Always on top" off: behind every window (20 and up), but over the
+// desktop's icons (10), until it is used again.
+.classicyTaskbar.classicyTaskbarBelow {
+  z-index: 15;
+}
+
 // The regions are flex items placed by `order` from their
 // data-classicy-part, so a package can rearrange them with `order` alone:
 // the Start button, the Quick Launch toolbar, the window buttons' band (its

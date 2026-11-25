@@ -22,7 +22,7 @@ import {
 	classicyCascadeRects,
 	classicyTileRects,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarArrange.internal";
-import { getClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import { getClassicyTaskbarInsets } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import {
 	type ClassicyTaskbarTask,
 	classicyTaskbarTasks,
@@ -346,7 +346,7 @@ export type ClassicyTaskbarCommands = {
 	toggleDesktop: () => void;
 };
 
-/** The work area, read from the desktop: its box less the menu bar's and the taskbar's bands. */
+/** The work area, read from the desktop: its box less the menu bar's band and the taskbar's, on the edge it is docked to. */
 const workArea = (): ClassicyArrangeArea => {
 	const desktop =
 		typeof document !== "undefined"
@@ -358,12 +358,14 @@ const workArea = (): ClassicyArrangeArea => {
 	const height =
 		desktop?.clientHeight ||
 		(typeof window !== "undefined" ? window.innerHeight : 600);
-	const top = readClassicyThemeVar("--menu-bar-height", 0, desktop);
+	const band = getClassicyTaskbarInsets();
+	const top = readClassicyThemeVar("--menu-bar-height", 0, desktop) + band.top;
+	const left = band.left;
 	return {
-		left: 0,
+		left,
 		top,
-		right: width,
-		bottom: Math.max(top, height - getClassicyTaskbarBand()),
+		right: Math.max(left, width - band.right),
+		bottom: Math.max(top, height - band.bottom),
 	};
 };
 
