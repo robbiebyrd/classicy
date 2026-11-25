@@ -33,6 +33,25 @@ describe("fixed menu surfaces", () => {
 		).toBe("max-content");
 	});
 
+	// Integration review G round 3, F1: an absolute list with no width of its
+	// own shrank to the room its title's wrapper left it, and wrapped its
+	// items ("Date and Time Manager" in the Application menu, every long item
+	// of the Apple menu on a 640-pixel desktop).
+	it("draw a pull-down and every submenu at their items' width", () => {
+		const menu = rule("Menu/ClassicyMenu.scss");
+		expect(menu(".classicySubMenu").width).toBe("max-content");
+		expect(menu(".classicyContextSubMenu").width).toBe("max-content");
+	});
+
+	it("hang the Application menu from its title's right side, at its items' width", () => {
+		const bar = rule("Desktop/MenuBar/ClassicyDesktopMenuBar.scss")(
+			".classicyDesktopMenuAppSwitcher * ul",
+		);
+		expect(bar.left).toBe("auto");
+		expect(bar.right).toMatch(/^calc\(/);
+		expect(bar.width).toBeUndefined();
+	});
+
 	it("draw a pop-up menu's list at its items' width (its button's at least)", () =>
 		expect(
 			rule("PopUpMenu/ClassicyPopUpMenu.scss")(".classicyPopUpMenuList").width,

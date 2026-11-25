@@ -1861,6 +1861,16 @@ agrees). Every package, no declaration needed:
   `.classicyPopUpMenuList` and a bevel button's menu, so a fixed surface
   near the right edge is not shrunk to the room left, which wrapped its
   items).
+- Every pull-down (screen or window bar) and every submenu is as wide as
+  its widest item too (`width: max-content` on `.classicySubMenu` and
+  `.classicyContextSubMenu`), as Mac OS sizes a menu: an absolute list with
+  no width of its own shrank to the room its title's wrapper left it (CSS
+  2.1 §10.3.7), so a long item wrapped, in the Application menu under a
+  short front application's name ("Date and Time Manager") and in the Apple
+  menu on a 640-pixel desktop, which held it only at its `min-width`. The
+  Application menu hangs left of its title's right side (`left: auto`).
+  No item wraps; the placement above keeps the wider menu inside the
+  bounds.
 - Measured in layout effects, each re-render before paint, so no frame
   shows a menu outside the bounds; again each time it opens, and when its
   desktop changes size while it is open: the outermost open menu (a menu
@@ -1874,14 +1884,18 @@ agrees). Every package, no declaration needed:
   it across (measured after every render while capped; a combo box's after
   typing re-places it).
 
-`node bin/check-menus-on-desktop.ts --port <n> [--embed WxH+L+T]
-[storyId ...]` opens, in a served static Storybook's stories (by default
-System 7 and Platinum stories with menu bars, submenus, a scrolling
-pull-down, pop-ups, a combo box, bevel pop-ups and contextual menus), every
-first-level menu-bar menu and its first submenu, its first pop-up menu,
-combo box and pop-up bevel button moved to the desktop's bottom-right
-corner, and the contextual menu at that corner, and fails when one passes
-its bounds on either axis. `--embed` puts the desktop in a W x H box at
+`node bin/check-menus-on-desktop.ts --port <n> [--browser chromium|firefox]
+[--embed WxH+L+T] [storyId ...]` opens, in a served static Storybook's
+stories (by default System 7 and Platinum stories with menu bars, submenus,
+a scrolling pull-down, pop-ups, a combo box, bevel pop-ups and contextual
+menus), every first-level menu-bar menu and its first submenu, its first
+pop-up menu, combo box and pop-up bevel button moved to the desktop's
+bottom-right corner, and the contextual menu at that corner, and fails when
+one passes its bounds on either axis, or when an item of a pull-down, a
+submenu or a contextual menu runs onto a second line. In a desktop story
+it then opens Date and Time Manager and Calculator from the Apple menu,
+where it lists them, and every menu-bar menu again, so the Application
+menu holds a long name under a short front application's. `--embed` puts the desktop in a W x H box at
 (L, T) of the viewport, as a host page embeds it.
 
 `node bin/check-list-view-marquee.ts --port <n> [--browser chromium|firefox]`

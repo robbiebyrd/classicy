@@ -6,13 +6,18 @@
 // bottom). Run it against a served static Storybook build, as the parity
 // tools are (bin/parity/README.md):
 //
-//   node bin/check-menus-on-desktop.ts --port <n> [--embed WxH+L+T] [storyId ...]
+//   node bin/check-menus-on-desktop.ts --port <n> [--browser chromium|firefox] [--embed WxH+L+T] [storyId ...]
 //
 // `--embed` puts the desktop in a W x H box at (L, T) of the 1024 x 768
 // viewport, as a host page embeds it (the desktop's parent sized and
-// positioned). With no story ids it checks the System 7 and Platinum
-// stories below. In each story it opens, in turn and where the story has
-// them:
+// positioned). `--browser firefox` needs a Playwright with Firefox
+// installed (`$PARITY_PLAYWRIGHT`, bin/parity/parityBrowser.ts). With no
+// story ids it checks the System 7 and Platinum stories below. In a desktop
+// story it then opens Date and Time Manager and Calculator from the Apple
+// menu, where it lists them, and opens every menu-bar menu again, so the
+// Application menu holds a long name under a short front application's
+// (integration review G round 3, F1). In each story it opens, in turn and
+// where the story has them:
 //
 // - every first-level menu of every menu bar (the screen bar's and each
 //   window's own), and the first item's submenu in it;
@@ -25,14 +30,18 @@
 // box-shadow and absolutely placed ::before/::after, a scrolling list's
 // shadow sibling and its fixed scroll indicators), independently of the
 // core's own measurement (ClassicyMenuPlacement.internal.ts), so it checks
-// the result, not the code's arithmetic.
+// the result, not the code's arithmetic. In every pull-down and submenu it
+// also checks that no item's title runs onto a second line: a menu is as
+// wide as its widest item, as Mac OS sizes one (an absolute list with no
+// width of its own shrank to its title's width, and wrapped).
 //
-// Exit codes: 0 when every menu lies inside, 1 when one does not (or a menu
-// failed to open), 2 on a usage or environment error. Build script, not
+// Exit codes: 0 when every menu lies inside and no item wraps, 1 when one
+// does (or a menu failed to open), 2 on a usage or environment error. Build script, not
 // library code: it reports through stdout/stderr. Erasable TypeScript only.
 import type { Page } from "playwright";
 import {
 	launchParityBrowser,
+	loadPlaywright,
 	newStoryPage,
 	waitForStoryReady,
 } from "./parity/parityBrowser.ts";
@@ -73,12 +82,17 @@ type Measured =
 			ink: Box;
 			bounds: Box;
 			inside: boolean;
+			/** The items whose title runs onto more than one line. */
+			wrapped?: string[];
 	  }
 	| { what: string; missing: true };
 
+/** Applications a desktop story opens first, where its Apple menu lists them. */
+const OPEN_FIRST = ["Date and Time Manager", "Calculator"];
+
 const usage = () => {
 	process.stderr.write(
-		"usage: node bin/check-menus-on-desktop.ts --port <n> [--embed WxH+L+T] [storyId ...]\n",
+		"usage: node bin/check-menus-on-desktop.ts --port <n> [--browser chromium|firefox] [--embed WxH+L+T] [storyId ...]\n",
 	);
 	process.exit(2);
 };
@@ -94,7 +108,8 @@ const option = (name: string) => {
 };
 const port = option("--port");
 const embed = option("--embed");
-if (!port) usage();
+const browserName = option("--browser") ?? "chromium";
+if (!port || (browserName !== "chromium" && browserName !== "firefox")) usage();
 const geometry = embed
 	? /^(\d+)x(\d+)\+(\d+)\+(\d+)$/.exec(embed)?.slice(1).map(Number)
 	: undefined;
@@ -223,6 +238,28 @@ const pageHelpers = (embedCss: string) => {
 		el.style.top = `${target.top * 2 - at.top}px`;
 		await frame();
 	};
+	// The items of a list whose title runs onto more than one line: each
+	// text node's line boxes, by their tops (an icon's box is not a line).
+	const wrappedRows = (list: Element) =>
+		Array.from(
+			list.querySelectorAll(
+				":scope > li.classicyMenuItem, :scope > * > li.classicyMenuItem",
+			),
+		).flatMap((row) => {
+			const title = row.querySelector(":scope > p") ?? row;
+			const tops = new Set<number>();
+			const walker = document.createTreeWalker(title, NodeFilter.SHOW_TEXT);
+			for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+				if (!n.textContent?.trim()) continue;
+				const range = document.createRange();
+				range.selectNodeContents(n);
+				for (const r of range.getClientRects())
+					if (r.width > 0 && r.height > 0) tops.add(Math.round(r.top));
+			}
+			return tops.size > 1
+				? [`${title.textContent?.trim()} (${tops.size} lines)`]
+				: [];
+		});
 	const close = async () => {
 		document.dispatchEvent(
 			new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
@@ -242,6 +279,7 @@ const pageHelpers = (embedCss: string) => {
 			frame,
 			toCorner,
 			close,
+			wrappedRows,
 		},
 	});
 };
@@ -255,6 +293,7 @@ type Helpers = {
 	frame: () => Promise<void>;
 	toCorner: (el: HTMLElement) => Promise<void>;
 	close: () => Promise<void>;
+	wrappedRows: (list: Element) => string[];
 };
 
 /** Every first-level title's menu, and the first submenu in it. */
@@ -292,7 +331,13 @@ const checkTitles = async (page: Page): Promise<Measured[]> => {
 					const measure = (what: string, el: Element) => {
 						const ink = h.menuInk(el);
 						const b = h.bounds();
-						out.push({ what, ink, bounds: b, inside: h.inside(ink, b) });
+						out.push({
+							what,
+							ink,
+							bounds: b,
+							inside: h.inside(ink, b),
+							wrapped: h.wrappedRows(el),
+						});
 					};
 					measure(`pull-down ${name}`, list);
 					// Its first item with a submenu (balloon-wrapped or not).
@@ -323,6 +368,48 @@ const checkTitles = async (page: Page): Promise<Measured[]> => {
 		);
 	}
 	return results;
+};
+
+/**
+ * Opens `OPEN_FIRST` from the Apple menu, each where the story's Apple menu
+ * lists it, the last in front; the names opened.
+ */
+const openFirst = async (page: Page): Promise<string[]> => {
+	const opened: string[] = [];
+	for (const name of OPEN_FIRST) {
+		const found = await page.evaluate(async (name) => {
+			const h = (window as unknown as { __menuCheck: Helpers }).__menuCheck;
+			const apple = document.querySelector<HTMLElement>(
+				'.classicyDesktopMenu [data-classicy-part="apple"]',
+			);
+			if (!apple) return false;
+			for (let tries = 0; tries < 4; tries++) {
+				if (apple.classList.contains("open")) break;
+				apple.click();
+				await h.frame();
+				if (!apple.classList.contains("open"))
+					await new Promise((r) => setTimeout(r, 150));
+			}
+			const item = Array.from(
+				apple.querySelectorAll<HTMLElement>("li.classicyMenuItem"),
+			).find(
+				(li) => li.querySelector(":scope > p")?.textContent?.trim() === name,
+			);
+			if (!item) {
+				await h.close();
+				return false;
+			}
+			item.click();
+			return true;
+		}, name);
+		// A menu item runs its action after its flash.
+		await page.waitForTimeout(1200);
+		await page.evaluate(() =>
+			(window as unknown as { __menuCheck: Helpers }).__menuCheck.close(),
+		);
+		if (found) opened.push(name);
+	}
+	return opened;
 };
 
 /** A pop-up menu, combo box and bevel pop-up, each opened at the corner. */
@@ -426,6 +513,7 @@ const checkContextual = async (page: Page): Promise<Measured[]> => {
 				ink,
 				bounds: b,
 				inside: h.inside(ink, b),
+				wrapped: h.wrappedRows(list),
 			});
 			// And its first submenu.
 			const parent = list.querySelector<HTMLElement>(
@@ -448,6 +536,7 @@ const checkContextual = async (page: Page): Promise<Measured[]> => {
 				ink: subInk,
 				bounds: b,
 				inside: h.inside(subInk, b),
+				wrapped: h.wrappedRows(sub),
 			});
 		}
 		await h.close();
@@ -471,7 +560,10 @@ const embedCss = geometry
 
 let browser: Awaited<ReturnType<typeof launchParityBrowser>>;
 try {
-	browser = await launchParityBrowser();
+	browser =
+		browserName === "chromium"
+			? await launchParityBrowser()
+			: await (await loadPlaywright()).firefox.launch();
 } catch (e) {
 	process.stderr.write(`${String(e)}\n`);
 	process.exit(2);
@@ -499,6 +591,16 @@ for (const id of stories) {
 			...(await checkControls(page)),
 			...(await checkContextual(page)),
 		];
+		// The menu bar again with the applications open (their windows'
+		// controls, inactive behind the last one's, are not this check's).
+		const opened = await openFirst(page);
+		if (opened.length > 0)
+			results.push(
+				...(await checkTitles(page)).map((result) => ({
+					...result,
+					what: `${result.what} (${opened.join(", ")} open)`,
+				})),
+			);
 		if (results.length === 0) {
 			process.stdout.write(`FAIL ${id}: no menu to open\n`);
 			failed = true;
@@ -509,9 +611,11 @@ for (const id of stories) {
 				failed = true;
 				continue;
 			}
-			if (!result.inside) failed = true;
+			const wrapped = result.wrapped ?? [];
+			const ok = result.inside && wrapped.length === 0;
+			if (!ok) failed = true;
 			process.stdout.write(
-				`${result.inside ? "ok  " : "FAIL"} ${id} ${result.what}: menu ${round(result.ink)} in ${round(result.bounds)}\n`,
+				`${ok ? "ok  " : "FAIL"} ${id} ${result.what}: menu ${round(result.ink)} in ${round(result.bounds)}${wrapped.length > 0 ? `; items on more than one line: ${wrapped.join(", ")}` : ""}\n`,
 			);
 		}
 	} finally {

@@ -38,10 +38,19 @@
   }
 }
 
+// A pull-down (screen or window bar) and every submenu are as wide as their
+// widest item, as Mac OS sizes a menu (Mac OS 8.1's Application menu, in the
+// 8.1 captures of its order: a 20-pixel title over a menu about 110 pixels
+// wide); no item wraps. An
+// absolute box with no width of its own shrinks to the room its title's
+// wrapper leaves it (CSS 2.1 §10.3.7), and its items wrapped (integration
+// review G round 3, F1). Placement keeps it inside the desktop
+// (ClassicyMenuPlacement.internal.ts).
 .classicySubMenu {
   position: absolute;
   display: none;
   flex-direction: column;
+  width: max-content;
   min-width: var(--menu-min-width);
   margin: 0 0 0 calc(var(--window-padding-size) * -1);
   padding: var(--window-border-size);
@@ -88,6 +97,8 @@
   }
   display: none;
   flex-direction: column;
+  // As wide as its widest item, as a pull-down's submenu is (above).
+  width: max-content;
   min-width: var(--menu-min-width);
   margin: calc(var(--menu-sub-menu-offset-block) * -1) calc(var(--menu-sub-menu-offset-inline) * -1);
   padding: var(--window-border-size);

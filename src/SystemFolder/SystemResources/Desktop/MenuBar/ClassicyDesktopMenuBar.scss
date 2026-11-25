@@ -167,8 +167,13 @@ $classicy-menu-bar-order: (
     content: '';
   }
 
+  // The Application menu hangs left of its title's right side, as wide as
+  // its widest item (`.classicySubMenu`): Mac OS 8.1's title is the front
+  // application's icon alone, its menu much wider (the 8.1 capture of the
+  // menu's order, `resources/screenshots/mac-os-8.1/`).
   * {
     ul {
+      left: auto;
       right: calc((var(--window-control-size) - var(--window-padding-size)) * -1);
     }
   }

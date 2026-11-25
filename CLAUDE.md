@@ -608,8 +608,11 @@ reopen and on a desktop resize (the outermost open menu's `ResizeObserver` +
 menus (`flipLeftTo`), extension pull-downs, pop-up menus, combo box lists and
 bevel pop-ups (`classicyBevelPopupPlacement`'s `bounds`) keep to the same
 bounds on both axes, on whole pixels (`classicyMenuWholePixel`), at
-`width: max-content`. `bin/check-menus-on-desktop.ts [--embed WxH+L+T]`
-checks it in a browser.
+`width: max-content`, as every pull-down and submenu is (`.classicySubMenu`,
+`.classicyContextSubMenu`: as wide as the widest item, which never wraps;
+the Application menu hangs left of its title's right side).
+`bin/check-menus-on-desktop.ts [--browser chromium|firefox] [--embed WxH+L+T]`
+checks it in a browser, and that no item runs onto a second line.
 
 ### Keyboard Equivalents
 
