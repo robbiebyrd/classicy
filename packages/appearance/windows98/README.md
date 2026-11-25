@@ -67,7 +67,7 @@ and `nodenext` resolution).
   Mac packages' menus take Return alone), stopping on dimmed items as
   Windows' does, Shift+F10 and the Application key opening the focused
   item's contextual menu (in a folder window or on the desktop, the
-  selected item's, dropped from its lower left), Finder's item menus leading with Open, their
+  selected item's, opened at the center of its icon), Finder's item menus leading with Open, their
   default item, as Explorer's do (the Mac packages' keep the Mac Finder's),
   Explorer's commands in Finder's menus (a folder window's File menu Open,
   New, Create Shortcut, Delete, Rename and Close; its View menu Large Icons,

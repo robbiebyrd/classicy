@@ -465,3 +465,54 @@ describe("ClassicyBevelButton — the ToolTip of an unlabeled button", () => {
 		);
 	});
 });
+
+describe("ClassicyBevelButton — nameTip", () => {
+	afterEach(() => {
+		resetTipsPackages();
+		vi.useRealTimers();
+	});
+
+	it("keeps an icon-only button's name off a ToolTip under the Windows layout when nameTip is false", () => {
+		vi.useFakeTimers();
+		registerTipsPackage({
+			id: "windows-name-tips",
+			name: "Windows name tips",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-name-tips-default",
+				package: "windows-name-tips",
+			},
+			layout: windows98.layout as never,
+		});
+		render(
+			<>
+				<ClassicyBevelButton
+					icon="/icons/help.png"
+					aria-label="Help"
+					nameTip={false}
+				/>
+				<ClassicyBevelButton icon="/icons/cut.png" iconAlt="Cut" />
+			</>,
+		);
+		fireEvent.mouseEnter(screen.getByRole("button", { name: "Help" }), {
+			clientX: 10,
+			clientY: 10,
+		});
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(document.querySelector(".classicyBalloonHelp")).toBeNull();
+		fireEvent.mouseLeave(screen.getByRole("button", { name: "Help" }));
+		fireEvent.mouseEnter(screen.getByRole("button", { name: "Cut" }), {
+			clientX: 10,
+			clientY: 10,
+		});
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(document.querySelector(".classicyBalloonHelp")).toHaveTextContent(
+			"Cut",
+		);
+	});
+});

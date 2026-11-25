@@ -458,7 +458,8 @@ describe("ClassicyContextualMenuProvider — the keyboard's context-menu keys (l
 // The key opens the focused selection's menu (the remaining chapters'
 // audit's 4.17, 11.4 and B.6; WIG Ch.4 "Shortcut Keys", p.28; App. B Tables
 // B.2 and B.3): in a file view the selected item's, on the desktop the
-// selected icon's, at the item's lower left; a keyboard-raised `contextmenu`
+// selected icon's, at the center of the item's icon (ReactOS's
+// `CDefView::OnContextMenu`, LVIR_ICON); a keyboard-raised `contextmenu`
 // with no pointer position goes the same way.
 describe("ClassicyContextualMenuProvider — the context-menu keys target the selection (layout.keyboard.contextMenuKey)", () => {
 	let restore: () => void;
@@ -494,7 +495,7 @@ describe("ClassicyContextualMenuProvider — the context-menu keys target the se
 		return { heard, onContextMenu };
 	};
 
-	it("sends it to a file view's first selected icon, at its lower left, with focus on the view", () => {
+	it("sends it to a file view's first selected icon, at its image's center, with focus on the view", () => {
 		const { heard, onContextMenu } = listen();
 		render(
 			<ClassicyContextualMenuProvider>
@@ -506,10 +507,10 @@ describe("ClassicyContextualMenuProvider — the context-menu keys target the se
 					onContextMenu={onContextMenu}
 				>
 					<div className="classicyIcon" data-classicy-file-path="D:a" />
-					<div
-						className="classicyIcon selected"
-						data-classicy-file-path="D:b"
-					/>
+					<div className="classicyIcon selected" data-classicy-file-path="D:b">
+						<div className="classicyIconMaskOuter" data-testid="b-image" />
+						<p>b</p>
+					</div>
 					<div
 						className="classicyIcon selected"
 						data-classicy-file-path="D:c"
@@ -520,11 +521,13 @@ describe("ClassicyContextualMenuProvider — the context-menu keys target the se
 		const b = document.querySelector(
 			'[data-classicy-file-path="D:b"]',
 		) as Element;
-		rectOf(b, 100, 50);
+		rectOf(b, 90, 50);
+		// The icon's image, not its label: LVIR_ICON's center.
+		rectOf(screen.getByTestId("b-image"), 100, 50);
 		const view = screen.getByTestId("view");
 		view.focus();
 		fireEvent.keyDown(view, { key: "F10", shiftKey: true });
-		expect(heard).toEqual([{ target: "D:b", at: [100, 80] }]);
+		expect(heard).toEqual([{ target: "D:b", at: [120, 65] }]);
 	});
 
 	it("keeps the focused item when it is selected, and takes a list view's selected row", () => {
@@ -567,8 +570,8 @@ describe("ClassicyContextualMenuProvider — the context-menu keys target the se
 		item("D:a").focus();
 		fireEvent.keyDown(item("D:a"), { key: "ContextMenu" });
 		expect(heard).toEqual([
-			{ target: "D:c", at: [10, 230] },
-			{ target: "D:b", at: [10, 200] },
+			{ target: "D:c", at: [30, 215] },
+			{ target: "D:b", at: [30, 185] },
 		]);
 	});
 
@@ -607,7 +610,7 @@ describe("ClassicyContextualMenuProvider — the context-menu keys target the se
 		]);
 	});
 
-	it("sends it, with the desktop focused, to its first selected icon at the icon's lower left, never one in a window", () => {
+	it("sends it, with the desktop focused, to its first selected icon at the icon's center, never one in a window", () => {
 		const { heard, onContextMenu } = listen();
 		render(
 			// biome-ignore lint/a11y/noStaticElementInteractions: a stand-in for the desktop
@@ -625,7 +628,7 @@ describe("ClassicyContextualMenuProvider — the context-menu keys target the se
 		const desktop = document.getElementById("classicyDesktop") as HTMLElement;
 		desktop.focus();
 		fireEvent.keyDown(desktop, { key: "F10", shiftKey: true });
-		expect(heard).toEqual([{ target: "drive", at: [500, 70] }]);
+		expect(heard).toEqual([{ target: "drive", at: [520, 55] }]);
 	});
 
 	it("takes a keyboard-raised contextmenu with no pointer position and sends it the same way", () => {

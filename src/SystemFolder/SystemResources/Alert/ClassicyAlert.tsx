@@ -401,6 +401,9 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 									}
 									disabled={button.disabled}
 									onClickFunc={() => handleButton(button)}
+									// Windows 98 draws it as a push button reading its
+									// label (_Alert.scss), so it needs no ToolTip of it.
+									nameTip={false}
 									className="classicyAlertHelpButton"
 									{...{ [CLASSICY_PART_ATTRIBUTE.role]: "other" }}
 								/>

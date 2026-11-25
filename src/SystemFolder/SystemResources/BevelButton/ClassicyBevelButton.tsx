@@ -111,6 +111,14 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 */
 	iconSmall?: boolean;
 	/**
+	 * Whether an icon-only button shows its accessible name as a ToolTip
+	 * under the package's `layout.balloonHelp.unlabeledTips` (above). Pass
+	 * `false` for a button whose package's stylesheet draws that name as its
+	 * text, as Windows 98's message box draws its Help push button. Defaults
+	 * to `true`; without `unlabeledTips` it does nothing.
+	 */
+	nameTip?: boolean;
+	/**
 	 * On-state for `toggle`/`radio` modes. Seeds the button's own state and
 	 * re-syncs it whenever the prop changes; the button still flips itself on
 	 * click, so drive it from state via `onChangeFunc` to keep the two in step.
@@ -311,6 +319,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 	icon,
 	iconAlt = "",
 	iconSmall = false,
+	nameTip = true,
 	on,
 	square,
 	mixed = false,
@@ -373,7 +382,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 	const unlabeledTips =
 		useClassicyAppearanceLayout().balloonHelp?.unlabeledTips === true;
 	const tipName =
-		unlabeledTips && !hasRenderableContent(children)
+		unlabeledTips && nameTip && !hasRenderableContent(children)
 			? rest["aria-label"] || iconAlt || undefined
 			: undefined;
 	const tipHandlersRef = useRef<ClassicyBevelButtonTipHandlers | null>(null);

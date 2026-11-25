@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -490,5 +496,57 @@ describe("ClassicyAlert — access keys", () => {
 				"accesskey",
 			);
 		}
+	});
+});
+
+// Windows 98 draws the message box's Help as a push button reading "Help"
+// (12.14, _Alert.scss), so the ToolTip an icon-only button gets under
+// `layout.balloonHelp.unlabeledTips` (12.9) would repeat its own text: the
+// alert's Help button takes none (the WIG audit's review).
+describe("ClassicyAlert — the Help button's ToolTip", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		vi.useRealTimers();
+	});
+	const helpButtons = [
+		{ id: "ok", label: "OK", role: "default" as const },
+		{ id: "help", label: "Help", role: "help" as const },
+	];
+	const hoverHelp = () => {
+		fireEvent.mouseEnter(screen.getByRole("button", { name: "Help" }), {
+			clientX: 10,
+			clientY: 10,
+		});
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+	};
+
+	it("shows no ToolTip on the alert's Help button under the Windows layout", () => {
+		vi.useFakeTimers();
+		registerClassicyAppearancePackage({
+			id: "windows-alert-tips",
+			name: "Windows alert tips",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-alert-tips-default",
+				package: "windows-alert-tips",
+			},
+			layout: windows98.layout as never,
+		});
+		render(<ClassicyAlert label="c" buttons={helpButtons} />);
+		hoverHelp();
+		expect(document.querySelector(".classicyBalloonHelp")).toBeNull();
+		expect(screen.getByRole("button", { name: "Help" })).not.toHaveAttribute(
+			"aria-describedby",
+		);
+	});
+
+	it("shows none under a Mac layout either", () => {
+		vi.useFakeTimers();
+		render(<ClassicyAlert label="c" buttons={helpButtons} />);
+		hoverHelp();
+		expect(document.querySelector(".classicyBalloonHelp")).toBeNull();
 	});
 });

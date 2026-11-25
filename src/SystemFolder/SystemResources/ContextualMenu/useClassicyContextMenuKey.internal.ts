@@ -82,21 +82,37 @@ export const classicyContextMenuKeySelectionTarget = (
 };
 
 /**
- * Where a menu the keyboard opens for a selected item goes: the lower left
- * of the item (Appendix B Table B.2's "pop-up menu for the selected item",
- * dropped from the item as a menu drops from its title), kept in the
- * viewport, whole pixels.
+ * The part of a selected item that stands for its icon, LVIR_ICON: a file
+ * view's or desktop icon's image (its mask pair, else its `<img>`), a list
+ * row's small icon; the item itself when it has none.
+ */
+const ITEM_ICON =
+	".classicyIconMaskOuter, .classicyDesktopIconMaskOuter, .classicyFileBrowserViewTableRowIcon, img";
+
+/**
+ * Where a menu the keyboard opens for a selected item goes: the center of
+ * the item's icon, as Explorer's view places it (Windows as shipped, over
+ * the 1995 text's silence: ReactOS's `CDefView::OnContextMenu`, which follows
+ * it, takes the focused selected item, else the first selected one, and
+ * opens at the center of its LVIR_ICON rectangle; the audit's review
+ * corrected L4-H2's lower left), kept in the viewport, whole pixels.
  * @internal
  */
 export const classicyContextMenuKeyItemPoint = (
 	el: Element,
 ): [number, number] => {
-	const rect = el.getBoundingClientRect();
+	const rect = (el.querySelector(ITEM_ICON) ?? el).getBoundingClientRect();
 	const width = window.innerWidth || rect.right;
 	const height = window.innerHeight || rect.bottom;
-	const left = Math.min(Math.max(rect.left, 0), Math.max(width - 1, 0));
-	const bottom = Math.min(Math.max(rect.bottom, 0), Math.max(height - 1, 0));
-	return [Math.round(left), Math.round(bottom)];
+	const x = Math.min(
+		Math.max((rect.left + rect.right) / 2, 0),
+		Math.max(width - 1, 0),
+	);
+	const y = Math.min(
+		Math.max((rect.top + rect.bottom) / 2, 0),
+		Math.max(height - 1, 0),
+	);
+	return [Math.round(x), Math.round(y)];
 };
 
 /**
@@ -147,7 +163,7 @@ export const classicyRedirectKeyboardContextMenu = (
  * The menu is the focused selection's
  * (`classicyContextMenuKeySelectionTarget`): in a file view the selected
  * item's (`itemContextMenu`), on the desktop the selected icon's, at the
- * lower left of the item (`classicyContextMenuKeyItemPoint`). A
+ * center of the item's icon (`classicyContextMenuKeyItemPoint`). A
  * `contextmenu` the browser raises with no pointer position
  * (`isClassicyKeyboardContextMenuEvent`: the key reached the page as that
  * event alone) is taken back and sent the same way. A text field's opens
