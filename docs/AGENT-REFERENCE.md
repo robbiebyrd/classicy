@@ -739,7 +739,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, isDefault?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark` (default `"check"`) makes a checkable item an option button with `"bullet"`, one choice of an interdependent group: `role="menuitemradio"` with `aria-checked` `true` or `false` (`"mixed"` reads as unchecked there, ARIA 1.2 allowing it on a check box alone) and its gutter span carrying `classicyMenuItemBullet` beside `classicyMenuItemCheck`, so a package draws the Windows Interface Guidelines' round bullet there (WIG Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button") while Platinum and System 7, keyed on `.classicyMenuItemCheck.checked`, draw their check mark for either kind; `isDefault: true` marks the menu's default item, the command a double-click on the selection runs, emitted as the `default` state class on the item's `<li>`, which the WIG draws in bold (Ch.7 "Types of Menu Items" (pp.108–109), Figure 7.5 "Default Item"; Ch.13 "Font and Size" (p.311)) and Platinum and System 7 read not at all. Finder's View as Icons / View as List are a `"bullet"` group, and the Trash icon's Open is its menu's default item)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -837,7 +837,7 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyIcon` | `selected`, `dragging` |
 | `ClassicyDesktopIcon` | `selected`, `open` (its app is open, or its folder is open in a Finder window), `dragging` |
 | `ClassicyControlStrip` | `collapsed`, `dragging` |
-| `ClassicyMenu` items | `disabled`, `open` |
+| `ClassicyMenu` items | `disabled`, `open`, `default` (the item's `isDefault`: the command a double-click runs, which Windows 98 draws bold; Platinum and System 7 read it not at all) |
 | `ClassicyTabs` tab buttons and their wrappers (`classicyTabButtonWrapper`); `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
 | `ClassicyTable` rows (Finder list rows included) | `focused` on the one focus row, the keyboard cursor: the row last clicked or arrowed to while it is listed, else the first selected row, else the first row; carried whether or not the list has focus, so a package rings it under the container's `:focus` (Windows 98's dotted focus rectangle; Platinum and System 7 read it not at all) |
 | `ClassicyPopUpMenu` | `open`, `disabled`; while it is open, its label's root (`classicyControlLabelHolder`) and its indicator (`classicyPopUpMenuIndicator`) carry `open` too |
@@ -2230,7 +2230,9 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   `ClassicyMenuItem` with `checked` set (`true`, `false` or `"mixed"`) renders
   as `role="menuitemcheckbox"` with that `aria-checked` (§4,
   `ClassicyMenuItem`), so `getByRole("menuitem", { name })` misses it; query
-  `menuitemcheckbox`. A HyperCard tools-palette entry is `role="button"` with
+  `menuitemcheckbox` (and, since 3.8, `menuitemradio` for an option item,
+  one with `mark: "bullet"`, such as Finder's View as Icons / View as
+  List). A HyperCard tools-palette entry is `role="button"` with
   `aria-pressed` (a toggle: pressing the armed entry again disarms it).
 - **Caption colors are custom properties.** A `captionStyle`'s colors reach
   the cue as `--classicy-caption-fg`/`-bg` and their `-alpha` properties,
@@ -3118,7 +3120,10 @@ set.
 **Glyphs and colors a package supplies.** Some text glyphs are look, so the
 components render an empty span and the package draws the glyph as `::before`
 content: the menu check and mixed dash (`.classicyMenuItemCheck.checked`,
-`.mixed`), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
+`.mixed`; an option item's gutter, `mark: "bullet"`, carries
+`classicyMenuItemBullet` beside it, where Windows 98 draws its round bullet
+and Platinum and System 7 their check), the pop-up and combo-box check
+(`.classicyPopUpMenuCheck.checked`),
 the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 `.classicyBevelButtonArrowVertical`), the placard arrow
 (`.classicyPlacardArrow`) and the file input's remove cross
@@ -3805,7 +3810,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` (pointer only) |
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
-| MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
+| MenuItem | `li.classicyMenuItem` | disabled, open, default (the item's `isDefault`) | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
 | DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box) and dragEnd `{ kind, lost }`, pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` (`lost: true`) |

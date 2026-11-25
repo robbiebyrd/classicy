@@ -59,7 +59,11 @@ and `nodenext` resolution).
     windows with Close alone, a modeless dialog's frame flattened to a plain
     ButtonFace box;
   - menus: the flat menu bar, raised pull-down and contextual menus with an
-    inverted highlight and embossed dimmed items, etched separators;
+    inverted highlight and embossed dimmed items, etched separators, the
+    default item (the command a double-click runs: the Trash icon's Open) in
+    bold and a round bullet at the chosen item of an option group (the
+    Finder's View as Icons and View as List), where the Mac packages draw a
+    check;
   - controls: 23-pixel push buttons with the default button's dark ring and
     the dotted focus rectangle, 13-pixel checkboxes, 12-pixel radio buttons,
     sunken text fields and lists, pop-up menus with their drop-down button,

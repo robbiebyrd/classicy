@@ -365,6 +365,7 @@
 		"Menu": ["ListScrolls", "ScrollShadow"],
 		"MenuItem": [
 			"BalloonAnchor",
+			"Bullet",
 			"Check",
 			"ChildMenuIndicator",
 			"Flash",

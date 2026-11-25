@@ -34,9 +34,9 @@ const PANEL_FOCUS_SELECTOR =
 	'[tabindex]:not([tabindex="-1"]), input, button, select, textarea';
 
 // Plain and checkable items alike (ClassicyMenu renders a checkable item as
-// a menuitemcheckbox).
+// a menuitemcheckbox, an option item, `mark: "bullet"`, as a menuitemradio).
 const MENU_ITEM_SELECTOR =
-	'li:is([role="menuitem"],[role="menuitemcheckbox"]):not(.disabled)';
+	'li:is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]):not(.disabled)';
 
 type ClassicyBevelButtonPopupProps = {
 	/** DOM id of the surface; the button points `aria-controls` at it. */

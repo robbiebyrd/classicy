@@ -228,15 +228,23 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			{
 				id: `${appId}_view`,
 				title: "View",
+				// One view at a time: an option group marking the current one,
+				// as Mac OS 8's View menu checks it (Platinum and System 7 draw
+				// their check) and Windows draws the chosen option's bullet (WIG
+				// Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button").
 				menuChildren: [
 					{
 						id: `${appId}_${op}_view_as_icons`,
 						title: "View as Icons",
+						checked: viewType === "icons",
+						mark: "bullet" as const,
 						onClickFunc: () => setFolderView(op, "icons"),
 					},
 					{
 						id: `${appId}_${op}_view_as_list`,
 						title: "View as List",
+						checked: viewType === "list",
+						mark: "bullet" as const,
 						onClickFunc: () => setFolderView(op, "list"),
 					},
 				],
@@ -596,6 +604,10 @@ export const Finder = () => {
 				{
 					id: "finder_trash_open",
 					title: "Open",
+					// The command a double-click on the icon runs: the menu's
+					// default item, which Windows draws bold (WIG Ch.7 "Types of
+					// Menu Items" (pp.108–109), Figure 7.5 "Default Item").
+					isDefault: true,
 					onClickFunc: () =>
 						desktopEventDispatch({
 							type: "ClassicyAppFinderOpenFolder",

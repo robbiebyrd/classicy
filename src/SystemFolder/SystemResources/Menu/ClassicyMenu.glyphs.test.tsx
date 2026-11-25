@@ -106,4 +106,113 @@ describe("ClassicyMenu — check glyphs", () => {
 		const plain = screen.getByRole("menuitem", { name: "Plain" });
 		expect(plain).not.toHaveAttribute("aria-checked");
 	});
+
+	// WIG Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button": one
+	// choice of an interdependent group (`mark: "bullet"`) is a menuitemradio
+	// whose gutter carries `classicyMenuItemBullet` beside the check's class,
+	// so Platinum and System 7, keyed on `.classicyMenuItemCheck.checked`,
+	// keep their check mark there while Windows 98 draws its round bullet.
+	it("renders a bullet item as menuitemradio, its gutter carrying the bullet class beside the check's", () => {
+		const { container } = render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[
+					{ id: "icons", title: "Icons", checked: true, mark: "bullet" },
+					{ id: "list", title: "List", checked: false, mark: "bullet" },
+					{ id: "check", title: "Check", checked: true, mark: "check" },
+					{ id: "plain", title: "Plain" },
+				]}
+			/>,
+		);
+		const icons = screen.getByRole("menuitemradio", { name: "Icons" });
+		expect(icons).toHaveAttribute("aria-checked", "true");
+		const iconsGutter = icons.querySelector(".classicyMenuItemCheck");
+		expect(iconsGutter).toHaveClass("classicyMenuItemBullet", "checked");
+		expect(iconsGutter).toHaveAttribute("aria-hidden", "true");
+		expect(iconsGutter?.textContent).toBe("");
+		const list = screen.getByRole("menuitemradio", { name: "List" });
+		expect(list).toHaveAttribute("aria-checked", "false");
+		const listGutter = list.querySelector(".classicyMenuItemCheck");
+		expect(listGutter).toHaveClass("classicyMenuItemBullet");
+		expect(listGutter).not.toHaveClass("checked");
+		// `mark: "check"` is the default: a check box, with no bullet class;
+		// a plain item has no gutter at all.
+		const check = screen.getByRole("menuitemcheckbox", { name: "Check" });
+		expect(check.querySelector(".classicyMenuItemCheck")).toHaveClass(
+			"checked",
+		);
+		expect(check.querySelector(".classicyMenuItemCheck")).not.toHaveClass(
+			"classicyMenuItemBullet",
+		);
+		expect(
+			screen
+				.getByRole("menuitem", { name: "Plain" })
+				.querySelector(".classicyMenuItemCheck"),
+		).toBeNull();
+		expect(container.querySelectorAll(".classicyMenuItemBullet")).toHaveLength(
+			2,
+		);
+		expect(screen.queryByRole("menuitemradio", { name: "Check" })).toBeNull();
+	});
+
+	// ARIA 1.2 allows "mixed" on menuitemcheckbox alone, so a bullet item
+	// given it reads as unchecked.
+	it("reads a mixed bullet item as an unchecked menuitemradio", () => {
+		render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[
+					{ id: "mixed", title: "Mixed", checked: "mixed", mark: "bullet" },
+				]}
+			/>,
+		);
+		expect(
+			screen.getByRole("menuitemradio", { name: "Mixed" }),
+		).toHaveAttribute("aria-checked", "false");
+	});
+
+	// WIG Ch.7 "Types of Menu Items" (pp.108–109), Figure 7.5 "Default Item":
+	// the default item, the command a double-click runs, carries the `default`
+	// state on its `<li>`, which Windows 98 draws bold; a plain item, and one
+	// whose `isDefault` is false, carry it not at all, and it goes with the
+	// prop.
+	it("marks the default item with the default state, which follows isDefault", () => {
+		const { rerender } = render(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[
+					{ id: "open", title: "Open", isDefault: true },
+					{ id: "not", title: "Not default", isDefault: false },
+					{ id: "plain", title: "Plain" },
+				]}
+			/>,
+		);
+		const open = screen.getByRole("menuitem", { name: "Open" });
+		expect(open).toHaveClass("classicyMenuItem", "default");
+		// A default item that is not checkable has no gutter, bullet or check.
+		expect(open.querySelector(".classicyMenuItemCheck")).toBeNull();
+		expect(open).not.toHaveAttribute("aria-checked");
+		expect(
+			screen.getByRole("menuitem", { name: "Not default" }),
+		).not.toHaveClass("default");
+		expect(screen.getByRole("menuitem", { name: "Plain" })).not.toHaveClass(
+			"default",
+		);
+		rerender(
+			<ClassicyMenu
+				name="test-menu"
+				menuItems={[
+					{ id: "open", title: "Open" },
+					{ id: "not", title: "Not default", isDefault: true },
+					{ id: "plain", title: "Plain" },
+				]}
+			/>,
+		);
+		expect(screen.getByRole("menuitem", { name: "Open" })).not.toHaveClass(
+			"default",
+		);
+		expect(screen.getByRole("menuitem", { name: "Not default" })).toHaveClass(
+			"default",
+		);
+	});
 });

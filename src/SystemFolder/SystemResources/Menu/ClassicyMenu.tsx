@@ -75,6 +75,29 @@ export interface ClassicyMenuItem {
 	 * checkmark, which means it applies to the whole selection).
 	 */
 	checked?: boolean | "mixed";
+	/**
+	 * Which mark a checkable item shows (default `"check"`). `"check"` is an
+	 * independent setting, a check box (`role="menuitemcheckbox"`);
+	 * `"bullet"` is one choice of an interdependent group, an option button
+	 * (`role="menuitemradio"`, `aria-checked` true or false: `"mixed"` reads
+	 * as unchecked there, since ARIA 1.2 allows it on a check box alone). The
+	 * gutter span then carries `classicyMenuItemBullet` beside
+	 * `classicyMenuItemCheck`, so a package can draw the round bullet the
+	 * Windows Interface Guidelines show at the chosen item (WIG Ch.7 "Types
+	 * of Menu Items" (p.108), Figure 7.5 "Option Button"), while Platinum
+	 * and System 7, keyed on `.classicyMenuItemCheck.checked` alone, draw
+	 * their check mark for either kind, as Mac OS 8 checks the chosen view.
+	 */
+	mark?: "check" | "bullet";
+	/**
+	 * The menu's default item: the command a double-click on the selection
+	 * runs (an icon's Open). Emitted as the `default` state class on the
+	 * item's `<li>`, which the Windows Interface Guidelines draw in bold
+	 * (WIG Ch.7 "Types of Menu Items" (pp.108–109), Figure 7.5 "Default
+	 * Item"; Ch.13 "Font and Size" (p.311)). Platinum and System 7 read it
+	 * not at all, so a Mac menu is unchanged by it.
+	 */
+	isDefault?: boolean;
 	/** Icon drawn before the title. */
 	icon?: string;
 	/**
@@ -200,9 +223,9 @@ const nudgeMenuWrapperOntoGrid = (wrapper: HTMLElement) => {
 /**
  * Renders a Platinum menu list from `ClassicyMenuItem` data — the building
  * block of the menu bar, contextual menus and pop-up bevel menus, drawn in the
- * shared Platinum menu frame. Items support checkmarks and dashes, keyboard
- * equivalents, icons, dividers, balloon help and nested submenus (which flip
- * left at the viewport edge).
+ * shared Platinum menu frame. Items support checkmarks, dashes and option
+ * bullets, a default item, keyboard equivalents, icons, dividers, balloon
+ * help and nested submenus (which flip left at the viewport edge).
  *
  * Choosing an item flashes it and plays the menu sounds (both from the
  * appearance package's MenuItem hooks), closes the menu and then runs
@@ -267,7 +290,8 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	const scrollCapRef = useRef(scrollCap);
 	scrollCapRef.current = scrollCap;
 	const scrollArrows = useClassicyMenuScrollArrows(listRef, {
-		rowSelector: '[role="menuitem"], [role="menuitemcheckbox"]',
+		rowSelector:
+			'[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]',
 		// Over the list, in its wrapper's stacking context.
 		zIndex: 1,
 	});
@@ -555,7 +579,15 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	// Its own hook, not the menu's emit: each item is a MenuItem root.
 	const appearance = useClassicyAppearance(
 		"MenuItem",
-		{ disabled: menuItem.disabled, open: isOpen },
+		{
+			disabled: menuItem.disabled,
+			open: isOpen,
+			// The default item, the command a double-click runs, as the state
+			// a package draws bold (WIG Ch.7 "Types of Menu Items" (pp.108–109),
+			// Figure 7.5 "Default Item"); with `isDefault` absent nothing is
+			// emitted, and Platinum and System 7 read it not at all.
+			default: menuItem.isDefault === true,
+		},
 		itemRef,
 	);
 
@@ -717,22 +749,32 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	// A checkable item is a menuitemcheckbox, whose aria-checked carries the
 	// state: the ✓ and – are package CSS in an aria-hidden gutter, so without
 	// it the state would reach assistive technology only through the look.
-	// ARIA 1.2 allows "mixed" on menuitemcheckbox, not on menuitemradio.
+	// An option item (`mark: "bullet"`, one choice of an interdependent
+	// group: WIG Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option
+	// Button") is a menuitemradio, checked or not: ARIA 1.2 allows "mixed"
+	// on menuitemcheckbox, not on menuitemradio.
 	const checkable = menuItem.checked !== undefined;
+	const bullet = checkable && menuItem.mark === "bullet";
+	const role = !checkable
+		? "menuitem"
+		: bullet
+			? "menuitemradio"
+			: "menuitemcheckbox";
+	const ariaChecked = !checkable
+		? undefined
+		: bullet
+			? menuItem.checked === true
+			: menuItem.checked === "mixed"
+				? "mixed"
+				: menuItem.checked === true;
 
 	// ClassicyMenu renders dividers itself, so every item here is a real one.
 	const li = (
-		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is set only with role="menuitemcheckbox"; the role is dynamic, so the rule cannot see it
+		// biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is set only with role="menuitemcheckbox" or "menuitemradio"; the role is dynamic, so the rule cannot see it
 		<li
 			{...appearance.attrs}
-			role={checkable ? "menuitemcheckbox" : "menuitem"}
-			aria-checked={
-				checkable
-					? menuItem.checked === "mixed"
-						? "mixed"
-						: menuItem.checked === true
-					: undefined
-			}
+			role={role}
+			aria-checked={ariaChecked}
 			tabIndex={-1}
 			ref={itemRef}
 			id={menuItem.id}
@@ -789,6 +831,12 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 					<span
 						className={classNames(
 							"classicyMenuItemCheck",
+							// An option item's gutter carries the bullet class beside
+							// the check's, so a package draws Windows' round bullet
+							// there (WIG Ch.7 "Types of Menu Items" (p.108), Figure
+							// 7.5 "Option Button") while Platinum and System 7, keyed
+							// on `.classicyMenuItemCheck.checked`, keep their check.
+							bullet && "classicyMenuItemBullet",
 							classicyStateClasses({
 								checked: menuItem.checked === true,
 								mixed: menuItem.checked === "mixed",

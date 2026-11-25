@@ -72,8 +72,8 @@ exports (`WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json`,
 
 ## New in the core
 
-Two additive hooks the Windows 98 look needed; neither changes what Platinum
-or System 7 draw, and a package that reads neither sees nothing new.
+Additive hooks the Windows 98 look needed; none changes what Platinum or
+System 7 draw, and a package that reads none of them sees nothing new.
 
 - **The paged side of a scroll-bar track.** While a `ClassicyScrollArea`
   track is held and paging, the track carries `--classicy-scroll-page-start`
@@ -107,6 +107,18 @@ or System 7 draw, and a package that reads neither sees nothing new.
   and the desktop icons already publish theirs, so a package can draw a
   selected icon through its own shape (Windows 98's 50% highlight dither).
   The `<img>` itself is unchanged.
+- **A menu's option items and its default item.** A `ClassicyMenuItem` with
+  `mark: "bullet"` is one choice of an interdependent group, an option
+  button: `role="menuitemradio"` with `aria-checked` true or false, its
+  gutter span carrying `classicyMenuItemBullet` beside
+  `classicyMenuItemCheck`; one with `isDefault: true`, the command a
+  double-click runs, carries the `default` state on its `<li>`. Finder's
+  View menu marks the current view as such a group (as Mac OS 8's View menu
+  checks it), and the Trash icon's Open is its menu's default item. Windows
+  98 draws the chosen option's round bullet and the default item in bold
+  (WIG Ch.7 "Types of Menu Items"); Platinum and System 7 key on
+  `.classicyMenuItemCheck.checked` alone, so they draw their check mark at
+  a chosen option, and read `default` not at all.
 
 ## Upgrade
 

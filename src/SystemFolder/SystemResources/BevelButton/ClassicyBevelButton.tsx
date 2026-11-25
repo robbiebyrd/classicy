@@ -62,9 +62,9 @@ export type ClassicyBevelPopupTrigger = "click" | "hold";
 const DEFAULT_HOLD_DELAY_MS = 500;
 
 // Plain and checkable items alike (ClassicyMenu renders a checkable item as
-// a menuitemcheckbox).
+// a menuitemcheckbox, an option item, `mark: "bullet"`, as a menuitemradio).
 const MENU_ITEM_SELECTOR =
-	'li:is([role="menuitem"],[role="menuitemcheckbox"]):not(.disabled)';
+	'li:is([role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]):not(.disabled)';
 
 type ClassicyBevelButtonProps = PropsWithChildren<{
 	/**
