@@ -22,11 +22,25 @@ import {
 	ClassicyStartMenu,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyStartMenu.internal";
 import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import { useClassicyTaskbarMenu } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
 import { ClassicyTaskbarTasks } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
+import { ClassicyTaskbarTray } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTray.internal";
 import {
 	classicyDesktopHasOpenModal,
 	useClassicyTaskbarKeys,
 } from "@/SystemFolder/SystemResources/Taskbar/useClassicyTaskbarKeys.internal";
+
+/**
+ * The taskbar's background under button 2, which opens the taskbar's own
+ * menu: the window buttons' list and the status area's own boxes, around
+ * their buttons (the root itself is checked as the event's current target).
+ */
+const TASKBAR_BACKGROUND = [
+	".classicyTaskbarTasks",
+	".classicyTaskbarTray",
+	".classicyTaskbarTrayIcons",
+	".classicyTaskbarTrayExtensions",
+].join(", ");
 
 /**
  * The Start button's label when the layout gives none (WIG Ch.3 "The Start
@@ -45,7 +59,8 @@ export type ClassicyTaskbarProps = {
 	disabledModules?: string[];
 	/**
 	 * Show no Control Strip module in the status area, as `controlStrip={false}`
-	 * hides the strip; the status area's other contents stay.
+	 * hides the strip; the status area's other contents (the menu bar
+	 * extensions) stay.
 	 * `ClassicyDesktop` sets it for `controlStrip={false}`.
 	 */
 	hideModules?: boolean;
@@ -116,6 +131,20 @@ const useClassicyTaskbarBandPublisher = (
  *   at the pointer, where the window has one. Every command runs through
  *   the window's own path (the window registry). The buttons keep the order
  *   their windows opened in, for the session.
+ * - **The status area** (`ClassicyTaskbarTray.internal.tsx`) shows the
+ *   Control Strip's modules as notification icons, in the strip's
+ *   arrangement less the ones the user hid (none while the user has turned
+ *   the strip off or `hideModules` is set), then the menu bar extensions'
+ *   region. Button 1 on an icon opens the module's `content` above it, else
+ *   its menu (after the double-click time when the menu has a default
+ *   item), button 2 its menu at the pointer, a double-click its default
+ *   item, and the module's name is its tooltip (WIG Ch.10 "Status
+ *   Notification", pp.211–212).
+ * - **Its own menu.** Button 2 on the taskbar's background opens Minimize
+ *   All Windows (Undo Minimize All after it, until one of those windows is
+ *   restored or closed by other means) and Properties, the Control Strip
+ *   control panel (`ClassicyTaskbarMenu.internal.ts`; WIG App. B, Table
+ *   B.3, p.359).
  * - **The band.** It publishes its height as the taskbar band, so windows,
  *   desktop icons and menus keep above it (`useClassicyTaskbarBand`).
  *
@@ -125,6 +154,7 @@ const useClassicyTaskbarBandPublisher = (
  */
 export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	disabledModules,
+	hideModules = false,
 	className,
 	style,
 }) => {
@@ -184,8 +214,22 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 			closeStartMenu();
 		}
 	};
-	// The browser's own menu never opens over the taskbar.
-	const suppressContextMenu = (e: MouseEvent) => e.preventDefault();
+	// Button 2 on the taskbar's background (the bar itself, the window
+	// buttons' list around its buttons, the status area around its icons)
+	// opens the taskbar's own menu. Over a part that has its own (a window
+	// button, a tray icon) or none (the Start button), and over the taskbar
+	// in any case, the browser's menu and the desktop's never open.
+	const showTaskbarMenu = useClassicyTaskbarMenu();
+	const onContextMenu = (e: MouseEvent<HTMLElement>) => {
+		if (e.defaultPrevented) return;
+		e.preventDefault();
+		const target = e.target;
+		if (
+			target === e.currentTarget ||
+			(target instanceof Element && target.matches(TASKBAR_BACKGROUND))
+		)
+			showTaskbarMenu([e.clientX, e.clientY]);
+	};
 
 	return (
 		<nav
@@ -194,7 +238,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 			aria-label="Taskbar"
 			className={classNames("classicyTaskbar", appearance.className, className)}
 			style={{ ...appearance.style, ...style }}
-			onContextMenu={suppressContextMenu}
+			onContextMenu={onContextMenu}
 		>
 			<button
 				ref={startRef}
@@ -224,12 +268,9 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				/>
 			)}
 			<ClassicyTaskbarTasks />
-			{/* biome-ignore lint/a11y/useSemanticElements: the status area is a flex row of icons and the clock, not a form; a fieldset would bring a legend and form-control semantics */}
-			<div
-				className="classicyTaskbarTray"
-				data-classicy-part="taskbar-tray"
-				role="group"
-				aria-label="Notification area"
+			<ClassicyTaskbarTray
+				disabledModules={disabledModules}
+				hideModules={hideModules}
 			/>
 		</nav>
 	);

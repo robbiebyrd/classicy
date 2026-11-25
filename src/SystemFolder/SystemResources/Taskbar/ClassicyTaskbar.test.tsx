@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import type { ReactNode } from "react";
+import { type ReactNode, useLayoutEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@/__tests__/withPlatinum";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
@@ -30,12 +30,22 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { useClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
 import { getClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import {
+	CLASSICY_TASKBAR_MENU_IDS,
+	classicyTaskbarMenuItems,
+	classicyTaskbarMinimizeAllTargets,
+	classicyTaskbarMinimizedAllStands,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
 import {
 	CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
 	classicyTaskbarClickCommand,
@@ -281,6 +291,159 @@ describe("classicyTaskbarClickCommand", () => {
 		expect(
 			classicyTaskbarClickCommand({ minimized: false, active: false }),
 		).toBe("activate");
+	});
+});
+
+describe("classicyTaskbarMinimizeAllTargets", () => {
+	const tasksOf = (
+		aWindows: ClassicyStoreSystemAppWindow[],
+		entries = aWindows.map((w) => entry("A.app", w.id)),
+	) =>
+		classicyTaskbarTasks(
+			entries,
+			appsOf(app("A.app", aWindows, { focused: true })),
+			NONE,
+		);
+
+	it("takes every window button's window that is not minimized and has a Minimize box, the active one last", () => {
+		const tasks = tasksOf(
+			[
+				win("one", { zOrder: 1 }),
+				win("front", { zOrder: 9, focused: true }),
+				win("shut", { collapsed: true }),
+				win("fixed"),
+				win("three", { zOrder: 3 }),
+			],
+			[
+				entry("A.app", "one"),
+				entry("A.app", "front"),
+				entry("A.app", "shut"),
+				entry("A.app", "fixed", { collapsable: false }),
+				entry("A.app", "three"),
+			],
+		);
+		expect(keys(classicyTaskbarMinimizeAllTargets(tasks))).toEqual([
+			k("A.app", "one"),
+			k("A.app", "three"),
+			k("A.app", "front"),
+		]);
+	});
+
+	it("is none when every window is minimized", () => {
+		expect(
+			classicyTaskbarMinimizeAllTargets(
+				tasksOf([win("one", { collapsed: true })]),
+			),
+		).toEqual([]);
+	});
+});
+
+describe("classicyTaskbarMinimizedAllStands", () => {
+	const minimized = {
+		windows: [
+			{ appId: "A.app", windowId: "one" },
+			{ appId: "B.app", windowId: "two" },
+		],
+		active: { appId: "A.app", windowId: "one" },
+	};
+	const apps = (
+		one: Partial<ClassicyStoreSystemAppWindow> = {},
+		bOpen = true,
+	) =>
+		appsOf(
+			app("A.app", [win("one", { collapsed: true, ...one })]),
+			app("B.app", [win("two", { collapsed: true })], { open: bOpen }),
+		);
+
+	it("stands while every window it minimized is open and minimized", () => {
+		expect(classicyTaskbarMinimizedAllStands(minimized, apps())).toBe(true);
+	});
+
+	it("falls once one is restored or closed, or its app quits", () => {
+		expect(
+			classicyTaskbarMinimizedAllStands(minimized, apps({ collapsed: false })),
+		).toBe(false);
+		expect(
+			classicyTaskbarMinimizedAllStands(minimized, apps({ closed: true })),
+		).toBe(false);
+		expect(classicyTaskbarMinimizedAllStands(minimized, apps({}, false))).toBe(
+			false,
+		);
+		expect(
+			classicyTaskbarMinimizedAllStands(
+				{ windows: [{ appId: "Gone.app", windowId: "x" }] },
+				apps(),
+			),
+		).toBe(false);
+	});
+
+	it("is nothing to undo with no list, or an empty one", () => {
+		expect(classicyTaskbarMinimizedAllStands(null, apps())).toBe(false);
+		expect(classicyTaskbarMinimizedAllStands({ windows: [] }, apps())).toBe(
+			false,
+		);
+	});
+});
+
+describe("classicyTaskbarMenuItems", () => {
+	const handlers = {
+		onMinimizeAll: () => {},
+		onUndoMinimizeAll: () => {},
+		onProperties: () => {},
+	};
+	const shape = (items: { id: string; title?: string; disabled?: boolean }[]) =>
+		items.map((i) =>
+			i.id === "spacer" ? "—" : `${i.title}${i.disabled ? " (off)" : ""}`,
+		);
+
+	it("is Minimize All Windows, a divider and Properties", () => {
+		expect(
+			shape(
+				classicyTaskbarMenuItems({
+					...handlers,
+					undo: false,
+					canMinimizeAll: true,
+				}),
+			),
+		).toEqual(["Minimize All Windows", "—", "Properties"]);
+		expect(
+			shape(
+				classicyTaskbarMenuItems({
+					...handlers,
+					undo: false,
+					canMinimizeAll: false,
+				}),
+			),
+		).toEqual(["Minimize All Windows (off)", "—", "Properties"]);
+	});
+
+	it("reads Undo Minimize All while the list stands", () => {
+		const items = classicyTaskbarMenuItems({
+			...handlers,
+			undo: true,
+			canMinimizeAll: false,
+		});
+		expect(shape(items)).toEqual(["Undo Minimize All", "—", "Properties"]);
+		expect(items[0].id).toBe(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll);
+	});
+
+	it("leads with the caller's items and a divider", () => {
+		expect(
+			shape(
+				classicyTaskbarMenuItems({
+					...handlers,
+					undo: false,
+					canMinimizeAll: true,
+					leading: [{ id: "adjust", title: "Adjust Date/Time" }],
+				}),
+			),
+		).toEqual([
+			"Adjust Date/Time",
+			"—",
+			"Minimize All Windows",
+			"—",
+			"Properties",
+		]);
 	});
 });
 
@@ -1005,6 +1168,264 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 			}),
 		);
 		expect(ownButtons()).toHaveLength(0);
+	});
+
+	// Plan 0020-w98 §2, "The taskbar's own menu": button 2 on the taskbar's
+	// background (WIG App. B, Table B.3, p.359: WINDOWS+M, SHIFT+WINDOWS+M).
+	describe("the taskbar's own menu", () => {
+		const taskbarMenuItem = (id: string) => document.getElementById(id);
+		const choose = async (id: string, settled: () => void) => {
+			const item = taskbarMenuItem(id) as HTMLElement;
+			fireEvent.click(item);
+			dispatchAnimationEnd(item);
+			await waitFor(settled);
+		};
+		const openTaskbarMenu = (target: Element = taskbar()) =>
+			fireEvent.contextMenu(target, { clientX: 300, clientY: 750 });
+		const taskbar = () =>
+			document.querySelector(".classicyTaskbar") as HTMLElement;
+		const collapsed = (id: string) =>
+			getAppWindow(appRecord(), id)?.collapsed === true;
+		const threeWindows = (
+			<>
+				<ClassicyWindow id="main" appId={APP_ID} title="Main">
+					<p>main</p>
+				</ClassicyWindow>
+				<ClassicyWindow id="second" appId={APP_ID} title="Second">
+					<p>second</p>
+				</ClassicyWindow>
+				<ClassicyWindow
+					id="palette"
+					appId={APP_ID}
+					title="Palette"
+					windowType="utility"
+				>
+					<p>palette</p>
+				</ClassicyWindow>
+			</>
+		);
+
+		beforeEach(() => {
+			registerTestTaskbarPackage(
+				TEST_MINIMIZE_LAYOUT,
+				TEST_MINIMIZE_PACKAGE_ID,
+			);
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: TEST_MINIMIZE_PACKAGE_ID,
+				}),
+			);
+		});
+
+		it("opens on the taskbar's background, with no Help item, and not on its buttons", () => {
+			renderShell(threeWindows);
+			openTaskbarMenu();
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll),
+			).toHaveTextContent("Minimize All Windows");
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties),
+			).toHaveTextContent("Properties");
+			expect(document.getElementById("contextual-help")).toBeNull();
+			// The list around the window buttons and the status area are
+			// background too.
+			for (const selector of [
+				".classicyTaskbarTasks",
+				".classicyTaskbarTray",
+				".classicyTaskbarTrayIcons",
+				".classicyTaskbarTrayExtensions",
+			]) {
+				act(() => {
+					fireEvent.keyDown(document.activeElement ?? document.body, {
+						key: "Escape",
+					});
+				});
+				expect(
+					taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties),
+				).toBeNull();
+				openTaskbarMenu(document.querySelector(selector) as Element);
+				expect(
+					taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties),
+				).not.toBeNull();
+			}
+			act(() => {
+				fireEvent.keyDown(document.activeElement ?? document.body, {
+					key: "Escape",
+				});
+			});
+			// The Start button shows nothing; a window button its window's.
+			const start = document.querySelector(
+				".classicyTaskbarStart",
+			) as HTMLElement;
+			const onStart = new MouseEvent("contextmenu", {
+				bubbles: true,
+				cancelable: true,
+			});
+			start.dispatchEvent(onStart);
+			expect(onStart.defaultPrevented).toBe(true);
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties)).toBeNull();
+			openTaskbarMenu(button("Main"));
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties)).toBeNull();
+		});
+
+		it("never lets the desktop's menu open over the taskbar", () => {
+			renderShell(threeWindows);
+			const onBar = new MouseEvent("contextmenu", {
+				bubbles: true,
+				cancelable: true,
+			});
+			taskbar().dispatchEvent(onBar);
+			expect(onBar.defaultPrevented).toBe(true);
+			// The desktop's own menu leads with its File menu.
+			expect(document.getElementById("finder_file")).toBeNull();
+		});
+
+		it("minimizes every window with a Minimize box at once, the focus passing on in one commit", async () => {
+			const commits: string[] = [];
+			const Probe = () => {
+				const snapshot = useAppManager((s) => {
+					const own = s.System.Manager.Applications.apps[APP_ID];
+					const shut = listAppWindows(own).filter(
+						(w) => w.collapsed === true,
+					).length;
+					return `${shut}:${s.System.Manager.Applications.focusedAppId}`;
+				});
+				useLayoutEffect(() => {
+					commits.push(snapshot);
+				});
+				return null;
+			};
+			renderShell(
+				<>
+					{threeWindows}
+					<Probe />
+				</>,
+			);
+			expect(button("Second")).toHaveClass("active");
+			openTaskbarMenu();
+			commits.length = 0;
+			await choose(CLASSICY_TASKBAR_MENU_IDS.minimizeAll, () =>
+				expect(collapsed("second")).toBe(true),
+			);
+			expect(collapsed("main")).toBe(true);
+			// A palette has no button and no Minimize box: it is hidden with
+			// its app's windows, its own record untouched.
+			expect(collapsed("palette")).toBe(false);
+			expect(getAppWindow(appRecord(), "main")?.focused).not.toBe(true);
+			expect(getAppWindow(appRecord(), "second")?.focused).toBe(false);
+			// Both went in the one commit, which took the focus to the
+			// desktop (Finder): no window was focused on the way.
+			expect(commits).toEqual([
+				`2:${useAppManager.getState().System.Manager.Applications.focusedAppId}`,
+			]);
+			expect(
+				useAppManager.getState().System.Manager.Applications.focusedAppId,
+			).not.toBe(APP_ID);
+			expect(button("Main")).toHaveClass("collapsed");
+			expect(button("Second")).toHaveClass("collapsed");
+		});
+
+		it("then reads Undo Minimize All, which restores them and activates the window that was active", async () => {
+			renderShell(threeWindows);
+			openTaskbarMenu();
+			await choose(CLASSICY_TASKBAR_MENU_IDS.minimizeAll, () =>
+				expect(collapsed("second")).toBe(true),
+			);
+			openTaskbarMenu();
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll)).toBeNull();
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll),
+			).toHaveTextContent("Undo Minimize All");
+			await choose(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll, () =>
+				expect(getAppWindow(appRecord(), "second")?.focused).toBe(true),
+			);
+			expect(collapsed("main")).toBe(false);
+			expect(collapsed("second")).toBe(false);
+			expect(button("Second")).toHaveClass("active");
+			// Undone, it is forgotten.
+			openTaskbarMenu();
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll),
+			).not.toBeNull();
+		});
+
+		it("forgets what it minimized once one of those windows is restored by hand", async () => {
+			renderShell(threeWindows);
+			openTaskbarMenu();
+			await choose(CLASSICY_TASKBAR_MENU_IDS.minimizeAll, () =>
+				expect(collapsed("second")).toBe(true),
+			);
+			fireEvent.click(button("Main"));
+			expect(collapsed("main")).toBe(false);
+			// Minimized again, it is not the Undo's any more.
+			fireEvent.click(button("Main"));
+			expect(collapsed("main")).toBe(true);
+			openTaskbarMenu();
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll),
+			).toBeNull();
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll),
+			).toHaveClass("disabled");
+		});
+
+		it("forgets what it minimized once one of those windows is closed", async () => {
+			renderShell(threeWindows);
+			openTaskbarMenu();
+			await choose(CLASSICY_TASKBAR_MENU_IDS.minimizeAll, () =>
+				expect(collapsed("second")).toBe(true),
+			);
+			act(() =>
+				dispatch({
+					type: "ClassicyWindowClose",
+					app: { id: APP_ID },
+					window: { id: "main" },
+				}),
+			);
+			openTaskbarMenu();
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undoMinimizeAll),
+			).toBeNull();
+		});
+
+		it("dims Minimize All Windows while no window can be minimized", () => {
+			renderShell(
+				<ClassicyWindow
+					id="main"
+					appId={APP_ID}
+					title="Main"
+					collapsable={false}
+				>
+					<p>main</p>
+				</ClassicyWindow>,
+			);
+			// Other apps' windows (Finder's) may hold buttons too.
+			for (const other of Array.from(
+				document.querySelectorAll<HTMLButtonElement>(".classicyTaskbarTask"),
+			))
+				if (
+					!other.classList.contains("collapsed") &&
+					other.textContent !== "Main"
+				)
+					throw new Error(`unexpected window button "${other.textContent}"`);
+			openTaskbarMenu();
+			expect(
+				taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.minimizeAll),
+			).toHaveClass("disabled");
+		});
+
+		it("opens the Control Strip control panel from Properties", async () => {
+			renderShell(threeWindows);
+			openTaskbarMenu();
+			await choose(CLASSICY_TASKBAR_MENU_IDS.properties, () =>
+				expect(
+					useAppManager.getState().System.Manager.Applications.apps[
+						CONTROL_STRIP_MANAGER_APP_ID
+					]?.open,
+				).toBe(true),
+			);
+		});
 	});
 
 	// Plan 0020-w98 §5, "The window pop-up (system) menu": a window button's

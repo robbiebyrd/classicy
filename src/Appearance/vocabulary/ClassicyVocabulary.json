@@ -520,7 +520,11 @@
 			"TaskIcon",
 			"TaskLabel",
 			"Tasks",
-			"Tray"
+			"Tray",
+			"TrayExtensions",
+			"TrayIcon",
+			"TrayIcons",
+			"TrayPopup"
 		],
 		"TextEditor": [
 			"Area",

@@ -102,9 +102,41 @@ $classicy-taskbar-order: (
   white-space: nowrap;
 }
 
+// The status area: the Control Strip's modules as notification icons, then
+// the menu bar extensions' region (ClassicyTaskbarTray.internal.tsx), in a
+// row. The package draws its pane, sizes the icons and sets their pitch.
 .classicyTaskbarTray {
   flex: 0 0 auto;
   display: flex;
   flex-direction: row;
   align-items: center;
+}
+
+.classicyTaskbarTrayIcons {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    flex: 0 0 auto;
+    display: flex;
+  }
+}
+
+.classicyTaskbarTrayIcon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  font: inherit;
+}
+
+.classicyTaskbarTrayExtensions {
+  flex: 0 0 auto;
 }

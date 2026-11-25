@@ -44,16 +44,21 @@ export interface ClassicyMenuBarExtensionProps {
  * `ClassicyApp`): it portals into the menu bar's `#classicyDesktopMenuExtensions`
  * region, and renders nothing when that region is not in the document — as
  * under an Appearance Package whose `layout.menuBar.placement` is `"window"`,
- * which draws no screen bar. It looks the region up again whenever the
- * package layout's placement changes, so it reappears when the bar does; a
- * bar forced to `placement="screen"` under a window-placement package is not
- * re-queried. The item
+ * which draws no screen bar. Under a package whose layout declares
+ * `taskbar` (the Windows 95/98 shell) the region is the taskbar's status
+ * area's, beside the notification icons, so the item is a tray icon there.
+ * It looks the region up again whenever the package layout's placement or
+ * its taskbar's presence changes, so it reappears when the bar or the
+ * taskbar does; a bar forced to `placement="screen"` under a
+ * window-placement package is not re-queried. The item
  * is a real `<button>`, so Enter and Space activate it. With `menuItems`, a
  * click drops a Platinum menu below the item, which closes on a selection or a
  * click outside. The menu hangs from the item's left side, or, where that
  * would pass the desktop's right edge, with its right side under the item's
  * right side, as a menu bar title's pull-down does; one still too wide is
- * pinned inside the desktop.
+ * pinned inside the desktop. In the taskbar's status area it hangs from the
+ * item's bottom too, and so, kept to the menu bounds, which end at the
+ * taskbar's band, it is pinned upward above the taskbar.
  *
  * ```tsx
  * <ClassicyMenuBarExtension id="myapp_menu" order={1} title={appName} menuItems={items}>
@@ -84,15 +89,19 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 
 	const hasMenu = !!menuItems && menuItems.length > 0;
 
-	// The region is the screen bar's: a package with menus in each window
-	// removes it, and a switch back renders a new one. Look it up again
-	// whenever the placement changes (effects run after the bar's commit), so
-	// the item never stays portaled into a detached region.
-	const placement = useClassicyAppearanceLayout().menuBar.placement;
-	// biome-ignore lint/correctness/useExhaustiveDependencies: placement is the trigger; the lookup reads the DOM the bar just committed
+	// The region is the screen bar's, or, under the Windows shell, the
+	// taskbar's status area's: a package with menus in each window removes
+	// the bar's, a taskbar draws its own, and a switch back renders a new
+	// one. Look it up again whenever the placement or the taskbar's presence
+	// changes (effects run after the bar's and the taskbar's commit), so the
+	// item never stays portaled into a detached region.
+	const layout = useClassicyAppearanceLayout();
+	const placement = layout.menuBar.placement;
+	const hasTaskbar = layout.taskbar !== undefined;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: placement and the taskbar are the triggers; the lookup reads the DOM the bar or the taskbar just committed
 	useEffect(() => {
 		setRegionNode(document.getElementById("classicyDesktopMenuExtensions"));
-	}, [placement]);
+	}, [placement, hasTaskbar]);
 
 	const activate = () => {
 		if (hasMenu) {

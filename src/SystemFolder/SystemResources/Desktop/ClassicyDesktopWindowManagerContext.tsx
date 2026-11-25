@@ -9,6 +9,7 @@ import {
 	hasWindowZoomed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import {
+	classicyAppPalettesHidden,
 	classicyVisibleSuccession,
 	classicyWindowsMinimize,
 	focusApp,
@@ -419,18 +420,30 @@ export const classicyWindowEventHandler = (
 			const app = ds.System.Manager.Applications.apps[action.app.id];
 			const record = getAppWindow(app, action.window.id);
 			if (!record || !isClassicyPrimaryWindow(record)) break;
-			const heldFocus =
-				record.focused === true &&
+			const appFocused =
 				ds.System.Manager.Applications.focusedAppId === action.app.id;
+			const heldFocus = record.focused === true && appFocused;
 			ds = updateWindow(action.app.id, action.window.id, {
 				collapsed: true,
 				focused: false,
 			});
+			// The app's palette that holds focus goes with its last shown
+			// window (`classicyAppPalettesHidden`; Windows hides a minimized
+			// window's owned pop-ups, WIG Ch.8, p.145): off the screen, it
+			// passes the focus on as the window would have.
+			const after = ds.System.Manager.Applications.apps[action.app.id];
+			const paletteLeft =
+				appFocused &&
+				!heldFocus &&
+				classicyAppPalettesHidden(after) &&
+				listAppWindows(after).some(
+					(w) => w.focused === true && !w.closed && w.windowType === "utility",
+				);
 			// The active window minimized: focus passes to the next window
 			// down, never a minimized one, so the app is not left focused
 			// with no window (where ClassicyApp's refocus would restore the
 			// one just minimized). Minimizing any other window moves nothing.
-			if (heldFocus) {
+			if (heldFocus || paletteLeft) {
 				ds = classicyVisibleSuccession(ds, action.app.id, action.window.id);
 			}
 			break;

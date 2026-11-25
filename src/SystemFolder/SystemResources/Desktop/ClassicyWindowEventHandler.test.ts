@@ -1443,6 +1443,41 @@ describe("minimize (window.collapse)", () => {
 			expect(focusOf(ds).focusedWindows).toEqual(["A.app/front"]);
 		});
 
+		it("passes the focus on when the app's last shown window minimizes under its focused palette", () => {
+			const ds = shell(
+				true,
+				[
+					win("doc", { zOrder: 3 }),
+					win("tools", { windowType: "utility", focused: true, zOrder: 9 }),
+				],
+				[win("other", { zOrder: 2 })],
+			);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "doc");
+			// The palette goes with its app's last shown window, and so does
+			// the focus it held.
+			expect(focusOf(ds)).toEqual({
+				focusedAppId: "B.app",
+				focusedWindows: ["B.app/other"],
+			});
+			expect(recordOf(ds, "A.app", "tools")).toMatchObject({
+				focused: false,
+			});
+			expect(recordOf(ds, "A.app", "tools")?.collapsed).not.toBe(true);
+		});
+
+		it("leaves the focus with a palette whose app still shows a window", () => {
+			const ds = shell(true, [
+				win("doc", { zOrder: 3 }),
+				win("other", { zOrder: 2 }),
+				win("tools", { windowType: "utility", focused: true, zOrder: 9 }),
+			]);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "doc");
+			expect(focusOf(ds)).toEqual({
+				focusedAppId: "A.app",
+				focusedWindows: ["A.app/tools"],
+			});
+		});
+
 		it("refuses a palette's or a modal's collapse: neither has a taskbar button", () => {
 			const ds = shell(true, [
 				win("doc", { zOrder: 1 }),

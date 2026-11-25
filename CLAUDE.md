@@ -215,8 +215,10 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   not bubble and `zoomed` is kept. A modal or palette never minimizes (no box;
   the reducer refuses it; a stored flag is drawn expanded), and palettes hide
   while every primary window of their app is minimized
-  (`classicyAppPalettesHidden`). When the focused window minimizes, and on
-  `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy`, focus goes by
+  (`classicyAppPalettesHidden`). When the focused window minimizes (or the
+  last shown primary window under the app's focused palette, which goes with
+  it), and on `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy`,
+  focus goes by
   `classicyVisibleSuccession` (`ClassicyAppHelpers.ts`): the app's front
   on-screen primary window, else another open, unhidden app's by `zOrder`,
   else the desktop (Finder, no window); it never picks a minimized window.
@@ -684,6 +686,26 @@ is a forced 500 ms tooltip) and the status area (`taskbar-tray`). It takes
 `controlStrip`'s `disabledModules` (published for the control panel, as the
 strip does) and `hideModules` for `controlStrip={false}`, and publishes its
 measured height as the taskbar band.
+
+Under a taskbar the strip's modules are the status area's notification icons
+(`ClassicyTaskbarTray.internal.tsx`, WIG Ch.10 pp.211–212): the strip's
+arrangement less `hiddenModules`, none while `controlStrip.visible` is
+`false` or under `hideModules` (`classicyTaskbarTrayModules`); each its own
+component keyed `id:revision`, a `button.classicyTaskbarTrayIcon` (`open`
+while its surface is) opening its own `ClassicyBevelButtonPopup`
+(`classicyTaskbarTrayPopup`, flipped above the band). Button 1 opens
+`content`, else `menuItems` (after 500 ms when the menu has an `isDefault`
+item, so a double-click runs that item alone); button 2 opens `menuItems` at
+the pointer; the label is a forced 500 ms tooltip. Then the menu bar
+extensions' region, `ul#classicyDesktopMenuExtensions`
+(`classicyTaskbarTrayExtensions`), which `ClassicyMenuBarExtension` looks up
+again when the placement or the taskbar's presence changes. The strip's
+`collapsed`, `width`, `edge` and `bottom` stay stored, unused. Button 2 on
+the taskbar's background opens its own menu (`ClassicyTaskbarMenu.internal.ts`):
+Minimize All Windows (one `ClassicyWindowCollapse` per window with a
+Minimize box, from one handler, the active window last), which then reads
+Undo Minimize All until a window it minimized is restored or closed by other
+means, and Properties (the Control Strip control panel).
 
 Modules come only from `registerClassicyControlStripModule`
 (`ClassicyControlStripRegistry.ts`) — `{ id, label, icon, appId?, order?,
