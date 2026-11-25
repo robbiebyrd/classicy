@@ -21,6 +21,7 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import type * as SearchModule from "@/SystemFolder/FindFile/ClassicyFindFileSearch";
 import { CLASSICY_FIND_LOOKUPS } from "@/SystemFolder/FindFile/ClassicyFindLookups.internal";
 import {
 	listClassicyFindSources,
@@ -60,6 +61,43 @@ vi.mock(
 		};
 	},
 );
+
+// The search Find File runs last, so a test waits for its end, not for a
+// time: the window opens when the search's promise settles, which takes as
+// long as the machine takes (the walk yields every few hundred items, and
+// the reads every few milliseconds of wall-clock time).
+const searches = vi.hoisted(() => ({
+	last: undefined as Promise<unknown> | undefined,
+}));
+vi.mock(
+	"@/SystemFolder/FindFile/ClassicyFindFileSearch",
+	async (importOriginal) => {
+		const actual = await importOriginal<typeof SearchModule>();
+		return {
+			...actual,
+			searchClassicyFileSystem: (
+				...args: Parameters<typeof actual.searchClassicyFileSystem>
+			) => {
+				const search = actual.searchClassicyFileSystem(...args);
+				searches.last = search;
+				return search;
+			},
+		};
+	},
+);
+
+/** The last search's end (settled, never rejecting). */
+const searchEnded = async () => {
+	const search = searches.last;
+	if (!search) throw new Error("No search was started");
+	await search.catch(() => {});
+};
+
+/**
+ * The last search, run to its end inside `act`: its results drawn (Items
+ * Found registered and open), or its alert.
+ */
+const searchEnds = () => act(searchEnded);
 
 const apps = () => useAppManager.getState().System.Manager.Applications.apps;
 const findFile = () => apps()[FIND_FILE_APP_ID];
@@ -138,6 +176,13 @@ const heldHeads = () => {
 	}[] = [];
 	let inFlight = 0;
 	let most = 0;
+	const awaited: { count: number; resolve: () => void }[] = [];
+	/** Resolves once `count` HEAD requests have been made. */
+	const issued = (count: number) =>
+		new Promise<void>((resolve) => {
+			if (held.length >= count) resolve();
+			else awaited.push({ count, resolve });
+		});
 	const fetchMock = vi.fn((url: unknown, init?: RequestInit) => {
 		if (init?.method !== "HEAD") return Promise.reject(new Error("no"));
 		inFlight += 1;
@@ -161,10 +206,14 @@ const heldHeads = () => {
 				done();
 				reject(new DOMException("aborted", "AbortError"));
 			});
+			for (const wait of awaited.filter((w) => held.length >= w.count)) {
+				awaited.splice(awaited.indexOf(wait), 1);
+				wait.resolve();
+			}
 		});
 	});
 	vi.stubGlobal("fetch", fetchMock);
-	return { held, fetchMock, most: () => most };
+	return { held, fetchMock, issued, most: () => most };
 };
 
 describe("Items Found", { timeout: 60_000 }, () => {
@@ -173,6 +222,7 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		sessionStorage.clear();
 		useAppManager.setState(DefaultAppManagerState, true);
 		renders.results = 0;
+		searches.last = undefined;
 	});
 	afterEach(() => {
 		cleanup();
@@ -188,15 +238,18 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		await openFindFile();
 		typeName("clip");
 		clickFind();
-		// No size held the search back: the window is up before any answer.
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		// No size held the search back: it ends, and the window is up, before
+		// any answer.
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		expect(
 			within(resultsWindow() as HTMLElement).getByText("Found 300 Items"),
 		).toBeInTheDocument();
 		const drawn = drawnRows().length;
 		expect(drawn).toBeGreaterThan(0);
 		expect(drawn).toBeLessThan(300);
-		await waitFor(() => expect(heads.held.length).toBe(CLASSICY_FIND_LOOKUPS));
+		// The drawn rows' reads start as they are drawn, a few at a time.
+		expect(heads.held).toHaveLength(CLASSICY_FIND_LOOKUPS);
 		// Answer each read as it comes: every drawn row, and only those.
 		for (let round = 0; round < 40 && heads.held.length < drawn; round += 1) {
 			await act(async () => {
@@ -224,7 +277,8 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		await openFindFile();
 		typeName("clip");
 		clickFind();
-		await waitFor(() => expect(heads.held.length).toBe(CLASSICY_FIND_LOOKUPS));
+		await searchEnds();
+		expect(heads.held).toHaveLength(CLASSICY_FIND_LOOKUPS);
 		act(() => {
 			menuItem("Close Window").onClickFunc?.();
 		});
@@ -236,13 +290,17 @@ describe("Items Found", { timeout: 60_000 }, () => {
 
 	it("spins the asynchronous arrows and counts what it found while it searches", async () => {
 		const heads = heldHeads();
-		seedArchive(new ClassicyFileSystem(), 6);
+		const clips = CLASSICY_FIND_LOOKUPS + 2;
+		seedArchive(new ClassicyFileSystem(), clips);
 		renderDesktop();
 		await openFindFile();
 		typeName("clip");
 		fireEvent.click(screen.getByRole("button", { name: "More Choices" }));
 		clickFind();
-		await waitFor(() => expect(heads.held.length).toBe(CLASSICY_FIND_LOOKUPS));
+		// The size row reads each clip's size, a few at a time: the search
+		// waits on the first few.
+		await act(() => heads.issued(CLASSICY_FIND_LOOKUPS));
+		expect(heads.held).toHaveLength(CLASSICY_FIND_LOOKUPS);
 		const find = findWindow() as HTMLElement;
 		expect(
 			find.querySelector(
@@ -252,20 +310,28 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		expect(find.querySelector(".classicyFindFileProgress")?.textContent).toBe(
 			"Items Found:0",
 		);
+		// Their answers: four found, and the last two sizes asked for. Those
+		// may wait behind the read phase's yield to the event loop (a
+		// `setTimeout(0)` after 8 ms of wall-clock time), so the test waits
+		// for the requests themselves, not for a turn of the loop.
 		await act(async () => {
 			for (const h of heads.held) h.answer(1024);
-			await new Promise((resolve) => setTimeout(resolve, 0));
+			await heads.issued(clips);
 		});
-		await waitFor(() =>
-			expect(find.querySelector(".classicyFindFileProgress")?.textContent).toBe(
-				"Items Found:4",
-			),
+		expect(heads.held).toHaveLength(clips);
+		expect(find.querySelector(".classicyFindFileProgress")?.textContent).toBe(
+			"Items Found:4",
 		);
+		// The last two answers end the search: Items Found opens with what it
+		// found, and the arrows and the count go.
 		await act(async () => {
-			for (const h of heads.held) h.answer(1024);
-			await new Promise((resolve) => setTimeout(resolve, 0));
+			for (const h of heads.held.slice(CLASSICY_FIND_LOOKUPS)) h.answer(1024);
+			await searchEnded();
 		});
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		expect(resultsWindow()).toBeTruthy();
+		expect(
+			within(resultsWindow() as HTMLElement).getByText(`Found ${clips} Items`),
+		).toBeInTheDocument();
 		expect(find.querySelector(".classicyFindFileBusy")).toBeNull();
 		expect(find.querySelector(".classicyFindFileProgress")).toBeNull();
 	});
@@ -277,7 +343,8 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		await openFindFile();
 		typeName("clip");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		act(() => {
 			menuItem("by Size").onClickFunc?.();
 		});
@@ -308,7 +375,8 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		await openFindFile();
 		typeName("alpha");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		expect(
 			within(resultsWindow() as HTMLElement).getByText("Found 2000 Items"),
 		).toBeInTheDocument();
@@ -337,7 +405,8 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		await openFindFile();
 		typeName("zz");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		const kindOf = (name: string) =>
 			within(resultsWindow() as HTMLElement)
 				.getAllByText(name)[0]
@@ -373,7 +442,8 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		await openFindFile();
 		typeName("zebra");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		for (const win of [findWindow(), resultsWindow()]) {
 			expect(win?.querySelector(".classicyWindowTitleBar img")).toBeNull();
 		}
@@ -410,7 +480,8 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		await openFindFile();
 		typeName("late");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		const row = within(resultsWindow() as HTMLElement)
 			.getAllByText("Late.txt")[0]
 			.closest("tr") as HTMLElement;
@@ -427,6 +498,7 @@ describe("Find File's keys, its storage key, its labels", {
 		localStorage.clear();
 		sessionStorage.clear();
 		useAppManager.setState(DefaultAppManagerState, true);
+		searches.last = undefined;
 	});
 	afterEach(() => {
 		cleanup();
@@ -458,7 +530,8 @@ describe("Find File's keys, its storage key, its labels", {
 		await waitFor(() => expect(rows()).toBe(1));
 		typeName("plan.txt");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		// ⌥E with Items Found in front: the Finder shows the folder.
 		(document.activeElement as HTMLElement | null)?.blur();
 		press("KeyE");
@@ -505,7 +578,8 @@ describe("Find File's keys, its storage key, its labels", {
 		await openFindFile();
 		typeName("only");
 		clickFind();
-		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		await searchEnds();
+		expect(resultsWindow()).toBeTruthy();
 		const results = resultsWindow() as HTMLElement;
 		expect(within(results).getByText("Found 1 Item")).toBeInTheDocument();
 		expect(
