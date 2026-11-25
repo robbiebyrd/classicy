@@ -14,6 +14,7 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { noteClassicyRecentDocument } from "@/SystemFolder/SystemResources/File/ClassicyRecentDocuments.internal";
 import { trashClassicyFileSystemItems } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import { CLASSICY_START_MENU_ID } from "@/SystemFolder/SystemResources/Taskbar/ClassicyStartMenu.internal";
 import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
@@ -164,11 +165,72 @@ describe("the Start menu", () => {
 		expect(firstLevel).toEqual([
 			"About This Computer",
 			expect.stringMatching(/^Programs/),
+			expect.stringMatching(/^Documents/),
 			expect.stringMatching(/^Settings/),
 			"Help",
+			"Run...",
 			"Empty Trash…",
 			"Reset PRAM…",
+			"Shut Down...",
 		]);
+	});
+
+	// Plan 0020-w98 E2: Log Off <name>... for a signed-in user, Documents
+	// from the session's opens, and the shell's dialogs from their items.
+	it("shows Log Off <name>... only for the taskbar's user name", () => {
+		const { unmount } = render(
+			<div className="classicyDesktop" id="classicyDesktop">
+				<ClassicyTaskbar userName="Ada" />
+			</div>,
+		);
+		fireEvent.mouseDown(start(), { button: 0 });
+		expect(item("start-menu_log-off")).toHaveTextContent("Log Off Ada...");
+		unmount();
+		renderTaskbar();
+		fireEvent.mouseDown(start(), { button: 0 });
+		expect(document.getElementById("start-menu_log-off")).toBeNull();
+	});
+
+	it("lists under Documents the session's documents that still exist, by name with their icons", () => {
+		noteClassicyRecentDocument("Macintosh HD:Gone.txt");
+		noteClassicyRecentDocument("Macintosh HD:Documents:Read Me.txt");
+		renderTaskbar();
+		fireEvent.mouseDown(start(), { button: 0 });
+		const documents = item("start-menu_documents").querySelectorAll(
+			"li.classicyMenuItem",
+		);
+		expect(Array.from(documents, (li) => li.textContent)).toEqual([
+			"Read Me.txt",
+		]);
+		expect(documents[0].querySelector("img")?.getAttribute("src")).toBeTruthy();
+	});
+
+	it('shows "(Empty)" under Documents before any document opens', () => {
+		renderTaskbar();
+		fireEvent.mouseDown(start(), { button: 0 });
+		expect(item("start-menu_documents_empty")).toHaveTextContent("(Empty)");
+	});
+
+	it("opens Run and Shut Down Windows from their items, closing the menu", async () => {
+		renderTaskbar();
+		fireEvent.mouseDown(start(), { button: 0 });
+		fireEvent.click(item("start-menu_run"));
+		await waitFor(() =>
+			expect(useAppManager.getState().System.Manager.Desktop.systemDialog).toBe(
+				"run",
+			),
+		);
+		expect(menu()).toBeNull();
+		act(() =>
+			dispatch({ type: "ClassicyDesktopShowSystemDialog", dialog: null }),
+		);
+		fireEvent.mouseDown(start(), { button: 0 });
+		fireEvent.click(item("start-menu_shut-down"));
+		await waitFor(() =>
+			expect(useAppManager.getState().System.Manager.Desktop.systemDialog).toBe(
+				"shutDown",
+			),
+		);
 	});
 
 	it("opens upward onto the taskbar band's top edge, at the Start button's left, inside the desktop", () => {
@@ -297,7 +359,7 @@ describe("the Start menu", () => {
 			fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
 			fireEvent.click(start(), { detail: 0 });
 			fireEvent.keyDown(start(), { key: "ArrowUp" });
-			expect(document.activeElement).toBe(item("start_special_reset_pram"));
+			expect(document.activeElement).toBe(item("start-menu_shut-down"));
 		});
 
 		it("walks the items shown, passing over a closed submenu's", () => {
@@ -311,8 +373,9 @@ describe("the Start menu", () => {
 				});
 				return (document.activeElement as HTMLElement).id;
 			};
-			expect([walk(), walk(), walk()]).toEqual([
+			expect([walk(), walk(), walk(), walk()]).toEqual([
 				"start-menu_programs",
+				"start-menu_documents",
 				"start-menu_settings",
 				"start-menu_help",
 			]);

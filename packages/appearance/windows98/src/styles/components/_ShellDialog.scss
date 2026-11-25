@@ -1,0 +1,229 @@
+// The Windows 98 shell's own dialogs and power screens (plan 0020-w98 E2),
+// included by windows98.scss inside the package wrapper, after the message
+// box: Shut Down Windows, Run and Log Off Windows as Windows 98 SE's shell32
+// lays them out (its dialog resources 1065, 1003 and 1071, read from the CD's
+// shell32.dll), the dim behind the system-modal two, and the screens Stand by
+// and Shut down leave, over the core's structure in ClassicyShellDialogs.scss
+// (an icon column, a body beside it, the buttons under them).
+//
+// - Sizes: each dialog's template in dialog units at MS Sans Serif 8 (a
+//   horizontal unit 1.5 pixels, a vertical one 1.625, MulDiv-rounded as
+//   Windows maps them), as `shellDialog` knobs: Shut Down 211 units wide (317
+//   pixels), its icon at (7, 11) and its question at (38, 11), the choices
+//   from (38, 27) ten units tall twelve apart, OK and Cancel 52 units wide
+//   from (39, 120); Run 227 (341), its prompt at (36, 11), the Open label at
+//   (7, 39) and its box at (36, 37), OK, Cancel and Browse... 50 units wide
+//   at y 63, right-aligned at the dialog's margin; Log Off 188 (282), its
+//   icon at (8, 6), the question at (49, 15), Yes and No 43 units wide from
+//   (49, 38). Shut Down's template stacks seven choices; the shell hid the
+//   ones a computer could not make and closed the gaps, and Classicy's three
+//   (Stand by, Shut down, Restart) stand as those shown did, the buttons
+//   under them.
+// - The button rows in Windows' order (_Dialog.scss's `button-row`): Shut
+//   Down's and Log Off's start under the text, as the templates place them,
+//   Run's are right-aligned.
+// - The dim: Windows 98 dims the screen behind Shut Down and Log Off with a
+//   50% checker of black pixels over everything, the taskbar included, until
+//   the dialog closes (the core's `classicyShellDialogDim`, above the
+//   taskbar).
+// - The power screens: Stand by's black, Shut down's Windows 98's LOGOS.SYS,
+//   "It's now safe to turn off / your computer." in orange on black, centered
+//   in two lines. The CD holds no LOGOS.SYS to take the pixels from (the
+//   bitmap is installed from no cabinet the CD extract has, and the copies
+//   the investigated clones carry are resampled), so it is drawn: a bold
+//   sans serif at a size that follows the screen's height, as the bitmap was
+//   stretched over the screen. Its colors are the bitmap's, the same in
+//   every scheme, so they are the package's own constants, not theme tokens.
+//
+//   Windows color       token
+//   ButtonFace          (the dialogs' face: the windows' partial)
+//   black               --windows98-shell-black      (constant)
+//   LOGOS.SYS orange    --windows98-shell-safe-text  (constant)
+//
+// Every length is a `shellDialog` knob, a core dialog knob or grid pixels.
+@use "../bevels" as b;
+@use "../pixel" as *;
+@use "Dialog";
+
+// A dialog's padding box: its top, its sides and its bottom.
+@mixin frame($width, $top, $side, $bottom) {
+  box-sizing: border-box;
+  width: $width;
+  min-width: $width;
+  max-width: none;
+  padding: $top $side $bottom;
+  color: b.$text;
+}
+
+// A row of `$width`-wide buttons `$gap` apart.
+@mixin buttons($width, $gap) {
+  @include Dialog.button-row;
+
+  gap: $gap;
+
+  // The template's places: no margin of the button's own around them.
+  > .classicyButton {
+    width: $width;
+    min-width: $width;
+    margin: 0;
+  }
+}
+
+@mixin shell-dialog {
+  // The constants the dim and LOGOS.SYS draw with, the same in every scheme.
+  .classicyShellDialogDim,
+  .classicyPowerScreen {
+    --windows98-shell-black: #000000;
+    --windows98-shell-safe-text: #ff8000;
+  }
+
+  .classicyShellDialog {
+    .classicyShellDialogPrompt {
+      font-family: var(--ui-font), sans-serif;
+      font-size: var(--ui-font-size);
+      line-height: 1.2;
+    }
+
+    .classicyShellDialogIcon {
+      margin-top: var(--shell-dialog-top);
+    }
+
+    .classicyShellDialogBody {
+      padding-top: var(--shell-dialog-top);
+    }
+  }
+
+  // --- Shut Down Windows (shell32 dialog 1065) -----------------------------
+  .classicyShellDialogShutDown {
+    @include frame(
+      var(--shell-dialog-shut-down-width),
+      var(--layout-dialog-edge),
+      var(--layout-dialog-edge),
+      var(--shell-dialog-shut-down-bottom)
+    );
+
+    gap: var(--shell-dialog-shut-down-buttons-gap);
+
+    .classicyShellDialogTop {
+      gap: var(--shell-dialog-shut-down-body-gap);
+    }
+
+    .classicyShellDialogBody {
+      gap: var(--shell-dialog-prompt-gap);
+    }
+
+    // The choices, one under another, flush with the question.
+    .classicyShellDialogOptions {
+      gap: var(--shell-dialog-option-gap);
+      padding: 0;
+
+      .classicyRadioInputMargin {
+        min-height: var(--shell-dialog-option-height);
+        margin: 0;
+      }
+    }
+
+    .classicyShellDialogButtons {
+      @include buttons(
+        var(--shell-dialog-shut-down-button-width),
+        var(--shell-dialog-button-gap)
+      );
+
+      justify-content: flex-start;
+      margin-left: var(--shell-dialog-shut-down-buttons-inset);
+    }
+  }
+
+  // --- Run (shell32 dialog 1003) -------------------------------------------
+  .classicyShellDialogRun {
+    @include frame(
+      var(--shell-dialog-run-width),
+      var(--layout-dialog-edge),
+      var(--layout-dialog-edge),
+      var(--shell-dialog-run-bottom)
+    );
+
+    gap: var(--shell-dialog-run-field-gap);
+
+    .classicyShellDialogTop {
+      gap: var(--shell-dialog-run-body-gap);
+    }
+
+    // Open: in the icon's column, the box under the prompt.
+    .classicyShellDialogField {
+      gap: var(--shell-dialog-run-body-gap);
+    }
+
+    .classicyShellDialogFieldLabel {
+      font-family: var(--ui-font), sans-serif;
+      font-size: var(--ui-font-size);
+    }
+
+    .classicyShellDialogButtons {
+      @include buttons(
+        var(--shell-dialog-run-button-width),
+        var(--shell-dialog-button-gap)
+      );
+
+      margin-top: calc(
+        var(--shell-dialog-run-buttons-gap) - var(--shell-dialog-run-field-gap)
+      );
+    }
+  }
+
+  // --- Log Off Windows (shell32 dialog 1071) -------------------------------
+  .classicyShellDialogLogOff {
+    @include frame(
+      var(--shell-dialog-log-off-width),
+      var(--shell-dialog-log-off-top),
+      var(--shell-dialog-log-off-side),
+      var(--shell-dialog-log-off-bottom)
+    );
+
+    gap: var(--shell-dialog-log-off-buttons-gap);
+
+    .classicyShellDialogIcon {
+      margin-top: 0;
+    }
+
+    .classicyShellDialogTop {
+      gap: var(--shell-dialog-log-off-body-gap);
+    }
+
+    .classicyShellDialogBody {
+      padding-top: var(--shell-dialog-log-off-prompt-top);
+    }
+
+    .classicyShellDialogButtons {
+      @include buttons(
+        var(--shell-dialog-log-off-button-width),
+        var(--shell-dialog-log-off-button-gap)
+      );
+
+      justify-content: flex-start;
+      margin-left: var(--shell-dialog-log-off-buttons-inset);
+    }
+  }
+
+  // --- The dim ---------------------------------------------------------------
+  .classicyShellDialogDim {
+    background: repeating-conic-gradient(
+        var(--windows98-shell-black) 0% 25%,
+        transparent 0% 50%
+      )
+      0 0 / px(2) px(2);
+  }
+
+  // --- The power screens -------------------------------------------------------
+  .classicyPowerScreen {
+    color: var(--windows98-shell-safe-text);
+    background: var(--windows98-shell-black);
+  }
+
+  .classicyPowerScreenMessage {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 6vh;
+    font-weight: bold;
+    line-height: 1.25;
+  }
+}

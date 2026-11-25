@@ -425,6 +425,7 @@
 			"Wrapper"
 		],
 		"PopUpSlider": ["Thumb", "Track"],
+		"PowerScreen": ["Message", "Off", "StandBy"],
 		"PreBootScreen": [],
 		"Progress": [
 			"ChasingArrows",
@@ -460,6 +461,20 @@
 			"Vertical"
 		],
 		"Separator": ["Horizontal", "Vertical"],
+		"ShellDialog": [
+			"Body",
+			"Buttons",
+			"Dim",
+			"Field",
+			"FieldLabel",
+			"Icon",
+			"LogOff",
+			"Options",
+			"Prompt",
+			"Run",
+			"ShutDown",
+			"Top"
+		],
 		"Slider": [
 			"Ghost",
 			"GhostHidden",

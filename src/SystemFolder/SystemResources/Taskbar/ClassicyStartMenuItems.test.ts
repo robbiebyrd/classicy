@@ -12,9 +12,10 @@ import {
 	classicyStartMenuItems,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyStartMenuItems.internal";
 
-// Plan 0020-w98 §3, "Items": the Start menu as data, from the Apple menu's
-// entries, the derived Applications folder's records, the Help topic and the
-// Special menu.
+// Plan 0020-w98 §3, "Items", and E2: the Start menu as data, from the Apple
+// menu's entries, the derived Applications folder's records, the session's
+// documents, the Help topic, the Special menu and the shell's Run, Log Off
+// and Shut Down.
 
 const appleEntry = (appId: string, name: string): ClassicyMenuItem => ({
 	id: `system_menu_${appId}`,
@@ -49,7 +50,11 @@ const IMAGES = {
 	controlPanel: "control-panel.png",
 	help: "help.png",
 	emptyTrash: "trash.png",
-	resetPram: "switch.png",
+	resetPram: "switch-on.png",
+	documents: "documents.png",
+	run: "run.png",
+	logOff: "key.png",
+	shutDown: "switch-off.png",
 };
 
 const input = (
@@ -92,17 +97,111 @@ const child = (items: ClassicyMenuItem[], title: string) => {
 };
 
 describe("classicyStartMenuItems", () => {
-	it("lists About, Programs, Settings, Help, then the Special menu's two commands", () => {
+	it("lists About, Programs, Documents, Settings, Help, Run, the Special menu's two commands, then Shut Down", () => {
 		expect(titles(classicyStartMenuItems(input()))).toEqual([
 			"About This Computer",
 			"—",
 			"Programs",
+			"Documents",
 			"Settings",
 			"Help",
+			"Run...",
 			"—",
 			"Empty Trash…",
 			"Reset PRAM…",
+			"—",
+			"Shut Down...",
 		]);
+	});
+
+	it("adds Log Off <name>... above Shut Down only with a user name", () => {
+		const items = classicyStartMenuItems(input({ userName: " Ada " }));
+		expect(titles(items).slice(-3)).toEqual([
+			"—",
+			"Log Off Ada...",
+			"Shut Down...",
+		]);
+		expect(child(items, "Log Off Ada...")).toMatchObject({
+			id: "start-menu_log-off",
+			image: "key.png",
+		});
+		expect(
+			titles(classicyStartMenuItems(input({ userName: "  " }))),
+		).not.toContain("Log Off ...");
+		expect(
+			titles(classicyStartMenuItems(input({ userName: "" }))).some((title) =>
+				title?.startsWith("Log Off"),
+			),
+		).toBe(false);
+	});
+
+	it("opens the shell's dialogs from Run..., Log Off... and Shut Down...", () => {
+		const dispatch = vi.fn();
+		const items = classicyStartMenuItems(input({ dispatch, userName: "Ada" }));
+		child(items, "Run...").onClickFunc?.();
+		child(items, "Log Off Ada...").onClickFunc?.();
+		child(items, "Shut Down...").onClickFunc?.();
+		expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
+			{ type: "ClassicyDesktopShowSystemDialog", dialog: "run" },
+			{ type: "ClassicyDesktopShowSystemDialog", dialog: "logOff" },
+			{ type: "ClassicyDesktopShowSystemDialog", dialog: "shutDown" },
+		]);
+		expect(child(items, "Run...")).toMatchObject({
+			id: "start-menu_run",
+			image: "run.png",
+		});
+		expect(child(items, "Shut Down...")).toMatchObject({
+			id: "start-menu_shut-down",
+			image: "switch-off.png",
+		});
+	});
+
+	it("has no Favorites and no Find: Classicy keeps no favorites and has no search", () => {
+		const shown = titles(classicyStartMenuItems(input()));
+		expect(shown).not.toContain("Favorites");
+		expect(shown).not.toContain("Find");
+	});
+
+	describe("Documents", () => {
+		const documents = (over: Partial<ClassicyStartMenuItemsInput> = {}) =>
+			child(classicyStartMenuItems(input(over)), "Documents").menuChildren ??
+			[];
+
+		it("lists the session's documents by name, sorted, each with its icon", () => {
+			const listed = documents({
+				documents: [
+					{ path: "HD:b.txt", name: "b.txt", icon: "text.png" },
+					{ path: "HD:Docs:A.md", name: "A.md", icon: "md.png" },
+				],
+			});
+			expect(titles(listed)).toEqual(["A.md", "b.txt"]);
+			expect(listed.map((item) => item.image)).toEqual(["md.png", "text.png"]);
+			expect(child(classicyStartMenuItems(input()), "Documents").image).toBe(
+				"documents.png",
+			);
+		});
+
+		it("opens a document through openDocument with its path", () => {
+			const openDocument = vi.fn();
+			const [doc] = documents({
+				documents: [{ path: "HD:b.txt", name: "b.txt", icon: "text.png" }],
+				openDocument,
+			});
+			doc.onClickFunc?.();
+			expect(openDocument).toHaveBeenCalledWith("HD:b.txt");
+			expect(doc.id).toBe("start-menu_documents_0");
+		});
+
+		it('shows a disabled "(Empty)" when no document was opened', () => {
+			expect(documents()).toEqual([
+				{
+					id: "start-menu_documents_empty",
+					title: "(Empty)",
+					disabled: true,
+				},
+			]);
+			expect(documents({ documents: [] })).toHaveLength(1);
+		});
 	});
 
 	it("draws each first-level item with its image and no keyboard equivalent", () => {
@@ -114,10 +213,13 @@ describe("classicyStartMenuItems", () => {
 		expect(items.map((item) => item.image)).toEqual([
 			"about.png",
 			"programs.png",
+			"documents.png",
 			"control-panel.png",
 			"help.png",
+			"run.png",
 			"trash.png",
-			"switch.png",
+			"switch-on.png",
+			"switch-off.png",
 		]);
 		expect(items.every((item) => item.keyboardShortcut === undefined)).toBe(
 			true,
@@ -134,7 +236,7 @@ describe("classicyStartMenuItems", () => {
 		});
 		expect(
 			titles(classicyStartMenuItems(input({ systemMenu: [] }))).slice(0, 2),
-		).toEqual(["Programs", "Settings"]);
+		).toEqual(["Programs", "Documents"]);
 	});
 
 	describe("Programs", () => {
@@ -307,7 +409,14 @@ describe("classicyStartMenuItems", () => {
 				walk(item.menuChildren ?? []);
 			}
 		};
-		walk(classicyStartMenuItems(input()));
+		walk(
+			classicyStartMenuItems(
+				input({
+					userName: "Ada",
+					documents: [{ path: "HD:a", name: "a", icon: "" }],
+				}),
+			),
+		);
 		expect(ids.every((id) => /^start(-menu)?_/.test(id))).toBe(true);
 		expect(new Set(ids).size).toBe(ids.length);
 	});

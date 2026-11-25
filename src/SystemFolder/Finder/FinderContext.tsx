@@ -7,6 +7,7 @@ import {
 import {
 	type ClassicyActionTrust,
 	checkClassicyActionTrust,
+	classicyActionTrustOf,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	focusWindow,
@@ -37,6 +38,10 @@ import {
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	noteClassicyRecentDocument,
+	renameClassicyRecentDocuments,
+} from "@/SystemFolder/SystemResources/File/ClassicyRecentDocuments.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
@@ -158,6 +163,18 @@ const readPathMoves = (
 					(m as { from: string }).from !== "",
 			)
 		: [];
+
+/**
+ * Records a document Finder opened for Start ▸ Documents
+ * (`ClassicyRecentDocuments.internal.ts`, plan 0020-w98 E2), as Windows'
+ * shell adds a document opened from the Explorer to its Recent folder. Only a
+ * trusted open: an untrusted one (a stack script's) may have been refused
+ * past this point, and never lists a document the user did not open.
+ */
+const noteRecentDocument = (path: string, trust: ClassicyActionTrust): void => {
+	if (classicyActionTrustOf(trust) === "trusted")
+		noteClassicyRecentDocument(path);
+};
 
 /**
  * Queue `path` on Finder's own record through the generic OpenFile handler,
@@ -313,6 +330,9 @@ export const classicyFinderEventHandler = (
 			// zoom — all follow it to the new path.
 			const moves = readPathMoves(action);
 			if (moves.length === 0) break;
+			// Start ▸ Documents follows a moved document, as Windows' shortcuts
+			// follow their target.
+			renameClassicyRecentDocuments(moves);
 			const rename = (p: string): string => {
 				for (const { from, to } of moves) {
 					if (p === from) return to;
@@ -416,6 +436,7 @@ export const classicyFinderEventHandler = (
 						type: "ClassicyAppMoviePlayerOpenDocument",
 						document: document as { url: string },
 					});
+					if (hasPath(action)) noteRecentDocument(action.path, trust);
 				}
 			} else if (
 				file &&
@@ -477,15 +498,19 @@ export const classicyFinderEventHandler = (
 					// when its manifest declares one, else the generic handler;
 					// under the trust this open arrived with.
 					ds = routeClassicyAppOpenFile(ds, targetApp, action.path, trust);
+					// A document opened (Start ▸ Documents, plan 0020-w98 E2).
+					noteRecentDocument(action.path, trust);
 				} else if (targetApp) {
 					// Finder's own OpenFile case is this dispatcher (it takes a
 					// `file`), so a file Finder opens itself is queued generically.
 					ds = openInFinder(ds, targetApp.name, action.path, trust);
+					noteRecentDocument(action.path, trust);
 				} else {
 					// Fall back to Finder if it can handle the requested type
 					const finder = ds.System.Manager.Applications.apps[appId];
 					if (finder?.handlesFileTypes?.includes(fileType)) {
 						ds = openInFinder(ds, finder.name, action.path, trust);
+						noteRecentDocument(action.path, trust);
 					} else {
 						ds.System.Manager.Desktop.errorDialog = {
 							message: "Finder cannot open the file type you requested.",

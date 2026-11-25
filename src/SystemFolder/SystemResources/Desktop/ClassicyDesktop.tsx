@@ -115,6 +115,7 @@ import {
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
+import { ClassicyShellDialogs } from "@/SystemFolder/SystemResources/Taskbar/ClassicyShellDialogs.internal";
 import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
 import { useClassicyWindowShellKeys } from "@/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal";
 
@@ -164,6 +165,20 @@ export interface ClassicyDesktopProps {
 	 * status area.
 	 */
 	controlStrip?: boolean | ClassicyControlStripProps;
+	/**
+	 * The signed-in user's name, for the Windows shell's Start ▸ Log Off
+	 * <name>… (plan 0020-w98 E2): under a package whose layout declares
+	 * `taskbar`, the item shows only when this is set (not blank), as
+	 * Windows 98 shows it for a logged-on user. Every other package ignores
+	 * it.
+	 */
+	userName?: string;
+	/**
+	 * What Log Off does once its confirmation is answered Yes and the
+	 * programs have closed: the host's own logon. Absent, the page reloads
+	 * into a fresh session with every setting and file kept.
+	 */
+	onLogOff?: () => void;
 	/** Extra class names, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
@@ -179,6 +194,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip = true,
+	userName,
+	onLogOff,
 	className,
 	style,
 }) => {
@@ -833,6 +850,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 							: undefined
 					}
 					hideModules={controlStrip === false}
+					userName={userName}
 				/>
 			) : (
 				controlStrip !== false && (
@@ -900,6 +918,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					/>
 				</div>
 			) : null}
+			{/* The Windows shell's own dialogs (Shut Down, Run, Log Off) and the
+			    screens Stand by and Shut down leave, from its Start menu: only
+			    under a layout that declares a taskbar. */}
+			{layout.taskbar ? <ClassicyShellDialogs onLogOff={onLogOff} /> : null}
 			{errorDialog ? (
 				<div className={"classicyDesktopDialogOverlay"}>
 					<ClassicyAlert
@@ -970,6 +992,8 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip,
+	userName,
+	onLogOff,
 	className,
 	style,
 }) => {
@@ -988,6 +1012,8 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 					startupWordmark={startupWordmark}
 					bootScreen={bootScreen}
 					controlStrip={controlStrip}
+					userName={userName}
+					onLogOff={onLogOff}
 					className={className}
 					style={style}
 				>

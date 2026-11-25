@@ -6,6 +6,7 @@ import {
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { portableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import { activatableClassicyPackageTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal";
 import {
@@ -117,8 +118,33 @@ export interface ClassicyStoreControlStrip {
 
 export type ClassicyControlStripEdge = "left" | "right";
 
-/** The Special menu's confirmation alerts (see `systemDialog`). */
-export type ClassicyDesktopSystemDialog = "emptyTrash" | "resetPram";
+/**
+ * The desktop's system dialogs (see `systemDialog`): the Special menu's
+ * confirmation alerts, Empty Trash and Reset PRAM, and the Windows shell's
+ * own (`CLASSICY_SHELL_SYSTEM_DIALOGS`), opened from its Start menu: Shut
+ * Down Windows, Run and Log Off Windows (plan 0020-w98 E2).
+ */
+export type ClassicyDesktopSystemDialog =
+	| "emptyTrash"
+	| "resetPram"
+	| ClassicyShellSystemDialog;
+
+/**
+ * The Windows shell's system dialogs, which the desktop opens only while the
+ * active package's layout declares a `taskbar` (they are its Start menu's).
+ */
+export type ClassicyShellSystemDialog = "shutDown" | "run" | "logOff";
+
+/** Every `ClassicyShellSystemDialog`, in the Start menu's order. */
+export const CLASSICY_SHELL_SYSTEM_DIALOGS: readonly ClassicyShellSystemDialog[] =
+	["run", "logOff", "shutDown"];
+
+/** Whether `dialog` is one of the Windows shell's (`ClassicyShellSystemDialog`). */
+export const isClassicyShellSystemDialog = (
+	dialog: unknown,
+): dialog is ClassicyShellSystemDialog =>
+	typeof dialog === "string" &&
+	(CLASSICY_SHELL_SYSTEM_DIALOGS as readonly string[]).includes(dialog);
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
@@ -187,9 +213,10 @@ export interface ClassicyStoreSystemDesktopManager
 	 * is deliberately immune to the Apple-menu About hoist. */
 	helpMenu?: Record<string, ClassicyMenuItem[]>;
 	errorDialog?: { title?: string; message: string } | null;
-	/** The Special menu's confirmation alert on screen, if any: Empty Trash or
-	 * Reset PRAM (`ClassicyDesktopShowSystemDialog`). Session-only — never
-	 * persisted. */
+	/** The system dialog on screen, if any: the Special menu's Empty Trash or
+	 * Reset PRAM alert, or, under a layout with a taskbar, the Windows shell's
+	 * Shut Down, Run or Log Off dialog (`ClassicyDesktopShowSystemDialog`).
+	 * Session-only — never persisted. */
 	systemDialog?: ClassicyDesktopSystemDialog | null;
 	/** Bumped when the filesystem tree is replaced out-of-band (adapter
 	 * reconcile) so useClassicyFileSystem rebuilds from localStorage. */
@@ -225,7 +252,69 @@ export interface ClassicyStoreTaskbar {
 	 * Start button. Absent (the default) is shown, as Windows 98 installs it;
 	 * `ClassicyDesktopTaskbarSetQuickLaunch` writes it. */
 	quickLaunch?: boolean;
+	/** The Run dialog's earlier commands, most recent first, at most
+	 * `CLASSICY_RUN_HISTORY_LIMIT` (Windows 98's RunMRU, which the Open box
+	 * lists and the dialog opens with the first of). Absent until a command
+	 * runs; `ClassicyDesktopTaskbarAddRunCommand` writes it (plan 0020-w98 E2). */
+	runHistory?: string[];
+	/** The Shut Down Windows dialog's last choice, which it opens with, as
+	 * Windows 98 remembered it ("Shutdown Setting"). Absent is Shut down;
+	 * `ClassicyDesktopTaskbarSetShutDownChoice` writes it (plan 0020-w98 E2). */
+	shutDownChoice?: ClassicyShutDownChoice;
 }
+
+/**
+ * What the Shut Down Windows dialog does (plan 0020-w98 E2), in the order
+ * Windows 98 SE's shell32 dialog lists the ones Classicy can do: Stand by,
+ * Shut down, Restart.
+ */
+export type ClassicyShutDownChoice = "standBy" | "shutDown" | "restart";
+
+/** Every `ClassicyShutDownChoice`, in the dialog's order. */
+export const CLASSICY_SHUT_DOWN_CHOICES: readonly ClassicyShutDownChoice[] = [
+	"standBy",
+	"shutDown",
+	"restart",
+];
+
+/** Whether `choice` is a `ClassicyShutDownChoice`. */
+export const isClassicyShutDownChoice = (
+	choice: unknown,
+): choice is ClassicyShutDownChoice =>
+	typeof choice === "string" &&
+	(CLASSICY_SHUT_DOWN_CHOICES as readonly string[]).includes(choice);
+
+/**
+ * The most commands the Run dialog keeps: Windows' RunMRU holds one per
+ * letter of its `MRUList`, a to z.
+ */
+export const CLASSICY_RUN_HISTORY_LIMIT = 26;
+
+/**
+ * The Run dialog's history with `command` first: trimmed, once (compared
+ * without case, as Windows compares its MRU entries, the newest spelling
+ * kept), at most `CLASSICY_RUN_HISTORY_LIMIT` long. A blank command, or a
+ * history that is not a list of strings (a hand-edited save), gives the
+ * history as it was, cleaned.
+ */
+export const classicyRunHistoryWith = (
+	history: unknown,
+	command: string,
+): string[] => {
+	const earlier = Array.isArray(history)
+		? history.filter(
+				(entry): entry is string =>
+					typeof entry === "string" && entry.trim() !== "",
+			)
+		: [];
+	const next = typeof command === "string" ? command.trim() : "";
+	if (next === "") return earlier.slice(0, CLASSICY_RUN_HISTORY_LIMIT);
+	const key = next.toLocaleLowerCase();
+	return [
+		next,
+		...earlier.filter((entry) => entry.trim().toLocaleLowerCase() !== key),
+	].slice(0, CLASSICY_RUN_HISTORY_LIMIT);
+};
 
 /** The default Control Strip arrangement: shown, nothing hidden or reordered. */
 export const defaultClassicyControlStripState =
@@ -690,6 +779,24 @@ export const classicyDesktopEventHandler = (
 			ds.System.Manager.Desktop.taskbar.quickLaunch = action.visible;
 			break;
 		}
+		case "ClassicyDesktopTaskbarAddRunCommand": {
+			// The Run dialog's history (plan 0020-w98 E2): written only when a
+			// command runs, so a desktop that never ran one carries none.
+			if (typeof action.command !== "string" || action.command.trim() === "")
+				break;
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.runHistory = classicyRunHistoryWith(
+				ds.System.Manager.Desktop.taskbar.runHistory,
+				action.command,
+			);
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetShutDownChoice": {
+			if (!isClassicyShutDownChoice(action.choice)) break;
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.shutDownChoice = action.choice;
+			break;
+		}
 		case "ClassicyDesktopControlStripSetVisible": {
 			if (!hasVisible(action)) break;
 			controlStripState(ds).visible = action.visible;
@@ -749,9 +856,15 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopShowSystemDialog": {
 			// Unknown values close the dialog rather than open a blank one.
+			// The Windows shell's dialogs open only under a layout with a
+			// taskbar (their Start menu's); under any other they are unknown.
+			const shell =
+				isClassicyShellSystemDialog(action.dialog) &&
+				getClassicyAppearanceLayout(ds.System.Manager.Appearance?.packageId)
+					.taskbar !== undefined;
 			ds.System.Manager.Desktop.systemDialog =
-				action.dialog === "emptyTrash" || action.dialog === "resetPram"
-					? action.dialog
+				action.dialog === "emptyTrash" || action.dialog === "resetPram" || shell
+					? (action.dialog as ClassicyDesktopSystemDialog)
 					: null;
 			break;
 		}

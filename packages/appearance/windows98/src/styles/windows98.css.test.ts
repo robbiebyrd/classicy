@@ -3,6 +3,7 @@ import { compile, NodePackageImporter } from "sass";
 import { describe, expect, it } from "vitest";
 import { isSingleClassicyLayerBlock } from "../../../../../bin/classicyPackageCss";
 import { CLASSICY_LAYER_ORDER } from "../../../../../bin/classicyStyleInjector";
+import windows98 from "../windows98.json";
 
 // The Windows 98 package stylesheet as Sass compiles it: one
 // `@layer classicy.package` block, every rule scoped under the Windows 98
@@ -896,6 +897,119 @@ describe("windows98.scss (compiled)", () => {
 					(s) => /\.classicyTaskbarTrayPopup\b/.test(s) && !s.endsWith(tray),
 				),
 			).toEqual([]);
+		});
+	});
+
+	// Plan 0020-w98 E2: the shell's own dialogs at Windows 98 SE's shell32
+	// templates (dialog units at MS Sans Serif 8, as `shellDialog` knobs), the
+	// dim behind Shut Down and Log Off, and the screens Stand by and Shut
+	// down leave.
+	describe("the shell's dialogs and power screens", () => {
+		// The selector lists on one line each, so a list reads as written.
+		const flat = css.replace(/,\n\s*/g, ", ");
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(flat)?.[1] ?? "";
+		const knobs = (
+			windows98 as unknown as {
+				defaults: { measurements: Record<string, Record<string, number>> };
+			}
+		).defaults.measurements.shellDialog;
+		const kebab = (key: string) =>
+			key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+
+		it("reads only the shellDialog knobs the package declares, every one of them", () => {
+			const read = new Set(
+				[...css.matchAll(/var\((--shell-dialog-[a-z-]+)\)/g)].map(
+					([, name]) => name,
+				),
+			);
+			expect(read).toEqual(
+				new Set(
+					Object.keys(knobs).map((key) => `--shell-dialog-${kebab(key)}`),
+				),
+			);
+			// The templates' widths: 211, 227 and 188 dialog units.
+			expect(knobs.shutDownWidth).toBe(317);
+			expect(knobs.runWidth).toBe(341);
+			expect(knobs.logOffWidth).toBe(282);
+		});
+
+		it("draws Shut Down 317 wide, its choices under the question and its 78 px buttons from under the text", () => {
+			const root = block("=windows98] .classicyShellDialogShutDown");
+			expect(root).toContain("width: var(--shell-dialog-shut-down-width)");
+			expect(root).toContain(
+				"padding: var(--layout-dialog-edge) var(--layout-dialog-edge) var(--shell-dialog-shut-down-bottom)",
+			);
+			expect(
+				block(".classicyShellDialogShutDown .classicyShellDialogOptions"),
+			).toContain("gap: var(--shell-dialog-option-gap)");
+			expect(
+				block(
+					".classicyShellDialogShutDown .classicyShellDialogButtons > .classicyButton",
+				),
+			).toContain("min-width: var(--shell-dialog-shut-down-button-width)");
+			expect(
+				block(
+					"=windows98] .classicyShellDialogShutDown .classicyShellDialogButtons",
+				),
+			).toContain("gap: var(--shell-dialog-button-gap)");
+			expect(css).toMatch(
+				/\.classicyShellDialogShutDown \.classicyShellDialogButtons \{\s*justify-content: flex-start;\s*margin-left: var\(--shell-dialog-shut-down-buttons-inset\);/,
+			);
+		});
+
+		it("draws Run 341 wide, its buttons right-aligned at the margin in Windows' order", () => {
+			expect(block("=windows98] .classicyShellDialogRun")).toContain(
+				"width: var(--shell-dialog-run-width)",
+			);
+			expect(
+				block(
+					".classicyShellDialogRun .classicyShellDialogButtons > .classicyButton.default, .classicyDesktop[data-classicy-appearance=windows98] .classicyShellDialogRun .classicyShellDialogButtons > [data-classicy-role=default]",
+				),
+			).toContain("order: 10");
+			expect(css).not.toMatch(
+				/\.classicyShellDialogRun \.classicyShellDialogButtons \{[^}]*justify-content/,
+			);
+			expect(
+				block(".classicyShellDialogRun .classicyShellDialogField"),
+			).toContain("gap: var(--shell-dialog-run-body-gap)");
+		});
+
+		it("draws Log Off 282 wide, its icon at (12, 10) and Yes and No 65 px from under the question", () => {
+			const root = block("=windows98] .classicyShellDialogLogOff");
+			expect(root).toContain(
+				"padding: var(--shell-dialog-log-off-top) var(--shell-dialog-log-off-side) var(--shell-dialog-log-off-bottom)",
+			);
+			expect(
+				block(".classicyShellDialogLogOff .classicyShellDialogIcon"),
+			).toContain("margin-top: 0");
+			expect(
+				block(
+					".classicyShellDialogLogOff .classicyShellDialogButtons > .classicyButton",
+				),
+			).toContain("width: var(--shell-dialog-log-off-button-width)");
+		});
+
+		it("dims the screen with a 50% checker of black and draws LOGOS.SYS orange on black", () => {
+			const constants = block(
+				"=windows98] .classicyShellDialogDim, .classicyDesktop[data-classicy-appearance=windows98] .classicyPowerScreen",
+			);
+			expect(constants).toContain("--windows98-shell-black: #000000");
+			expect(constants).toContain("--windows98-shell-safe-text: #ff8000");
+			expect(block("=windows98] .classicyShellDialogDim")).toContain(
+				"background: repeating-conic-gradient(var(--windows98-shell-black) 0% 25%, transparent 0% 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)",
+			);
+			// The screen's own rule, not the constants' list it ends.
+			const screen = block(
+				"\n  .classicyDesktop[data-classicy-appearance=windows98] .classicyPowerScreen",
+			);
+			expect(screen).toContain("color: var(--windows98-shell-safe-text)");
+			expect(screen).toContain("background: var(--windows98-shell-black)");
+			expect(block("=windows98] .classicyPowerScreenMessage")).toContain(
+				"font-weight: bold",
+			);
 		});
 	});
 });

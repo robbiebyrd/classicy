@@ -4,13 +4,17 @@ import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAler
 import type { ClassicyDesktopSystemDialog } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
-/** Window ids of the Special menu's alerts (they focus like windows). */
+/** Window ids of the system dialogs (they focus like windows): the Special
+ * menu's alerts and the Windows shell's dialogs. */
 export const SYSTEM_DIALOG_WINDOW_IDS: Record<
 	ClassicyDesktopSystemDialog,
 	string
 > = {
 	emptyTrash: "empty_trash",
 	resetPram: "reset_pram",
+	shutDown: "shut_down",
+	run: "run",
+	logOff: "log_off",
 };
 
 /**

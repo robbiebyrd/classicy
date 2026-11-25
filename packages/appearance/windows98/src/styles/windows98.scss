@@ -4,7 +4,7 @@
 // look is built element by element, each a components/_<Name>.scss partial
 // exposing one mixin, included inside the wrapper below: the windows, the
 // menus and menu bars, the taskbar and its Start menu, the pop-up menus, the dialogs and
-// alerts, the push buttons, the checkboxes and radio buttons, the text
+// alerts, the shell's own dialogs and power screens, the push buttons, the checkboxes and radio buttons, the text
 // fields and lists, the group boxes, the progress bars, the scroll bars, the
 // desktop and its icons, the tab control, the sliders, the placards and
 // bevel buttons, the ToolTips, the tables, the separators, the little
@@ -20,6 +20,7 @@
 @use "components/PopUpMenu";
 @use "components/Dialog";
 @use "components/Alert";
+@use "components/ShellDialog";
 @use "components/Button";
 @use "components/Checkbox";
 @use "components/RadioInput";
@@ -50,6 +51,7 @@
   @include PopUpMenu.pop-up-menu;
   @include Dialog.dialog;
   @include Alert.alert;
+  @include ShellDialog.shell-dialog;
   @include Button.button;
   @include Checkbox.checkbox;
   @include RadioInput.radio-input;

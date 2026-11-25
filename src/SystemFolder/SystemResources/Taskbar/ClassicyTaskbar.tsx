@@ -74,6 +74,11 @@ export type ClassicyTaskbarProps = {
 	 * `ClassicyDesktop` sets it for `controlStrip={false}`.
 	 */
 	hideModules?: boolean;
+	/**
+	 * The signed-in user's name: the Start menu shows Log Off <name>… only
+	 * with one (plan 0020-w98 E2). `ClassicyDesktop` forwards its `userName`.
+	 */
+	userName?: string;
 	/** Extra class names, merged onto the root `<nav>` after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root `<nav>` after the component's own. */
@@ -121,8 +126,9 @@ const useClassicyTaskbarBandPublisher = (
  * Platinum and System 7 draw the Control Strip as always.
  *
  * - **The Start button** opens the Start menu (`ClassicyStartMenu.internal.tsx`:
- *   About This Computer, Programs, Settings, Help, Empty Trash… and Reset
- *   PRAM…, beside the layout's `taskbar.startBanner`), and carries `open`
+ *   About This Computer, Programs, Documents, Settings, Help, Run..., Empty
+ *   Trash… and Reset PRAM…, Log Off <name>... (with a `userName`) and Shut
+ *   Down..., beside the layout's `taskbar.startBanner`), and carries `open`
  *   while it is open: a press toggles it, as do Enter, Space and CTRL+ESC
  *   anywhere on the page (WIG App. B, Table B.2, p.358), and Escape closes
  *   it, leaving the focus on the button (handed back to it from the menu).
@@ -184,6 +190,7 @@ const useClassicyTaskbarBandPublisher = (
 export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	disabledModules,
 	hideModules = false,
+	userName,
 	className,
 	style,
 }) => {
@@ -303,6 +310,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 					label={startLabel}
 					banner={startBanner}
 					onClose={closeStartMenu}
+					userName={userName}
 				/>
 			)}
 			{quickLaunch && (

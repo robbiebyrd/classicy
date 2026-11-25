@@ -53,10 +53,28 @@ and `nodenext` resolution).
   screen, and windows, cleaned-up desktop icons and menus stay above it:
   - **Start**, at its left, opens the Start menu (so does CTRL+ESC, where
     the browser lets the key through): About This Computer; Programs, the
-    applications in the Applications folder; Settings, holding Control
+    applications in the Applications folder; Documents, the documents you
+    opened this session (the last 15, by name); Settings, holding Control
     Panel (the control panels) and Show Balloons or Hide Balloons; Help;
-    then Empty Trash… and Reset PRAM…, where Windows has Shut Down. Its
-    banner reads "Windows 98" under every scheme.
+    Run...; Empty Trash… and Reset PRAM…; then Log Off <name>... (when the
+    host passes `userName` to the desktop) and Shut Down.... Its banner
+    reads "Windows 98" under every scheme. There is no Favorites or Find:
+    Classicy keeps no favorites, and its Finder has no search.
+  - **Shut Down...** asks what to do over a dimmed screen, as Windows 98
+    did: **Stand by** darkens the screen until you press a key or click;
+    **Shut down** closes your programs and shows "It's now safe to turn off
+    your computer." until a key or a click starts a fresh session;
+    **Restart** closes your programs and starts that session at once, the
+    startup screen and all. Your settings and files are kept (Reset PRAM…
+    is what clears them), and the dialog opens on your last choice.
+  - **Run...** opens a program by its name, a file or folder by its path
+    (`Macintosh HD:Documents:Read Me.txt`; `\` works too, and the case
+    does not matter) or a web address in the browser, remembering what you
+    ran in its drop-down; Browse... picks a file; a name it cannot find
+    gets Windows' "Cannot find the file" message.
+  - **Log Off <name>...** asks "Are you sure you want to log off?" over
+    the dimmed screen; Yes closes your programs and hands over to the
+    host's `onLogOff`, or starts a fresh session without one.
   - **Quick Launch**, beside the Start button, as Windows 98 installs it:
     small buttons for the Finder (a window on the startup disk), Show
     Desktop (it minimizes every window; a second click brings them back)

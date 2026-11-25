@@ -13,7 +13,6 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import {
 	type ClassicyQuickLaunchApp,
@@ -24,9 +23,9 @@ import { classicyStartupDisk } from "@/SystemFolder/SystemResources/File/Classic
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { openClassicyFolderWindow } from "@/SystemFolder/SystemResources/Taskbar/ClassicyRunCommand.internal";
 import type { ClassicyShowTaskbarMenu } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
 import { CLASSICY_TASKBAR_TOOLTIP_DELAY_MS } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
-import { runClassicyWindowCommand } from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
 
 /**
  * The taskbar's Quick Launch toolbar (plan 0020-w98 E1): the band Windows 98
@@ -222,19 +221,9 @@ export const ClassicyTaskbarQuickLaunch: FunctionalComponent<{
 				: undefined;
 		const openFinder = () => {
 			const disk = classicyStartupDisk(getFileSystem());
-			if (!disk) return;
-			const finder =
-				useAppManager.getState().System.Manager.Applications.apps[
-					CLASSICY_QUICK_LAUNCH_FINDER_APP_ID
-				];
-			const record = getAppWindow(finder, disk);
 			// An open window on the disk comes forward; else the Finder opens
 			// one (its folder windows open from `openPaths`).
-			if (record && !record.closed)
-				runClassicyWindowCommand(CLASSICY_QUICK_LAUNCH_FINDER_APP_ID, disk, {
-					type: record.collapsed ? "restore" : "activate",
-				});
-			else dispatch({ type: "ClassicyAppFinderOpenFolder", path: disk });
+			if (disk) openClassicyFolderWindow(disk, dispatch);
 		};
 		return classicyQuickLaunchItems({
 			finder: finderIdentity

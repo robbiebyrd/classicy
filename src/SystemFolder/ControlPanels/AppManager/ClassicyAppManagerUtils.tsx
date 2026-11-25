@@ -867,6 +867,31 @@ export function startAppManagerPersistence(): () => void {
 	return unsubscribeFn;
 }
 
+/**
+ * Writes the state now when a debounced write is pending, so a reload that
+ * follows at once (the Windows shell's Restart, Shut down and Log Off, plan
+ * 0020-w98 E2) loses nothing. With persistence stopped, or nothing pending,
+ * it writes nothing.
+ */
+export function flushAppManagerPersistence(): void {
+	if (!unsubscribeFn || debounceTimer === null) return;
+	clearTimeout(debounceTimer);
+	debounceTimer = null;
+	try {
+		localStorage.setItem(
+			"classicyDesktopState",
+			JSON.stringify(sanitizeStateForPersistence(useAppManager.getState())),
+		);
+	} catch (error) {
+		classicyLog(
+			"error",
+			"ClassicyAppManager",
+			"Failed to persist desktop state to localStorage. Storage quota may be exceeded.",
+			error,
+		);
+	}
+}
+
 /** Call this during app cleanup or test teardown to stop localStorage sync. */
 export function stopAppManagerPersistence(): void {
 	if (debounceTimer !== null) {

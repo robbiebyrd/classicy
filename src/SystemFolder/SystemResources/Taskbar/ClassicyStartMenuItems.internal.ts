@@ -18,9 +18,11 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 /**
  * The Windows shell's Start menu, as data (plan 0020-w98 §3; WIG Ch.3 "The
  * Start Button", p.15, Figure 3.1): built from what Classicy already has, the
- * Apple menu's entries, the derived Applications folder, the Help menu's
- * topic and the Special menu, by a pure function so its structure is read
- * without rendering. Internal: not exported from the package.
+ * Apple menu's entries, the derived Applications folder, the documents opened
+ * this session, the Help menu's topic and the Special menu, beside the
+ * shell's own Run, Log Off and Shut Down (E2), by a pure function so its
+ * structure is read without rendering. Internal: not exported from the
+ * package.
  */
 
 /** The id prefix of every item the Start menu builds. */
@@ -41,8 +43,26 @@ export type ClassicyStartMenuImages = {
 	help: string;
 	/** Empty Trash…: the active package's Trash art (`useClassicyTrashIcon`). */
 	emptyTrash: string;
-	/** Reset PRAM…: `system.bigSwitchOff`. */
+	/** Reset PRAM…: `system.bigSwitchOn` (the power coming back on). */
 	resetPram: string;
+	/** Documents: `system.folders.recentDocuments`. */
+	documents: string;
+	/** Run…: `system.files.application`. */
+	run: string;
+	/** Log Off…: `system.security.key`. */
+	logOff: string;
+	/** Shut Down…: `system.bigSwitchOff`. */
+	shutDown: string;
+};
+
+/** A document Start ▸ Documents lists, resolved by its caller. */
+export type ClassicyStartMenuDocument = {
+	/** Its path, which opening it hands Finder's open. */
+	path: string;
+	/** The name shown: its file name. */
+	name: string;
+	/** Its icon: the file's own, else its type's. */
+	icon: string;
 };
 
 export type ClassicyStartMenuItemsInput = {
@@ -57,8 +77,22 @@ export type ClassicyStartMenuItemsInput = {
 	/** The store's balloon-help flag, which the toggle's title follows. */
 	disableBalloonHelp: boolean;
 	images: ClassicyStartMenuImages;
-	/** Dispatches the Special menu's dialogs (Empty Trash…, Reset PRAM…). */
+	/** Dispatches the Special menu's dialogs (Empty Trash…, Reset PRAM…) and
+	 * the shell's (Run…, Log Off…, Shut Down…). */
 	dispatch: (action: ActionMessage) => void;
+	/**
+	 * Start ▸ Documents: the documents opened this session that still exist
+	 * (`useClassicyRecentDocuments`), most recent first. Absent, none.
+	 */
+	documents?: readonly ClassicyStartMenuDocument[];
+	/** Opens a document of Start ▸ Documents (Finder's open). */
+	openDocument?: (path: string) => void;
+	/**
+	 * The signed-in user's name (`ClassicyDesktop`'s `userName`): Log Off
+	 * <name>… shows only with one, as Windows 98 shows it for a logged-on
+	 * user.
+	 */
+	userName?: string;
 };
 
 const SPACER: ClassicyMenuItem = { id: "spacer" };
@@ -145,21 +179,65 @@ const controlPanelItems = ({
 };
 
 /**
+ * Start ▸ Documents (plan 0020-w98 E2): the documents opened this session,
+ * sorted by name as Windows lists its Recent folder's, each opening through
+ * `openDocument`. Windows 98 led the menu with My Documents, a folder
+ * Classicy does not have.
+ */
+const documentItems = ({
+	documents = [],
+	openDocument,
+}: ClassicyStartMenuItemsInput): ClassicyMenuItem[] =>
+	documents
+		.map((document, i) => ({
+			id: `${CLASSICY_START_MENU_ITEM_PREFIX}documents_${i}`,
+			title: document.name,
+			image: document.icon,
+			onClickFunc: () => openDocument?.(document.path),
+		}))
+		.sort(byTitle);
+
+/** A shell dialog's Start menu item. */
+const shellDialogItem = (
+	id: string,
+	title: string,
+	image: string,
+	dialog: "run" | "logOff" | "shutDown",
+	dispatch: (action: ActionMessage) => void,
+): ClassicyMenuItem => ({
+	id: `${CLASSICY_START_MENU_ITEM_PREFIX}${id}`,
+	title,
+	image,
+	onClickFunc: () => {
+		dispatch({ type: "ClassicyDesktopShowSystemDialog", dialog });
+	},
+});
+
+/**
  * The Start menu's items (plan 0020-w98 §3, "Items"), top to bottom:
  *
  * 1. **About This Computer**: the Apple menu's `about` item, drawn with
  *    `images.about`; left out, with its divider, when the Apple menu has none.
  * 2. A divider.
  * 3. **Programs ▸**: `programItems`, or a disabled "(Empty)".
- * 4. **Settings ▸**: **Control Panel ▸** (`controlPanelItems`, or "(Empty)"),
+ * 4. **Documents ▸**: `documentItems`, or a disabled "(Empty)" (E2).
+ * 5. **Settings ▸**: **Control Panel ▸** (`controlPanelItems`, or "(Empty)"),
  *    a divider, then the system Help menu's **Show Balloons** / **Hide
  *    Balloons** toggle (⌥H, which the headless screen bar dispatches; the
  *    item only shows it), so the toggle stays reachable with no window open.
- * 5. **Help**: Apple Guide's About Balloon Help topic, Classicy's Help Topics.
- * 6. A divider.
- * 7. **Empty Trash…** and 8. **Reset PRAM…**, the Special menu's
- *    (`classicySpecialMenuItems(dispatch, "start")`), in Shut Down's place,
- *    with no divider between them, as Windows draws Log Off and Shut Down.
+ * 6. **Help**: Apple Guide's About Balloon Help topic, Classicy's Help Topics.
+ * 7. **Run...**: the Run dialog (E2).
+ * 8. A divider, then **Empty Trash…** and **Reset PRAM…**, the Special
+ *    menu's (`classicySpecialMenuItems(dispatch, "start")`), Classicy's own,
+ *    with no divider between them.
+ * 9. A divider, then **Log Off <name>...** (only with a `userName`) and
+ *    **Shut Down...** (E2), Windows 98's last group.
+ *
+ * Windows 98 SE's Start menu (explorer.exe's menu 204) also has Favorites
+ * and Find: Classicy keeps no favorites, and its Finder and file browser
+ * have no search for Find ▸ Files or Folders… to open, so both are left
+ * out. The shell's own items are spelled as Windows spells them, "Run...",
+ * "Shut Down..." (three periods); Classicy's keep their "…".
  *
  * First-level items carry their icons through `image` and no keyboard
  * equivalent. Every id but the Special items' starts with
@@ -196,6 +274,15 @@ export const classicyStartMenuItems = (
 		title: "Programs",
 		image: images.programs,
 		menuChildren: programs.length > 0 ? programs : [emptyItem(programsId)],
+	});
+
+	const documentsId = `${CLASSICY_START_MENU_ITEM_PREFIX}documents`;
+	const documents = documentItems(input);
+	items.push({
+		id: documentsId,
+		title: "Documents",
+		image: images.documents,
+		menuChildren: documents.length > 0 ? documents : [emptyItem(documentsId)],
 	});
 
 	const controlPanelId = `${CLASSICY_START_MENU_ITEM_PREFIX}control-panel`;
@@ -237,6 +324,8 @@ export const classicyStartMenuItems = (
 		eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
 	});
 
+	items.push(shellDialogItem("run", "Run...", images.run, "run", dispatch));
+
 	items.push(SPACER);
 	for (const item of classicySpecialMenuItems(dispatch, "start")) {
 		if (item.id === "spacer") continue;
@@ -247,6 +336,28 @@ export const classicyStartMenuItems = (
 				: images.resetPram,
 		});
 	}
+
+	items.push(SPACER);
+	const userName = input.userName?.trim();
+	if (userName)
+		items.push(
+			shellDialogItem(
+				"log-off",
+				`Log Off ${userName}...`,
+				images.logOff,
+				"logOff",
+				dispatch,
+			),
+		);
+	items.push(
+		shellDialogItem(
+			"shut-down",
+			"Shut Down...",
+			images.shutDown,
+			"shutDown",
+			dispatch,
+		),
+	);
 
 	return items;
 };

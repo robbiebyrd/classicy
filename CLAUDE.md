@@ -745,6 +745,30 @@ apps marked `showInQuickLaunch` (a runtime mark,
 `min-width` and `column-gap`, measured) the window buttons page
 (`classicyTaskbarTasksPaged`, an up/down `classicyTaskbarPager`).
 
+The Start menu (plan 0020-w98 E2) adds Documents ▸ (the session's recent
+documents, `File/ClassicyRecentDocuments.internal.ts`: Finder's
+`ClassicyAppFinderOpenFile` records each document it opens, trusted opens
+only, most recent first, at most 15, `ClassicyAppFinderPathsMoved` renames
+them; store-free, never persisted), Run..., and, after Empty Trash… and
+Reset PRAM…, Log Off <name>... (only with `ClassicyDesktop`'s `userName`) and
+Shut Down...; no Favorites or Find (Classicy has no search). Those open the
+shell's dialogs through `ClassicyDesktopShowSystemDialog` (`"shutDown"`,
+`"run"`, `"logOff"`, accepted only under `layout.taskbar`), which
+`ClassicyDesktop` draws (`Taskbar/ClassicyShellDialogs.internal.tsx`, mounted
+only under a taskbar; Windows 98 SE's shell32 dialogs): Shut Down Windows
+(Stand by: a dark `classicyPowerScreen` until a key or press; Shut down:
+`closeClassicySessionPrograms`, then "It's now safe to turn off your
+computer." until a key or press reloads; Restart: the programs closed, then
+`startClassicyFreshSession("restart")`, a reload replaying the startup
+screen with settings and files kept; the last choice stored as
+`Desktop.taskbar.shutDownChoice`), Run (`ClassicyRunCommand.internal.ts`: an
+http(s) URL through `ClassicyDesktopOpenUrl`, a path through Finder, an app
+by id or name; else Windows' "Cannot find the file" message; history in
+`Desktop.taskbar.runHistory`, 26 at most) and Log Off Windows (Yes runs the
+host's `onLogOff`, else a reload). Shut Down and Log Off draw
+`classicyShellDialogDim` over the taskbar (z 358) for the package to dim.
+Closing the programs writes the state at once (`flushAppManagerPersistence`).
+
 Modules come only from `registerClassicyControlStripModule`
 (`ClassicyControlStripRegistry.ts`) — `{ id, label, icon, appId?, order?,
 menuItems?, content?, fileIcon? }`, called at module scope. There is no

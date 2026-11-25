@@ -6,6 +6,7 @@ import {
 	useMemo,
 	useSyncExternalStore,
 } from "react";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
@@ -17,14 +18,19 @@ import {
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
 import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
+import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import {
 	getClassicyFileSystemVersion,
 	subscribeClassicyFileSystem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import { useClassicyRecentDocuments } from "@/SystemFolder/SystemResources/File/ClassicyRecentDocuments.internal";
 import { listClassicyTrashItems } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import { useClassicyTrashIcon } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
-import { classicyStartMenuItems } from "@/SystemFolder/SystemResources/Taskbar/ClassicyStartMenuItems.internal";
+import {
+	type ClassicyStartMenuDocument,
+	classicyStartMenuItems,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyStartMenuItems.internal";
 
 /**
  * The Windows shell's Start menu (plan 0020-w98 §3; WIG Ch.3 "The Start
@@ -46,6 +52,8 @@ type ClassicyStartMenuProps = {
 	banner?: NonNullable<ClassicyAppearanceLayout["taskbar"]>["startBanner"];
 	/** Called when the menu should close (a choice, Escape, an outside press, scroll, resize). */
 	onClose: () => void;
+	/** The signed-in user's name, for Log Off <name>… (E2); absent, no Log Off. */
+	userName?: string;
 };
 
 /**
@@ -72,8 +80,46 @@ const useClassicyTrashFull = (): boolean => {
 	);
 };
 
+/**
+ * Start ▸ Documents' documents (E2): the session's recent documents
+ * (`useClassicyRecentDocuments`) that still exist, each with its file name
+ * and icon (its own, else its type's core icon, which the menu draws as the
+ * active package's), read again on each change to the tree.
+ */
+const useClassicyStartMenuDocuments = (): ClassicyStartMenuDocument[] => {
+	const getFs = useClassicyFileSystemAccessor();
+	const storageKey = useMemo(() => getFs().storageKey, [getFs]);
+	const subscribe = useCallback(
+		(listener: () => void) => subscribeClassicyFileSystem(storageKey, listener),
+		[storageKey],
+	);
+	const getVersion = useCallback(
+		() => getClassicyFileSystemVersion(storageKey),
+		[storageKey],
+	);
+	const version = useSyncExternalStore(subscribe, getVersion, getVersion);
+	const recent = useClassicyRecentDocuments();
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `version` is the trigger: the tree changed, so resolve the documents again
+	return useMemo(() => {
+		const fs = getFs();
+		return recent.flatMap((path) => {
+			const entry = fs.resolve(path);
+			if (!entry || typeof entry !== "object") return [];
+			const name = path.split(fs.separator).pop() ?? path;
+			const icon =
+				typeof entry._icon === "string" && entry._icon !== ""
+					? entry._icon
+					: iconImageByType(
+							String(entry._type),
+							CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+						);
+			return [{ path, name, icon }];
+		});
+	}, [getFs, recent, version]);
+};
+
 /** The Start menu's items, from the store and the registries, read at render. */
-const useClassicyStartMenuItems = () => {
+const useClassicyStartMenuItems = (userName: string | undefined) => {
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const icons = useAppManager((s) => s.System.Manager.Desktop.icons);
 	const disableBalloonHelp = useAppManager(
@@ -88,8 +134,22 @@ const useClassicyStartMenuItems = () => {
 	const controlPanel =
 		useClassicyAsset("icons", "system.folders.controlPanels") ?? "";
 	const help = useClassicyAsset("icons", "system.help") ?? "";
-	const resetPram = useClassicyAsset("icons", "system.bigSwitchOff") ?? "";
+	const resetPram = useClassicyAsset("icons", "system.bigSwitchOn") ?? "";
+	const documentsIcon =
+		useClassicyAsset("icons", "system.folders.recentDocuments") ?? "";
+	const run = useClassicyAsset("icons", "system.files.application") ?? "";
+	const logOff = useClassicyAsset("icons", "system.security.key") ?? "";
+	const shutDown = useClassicyAsset("icons", "system.bigSwitchOff") ?? "";
 	const emptyTrash = useClassicyTrashIcon(useClassicyTrashFull());
+	const documents = useClassicyStartMenuDocuments();
+	const getFs = useClassicyFileSystemAccessor();
+	const openDocument = useCallback(
+		(path: string) => {
+			const file = getFs().resolve(path);
+			if (file) dispatch({ type: "ClassicyAppFinderOpenFile", file, path });
+		},
+		[getFs, dispatch],
+	);
 	return useMemo(
 		() =>
 			classicyStartMenuItems({
@@ -98,8 +158,22 @@ const useClassicyStartMenuItems = () => {
 				mountedApps,
 				overrides,
 				disableBalloonHelp,
-				images: { about, programs, controlPanel, help, emptyTrash, resetPram },
+				images: {
+					about,
+					programs,
+					controlPanel,
+					help,
+					emptyTrash,
+					resetPram,
+					documents: documentsIcon,
+					run,
+					logOff,
+					shutDown,
+				},
 				dispatch,
+				documents,
+				openDocument,
+				userName,
 			}),
 		[
 			systemMenu,
@@ -113,7 +187,14 @@ const useClassicyStartMenuItems = () => {
 			help,
 			emptyTrash,
 			resetPram,
+			documentsIcon,
+			run,
+			logOff,
+			shutDown,
 			dispatch,
+			documents,
+			openDocument,
+			userName,
 		],
 	);
 };
@@ -143,8 +224,9 @@ export const ClassicyStartMenu: FunctionalComponent<ClassicyStartMenuProps> = ({
 	label,
 	banner,
 	onClose,
+	userName,
 }) => {
-	const menuItems = useClassicyStartMenuItems();
+	const menuItems = useClassicyStartMenuItems(userName);
 
 	const aside = banner ? (
 		<div
