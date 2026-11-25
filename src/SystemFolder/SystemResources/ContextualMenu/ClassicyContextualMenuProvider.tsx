@@ -9,6 +9,14 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import {
+	findClassicyHelpAnchor,
+	isClassicyWhatsThisActive,
+	markClassicyWhatsThisContextMenuOpen,
+	showClassicyContextHelp,
+} from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
+import { ClassicyWhatsThisPopup } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThisPopup.internal";
+import { useClassicyContextHelpKeys } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyContextHelpKeys.internal";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import {
 	type ClassicyContextMenuOptions,
@@ -16,6 +24,7 @@ import {
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuContext.internal";
 import { useClassicyContextMenuKey } from "@/SystemFolder/SystemResources/ContextualMenu/useClassicyContextMenuKey.internal";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { classicyContextMenuOpensOnRelease } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
@@ -37,6 +46,15 @@ const clickOffset: [number, number] = [1, 1];
 // The HIG requires a Help item as the first item of every contextual menu. If
 // the caller didn't supply one, inject a disabled placeholder at the top.
 const HELP_ITEM_ID = "contextual-help";
+
+// The item of a control's own What's This? menu (Figure 12.4).
+const WHATS_THIS_ITEM_ID = "classicy-whats-this";
+
+// How many menus every provider has been asked for (held ones included), so
+// a `contextmenu` event can tell whether anything opened a menu for it, and
+// the events a provider has taken up for What's This?.
+let contextMenuRequests = 0;
+const whatsThisEvents = new WeakSet<Event>();
 
 const withHelpItem = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
 	const hasHelp = items.some(
@@ -84,6 +102,19 @@ const withHelpItem = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
  * `hideContextMenu` drops it. A Windows host raises `contextmenu` at the
  * release, so the menu opens at once there. Mac OS 8 opened its contextual
  * menus at the Control-press, so other packages open at the call.
+ *
+ * Under a package whose layout says `balloonHelp.contextHelp: "whatsThis"`
+ * (Windows 98; WIG Ch.12 "Context-Sensitive Help", pp.273-275) it mounts
+ * context-sensitive Help: F1 and Shift+F1 (`useClassicyContextHelpKeys`),
+ * the pop-up What's This? and F1 show (`ClassicyWhatsThisPopup`), and the
+ * pop-up menu of a control with help and no menu of its own: a right-click
+ * on an element `useClassicyBalloonHelp` describes, inside a window, that
+ * opened no contextual menu (no target, window, app or text field asked
+ * for one) opens a menu holding "What's This?" alone (access key W;
+ * user.exe's "&What's This?", the menu WinHelp's HELP_CONTEXTMENU shows,
+ * Figure 12.4), which shows the help at the click at once ("there is no
+ * need for entering the context-sensitive Help mode", p.275). Other
+ * packages mount the pop-up, which never opens, and nothing else.
  */
 export const ClassicyContextualMenuProvider: FunctionalComponent<
 	PropsWithChildren
@@ -92,6 +123,9 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 	const layout = useClassicyAppearanceLayout();
 	useClassicyContextMenuKey(layout.keyboard?.contextMenuKey === true);
 	const onRelease = classicyContextMenuOpensOnRelease(layout);
+	const contextHelp = layout.balloonHelp?.contextHelp === "whatsThis";
+	useClassicyContextHelpKeys(contextHelp);
+	const bundledAccessKey = useClassicyBundledAccessKeys();
 
 	// Under `openOn: "release"`: the button of the secondary press that is
 	// down (button 2, or button 1 pressed with Control, which a macOS host
@@ -136,6 +170,7 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 			clickAt: [number, number],
 			options?: ClassicyContextMenuOptions,
 		) => {
+			contextMenuRequests += 1;
 			const menu: OpenContextMenu = {
 				items: options?.helpItem === false ? items : withHelpItem(items),
 				position: [clickAt[0] + clickOffset[0], clickAt[1] + clickOffset[1]],
@@ -160,6 +195,68 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 		dropHeldMenu();
 		setOpenMenu(null);
 	}, [dropHeldMenu]);
+	const showContextMenuRef = useRef(showContextMenu);
+	showContextMenuRef.current = showContextMenu;
+
+	// What's This? holds its mode while a menu a press passed through to is
+	// open; it hears this one's opening and closing whatever the package's
+	// menu keyboard.
+	const menuIsOpen = openMenu !== null;
+	useEffect(() => {
+		if (menuIsOpen) return markClassicyWhatsThisContextMenuOpen();
+	}, [menuIsOpen]);
+
+	// Under `balloonHelp.contextHelp` "whatsThis": a right-click on a control
+	// with help, in a window, that no one opened a menu for gets What's
+	// This? alone. Whether anyone did is known once the event has run its
+	// course (a target, a window, an app or a text field asks during it,
+	// held for the release or not), so the check comes after it.
+	const whatsThisKeyRef = useRef<string | undefined>(undefined);
+	whatsThisKeyRef.current = bundledAccessKey("W");
+	useEffect(() => {
+		if (!contextHelp) return;
+		const timers = new Set<ReturnType<typeof setTimeout>>();
+		const onContextMenu = (e: MouseEvent) => {
+			if (
+				isClassicyWhatsThisActive() ||
+				!(e.target instanceof Element) ||
+				whatsThisEvents.has(e)
+			)
+				return;
+			const inWindow = e.target.closest(".classicyWindow");
+			const anchor =
+				inWindow && e.target.closest(".classicyDesktop")
+					? findClassicyHelpAnchor(e.target, inWindow)
+					: null;
+			if (!anchor) return;
+			// One provider answers an event, whichever desktop it serves.
+			whatsThisEvents.add(e);
+			const requests = contextMenuRequests;
+			const at: [number, number] = [e.clientX, e.clientY];
+			const timer = setTimeout(() => {
+				timers.delete(timer);
+				if (contextMenuRequests !== requests || !anchor.isConnected) return;
+				showContextMenuRef.current(
+					[
+						{
+							id: WHATS_THIS_ITEM_ID,
+							title: "What's This?",
+							accessKey: whatsThisKeyRef.current,
+							onClickFunc: () => showClassicyContextHelp(anchor, at),
+						},
+					],
+					at,
+					{ helpItem: false },
+				);
+			}, 0);
+			timers.add(timer);
+		};
+		window.addEventListener("contextmenu", onContextMenu, true);
+		return () => {
+			window.removeEventListener("contextmenu", onContextMenu, true);
+			for (const timer of timers) clearTimeout(timer);
+		};
+	}, [contextHelp]);
 
 	const api = useMemo(
 		() => ({ showContextMenu, hideContextMenu }),
@@ -179,6 +276,7 @@ export const ClassicyContextualMenuProvider: FunctionalComponent<
 					/>,
 					document.getElementById("classicyDesktop") ?? document.body,
 				)}
+			<ClassicyWhatsThisPopup />
 		</ClassicyContextualMenuContext.Provider>
 	);
 };

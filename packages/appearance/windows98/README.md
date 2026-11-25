@@ -185,7 +185,13 @@ and `nodenext` resolution).
   books, and Display (or a double-click, or Return) shows the chosen topic,
   Open and Close open and close a book, and Cancel or Escape closes the
   dialog. The Help menu's own topic is "Using Help": point to an item for
-  its ToolTip, or use What's This?. In
+  its ToolTip, or use What's This?. What's This? (Shift+F1) turns the
+  pointer over the active window into the arrow with a question mark; then
+  a click on a control shows what it does in a cream pop-up with a shadow,
+  and Escape, a click outside the window or Shift+F1 again leaves the mode.
+  F1 shows the same pop-up for the control that has the focus, or opens
+  Help Topics where there is none; right-clicking a control with help that
+  has no menu of its own offers What's This? (Alt+W). In
   HyperCard's editor, an armed part tool shows as a latched toolbar button,
   and Escape disarms it before it deselects a part. The Mac packages keep
   their pager, their fixed Help window, their "About Help" topic and their

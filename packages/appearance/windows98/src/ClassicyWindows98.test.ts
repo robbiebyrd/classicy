@@ -1370,7 +1370,10 @@ describe("the Windows 98 appearance package", () => {
 			},
 			fileList: { foldersFirst: true },
 			tree: { keys: "windows" },
-			balloonHelp: { placement: "pointer" },
+			balloonHelp: {
+				placement: "pointer",
+				contextHelp: "whatsThis",
+			},
 			text: { wordSelect: "trailingSpace" },
 			edit: { scope: "window", menu: "windows" },
 			textField: { contextMenu: "edit" },
@@ -1444,6 +1447,23 @@ describe("the Windows 98 appearance package", () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout.help).toEqual({
 			topicWindow: "winhelp",
+		});
+	});
+
+	// Context-sensitive Help: What's This? and F1 (`balloonHelp.contextHelp`
+	// "whatsThis", 12.2-12.4 / B.5; WIG Ch.12 "Context-Sensitive Help",
+	// pp.273-275; App. B Table B.2, p.358), and the shadow of its pop-up,
+	// WinHelp's (Figure 12.3: six pixels right and down, measured at 600
+	// dpi), in every theme; `_BalloonHelp.scss` reads it.
+	it("takes What's This? and F1, and shadows the context-sensitive Help pop-up 6 px in every theme", async () => {
+		await import("./index");
+		expect(
+			getClassicyAppearancePackage("windows98")?.layout.balloonHelp,
+		).toEqual({ placement: "pointer", contextHelp: "whatsThis" });
+		for (const theme of [windows98Json.defaults, ...windows98Json.presets])
+			expect(theme.measurements.tooltip.shadow, theme.id).toBe(6);
+		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
+			"--tooltip-shadow": "6px",
 		});
 	});
 
@@ -1540,6 +1560,7 @@ describe("the Windows 98 appearance package", () => {
 				paddingX: 4,
 				paddingY: 2,
 				pointerOffset: 20,
+				shadow: 6,
 			});
 		expect(getThemeVars(getTheme("windows98") as ClassicyTheme)).toMatchObject({
 			"--tooltip-pointer-offset": "20px",

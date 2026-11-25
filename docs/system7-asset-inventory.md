@@ -638,6 +638,7 @@ Every `ClassicyCursorRole`. One set serves both themes (the pointer stays black,
 | — | `resizeD` | Resize down only | draw | System 7 has none: copy Platinum's `cursor-resize-d.png` (implementer) | `cursors/resize-d.png` | (8, 8) |
 | — | `resizeL` | Resize left only | draw | System 7 has none: copy Platinum's `cursor-resize-l.png` (implementer) | `cursors/resize-l.png` | (8, 8) |
 | — | `resizeR` | Resize right only | draw | System 7 has none: copy Platinum's `cursor-resize-r.png` (implementer) | `cursors/resize-r.png` | (8, 8) |
+| — | `help` | Contextual Help pointer (Windows' What's This?) | none | System 7 has no What's This? mode (its help is Balloon Help, with no pointer of its own), so the role stays unregistered and never shows | — | — |
 
 ## Sounds
 

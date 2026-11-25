@@ -196,7 +196,8 @@
 			"tooltip": {
 				"paddingX": 4,
 				"paddingY": 2,
-				"pointerOffset": 20
+				"pointerOffset": 20,
+				"shadow": 6
 			},
 			"menuItem": {
 				"paddingX": 6
@@ -453,7 +454,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -709,7 +711,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -967,7 +970,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1225,7 +1229,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1483,7 +1488,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1739,7 +1745,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -1995,7 +2002,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2251,7 +2259,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2507,7 +2516,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -2763,7 +2773,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3019,7 +3030,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3277,7 +3289,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3535,7 +3548,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -3793,7 +3807,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -4049,7 +4064,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -4305,7 +4321,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -4561,7 +4578,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -4819,7 +4837,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -5077,7 +5096,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -5337,7 +5357,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -5593,7 +5614,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -5851,7 +5873,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -6111,7 +6134,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -6369,7 +6393,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -6627,7 +6652,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -6887,7 +6913,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -7147,7 +7174,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -7405,7 +7433,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -7663,7 +7692,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -7921,7 +7951,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -8177,7 +8208,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -8437,7 +8469,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -8693,7 +8726,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -8949,7 +8983,8 @@
 				"tooltip": {
 					"paddingX": 4,
 					"paddingY": 2,
-					"pointerOffset": 20
+					"pointerOffset": 20,
+					"shadow": 6
 				},
 				"menuItem": {
 					"paddingX": 6
@@ -9066,7 +9101,8 @@
 			"keys": "windows"
 		},
 		"balloonHelp": {
-			"placement": "pointer"
+			"placement": "pointer",
+			"contextHelp": "whatsThis"
 		},
 		"text": {
 			"wordSelect": "trailingSpace"

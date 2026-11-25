@@ -62,12 +62,14 @@ const cursorNames: ClassicyCursorRole[] = [
 	"resizeD",
 	"resizeL",
 	"resizeR",
+	"help",
 ];
 
 /**
  * Every cursor role, one button each, so the full set can be compared. Platinum
- * registers no cursor for `ibeam`, `crosshair`, `resizeNwse` or `resizeNesw`,
- * so those buttons restore the default. Remember to Reset afterwards — the
+ * registers no cursor for `ibeam`, `crosshair`, `resizeNwse`, `resizeNesw` or
+ * `help` (What's This?'s pointer, which Mac OS 8 never had), so those buttons
+ * restore the default. Remember to Reset afterwards — the
  * cursor stays until changed.
  */
 export const AllCursors: Story = {

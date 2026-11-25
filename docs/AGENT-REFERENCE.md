@@ -1423,6 +1423,13 @@ Every package, keyboard or not:
   a handler took (`defaultPrevented`) and auto-repeats are left alone; the
   browser's own `contextmenu` for the key (Chrome on Windows fires it on the
   Menu key's keyup) is swallowed for half a second.
+- Under the package's `layout.balloonHelp.contextHelp` `"whatsThis"`
+  (Windows 98) the provider also mounts F1 and Shift+F1
+  (`useClassicyContextHelpKeys`) and What's This?'s pop-up, and a
+  right-click (or Shift+F10) on a described control in a window that opens
+  no menu of its own (nothing called `showContextMenu` for the event) opens
+  a menu holding "What's This?" alone, with no Help item (WinHelp's
+  HELP_CONTEXTMENU, WIG Ch.12 Figure 12.4; §4.8).
 - `ClassicyBevelButtonPopup`'s own Up/Down walk and its document Escape
   listener skip a key the menu already took (`defaultPrevented`): under
   `layout.menu.keys` `"windows"` the menu walks its items (passing dimmed
@@ -1685,6 +1692,46 @@ return <div ref={myRef} {...handlers}>target{balloon}</div>
   overrides the anchor's own handlers (a desktop icon's drag). The settling
   is `resolveBalloonPointerPlacement(point, box, bounds)`, exported beside
   `resolveBalloonPosition`.
+- What's This? and F1, under the package's `layout.balloonHelp.contextHelp`
+  `"whatsThis"` (§8; Windows 98; WIG Ch.12 "Context-Sensitive Help",
+  pp.273-275; App. B Table B.2): the help a balloon shows is also the
+  element's context-sensitive Help. Every anchor given a config is
+  registered with it (`registerClassicyHelpAnchor`, a WeakMap, whatever the
+  layout and whether balloons are shown; nothing changes on the page), and
+  `BalloonHelp/ClassicyWhatsThis.internal.ts` (internal, not in the barrel)
+  holds the mode: `startClassicyWhatsThis(scope?)` (a window's root, else
+  the active window; again, it ends the mode), `stopClassicyWhatsThis()`,
+  `useClassicyWhatsThisActive()` and `showClassicyContextHelp(anchor, at?)`.
+  While the mode is on (session state, never persisted) the document
+  element carries `classicyWhatsThisMode` and the active window shows the
+  `help` cursor role (`--classicy-cursor-help`, else the browser's `help`
+  keyword; `ClassicyBalloonHelp.scss`); a button-1 or button-2 press in the
+  scope is swallowed with the rest of that press: on an element with help
+  (itself or its nearest described ancestor) it shows that help as a
+  pop-up at the press and ends the mode, on anything else it keeps the
+  mode. A press on a menu title or item, or button 2 on a
+  `ClassicyContextualMenuTarget`, passes through and keeps the mode until
+  the menu closes; a control carrying `data-classicy-whats-this` (the
+  command's own "?" box) passes through too; Escape (taken from everything
+  else, a dialog's Cancel included), a press outside the scope (which goes
+  on to what it pressed), the window losing focus or the command again ends
+  it. The pop-up (`ClassicyWhatsThisPopup`, mounted by
+  `ClassicyContextualMenuProvider`) is `classicyBalloonHelpContainer` >
+  `classicyBalloonHelp classicyBalloonHelpContext` (`role="tooltip"`, the
+  title and text as a balloon's) in `#classicyDesktop`, centered across the
+  press with its top there, or below an element (F1, a call with no point),
+  kept on the desktop (`resolveClassicyContextHelpPlacement`, WinHelp's
+  placement as Wine's winhlp32 has it); the next press or key (not a bare
+  modifier), which it takes, or the window losing focus closes it. F1 (no
+  modifier) shows the focused element's help below it, or, with none,
+  dispatches `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`; Shift+F1 starts or ends
+  the mode on the active window (`useClassicyContextHelpKeys`, mounted by
+  the provider; keys outside the desktop are left alone, both taken with
+  `preventDefault`). A right-click on a described control in a window that
+  opens no menu of its own shows a menu holding "What's This?" alone
+  (access key W, user.exe's "&What's This?"), which shows the help at the
+  click. Without the key none of this runs: F1 and Shift+F1 stay the
+  browser's, and the functions do nothing.
 
 ### 4.9 QuickTime media primitives
 
@@ -2708,10 +2755,14 @@ own form table, `"image"` or `"pixelArt"` per key, is exhaustive the same way).
 
 `ClassicyCursorRole`: `arrow`, `watch`, `hand`, `ibeam`, `crosshair`,
 `resizeLr`, `resizeUd`, `resizeNwse`, `resizeNesw`, `resizeU`, `resizeD`,
-`resizeL`, `resizeR`. Platinum registers `arrow`, `watch`, `hand`, `resizeLr`,
+`resizeL`, `resizeR`, `help`. Platinum registers `arrow`, `watch`, `hand`, `resizeLr`,
 `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR`; `ibeam`, `crosshair`,
 `resizeNwse` and `resizeNesw` have no Platinum file and stay unregistered, so
-the browser's own cursor shows for them.
+the browser's own cursor shows for them. `help` is the contextual Help
+pointer What's This? shows over the active window (§4.8; WIG Ch.12 p.273,
+Figure 12.2), read as `--classicy-cursor-help` with the browser's `help`
+keyword behind it; Mac OS had no such mode, so neither Platinum nor System 7
+registers it.
 
 `useClassicyCursor()` returns a stable `setCursor(role?)` that reads the role
 from the registry at call time and sets `document.body.style.cursor`; a role
@@ -4706,7 +4757,7 @@ it like Platinum (§1); its README lists what it ships.
   `checkbox`, `radio`, `popUp`, `field` (`height`, every single-line field's,
   21: Windows' edit and combo box height, plus the text's padding),
   `tabControl` (`height`, a tab's, 21; the radius, lift and padding),
-  `progressBar` (block width and gap, the stripe, the inset), `tooltip` (`paddingX`, `paddingY` and `pointerOffset`, 20: a ToolTip at the pointer stands that far under its hot spot),
+  `progressBar` (block width and gap, the stripe, the inset), `tooltip` (`paddingX`, `paddingY` and `pointerOffset`, 20: a ToolTip at the pointer stands that far under its hot spot; `shadow`, 6: how far right and down What's This?'s pop-up casts its shadow, Figure 12.3),
   `menuItem`, `menu` (`popUpMaxHeight`, 106: a drop-down's
   open list eight 13-px rows and its line, the WIG's three to eight items),
   `dialog` (`alertMaxWidth` and `inputMaxWidth`, 415: the core's structural
@@ -4934,7 +4985,16 @@ it like Platinum (§1); its README lists what it ships.
   top), its tree a tree view with the client edge and no lines or buttons
   (pp.284-288, Figure 12.13). The Help menu's built-in topic reads "Using
   Help" under Windows 98, two "how" steps, the ToolTip and What's This?
-  (pp.280-281), Platinum and System 7 keeping "About Help". In
+  (pp.280-281), Platinum and System 7 keeping "About Help".
+  `balloonHelp: { contextHelp: "whatsThis" }` (§8, §4.8): What's This?
+  and F1, the help a ToolTip shows given as WinHelp's context-sensitive
+  pop-up, the ToolTip's InfoWindow box with Figure 12.3's shadow, the box
+  moved `tooltip.shadow` (6) right and down behind it in a one-pixel
+  checker of WindowFrame and transparent (`classicyBalloonHelpContext`,
+  `_BalloonHelp.scss`; measured on Figure 12.3 at 600 dpi), and, while the
+  mode is on, the `help` pointer over the active window, repeated in the
+  package's layer so it beats the package's own `cursor: default` on its
+  buttons, check boxes and option buttons. In
   HyperCard's editor the armed part tool is a latched toolbar button, the
   ButtonHilight / ButtonFace checker in the pressed rings (`_HyperCard.scss`;
   Ch.13 "Option-Set Appearance", pp.304-305), and Escape disarms it
@@ -5008,6 +5068,7 @@ how they look) has two halves:
 | `finder.commands` (optional) | `mac`, `windows` | which commands Finder's item menus offer ("Icon view selection", §7). `mac` (the default, Platinum, System 7): Move To Trash, or Restore in the Trash, with no default item (HIGOS8 "Contextual Menus" (pp.94-95): "you should not set a default item"), and none on a desktop file or folder. `windows` (Windows 98; WIG Ch.7 "Icon Pop-up Menus" (pp.102-103)): every item's menu, a desktop file's or folder's included, leads with Open, its default item (`isDefault`), the command a double-click runs |
 | `tree.keys` (optional) | `mac`, `windows` | how the keyboard drives a `ClassicyTree`. `mac` (the default, Platinum, System 7, as Mac OS 8's list views): Up, Down, Home, End and typing move the keyboard row, ⌘→ / ⌘← open and close the focused branch, and a bare Right or Left Arrow does nothing (its default left to the browser). `windows` (Windows 98; WIG Ch.7 "Tree View Controls", pp.123-124; comctl32's TREEVIEW_KeyDown): a bare Right Arrow expands a closed branch or moves to an open one's first child (a leaf stays), a bare Left Arrow collapses an open branch or moves to the row's parent (a closed root row stays), Shift allowed and Alt left to the browser, the key's default taken; a dimmed branch never toggles. Under `windows` the chords give way to the bare arrows and scroll instead, as comctl32's tree view takes every Control key (`TREEVIEW_KeyDown` hands it to `TREEVIEW_ScrollKeyDown`; WIG App. B Table B.1, p.357; the audit's B.3): Control (or ⌘) with Up or Down scrolls the tree's scroller one row (a registered scroll area's through its own `scrollBy`, else the nearest ancestor that scrolls), with Left or Right a row's height sideways, with Page Up or Page Down the page's whole rows, with Home or End to its top or bottom, the keyboard row and the selection staying put and the key's default taken. A `ClassicyTable`'s tree rows (`getSubRows`, the Finder's list view) read the same key for their expand keys (one key for both, recorded): ⌘→ / ⌘← (or Control) under `mac`, a bare Right and Left Arrow (Shift allowed) under `windows`, where the chords expand nothing. Read with `classicyWindowsTreeKeys(layout)` (`Keyboard/ClassicyListKeys.internal.ts`) |
 | `balloonHelp.placement` (optional) | `anchor`, `pointer` | where `useClassicyBalloonHelp` (`ClassicyBalloonHelp`, the desktop icons' balloons) shows help (§4.8). `anchor` (the default, Platinum, System 7): Mac OS 8's balloon against the anchor, after the delay from the pointer's arrival. `pointer` (Windows 98; WIG Ch.7 "Tooltip Controls", p.133; Ch.12 "Tooltips"): a tip at the resting pointer, below it (`classicyBalloonHelpPointerBelow`, offset by the package) or above the anchor at the desktop's bottom (`classicyBalloonHelpPointerAbove`), moved left at its right edge, with no tail, hidden by a press on the anchor until the pointer leaves |
+| `balloonHelp.contextHelp` (optional) | `whatsThis` | context-sensitive Help (the audit's 12.2, 12.3, 12.4 and B.5; §4.8). Absent (Platinum, System 7: Mac OS had no What's This? or F1): nothing; F1 and Shift+F1 stay the browser's, and `startClassicyWhatsThis` and `showClassicyContextHelp` do nothing. `whatsThis` (Windows 98; WIG Ch.12 "Context-Sensitive Help", pp.273-275, Figures 12.1-12.4; App. B Table B.2, p.358): What's This? (`startClassicyWhatsThis`, Shift+F1) sets a session-only mode on the active window, shown by `html.classicyWhatsThisMode` and the `help` cursor role over the active window (Figure 12.2); a click on an element `useClassicyBalloonHelp` describes shows its help as a pop-up (`classicyBalloonHelpContext`) at the click and ends the mode, one on nothing described keeps it, a menu title or button 2 on a `ClassicyContextualMenuTarget` passes through and keeps it until the menu closes, and Escape, a press outside the window or the command again ends it. F1 shows the focused element's help below it, or, with none, dispatches Help Topics (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`); a right-click on a described control in a window that opens no menu shows a menu holding "What's This?" (W), which shows its help at once (Figure 12.4). Recorded choices: the mode's class is on the document element, not the window's root (the brief's move: the root is the shell's `ClassicyWindow`); the pop-up is WinHelp's placement as Wine's winhlp32 has it, centered across the click with its top there; the dismissing press or key is taken, as WinHelp's pop-up took it; choosing a menu item while the mode holds runs it (Windows would show the item's help, but no Windows 98 menu item carries any) |
 | `text.wordSelect` (optional) | `native`, `trailingSpace` | what a double-click in a `ClassicyInput` or a `ClassicyTextEditor` selects (WIG Ch.5 "Selection Shortcuts", p.44; the audit's 5.19). `native` (the default, Platinum, System 7, as TextEdit selected the word alone): what the browser selects, the word alone on macOS and Linux hosts. `trailingSpace` (Windows 98): once the browser has selected the word, `extendClassicyWordSelection` (`App/ClassicyWordSelect.internal.ts`) extends the selection forward over the spaces after it (U+0020, U+00A0), never a line break, a tab or a punctuation mark, as user32's edit control takes the word and the space after it; on a Windows host the browser has taken them already, and nothing changes |
 | `edit.scope` (optional) | `any`, `window` | which field the Edit commands (`classicyEditCommands`, the bundled Edit menu) act on when the focus is not in one, a menu click having taken it (WIG Ch.5 "Operations for a Multiple Selection", p.44; the audit's 5.21). `any` (the default, Platinum, System 7, today's rule, a candidate for their check against HIGOS8 since the bug is under every package): the field last focused, wherever it is, so a word selected in SimpleText was deleted by Edit ▸ Clear chosen in another window. `window` (Windows 98): the last field only while its `.classicyWindow` root carries `active` (the focused window, a modal, a utility palette, each of which draws active), else none: every command does nothing, Undo has nothing to undo, and a field outside every window is no target. A focused field is the target under either. The undo state is read again when a press or its release activates another window (a tick after it, once the window's class has landed) |
 | `edit.menu` (optional) | `mac`, `windows` | the form of the bundled Edit menu (`useClassicyEditMenu`; the shell's 5.44, built here). `mac` (the default, Platinum, System 7, byte for byte as before): Undo named after the last edit ("Undo Typing") or dimmed "Can't Undo", a divider, Cut, Copy, Paste, Clear (no shortcut but "Del" under `shortcutSpelling: "names"`) and Select All. `windows` (Windows 98; Windows 98 SE's Notepad, notepad.exe's "&Undo\tCtrl+Z", "Cu&t\tCtrl+X", "&Copy\tCtrl+C", "&Paste\tCtrl+V", "De&lete\tDel", "Select &All"; WIG Ch.5 "Command Method", p.59): "Undo" alone, dimmed with nothing to undo, a divider, Cut, Copy, Paste, Delete in Clear's place (its id still `<prefix>_clear`, Notepad's letter l, the Delete key), a divider, and Select All (⌘A, Ctrl+A, kept from Explorer's and WordPad's menus, which the browser's editing answers; Notepad's carried none), with `menu.accessKeys`' letters (U, t, C, P, l, A). Its items are dimmed as Notepad's menu-init dims them (Wine's `NOTEPAD_InitMenuPopup`) from `subscribeEditTargetState`: Cut, Copy and Delete while the target has no selection, Select All while it holds no text, every command while there is no target; Cut, Paste and Delete while it is read-only and Cut and Copy in a password field, as user.exe's edit menu has them; Paste is never dimmed by the clipboard, which a page cannot read without the user's permission |

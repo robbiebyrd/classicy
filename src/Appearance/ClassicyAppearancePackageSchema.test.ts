@@ -650,6 +650,39 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// Context-sensitive Help, What's This? and F1 (the WIG audit's 12.2-12.4
+	// / B.5): `balloonHelp.contextHelp`, an optional keyword beside
+	// `placement` in the same optional group.
+	it("takes an optional balloonHelp.contextHelp, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).balloonHelp = {
+			placement: "pointer",
+			contextHelp: "whatsThis",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.balloonHelp).toEqual({
+			placement: "pointer",
+			contextHelp: "whatsThis",
+		});
+		const alone = platinumShaped();
+		(alone.layout as Record<string, unknown>).balloonHelp = {
+			contextHelp: "whatsThis",
+		};
+		expect(ClassicyAppearancePackageSchema.safeParse(alone).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).balloonHelp = {
+			contextHelp: "balloons",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"balloonHelp",
+			"contextHelp",
+		]);
+	});
+
 	it("accepts defaults that name the package", () => {
 		const input = {
 			...platinumShaped(),

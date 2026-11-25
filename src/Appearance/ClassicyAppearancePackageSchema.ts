@@ -128,7 +128,10 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	fileList: z.object({ foldersFirst: z.boolean().optional() }).optional(),
 	tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),
 	balloonHelp: z
-		.object({ placement: z.enum(["anchor", "pointer"]).optional() })
+		.object({
+			placement: z.enum(["anchor", "pointer"]).optional(),
+			contextHelp: z.enum(["whatsThis"]).optional(),
+		})
 		.optional(),
 	text: z
 		.object({ wordSelect: z.enum(["native", "trailingSpace"]).optional() })

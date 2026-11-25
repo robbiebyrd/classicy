@@ -11,8 +11,11 @@ import { CLASSICY_LAYER_ORDER } from "../../../../../bin/classicyStyleInjector";
 // are. No rule sits outside the scope: the package ships no screen savers.
 
 const STYLESHEET = path.join(import.meta.dirname, "windows98.scss");
+// A rule may be keyed on the What's This? mode's class on the document
+// element above the root (`html.classicyWhatsThisMode`, set only under the
+// package's `balloonHelp.contextHelp`): still scoped under the root.
 const WINDOWS98_SCOPE =
-	/^\.classicyDesktop\[data-classicy-appearance=("?)windows98\1\](?=$|[\s.:#[>+~])/;
+	/^(?:html\.classicyWhatsThisMode )?\.classicyDesktop\[data-classicy-appearance=("?)windows98\1\](?=$|[\s.:#[>+~])/;
 
 /** A selector list's selectors: its commas outside parentheses (`:is(a, b)`). */
 const splitSelectors = (header: string) => {
@@ -981,6 +984,56 @@ describe("windows98.scss (compiled)", () => {
 			expect(button).toContain("min-height: var(--push-button-height)");
 			expect(button).toContain("min-width: var(--button-min-width)");
 			expect(button).toContain("margin: 0");
+		});
+	});
+
+	// What's This? (`balloonHelp.contextHelp` "whatsThis", the audit's 12.2
+	// and 12.3; WIG Ch.12 "Context-Sensitive Help", pp.273-275): the help
+	// pointer over the active window while the mode is on, in this layer so
+	// it beats the package's own `cursor: default` on its controls, and the
+	// pop-up's shadow, Figure 12.3's: the box moved `--tooltip-shadow` right
+	// and down behind it, a one-pixel checker of WindowFrame and transparent.
+	describe("What's This?", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const rule = (selector: string) => {
+			const at = css.indexOf(`${selector} {`);
+			return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+		};
+		const flat = (text: string) => text.replace(/\s+/g, " ");
+
+		it("shows the help pointer over the active window in the mode, over the controls' own cursor", () => {
+			const pointer = flat(
+				rule(`html.classicyWhatsThisMode ${scope} .classicyWindow.active *`),
+			);
+			expect(pointer).toContain(
+				'cursor: var(--classicy-cursor-help, url("data:,")) var(--classicy-cursor-help-hotspot, 0 0), help',
+			);
+			expect(
+				css.includes(
+					`html.classicyWhatsThisMode ${scope} .classicyWindow.active,`,
+				),
+			).toBe(true);
+			// After the controls' `cursor: default`, at a greater weight.
+			expect(
+				css.indexOf(`html.classicyWhatsThisMode ${scope}`),
+			).toBeGreaterThan(css.indexOf(`${scope} .classicyButton {`));
+		});
+
+		it("shadows the context-sensitive Help pop-up as Figure 12.3 does", () => {
+			expect(rule(`${scope} .classicyBalloonHelpContext`)).toContain(
+				"position: relative",
+			);
+			const shadow = flat(rule(`${scope} .classicyBalloonHelpContext::after`));
+			expect(shadow).toContain('content: ""');
+			expect(shadow).toContain("position: absolute");
+			expect(shadow).toContain("z-index: -1");
+			expect(shadow).toContain("inset: calc(var(--window-border-size) * -1)");
+			expect(shadow).toContain(
+				"transform: translate(var(--tooltip-shadow), var(--tooltip-shadow))",
+			);
+			expect(shadow).toContain(
+				"background: repeating-conic-gradient(var(--color-window-border) 0 25%, transparent 0 50%) 0 0/calc(var(--pixel-unit) * 2) calc(var(--pixel-unit) * 2)",
+			);
 		});
 	});
 });

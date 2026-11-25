@@ -29,6 +29,21 @@
 //   InfoText          --package-color-tooltip-text (--color-black)
 //   WindowFrame       --color-window-border
 //
+// What's This? (the package's `balloonHelp.contextHelp` "whatsThis"; WIG
+// Ch.12 "Context-Sensitive Help", pp.273-275):
+//
+// - The pointer: while the mode is on (`html.classicyWhatsThisMode`), the
+//   contextual Help pointer over the active window (Figure 12.2), the
+//   registered `help` cursor else the browser's `help` keyword. The base
+//   sheet holds the same rule, which this package's own `cursor: default`
+//   on its buttons, check boxes and option buttons would beat from this
+//   layer, so it is repeated here, its root the desktop's.
+// - The pop-up (`classicyBalloonHelpContext`, Figure 12.3, WinHelp's
+//   context-sensitive Help window): the ToolTip's box, with a shadow at its
+//   right and bottom, the box moved `--tooltip-shadow` (6) right and down,
+//   a 50 % checker of WindowFrame and transparent (Figure 12.3, measured at
+//   600 dpi: one-pixel cells, six deep, black over the dialog's face).
+//
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
 // every color a token.
 @use "../bevels" as b;
@@ -61,5 +76,29 @@
 
   .classicyBalloonHelpPointerAbove {
     margin-bottom: px(2);
+  }
+
+  // What's This?'s pop-up: the ToolTip's box above its shadow, the box's
+  // border box moved right and down, behind it.
+  .classicyBalloonHelpContext {
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: b.$neg-b;
+      transform: translate(var(--tooltip-shadow), var(--tooltip-shadow));
+      background: repeating-conic-gradient(var(--color-window-border) 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
+    }
+  }
+
+  // What's This?'s pointer over the active window, here too so that it
+  // beats this layer's own `cursor` on the controls.
+  html.classicyWhatsThisMode & .classicyWindow.active,
+  html.classicyWhatsThisMode & .classicyWindow.active * {
+    cursor:
+      var(--classicy-cursor-help, url('data:,')) var(--classicy-cursor-help-hotspot, 0 0),
+      help;
   }
 }

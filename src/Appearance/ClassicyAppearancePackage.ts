@@ -524,6 +524,28 @@ export type ClassicyAppearanceLayout = {
 		 * it until the pointer leaves.
 		 */
 		placement?: "anchor" | "pointer";
+		/**
+		 * Context-sensitive Help (WIG Ch.12 "Context-Sensitive Help",
+		 * pp.273-275, Figures 12.1-12.4; App. B Table B.2, p.358). Absent
+		 * (Platinum, System 7: Mac OS had no such mode), nothing: F1 and
+		 * Shift+F1 are left to the browser, and `startClassicyWhatsThis`
+		 * and `showClassicyContextHelp` do nothing. `"whatsThis"` (Windows
+		 * 98): What's This? (`startClassicyWhatsThis`, Shift+F1) sets a
+		 * session-only mode, `html.classicyWhatsThisMode`, showing the
+		 * `help` cursor over the active window; a click on an element
+		 * `useClassicyBalloonHelp` describes shows its help as a pop-up at
+		 * the click (`classicyBalloonHelp classicyBalloonHelpContext`) and
+		 * ends the mode, a click on nothing described keeps it, a menu
+		 * title or a button-2 press on a `ClassicyContextualMenuTarget`
+		 * passes through and keeps it until the menu closes, and Escape, a
+		 * press outside the window or the command again ends it. F1 shows
+		 * the focused element's help below it, or, with none, dispatches
+		 * Help Topics (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`); a right-click
+		 * on a described control in a window that opens no menu of its own
+		 * shows a menu holding "What's This?", which shows the help at
+		 * once.
+		 */
+		contextHelp?: "whatsThis";
 	};
 	/**
 	 * How a text field selects its text (`ClassicyInput`,

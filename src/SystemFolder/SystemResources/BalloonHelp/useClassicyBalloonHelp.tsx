@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { registerClassicyHelpAnchor } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 
 export type ClassicyBalloonPosition =
 	| "top-left"
@@ -352,6 +353,13 @@ const BalloonTail: FC<{ className: string }> = ({ className }) => (
  * anchor element itself, so `handlers` keeps its keys and never
  * overrides the anchor's own mouse handlers.
  *
+ * Every anchor given a `config` is also registered with it
+ * (`registerClassicyHelpAnchor`), so under the package's
+ * `layout.balloonHelp.contextHelp` `"whatsThis"` (Windows 98) a click on it
+ * in the What's This? mode, or F1 with focus inside it, shows the same help
+ * as a pop-up (`ClassicyWhatsThis.internal.ts`), whether or not balloons are
+ * shown.
+ *
  * ```tsx
  * const ref = useRef<HTMLDivElement>(null);
  * const { handlers, balloon } = useClassicyBalloonHelp(ref, { content: "Hi", position: "top-right" });
@@ -491,6 +499,18 @@ export const useClassicyBalloonHelp = (
 		},
 		[],
 	);
+
+	// The anchor's help, kept for What's This? and F1 (the package's
+	// `layout.balloonHelp.contextHelp`, ClassicyWhatsThis.internal.ts): a
+	// click on the anchor in the mode, or F1 with focus inside it, shows
+	// this config as a pop-up. A WeakMap entry per anchor, refreshed each
+	// render and removed with the anchor or its config, whatever the layout
+	// and whether balloons are shown; it changes nothing on the page.
+	useLayoutEffect(() => {
+		const anchor = anchorRef.current;
+		if (!anchor || !config) return;
+		return registerClassicyHelpAnchor(anchor, config);
+	});
 
 	// The balloon's own size is only knowable once it is in the document, so the
 	// side it opens toward is settled here rather than at show time. This runs

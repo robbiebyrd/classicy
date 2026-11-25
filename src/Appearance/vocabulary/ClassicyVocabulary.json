@@ -3,6 +3,7 @@
 		"Tabs": "classicyTabContainer"
 	},
 	"extraClasses": {
+		"BalloonHelp": ["classicyWhatsThisMode"],
 		"Button": ["classicyButtonsHolder"],
 		"ControlLabel": [
 			"classicyLabelAbove",
@@ -114,6 +115,7 @@
 			"Anchor",
 			"Container",
 			"Content",
+			"Context",
 			"PointerAbove",
 			"PointerBelow",
 			"Tail",

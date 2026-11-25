@@ -24,6 +24,7 @@ vi.mock(
 	}),
 );
 
+import { classicyHelpAnchorConfig } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import {
 	type ClassicyIconBalloonHelp,
 	useClassicyBalloonHelp,
@@ -288,5 +289,42 @@ describe("useClassicyBalloonHelp — at the pointer (layout.balloonHelp.placemen
 		expect(container().style.left).toBe(`${viewport.width - 120}px`);
 		expect(container().style.bottom).toBe("40px");
 		expect(container().style.top).toBe("");
+	});
+});
+
+// What's This? and F1 show the help a ToolTip shows (the WIG audit's 12.3,
+// 12.4; `ClassicyWhatsThis.internal.ts`): every anchor given a config is
+// registered with it, under every layout and whether balloons are shown,
+// kept current, and forgotten with the anchor or its config. The page is
+// unchanged by it (no DOM, no attribute).
+describe("useClassicyBalloonHelp — the anchors' registry (What's This?)", () => {
+	it.each([
+		["a Mac layout", "mac-tips"],
+		["the Windows 98 layout", "windows-tips"],
+	])("registers the anchor's config under %s, balloons shown or hidden", (_, id) => {
+		activePackage.id = id;
+		for (const disabled of [false, true]) {
+			mockState.disableBalloonHelp = disabled;
+			const config = { title: "Trash", content: "Holds deleted items." };
+			const { unmount } = render(<Harness config={config} />);
+			const anchor = screen.getByTestId("anchor");
+			expect(classicyHelpAnchorConfig(anchor)).toBe(config);
+			expect(anchor.getAttributeNames().sort()).toEqual(["data-testid"]);
+			unmount();
+			expect(classicyHelpAnchorConfig(anchor)).toBeUndefined();
+		}
+		mockState.disableBalloonHelp = false;
+	});
+
+	it("follows a new config, and forgets one taken away", () => {
+		const first = { content: "First." };
+		const { rerender } = render(<Harness config={first} />);
+		const anchor = screen.getByTestId("anchor");
+		expect(classicyHelpAnchorConfig(anchor)).toBe(first);
+		const second = { content: "Second." };
+		rerender(<Harness config={second} />);
+		expect(classicyHelpAnchorConfig(anchor)).toBe(second);
+		rerender(<Harness />);
+		expect(classicyHelpAnchorConfig(anchor)).toBeUndefined();
 	});
 });
