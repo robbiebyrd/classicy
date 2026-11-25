@@ -204,6 +204,7 @@ export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/Clas
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime";
 export * from "./SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowser";
+export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserIconSelection";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
@@ -282,6 +283,7 @@ export * from "./SystemFolder/SystemResources/Spinner/ClassicySpinner";
 export * from "./SystemFolder/SystemResources/SplitView/ClassicySplitView";
 export * from "./SystemFolder/SystemResources/Table/ClassicyTable";
 export * from "./SystemFolder/SystemResources/Tabs/ClassicyTabs";
+export * from "./SystemFolder/SystemResources/Tabs/useClassicySessionTab";
 export * from "./SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 export * from "./SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 export * from "./SystemFolder/SystemResources/Tree/ClassicyTree";

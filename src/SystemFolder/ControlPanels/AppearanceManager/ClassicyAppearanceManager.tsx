@@ -64,6 +64,7 @@ import {
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
+import { useClassicySessionTab } from "@/SystemFolder/SystemResources/Tabs/useClassicySessionTab";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { useColorsTab } from "./ClassicyAppearanceManager.Colors";
 import {
@@ -586,6 +587,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		previewAlertVolume,
 	});
 
+	// Reopened in the session, the panel shows the page it was left on (WIG
+	// Ch.8 p.146; HIG7 p.146).
+	const sessionTab = useClassicySessionTab(APP_ID, "main");
 	const tabs = useMemo(
 		// Packages and Options follow Themes: the package is the outermost
 		// choice, its knobs next. Colors sits between Desktop and Fonts: Mac OS
@@ -643,7 +647,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				<div className={"classicyAppearanceManagerContent"}>
 					{/* Eight tabs need the compact strip, which scrolls sideways
 					    when they overflow the 480 px panel. */}
-					<ClassicyTabs tabs={tabs} size="small" />
+					<ClassicyTabs tabs={tabs} size="small" {...sessionTab} />
 					<ClassicyButton onClickFunc={quitApp}>Quit</ClassicyButton>
 				</div>
 			</ClassicyWindow>

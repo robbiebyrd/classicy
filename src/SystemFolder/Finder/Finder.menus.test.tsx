@@ -170,10 +170,12 @@ describe("Finder folder-window menu bar", () => {
 		expect(selectAll).toHaveBeenCalledTimes(1);
 	});
 
-	it("disables Select All outside the list view and re-enables it inside", async () => {
+	// The icon view keeps one selection too (ClassicyFileBrowserViewIcons),
+	// so Select All acts in either view, as Mac OS 8's Finder's did.
+	it("keeps Select All live in both views", async () => {
 		await openDocuments();
 		// No stored entry: the window opens in list, so the command is live.
-		expect(editItem("Select All")?.disabled).toBe(false);
+		expect(editItem("Select All")?.disabled).toBeFalsy();
 
 		act(() => {
 			dispatch({
@@ -183,19 +185,13 @@ describe("Finder folder-window menu bar", () => {
 			});
 		});
 		await waitFor(() => {
-			expect(editItem("Select All")?.disabled).toBe(true);
+			expect(
+				menuNamed("View")?.menuChildren?.find(
+					(m) => m.title === "View as Icons",
+				)?.checked,
+			).toBe(true);
 		});
-
-		act(() => {
-			dispatch({
-				type: "ClassicyAppFinderSetFolderView",
-				path: DOCUMENTS_PATH,
-				viewType: "list",
-			});
-		});
-		await waitFor(() => {
-			expect(editItem("Select All")?.disabled).toBe(false);
-		});
+		expect(editItem("Select All")?.disabled).toBeFalsy();
 	});
 });
 

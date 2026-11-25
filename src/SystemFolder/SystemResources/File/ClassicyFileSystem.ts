@@ -70,6 +70,40 @@ const FORBIDDEN_PATH_SEGMENTS = new Set([
 
 export type ClassicyPathOrFileSystemEntry = string | ClassicyFileSystemEntry;
 
+/**
+ * A name folded for comparison: names that differ only by case are the same
+ * name, as on HFS (Mac OS 8, System 7) and FAT (Windows 95/98), which both
+ * kept the name as typed.
+ */
+const foldClassicyFileSystemName = (name: string): string => name.toLowerCase();
+
+/**
+ * The key `name` is stored under in `parent`, a folder (or drive, or the
+ * root) of a `ClassicyFileSystem` tree: `name` itself when the folder holds
+ * it, else the first entry, in the folder's order, whose name differs from
+ * it only by case, else undefined. The exact spelling always wins, so a tree
+ * saved before names were compared without case, which may hold case-only
+ * twins ("Plan.txt" beside "plan.txt"), keeps every entry reachable by its
+ * own name. Metadata keys (a leading `_`) and non-entry values match only
+ * exactly.
+ */
+export const classicyFileSystemEntryKey = (
+	parent: unknown,
+	name: string,
+): string | undefined => {
+	if (parent === null || parent === undefined) return undefined;
+	if (Object.hasOwn(parent as object, name)) return name;
+	if (typeof parent !== "object" || name.startsWith("_")) return undefined;
+	const folded = foldClassicyFileSystemName(name);
+	for (const [key, value] of Object.entries(parent)) {
+		if (key.startsWith("_") || value === null || typeof value !== "object") {
+			continue;
+		}
+		if (foldClassicyFileSystemName(key) === folded) return key;
+	}
+	return undefined;
+};
+
 /** Why `ClassicyFileSystem.move` refused a move (see its documentation). */
 export type ClassicyFileSystemMoveRefusal =
 	| "missing"
@@ -400,7 +434,9 @@ export class ClassicyFileSystem {
 		const entry = this.resolve(path);
 		if (!entry) return false;
 		Object.assign(entry, patch);
-		this.notifyMutation("meta", path, { metadata: patch });
+		this.notifyMutation("meta", this.storedPath(path) ?? path, {
+			metadata: patch,
+		});
 		return true;
 	}
 
@@ -547,15 +583,56 @@ export class ClassicyFileSystem {
 		// compiles because `strict` is off. Widening it belongs to the strict-mode
 		// subtask, which has to fix every call site at once.
 		if (parts === null) return undefined as unknown as ClassicyFileSystemEntry;
-		// Object.hasOwn (rather than `prev?.[curr]`) guarantees the reduce can
-		// only step onto own, enumerable properties of the tree — never up the
-		// prototype chain — even for a segment that isn't in
-		// FORBIDDEN_PATH_SEGMENTS but happens to be inherited (e.g. toString).
-		return parts.reduce(
-			(prev, curr) =>
-				prev && Object.hasOwn(prev, curr) ? prev[curr] : undefined,
-			this.fs,
-		);
+		// Object.hasOwn (inside classicyFileSystemEntryKey, rather than
+		// `prev?.[curr]`) guarantees the reduce can only step onto own,
+		// enumerable properties of the tree — never up the prototype chain —
+		// even for a segment that isn't in FORBIDDEN_PATH_SEGMENTS but happens
+		// to be inherited (e.g. toString). A segment finds its entry whatever
+		// its case, the exact spelling first (classicyFileSystemEntryKey).
+		return parts.reduce((prev, curr) => {
+			if (!prev) return undefined;
+			const key = classicyFileSystemEntryKey(prev, curr);
+			return key === undefined ? undefined : prev[key];
+		}, this.fs);
+	}
+
+	/**
+	 * The stored spelling of each of `parts`, from the root, as far as they
+	 * resolve: `keys` holds the stored names of the resolved prefix
+	 * (`resolved` of them), then the rest of `parts` as given.
+	 */
+	private storedParts(parts: string[]): { keys: string[]; resolved: number } {
+		const keys: string[] = [];
+		let current: unknown = this.fs;
+		let resolved = 0;
+		for (const part of parts) {
+			const key =
+				current && resolved === keys.length
+					? classicyFileSystemEntryKey(current, part)
+					: undefined;
+			keys.push(key ?? part);
+			if (key === undefined) {
+				current = undefined;
+				continue;
+			}
+			resolved += 1;
+			current = (current as Record<string, unknown>)[key];
+		}
+		return { keys, resolved };
+	}
+
+	/**
+	 * The path of the entry at `path` as stored, each name spelled as the
+	 * tree holds it ("Macintosh HD:Documents:Plan.txt" for
+	 * "macintosh hd:documents:PLAN.TXT"), or undefined when nothing is
+	 * there. Names are compared without case, the exact spelling first, as
+	 * `resolve` does.
+	 */
+	storedPath(path: string): string | undefined {
+		const parts = this.pathArray(path);
+		if (parts === null) return undefined;
+		const { keys, resolved } = this.storedParts(parts);
+		return resolved === parts.length ? keys.join(this.separator) : undefined;
 	}
 
 	formatSize(
@@ -774,16 +851,23 @@ export class ClassicyFileSystem {
 		// needed here.
 		const parts = this.pathArray(path);
 		if (parts === null) return false;
-		const name = parts.pop();
-		if (!name) return false;
+		const typedName = parts.pop();
+		if (!typedName) return false;
 
-		const parentPath = parts.join(this.separator);
-		if (parts.length > 0 && !this.resolve(parentPath)) {
-			this.mkDir(parentPath);
+		if (parts.length > 0 && !this.resolve(parts.join(this.separator))) {
+			this.mkDir(parts.join(this.separator));
 		}
+		// The folders as stored (mkDir created any missing ones as typed).
+		const parentKeys = this.storedParts(parts).keys;
 		const parent = (
-			parts.length === 0 ? this.fs : this.resolve(parentPath)
+			parts.length === 0
+				? this.fs
+				: this.resolve(parentKeys.join(this.separator))
 		) as Record<string, unknown>;
+		// A name that differs from an entry's only by case is that entry's
+		// name: the write replaces it and keeps its stored spelling, as HFS
+		// and FAT replaced a file saved over under another case.
+		const name = classicyFileSystemEntryKey(parent, typedName) ?? typedName;
 
 		// A file is a full entry object, not a raw string: type and icon metadata
 		// ride along with the data so listings and readFile() both work.
@@ -794,7 +878,10 @@ export class ClassicyFileSystem {
 			_data: data,
 		} as ClassicyFileSystemEntry;
 
-		this.notifyMutation("write", path, { data, metadata: metaData });
+		this.notifyMutation("write", [...parentKeys, name].join(this.separator), {
+			data,
+			metadata: metaData,
+		});
 		return true;
 	}
 
@@ -810,12 +897,17 @@ export class ClassicyFileSystem {
 	 * - `locked`: a drive, a system file, a read-only entry (such as the derived
 	 *   Applications/Extensions items), or anything inside a read-only folder,
 	 *   moving out — and any read-only destination;
-	 * - `exists`: the destination already holds an entry with that name.
+	 * - `exists`: the destination already holds an entry with that name, or
+	 *   one whose name differs from it only by case.
 	 *
 	 * `options.name` gives the entry a new name in the destination (the Trash
-	 * renames clashing items); `options.metadata` is patched onto the entry in
+	 * renames clashing items, a rename gives one in its own folder, a change
+	 * of case alone included); `options.metadata` is patched onto the entry in
 	 * the same journaled mutation, a key set to `undefined` being removed (the
-	 * Trash records, and later clears, where an item came from).
+	 * Trash records, and later clears, where an item came from). Both paths
+	 * find their entries whatever their case (`resolve`); the entry keeps its
+	 * stored name unless `options.name` gives one, and the journal and the
+	 * returned path spell every name as stored.
 	 */
 	move(
 		fromPath: string,
@@ -825,11 +917,19 @@ export class ClassicyFileSystem {
 			metadata?: Partial<ClassicyFileSystemEntryMetadata>;
 		} = {},
 	): ClassicyFileSystemMoveResult {
-		const fromParts = this.pathArray(fromPath);
-		const toParts = this.pathArray(toFolderPath);
-		if (fromParts === null || toParts === null || fromParts.length < 1) {
+		const typedFromParts = this.pathArray(fromPath);
+		const typedToParts = this.pathArray(toFolderPath);
+		if (
+			typedFromParts === null ||
+			typedToParts === null ||
+			typedFromParts.length < 1
+		) {
 			return { ok: false, reason: "missing" };
 		}
+		// Every name as the tree stores it (a missing one stays as typed, and
+		// resolves to nothing below).
+		const fromParts = this.storedParts(typedFromParts).keys;
+		const toParts = this.storedParts(typedToParts).keys;
 		const oldName = fromParts[fromParts.length - 1];
 		const name = options.name ?? oldName;
 		if (
@@ -841,13 +941,15 @@ export class ClassicyFileSystem {
 			return { ok: false, reason: "missing" };
 		}
 		const fromParentParts = fromParts.slice(0, -1);
-		const entry = this.resolve(fromPath);
+		const entry = this.resolve(fromParts.join(this.separator));
 		const fromParent =
 			fromParentParts.length === 0
 				? this.fs
 				: this.resolve(fromParentParts.join(this.separator));
 		const target =
-			toParts.length === 0 ? undefined : this.resolve(toFolderPath);
+			toParts.length === 0
+				? undefined
+				: this.resolve(toParts.join(this.separator));
 		if (!entry || !fromParent || !target) {
 			return { ok: false, reason: "missing" };
 		}
@@ -877,7 +979,15 @@ export class ClassicyFileSystem {
 		) {
 			return { ok: false, reason: "locked" };
 		}
-		if (Object.hasOwn(target, name)) {
+		// The name taken, whatever its case, by another entry: the entry
+		// itself is renamed in place by a change of case alone.
+		const self = target === fromParent ? oldName : undefined;
+		const taken = Object.keys(target).some(
+			(key) =>
+				key !== self &&
+				classicyFileSystemEntryKey({ [key]: target[key] }, name) === key,
+		);
+		if (taken) {
 			return { ok: false, reason: "exists" };
 		}
 
@@ -905,18 +1015,32 @@ export class ClassicyFileSystem {
 		return { ok: true, path: newPath };
 	}
 
+	/**
+	 * Remove the entry at `path`, found whatever the case of its names
+	 * (`resolve`); journaled with the path as stored.
+	 */
 	rmDir(path: string) {
-		const result = this.deletePropertyPath(this.fs, path);
-		this.notifyMutation("rmdir", path);
+		const stored = this.storedPath(path) ?? path;
+		const result = this.deletePropertyPath(this.fs, stored);
+		this.notifyMutation("rmdir", stored);
 		return result;
 	}
 
+	/**
+	 * Create the folder at `path` and any missing folders above it. A folder
+	 * already there, under any case of its name, is kept as it is (folders
+	 * differing only by case are one folder, as on HFS and FAT), so a new
+	 * folder never sits beside a case-only twin; one created takes its name
+	 * as typed. Journaled with the path as stored.
+	 */
 	mkDir(path: string) {
 		// pathArray() is the chokepoint: it returns null for a path containing
 		// __proto__/constructor/prototype anywhere, so nothing is built or
 		// journaled for a forbidden path.
-		const parts = this.pathArray(path);
-		if (parts === null) return;
+		const typedParts = this.pathArray(path);
+		if (typedParts === null) return;
+		// The existing folders as stored, so the merge below lands on them.
+		const parts = this.storedParts(typedParts).keys;
 
 		// The core's folder icon, never the active package's, so the stored
 		// tree is the same under every package (`classicyCoreIcon`).
@@ -939,7 +1063,7 @@ export class ClassicyFileSystem {
 		}
 
 		this.fs = this.deepMerge(current, this.fs);
-		this.notifyMutation("mkdir", path);
+		this.notifyMutation("mkdir", parts.join(this.separator));
 	}
 
 	async calculateSizeDir(

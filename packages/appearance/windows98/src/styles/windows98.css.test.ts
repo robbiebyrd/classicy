@@ -507,6 +507,31 @@ describe("windows98.scss (compiled)", () => {
 			);
 		});
 
+		// The Finder and dialogs' hooks: a label being edited (a slow second
+		// click on a selected item's label, or F2) is the list view's edit
+		// control, WindowText on Window in a one-pixel WindowFrame border; a
+		// drag across empty space draws DrawFocusRect's dotted rectangle in
+		// WindowText; and the Open dialog's list, flowing in columns
+		// (`fileDialog.listFlow`), sets them Wine's TRAILING_LABEL_PADDING (12)
+		// apart.
+		it("draws a label being edited, the selection rectangle and the dialog list's columns", () => {
+			const field = rule(".classicyIcon .classicyIconRename");
+			expect(field).toContain(
+				"border: var(--window-border-size) solid var(--color-black)",
+			);
+			expect(field).toContain("background: var(--color-window-document)");
+			expect(field).toContain("color: var(--color-black)");
+			expect(field).toContain("outline: none");
+			const marquee = rule(".classicyFileBrowserSelect");
+			expect(marquee).toContain(
+				"border: var(--window-border-size) dotted var(--color-black)",
+			);
+			expect(marquee).toContain("outline: none");
+			expect(
+				rule(".classicyFileOpenDialogWellColumns .classicyTree"),
+			).toContain("column-gap: var(--layout-group-gap)");
+		});
+
 		// WIG Ch.7 "Tooltip Controls" (p.133); Wine's TOOLTIPS_Show: 20 below
 		// the cursor's hot spot, or 2 above the control.
 		it("puts a ToolTip at the pointer under the cursor, or clear of its control above it", () => {

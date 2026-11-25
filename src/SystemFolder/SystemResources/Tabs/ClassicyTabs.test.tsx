@@ -245,3 +245,38 @@ describe("ClassicyTabs overflow scrolling", () => {
 		expect(screen.getByLabelText("Scroll tabs left")).toBeEnabled();
 	});
 });
+
+// A window that reopens on its last tab (WIG Ch.8 p.146; the control panels
+// through useClassicySessionTab) opens the strip on `defaultTab` and hears
+// each change through `onTabChange`; without them the strip opens on its
+// first tab, as before.
+describe("ClassicyTabs defaultTab and onTabChange", () => {
+	const active = (container: HTMLElement) =>
+		Array.from(
+			container.querySelectorAll(
+				".classicyTabActiveContent, .classicyTabHiddenContent",
+			),
+		).findIndex((el) => el.classList.contains("classicyTabActiveContent"));
+
+	it("opens on the tab given, clamped to the tabs", () => {
+		expect(
+			active(render(<ClassicyTabs tabs={tabs} defaultTab={2} />).container),
+		).toBe(2);
+		expect(
+			active(render(<ClassicyTabs tabs={tabs} defaultTab={9} />).container),
+		).toBe(2);
+		expect(
+			active(render(<ClassicyTabs tabs={tabs} defaultTab={-1} />).container),
+		).toBe(0);
+		expect(active(render(<ClassicyTabs tabs={tabs} />).container)).toBe(0);
+	});
+
+	it("reports each tab selected", async () => {
+		const onTabChange = vi.fn();
+		render(<ClassicyTabs tabs={tabs} onTabChange={onTabChange} />);
+		await userEvent.click(screen.getByText("Third Tab"));
+		expect(onTabChange).toHaveBeenLastCalledWith(2);
+		await userEvent.click(screen.getByText("Second Tab"));
+		expect(onTabChange).toHaveBeenLastCalledWith(1);
+	});
+});

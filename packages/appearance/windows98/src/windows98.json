@@ -3829,7 +3829,14 @@
 		"fileDialog": {
 			"frame": "movable",
 			"navigation": "flat",
-			"saveName": "selected"
+			"saveName": "selected",
+			"listFlow": "columns"
+		},
+		"fileBrowser": {
+			"keys": "windows"
+		},
+		"fileList": {
+			"foldersFirst": true
 		},
 		"tree": {
 			"keys": "windows"

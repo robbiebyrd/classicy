@@ -130,3 +130,15 @@
 .classicyFileBrowserFill:not(.classicyFileBrowserFillList) {
   width: 100%;
 }
+
+// The icon view's selection rectangle, while a press on its empty space is
+// dragged: the desktop's dotted outline (`.classicyDesktopSelect`), over the
+// icons and never in the pointer's way. Mac OS 8's Finder drew the same
+// rectangle in a window as on the desktop.
+.classicyFileBrowserSelect {
+  position: absolute;
+  z-index: 600;
+  pointer-events: none;
+  border: var(--window-border-size) dotted var(--color-black);
+  outline: var(--window-border-size) dotted var(--color-black);
+}

@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	ClassicyIcon,
 	snapToGrid,
@@ -121,5 +121,124 @@ describe("ClassicyIcon — inactive", () => {
 		cleanup();
 		render(icon);
 		expect(iconRoot()).not.toHaveClass("inactive");
+	});
+});
+
+// The file browser's icon view keeps one selection for its icons: given
+// `selected`, an icon draws what it is told and hands its clicks to
+// `onSelectClick`; without it, a click toggles its own look, as before.
+describe("ClassicyIcon — controlled selection", () => {
+	const props = {
+		appId: "Test.app",
+		name: "thing.pdf",
+		icon: "data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+	};
+	const iconRoot = () =>
+		screen.getByRole("img").closest(".classicyIcon") as HTMLElement;
+
+	it("draws the selection it is given, and hands a click to onSelectClick", () => {
+		const onSelectClick = vi.fn();
+		const { rerender } = render(
+			<ClassicyIcon
+				{...props}
+				selected={false}
+				onSelectClick={onSelectClick}
+			/>,
+		);
+		fireEvent.click(iconRoot(), { shiftKey: true });
+		expect(onSelectClick).toHaveBeenCalledOnce();
+		expect(onSelectClick.mock.calls[0][0].shiftKey).toBe(true);
+		expect(iconRoot()).not.toHaveClass("selected");
+		rerender(
+			<ClassicyIcon {...props} selected={true} onSelectClick={onSelectClick} />,
+		);
+		expect(iconRoot()).toHaveClass("selected");
+	});
+
+	it("still toggles its own look without `selected`", () => {
+		render(<ClassicyIcon {...props} />);
+		fireEvent.click(iconRoot());
+		expect(iconRoot()).toHaveClass("selected");
+		fireEvent.click(iconRoot());
+		expect(iconRoot()).not.toHaveClass("selected");
+	});
+});
+
+describe("ClassicyIcon — renaming", () => {
+	const props = {
+		appId: "Test.app",
+		name: "thing.pdf",
+		icon: "data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+	};
+	const field = () =>
+		document.querySelector(".classicyIconRename") as HTMLInputElement;
+
+	it("shows the name in a focused, selected field in place of the caption", () => {
+		render(<ClassicyIcon {...props} renaming={true} />);
+		expect(document.querySelector(".classicyIcon p")).toBeNull();
+		expect(field().value).toBe("thing.pdf");
+		expect(document.activeElement).toBe(field());
+		expect([field().selectionStart, field().selectionEnd]).toEqual([0, 9]);
+	});
+
+	it("commits once on Return or on a click elsewhere, cancels on Escape", () => {
+		const onRenameCommit = vi.fn();
+		const onRenameCancel = vi.fn();
+		const { rerender } = render(
+			<ClassicyIcon
+				{...props}
+				renaming={true}
+				onRenameCommit={onRenameCommit}
+				onRenameCancel={onRenameCancel}
+			/>,
+		);
+		fireEvent.change(field(), { target: { value: "new.pdf" } });
+		fireEvent.keyDown(field(), { key: "Enter" });
+		fireEvent.blur(field());
+		expect(onRenameCommit).toHaveBeenCalledTimes(1);
+		expect(onRenameCommit).toHaveBeenCalledWith("new.pdf");
+		rerender(<ClassicyIcon {...props} renaming={false} />);
+		rerender(
+			<ClassicyIcon
+				{...props}
+				renaming={true}
+				onRenameCommit={onRenameCommit}
+				onRenameCancel={onRenameCancel}
+			/>,
+		);
+		fireEvent.blur(field());
+		expect(onRenameCommit).toHaveBeenCalledTimes(2);
+		rerender(<ClassicyIcon {...props} renaming={false} />);
+		rerender(
+			<ClassicyIcon
+				{...props}
+				renaming={true}
+				onRenameCommit={onRenameCommit}
+				onRenameCancel={onRenameCancel}
+			/>,
+		);
+		fireEvent.keyDown(field(), { key: "Escape" });
+		expect(onRenameCancel).toHaveBeenCalledOnce();
+		expect(onRenameCommit).toHaveBeenCalledTimes(2);
+	});
+
+	it("keeps the field's presses, clicks and keys from the icon", () => {
+		const onSelectClick = vi.fn();
+		const onClickFunc = vi.fn();
+		render(
+			<ClassicyIcon
+				{...props}
+				renaming={true}
+				selected={true}
+				onSelectClick={onSelectClick}
+				onClickFunc={onClickFunc}
+			/>,
+		);
+		fireEvent.mouseDown(field());
+		fireEvent.click(field());
+		fireEvent.doubleClick(field());
+		fireEvent.keyDown(field(), { key: " " });
+		expect(onSelectClick).not.toHaveBeenCalled();
+		expect(onClickFunc).not.toHaveBeenCalled();
 	});
 });

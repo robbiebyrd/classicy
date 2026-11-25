@@ -330,3 +330,72 @@ export function restoreClassicyTrashItems(
 	}
 	return moves;
 }
+
+const renameRefusalMessage = (
+	reason: ClassicyFileSystemMoveRefusal | "invalid",
+	name: string,
+	oldName: string,
+): string => {
+	switch (reason) {
+		case "exists":
+			return `The name “${name}” is already taken. Please use a different name.`;
+		case "locked":
+			return `“${oldName}” can’t be renamed, because it is locked or used by the system software.`;
+		case "invalid":
+			return `“${name}” can’t be used as a name.`;
+		default:
+			return `“${oldName}” could not be renamed.`;
+	}
+};
+
+/**
+ * Rename the item at `path` to `name`, in its own folder (Finder's rename
+ * of an icon's name): `fs.move` with the new name, so the names of another
+ * entry are refused whatever their case (`exists`) and a change of case
+ * alone renames in place; Finder's windows on it follow
+ * (`ClassicyAppFinderPathsMoved`); a Desktop Folder item's desktop icon is
+ * placed where its old one was; any refusal is told in an alert. A name
+ * that is empty, holds the separator (`:`) or starts with `_` (the
+ * metadata prefix) is refused as invalid; one equal to the old changes
+ * nothing. Returns the new path, or undefined.
+ */
+export function renameClassicyFileSystemItem(
+	fs: ClassicyFileSystem,
+	path: string,
+	name: string,
+	dispatch: Dispatch,
+): string | undefined {
+	const parts = path.split(fs.separator);
+	const oldName = parts.pop() ?? path;
+	const folder = parts.join(fs.separator);
+	if (name === oldName) return undefined;
+	if (
+		name.trim() === "" ||
+		name.includes(fs.separator) ||
+		name.startsWith("_")
+	) {
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			message: renameRefusalMessage("invalid", name, oldName),
+		});
+		return undefined;
+	}
+	const location = desktopIconLocations([path])[path];
+	const result = fs.move(path, folder, { name });
+	if (!result.ok) {
+		dispatch({
+			type: "ClassicyDesktopShowErrorDialog",
+			message: renameRefusalMessage(result.reason, name, oldName),
+		});
+		return undefined;
+	}
+	dispatch({
+		type: "ClassicyAppFinderPathsMoved",
+		moves: [{ from: path, to: result.path }],
+	});
+	if (folder === classicyDesktopFolderPath(fs)) {
+		const action = classicyDesktopItemIconAction(fs, result.path, location);
+		if (action) dispatch(action);
+	}
+	return result.path;
+}

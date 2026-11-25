@@ -83,11 +83,34 @@ export interface ClassicyStoreSystemApp {
 	 * focus again (`focusApp` shows it). Never set on an extension.
 	 */
 	hidden?: boolean;
+	/**
+	 * Where the app's secondary windows were last left, for this session
+	 * only (stripped in `sanitizeStateForPersistence`, kept when the app
+	 * quits): its file dialog's last folder and its tab strips' last tabs,
+	 * so each shows again as it was last accessed (WIG Ch.8 "Interaction
+	 * with Other Windows", p.146; HIG7 p.146).
+	 */
+	session?: ClassicyStoreSystemAppSession;
 	debug?: boolean;
 	options?: Record<string, unknown>[];
 	appMenu?: ClassicyMenuItem[];
 	contextMenu?: ClassicyMenuItem[];
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
+}
+
+/** An app's session-only places (`ClassicyStoreSystemApp.session`). */
+export interface ClassicyStoreSystemAppSession {
+	/**
+	 * The folder `ClassicyFileDialog` last showed for the app, Open and Save
+	 * alike (`ClassicyAppRememberFileDialogFolder`): the volume's id and the
+	 * folder names from its root.
+	 */
+	fileDialog?: { volumeId: string; path: string[] };
+	/**
+	 * The tab each of the app's remembering tab strips last showed, by the
+	 * strip's key (`ClassicyAppRememberTab`, `useClassicySessionTab`).
+	 */
+	tabs?: Record<string, number>;
 }
 
 export interface ClassicyStoreSystemAppWindow {
@@ -421,6 +444,48 @@ export const classicyAppEventHandler = (
 						}
 					}
 				}
+			}
+			break;
+		}
+		// Session places (never persisted): the file dialog's last folder and
+		// a tab strip's last tab.
+		case "ClassicyAppRememberFileDialogFolder": {
+			const app = hasApp(action)
+				? ds.System.Manager.Applications.apps[action.app.id]
+				: undefined;
+			const { volumeId, path } = action as {
+				volumeId?: unknown;
+				path?: unknown;
+			};
+			if (
+				app &&
+				typeof volumeId === "string" &&
+				Array.isArray(path) &&
+				path.every((name) => typeof name === "string")
+			) {
+				app.session = {
+					...app.session,
+					fileDialog: { volumeId, path: [...(path as string[])] },
+				};
+			}
+			break;
+		}
+		case "ClassicyAppRememberTab": {
+			const app = hasApp(action)
+				? ds.System.Manager.Applications.apps[action.app.id]
+				: undefined;
+			const { tabs, index } = action as { tabs?: unknown; index?: unknown };
+			if (
+				app &&
+				typeof tabs === "string" &&
+				typeof index === "number" &&
+				Number.isInteger(index) &&
+				index >= 0
+			) {
+				app.session = {
+					...app.session,
+					tabs: { ...app.session?.tabs, [tabs]: index },
+				};
 			}
 			break;
 		}

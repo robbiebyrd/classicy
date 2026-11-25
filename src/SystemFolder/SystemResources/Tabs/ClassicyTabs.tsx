@@ -42,6 +42,14 @@ export interface TabProps {
 	 * way (strip, then panel); the stylesheet moves the strip with `order`.
 	 */
 	stripPosition?: "top" | "bottom";
+	/**
+	 * The tab selected on mount (an index, clamped to the tabs). Defaults to
+	 * 0, the first. A window that reopens on its last tab passes the one
+	 * `onTabChange` last reported (`useClassicySessionTab`).
+	 */
+	defaultTab?: number;
+	/** Called with a tab's index whenever it becomes the selected one. */
+	onTabChange?: (index: number) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -116,8 +124,8 @@ const NO_OVERFLOW: ScrollState = {
  * standard way to split a control panel or dialog into pages. There is no raw
  * HTML equivalent; it implements the ARIA `role="tablist"` pattern.
  *
- * Uncontrolled: it always opens on the first tab and keeps the selection
- * itself. Under Platinum, pressing a tab plays `ClassicyTabClickDown`,
+ * Uncontrolled: it opens on the first tab (or `defaultTab`) and keeps the
+ * selection itself, reporting each change to `onTabChange`. Under Platinum, pressing a tab plays `ClassicyTabClickDown`,
  * releasing it plays `ClassicyTabClickUp` (the package's hooks), and the
  * release selects it (both also send analytics events of type
  * `ClassicyTab`). The tab strip is a roving-tabindex group:
@@ -138,10 +146,16 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 	tabs,
 	size = "medium",
 	stripPosition = "top",
+	defaultTab = 0,
+	onTabChange,
 	className,
 	style,
 }) => {
-	const [activeTab, setActiveTab] = useState(0);
+	const [activeTab, setActiveTab] = useState(() =>
+		Number.isInteger(defaultTab) && defaultTab > 0
+			? Math.min(defaultTab, Math.max(tabs.length - 1, 0))
+			: 0,
+	);
 	// Tab and panel DOM ids are unique per instance (#309): two strips with a
 	// "General" tab must not share ids, or aria-controls points at the wrong
 	// panel.
@@ -161,6 +175,7 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 		appearance.emit("select", withClassicyAppearanceInput({ tabId }));
 		track("click", { type: "ClassicyTab", tabId, ...analyticsArgs });
 		setActiveTab(tabId);
+		onTabChange?.(tabId);
 	};
 
 	const pressTab = (tabId: number) => {

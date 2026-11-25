@@ -1,6 +1,9 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
-import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import {
+	type ClassicyFileSystem,
+	classicyFileSystemEntryKey,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { classicyCoreIcon } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemCoreIcon.internal";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
@@ -178,7 +181,20 @@ function verifyDirCreated(
 		parentSegments.length === 0
 			? fs.fs
 			: fs.resolve(parentSegments.join(fs.separator));
-	if (!parent || typeof parent !== "object" || !Object.hasOwn(parent, name)) {
+	// Own keys only (classicyFileSystemEntryKey checks Object.hasOwn first),
+	// whatever the name's case: fs.mkDir keeps a folder already there under
+	// another case. A file of that name is no folder: mkDir leaves it alone,
+	// and the dialog must not enter it.
+	const key =
+		parent && typeof parent === "object"
+			? classicyFileSystemEntryKey(parent, name)
+			: undefined;
+	const created = key === undefined ? undefined : parent[key];
+	if (
+		!created ||
+		typeof created !== "object" ||
+		!FOLDER_TYPES.has(created._type as string)
+	) {
 		throw new Error(`mkDir failed to create "${name}"`);
 	}
 }

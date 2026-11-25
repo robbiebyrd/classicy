@@ -177,6 +177,16 @@ type ClassicyTableProps<T> = {
 	 * the list.
 	 */
 	headerPlacement?: "inList" | "aboveList";
+	/**
+	 * Groups the sort keeps together: each level's rows go lowest group
+	 * first, each group sorted in itself, and a descending sort reverses the
+	 * whole order, groups included, as a sort on a compare that puts the
+	 * group first does (Windows Explorer's: folders first, last when the sort
+	 * runs down). The file browser's list groups folders this way under a
+	 * package whose `layout.fileList.foldersFirst` says so. Omitted, the rows
+	 * sort as one.
+	 */
+	sortGroup?: (row: T) => number;
 };
 
 type SortingState = { id: string; desc: boolean }[];
@@ -243,6 +253,7 @@ export function ClassicyTable<T>({
 	containerRef: externalContainerRef,
 	scrollable = true,
 	headerPlacement = "inList",
+	sortGroup,
 }: ClassicyTableProps<T>): ReactElement {
 	const arrowUpIcon = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	const [sorting, setSorting] = useState<SortingState>(
@@ -351,6 +362,29 @@ export function ClassicyTable<T>({
 		columnResizeMode: "onChange",
 	});
 
+	// The rows in their visual order: TanStack's (sorted, the expanded rows'
+	// children under them), or, with `sortGroup`, each level's rows grouped,
+	// the sort kept within each group (Array#sort is stable): lowest group
+	// first, or last while the sort runs down.
+	const descending = sorting[0]?.desc === true;
+	const visualRowsOf = useCallback((): Row<T>[] => {
+		if (!sortGroup) return table.getRowModel().rows;
+		const visual: Row<T>[] = [];
+		const walk = (level: Row<T>[]) => {
+			const grouped = [...level].sort((a, b) =>
+				descending
+					? sortGroup(b.original) - sortGroup(a.original)
+					: sortGroup(a.original) - sortGroup(b.original),
+			);
+			for (const row of grouped) {
+				visual.push(row);
+				if (row.subRows?.length && row.getIsExpanded()) walk(row.subRows);
+			}
+		};
+		walk(table.getSortedRowModel().rows);
+		return visual;
+	}, [table, sortGroup, descending]);
+
 	// A column resize runs inside TanStack, on its own document listeners,
 	// with no cancel API: a lost pointer stream (blur, pointercancel, a hidden
 	// page) would leave the column following the pointer with no button held.
@@ -401,8 +435,8 @@ export function ClassicyTable<T>({
 
 	const selectAll = useCallback(() => {
 		if (selectionMode !== "multi") return;
-		commit(table.getRowModel().rows.map((r) => r.id));
-	}, [selectionMode, commit, table]);
+		commit(visualRowsOf().map((r) => r.id));
+	}, [selectionMode, commit, visualRowsOf]);
 
 	// Assigned in an effect rather than during render so a parent that reads
 	// the handle in its own effect always sees the current closure.
@@ -418,7 +452,7 @@ export function ClassicyTable<T>({
 	// the keyboard (arrows, Home/End, type-select) all select through here.
 	const applySelection = (rowId: string, mods: SelectionModifiers) => {
 		if (selectionMode === "none") return;
-		const visual = table.getRowModel().rows;
+		const visual = visualRowsOf();
 		const emitSelect = (selected: boolean) =>
 			appearance.emit(
 				"select",
@@ -472,7 +506,7 @@ export function ClassicyTable<T>({
 	// the first column selects the first matching row.
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (selectionMode === "none") return;
-		const visual = table.getRowModel().rows;
+		const visual = visualRowsOf();
 		if (visual.length === 0) return;
 		const curIndex = visual.findIndex((r) => r.id === cursorId);
 		const shiftMods: SelectionModifiers = {
@@ -708,7 +742,7 @@ export function ClassicyTable<T>({
 	// state `focused` on its row, whether or not the list has focus; a
 	// package keys the dotted focus rectangle on it under the list's
 	// `:focus` (Windows 98 does; Platinum and System 7 read it not at all).
-	const visualRows = table.getRowModel().rows;
+	const visualRows = visualRowsOf();
 	const focusRowId =
 		(cursorId !== undefined && visualRows.some((r) => r.id === cursorId)
 			? cursorId

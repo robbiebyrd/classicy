@@ -272,6 +272,17 @@ export type ClassicyAppearanceLayout = {
 		 * focused and the default name selected.
 		 */
 		saveName?: "plain" | "selected";
+		/**
+		 * How a flat list (`navigation: "flat"`) lays out its rows.
+		 * `"single"` (the default): one column, scrolling down. `"columns"`
+		 * (Windows' common dialogs, WIG Ch.8 "Open Dialog Box", Figure 8.6:
+		 * the list view's List mode): the rows flow in columns, top to
+		 * bottom then left to right, as many to a column as the list's
+		 * height holds, scrolling sideways (the list's horizontal bar); Left
+		 * and Right Arrow move a column, Up and Down a row, Home and End to
+		 * the first and last. The tree navigation ignores it.
+		 */
+		listFlow?: "single" | "columns";
 	};
 	/**
 	 * How the file browser (`ClassicyFileBrowser`, the Finder's windows)
@@ -290,6 +301,42 @@ export type ClassicyAppearanceLayout = {
 		 * `classicyWindowHeaderAboveHead` meanwhile.
 		 */
 		listColumnTitles?: "inList" | "aboveList";
+		/**
+		 * How the icon view's selection answers the keyboard and modified
+		 * clicks. `"mac"` (the default, Mac OS 8's Finder, HIG7 pp.288-291):
+		 * Shift-, ⌘- or Control-click adds an icon to the selection or takes
+		 * it out; the paging keys scroll the window. `"windows"` (Windows
+		 * Explorer's list view; WIG Ch.5 "Selection", pp.38-45): Shift-click
+		 * and Shift with an arrow select from the anchor to the item, in the
+		 * view's order; Control-click adds or takes out one item; Home, End,
+		 * Page Up and Page Down select the first item, the last, and the
+		 * item a window's height above or below; and typing one letter again
+		 * goes to the next item starting with it. Under either, a click
+		 * selects one icon, an arrow the nearest icon its way, typing the
+		 * item whose name starts with what was typed (forgotten after a
+		 * second), a drag across empty space selects the icons it touches,
+		 * and a click on a selected icon's name, not followed by a second,
+		 * renames it.
+		 */
+		keys?: "mac" | "windows";
+	};
+	/**
+	 * How lists of files order their items (`ClassicyFileBrowser`'s views,
+	 * the Finder's windows). Optional, as is each key.
+	 */
+	fileList?: {
+		/**
+		 * `true` (Windows Explorer): folders (and drives) come before files,
+		 * each group sorted in itself; a descending sort of the list view
+		 * reverses the whole order, folders last, as Explorer negates a
+		 * compare that puts folders first (Wine's
+		 * `ShellView_ListViewCompareItems`, ReactOS's
+		 * `CDefView::ListViewCompareItems`). The icon view, arranged or not,
+		 * keeps folders first. Absent or `false` (Mac OS 8's Finder): folders
+		 * and files sort together. The file dialogs' volumes list folders
+		 * first already, under every package.
+		 */
+		foldersFirst?: boolean;
 	};
 	/**
 	 * How the keyboard drives a tree (`ClassicyTree`). Optional, as is each

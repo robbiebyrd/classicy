@@ -34,6 +34,31 @@
   }
 }
 
+// The caption's text field while the icon is renamed (ClassicyIcon's
+// `renaming`), where the caption was and set as it is: structure only. Its
+// frame and colors are the package's, as Mac OS 8's and Windows' edit boxes
+// differ.
+.classicyIcon .classicyIconRename {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: var(--desktop-icon-label-pad);
+  padding: var(--desktop-icon-label-pad);
+  font-family: var(--body-font), serif;
+  font-size: var(--desktop-icon-font-size);
+  text-align: center;
+  user-select: text;
+}
+
+// An icon shows its selection, which the keyboard moves (the file browser's
+// icon view), never a focus ring, as a desktop icon (ClassicyDesktopIcon.scss)
+// and Mac OS 8's Finder icons; nor does the icon view's holder, focused by a
+// press on its empty space. Three classes: beats
+// `.classicyDesktop *:focus-visible { outline-color }`.
+.classicyDesktop .classicyIcon:focus-visible,
+.classicyDesktop .classicyFileBrowserFill:focus-visible {
+  outline: none;
+}
+
 .classicyIconInvisible {
   filter: opacity(0.45);
 }

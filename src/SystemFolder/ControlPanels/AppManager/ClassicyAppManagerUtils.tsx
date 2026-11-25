@@ -832,6 +832,10 @@ export function sanitizeStateForPersistence(
 			// Hidden by the Application menu's Hide commands: session state, as
 			// Mac OS restores no hidden app (story 0214-c61, ruling R2).
 			delete app.hidden;
+			// The file dialog's last folder and the tab strips' last tabs are
+			// the session's (WIG Ch.8 p.146: shown as last accessed); a reload
+			// opens them afresh.
+			delete app.session;
 			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
 				delete w.resizing;

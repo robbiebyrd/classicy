@@ -3,6 +3,7 @@ import {
 	memo,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 } from "react";
@@ -51,13 +52,15 @@ import {
 	classicyDesktopItemIconAction,
 	moveClassicyFileSystemItems,
 	moveClassicyItemsToTrash,
+	renameClassicyFileSystemItem,
 	restoreClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
-import type {
-	ClassicyFileSystemEntry,
-	ClassicyFileSystemEntryMetadata,
+import {
+	type ClassicyFileSystemEntry,
+	ClassicyFileSystemEntryFileType,
+	type ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
 	CLASSICY_TRASH_PATH,
@@ -98,6 +101,7 @@ type FinderWindowProps = {
 	onMoveItems: ClassicyFileBrowserMoveItems;
 	trashItems: (paths: string[]) => void;
 	restoreItems: (paths: string[]) => void;
+	renameItem: (path: string, name: string) => string | undefined;
 	itemContextMenu: (
 		path: string,
 		selectedPaths: string[],
@@ -130,6 +134,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	onMoveItems,
 	trashItems,
 	restoreItems,
+	renameItem,
 	itemContextMenu,
 	trashIcon,
 }) => {
@@ -212,9 +217,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 						id: `${appId}_${op}_edit_select_all`,
 						title: "Select All",
 						keyboardShortcut: "⌘A",
-						// Icons-view selection is a separate slice; until it exists the
-						// command has nothing to act on there.
-						disabled: viewType !== "list",
+						// Either view: the icon view keeps one selection too.
 						onClickFunc: () => selectionApiRef.current?.selectAll(),
 					},
 					{ id: "spacer" },
@@ -331,6 +334,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				onDeleteItems={inTrash ? undefined : trashItems}
 				itemContextMenu={itemContextMenu}
 				commandsRef={commandsRef}
+				onRenameItem={renameItem}
 			/>
 		</ClassicyWindow>
 	);
@@ -646,13 +650,50 @@ export const Finder = () => {
 		},
 		[fs, desktopEventDispatch],
 	);
-	// Right-click on an item: Restore in the Trash, Move To Trash elsewhere —
-	// acting on the whole selection when the item is part of it.
+	// Rename an item in place (a slow click on its name in an icon view):
+	// windows open on it follow it, a refusal is told in an alert.
+	const renameItem = useCallback(
+		(path: string, name: string) =>
+			renameClassicyFileSystemItem(fs, path, name, desktopEventDispatch),
+		[fs, desktopEventDispatch],
+	);
+	// Open an item as a double-click on it does: a folder (or drive) in a
+	// window, a file in its application.
+	const openItem = useCallback(
+		(path: string) => {
+			const entry = fs.resolve(path);
+			if (!entry) return;
+			if (
+				entry._type === ClassicyFileSystemEntryFileType.Directory ||
+				entry._type === ClassicyFileSystemEntryFileType.Drive
+			) {
+				openFolder(path);
+			} else {
+				openFile(path);
+			}
+		},
+		[fs, openFolder, openFile],
+	);
+	// Right-click on an item: Open first, the menu's default item, the
+	// command a double-click runs (Mac OS 8's contextual menus led with Open
+	// too; Windows draws the default bold, WIG Ch.7 "Icon Pop-up Menus",
+	// pp.102-103), then Restore in the Trash, Move To Trash elsewhere —
+	// acting on the whole selection when the item is part of it. Rename,
+	// Create Shortcut and Properties are Windows' (Tables 7.1-7.2); the
+	// menus keep the Mac's commands Classicy has, and it has no Make Alias
+	// or Get Info.
 	const itemContextMenu = useCallback(
 		(path: string, selectedPaths: string[]): ClassicyMenuItem[] | undefined => {
 			const targets = selectedPaths.includes(path) ? selectedPaths : [path];
+			const open: ClassicyMenuItem = {
+				id: "finder_item_open",
+				title: "Open",
+				isDefault: true,
+				onClickFunc: () => openItem(path),
+			};
 			if (isClassicyTrashItem(fs, path)) {
 				return [
+					open,
 					{
 						id: "finder_item_restore",
 						title: "Restore",
@@ -660,8 +701,9 @@ export const Finder = () => {
 					},
 				];
 			}
-			if (isInClassicyTrash(fs, path)) return undefined;
+			if (isInClassicyTrash(fs, path)) return [open];
 			return [
+				open,
 				{
 					id: "finder_item_move_to_trash",
 					title: "Move To Trash",
@@ -669,7 +711,43 @@ export const Finder = () => {
 				},
 			];
 		},
-		[fs, restoreItems, trashItems],
+		[fs, openItem, restoreItems, trashItems],
+	);
+	// A desktop file or folder icon's menu, stored with the icon: the same
+	// as the item's in a window (Open, then Move To Trash, for the desktop's
+	// selected items when it is one of them). Open runs the latest openItem
+	// (through a ref), so the menu need not be rebuilt each time Finder's
+	// windows change.
+	const openItemRef = useRef(openItem);
+	useLayoutEffect(() => {
+		openItemRef.current = openItem;
+	}, [openItem]);
+	const desktopItemContextMenu = useCallback(
+		(path: string): ClassicyMenuItem[] => [
+			{
+				id: "finder_item_open",
+				title: "Open",
+				isDefault: true,
+				onClickFunc: () => openItemRef.current(path),
+			},
+			{
+				id: "finder_item_move_to_trash",
+				title: "Move To Trash",
+				onClickFunc: () => {
+					const desktop = useAppManager.getState().System.Manager.Desktop;
+					const selected = new Set(desktop.selectedIcons ?? []);
+					const selectedPaths = desktop.icons.flatMap((icon) =>
+						icon.filePath !== undefined &&
+						icon.appId.startsWith(CLASSICY_DESKTOP_ITEM_ICON_PREFIX) &&
+						selected.has(icon.appId)
+							? [icon.filePath]
+							: [],
+					);
+					trashItems(selectedPaths.includes(path) ? selectedPaths : [path]);
+				},
+			},
+		],
+		[trashItems],
 	);
 
 	// Mirror the Desktop Folder onto the desktop: an icon for each item in it,
@@ -684,7 +762,12 @@ export const Finder = () => {
 		);
 		for (const path of paths) {
 			const action = classicyDesktopItemIconAction(fs, path);
-			if (action) desktopEventDispatch(action);
+			if (action) {
+				desktopEventDispatch({
+					...action,
+					contextMenu: desktopItemContextMenu(path),
+				});
+			}
 		}
 		for (const icon of useAppManager.getState().System.Manager.Desktop.icons) {
 			if (
@@ -697,7 +780,7 @@ export const Finder = () => {
 				});
 			}
 		}
-	}, [fs, desktopEventDispatch]);
+	}, [fs, desktopEventDispatch, desktopItemContextMenu]);
 
 	const getHeaderString = useCallback(
 		(dir: ClassicyFileSystemEntryMetadata) => {
@@ -770,6 +853,7 @@ export const Finder = () => {
 							onMoveItems={onMoveItems}
 							trashItems={trashItems}
 							restoreItems={restoreItems}
+							renameItem={renameItem}
 							itemContextMenu={itemContextMenu}
 							trashIcon={trashIcon}
 						/>

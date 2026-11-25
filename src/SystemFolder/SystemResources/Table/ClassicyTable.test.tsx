@@ -1214,3 +1214,97 @@ describe("ClassicyTable — inactive", () => {
 		expect(container().className).toBe("classicyTableContainer host");
 	});
 });
+
+// `sortGroup` keeps groups together through a sort (the file browser's list
+// groups folders first under `layout.fileList.foldersFirst`, as Windows
+// Explorer does), and a descending sort reverses the whole order, as
+// Explorer negates a compare that puts folders first.
+describe("ClassicyTable — sortGroup", () => {
+	type Item = { id: string; name: string; folder: boolean; items?: Item[] };
+	const items: Item[] = [
+		{ id: "b", name: "banana", folder: false },
+		{
+			id: "Z",
+			name: "zeta",
+			folder: true,
+			items: [
+				{ id: "y", name: "yam", folder: false },
+				{ id: "A", name: "inner", folder: true },
+			],
+		},
+		{ id: "a", name: "apple", folder: false },
+		{ id: "M", name: "mid", folder: true },
+	];
+	const itemColumns: ClassicyTableColumn<Item>[] = [
+		{ id: "name", title: "Name", accessor: (i) => i.name },
+	];
+	const names = (container: HTMLElement) =>
+		[...container.querySelectorAll("tbody tr td:first-child")].map(
+			(td) => td.textContent,
+		);
+
+	it("sorts folders and files together without it", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={itemColumns}
+				rows={items}
+				getRowId={(i) => i.id}
+				defaultSort={{ columnId: "name" }}
+			/>,
+		);
+		expect(names(container)).toEqual(["apple", "banana", "mid", "zeta"]);
+	});
+
+	it("puts the lower group first ascending and last descending, at every level", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={itemColumns}
+				rows={items}
+				getRowId={(i) => i.id}
+				getSubRows={(i) => i.items}
+				expanded={["Z"]}
+				defaultSort={{ columnId: "name" }}
+				sortGroup={(i) => (i.folder ? 0 : 1)}
+			/>,
+		);
+		expect(names(container)).toEqual([
+			"mid",
+			"zeta",
+			"inner",
+			"yam",
+			"apple",
+			"banana",
+		]);
+		fireEvent.click(screen.getByText("Name").closest("th") as HTMLElement);
+		expect(names(container)).toEqual([
+			"banana",
+			"apple",
+			"zeta",
+			"yam",
+			"inner",
+			"mid",
+		]);
+	});
+
+	it("walks the keyboard and Shift ranges in the grouped order", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={itemColumns}
+				rows={items}
+				getRowId={(i) => i.id}
+				defaultSort={{ columnId: "name" }}
+				selectionMode={"multi"}
+				sortGroup={(i) => (i.folder ? 0 : 1)}
+			/>,
+		);
+		const row = (name: string) =>
+			screen.getByText(name).closest("tr") as HTMLElement;
+		fireEvent.click(row("zeta"));
+		fireEvent.click(row("banana"), { shiftKey: true });
+		expect(
+			[...container.querySelectorAll("tbody tr.selected")].map((r) =>
+				r.getAttribute("data-row-id"),
+			),
+		).toEqual(["Z", "a", "b"]);
+	});
+});

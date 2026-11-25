@@ -60,6 +60,13 @@ type FileRow = ClassicyFileSystemEntryMetadata & {
 	subRows?: FileRow[];
 };
 
+/** Folders (and drives) 0, files 1: the list's groups under `foldersFirst`. */
+const folderRowGroup = (row: FileRow): number =>
+	row._type === ClassicyFileSystemEntryFileType.Directory ||
+	row._type === ClassicyFileSystemEntryFileType.Drive
+		? 0
+		: 1;
+
 // Hoisted so its identity is stable across renders: the columns useMemo below
 // keys on this object, and a fresh literal on every render (the omitted-prop
 // case, when the component still re-renders on every size resolution) would
@@ -196,8 +203,11 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// today's rendering — three columns, sizes computed, no dates.
 			// Where the package draws the column titles: in the list (Mac OS 8)
 			// or above it, over the window's scroll bar (System 7).
-			const headerPlacement =
-				useClassicyAppearanceLayout().fileBrowser?.listColumnTitles ?? "inList";
+			const layout = useClassicyAppearanceLayout();
+			const headerPlacement = layout.fileBrowser?.listColumnTitles ?? "inList";
+			// Folders before files, whatever the sort (Windows Explorer), under
+			// a package that says so; else sorted together (the Finder).
+			const foldersFirst = layout.fileList?.foldersFirst === true;
 			const columnFlags = listViewOptions?.columns ?? DEFAULT_LIST_COLUMN_FLAGS;
 			const computeFolderSizes = listViewOptions?.calculateFolderSizes ?? true;
 			const relativeDates = listViewOptions?.useRelativeDate ?? true;
@@ -529,6 +539,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					}
 					defaultSort={{ columnId: "_name" }}
 					headerPlacement={headerPlacement}
+					sortGroup={foldersFirst ? folderRowGroup : undefined}
 					onActivateRow={(_, row) => openFileOrFolder(row, row._path ?? "")}
 					// ClassicyTable puts `selected` on a selected row itself.
 					rowClassName={() => "classicyFileBrowserViewTableRow"}

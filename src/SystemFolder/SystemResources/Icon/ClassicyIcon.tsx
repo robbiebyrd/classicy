@@ -7,7 +7,9 @@ import {
 	type MouseEvent,
 	type RefObject,
 	useContext,
+	useEffect,
 	useId,
+	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
@@ -100,6 +102,27 @@ interface ClassicyIconProps {
 		point: [number, number],
 		outlineTopLeft: [number, number],
 	) => boolean;
+	/**
+	 * Controlled selection: whether the icon is drawn selected. Omitted, a
+	 * click toggles the icon's own selected look (the icon's original
+	 * behavior). Given, the icon draws what it is told, reports each change
+	 * to the package as `select`, and a click calls `onSelectClick` instead
+	 * (`ClassicyFileBrowser`'s icon view keeps one selection for its icons).
+	 */
+	selected?: boolean;
+	/** With `selected`: a click on the icon (the caller selects). */
+	onSelectClick?: (e: MouseEvent<HTMLDivElement>) => void;
+	/**
+	 * While true, the caption is a text field holding the name, selected, for
+	 * the user to rename the item: Return or a click elsewhere commits it
+	 * (`onRenameCommit`, with the text as typed), Escape cancels
+	 * (`onRenameCancel`). Clicks and keys inside the field stay in it.
+	 */
+	renaming?: boolean;
+	/** With `renaming`: the new name, when committed. */
+	onRenameCommit?: (name: string) => void;
+	/** With `renaming`: Escape. */
+	onRenameCancel?: () => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/**
@@ -111,6 +134,60 @@ interface ClassicyIconProps {
 	 */
 	style?: CSSProperties;
 }
+
+/**
+ * The caption's text field while an icon is renamed: the name, selected
+ * whole, focused once it mounts. Return or a click elsewhere (the field's
+ * blur) commits the text once; Escape cancels. Its presses, clicks and keys
+ * stop here, so the icon neither drags, selects nor opens under them.
+ */
+const ClassicyIconRenameField: FunctionalComponent<{
+	name: string;
+	onCommit: (value: string) => void;
+	onCancel: () => void;
+}> = ({ name, onCommit, onCancel }) => {
+	const inputRef = useRef<HTMLInputElement>(null);
+	const doneRef = useRef(false);
+	useLayoutEffect(() => {
+		const input = inputRef.current;
+		if (!input) return;
+		input.focus({ preventScroll: true });
+		input.select();
+	}, []);
+	const finish = (commit: boolean) => {
+		if (doneRef.current) return;
+		doneRef.current = true;
+		if (commit) onCommit(inputRef.current?.value ?? name);
+		else onCancel();
+	};
+	const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
+	return (
+		<input
+			ref={inputRef}
+			className={"classicyIconRename"}
+			type={"text"}
+			defaultValue={name}
+			aria-label={"Name"}
+			spellCheck={false}
+			onMouseDown={stop}
+			onMouseUp={stop}
+			onClick={stop}
+			onDoubleClick={stop}
+			onContextMenu={stop}
+			onKeyDown={(e) => {
+				e.stopPropagation();
+				if (e.key === "Enter") {
+					e.preventDefault();
+					finish(true);
+				} else if (e.key === "Escape") {
+					e.preventDefault();
+					finish(false);
+				}
+			}}
+			onBlur={() => finish(true)}
+		/>
+	);
+};
 
 /**
  * Rounds a dropped icon's position to the nearest cell of the lattice with the
@@ -167,12 +244,20 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	dropFolderPath,
 	filePath,
 	onFileDrag,
+	selected: selectedProp,
+	onSelectClick,
+	renaming = false,
+	onRenameCommit,
+	onRenameCancel,
 	className,
 	style,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
 	const [dragging, setDragging] = useState<boolean>(false);
-	const [active, setActive] = useState<boolean>(false);
+	const [ownSelected, setActive] = useState<boolean>(false);
+	// Controlled (`selected` given): the caller's selection; else the icon's own.
+	const controlled = selectedProp !== undefined;
+	const active = controlled ? selectedProp : ownSelected;
 
 	// Whether the pointer actually moved the icon between mousedown and mouseup.
 	// A ref, not state: it must be readable inside the same mouseup that clears
@@ -204,6 +289,24 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		appearance.emit("select", { selected: !active });
 		setActive(!active);
 	};
+	// Controlled, the icon reports each change of the selection it is given
+	// (a click, the keyboard, a selection rectangle, Select All), never the
+	// first render's.
+	const reportedSelectedRef = useRef(active);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `active` is the trigger; emit closes over the package's hooks only
+	useEffect(() => {
+		if (!controlled || reportedSelectedRef.current === active) return;
+		reportedSelectedRef.current = active;
+		appearance.emit("select", { selected: active });
+	}, [active, controlled]);
+	const onClick = (e: MouseEvent<HTMLDivElement>) => {
+		if (!controlled) {
+			toggleFocus();
+			return;
+		}
+		track("focus", analyticsArgs);
+		onSelectClick?.(e);
+	};
 	const setFocus = (active: boolean) => {
 		track("focus", analyticsArgs);
 		setActive(active);
@@ -215,10 +318,12 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	};
 
 	const doDoubleClick = () => {
+		if (renaming) return;
 		if (onClickFunc) {
 			// A double-click or Enter/Space.
 			appearance.emit("open", withClassicyAppearanceInput());
-			clearFocus();
+			// Controlled, the selection is the caller's to keep.
+			if (!controlled) clearFocus();
 			onClickFunc();
 		}
 	};
@@ -244,6 +349,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	useClassicyPointerStreamLost(dragging, () => stopChangeIcon(true));
 
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
+		if (renaming) return;
 		if (onFileDrag) {
 			if (e.button !== 0) return;
 			const el = iconRef.current;
@@ -307,7 +413,13 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	};
 	const iconId = useId();
 
-	const labelEl = (
+	const labelEl = renaming ? (
+		<ClassicyIconRenameField
+			name={name}
+			onCommit={(value) => onRenameCommit?.(value)}
+			onCancel={() => onRenameCancel?.()}
+		/>
+	) : (
 		<p className={classNames(invisible ? "classicyIconInvisible" : "")}>
 			{label ? label : name}
 		</p>
@@ -388,8 +500,9 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					...withoutZIndex(style),
 				} as CSSProperties
 			}
-			onClick={toggleFocus}
+			onClick={onClick}
 			onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+				if (renaming) return;
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
 					doDoubleClick();

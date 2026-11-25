@@ -2416,6 +2416,23 @@ describe("system7.scss (compiled)", () => {
 				/background-color: var\(--color-black\);/,
 			);
 		});
+
+		// A name being edited in an icon view (a slow second click on a
+		// selected icon's name): the label's box, white, framed by one black
+		// pixel, as 7.5's Finder framed a name open for editing. The icon
+		// view's selection rectangle stays the base's dotted one, as on the
+		// desktop.
+		it("frames an icon's name being edited in the label's box", () => {
+			const field = rule(".classicyIcon .classicyIconRename");
+			expect(field).toMatch(/height: var\(--icon-label-height\);/);
+			expect(field).toMatch(
+				/border: var\(--box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(field).toMatch(/background: var\(--color-white\);/);
+			expect(field).toMatch(/color: var\(--color-black\);/);
+			expect(css).not.toContain("classicyFileBrowserSelect");
+			expect(css).not.toContain("classicyFileOpenDialogWellColumns");
+		});
 	});
 
 	// Plan 0018-dbd §3.7: the desktop, its icons, the Control Strip, the tab

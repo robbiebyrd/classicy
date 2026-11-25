@@ -5,6 +5,7 @@ import {
 	classicyDesktopFolderPath,
 	classicyDesktopItemIconAction,
 	moveClassicyFileSystemItems,
+	renameClassicyFileSystemItem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import {
 	ClassicyFileSystem,
@@ -152,6 +153,142 @@ describe("classicyDesktopItemIconAction", () => {
 	it("is undefined for a path that no longer exists", () => {
 		expect(classicyDesktopItemIconAction(makeFs(), "Macintosh HD:Gone")).toBe(
 			undefined,
+		);
+	});
+});
+
+// Renaming an icon's name in place (a slow second click in an icon view, F2
+// under Windows' keys): one `fs.move` into the item's own folder, names
+// compared without case as HFS and FAT did.
+describe("renameClassicyFileSystemItem", () => {
+	it("renames in place, keeps the name as typed, and tells Finder", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		expect(
+			renameClassicyFileSystemItem(
+				fs,
+				"Macintosh HD:Documents:Plan.txt",
+				"Budget.txt",
+				dispatch,
+			),
+		).toBe("Macintosh HD:Documents:Budget.txt");
+		expect(fs.resolve("Macintosh HD:Documents:Plan.txt")).toBeUndefined();
+		expect(fs.resolve("Macintosh HD:Documents:Budget.txt")?._type).toBe(
+			ClassicyFileSystemEntryFileType.TextFile,
+		);
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppFinderPathsMoved",
+			moves: [
+				{
+					from: "Macintosh HD:Documents:Plan.txt",
+					to: "Macintosh HD:Documents:Budget.txt",
+				},
+			],
+		});
+		expect(types(dispatch)).not.toContain("ClassicyDesktopShowErrorDialog");
+	});
+
+	it("renames by a change of case alone", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		expect(
+			renameClassicyFileSystemItem(
+				fs,
+				"Macintosh HD:Documents:Plan.txt",
+				"PLAN.txt",
+				dispatch,
+			),
+		).toBe("Macintosh HD:Documents:PLAN.txt");
+		expect(
+			Object.hasOwn(fs.resolve("Macintosh HD:Documents"), "PLAN.txt"),
+		).toBe(true);
+	});
+
+	it("refuses another item's name, whatever its case, in an alert", () => {
+		const fs = makeFs();
+		const dispatch = vi.fn();
+		expect(
+			renameClassicyFileSystemItem(
+				fs,
+				"Macintosh HD:Documents:Plan.txt",
+				"notes.TXT",
+				dispatch,
+			),
+		).toBeUndefined();
+		expect(fs.resolve("Macintosh HD:Documents:Plan.txt")).toBeDefined();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyDesktopShowErrorDialog",
+			message:
+				"The name “notes.TXT” is already taken. Please use a different name.",
+		});
+	});
+
+	it("refuses an empty name, the separator and the metadata prefix; ignores the same name", () => {
+		const fs = makeFs();
+		for (const name of ["", "   ", "a:b", "_hidden"]) {
+			const dispatch = vi.fn();
+			expect(
+				renameClassicyFileSystemItem(
+					fs,
+					"Macintosh HD:Documents:Plan.txt",
+					name,
+					dispatch,
+				),
+				name,
+			).toBeUndefined();
+			expect(types(dispatch), name).toEqual(["ClassicyDesktopShowErrorDialog"]);
+		}
+		const dispatch = vi.fn();
+		expect(
+			renameClassicyFileSystemItem(
+				fs,
+				"Macintosh HD:Documents:Plan.txt",
+				"Plan.txt",
+				dispatch,
+			),
+		).toBeUndefined();
+		expect(dispatch).not.toHaveBeenCalled();
+	});
+
+	it("refuses a locked item in an alert", () => {
+		const fs = makeFs();
+		fs.setMetadata("Macintosh HD:Documents:Plan.txt", { _system: true });
+		const dispatch = vi.fn();
+		expect(
+			renameClassicyFileSystemItem(
+				fs,
+				"Macintosh HD:Documents:Plan.txt",
+				"Other.txt",
+				dispatch,
+			),
+		).toBeUndefined();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyDesktopShowErrorDialog",
+			message:
+				"“Plan.txt” can’t be renamed, because it is locked or used by the system software.",
+		});
+	});
+
+	it("re-adds a Desktop Folder item's icon under its new path, where it was", () => {
+		const fs = makeFs();
+		const folder = classicyDesktopFolderPath(fs) as string;
+		fs.mkDir(folder);
+		fs.writeFile(`${folder}:Memo.txt`, "hi");
+		const dispatch = vi.fn();
+		const renamed = renameClassicyFileSystemItem(
+			fs,
+			`${folder}:Memo.txt`,
+			"Letter.txt",
+			dispatch,
+		);
+		expect(renamed).toBe(`${folder}:Letter.txt`);
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "ClassicyDesktopIconAdd",
+				app: expect.objectContaining({
+					id: `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${folder}:Letter.txt`,
+				}),
+			}),
 		);
 	});
 });

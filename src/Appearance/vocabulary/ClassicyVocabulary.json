@@ -280,6 +280,7 @@
 		"FileBrowser": [
 			"Fill",
 			"FillList",
+			"Select",
 			"ViewTableContainer",
 			"ViewTableDisclosure",
 			"ViewTableDisclosureTriangle",
@@ -307,6 +308,7 @@
 			"Footer",
 			"Volume",
 			"Well",
+			"WellColumns",
 			"WellViewport"
 		],
 		"Form": ["ButtonRow", "Dialog"],
@@ -348,7 +350,14 @@
 			"Stage",
 			"StageInner"
 		],
-		"Icon": ["DimmedImage", "Invisible", "Mask", "MaskOuter", "SelectedImage"],
+		"Icon": [
+			"DimmedImage",
+			"Invisible",
+			"Mask",
+			"MaskOuter",
+			"Rename",
+			"SelectedImage"
+		],
 		"ImageWell": ["DragOver", "Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],

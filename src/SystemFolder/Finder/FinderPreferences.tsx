@@ -14,6 +14,7 @@ import {
 import { useFinderViewsTab } from "@/SystemFolder/Finder/useFinderViewsTab";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
+import { useClassicySessionTab } from "@/SystemFolder/SystemResources/Tabs/useClassicySessionTab";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const appId = "Finder.app";
@@ -39,6 +40,8 @@ export const FinderPreferences: FunctionalComponent<FinderPreferencesProps> = ({
 	);
 	const viewsTab = useFinderViewsTab(standardViews);
 	const tabs = useMemo(() => [viewsTab], [viewsTab]);
+	// Reopened in the session, on the tab it was left on.
+	const sessionTab = useClassicySessionTab(appId, "preferences");
 
 	return (
 		<ClassicyWindow
@@ -60,7 +63,7 @@ export const FinderPreferences: FunctionalComponent<FinderPreferencesProps> = ({
 			}
 		>
 			<div className={"finderPreferences"}>
-				<ClassicyTabs tabs={tabs} />
+				<ClassicyTabs tabs={tabs} {...sessionTab} />
 				{/* Static, exactly as in the Mac OS 8 dialog: the badge marks the
 				    note as explanatory help, it is not a control. Nothing here
 				    opens Apple Guide, so it is deliberately not a button. */}

@@ -1904,6 +1904,22 @@ describe("platinum.scss (compiled)", () => {
 			expect(rules(".classicySplitViewSplitBox").props.border).toBe(BORDER);
 		});
 
+		// A name being edited in an icon view (a slow second click on a
+		// selected icon's name, as in Mac OS 8's Finder): the edit box, the
+		// name black on white in a one-pixel black frame. Platinum draws the
+		// icon view's selection rectangle as the desktop's (the base rule).
+		it("frames an icon's name being edited in one black pixel, on white", () => {
+			const field = rules(".classicyIcon .classicyIconRename").props;
+			expect(field.border).toBe(
+				"var(--window-border-size) solid var(--color-black)",
+			);
+			expect(field.background).toBe("var(--color-white)");
+			expect(field.color).toBe("var(--color-black)");
+			expect(field.outline).toBe("none");
+			expect(flat).not.toContain("classicyFileBrowserSelect");
+			expect(flat).not.toContain("classicyFileOpenDialogWellColumns");
+		});
+
 		it.each([
 			"SystemFolder/SystemResources/Button/ClassicyButton.scss",
 			"SystemFolder/SystemResources/BevelButton/ClassicyBevelButton.scss",

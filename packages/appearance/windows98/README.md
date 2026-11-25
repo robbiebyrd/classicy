@@ -61,8 +61,15 @@ and `nodenext` resolution).
   from its bar (more than eight bar widths to the side or two past its
   ends) and follows again when the pointer returns, and the Open and Save
   boxes as titled, movable dialogs showing one folder at a time under a
-  pop-up that runs the path upward (Windows' Look in), Save As opening with
-  the file name selected, dialogs and alerts centered on whole pixels,
+  pop-up that runs the path upward (Windows' Look in), its items flowing in
+  columns as Windows' list view does in List mode (scrolled sideways, Left
+  and Right moving a column), Save As opening with the file name selected,
+  folders listed before files in the Finder's windows (last when a list's
+  sort runs down, as Explorer's did), the icon view's selection keys as
+  Explorer's (Shift-click and Shift with an arrow selecting from the anchor,
+  Ctrl-click adding or removing one item, Home, End, Page Up and Page Down
+  selecting, a letter typed again stepping to the next item starting with
+  it, F2 renaming), dialogs and alerts centered on whole pixels,
   so their one-pixel bevels and glyphs stay sharp, trees driven by the bare
   arrow keys as Windows' tree view is (Right expands a folder or goes into
   it, Left collapses it or goes up to its parent), and help shown as a
@@ -79,12 +86,16 @@ and `nodenext` resolution).
     Calculator), dialogs on a flat face with the title and Close alone in
     their caption (no icon, no Minimize), palette windows with Close alone,
     a modeless dialog's frame flattened to a plain ButtonFace box;
+  - the Finder's icon view: a label being renamed in the list view's edit
+    box (WindowText on white in a one-pixel black border), and a drag
+    across empty space drawing the dotted selection rectangle in black;
   - menus: the flat menu bar, raised pull-down and contextual menus with an
     inverted highlight and embossed dimmed items (one item highlighted at a
     time: the keyboard's, while the arrow keys moved it last, the
     pointer's otherwise), etched separators, the access key's letter
     underlined in every title and item (in a control's label too), the
-    default item (the command a double-click runs: the Trash icon's Open) in
+    default item (the command a double-click runs: Open, first in every
+    Finder item's and desktop icon's menu) in
     bold and a round bullet at the chosen item of an option group (the
     Finder's View as Icons and View as List), where the Mac packages draw a
     check;

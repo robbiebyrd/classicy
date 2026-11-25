@@ -116,9 +116,11 @@ describe("ClassicyFileBrowser selection handle", () => {
 		]);
 	});
 
-	it("leaves the handle unset in the icons view, where the command is disabled", async () => {
+	// The icon view keeps one selection for its icons, so the handle works
+	// there too (Edit ▸ Select All in either view, as Mac OS 8's Finder).
+	it("hands the caller a working handle in the icons view too", async () => {
 		const apiRef = createRef<ClassicyTableSelectionApi>();
-		render(
+		const { container } = render(
 			<ClassicyFileBrowser
 				fs={makeFs("test-browser-icons")}
 				path="Documents"
@@ -127,7 +129,16 @@ describe("ClassicyFileBrowser selection handle", () => {
 				selectionApiRef={apiRef}
 			/>,
 		);
-		await waitFor(() => expect(apiRef.current).toBeNull());
+		await waitFor(() =>
+			expect(container.querySelectorAll(".classicyIcon")).toHaveLength(3),
+		);
+		expect(container.querySelectorAll(".classicyIcon.selected")).toHaveLength(
+			0,
+		);
+		act(() => apiRef.current?.selectAll());
+		expect(container.querySelectorAll(".classicyIcon.selected")).toHaveLength(
+			3,
+		);
 	});
 });
 

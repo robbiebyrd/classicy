@@ -82,7 +82,7 @@ type ClassicyFileBrowserProps = {
 	/** The in-world "now" for relative dates, already converted to the
 	 *  virtual clock's local frame. Omitted means real time. List view only. */
 	now?: Date;
-	/** Receives the list view's `{ selectAll }` handle (e.g. for Select All). List view only. */
+	/** Receives the view's `{ selectAll }` handle (e.g. for Edit ▸ Select All), in either view. */
 	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
 	/** Controlled selection by row path. Omit for uncontrolled. List view only. */
 	selectedPaths?: string[];
@@ -120,6 +120,15 @@ type ClassicyFileBrowserProps = {
 	) => ClassicyMenuItem[] | undefined;
 	/** Receives `{ selectedPaths() }`, for menu commands that act on the selection. */
 	commandsRef?: RefObject<ClassicyFileBrowserCommands | null>;
+	/**
+	 * Rename an item (icon view): called with its path and the name typed
+	 * when the user commits a rename, begun by a click on a selected icon's
+	 * name that no second click follows (Mac OS 8's Finder and Windows
+	 * Explorer alike). Return the item's new path when it was renamed. Finder
+	 * renames through `renameClassicyFileSystemItem`. Without it, names are
+	 * not editable.
+	 */
+	onRenameItem?: (path: string, name: string) => string | undefined;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -137,7 +146,17 @@ const defaultFileOnClick = () => {};
  *
  * - `display="icons"`: draggable `ClassicyIcon`s laid out on the theme's icon
  *   grid; `iconViewOptions` can snap them to the grid or keep them arranged
- *   (and locked) by name, modified/created date, size, kind or label.
+ *   (and locked) by name, modified/created date, size, kind or label. One
+ *   selection, as the Finder keeps it: a click selects an icon, Shift-, ⌘-
+ *   or Control-click adds or removes one, a drag across empty space selects
+ *   the icons the rectangle touches, an arrow key the nearest icon its way,
+ *   typing the icon whose name starts with the keys typed (within a
+ *   second); a click on a selected icon's name, unless a second click
+ *   follows, renames it (`onRenameItem`). Under a package whose
+ *   `layout.fileBrowser.keys` is `"windows"`, Shift-click and Shift-arrows
+ *   select from the anchor, Control-click toggles, Home, End, Page Up and
+ *   Page Down select, and a letter typed again steps to the next icon
+ *   starting with it.
  * - `display="list"`: a `ClassicyTable` list view with sortable columns,
  *   disclosure triangles that expand folders in place, multi-selection
  *   (Shift / Command-click) and full keyboard navigation.
@@ -185,6 +204,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	onDeleteItems,
 	itemContextMenu,
 	commandsRef,
+	onRenameItem,
 	className,
 	style,
 }) => {
@@ -335,6 +355,8 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					hideFilesCreatedAfter={hideFilesCreatedAfter}
 					showInvisible={showInvisible}
 					iconViewOptions={iconViewOptions}
+					selectionApiRef={selectionApiRef}
+					onRenameItem={onRenameItem}
 				/>
 			)}
 		</div>
