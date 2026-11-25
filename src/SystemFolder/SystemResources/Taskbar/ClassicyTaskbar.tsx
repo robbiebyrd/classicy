@@ -140,6 +140,14 @@ const useClassicyTaskbarBandPublisher = (
  *   item), button 2 its menu at the pointer, a double-click its default
  *   item, and the module's name is its tooltip (WIG Ch.10 "Status
  *   Notification", pp.211–212).
+ * - **The clock** (`ClassicyTaskbarClock.internal.tsx`) ends the status
+ *   area, and stays when its modules go: the virtual clock's time without
+ *   seconds, `4:37 PM` (`16:37` with the Date & Time control panel's
+ *   24-hour clock), hidden while that panel hides the clock. Its tooltip is
+ *   the long date (`Wednesday, November 25, 2026`), a double-click opens the
+ *   Date & Time control panel, a click does nothing, and button 2 opens the
+ *   taskbar's menu with Adjust Date/Time first, its default item. It keeps
+ *   the store's time as the menu bar's clock does.
  * - **Its own menu.** Button 2 on the taskbar's background opens Minimize
  *   All Windows (Undo Minimize All after it, until one of those windows is
  *   restored or closed by other means) and Properties, the Control Strip
@@ -271,6 +279,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 			<ClassicyTaskbarTray
 				disabledModules={disabledModules}
 				hideModules={hideModules}
+				showTaskbarMenu={showTaskbarMenu}
 			/>
 		</nav>
 	);

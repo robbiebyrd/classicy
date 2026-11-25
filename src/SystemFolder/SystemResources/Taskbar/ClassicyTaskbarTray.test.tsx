@@ -265,14 +265,18 @@ describe("the tray", () => {
 	});
 
 	describe("structure", () => {
-		it("is the status area: the icons' list, then the menu bar extensions' region", () => {
+		it("is the status area: the icons' list, the menu bar extensions' region, then the clock", () => {
 			register(menuModule);
 			renderTaskbar();
 			const tray = document.querySelector(".classicyTaskbarTray");
 			expect(tray).toHaveAttribute("data-classicy-part", "taskbar-tray");
 			expect(tray).toHaveAttribute("role", "group");
 			expect(tray).toHaveAttribute("aria-label", "Notification area");
-			const [list, region] = Array.from(tray?.children ?? []);
+			expect(tray?.children).toHaveLength(3);
+			const [list, region, clock] = Array.from(tray?.children ?? []);
+			expect(clock.tagName).toBe("TIME");
+			expect(clock).toHaveClass("classicyTaskbarClock");
+			expect(clock).toHaveAttribute("data-classicy-part", "clock");
 			expect(list.tagName).toBe("UL");
 			expect(list).toHaveClass("classicyTaskbarTrayIcons");
 			expect(region.tagName).toBe("UL");

@@ -513,6 +513,7 @@
 		],
 		"Tabs": [],
 		"Taskbar": [
+			"Clock",
 			"Start",
 			"StartIcon",
 			"StartLabel",

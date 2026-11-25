@@ -27,13 +27,15 @@ import {
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyTaskbarClock } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarClock.internal";
 import { CLASSICY_TASKBAR_TOOLTIP_DELAY_MS } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
 
 /**
  * The taskbar's status area (plan 0020-w98 §2, "The tray"; WIG Ch.3 "The
  * Status Area", p.16; Ch.10 "Status Notification", pp.211–212, Figure 10.2):
  * the Control Strip's modules as notification icons, then the menu bar
- * extensions' region. Internal: not exported from the package.
+ * extensions' region, then the clock. Internal: not exported from the
+ * package.
  */
 
 /**
@@ -308,7 +310,9 @@ const ClassicyTaskbarTrayIcon: FunctionalComponent<{
  * the menu bar extensions' region (`ul#classicyDesktopMenuExtensions`, also
  * `classicyTaskbarTrayExtensions`, `data-classicy-part="extensions"`),
  * which `ClassicyMenuBarExtension` portals into under a taskbar, the
- * headless screen bar drawing none. The Control Strip's own settings
+ * headless screen bar drawing none, then the clock
+ * (`time.classicyTaskbarClock`, `ClassicyTaskbarClock.internal.tsx`), which
+ * stays when the modules go. The Control Strip's own settings
  * (`collapsed`, `width`, `edge`, `bottom`) mean nothing here: they stay
  * stored and apply again under a package that draws the strip.
  */
@@ -317,7 +321,15 @@ export const ClassicyTaskbarTray: FunctionalComponent<{
 	disabledModules?: readonly string[];
 	/** Show no module (`ClassicyTaskbar`'s `hideModules`). */
 	hideModules?: boolean;
-}> = ({ disabledModules, hideModules = false }) => {
+	/**
+	 * Opens the taskbar's own menu (`useClassicyTaskbarMenu`, the taskbar's),
+	 * which button 2 on the clock opens with Adjust Date/Time first.
+	 */
+	showTaskbarMenu?: (
+		at: [number, number],
+		leading?: readonly ClassicyMenuItem[],
+	) => void;
+}> = ({ disabledModules, hideModules = false, showTaskbarMenu }) => {
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
 	const stored = useAppManager((s) => s.System.Manager.Desktop.controlStrip);
@@ -350,6 +362,7 @@ export const ClassicyTaskbarTray: FunctionalComponent<{
 				className="classicyDesktopMenuExtensions classicyTaskbarTrayExtensions"
 				data-classicy-part="extensions"
 			/>
+			<ClassicyTaskbarClock showTaskbarMenu={showTaskbarMenu} />
 		</div>
 	);
 };

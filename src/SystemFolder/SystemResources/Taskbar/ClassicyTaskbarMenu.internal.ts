@@ -94,8 +94,12 @@ export function classicyTaskbarMinimizedAllStands(
 	});
 }
 
-/** The menu items' ids. */
+/**
+ * The menu items' ids: the taskbar's own, and the clock's lead item
+ * (`ClassicyTaskbarClock.internal.tsx`).
+ */
 export const CLASSICY_TASKBAR_MENU_IDS = {
+	adjustDateTime: "taskbar-adjust-date-time",
 	minimizeAll: "taskbar-minimize-all",
 	undoMinimizeAll: "taskbar-undo-minimize-all",
 	properties: "taskbar-properties",

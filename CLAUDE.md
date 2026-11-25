@@ -699,7 +699,15 @@ item, so a double-click runs that item alone); button 2 opens `menuItems` at
 the pointer; the label is a forced 500 ms tooltip. Then the menu bar
 extensions' region, `ul#classicyDesktopMenuExtensions`
 (`classicyTaskbarTrayExtensions`), which `ClassicyMenuBarExtension` looks up
-again when the placement or the taskbar's presence changes. The strip's
+again when the placement or the taskbar's presence changes; then the clock
+(`ClassicyTaskbarClock.internal.tsx`, `time.classicyTaskbarClock`, the
+`clock` part): `h:mm AM` (`HH:mm` under `militaryTime`), hidden while
+`DateAndTime.show` is false, the long date (`dddd, MMMM dd, yyyy`) a forced
+500 ms tooltip, a double-click opening Date & Time, button 2 the taskbar's
+menu led by Adjust Date/Time (`isDefault`); it shares the menu bar clock's
+tick (`Widgets/Time/useClassicyClockTime.internal.ts`, which writes
+`DateAndTime.dateTime` each minute), so the store keeps time under the
+headless screen bar. The strip's
 `collapsed`, `width`, `edge` and `bottom` stay stored, unused. Button 2 on
 the taskbar's background opens its own menu (`ClassicyTaskbarMenu.internal.ts`):
 Minimize All Windows (one `ClassicyWindowCollapse` per window with a

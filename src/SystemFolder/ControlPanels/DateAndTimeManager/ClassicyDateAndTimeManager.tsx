@@ -12,7 +12,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
+import {
+	DATE_AND_TIME_MANAGER_APP_ID,
+	DATE_AND_TIME_MANAGER_APP_NAME,
+} from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -33,7 +36,7 @@ import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/Cl
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const APP_ID = DATE_AND_TIME_MANAGER_APP_ID;
-const APP_NAME = "Date and Time Manager";
+const APP_NAME = DATE_AND_TIME_MANAGER_APP_NAME;
 const WINDOW_ID = "DateAndTimeManager_1";
 
 const TIMEZONES = [
