@@ -1,8 +1,12 @@
 import { desktopParameters, StoryApp } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type FC, useEffect } from "react";
-import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
+	useAppManager,
+	useAppManagerDispatch,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	APPLICATION_SWITCHER_APP_ID,
 	APPLICATION_SWITCHER_CLOSE,
 	APPLICATION_SWITCHER_SET_PALETTE,
 	APPLICATION_SWITCHER_TEAR_OFF,
@@ -41,18 +45,32 @@ const MANY = [
 	"Stickies",
 ];
 
-/** Opens `apps` beside the Finder, then shows the palette with `options`. */
+/**
+ * Opens `apps` beside the Finder, then shows the palette with `options`;
+ * with `restores`, a palette the page drew from saved state is left as it
+ * was saved, and nothing is torn off.
+ */
 const Torn: FC<{
 	options?: Pick<
 		ClassicyApplicationSwitcherData,
 		"showNames" | "iconSize" | "orientation"
 	>;
 	apps?: string[];
-}> = ({ options, apps = TWO }) => {
+	restores?: boolean;
+}> = ({ options, apps = TWO, restores = false }) => {
 	const dispatch = useAppManagerDispatch();
 	// By value, so a re-render with an equal literal changes nothing.
 	const optionsKey = JSON.stringify(options ?? {});
 	useEffect(() => {
+		if (
+			restores &&
+			(
+				useAppManager.getState().System.Manager.Applications.apps[
+					APPLICATION_SWITCHER_APP_ID
+				]?.data as ClassicyApplicationSwitcherData | undefined
+			)?.paletteOpen === true
+		)
+			return;
 		const timer = window.setTimeout(() => {
 			dispatch({
 				type: APPLICATION_SWITCHER_SET_PALETTE,
@@ -67,7 +85,7 @@ const Torn: FC<{
 			window.clearTimeout(timer);
 			dispatch({ type: APPLICATION_SWITCHER_CLOSE });
 		};
-	}, [dispatch, optionsKey]);
+	}, [dispatch, optionsKey, restores]);
 	return (
 		<>
 			{apps.map((name) => (
@@ -109,4 +127,18 @@ export const Horizontal: Story = {
  */
 export const ManyApplications: Story = {
 	render: () => <Torn options={{ iconSize: "large" }} apps={MANY} />,
+};
+
+/**
+ * `ManyApplications` on a page that keeps its desktop state across a reload,
+ * as a host's page does (`parameters.classicy.persistence`): the palette is
+ * torn off on the first visit only, and after a reload it is drawn from its
+ * saved window record, where it was left. That record exists a render before
+ * the desktop's floating layer draws the palette's list, which is what the
+ * count waits for (integration review G round 2, F1).
+ * `bin/check-app-switcher-palette.ts` reloads it twice.
+ */
+export const Persisted: Story = {
+	parameters: { classicy: { desktop: true, persistence: true } },
+	render: () => <Torn options={{ iconSize: "large" }} apps={MANY} restores />,
 };

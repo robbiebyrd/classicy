@@ -903,9 +903,13 @@ changes, never the palette's place: a move
 never reshapes it, and a palette dragged past an edge clips like any window;
 across, the contents lay the list out as a stretched flex item, so a
 package's well fits the window; `bin/check-app-switcher-palette.ts --port
-<n> [--browser chromium|firefox]` checks the count, the settle, a reload,
-what the window cuts, the collapsed horizontal palette's boxes and the
-named width in a browser, in the `ManyApplications` and `Palette` stories); hidden apps' buttons and menu
+<n> [--browser chromium|firefox]` checks the count, the settle, what the
+window cuts, the collapsed horizontal palette's boxes and the named width
+in a browser, in the `ManyApplications` and `Palette` stories, and two
+reloads of saved state in the `Persisted` story, whose page keeps its
+desktop state as a host's does (Storybook's
+`parameters.classicy.persistence`, `StorybookSavedDesktop.ts`; every
+other story saves nothing)); hidden apps' buttons and menu
 rows carry `aria-description` "Hidden"; it shows no icon in the startup
 parade (`bootIcon={false}`, which an extension may now pass; 8.5's has
 none, `platinum-85-startup-parade.png`). The menu's alphabetical order is

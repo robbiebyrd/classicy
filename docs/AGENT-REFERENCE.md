@@ -2364,16 +2364,22 @@ bar, as 8.5's does (`platinum-85-switcher-collapsed.png`).
 chromium|firefox]` checks it in a browser, in a served static Storybook's
 `ManyApplications` story (jsdom lays nothing out: the unit tests run on a
 layout model): down a column with large and small icons, and across a row
-with large and small icons, on desktops of several sizes, and after a
-reload with a wrapped column, the palette settles, the window cuts no
-button and no part of the list, the count is the most the desktop holds,
-the copy it read was hidden and unwrapped, and each copy's size along the
-line was that button's laid out alone; across, the list with its margin
-fills the window's contents from top to bottom; after the reload it is
-counted, and counted again on a resize; collapsed across, its three boxes
-lie inside it and are what a click there hits, and a click on the collapse
-box expands it with its list where it was; in the `Palette` story the
-palette with names is 158 pixels wide; under System 7 no palette is drawn. Firefox needs a Playwright that has it
+with large and small icons, on desktops of several sizes, the palette
+settles, the window cuts no button and no part of the list, the count is
+the most the desktop holds, the copy it read was hidden and unwrapped, and
+each copy's size along the line was that button's laid out alone; across,
+the list with its margin fills the window's contents from top to bottom;
+collapsed across, its three boxes lie inside it and are what a click there
+hits, and a click on the collapse box expands it with its list where it
+was. In the `Persisted` story, whose page keeps its desktop state as a
+host's does (Storybook's `parameters.classicy.persistence`,
+`storybook/.storybook/StorybookSavedDesktop.ts`; every other story saves
+nothing), it waits for the desktop to save a wrapped column, then reloads
+twice (moving the palette between): each reload draws the palette from its
+saved window record, where it was left (the story tears nothing off once
+the palette is open), counted and wrapped as above, and counted again on a
+resize. In the `Palette` story the palette with names is 158 pixels wide;
+under System 7 no palette is drawn. Firefox needs a Playwright that has it
 (`$PARITY_PLAYWRIGHT`). 8.5's palette with more applications than
 its screen holds was not observed (the emulator hung while they were
 launched); Classicy wraps only a line the desktop cannot hold at all. Like 8.5's, the switcher shows no icon in the startup

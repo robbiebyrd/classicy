@@ -1,10 +1,11 @@
 // Browser check: the Application Switcher's palette counts its lines as the
-// browser lays it out (integration review G round 2, F1 to F4, and round 3,
-// F2, F5 and F11; the unit tests in ClassicyApplicationSwitcher.test.tsx run
-// on a layout model, since jsdom lays nothing out, so a window's computed
-// `max-height`, the size of a button's copy, what the window clips and what
-// a click hits are browser facts). Run it against a served static Storybook
-// build, as the parity tools are (bin/parity/README.md):
+// browser lays it out (integration review G round 2, F1 to F4, round 3, F2,
+// F5 and F11, and round 4, F1 and F2; the unit tests in
+// ClassicyApplicationSwitcher.test.tsx run on a layout model, since jsdom
+// lays nothing out, so a window's computed `max-height`, the size of a
+// button's copy, what the window clips, what a click hits and what a reload
+// of saved state draws are browser facts). Run it against a served static
+// Storybook build, as the parity tools are (bin/parity/README.md):
 //
 //   node bin/check-app-switcher-palette.ts --port <n> [--browser chromium|firefox] [storyId]
 //
@@ -13,8 +14,7 @@
 // with Firefox installed: point `$PARITY_PLAYWRIGHT` at one that has it
 // (bin/parity/parityBrowser.ts). Under Platinum it lays the palette down a
 // column with large and small icons, and across a row with large and small
-// icons, on desktops of several sizes, and reloads the page with a wrapped
-// column; at each it checks that:
+// icons, on desktops of several sizes; at each it checks that:
 //
 // - the palette settles: one size and one line count over 30 frames, with
 //   no hidden copy of its list built meanwhile;
@@ -31,14 +31,19 @@
 // - across, the list with its margin fills the window's contents from top
 //   to bottom: the well is stretched to the drag bar's height, not short.
 //
-// After the reload the palette is counted again (the window's record exists
-// a render before the floating layer draws it), and a desktop resize counts
-// it again. Collapsed across, its close, zoom and collapse boxes lie inside
-// it and are what a click there hits; a click on the collapse box expands
-// it, its list where it was. Then it drags the wrapped palette partly past
-// the desktop's right edge (its shape must not change); in the `Palette`
-// story (two short names) the palette with names is Mac OS 8.5's 158 pixels
-// wide; and under System 7 it checks that no palette is drawn.
+// Collapsed across, its close, zoom and collapse boxes lie inside it and are
+// what a click there hits; a click on the collapse box expands it, its list
+// where it was. Then it drags the wrapped palette partly past the desktop's
+// right edge (its shape must not change). With the default story it also
+// reloads saved state: the `Persisted` story keeps its desktop state as a
+// host's page does (`parameters.classicy.persistence`), so after the
+// desktop saves a wrapped column, each of two reloads draws the palette from
+// its saved window record, which exists a render before the floating layer
+// draws the list (round 2's F1). It checks the palette is where the page
+// saved it (no tear-off moved it), counted and wrapped, as above, and
+// counted again on a desktop resize. In the `Palette` story (two short
+// names) the palette with names is Mac OS 8.5's 158 pixels wide; and under
+// System 7 it checks that no palette is drawn.
 //
 // Exit codes: 0 when every check passes, 1 when one fails, 2 on a usage or
 // environment error. Build script, not library code: it reports through
@@ -54,6 +59,9 @@ import { storyUrl } from "./parity/parityStories.ts";
 
 const DEFAULT_STORY = "desktop-application-switcher--many-applications";
 const NAMED_STORY = "desktop-application-switcher--palette";
+const PERSISTED_STORY = "desktop-application-switcher--persisted";
+/** Where the store saves the desktop state (CLASSICY_DESKTOP_STATE_STORAGE_KEY). */
+const SAVED_STATE_KEY = "classicyDesktopState";
 const PALETTE = ".classicyApplicationSwitcherPalette";
 
 const usage = () => {
@@ -483,23 +491,67 @@ const clickBox = async (page: Page, control: string) => {
 	return true;
 };
 
+/**
+ * Drags the palette by its drag bar against the menu bar, at `x`, so the
+ * whole window shows on a short desktop.
+ */
+const dragToMenuBar = async (page: Page, x: number) => {
+	const bar = await page
+		.locator(`${PALETTE} .classicyWindowTitleBar`)
+		.boundingBox();
+	if (!bar) return;
+	await page.mouse.move(bar.x + bar.width / 2, bar.y + 3);
+	await page.mouse.down();
+	await page.mouse.move(x, 80, { steps: 6 });
+	await page.mouse.move(x, 20, { steps: 4 });
+	await page.mouse.up();
+	await page.waitForTimeout(400);
+};
+
+/** The palette's place: its window's left and top, as its record keeps them. */
+const placeOf = (page: Page) =>
+	page.evaluate((selector) => {
+		const palette = document.querySelector<HTMLElement>(selector);
+		return palette ? `${palette.style.left} ${palette.style.top}` : "none";
+	}, PALETTE);
+
+/**
+ * Whether, within 5 s, the desktop state the page saved holds the palette
+ * open with its window record at `place` (the store saves 500 ms after a
+ * change).
+ */
+const savedAt = (page: Page, place: string) =>
+	page
+		.waitForFunction(
+			([key, at]) => {
+				try {
+					const app = JSON.parse(localStorage.getItem(key) ?? "null")?.System
+						?.Manager?.Applications?.apps?.["ApplicationSwitcher.app"];
+					const record = app?.windows?.applications;
+					return (
+						app?.data?.paletteOpen === true &&
+						!!record &&
+						record.closed !== true &&
+						`${record.position[0]}px ${record.position[1]}px` === at
+					);
+				} catch {
+					return false;
+				}
+			},
+			[SAVED_STATE_KEY, place] as const,
+			{ timeout: 5000 },
+		)
+		.then(
+			() => true,
+			() => false,
+		);
+
 {
 	const { ctx, page, errors } = await load("platinum");
 	try {
 		if (!(await page.$(PALETTE)))
 			environmentError(`story ${story} drew no palette`);
-		// Against the menu bar, so the whole window shows on a short desktop.
-		const bar = await page
-			.locator(`${PALETTE} .classicyWindowTitleBar`)
-			.boundingBox();
-		if (bar) {
-			await page.mouse.move(bar.x + bar.width / 2, bar.y + 3);
-			await page.mouse.down();
-			await page.mouse.move(300, 80, { steps: 6 });
-			await page.mouse.move(300, 20, { steps: 4 });
-			await page.mouse.up();
-			await page.waitForTimeout(400);
-		}
+		await dragToMenuBar(page, 300);
 		const heights: [number, number][] = [
 			[1024, 768],
 			[1024, 380],
@@ -510,23 +562,6 @@ const clickBox = async (page: Page, control: string) => {
 		];
 		for (const size of heights)
 			await checkAt(page, "a column, large icons", size);
-		// Reloaded with a wrapped column, in the story's own options (so its
-		// tear-off after mounting changes none of them): counted once the
-		// floating layer draws it, and again on a desktop resize.
-		await page.setViewportSize({ width: 1024, height: 360 });
-		await page.waitForTimeout(500);
-		await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
-		await page.reload({ waitUntil: "load", timeout: 90000 });
-		await waitForStoryReady(page);
-		await page.waitForTimeout(1200);
-		const reloaded = await measure(page);
-		report(
-			!!reloaded && reloaded.perLine < reloaded.count,
-			"platinum",
-			`after a reload the column is counted and wraps (${reloaded?.perLine} a line of ${reloaded?.count})`,
-		);
-		await checkAt(page, "a column after a reload", [1024, 360]);
-		await checkAt(page, "a column after a reload, resized", [1024, 300]);
 		await page.setViewportSize({ width: 1024, height: 768 });
 		await zoomBox(page, ["Alt"]);
 		for (const size of [
@@ -615,6 +650,69 @@ const clickBox = async (page: Page, control: string) => {
 				moved.perLine === before.perLine,
 			"platinum",
 			`a wrapped row dragged partly past the right edge keeps its shape (${before?.along}x${before?.across} at ${before?.perLine} a line, then ${moved?.along}x${moved?.across} at ${moved?.perLine})`,
+		);
+		report(
+			errors.length === 0,
+			"platinum",
+			`no page errors ${errors.slice(0, 3).join("; ")}`,
+		);
+	} finally {
+		await ctx.close();
+	}
+}
+
+// Reloaded from saved state (review G round 2, F1, which only a reload of
+// saved state shows: the palette's window record exists a render before the
+// desktop's floating layer draws its list, and a count keyed on the record
+// counted nothing). The `Persisted` story keeps its desktop state as a
+// host's page does and tears nothing off once the palette is open, so after
+// a reload the palette comes only from what the page saved: where it was
+// left, wrapped, and counted again on a desktop resize. Moved between the
+// reloads, so the second reload draws what the reloaded page saved.
+if (story === DEFAULT_STORY) {
+	const { ctx, page, errors } = await load("platinum", PERSISTED_STORY);
+	try {
+		if (!(await page.$(PALETTE)))
+			environmentError(`story ${PERSISTED_STORY} drew no palette`);
+		await dragToMenuBar(page, 300);
+		await page.setViewportSize({ width: 1024, height: 360 });
+		await page.waitForTimeout(500);
+		await checkAt(page, "a saved column, before a reload", [1024, 360]);
+		for (const reload of [1, 2]) {
+			if (reload === 2) await dragToMenuBar(page, 360);
+			const place = await placeOf(page);
+			report(
+				await savedAt(page, place),
+				"platinum",
+				`before reload ${reload} the page has saved the palette open, at ${place}`,
+			);
+			await page.reload({ waitUntil: "load", timeout: 90000 });
+			await waitForStoryReady(page);
+			const drawn = await page
+				.waitForSelector(PALETTE, { timeout: 10000 })
+				.then(
+					() => true,
+					() => false,
+				);
+			await page.waitForTimeout(500);
+			const restoredAt = await placeOf(page);
+			report(
+				drawn && restoredAt === place,
+				"platinum",
+				`after reload ${reload} the palette is drawn from the saved state, where it was left (${restoredAt}; saved at ${place})`,
+			);
+			const reloaded = await measure(page);
+			report(
+				!!reloaded && reloaded.perLine < reloaded.count,
+				"platinum",
+				`after reload ${reload} the column is counted and wraps (${reloaded?.perLine} a line of ${reloaded?.count})`,
+			);
+			await checkAt(page, `a saved column after reload ${reload}`, [1024, 360]);
+		}
+		await checkAt(
+			page,
+			"a saved column after two reloads, resized",
+			[1024, 300],
 		);
 		report(
 			errors.length === 0,
