@@ -48,6 +48,13 @@
 // (a bevel button's pop-up menu is a contextual menu too).
 $menus: ".classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu";
 
+// A menu tree whose tracking the keyboard moved last: the core's `focused`
+// state on its root list (the one list straight inside a menu wrapper that
+// carries it; cleared when the pointer moves), and the menu lists in it,
+// the root itself included (a contextual menu's).
+$keyed: ":where(.classicyMenuWrapper > .focused)";
+$keyed-menus: "#{$keyed}:is(#{$menus}), #{$keyed} :is(#{$menus})";
+
 // The frame's thickness: its two bevel rings and the ring of face inside
 // them, where the items start (3 px); and its negative (a Sass name
 // starting with `-` would be private to this module, as the helpers' are).
@@ -208,8 +215,21 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
 
   // While the pointer is over a menu it tracks the item under it alone, so
   // a keyboard-current item elsewhere in it shows plain (one open on its
-  // submenu stays tracked).
-  :is(#{$menus}):hover .classicyMenuItem:not(:hover, .open):focus-visible {
+  // submenu stays tracked), unless the keyboard moved the tracking last
+  // (below).
+  :is(#{$menus}):hover .classicyMenuItem:not(:hover, .open, #{$keyed} *):focus-visible {
+    color: b.$text;
+    background-color: transparent;
+  }
+
+  // While the keyboard moved the tracking last (the arrow keys, Home, End,
+  // a typed letter; the core's `focused` on the root list until the pointer
+  // moves), the item it made current is the one tracked, wherever the
+  // pointer rests: an item under a resting pointer shows plain, as Windows
+  // moves its one selection to the key's item (WIG Ch.7 "Menu Items",
+  // p.106, Figure 7.5 "Selected Item"; "The Menu Bar and Drop-down Menus",
+  // p.98).
+  :is(#{$keyed-menus}) .classicyMenuItem:hover:not(:focus-visible, .open) {
     color: b.$text;
     background-color: transparent;
   }
@@ -234,7 +254,12 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     }
   }
 
-  :is(#{$menus}):hover .classicyMenuItem.disabled:not(:hover, .open):focus-visible {
+  :is(#{$menus}):hover .classicyMenuItem.disabled:not(:hover, .open, #{$keyed} *):focus-visible {
+    @include b.disabled-text;
+    background-color: transparent;
+  }
+
+  :is(#{$keyed-menus}) .classicyMenuItem.disabled:hover:not(:focus-visible, .open) {
     @include b.disabled-text;
     background-color: transparent;
   }
@@ -296,6 +321,12 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     background: pixel-art(currentColor, $checkmark);
   }
 
+  // Under a resting pointer while the keyboard tracks another item, a
+  // dimmed item's mark is embossed again, as its title is (above).
+  :is(#{$keyed-menus}) .classicyMenuItem.disabled:hover:not(:focus-visible, .open) .classicyMenuItemCheck.checked::before {
+    background: embossed($checkmark);
+  }
+
   // An option item's gutter (the core's `classicyMenuItemBullet`, beside the
   // check's class): the 6 x 6 bullet in place of the check mark at the
   // chosen item, in the item's ink, embossed when the item is unavailable
@@ -320,6 +351,10 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
 
   :is(#{$menus}) .classicyMenuItem.disabled:is(:hover, .open, :focus-visible) .classicyMenuItemCheck.classicyMenuItemBullet.checked::before {
     background: pixel-art(currentColor, $bullet);
+  }
+
+  :is(#{$keyed-menus}) .classicyMenuItem.disabled:hover:not(:focus-visible, .open) .classicyMenuItemCheck.classicyMenuItemBullet.checked::before {
+    background: embossed($bullet);
   }
 
   // A separator: an etched line, ButtonShadow over ButtonHilight, across
@@ -362,6 +397,10 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
     &.disabled:is(:hover, .open, :focus-visible)::after {
       background: pixel-art(currentColor, $submenu-arrow);
     }
+  }
+
+  :is(#{$keyed-menus}) .classicyMenuItemChildMenuIndicator.disabled:hover:not(:focus-visible, .open)::after {
+    background: embossed($submenu-arrow);
   }
 
   // A submenu beside its item: its first item level with the parent item

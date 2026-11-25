@@ -17,8 +17,9 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
 
 /**
  * The three arrangement groups, every one required, and the optional
- * behavior groups (`scrollBar`, `patternOrigin`, `slider`, `fileDialog`,
- * `fileBrowser`), each key of which is optional too.
+ * behavior groups (`menu`, `scrollBar`, `patternOrigin`, `slider`,
+ * `fileDialog`, `fileBrowser`), each key of which is optional too, as is
+ * `menuBar.idleTimeoutMs`.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
@@ -30,7 +31,17 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		]),
 		centering: z.enum(["exact", "wholePixel"]).optional(),
 	}),
-	menuBar: z.object({ placement: z.enum(["screen", "window"]) }),
+	menuBar: z.object({
+		placement: z.enum(["screen", "window"]),
+		// 0 never closes; an hour is the longest a menu may wait.
+		idleTimeoutMs: z.number().int().min(0).max(3_600_000).optional(),
+	}),
+	menu: z
+		.object({
+			submenuDelayMs: z.number().int().min(0).max(10_000).optional(),
+			disabledItems: z.enum(["skip", "browse"]).optional(),
+		})
+		.optional(),
 	desktop: z.object({
 		iconGridOrigin: z.enum([
 			"top-right",

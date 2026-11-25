@@ -168,6 +168,9 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 			onClose();
 		};
 		const onKeyDown = (e: globalThis.KeyboardEvent) => {
+			// A menu's own Escape (ClassicyMenu closes a submenu first, then
+			// this surface, through its provider's onClose) is already handled.
+			if (e.defaultPrevented) return;
 			if (e.key === "Escape") {
 				e.preventDefault();
 				onClose();
@@ -194,8 +197,12 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		};
 	}, [buttonRef, onClose]);
 
-	// Menu items keep focus off the button, so arrow keys walk them here.
+	// Menu items keep focus off the button, so arrow keys walk them here,
+	// unless the menu walked them already: ClassicyMenu takes the keys for
+	// every menu it roots (dimmed items passed over, as here, unless the
+	// package's `layout.menu.disabledItems` browses them).
 	const onMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (e.defaultPrevented) return;
 		if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
 		const items = Array.from(
 			wrapperRef.current?.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR) ??

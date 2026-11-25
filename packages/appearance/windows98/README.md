@@ -45,7 +45,10 @@ and `nodenext` resolution).
   the desktop labels' are the package's own color families, editable in the
   Colors tab beside the palette.
 - **Its layout.** The grow box at the bottom right, the menu bar on the
-  screen, desktop icons from the top left, as Windows laid them, a
+  screen, menus that stay open until the next click, cascading menus that
+  open and close on Windows' 400 ms time-out (a contextual menu's on hover
+  too), a menu keyboard that stops on dimmed items as Windows' does,
+  desktop icons from the top left, as Windows laid them, a
   window's scroll bars kept where its content fits, and the Open and Save
   boxes as titled, movable dialogs showing one folder at a time under a
   pop-up that runs the path upward (Windows' Look in), Save As opening with
@@ -62,7 +65,9 @@ and `nodenext` resolution).
     their caption (no icon, no Minimize), palette windows with Close alone,
     a modeless dialog's frame flattened to a plain ButtonFace box;
   - menus: the flat menu bar, raised pull-down and contextual menus with an
-    inverted highlight and embossed dimmed items, etched separators, the
+    inverted highlight and embossed dimmed items (one item highlighted at a
+    time: the keyboard's, while the arrow keys moved it last, the
+    pointer's otherwise), etched separators, the
     default item (the command a double-click runs: the Trash icon's Open) in
     bold and a round bullet at the chosen item of an option group (the
     Finder's View as Icons and View as List), where the Mac packages draw a

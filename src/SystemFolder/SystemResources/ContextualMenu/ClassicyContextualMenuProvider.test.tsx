@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
 	ClassicyContextualMenuProvider,
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import { ClassicyContextualMenuTarget } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuTarget";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const menuA: ClassicyMenuItem[] = [{ id: "a1", title: "Alpha One" }];
@@ -208,5 +209,162 @@ describe("ClassicyContextualMenuProvider", () => {
 		render(<Trigger items={menuA} label="show-a" />);
 		fireEvent.click(screen.getByText("show-a"));
 		expect(screen.queryByText("Alpha One")).not.toBeInTheDocument();
+	});
+});
+
+// Shift+F10 and the Application key open the selection's contextual menu
+// (WIG Ch.7 "Pop-up Menu Interaction", p.101; the audit's 7.9): the focused
+// element gets a `contextmenu` of its own, at its center, so the targets a
+// right-click reaches resolve it, innermost first. Escape closes the open
+// menu (7.8), focus outside it or in it.
+describe("ClassicyContextualMenuProvider — the keyboard's context-menu keys", () => {
+	const wrapper = () =>
+		document.querySelector(".classicyContextMenuWrapper") as HTMLElement | null;
+	const atRect = (el: Element, rect: Partial<DOMRect>) =>
+		vi.spyOn(el, "getBoundingClientRect").mockReturnValue({
+			left: 0,
+			top: 0,
+			right: 0,
+			bottom: 0,
+			width: 0,
+			height: 0,
+			x: 0,
+			y: 0,
+			toJSON: () => ({}),
+			...rect,
+		} as DOMRect);
+
+	const renderTarget = () =>
+		render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyContextualMenuTarget menuItems={menuA}>
+					<button type="button">field</button>
+				</ClassicyContextualMenuTarget>
+				<button type="button">elsewhere</button>
+			</ClassicyContextualMenuProvider>,
+		);
+
+	it("opens the focused target's menu on Shift+F10, at its center", () => {
+		renderTarget();
+		const field = screen.getByText("field");
+		atRect(field, { left: 40, top: 20, right: 80, bottom: 40 });
+		field.focus();
+		const key = new KeyboardEvent("keydown", {
+			key: "F10",
+			shiftKey: true,
+			bubbles: true,
+			cancelable: true,
+		});
+		act(() => {
+			field.dispatchEvent(key);
+		});
+		expect(key.defaultPrevented).toBe(true);
+		expect(screen.getByText("Alpha One")).toBeInTheDocument();
+		// The center [60, 30], then the HIG's 1 px down and right.
+		expect(wrapper()?.style.left).toBe("61px");
+		expect(wrapper()?.style.top).toBe("31px");
+	});
+
+	it("opens it on the Application key too, and on neither for F10 alone, a modified key or a key already taken", () => {
+		renderTarget();
+		const field = screen.getByText("field");
+		field.focus();
+		fireEvent.keyDown(field, { key: "F10" });
+		fireEvent.keyDown(field, { key: "F10", shiftKey: true, ctrlKey: true });
+		fireEvent.keyDown(field, { key: "ContextMenu", altKey: true });
+		const taken = new KeyboardEvent("keydown", {
+			key: "ContextMenu",
+			bubbles: true,
+			cancelable: true,
+		});
+		taken.preventDefault();
+		act(() => {
+			field.dispatchEvent(taken);
+		});
+		expect(screen.queryByText("Alpha One")).not.toBeInTheDocument();
+		fireEvent.keyDown(field, { key: "ContextMenu" });
+		expect(screen.getByText("Alpha One")).toBeInTheDocument();
+	});
+
+	it("sends it, with focus on nothing in particular, to where the pointer last went down, at that point", () => {
+		renderTarget();
+		const field = screen.getByText("field");
+		fireEvent.mouseDown(field, { clientX: 12, clientY: 34 });
+		(document.activeElement as HTMLElement | null)?.blur();
+		fireEvent.keyDown(document.body, { key: "F10", shiftKey: true });
+		expect(screen.getByText("Alpha One")).toBeInTheDocument();
+		expect(wrapper()?.style.left).toBe("13px");
+		expect(wrapper()?.style.top).toBe("35px");
+	});
+
+	it("leaves keys outside the desktop alone", () => {
+		render(
+			<>
+				<div id="classicyDesktop">
+					<ClassicyContextualMenuProvider>
+						<ClassicyContextualMenuTarget menuItems={menuA}>
+							<button type="button">inside</button>
+						</ClassicyContextualMenuTarget>
+					</ClassicyContextualMenuProvider>
+				</div>
+				<button type="button">host</button>
+			</>,
+		);
+		const host = screen.getByText("host");
+		host.focus();
+		const key = new KeyboardEvent("keydown", {
+			key: "ContextMenu",
+			bubbles: true,
+			cancelable: true,
+		});
+		act(() => {
+			host.dispatchEvent(key);
+		});
+		expect(key.defaultPrevented).toBe(false);
+		expect(screen.queryByText("Alpha One")).not.toBeInTheDocument();
+		screen.getByText("inside").focus();
+		fireEvent.keyDown(screen.getByText("inside"), { key: "ContextMenu" });
+		expect(screen.getByText("Alpha One")).toBeInTheDocument();
+	});
+
+	it("closes the open menu on Escape, with focus outside it or in it", () => {
+		renderTarget();
+		const field = screen.getByText("field");
+		fireEvent.contextMenu(field, { clientX: 5, clientY: 5 });
+		expect(screen.getByText("Alpha One")).toBeInTheDocument();
+		field.focus();
+		fireEvent.keyDown(field, { key: "Escape" });
+		expect(screen.queryByText("Alpha One")).not.toBeInTheDocument();
+		// Opened from the keyboard and entered with Down, Escape closes it
+		// and gives focus back to the target.
+		fireEvent.keyDown(field, { key: "ContextMenu" });
+		fireEvent.keyDown(field, { key: "ArrowDown" });
+		expect(screen.getByText("Alpha One").closest("li")).toHaveFocus();
+		fireEvent.keyDown(document.activeElement as HTMLElement, {
+			key: "Escape",
+		});
+		expect(screen.queryByText("Alpha One")).not.toBeInTheDocument();
+		expect(field).toHaveFocus();
+	});
+
+	it("gives focus back to the target when an item chosen from the keyboard closes the menu", () => {
+		vi.useFakeTimers();
+		try {
+			renderTarget();
+			const field = screen.getByText("field");
+			field.focus();
+			fireEvent.keyDown(field, { key: "ContextMenu" });
+			fireEvent.keyDown(field, { key: "ArrowDown" });
+			const alpha = screen.getByText("Alpha One").closest("li") as HTMLElement;
+			expect(alpha).toHaveFocus();
+			fireEvent.keyDown(alpha, { key: "Enter" });
+			act(() => {
+				vi.advanceTimersByTime(450);
+			});
+			expect(screen.queryByText("Alpha One")).not.toBeInTheDocument();
+			expect(field).toHaveFocus();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

@@ -269,6 +269,25 @@ describe("ClassicyMenu appearance", () => {
 		]);
 	});
 
+	// The keyboard opens a submenu through the click's own path (the audit's
+	// 7.7): the item's and the menu's `open`, with the keyboard as input, then
+	// the focus it moves to the submenu's first item.
+	it("emits open, keyboard input, when an arrow key opens a submenu", () => {
+		renderMenu();
+		item("more").focus();
+		probe.events.length = 0;
+		fireEvent.keyDown(item("more"), { key: "ArrowDown" });
+		expect(item("child")).toHaveFocus();
+		expect(emitted("MenuItem")).toEqual([
+			{ event: "open", detail: { itemId: "more", input: "keyboard" } },
+			{ event: "blur", detail: { itemId: "more", input: "keyboard" } },
+			{ event: "focus", detail: { itemId: "child", input: "keyboard" } },
+		]);
+		expect(emitted("Menu")).toEqual([
+			{ event: "open", detail: { itemId: "more", input: "keyboard" } },
+		]);
+	});
+
 	it("emits focus and blur only for the item itself, not its ancestors", () => {
 		renderMenu();
 		fireEvent.mouseDown(item("more"));

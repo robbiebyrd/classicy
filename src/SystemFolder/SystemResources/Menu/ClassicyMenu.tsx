@@ -3,7 +3,9 @@ import classNames from "classnames";
 import he from "he";
 import {
 	type CSSProperties,
+	type FocusEvent,
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
 	type MouseEvent,
 	memo,
 	type ReactNode,
@@ -20,6 +22,7 @@ import {
 	type ClassicyAppearanceInput,
 	withClassicyAppearanceInput,
 } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	CLASSICY_PART_ATTRIBUTE,
 	classicyStateClasses,
@@ -34,6 +37,19 @@ import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyI
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { classicyMenuBounds } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
+import {
+	type ClassicyMenuItemHandle,
+	type ClassicyMenuKeyboardEnv,
+	type ClassicyMenuListHandle,
+	type ClassicyMenuTree,
+	ClassicyMenuTreeContext,
+	classicyMenuFirstTitle,
+	classicyMenuItemOf,
+	consumeClassicyMenuSwallowedClick,
+	createClassicyMenuTree,
+	handleClassicyMenuKey,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuTree.internal";
+import { useClassicyMenuPress } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuPress.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
 	ClassicyMenuPlacementEpoch,
@@ -42,6 +58,7 @@ import {
 import { POPUP_MENU_VIEWPORT_MARGIN } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 /**
  * One menu entry, shared by the menu bar, contextual menus, pop-up bevel
@@ -196,6 +213,17 @@ interface ClassicyMenuProps {
 	 * scrolls (below).
 	 */
 	open?: boolean;
+	/**
+	 * How a root menu's items are laid out, for the keyboard and the
+	 * pointer: `"horizontal"`, a menu bar's titles (Left and Right move
+	 * between them, Down opens one, a press on one opens it), or
+	 * `"vertical"`, a menu's items (Up and Down move between them). Defaults
+	 * to `"vertical"` under a `startActive` `ClassicyMenuProvider` (a
+	 * contextual menu, a pop-up bevel button's) and `"horizontal"` under any
+	 * other (the screen and window menu bars). Read on a root menu only: a
+	 * submenu is always vertical.
+	 */
+	orientation?: "horizontal" | "vertical";
 }
 
 // A pull-down too long for the screen keeps at least this much of its rows
@@ -244,6 +272,33 @@ const nudgeMenuWrapperOntoGrid = (wrapper: HTMLElement) => {
  * `classicyMenuListScrolls`, an open submenu of its items is placed fixed
  * beside its item (so the scrolling list cannot clip it), and a scroll
  * closes it.
+ *
+ * A root menu (rendered with no `open`) also takes the keyboard and a
+ * press dragged across it, for every package (WIG Ch.7 (pp.97-98, 101);
+ * HIGOS8 "Sticky Menus" (p.92)). Its items are tracked by roving focus (each
+ * `<li>` is `tabIndex={-1}`; the package draws the focused one on
+ * `:focus-visible`): Up and Down move through a list, wrapping and passing
+ * over dividers (and over dimmed items, unless the package's
+ * `layout.menu.disabledItems` is `"browse"`), and on a menu bar's title open
+ * its menu on the first item; Right opens a submenu on its first item, or
+ * moves to the next title (opening its menu when one was open); Left closes
+ * a submenu, or moves to the previous title; Home and End go to a list's
+ * ends; Return and Space do what a click does; a printable character jumps
+ * to the next item it starts; Escape closes one level (a menu bar's menu
+ * back to its title, which keeps focus, then the bar, focus going back where
+ * it was). F10 brings focus to a menu bar's first title (in a window's own
+ * bar, the active window's) and back. A pop-up menu shown with focus outside
+ * it (a contextual menu opened by the pointer) takes Escape and Up and Down
+ * from the document. While the keyboard last moved the tracking, the root
+ * list carries the `focused` state, which a package that tracks the item
+ * under the pointer alone reads to let the keyboard's item show.
+ *
+ * A press on a menu bar title opens its menu at once; released over an
+ * item it chooses it, over the title (a quick click) the menu stays open,
+ * off every menu it closes (`useClassicyMenuPress`). A submenu opened by
+ * the pointer waits the package's `layout.menu.submenuDelayMs`, when it
+ * declares one, before it opens, and an open one as long before it closes
+ * under a resting pointer.
  */
 export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	name,
@@ -254,9 +309,26 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	className,
 	style,
 	open,
+	orientation,
 }) => {
-	const { closeSignal } = useContext(ClassicyMenuContext);
+	const { closeSignal, closeAll, popup, pokeActivity } =
+		useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
+	const layout = useClassicyAppearanceLayout();
+	const submenuDelayMs = layout.menu?.submenuDelayMs;
+	const disabledItems = layout.menu?.disabledItems ?? "skip";
+
+	// A root menu owns its tree's register; a submenu joins its root's.
+	const isRoot = open === undefined;
+	const listRef = useRef<HTMLUListElement>(null);
+	const outerTree = useContext(ClassicyMenuTreeContext);
+	const ownTreeRef = useRef<ClassicyMenuTree | null>(null);
+	if (isRoot && ownTreeRef.current === null)
+		ownTreeRef.current = createClassicyMenuTree(listRef);
+	const tree = isRoot ? ownTreeRef.current : outerTree;
+	const horizontal =
+		isRoot &&
+		(orientation ?? (popup ? "vertical" : "horizontal")) === "horizontal";
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: closeSignal is intentionally used as a trigger; the effect resets menu state when the signal changes
 	useEffect(() => {
@@ -279,8 +351,279 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	);
 	const handleClose = useCallback(() => setOpenChildId(null), []);
 
-	const listRef = useRef<HTMLUListElement>(null);
-	const appearance = useClassicyAppearance("Menu", {}, listRef);
+	// This list, as the tree sees it.
+	const listHandleRef = useRef<ClassicyMenuListHandle>({
+		openChildId,
+		closeChild: handleClose,
+	});
+	listHandleRef.current = { openChildId, closeChild: handleClose };
+	useLayoutEffect(() => {
+		const el = listRef.current;
+		if (!tree || !el) return;
+		tree.lists.set(el, listHandleRef);
+		return () => {
+			if (tree.lists.get(el) === listHandleRef) tree.lists.delete(el);
+		};
+	});
+
+	// A submenu's pointer time-outs (the package's `layout.menu.submenuDelayMs`):
+	// the pointer resting on another item of this list closes the open
+	// submenu after the delay, unless it comes back to the open item (its
+	// submenu included) first, so a diagonal drag into the submenu survives
+	// the siblings it crosses (WIG Ch.7 "Cascading Menus" (pp.104-105)).
+	// Absent, nothing closes it but another opening or the menus closing. A
+	// menu bar's titles switch at once.
+	const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const clearHideTimer = useCallback(() => {
+		if (hideTimerRef.current !== null) {
+			clearTimeout(hideTimerRef.current);
+			hideTimerRef.current = null;
+		}
+	}, []);
+	useEffect(() => clearHideTimer, [clearHideTimer]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a pending close is for the submenu that was open when it was armed
+	useEffect(() => clearHideTimer(), [openChildId, closeSignal, clearHideTimer]);
+	const openChildIdRef = useRef(openChildId);
+	openChildIdRef.current = openChildId;
+	const handleItemPointerEnter = useCallback(
+		(id: string, opensOnHover: boolean) => {
+			if (submenuDelayMs === undefined || horizontal) return;
+			const openId = openChildIdRef.current;
+			if (openId === null || id === openId || opensOnHover) {
+				// Back on the open item, or on one whose own submenu replaces it.
+				clearHideTimer();
+				return;
+			}
+			if (hideTimerRef.current !== null) return;
+			if (submenuDelayMs === 0) {
+				setOpenChildId(null);
+				return;
+			}
+			hideTimerRef.current = setTimeout(() => {
+				hideTimerRef.current = null;
+				setOpenChildId((current) => (current === openId ? null : current));
+			}, submenuDelayMs);
+		},
+		[submenuDelayMs, horizontal, clearHideTimer],
+	);
+
+	// The keyboard's tracking (a root menu's). `keyboardDriven`: the keyboard,
+	// not the pointer, last moved the tracked item; the root list carries the
+	// `focused` state meanwhile. `hoveredRef`: the item the pointer last moved
+	// onto, where the keyboard picks up from while the pointer moved last.
+	const [keyboardDriven, setKeyboardDriven] = useState(false);
+	const keyboardDrivenRef = useRef(false);
+	const setDriven = useCallback((driven: boolean) => {
+		keyboardDrivenRef.current = driven;
+		setKeyboardDriven(driven);
+	}, []);
+	const hoveredRef = useRef<HTMLElement | null>(null);
+	const pointerAtRef = useRef<{ x: number; y: number } | null>(null);
+	// Where focus was before the keyboard (or a title's press) brought it
+	// into the menus, and whether the keyboard has moved it here since: only
+	// then do the menus give it back when they close, so a menu used with
+	// the pointer alone leaves focus as it always did.
+	const focusBeforeRef = useRef<HTMLElement | null>(null);
+	const keyboardTookFocusRef = useRef(false);
+	const keepFocusOnCloseRef = useRef(false);
+	const restoreFocus = useCallback(() => {
+		const root = listRef.current;
+		const before = focusBeforeRef.current;
+		focusBeforeRef.current = null;
+		keyboardTookFocusRef.current = false;
+		const active = document.activeElement;
+		const focusInMenus =
+			active === null ||
+			active === document.body ||
+			(root?.contains(active) ?? false);
+		if (!focusInMenus) return;
+		if (before?.isConnected && !root?.contains(before)) {
+			before.focus({ preventScroll: true });
+		} else if (active instanceof HTMLElement && root?.contains(active)) {
+			active.blur();
+		}
+	}, []);
+	const noteFocusEntry = useCallback(() => {
+		const root = listRef.current;
+		const active = document.activeElement;
+		if (
+			root &&
+			active instanceof HTMLElement &&
+			active !== document.body &&
+			!root.contains(active)
+		)
+			focusBeforeRef.current = active;
+	}, []);
+	const keyboardEnv = useCallback(
+		(): ClassicyMenuKeyboardEnv => ({
+			horizontal,
+			disabledItems,
+			closeAll,
+			hovered: keyboardDrivenRef.current ? null : hoveredRef.current,
+			focusItem: (item) => {
+				noteFocusEntry();
+				item.focus();
+				keyboardTookFocusRef.current = true;
+				setDriven(true);
+				return document.activeElement === item;
+			},
+			restoreFocus,
+			keepFocusOnClose: () => {
+				keepFocusOnCloseRef.current = true;
+			},
+		}),
+		[
+			horizontal,
+			disabledItems,
+			closeAll,
+			noteFocusEntry,
+			setDriven,
+			restoreFocus,
+		],
+	);
+
+	// The menus closed: a keyboard user's focus goes back where it was (but
+	// stays on a title Escape left tracked), and the tracking is the
+	// pointer's again.
+	const lastCloseSignalRef = useRef(closeSignal);
+	useLayoutEffect(() => {
+		if (!isRoot || lastCloseSignalRef.current === closeSignal) return;
+		lastCloseSignalRef.current = closeSignal;
+		setDriven(false);
+		if (keepFocusOnCloseRef.current) {
+			keepFocusOnCloseRef.current = false;
+			return;
+		}
+		if (keyboardTookFocusRef.current) restoreFocus();
+	}, [isRoot, closeSignal, setDriven, restoreFocus]);
+	// A pop-up menu unmounting (closed) with the keyboard's focus in it gives
+	// focus back first, while its items are still in the document.
+	useLayoutEffect(
+		() => () => {
+			const root = listRef.current;
+			if (
+				isRoot &&
+				keyboardTookFocusRef.current &&
+				root?.contains(document.activeElement)
+			)
+				restoreFocus();
+		},
+		[isRoot, restoreFocus],
+	);
+
+	const { onMouseDown: onPressStart, endPress } = useClassicyMenuPress(
+		isRoot ? tree : null,
+		{ horizontal, closeAll },
+	);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: closeSignal is a trigger: a close ends any press still tracking
+	useEffect(() => endPress(), [closeSignal, endPress]);
+
+	// Keys reaching the document while a root menu is shown but focus is
+	// outside it (a contextual menu opened by the pointer leaves focus on
+	// what was clicked): Escape closes a level, Up and Down move focus into
+	// it. In the capture phase, before the focused element (or a dialog
+	// around it) sees them.
+	const treeShown = isRoot && (popup === true || openChildId !== null);
+	useEffect(() => {
+		if (!treeShown || !tree) return;
+		const onKey = (e: globalThis.KeyboardEvent) => {
+			if (e.defaultPrevented) return;
+			if (e.key !== "Escape" && e.key !== "ArrowDown" && e.key !== "ArrowUp")
+				return;
+			const root = listRef.current;
+			if (!root || (e.target instanceof Node && root.contains(e.target)))
+				return;
+			if (!handleClassicyMenuKey(tree, keyboardEnv(), e, null)) return;
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			pokeActivity();
+		};
+		document.addEventListener("keydown", onKey, true);
+		return () => document.removeEventListener("keydown", onKey, true);
+	}, [treeShown, tree, keyboardEnv, pokeActivity]);
+
+	// F10 brings focus to a menu bar's first title, and back (WIG Ch.7, p.98:
+	// the keyboard activates the menu bar). A window's own bar answers only
+	// while its window is active, so one bar takes it.
+	const windowActive = useContext(ClassicyWindowActiveContext);
+	useEffect(() => {
+		if (!isRoot || !horizontal || !tree || windowActive === false) return;
+		const onKey = (e: globalThis.KeyboardEvent) => {
+			if (
+				e.defaultPrevented ||
+				e.key !== "F10" ||
+				e.shiftKey ||
+				e.ctrlKey ||
+				e.altKey ||
+				e.metaKey
+			)
+				return;
+			const root = listRef.current;
+			if (!root?.isConnected) return;
+			e.preventDefault();
+			if (root.contains(document.activeElement)) {
+				closeAll();
+				restoreFocus();
+				return;
+			}
+			const env = keyboardEnv();
+			const first = classicyMenuFirstTitle(tree, env);
+			if (first) env.focusItem(first);
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [
+		isRoot,
+		horizontal,
+		tree,
+		windowActive,
+		closeAll,
+		restoreFocus,
+		keyboardEnv,
+	]);
+
+	const onRootKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
+		if (e.defaultPrevented || !tree) return;
+		const current = classicyMenuItemOf(tree, e.target);
+		if (!current) return;
+		pokeActivity();
+		if (handleClassicyMenuKey(tree, keyboardEnv(), e, current))
+			e.preventDefault();
+	};
+	const onRootMouseMove = (e: MouseEvent<HTMLUListElement>) => {
+		const at = pointerAtRef.current;
+		pointerAtRef.current = { x: e.clientX, y: e.clientY };
+		// A move of the pointer itself (not the browser's re-dispatch over
+		// content that moved under it) hands the tracking back to it.
+		if (
+			keyboardDrivenRef.current &&
+			(!at || at.x !== e.clientX || at.y !== e.clientY)
+		)
+			setDriven(false);
+	};
+	const onRootMouseOver = (e: MouseEvent<HTMLUListElement>) => {
+		if (tree) hoveredRef.current = classicyMenuItemOf(tree, e.target);
+	};
+	const onRootFocus = (e: FocusEvent<HTMLUListElement>) => {
+		const from = e.relatedTarget;
+		if (from instanceof HTMLElement && !e.currentTarget.contains(from))
+			focusBeforeRef.current = from;
+	};
+	const onRootBlur = (e: FocusEvent<HTMLUListElement>) => {
+		const to = e.relatedTarget;
+		// Focus left the menus (Tab, a click elsewhere): nothing to give back.
+		if (to instanceof Node && !e.currentTarget.contains(to)) {
+			keyboardTookFocusRef.current = false;
+			focusBeforeRef.current = null;
+			if (keyboardDrivenRef.current) setDriven(false);
+		}
+	};
+
+	const appearance = useClassicyAppearance(
+		"Menu",
+		isRoot ? { focused: keyboardDriven } : {},
+		listRef,
+	);
 
 	// The `max-height` a list too tall for the screen below it is capped at,
 	// once shown (its content box: its border box then ends at the screen
@@ -484,81 +827,101 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		if (openChildId !== null) emit("open", withInput({ itemId: openChildId }));
 	}, [openChildId, emit]);
 
-	return menuItems && menuItems.length > 0 ? (
-		<div
-			ref={wrapperRef}
-			className={classNames("classicyMenuWrapper", className)}
-			style={style}
-		>
-			<ul
-				{...appearance.attrs}
-				ref={listRef}
-				className={classNames(
-					navClass,
-					appearance.className,
-					scrollCap !== null && "classicyMenuListScrolls",
-				)}
-				style={
-					scrollCap === null
-						? appearance.style
-						: {
-								...appearance.style,
-								maxHeight: `${scrollCap}px`,
-								...scrollArrows.listStyle,
-							}
-				}
-				onScroll={
-					scrollCap === null
-						? undefined
-						: () => {
-								scrollArrows.onListScroll();
-								// An open submenu sits beside its item, which has moved.
-								setOpenChildId(null);
-							}
-				}
-				key={`${name}_menu`}
+	const menu =
+		menuItems && menuItems.length > 0 ? (
+			<div
+				ref={wrapperRef}
+				className={classNames("classicyMenuWrapper", className)}
+				style={style}
 			>
-				{menuItems.map((item: ClassicyMenuItem, index: number) =>
-					item?.id === "spacer" ? (
-						// A divider is not a menu item: no MenuItem appearance hook.
-						<ClassicySeparator
-							// biome-ignore lint/suspicious/noArrayIndexKey: separators all share the id "spacer" (it's how they're detected), so the index keeps React keys unique when a menu has more than one
-							key={`spacer_${index}`}
-						/>
-					) : (
-						<ClassicyMenuItemComponent
-							key={item?.id}
-							menuItem={item}
-							subNavClass={subNavClass || ""}
-							isOpen={openChildId === item.id}
-							onOpen={handleOpen}
-							onClose={handleClose}
-						/>
-					),
+				<ul
+					{...appearance.attrs}
+					ref={listRef}
+					className={classNames(
+						navClass,
+						appearance.className,
+						scrollCap !== null && "classicyMenuListScrolls",
+					)}
+					// A root menu takes the keyboard, a press dragged across its
+					// menus, and the pointer's moves (which hand the tracking back
+					// to it) for its whole tree; its submenus' lists are inside it.
+					onKeyDown={isRoot ? onRootKeyDown : undefined}
+					onMouseDown={isRoot ? onPressStart : undefined}
+					onMouseMove={isRoot ? onRootMouseMove : undefined}
+					onMouseOver={isRoot ? onRootMouseOver : undefined}
+					onFocus={isRoot ? onRootFocus : undefined}
+					onBlur={isRoot ? onRootBlur : undefined}
+					style={
+						scrollCap === null
+							? appearance.style
+							: {
+									...appearance.style,
+									maxHeight: `${scrollCap}px`,
+									...scrollArrows.listStyle,
+								}
+					}
+					onScroll={
+						scrollCap === null
+							? undefined
+							: () => {
+									scrollArrows.onListScroll();
+									// An open submenu sits beside its item, which has moved.
+									setOpenChildId(null);
+								}
+					}
+					key={`${name}_menu`}
+				>
+					{menuItems.map((item: ClassicyMenuItem, index: number) =>
+						item?.id === "spacer" ? (
+							// A divider is not a menu item: no MenuItem appearance hook.
+							<ClassicySeparator
+								// biome-ignore lint/suspicious/noArrayIndexKey: separators all share the id "spacer" (it's how they're detected), so the index keeps React keys unique when a menu has more than one
+								key={`spacer_${index}`}
+							/>
+						) : (
+							<ClassicyMenuItemComponent
+								key={item?.id}
+								menuItem={item}
+								subNavClass={subNavClass || ""}
+								isOpen={openChildId === item.id}
+								onOpen={handleOpen}
+								onClose={handleClose}
+								inBar={horizontal}
+								submenuDelayMs={submenuDelayMs}
+								onPointerEnter={handleItemPointerEnter}
+							/>
+						),
+					)}
+					{children}
+				</ul>
+				{scrollCap !== null && shadowBox && (
+					// The capped list's frame shadow, which the package draws on
+					// this sibling as it draws the list's own (the list clips it).
+					// Absolute in the wrapper, over the list's box, so it moves
+					// with the list, and no transformed ancestor can part them.
+					<div
+						className="classicyMenuScrollShadow"
+						aria-hidden="true"
+						style={{
+							position: "absolute",
+							left: `${shadowBox.left}px`,
+							top: `${shadowBox.top}px`,
+							width: `${shadowBox.width}px`,
+							height: `${shadowBox.height}px`,
+							pointerEvents: "none",
+						}}
+					/>
 				)}
-				{children}
-			</ul>
-			{scrollCap !== null && shadowBox && (
-				// The capped list's frame shadow, which the package draws on
-				// this sibling as it draws the list's own (the list clips it).
-				// Absolute in the wrapper, over the list's box, so it moves
-				// with the list, and no transformed ancestor can part them.
-				<div
-					className="classicyMenuScrollShadow"
-					aria-hidden="true"
-					style={{
-						position: "absolute",
-						left: `${shadowBox.left}px`,
-						top: `${shadowBox.top}px`,
-						width: `${shadowBox.width}px`,
-						height: `${shadowBox.height}px`,
-						pointerEvents: "none",
-					}}
-				/>
-			)}
-			{scrollCap !== null && scrollArrows.indicators}
-		</div>
-	) : null;
+				{scrollCap !== null && scrollArrows.indicators}
+			</div>
+		) : null;
+	return isRoot ? (
+		<ClassicyMenuTreeContext.Provider value={tree}>
+			{menu}
+		</ClassicyMenuTreeContext.Provider>
+	) : (
+		menu
+	);
 };
 
 const ClassicyMenuItemComponent: FunctionalComponent<{
@@ -567,10 +930,27 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	isOpen: boolean;
 	onOpen: (id: string, input: ClassicyAppearanceInput) => void;
 	onClose: () => void;
-}> = memo(({ menuItem, subNavClass, isOpen, onOpen, onClose: _onClose }) => {
+	/** It is a menu bar's title (its list is a horizontal root's). */
+	inBar: boolean;
+	/** The package's `layout.menu.submenuDelayMs`. */
+	submenuDelayMs: number | undefined;
+	/** Its list's pointer time-outs: the pointer entered this item. */
+	onPointerEnter: (id: string, opensOnHover: boolean) => void;
+}> = memo((props) => {
+	const {
+		menuItem,
+		subNavClass,
+		isOpen,
+		onOpen,
+		onClose: _onClose,
+		inBar,
+		submenuDelayMs,
+		onPointerEnter,
+	} = props;
 	const desktopDispatch = useAppManagerDispatch();
-	const { closeAll, menuBarActive, activateMenuBar, pokeActivity } =
+	const { closeAll, menuBarActive, activateMenuBar, pokeActivity, popup } =
 		useContext(ClassicyMenuContext);
+	const tree = useContext(ClassicyMenuTreeContext);
 	const [isFlashing, setIsFlashing] = useState(false);
 	const itemRef = useRef<HTMLLIElement>(null);
 	// Where its open menu goes: flipped and pinned so it shows inside the
@@ -693,20 +1073,39 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		[],
 	);
 
-	const handleClick = (e: MouseEvent) => {
-		e.stopPropagation();
+	// A submenu waiting on the pointer's time-out (`submenuDelayMs`).
+	const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const clearOpenTimer = () => {
+		if (openTimerRef.current !== null) {
+			clearTimeout(openTimerRef.current);
+			openTimerRef.current = null;
+		}
+	};
+	useEffect(
+		() => () => {
+			if (openTimerRef.current !== null) clearTimeout(openTimerRef.current);
+		},
+		[],
+	);
+
+	// Opens its submenu as a click does: the menus go active (hovering opens
+	// siblings' menus) and the item reports `open`.
+	const openSubmenu = (input: ClassicyAppearanceInput) => {
+		clearOpenTimer();
+		onOpen(menuItem.id, input);
+		activateMenuBar();
+		appearance.emit("open", { itemId: menuItem.id, input });
+	};
+
+	// What a click, Return or Space does.
+	const activate = () => {
 		if (menuItem.disabled) return;
 
 		if (hasChildren) {
 			if (isOpen) {
 				closeAll();
 			} else {
-				onOpen(menuItem.id, withClassicyAppearanceInput().input);
-				activateMenuBar();
-				appearance.emit(
-					"open",
-					withClassicyAppearanceInput({ itemId: menuItem.id }),
-				);
+				openSubmenu(withClassicyAppearanceInput().input);
 			}
 		} else {
 			actionRanRef.current = false;
@@ -726,11 +1125,60 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		}
 	};
 
+	const handleClick = (e: MouseEvent) => {
+		e.stopPropagation();
+		// The click ending a press the menus already acted on (a title's
+		// press opened its menu; a press released over another item chose
+		// it): `useClassicyMenuPress`.
+		if (consumeClassicyMenuSwallowedClick(tree, itemRef.current)) return;
+		activate();
+	};
+
+	// The tree reaches the item through this, kept current every render.
+	const handleRef = useRef<ClassicyMenuItemHandle>(null as never);
+	handleRef.current = {
+		label: he.decode(menuItem.title ?? menuItem.imageAlt ?? ""),
+		disabled: menuItem.disabled === true,
+		hasChildren: hasChildren === true,
+		open: isOpen,
+		openSubmenu,
+		activate,
+	};
+	useLayoutEffect(() => {
+		const el = itemRef.current;
+		if (!tree || !el) return;
+		tree.items.set(el, handleRef);
+		return () => {
+			if (tree.items.get(el) === handleRef) tree.items.delete(el);
+		};
+	});
+
+	// Hovering an active menu opens a submenu. With the package's
+	// `submenuDelayMs` (Windows: WIG Ch.7 "Cascading Menus" (pp.104-105)) a
+	// cascading menu waits that long under the resting pointer, a pop-up
+	// menu's open on hover too and a dimmed item's never do; a bar's titles
+	// switch at once, as they always have.
 	const handleMouseEnter = () => {
 		pokeActivity();
-		if (hasChildren && menuBarActive) {
-			onOpen(menuItem.id, "pointer");
+		const delayed = submenuDelayMs !== undefined && !inBar;
+		const opensOnHover =
+			delayed && hasChildren === true && menuItem.disabled !== true;
+		onPointerEnter(menuItem.id, opensOnHover);
+		if (!hasChildren) return;
+		if (!delayed) {
+			if (menuBarActive) onOpen(menuItem.id, "pointer");
+			return;
 		}
+		if (!opensOnHover || !(menuBarActive || popup) || isOpen) return;
+		clearOpenTimer();
+		if (submenuDelayMs === 0) {
+			onOpen(menuItem.id, "pointer");
+			return;
+		}
+		openTimerRef.current = setTimeout(() => {
+			openTimerRef.current = null;
+			onOpen(menuItem.id, "pointer");
+		}, submenuDelayMs);
 	};
 
 	const handleAnimationEnd = (e: React.AnimationEvent) => {
@@ -781,13 +1229,9 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			key={menuItem.id}
 			{...{ [CLASSICY_PART_ATTRIBUTE.part]: menuItem.part }}
 			onClick={handleClick}
-			onKeyDown={(e: React.KeyboardEvent) => {
-				pokeActivity();
-				if (e.key === "Enter") {
-					e.preventDefault();
-					handleClick(e as unknown as MouseEvent);
-				}
-			}}
+			// The root menu handles the keys (Return and Space included) for
+			// every item of its tree; an item only keeps its menus awake.
+			onKeyDown={pokeActivity}
 			onMouseEnter={handleMouseEnter}
 			onFocus={(e: React.FocusEvent) => {
 				track("hover", { type: "ClassicyMenuItem", ...analyticsArgs });
@@ -810,9 +1254,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				if (isOwnMouseOver(e))
 					appearance.emit("focus", { itemId: menuItem.id, input: "pointer" });
 			}}
-			onMouseLeave={() =>
-				appearance.emit("blur", { itemId: menuItem.id, input: "pointer" })
-			}
+			onMouseLeave={() => {
+				clearOpenTimer();
+				appearance.emit("blur", { itemId: menuItem.id, input: "pointer" });
+			}}
 			className={classNames(
 				"classicyMenuItem",
 				menuItem.icon ? "" : "classicyMenuItemNoImage",

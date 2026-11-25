@@ -60,4 +60,41 @@ describe("ClassicyDesktop contextual menu scoping", () => {
 		fireEvent.contextMenu(screen.getByText("opt-out child"));
 		expect(contextMenuOpen()).toBe(false);
 	});
+
+	// Shift+F10 and the Application key (WIG Ch.7 "Pop-up Menu Interaction",
+	// p.101; the audit's 7.9) reach the same targets a right-click does: the
+	// focused desktop icon's menu, and the desktop's own with the desktop
+	// itself focused.
+	it("opens the desktop's menu on Shift+F10 with the desktop focused", () => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		const desktop = document.getElementById("classicyDesktop") as HTMLElement;
+		desktop.focus();
+		fireEvent.keyDown(desktop, { key: "F10", shiftKey: true });
+		const wrapper = document.querySelector(
+			".classicyContextMenuWrapper",
+		) as HTMLElement;
+		expect(within(wrapper).getByText("Special")).toBeInTheDocument();
+	});
+
+	it("opens a focused desktop icon's menu on the Application key", () => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		const trash = screen
+			.getAllByText("Trash")
+			.map((label) => label.closest<HTMLElement>(".classicyDesktopIcon"))
+			.find(Boolean) as HTMLElement;
+		trash.focus();
+		fireEvent.keyDown(trash, { key: "ContextMenu" });
+		const wrapper = document.querySelector(
+			".classicyContextMenuWrapper",
+		) as HTMLElement;
+		expect(within(wrapper).getByText("Empty Trash…")).toBeInTheDocument();
+	});
 });

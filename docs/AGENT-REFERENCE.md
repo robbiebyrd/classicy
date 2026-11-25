@@ -838,6 +838,7 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyDesktopIcon` | `selected`, `open` (its app is open, or its folder is open in a Finder window), `dragging` |
 | `ClassicyControlStrip` | `collapsed`, `dragging` |
 | `ClassicyMenu` items | `disabled`, `open`, `default` (the item's `isDefault`: the command a double-click runs, which Windows 98 draws bold; Platinum and System 7 read it not at all) |
+| `ClassicyMenu`'s root list (a menu bar's, a contextual menu's, a pop-up bevel button's: the one `<ul>` straight inside its `.classicyMenuWrapper` that a root menu draws) | `focused` while the keyboard, not the pointer, last moved the tree's tracked item (an arrow key, Home, End, a typed letter, F10), until the pointer moves; select it as `:where(.classicyMenuWrapper > .focused)`. Every package draws the keyboard's item from `:focus-visible` (Platinum the browser's focus ring, System 7 inverted, Windows 98 the Hilight band); under `focused` an item under a resting pointer drops its hover highlight (the base sheet's rule, and System 7's and Windows 98's own), and System 7's and Windows 98's rule that tracks the pointer's item alone stands down, so one item is tracked at a time. A menu used with the pointer alone never carries it |
 | `ClassicyTabs` tab buttons and their wrappers (`classicyTabButtonWrapper`); `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
 | `ClassicyTable` rows (Finder list rows included) | `focused` on the one focus row, the keyboard cursor: the row last clicked or arrowed to while it is listed, else the first selected row, else the first row; carried whether or not the list has focus, so a package rings it under the container's `:focus` (Windows 98's dotted focus rectangle; Platinum and System 7 read it not at all) |
 | `ClassicyPopUpMenu` | `open`, `disabled`; while it is open, its label's root (`classicyControlLabelHolder`) and its indicator (`classicyPopUpMenuIndicator`) carry `open` too |
@@ -1245,15 +1246,119 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
-| `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
-| `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
-| `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount: a root menu), `orientation?` (`"horizontal" \| "vertical"`, a root menu's: its items are a menu bar's titles or a menu's items, to the keyboard and the pointer; default `"vertical"` under a `startActive` provider, else `"horizontal"`; a submenu is always vertical) | renders a menu list; a root menu takes the keyboard and press-drag-release for its whole tree ("Menu keyboard and press tracking" below); items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
+| `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs?` (default: the active package's `layout.menuBar.idleTimeoutMs`, else `15000`) | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout). `startActive` makes its root `ClassicyMenu` a pop-up (vertical) menu to the keyboard and the pointer; without it the root is a menu bar |
+| `useClassicyMenuIdleTimeout()` | → `number` | the idle time-out a provider given no `idleTimeoutMs` uses: the active package's `layout.menuBar.idleTimeoutMs` (Windows 98: `0`, never), else `CLASSICY_MENU_DEFAULT_IDLE_TIMEOUT_MS` (15000, HIGOS8 p.92); re-renders on a package switch. The screen and window menu bars need no prop: their providers read it |
+| `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element. Shift+F10 and the Application key open it too, from a focused element inside it ("Menu keyboard and press tracking" below) |
+| `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned. `onClose` runs on a selection, a click outside, Escape (a level at a time: an open submenu first) or the idle time-out |
 | `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y]), hideContextMenu() }` | imperative API |
 | `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
 | `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the package layout's placement is `"window"`; usually not used directly. Root carries `data-classicy-part="window-menu-bar"`; the window root carries `classicyWindowWithMenuBar` while it draws one |
 | `useClassicyMenuCloseOnOutsideMouseDown(ref)` | `ref` * (`RefObject<HTMLElement \| null>`) | call inside a `ClassicyMenuProvider`: while its menu bar is active (a title was clicked open), a mouse-down outside `ref`'s element closes the provider's menus. Both menu bars use it; a null ref closes nothing |
 | `ClassicyMenuBarExtension` | `id` *, `order?`, `icon?`, `title?`, `menuItems?`, `onClick?` | add a right-side menu bar item (like the clock). Its menu hangs from the item's left side, or, where that would pass the desktop's right edge, with its right side under the item's right side, as a title's pull-down does ("Where menus open") |
+
+**Menu keyboard and press tracking** (WIG Ch.7, pp.97-98, 101, 104-105;
+HIGOS8 "Sticky Menus", p.92; the Windows 98 audit's 7.5 to 7.9 and 7.12).
+Every package, no declaration needed, except the three layout keys named
+(§8, "Layout declarations"). A root `ClassicyMenu` (one rendered with no
+`open`) owns a register of its lists and items
+(`ClassicyMenuTree.internal.ts`) and handles, for its whole tree, keys that
+reach it and presses on it:
+
+- Roving focus: every item is a `tabIndex={-1}` `<li>`; the keyboard moves
+  focus between them (`:focus-visible` is the package's drawing: Platinum
+  draws the browser's own focus ring, declaring no menu focus rule, as its
+  pop-up bevel buttons' keyboard-opened menus always did; System 7 inverts
+  the item; Windows 98 draws its Hilight band). A root's items are a menu
+  bar's titles (`orientation` `"horizontal"`, the default under a provider
+  without `startActive`) or a menu's items (`"vertical"`, the default under
+  a `startActive` one: contextual menus, pop-up bevel buttons' menus).
+- Up and Down move through a list, wrapping and passing over dividers and,
+  unless the package's `layout.menu.disabledItems` is `"browse"` (Windows
+  98), dimmed items; on a closed title either opens its menu on the first
+  item (Windows selects the first: Wine's `MENU_ShowSubPopup`); on a title
+  whose menu is open (opened by a click, focus left on the title) Down
+  enters it at its first item, Up at its last. Right opens a submenu on its
+  first item, or, on a title or on a leaf of a bar's menu, moves to the next
+  title (wrapping), opening its menu on the first item when a menu was open
+  on the bar; Left closes a submenu back to its item, or moves to the
+  previous title the same way. Home and End go to a list's ends; Return and
+  Space do what a click does (a closed submenu opens on its first item; an
+  open one closes every menu, as a second click does; a leaf is chosen);
+  a printable character jumps to the next item, wrapping, whose title (else
+  image alt text) starts with it, case-insensitively (an access key, where
+  items carry one, will come first). Moving off an item with an open
+  submenu closes that submenu. Keys with Control, Alt or Command are left
+  to their owners (the keyboard-equivalent dispatcher).
+- Escape closes one level: a submenu back to its item; a bar's menu back
+  to its title, which keeps focus ("leaves its menu title highlighted"); a
+  title with nothing open deactivates the bar, focus going back where it
+  was before the keyboard (or a title's press) brought it into the menus; a
+  pop-up menu closes (its provider's `onClose`), focus going back the same
+  way. F10 (no modifier) brings focus to a menu bar's first title, and back
+  again: the screen bar, or a window's own bar while its window is active
+  (`ClassicyWindowActiveContext`). Alt alone is not claimed (browsers keep
+  it: Firefox shows its own menu bar).
+- A root whose menu is shown while focus is outside it (a contextual menu
+  opened by the pointer leaves focus on what was clicked; a pop-up bevel
+  button's opened by a click, on the button) takes Escape (one level) and
+  Up and Down (into the deepest shown list, at its first or last item) from
+  the document, in the capture phase, before the focused element or a
+  dialog around it sees them.
+- Focus is given back where it was when the menus close (a selection, a
+  close) only after the keyboard has moved it in the menus, so a menu used
+  with the pointer alone leaves focus as it always did; a pop-up menu
+  unmounting with the keyboard's focus in it gives focus back before its
+  items leave the document.
+- One item is tracked at a time: while the keyboard last moved the
+  tracking, the root list carries the `focused` state (§4.0.1) until the
+  pointer moves (a `mousemove` with travel; the browser's re-dispatch over
+  content that moved under a resting pointer keeps it), and the keyboard
+  picks up from the item under the pointer when the pointer moved last.
+- Press-drag-release (`useClassicyMenuPress.internal.ts`): a press on a
+  menu bar title opens its menu at once (a click no longer has to end
+  first), the pointer tracks the items while the button is held (another
+  title it crosses opens, as hovering an active bar does); released over an
+  enabled item with no submenu, other than the one pressed, that item is
+  chosen (`click()`), whatever the press began on (a title, or an item of a
+  menu already open); released over the pressed title (a quick click) or
+  anywhere else in the tree's menus (a dimmed item, a divider, an item with
+  a submenu, another title), a menu the press opened stays open (sticky),
+  the click that ends the press swallowed; released off every menu, it
+  closes. A press that opened nothing (on an open title, on an item of an
+  open menu) released over the item it began on is left to the click, as
+  before: a second click on an open title still closes it. A lost pointer
+  stream ends the press, closing a menu it opened. A pop-up root's items are
+  not titles: a press there opens nothing.
+- Submenu time-outs: with the package's `layout.menu.submenuDelayMs`
+  (Windows 98: 400, `SPI_GETMENUSHOWDELAY`), a submenu waits that long
+  under a resting pointer before it opens, a leave first cancels it, and an
+  open one closes that long after the pointer rests on another item of its
+  list, unless the pointer comes back to the open item or its submenu
+  first (a diagonal drag); a pop-up menu's submenus open on hover too, and a
+  dimmed item's never do. Absent (Platinum, System 7): a hovered submenu of
+  an active menu opens at once and stays open until another opens or the
+  menus close, and a pop-up menu's open on a click. Menu bar titles switch
+  at once either way, and a click, Return or an arrow key opens at once.
+- The idle time-out: every `ClassicyMenuProvider` given no `idleTimeoutMs`
+  reads the package's `layout.menuBar.idleTimeoutMs`
+  (`useClassicyMenuIdleTimeout`; absent, 15 s; Windows 98: `0`, never).
+- Shift+F10 and the Application key (`useClassicyContextMenuKey.internal.ts`,
+  mounted by `ClassicyContextualMenuProvider`) send the focused element a
+  `contextmenu` of its own, at the center of its visible box (as Windows
+  places an edit control's keyboard pop-up menu: Wine's `edit.c`), which
+  every target a right-click reaches resolves innermost first: a
+  `ClassicyContextualMenuTarget`, a window's `contextMenu` (from a focused
+  element in it), a focused desktop icon's, the desktop's (the desktop
+  itself focused). With focus on the page or on the desktop itself (which a
+  click inside a window focuses), it goes to where the pointer last went
+  down in the desktop, at that point. Keys outside `#classicyDesktop`, a key
+  a handler took (`defaultPrevented`) and auto-repeats are left alone; the
+  browser's own `contextmenu` for the key (Chrome on Windows fires it on the
+  Menu key's keyup) is swallowed for half a second.
+- `ClassicyBevelButtonPopup`'s own Up/Down walk and its document Escape
+  listener skip a key the menu already took (`defaultPrevented`): the menu
+  walks its items (passing dimmed ones, as the pop-up did) and closes it.
 
 **Where menus open** (System 7.5's Menu Manager, measured: its Help menu at
 the bar's right end, `*-menu-help-and-selected-icon.png`, and its
@@ -4299,7 +4404,11 @@ it like Platinum (§1); its README lists what it ships.
   and so the Options tab, covers `titleBar`, `progressBar`, `field`,
   `popUp` (`height`), `tabControl` and `desktopLabel`. Layout: grow box
   bottom right, menu bar
-  on the screen, icon grid from the top left, `window.centering:
+  on the screen with `idleTimeoutMs: 0` (an open menu stays until the next
+  click), `menu: { submenuDelayMs: 400, disabledItems: "browse" }` (a
+  cascading menu opens and closes on Windows' 400 ms time-out, a pop-up
+  menu's on hover too, and the keyboard browses dimmed items), icon grid
+  from the top left, `window.centering:
   "wholePixel"` (a centered alert or dialog lands on whole pixels, as under
   System 7, so its pixel-grid bevels stay sharp), `scrollBar.fitsBars:
   "shown"`, a window's bars drawn, disabled, where its content fits, as
@@ -4321,7 +4430,11 @@ it like Platinum (§1); its README lists what it ships.
   three-ring fixed frame on every modal and on any window that cannot be
   sized (`classicyWindowNoResize`: the control panels, the About windows,
   the Calculator), its drag band and placard corner following,
-  balloon help drawn as a ToolTip with no tail, a message box's buttons
+  balloon help drawn as a ToolTip with no tail, a menu's keyboard item the
+  one band while the keyboard moved the tracking last (the core's `focused`
+  on the root list: an item under the resting pointer plain, a dimmed one
+  embossed, and the rule that tracks the pointer's item alone standing
+  down), a message box's buttons
   centered (as MessageBox centers them; a dialog's stay right-aligned), a
   selected icon blended with a 50% dither of the highlight (Explorer's
   ILD_BLEND50) through the icon's own shape, on the desktop, in the icon
@@ -4361,9 +4474,10 @@ how they look) has two halves:
    keeps scroll bars drawn while the content fits (`fitsBars`) and adds a
    drag outline during a thumb drag (`thumbDrag`).
 2. **The package's `layout` block**, for the three arrangements that need
-   JavaScript as well as CSS, the optional `window.centering`, and the
-   optional `scrollBar`, `patternOrigin` and `slider` groups, which declare
-   behavior rather than arrangement. The groups and each of their keys are
+   JavaScript as well as CSS, the optional `window.centering` and
+   `menuBar.idleTimeoutMs`, and the optional `menu`, `scrollBar`,
+   `patternOrigin` and `slider` groups, which declare behavior rather than
+   arrangement. The groups and each of their keys are
    optional, so a package that leaves one out keeps the core's behavior;
    Platinum declares only `slider`.
 
@@ -4372,6 +4486,9 @@ how they look) has two halves:
 | `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7 and Windows 98): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
+| `menuBar.idleTimeoutMs` (optional) | a whole number of ms, `0` to `3600000` | how long an open menu waits, untouched, before it closes itself: read by every `ClassicyMenuProvider` given no `idleTimeoutMs` (the screen and window bars, contextual menus, pop-up bevel buttons' menus) through `useClassicyMenuIdleTimeout`. Absent (Platinum, System 7): 15000, HIGOS8 "Sticky Menus" (p.92). `0` (Windows 98): never, as a Windows menu stays until the next click (WIG Ch.7 "Drop-down Menu Interaction", p.97; Ch.14 "Timing and Navigational Interfaces", p.333) |
+| `menu.submenuDelayMs` (optional) | a whole number of ms, `0` to `10000` | a cascading menu's pointer time-outs ("Menu keyboard and press tracking", §4.5). Absent (Platinum, System 7): a hovered submenu opens at once and stays open until another opens or the menus close, and a pop-up menu's submenus open on a click. Set (Windows 98: 400, `SPI_GETMENUSHOWDELAY`; WIG Ch.7 "Cascading Menus", pp.104-105): it waits that long under a resting pointer before opening (a leave cancels it), an open one closes that long after the pointer rests on another item of its list unless the pointer returns to it first, a pop-up menu's open on hover too, and a dimmed item's never on hover. Bar titles switch at once either way; a click, Return or an arrow key opens at once |
+| `menu.disabledItems` (optional) | `skip`, `browse` | how the menus' keyboard treats a dimmed item. `skip` (the default, as Mac OS menus and the pop-up bevel buttons' menus did): Up, Down, Home, End and typing pass over it. `browse` (Windows 98; WIG Ch.7 "Menu Items", p.107: disabling "does not prevent the user from browsing or choosing it"): it is tracked like any other, and choosing it does nothing |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
 | `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open (a folder row with no icon of its own draws the package's `fileDialogFolderIcon` system art, else the folder icon), Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |
@@ -4437,7 +4554,8 @@ under the title bar. Utility windows, modals, collapsed windows and windows
 with an empty `appMenu` get none. It has its own `ClassicyMenuProvider`:
 menus stick as the screen bar's do and close on a selection, a re-click of
 the open title, a mouse-down outside the bar
-(`useClassicyMenuCloseOnOutsideMouseDown`), or the 15 s idle timeout. Another
+(`useClassicyMenuCloseOnOutsideMouseDown`), or the package's idle time-out
+(`layout.menuBar.idleTimeoutMs`; 15 s when it declares none). Another
 window's bar counts as outside, so only one window's menu is open at a time.
 A switch to window placement closes any menu open on the screen bar. Its
 height is `--classicy-window-menu-bar-height` when a host or package sets it

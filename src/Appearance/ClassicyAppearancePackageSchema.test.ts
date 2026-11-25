@@ -107,6 +107,69 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// The menus' time-outs and their keyboard's treatment of dimmed items
+	// (the WIG audit's 7.6 / 14.4, 7.7 and 7.12): optional, so Platinum's
+	// layout, which declares none, still parses, and each kept as given.
+	it("takes an optional menuBar.idleTimeoutMs and an optional menu group", () => {
+		for (const [menuBar, menu] of [
+			[{ placement: "screen" }, undefined],
+			[{ placement: "screen", idleTimeoutMs: 0 }, {}],
+			[{ placement: "window", idleTimeoutMs: 15000 }, { submenuDelayMs: 0 }],
+			[{ placement: "screen" }, { disabledItems: "skip" }],
+		]) {
+			const input = platinumShaped();
+			const layout = input.layout as Record<string, unknown>;
+			layout.menuBar = menuBar;
+			layout.menu = menu;
+			expect(
+				ClassicyAppearancePackageSchema.safeParse(input).success,
+				JSON.stringify({ menuBar, menu }),
+			).toBe(true);
+		}
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.menuBar = { placement: "screen", idleTimeoutMs: 0 };
+		layout.menu = { submenuDelayMs: 400, disabledItems: "browse" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menuBar).toEqual({
+			placement: "screen",
+			idleTimeoutMs: 0,
+		});
+		expect(result.data?.layout.menu).toEqual({
+			submenuDelayMs: 400,
+			disabledItems: "browse",
+		});
+	});
+
+	it("rejects a negative or fractional menu time-out and an unknown disabledItems", () => {
+		for (const [path, menuBar, menu] of [
+			[
+				["layout", "menuBar", "idleTimeoutMs"],
+				{ placement: "screen", idleTimeoutMs: -1 },
+				undefined,
+			],
+			[
+				["layout", "menu", "submenuDelayMs"],
+				{ placement: "screen" },
+				{ submenuDelayMs: 0.5 },
+			],
+			[
+				["layout", "menu", "disabledItems"],
+				{ placement: "screen" },
+				{ disabledItems: "hide" },
+			],
+		] as const) {
+			const input = platinumShaped();
+			const layout = input.layout as Record<string, unknown>;
+			layout.menuBar = menuBar;
+			layout.menu = menu;
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.success, path.join(".")).toBe(false);
+			expect(result.error?.issues.map((i) => i.path)).toContainEqual(path);
+		}
+	});
+
 	it("rejects defaults that belong to another package", () => {
 		const result = ClassicyAppearancePackageSchema.safeParse({
 			...platinumShaped(),

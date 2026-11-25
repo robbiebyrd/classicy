@@ -47,7 +47,7 @@ interface ClassicyMenuProps {
 	flipLeftTo?: number;
 	/** The items to show. Rendered as given — no Help item is added here. */
 	menuItems: ClassicyMenuItem[];
-	/** Called when the menu should close: an item was chosen, the idle timeout passed, or the user clicked outside. Unmount the menu here. */
+	/** Called when the menu should close: an item was chosen, the idle timeout passed, the user clicked outside, or Escape closed it. Unmount the menu here. */
 	onClose?: () => void;
 	/** Extra class names, merged onto the root wrapper after the component's own. */
 	className?: string;
@@ -62,7 +62,10 @@ interface ClassicyMenuProps {
  * A Platinum pop-up menu rendered at a fixed point — the low-level surface
  * behind contextual menus and menu bar extension dropdowns. It opens already
  * active (sticky, HIGOS8 p.92), flips to stay inside the desktop, and calls
- * `onClose` on a selection, a click outside or 15 seconds idle.
+ * `onClose` on a selection, a click outside, Escape (an open submenu closing
+ * first: WIG Ch.7 "Pop-up Menu Interaction" (p.101)) or the idle time-out
+ * (15 seconds unless the package's `layout.menuBar.idleTimeoutMs` says
+ * otherwise). Up and Down take the keyboard into it from wherever focus is.
  *
  * For right-click menus you usually don't render it yourself: wrap a control
  * in `ClassicyContextualMenuTarget`, pass `contextMenu` to a window or app, or

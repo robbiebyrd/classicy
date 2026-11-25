@@ -61,7 +61,52 @@ export type ClassicyAppearanceLayout = {
 		 */
 		centering?: "exact" | "wholePixel";
 	};
-	menuBar: { placement: "screen" | "window" };
+	menuBar: {
+		placement: "screen" | "window";
+		/**
+		 * How long an open menu waits, untouched, before it closes itself, in
+		 * milliseconds. Optional: absent, 15000 (HIGOS8 "Sticky Menus", p.92:
+		 * "A sticky menu will also close on its own after fifteen seconds").
+		 * `0` never closes it: Windows keeps a menu until the next click (WIG
+		 * Ch.7 "Drop-down Menu Interaction", p.97; Ch.14 "Timing and
+		 * Navigational Interfaces", p.333). Read by every
+		 * `ClassicyMenuProvider` given no `idleTimeoutMs` of its own (the
+		 * screen and window menu bars, contextual menus, pop-up bevel
+		 * buttons' menus), through `useClassicyMenuIdleTimeout`.
+		 */
+		idleTimeoutMs?: number;
+	};
+	/**
+	 * How menus track the pointer and the keyboard (`ClassicyMenu`).
+	 * Optional, as is each key: a package that leaves one out keeps the
+	 * Mac OS behavior.
+	 */
+	menu?: {
+		/**
+		 * The time-out, in milliseconds, before a submenu (a cascading menu)
+		 * opens under a resting pointer and before an open one closes when the
+		 * pointer rests on another item of its parent, so a diagonal drag into
+		 * it survives the siblings it crosses (WIG Ch.7 "Cascading Menus",
+		 * pp.104-105; Windows' SPI_GETMENUSHOWDELAY, 400). Absent (Mac OS 8):
+		 * a hovered submenu opens at once and stays open until another opens
+		 * or the menus close, and a pop-up menu (a contextual menu, a pop-up
+		 * bevel button's) opens its submenus on a click alone. Set, even to
+		 * `0`, a pop-up menu's submenus open on hover too, after the delay,
+		 * and a dimmed item's submenu never opens on hover. Menu bar titles
+		 * switch at once either way; a click, Return or the arrow keys open a
+		 * submenu at once.
+		 */
+		submenuDelayMs?: number;
+		/**
+		 * How the keyboard treats a dimmed item. `"skip"` (the default, as Mac
+		 * OS menus and the pop-up bevel buttons' menus did): the arrow keys,
+		 * Home, End and typing pass over it. `"browse"` (Windows): it is
+		 * tracked like any other item, and choosing it does nothing (WIG
+		 * Ch.7 "Menu Items", p.107: "If you disable a menu item or its title,
+		 * it does not prevent the user from browsing or choosing it").
+		 */
+		disabledItems?: "skip" | "browse";
+	};
 	desktop: {
 		iconGridOrigin: "top-right" | "top-left" | "bottom-right" | "bottom-left";
 	};

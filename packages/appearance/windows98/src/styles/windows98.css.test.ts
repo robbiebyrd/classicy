@@ -237,4 +237,59 @@ describe("windows98.scss (compiled)", () => {
 		// On the title alone: no rule bolds the item itself.
 		expect(has(".classicyMenuItem.default")).toBe(false);
 	});
+
+	// Menu keyboard navigation (the audit's 7.7): the core marks the root
+	// list `focused` while the keyboard moved the tracking last, until the
+	// pointer moves. The pointer-alone rules stand down then, and an item
+	// under a resting pointer shows plain (a dimmed one embossed again, its
+	// mark and arrow too), so the keyboard's item is the one band, as
+	// Windows moves its one selection (WIG Ch.7 "Menu Items", p.106).
+	it("tracks the keyboard's menu item alone while the keyboard moved last", () => {
+		const selectors = selectorsOf(css);
+		const has = (tail: string) =>
+			selectors.some((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		const menus =
+			":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu)";
+		const keyed = ":where(.classicyMenuWrapper > .focused)";
+		const keyedMenus = `:is(${keyed}${menus}, ${keyed} ${menus})`;
+		const resting = ":hover:not(:focus-visible, .open)";
+		// The pointer-alone rules exclude a keyed tree.
+		expect(
+			has(
+				`${menus}:hover .classicyMenuItem:not(:hover, .open, ${keyed} *):focus-visible`,
+			),
+		).toBe(true);
+		expect(
+			has(
+				`${menus}:hover .classicyMenuItem.disabled:not(:hover, .open, ${keyed} *):focus-visible`,
+			),
+		).toBe(true);
+		expect(
+			has(`${menus}:hover .classicyMenuItem:not(:hover, .open):focus-visible`),
+		).toBe(false);
+		// A resting pointer's item is plain, a dimmed one embossed.
+		const plain = block(`${keyedMenus} .classicyMenuItem${resting}`);
+		expect(plain).toContain("color: var(--color-black)");
+		expect(plain).toContain("background-color: transparent");
+		const dimmed = block(`${keyedMenus} .classicyMenuItem.disabled${resting}`);
+		expect(dimmed).toContain("color: var(--color-system-05)");
+		expect(dimmed).toContain("text-shadow:");
+		expect(dimmed).toContain("background-color: transparent");
+		for (const mark of [
+			".classicyMenuItemCheck.checked::before",
+			".classicyMenuItemCheck.classicyMenuItemBullet.checked::before",
+		])
+			expect(
+				block(`${keyedMenus} .classicyMenuItem.disabled${resting} ${mark}`),
+			).toContain("var(--color-system-01)");
+		expect(
+			block(
+				`${keyedMenus} .classicyMenuItemChildMenuIndicator.disabled${resting}::after`,
+			),
+		).toContain("var(--color-system-01)");
+	});
 });

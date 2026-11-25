@@ -239,11 +239,19 @@ describe("the Windows 98 appearance package", () => {
 	// dialog or alert lands on whole pixels, so its one-pixel bevels and
 	// glyphs stay on the grid (`window.centering`, the audit's 8.8; WIG Ch.8
 	// "Window Placement", p.147; Ch.13 "Design of Graphic Images", p.313).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels", async () => {
+	// An open menu stays until the next click (`menuBar.idleTimeoutMs` 0, the
+	// audit's 7.6 / 14.4; WIG Ch.7 "Drop-down Menu Interaction", p.97; Ch.14
+	// "Timing and Navigational Interfaces", p.333), a cascading menu opens
+	// and closes after Windows' 400 ms time-out (`menu.submenuDelayMs`, 7.12;
+	// WIG Ch.7 "Cascading Menus", pp.104-105), and the keyboard browses a
+	// dimmed item like any other (`menu.disabledItems`, 7.7; WIG Ch.7 "Menu
+	// Items", p.107).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
-			menuBar: { placement: "screen" },
+			menuBar: { placement: "screen", idleTimeoutMs: 0 },
+			menu: { submenuDelayMs: 400, disabledItems: "browse" },
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: { fitsBars: "shown" },
 			fileDialog: {

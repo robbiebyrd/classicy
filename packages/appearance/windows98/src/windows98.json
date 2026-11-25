@@ -3786,7 +3786,12 @@
 			"centering": "wholePixel"
 		},
 		"menuBar": {
-			"placement": "screen"
+			"placement": "screen",
+			"idleTimeoutMs": 0
+		},
+		"menu": {
+			"submenuDelayMs": 400,
+			"disabledItems": "browse"
 		},
 		"desktop": {
 			"iconGridOrigin": "top-left"
