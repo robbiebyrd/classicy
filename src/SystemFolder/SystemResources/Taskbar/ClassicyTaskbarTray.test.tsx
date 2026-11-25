@@ -28,6 +28,8 @@ import {
 	unregisterClassicyControlStripModule,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import { ClassicyMenuBarExtension } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import {
 	ClassicyTaskbar,
@@ -528,6 +530,25 @@ describe("the tray", () => {
 			expect(document.activeElement).toBe(icon("File Sharing"));
 		});
 
+		it("opens a Windows pop-up menu: the arrows from anywhere, a dimmed item walked, no idle close", () => {
+			vi.useFakeTimers();
+			register(menuModule);
+			renderTaskbar();
+			click(icon("File Sharing"));
+			// A pointer press took no focus; Down selects the first item, the
+			// dimmed status line.
+			fireEvent.keyDown(document.body, { key: "ArrowDown" });
+			expect(document.getElementById("sharing-status")).toHaveFocus();
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowDown",
+			});
+			expect(document.getElementById("sharing-open")).toHaveFocus();
+			act(() => {
+				vi.advanceTimersByTime(60_000);
+			});
+			expect(popup("sharing")).not.toBeNull();
+		});
+
 		it("does nothing on a module with neither content nor menu", () => {
 			register({ id: "plain", label: "Plain", icon: "plain.png" });
 			renderTaskbar();
@@ -812,6 +833,210 @@ describe("the tray", () => {
 			) as HTMLElement;
 			expect(list).not.toHaveClass("classicyMenuListScrolls");
 			expect(list.style.maxHeight).toBe("");
+		});
+	});
+});
+
+// WIG Ch.10 "Status Notification" (pp.212–213): a menu bar extension in the
+// status area is a status indicator, so it names itself in a tooltip and
+// opens its menu on button 2, as the module icons do; under the screen bar
+// (every other package) its button is drawn and behaves as before.
+describe("a menu bar extension", () => {
+	const onPick = vi.fn();
+	const items: ClassicyMenuItem[] = [
+		{ id: "account-status", title: "Signed In", disabled: true },
+		{ id: "account-sign-out", title: "Sign Out", onClickFunc: onPick },
+	];
+	const extension = (props: { title?: string; menu?: boolean } = {}) => (
+		<ClassicyMenuBarExtension
+			id="account"
+			icon="account.png"
+			title={"title" in props ? props.title : "Account"}
+			menuItems={props.menu === false ? undefined : items}
+		/>
+	);
+	const trigger = () =>
+		document.querySelector(
+			".classicyDesktopMenuExtensionTrigger",
+		) as HTMLButtonElement;
+	const balloonText = () =>
+		document.querySelector(".classicyBalloonHelpContent")?.textContent;
+	const contextMenu = () =>
+		document.querySelector(".classicyContextMenuWrapper");
+	const renderIn = (bar: "taskbar" | "screen", ext = extension()) =>
+		render(
+			<ClassicyContextualMenuProvider>
+				<div className="classicyDesktop" id="classicyDesktop">
+					{bar === "taskbar" ? (
+						<ClassicyTaskbar disabledModules={BUILT_INS} />
+					) : (
+						<ClassicyDesktopMenuBar />
+					)}
+					{ext}
+				</div>
+			</ClassicyContextualMenuProvider>,
+		);
+	const usePackage = (packageId: string) =>
+		act(() =>
+			dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId }),
+		);
+	const balloonsOff = () =>
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopSetBalloonHelp",
+				disableBalloonHelp: true,
+			}),
+		);
+
+	beforeEach(() => {
+		localStorage.clear();
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		registerTestTaskbarPackage();
+		onPick.mockClear();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	describe("in the taskbar's status area", () => {
+		beforeEach(() => usePackage(TEST_TASKBAR_PACKAGE_ID));
+
+		it("names itself after 500 ms, Balloon Help off, and the tooltip goes at a press", () => {
+			vi.useFakeTimers();
+			balloonsOff();
+			renderIn("taskbar");
+			const button = trigger();
+			expect(button.closest(".classicyTaskbarTray")).not.toBeNull();
+			fireEvent.mouseEnter(button);
+			act(() => {
+				vi.advanceTimersByTime(CLASSICY_TASKBAR_TOOLTIP_DELAY_MS - 1);
+			});
+			expect(balloonText()).toBeUndefined();
+			act(() => {
+				vi.advanceTimersByTime(1);
+			});
+			expect(balloonText()).toBe("Account");
+			expect(button).toHaveAttribute("aria-describedby");
+			fireEvent.mouseDown(button, { button: 0 });
+			expect(balloonText()).toBeUndefined();
+		});
+
+		it("shows no tooltip when it has no title", () => {
+			vi.useFakeTimers();
+			balloonsOff();
+			renderIn("taskbar", extension({ title: undefined }));
+			fireEvent.mouseEnter(trigger());
+			act(() => {
+				vi.advanceTimersByTime(CLASSICY_TASKBAR_TOOLTIP_DELAY_MS * 2);
+			});
+			expect(balloonText()).toBeUndefined();
+		});
+
+		it("opens its menu at the pointer on button 2, with no Help item and nothing of the taskbar's", async () => {
+			renderIn("taskbar");
+			const event = new MouseEvent("contextmenu", {
+				bubbles: true,
+				cancelable: true,
+				clientX: 600,
+				clientY: 470,
+			});
+			act(() => {
+				trigger().dispatchEvent(event);
+			});
+			expect(event.defaultPrevented).toBe(true);
+			expect(contextMenu()).not.toBeNull();
+			expect(document.getElementById("account-sign-out")).not.toBeNull();
+			expect(document.getElementById("contextual-help")).toBeNull();
+			expect(document.getElementById("taskbar-minimize-all")).toBeNull();
+			fireEvent.click(document.getElementById("account-sign-out") as Element);
+			// The item runs once its flash ends (the package's, else the fallback).
+			await waitFor(() => expect(onPick).toHaveBeenCalledTimes(1));
+		});
+
+		it("opens nothing on button 2 without a menu, and closes the menu a click dropped", () => {
+			const { unmount } = renderIn("taskbar", extension({ menu: false }));
+			fireEvent.contextMenu(trigger(), { clientX: 600, clientY: 470 });
+			expect(contextMenu()).toBeNull();
+			unmount();
+			renderIn("taskbar");
+			fireEvent.click(trigger());
+			expect(document.getElementById("account-sign-out")).not.toBeNull();
+			fireEvent.contextMenu(trigger(), { clientX: 600, clientY: 470 });
+			// The dropped menu went; the pop-up menu at the pointer took its place.
+			expect(
+				document.querySelectorAll(".classicyContextMenuWrapper"),
+			).toHaveLength(1);
+		});
+
+		it("takes no focus from a pointer press", () => {
+			renderIn("taskbar");
+			const press = new MouseEvent("mousedown", {
+				bubbles: true,
+				cancelable: true,
+				button: 0,
+			});
+			trigger().dispatchEvent(press);
+			expect(press.defaultPrevented).toBe(true);
+		});
+
+		it("drops a menu that the arrows walk and that never times out", () => {
+			vi.useFakeTimers();
+			renderIn("taskbar");
+			fireEvent.click(trigger());
+			fireEvent.keyDown(document, { key: "ArrowDown" });
+			// Dimmed items are walked, as Windows' menu loop highlights them.
+			expect(document.getElementById("account-status")).toHaveFocus();
+			fireEvent.keyDown(document, { key: "ArrowDown" });
+			expect(document.getElementById("account-sign-out")).toHaveFocus();
+			act(() => {
+				vi.advanceTimersByTime(60_000);
+			});
+			expect(document.getElementById("account-sign-out")).not.toBeNull();
+			fireEvent.keyDown(document, { key: "Escape" });
+			expect(document.getElementById("account-sign-out")).toBeNull();
+		});
+	});
+
+	describe("under the screen bar", () => {
+		it("is the plain button it was: no tooltip, no button-2 menu, the press's focus kept", () => {
+			vi.useFakeTimers();
+			balloonsOff();
+			renderIn("screen");
+			const button = trigger();
+			expect(button.closest(".classicyDesktopMenuBar")).not.toBeNull();
+			expect(Array.from(button.attributes, (a) => a.name)).toEqual([
+				"type",
+				"class",
+				"aria-label",
+			]);
+			fireEvent.mouseEnter(button);
+			act(() => {
+				vi.advanceTimersByTime(CLASSICY_TASKBAR_TOOLTIP_DELAY_MS * 2);
+			});
+			expect(balloonText()).toBeUndefined();
+			const press = new MouseEvent("mousedown", {
+				bubbles: true,
+				cancelable: true,
+				button: 0,
+			});
+			button.dispatchEvent(press);
+			expect(press.defaultPrevented).toBe(false);
+			fireEvent.contextMenu(button, { clientX: 600, clientY: 10 });
+			expect(contextMenu()).toBeNull();
+		});
+
+		it("drops a menu that still closes after the idle timeout", () => {
+			vi.useFakeTimers();
+			renderIn("screen");
+			fireEvent.click(trigger());
+			expect(document.getElementById("account-sign-out")).not.toBeNull();
+			act(() => {
+				vi.advanceTimersByTime(60_000);
+			});
+			expect(document.getElementById("account-sign-out")).toBeNull();
 		});
 	});
 });

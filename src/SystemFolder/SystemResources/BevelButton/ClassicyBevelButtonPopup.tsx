@@ -13,6 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+	CLASSICY_BEVEL_POPUP_ANY_MENU_ITEM_SELECTOR,
 	CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR,
 	classicyBevelPopupShownItems,
 } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupItems.internal";
@@ -72,6 +73,19 @@ type ClassicyBevelButtonPopupProps = {
 	label?: string;
 	/** Move focus onto the first enabled item — set when opened by keyboard. */
 	focusFirstItem?: boolean;
+	/**
+	 * Its menu takes the keyboard as Windows' menu loop does (the Windows
+	 * shell's Start menu and tray pop-ups, plan 0020-w98): the arrow keys
+	 * walk the items shown, dimmed ones included (Wine's
+	 * `MENU_MoveSelection` passes over separators alone), from wherever the
+	 * focus is, Down selecting the first item and Up the last while the focus
+	 * is outside the menu (`focusFirstItem` focuses the first item, dimmed or
+	 * not); and the menu never closes for idleness (the 15-second close is
+	 * the Mac's sticky menus', HIGOS8 p.92). Absent (every other surface),
+	 * the arrows walk the enabled items from inside the menu and an idle menu
+	 * closes after 15 seconds, as before. A panel (`content`) ignores it.
+	 */
+	keyboard?: boolean;
 	/** The owning button: a press on it toggles the popup, so it is not "outside". */
 	buttonRef: RefObject<HTMLButtonElement | null>;
 	/** Called when the surface should close (item chosen, Escape, outside press, scroll, resize). */
@@ -105,6 +119,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	menuScrollMargin,
 	label,
 	focusFirstItem = false,
+	keyboard = false,
 	buttonRef,
 	onClose,
 	className,
@@ -171,11 +186,34 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		if (!focusFirstItem || !position) return;
 		const first = wrapperRef.current?.querySelector<HTMLElement>(
 			menuItems
-				? CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR
+				? keyboard
+					? CLASSICY_BEVEL_POPUP_ANY_MENU_ITEM_SELECTOR
+					: CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR
 				: PANEL_FOCUS_SELECTOR,
 		);
 		first?.focus();
-	}, [focusFirstItem, position, menuItems]);
+	}, [focusFirstItem, position, menuItems, keyboard]);
+
+	// `keyboard`: the arrows reach the menu from outside it too (its button,
+	// or the page after CTRL+ESC), as Windows' menu loop takes them; inside
+	// it, `onMenuKeyDown` walks them.
+	const walksFromOutside = keyboard && menuItems !== undefined;
+	useEffect(() => {
+		if (!walksFromOutside) return;
+		const onKeyDown = (e: globalThis.KeyboardEvent) => {
+			if (e.defaultPrevented) return;
+			if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+			if (e.altKey || e.ctrlKey || e.metaKey) return;
+			const surface = wrapperRef.current;
+			if (!surface || surface.contains(document.activeElement)) return;
+			const items = classicyBevelPopupShownItems(surface, { dimmed: true });
+			if (items.length === 0) return;
+			e.preventDefault();
+			items[e.key === "ArrowDown" ? 0 : items.length - 1].focus();
+		};
+		document.addEventListener("keydown", onKeyDown);
+		return () => document.removeEventListener("keydown", onKeyDown);
+	}, [walksFromOutside]);
 
 	useEffect(() => {
 		const onPointerDown = (e: MouseEvent) => {
@@ -220,7 +258,9 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	// takes no focus) are passed over rather than walked into.
 	const onMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-		const items = classicyBevelPopupShownItems(wrapperRef.current);
+		const items = classicyBevelPopupShownItems(wrapperRef.current, {
+			dimmed: keyboard,
+		});
 		if (items.length === 0) return;
 		e.preventDefault();
 		const current = items.indexOf(document.activeElement as HTMLElement);
@@ -253,7 +293,12 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	) : null;
 
 	const surface = menuItems ? (
-		<ClassicyMenuProvider onClose={onClose} startActive={true}>
+		<ClassicyMenuProvider
+			onClose={onClose}
+			startActive={true}
+			// Windows' menu loop waits for the user: no idle close.
+			{...(keyboard ? { idleTimeoutMs: 0 } : {})}
+		>
 			<div
 				ref={wrapperRef}
 				id={id}

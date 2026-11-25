@@ -323,6 +323,40 @@ describe("the Start menu", () => {
 			expect(walk()).toBe("start-menu_control-panel");
 		});
 
+		it("walks a submenu's dimmed item too, as Windows' menu loop does", () => {
+			renderTaskbar();
+			start().focus();
+			fireEvent.click(start(), { detail: 0 });
+			fireEvent.keyDown(start(), { key: "ArrowDown" });
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowDown",
+			});
+			expect(document.activeElement).toBe(item("start-menu_programs"));
+			// No app is mounted: Programs holds its dimmed "(Empty)" alone.
+			fireEvent.keyDown(item("start-menu_programs"), { key: "Enter" });
+			expect(item("start-menu_programs")).toHaveClass("open");
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowDown",
+			});
+			expect(document.activeElement).toBe(item("start-menu_programs_empty"));
+			expect(item("start-menu_programs_empty")).toHaveClass("disabled");
+		});
+
+		it("never closes for idleness, as the Mac's sticky menus do after 15 s", () => {
+			vi.useFakeTimers();
+			try {
+				renderTaskbar();
+				fireEvent.mouseDown(start(), { button: 0 });
+				act(() => {
+					vi.advanceTimersByTime(60_000);
+				});
+				expect(menu()).not.toBeNull();
+				expect(start()).toHaveClass("open");
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
 		it("closes on Escape, handing the focus back to the Start button", () => {
 			renderTaskbar();
 			start().focus();

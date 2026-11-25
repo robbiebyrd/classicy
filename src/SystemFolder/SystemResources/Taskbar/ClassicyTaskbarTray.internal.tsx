@@ -138,7 +138,9 @@ type TraySurface = {
  *   surface opens only once the double-click time has passed without a
  *   second click, so a double-click runs the default alone. A click while
  *   the surface is open closes it. Enter and Space open it at once, its
- *   first item or control focused.
+ *   first item or control focused. Its menu is a Windows pop-up menu: the
+ *   arrows reach it from anywhere and walk its dimmed items too, and it
+ *   never closes for idleness (the surface's `keyboard`).
  * - **Button 2** opens `menuItems` at the pointer, as a pop-up menu; a
  *   module with no menu opens nothing.
  * - **A double-click** runs the menu's default item (`isDefault`), if any.
@@ -298,6 +300,9 @@ const ClassicyTaskbarTrayIcon: FunctionalComponent<{
 					onClose={closeSurface}
 					// On the band's top edge, a menu that fits there is whole.
 					menuScrollMargin={0}
+					// A Windows pop-up menu: the arrows from anywhere, dimmed
+					// items walked, and no idle close.
+					keyboard
 				/>
 			)}
 		</>

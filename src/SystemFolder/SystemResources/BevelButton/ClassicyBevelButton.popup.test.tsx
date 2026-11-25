@@ -817,6 +817,86 @@ describe("ClassicyBevelButtonPopup", () => {
 		expect(classicyBevelPopupShownItems(null)).toEqual([]);
 	});
 
+	// Plan 0020-w98: the Windows shell's Start menu and tray pop-ups take the
+	// keyboard as Windows' menu loop does; every other surface is as before.
+	const dimmedFirst: ClassicyMenuItem[] = [
+		{ id: "status", title: "Status", disabled: true },
+		{ id: "one", title: "One", onClickFunc: vi.fn() },
+		{ id: "two", title: "Two", onClickFunc: vi.fn() },
+	];
+
+	it("without keyboard: walks the enabled items from inside, and closes after 15 s idle", () => {
+		vi.useFakeTimers();
+		try {
+			const onClose = vi.fn();
+			render(
+				<Surface menuItems={dimmedFirst} onClose={onClose} focusFirstItem />,
+			);
+			const menu = screen.getByRole("menu", { name: "Surface" });
+			expect(classicyBevelPopupShownItems(menu).map((el) => el.id)).toEqual([
+				"one",
+				"two",
+			]);
+			expect(document.getElementById("one")).toHaveFocus();
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowUp",
+			});
+			expect(document.getElementById("two")).toHaveFocus();
+			// From outside the menu the arrows are left alone.
+			(document.activeElement as HTMLElement).blur();
+			const down = fireEvent.keyDown(document.body, { key: "ArrowDown" });
+			expect(down).toBe(true);
+			expect(document.body).toHaveFocus();
+			act(() => {
+				vi.advanceTimersByTime(15_000);
+			});
+			expect(onClose).toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("with keyboard: walks dimmed items too, from anywhere, and never closes for idleness", () => {
+		vi.useFakeTimers();
+		try {
+			const onClose = vi.fn();
+			render(<Surface menuItems={dimmedFirst} onClose={onClose} keyboard />);
+			const menu = screen.getByRole("menu", { name: "Surface" });
+			expect(
+				classicyBevelPopupShownItems(menu, { dimmed: true }).map((el) => el.id),
+			).toEqual(["status", "one", "two"]);
+			// Nothing is selected until an arrow: Down the first item, dimmed
+			// or not, Up the last.
+			expect(document.body).toHaveFocus();
+			fireEvent.keyDown(document.body, { key: "ArrowDown" });
+			expect(document.getElementById("status")).toHaveFocus();
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowDown",
+			});
+			expect(document.getElementById("one")).toHaveFocus();
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowUp",
+			});
+			expect(document.getElementById("status")).toHaveFocus();
+			(document.activeElement as HTMLElement).blur();
+			fireEvent.keyDown(document.body, { key: "ArrowUp" });
+			expect(document.getElementById("two")).toHaveFocus();
+			act(() => {
+				vi.advanceTimersByTime(60_000);
+			});
+			expect(onClose).not.toHaveBeenCalled();
+			fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
+			expect(onClose).toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("with keyboard and focusFirstItem: focuses the first item, dimmed or not", () => {
+		render(<Surface menuItems={dimmedFirst} keyboard focusFirstItem />);
+		expect(document.getElementById("status")).toHaveFocus();
+	});
+
 	// Plan 0020-w98 §2: a surface flush on the bounds' bottom (the taskbar
 	// band's top edge, where the Windows shell's Start menu and tray pop-ups
 	// sit) keeps its menu whole under `menuScrollMargin={0}`; without it the

@@ -68,7 +68,8 @@ and `nodenext` resolution).
     modules as icons (Sound, Screen Saver, Appearance, and any module your
     app registers): a click opens a module's control or its menu, a
     right-click its menu, and its name shows in a tooltip. The menu bar
-    extensions an app adds sit beside them, then the clock, in Windows'
+    extensions an app adds sit beside them and answer the same clicks and
+    show their names the same way, then the clock, in Windows'
     `4:37 PM` (or `16:37` with the 24-hour clock), the date in its
     tooltip; a double-click on it opens Date & Time. The Control Strip
     control panel chooses which modules show; Windows draws no Control

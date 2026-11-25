@@ -3,7 +3,6 @@ import {
 	type FC as FunctionalComponent,
 	type RefObject,
 	useCallback,
-	useEffect,
 	useMemo,
 	useSyncExternalStore,
 } from "react";
@@ -17,7 +16,6 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
-import { classicyBevelPopupShownItems } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupItems.internal";
 import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import {
 	getClassicyFileSystemVersion,
@@ -135,8 +133,9 @@ const useClassicyStartMenuItems = () => {
  * It opens with no item selected, however it was opened, as Windows' Start
  * menu does: Down Arrow selects the first item and Up Arrow the last, from
  * the Start button or wherever the focus is, and then the arrows walk the
- * items shown. A choice, Escape, a press outside, a scroll or a resize
- * closes it (`onClose`).
+ * items shown, dimmed ones included (the surface's `keyboard`, Windows'
+ * menu loop). A choice, Escape, a press outside, a scroll or a resize
+ * closes it (`onClose`); it never closes for idleness.
  */
 export const ClassicyStartMenu: FunctionalComponent<ClassicyStartMenuProps> = ({
 	anchor,
@@ -146,24 +145,6 @@ export const ClassicyStartMenu: FunctionalComponent<ClassicyStartMenuProps> = ({
 	onClose,
 }) => {
 	const menuItems = useClassicyStartMenuItems();
-
-	// The arrows reach the menu from outside it (the Start button, or the
-	// page after CTRL+ESC); inside it, the surface walks them itself.
-	useEffect(() => {
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.defaultPrevented) return;
-			if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-			if (e.altKey || e.ctrlKey || e.metaKey) return;
-			const surface = document.getElementById(CLASSICY_START_MENU_ID);
-			if (!surface || surface.contains(document.activeElement)) return;
-			const items = classicyBevelPopupShownItems(surface);
-			if (items.length === 0) return;
-			e.preventDefault();
-			items[e.key === "ArrowDown" ? 0 : items.length - 1].focus();
-		};
-		document.addEventListener("keydown", onKeyDown);
-		return () => document.removeEventListener("keydown", onKeyDown);
-	}, []);
 
 	const aside = banner ? (
 		<div
@@ -192,6 +173,9 @@ export const ClassicyStartMenu: FunctionalComponent<ClassicyStartMenuProps> = ({
 			aside={aside}
 			// It sits on the band's top edge: a menu that fits there is whole.
 			menuScrollMargin={0}
+			// Windows' menu loop: the arrows from anywhere, dimmed items
+			// walked, and no idle close.
+			keyboard
 		/>
 	);
 };

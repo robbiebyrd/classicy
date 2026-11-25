@@ -617,7 +617,11 @@ in every browser (Firefox now shows Platinum's full bars).
   `display: none`, are passed over).
 - The surface itself, `ClassicyBevelButtonPopup`, takes an optional `aside`,
   drawn as its first child before the menu or panel (the Windows Start
-  menu's banner, plan 0020-w98 §3); without it the DOM is unchanged.
+  menu's banner, plan 0020-w98 §3); without it the DOM is unchanged. Its
+  optional `keyboard` (the Start menu's and the tray's) is Windows' menu
+  loop: the arrows reach the menu from anywhere and walk dimmed items too,
+  and it never closes for idleness; absent, the 15 s idle close and the
+  enabled-only walk stand.
 
 ### Menu Frame
 

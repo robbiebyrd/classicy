@@ -3,6 +3,7 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	type MouseEvent,
 	type ReactNode,
 	useEffect,
 	useRef,
@@ -10,9 +11,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
+import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { CLASSICY_TASKBAR_TOOLTIP_DELAY_MS } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
 
 export interface ClassicyMenuBarExtensionProps {
 	/** Unique id; also names the item's dropdown menu. */
@@ -34,6 +38,77 @@ export interface ClassicyMenuBarExtensionProps {
 	/** Inline style, merged onto the item's `<li>` after the component's own (`order`). */
 	style?: CSSProperties;
 }
+
+/**
+ * The item's button in the taskbar's status area (`layout.taskbar`, the
+ * Windows 95/98 shell), where the item is a status indicator beside the
+ * notification icons, and so behaves as one (WIG Ch.10 "Status
+ * Notification", pp.212–213), as the tray's module icons do: its `title` is
+ * a tooltip after 500 ms, whatever Balloon Help says ("Display a tooltip
+ * that indicates what the status indicator represents"), put away by a
+ * press; button 2 opens its menu at the pointer as a pop-up menu, with no
+ * Help item and the arrows walking it ("Display a pop-up menu … when the
+ * user clicks on the status indicator with button 2"), or nothing for an
+ * item without one; and a pointer press leaves the focus where it is. Under
+ * the screen bar the item's button is drawn without it, as before.
+ */
+const ClassicyTaskbarExtensionTrigger: FunctionalComponent<{
+	title?: string;
+	menuItems?: ClassicyMenuItem[];
+	onActivate: () => void;
+	onCloseMenu: () => void;
+	children: ReactNode;
+}> = ({ title, menuItems, onActivate, onCloseMenu, children }) => {
+	const buttonRef = useRef<HTMLButtonElement>(null);
+	const { showContextMenu } = useClassicyContextualMenu();
+	const named = title !== undefined && title.trim() !== "";
+	const { handlers, balloon } = useClassicyBalloonHelp(
+		buttonRef,
+		{ content: title ?? "", delay: CLASSICY_TASKBAR_TOOLTIP_DELAY_MS },
+		{ force: true },
+	);
+
+	const onMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
+		// A press puts the tooltip away, as Windows' does, and a pointer press
+		// takes no focus: the tray takes none from a click.
+		handlers.onMouseLeave();
+		if (e.button === 0) e.preventDefault();
+	};
+	const onMouseEnter = () => {
+		if (named) handlers.onMouseEnter();
+	};
+	const onContextMenu = (e: MouseEvent<HTMLButtonElement>) => {
+		// Never the browser's menu, the taskbar's or the desktop's.
+		e.preventDefault();
+		handlers.onMouseLeave();
+		onCloseMenu();
+		if (!menuItems || menuItems.length === 0) return;
+		showContextMenu(menuItems, [e.clientX, e.clientY], {
+			helpItem: false,
+			keyboard: true,
+		});
+	};
+
+	return (
+		<>
+			<button
+				ref={buttonRef}
+				type="button"
+				className={"classicyDesktopMenuExtensionTrigger"}
+				aria-label={title}
+				aria-describedby={handlers["aria-describedby"]}
+				onClick={onActivate}
+				onMouseDown={onMouseDown}
+				onMouseEnter={onMouseEnter}
+				onMouseLeave={handlers.onMouseLeave}
+				onContextMenu={onContextMenu}
+			>
+				{children}
+			</button>
+			{balloon}
+		</>
+	);
+};
 
 /**
  * Adds an item to the right-hand side of the menu bar, to the left of the
@@ -58,7 +133,12 @@ export interface ClassicyMenuBarExtensionProps {
  * right side, as a menu bar title's pull-down does; one still too wide is
  * pinned inside the desktop. In the taskbar's status area it hangs from the
  * item's bottom too, and so, kept to the menu bounds, which end at the
- * taskbar's band, it is pinned upward above the taskbar.
+ * taskbar's band, it is pinned upward above the taskbar; there it takes the
+ * arrow keys and never times out, and the item is a status indicator (WIG
+ * Ch.10 "Status Notification", pp.212–213): its `title` is a tooltip after
+ * 500 ms whatever Balloon Help says, put away by a press, button 2 opens
+ * its menu at the pointer (nothing without one), and a pointer press takes
+ * no focus.
  *
  * ```tsx
  * <ClassicyMenuBarExtension id="myapp_menu" order={1} title={appName} menuItems={items}>
@@ -117,6 +197,10 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 
 	if (!regionNode) return null;
 
+	const content =
+		children ??
+		(icon ? <ClassicyIconImage src={icon} alt={title ?? ""} /> : null);
+
 	const item = (
 		<li
 			ref={itemRef}
@@ -129,15 +213,25 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 		>
 			{/* A real <button> gives native Enter/Space activation and a clean
 			    accessible name without an interactive role on the <li>. */}
-			<button
-				type="button"
-				className={"classicyDesktopMenuExtensionTrigger"}
-				aria-label={title}
-				onClick={activate}
-			>
-				{children ??
-					(icon ? <ClassicyIconImage src={icon} alt={title ?? ""} /> : null)}
-			</button>
+			{hasTaskbar ? (
+				<ClassicyTaskbarExtensionTrigger
+					title={title}
+					menuItems={hasMenu ? menuItems : undefined}
+					onActivate={activate}
+					onCloseMenu={() => setOpen(false)}
+				>
+					{content}
+				</ClassicyTaskbarExtensionTrigger>
+			) : (
+				<button
+					type="button"
+					className={"classicyDesktopMenuExtensionTrigger"}
+					aria-label={title}
+					onClick={activate}
+				>
+					{content}
+				</button>
+			)}
 		</li>
 	);
 
@@ -155,6 +249,9 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 						position={[anchor.left, anchor.bottom]}
 						flipLeftTo={anchor.right}
 						onClose={() => setOpen(false)}
+						// In the taskbar's status area a Windows pop-up menu: the
+						// arrows walk it, ESC closes it, and it never times out.
+						{...(hasTaskbar ? { keyboard: true } : {})}
 					/>,
 					desktop,
 				)}
