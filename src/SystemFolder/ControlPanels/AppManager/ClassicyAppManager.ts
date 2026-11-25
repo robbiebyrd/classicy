@@ -29,6 +29,7 @@ import {
 	pickSuccessorApp,
 	showAllApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import { focusClassicyReopenedWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDocumentReopen";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -135,6 +136,12 @@ export interface ClassicyStoreSystemAppWindow {
 	moving?: boolean;
 	modal?: boolean;
 	menuBar?: ClassicyMenuItem[];
+	// The window's view state (`ClassicyWindowSetScroll`), written only under
+	// a package's `layout.window.restoreViewState`: its scroll area's
+	// `[scrollLeft, scrollTop]` and a document's caret offset, put back when
+	// the window mounts again (`useClassicyWindowViewState`). Persisted.
+	scroll?: [number, number];
+	caret?: number;
 	zOrder?: number;
 	// Session-only: set when the window is closed during this page session, so
 	// a later ClassicyWindowOpen for it counts as a reopen and brings it to the
@@ -503,12 +510,22 @@ export const classicyAppEventHandler = (
 				if (app) {
 					if (!app.data) app.data = {};
 					const openFiles = app.data.openFiles;
+					const wasOpen =
+						Array.isArray(openFiles) && openFiles.includes(action.path);
 					if (!Array.isArray(openFiles)) {
 						app.data.openFiles = [action.path];
 					} else if (!openFiles.includes(action.path)) {
 						app.data.openFiles = [...openFiles, action.path];
 					}
 					openApp(ds, app.id, app.name, app.icon);
+					// Under `document.reopenActivates`, an open document's own
+					// window (ClassicyApp's file-window id) comes forward.
+					focusClassicyReopenedWindow(
+						ds,
+						app.id,
+						`${app.id}_file_${action.path}`,
+						wasOpen,
+					);
 				}
 			} else if (action.type.endsWith("CloseFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];

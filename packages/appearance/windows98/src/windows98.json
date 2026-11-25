@@ -8768,6 +8768,7 @@
 	],
 	"layout": {
 		"window": {
+			"restoreViewState": true,
 			"growBoxCorner": "bottom-right",
 			"centering": "wholePixel"
 		},
@@ -8776,6 +8777,7 @@
 			"idleTimeoutMs": 0
 		},
 		"menu": {
+			"standardShortcuts": "windows",
 			"keys": "windows",
 			"submenuDelayMs": 400,
 			"disabledItems": "browse",
@@ -8832,6 +8834,10 @@
 		},
 		"contextMenu": {
 			"openOn": "release"
+		},
+		"document": {
+			"confirmUnsavedClose": true,
+			"reopenActivates": true
 		},
 		"mouse": "windows",
 		"input": {

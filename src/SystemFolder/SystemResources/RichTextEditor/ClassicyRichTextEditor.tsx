@@ -60,8 +60,14 @@ interface ClassicyRichTextEditorProps {
 	 * `insertMarkdown`, `focus`, …) for imperative access.
 	 */
 	editorRef?: RefObject<ClassicyRichTextEditorMethods | null>;
-	/** Fired with the current markdown whenever the document is edited. */
-	onChangeFunc?: (markdown: string) => void;
+	/**
+	 * Fired with the current markdown whenever the document is edited, and
+	 * once when MDXEditor rewrites the initial `content` into its own form,
+	 * the second argument `true` then (MDXEditor's
+	 * `initialMarkdownNormalize`), so a caller comparing the text with what
+	 * it loaded can tell that rewrite from an edit.
+	 */
+	onChangeFunc?: (markdown: string, initialMarkdownNormalize?: boolean) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */

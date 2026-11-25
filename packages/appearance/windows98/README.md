@@ -145,6 +145,18 @@ and `nodenext` resolution).
   only the left button drags (the middle button does nothing); and Escape
   takes back a drag in progress: a split view's divider, a slider's thumb,
   an icon or a column edge goes back to where it was.
+- **Its documents**, kept as Notepad and Explorer kept them. SimpleText
+  asks before a changed document closes, with Notepad's own message box
+  ("The text in the Letter.txt file has changed." / "Do you want to save the
+  changes?", or "the Untitled file" for a new one): Yes saves it (a new one
+  through Save As) and closes, No closes without saving, Cancel keeps it
+  open; its close box, File ▸ Close and Quit all ask, Quit once for each
+  changed document. Opening a document or folder that is already open
+  brings its own window to the front, from Finder or the desktop. A
+  plain-text document comes back with the caret and the scroll position it
+  was closed with. And File ▸ Open… and Save answer to Ctrl+O and Ctrl+S,
+  instead of the browser's Open and Save Page. The Mac packages keep
+  SimpleText as it was.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),

@@ -499,6 +499,55 @@ describe("ClassicyAppearancePackageSchema", () => {
 		);
 	});
 
+	// Documents (the WIG audit's 1.17 / 5.25, 5.24 / 9.2, 2.1 and B.4):
+	// `document.confirmUnsavedClose` and `reopenActivates`, an optional group
+	// of optional booleans, `window.restoreViewState` beside the required
+	// grow-box corner, and `menu.standardShortcuts`, one keyword.
+	it("takes optional document keys, window.restoreViewState and menu.standardShortcuts, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, Record<string, unknown>>;
+		layout.window.restoreViewState = true;
+		layout.menu = { standardShortcuts: "windows" };
+		layout.document = { confirmUnsavedClose: true, reopenActivates: true };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.window).toEqual({
+			restoreViewState: true,
+			growBoxCorner: "bottom-right",
+		});
+		expect(result.data?.layout.menu).toEqual({ standardShortcuts: "windows" });
+		expect(result.data?.layout.document).toEqual({
+			confirmUnsavedClose: true,
+			reopenActivates: true,
+		});
+		for (const value of [
+			{},
+			{ confirmUnsavedClose: false },
+			{ reopenActivates: false },
+		]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).document = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [group, key, value] of [
+			["document", "confirmUnsavedClose", "yes"],
+			["document", "reopenActivates", 1],
+			["window", "restoreViewState", "always"],
+			["menu", "standardShortcuts", "mac"],
+		] as const) {
+			const bad = platinumShaped();
+			const badLayout = bad.layout as Record<string, Record<string, unknown>>;
+			badLayout[group] = { ...badLayout[group], [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
 	it("accepts defaults that name the package", () => {
 		const input = {
 			...platinumShaped(),

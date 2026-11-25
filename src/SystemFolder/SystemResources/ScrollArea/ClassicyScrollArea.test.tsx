@@ -1788,6 +1788,190 @@ describe("ClassicyScrollArea's viewport registration", () => {
 	});
 });
 
+// A window's view state (the WIG audit's 2.1; WIG Ch.2 "Persistence",
+// p.12): the offsets put back when the area mounts, and reported once a
+// scroll settles. Without either prop the area starts at the top left and
+// reports nothing, as before.
+describe("ClassicyScrollArea view state", () => {
+	it("starts at the top left without initialScroll", () => {
+		const { viewport } = renderTall();
+		expect(viewport.scrollTop).toBe(0);
+		expect(viewport.scrollLeft).toBe(0);
+	});
+
+	it("starts at initialScroll, and draws the thumb there", () => {
+		const { viewport, container } = renderTall({ initialScroll: [0, 400] });
+		expect(viewport.scrollTop).toBe(400);
+		const thumb = part(container, "scroll-thumb");
+		expect(px(thumb, "--classicy-scroll-thumb-offset")).toBeGreaterThan(BAR);
+	});
+
+	it("ignores an initialScroll that is not finite or is negative", () => {
+		for (const initialScroll of [
+			[Number.NaN, 300],
+			[0, Number.POSITIVE_INFINITY],
+			[-5, 300],
+		] as [number, number][]) {
+			const { viewport, unmount } = renderTall({ initialScroll });
+			expect(viewport.scrollTop).toBe(0);
+			unmount();
+		}
+	});
+
+	it("keeps trying while the content is too short to reach it, then stops once reached", () => {
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 200,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container, rerender } = render(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Short</p>
+			</ClassicyScrollArea>,
+		);
+		const viewport = viewportOf(container);
+		expect(viewport.scrollTop).toBe(0);
+		// The list fills in: the next measurement reaches the offset.
+		viewportBox = { ...viewportBox, scrollHeight: 1000 };
+		rerender(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Long</p>
+			</ClassicyScrollArea>,
+		);
+		expect(viewport.scrollTop).toBe(500);
+		// Reached: a later scroll by the user stays where it is.
+		viewport.scrollTop = 100;
+		fireEvent.scroll(viewport);
+		expect(viewport.scrollTop).toBe(100);
+	});
+
+	it("gives a pending restore up when the user presses in the area", () => {
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 200,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container, rerender } = render(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Short</p>
+			</ClassicyScrollArea>,
+		);
+		const viewport = viewportOf(container);
+		fireEvent.pointerDown(viewport);
+		viewportBox = { ...viewportBox, scrollHeight: 1000 };
+		rerender(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Long</p>
+			</ClassicyScrollArea>,
+		);
+		expect(viewport.scrollTop).toBe(0);
+	});
+
+	it("gives a pending restore up after two seconds", () => {
+		vi.useFakeTimers();
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 200,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container, rerender } = render(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Short</p>
+			</ClassicyScrollArea>,
+		);
+		const viewport = viewportOf(container);
+		act(() => {
+			vi.advanceTimersByTime(2500);
+		});
+		viewportBox = { ...viewportBox, scrollHeight: 1000 };
+		rerender(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Long</p>
+			</ClassicyScrollArea>,
+		);
+		expect(viewport.scrollTop).toBe(0);
+	});
+
+	it("reports the offsets once scrolling settles, only when they change", () => {
+		vi.useFakeTimers();
+		const onScrollSettled = vi.fn();
+		const { viewport } = renderTall({ onScrollSettled });
+		viewport.scrollTop = 100;
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(100);
+		});
+		viewport.scrollTop = 250;
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(150);
+		});
+		expect(onScrollSettled).not.toHaveBeenCalled();
+		act(() => {
+			vi.advanceTimersByTime(100);
+		});
+		expect(onScrollSettled).toHaveBeenCalledTimes(1);
+		expect(onScrollSettled).toHaveBeenLastCalledWith([0, 250]);
+		// The same offsets again report nothing.
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(300);
+		});
+		expect(onScrollSettled).toHaveBeenCalledTimes(1);
+	});
+
+	it("never reports the offsets it put back, and reports a change from them", () => {
+		vi.useFakeTimers();
+		const onScrollSettled = vi.fn();
+		const { viewport } = renderTall({
+			initialScroll: [0, 400],
+			onScrollSettled,
+		});
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(300);
+		});
+		expect(onScrollSettled).not.toHaveBeenCalled();
+		viewport.scrollTop = 0;
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(300);
+		});
+		expect(onScrollSettled).toHaveBeenCalledWith([0, 0]);
+	});
+
+	it("makes a report still due when it unmounts", () => {
+		vi.useFakeTimers();
+		const onScrollSettled = vi.fn();
+		const { viewport, unmount } = renderTall({ onScrollSettled });
+		viewport.scrollTop = 300;
+		fireEvent.scroll(viewport);
+		unmount();
+		expect(onScrollSettled).toHaveBeenCalledWith([0, 300]);
+	});
+
+	it("puts a textarea viewport (renderViewport) back too", () => {
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 1000,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container } = render(
+			<ClassicyScrollArea
+				initialScroll={[0, 600]}
+				renderViewport={(v) => (
+					<textarea ref={v.ref} className={v.className} onScroll={v.onScroll} />
+				)}
+			/>,
+		);
+		expect(viewportOf(container).scrollTop).toBe(600);
+	});
+});
+
 describe("ClassicyScrollArea vocabulary and stylesheet", () => {
 	it("declares its parts and the fits and disabled states", () => {
 		expect(CLASSICY_STATE.fits).toBe("fits");

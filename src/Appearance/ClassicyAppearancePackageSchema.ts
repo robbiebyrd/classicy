@@ -26,6 +26,7 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
+		restoreViewState: z.boolean().optional(),
 		growBoxCorner: z.enum([
 			"bottom-right",
 			"bottom-left",
@@ -41,6 +42,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	}),
 	menu: z
 		.object({
+			standardShortcuts: z.enum(["windows"]).optional(),
 			keys: z.enum(["mac", "windows"]).optional(),
 			submenuDelayMs: z.number().int().min(0).max(10_000).optional(),
 			disabledItems: z.enum(["skip", "browse"]).optional(),
@@ -138,6 +140,12 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.optional(),
 	contextMenu: z
 		.object({ openOn: z.enum(["event", "release"]).optional() })
+		.optional(),
+	document: z
+		.object({
+			confirmUnsavedClose: z.boolean().optional(),
+			reopenActivates: z.boolean().optional(),
+		})
 		.optional(),
 	mouse: z.enum(["mac", "windows"]).optional(),
 	input: z.object({ escapeCancels: z.boolean().optional() }).optional(),

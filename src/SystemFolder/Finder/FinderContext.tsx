@@ -34,6 +34,7 @@ import {
 	setAppWindow,
 	updateAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { focusClassicyReopenedWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDocumentReopen";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -196,6 +197,14 @@ export const classicyFinderEventHandler = (
 				appData = { ...appData, openPaths: [action.path] };
 				break;
 			}
+			// Under `document.reopenActivates`, an open folder's window (keyed
+			// by its path) comes forward, from the desktop's icons too.
+			focusClassicyReopenedWindow(
+				ds,
+				appId,
+				action.path,
+				appData.openPaths.includes(action.path),
+			);
 
 			appData = {
 				...appData,

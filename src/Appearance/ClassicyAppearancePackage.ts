@@ -51,6 +51,23 @@ export {
  */
 export type ClassicyAppearanceLayout = {
 	window: {
+		/**
+		 * Whether a window's view state comes back with it (WIG Ch.2
+		 * "Persistence", p.12: "view state information, such as cursor
+		 * position, scroll position, and window size and location, should be
+		 * preserved so it can be restored when an object's view is
+		 * reopened"). Absent or `false` (Mac OS 8 and
+		 * System 7, today's behavior): a window's record keeps its size,
+		 * place, zoom and collapse alone, and a reopened window starts
+		 * scrolled to the top with the caret at the start. `true` (Windows):
+		 * once its scrolling settles, a scroll area given
+		 * `useClassicyWindowViewState`'s callbacks records its offsets on the
+		 * window's record (`scroll`, through `ClassicyWindowSetScroll`), and a
+		 * document's text editor its caret (`caret`; SimpleText's windows),
+		 * and both are put back when the window mounts again, this session or
+		 * after a reload.
+		 */
+		restoreViewState?: boolean;
 		growBoxCorner: "bottom-right" | "bottom-left" | "top-right" | "top-left";
 		/**
 		 * Where a window opened at a symbolic `"center"` position lands.
@@ -82,6 +99,19 @@ export type ClassicyAppearanceLayout = {
 	 * Mac OS behavior.
 	 */
 	menu?: {
+		/**
+		 * The standard shortcut keys a bundled document app's File menu
+		 * carries. Absent (Mac OS 8 and System 7, whose equivalents are
+		 * ⌘-keys the browser keeps): none, so SimpleText's Open… and Save
+		 * have no equivalent. `"windows"` (WIG Appendix B Table B.2, p.358,
+		 * the common shortcut keys, CTRL+O Open and CTRL+S Save: "Avoid
+		 * assigning these keys to functions other than those listed"): SimpleText's
+		 * Open… carries ⌃O and Save ⌃S (spelled Ctrl+O and Ctrl+S under
+		 * `shortcutSpelling: "names"`), so on a Windows host Ctrl+O and
+		 * Ctrl+S run them instead of the browser's Open and Save Page; the
+		 * menu-shortcut dispatcher prevents the browser's default.
+		 */
+		standardShortcuts?: "windows";
 		/**
 		 * How a menu takes the keyboard (`ClassicyMenu`). `"mac"` (the
 		 * default; Mac OS 8's and System 7's menus had no keyboard
@@ -657,6 +687,38 @@ export type ClassicyAppearanceLayout = {
 		 * `pointercancel`, the page is hidden) or `hideContextMenu` drops it.
 		 */
 		openOn?: "event" | "release";
+	};
+	/**
+	 * How a document's app treats its documents' windows. Optional, as is
+	 * each key.
+	 */
+	document?: {
+		/**
+		 * Whether closing a document with unsaved changes asks first (WIG
+		 * Ch.1 "Forgiveness", pp.2-3; Ch.5 "View Operations", p.46,
+		 * "Transactions", p.49). Absent or `false` (today's behavior under
+		 * Mac OS 8 and System 7, until their parity check): SimpleText's
+		 * close box, File ▸ Close and Quit close the window and discard the
+		 * working copy. `true` (Windows 98's Notepad): a document whose text
+		 * differs from its file (an untitled one: holds any text) shows
+		 * Notepad's message box, "The text in the <name> file has changed.",
+		 * "Do you want to save the changes?", with Yes (the default), No and
+		 * Cancel: Yes saves (an untitled one through Save As…) and closes once
+		 * saved, No discards and closes, Cancel keeps the window open. Quit
+		 * asks for each changed document in turn, a Cancel stopping it.
+		 */
+		confirmUnsavedClose?: boolean;
+		/**
+		 * What opening a document or folder that is already open does (WIG
+		 * Ch.5 "View Operations", p.46; Ch.9 "Single Document Window
+		 * Interface", p.175). Absent or `false` (today's behavior): the app is
+		 * brought forward with its last-focused window, which may be another
+		 * document's. `true` (Windows): the document's or folder's own window
+		 * comes forward and takes the focus (the kernel's generic `*OpenFile`
+		 * route, the PDF and Picture Viewers' OpenFile cases, the Finder's
+		 * `ClassicyAppFinderOpenFolder`).
+		 */
+		reopenActivates?: boolean;
 	};
 	/**
 	 * The mouse's press discipline (WIG Ch.4 "Mouse Actions", pp.24-25).

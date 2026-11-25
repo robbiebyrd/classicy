@@ -152,3 +152,102 @@ describe("ClassicyTextEditor autoHeight without field-sizing", () => {
 		expect(field(container).style.height).toBe("");
 	});
 });
+
+// A document's view state (the WIG audit's 2.1; WIG Ch.2 "Persistence",
+// p.12: "cursor position, scroll position"): the caret put back when the
+// editor mounts, and reported once it stops moving. Without either prop the
+// caret starts at the beginning and nothing is reported, as before.
+describe("ClassicyTextEditor caret view state", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+	const field = () => screen.getByRole("textbox") as HTMLTextAreaElement;
+
+	it("starts the caret at the beginning without initialCaret", () => {
+		render(<ClassicyTextEditor id="t" content="hello world" />);
+		expect(field().selectionStart).toBe(0);
+	});
+
+	it("puts the caret at initialCaret, clamped to the text, without focusing", () => {
+		render(
+			<ClassicyTextEditor id="t" content="hello world" initialCaret={6} />,
+		);
+		expect(field().selectionStart).toBe(6);
+		expect(field().selectionEnd).toBe(6);
+		expect(document.activeElement).not.toBe(field());
+	});
+
+	it("clamps an initialCaret past the end, and ignores one that is not finite", () => {
+		const { unmount } = render(
+			<ClassicyTextEditor id="t" content="hi" initialCaret={40} />,
+		);
+		expect(field().selectionStart).toBe(2);
+		unmount();
+		render(
+			<ClassicyTextEditor id="t" content="hi" initialCaret={Number.NaN} />,
+		);
+		expect(field().selectionStart).toBe(0);
+	});
+
+	it("reports the caret once it stops moving, only when it changes", () => {
+		vi.useFakeTimers();
+		const onCaretSettled = vi.fn();
+		render(
+			<ClassicyTextEditor
+				id="t"
+				content="hello world"
+				initialCaret={6}
+				onCaretSettled={onCaretSettled}
+			/>,
+		);
+		// The caret put back is never reported.
+		fireEvent.select(field());
+		vi.advanceTimersByTime(300);
+		expect(onCaretSettled).not.toHaveBeenCalled();
+		field().setSelectionRange(3, 3);
+		fireEvent.select(field());
+		vi.advanceTimersByTime(100);
+		field().setSelectionRange(9, 9);
+		fireEvent.select(field());
+		vi.advanceTimersByTime(150);
+		expect(onCaretSettled).not.toHaveBeenCalled();
+		vi.advanceTimersByTime(100);
+		expect(onCaretSettled).toHaveBeenCalledTimes(1);
+		expect(onCaretSettled).toHaveBeenLastCalledWith(9);
+	});
+
+	it("makes a report still due when it unmounts", () => {
+		vi.useFakeTimers();
+		const onCaretSettled = vi.fn();
+		const { unmount } = render(
+			<ClassicyTextEditor
+				id="t"
+				content="hello world"
+				onCaretSettled={onCaretSettled}
+			/>,
+		);
+		field().setSelectionRange(4, 4);
+		fireEvent.select(field());
+		unmount();
+		expect(onCaretSettled).toHaveBeenCalledWith(4);
+	});
+
+	it("hands initialScroll and onScrollSettled to its scroll area", () => {
+		vi.useFakeTimers();
+		const onScrollSettled = vi.fn();
+		render(
+			<ClassicyTextEditor
+				id="t"
+				content="hello"
+				initialScroll={[0, 0]}
+				onScrollSettled={onScrollSettled}
+			/>,
+		);
+		// jsdom lays nothing out, so the textarea's own setter keeps what it
+		// is given: a scroll reports it.
+		field().scrollTop = 30;
+		fireEvent.scroll(field());
+		vi.advanceTimersByTime(300);
+		expect(onScrollSettled).toHaveBeenCalledWith([0, field().scrollTop]);
+	});
+});

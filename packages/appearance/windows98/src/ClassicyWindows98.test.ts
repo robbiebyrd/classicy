@@ -1329,9 +1329,14 @@ describe("the Windows 98 appearance package", () => {
 	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus on Windows' keys, kept open and cascades on a time-out, the context-menu keys, Command equivalents on Control alone, Explorer's Open first, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, lists selecting at the press and across a drag, Control with Shift adding a range and a double-click opening the selection, the page keys moving a list's row, Space, Control and Add mode building a selection, a drag carrying the icon view's selection, the list view's selection rectangle, one Tab stop for the icons, Windows' press discipline, Escape taking a drag back", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
-			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
+			window: {
+				restoreViewState: true,
+				growBoxCorner: "bottom-right",
+				centering: "wholePixel",
+			},
 			menuBar: { placement: "screen", idleTimeoutMs: 0 },
 			menu: {
+				standardShortcuts: "windows",
 				keys: "windows",
 				submenuDelayMs: 400,
 				disabledItems: "browse",
@@ -1371,9 +1376,29 @@ describe("the Windows 98 appearance package", () => {
 				iconNavigation: "roving",
 			},
 			contextMenu: { openOn: "release" },
+			document: { confirmUnsavedClose: true, reopenActivates: true },
 			mouse: "windows",
 			input: { escapeCancels: true },
 		});
+	});
+
+	// Documents as Windows 98 kept them: Notepad's "The text in the … file
+	// has changed." before a changed document closes (1.17 / 5.25; WIG Ch.1
+	// "Forgiveness", pp.2-3; Ch.5 "View Operations", p.46, "Transactions",
+	// p.49), an open document's or folder's own window brought forward when
+	// it is opened again (5.24 / 9.2; Ch.5 p.46; Ch.9 "Single Document
+	// Window Interface", p.175), a window's scroll position and caret kept
+	// for when it is reopened (2.1; Ch.2 "Persistence", p.12), and CTRL+O
+	// and CTRL+S on the File menu (B.4; App. B Table B.2, p.358).
+	it("asks before a changed document closes, brings an open document's window forward, keeps its view state and puts Ctrl+O and Ctrl+S on Open and Save", async () => {
+		await import("./index");
+		const layout = getClassicyAppearancePackage("windows98")?.layout;
+		expect(layout?.document).toEqual({
+			confirmUnsavedClose: true,
+			reopenActivates: true,
+		});
+		expect(layout?.window.restoreViewState).toBe(true);
+		expect(layout?.menu?.standardShortcuts).toBe("windows");
 	});
 
 	// The core's `dialog` family is structural (every theme emits it from the
