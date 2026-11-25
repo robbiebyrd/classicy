@@ -153,6 +153,13 @@ const sizeText = (size: number | null | undefined): string =>
 			? CLASSICY_PROPERTIES_UNKNOWN
 			: classicyPropertiesSize(size);
 
+/** What's This? on the Read-only check box (shell32's help text). */
+export const CLASSICY_PROPERTIES_READ_ONLY_HELP =
+	"Specifies whether this item is read-only, which means that it cannot be changed or accidentally deleted.";
+/** What's This? on the Hidden check box (shell32's help text). */
+export const CLASSICY_PROPERTIES_HIDDEN_HELP =
+	"Specifies whether this item is hidden, which means you cannot see or use it unless you know its name.";
+
 /**
  * Windows' property sheet for items of the tree or an application, its
  * General page (WIG Ch.2 "Putting Theory into Practice", pp.12-13; Ch.5
@@ -184,13 +191,6 @@ const sizeText = (size: number | null | undefined): string =>
  * system, free space and capacity, and the Recycle Bin's settings have no
  * Classicy data and are not shown.
  */
-/** What's This? on the Read-only check box (shell32's help text). */
-export const CLASSICY_PROPERTIES_READ_ONLY_HELP =
-	"Specifies whether this item is read-only, which means that it cannot be changed or accidentally deleted.";
-/** What's This? on the Hidden check box (shell32's help text). */
-export const CLASSICY_PROPERTIES_HIDDEN_HELP =
-	"Specifies whether this item is hidden, which means you cannot see or use it unless you know its name.";
-
 export const ClassicyFilePropertiesWindow: FunctionalComponent<
 	ClassicyFilePropertiesWindowProps
 > = ({

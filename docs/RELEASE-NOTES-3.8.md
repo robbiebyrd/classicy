@@ -200,7 +200,18 @@ Windows 98 declares (`menuBar.placement: "window"`, `taskbar`,
   unavailable title is embossed, and each menu hangs from its title's
   bottom-left corner. It ends with one Help menu: Help Topics and What's This?
   (Shift+F1) under Windows 98, Classicy's help items, the app's, then "About
-  <app>" last.
+  <app>" last. A program's Quit reads "Exit" there (access key X), keeping its
+  handler.
+- **Pop-up menus as Windows'.** A right-click menu opens with its corner at
+  the pointer and carries no leading Help item (`contextMenu.helpItem: false`,
+  `contextMenu.placement: "corner"`); a caller's own options still win.
+- **Property sheets.** Explorer's Properties and Taskbar Properties open on
+  their selected tab, so Enter and Esc reach OK and Cancel at once, draw in the
+  dialog font and carry the "?" caption box, with What's This? help on their
+  check boxes.
+- **Desktop icon labels** wrap within the icon spacing, a long word broken,
+  and stop at two lines with an ellipsis unless the icon has the focus, so a
+  large scheme's labels no longer run off the screen or over the icon below.
 - **Each scheme's chrome.** The caption takes the scheme's caption font (a
   tool window's, the small caption font), its marks are inked in ButtonText
   and drawn twice the size in buttons 24 px or taller (the new
@@ -212,7 +223,8 @@ Windows 98 declares (`menuBar.placement: "window"`, `taskbar`,
   `onIconMouseDown`, `onIconDoubleClick`, `closeDisabled`, `zoomDisabled`,
   `collapseDisabled`, `buttonTooltips`, `onHelp` (Windows' "?" caption box,
   which starts What's This?) and `utilityTitle`; `ClassicyWindow` gains
-  `onCaptionClose`; `ClassicyApp` gains `showInQuickLaunch`; `ClassicyDesktop`
+  `onCaptionClose` and `contextHelp` (a modeless window's "?" box under
+  `balloonHelp.contextHelp: "whatsThis"`); `withClassicyExitItem`; `ClassicyApp` gains `showInQuickLaunch`; `ClassicyDesktop`
   gains `userName` and `onLogOff`. `showContextMenu` takes optional
   `ClassicyContextualMenuOptions` (`helpItem`, `placement`, `focusFirstItem`,
   `keyboard`, `anchor`); `ClassicyBevelButtonPopup` takes `aside` and
@@ -482,6 +494,8 @@ keep the Mac Finder's menus exactly as they were.
   window at its scroll offset.
 - **Ctrl+O and Ctrl+S** (`menu.standardShortcuts: "windows"`) answer File ▸
   Open… and Save instead of the browser's Open and Save Page.
+- **"Untitled - Notepad"** (`document.titleAppName`): a SimpleText window's
+  title names the application after the document, as its taskbar button does.
 - **Editing as Windows did.** A double-click selects the word and the spaces
   after it, never the punctuation or the line break that follows
   (`text.wordSelect: "trailingSpace"`). The Edit commands act only on a field

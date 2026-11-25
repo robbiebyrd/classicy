@@ -101,37 +101,6 @@ export type ClassicyWindowMenuBarProps = {
 };
 
 /**
- * A window's own menu bar, for Appearance Packages whose layout sets
- * `menuBar.placement` to `"window"`: `ClassicyWindow` renders it directly
- * under its title bar with the window's `appMenu` (not for utility windows,
- * modals or a collapsed window), and the screen menu bar renders nothing (it
- * still dispatches keyboard equivalents). It reuses the screen bar's menu
- * classes (`classicyDesktopMenu`) inside its own `ClassicyMenuProvider`: its
- * menus open and stick as the screen bar's do, and close on a selection, a
- * re-click of the open title, a mouse-down anywhere outside the bar or the
- * package's idle time-out (`layout.menuBar.idleTimeoutMs`, 15 s when it
- * declares none; Windows 98 never). The
- * bar's flex and `order` rules come from the screen bar's stylesheet, which
- * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
- *
- * Without a taskbar, only the app's menus have a home here: the Apple, Help
- * and App Switcher menus, the clock and menu bar extensions
- * (`ClassicyMenuBarExtension`, which portals into the screen bar's extensions
- * list) are not shown in window placement. Under a taskbar
- * (`layout.taskbar`, the Windows 95/98 shell, plan 0020-w98 §4), where no
- * screen bar is drawn, the bar ends with the Help menu (WIG Ch.7 "The Menu
- * Bar and Drop-down Menus", p.97; "The Help Menu", p.99): the app's menus,
- * its About item and its own Help menus taken out, then a last "Help" menu
- * (part `help`) holding the system's Help items, the app's registered items
- * (`useClassicyHelpMenu`), the items of its own Help menus, and, after a
- * divider, "About <display name>" when the app has an About item; the
- * app's Quit item reads "Exit" (`withClassicyExitItem`). The
- * headless screen bar reserves no band: the desktop root's
- * `--menu-bar-height` is `0px` in this placement (`classicyLayoutThemeVars`),
- * so window geometry (`windowViewportFloor` in `ClassicyWindow.tsx`) lets a
- * window be placed, zoomed, dragged or resized up to the screen's top edge.
- */
-/**
  * Under a taskbar, the app's Quit item (`quitMenuItemHelper`, id
  * `<appId>_quit`, titled "Quit") reads "Exit", Windows' last File command
  * (WIG Ch.7 "The File Menu", p.98; its access key X, Appendix B Table B.5),
@@ -163,6 +132,37 @@ export const withClassicyExitItem = (
 			: item;
 	});
 
+/**
+ * A window's own menu bar, for Appearance Packages whose layout sets
+ * `menuBar.placement` to `"window"`: `ClassicyWindow` renders it directly
+ * under its title bar with the window's `appMenu` (not for utility windows,
+ * modals or a collapsed window), and the screen menu bar renders nothing (it
+ * still dispatches keyboard equivalents). It reuses the screen bar's menu
+ * classes (`classicyDesktopMenu`) inside its own `ClassicyMenuProvider`: its
+ * menus open and stick as the screen bar's do, and close on a selection, a
+ * re-click of the open title, a mouse-down anywhere outside the bar or the
+ * package's idle time-out (`layout.menuBar.idleTimeoutMs`, 15 s when it
+ * declares none; Windows 98 never). The
+ * bar's flex and `order` rules come from the screen bar's stylesheet, which
+ * loads with `ClassicyDesktopMenuBar` (the desktop always mounts it).
+ *
+ * Without a taskbar, only the app's menus have a home here: the Apple, Help
+ * and App Switcher menus, the clock and menu bar extensions
+ * (`ClassicyMenuBarExtension`, which portals into the screen bar's extensions
+ * list) are not shown in window placement. Under a taskbar
+ * (`layout.taskbar`, the Windows 95/98 shell, plan 0020-w98 §4), where no
+ * screen bar is drawn, the bar ends with the Help menu (WIG Ch.7 "The Menu
+ * Bar and Drop-down Menus", p.97; "The Help Menu", p.99): the app's menus,
+ * its About item and its own Help menus taken out, then a last "Help" menu
+ * (part `help`) holding the system's Help items, the app's registered items
+ * (`useClassicyHelpMenu`), the items of its own Help menus, and, after a
+ * divider, "About <display name>" when the app has an About item; the
+ * app's Quit item reads "Exit" (`withClassicyExitItem`). The
+ * headless screen bar reserves no band: the desktop root's
+ * `--menu-bar-height` is `0px` in this placement (`classicyLayoutThemeVars`),
+ * so window geometry (`windowViewportFloor` in `ClassicyWindow.tsx`) lets a
+ * window be placed, zoomed, dragged or resized up to the screen's top edge.
+ */
 export const ClassicyWindowMenuBar: FunctionalComponent<
 	ClassicyWindowMenuBarProps
 > = ({ appId, windowId, menuItems, className, style }) => (
