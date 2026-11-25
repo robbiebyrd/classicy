@@ -220,10 +220,10 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
     }
   }
 
-  // The Application menu has no divider before it (Platinum's is a raised
-  // bar).
-  .classicyDesktopMenuAppSwitcher::before {
-    content: none;
+  // The Application menu has no grip before it (Platinum's is Mac OS 8.5's):
+  // its title is its icon alone, never resized.
+  .classicyDesktopMenuAppSwitcherGrip {
+    display: none;
   }
 
   // Its title is the front application's small icon alone, at its own size,

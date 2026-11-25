@@ -53,7 +53,9 @@ const testPackTheme = (
 		// knobs only (0015 §1.1), and a package that uses Platinum's look
 		// must declare Platinum's look-only knobs itself.
 		controlStrip: { cellHeight: 22, tabWidth: 12, bevelWidth: 1 },
-		menuBar: { barHeight: 20 },
+		// Platinum's own `menuBar` knobs kept: the Test Pack draws
+		// Platinum's sheet, which reads them (the Application menu title).
+		menuBar: { ...base.measurements.menuBar, barHeight: 20 },
 	},
 });
 

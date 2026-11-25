@@ -222,6 +222,20 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		// Mac OS 8.5's 150 (Platinum's _ApplicationSwitcher.scss), on the floor
 		// for 0225-ci7's reason (integration review G round 3, F5).
 		applicationSwitcher: { namedButtonWidth: 150 },
+		// The Application menu title's geometry, Mac OS 8.5's (Platinum's
+		// _Menu.scss): the bar's right end, the title's paddings, the gap
+		// between its icon and its name, its icon's size and the clock's end
+		// before the title's grip; on the floor for 0225-ci7's reason
+		// (integration review G round 6, W14/B3). System 7 overrides every
+		// one of them in its own `menuBar` family.
+		menuBar: {
+			endInset: 11,
+			switcherTitleStart: 6,
+			switcherTitleGap: 5,
+			switcherTitleEnd: 7,
+			titleArtSize: 16,
+			clockEnd: 6,
+		},
 	});
 
 /**

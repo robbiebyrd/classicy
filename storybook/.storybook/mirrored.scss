@@ -139,6 +139,11 @@
     margin-right: auto;
   }
 
+  // Its grip still at its left edge, so at the bar's far left.
+  .classicyDesktopMenu > [data-classicy-part="switcher-grip"] {
+    order: 0;
+  }
+
   .classicyDesktopMenu > [data-classicy-part="extensions"] {
     margin-left: 0;
   }

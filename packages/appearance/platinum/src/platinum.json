@@ -264,6 +264,14 @@
 			},
 			"applicationSwitcher": {
 				"namedButtonWidth": 150
+			},
+			"menuBar": {
+				"endInset": 11,
+				"switcherTitleStart": 6,
+				"switcherTitleGap": 5,
+				"switcherTitleEnd": 7,
+				"titleArtSize": 16,
+				"clockEnd": 6
 			}
 		},
 		"desktop": {

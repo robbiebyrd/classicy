@@ -118,6 +118,14 @@ export interface ClassicyMenuItem {
 	 */
 	titleWidthSamples?: string[];
 	/**
+	 * A class for a `<span>` the title's text is drawn in, so a stylesheet can
+	 * size or cut the text apart from the item's image (the Application
+	 * menu's title, its name cut with an ellipsis while its grip is dragged).
+	 * Without it the text is the title's bare text. Not with
+	 * `titleWidthSamples`, whose sizer wraps the text instead.
+	 */
+	titleClassName?: string;
+	/**
 	 * Analytics only: reported with the item's analytics event. Choosing the
 	 * item does not navigate — use `onClickFunc` or `event:
 	 * "ClassicyDesktopOpenUrl"` for that.
@@ -872,6 +880,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 									{he.decode(sample)}
 								</span>
 							))}
+						</span>
+					) : menuItem.titleClassName ? (
+						<span className={menuItem.titleClassName}>
+							{he.decode(menuItem.title)}
 						</span>
 					) : (
 						he.decode(menuItem.title)

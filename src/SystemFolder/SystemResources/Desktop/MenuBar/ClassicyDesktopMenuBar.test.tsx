@@ -381,7 +381,7 @@ describe("ClassicyDesktopMenuBar — shortcut auto-registration (Keyboard regist
 	});
 });
 
-describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
+describe("ClassicyDesktopMenuBar — the Application menu title follows the front application's own name", () => {
 	beforeEach(() => {
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
@@ -401,7 +401,13 @@ describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
 		...extra,
 	});
 
-	it("reserves the width of every open app's name so the switcher never resizes", () => {
+	// Mac OS 8.5 sizes the title to the front application's name alone: an
+	// application opening behind it changes nothing, and the clock moves when
+	// the front application changes (integration review G round 6, W14/B3;
+	// the 8.5 Finder title is as wide with only the Finder running as with
+	// Appearance, Note Pad and SimpleText running). No width is reserved for
+	// the other open applications' names, as an earlier build did.
+	it("reserves no width for the other open applications' names", () => {
 		setStore((draft) => {
 			draft.System.Manager.Applications.apps = {
 				"Finder.app": app("Finder.app", "Finder", { focused: true }),
@@ -414,31 +420,14 @@ describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
 		render(<ClassicyDesktopMenuBar />);
 
 		const switcher = document.querySelector("#app-switcher");
-		const reserved = [
-			...(switcher?.querySelectorAll(
-				":scope > p .classicyMenuItemTitleSample",
-			) ?? []),
-		].map((s) => s.textContent);
-		expect(reserved).toEqual(["PictureViewer", "SimpleText"]);
-	});
-
-	it("does not reserve width for background extensions", () => {
-		setStore((draft) => {
-			draft.System.Manager.Applications.apps = {
-				"Finder.app": app("Finder.app", "Finder", { focused: true }),
-				"AppleGuide.app": app("AppleGuide.app", "AnExtremelyLongExtension", {
-					extension: true,
-				}),
-			};
-			draft.System.Manager.Applications.focusedAppId = "Finder.app";
-		});
-
-		render(<ClassicyDesktopMenuBar />);
-
-		const switcher = document.querySelector("#app-switcher");
-		expect(
-			switcher?.querySelector(":scope > p .classicyMenuItemTitleSample"),
-		).toBeNull();
+		expect(switcher?.querySelector(".classicyMenuItemTitleSample")).toBeNull();
+		expect(switcher?.querySelector(".classicyMenuItemTitleSizer")).toBeNull();
+		// The title is the front application's icon, then its name alone.
+		const name = switcher?.querySelector(
+			":scope > p > .classicyDesktopMenuAppSwitcherName",
+		);
+		expect(name?.textContent).toBe("Finder");
+		expect(switcher?.querySelector(":scope > p")?.textContent).toBe("Finder");
 	});
 });
 

@@ -29,8 +29,12 @@ import {
 } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
-import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	CLASSICY_PART_ATTRIBUTE,
+	classicyStateClasses,
+} from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
+import { useClassicyAppMenuTitleGrip } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppMenuTitleGrip.internal";
 import { ClassicyAppSwitcherTearOff } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherTearOff.internal";
 import {
 	appSwitcherAppsFrom,
@@ -196,6 +200,14 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const desktopEventDispatch = useAppManagerDispatch();
 	const navRef = useRef<HTMLElement>(null);
 	useClassicyMenuCloseOnOutsideMouseDown(navRef);
+	// The Application menu title's grip (Mac OS 8.5): dragged, it shows the
+	// front application's name or its icon alone, for every application.
+	const {
+		grip: appMenuTitleGrip,
+		resizing: appMenuTitleResizing,
+		showsName: appMenuShowsName,
+	} = useClassicyAppMenuTitleGrip(navRef);
+	const appMenuTitleCollapsed = !appMenuShowsName && !appMenuTitleResizing;
 	// Window placement unmounts the bar but keeps its provider, so a menu
 	// open at the switch (a keyboard equivalent or host code changed the
 	// package, with no mouse-down to close it) would leave the provider
@@ -317,13 +329,21 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				? { description: notificationDescriptions.application }
 				: {}),
 			title: focusedApp?.name || finderName,
-			className: "classicyDesktopMenuAppSwitcher",
+			// The name in a span of its own, which the grip's drag cuts with an
+			// ellipsis; collapsed, the title is the icon alone (its accessible
+			// name the icon's alternative text, the application's name).
+			titleClassName: "classicyDesktopMenuAppSwitcherName",
+			className: classNames(
+				"classicyDesktopMenuAppSwitcher",
+				classicyStateClasses({ collapsed: appMenuTitleCollapsed }),
+			),
 			part: "switcher",
-			// The switcher's title follows the focused app, and it sits at the
-			// right end of the bar — so a name-length change would otherwise resize
-			// it and shove the clock and extensions sideways. Reserve the widest open
-			// app's width up front and the bar stays put.
-			titleWidthSamples: openApps.map((app) => app.name),
+			// As wide as the front application's own name, as Mac OS 8.5 draws
+			// it: an application opening behind it changes nothing, and a
+			// switch to one with a longer or shorter name moves the clock and
+			// the bar items left of the title (8.5's Finder, Note Pad and
+			// Apple System Profiler titles; no width is reserved for the
+			// widest open application's name, as an earlier build did).
 			menuChildren: [
 				...commands,
 				...openApps.map((app) => ({
@@ -358,6 +378,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		setActiveApp,
 		switcherTitleIcon,
 		notificationDescriptions.application,
+		appMenuTitleCollapsed,
 	]);
 
 	// The app whose menus the bar is showing: the front application
@@ -536,6 +557,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			>
 				{/* Sound lives on the Control Strip (ClassicyDesktop mounts it). */}
 				<ClassicyDesktopMenuWidgetTime />
+				{/* The Application menu title's grip, placed beside the title by
+				    its data-classicy-part (ClassicyDesktopMenuBar.scss). */}
+				{appMenuTitleGrip}
 				{/* Portal target for app Menu Bar Extensions. Order via
 				    data-classicy-part; see ClassicyDesktopMenuBar.scss: it lands
 				    left of the clock and pushes the right cluster to the end. */}

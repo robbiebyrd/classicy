@@ -94,8 +94,9 @@
 }
 
 // Left to right: Apple, the app's menus, Help, then — pushed to the far end by
-// the extensions' auto margin — menu bar extensions, the clock and the App
-// Switcher. A top-level item with balloon help is wrapped in a
+// the extensions' auto margin — menu bar extensions, the clock, the
+// Application menu title's grip and the title. A top-level item with balloon
+// help is wrapped in a
 // ClassicyBalloonHelp anchor, which is then the flex item: the `:has()` form
 // orders that wrapper by the part it wraps. The two forms are separate rules,
 // plain first: a browser without :has() drops a whole rule whose selector list
@@ -127,6 +128,12 @@ $classicy-menu-bar-order: (
   }
 }
 
+// The Application menu title's grip, just before the title: one plain rule,
+// as it is never wrapped in a balloon anchor.
+.classicyDesktopMenu > [data-classicy-part="switcher-grip"] {
+  order: 59;
+}
+
 .classicyDesktopMenuExtensions {
   display: flex;
   align-items: center;
@@ -136,29 +143,29 @@ $classicy-menu-bar-order: (
   list-style: none;
 }
 
+// The Application menu's title: the front application's icon, then its
+// name (`.classicyDesktopMenuAppSwitcherName`), as wide as that name (Mac OS
+// 8.5). While its grip is dragged (ClassicyAppMenuTitleGrip.internal.tsx)
+// its border box is the width the grip gives it, on the bar's
+// `--classicy-app-menu-title-width`, the name cut with an ellipsis; at rest
+// the property is unset and the title is as wide as its contents. Collapsed,
+// the title is the icon alone (the setting the grip's drag makes). The
+// title's look and the grip's are the package's.
 .classicyDesktopMenuAppSwitcher {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: var(--classicy-app-menu-title-width, auto);
   margin-right: 0;
   margin-left: 0;
-  &:hover {
-    &:before {
-      background: var(--color-theme-02);
-      box-shadow: var(--window-border-size) var(--window-border-size) var(--color-theme-05),
-        inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-theme-02),
-        inset var(--window-border-size) var(--window-border-size) var(--color-theme-01);
+
+  > p {
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow: hidden;
+
+    > img {
+      flex-shrink: 0;
     }
-  }
-
-  &:before {
-    width: var(--control-frame-width);
-    height: 75%;
-    margin-right: var(--window-padding-size);
-    content: '';
-    border: var(--window-border-size) solid var(--color-system-02);
-    background: var(--color-system-02);
-    box-shadow: var(--window-border-size) var(--window-border-size) var(--color-system-05),
-      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-02),
-      inset var(--window-border-size) var(--window-border-size) var(--color-system-01);
-
   }
 
   &:after {
@@ -176,4 +183,28 @@ $classicy-menu-bar-order: (
       right: calc((var(--window-control-size) - var(--window-padding-size)) * -1);
     }
   }
+}
+
+.classicyDesktopMenuAppSwitcherName {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+:where(.classicyDesktopMenuAppSwitcher).collapsed .classicyDesktopMenuAppSwitcherName {
+  display: none;
+}
+
+// The grip at the title's left edge: a part of its own, as tall as the bar,
+// its width and art the package's (none here, so a package that draws no
+// grip shows none; System 7 hides it). Dragged, it takes the pointer: no
+// text is selected and no touch scrolls.
+.classicyDesktopMenuAppSwitcherGrip {
+  flex-shrink: 0;
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  touch-action: none;
 }

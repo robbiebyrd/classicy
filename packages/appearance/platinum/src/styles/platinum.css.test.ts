@@ -30,6 +30,27 @@ const PLATINUM_SCOPE =
  * `@layer`); the steps of a `@keyframes` are not selectors. A selector list
  * may span lines (`.a,\n.b {`), so every line ending in `,` counts too.
  */
+/**
+ * A selector list split at its own commas, not at those inside a
+ * pseudo-class's parentheses (`:is(a, b)`, `:not(a, b)`), so a scoped rule
+ * whose selector holds such a list is read whole.
+ */
+const splitSelectorList = (header: string): string[] => {
+	const parts: string[] = [];
+	let depth = 0;
+	let start = 0;
+	for (let i = 0; i < header.length; i++) {
+		if (header[i] === "(") depth++;
+		else if (header[i] === ")") depth--;
+		else if (header[i] === "," && depth === 0) {
+			parts.push(header.slice(start, i).trim());
+			start = i + 1;
+		}
+	}
+	parts.push(header.slice(start).trim());
+	return parts;
+};
+
 const scanSelectors = (css: string) => {
 	const selectors: string[] = [];
 	const stack: ("at" | "keyframes" | "rule")[] = [];
@@ -53,7 +74,7 @@ const scanSelectors = (css: string) => {
 			else if (header.startsWith("@")) stack.push("at");
 			else {
 				if (stack.at(-1) !== "keyframes")
-					selectors.push(...header.split(",").map((s) => s.trim()));
+					selectors.push(...splitSelectorList(header));
 				stack.push("rule");
 			}
 		}

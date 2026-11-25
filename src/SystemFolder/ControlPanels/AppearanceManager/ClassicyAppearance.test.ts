@@ -58,8 +58,11 @@ import {
 // added the selectionMarquee family's two knobs (--selection-marquee-width,
 // --selection-marquee-tile-size, 2px each) after --dither-tile-size; story
 // 0230-n6c added the zoomRects family's eight knobs (--zoom-rects-enabled
-// to --zoom-rects-tile-size) after those (every other key and value
-// unchanged each time).
+// to --zoom-rects-tile-size) after those; integration review G round 6
+// added the menuBar family's six (--menu-bar-end-inset to
+// --menu-bar-clock-end, the Application menu title's geometry, Mac OS 8.5's)
+// after --application-switcher-named-button-width (every other key and
+// value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -91,8 +94,10 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // story 0230-n6c's zoom rectangles, the zoomRects family's six path and
 // pace knobs and its pen and checker, made 27 families and 117 keys; the
 // Application Switcher palette's named buttons' least width, Mac OS 8.5's
-// 150, made 28 families and 118 keys, integration review G round 3, F5).
-const PLATINUM_KNOB_COUNT = 118;
+// 150, made 28 families and 118 keys, integration review G round 3, F5;
+// the Application menu title's geometry, Mac OS 8.5's, the menuBar family's
+// six knobs, made 29 families and 124 keys, integration review G round 6).
+const PLATINUM_KNOB_COUNT = 124;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

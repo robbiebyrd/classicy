@@ -2,8 +2,40 @@
 // Figure 6-15 on every menu, its dividers, the submenu triangle, the flash of
 // a chosen item, and the check and dash glyphs of checked and mixed items.
 @use "sass:string";
+@use "pkg:@classicy/classicy/scss/layout";
 @use "../marks";
 @use "../mixins";
+
+// A top-level title of the screen's menu bar: the plain one, and the one a
+// balloon-help anchor wraps.
+$bar: ".classicyDesktopMenuBar .classicyDesktopMenu";
+$titles: "#{$bar} > .classicyMenuItem, #{$bar} > .classicyMenuItemBalloonAnchor > .classicyMenuItem";
+
+// The Application menu title's grip, Mac OS 8.5's, pixel for pixel on the
+// menu marks' grid (`menu.markPixel`): six columns from the grip's left,
+// over the bar's rows below its first. At rest (Finder in front, the grip at
+// x 549-554 of a 640 x 480 screen: audit-85b `im85/a0-desktop.png`,
+// `sheets/s17-grip.png`): a white column, the face, a column of four
+// raised dots (#888888 #AAAAAA over #BBBBBB #FFFFFF, at rows 4, 7, 10 and
+// 13), the face, a #999999 column; the bar's top row runs over the first
+// five columns and is the face over the sixth. Pressed
+// (`im85/c6-grip-held-545.png`): a #555555 column and top row, an #888888
+// face, the dots #555555 #777777 over #777777 #AAAAAA, a #BBBBBB column.
+// The inks are Platinum's gray ramp, each with the core token nearest it.
+$grip-dots-top-left: (2 4) (2 7) (2 10) (2 13);
+$grip-dots-top-right: (3 4) (3 7) (3 10) (3 13);
+$grip-dots-bottom-left: (2 5) (2 8) (2 11) (2 14);
+$grip-dots-bottom-right: (3 5) (3 8) (3 11) (3 14);
+
+// `$w` columns from column `$x`, from the grip's second row to its bottom.
+@function grip-columns($ink, $x, $w: 1) {
+  @return layout.classicy-px-rect($ink, marks.px($x), marks.px(1), marks.px($w), calc(100% - #{marks.px(1)}));
+}
+
+@function grip-dots($top-left, $top-right, $bottom-left, $bottom-right) {
+  @return marks.pixel-art($top-left, $grip-dots-top-left), marks.pixel-art($top-right, $grip-dots-top-right),
+    marks.pixel-art($bottom-left, $grip-dots-bottom-left), marks.pixel-art($bottom-right, $grip-dots-bottom-right);
+}
 
 @mixin menu {
   // A hidden application's icon in the Application menu. The core draws it
@@ -19,6 +51,64 @@
   .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage),
   .classicyApplicationSwitcherHidden .classicyApplicationSwitcherIcon:not(.classicyIconDimmedImage) {
     opacity: 0.46;
+  }
+
+  // The Application menu's title as Mac OS 8.5 draws it (integration review
+  // G round 6, W14/B3; audit-85b `im85/a0-desktop.png`, `b1-asp.png`,
+  // `c5-finder-icononly.png`): the grip, then a box with
+  // `menuBar.switcherTitleStart` (6) before the front application's
+  // `menuBar.titleArtSize` (16) icon, `switcherTitleGap` (5) before its
+  // name and `switcherTitleEnd` (7) after it (the Finder's box 555-628, its
+  // icon 561-576, its name's ink 582-620); its icon alone, a box of 6, 16
+  // and 7 (600-628). Its right edge is `menuBar.endInset` (11) in from the
+  // bar's, and the clock's text ends `menuBar.clockEnd` (6) before the grip,
+  // so its last ink is seven pixels clear of it (541 against 549).
+  #{$bar} {
+    padding-right: var(--menu-bar-end-inset);
+  }
+
+  :is(#{$titles}).classicyDesktopMenuAppSwitcher {
+    padding: 0 var(--menu-bar-switcher-title-end) 0 var(--menu-bar-switcher-title-start);
+
+    > p > img {
+      width: var(--menu-bar-title-art-size);
+      height: var(--menu-bar-title-art-size);
+      margin: 0 var(--menu-bar-switcher-title-gap) 0 0;
+    }
+
+    &.collapsed > p > img {
+      margin-right: 0;
+    }
+  }
+
+  #{$bar} > .classicyMenuItem.classicyDesktopMenuTime {
+    margin-right: 0;
+    padding-right: var(--menu-bar-clock-end);
+  }
+
+  .classicyDesktopMenuAppSwitcherGrip {
+    width: marks.px(6);
+    background:
+      grip-dots(marks.ramp("8"), marks.ramp("-a"), marks.ramp("-b"), var(--color-white)),
+      grip-columns(var(--color-white), 0),
+      grip-columns(marks.ramp("9"), 5),
+      marks.pixel-art(var(--color-system-02), ((5 0),));
+
+    &.pressed {
+      background:
+        grip-dots(marks.ramp("5"), marks.ramp("7"), marks.ramp("7"), marks.ramp("-a")),
+        marks.pixel-art(marks.ramp("5"), ((0 0 6 1),)),
+        grip-columns(marks.ramp("5"), 0),
+        grip-columns(marks.ramp("-b"), 5),
+        grip-columns(marks.ramp("8"), 1, 4);
+    }
+
+    // The keyboard's ring (the grip is a focusable window splitter); a
+    // press moves no focus, so a click shows none.
+    &:focus-visible {
+      outline: var(--color-outline) solid var(--control-frame-width);
+      outline-offset: 0;
+    }
   }
 
   .classicyMenu {

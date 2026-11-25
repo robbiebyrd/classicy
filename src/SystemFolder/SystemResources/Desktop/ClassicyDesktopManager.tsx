@@ -66,6 +66,7 @@ import {
 	hasModuleOrder,
 	hasMouseEvent,
 	hasPackageId,
+	hasShowName,
 	hasSmartScrolling,
 	hasStripPosition,
 	hasStripWidth,
@@ -180,6 +181,16 @@ export interface ClassicyStoreSystemDesktopManager
 		active: boolean;
 	};
 	disableBalloonHelp: boolean;
+	/**
+	 * Whether the Application menu's title shows the front application's name
+	 * beside its icon (Mac OS 8.5: TN1142's Menu Manager, "It is now possible
+	 * to remove the current application's name from the application menu"),
+	 * set by dragging the title's grip (`ClassicyDesktopSetAppMenuName`) and
+	 * kept for every application. Undefined (state built by hand, or saved
+	 * before it existed) is shown. A package that draws the title as its icon
+	 * alone (System 7) draws it so either way.
+	 */
+	appMenuShowsName?: boolean;
 	/** The Control Strip's persisted arrangement. Optional for state built
 	 * by hand; the defaults always carry it. */
 	controlStrip?: ClassicyStoreControlStrip;
@@ -703,6 +714,11 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopSetBalloonHelp": {
 			if (!hasDisableBalloonHelp(action)) break;
 			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
+			break;
+		}
+		case "ClassicyDesktopSetAppMenuName": {
+			if (!hasShowName(action)) break;
+			ds.System.Manager.Desktop.appMenuShowsName = action.showName;
 			break;
 		}
 		case "ClassicyDesktopControlStripSetVisible": {

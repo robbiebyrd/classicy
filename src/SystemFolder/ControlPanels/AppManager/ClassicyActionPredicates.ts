@@ -367,6 +367,11 @@ export function hasDisableBalloonHelp(
 	return typeof m.disableBalloonHelp === "boolean";
 }
 
+/** Action has `showName: boolean` (`ClassicyDesktopSetAppMenuName`). */
+export function hasShowName(m: Msg): m is Msg & { showName: boolean } {
+	return typeof m.showName === "boolean";
+}
+
 /** Action has `visible: boolean` */
 export function hasVisible(m: Msg): m is Msg & { visible: boolean } {
 	return typeof m.visible === "boolean";

@@ -179,10 +179,13 @@ const PLATINUM_KNOB_FAMILIES = [
 	"selectionMarquee",
 	"zoomRects",
 	"applicationSwitcher",
+	"menuBar",
 ];
 
 // A package shaped like Storybook's Test Pack: a partial controlStrip (one
-// Platinum key, one of its own) and a family Platinum does not have.
+// Platinum key, one of its own) and a family Platinum does not have
+// (`tickerTape`; Platinum has a `menuBar` family since integration review G
+// round 6, the Test Pack's own knob there now beside Platinum's).
 const PARTIAL_PACK_ID = "partial-pack";
 const partialPack = (): ClassicyAppearancePackage => {
 	const base = getTheme("default");
@@ -199,7 +202,7 @@ const partialPack = (): ClassicyAppearancePackage => {
 				...base.measurements,
 				window: { ...base.measurements.window, borderSize: 2 },
 				controlStrip: { cellHeight: 30, tabWidth: 12 },
-				menuBar: { barHeight: 20 },
+				tickerTape: { barHeight: 20 },
 			},
 		},
 		layout: {
@@ -291,7 +294,7 @@ describe("classicyThemeMeasurementDefaults", () => {
 		// The package's own values win, its own keys and families are kept…
 		expect(d.controlStrip.cellHeight).toBe(30);
 		expect(d.controlStrip.tabWidth).toBe(12);
-		expect(d.menuBar).toEqual({ barHeight: 20 });
+		expect(d.tickerTape).toEqual({ barHeight: 20 });
 		expect(d.window.borderSize).toBe(2);
 		// …and every structural key it leaves out comes from the core floor
 		// (the Control Strip's bevel too, which Platinum's sheet reads).
@@ -371,7 +374,7 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 			measurements: {
 				...CLASSICY_DEFAULT_THEME_METRICS,
 				controlStrip: { cellHeight: 30, tabWidth: 12 },
-				menuBar: { barHeight: 20 },
+				tickerTape: { barHeight: 20 },
 			},
 		};
 		const t = withDefaultThemeMetrics(
@@ -379,7 +382,7 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 			classicyThemeMeasurementDefaults("platinum"),
 		);
 		expect(t.measurements.controlStrip.tabWidth).toBe(12);
-		expect(t.measurements.menuBar).toEqual({ barHeight: 20 });
+		expect(t.measurements.tickerTape).toEqual({ barHeight: 20 });
 		expect(Object.keys(t.measurements.controlStrip)).toHaveLength(15);
 	});
 

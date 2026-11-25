@@ -138,6 +138,7 @@ $ramp-fallbacks: (
   "--package-color-gray-ramp-step8": "--color-system-05",
   "--package-color-gray-ramp-step9": "--color-system-04",
   "--package-color-gray-ramp-step-a": "--color-system-04",
+  "--package-color-gray-ramp-step-b": "--color-system-03",
 );
 
 @function ramp($step) {

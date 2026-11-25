@@ -871,6 +871,7 @@ Common built-in actions:
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (Platinum included: no package counts as installed until it registers) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename, `<package>\|<file>` or its source) is stored by filename when it is the theme's package's, or Platinum's and the theme's package has no file of that name, else as `<package>\|<file>` (`portableClassicyWallpaper(value, theme.package)`; never decided by the active package). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
+| `ClassicyDesktopSetAppMenuName` | `{ showName: boolean }` | Show the front application's name in the Application menu's title, or its icon alone, for every application (`System.Manager.Desktop.appMenuShowsName`, persisted; absent, shown). The title's grip sets it (§4.12, "The Application menu's title"); a package that draws the title as its icon alone (System 7) draws it so either way |
 | `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
 | `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
 | `ClassicyDesktopChangeAlertVolume` | `{ alertVolume: number }` | Set the alert level, 0–100 (clamped, rounded; non-finite ignored) |
@@ -1079,7 +1080,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, description?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark: "diamond"` draws the Notification Manager's ◆ in the mark column of an item that is not checked, §4.11; `description` is the item's `aria-description`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, description?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark: "diamond"` draws the Notification Manager's ◆ in the mark column of an item that is not checked, §4.11; `description` is the item's `aria-description`; `titleClassName` draws the title's text in a `<span>` of that class, which a stylesheet can size or cut apart from the item's image: the Application menu's name, `classicyDesktopMenuAppSwitcherName`; `titleWidthSamples` reserves the widest of several labels, and the Application menu no longer passes it)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -1248,7 +1249,7 @@ on Classicy's internal class names carry one of four attributes
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
 | `data-classicy-selection` | `all`, `tail` | a `ClassicyInput`'s `<input>` while it is `selected`: `all` when the selection starts at the text's first character (the whole text), `tail` when it starts at a later one. A tail scrolled so its first character sits at the field's left edge publishes `--classicy-input-selection-start: 0px`, as the whole text does, so this is what tells them apart (System 7 highlights a tail from its first character's pen position, the whole line a pixel left of the text's). Absent while the field is not `selected` |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down`; `selection-marquee`; `zoom-rect` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3); and the selection rectangle a drag from empty space draws on the desktop and in a file browser (`classicySelectionMarquee`; on the desktop also `classicyDesktopSelect`; §7, "Selection rectangle"); and each zoom rectangle a window opening from an icon or closing back to it draws on the desktop (`classicyZoomRect`, in the `classicyZoomRects` layer; §4.1, "Zoom rectangles") |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `switcher-grip`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down`; `selection-marquee`; `zoom-rect` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher (the Application menu's title) and its grip, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3); and the selection rectangle a drag from empty space draws on the desktop and in a file browser (`classicySelectionMarquee`; on the desktop also `classicyDesktopSelect`; §7, "Selection rectangle"); and each zoom rectangle a window opening from an icon or closing back to it draws on the desktop (`classicyZoomRect`, in the `classicyZoomRects` layer; §4.1, "Zoom rectangles") |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -2270,6 +2271,38 @@ The references are Mac OS 8.5 on Infinite Mac (captures in
 `packages/appearance/platinum/resources/screenshots/mac-os-8.5/`), its Mac
 OS Help page "Switching between open programs", and HIG7 pp.93-95
 ("Tear-Off Menus").
+
+**The Application menu's title.** As Mac OS 8.5 draws it (observed on
+Infinite Mac; captures `platinum-85-appmenu-title-finder.png`,
+`-title-long-name.png`, `-title-icon-only.png`, `-grip-pressed.png` and
+`-grip-drag-cut.png`): the front application's small icon, then its name
+(`titleClassName` `classicyDesktopMenuAppSwitcherName`), in a title as wide
+as that name, so an application opening behind it changes nothing and a
+switch moves the clock and the bar items left of it (8.1's title was the
+icon alone; 8.5 named it). No width is reserved for the other open
+applications' names any more (`titleWidthSamples`). Its left edge is a grip,
+a part of its own beside the title (`data-classicy-part="switcher-grip"`,
+`classicyDesktopMenuAppSwitcherGrip`, `ClassicyAppMenuTitleGrip.internal.tsx`),
+so a press on it never opens the menu or tears it off, closes an open menu,
+and moves no focus. Dragged, the title follows the pointer live
+(its border box on the bar's `--classicy-app-menu-title-width`), as narrow
+as its icon alone and as wide as its whole name, the name cut with an
+ellipsis between; let go, a drag right leaves the icon alone and a drag left
+the name (8.5: 19 px right, 11 px left), unchanged when let go where it was
+pressed; Escape cancels, a lost pointer stream ends it where it is. The
+result is one setting for every application, `ClassicyDesktopSetAppMenuName`
+(`System.Manager.Desktop.appMenuShowsName`, persisted; TN1142's Menu
+Manager: "It is now possible to remove the current application's name from
+the application menu"). Collapsed, the title carries the `collapsed` state
+and its name is not drawn; its accessible name is its icon's text, the
+application's name. The grip is an ARIA window splitter (`role="separator"`,
+`aria-valuenow` 100 with the name, 0 without), out of the Tab order as the
+bar's titles are (`tabIndex` -1: 8.5 has no key for it), and focused, it
+takes Left Arrow or Home (name), Right Arrow or End (icon alone) and Enter
+(toggle). The look is the package's: Platinum draws 8.5's grip pixel for
+pixel (`_Menu.scss`) and the title's geometry from its `menuBar` knobs (§8);
+System 7 hides the grip and draws the title as its icon alone, as 7.5.5
+does, whatever the setting.
 
 **Tearing off.** With the mouse button held from a press on the Application
 menu (its title, or the open menu), dragging past the menu's bottom (three
@@ -5780,7 +5813,7 @@ theme's variables, so it wins over the theme's 30 px, and before the host's
 | Window title bar | `[data-classicy-control="close"]` 10, `.classicyWindowTitle` 20, `[data-classicy-control="zoom"]` 30, `[data-classicy-control="collapse"]` 40 | the stripes are `.classicyWindowTitleLeft`/`Center`/`Right`, which a package may hide (`display: none`) |
 | Alert top row (`.classicyAlertTop`) | `.classicyAlertIcon` 10, `.classicyAlertBody` 20 | |
 | Alert buttons (`.classicyAlertButtons`) | each button by `[data-classicy-role="default\|cancel\|other"]` | no base `order`: the button list's order, default last; flip with `flex-direction`. Help keeps `margin-right: auto` |
-| Menu bar (`.classicyDesktopMenu`) | `[data-classicy-part]` `apple` 10, `app` 20, `help` 30, `extensions` 40, `clock` 50, `switcher` 60 | `extensions` carries `margin-left: auto`, which pushes the right-hand cluster over. A title with balloon help is wrapped in an anchor; that anchor is the flex item, ordered by the part it wraps (`:has()`), and sized by its title. Window menu bars use the same rules |
+| Menu bar (`.classicyDesktopMenu`) | `[data-classicy-part]` `apple` 10, `app` 20, `help` 30, `extensions` 40, `clock` 50, `switcher-grip` 59, `switcher` 60 | `extensions` carries `margin-left: auto`, which pushes the right-hand cluster over. A title with balloon help is wrapped in an anchor; that anchor is the flex item, ordered by the part it wraps (`:has()`), and sized by its title. Window menu bars use the same rules |
 | Tabs (`.classicyTabContainer`, a flex column) | `.classicyTabButtonsRow` (strip), `.classicyTabsHolder` (panel) | `stripPosition="bottom"` (`.classicyTabStripBottom`) moves the strip below with `order: 1` and moves its 1 px overhang to the top edge |
 | Disclosure header (`.classicyDisclosureHeader`) | the triangle, then `.classicyControlLabelHolder` | `labelPosition="left"` (`.classicyDisclosureLabelLeft`) sets the label's `order: -1` |
 
@@ -6359,7 +6392,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 28 families of its own (118 keys)
+**Package knob families.** Platinum adds 29 families of its own (124 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -6374,7 +6407,7 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 22 families are emitted and editable in
+  groups under Platinum. The other 23 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -6389,21 +6422,22 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 115 of the 118 are
+  overriding the knob's value, never the base CSS. 121 of the 124 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift), the 23 only Platinum's
+  table, so the floor and the column cannot drift), the 29 only Platinum's
   partials read among them (`_ControlStrip.scss`'s bevel, the
   `platinum-menu-frame` and `platinum-scrollbars` mixins'
   `--menu-frame-*` and `--scrollbar-thumb-grip-*`, `_Window.scss`'s windoid
   texture, `_QuickTimeMovieEmbed.scss`'s caption shadow, `_Slider.scss`'s
   seven, the selection and zoom rectangles' pens and checkers,
   `_SelectionMarquee.scss`'s and `_ZoomRects.scss`'s two each, and
-  `_ApplicationSwitcher.scss`'s named buttons' least width): until story
-  0225-ci7 the first 18 were look-only, Platinum's alone, and a theme of
-  another package drawn under Platinum emitted none of them; the
-  rectangles' four (stories 0228-e9l and 0230-n6c) and the palette's one
-  (integration review G round 3, F5) are on the floor for the same
-  reason.
+  `_ApplicationSwitcher.scss`'s named buttons' least width, and
+  `_Menu.scss`'s six `menuBar` knobs, the Application menu title's
+  geometry): until story 0225-ci7 the first 18 were look-only, Platinum's
+  alone, and a theme of another package drawn under Platinum emitted none
+  of them; the rectangles' four (stories 0228-e9l and 0230-n6c), the
+  palette's one (integration review G round 3, F5) and the title's six
+  (integration review G round 6) are on the floor for the same reason.
   Since story 0235-xgi a theme drawn under another package is completed
   from the drawing package's own defaults ("A theme drawn under another
   package", below), which supplies those knobs whatever the floor holds;
@@ -6625,6 +6659,12 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `zoomRects.width` | `--zoom-rects-width` | 2 | — | yes | _ZoomRects.scss (on the floor for the same reason) |
 | `zoomRects.tileSize` | `--zoom-rects-tile-size` | 2 | — | yes | _ZoomRects.scss |
 | `applicationSwitcher.namedButtonWidth` | `--application-switcher-named-button-width` | 150 | — | yes | _ApplicationSwitcher.scss (the palette's named buttons' least width, Mac OS 8.5's; on the floor for the same reason) |
+| `menuBar.endInset` | `--menu-bar-end-inset` | 11 | — | yes | _Menu.scss (the menu bar's right end after the Application menu's title, Mac OS 8.5's; on the floor for the same reason; System 7's own is 6) |
+| `menuBar.switcherTitleStart` | `--menu-bar-switcher-title-start` | 6 | — | yes | _Menu.scss (the Application menu title's padding before its icon) |
+| `menuBar.switcherTitleGap` | `--menu-bar-switcher-title-gap` | 5 | — | yes | _Menu.scss (between the title's icon and the front application's name) |
+| `menuBar.switcherTitleEnd` | `--menu-bar-switcher-title-end` | 7 | — | yes | _Menu.scss (the title's padding after its name, or after its icon alone) |
+| `menuBar.titleArtSize` | `--menu-bar-title-art-size` | 16 | — | yes | _Menu.scss (the title's icon) |
+| `menuBar.clockEnd` | `--menu-bar-clock-end` | 6 | — | yes | _Menu.scss (the clock's padding before the title's grip: its last ink seven pixels clear of it) |
 
 `formControl.fileInputHiddenSize` is the `formControl` family's first knob.
 The family holds the sizes of form-control parts outside dialogs, which no
@@ -7737,11 +7777,11 @@ registerClassicySoundPack({            // module scope, like the other registrie
 
 **Keyboard Shortcuts topic** (`AppleGuideKeyboardShortcuts.tsx`, id `KEYBOARD_SHORTCUTS_TOPIC_ID`, opened by Help ▸ Keyboard Shortcuts). Topics need no API change to be live: a page is a `ReactNode`, so a page that is a component reads the store when it renders. This topic has three such pages: why Control (⌃) and Option (⌥) stand in for Command (the browser keeps ⌘, except the editing commands, which keep the browser's own keys and are listed marked "the browser's own", Ctrl on Windows and Linux); the items of the front application's menus that carry a `keyboardShortcut` (`Desktop.appMenu`); and the system's (the Apple menu's `systemMenu` items, the standard Help menu's own items and extension `globalShortcuts`, listed by their optional `title`, else the extension's name). Titles are entity-decoded. `collectShortcutEntries(items)` is the exported walker.
 
-**The front application** is `frontAppIdOf` (`ClassicyFrontAppId.ts`, store-free) / `useFrontAppId` (`ClassicyFrontApp.ts`): the focused app, except an extension that holds focus with no menu-publishing window, when it is the most recently focused open, shown non-extension app (`lastFocusedAt`), else Finder. An extension window that publishes no menus (Apple Guide's) is a **floating window** (`isFloatingExtensionWindow`): `focusWindow` marks it active (a topic's first open included, before its window registers) but leaves `focusedAppId`, the front app's windows (they stay active), `Desktop.appMenu`, chords and keyboard alone, and `deFocusApps` keeps it active, as floating windows sit "on top of other document windows" of the active app (HIGOS7 p. 145, Figure 5-13). Typing stays with the front app's window: plain typing reaches the front app wherever DOM focus is, the Assistant and a clicked guide button included; only Enter and Space aimed at an interactive control of another window (`isActivationKeyAimedAtOtherWindowControl`) are kept from the front app's listeners, and a key a control consumes (`defaultPrevented`) is skipped by them. Activating an extension that has no document window to restore (`focusApp`: `ClassicyApp`'s container click, `ClassicyAppActivate`, `ClassicyAppFocus`) raises its most recent open window through `focusWindow` (floating, when menuless) and never marks the extension focused, so a click in a floating utility window (the Application Switcher's palette, §4.12) leaves the front app's window focused. A modal window or alert never floats, whichever app owns it: it keeps its modal band and takes the keyboard while the bar stays with the front app (its menus empty, as for any modal), and closing a window over it hands focus back to the dialog still open under it (the extension's most recent open modal), else to the extension's own menu window, else to the front application. Floating windows draw in one shared stacking context, the floating layer (`#classicy-floating-layer`, `ClassicyFloatingLayer`: an element of `ClassicyDesktop`'s own tree, so there is one per desktop, it exists before any floating window renders (a topic open at a reload included) and a server render touches no DOM; a full-size, pointer-transparent layer at z-index 354: above the palettes, under the Control Strip, 355, and every system layer): every extension's floating windows portal into it and stack there by recency with z-indices 1..N (`zOrder` rank), so any number of topics or extensions stack correctly, a click raises the clicked one, and a raise moves no node in the DOM (a move resets scroll offsets, blurs focus and can drop the click in flight). A window rendered with no desktop around it (a story or a test) finds or appends a layer of its own under its root, once. With an extension in front, Hide and Hide Others are dimmed. An extension window that does publish menus is an ordinary window of the front application (the bar, the Application menu's entry and the chord scope all name it). The menu bar, Application menu (its ✓ and the Notification Manager's ◆), chord registration, the dispatcher's app scope, `ClassicyDesktop`'s bar-ownership effect, the window layer, the Notification Manager (which app hosts its alert, and which app "comes forward" to take its requests down, §4.11) and the Application Switcher (the palette's held-down button and where the chord starts, §4.12; its palette is itself a floating window) all read the front app; Hide hands the bar on from it either way.
+**The front application** is `frontAppIdOf` (`ClassicyFrontAppId.ts`, store-free) / `useFrontAppId` (`ClassicyFrontApp.ts`): the focused app, except an extension that holds focus with no menu-publishing window, when it is the most recently focused open, shown non-extension app (`lastFocusedAt`), else Finder. An extension window that publishes no menus (Apple Guide's) is a **floating window** (`isFloatingExtensionWindow`): `focusWindow` marks it active (a topic's first open included, before its window registers) but leaves `focusedAppId`, the front app's windows (they stay active), `Desktop.appMenu`, chords and keyboard alone, and `deFocusApps` keeps it active, as floating windows sit "on top of other document windows" of the active app (HIGOS7 p. 145, Figure 5-13). Typing stays with the front app's window: plain typing reaches the front app wherever DOM focus is, the Assistant and a clicked guide button included; only Enter and Space aimed at an interactive control of another window (`isActivationKeyAimedAtOtherWindowControl`) are kept from the front app's listeners, and a key a control consumes (`defaultPrevented`) is skipped by them. Activating an extension that has no document window to restore (`focusApp`: `ClassicyApp`'s container click, `ClassicyAppActivate`, `ClassicyAppFocus`) raises its most recent open window through `focusWindow` (floating, when menuless) and never marks the extension focused, so a click in a floating utility window (the Application Switcher's palette, §4.12) leaves the front app's window focused. A modal window or alert never floats, whichever app owns it: it keeps its modal band and takes the keyboard while the bar stays with the front app (its menus empty, as for any modal), and closing a window over it hands focus back to the dialog still open under it (the extension's most recent open modal), else to the extension's own menu window, else to the front application. Floating windows draw in one shared stacking context, the floating layer (`#classicy-floating-layer`, `ClassicyFloatingLayer`: an element of `ClassicyDesktop`'s own tree, so there is one per desktop, it exists before any floating window renders (a topic open at a reload included) and a server render touches no DOM; a full-size, pointer-transparent layer at z-index 356 (`CLASSICY_FLOATING_LAYER_Z_INDEX`): above the palettes and the Control Strip, 355, as Mac OS 8.5 draws its Application Switcher palette dropped over the strip, and under the modal bands and every other system layer): every extension's floating windows portal into it and stack there by recency with z-indices 1..N (`zOrder` rank), so any number of topics or extensions stack correctly, a click raises the clicked one, and a raise moves no node in the DOM (a move resets scroll offsets, blurs focus and can drop the click in flight). A window rendered with no desktop around it (a story or a test) finds or appends a layer of its own under its root, once. With an extension in front, Hide and Hide Others are dimmed. An extension window that does publish menus is an ordinary window of the front application (the bar, the Application menu's entry and the chord scope all name it). The menu bar, Application menu (its ✓ and the Notification Manager's ◆), chord registration, the dispatcher's app scope, `ClassicyDesktop`'s bar-ownership effect, the window layer, the Notification Manager (which app hosts its alert, and which app "comes forward" to take its requests down, §4.11) and the Application Switcher (the palette's held-down button and where the chord starts, §4.12; its palette is itself a floating window) all read the front app; Hide hands the bar on from it either way.
 
 A **windowless front app keeps its menu bar** (Mac OS): `ClassicyApp`'s optional `windowlessMenu` prop is published to `Desktop.appMenu` while the app is the front application with no open window (SimpleText: File, Edit and Help; closing its last window opens no other, and it opens a new untitled window on launch and when opened again with no window, its `onReopen`).
 
-**Layer order** (z-index of `.classicyWindow` and the system layers sharing the desktop's stacking context): the desktop's selection rectangle 15 (under every window, §7), background windows 20, front app's inactive windows 150, active document 300, palettes 350, **the floating layer 354 (extension windows, stacked 1..N inside it)**, Control Strip 355, modal scrim 360, modal band 370, menu bar and raised icons 500, contextual menu 900, zoom rectangles 1000 (§4.1), crash screen 2000, menus and pop-up lists 5000, drag ghost 99000, error scrim 99998, red band and desktop dialogs 99999, balloon help, startup and boot 100000, Screen Saver 100001, QuickTime full screen 999999.
+**Layer order** (z-index of `.classicyWindow` and the system layers sharing the desktop's stacking context): the desktop's selection rectangle 15 (under every window, §7), background windows 20, front app's inactive windows 150, active document 300, palettes 350, Control Strip 355, **the floating layer 356 (extension windows, stacked 1..N inside it; above the Control Strip, as Mac OS 8.5 draws its Application Switcher palette over the strip: `platinum-85-switcher-over-strip.png`)**, modal scrim 360, modal band 370, menu bar and raised icons 500, contextual menu 900, zoom rectangles 1000 (§4.1), crash screen 2000, menus and pop-up lists 5000, drag ghost 99000, error scrim 99998, red band and desktop dialogs 99999, balloon help, startup and boot 100000, Screen Saver 100001, QuickTime full screen 999999.
 
 **The standard Help menu** is built by one hook, `useClassicyStandardHelpMenu` (`ClassicyStandardHelpMenu.ts`), for the screen bar and each window's own bar (`ClassicyWindowMenuBar`, window placement). In three groups divided as HIGOS8 Figure 4-2 and HIGOS7 Figure 4-88 divide them: the About item; Show/Hide Balloons (⌥H, `BALLOON_HELP_SHORTCUT`); Keyboard Shortcuts, then the app's `useClassicyHelpMenu` items and the items of any top-level "Help" menu the app publishes in `appMenu` (Finder did; the bar draws one Help menu, and a divider left at an end is trimmed). The About item's wording is the active package's `helpMenu.aboutTitle` (Platinum "About Help", HIGOS8 Figure 4-2; System 7 "About Balloon Help…", HIGOS7 Figure 4-88; absent, "About Balloon Help…"). An extension's `ClassicyGlobalShortcut` takes an optional `title`, which the topic shows.
 

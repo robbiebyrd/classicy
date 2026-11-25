@@ -281,6 +281,8 @@
 		"DesktopMenu": [
 			"AppHidden",
 			"AppSwitcher",
+			"AppSwitcherGrip",
+			"AppSwitcherName",
 			"Apple",
 			"Extension",
 			"ExtensionTrigger",
@@ -665,6 +667,7 @@
 			"app",
 			"help",
 			"switcher",
+			"switcher-grip",
 			"extensions",
 			"clock",
 			"window-menu-bar",
