@@ -1291,13 +1291,19 @@ describe("the Windows 98 appearance package", () => {
 	// (`fileDialog.listFlow` "columns"; WIG Ch.8 Figure 8.6), the icon view
 	// takes Explorer's selection keys (`fileBrowser.keys` "windows"; WIG
 	// Ch.5 "Selection"), and file lists put folders first
-	// (`fileList.foldersFirst`, as Explorer sorts).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer", async () => {
+	// (`fileList.foldersFirst`, as Explorer sorts). Its menus take Windows'
+	// keyboard (`menu.keys` "windows"; WIG Ch.7 pp.97-98, 101), Shift+F10 and
+	// the Application key open the focused element's contextual menu
+	// (`keyboard.contextMenuKey`; Appendix B Table B.2), and Finder's item
+	// menus lead with Open, their default (`finder.commands` "windows"; WIG
+	// Ch.7 "Icon Pop-up Menus", pp.102-103).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus on Windows' keys, kept open and cascades on a time-out, the context-menu keys, Explorer's Open first, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
 			menuBar: { placement: "screen", idleTimeoutMs: 0 },
 			menu: {
+				keys: "windows",
 				submenuDelayMs: 400,
 				disabledItems: "browse",
 				accessKeys: "auto",
@@ -1316,6 +1322,8 @@ describe("the Windows 98 appearance package", () => {
 				saveName: "selected",
 				listFlow: "columns",
 			},
+			keyboard: { contextMenuKey: true },
+			finder: { commands: "windows" },
 			fileBrowser: { keys: "windows" },
 			fileList: { foldersFirst: true },
 			tree: { keys: "windows" },

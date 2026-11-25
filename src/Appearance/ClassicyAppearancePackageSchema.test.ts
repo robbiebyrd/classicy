@@ -246,6 +246,49 @@ describe("ClassicyAppearancePackageSchema", () => {
 		}
 	});
 
+	// The keys that keep Windows' behaviors from the Mac packages (the WIG
+	// audit's 7.7-7.9, 4.17 and 7.11): menu.keys, keyboard.contextMenuKey
+	// and finder.commands, optional, each kept as given.
+	it("takes optional menu.keys, keyboard.contextMenuKey and finder.commands, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.menu = { keys: "windows" };
+		layout.keyboard = { contextMenuKey: true };
+		layout.finder = { commands: "windows" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menu).toEqual({ keys: "windows" });
+		expect(result.data?.layout.keyboard).toEqual({ contextMenuKey: true });
+		expect(result.data?.layout.finder).toEqual({ commands: "windows" });
+		for (const [group, value] of [
+			["menu", { keys: "mac" }],
+			["keyboard", {}],
+			["finder", { commands: "mac" }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[group] = value;
+			expect(
+				ClassicyAppearancePackageSchema.safeParse(ok).success,
+				group,
+			).toBe(true);
+		}
+		for (const [group, key, value] of [
+			["menu", "keys", "emacs"],
+			["keyboard", "contextMenuKey", "yes"],
+			["finder", "commands", "linux"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
 	// The tree's keys and the help's placement (the WIG audit's 7.21 and
 	// 7.27): optional groups with optional keys, each kept as given.
 	it("takes optional tree.keys and balloonHelp.placement, and refuses another value", () => {

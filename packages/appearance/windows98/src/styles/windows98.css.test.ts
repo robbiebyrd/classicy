@@ -536,6 +536,10 @@ describe("windows98.scss (compiled)", () => {
 			expect(
 				rule(".classicyFileOpenDialogWellColumns .classicyTree"),
 			).toContain("column-gap: var(--layout-group-gap)");
+			// The keyboard's place is the selection and its label's dotted
+			// focus rectangle, never the browser's ring on the icon (the base
+			// sheet takes it from a selected icon alone).
+			expect(rule(".classicyIcon:focus-visible")).toContain("outline: none");
 		});
 
 		// WIG Ch.7 "Tooltip Controls" (p.133); Wine's TOOLTIPS_Show: 20 below

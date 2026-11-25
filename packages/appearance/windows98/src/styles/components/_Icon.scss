@@ -78,6 +78,13 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
 
 @mixin icon {
   // --- Icons in windows ------------------------------------------------------
+  // The keyboard's place shows as the selection and its label's dotted focus
+  // rectangle (below), never the browser's ring, an unselected icon Tab
+  // reached included, as Explorer's list view draws no ring.
+  .classicyIcon:focus-visible {
+    outline: none;
+  }
+
   .classicyIcon {
     // No fringe: the outer mask draws nothing of its own.
     .classicyIconMaskOuter {

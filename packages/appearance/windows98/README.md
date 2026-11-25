@@ -60,7 +60,13 @@ and `nodenext` resolution).
 - **Its layout.** The grow box at the bottom right, the menu bar on the
   screen, menus that stay open until the next click, cascading menus that
   open and close on Windows' 400 ms time-out (a contextual menu's on hover
-  too), a menu keyboard that stops on dimmed items as Windows' does,
+  too), Windows' menu keyboard (the arrow keys through the menus and across
+  the menu bar, Home and End, Return and Space, a letter jumping to its
+  item, Escape a level at a time, an open contextual menu included; the
+  Mac packages' menus take Return alone), stopping on dimmed items as
+  Windows' does, Shift+F10 and the Application key opening the focused
+  item's contextual menu, Finder's item menus leading with Open, their
+  default item, as Explorer's do (the Mac packages' keep the Mac Finder's),
   an access key on every menu title, menu item and label of a control
   (the first free letter of its text, underlined, unless the app gives it
   one): Alt and a title's letter opens its menu, a letter in an open menu

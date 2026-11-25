@@ -31,7 +31,10 @@ export type ClassicyAccessKey = {
 	readonly index: number;
 };
 
-/** How access keys are assigned (`layout.menu.accessKeys`). */
+/**
+ * How access keys are assigned (`layout.menu.accessKeys`); `undefined`, the
+ * package declaring none, gives no entry a key, an explicit one included.
+ */
 export type ClassicyAccessKeyMode = "explicit" | "auto";
 
 // A letter or a digit: what an access key may be (WIG Ch.4 "Access Keys",
@@ -123,11 +126,14 @@ export type ClassicyAccessKeyEntry = {
  * `"auto"`, every other entry with text takes the first free character
  * `classicyAutoAccessKeyIndex` finds, in order; one with none free has none.
  * Explicit siblings may share a key (typing it then moves between them).
+ * With no `mode` (a package that declares no `layout.menu.accessKeys`: Mac
+ * OS 8 and System 7, which had no access keys) no entry has one.
  */
 export const resolveClassicyAccessKeys = (
 	entries: readonly ClassicyAccessKeyEntry[],
-	mode: ClassicyAccessKeyMode,
+	mode: ClassicyAccessKeyMode | undefined,
 ): (ClassicyAccessKey | null)[] => {
+	if (mode === undefined) return entries.map(() => null);
 	const taken = new Set<string>();
 	const out: (ClassicyAccessKey | null)[] = entries.map((entry) => {
 		const key = normalizeClassicyAccessKey(entry.accessKey);

@@ -475,6 +475,14 @@ export const classicyDesktopIconEventHandler = (
 					existing.icon = action.app.icon;
 					if (Array.isArray(action.contextMenu)) {
 						existing.contextMenu = action.contextMenu as ClassicyMenuItem[];
+					} else if (
+						action.contextMenu === null &&
+						existing.contextMenu !== undefined
+					) {
+						// An explicit null takes a stored menu away (Finder's desktop
+						// items once the package stops offering one); an omitted one
+						// keeps it.
+						delete existing.contextMenu;
 					}
 					// Icons persist to localStorage, so a shortcut whose target
 					// changed between releases would keep the stale URL forever.

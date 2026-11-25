@@ -6,6 +6,7 @@ import {
 	type ClassicyAppearanceEvent,
 	type ClassicyAppearanceHandler,
 	type ClassicyAppearanceHooks,
+	type ClassicyAppearanceLayout,
 	listClassicyAppearancePackages,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -51,6 +52,8 @@ const setPackageId = (packageId: string) =>
  */
 export function installClassicyAppearanceProbe(options?: {
 	on?: Partial<Record<ClassicyAppearanceEvent, ClassicyAppearanceHandler>>;
+	/** The probe's layout; the core default's (Mac OS 8's) when omitted. */
+	layout?: ClassicyAppearanceLayout;
 }): {
 	events: ClassicyAppearanceProbeEvent[];
 	uninstall: () => void;
@@ -84,7 +87,7 @@ export function installClassicyAppearanceProbe(options?: {
 			name: "Probe",
 			css: "",
 			defaults: { ...getTheme("default"), package: "probe" },
-			layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+			layout: options?.layout ?? CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
 			hooks: {
 				decorate: (component, state) => ({
 					className: `probe-${component}`,

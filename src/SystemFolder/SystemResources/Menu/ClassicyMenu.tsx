@@ -132,11 +132,13 @@ export interface ClassicyMenuItem {
 	 * sharing a key are moved between instead, none chosen. Its first match
 	 * in the title, in the key's own case first (`"a"` on "Favorites" is its
 	 * second letter), is wrapped in `<span data-classicy-part="access-key">`,
-	 * which a package underlines (Windows 98 does; Platinum and System 7 draw
-	 * nothing for it), and the item's `aria-keyshortcuts` names it (`Alt+F`
-	 * on a bar's title). A key the title lacks still works, with nothing
-	 * drawn.
-	 * Under the package's `layout.menu.accessKeys` `"auto"` (Windows 98) an
+	 * which a package underlines (Windows 98 does), and the item's
+	 * `aria-keyshortcuts` names it (`Alt+F` on a bar's title). A key the
+	 * title lacks still works, with nothing drawn. Read only under the
+	 * package's `layout.menu.accessKeys`, and typed only under its
+	 * `layout.menu.keys` `"windows"`: under Platinum and System 7, which
+	 * declare neither (Mac OS menus had no access keys), it is inert.
+	 * Under `layout.menu.accessKeys` `"auto"` (Windows 98) an
 	 * item without one takes the first character of its title no sibling
 	 * holds, never one an explicit sibling holds; `""` gives the item none.
 	 */
@@ -304,9 +306,12 @@ const nudgeMenuWrapperOntoGrid = (wrapper: HTMLElement) => {
  * beside its item (so the scrolling list cannot clip it), and a scroll
  * closes it.
  *
- * A root menu (rendered with no `open`) also takes the keyboard and a
- * press dragged across it, for every package (WIG Ch.7 (pp.97-98, 101);
- * HIGOS8 "Sticky Menus" (p.92)). Its items are tracked by roving focus (each
+ * A root menu (rendered with no `open`) also takes a press dragged across
+ * it, for every package (WIG Ch.7 (p.97); HIGOS8 "Sticky Menus" (p.92)), and
+ * the keyboard. Under Mac OS 8's and System 7's menus (the package declares
+ * no `layout.menu.keys`) Return alone chooses the focused item, as it
+ * always has. Under the package's `layout.menu.keys` `"windows"` (WIG Ch.7
+ * (pp.97-98, 101)) its items are tracked by roving focus (each
  * `<li>` is `tabIndex={-1}`; the package draws the focused one on
  * `:focus-visible`): Up and Down move through a list, wrapping and passing
  * over dividers (and over dimmed items, unless the package's
@@ -346,13 +351,18 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
 	const layout = useClassicyAppearanceLayout();
+	// Windows' menu keyboard (`layout.menu.keys` "windows"); absent, Mac OS
+	// 8's and System 7's menus, which take Return alone.
+	const windowsKeys = layout.menu?.keys === "windows";
 	const submenuDelayMs = layout.menu?.submenuDelayMs;
 	const disabledItems = layout.menu?.disabledItems ?? "skip";
-	const accessKeyMode = layout.menu?.accessKeys ?? "explicit";
+	// Absent, no access keys at all (Mac OS 8 and System 7 had none).
+	const accessKeyMode = layout.menu?.accessKeys;
 	const emptySubmenus = layout.menu?.emptySubmenus ?? "leaf";
 	// The access keys of this list's items, siblings resolved together: an
 	// explicit key is reserved first, then, under `"auto"`, every other titled
-	// item takes the first free character of its title.
+	// item takes the first free character of its title. None without the
+	// package's `layout.menu.accessKeys`.
 	const accessKeys = useMemo(
 		() =>
 			resolveClassicyAccessKeys(
@@ -578,7 +588,7 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// dialog around it) sees them.
 	const treeShown = isRoot && (popup === true || openChildId !== null);
 	useEffect(() => {
-		if (!treeShown || !tree) return;
+		if (!treeShown || !tree || !windowsKeys) return;
 		const onKey = (e: globalThis.KeyboardEvent) => {
 			if (e.defaultPrevented) return;
 			if (
@@ -598,14 +608,21 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		};
 		document.addEventListener("keydown", onKey, true);
 		return () => document.removeEventListener("keydown", onKey, true);
-	}, [treeShown, tree, keyboardEnv, pokeActivity]);
+	}, [treeShown, tree, windowsKeys, keyboardEnv, pokeActivity]);
 
 	// F10 brings focus to a menu bar's first title, and back (WIG Ch.7, p.98:
 	// the keyboard activates the menu bar). A window's own bar answers only
-	// while its window is active, so one bar takes it.
+	// while its window is active, so one bar takes it. Windows' keys only.
 	const windowActive = useContext(ClassicyWindowActiveContext);
 	useEffect(() => {
-		if (!isRoot || !horizontal || !tree || windowActive === false) return;
+		if (
+			!isRoot ||
+			!horizontal ||
+			!tree ||
+			!windowsKeys ||
+			windowActive === false
+		)
+			return;
 		const onKey = (e: globalThis.KeyboardEvent) => {
 			if (
 				e.defaultPrevented ||
@@ -634,6 +651,7 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		isRoot,
 		horizontal,
 		tree,
+		windowsKeys,
 		windowActive,
 		closeAll,
 		restoreFocus,
@@ -643,8 +661,8 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// Alt and a title's access key opens its menu; Alt pressed and released
 	// alone brings focus to the bar and back, as F10 does (WIG Ch.7, p.97;
 	// Appendix B, Table B.2: "ALT Activate or inactivate menu bar mode").
-	// Only on a bar whose titles have access keys, so a bar without them
-	// leaves Alt to the browser as before.
+	// Only under Windows' keys, on a bar whose titles have access keys, so a
+	// bar without them leaves Alt to the browser as before.
 	const titleAccessKeys = useMemo(
 		() =>
 			new Set(
@@ -655,7 +673,7 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		[isRoot, horizontal, accessKeys],
 	);
 	useClassicyMenuBarAccessKeys({
-		tree: isRoot && horizontal ? tree : null,
+		tree: isRoot && horizontal && windowsKeys ? tree : null,
 		listRef,
 		windowActive,
 		titleKeys: titleAccessKeys,
@@ -670,6 +688,16 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		const current = classicyMenuItemOf(tree, e.target);
 		if (!current) return;
 		pokeActivity();
+		if (!windowsKeys) {
+			// Mac OS menus: Return chooses the focused item as a click does
+			// (a submenu's item toggles it), and every other key is left to
+			// its owner (a pop-up bevel button's menu walks its items itself).
+			if (e.key !== "Enter") return;
+			e.preventDefault();
+			e.stopPropagation();
+			tree.items.get(current)?.current?.activate();
+			return;
+		}
 		if (handleClassicyMenuKey(tree, keyboardEnv(), e, current))
 			e.preventDefault();
 	};

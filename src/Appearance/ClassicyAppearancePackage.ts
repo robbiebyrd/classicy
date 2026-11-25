@@ -83,6 +83,24 @@ export type ClassicyAppearanceLayout = {
 	 */
 	menu?: {
 		/**
+		 * How a menu takes the keyboard (`ClassicyMenu`). `"mac"` (the
+		 * default; Mac OS 8's and System 7's menus had no keyboard
+		 * navigation, HIGOS8 "Sticky Menus" (p.92)): Return chooses the
+		 * focused item, as a click does, and a pop-up bevel button's menu
+		 * walks its items with Up and Down and closes on Escape
+		 * (`ClassicyBevelButtonPopup`), as before; nothing else. `"windows"`
+		 * (WIG Ch.7 "The Menu Bar and Drop-down Menus" (pp.97-98), "Pop-up
+		 * Menu Interaction" (p.101)): roving focus through every menu tree
+		 * (Up and Down through a list, wrapping, Right and Left into and out
+		 * of submenus and across a menu bar's titles, Home and End, Return
+		 * and Space, typing to the next item a letter starts), Escape a level
+		 * at a time (an open contextual menu included), F10 to a menu bar and
+		 * back, and a pop-up shown with focus outside it taking Escape, Up,
+		 * Down and its access keys from the document. Access keys typed in a
+		 * menu, and Alt with a title's, act only under it (`accessKeys`).
+		 */
+		keys?: "mac" | "windows";
+		/**
 		 * The time-out, in milliseconds, before a submenu (a cascading menu)
 		 * opens under a resting pointer and before an open one closes when the
 		 * pointer rests on another item of its parent, so a diagonal drag into
@@ -111,12 +129,16 @@ export type ClassicyAppearanceLayout = {
 		 * typed to reach them, drawn as the `access-key` part (WIG Ch.7 "Menu
 		 * Titles" (p.106), "Menu Item Labels" (p.109)), and which control
 		 * labels do (`ClassicyControlLabel`; Ch.8 "Navigation in Secondary
-		 * Windows", pp.148-149). `"explicit"` (the default, Mac OS): only
-		 * those given an `accessKey`. `"auto"` (Windows): every other titled
-		 * item, and every other label of a focusable control, takes the first
-		 * character of its text no sibling holds (the first letter, a later
-		 * word's first letter, a consonant, a vowel: WIG Ch.4 "Access Keys",
-		 * p.27), an explicit key always winning and reserved first.
+		 * Windows", pp.148-149). Absent (Mac OS 8 and System 7, which had no
+		 * access keys): none, an `accessKey` given included, so nothing is
+		 * drawn, named or taken. `"explicit"`: only those given an
+		 * `accessKey`. `"auto"` (Windows): every other titled item, and every
+		 * other label of a focusable control, takes the first character of
+		 * its text no sibling holds (the first letter, a later word's first
+		 * letter, a consonant, a vowel: WIG Ch.4 "Access Keys", p.27), an
+		 * explicit key always winning and reserved first. A menu's keys are
+		 * typed through the menu keyboard (`keys: "windows"`), and a label's
+		 * reached with Alt and its key under either value.
 		 */
 		accessKeys?: "explicit" | "auto";
 		/**
@@ -283,6 +305,38 @@ export type ClassicyAppearanceLayout = {
 		 * the first and last. The tree navigation ignores it.
 		 */
 		listFlow?: "single" | "columns";
+	};
+	/**
+	 * Keys that reach a target outside any one control. Optional, as is
+	 * each key.
+	 */
+	keyboard?: {
+		/**
+		 * `true` (Windows; WIG Ch.7 "Pop-up Menu Interaction" (p.101),
+		 * Appendix B Tables B.2 and B.3): Shift+F10 and the Application
+		 * (ContextMenu) key open the focused element's contextual menu, as a
+		 * right-click on it does (`ClassicyContextualMenuProvider`). Absent
+		 * or `false` (Mac OS 8 and System 7, whose contextual menus open
+		 * from a Control-click alone, HIGOS8 "Contextual Menus" (p.93)):
+		 * neither key is taken.
+		 */
+		contextMenuKey?: boolean;
+	};
+	/**
+	 * Which commands the Finder's menus offer (`Finder`). Optional, as is
+	 * each key.
+	 */
+	finder?: {
+		/**
+		 * `"mac"` (the default, Mac OS 8's Finder): an item's contextual menu
+		 * holds the Mac commands alone, with no default item (HIGOS8
+		 * "Contextual Menus" (pp.94-95): "you should not set a default
+		 * item"). `"windows"` (Windows Explorer; WIG Ch.7 "Icon Pop-up
+		 * Menus" (pp.102-103)): every item's contextual menu, a desktop
+		 * file's or folder's included, leads with Open, its default item, the
+		 * command a double-click runs.
+		 */
+		commands?: "mac" | "windows";
 	};
 	/**
 	 * How the file browser (`ClassicyFileBrowser`, the Finder's windows)

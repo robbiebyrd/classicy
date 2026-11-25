@@ -40,6 +40,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	}),
 	menu: z
 		.object({
+			keys: z.enum(["mac", "windows"]).optional(),
 			submenuDelayMs: z.number().int().min(0).max(10_000).optional(),
 			disabledItems: z.enum(["skip", "browse"]).optional(),
 			accessKeys: z.enum(["explicit", "auto"]).optional(),
@@ -106,6 +107,10 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
 			keys: z.enum(["mac", "windows"]).optional(),
 		})
+		.optional(),
+	keyboard: z.object({ contextMenuKey: z.boolean().optional() }).optional(),
+	finder: z
+		.object({ commands: z.enum(["mac", "windows"]).optional() })
 		.optional(),
 	fileList: z.object({ foldersFirst: z.boolean().optional() }).optional(),
 	tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),

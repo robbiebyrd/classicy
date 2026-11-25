@@ -8776,6 +8776,7 @@
 			"idleTimeoutMs": 0
 		},
 		"menu": {
+			"keys": "windows",
 			"submenuDelayMs": 400,
 			"disabledItems": "browse",
 			"accessKeys": "auto",
@@ -8798,6 +8799,12 @@
 			"navigation": "flat",
 			"saveName": "selected",
 			"listFlow": "columns"
+		},
+		"keyboard": {
+			"contextMenuKey": true
+		},
+		"finder": {
+			"commands": "windows"
 		},
 		"fileBrowser": {
 			"keys": "windows"
