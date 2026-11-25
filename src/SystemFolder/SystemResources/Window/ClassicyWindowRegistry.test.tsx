@@ -665,6 +665,25 @@ describe('ClassicyWindow\'s commands under window.collapse: "minimize"', () => {
 		});
 	});
 
+	// Windows clears WS_MAXIMIZE as it minimizes, so SC_MAXIMIZE is
+	// available on a window minimized while maximized, and shows it maximized.
+	it("brings a minimized maximized window back maximized on maximize, and refuses one zoomed on the screen", () => {
+		render(
+			<ClassicyWindow id="main" appId={APP} title="Main">
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		expect(run("main", { type: "maximize" })).toBe(true);
+		expect(run("main", { type: "maximize" })).toBe(false);
+		expect(run("main", { type: "minimize" })).toBe(true);
+		expect(run("main", { type: "maximize" })).toBe(true);
+		expect(record("main")).toMatchObject({
+			collapsed: false,
+			zoomed: true,
+			focused: true,
+		});
+	});
+
 	it("restores nothing for a palette whose stored collapse is ignored", () => {
 		render(
 			<ClassicyWindow id="tools" appId={APP} title="Tools" windowType="utility">

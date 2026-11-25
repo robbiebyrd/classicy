@@ -1017,6 +1017,21 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 			document.getElementById(
 				`${APP_ID}_${windowId}_system_${command}`,
 			) as HTMLElement;
+		const windowRoot = (id: string) =>
+			document.getElementById(`${APP_ID}_${id}`) as HTMLElement;
+		// jsdom lays nothing out: give the desktop a size, so a maximized
+		// window has a work area to take.
+		const sizeDesktop = () => {
+			const desktop = document.getElementById("classicyDesktop") as HTMLElement;
+			Object.defineProperty(desktop, "clientWidth", {
+				configurable: true,
+				value: 1024,
+			});
+			Object.defineProperty(desktop, "clientHeight", {
+				configurable: true,
+				value: 768,
+			});
+		};
 		const twoWindows = (
 			<>
 				<ClassicyWindow id="main" appId={APP_ID} title="Main">
@@ -1087,6 +1102,77 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 					}),
 				);
 				expect(button("Second")).toHaveClass("active");
+			});
+
+			// Windows clears WS_MAXIMIZE as it minimizes a maximized window
+			// (keeping WPF_RESTORETOMAXIMIZED), so its menu offers Maximize
+			// beside Restore (Wine's `MENU_InitSysMenuPopup`), and Maximize
+			// shows it maximized (SC_MAXIMIZE).
+			it("offers Maximize on a window minimized while maximized, which brings it back maximized", async () => {
+				renderShell(twoWindows);
+				sizeDesktop();
+				fireEvent.click(
+					windowRoot("second").querySelector(
+						".classicyWindowZoomBox",
+					) as HTMLElement,
+				);
+				expect(getAppWindow(appRecord(), "second")?.zoomed).toBe(true);
+				const maximizedSize = getAppWindow(appRecord(), "second")?.size;
+				expect(maximizedSize?.[0]).toBe(1024);
+				fireEvent.click(button("Second"));
+				expect(getAppWindow(appRecord(), "second")).toMatchObject({
+					collapsed: true,
+					zoomed: true,
+				});
+				fireEvent.contextMenu(button("Second"), {
+					clientX: 90,
+					clientY: 700,
+				});
+				expect(menuItem("second", "restore")).not.toHaveClass("disabled");
+				expect(menuItem("second", "maximize")).not.toHaveClass("disabled");
+				fireEvent.click(menuItem("second", "maximize"));
+				dispatchAnimationEnd(menuItem("second", "maximize"));
+				await waitFor(() =>
+					expect(getAppWindow(appRecord(), "second")).toMatchObject({
+						collapsed: false,
+						zoomed: true,
+						focused: true,
+					}),
+				);
+				expect(getAppWindow(appRecord(), "second")?.size).toEqual(
+					maximizedSize,
+				);
+				expect(windowRoot("second")).toHaveClass("classicyWindowMaximized");
+			});
+
+			it("maximizes a minimized window from its menu, storing the size it is drawn at", async () => {
+				renderShell(twoWindows);
+				sizeDesktop();
+				fireEvent.click(button("Second"));
+				expect(getAppWindow(appRecord(), "second")).toMatchObject({
+					collapsed: true,
+				});
+				fireEvent.contextMenu(button("Second"), {
+					clientX: 90,
+					clientY: 700,
+				});
+				fireEvent.click(menuItem("second", "maximize"));
+				dispatchAnimationEnd(menuItem("second", "maximize"));
+				await waitFor(() =>
+					expect(getAppWindow(appRecord(), "second")).toMatchObject({
+						collapsed: false,
+						zoomed: true,
+					}),
+				);
+				const root = windowRoot("second");
+				expect(root).toHaveClass("classicyWindowMaximized");
+				expect(root.style.width).toBe("1024px");
+				// The record holds the size the window is drawn at (stored
+				// once it is drawn again: a minimized window stores none).
+				expect(getAppWindow(appRecord(), "second")?.size).toEqual([
+					Number.parseFloat(root.style.width),
+					Number.parseFloat(root.style.height),
+				]);
 			});
 		});
 	});

@@ -331,6 +331,87 @@ describe("ClassicyWindowTitleBar", () => {
 		});
 	});
 
+	describe("zoomDisabled and collapseDisabled", () => {
+		it("draws each box unavailable, with no handler, even without its handler", () => {
+			const { getByRole } = render(
+				<ClassicyWindowTitleBar title="T" zoomDisabled collapseDisabled />,
+			);
+			for (const [name, box] of [
+				["Zoom", "classicyWindowZoomBox"],
+				["Collapse", "classicyWindowCollapseBox"],
+			]) {
+				const el = getByRole("button", { name });
+				expect(el).toHaveClass(box, "disabled");
+				expect(el).toHaveAttribute("aria-disabled", "true");
+				expect(el).toHaveAttribute("tabindex", "-1");
+			}
+		});
+
+		it("runs neither handler from a click, Enter or Space", () => {
+			const onZoom = vi.fn();
+			const onCollapse = vi.fn();
+			const onCollapseKey = vi.fn();
+			const { container } = render(
+				<ClassicyWindowTitleBar
+					title="T"
+					onZoom={onZoom}
+					zoomDisabled
+					onCollapse={onCollapse}
+					onCollapseKey={onCollapseKey}
+					collapseDisabled
+				/>,
+			);
+			for (const box of [
+				".classicyWindowZoomBox",
+				".classicyWindowCollapseBox",
+			]) {
+				const el = container.querySelector(box) as Element;
+				fireEvent.click(el);
+				fireEvent.keyDown(el, { key: "Enter" });
+				fireEvent.keyDown(el, { key: " " });
+			}
+			expect(onZoom).not.toHaveBeenCalled();
+			expect(onCollapse).not.toHaveBeenCalled();
+			expect(onCollapseKey).not.toHaveBeenCalled();
+		});
+
+		it("draws no zoom box on a modal bar, unavailable or not", () => {
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" modal zoomDisabled />,
+			);
+			expect(container.querySelector(".classicyWindowZoomBox")).toBeNull();
+		});
+
+		it("leaves the boxes as they were without the props", () => {
+			const { container, rerender } = render(
+				<ClassicyWindowTitleBar title="T" />,
+			);
+			expect(container.querySelector(".classicyWindowZoomBox")).toBeNull();
+			expect(container.querySelector(".classicyWindowCollapseBox")).toBeNull();
+			rerender(
+				<ClassicyWindowTitleBar
+					title="T"
+					onZoom={vi.fn()}
+					onCollapse={vi.fn()}
+				/>,
+			);
+			for (const box of [
+				"classicyWindowZoomBox",
+				"classicyWindowCollapseBox",
+			]) {
+				const el = container.querySelector(`.${box}`) as Element;
+				expect(el.className).toBe(box);
+				expect(el.getAttributeNames()).toEqual([
+					"class",
+					"role",
+					"aria-label",
+					"tabindex",
+				]);
+				expect(el).toHaveAttribute("tabindex", "0");
+			}
+		});
+	});
+
 	// Plan 0020-w98 §1 (`window.captionTooltips`): each box names itself in a
 	// tooltip after Windows' 500 ms (Wine's `TTDT_AUTOMATIC`), whatever
 	// Balloon Help says.

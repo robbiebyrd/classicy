@@ -56,7 +56,11 @@ and `nodenext` resolution).
   sizes and shows no size grip, Restore returns it to the size and place it
   had (after a reload too), and a double-click on the caption maximizes or
   restores it, as Windows 98 did (palettes, which have no Maximize button,
-  do neither), and windows that size from their frame: dragging any edge of
+  do neither), a window that can be minimized but not maximized (the
+  Calculator) shows its Maximize button dimmed beside its Minimize, as
+  Windows 98 shows the two as a pair, and a window minimized while
+  maximized offers Maximize as well as Restore in its pop-up menu, and
+  windows that size from their frame: dragging any edge of
   a resizable window's frame sizes it from that edge, and dragging near a
   corner (within a caption's height of it, along either edge) sizes it from
   both of the corner's edges, as Windows 98's sizing border does, while a
@@ -81,7 +85,8 @@ and `nodenext` resolution).
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
     Maximize (zoom; Restore while the window is zoomed) and Close buttons at
-    the right, the gray inactive bar, the sunken client edge, the size grip,
+    the right (the one of Minimize and Maximize a window lacks embossed
+    beside the other), the gray inactive bar, the sunken client edge, the size grip,
     the three-ring fixed frame with no sizing border on dialogs and on any
     window that cannot be sized (the control panels, the About windows, the
     Calculator), dialogs on a flat face with the title and Close alone in

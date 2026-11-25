@@ -711,6 +711,32 @@ describe("ClassicyWindow under window.zoom", () => {
 			});
 			expect(record() && "restoreRect" in record()!).toBe(false);
 		});
+
+		it("un-zooms a window zoomed before this mount, with no rect stored, where it is", () => {
+			// Zoomed in an earlier session: nothing remembered, nothing stored.
+			// The standard state's un-zoom keeps the geometry, as it always
+			// has; only a maximizing layout falls back to the opening rect.
+			render(mainWindow());
+			setRecord({ zoomed: true, position: [8, 38], size: [500, 420] });
+			fireEvent.click(zoomBox());
+			expect(record()).toMatchObject({
+				zoomed: false,
+				position: [8, 38],
+				size: [500, 420],
+			});
+		});
+
+		it("draws a box only for what the window has: no unavailable partner", () => {
+			render(mainWindow({ zoomable: false }));
+			expect(zoomBox()).toBeNull();
+			expect(
+				root().querySelector(".classicyWindowCollapseBox"),
+			).not.toHaveClass("disabled");
+			cleanup();
+			render(mainWindow({ collapsable: false }));
+			expect(root().querySelector(".classicyWindowCollapseBox")).toBeNull();
+			expect(zoomBox()).not.toHaveClass("disabled");
+		});
 	});
 
 	describe('under window.zoom: "maximize"', () => {
@@ -875,6 +901,57 @@ describe("ClassicyWindow under window.zoom", () => {
 			fireEvent.click(zoomBox());
 			expect(geometry()).toEqual(openedGeometry);
 			expect(record() && "restoreRect" in record()!).toBe(false);
+		});
+
+		// Windows 95/98 draws Minimize and Maximize as a pair, the one a
+		// window lacks grayed (Wine's `NC_DrawCaption`: "In win95 the two
+		// buttons are always there"; the Calculator's grayed Maximize).
+		describe("Minimize and Maximize as a pair", () => {
+			const collapseBox = () =>
+				root().querySelector(".classicyWindowCollapseBox") as HTMLElement;
+
+			it("draws an unavailable Maximize beside a lone Minimize, which does nothing", () => {
+				render(mainWindow({ zoomable: false }));
+				expect(zoomBox()).toHaveClass("disabled");
+				expect(zoomBox()).toHaveAttribute("aria-disabled", "true");
+				expect(zoomBox()).toHaveAttribute("aria-label", "Maximize");
+				expect(collapseBox()).not.toHaveClass("disabled");
+				fireEvent.click(zoomBox());
+				expect(record()?.zoomed).not.toBe(true);
+				// Nor does the caption's double-click: no Maximize box.
+				fireEvent.doubleClick(
+					root().querySelector(".classicyWindowTitle") as Element,
+				);
+				expect(record()?.zoomed).not.toBe(true);
+			});
+
+			it("draws an unavailable Minimize beside a lone Maximize, which does nothing", () => {
+				render(mainWindow({ collapsable: false }));
+				expect(collapseBox()).toHaveClass("disabled");
+				expect(collapseBox()).toHaveAttribute("aria-disabled", "true");
+				expect(zoomBox()).not.toHaveClass("disabled");
+				fireEvent.click(collapseBox());
+				expect(record()?.collapsed).not.toBe(true);
+			});
+
+			it("draws neither with neither box, nor any unavailable box with both", () => {
+				render(mainWindow({ zoomable: false, collapsable: false }));
+				expect(zoomBox()).toBeNull();
+				expect(collapseBox()).toBeNull();
+				cleanup();
+				render(mainWindow());
+				expect(zoomBox()).not.toHaveClass("disabled");
+				expect(collapseBox()).not.toHaveClass("disabled");
+			});
+
+			it("leaves palettes and dialogs out: neither has the pair", () => {
+				render(mainWindow({ windowType: "utility", zoomable: false }));
+				expect(zoomBox()).toBeNull();
+				cleanup();
+				render(mainWindow({ modal: true, collapsable: false }));
+				expect(zoomBox()).toBeNull();
+				expect(collapseBox()).toBeNull();
+			});
 		});
 	});
 });

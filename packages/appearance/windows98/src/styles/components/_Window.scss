@@ -26,14 +26,17 @@
 //   two overlapping windows (WIG Ch.6 "Maximizing Windows", pp.84-85:
 //   "the Maximize button is replaced by the Restore button"). Windows shows
 //   the buttons on an inactive window too (the base hides them). The core
-//   draws a box only for an action the window has, with one exception: under
-//   the package's titled dialog captions (`dialog.caption: "titled"`) a
-//   dialog that cannot close (a Yes/No message box) draws its Close box
-//   unavailable (`disabled`), raised and never pressed, its mark embossed:
-//   ButtonShadow over a ButtonHilight copy one pixel down and right, as
-//   DrawFrameControl draws a DFCS_INACTIVE caption button (Wine's
-//   `draw_frame_caption`) and `draw_close_button` grays a Close whose
-//   SC_CLOSE is grayed or gone.
+//   draws a box only for an action the window has, with two exceptions,
+//   each drawn unavailable (`disabled`), raised and never pressed, its mark
+//   embossed: ButtonShadow over a ButtonHilight copy one pixel down and
+//   right, as DrawFrameControl draws a DFCS_INACTIVE caption button (Wine's
+//   `draw_frame_caption`). Under the package's titled dialog captions
+//   (`dialog.caption: "titled"`) a dialog that cannot close (a Yes/No
+//   message box) draws its Close box so, as `draw_close_button` grays a
+//   Close whose SC_CLOSE is grayed or gone; and under its maximize
+//   (`window.zoom: "maximize"`) a window with Minimize or Maximize alone
+//   draws the other so, Windows 95's pair (Wine's `NC_DrawCaption`; the
+//   Calculator's grayed Maximize).
 // - `--title-bar-gap` (2) of frame below the caption, then the client area,
 //   sunken two pixels (WS_EX_CLIENTEDGE: `b.sunken`) around its viewport and
 //   scroll bars, white; the size grip in the scroll bars' corner, three
@@ -316,6 +319,19 @@ $grip-shadow: runs($grip, "s");
     // under the titled dialog captions): the X embossed, never pressed.
     .classicyWindowCloseBox.disabled {
       @include caption-button-disabled($close, 4, 3);
+    }
+
+    // The Minimize or Maximize a window lacks beside the one it has (the
+    // core's `zoomDisabled` and `collapseDisabled`, under the layout's
+    // `window.zoom: "maximize"`): Windows 95/98 draws the two as a pair, the
+    // missing one embossed and never pressed (Wine's `NC_DrawCaption`, "In
+    // win95 the two buttons are always there"; the Calculator's Maximize).
+    .classicyWindowZoomBox.disabled {
+      @include caption-button-disabled($maximize, 3, 2);
+    }
+
+    .classicyWindowCollapseBox.disabled {
+      @include caption-button-disabled($minimize, 4, 9);
     }
   }
 }

@@ -273,4 +273,35 @@ describe("windows98.scss (compiled)", () => {
 			);
 		}
 	});
+
+	// Plan 0020-w98 §5 (`window.zoom: "maximize"`): a primary window with
+	// Minimize or Maximize alone draws the other `disabled` beside it, as
+	// Windows 95/98 draws the two as a pair (Wine's `NC_DrawCaption`: "In
+	// win95 the two buttons are always there"): raised, its mark embossed in
+	// ButtonShadow over a ButtonHilight copy, never pressed, as the
+	// unavailable Close is.
+	it("draws a lone Minimize's or Maximize's missing partner embossed and never pressed", () => {
+		const selectors = selectorsOf(css);
+		const at = (tail: string) =>
+			selectors.findIndex((selector) => selector.endsWith(tail));
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		for (const name of ["Zoom", "Collapse"]) {
+			const box = `.classicyWindow .classicyWindowTitleBar .classicyWindow${name}Box`;
+			const disabled = `${box}.disabled`;
+			expect(at(disabled), disabled).toBeGreaterThanOrEqual(0);
+			expect(at(`${disabled}:active`), disabled).toBeGreaterThanOrEqual(0);
+			// After the box's own pressed rule, which it overrides.
+			expect(at(`${disabled}:active`)).toBeGreaterThan(at(`${box}:active`));
+			const look = block(`${disabled}:active`);
+			expect(look).toContain("var(--color-system-05)");
+			expect(look).toContain("var(--color-system-01)");
+			expect(look).not.toContain("var(--color-black)");
+			expect(look).toMatch(
+				/box-shadow: inset calc\(var\(--window-border-size\) \* -1\) calc\(var\(--window-border-size\) \* -1\) var\(--color-system-07\)/,
+			);
+		}
+	});
 });

@@ -2527,10 +2527,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (!maximized || collapsedOrMinimized || ws.closed) return;
 		if (isDraggingRef.current || isResizingRef.current) return;
 		const rect = computeMaximizedRect();
-		if (size[0] !== rect.size[0] || size[1] !== rect.size[1]) {
-			setSize(rect.size);
-			setResize(false, rect.size);
-		}
+		const drawnDiffers = size[0] !== rect.size[0] || size[1] !== rect.size[1];
+		// The record's size too: a window maximized while minimized (from its
+		// pop-up menu) could not store the size it is drawn at (setResize
+		// stores nothing for a window that is not drawn), so it is stored
+		// here, once the window is drawn again.
+		const storedDiffers =
+			ws.size?.[0] !== rect.size[0] || ws.size?.[1] !== rect.size[1];
+		if (drawnDiffers) setSize(rect.size);
+		if (drawnDiffers || storedDiffers) setResize(false, rect.size);
 		if (
 			ws.position[0] !== rect.position[0] ||
 			ws.position[1] !== rect.position[1]
@@ -2934,6 +2939,20 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// Whether it draws a collapse box: none on a modal or palette under
 	// minimize, which has no taskbar button to come back from.
 	const collapsesByBox = collapsable && !collapseIgnored;
+	// Under `window.zoom: "maximize"` (the Windows shell) a primary window's
+	// Minimize and Maximize come as a pair: one with either box draws both,
+	// the one it lacks unavailable, as Windows 95/98 draws them (Wine's
+	// `NC_DrawCaption`: "In win95 the two buttons are always there / But if
+	// the menu item is not in the menu they're disabled"; the Calculator's
+	// grayed Maximize). WIG Ch.6 "Title Bar Buttons" (p.80) would leave an
+	// unsupported button out; the OS as shipped wins. Under every other
+	// layout a box is drawn only when the window has it, as always.
+	const pairsCaptionBoxes =
+		maximizes &&
+		isClassicyPrimaryWindow({ modal, windowType }) &&
+		zoomsByBox !== collapsesByBox;
+	const zoomBoxDisabled = pairsCaptionBoxes && !zoomsByBox;
+	const collapseBoxDisabled = pairsCaptionBoxes && !collapsesByBox;
 
 	// The window pop-up (system) menu (`layout.window.systemMenu: true`, plan
 	// 0020-w98 §5; WIG Ch.7 "The Window Pop-up Menu", p.102): its items
@@ -3017,7 +3036,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						? "utility"
 						: "document",
 				minimized: collapsedOrMinimized,
-				maximized: ws.zoomed === true && !zoomIgnored,
+				// A window minimized while maximized is not maximized: Windows
+				// clears WS_MAXIMIZE as it minimizes (keeping
+				// WPF_RESTORETOMAXIMIZED), so its menu offers Maximize beside
+				// Restore (Wine's `MENU_InitSysMenuPopup`), and either brings
+				// it back maximized.
+				maximized: ws.zoomed === true && !zoomIgnored && !minimized,
 				offScreen,
 				movable: movesByTitleBar,
 				resizable,
@@ -3153,7 +3177,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			case "maximize":
 				// The zoom box's path; a modal draws none, nor, under
 				// maximize, a palette.
-				if (!zoomsByBox || modal || ws.zoomed) return false;
+				if (!zoomsByBox || modal) return false;
+				if (ws.zoomed) {
+					// Minimized while maximized: it comes back maximized, as
+					// Windows' SC_MAXIMIZE shows a minimized window maximized.
+					// Already maximized on the screen: nothing to do.
+					if (!minimized) return false;
+					setCollapse(false);
+					setActive();
+					return true;
+				}
 				applyZoom(true);
 				setActive();
 				return true;
@@ -3491,9 +3524,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// (`layout.window.captionTooltips`, Windows 98 as shipped).
 				buttonTooltips={layout.window.captionTooltips === true}
 				onZoom={zoomsByBox ? toggleZoom : undefined}
+				// Under maximize, Windows' pair: the box a primary window
+				// lacks, drawn unavailable beside the one it has.
+				zoomDisabled={zoomBoxDisabled}
 				// Under minimize a modal or palette has no Minimize box: neither
 				// has a taskbar button to come back from.
 				onCollapse={collapsesByBox ? onCollapseBoxClick : undefined}
+				collapseDisabled={collapseBoxDisabled}
 				onCollapseKey={toggleCollapse}
 				labels={titleBarLabels}
 				onTitleMouseDown={onTitleMouseDown}

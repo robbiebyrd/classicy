@@ -47,8 +47,27 @@ export type ClassicyWindowTitleBarProps = {
 	 * arguments, by its click, Enter or Space.
 	 */
 	onZoom?: () => void;
+	/**
+	 * Draws the zoom box unavailable (not on a modal bar), `onZoom` given or
+	 * not, as `closeDisabled` draws the close box: the `disabled` state,
+	 * `aria-disabled="true"`, `tabIndex` -1 and no handler. `ClassicyWindow`
+	 * passes it under a layout whose `window.zoom` is `"maximize"` for a
+	 * primary window that has a collapse (Minimize) box and no zoom box:
+	 * Windows 95/98 draws Minimize and Maximize as a pair, the one a window
+	 * lacks grayed (Wine's `NC_DrawCaption`: "In win95 the two buttons are
+	 * always there"). Without it the box renders as before.
+	 */
+	zoomDisabled?: boolean;
 	/** Draws the collapse box and is called by its click. */
 	onCollapse?: (e: MouseEvent<HTMLDivElement>) => void;
+	/**
+	 * Draws the collapse box unavailable, `onCollapse` given or not, as
+	 * `zoomDisabled` draws the zoom box. `ClassicyWindow` passes it under a
+	 * layout whose `window.zoom` is `"maximize"` for a primary window that
+	 * has a zoom (Maximize) box and no collapse box: Windows' grayed
+	 * Minimize beside a Maximize. Without it the box renders as before.
+	 */
+	collapseDisabled?: boolean;
 	/** Called by Enter or Space on the collapse box; without it they click the box. */
 	onCollapseKey?: () => void;
 	/** Mouse-down on the title area (the drag handle). */
@@ -207,9 +226,9 @@ const ClassicyWindowTitleBarControlBox: FunctionalComponent<
  * Presentational: it dispatches nothing and reads no store (only the
  * tooltips `buttonTooltips` asks for read balloon help's toggle, through
  * `useClassicyBalloonHelp`); the window owns the behavior and passes it in. The boxes are buttons named "Close", "Zoom"
- * and "Collapse", unless `labels` names them otherwise; `closeDisabled` draws
- * an unavailable close box and `buttonTooltips` gives each box its name as a
- * tooltip.
+ * and "Collapse", unless `labels` names them otherwise; `closeDisabled`,
+ * `zoomDisabled` and `collapseDisabled` draw a box unavailable, and
+ * `buttonTooltips` gives each box its name as a tooltip.
  *
  * Its styles exist only under a `.classicyWindow` or `.classicyWindowFrame`
  * root (`ClassicyWindowTitleBar.scss` is included by those two sheets), so
@@ -230,7 +249,9 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 	onClose,
 	closeDisabled = false,
 	onZoom,
+	zoomDisabled = false,
 	onCollapse,
+	collapseDisabled = false,
 	onCollapseKey,
 	onTitleMouseDown,
 	onTitleDoubleClick,
@@ -301,7 +322,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<div className={"classicyWindowTitleCenter"}></div>
 			)}
 		</div>
-		{onZoom && !modal && (
+		{(onZoom || zoomDisabled) && !modal && (
 			<div
 				className={"classicyWindowControlBox"}
 				{...{ [CLASSICY_PART_ATTRIBUTE.control]: "zoom" }}
@@ -310,14 +331,19 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 					tooltip={buttonTooltips}
 					className={"classicyWindowZoomBox"}
 					label={labels?.zoom ?? "Zoom"}
-					onClick={() => onZoom()}
-					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-						if (isPressKey(e)) onZoom();
-					}}
+					disabled={zoomDisabled}
+					onClick={!zoomDisabled && onZoom ? () => onZoom() : undefined}
+					onKeyDown={
+						!zoomDisabled && onZoom
+							? (e: KeyboardEvent<HTMLDivElement>) => {
+									if (isPressKey(e)) onZoom();
+								}
+							: undefined
+					}
 				/>
 			</div>
 		)}
-		{onCollapse && (
+		{(onCollapse || collapseDisabled) && (
 			<div
 				className={"classicyWindowControlBox"}
 				{...{ [CLASSICY_PART_ATTRIBUTE.control]: "collapse" }}
@@ -326,12 +352,17 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 					tooltip={buttonTooltips}
 					className={"classicyWindowCollapseBox"}
 					label={labels?.collapse ?? "Collapse"}
-					onClick={onCollapse}
-					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-						if (!isPressKey(e)) return;
-						if (onCollapseKey) onCollapseKey();
-						else e.currentTarget.click();
-					}}
+					disabled={collapseDisabled}
+					onClick={collapseDisabled ? undefined : onCollapse}
+					onKeyDown={
+						collapseDisabled
+							? undefined
+							: (e: KeyboardEvent<HTMLDivElement>) => {
+									if (!isPressKey(e)) return;
+									if (onCollapseKey) onCollapseKey();
+									else e.currentTarget.click();
+								}
+					}
 				/>
 			</div>
 		)}

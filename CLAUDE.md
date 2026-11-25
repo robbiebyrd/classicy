@@ -233,7 +233,9 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   `restoreRect` and deleted on un-zoom; Restore uses this mount's rect, else
   `restoreRect` (under every package, validated by
   `isClassicyWindowRestoreRect`), else the opening rect. A palette or modal
-  never maximizes there. `layout.window.titleDoubleClick: "zoom"` makes the
+  never maximizes there, and a primary window with only one of the zoom and
+  collapse boxes draws the other unavailable (`ClassicyWindowTitleBar`'s
+  `zoomDisabled`/`collapseDisabled`), Windows 95's Minimize/Maximize pair. `layout.window.titleDoubleClick: "zoom"` makes the
   caption's double-click the zoom box's toggle, never a collapse.
 - Under `layout.window.frameEdges: "resize"` (Windows 98 declares it; absent,
   `"move"`, the four frame edges move the window) a resizable window drawn at

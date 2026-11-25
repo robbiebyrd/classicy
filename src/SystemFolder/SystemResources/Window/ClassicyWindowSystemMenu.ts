@@ -33,7 +33,12 @@ export type ClassicyWindowSystemMenuState = {
 	 * every other layout (the store's `collapsed`, an ignored one excepted).
 	 */
 	minimized: boolean;
-	/** Zoomed: maximized under `window.zoom: "maximize"` (the store's `zoomed`). */
+	/**
+	 * Maximized under `window.zoom: "maximize"` (the store's `zoomed`), and
+	 * on the screen: a window minimized while maximized is not maximized, as
+	 * Windows clears WS_MAXIMIZE as it minimizes (keeping
+	 * WPF_RESTORETOMAXIMIZED), so its menu offers Maximize beside Restore.
+	 */
 	maximized: boolean;
 	/**
 	 * Not drawn: minimized under `window.collapse: "minimize"`, or a palette
