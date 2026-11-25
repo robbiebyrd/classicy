@@ -64,6 +64,13 @@ import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/Scroll
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
+	type ClassicyWindowCommand,
+	type ClassicyWindowRegistration,
+	registerClassicyWindow,
+	unregisterClassicyWindow,
+	updateClassicyWindow,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
+import {
 	type ClassicyWindowRect,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
@@ -1916,6 +1923,101 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		targetRef: windowRef,
 		onCancel: modal ? onModalCancel : undefined,
 	});
+
+	// The window registry (plan 0020-w98 §5, "Shared plumbing"): what the
+	// store record does not hold (the title, the icon, the capabilities) and
+	// this window's own commands, for a surface that lists windows or acts on
+	// one (the Windows shell's taskbar and window pop-up menu). Each command
+	// runs the path its box or click runs, so the sounds, analytics, the
+	// onBeforeClose veto and the zoom geometry stay here. Updated every render
+	// so a command always sees fresh state, the indirection docMoveHandlerRef
+	// uses; the entry's `run` calls through it, so the registration below
+	// re-runs only when a published value changes. Registering changes no DOM
+	// and no store.
+	const runCommandRef = useRef<(command: ClassicyWindowCommand) => boolean>(
+		() => false,
+	);
+	runCommandRef.current = (command) => {
+		// A closed window draws nothing for a command to act on.
+		if (ws.closed) return false;
+		switch (command.type) {
+			case "activate":
+				setActive();
+				return true;
+			case "minimize":
+				if (!collapsable || ws.collapsed) return false;
+				setCollapse(true);
+				return true;
+			case "restore":
+				if (ws.collapsed) setCollapse(false);
+				else if (ws.zoomed) applyZoom(false);
+				else return false;
+				setActive();
+				return true;
+			case "maximize":
+				// The zoom box's path; a modal draws none.
+				if (!zoomable || modal || ws.zoomed) return false;
+				applyZoom(true);
+				setActive();
+				return true;
+			case "close":
+				if (!closable) return false;
+				close();
+				return true;
+			default:
+				// The window pop-up menu and the keyboard Move and Size modes
+				// (`systemMenu`, `move`, `size`) have no path in this window:
+				// they report false, as an unknown command does.
+				return false;
+		}
+	};
+	// The registration, keyed on the values it publishes: the first run
+	// registers, a later one updates the entry in place (the window keeps its
+	// place in the list), and the effect after it unregisters on unmount or
+	// when the window's ids change. StrictMode's phantom cleanup unregisters
+	// and its re-run registers again.
+	const registrationRef = useRef<ClassicyWindowRegistration | null>(null);
+	const movesByTitleBar = !fixedModal;
+	useEffect(() => {
+		const entry = {
+			appId,
+			windowId: id,
+			title,
+			icon,
+			modal,
+			windowType,
+			closable,
+			zoomable,
+			collapsable,
+			resizable,
+			movable: movesByTitleBar,
+			run: (command: ClassicyWindowCommand) => runCommandRef.current(command),
+		};
+		const current = registrationRef.current;
+		if (current && updateClassicyWindow(current, entry)) return;
+		registrationRef.current = registerClassicyWindow(entry);
+	}, [
+		appId,
+		id,
+		title,
+		icon,
+		modal,
+		windowType,
+		closable,
+		zoomable,
+		collapsable,
+		resizable,
+		movesByTitleBar,
+	]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the window's ids, which the body does not read: a new id is a new registration, so the old one goes first
+	useEffect(
+		() => () => {
+			const registration = registrationRef.current;
+			registrationRef.current = null;
+			if (registration) unregisterClassicyWindow(registration);
+		},
+		[appId, id],
+	);
 
 	const windowStyle = useMemo(
 		() => ({

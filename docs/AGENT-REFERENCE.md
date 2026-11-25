@@ -1147,6 +1147,27 @@ drag keeps the opposite corner fixed (`computeClassicyWindowResize`); with
 `layout.menuBar.placement: "window"` a window with an `appMenu` draws it in
 its own menu bar under the title bar. See §8, "Layout declarations".
 
+Each mounted window, modals included, also registers in the core's window
+registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
+a surface that lists windows or acts on one, such as the Windows 98 shell's
+taskbar (plan 0020-w98). Its entry holds what the store record does not:
+`appId`, `windowId`, `title`, the resolved `icon`, `modal`, `windowType`,
+`closable`, `zoomable`, `collapsable`, `resizable` and `movable` (`false` for
+a fixed modal), and `run(command)`, which carries a command out through the
+path the window's own box or click takes, so its sounds, analytics, the
+`onBeforeClose` veto and the zoom geometry are unchanged: `activate` focuses
+it; `minimize` collapses it (`false` without a collapse box or when already
+collapsed); `restore` expands a collapsed window, else un-zooms a zoomed one,
+then focuses it (`false` when it is neither); `maximize` zooms it, then
+focuses it (`false` without a zoom box, on a modal, or when already zoomed);
+`close` runs the close box's path, veto included (`false` when it is not
+`closable`). `systemMenu`, `move` and `size` report `false`, and so does every
+command while the window is closed. The entry is updated in place when a
+published value changes (the window keeps its place in the list) and removed
+on unmount; a StrictMode phantom cleanup's stale token removes nothing.
+Registering adds no DOM, no attribute and no store field, under every
+package.
+
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`. It draws the
 window's own title bar (`ClassicyWindowTitleBar`, always focused, with no

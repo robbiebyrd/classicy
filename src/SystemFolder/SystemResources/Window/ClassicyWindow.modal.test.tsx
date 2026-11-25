@@ -1,6 +1,9 @@
+// Platinum's layout, for the DOM snapshot below.
+import "@classicy/appearance-platinum";
 import { StrictMode, useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
+import { classicyWindowDomSnapshot } from "@/__tests__/windowDomSnapshot";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -160,5 +163,85 @@ describe("ClassicyWindow modal initialFocusRef (#270)", () => {
 		expect(document.activeElement).toBe(
 			screen.getByRole("button", { name: "OK" }),
 		);
+	});
+});
+
+// Plan 0020-w98 §8: under Platinum's layout a modal draws exactly this root,
+// frame and title bar: no Close box when it is not closable, and a fixed
+// alert keeps `classicyWindowModalFixed`. Every shell flag is absent here, so
+// no step of the plan may change them.
+describe("ClassicyWindow modal DOM under Platinum's layout", () => {
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockPlayer.mockClear();
+	});
+
+	it("draws a movable modal's root and title bar as before", () => {
+		render(
+			<ClassicyWindow
+				id="TestWindow"
+				appId="TestApp"
+				title="Dialog"
+				modal
+				closable={false}
+				collapsable={false}
+			>
+				<p>body</p>
+			</ClassicyWindow>,
+		);
+		const root = document.querySelector(".classicyWindow") as HTMLElement;
+		expect(classicyWindowDomSnapshot(root)).toMatchInlineSnapshot(`
+			"root: <div id="TestApp_TestWindow" role="application" aria-label="Dialog" style="width: 350px; height: 200px; left: 110px; top: 110px; min-width: 300px; min-height: 0px;" class="classicyWindow classicyWindowDocument active classicyWindowModal classicyWindowModalFront classicyWindowScrollBarsHidden"></div>
+			children:
+			  <div class="classicyWindowFrameEdge classicyWindowFrameEdge-top" role="presentation"></div>
+			  <div class="classicyWindowFrameEdge classicyWindowFrameEdge-right" role="presentation"></div>
+			  <div class="classicyWindowFrameEdge classicyWindowFrameEdge-bottom" role="presentation"></div>
+			  <div class="classicyWindowFrameEdge classicyWindowFrameEdge-left" role="presentation"></div>
+			  <div class="classicyWindowTitleBar classicyWindowTitleBarModal"></div>
+			  <div class="classicyWindowContentsModal"></div>
+			  <div class="classicyWindowResizer classicyWindowResizerDimmed" role="presentation"></div>
+			titleBar:
+			<div class="classicyWindowTitleBar classicyWindowTitleBarModal">
+			<div class="classicyWindowTitle" role="presentation">
+			<div class="classicyWindowTitleLeft"></div>
+			<div class="classicyWindowIcon">
+			<img alt="Dialog" src="/assets/img/icons/system/files/file.png"></div>
+			<div class="classicyWindowTitleText">
+			<p>Dialog</p></div>
+			<div class="classicyWindowTitleRight"></div></div></div>"
+		`);
+	});
+
+	it("draws a fixed alert's root and title bar as before", () => {
+		render(
+			<ClassicyWindow
+				id="TestWindow"
+				appId="TestApp"
+				title=""
+				modal
+				type="error"
+				closable={false}
+				collapsable={false}
+				zoomable={false}
+			>
+				<p>body</p>
+			</ClassicyWindow>,
+		);
+		const root = document.querySelector(".classicyWindow") as HTMLElement;
+		expect(classicyWindowDomSnapshot(root)).toMatchInlineSnapshot(`
+			"root: <div id="TestApp_TestWindow" role="application" style="width: 350px; height: 200px; left: 110px; top: 110px; min-width: 300px; min-height: 0px;" class="classicyWindow classicyWindowDocument active classicyWindowModal classicyWindowRed classicyWindowModalFixed classicyWindowScrollBarsHidden"></div>
+			children:
+			  <div class="classicyWindowFrameEdge classicyWindowFrameEdge-top" role="presentation"></div>
+			  <div class="classicyWindowFrameEdge classicyWindowFrameEdge-right" role="presentation"></div>
+			  <div class="classicyWindowFrameEdge classicyWindowFrameEdge-bottom" role="presentation"></div>
+			  <div class="classicyWindowFrameEdge classicyWindowFrameEdge-left" role="presentation"></div>
+			  <div class="classicyWindowTitleBar classicyWindowTitleBarModal"></div>
+			  <div class="classicyWindowContentsModal"></div>
+			  <div class="classicyWindowResizer classicyWindowResizerDimmed" role="presentation"></div>
+			titleBar:
+			<div class="classicyWindowTitleBar classicyWindowTitleBarModal">
+			<div class="classicyWindowTitle" role="presentation">
+			<div class="classicyWindowTitleCenter"></div></div></div>"
+		`);
 	});
 });

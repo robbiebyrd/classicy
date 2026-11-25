@@ -220,6 +220,14 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   window via `pickWindowToRestore` when the app is focused but no window is,
   reading the **live** store, not the render snapshot, so a window that
   registered or took focus in the same commit is never covered back up.
+- Every mounted `ClassicyWindow`, modals included, also registers in the
+  runtime window registry (`Window/ClassicyWindowRegistry.internal.ts`, plan
+  0020-w98 §5): its title, icon and capabilities, which the persisted record
+  does not hold, and `run(command)` (`activate`, `minimize`, `restore`,
+  `maximize`, `close`) through the window's own paths, read with
+  `useClassicyWindowEntries()` and `runClassicyWindowCommand(appId, windowId,
+  command)`. The entry is updated in place, a stale token unregisters
+  nothing, and registering adds no DOM and no store field.
 
 ### Analytics
 
