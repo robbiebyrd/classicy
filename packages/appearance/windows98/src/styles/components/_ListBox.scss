@@ -95,10 +95,12 @@
 
 // A tree row outside Standard File's well (whose rows the dialogs select
 // whole), its label holder and the row itself; the well is a list view, so
-// it draws no hierarchy lines either.
+// it draws no hierarchy lines either, and neither does the Help Topics
+// browser's Contents tree (winhlp32.exe's SysTreeView32 has no
+// TVS_HASLINES; _AppleGuide.scss).
 $tree-row: ".classicyTreeNodeLabelHolder:not(.classicyFileOpenDialogWell *)";
-$tree-lines-row: ".classicyTreeNodeRow:not(.classicyFileOpenDialogWell *)";
-$tree-lines-group: ".classicyTreeGroup:not(.classicyFileOpenDialogWell *)";
+$tree-lines-row: ".classicyTreeNodeRow:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)";
+$tree-lines-group: ".classicyTreeGroup:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)";
 
 // The tree's lines: ButtonShadow dots, one on and one off, running down and
 // running right.

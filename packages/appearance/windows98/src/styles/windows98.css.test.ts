@@ -921,5 +921,66 @@ describe("windows98.scss (compiled)", () => {
 			).toBeGreaterThan(css.indexOf(`${scope} :where(.classicyLink).disabled`));
 			expect(css).not.toMatch(/[^(]\.disabled[^{]*\{[^}]*help-jump/);
 		});
+
+		// WIG Ch.12 "Task Topic Windows" (p.280), Figure 12.10: Help Topics,
+		// Back and Options touching on a ButtonFace band, push-button sized,
+		// a WindowFrame line between the band and the topic.
+		it("draws the Help topic window's command buttons as Figure 12.10's band", () => {
+			const band = flat(rule(".appleGuideButtonBar"));
+			expect(band).toContain("background: var(--color-system-03)");
+			expect(band).toContain(
+				"border-bottom: var(--window-border-size) solid var(--color-window-border)",
+			);
+			const button = rule(".appleGuideButtonBar > .classicyButton");
+			expect(button).toContain("min-height: var(--push-button-height)");
+			expect(button).toContain("min-width: var(--button-min-width)");
+			expect(button).toContain("margin: 0");
+		});
+
+		// WIG Ch.12 "The Help Topics Browser" and "The Help Topic Tabs"
+		// (pp.284-288), Figure 12.13; winhlp32.exe's DIALOG 909 and 112, in
+		// dialog units of MS Sans Serif 8: the tab control and the buttons 4
+		// units (6 px) in and apart, the Contents page 12 units right of the
+		// tab's edge and 27 below its top, the prompt over a tree view with
+		// the client edge and no lines or buttons.
+		it("lays out the Help Topics browser as winhlp32's dialog", () => {
+			const dialog = flat(rule(".classicyHelpTopics"));
+			expect(dialog).toContain("row-gap: calc(var(--pixel-unit) * 6)");
+			expect(dialog).toContain("padding: calc(var(--pixel-unit) * 6)");
+			expect(dialog).toContain("color: var(--color-black)");
+			expect(dialog).toContain("font-family: var(--ui-font), sans-serif");
+			expect(dialog).toContain("font-size: var(--ui-font-size)");
+			const page = flat(rule(".classicyHelpTopicsContents"));
+			expect(page).toContain("row-gap: calc(var(--pixel-unit) * 14)");
+			expect(page).toContain(
+				"padding: calc(var(--pixel-unit) * 9) calc(var(--pixel-unit) * 8) calc(var(--pixel-unit) * 4) calc(var(--pixel-unit) * 6)",
+			);
+			const list = flat(rule(".classicyHelpTopicsList"));
+			expect(list).toContain(
+				"padding: calc(var(--window-border-size) + var(--window-border-size))",
+			);
+			expect(list).toContain("background: var(--color-window-document)");
+			expect(list).toContain("box-shadow: inset");
+			expect(rule(".classicyHelpTopicsListViewport")).toContain(
+				"box-shadow: none",
+			);
+			expect(
+				rule(".classicyHelpTopicsList .classicyTreeNodeDisclosure"),
+			).toContain("display: none");
+			// No hierarchy lines in its tree, as in Standard File's well.
+			expect(css).toContain(
+				".classicyTreeNodeRow:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)",
+			);
+			expect(css).toContain(
+				".classicyTreeGroup:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)",
+			);
+			expect(rule(".classicyHelpTopicsButtons")).toContain(
+				"column-gap: calc(var(--pixel-unit) * 6)",
+			);
+			const button = rule(".classicyHelpTopicsButtons > .classicyButton");
+			expect(button).toContain("min-height: var(--push-button-height)");
+			expect(button).toContain("min-width: var(--button-min-width)");
+			expect(button).toContain("margin: 0");
+		});
 	});
 });

@@ -824,3 +824,76 @@ describe("ClassicyTree — the page keys and the scroll chords", () => {
 		expect(holders()[0]).toHaveFocus();
 	});
 });
+
+// Controlled expansion (`openIds`): the owner opens and closes the branches
+// (the Help Topics browser's Open and Close buttons); every expansion path
+// reports through `onToggleNode` and changes nothing on its own.
+describe("ClassicyTree — controlled expansion (openIds)", () => {
+	it("opens the branches it is given, and follows new ids", () => {
+		const { rerender } = render(<ClassicyTree nodes={nodes} openIds={[]} />);
+		expect(screen.queryByText("Leaf Node")).not.toBeInTheDocument();
+		rerender(<ClassicyTree nodes={nodes} openIds={["branch"]} />);
+		expect(screen.getByText("Leaf Node")).toBeInTheDocument();
+		expect(
+			screen.getByText("Branch Node").closest('[role="button"]'),
+		).toHaveAttribute("aria-expanded", "true");
+		rerender(<ClassicyTree nodes={nodes} openIds={[]} />);
+		expect(screen.queryByText("Leaf Node")).not.toBeInTheDocument();
+	});
+
+	it("wins over defaultOpen", () => {
+		render(
+			<ClassicyTree
+				nodes={[{ ...nodes[0], defaultOpen: true }]}
+				openIds={[]}
+			/>,
+		);
+		expect(screen.queryByText("Leaf Node")).not.toBeInTheDocument();
+	});
+
+	it("reports a click and a key without opening anything itself", async () => {
+		const user = userEvent.setup();
+		const onToggleNode = vi.fn();
+		render(
+			<ClassicyTree nodes={nodes} openIds={[]} onToggleNode={onToggleNode} />,
+		);
+		await user.click(screen.getByText("Branch Node"));
+		expect(onToggleNode).toHaveBeenLastCalledWith("branch", true);
+		expect(screen.queryByText("Leaf Node")).not.toBeInTheDocument();
+		const holder = screen
+			.getByText("Branch Node")
+			.closest('[role="button"]') as HTMLElement;
+		holder.focus();
+		await user.keyboard("{Enter}");
+		expect(onToggleNode).toHaveBeenCalledTimes(2);
+		expect(screen.queryByText("Leaf Node")).not.toBeInTheDocument();
+	});
+
+	it("asks to close an open branch, and a double-click on a selectable one toggles it", async () => {
+		const user = userEvent.setup();
+		const onToggleNode = vi.fn();
+		const onSelectNode = vi.fn();
+		render(
+			<ClassicyTree
+				nodes={[{ ...nodes[0], branchSelectable: true }]}
+				openIds={["branch"]}
+				selectionMode="single"
+				onToggleNode={onToggleNode}
+				onSelectNode={onSelectNode}
+			/>,
+		);
+		await user.dblClick(screen.getByText("Branch Node"));
+		expect(onSelectNode).toHaveBeenCalled();
+		expect(onToggleNode).toHaveBeenCalledWith("branch", false);
+		expect(screen.getByText("Leaf Node")).toBeInTheDocument();
+	});
+
+	it("keeps its own expansion without openIds", async () => {
+		const user = userEvent.setup();
+		const onToggleNode = vi.fn();
+		render(<ClassicyTree nodes={nodes} onToggleNode={onToggleNode} />);
+		await user.click(screen.getByText("Branch Node"));
+		expect(onToggleNode).toHaveBeenCalledWith("branch", true);
+		expect(screen.getByText("Leaf Node")).toBeInTheDocument();
+	});
+});

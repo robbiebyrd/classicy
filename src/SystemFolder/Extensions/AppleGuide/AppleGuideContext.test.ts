@@ -1,8 +1,18 @@
-import { describe, expect, it } from "vitest";
+// The probe package below needs a sound pack registered: Platinum's.
+import "@classicy/appearance-platinum";
+import { afterEach, describe, expect, it } from "vitest";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	registerClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	APPLE_GUIDE_APP_ID,
+	APPLE_GUIDE_HELP_TOPICS_WINDOW_ID,
+	APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT,
 	APPLE_GUIDE_SHOW_TOPIC_EVENT,
 	type AppleGuideData,
 	classicyAppleGuideEventHandler,
@@ -237,5 +247,124 @@ describe("isAppleGuideData", () => {
 
 	it("accepts a pages map with all-numeric values", () => {
 		expect(isAppleGuideData({ pages: { a: 0, b: 3 } })).toBe(true);
+	});
+});
+
+// WinHelp's Help Topics browser (the WIG audit's 12.21) and a topic's
+// variants by package (12.18), decided by the package the draft draws.
+describe("classicyAppleGuideEventHandler — Help Topics and the package's topics", () => {
+	const WINHELP = "winhelp-probe";
+	const registerWinhelp = () =>
+		registerClassicyAppearancePackage({
+			id: WINHELP,
+			name: "WinHelp probe",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: `${WINHELP}-default`,
+				package: WINHELP,
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				help: { topicWindow: "winhelp" },
+			},
+		});
+	const drawing = (ds: ClassicyStore, packageId: string) => {
+		ds.System.Manager.Appearance.packageId = packageId;
+		return ds;
+	};
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(WINHELP);
+	});
+
+	it("opens the Help Topics browser and focuses it, under help.topicWindow winhelp", () => {
+		registerWinhelp();
+		const ds = drawing(makeStore(), WINHELP);
+		const result = classicyAppleGuideEventHandler(ds, {
+			type: APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT,
+		});
+		expect(data(result).helpTopicsOpen).toBe(true);
+		expect(data(result).openTopics ?? []).toEqual([]);
+		expect(result.System.Manager.Applications.focusedAppId).toBe(
+			APPLE_GUIDE_APP_ID,
+		);
+		expect(APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT).toBe(
+			"ClassicyAppAppleGuideShowTopics",
+		);
+		expect(APPLE_GUIDE_HELP_TOPICS_WINDOW_ID).toBe("apple_guide_help_topics");
+	});
+
+	it("shows the About Help topic instead without the key", () => {
+		const ds = makeStore();
+		classicyAppleGuideEventHandler(ds, {
+			type: APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT,
+		});
+		expect(data(ds).helpTopicsOpen).toBeUndefined();
+		expect(data(ds).openTopics).toEqual([ABOUT_BALLOON_HELP_TOPIC_ID]);
+	});
+
+	it("closes the browser, leaving the open topics", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps[APPLE_GUIDE_APP_ID].data = {
+			openTopics: [ABOUT_BALLOON_HELP_TOPIC_ID],
+			helpTopicsOpen: true,
+		};
+		classicyAppleGuideEventHandler(ds, {
+			type: "ClassicyAppAppleGuideCloseTopics",
+		});
+		expect(data(ds)).toEqual({ openTopics: [ABOUT_BALLOON_HELP_TOPIC_ID] });
+	});
+
+	it("shows and pages a topic as offered under the drawn package", () => {
+		registerWinhelp();
+		registerAppleGuideTopic({
+			id: "winhelp-only",
+			title: "WinHelp only",
+			packages: [WINHELP],
+			pages: ["one", "two", "three"],
+		});
+		const platinum = makeStore();
+		classicyAppleGuideEventHandler(platinum, {
+			type: APPLE_GUIDE_SHOW_TOPIC_EVENT,
+			topicId: "winhelp-only",
+		});
+		expect(data(platinum).openTopics ?? []).toEqual([]);
+
+		const ds = drawing(makeStore(), WINHELP);
+		classicyAppleGuideEventHandler(ds, {
+			type: APPLE_GUIDE_SHOW_TOPIC_EVENT,
+			topicId: "winhelp-only",
+		});
+		expect(data(ds).openTopics).toEqual(["winhelp-only"]);
+		classicyAppleGuideEventHandler(ds, {
+			type: "ClassicyAppAppleGuideSetPage",
+			topicId: "winhelp-only",
+			page: 9,
+		});
+		expect(data(ds).pages?.["winhelp-only"]).toBe(2);
+	});
+
+	it("keeps open a topic another package offers, for when it is drawn again", () => {
+		registerAppleGuideTopic({
+			id: "elsewhere-only",
+			title: "Elsewhere",
+			packages: ["elsewhere"],
+			pages: ["a"],
+		});
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps[APPLE_GUIDE_APP_ID].data = {
+			openTopics: ["elsewhere-only", "ghost-topic"],
+		};
+		classicyAppleGuideEventHandler(ds, {
+			type: "ClassicyAppAppleGuideCloseTopic",
+			topicId: "unrelated",
+		});
+		expect(data(ds).openTopics).toEqual(["elsewhere-only"]);
+	});
+
+	it("validates helpTopicsOpen as a boolean", () => {
+		expect(isAppleGuideData({ helpTopicsOpen: true })).toBe(true);
+		expect(isAppleGuideData({ helpTopicsOpen: "yes" })).toBe(false);
 	});
 });

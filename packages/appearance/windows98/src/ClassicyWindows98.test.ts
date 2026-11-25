@@ -14,6 +14,10 @@ import {
 	getClassicySoundPack,
 	listClassicySoundPacks,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import {
+	ABOUT_BALLOON_HELP_TOPIC_ID,
+	getAppleGuideTopic,
+} from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import windows98Json from "./windows98.json";
 
@@ -1371,6 +1375,7 @@ describe("the Windows 98 appearance package", () => {
 			edit: { scope: "window", menu: "windows" },
 			textField: { contextMenu: "edit" },
 			assistant: { navigation: "buttons" },
+			help: { topicWindow: "winhelp" },
 			selection: {
 				secondaryButton: "select",
 				selectOn: "press",
@@ -1429,6 +1434,41 @@ describe("the Windows 98 appearance package", () => {
 		expect(getClassicyAppearancePackage("windows98")?.layout.assistant).toEqual(
 			{ navigation: "buttons" },
 		);
+	});
+
+	// Help is WinHelp's: a topic's window sizable with its command buttons
+	// above the topic, and a Help Topics browser listing the topics
+	// (`help.topicWindow` "winhelp", 12.15, 12.16, 12.21; WIG Ch.12 "Task
+	// Topic Windows", pp.279-280, "The Help Topics Browser", pp.284-288).
+	it("shows Help in WinHelp's topic window and Help Topics browser", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("windows98")?.layout.help).toEqual({
+			topicWindow: "winhelp",
+		});
+	});
+
+	// The Help menu's built-in topic in Windows' words, "how" steps (12.18;
+	// WIG Ch.12 "Guidelines for Writing Task Help Topics", pp.280-281),
+	// offered under Windows 98 alone: Platinum's and System 7's keep Apple
+	// Guide's "About Help".
+	it("words the built-in Help topic as Windows does, under Windows 98 alone", async () => {
+		await import("./index");
+		const using = getAppleGuideTopic(ABOUT_BALLOON_HELP_TOPIC_ID, "windows98");
+		expect(using?.title).toBe("Using Help");
+		expect(using?.packages).toEqual(["windows98"]);
+		expect(using?.pages).toHaveLength(1);
+		const { render } = await import("@testing-library/react");
+		const { container } = render(using?.pages[0] as never);
+		expect(
+			[...container.querySelectorAll("li")].map((li) => li.textContent),
+		).toEqual([
+			"Point to an item and wait: its ToolTip names it.",
+			"To learn what an item does, choose What's This? from the Help menu, then click the item.",
+		]);
+		for (const other of ["platinum", "system7"])
+			expect(
+				getAppleGuideTopic(ABOUT_BALLOON_HELP_TOPIC_ID, other)?.title,
+			).toBe("About Help");
 	});
 
 	// The Help topic window (Apple Guide's) sets its title and its topic in

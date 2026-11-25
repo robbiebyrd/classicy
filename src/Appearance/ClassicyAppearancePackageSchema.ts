@@ -23,6 +23,7 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
  * `fileDialog`, `fileBrowser`, `fileList`, `tree`, `balloonHelp`,
  * `text`, `edit`, `textField`,
  * `assistant`,
+ * `help`,
  * `selection`, `contextMenu`, `input`), each key of which is optional too,
  * as are `menuBar.idleTimeoutMs` and `mouse`.
  */
@@ -144,6 +145,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	assistant: z
 		.object({ navigation: z.enum(["pager", "buttons"]).optional() })
 		.optional(),
+	help: z.object({ topicWindow: z.enum(["winhelp"]).optional() }).optional(),
 	selection: z
 		.object({
 			secondaryButton: z.enum(["menu", "select"]).optional(),

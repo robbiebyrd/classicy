@@ -623,6 +623,32 @@ export type ClassicyAppearanceLayout = {
 		navigation?: "pager" | "buttons";
 	};
 	/**
+	 * What kind of window Apple Guide's help topics open in, and whether a
+	 * window lists them. Optional, as is each key.
+	 */
+	help?: {
+		/**
+		 * Absent (the default, Mac OS 8's Apple Guide): a topic's window
+		 * (`AppleGuideWindow`) is fixed at 700 × 322 and pages with the
+		 * assistant's navigation alone, and no window lists the topics
+		 * (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT` shows the built-in
+		 * `ABOUT_BALLOON_HELP_TOPIC_ID` topic). `"winhelp"` (Windows Help;
+		 * WIG Ch.12 "Task Topic Windows", pp.279-280, Figure 12.10, and "The
+		 * Help Topics Browser", pp.284-288, Figure 12.13; winhlp32.exe on
+		 * the Windows 98 SE CD): a topic's window is a primary window the
+		 * user can size (at least 320 × 200), with a row of command buttons
+		 * above the topic (`appleGuideButtonBar`): "Help Topics" (access key
+		 * T), "Back" (the previous page, dimmed on the first) and "Options"
+		 * (O), a menu of "Copy" (o), which puts the page's text on the
+		 * clipboard; and `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT` opens the Help
+		 * Topics browser (`ClassicyHelpTopics`, "Help Topics: <Apple Guide's
+		 * display name>"), whose Contents tab lists the topics offered under
+		 * the active package, a book row per `book` and a page row per
+		 * topic, with Display (or Open and Close on a book) and Cancel.
+		 */
+		topicWindow?: "winhelp";
+	};
+	/**
 	 * What the mouse's buttons and the keyboard do to a selection.
 	 * Optional, as is each key.
 	 */

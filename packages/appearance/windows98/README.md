@@ -177,10 +177,19 @@ and `nodenext` resolution).
   Windows 98's wizards are. The Help topic window (Help ▸ About Balloon
   Help…) reads as a WinHelp topic: cream (InfoWindow) behind the title and
   the text, both in the system font at 8 point, a black line under the
-  title, and green jumps (the Colors tab's Help ▸ Jump text). In
+  title, and green jumps (the Colors tab's Help ▸ Jump text). It is a
+  window you can size, and Help Topics, Back and Options (Alt+T, Alt+O)
+  stand in a row above the topic: Back shows the previous page, and
+  Options ▸ Copy puts the page's text on the clipboard. Help Topics opens
+  WinHelp's "Help Topics" dialog: its Contents tab lists the help topics in
+  books, and Display (or a double-click, or Return) shows the chosen topic,
+  Open and Close open and close a book, and Cancel or Escape closes the
+  dialog. The Help menu's own topic is "Using Help": point to an item for
+  its ToolTip, or use What's This?. In
   HyperCard's editor, an armed part tool shows as a latched toolbar button,
   and Escape disarms it before it deselects a part. The Mac packages keep
-  their pager, their Help window and their tools as they were.
+  their pager, their fixed Help window, their "About Help" topic and their
+  tools as they were.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),

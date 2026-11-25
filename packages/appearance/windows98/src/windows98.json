@@ -9081,6 +9081,9 @@
 		"assistant": {
 			"navigation": "buttons"
 		},
+		"help": {
+			"topicWindow": "winhelp"
+		},
 		"selection": {
 			"secondaryButton": "select",
 			"selectOn": "press",

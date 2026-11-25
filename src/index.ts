@@ -87,6 +87,7 @@ export * from "./SystemFolder/Extensions/AppleGuide/AppleGuide";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 export * from "./SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
+export * from "./SystemFolder/Extensions/AppleGuide/ClassicyHelpTopics";
 export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverConfigForm";
 export * from "./SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";

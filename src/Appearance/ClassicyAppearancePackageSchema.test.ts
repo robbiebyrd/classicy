@@ -625,6 +625,31 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// WinHelp's topic window and Help Topics browser (the WIG audit's 12.15,
+	// 12.16, 12.21): `help.topicWindow`, an optional group of one optional
+	// keyword.
+	it("takes an optional help topic window, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).help = {
+			topicWindow: "winhelp",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.help).toEqual({ topicWindow: "winhelp" });
+		const empty = platinumShaped();
+		(empty.layout as Record<string, unknown>).help = {};
+		expect(ClassicyAppearancePackageSchema.safeParse(empty).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).help = { topicWindow: "htmlhelp" };
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"help",
+			"topicWindow",
+		]);
+	});
+
 	it("accepts defaults that name the package", () => {
 		const input = {
 			...platinumShaped(),

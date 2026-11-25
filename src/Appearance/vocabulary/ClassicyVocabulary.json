@@ -316,6 +316,14 @@
 		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
+		"HelpTopics": [
+			"Buttons",
+			"Contents",
+			"List",
+			"ListViewport",
+			"Prompt",
+			"Window"
+		],
 		"HyperCard": [
 			"ActionAddSelect",
 			"ActionList",

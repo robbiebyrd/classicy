@@ -18,16 +18,19 @@
 // Hand-written. Its exports are the package's public API.
 
 import {
+	ABOUT_BALLOON_HELP_TOPIC_ID,
 	type ClassicyAppearanceColorFamilies,
 	type ClassicyAppearanceFontFamilies,
 	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
 	type ClassicyTheme,
 	classicyKnobsToSchema,
+	registerAppleGuideTopic,
 	registerClassicyAppearancePackage,
 	withDefaultThemeColorFamilies,
 	withDefaultThemeMetrics,
 } from "@classicy/classicy";
+import { createElement } from "react";
 // Registers at module load: the sound pack, which must be registered before
 // the registration below, since the package is validated and a theme's
 // `sound.pack` must name a registered pack. The package lists the pack; it
@@ -145,4 +148,32 @@ registerClassicyAppearancePackage({
 	},
 	layout: windows98JsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [windows98SoundPack],
+});
+
+// The Help menu's built-in topic in Windows' words, offered under this
+// package alone, so Platinum and System 7 keep Apple Guide's "About Help"
+// (the WIG audit's 12.18). A task topic is brief "how", without concepts
+// (WIG Ch.12 "Guidelines for Writing Task Help Topics", pp.280-281): how to
+// learn an item's name (its ToolTip, Ch.12 "Tooltips", p.276) and what it
+// does (What's This?, Ch.12 "Context-Sensitive Help", pp.273-275).
+registerAppleGuideTopic({
+	id: ABOUT_BALLOON_HELP_TOPIC_ID,
+	title: "Using Help",
+	packages: [WINDOWS98_APPEARANCE_PACKAGE_ID],
+	pages: [
+		createElement(
+			"ul",
+			null,
+			createElement(
+				"li",
+				null,
+				"Point to an item and wait: its ToolTip names it.",
+			),
+			createElement(
+				"li",
+				null,
+				"To learn what an item does, choose What's This? from the Help menu, then click the item.",
+			),
+		),
+	],
 });
