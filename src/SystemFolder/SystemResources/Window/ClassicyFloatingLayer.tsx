@@ -12,10 +12,19 @@ import {
 export const CLASSICY_FLOATING_LAYER_ID = "classicy-floating-layer";
 
 /**
+ * The floating layer's z-index: above the palettes (350) and the Control
+ * Strip (355), under the modal bands (360 and up). Mac OS 8.5's Application
+ * Switcher palette, a system-wide floating window ("appears as a floating
+ * window", TN1142), is drawn above the Control Strip when dropped over it,
+ * hiding the strip's modules beneath it (integration review G round 6, B5;
+ * audit-85 `im85/sw-overstrip-rel.png`, `o4-overstrip-rel.png`).
+ */
+export const CLASSICY_FLOATING_LAYER_Z_INDEX = 356;
+
+/**
  * The layer's box: it spans the desktop (a floating window's percentage sizes
- * resolve against it) at z-index 354, above the palettes (350) and under the
- * Control Strip (355) and the modal bands (360 and up), and catches no pointer
- * itself: its windows opt back in.
+ * resolve against it) at `CLASSICY_FLOATING_LAYER_Z_INDEX`, and catches no
+ * pointer itself: its windows opt back in.
  */
 export const CLASSICY_FLOATING_LAYER_STYLE: CSSProperties = {
 	position: "absolute",
@@ -23,7 +32,7 @@ export const CLASSICY_FLOATING_LAYER_STYLE: CSSProperties = {
 	top: 0,
 	width: "100%",
 	height: "100%",
-	zIndex: 354,
+	zIndex: CLASSICY_FLOATING_LAYER_Z_INDEX,
 	pointerEvents: "none",
 };
 
@@ -92,7 +101,7 @@ export const classicyFallbackFloatingLayer = (
 		top: "0",
 		width: "100%",
 		height: "100%",
-		zIndex: "354",
+		zIndex: String(CLASSICY_FLOATING_LAYER_Z_INDEX),
 		pointerEvents: "none",
 	});
 	root.appendChild(layer);

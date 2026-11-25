@@ -85,12 +85,12 @@ describe("Apple Guide: a floating window over the front application", () => {
 		show(KEYBOARD_SHORTCUTS_TOPIC_ID);
 		const z = (id: string) =>
 			Number(guideWindow(id)?.style.zIndex || Number.NaN);
-		// The layer is one stacking context above the active document band (300)
-		// and the palettes (350), under the Control Strip (355) and the modals.
+		// The layer is one stacking context above the active document band (300),
+		// the palettes (350) and the Control Strip (355), under the modals.
 		const layer = guideWindow(ABOUT_BALLOON_HELP_TOPIC_ID)
 			?.parentElement as HTMLElement;
 		expect(layer.id).toBe("classicy-floating-layer");
-		expect(Number(layer.style.zIndex)).toBe(354);
+		expect(Number(layer.style.zIndex)).toBe(356);
 		expect(guideWindow(KEYBOARD_SHORTCUTS_TOPIC_ID)?.parentElement).toBe(layer);
 		// The topic opened last is on top; clicking the other raises it.
 		expect(z(KEYBOARD_SHORTCUTS_TOPIC_ID)).toBeGreaterThan(
@@ -149,9 +149,9 @@ describe("Apple Guide: a floating window over the front application", () => {
 		const z = (id: string) => Number(guideWindow(id)?.style.zIndex);
 		const layer = guideWindow(ids[0])?.parentElement as HTMLElement;
 		expect(layer.id).toBe("classicy-floating-layer");
-		// One layer at 354, under the Control Strip (355); the topics are 1..10
+		// One layer at 356, over the Control Strip (355); the topics are 1..10
 		// by recency inside it, the newest on top.
-		expect(Number(layer.style.zIndex)).toBe(354);
+		expect(Number(layer.style.zIndex)).toBe(356);
 		expect(ids.map(z)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 		// Raising the bottom one puts it on top and moves no node: a move would
 		// reset its scroll offsets, blur its focus and can drop the click.

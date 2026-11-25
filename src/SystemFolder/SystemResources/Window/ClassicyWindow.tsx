@@ -2192,9 +2192,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
 			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
-			// Inside the floating layer (354, above the palettes and under the
-			// Control Strip): the window's recency rank among every extension's
-			// floating windows. See `floatingLayerOf`.
+			// Inside the floating layer (356, above the palettes and the
+			// Control Strip, under the modal bands): the window's recency rank
+			// among every extension's floating windows. See `floatingLayerOf`.
 			...(floatingRank >= 0
 				? { zIndex: floatingRank + 1, pointerEvents: "auto" as const }
 				: {}),
