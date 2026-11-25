@@ -230,6 +230,16 @@ describe("the Windows 98 appearance package", () => {
 		}
 	});
 
+	// Windows 98 is the shell (plan 0020-w98): each window carries its own
+	// menu bar and no bar crosses the top of the screen (`menuBar.placement:
+	// "window"`; WIG Ch.7 "The Menu Bar and Drop-down Menus", p.97); a
+	// taskbar runs along the bottom with the Start button, labelled "Start",
+	// at its left, its menu's banner reading "Windows 98", a button per open
+	// window and the status area at its right (`taskbar`; WIG Ch.3 "The
+	// Taskbar", "The Start Button", "Window Buttons" and "The Status Area",
+	// pp.15-16, Figure 3.1; Ch.10 "Taskbar Integration", pp.211-212); and the
+	// Minimize button sends a window to its taskbar button (`window.collapse:
+	// "minimize"`; WIG Ch.6 "Minimizing Windows", p.85).
 	// Windows keeps a window's scroll bars drawn, disabled, where its content
 	// fits (Notepad's, say), so the bars stay in the `fits` state; its Open
 	// and Save As dialogs are titled, movable boxes showing one folder at a
@@ -256,25 +266,30 @@ describe("the Windows 98 appearance package", () => {
 	// message box has a titled caption with a Close box and moves by it
 	// (`dialog.caption`, WIG Ch.8 "Appearance and Behavior", p.145, Figure
 	// 8.1; "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click, sized from their frame's edges and corners, given the window pop-up menu and caption-button tooltips, and every dialog titled, closable from its caption and movable", async () => {
+	it("lays the desktop out as Windows did: icons from the top left, a menu bar in each window and a taskbar along the bottom with Start, windows minimized to their taskbar buttons, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click, sized from their frame's edges and corners, given the window pop-up menu and caption-button tooltips, and every dialog titled, closable from its caption and movable", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: {
 				growBoxCorner: "bottom-right",
 				centering: "wholePixel",
+				collapse: "minimize",
 				zoom: "maximize",
 				titleDoubleClick: "zoom",
 				frameEdges: "resize",
 				systemMenu: true,
 				captionTooltips: true,
 			},
-			menuBar: { placement: "screen" },
+			menuBar: { placement: "window" },
 			desktop: { iconGridOrigin: "top-left" },
 			scrollBar: { fitsBars: "shown" },
 			fileDialog: {
 				frame: "movable",
 				navigation: "flat",
 				saveName: "selected",
+			},
+			taskbar: {
+				startLabel: "Start",
+				startBanner: { title: "Windows", edition: "98" },
 			},
 			dialog: { caption: "titled" },
 		});

@@ -209,7 +209,8 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   replacement instance). Modal windows are destroyed instead, as before.
 - `ClassicyWindowClose` promotes the app's highest-`zOrder` open sibling.
 - Under `layout.window.collapse: "minimize"` (the Windows shell, plan
-  0020-w98 §5; absent, `"shade"`, every other package is as above) the
+  0020-w98 §5; Windows 98 declares it; absent, `"shade"`, every other
+  package is as above) the
   collapse box minimizes: the same `collapsed` flag, but the window is
   `classicyWindowMinimized` (`display: none`, tree mounted), its click does
   not bubble and `zoomed` is kept. A modal or palette never minimizes (no box;
@@ -673,8 +674,10 @@ prop takes the strip's props (`disabledModules`, `defaultCollapsed`,
 `defaultWidth`) or `false` to hide it; Storybook desktop stories opt out with
 `parameters.classicy.controlStrip: false`.
 
-Under a package whose layout declares `taskbar` (plan 0020-w98 §2),
-`ClassicyDesktop` mounts `ClassicyTaskbar` (`Taskbar/`) in the strip's place,
+Under a package whose layout declares `taskbar` (Windows 98, beside
+`menuBar.placement: "window"` and `window.collapse: "minimize"`; plan
+0020-w98 §2), `ClassicyDesktop` mounts `ClassicyTaskbar` (`Taskbar/`) in the
+strip's place,
 at the same point among its children, and no strip: a `<nav>` along the
 bottom (z-index 355) with the Start button (`taskbar-start`, `open`), a
 button per open primary window from the window registry (`taskbar-tasks`;

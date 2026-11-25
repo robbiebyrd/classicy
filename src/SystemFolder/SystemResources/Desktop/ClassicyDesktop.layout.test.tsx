@@ -1,4 +1,5 @@
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
+import { WINDOWS98_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-windows98";
 import { act, fireEvent, render } from "@testing-library/react";
 import { produce } from "immer";
 import type { ComponentProps, CSSProperties } from "react";
@@ -39,6 +40,11 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 // from an empty registry's CLASSICY_DEFAULT_APPEARANCE_LAYOUT fallback.
 const platinum = getClassicyAppearancePackage(
 	PLATINUM_APPEARANCE_PACKAGE_ID,
+) as ClassicyAppearancePackage;
+// The Windows 98 package's registration as its module made it, for the
+// shell's case (its own layout, plan 0020-w98 step 16).
+const windows98 = getClassicyAppearancePackage(
+	WINDOWS98_APPEARANCE_PACKAGE_ID,
 ) as ClassicyAppearancePackage;
 
 const renderDesktop = (
@@ -580,6 +586,139 @@ describe("ClassicyDesktop layout", () => {
 			expect(altF4()).toBe(false);
 			expect(mainRecord()?.closed).toBe(true);
 			expect(document.querySelector(".classicyContextMenuWrapper")).toBeNull();
+		});
+	});
+
+	// Plan 0020-w98 step 16: the Windows 98 package's own layout is the shell
+	// (WIG Ch.3 "The Taskbar", pp.15-16, Figure 3.1; Ch.6 "Minimizing
+	// Windows", p.85; Ch.7 "The Help Menu", p.99; Ch.10 "Taskbar
+	// Integration", pp.211-212): no bar across the top of the screen, a
+	// taskbar in the Control Strip's place whose tray holds the strip's
+	// modules, each window's own menu bar ending with Help, and a window that
+	// minimizes to its taskbar button and comes back from it.
+	describe("under the registered Windows 98 package", () => {
+		const windowRoot = () =>
+			document.getElementById(`${APP_ID}_main`) as HTMLElement;
+		const mainRecord = () =>
+			getAppWindow(
+				useAppManager.getState().System.Manager.Applications.apps[APP_ID],
+				"main",
+			);
+		const taskButtons = () =>
+			Array.from(
+				document.querySelectorAll<HTMLButtonElement>(".classicyTaskbarTask"),
+			);
+
+		beforeEach(() => {
+			registerClassicyAppearancePackage(windows98);
+			activate(WINDOWS98_APPEARANCE_PACKAGE_ID);
+		});
+
+		it("draws the shell: a taskbar and no screen bar, the tray holding the three built-in modules, a window bar ending with Help, and Minimize sending the window to its button", () => {
+			act(() => openApp());
+			const { container } = renderDesktopWithWindow();
+			const root = desktopRoot(container) as HTMLElement;
+			expect(root.getAttribute("data-classicy-appearance")).toBe(
+				WINDOWS98_APPEARANCE_PACKAGE_ID,
+			);
+
+			// No menu bar crosses the top of the screen: the screen bar is
+			// headless and its band is 0.
+			expect(container.querySelector(".classicyDesktopMenuBar")).toBeNull();
+			expect(root.getAttribute("data-classicy-menu-bar")).toBe("window");
+			expect(root.style.getPropertyValue("--menu-bar-height")).toBe("0px");
+
+			// The taskbar in the Control Strip's place, Start at its left.
+			expect(container.querySelector(".classicyControlStrip")).toBeNull();
+			const taskbar = container.querySelectorAll("nav.classicyTaskbar");
+			expect(taskbar).toHaveLength(1);
+			expect(taskbar[0].parentElement).toBe(root);
+			expect(
+				container.querySelector(".classicyTaskbarStartLabel")?.textContent,
+			).toBe("Start");
+
+			// The tray: the Control Strip's three built-in modules, then the
+			// menu bar extensions' region and the clock.
+			const tray = container.querySelector(".classicyTaskbarTray");
+			expect(
+				Array.from(
+					tray?.querySelectorAll(".classicyTaskbarTrayIcon") ?? [],
+					(icon) => icon.getAttribute("aria-label"),
+				),
+			).toEqual(["Sound", "Screen Saver", "Appearance"]);
+			expect(
+				tray?.querySelector("#classicyDesktopMenuExtensions"),
+			).not.toBeNull();
+			expect(tray?.querySelector("time.classicyTaskbarClock")).not.toBeNull();
+
+			// The window's own bar: its app's File, then one Help, last.
+			const bar = windowRoot().querySelector(".classicyWindowMenuBar");
+			expect(bar).not.toBeNull();
+			const titles = Array.from(
+				bar?.querySelectorAll(":scope > .classicyMenuWrapper > ul > li") ?? [],
+				(li) => ({
+					id: li.id,
+					title: li.querySelector(":scope > p")?.textContent,
+					part: li.getAttribute("data-classicy-part"),
+				}),
+			);
+			expect(titles.map(({ title }) => title)).toEqual(["File", "Help"]);
+			expect(titles.at(-1)).toMatchObject({
+				id: `${APP_ID}_main_help-menu`,
+				part: "help",
+			});
+
+			// One button, for the focused window, pressed.
+			expect(taskButtons().map((b) => b.textContent)).toEqual(["Main"]);
+			const [button] = taskButtons();
+			expect(button).toHaveClass("active");
+			expect(button).toHaveAttribute("aria-pressed", "true");
+
+			// Minimize (the collapse box), as a mouse delivers it: the window
+			// leaves the screen, not shaded, and keeps its button, released.
+			const minimize = windowRoot().querySelector(
+				".classicyWindowCollapseBox",
+			) as HTMLElement;
+			expect(minimize).toHaveAttribute("aria-label", "Minimize");
+			fireEvent.mouseDown(minimize);
+			fireEvent.mouseUp(minimize);
+			fireEvent.click(minimize);
+			expect(mainRecord()).toMatchObject({ collapsed: true, focused: false });
+			expect(windowRoot()).toHaveClass("classicyWindowMinimized");
+			expect(windowRoot()).not.toHaveClass("collapsed");
+			expect(taskButtons()).toEqual([button]);
+			expect(button).toHaveClass("collapsed");
+			expect(button).not.toHaveClass("active");
+			expect(button).toHaveAttribute("aria-pressed", "false");
+
+			// Its button restores it.
+			fireEvent.click(button);
+			expect(mainRecord()).toMatchObject({ collapsed: false, focused: true });
+			expect(windowRoot()).not.toHaveClass("classicyWindowMinimized");
+			expect(button).toHaveClass("active");
+			expect(button).not.toHaveClass("collapsed");
+		});
+
+		it("draws the Control Strip and the screen bar again on a switch back to Platinum, the minimized window shaded there", () => {
+			act(() => openApp());
+			const { container } = renderDesktopWithWindow();
+			const minimize = windowRoot().querySelector(
+				".classicyWindowCollapseBox",
+			) as HTMLElement;
+			fireEvent.mouseDown(minimize);
+			fireEvent.mouseUp(minimize);
+			fireEvent.click(minimize);
+			expect(windowRoot()).toHaveClass("classicyWindowMinimized");
+
+			activate(PLATINUM_APPEARANCE_PACKAGE_ID);
+			expect(container.querySelector(".classicyTaskbar")).toBeNull();
+			expect(container.querySelector(".classicyControlStrip")).not.toBeNull();
+			expect(container.querySelector(".classicyDesktopMenuBar")).not.toBeNull();
+			expect(windowRoot().querySelector(".classicyWindowMenuBar")).toBeNull();
+			// The same `collapsed` record, drawn as WindowShade.
+			expect(mainRecord()?.collapsed).toBe(true);
+			expect(windowRoot()).toHaveClass("collapsed");
+			expect(windowRoot()).not.toHaveClass("classicyWindowMinimized");
 		});
 	});
 });

@@ -1,13 +1,15 @@
 # @classicy/appearance-windows98
 
-Windows 95 and 98, the classic Windows look, as an Appearance Package for
-[Classicy](https://github.com/robbiebyrd/classicy). It draws Windows 98's
-chrome on Classicy's Mac OS structure, the way a Kaleidoscope scheme once
-dressed a Mac as a PC: gradient title bars with Minimize, Maximize and Close
-at the right, two-pixel bevels from the system colors, dithered scroll-bar
-tracks with an arrow at each end, raised menus and rectangular controls, in
-Windows 98's own color scheme and the sixteen classic schemes of its Display
-control panel.
+Windows 95 and 98, the classic Windows look and shell, as an Appearance
+Package for [Classicy](https://github.com/robbiebyrd/classicy). In place of
+the Mac OS menu bar and Control Strip it gives the desktop Windows' own
+shell: a taskbar along the bottom of the screen with the Start button, a
+button for each open window and the clock, and a menu bar in each window.
+It draws Windows 98's chrome: gradient title bars with Minimize, Maximize
+and Close at the right, two-pixel bevels from the system colors, dithered
+scroll-bar tracks with an arrow at each end, raised menus and rectangular
+controls, in Windows 98's own color scheme and the sixteen classic schemes
+of its Display control panel.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Without one,
 `ClassicyDesktop` shows a message telling you to load one instead of the
@@ -44,14 +46,48 @@ and `nodenext` resolution).
   stylesheet: the title-bar colors, the selected text's, the ToolTip's and
   the desktop labels' are the package's own color families, editable in the
   Colors tab beside the palette.
-- **Its layout.** The grow box at the bottom right, the menu bar on the
-  screen, desktop icons from the top left, as Windows laid them, a
-  window's scroll bars kept where its content fits, and the Open and Save
+- **The Windows shell.** No menu bar crosses the top of the screen: each
+  window has its own, under its title bar, ending with a Help menu that
+  holds Classicy's help commands, the application's own and, last, "About"
+  and the application's name. A taskbar runs along the bottom of the
+  screen, and windows, cleaned-up desktop icons and menus stay above it:
+  - **Start**, at its left, opens the Start menu (so does CTRL+ESC, where
+    the browser lets the key through): About This Computer; Programs, the
+    applications in the Applications folder; Settings, holding Control
+    Panel (the control panels) and Show Balloons or Hide Balloons; Help;
+    then Empty Trash… and Reset PRAM…, where Windows has Shut Down. Its
+    banner reads "Windows 98" under every scheme.
+  - **A button for each open window** (not for dialogs or palettes), in
+    the order the windows opened, the active window's pressed. Clicking a
+    button activates its window, minimizes it when it is already active,
+    and restores it when it is minimized; right-clicking it opens the
+    window's pop-up menu; a title cut short shows whole in a tooltip; and
+    a file dragged from a folder and held over a button brings its window
+    up for the drop.
+  - **The notification area**, at its right, holds the Control Strip's
+    modules as icons (Sound, Screen Saver, Appearance, and any module your
+    app registers): a click opens a module's control or its menu, a
+    right-click its menu, and its name shows in a tooltip. The menu bar
+    extensions an app adds sit beside them, then the clock, in Windows'
+    `4:37 PM` (or `16:37` with the 24-hour clock), the date in its
+    tooltip; a double-click on it opens Date & Time. The Control Strip
+    control panel chooses which modules show; Windows draws no Control
+    Strip.
+  - **Right-click the taskbar** for Minimize All Windows (then Undo
+    Minimize All) and Properties, which opens the Control Strip control
+    panel; right-click the clock for Adjust Date/Time first.
+
+  The Minimize button sends a window to its taskbar button, and the next
+  window on screen takes the focus; an application's palettes leave the
+  screen with its last window and come back with it.
+- **Its layout.** The grow box at the bottom right, desktop icons from the
+  top left, as Windows laid them, a window's scroll bars kept where its
+  content fits, and the Open and Save
   boxes as titled, movable dialogs showing one folder at a time under a
   pop-up that runs the path upward (Windows' Look in), Save As opening with
   the file name selected, dialogs and alerts centered on whole pixels,
   so their one-pixel bevels and glyphs stay sharp, and windows that
-  maximize: the Maximize button fills the screen below the menu bar with
+  maximize: the Maximize button fills the screen above the taskbar with
   the window's frame off the screen, the maximized window neither moves nor
   sizes and shows no size grip, Restore returns it to the size and place it
   had (after a reload too), and a double-click on the caption maximizes or
@@ -65,9 +101,9 @@ and `nodenext` resolution).
   corner (within a caption's height of it, along either edge) sizes it from
   both of the corner's edges, as Windows 98's sizing border does, while a
   dialog's or other fixed window's frame does nothing, and every window has
-  its pop-up (system) menu: right-click anywhere in its title bar, press its
-  icon or press ALT+SPACE for Restore, Move, Size, Minimize, Maximize and
-  Close (Move and Close on a dialog, Move, Size and Close on a palette),
+  its pop-up (system) menu: right-click anywhere in its title bar or its
+  taskbar button, press its icon or press ALT+SPACE for Restore, Move,
+  Size, Minimize, Maximize and Close (Move and Close on a dialog, Move, Size and Close on a palette),
   each dimmed when it cannot apply, Close in bold with ALT+F4; the arrow
   keys walk the menu and ESC closes it, Move and Size move and size the
   window with the arrow keys until ENTER (ESC puts it back), and a
@@ -117,7 +153,7 @@ and `nodenext` resolution).
     selected, a selected icon blended with a 50% dither of the highlight
     (as Explorer drew it) on the desktop, in icon views and in the Finder's
     list, ToolTips in place of balloon help, and the Appearance Manager
-    and Control Strip under the same bevels;
+    under the same bevels;
   - message boxes and input dialogs no wider than 415 px, the largest
     secondary window the Windows Interface Guidelines allow, a message box's
     buttons centered, as Windows centers them (a dialog's OK and Cancel
@@ -192,10 +228,18 @@ drawn on a canvas and shown from a `data:` URL.
 
 ## Design notes
 
-- **Mac structure, Windows dress.** Classicy's behavior is shared by every
-  package: the menu bar stays at the top of the screen, the collapse box
-  window-shades (it is drawn as Minimize), the zoom box is drawn as Maximize
-  (Restore while the window is zoomed), and the desktop keeps its icons. There is no taskbar and no Start menu.
+- **Windows structure, through the layout.** The package's layout asks
+  Classicy for Windows' shell and window behavior: menu bars in windows,
+  the taskbar and its Start menu, Minimize to the taskbar, Maximize, sizing
+  from any edge, the window pop-up menu and titled dialogs. The rest is
+  Classicy's, shared by every package: the desktop keeps its icons, the
+  Trash and the startup disk; a dialog blocks the whole desktop, the
+  taskbar included, where Windows leaves the taskbar usable under an
+  application's dialog; and ALT+TAB, ALT+ESC and the Windows key belong to
+  the browser and the computer, as does CTRL+ESC on a Windows computer.
+  A window's state travels between packages: a window minimized here is
+  collapsed (window-shaded) under Platinum and System 7, a shaded document
+  window minimized here, and a maximized one zoomed there.
 - **Every pixel from a token.** The title-bar buttons' marks, the scroll
   arrows, the checkmark, the radio ring, the pop-up and menu arrows and the
   slider's thumb are one-pixel rectangles placed on a grid

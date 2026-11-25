@@ -452,10 +452,10 @@ $grip-shadow: runs($grip, "s");
 }
 
 // The contents' heights in a window `$root` that holds its own menu bar
-// (menu-bar placement `window`, which this package's layout never asks
-// for, but a host may place a bar): each less the bar's height, as the
-// base sheet's (ClassicyWindowMenuBar.scss) are, which the rules in
-// `window` outrank from this layer.
+// (menu-bar placement `window`, which this package's layout asks for: each
+// window carries its own bar under the shell, plan 0020-w98): each less
+// the bar's height, as the base sheet's (ClassicyWindowMenuBar.scss) are,
+// which the rules in `window` outrank from this layer.
 @mixin with-menu-bar($root) {
   #{$root} > .classicyWindowMenuBar {
     height: $menu-bar;

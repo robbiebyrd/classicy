@@ -3784,6 +3784,7 @@
 		"window": {
 			"growBoxCorner": "bottom-right",
 			"centering": "wholePixel",
+			"collapse": "minimize",
 			"zoom": "maximize",
 			"titleDoubleClick": "zoom",
 			"frameEdges": "resize",
@@ -3791,7 +3792,7 @@
 			"captionTooltips": true
 		},
 		"menuBar": {
-			"placement": "screen"
+			"placement": "window"
 		},
 		"desktop": {
 			"iconGridOrigin": "top-left"
@@ -3803,6 +3804,13 @@
 			"frame": "movable",
 			"navigation": "flat",
 			"saveName": "selected"
+		},
+		"taskbar": {
+			"startLabel": "Start",
+			"startBanner": {
+				"title": "Windows",
+				"edition": "98"
+			}
 		},
 		"dialog": {
 			"caption": "titled"
