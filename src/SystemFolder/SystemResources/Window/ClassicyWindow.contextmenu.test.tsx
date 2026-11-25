@@ -1,6 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	registerTestTaskbarPackage,
+	TEST_SYSTEM_MENU_LAYOUT,
+	TEST_SYSTEM_MENU_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -162,5 +168,49 @@ describe("ClassicyWindow contextual menu resolution", () => {
 		expect(
 			document.querySelector(".classicyContextMenuWrapper"),
 		).not.toBeInTheDocument();
+	});
+});
+
+// Plan 0020-w98 §5, "The window pop-up (system) menu": the title bar's
+// right-click. Under the default layout above it resolves like any other
+// right-click in the window; under `window.systemMenu: true` (Windows 98)
+// the title bar's shows the window pop-up menu, and the body keeps the
+// window's contextual menu. (The menu itself: ClassicyWindow.systemMenu.test.tsx.)
+describe("ClassicyWindow contextual menu on the title bar", () => {
+	const titleBar = () =>
+		document.querySelector(
+			".classicyWindow > .classicyWindowTitleBar",
+		) as HTMLElement;
+
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockAppState.contextMenu = undefined;
+	});
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_SYSTEM_MENU_PACKAGE_ID);
+	});
+
+	it("shows the window's menu there under the default layout, as anywhere in the window", () => {
+		renderWindow({ title: "Main", contextMenu: windowMenu });
+		fireEvent.contextMenu(titleBar());
+		expect(screen.getByText("Window Item")).toBeInTheDocument();
+		expect(screen.queryByText("Restore")).not.toBeInTheDocument();
+	});
+
+	it("shows the window pop-up menu there under window.systemMenu, and the window's menu in its body", () => {
+		registerTestTaskbarPackage(
+			TEST_SYSTEM_MENU_LAYOUT,
+			TEST_SYSTEM_MENU_PACKAGE_ID,
+		);
+		renderWindow({ title: "Main", contextMenu: windowMenu });
+		fireEvent.contextMenu(titleBar());
+		expect(screen.getByText("Restore")).toBeInTheDocument();
+		expect(screen.queryByText("Window Item")).not.toBeInTheDocument();
+		// No Help item leads it: a Windows pop-up menu has none.
+		expect(screen.queryByText("Help")).not.toBeInTheDocument();
+		fireEvent.contextMenu(screen.getByText("window content"));
+		expect(screen.getByText("Window Item")).toBeInTheDocument();
+		expect(screen.queryByText("Restore")).not.toBeInTheDocument();
 	});
 });

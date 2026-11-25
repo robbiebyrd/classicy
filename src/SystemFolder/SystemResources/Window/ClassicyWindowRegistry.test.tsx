@@ -537,7 +537,9 @@ describe("ClassicyWindow in the window registry", () => {
 		expect(record("fixed")?.closed).toBe(false);
 	});
 
-	it("reports false for the commands it has no path for", () => {
+	// Its menu itself, under a layout that has one:
+	// ClassicyWindow.systemMenu.test.tsx.
+	it("reports false for systemMenu under a layout without the window pop-up menu", () => {
 		render(
 			<ClassicyWindow id="main" appId={APP} title="Main">
 				<p>main</p>

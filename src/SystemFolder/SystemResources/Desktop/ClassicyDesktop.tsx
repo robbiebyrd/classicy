@@ -116,6 +116,7 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
+import { useClassicyWindowShellKeys } from "@/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal";
 
 import "../../../index.css";
 
@@ -714,6 +715,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	// overrides the theme variables the layout changes (window placement's
 	// 0px `--menu-bar-height`), so it is spread after the theme's.
 	const layout = useClassicyAppearanceLayout();
+	// The Windows shell's window keys (WIG App. B, Table B.2, p.358):
+	// ALT+SPACE opens the focused window's pop-up menu and ALT+F4 closes it,
+	// only under a layout that gives windows the system menu; under every
+	// other package nothing is bound.
+	useClassicyWindowShellKeys(layout.window.systemMenu === true);
 	const layoutVars = useMemo(
 		() => ({
 			...classicyLayoutVars(layout),

@@ -3786,7 +3786,8 @@
 			"centering": "wholePixel",
 			"zoom": "maximize",
 			"titleDoubleClick": "zoom",
-			"frameEdges": "resize"
+			"frameEdges": "resize",
+			"systemMenu": true
 		},
 		"menuBar": {
 			"placement": "screen"

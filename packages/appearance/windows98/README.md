@@ -60,7 +60,16 @@ and `nodenext` resolution).
   a resizable window's frame sizes it from that edge, and dragging near a
   corner (within a caption's height of it, along either edge) sizes it from
   both of the corner's edges, as Windows 98's sizing border does, while a
-  dialog's or other fixed window's frame does nothing.
+  dialog's or other fixed window's frame does nothing, and every window has
+  its pop-up (system) menu: right-click anywhere in its title bar, press its
+  icon or press ALT+SPACE for Restore, Move, Size, Minimize, Maximize and
+  Close (Move and Close on a dialog, Move, Size and Close on a palette),
+  each dimmed when it cannot apply, Close in bold with ALT+F4; the arrow
+  keys walk the menu and ESC closes it, Move and Size move and size the
+  window with the arrow keys until ENTER (ESC puts it back), and a
+  double-click on the icon or ALT+F4 closes the window. A browser on a
+  Windows computer keeps ALT+F4 and ALT+SPACE for itself; on a Mac they are
+  Option+F4 and Option+Space.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),

@@ -2,11 +2,14 @@ import { produce } from "immer";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@/__tests__/withPlatinum";
-import { act, fireEvent, render } from "@/__tests__/test-utils";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
+import { act, fireEvent, render, waitFor } from "@/__tests__/test-utils";
 import {
 	registerTestTaskbarPackage,
 	TEST_MINIMIZE_LAYOUT,
 	TEST_MINIMIZE_PACKAGE_ID,
+	TEST_SHELL_SYSTEM_MENU_LAYOUT,
+	TEST_SHELL_SYSTEM_MENU_PACKAGE_ID,
 	TEST_TASKBAR_LAYOUT,
 	TEST_TASKBAR_PACKAGE_ID,
 } from "@/__tests__/testTaskbarPackage";
@@ -869,6 +872,7 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 	afterEach(() => {
 		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
 		unregisterClassicyAppearancePackage(TEST_MINIMIZE_PACKAGE_ID);
+		unregisterClassicyAppearancePackage(TEST_SHELL_SYSTEM_MENU_PACKAGE_ID);
 		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
 	});
 
@@ -1001,5 +1005,89 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 			}),
 		);
 		expect(ownButtons()).toHaveLength(0);
+	});
+
+	// Plan 0020-w98 §5, "The window pop-up (system) menu": a window button's
+	// right-click asks its window for its pop-up menu at the pointer
+	// (ReactOS `HandleTaskItemRightClick`), which a window has only under
+	// `window.systemMenu`.
+	describe("the window pop-up menu", () => {
+		const menu = () => document.querySelector(".classicyContextMenuWrapper");
+		const menuItem = (windowId: string, command: string) =>
+			document.getElementById(
+				`${APP_ID}_${windowId}_system_${command}`,
+			) as HTMLElement;
+		const twoWindows = (
+			<>
+				<ClassicyWindow id="main" appId={APP_ID} title="Main">
+					<p>main</p>
+				</ClassicyWindow>
+				<ClassicyWindow id="second" appId={APP_ID} title="Second">
+					<p>second</p>
+				</ClassicyWindow>
+			</>
+		);
+
+		it("opens nothing on a right-click under a layout without one", () => {
+			renderShell(twoWindows);
+			fireEvent.contextMenu(button("Main"), { clientX: 40, clientY: 700 });
+			expect(menu()).toBeNull();
+			// The window is activated all the same.
+			expect(getAppWindow(appRecord(), "main")?.focused).toBe(true);
+		});
+
+		describe("under window.systemMenu", () => {
+			beforeEach(() => {
+				registerTestTaskbarPackage(
+					TEST_SHELL_SYSTEM_MENU_LAYOUT,
+					TEST_SHELL_SYSTEM_MENU_PACKAGE_ID,
+				);
+				act(() =>
+					dispatch({
+						type: "ClassicyDesktopChangeAppearancePackage",
+						packageId: TEST_SHELL_SYSTEM_MENU_PACKAGE_ID,
+					}),
+				);
+			});
+
+			it("activates the window and opens its menu at the pointer", () => {
+				renderShell(twoWindows);
+				expect(button("Second")).toHaveClass("active");
+				fireEvent.contextMenu(button("Main"), { clientX: 40, clientY: 700 });
+				expect(getAppWindow(appRecord(), "main")?.focused).toBe(true);
+				expect(menu()).not.toBeNull();
+				expect(menuItem("main", "restore")).toHaveClass("disabled");
+				expect(menuItem("main", "minimize")).not.toHaveClass("disabled");
+				expect(menuItem("main", "close")).toHaveClass("default");
+			});
+
+			it("opens a minimized window's menu without restoring it, and its Restore restores it", async () => {
+				renderShell(twoWindows);
+				fireEvent.click(button("Second"));
+				expect(getAppWindow(appRecord(), "second")?.collapsed).toBe(true);
+				fireEvent.contextMenu(button("Second"), {
+					clientX: 90,
+					clientY: 700,
+				});
+				expect(getAppWindow(appRecord(), "second")).toMatchObject({
+					collapsed: true,
+					focused: false,
+				});
+				expect(menuItem("second", "restore")).not.toHaveClass("disabled");
+				expect(menuItem("second", "move")).toHaveClass("disabled");
+				expect(menuItem("second", "size")).toHaveClass("disabled");
+				expect(menuItem("second", "minimize")).toHaveClass("disabled");
+				expect(menuItem("second", "maximize")).not.toHaveClass("disabled");
+				fireEvent.click(menuItem("second", "restore"));
+				dispatchAnimationEnd(menuItem("second", "restore"));
+				await waitFor(() =>
+					expect(getAppWindow(appRecord(), "second")).toMatchObject({
+						collapsed: false,
+						focused: true,
+					}),
+				);
+				expect(button("Second")).toHaveClass("active");
+			});
+		});
 	});
 });

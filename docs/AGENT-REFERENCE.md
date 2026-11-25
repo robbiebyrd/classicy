@@ -838,7 +838,7 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyDesktopIcon` | `selected`, `open` (its app is open, or its folder is open in a Finder window), `dragging` |
 | `ClassicyControlStrip` | `collapsed`, `dragging` |
 | `ClassicyTaskbar` (none on its root) | its Start button (`classicyTaskbarStart`): `open` (the Start menu is open); each window button (`classicyTaskbarTask`): `active` (the active window's, or its app's front window under the app's dialog or palette), `collapsed` (its window is collapsed: minimized under a layout that minimizes), `pressed` (a press held on it) |
-| `ClassicyMenu` items | `disabled`, `open`, `default` (the item's `isDefault`: the command a double-click runs, which Windows 98 draws bold; Platinum and System 7 read it not at all) |
+| `ClassicyMenu` items | `disabled`, `open`, `default` (the item's `isDefault`: the command a double-click runs, which Windows 98 draws bold, such as the window pop-up menu's Close, §4.1; Platinum and System 7 read it not at all) |
 | `ClassicyTabs` tab buttons and their wrappers (`classicyTabButtonWrapper`); `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
 | `ClassicyTable` rows (Finder list rows included) | `focused` on the one focus row, the keyboard cursor: the row last clicked or arrowed to while it is listed, else the first selected row, else the first row; carried whether or not the list has focus, so a package rings it under the container's `:focus` (Windows 98's dotted focus rectangle; Platinum and System 7 read it not at all) |
 | `ClassicyPopUpMenu` | `open`, `disabled`; while it is open, its label's root (`classicyControlLabelHolder`) and its indicator (`classicyPopUpMenuIndicator`) carry `open` too |
@@ -1046,7 +1046,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `zoomMode` | `"full" \| "horizontal" \| "vertical"` | `"full"` (ignored under `layout.window.zoom: "maximize"`) |
 | `headerVariant` | `"standard" \| "list"` | `"standard"` |
 | `header` / `placard` | `ReactNode` | — |
-| `appMenu` / `contextMenu` | `ClassicyMenuItem[]` | — |
+| `appMenu` / `contextMenu` | `ClassicyMenuItem[]` | — (under `layout.window.systemMenu` a right-click on the title bar shows the window pop-up menu instead; `contextMenu` keeps the body, "The window pop-up (system) menu", below) |
 | `alwaysOnTop` / `contentFrame` / `dimContents` | `boolean` | `false` / `false` / `true` |
 | `analyticsPath` / `analyticsExclude` | `string` / `boolean` | derived / `false` (see §9) |
 | `onCloseFunc` | `(id: string) => void` | — |
@@ -1070,7 +1070,9 @@ instead. Finder passes its list view's list box (via
 so arrows and Return work as soon as a folder opens.
 
 `onBeforeClose` is a close veto. It runs before every close that goes through
-the window (the close box, Escape or ⌘-period on a modal), ahead of
+the window (the close box, Escape or ⌘-period on a modal, and, under
+`layout.window.systemMenu`, the window pop-up menu's Close, ALT+F4 and a
+double-click on the title bar's icon), ahead of
 `onCloseFunc`, the close sound and the `ClassicyWindowClose` dispatch. Return
 or resolve `false` to keep the window open; a promise is awaited, so it can
 show a "Save changes before closing?" alert first. `idealSize` is the
@@ -1350,6 +1352,92 @@ maximized window's rect then wins). Its Window events are the drags'
 `canceled` (true for ESC). Analytics: `track("move")` or `track("resize")`
 when it starts.
 
+**The window pop-up (system) menu** (`layout.window.systemMenu: true`, the
+Windows shell, plan 0020-w98 §5; WIG Ch.6 "Title Bars", "Title Bar Icons"
+and "Title Bar Buttons", pp.76–80; Ch.7 "The Window Pop-up Menu", p.102;
+Ch.8, pp.145 and 164; the audit's 6.2, 6.3, 7.10 and 8.7). The menu is the
+desktop's one contextual menu, opened with no Help item (a Windows pop-up
+menu has none) and taking the keyboard while open (the up and down arrows
+walk it, ESC closes it; `useClassicyContextualMenu`, §4.5), and its items
+are `classicyWindowSystemMenuItems`'s (below), each running the registry
+command of its name, so a box's sounds, analytics, veto and geometry are
+the same from the menu:
+- **Where it opens.** A right-click anywhere in the window's own title bar,
+  its icon and boxes included (Wine's `NC_HandleNCRButtonDown`: the window
+  menu on the caption and the system button alike, the OS as shipped over
+  p.78's icon menu, since a Classicy window's icon stands for no object),
+  at the pointer (1 px below and right of it, as every right-click menu);
+  a right-click in the body resolves the window's or its app's
+  `contextMenu` as always. A press (button 1) on the title bar's icon,
+  which then arms no move, and ALT+SPACE drop it from the caption's
+  bottom-left corner exactly, where Wine's `NC_GetSysPopupPos` puts the
+  system menu (the system button's square at the caption's left: the
+  plan's "the icon's bottom-left" is 2 px in and 1 px up from it), the
+  latter with its first item focused; a held press chooses the item it is
+  released over, as Windows tracks a menu with the button down, and a press
+  while any contextual menu is open (this one included) only closes it, as
+  Windows' menu loop eats that click. A window button's right-click on the
+  taskbar opens it at the pointer (the registry's `systemMenu` with `at`).
+  The window is activated first, unless it is off the screen (minimized,
+  or a palette hidden with its app), whose menu opens without restoring it.
+- **Items.** A primary window: Restore, Move, Size, Minimize, Maximize, a
+  separator, Close; a modal: Move, a separator, Close; a palette
+  (`windowType="utility"`): Move, Size, a separator, Close. Enabled as
+  Windows enables them (Wine's `MENU_InitSysMenuPopup`): Restore while the
+  window is collapsed (minimized, or shaded under a layout that shades) or
+  zoomed (maximized under `window.zoom: "maximize"`); Move for a window
+  that moves (not a fixed modal), not zoomed and on the screen (a shaded
+  window still moves by its title bar; Windows grays Move only while
+  maximized, and a minimized window here has nothing on the screen to
+  move); Size for a resizable window neither collapsed nor zoomed; Minimize
+  with a collapse box and not collapsed; Maximize with a zoom box and not
+  zoomed; Close when `closable`. Close is the default item (`isDefault`, the
+  `default` state, which Windows 98 draws bold; Wine's `SetMenuDefaultItem(…,
+  SC_CLOSE)`) and shows ALT+F4 (`"⌥F4"`, drawn in the menu's glyph
+  spelling). Item ids are `${appId}_${windowId}_system_<command>`. Move and
+  Size start the keyboard modes (above).
+- **The icon's double-click** closes the window through the Close box's
+  path, its `onBeforeClose` veto included, and nothing when it cannot close
+  (Wine's `NC_HandleNCLButtonDblClk`: SC_CLOSE for HTSYSMENU, unless Close is
+  grayed); the press that ends its first click opens no menu, the
+  double-click hides the one the first opened, and it never reaches the
+  caption's own double-click.
+- **ALT+SPACE and ALT+F4** (WIG App. B, Table B.2, p.358): `ClassicyDesktop`
+  binds them on the document only under the flag
+  (`useClassicyWindowShellKeys`, internal), for the focused window (the
+  focused app's focused, open window, a modal included). ALT+SPACE runs the
+  window's `systemMenu` command with no point and prevents the key's
+  default when the menu opens, in a text field too (macOS gives Option+Space
+  as a non-breaking space; this differs on purpose from the shortcut
+  dispatcher, which leaves Option-only chords to a text field); a held
+  key's repeats open nothing more. ALT+F4 runs its `close` command, so a
+  window that cannot close stays open (Windows ignores ALT+F4 when Close is
+  unavailable) and a veto holds, closes any open contextual menu with it,
+  and prevents the key's default whenever a window is focused; with none it
+  does nothing. Both skip an event already `defaultPrevented` (a menu
+  shortcut, a keyboard mode). Windows takes both keys before a page on a
+  Windows host (ALT+F4 closes the browser), so they reach Classicy where
+  the browser lets them through: macOS delivers them as Option chords.
+- Analytics: each opening tracks `contextMenu` with `show: true` (a title
+  bar right-click once, as before); no pageview, since the menu is no
+  window. Under every other layout a title bar right-click resolves as
+  anywhere in the window, the icon is inert (`ClassicyWindowTitleBar` gets
+  no icon handler, and its press is the title bar's, a drag), the
+  `systemMenu` command reports `false`, and no key is bound.
+
+The pure `classicyWindowSystemMenuItems(state, handlers)`
+(`ClassicyWindowSystemMenu.ts`, exported) builds that menu: `state` is
+`{ appId, windowId, kind: "document" | "modal" | "utility", minimized,
+maximized, offScreen, movable, resizable, minimizable, maximizable,
+closable }` (`ClassicyWindowSystemMenuState`; `minimized` is collapsed,
+`offScreen` not drawn), `handlers` one function per command
+(`ClassicyWindowSystemMenuHandlers`: `restore`, `move`, `size`, `minimize`,
+`maximize`, `close`), and it returns the `ClassicyMenuItem[]` above, with
+`CLASSICY_WINDOW_SYSTEM_MENU_TITLES` as titles and
+`CLASSICY_WINDOW_SYSTEM_MENU_CLOSE_SHORTCUT` (`"⌥F4"`) on Close;
+`classicyWindowSystemMenuItemId(appId, windowId, command)` and
+`classicyWindowSystemMenuItemIdPrefix(appId, windowId)` spell the ids.
+
 Each mounted window, modals included, also registers in the core's window
 registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
 a surface that lists windows or acts on one, such as the Windows 98 shell's
@@ -1373,8 +1461,12 @@ focuses it (`false` without a zoom box, on a modal, or when already zoomed);
 `closable`); `move` and `size` start the keyboard Move and Size modes
 (above; `false` where a mode is refused, while one is already in effect on
 the page, or during a pointer drag of the window), and any other command
-ends the window's mode where it is first. `systemMenu` reports `false`, and
-so does every command while the window is closed. The entry is updated in place when a
+ends the window's mode where it is first. `systemMenu` opens the window
+pop-up menu (below), at `at` when given (a taskbar button's right-click),
+else dropped from the caption with its first item selected, as ALT+SPACE
+opens it; it reports `false` under a layout without `window.systemMenu`, and
+for a window off the screen (minimized, or a palette hidden with its app)
+given no point. Every command reports `false` while the window is closed. The entry is updated in place when a
 published value changes (the window keeps its place in the list) and removed
 on unmount; a StrictMode phantom cleanup's stale token removes nothing.
 Registering adds no DOM, no attribute and no store field, under every
@@ -1403,6 +1495,7 @@ dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
 | `onCollapse` | `(e: MouseEvent<HTMLDivElement>) => void` | draws the collapse box; called by its click |
 | `onCollapseKey` | `() => void` | Enter or Space on the collapse box; without it those keys click the box |
 | `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
+| `onIconMouseDown` / `onIconDoubleClick` | `(e: MouseEvent<HTMLDivElement>) => void` | on the proxy icon (`.classicyWindowIcon`), before the title area hears the event (a double-click handler calls `e.stopPropagation()` to keep it from `onTitleDoubleClick`). Without them the icon is inert, and its element carries its class alone. `ClassicyWindow` passes them under `layout.window.systemMenu`: the press opens the window pop-up menu, the double-click closes the window (WIG Ch.6 "Title Bar Icons", p.78) |
 | `labels` | `{ close?, zoom?, collapse? }` (`ClassicyWindowTitleBarLabels`) | the boxes' accessible names, each defaulting to `"Close"`, `"Zoom"`, `"Collapse"`; `ClassicyWindow` names the collapse box `"Minimize"` under `layout.window.collapse: "minimize"`, and the zoom box `"Maximize"`, `"Restore"` while maximized, under `layout.window.zoom: "maximize"` (WIG Ch.6 "Title Bar Buttons", p.80; "Maximizing Windows", p.84) |
 | `className` / `style` | passthrough | onto the root |
 
@@ -1483,8 +1576,8 @@ them otherwise.
 | `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
-| `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned |
-| `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y]), hideContextMenu() }` | imperative API |
+| `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?`, `focusFirstItem?`, `keyboard?`, `anchor?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned. `focusFirstItem` focuses its first item once placed and gives the focus back, on unmount, to the element that had it; `keyboard` makes it take the keyboard while open (a capture-phase document listener: the up and down arrows walk its items, dimmed ones included, wrapping, from the focused one or, with none, Down from the first and Up from the last; ESC calls `onClose`; neither reaches anything else; every other key passes, so ENTER chooses the focused item) and drops its idle timeout. Both default to `false`. `anchor` (an `Element`) is the element it was opened from: a press on it is not a press outside the menu, so it is left to its owner (a menu opened by a press needs it, since its outside-press listener is in place before that press reaches the document) |
+| `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y], options?), hideContextMenu() }` | imperative API. `options` (`ClassicyContextualMenuOptions`, every key optional; none opens the menu as always): `helpItem` (default `true`; `false` leaves the leading Help item out), `placement` (`"click"`, the default: 1 px below and right of the point; `"corner"`: the menu's top-left at the point), `focusFirstItem`, `keyboard`, `anchor` (`ClassicyContextualMenu`'s, above). The Windows shell's window pop-up menu opens with `helpItem: false` and `keyboard: true`, from the title bar's icon with it as the `anchor` |
 | `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
 | `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the package layout's placement is `"window"`; usually not used directly. Root carries `data-classicy-part="window-menu-bar"`; the window root carries `classicyWindowWithMenuBar` while it draws one |
 | `useClassicyMenuCloseOnOutsideMouseDown(ref)` | `ref` * (`RefObject<HTMLElement \| null>`) | call inside a `ClassicyMenuProvider`: while its menu bar is active (a title was clicked open), a mouse-down outside `ref`'s element closes the provider's menus. Both menu bars use it; a null ref closes nothing |
@@ -4567,7 +4660,16 @@ it like Platinum (§1); its README lists what it ships.
   { frameEdges: "resize" }`: a resizable window sizes from any edge of its
   four-pixel frame and from its corners, each reaching a caption's height
   along both edges, and a dialog's or other fixed window's frame does
-  nothing (WIG Ch.6 "Sizing Borders", p.83; §4.1, "Frame-edge sizing").
+  nothing (WIG Ch.6 "Sizing Borders", p.83; §4.1, "Frame-edge sizing");
+  and `window: { systemMenu: true }`: every window has the window pop-up
+  menu (Restore, Move, Size, Minimize, Maximize and Close; Move and Close on
+  a dialog; Move, Size and Close on a palette), from a right-click on its
+  title bar, a press on its icon and ALT+SPACE, Close bold with ALT+F4, a
+  double-click on the icon and ALT+F4 closing the window, and its Move and
+  Size moving and sizing it with the arrow keys (WIG Ch.7 "The Window Pop-up
+  Menu", p.102; §4.1, "The window pop-up (system) menu"). Until the shell's
+  taskbar and minimize land, its Minimize shades the window, as the
+  caption's Minimize box does.
   Until the package registers cursors of its own, the edges show the
   default package's (Platinum's) `resizeUd` and `resizeLr` art, as the size
   grip shows its `resizeLr`, and the corners the browser's diagonal resize
@@ -4641,6 +4743,7 @@ how they look) has two halves:
 | `window.zoom` (optional) | `standard`, `maximize` | what the zoom box does (and the window registry's `maximize` and `restore`). `standard` (the default, Mac OS 8, every package but Windows 98): it toggles the window between the rect the user gave it and its standard state, the content's ideal size within the desktop less `--window-zoom-margin` (`zoomMode`, `idealSize`). `maximize` (Windows 95/98, WIG Ch.6 "Maximizing Windows" and "Restoring Windows", pp.84–85; the audit's 6.6; Windows 98 declares it): the box is "Maximize", "Restore" while maximized; the window's content box takes the work area (the desktop less the menu bar's band and the taskbar's) with its frame just outside it, as Windows grows a maximized window's rect by its frame (`classicyMaximizedWindowRect`); `zoomMode` and `idealSize` are ignored; the rect it had goes with the zoom (`ClassicyWindowZoom`'s `restore`) and is stored as the record's `restoreRect`, deleted on un-zoom, so Restore survives a reload; while maximized the root carries `classicyWindowMaximized` (base rule `max-height: none`) beside `expanded`, the window is not clamped on screen, its caption's drag is refused, its frame edges and grow box are not drawn, and it takes the work area again on mount, on a band change and on a desktop resize (§4.1, "Maximize and restore"). A utility window has no Maximize button there (WIG Ch.8, p.164, Figure 8.16), so it draws no zoom box and a stored zoom is drawn unmaximized. Either way it is the store's `zoomed` flag, so a window maximized under one package is a zoomed one under another (clamped back on screen, un-zoomed to its `restoreRect`). The root gains no attribute or custom property for it |
 | `window.titleDoubleClick` (optional) | `collapse`, `zoom` | what a double-click on the caption does. `collapse` (the default, Mac OS 8): it collapses the window while the desktop's `doubleClickTitleToCollapse` preference is on. `zoom` (Windows 95/98 as shipped, Wine's `NC_HandleNCLButtonDblClk`; Windows 98 declares it): it runs the zoom box's toggle (maximize or restore, under `window.zoom: "maximize"`) whatever the preference says (the preference stays stored and applies again under another package), and does nothing on a window that draws no zoom box or on a modal's caption, never a collapse (§4.1, "The caption's double-click"). The root gains no attribute or custom property for it |
 | `window.frameEdges` (optional) | `move`, `resize` | what the four frame edges do. `move` (the default, Mac OS 8, whose frame is a drag region; every package but Windows 98): a press on an edge moves the window, as the title bar does. `resize` (Windows 95/98, WIG Ch.6 "Sizing Borders", p.83; the audit's 6.5; Windows 98 declares it): a resizable window drawn at its size has a sizing border, its root carrying `classicyWindowSizingBorder`: each edge (the frame's width, `--window-frame-inset`, `SM_CXFRAME`) sizes it from that edge and eight corner arms (`classicyWindowFrameCorner-<corner>-<h\|v>`, reaching `--window-title-bar-height` past the inside of the frame along each edge, as Wine's `NC_HandleNCHitTest` makes a corner `SM_CXSIZE` long) size both edges of their corner, with the registry's resize cursors; a press activates the window and takes the pointer's capture, the moving edges follow the pointer (`computeClassicyWindowEdgeResize`, below) and stop at the work area, the minimum size and the height reserve's cap, so the release clamp never moves a window just sized. A non-resizable window's edges (modals included) do nothing, and a maximized window draws none (§4.1, "Frame-edge sizing"). The root gains no attribute or custom property for it |
+| `window.systemMenu` (optional) | `false`, `true` | whether windows have the window pop-up (system) menu. `false` (the default, every package but Windows 98): a right-click on the title bar shows the window's or its app's `contextMenu`, as anywhere in the window, the title bar's icon is inert, the window registry's `systemMenu` command reports `false`, and no key is bound. `true` (Windows 95/98, WIG Ch.6 "Title Bars", "Title Bar Icons", "Title Bar Buttons", pp.76–80; Ch.7 "The Window Pop-up Menu", p.102; Ch.8, pp.145 and 164; App. B, Table B.2, p.358; the audit's 6.2, 6.3, 7.10 and 8.7; Windows 98 declares it): the menu (Restore, Move, Size, Minimize, Maximize and Close; Move and Close on a modal; Move, Size and Close on a palette; each enabled as Wine's `MENU_InitSysMenuPopup` enables it; Close the bold default with ALT+F4; `classicyWindowSystemMenuItems`, below) opens at the pointer on a right-click anywhere in the title bar and on a window button's right-click on the taskbar, and drops from the caption's bottom-left on a press on its icon and on ALT+SPACE (the first item selected), with no Help item, the arrows walking it and ESC closing it; a double-click on the icon and ALT+F4 close the window through its Close box's path (veto included; nothing when it cannot close), and the menu's Move and Size run the keyboard modes (§4.1, "The window pop-up (system) menu"). `ClassicyDesktop` binds ALT+SPACE and ALT+F4 only under it. The root gains no class, attribute or custom property for it |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (every shipped package today): `ClassicyDesktop` draws its Control Strip and no taskbar. Present: it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept); the taskbar's measured height is the band windows, Clean Up and every menu keep above. `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |

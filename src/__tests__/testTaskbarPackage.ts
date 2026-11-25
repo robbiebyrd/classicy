@@ -89,3 +89,36 @@ export const TEST_FRAME_EDGES_LAYOUT: ClassicyAppearanceLayout = {
 	...TEST_MAXIMIZE_LAYOUT,
 	window: { ...TEST_MAXIMIZE_LAYOUT.window, frameEdges: "resize" },
 };
+
+/** The id of the test package with the window pop-up menu (`TEST_SYSTEM_MENU_LAYOUT`). */
+export const TEST_SYSTEM_MENU_PACKAGE_ID = "test-system-menu";
+
+/**
+ * Windows 98's window behavior from plan 0020-w98 step 9:
+ * `TEST_FRAME_EDGES_LAYOUT` with the window pop-up (system) menu, ALT+SPACE
+ * and ALT+F4 (`window.systemMenu: true`), as the package declares them
+ * before its shell lands. Register it with
+ * `registerTestTaskbarPackage(TEST_SYSTEM_MENU_LAYOUT, TEST_SYSTEM_MENU_PACKAGE_ID)`.
+ */
+export const TEST_SYSTEM_MENU_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_FRAME_EDGES_LAYOUT,
+	window: { ...TEST_FRAME_EDGES_LAYOUT.window, systemMenu: true },
+};
+
+/** The id of the test shell with the system menu (`TEST_SHELL_SYSTEM_MENU_LAYOUT`). */
+export const TEST_SHELL_SYSTEM_MENU_PACKAGE_ID = "test-shell-system-menu";
+
+/**
+ * `TEST_MINIMIZE_LAYOUT` (a taskbar, windows that minimize) whose windows
+ * also maximize and have the window pop-up menu, the shell a taskbar
+ * button's right-click opens it in. Register it with
+ * `registerTestTaskbarPackage(TEST_SHELL_SYSTEM_MENU_LAYOUT, TEST_SHELL_SYSTEM_MENU_PACKAGE_ID)`.
+ */
+export const TEST_SHELL_SYSTEM_MENU_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_MINIMIZE_LAYOUT,
+	window: {
+		...TEST_MINIMIZE_LAYOUT.window,
+		zoom: "maximize",
+		systemMenu: true,
+	},
+};

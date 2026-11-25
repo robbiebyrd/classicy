@@ -246,8 +246,13 @@ describe("the Windows 98 appearance package", () => {
 	// shipped (`window.titleDoubleClick`; Wine `NC_HandleNCLButtonDblClk`).
 	// A resizable window sizes from any edge of its frame and from its
 	// corners (`window.frameEdges`, the audit's 6.5; WIG Ch.6 "Sizing
-	// Borders", p.83; Wine `NC_HandleNCHitTest`).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click, and sized from their frame's edges and corners", async () => {
+	// Borders", p.83; Wine `NC_HandleNCHitTest`). Every window has the
+	// window pop-up menu, from a right-click on its title bar, a press on
+	// its icon and ALT+SPACE, and closes on a double-click on its icon and
+	// ALT+F4 (`window.systemMenu`, the audit's 6.2, 6.3, 7.10 and 8.7; WIG
+	// Ch.6, pp.76-80; Ch.7 "The Window Pop-up Menu", p.102; App. B, Table
+	// B.2, p.358).
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits, one folder at a time in the file dialogs, dialogs centered on whole pixels, windows maximized from the Maximize button and the caption's double-click, sized from their frame's edges and corners, and given the window pop-up menu", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: {
@@ -256,6 +261,7 @@ describe("the Windows 98 appearance package", () => {
 				zoom: "maximize",
 				titleDoubleClick: "zoom",
 				frameEdges: "resize",
+				systemMenu: true,
 			},
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-left" },

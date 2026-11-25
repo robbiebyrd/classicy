@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	type ClassicyContextualMenuOptions,
 	ClassicyContextualMenuProvider,
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
@@ -252,5 +253,176 @@ describe("ClassicyContextualMenuProvider", () => {
 		render(<Trigger items={menuA} label="show-a" />);
 		fireEvent.click(screen.getByText("show-a"));
 		expect(screen.queryByText("Alpha One")).not.toBeInTheDocument();
+	});
+});
+
+// The options a caller opens a menu with (`ClassicyContextualMenuOptions`):
+// the Windows shell's window pop-up menu opens with every one of them, and
+// with none a menu opens exactly as above.
+describe("ClassicyContextualMenuProvider options", () => {
+	const items: ClassicyMenuItem[] = [
+		{ id: "o1", title: "One" },
+		{ id: "o2", title: "Two", disabled: true },
+		{ id: "spacer" },
+		{ id: "o3", title: "Three" },
+	];
+
+	const OptionsTrigger = ({
+		options,
+	}: {
+		options?: ClassicyContextualMenuOptions;
+	}) => {
+		const { showContextMenu } = useClassicyContextualMenu();
+		return (
+			<>
+				<input aria-label="field" />
+				<button
+					type="button"
+					onClick={() => showContextMenu(items, [100, 100], options)}
+				>
+					open
+				</button>
+			</>
+		);
+	};
+
+	const open = (options?: ClassicyContextualMenuOptions) => {
+		render(
+			<ClassicyContextualMenuProvider>
+				<OptionsTrigger options={options} />
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.click(screen.getByText("open"));
+	};
+	const wrapper = () =>
+		document.querySelector<HTMLElement>(".classicyContextMenuWrapper");
+	const listItems = () =>
+		Array.from(
+			document.querySelectorAll<HTMLElement>(".classicyContextMenu > li"),
+		);
+	const byId = (id: string) => document.getElementById(id) as HTMLElement;
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("opens as always with none: Help first, 1 px off the click, the focus kept, Escape and the arrows passing", () => {
+		open();
+		expect(listItems()[0]).toHaveTextContent("Help");
+		expect(wrapper()?.style.left).toBe("101px");
+		const focused = document.activeElement;
+		expect(fireEvent.keyDown(document.body, { key: "ArrowDown" })).toBe(true);
+		expect(document.activeElement).toBe(focused);
+		expect(fireEvent.keyDown(document.body, { key: "Escape" })).toBe(true);
+		expect(wrapper()).not.toBeNull();
+	});
+
+	it("leaves the Help item out with helpItem: false", () => {
+		open({ helpItem: false });
+		expect(listItems().map((li) => li.textContent)).toEqual([
+			"One",
+			"Two",
+			"Three",
+		]);
+	});
+
+	it('puts its top-left corner at the point with placement: "corner"', () => {
+		open({ placement: "corner" });
+		expect(wrapper()?.style.left).toBe("100px");
+		expect(wrapper()?.style.top).toBe("100px");
+	});
+
+	it("focuses the first item with focusFirstItem, and gives the focus back when it closes", () => {
+		render(
+			<ClassicyContextualMenuProvider>
+				<OptionsTrigger
+					options={{ helpItem: false, focusFirstItem: true, keyboard: true }}
+				/>
+			</ClassicyContextualMenuProvider>,
+		);
+		const field = screen.getByLabelText("field");
+		field.focus();
+		// Opened as a key would open it: the field has the focus.
+		act(() => {
+			(screen.getByText("open") as HTMLButtonElement).click();
+		});
+		expect(document.activeElement).toBe(byId("o1"));
+		fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
+		expect(wrapper()).toBeNull();
+		expect(document.activeElement).toBe(field);
+	});
+
+	it("walks the items, the dimmed one included, on the arrows with keyboard, wrapping at the ends", () => {
+		open({ helpItem: false, keyboard: true });
+		// None focused: Down takes the first, Up the last.
+		expect(fireEvent.keyDown(document.body, { key: "ArrowDown" })).toBe(false);
+		expect(document.activeElement).toBe(byId("o1"));
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.activeElement).toBe(byId("o2"));
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.activeElement).toBe(byId("o3"));
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.activeElement).toBe(byId("o1"));
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowUp" });
+		expect(document.activeElement).toBe(byId("o3"));
+	});
+
+	it("keeps the arrows and Escape from everything else, Escape closing it", () => {
+		const outer = vi.fn();
+		document.addEventListener("keydown", outer);
+		open({ helpItem: false, keyboard: true });
+		fireEvent.keyDown(document.body, { key: "ArrowUp" });
+		expect(document.activeElement).toBe(byId("o3"));
+		expect(fireEvent.keyDown(document.body, { key: "Escape" })).toBe(false);
+		expect(wrapper()).toBeNull();
+		expect(outer).not.toHaveBeenCalled();
+		// Closed, it holds nothing.
+		fireEvent.keyDown(document.body, { key: "Escape" });
+		expect(outer).toHaveBeenCalledTimes(1);
+		document.removeEventListener("keydown", outer);
+	});
+
+	it("leaves a press on its anchor to the anchor's owner, and closes on any other", () => {
+		const Anchored = () => {
+			const { showContextMenu } = useClassicyContextualMenu();
+			return (
+				<button
+					type="button"
+					onClick={(e) =>
+						showContextMenu(items, [100, 100], { anchor: e.currentTarget })
+					}
+				>
+					anchor
+				</button>
+			);
+		};
+		render(
+			<ClassicyContextualMenuProvider>
+				<Anchored />
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.click(screen.getByText("anchor"));
+		fireEvent.mouseDown(screen.getByText("anchor"));
+		expect(wrapper()).not.toBeNull();
+		fireEvent.mouseDown(document.body);
+		expect(wrapper()).toBeNull();
+	});
+
+	it("waits for the keyboard with keyboard, with no idle timeout", () => {
+		vi.useFakeTimers();
+		open({ keyboard: true });
+		act(() => {
+			vi.advanceTimersByTime(20000);
+		});
+		expect(wrapper()).not.toBeNull();
+	});
+
+	it("closes after 15 s idle without it, as always", () => {
+		vi.useFakeTimers();
+		open();
+		act(() => {
+			vi.advanceTimersByTime(20000);
+		});
+		expect(wrapper()).toBeNull();
 	});
 });

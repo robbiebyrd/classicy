@@ -38,6 +38,22 @@ export type ClassicyWindowTitleBarProps = {
 	/** Double-click on the title area. */
 	onTitleDoubleClick?: () => void;
 	/**
+	 * Mouse-down on the proxy icon (`.classicyWindowIcon`), before the title
+	 * area's `onTitleMouseDown` hears it. `ClassicyWindow` passes it under a
+	 * layout whose `window.systemMenu` is `true`: a press on the icon opens
+	 * the window pop-up menu (WIG Ch.6 "Title Bar Icons", p.78; Ch.7,
+	 * p.102). Without it the icon is inert.
+	 */
+	onIconMouseDown?: (e: MouseEvent<HTMLDivElement>) => void;
+	/**
+	 * Double-click on the proxy icon, before the title area's
+	 * `onTitleDoubleClick` hears it (call `e.stopPropagation()` to keep it
+	 * from that). `ClassicyWindow` passes it under `window.systemMenu`: the
+	 * double-click closes the window (WIG Ch.6, p.78). Without it the icon is
+	 * inert.
+	 */
+	onIconDoubleClick?: (e: MouseEvent<HTMLDivElement>) => void;
+	/**
 	 * The control boxes' accessible names (`aria-label`), each defaulting to
 	 * the Mac OS name: `"Close"`, `"Zoom"`, `"Collapse"`. `ClassicyWindow`
 	 * names the collapse box `"Minimize"` under a layout whose
@@ -99,6 +115,8 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 	onCollapseKey,
 	onTitleMouseDown,
 	onTitleDoubleClick,
+	onIconMouseDown,
+	onIconDoubleClick,
 	labels,
 	className,
 	style,
@@ -142,7 +160,12 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 				<>
 					<div className={"classicyWindowTitleLeft"}></div>
 					{!hideIcon && (
-						<div className={"classicyWindowIcon"}>
+						// biome-ignore lint/a11y/noStaticElementInteractions: the proxy icon is a mouse-only target (the window pop-up menu's, when given handlers); ALT+SPACE is its keyboard path
+						<div
+							className={"classicyWindowIcon"}
+							onMouseDown={onIconMouseDown}
+							onDoubleClick={onIconDoubleClick}
+						>
 							<ClassicyIconImage src={icon} alt={title} />
 						</div>
 					)}

@@ -298,6 +298,7 @@ export * from "./SystemFolder/SystemResources/Window/ClassicyWindowMaximize";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowResize";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
+export * from "./SystemFolder/SystemResources/Window/ClassicyWindowSystemMenu";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 export * from "./SystemFolder/WebViewer/WebViewer";
 export * from "./SystemFolder/WebViewer/WebViewerContext";

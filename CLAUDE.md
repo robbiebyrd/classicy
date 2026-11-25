@@ -264,7 +264,8 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   runtime window registry (`Window/ClassicyWindowRegistry.internal.ts`, plan
   0020-w98 §5): its title, icon and capabilities, which the persisted record
   does not hold, and `run(command)` (`activate`, `minimize`, `restore`,
-  `maximize`, `close`) through the window's own paths, read with
+  `maximize`, `close`, `move`, `size`, `systemMenu`) through the window's
+  own paths, read with
   `useClassicyWindowEntries()` and `runClassicyWindowCommand(appId, windowId,
   command)`. The entry is updated in place, a stale token unregisters
   nothing, and registering adds no DOM and no store field. Its `move` and
@@ -276,6 +277,10 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   (the first arrow picks one, an arrow across it makes the corner), 8 px,
   the mouse by its travel; the store's `moving` or `resizing` shows the
   drag band. One mode runs at a time, and any other command ends it first.
+  Its `systemMenu` opens the window pop-up menu under
+  `layout.window.systemMenu` (at `at`, else from the caption with its first
+  item selected, as ALT+SPACE does; see Contextual Menus) and reports
+  `false` without the flag.
 - A mounted taskbar's measured height is the **taskbar band**
   (`Taskbar/ClassicyTaskbarBand.internal.ts`, store-free:
   `setClassicyTaskbarBand(px, owner?)`, the tallest band any owner
@@ -739,6 +744,8 @@ Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMen
 - Components with custom right-click behavior and no menu call `e.preventDefault()` in their own `onContextMenu`; every menu layer checks `e.defaultPrevented` and stays silent.
 - If neither a window nor its app defines a menu, right-click shows nothing (the native browser menu stays suppressed inside the desktop).
 - Right-clicking a window focuses it first, so the active menu always tracks focus.
+- `showContextMenu(items, at, options?)` takes optional `ClassicyContextualMenuOptions` (`helpItem: false` leaves the HIG's leading Help item out; `placement: "corner"` puts the menu's top-left at `at` instead of 1 px off a click; `focusFirstItem`; `keyboard`: the arrows walk the items, ESC closes, no idle timeout; `anchor`: a press on that element is not an outside press, for a menu opened by a press, whose outside-press listener is in place before that press reaches the document). With none, a menu opens exactly as before.
+- **The window pop-up (system) menu** (`layout.window.systemMenu: true`, Windows 98 only; plan 0020-w98 §5, WIG Ch.7 p.102): a right-click anywhere in a window's own title bar shows `classicyWindowSystemMenuItems` (`Window/ClassicyWindowSystemMenu.ts`: Restore, Move, Size, Minimize, Maximize, Close; Move and Close on a modal; Move, Size, Close on a palette; enabled as Wine's `MENU_InitSysMenuPopup`; Close the `isDefault` item with `⌥F4`) instead of the `contextMenu` chain, with no Help item; a press on the title bar's icon (`ClassicyWindowTitleBar`'s `onIconMouseDown`) and ALT+SPACE drop it from the caption's bottom-left (Wine's `NC_GetSysPopupPos`), the icon's double-click (`onIconDoubleClick`) and ALT+F4 close the window, and a taskbar button's right-click opens it through the registry's `systemMenu` command. Each item runs the window registry command of its name. `ClassicyDesktop` binds the two keys (`useClassicyWindowShellKeys`, `Window/useClassicyWindowShellKeys.internal.ts`) only under the flag. Without it the title bar's right-click resolves as anywhere in the window and the icon is inert.
 
 ### File System: Shared Live Tree
 

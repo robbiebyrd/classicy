@@ -1,5 +1,5 @@
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { produce } from "immer";
 import type { ComponentProps, CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -9,6 +9,8 @@ import {
 } from "@/__tests__/testMirrorPackage";
 import {
 	registerTestTaskbarPackage,
+	TEST_SYSTEM_MENU_LAYOUT,
+	TEST_SYSTEM_MENU_PACKAGE_ID,
 	TEST_TASKBAR_PACKAGE_ID,
 } from "@/__tests__/testTaskbarPackage";
 import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
@@ -24,6 +26,7 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import type { ClassicyControlStripProps } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import { useClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
@@ -453,6 +456,52 @@ describe("ClassicyDesktop layout", () => {
 			);
 			expect(document.querySelector(".classicyTaskbar")).not.toBeNull();
 			expect(seen.at(-1)).toEqual(["classicy-sound"]);
+		});
+	});
+
+	// Plan 0020-w98 §5: the desktop binds the shell's window keys
+	// (`useClassicyWindowShellKeys`) only under a layout with the system menu.
+	describe("window.systemMenu", () => {
+		const mainRecord = () =>
+			getAppWindow(
+				useAppManager.getState().System.Manager.Applications.apps[APP_ID],
+				"main",
+			);
+		const altF4 = () =>
+			fireEvent.keyDown(document.body, { key: "F4", code: "F4", altKey: true });
+		const altSpace = () =>
+			fireEvent.keyDown(document.body, {
+				key: " ",
+				code: "Space",
+				altKey: true,
+			});
+
+		it("binds neither ALT+F4 nor ALT+SPACE under Platinum", () => {
+			act(() => openApp());
+			renderDesktopWithWindow();
+			expect(mainRecord()?.focused).toBe(true);
+			expect(altSpace()).toBe(true);
+			expect(document.querySelector(".classicyContextMenuWrapper")).toBeNull();
+			expect(altF4()).toBe(true);
+			expect(mainRecord()?.closed).toBe(false);
+		});
+
+		it("opens the focused window's menu on ALT+SPACE and closes it on ALT+F4 under a layout with the system menu", () => {
+			registerTestTaskbarPackage(
+				TEST_SYSTEM_MENU_LAYOUT,
+				TEST_SYSTEM_MENU_PACKAGE_ID,
+			);
+			activate(TEST_SYSTEM_MENU_PACKAGE_ID);
+			act(() => openApp());
+			renderDesktopWithWindow();
+			expect(mainRecord()?.focused).toBe(true);
+			expect(altSpace()).toBe(false);
+			expect(
+				document.getElementById(`${APP_ID}_main_system_close`),
+			).not.toBeNull();
+			expect(altF4()).toBe(false);
+			expect(mainRecord()?.closed).toBe(true);
+			expect(document.querySelector(".classicyContextMenuWrapper")).toBeNull();
 		});
 	});
 });

@@ -26,7 +26,12 @@ import { useSyncExternalStore } from "react";
  *   activate it.
  * - `maximize`: zoom it (the zoom box's path), then activate it.
  * - `close`: the close box's path, `onBeforeClose` included.
- * - `systemMenu`, at a desktop point if given: the window pop-up menu.
+ * - `systemMenu`, at a desktop point if given: the window pop-up menu
+ *   (`window.systemMenu: true` layouts only), opened at that point, else
+ *   dropped from the caption's bottom-left with its first item selected, as
+ *   ALT+SPACE opens it. The window is activated first unless it is off the
+ *   screen (minimized, or a palette hidden with its app), whose menu opens
+ *   only at a given point, without restoring it.
  * - `move`, `size`: the keyboard Move and Size modes (WIG Ch.6, p.83): until
  *   ENTER, a button-1 release or a lost pointer stream ends one where it is,
  *   or ESC puts the window back, the arrow keys move the window, or the
@@ -77,7 +82,9 @@ export type ClassicyWindowEntry = {
 	 * there is nothing to do (minimizing a collapsed window, restoring one
 	 * that is neither collapsed nor zoomed), it cannot move or size now
 	 * (maximized, minimized, fixed, or a keyboard mode or a drag already in
-	 * progress), or the command is not built yet (`systemMenu`).
+	 * progress), or it has no pop-up menu to show (`systemMenu` under a
+	 * layout without `window.systemMenu`, or with no point for a window off
+	 * the screen).
 	 */
 	run(command: ClassicyWindowCommand): boolean;
 };

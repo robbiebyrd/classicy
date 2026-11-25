@@ -101,6 +101,13 @@ import {
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
+import {
+	type ClassicyWindowSystemMenuCommand,
+	type ClassicyWindowSystemMenuHandlers,
+	classicyWindowSystemMenuItemId,
+	classicyWindowSystemMenuItemIdPrefix,
+	classicyWindowSystemMenuItems,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowSystemMenu";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
@@ -863,7 +870,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const currentWindow = getAppWindow(currentApp, id);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
-	const { showContextMenu } = useClassicyContextualMenu();
+	const { showContextMenu, hideContextMenu } = useClassicyContextualMenu();
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
 	// The elements a package lays a pattern in from a fixed origin
@@ -903,6 +910,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// Borders", p.83): a resizable window's frame is its sizing border
 	// (`sizingBorder`, below); a fixed one's edges do nothing.
 	const frameEdgesSize = layout.window.frameEdges === "resize";
+	// Whether the window has the window pop-up (system) menu
+	// (`layout.window.systemMenu`, plan 0020-w98 §5). Off (the default, every
+	// package but the Windows shell): a right-click on the title bar shows
+	// the window's or its app's `contextMenu`, as anywhere in the window,
+	// and the title bar's icon is inert. On (Windows 95/98, WIG Ch.6 "Title
+	// Bars", "Title Bar Icons", "Title Bar Buttons", pp.76–80; Ch.7 "The
+	// Window Pop-up Menu", p.102): a right-click anywhere in the title bar,
+	// a press on its icon and the registry's `systemMenu` command (ALT+SPACE,
+	// a taskbar button's right-click) open it, and a double-click on the
+	// icon closes the window.
+	const systemMenuEnabled = layout.window.systemMenu === true;
 
 	// `--menu-bar-height`, read once per theme and menu-bar placement instead
 	// of on every render: a drag re-renders on each mousemove, and a read
@@ -1804,6 +1822,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// left the document body focused). An unfocused window gets it from the
 	// focused-transition effect once the click focuses it.
 	const onTitleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+		// Under the system menu the title bar's icon is no drag handle: its
+		// press opens the window pop-up menu (`onSystemMenuIconMouseDown`),
+		// and arms no move, as Windows' HTSYSMENU press tracks the menu.
+		if (
+			systemMenuEnabled &&
+			e.target instanceof Element &&
+			e.target.closest(".classicyWindowIcon")
+		)
+			return;
 		startMoveWindow(e);
 		if (ws.focused && !modal) focusInitialTarget();
 	};
@@ -2339,6 +2366,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// browser menu may appear over a window.
 		e.preventDefault();
 		e.stopPropagation();
+		// Under the system menu a right-click anywhere in the title bar, its
+		// icon and boxes included, shows the window pop-up menu at the
+		// pointer (WIG Ch.6, pp.76 and 80; Ch.7, p.102; Wine's
+		// `NC_HandleNCRButtonDown` for HTCAPTION and HTSYSMENU). Elsewhere in
+		// the window the contextual menu resolves as always.
+		if (systemMenuEnabled && isOwnTitleBarTarget(e.target)) {
+			openSystemMenu({
+				at: [e.clientX, e.clientY],
+				placement: "click",
+				focusFirstItem: false,
+			});
+			return;
+		}
 		setActive();
 		const items = contextMenu ?? currentApp?.contextMenu;
 		track("contextMenu", {
@@ -2829,6 +2869,179 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		[],
 	);
 
+	// Whether it moves by its title bar: not a fixed modal (an alert, or
+	// `movable={false}`).
+	const movesByTitleBar = !fixedModal;
+	// Whether it draws a collapse box: none on a modal or palette under
+	// minimize, which has no taskbar button to come back from.
+	const collapsesByBox = collapsable && !collapseIgnored;
+
+	// The window pop-up (system) menu (`layout.window.systemMenu: true`, plan
+	// 0020-w98 §5; WIG Ch.7 "The Window Pop-up Menu", p.102): its items
+	// (`classicyWindowSystemMenuItems`, each enabled as Windows enables it and
+	// running the registry command of its name, so the box's sounds,
+	// analytics, veto and geometry stay where they live) in the desktop's one
+	// contextual menu, with no Help item (a Windows pop-up menu has none),
+	// taking the keyboard while it is open (the arrows walk it, ESC closes
+	// it), as Windows' menu loop does. Opened at the pointer (`"click"`: a
+	// right-click on the title bar, a taskbar button's right-click), or
+	// dropped from the caption (`"corner"`: a press on the icon, ALT+SPACE,
+	// the latter with its first item selected). The window is activated
+	// first unless it is off the screen (minimized, or a palette hidden with
+	// its app), whose menu opens without restoring it, and only at a given
+	// point: it draws nothing to drop the menu from. `false`, opening
+	// nothing, under a layout without the system menu, or for a closed or
+	// off-screen window given no point.
+	const liveRecord = (): ClassicyStoreSystemAppWindow | undefined =>
+		typeof useAppManager.getState === "function"
+			? getAppWindow(
+					useAppManager.getState().System.Manager.Applications.apps[appId],
+					id,
+				)
+			: currentWindow;
+	// Where the menu drops from: the caption's bottom-left corner, as Wine's
+	// `NC_GetSysPopupPos` places the system menu (the system button's square
+	// at the caption's left, the popup's top-left at its bottom-left), the
+	// icon drawn or not; a window drawing no caption, its own top-left.
+	const systemMenuCorner = (): [number, number] => {
+		const el = windowRef.current;
+		if (!el) return [ws.position[0], ws.position[1]];
+		const bar = el.querySelector<HTMLElement>(
+			":scope > .classicyWindowTitleBar",
+		);
+		const barRect = bar?.getBoundingClientRect();
+		if (barRect && (barRect.width > 0 || barRect.height > 0))
+			return [barRect.left, barRect.bottom];
+		const rect = el.getBoundingClientRect();
+		return [rect.left, rect.top];
+	};
+	const openSystemMenu = ({
+		at,
+		placement,
+		focusFirstItem,
+		anchor,
+	}: {
+		at?: [number, number];
+		placement: "click" | "corner";
+		focusFirstItem: boolean;
+		anchor?: Element;
+	}): boolean => {
+		if (!systemMenuEnabled || ws.closed) return false;
+		const offScreen = minimized || hiddenWithApp;
+		if (offScreen && !at) return false;
+		// The live record: a taskbar button's right-click activates the
+		// window in the same event, before this render has caught up.
+		if (!offScreen && liveRecord()?.focused !== true) setActive();
+		track("contextMenu", {
+			type: "ClassicyWindow",
+			show: true,
+			...analyticsArgs,
+		});
+		const run = (type: ClassicyWindowSystemMenuCommand) => () => {
+			runCommandRef.current({ type });
+		};
+		const handlers: ClassicyWindowSystemMenuHandlers = {
+			restore: run("restore"),
+			move: run("move"),
+			size: run("size"),
+			minimize: run("minimize"),
+			maximize: run("maximize"),
+			close: run("close"),
+		};
+		const items = classicyWindowSystemMenuItems(
+			{
+				appId,
+				windowId: id,
+				kind: modal
+					? "modal"
+					: windowType === "utility"
+						? "utility"
+						: "document",
+				minimized: collapsedOrMinimized,
+				maximized: ws.zoomed === true && !zoomIgnored,
+				offScreen,
+				movable: movesByTitleBar,
+				resizable,
+				minimizable: collapsesByBox,
+				maximizable: zoomsByBox && !modal,
+				closable,
+			},
+			handlers,
+		);
+		showContextMenu(items, at ?? systemMenuCorner(), {
+			helpItem: false,
+			placement,
+			focusFirstItem,
+			keyboard: true,
+			anchor,
+		});
+		return true;
+	};
+	// Whether a right-click's target lies in this window's own title bar
+	// (not one a `ClassicyWindowFrame` in its contents draws).
+	const isOwnTitleBarTarget = (target: EventTarget | null): boolean => {
+		if (!(target instanceof Element)) return false;
+		const bar = target.closest(".classicyWindowTitleBar");
+		return bar !== null && bar.parentElement === windowRef.current;
+	};
+	// A press on the title bar's icon (button 1; WIG Ch.6 "Title Bar Icons",
+	// p.78, and Ch.7, p.102: "for compatibility", as Windows 95/98 shipped)
+	// drops the menu from the caption and arms no move
+	// (`onTitleMouseDown`). The icon is the menu's anchor, so the menu's
+	// outside-press listener, in place before the press that opened it
+	// reaches the document, leaves presses on the icon to this handler. The
+	// press that ends a double-click's first click (`detail` 2) opens
+	// nothing, the double-click closing the window
+	// (`onSystemMenuIconDoubleClick`). A press while a contextual menu is
+	// open opens nothing either: this window's menu it closes (a second
+	// click on the icon, as in Windows), any other closes itself (its
+	// outside-press listener), as Windows' menu loop eats the click that
+	// ends a menu. Held, the press chooses the item it is released over, as
+	// Windows tracks a menu with the button down.
+	const onSystemMenuIconMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+		if (e.button !== 0) return;
+		e.preventDefault();
+		if (e.detail >= 2) return;
+		if (document.querySelector(".classicyContextMenuWrapper")) {
+			if (
+				document.getElementById(
+					classicyWindowSystemMenuItemId(appId, id, "close"),
+				)
+			)
+				hideContextMenu();
+			return;
+		}
+		if (
+			!openSystemMenu({
+				at: systemMenuCorner(),
+				placement: "corner",
+				focusFirstItem: false,
+				anchor: e.currentTarget,
+			})
+		)
+			return;
+		const prefix = classicyWindowSystemMenuItemIdPrefix(appId, id);
+		const chooseOnRelease = (up: globalThis.MouseEvent) => {
+			document.removeEventListener("mouseup", chooseOnRelease, true);
+			if (up.button !== 0 || !(up.target instanceof Element)) return;
+			const item = up.target.closest<HTMLElement>(
+				".classicyContextMenuWrapper li.classicyMenuItem",
+			);
+			if (item?.id.startsWith(prefix)) item.click();
+		};
+		document.addEventListener("mouseup", chooseOnRelease, true);
+	};
+	// A double-click on the icon closes the window (WIG Ch.6, p.78; Wine's
+	// `NC_HandleNCLButtonDblClk` sends SC_CLOSE for HTSYSMENU), through the
+	// caption Close box's path, the veto included, and nothing when it cannot
+	// close; the menu its first press opened goes. It never reaches the
+	// caption's own double-click (a maximize).
+	const onSystemMenuIconDoubleClick = (e: MouseEvent<HTMLDivElement>) => {
+		e.stopPropagation();
+		hideContextMenu();
+		runCommandRef.current({ type: "close" });
+	};
+
 	// The window registry (plan 0020-w98 §5, "Shared plumbing"): what the
 	// store record does not hold (the title, the icon, the capabilities) and
 	// this window's own commands, for a surface that lists windows or acts on
@@ -2903,9 +3116,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				if (!resizable || maximized || collapsedOrMinimized || hiddenWithApp)
 					return false;
 				return startKeyboardMode("size");
+			case "systemMenu":
+				// The window pop-up menu: at the point given (a taskbar
+				// button's right-click), else dropped from the caption with
+				// its first item selected, as ALT+SPACE opens it.
+				return command.at
+					? openSystemMenu({
+							at: command.at,
+							placement: "click",
+							focusFirstItem: false,
+						})
+					: openSystemMenu({ placement: "corner", focusFirstItem: true });
 			default:
-				// The window pop-up menu (`systemMenu`) has no path in this
-				// window yet: it reports false, as an unknown command does.
 				return false;
 		}
 	};
@@ -2915,10 +3137,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// when the window's ids change. StrictMode's phantom cleanup unregisters
 	// and its re-run registers again.
 	const registrationRef = useRef<ClassicyWindowRegistration | null>(null);
-	const movesByTitleBar = !fixedModal;
-	// Whether it draws a collapse box: none on a modal or palette under
-	// minimize, which has no taskbar button to come back from.
-	const collapsesByBox = collapsable && !collapseIgnored;
 	useEffect(() => {
 		const entry = {
 			appId,
@@ -3196,6 +3414,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				onCollapseKey={toggleCollapse}
 				labels={titleBarLabels}
 				onTitleMouseDown={onTitleMouseDown}
+				// Under the system menu only: the icon opens the window pop-up
+				// menu and its double-click closes the window; without the
+				// flag the icon stays inert.
+				onIconMouseDown={
+					systemMenuEnabled ? onSystemMenuIconMouseDown : undefined
+				}
+				onIconDoubleClick={
+					systemMenuEnabled ? onSystemMenuIconDoubleClick : undefined
+				}
 				// stopChangeWindow is bound once, on the root classicyWindow
 				// element; the title's mouseup bubbles to it (see comment there).
 				onTitleDoubleClick={

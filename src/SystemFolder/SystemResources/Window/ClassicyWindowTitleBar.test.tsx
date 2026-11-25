@@ -114,6 +114,46 @@ describe("ClassicyWindowTitleBar", () => {
 		expect(onTitleDoubleClick).toHaveBeenCalledTimes(1);
 	});
 
+	// The window pop-up menu's icon (plan 0020-w98 §5): `ClassicyWindow`
+	// passes the handlers under `window.systemMenu`, and the icon is inert
+	// without them.
+	it("fires onIconMouseDown and onIconDoubleClick from the icon, before the title area hears them", () => {
+		const order: string[] = [];
+		const { container } = render(
+			<ClassicyWindowTitleBar
+				title="T"
+				icon="doc.png"
+				onTitleMouseDown={() => order.push("title down")}
+				onTitleDoubleClick={() => order.push("title double")}
+				onIconMouseDown={() => order.push("icon down")}
+				onIconDoubleClick={(e) => {
+					order.push("icon double");
+					e.stopPropagation();
+				}}
+			/>,
+		);
+		const iconEl = container.querySelector(".classicyWindowIcon") as Element;
+		fireEvent.mouseDown(iconEl);
+		fireEvent.doubleClick(iconEl);
+		expect(order).toEqual(["icon down", "title down", "icon double"]);
+	});
+
+	it("keeps the icon inert, and its markup as it was, without the icon handlers", () => {
+		const onTitleMouseDown = vi.fn();
+		const { container } = render(
+			<ClassicyWindowTitleBar
+				title="T"
+				icon="doc.png"
+				onTitleMouseDown={onTitleMouseDown}
+			/>,
+		);
+		const iconEl = container.querySelector(".classicyWindowIcon") as Element;
+		expect(iconEl.getAttributeNames()).toEqual(["class"]);
+		fireEvent.mouseDown(iconEl);
+		// The press is the title area's, as any press in it.
+		expect(onTitleMouseDown).toHaveBeenCalledTimes(1);
+	});
+
 	it("clicks and keys each control box to its handler", () => {
 		const onClose = vi.fn();
 		const onZoom = vi.fn();
