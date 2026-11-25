@@ -29,7 +29,10 @@ import {
 import type { ClassicyThemeColorFamilyChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
+	classicyThemeFileAccept,
 	downloadClassicyTheme,
+	isClassicyForeignThemeFile,
+	parseClassicyForeignThemeFile,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import type {
@@ -198,7 +201,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				});
 				return;
 			}
-			const result = parseClassicyThemeFile(text);
+			// Another system's theme file (Windows 98's `.theme`) goes through
+			// the active package's importer; anything else is a Classicy theme
+			// file. Either way the theme is validated the same way.
+			const importer = activePackage.themeFileImporter;
+			const result =
+				importer && isClassicyForeignThemeFile(file.name, importer)
+					? parseClassicyForeignThemeFile(text, file.name, importer)
+					: parseClassicyThemeFile(text);
 			if (!result.ok) {
 				setThemeFileError({
 					label: `“${file.name}” could not be loaded.`,
@@ -227,7 +237,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 				theme: result.theme,
 			});
 		},
-		[desktopEventDispatch, activePackage.id],
+		[desktopEventDispatch, activePackage.id, activePackage.themeFileImporter],
 	);
 
 	const switchTheme = useCallback(
@@ -349,6 +359,35 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			});
 		},
 		[desktopEventDispatch, typography],
+	);
+
+	// A package font (`typography.families.<name>`), as the core fonts: the
+	// chosen family first, the rest of its stack kept as fallbacks.
+	const changeFamilyFont = useCallback(
+		(name: string, family: string) => {
+			const current = typography.families?.[name]?.font;
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeFont",
+					family: name,
+					font: withPrimaryFontFamily(current ?? "", family),
+				});
+			});
+		},
+		[desktopEventDispatch, typography],
+	);
+
+	const changeFamilyFontSize = useCallback(
+		(name: string, size: number) => {
+			startTransition(() => {
+				desktopEventDispatch({
+					type: "ClassicyDesktopChangeFontSize",
+					family: name,
+					fontSize: size,
+				});
+			});
+		},
+		[desktopEventDispatch],
 	);
 
 	const changeColor = useCallback(
@@ -505,6 +544,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		toggleDoubleClickTitleToCollapse,
 		saveTheme,
 		loadThemeFile,
+		themeFileAccept: classicyThemeFileAccept(activePackage.themeFileImporter),
 	});
 
 	const packagesTab = usePackagesTab({
@@ -552,6 +592,9 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		typography,
 		changeFont,
 		changeFontSize,
+		fontFamilies: activePackage.fontFamilies,
+		changeFamilyFont,
+		changeFamilyFontSize,
 	});
 
 	const metricsTab = useMetricsTab({

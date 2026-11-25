@@ -45,7 +45,8 @@
 //   ButtonFace        --color-system-03        the faces
 //   ButtonHilight     --color-system-01        the light rings, the emboss
 //   ButtonLight       --color-system-02        the inner top-left ring
-//   ButtonShadow      --color-system-05        the dark rings, GrayText
+//   ButtonShadow      --color-system-05        the dark rings, the embossed
+//                                              glyphs
 //   ButtonDkShadow    --color-system-07        the outer bottom-right ring
 //   Window            --color-window-document  the page number's ground
 //   WindowText        --color-black            text and triangles
@@ -73,14 +74,14 @@ $forward: runs(
   "x"
 );
 
-// A glyph in WindowText at (`$x`, `$y`) in its box, and embossed: GrayText
-// over its ButtonHilight copy one pixel down and right.
+// A glyph in WindowText at (`$x`, `$y`) in its box, and embossed:
+// ButtonShadow over its ButtonHilight copy one pixel down and right.
 @function glyph($art, $x: 0, $y: 0) {
   @return pixel-art(b.$text, $art, px($x), px($y));
 }
 
 @function glyph-embossed($art, $x: 0, $y: 0) {
-  @return pixel-art(b.$gray-text, $art, px($x), px($y)), pixel-art(b.$hilight, $art, px($x + 1), px($y + 1));
+  @return pixel-art(b.$shadow, $art, px($x), px($y)), pixel-art(b.$hilight, $art, px($x + 1), px($y + 1));
 }
 
 // A status bar pane's edge: one ring sunken.

@@ -1,7 +1,8 @@
 // Library-internal: the link from the asset registry to the active Appearance
 // Package. Not public API — `.internal.ts` modules are excluded from the
 // barrels (.ts-barrel.json), so only the store module (which connects it) and
-// the asset registry (which reads it) import this file, by path. A leaf: no
+// the store-free readers (the asset registry, the layout and identity hooks,
+// the icon dimming's emboss colors) import this file, by path. A leaf: no
 // runtime imports, so either side may evaluate first.
 
 /** Where the asset registry learns which Appearance Package is active. */
@@ -10,8 +11,9 @@ export type ClassicyAssetPackageSource = {
 	getId: () => string;
 	/**
 	 * The active theme, read at call time: its `package` and `assetVariant`
-	 * pick the variant tree its lookups read first. Optional: a source without
-	 * it selects no variant.
+	 * pick the variant tree its lookups read first (and its colors are an
+	 * emboss's, `ClassicyIconDimming.ts`). Optional: a source without it
+	 * selects no variant.
 	 */
 	getActiveTheme?: () =>
 		| { package?: string; assetVariant?: string }

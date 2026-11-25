@@ -442,9 +442,10 @@ has its exports and its strict-CSP stylesheets.
 `@classicy/appearance-windows98` draws Windows 95 and 98 on Classicy's
 structure: gradient title bars with Minimize, Maximize and Close at the
 right, two-pixel bevels from the system colors, checkered scroll-bar tracks
-with an arrow at each end, raised menus and rectangular controls, in
-"Windows Standard", "Windows 95" and the sixteen classic color schemes of
-the Display control panel (Brick, Desert, Rainy Day, …), each a recoloring
+with an arrow at each end, raised menus and rectangular controls, in the
+thirty-three color schemes of Windows 98's Display control panel ("Windows
+Standard", Brick, Desert, Rainy Day, the High Contrast schemes, …, each read
+from Windows 98 SE's own scheme data) and "Windows 95", each a recoloring
 of one stylesheet. It ships its own alert tones but no fonts, art, icons,
 cursors, wallpapers or screen savers: every glyph is drawn from the theme's
 colors, and icons and cursors come from the default package's. Use it alone

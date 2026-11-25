@@ -17,7 +17,7 @@
 //   are centered in an 11-pixel button. Pressed, Windows draws a scroll
 //   button flat (`b.pressed-flat`: one ring of ButtonShadow) with the
 //   triangle a pixel down and right; disabled, the triangle is embossed,
-//   GrayText over a ButtonHilight copy one pixel down and right, on the
+//   ButtonShadow over a ButtonHilight copy one pixel down and right, on the
 //   raised face.
 // - A field and its arrows (the spinner, the date and time pickers) stand
 //   flush, the arrows stretched to the field's height, as the up-down
@@ -31,9 +31,10 @@
 //                                              emboss
 //   ButtonLight       --color-system-02        the inner top-left ring
 //   ButtonShadow      --color-system-05        the inner bottom-right ring,
-//                                              GrayText, the pressed ring
+//                                              the embossed triangle, the
+//                                              pressed ring
 //   ButtonDkShadow    --color-system-07        the outer bottom-right ring
-//   WindowText        --color-black            the triangles
+//   ButtonText        --package-color-text-button  the triangles
 @use "sass:list";
 @use "sass:meta";
 @use "pkg:@classicy/classicy/scss/layout";
@@ -86,16 +87,16 @@ $neg-b3: calc((#{b.$b2} + #{b.$b}) * -1);
 // A button's faces: the arrow in WindowText at rest, a pixel down and right
 // pressed, embossed disabled, each over ButtonFace.
 @mixin arrow-button($arrow) {
-  background: list.join(meta.call($arrow, b.$text), b.$face, comma);
+  background: list.join(meta.call($arrow, b.$button-text), b.$face, comma);
 
   &:active:not(:disabled) {
-    background: list.join(meta.call($arrow, b.$text, 1, 1), b.$face, comma);
+    background: list.join(meta.call($arrow, b.$button-text, 1, 1), b.$face, comma);
     @include b.pressed-flat;
   }
 
   &:disabled {
     background: list.join(
-      list.join(meta.call($arrow, b.$gray-text), meta.call($arrow, b.$hilight, 1, 1), comma),
+      list.join(meta.call($arrow, b.$shadow), meta.call($arrow, b.$hilight, 1, 1), comma),
       b.$face,
       comma
     );
@@ -121,7 +122,7 @@ $neg-b3: calc((#{b.$b2} + #{b.$b}) * -1);
       padding: 0;
       border: 0;
       border-radius: 0;
-      color: b.$text;
+      color: b.$button-text;
       @include b.raised;
       cursor: default;
       @include arrow-button(meta.get-function("up-arrow"));

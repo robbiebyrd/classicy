@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ClassicyAssetKind } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import { isThemeColorTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { ClassicyPackageThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicySoundPackSchema } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
@@ -8,6 +9,7 @@ import type {
 	ClassicyAppearanceKnobs,
 	ClassicyAppearanceLayout,
 	ClassicyAppearancePackage,
+	ClassicyAppearanceThemeFileImporter,
 	ClassicyAppIdentityOverride,
 } from "./ClassicyAppearancePackage";
 
@@ -172,6 +174,30 @@ const colorFamilies = z.record(
 	}),
 );
 
+// A package font's metadata (`fontFamilies`): names that become a
+// `--package-font-<name>` variable, and a label for each.
+const fontFamilies = z.record(
+	colorFamilyName,
+	z.object({ label: colorFamilyLabel }),
+);
+
+// A theme file importer (`themeFileImporter`): its file name extensions
+// (lower case, with the dot) and the function that reads a file.
+const themeFileImporter = z.object({
+	extensions: z
+		.array(
+			z
+				.string()
+				.regex(/^\.[a-z0-9]+$/, "must be a lower-case extension with its dot"),
+		)
+		.min(1)
+		.max(8),
+	read: z.custom<ClassicyAppearanceThemeFileImporter["read"]>(
+		(value) => typeof value === "function",
+		{ error: "must be a function" },
+	),
+});
+
 // Keys that would reach Object.prototype through a plain-object lookup. The
 // registry stores the package object as given (its `apps` as a frozen copy of
 // the parsed value), so these are refused rather than stripped.
@@ -320,10 +346,34 @@ const iconDimmingRule = z
 	})
 	.strict();
 
+// A theme color an emboss reads: `{ colorKey, index? }`, as the Colors tab
+// addresses one (`ClassicyThemeColorTarget`).
+const themeColorTarget = z
+	.object({
+		colorKey: z.string(),
+		index: z.number().int().optional(),
+	})
+	.strict()
+	.refine((target) => isThemeColorTarget(target), {
+		error: "must be a theme color target ({ colorKey, index? })",
+	});
+
+const iconEmbossRule = z
+	.object({
+		emboss: z
+			.object({ highlight: themeColorTarget, shadow: themeColorTarget })
+			.strict(),
+	})
+	.strict();
+
+// A disabled control's image may also be embossed (Windows 98's DSS_DISABLED).
+const disabledControlRule = z.union([iconDimmingRule, iconEmbossRule]);
+
 const iconDimming = z
 	.object({
 		hiddenApp: iconDimmingRule.optional(),
 		disabledItem: iconDimmingRule.optional(),
+		disabledControl: disabledControlRule.optional(),
 		variants: z
 			.record(
 				z.string(),
@@ -331,6 +381,7 @@ const iconDimming = z
 					.object({
 						hiddenApp: iconDimmingRule.nullable().optional(),
 						disabledItem: iconDimmingRule.nullable().optional(),
+						disabledControl: disabledControlRule.nullable().optional(),
 					})
 					.strict(),
 			)
@@ -359,6 +410,16 @@ export const ClassicyAppearancePackageSchema = z
 			.describe(
 				"Labels for the package's own colors (defaults.color.families), which the Appearance Manager's Colors tab edits.",
 			),
+		fontFamilies: fontFamilies
+			.optional()
+			.describe(
+				"Labels for the package's own fonts (defaults.typography.families), which the Appearance Manager's Fonts tab edits.",
+			),
+		themeFileImporter: themeFileImporter
+			.optional()
+			.describe(
+				"Reads another system's theme files (by extension) for the Appearance Manager's Load Theme… while the package is active; the theme it returns is validated as a Classicy theme file's.",
+			),
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
 		sounds: z.array(ClassicySoundPackSchema).optional(),
@@ -378,7 +439,7 @@ export const ClassicyAppearancePackageSchema = z
 		iconDimming: iconDimming
 			.optional()
 			.describe(
-				"How the package dims an icon per pixel (a hidden application's icon): blend each channel toward a color, keep the top bits of each, then take the nearest palette entry. Per asset variant, null declares none.",
+				"How the package dims an icon per pixel (a hidden application's icon, a row's that cannot be chosen, a disabled control's image): blend each channel toward a color, keep the top bits of each, then take the nearest palette entry; or, for a disabled control, emboss it in two theme colors. Per asset variant, null declares none.",
 			),
 	})
 	// The defaults are the theme a switch to this package activates; one that
@@ -404,6 +465,21 @@ export const ClassicyAppearancePackageSchema = z
 						message: `has no value in defaults.color.families.${family}`,
 					});
 				}
+			}
+		}
+	})
+	// Every declared font needs a value in the defaults, as every declared
+	// color does: the Fonts tab lists the theme's entries under the labels.
+	.check((ctx) => {
+		const families = ctx.value.defaults.typography.families ?? {};
+		for (const name of Object.keys(ctx.value.fontFamilies ?? {})) {
+			if (!Object.hasOwn(families, name)) {
+				ctx.issues.push({
+					code: "custom",
+					input: name,
+					path: ["fontFamilies", name],
+					message: `has no value in defaults.typography.families`,
+				});
 			}
 		}
 	})

@@ -53,6 +53,12 @@ export type ClassicyDesktopIconMetrics = {
 	 */
 	rowPitch?: number;
 	/**
+	 * The distance between columns, from the optional package knob
+	 * `desktopIconGrid.columnGap` (the icon `size` plus it: Windows 98's
+	 * 75 px IconSpacing). Unset, columns step by `cell + padding`.
+	 */
+	columnPitch?: number;
+	/**
 	 * The first row's top for a top origin, and the highest a bottom
 	 * origin's row goes: the optional package knob `desktopIconGrid.top`.
 	 * Unset, `4 × padding`.
@@ -69,7 +75,7 @@ export type ClassicyDesktopIconMetrics = {
 // own. A value that is not a finite number of zero or more is ignored.
 const desktopIconGridKnob = (
 	theme: ClassicyTheme,
-	key: "rowGap" | "top",
+	key: "rowGap" | "columnGap" | "top",
 ): number | undefined => {
 	const value = withDefaultThemeMetrics(
 		theme,
@@ -83,6 +89,13 @@ const desktopIconGridKnob = (
 /** The rows' pitch: the package's, else one grid step (`cell + padding`). */
 const rowStep = ({ padding, cell, rowPitch }: ClassicyDesktopIconMetrics) =>
 	rowPitch ?? cell + padding;
+
+/** The columns' pitch: the package's, else one grid step (`cell + padding`). */
+const columnStep = ({
+	padding,
+	cell,
+	columnPitch,
+}: ClassicyDesktopIconMetrics) => columnPitch ?? cell + padding;
 
 /** The first row's top: the package's, else `4 × padding`. */
 const firstRowTop = ({ padding, top }: ClassicyDesktopIconMetrics) =>
@@ -125,6 +138,8 @@ export const classicyDesktopIconMetrics = (
 	// Each only when the package sets it, so Platinum's metrics are as before.
 	const rowGap = desktopIconGridKnob(theme, "rowGap");
 	if (rowGap !== undefined) metrics.rowPitch = metrics.size + rowGap;
+	const columnGap = desktopIconGridKnob(theme, "columnGap");
+	if (columnGap !== undefined) metrics.columnPitch = metrics.size + columnGap;
 	const top = desktopIconGridKnob(theme, "top");
 	if (top !== undefined) metrics.top = top;
 	return metrics;
@@ -132,8 +147,9 @@ export const classicyDesktopIconMetrics = (
 
 /**
  * The clean-up grid's column and row counts. Columns step by one grid step
- * (`cell + padding`, the step `classicyDesktopIconGridPosition` places by),
- * so every counted column fits the viewport; rows by the row pitch (the
+ * (`cell + padding`, the step `classicyDesktopIconGridPosition` places by,
+ * unless the package declares `desktopIconGrid.columnGap`), so every counted
+ * column fits the viewport; rows by the row pitch (the
  * same step unless the package declares `desktopIconGrid.rowGap`). A bottom
  * origin also reserves the menu bar's band at the top (the top origins'
  * first-row top, `4 * padding` unless the package declares
@@ -147,10 +163,10 @@ const createGrid = (
 	metrics: ClassicyDesktopIconMetrics,
 	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"],
 ) => {
-	const { padding, cell } = metrics;
+	const { padding } = metrics;
 	const pitch = rowStep(metrics);
 	return [
-		Math.floor(window.innerWidth / (cell + padding)),
+		Math.floor(window.innerWidth / columnStep(metrics)),
 		origin.startsWith("bottom")
 			? Math.max(
 					1,
@@ -165,7 +181,8 @@ const createGrid = (
 /**
  * The desktop location of grid cell (`col`, `row`), counted from the package
  * layout's icon grid origin. `col` starts at 1 and `row` at 0, as the
- * clean-up walks them; columns step by `cell + padding`, rows by the row
+ * clean-up walks them; columns step by `cell + padding` (unless the package
+ * declares `desktopIconGrid.columnGap`), rows by the row
  * pitch (the same, unless the package declares `desktopIconGrid.rowGap`),
  * the first row of a top origin at the first-row top (`4 × padding`, unless
  * it declares `desktopIconGrid.top`). `top-right` (Platinum) is the original
@@ -178,8 +195,8 @@ export const classicyDesktopIconGridPosition = (
 	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
 		.desktop.iconGridOrigin,
 ): [number, number] => {
-	const { padding, cell } = metrics;
-	const step = cell + padding;
+	const { padding } = metrics;
+	const step = columnStep(metrics);
 	const pitch = rowStep(metrics);
 	const top = firstRowTop(metrics);
 	return [

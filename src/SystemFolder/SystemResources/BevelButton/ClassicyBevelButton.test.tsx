@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+// The test packages' default theme names Platinum's sound pack.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 
@@ -255,5 +257,100 @@ describe("ClassicyBevelButton square default with numeric 0 children", () => {
 		expect(btn).not.toHaveClass("classicyBevelButtonSquare");
 		const label = btn?.querySelector(".classicyBevelButtonLabel");
 		expect(label).toHaveTextContent("0");
+	});
+});
+
+// A disabled button's image takes the active package's
+// `iconDimming.disabledControl` rule (the 98.js report's 2.7: Windows 98
+// embosses it, DrawState's DSS_DISABLED). With no such rule (Platinum and
+// System 7 declare none), the image stays as it is and the stylesheet dims
+// it, as before.
+describe("ClassicyBevelButton: a disabled button's image", () => {
+	it("draws the plain image, unmarked, where the package declares no disabledControl rule", () => {
+		render(
+			<ClassicyBevelButton disabled icon="/icons/cut.png" iconAlt="Cut" />,
+		);
+		const img = screen.getByRole("img", { name: "Cut" });
+		expect(img).toHaveAttribute("src", "/icons/cut.png");
+		expect(img).not.toHaveClass("classicyIconDimmedImage");
+	});
+
+	it("draws the embossed image once ready under a package that declares one", async () => {
+		const {
+			registerClassicyAppearancePackage,
+			resetClassicyAppearancePackagesForTests,
+		} = await import("@/Appearance/ClassicyAppearancePackage");
+		const { getTheme } = await import(
+			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance"
+		);
+		const { resetClassicyDimmedIconsForTests } = await import(
+			"@/Appearance/ClassicyIconDimming.internal"
+		);
+		vi.stubGlobal(
+			"Image",
+			class {
+				constructor() {
+					const img = document.createElement("img");
+					Object.defineProperty(img, "naturalWidth", { value: 2 });
+					Object.defineProperty(img, "naturalHeight", { value: 2 });
+					queueMicrotask(() => img.onload?.(new Event("load")));
+					// biome-ignore lint/correctness/noConstructorReturn: stands in for an HTMLImageElement
+					return img;
+				}
+			},
+		);
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+			() =>
+				({
+					drawImage: vi.fn(),
+					getImageData: () => ({ data: new Uint8ClampedArray(16) }),
+					putImageData: vi.fn(),
+				}) as unknown as CanvasRenderingContext2D,
+		);
+		vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(
+			"data:image/png;base64,EMBOSSED",
+		);
+		// The active package (the default id, which the test store resolves):
+		// an emboss in ButtonHilight and ButtonShadow, as Windows 98's.
+		registerClassicyAppearancePackage({
+			id: "platinum",
+			name: "Embosses",
+			css: "",
+			defaults: { ...getTheme("default"), package: "platinum" },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+			iconDimming: {
+				disabledControl: {
+					emboss: {
+						highlight: { colorKey: "system", index: 0 },
+						shadow: { colorKey: "system", index: 4 },
+					},
+				},
+			},
+		});
+		try {
+			render(
+				<ClassicyBevelButton disabled icon="/icons/cut.png" iconAlt="Cut" />,
+			);
+			const img = screen.getByRole("img", { name: "Cut" });
+			await vi.waitFor(() =>
+				expect(img).toHaveAttribute("src", "data:image/png;base64,EMBOSSED"),
+			);
+			expect(img).toHaveClass("classicyIconDimmedImage");
+			// Enabled again, the image is its own.
+			render(<ClassicyBevelButton icon="/icons/copy.png" iconAlt="Copy" />);
+			expect(screen.getByRole("img", { name: "Copy" })).toHaveAttribute(
+				"src",
+				"/icons/copy.png",
+			);
+		} finally {
+			resetClassicyAppearancePackagesForTests();
+			resetClassicyDimmedIconsForTests();
+			vi.restoreAllMocks();
+			vi.unstubAllGlobals();
+		}
 	});
 });

@@ -26,6 +26,12 @@ interface ThemesTabProps {
 	saveTheme: () => void;
 	/** Loads the theme file the user picked. */
 	loadThemeFile: (file: File) => void;
+	/**
+	 * The file picker's `accept` list: Classicy's JSON theme files, plus the
+	 * active package's theme file importer's extensions
+	 * (`classicyThemeFileAccept`). Default: JSON alone.
+	 */
+	themeFileAccept?: string;
 }
 
 export const useThemesTab = ({
@@ -40,6 +46,7 @@ export const useThemesTab = ({
 	toggleDoubleClickTitleToCollapse,
 	saveTheme,
 	loadThemeFile,
+	themeFileAccept = "application/json,.json",
 }: ThemesTabProps): TabIndividual => {
 	// A plain hidden file input, opened by the Load button: one file per pick
 	// and nothing to show, so ClassicyFileInput's running file list would only
@@ -87,7 +94,7 @@ export const useThemesTab = ({
 						<input
 							ref={fileInputRef}
 							type="file"
-							accept="application/json,.json"
+							accept={themeFileAccept}
 							hidden
 							data-testid="appearance_theme_file_input"
 							onChange={onFilePicked}
@@ -127,6 +134,7 @@ export const useThemesTab = ({
 			saveTheme,
 			openFilePicker,
 			onFilePicked,
+			themeFileAccept,
 		],
 	);
 };

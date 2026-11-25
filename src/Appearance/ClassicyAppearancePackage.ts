@@ -405,6 +405,39 @@ export type ClassicyAppearanceColorFamilies = Record<
 >;
 
 /**
+ * Labels for a package's own fonts, as UI metadata: name → `{ label }`. The
+ * fonts themselves are theme data, under `typography.families.<name>`
+ * (`ClassicyThemeFontFamily`), emitted as `--package-font-<name>`; the
+ * Appearance Manager's Fonts tab lists a theme's families under these labels
+ * (in this order), and `ClassicyDesktopChangeFont { family, font }` and
+ * `ClassicyDesktopChangeFontSize { family, fontSize }` edit them.
+ */
+export type ClassicyAppearanceFontFamilies = Record<string, { label: string }>;
+
+/** What a package's theme file importer returns: a theme to validate, or why
+ * the file cannot be read. */
+export type ClassicyAppearanceThemeImport =
+	| { ok: true; theme: unknown }
+	| { ok: false; error: string };
+
+/**
+ * A package's importer for another system's theme files (Windows 98's
+ * `.theme` files), offered by the Appearance Manager's Load Theme… while the
+ * package is active: a file whose name ends in one of `extensions` (lower
+ * case, with the dot) is read as text and handed to `read`, and the theme it
+ * returns is validated as a Classicy theme file's would be
+ * (`readClassicyTheme`) before `ClassicyDesktopImportTheme` adds it as a
+ * custom theme. A package without one leaves Load Theme… taking Classicy's
+ * own theme files alone.
+ */
+export type ClassicyAppearanceThemeFileImporter = {
+	/** File name extensions, lower case with the dot (`[".theme"]`). */
+	extensions: readonly string[];
+	/** The file's text and its name, as the theme or the reason it fails. */
+	read: (text: string, fileName: string) => ClassicyAppearanceThemeImport;
+};
+
+/**
  * Every event a component may emit to a package (`ClassicyAppearanceEvent`),
  * in the contract's order. Frozen.
  */
@@ -573,6 +606,13 @@ export type ClassicyAppearancePackage = {
 	knobs?: ClassicyAppearanceKnobs;
 	/** UI metadata per color family/key (`defaults.color.families`). */
 	colorFamilies?: ClassicyAppearanceColorFamilies;
+	/** UI metadata per package font (`defaults.typography.families`). */
+	fontFamilies?: ClassicyAppearanceFontFamilies;
+	/**
+	 * Reads another system's theme files for Load Theme… while the package
+	 * is active (Windows 98's `.theme`); validated as a theme file's theme.
+	 */
+	themeFileImporter?: ClassicyAppearanceThemeFileImporter;
 	/** Built from `knobs` by `classicyKnobsToSchema(knobs)`. */
 	// biome-ignore lint/suspicious/noExplicitAny: the contract's type; each package's knobs give the shape.
 	options?: z.ZodObject<any>;

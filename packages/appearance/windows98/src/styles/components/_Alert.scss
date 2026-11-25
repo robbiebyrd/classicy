@@ -5,10 +5,12 @@
 // push buttons under them, over the core's structure in ClassicyAlert.scss
 // (the icon and body ordered 10 and 20, the buttons right-aligned).
 //
-// - One text: Windows sets a message box in the UI font at one size and
-//   weight (MS Sans Serif 8, 11 pixels on 13-pixel lines), so the label
+// - One text: Windows sets a message box in the scheme's message font
+//   (`typography.families.message`: MS Sans Serif 8, 11 pixels on 13-pixel
+//   lines, in Windows Standard; Times New Roman 10 in Eggplant; Arial 18 in
+//   the large High Contrast schemes) at one size and weight, so the label
 //   (the base's bold heading) and the message (its smaller narrative) read
-//   as one block, both plain and at `--ui-font-size`, in WindowText.
+//   as one block, both in it, in WindowText.
 // - The buttons in Windows' order, [OK] [Cancel], [Yes] [No] [Cancel]: the
 //   default first, any other next, Cancel last (_Dialog.scss's `button-row`,
 //   on the `[data-classicy-role]` parts the alert sets); a Help button, which
@@ -34,9 +36,9 @@
     // The label and the message as one text.
     .classicyAlertLabel,
     .classicyAlertMessage {
-      font-family: var(--ui-font), sans-serif;
-      font-size: var(--ui-font-size);
-      font-weight: normal;
+      font-family: b.$message-font;
+      font-size: b.$message-font-size;
+      font-weight: b.$message-font-weight;
       line-height: 1.2;
     }
 

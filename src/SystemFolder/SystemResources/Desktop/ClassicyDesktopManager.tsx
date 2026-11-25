@@ -55,6 +55,8 @@ import {
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFont,
+	hasFontFamilyFont,
+	hasFontFamilySize,
 	hasFontSize,
 	hasImportableTheme,
 	hasMenuBar,
@@ -223,6 +225,14 @@ export const defaultClassicyControlStripState =
 const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
 	ds.System.Manager.Desktop.controlStrip ??= defaultClassicyControlStripState();
 	return ds.System.Manager.Desktop.controlStrip;
+};
+
+// Whether the active theme holds the package font `family`
+// (`typography.families`), the only fonts ChangeFont and ChangeFontSize edit.
+const hasActiveThemeFontFamily = (ds: ClassicyStore, family: string) => {
+	const families =
+		ds.System.Manager.Appearance.activeTheme?.typography?.families;
+	return !!families && Object.hasOwn(families, family);
 };
 
 export const classicyDesktopEventHandler = (
@@ -600,6 +610,22 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopChangeFont": {
+			// A package font (`family`): only one the active theme holds, checked
+			// before the edit, so a refused change never forks a built-in theme.
+			if (action.family !== undefined) {
+				if (
+					!hasFontFamilyFont(action) ||
+					!hasActiveThemeFontFamily(ds, action.family)
+				)
+					break;
+				const { family, font } = action;
+				editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+					const families = theme.typography.families;
+					if (families && Object.hasOwn(families, family))
+						families[family] = { ...families[family], font };
+				});
+				break;
+			}
 			if (!hasFont(action)) break;
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
 				switch (action.fontType) {
@@ -619,6 +645,27 @@ export const classicyDesktopEventHandler = (
 		// The key and size are checked before the edit, so a refused change
 		// never forks a built-in theme.
 		case "ClassicyDesktopChangeFontSize": {
+			if (action.family !== undefined) {
+				if (
+					!hasFontFamilySize(action) ||
+					!hasActiveThemeFontFamily(ds, action.family)
+				) {
+					classicyLog(
+						"warn",
+						"ClassicyDesktopManager",
+						`ClassicyDesktopChangeFontSize rejected: family must name a font of the active theme's typography.families and fontSize be a number from ${CLASSICY_THEME_FONT_SIZE_MIN} to ${CLASSICY_THEME_FONT_SIZE_MAX}`,
+						{ family: action.family, fontSize: action.fontSize },
+					);
+					break;
+				}
+				const { family, fontSize } = action;
+				editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+					const families = theme.typography.families;
+					if (families && Object.hasOwn(families, family))
+						families[family] = { ...families[family], size: fontSize };
+				});
+				break;
+			}
 			if (!hasFontSize(action)) {
 				classicyLog(
 					"warn",

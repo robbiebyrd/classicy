@@ -565,6 +565,8 @@ Common built-in actions:
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` or `{ family, key, color }` | Set one theme color, or one of the active package's own colors (forks a built-in into "Custom"; see §8, "Package color families") |
 | `ClassicyDesktopChangeMetric` | `{ metricKey, value }` or `{ family, key, value }` | Set one core layout metric, or one knob of the active package (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
+| `ClassicyDesktopChangeFont` | `{ fontType, font }` or `{ family, font }` | Set a core typography family (`ui`, `body`, `header`, `mono`, `digital`, `uiSmall`), or the stack of a package font the active theme holds (`typography.families`; forks a built-in into "Custom"; see §8, "Package font families") |
+| `ClassicyDesktopChangeFontSize` | `{ fontType, fontSize }` or `{ family, fontSize }` | Set a core typography size, or a package font's size, 8–72 px (refused with a warning otherwise) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a registered wallpaper is held by its filename. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (Platinum included: no package counts as installed until it registers) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename, `<package>\|<file>` or its source) is stored by filename when it is the theme's package's, or Platinum's and the theme's package has no file of that name, else as `<package>\|<file>` (`portableClassicyWallpaper(value, theme.package)`; never decided by the active package). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
@@ -2994,7 +2996,9 @@ type ClassicyTheme = {
     color: { outline; select; highlight; black; white; alert; error;
              system: number[7]; theme: number[7];
              window: { border; borderOutset; borderInset; frame; title; document } }  // colors are ints
-    typography: { ui; uiSize; header; headerSize; body; bodySize; mono; monoSize; digital; digitalSize }
+    typography: { ui; uiSize; header; headerSize; body; bodySize; mono; monoSize; digital; digitalSize;
+                  uiSmall?;                // the small UI text's family (System 7's Geneva)
+                  families?: Record<string, { font; size?; weight? }> }  // a package's own fonts (below)
     measurements: { window; control; button; groupBox; layout;  // the 20 core metrics (below)
                     [family: string]: Record<string, number> }   // plus a package's own families
     desktop: { iconSize; iconFontSize; backgroundImage; backgroundColor;
@@ -3806,12 +3810,13 @@ first fallback is `label`. With `label` omitted, `name` is the own label.
 #### Icon dimming
 
 A package's optional `iconDimming` declares how it dims an icon, per pixel;
-the core draws the result on a canvas (`ClassicyIconDimming.ts`). Two
+the core draws the result on a canvas (`ClassicyIconDimming.ts`). Three
 surfaces read it: `hiddenApp`, a hidden application's icon in the
-Application menu (HIG7 p.127), and `disabledItem`, the icon of a
+Application menu (HIG7 p.127), `disabledItem`, the icon of a
 `ClassicyTree` row that cannot be chosen (a `disabled` node: the files a
-Save box dims). Each is optional, in `variants` too. A rule is data,
-validated at registration:
+Save box dims), and `disabledControl`, a disabled bevel or toolbar button's
+image (`ClassicyBevelButton`'s `icon` while `disabled`). Each is optional, in
+`variants` too. A rule is data, validated at registration:
 
 ```ts
 iconDimming: {
@@ -3825,7 +3830,35 @@ iconDimming: {
 ```
 
 Only `blend` is required; `bits` defaults to 8 and `palette` to none. A
-pixel's alpha is never changed, so the icon keeps its mask. The dimmed image
+pixel's alpha is never changed, so the icon keeps its mask.
+
+`disabledControl` may instead be an **emboss** (`ClassicyIconEmbossRule`),
+the way Windows draws a disabled control's image (DrawState's
+`DSS_DISABLED`; comctl32's `TOOLBAR_DrawMasked`): every pixel that is opaque
+(alpha 128 or more) and not pure white becomes the `shadow` color, over the
+same pixels one down and right in the `highlight` color, everything else
+clear (`embossClassicyIconPixels`). The two colors are theme colors,
+addressed as the Colors tab addresses them (`ClassicyThemeColorTarget`),
+read from the active theme when the image is drawn
+(`classicyIconEmbossColors`, through the asset registry's link to the
+store), so the emboss follows the scheme:
+
+```ts
+iconDimming: {
+    disabledControl: {
+        emboss: {
+            highlight: { colorKey: 'system', index: 0 }, // ButtonHilight
+            shadow: { colorKey: 'system', index: 4 },    // ButtonShadow
+        },
+    },
+}
+```
+
+Windows 98 declares exactly that, and only that. A package that declares no
+`disabledControl` rule (Platinum, System 7) draws a disabled button's image
+as before, dimmed by its stylesheet; one that declares an emboss marks the
+image `classicyIconDimmedImage`, and Windows 98's sheet draws it at full
+opacity (the base halves a disabled bevel button's image). The dimmed image
 is a `data:` URL, cached per source, rule and size for the page (except a failed load, which is drawn again on the next request: a cross-origin icon without CORS fails to load under `crossOrigin = "anonymous"`, and `onerror` carries no reason, so that cannot be told from a network error and is requested again on each dimmed mount; each source logs one `warn`), and the
 `<img>` drawing it carries the part class `classicyIconDimmedImage`
 (`CLASSICY_ICON_DIMMED_IMAGE_CLASS`), so the package's stylesheet dimming
@@ -4506,27 +4539,64 @@ it is the worked example of a package that registers **no assets**: no
 fonts, art, icons, cursors, wallpapers or screen savers. Install and import
 it like Platinum (§1); its README lists what it ships.
 
-- **Themes.** Eighteen, every one `package: "windows98"`, `sound.pack:
-  "windows98"`, no `assetVariant`, `dither.tileSize: 0`: `windows98`
-  ("Windows Standard", the defaults: the Windows 98 scheme, its `system`
-  palette ButtonHilight, ButtonLight, ButtonFace, a mid gray, ButtonShadow,
-  a dark gray and ButtonDkShadow in slots 01 to 07, `window.document`
-  Window, `highlight` Hilight, the teal desktop with no picture),
-  `windows95` ("Windows 95": the same palette, flat title bars) and the
-  sixteen classic schemes from the `[Control Panel\Colors]` block of each
-  Windows theme file (`windows98Brick` … `windows98Wheat`, named as the
-  Display control panel named them). The typography is a font stack
-  (`"Pixelated MS Sans Serif"`, MS Sans Serif, Microsoft Sans Serif, Tahoma,
-  Arial, at 11 px; Fixedsys, Lucida Console, Courier New for monospaced
-  text), since MS Sans Serif is Microsoft's; a host that loads 98.css's face
-  gets the bitmap look.
+- **Themes.** Thirty-four, every one `package: "windows98"`, `sound.pack:
+  "windows98"`, no `assetVariant`, `dither.tileSize: 0`: the thirty-three
+  color schemes of Windows 98 Second Edition's Display control panel, each
+  read from the scheme its `SHELL2.INF` writes (`[schemes.reg]`, under
+  `HKCU\Control Panel\Appearance\Schemes`: a NONCLIENTMETRICS, the icon
+  font and 29 COLORREFs), named exactly as Windows 98 names them, and
+  `windows95` ("Windows 95"). The order is the Display control panel's
+  (a sorted combo box) after `windows98` ("Windows Standard", the defaults)
+  and `windows95`: Brick, Desert, Eggplant, the twelve High Contrast schemes
+  (`windows98HighContrast1`, `…1Large`, `…1ExtraLarge`, the same for `2`,
+  `Black` and `White`), Lilac, Lilac (large), Maple, Marine (high color),
+  Plum (high color), Pumpkin (large), Rainy Day, Red, White, and Blue (VGA),
+  Rose, Rose (large), Slate, Spruce, Storm (VGA), Teal (VGA), Wheat, Windows
+  Standard (extra large) (`windows98ExtraLarge`) and (large)
+  (`windows98Large`); every id 3.7 shipped is kept, so a saved choice still
+  resolves. Each scheme maps its colors as Windows draws them: `system`
+  ButtonHilight, ButtonLight, ButtonFace, the mid gray between ButtonFace
+  and ButtonShadow, ButtonShadow, the one between ButtonShadow and
+  ButtonDkShadow, ButtonDkShadow; `window.document` Window, `black`
+  WindowText, `window.border` and `outline` WindowFrame, `highlight`
+  Hilight (its tints and shades in `theme`), `window.title` TitleText,
+  `desktop.backgroundColor` Background; the rest in the package colors
+  (below). The named schemes' captions are flat, as the INF stores them;
+  Windows Standard and its two sizes keep USER's built-in 0 0 128 → 16 132
+  208 and 128 128 128 → 181 181 181 gradients, which a fresh Windows 98
+  draws. Windows 95 keeps the palette it shipped with (Windows Standard's
+  with ButtonLight on the face, flat captions) and takes Windows Standard's
+  metrics and fonts. The metrics are the scheme's: `window.scrollbarSize`
+  (iScrollWidth), `window.titleBarHeight` (iCaptionHeight),
+  `titleBar.buttonWidth`/`buttonHeight` (SM_CXSIZE − 2 by SM_CYSIZE − 4,
+  Wine's caption buttons), `window.utilityTitleBarHeight`
+  (iSmCaptionHeight), `menuBar.titleHeight` (iMenuHeight), `sizingBorder.width`
+  (iBorderWidth); the fonts the scheme's caption, small caption, menu,
+  message box and icon fonts (`typography.families`, "Package font
+  families"; the icon font's size `desktop.iconFontSize`): Arial and Times
+  New Roman where Windows 98 names them; MS Sans Serif, a bitmap face, at
+  the size GDI draws it (the largest of its 11, 13, 16, 18, 24 and 32 px
+  faces at or under the request, 11 for any smaller), the pixel face named
+  first only at 11 px, its one cut. The UI font stays 11 px MS Sans Serif in
+  every scheme (`"Pixelated MS Sans Serif"`, MS Sans Serif, Microsoft Sans
+  Serif, Tahoma, Arial; Fixedsys, Lucida Console, Courier New for monospaced
+  text): a dialog's font is its template's, not the scheme's. The desktop
+  labels are white, black on High Contrast White's white desktop.
 - **Color families** ("Package color families"): `titleBar` (`active`,
   `activeGradient`, `inactive`, `inactiveGradient`, `text`, `inactiveText`:
   ActiveTitle, GradientActiveTitle, InactiveTitle, GradientInactiveTitle,
   TitleText, InactiveTitleText), `selection` (`text`: HilightText),
-  `tooltip` (`face`, `text`: InfoWindow, InfoText) and `desktop` (`text`:
-  the desktop labels'), the Windows colors no palette slot holds, editable
-  in the Colors tab. Every stylesheet read carries a `--color-*` fallback.
+  `tooltip` (`face`, `text`: InfoWindow, InfoText, each scheme's own: Brick's
+  dark red on its pale face, Plum's, Marine's), `desktop` (`text`: the
+  desktop labels'), `text` (`button`, `gray`: ButtonText, the ink of buttons,
+  menus, tabs and arrows, and GrayText, disabled text; High Contrast #1's
+  ButtonText is white beside its yellow WindowText, every High Contrast
+  GrayText green), `scrollBar` (`track`: Scrollbar) and `sizingBorder`
+  (`active`, `inactive`: ActiveBorder and InactiveBorder, High Contrast
+  Black's yellow and green), the Windows colors no palette slot holds,
+  editable in the Colors tab. Every stylesheet read carries a `--color-*`
+  fallback. A disabled control's glyph (DFCS_INACTIVE) and a disabled
+  button's label (DSS_DISABLED) are embossed in ButtonShadow, not GrayText.
 - **Knob families** ("Package knob families"): `pixel` (`unit`, the
   pixel-art grid), `titleBar` (button width and height, the gap before
   Close, the end, icon and text insets, the gap below), `pushButton`,
@@ -4544,12 +4614,22 @@ it like Platinum (§1); its README lists what it ships.
   `listBox` (`rowHeight`, 13: the 8-point MS Sans Serif row), `toolbar`
   (`buttonWidth`/`buttonHeight`, 24 x 22, and `largeButtonWidth`/
   `largeButtonHeight`, 32 x 30: the WIG's two toolbar button sizes, for a
-  medium or small and a large ClassicyButtonToolbar), `slider`, `growBox`,
-  `utilityTitleBar` and
+  medium or small and a large ClassicyButtonToolbar; and `restBevel`, the
+  rest bevel's ring width: 0, the flat TBSTYLE_FLAT button, in every
+  Windows 98 scheme, 1, the raised one, in Windows 95's, Figure 7.34),
+  `slider`, `growBox`, `utilityTitleBar`,
   `desktopLabel` (`shadow`, the desktop labels' text shadow offset, 1; 0
-  sends the shadow out of the desktop, the stock Windows 98 label); `knobs`,
-  and so the Options tab, covers `titleBar`, `progressBar`, `field`,
-  `popUp` (`height`), `tabControl` and `desktopLabel`. Layout: grow box
+  sends the shadow out of the desktop, the stock Windows 98 label),
+  `scrollBar` (`solidTrack`: 1 where ButtonHilight is not Window, the track
+  then the solid Scrollbar brush, Wine's DEFWND_ControlColor; 0 the 50%
+  checker), `sizingBorder` (`width`, iBorderWidth: 1, 2 in Rose (large), 6
+  or 7 in the large High Contrast schemes) and `menuBar` (`titleHeight`,
+  iMenuHeight: 18, up to 38), the last two read by the window frame and the
+  menu bar, and `desktopIconGrid` (`rowGap` and `columnGap` 43: Windows'
+  75 px IconSpacing over a 32 px icon); `knobs`, and so the Options tab,
+  covers `titleBar` (its button sizes up to 40), `progressBar`, `field`,
+  `popUp` (`height`), `tabControl`, `desktopLabel`, `toolbar` (`restBevel`,
+  "Raised buttons") and `scrollBar` (`solidTrack`, "Solid track"). Layout: grow box
   bottom right, menu bar
   on the screen with `idleTimeoutMs: 0` (an open menu stays until the next
   click), `menu: { submenuDelayMs: 400, disabledItems: "browse",
@@ -4633,9 +4713,39 @@ it like Platinum (§1); its README lists what it ships.
   a list box keeps its Hilight, as user32's does), and a meter's warning
   zones patterned over their color, a WindowText 25% stipple on a
   suboptimal zone's blocks and the 50% checker on a bad zone's
-  (`_ProgressBar.scss`; WIG Ch.14 "Visual Disabilities", p.329). Icons, cursors and system
+  (`_ProgressBar.scss`; WIG Ch.14 "Visual Disabilities", p.329), a
+  toolbar button's bevel from `--toolbar-rest-bevel` (raised at rest under
+  Windows 95, flat with a one-ring hot track under Windows 98's schemes,
+  `_Button.scss`), a solid track's Scrollbar fill an inset box-shadow over
+  the checker spread by `--scroll-bar-solid-track` (its held side inverted
+  by a `::after` of white in `mix-blend-mode: difference`, DSTINVERT), the
+  menus in `--package-font-menu`, a message box in `--package-font-message`
+  and icon labels in `--package-font-icon`, text with no color of its own
+  WindowText, and, under `@media (forced-colors: active)` (Windows' High
+  Contrast setting, `_ForcedColors.scss`, last), the drawing kept
+  (`forced-color-adjust: none`) with every token pointed at a CSS system
+  color (ButtonFace, ButtonBorder, ButtonText, Canvas, CanvasText,
+  Highlight, HighlightText, GrayText, LinkText), the wallpaper hidden (WIG
+  Ch.14 "Color", p.334). Icons, cursors and system
   art resolve to the default package's (§5), and with no package offering
   a screen saver the panel reads "This appearance has no screen savers."
+- **Icon dimming.** `iconDimming.disabledControl`, an emboss in
+  ButtonHilight (`system` 0) and ButtonShadow (`system` 4): a disabled
+  toolbar button's image as DrawState's DSS_DISABLED draws it ("Icon
+  dimming").
+- **Theme files.** `themeFileImporter` `{ extensions: [".theme"], read:
+  readWindows98ThemeFile }` (`windows98ThemeFile.ts`, exported): a Windows
+  `.theme` file (Plus! for Windows 95, Windows 98's Desktop Themes) loads
+  through Load Theme… as a custom theme of the package. Its
+  `[Control Panel\Colors]` map as the schemes' do (a color it lacks is
+  Windows Standard's; GradientActiveTitle and GradientInactiveTitle, which
+  no Plus! file has, take their base color, a flat caption), `[Metrics]`'s
+  NonclientMetrics and IconMetrics (decimal bytes, ANSI or wide, told apart
+  by length) give the metrics and fonts as the schemes' do and the icon
+  spacing, `[Control Panel\Desktop]`'s wallpaper is kept by its file name
+  when a package registers it (case aside, else none; `TileWallpaper` tiles,
+  `WallpaperStyle=2` stretches), and `[Theme] DisplayName`, else the file
+  name, names it. Sounds, cursors, icons and screen savers are not read.
 - **Sound.** One pack, `windows98`: `ClassicyBeep` and four alert tones
   (Chimes, Chord, Ding, Exclamation; `defaultAlert` Ding), synthesized for
   the package (Windows' sounds are Microsoft's), ogg and m4a. The package
@@ -4873,7 +4983,8 @@ one preview iframe across sidebar navigation, so a story visited after a
 
 The Appearance Manager's Themes tab has **Save Theme…** (downloads the
 *active* theme, built-in or custom) and **Load Theme…** (picks a `.json`
-file, imports it, selects it). A load error shows a stop alert with the
+file, imports it, selects it; and, while the active package has a theme
+file importer, a file of another system's format, below). A load error shows a stop alert with the
 reason; a theme for a package that is not installed is refused this way
 before anything is dispatched. A theme for another *installed* package
 switches to that package first (`ClassicyDesktopChangeAppearancePackage`),
@@ -4881,6 +4992,22 @@ then imports, so the active theme and the active look agree. That switch is
 the panel's: a programmatic `ClassicyDesktopImportTheme` leaves `packageId`
 alone. Helpers live in `ClassicyThemeFile.ts`; the schema in
 `ClassicyThemeSchema.ts`.
+
+**Another system's theme files.** A package may read another system's theme
+files (`ClassicyAppearancePackage.themeFileImporter`,
+`ClassicyAppearanceThemeFileImporter`: `{ extensions, read(text, fileName)
+}`, `extensions` lower case with the dot). While it is the active package,
+Load Theme…'s picker accepts those extensions beside JSON
+(`classicyThemeFileAccept(importer)`, `"application/json,.json,.theme"`), a
+file whose name ends in one (case aside, `isClassicyForeignThemeFile`) is
+read as text and handed to `read`, and the theme it returns is validated as
+a Classicy theme file's theme (`parseClassicyForeignThemeFile`, through
+`readClassicyTheme`: unknown keys stripped, every string held to its CSS
+role, its package installed) before `ClassicyDesktopImportTheme` adds it as
+a custom theme; a refusal (`{ ok: false, error }`), a throw or a file over
+the size limit shows in the panel's alert. A package without an importer
+(Platinum, System 7) leaves the picker at JSON and reads every file as one.
+Windows 98's reads Windows `.theme` files (the Windows 98 section).
 
 File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json`:
 
@@ -5008,7 +5135,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (None first, which stores `""`: no picture, the desktop's solid color; then the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`). `bg` is the resolved picture, `""` for none (the picker reads None and the preview shows the desktop color) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies? })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
-| Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
+| Fonts | `useFontsTab({ typography, changeFont, changeFontSize, fontFamilies?, changeFamilyFont?, changeFamilyFontSize? })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`); then a row per package font the theme holds (`typography.families`, labeled by the active package's `fontFamilies`, a size beside each that has one; "Package font families") |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
 | Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.5, and a call without it works as in 3.1) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
@@ -5046,6 +5173,7 @@ Theme-driven variables (values change per theme):
 | Window metrics | `--window-control-size`, `--window-border-size`, `--window-padding-size`, `--window-scrollbar-size`, `--window-scrollbar-arrow-size` |
 | Typography | `--header-font`/`--header-font-size`, `--body-font`/`--body-font-size`, `--ui-font`/`--ui-font-size`, `--mono-font`/`--mono-font-size`, `--digital-font`/`--digital-font-size` |
 | Package colors | `--package-color-<family>-<key>`: the active theme's `color.families` ("Package color families" below), e.g. Platinum's `--package-color-gray-ramp-step2` |
+| Package fonts | `--package-font-<name>`, `-size`, `-weight`: the active theme's `typography.families` ("Package font families"), e.g. Windows 98's `--package-font-menu-size`; none for a theme without them |
 | Desktop | `--desktop-icon-size`, `--desktop-icon-font-size`, `--desktop-background-image`, `--desktop-background-color`, `--desktop-background-repeat`, `--desktop-background-position`, `--desktop-background-size`; fixed: `--icon-small-size` (16px), `--icon-size-regular` (32px) |
 
 **Package color families.** An Appearance Package may declare colors of its
@@ -5133,7 +5261,61 @@ change), the way it declares measurement families. They are additive, 3.5.
   strip drawing its grays through the 50% checker), and
   `controlStrip.pressedGlyphInk` / `pressedGlyphLight` / `pressedGlyphDark`
   (black / #777777 / #222222; white / black / black), a pressed collapse
-  box's glyph darkened, inverted in 1-bit, as 7.5.5 draws it.
+  box's glyph darkened, inverted in 1-bit, as 7.5.5 draws it. **Windows 98**
+  declares `titleBar`, `selection`, `tooltip`, `desktop`, `text`
+  (`button`, `gray`: ButtonText and GrayText), `scrollBar` (`track`:
+  Scrollbar) and `sizingBorder` (`active`, `inactive`: ActiveBorder and
+  InactiveBorder), each scheme's own values from Windows 98 SE's SHELL2.INF
+  (the Windows 98 section below).
+
+**Package font families.** An Appearance Package may hold fonts of its own
+in a theme beside the core typography (`ui`, `header`, `body`, `mono`,
+`digital`, which do not change), the way it holds colors. Additive, 3.8;
+Platinum and System 7 hold none and emit none.
+
+- **Theme data.** `typography.families.<name>`: `{ font, size?, weight? }`
+  (`ClassicyThemeFontFamily`, `ClassicyThemeFontFamilies`,
+  `ClassicyThemeFontFamilies.ts`): `font` a font stack the schema's
+  `fontStack` accepts (family names, quotes and commas), `size` a font size
+  within 8–72 px, `weight` 100 to 900 in hundreds. Names are
+  lowercase-first camelCase (`constructor`, `prototype` and `__proto__`
+  never). Windows 98 holds each scheme's `caption`, `smallCaption`, `menu`,
+  `message` and `icon` fonts there (the icon font's size is the theme's
+  `desktop.iconFontSize`, so it has none).
+- **Variables.** `getThemeVars` emits `--package-font-<name>` (the stack),
+  `--package-font-<name>-size` (px, when set) and
+  `--package-font-<name>-weight` (when set), kebab-cased
+  (`classicyFontFamilyVars`, `classicyFontFamilyVarName`): `smallCaption` →
+  `--package-font-small-caption`. The prefix
+  (`CLASSICY_PACKAGE_FONT_VAR_PREFIX`) is reserved whole
+  (`isReservedClassicyThemeVar`), so no measurement family makes one; two
+  names that make one variable (`smallCaption`'s size and a family
+  `smallCaptionSize`) keep the first in key order, one warning. A malformed
+  entry, an unsafe stack, a size or weight out of bounds emits nothing.
+  Read them from a package's own stylesheet with a core fallback, a
+  typography variable for a stack or a size and a keyword for a weight
+  (`var(--package-font-menu, var(--ui-font))`,
+  `var(--package-font-menu-weight, normal)`): the var-coverage test
+  requires it.
+- **Package metadata.** `ClassicyAppearancePackage.fontFamilies`
+  (`ClassicyAppearanceFontFamilies`): name → `{ label }`. The package
+  schema refuses a declared font that `defaults.typography.families` holds
+  no value for.
+- **Editing.** The Fonts tab adds a row per family the active theme holds
+  after the core rows, in the declared order and labeled by it (else by
+  name; `listClassicyThemeFontFamilies`): a family pop-up (the font
+  registry) and a size spinner when the entry has a size. They dispatch
+  `ClassicyDesktopChangeFont { family, font }` and
+  `ClassicyDesktopChangeFontSize { family, fontSize }` (predicates
+  `hasFontFamilyFont`, `hasFontFamilySize`), which edit only a family the
+  active theme holds, checked before the edit so a refused change never
+  forks a built-in; the `fontType` forms are unchanged. The weight is the
+  theme's.
+- **Persistence and theme files.** The families are stored, exported and
+  imported with the theme, whole (`ClassicyThemeSchema` keeps them,
+  optional; a build without the capability strips them and loads the theme
+  in the core fonts). A theme without them is not completed from its
+  package: every read has its core fallback.
 
 **Layout metrics** are theme data too. The inputs live in the theme JSON under
 `measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,
@@ -5267,17 +5449,21 @@ literals.
   row's (rows step by `desktop.iconSize` plus it, so the pitch follows an
   edited icon size; the metrics' `rowPitch`), and `top`, the first row's
   top for a top origin and the highest a bottom origin's row goes (the
-  metrics' `top`). Each is read from the theme completed by its package's
+  metrics' `top`), and `columnGap`, the room beside an icon's box before the
+  next column's (columns step by `desktop.iconSize` plus it; the metrics'
+  `columnPitch`). Each is read from the theme completed by its package's
   defaults (`withDefaultThemeMetrics(theme,
   classicyThemeMeasurementDefaults(theme.package))`, as `getThemeVars`
   reads every knob), so a saved Custom theme, which persistence stores
   without the values equal to those defaults, keeps its package's rows.
   Each counts when that value is a finite number of zero or more; unset in
-  the theme and in its package, rows step by `cell + padding` from
-  `4 × padding`, as columns always do, so Platinum, which sets neither,
-  lays its desktop out as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
+  the theme and in its package, rows and columns step by `cell + padding`,
+  rows from `4 × padding`, so Platinum, which sets none, lays its desktop
+  out as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
   tops at y 60, 112, 164, 216 under its 20 px bar, a 52 px pitch for its
-  32 px icons; `*-desktop-menubar-icons.png`).
+  32 px icons; `*-desktop-menubar-icons.png`). Windows 98 sets `rowGap` and
+  `columnGap` 43 over its 32 px icons, Windows' 75 px IconSpacing both ways
+  (Wine `sysparams.c`, 1125 twips).
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
@@ -6030,8 +6216,9 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 43 sites over 11 files, the sites kept on purpose
-(Part G), the H-R7 and H-R21 geometry and the button spacing scale:
+the list ends at these 46 sites over 14 files, the sites kept on purpose
+(Part G), the H-R7 and H-R21 geometry, two on/off switches and the button
+spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
   `--desktop-icon-size` per icon, and the root's `--desktop-icon-cell` would
@@ -6054,6 +6241,15 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   triangle, the dotted group box and separator), one-pixel rectangles on
   the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
   Strip's.
+- Windows 98's `_pixel.scss`, the one `pixel-unit × n` in its `px()`
+  helper: the title-bar buttons' marks, the scroll arrows, the check, the
+  radio ring and dot, the pop-up and menu arrows and the slider's thumb,
+  one-pixel rectangles on the art's grid (H-R7), as System 7's.
+- Windows 98's two switches, each a knob of 0 or 1 times ten thousand
+  pixels: `_Desktop.scss`'s label shadow (`desktopLabel.shadow`; at 0 the
+  shadow is sent out of the desktop) and `_ScrollBar.scss`'s solid track
+  (`scrollBar.solidTrack`; the inset fill's spread, nothing at 0 and the
+  whole track at 1). On/off switches, not theme proportions (H-R7).
 - Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
   helper: the slider drawn pixel for pixel from HIGOS8 Figures 2-18 and
   2-19 at rest (the channel and its caps, the indicator, the knob, the

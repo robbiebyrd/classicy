@@ -3,7 +3,10 @@
 // structure, with the default package's art where Windows 98 registers none.
 import {
 	ClassicyBalloonHelp,
+	ClassicyBevelButton,
 	ClassicyButton,
+	ClassicyButtonToolbar,
+	ClassicyButtonToolbarGroup,
 	ClassicyCheckbox,
 	ClassicyInput,
 	ClassicyListBox,
@@ -18,6 +21,7 @@ import {
 	ClassicyTable,
 	ClassicyTree,
 	ClassicyWindow,
+	resolveClassicyAsset,
 } from "@classicy/classicy";
 import { StoryApp } from "@sb/helpers";
 import { inScheme, windows98Parameters } from "@sb/windows98";
@@ -90,6 +94,62 @@ export const Brick: Story = inScheme("windows98Brick", () => (
 /** The "Rainy Day" scheme. */
 export const RainyDay: Story = inScheme("windows98RainyDay", () => (
 	<Windows98Window />
+));
+
+/**
+ * "High Contrast Black", one of Windows 98 SE's High Contrast schemes: white
+ * text on black, the bevels in ButtonHilight 192 and ButtonShadow 128, dimmed
+ * text green, a solid black scroll track (ButtonHilight is not Window).
+ */
+export const HighContrastBlack: Story = inScheme(
+	"windows98HighContrastBlack",
+	() => <Windows98Window />,
+);
+
+/**
+ * "Eggplant": Times New Roman in its menus and message boxes, a solid
+ * scroll track in its own Scrollbar color, flat captions, as Windows 98 SE
+ * stores the scheme.
+ */
+export const Eggplant: Story = inScheme("windows98Eggplant", () => (
+	<Windows98Window />
+));
+
+// A toolbar (the WIG's Figure 7.34): flat buttons under Windows 98's
+// schemes (TBSTYLE_FLAT), raised ones under Windows 95's; a disabled
+// button's image embossed in ButtonShadow over ButtonHilight (DSS_DISABLED).
+function Windows98Toolbar() {
+	const icon = resolveClassicyAsset("icons", "system.info") ?? "";
+	return (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="windows98-toolbar"
+				appId="storybook.app"
+				title="Exploring - My Computer"
+				initialSize={[360, 140]}
+				initialPosition={[80, 60]}
+			>
+				<ClassicyButtonToolbar>
+					<ClassicyButtonToolbarGroup>
+						<ClassicyBevelButton icon={icon} iconAlt="Back" />
+						<ClassicyBevelButton icon={icon} iconAlt="Forward" disabled />
+					</ClassicyButtonToolbarGroup>
+					<ClassicyButtonToolbarGroup>
+						<ClassicyBevelButton icon={icon} iconAlt="Up" />
+						<ClassicyBevelButton icon={icon} iconAlt="Views" />
+					</ClassicyButtonToolbarGroup>
+				</ClassicyButtonToolbar>
+			</ClassicyWindow>
+		</StoryApp>
+	);
+}
+
+/** Windows 98's flat toolbar buttons, a disabled one embossed. */
+export const Toolbar: Story = { render: () => <Windows98Toolbar /> };
+
+/** Windows 95's raised toolbar buttons (the audit's 7.23). */
+export const ToolbarWindows95: Story = inScheme("windows95", () => (
+	<Windows98Toolbar />
 ));
 
 // File and Edit menus modeled on Windows 98 Notepad's: the access keys
