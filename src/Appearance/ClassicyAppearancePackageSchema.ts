@@ -5,6 +5,7 @@ import { isThemeColorTarget } from "@/SystemFolder/ControlPanels/AppearanceManag
 import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { ClassicyPackageThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicySoundPackSchema } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type {
 	ClassicyAppearanceKnobs,
 	ClassicyAppearanceLayout,
@@ -120,7 +121,13 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	finder: z
 		.object({ commands: z.enum(["mac", "windows"]).optional() })
 		.optional(),
-	files: z.object({ names: z.enum(["mac", "windows"]).optional() }).optional(),
+	files: z
+		.object({
+			names: z.enum(["mac", "windows"]).optional(),
+			unregisteredOpen: z.enum(["default", "openWith"]).optional(),
+			extensions: z.enum(["shown", "hideRegistered"]).optional(),
+		})
+		.optional(),
 	fileList: z.object({ foldersFirst: z.boolean().optional() }).optional(),
 	tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),
 	balloonHelp: z
@@ -358,6 +365,50 @@ const appsWithoutForbiddenKeys = z.custom<z.input<typeof appsRecord>>(
 	{ error: `app ids ${FORBIDDEN_KEY_ERROR}` },
 );
 
+// A file type's name, shown in a list view's Kind column and a property
+// sheet's Type (`fileTypeNames`; WIG Ch.10 "The Application Identifier
+// Key", pp.197-198: "a title-case name of at most 40 characters"): a display
+// name's rules (no surrounding spaces, no control, bidi or invisible
+// character), at most 40 characters, every word beginning with a character
+// that is not a lower-case letter ("Text Document", "PDF Document").
+const FILE_TYPE_NAME_ERROR =
+	"must be a title-case type name (every word capitalized)";
+const fileTypeName = z
+	.string()
+	.min(1)
+	.max(40)
+	.refine(
+		(name) =>
+			name === name.trim() &&
+			!hasUnsafeCharacter(name) &&
+			name.split(/\s+/u).every((word) => !/^\p{Ll}/u.test(word)),
+		{ error: FILE_TYPE_NAME_ERROR },
+	);
+
+const fileTypeNamesRecord = z.partialRecord(
+	z.enum(
+		Object.values(ClassicyFileSystemEntryFileType) as [
+			ClassicyFileSystemEntryFileType,
+			...ClassicyFileSystemEntryFileType[],
+		],
+	),
+	fileTypeName,
+);
+
+// As for `apps`: an own `__proto__` key would be skipped by the record
+// without an issue, so the raw input's keys are checked first.
+const fileTypeNamesWithoutForbiddenKeys = z.custom<
+	z.input<typeof fileTypeNamesRecord>
+>(
+	(value) =>
+		typeof value !== "object" ||
+		value === null ||
+		!Reflect.ownKeys(value).some(
+			(key) => typeof key === "string" && FORBIDDEN_KEYS.has(key),
+		),
+	{ error: `file types ${FORBIDDEN_KEY_ERROR}` },
+);
+
 /**
  * Everything in a `ClassicyAppearancePackage` but `css`, `options` and
  * `hooks` (code and compiled CSS, which no schema can vouch for). Unknown
@@ -465,6 +516,12 @@ export const ClassicyAppearancePackageSchema = z
 			.optional()
 			.describe(
 				"Per-app display overrides keyed by app id (\"MoviePlayer.app\"): a name, icon or balloon description shown in place of the app's own. Display only; the app's id, action types and saved state keep its own identity.",
+			),
+		fileTypeNames: fileTypeNamesWithoutForbiddenKeys
+			.pipe(fileTypeNamesRecord)
+			.optional()
+			.describe(
+				'Names for file types, keyed by type ("text_file"), shown in a list view\'s Kind column and a property sheet\'s Type in place of the core\'s ("Text file"): title case, at most 40 characters. Display only.',
 			),
 		iconDimming: iconDimming
 			.optional()

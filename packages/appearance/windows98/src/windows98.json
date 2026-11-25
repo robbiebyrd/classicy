@@ -8808,7 +8808,9 @@
 			"commands": "windows"
 		},
 		"files": {
-			"names": "windows"
+			"names": "windows",
+			"unregisteredOpen": "openWith",
+			"extensions": "hideRegistered"
 		},
 		"fileBrowser": {
 			"keys": "windows",

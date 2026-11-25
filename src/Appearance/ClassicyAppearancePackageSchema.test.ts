@@ -313,6 +313,41 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// What opening an unregistered type does and whether extensions show
+	// (the remaining chapters' audit's 10.1 and 10.8; WIG Ch.10
+	// "Registering File Extensions", p.192, "System Naming Conventions",
+	// p.210): files.unregisteredOpen and files.extensions, optional, in the
+	// files group.
+	it("takes optional files.unregisteredOpen and files.extensions, and refuses other values", () => {
+		for (const [key, values] of [
+			["unregisteredOpen", ["default", "openWith"]],
+			["extensions", ["shown", "hideRegistered"]],
+		] as const) {
+			for (const value of values) {
+				const input = platinumShaped();
+				(input.layout as Record<string, unknown>).files = {
+					names: "windows",
+					[key]: value,
+				};
+				const result = ClassicyAppearancePackageSchema.safeParse(input);
+				expect(result.success, value).toBe(true);
+				expect(result.data?.layout.files).toEqual({
+					names: "windows",
+					[key]: value,
+				});
+			}
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).files = { [key]: "sometimes" };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				"files",
+				key,
+			]);
+		}
+	});
+
 	// Which key a Command equivalent answers to (the remaining chapters'
 	// audit's 4.19; WIG Ch.4 "Shortcut Keys", p.28): keyboard.command,
 	// optional, beside contextMenuKey in the keyboard group.
@@ -918,5 +953,53 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["Plays movies and sound."],
 	])("accepts the description %j", (description) => {
 		expect(appsIssues({ "A.app": { description } })).toEqual([]);
+	});
+});
+
+// The remaining chapters' audit's 10.2 (WIG Ch.10 "The Application
+// Identifier Key", pp.197-198): a package's names for the file types, keyed
+// by type, title case and 40 characters at most.
+describe("ClassicyAppearancePackageSchema fileTypeNames", () => {
+	const withNames = (fileTypeNames: unknown) => ({
+		...platinumShaped(),
+		fileTypeNames,
+	});
+
+	it("takes title-case names of the file types", () => {
+		const names = {
+			directory: "File Folder",
+			text_file: "Text Document",
+			pdf: "PDF Document",
+			stack: "HyperCard Stack",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(withNames(names));
+		expect(result.success).toBe(true);
+		expect(result.data?.fileTypeNames).toEqual(names);
+		expect(
+			ClassicyAppearancePackageSchema.safeParse(platinumShaped()).data
+				?.fileTypeNames,
+		).toBeUndefined();
+	});
+
+	it("refuses an unknown type, a lower-case word, a long or padded name, an unsafe character", () => {
+		for (const names of [
+			{ spreadsheet: "Spreadsheet" },
+			{ text_file: "Text document" },
+			{ text_file: "text Document" },
+			{ text_file: "T".repeat(41) },
+			{ text_file: " Text Document" },
+			{ text_file: "" },
+			{ text_file: "Text\u202eDocument" },
+		]) {
+			expect(
+				ClassicyAppearancePackageSchema.safeParse(withNames(names)).success,
+				JSON.stringify(names),
+			).toBe(false);
+		}
+		expect(
+			ClassicyAppearancePackageSchema.safeParse(
+				withNames(JSON.parse('{"__proto__":"Bad","directory":"File Folder"}')),
+			).success,
+		).toBe(false);
 	});
 });

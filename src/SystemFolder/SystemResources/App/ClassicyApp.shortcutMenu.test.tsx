@@ -60,6 +60,18 @@ describe("ClassicyApp's desktop icon menu", () => {
 			expect(
 				useAppManager.getState().System.Manager.Applications.apps[APP.id]?.open,
 			).toBe(true);
+			// Properties last (the remaining chapters' audit's 2.2), a stored
+			// event for the application's sheet.
+			expect(appIcon()?.contextMenu?.slice(1)).toEqual([
+				{ id: "spacer" },
+				{
+					id: `${APP.id}_desktop_icon_properties`,
+					title: "Properties",
+					accessKey: "r",
+					event: "ClassicyAppFinderPropertiesOpen",
+					eventData: { appId: APP.id },
+				},
+			]);
 			restore();
 			restored = true;
 			view.rerender(<ClassicyApp {...APP} />);

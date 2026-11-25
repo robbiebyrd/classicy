@@ -79,6 +79,15 @@ const frozenAppsCopy = (
 	return Object.freeze(copy);
 };
 
+/**
+ * A frozen copy of a package's validated `fileTypeNames`, as `apps` is
+ * kept: a later change to the caller's object never reaches the registry.
+ */
+const frozenFileTypeNamesCopy = (
+	names: NonNullable<ClassicyAppearancePackage["fileTypeNames"]>,
+): NonNullable<ClassicyAppearancePackage["fileTypeNames"]> =>
+	Object.freeze({ ...names });
+
 // Savers register before their package (as Platinum's assets do), so the
 // check can run here; the package registers either way.
 const warnOnUnusableDefaultScreenSaver = (pkg: ClassicyAppearancePackage) => {
@@ -100,8 +109,9 @@ const warnOnUnusableDefaultScreenSaver = (pkg: ClassicyAppearancePackage) => {
  * `css`, `options` and `hooks`); an invalid one is logged as an error and not
  * registered. On success its CSS is injected (`injectClassicyAppearanceStyles`)
  * and the package object itself is stored, except that a package with `apps`
- * is stored as a shallow copy whose `apps` is a frozen copy of the validated
- * value: mutating the caller's `apps` afterward changes nothing.
+ * or `fileTypeNames` is stored as a shallow copy whose `apps` and
+ * `fileTypeNames` are frozen copies of the validated values: mutating the
+ * caller's objects afterward changes nothing.
  * Re-registering an id replaces the package and keeps its position.
  */
 export function registerClassicyAppearancePackage(
@@ -125,9 +135,18 @@ export function registerClassicyAppearancePackage(
 	injectClassicyAppearanceStyles(pkg.id, pkg.css);
 	warnOnUnusableDefaultScreenSaver(pkg);
 	const apps = parsed.data?.apps;
+	const fileTypeNames = parsed.data?.fileTypeNames;
 	registry.set(
 		pkg.id,
-		apps === undefined ? pkg : { ...pkg, apps: frozenAppsCopy(apps) },
+		apps === undefined && fileTypeNames === undefined
+			? pkg
+			: {
+					...pkg,
+					...(apps === undefined ? {} : { apps: frozenAppsCopy(apps) }),
+					...(fileTypeNames === undefined
+						? {}
+						: { fileTypeNames: frozenFileTypeNamesCopy(fileTypeNames) }),
+				},
 	);
 	publish();
 }

@@ -15,6 +15,7 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type {
 	ClassicyPatternOrigin,
 	ClassicyPatternOriginComponent,
@@ -361,8 +362,14 @@ export type ClassicyAppearanceLayout = {
 		 * makes a folder or a registered document type (`registerApp`'s
 		 * `creates`) and starts its name's edit; an Extension's menu leads
 		 * with Properties, its control panel, which a double-click opens; app
-		 * shortcuts and drives lead with Open too. `"mac"` and absent keep
-		 * Mac OS 8's menus byte for byte.
+		 * shortcuts and drives lead with Open too. Properties ends every
+		 * item's, drive's, app shortcut's and the Trash's menu and sits in
+		 * the File menu (WIG Ch.2 "Putting Theory into Practice" (pp.12-13),
+		 * Ch.5 "Properties" (p.51)): it opens the item's property sheet
+		 * (`ClassicyFilePropertiesWindow`), as Alt+Enter and an Alt
+		 * double-click do, and the empty desktop's opens the Appearance
+		 * control panel on its Desktop tab. `"mac"` and absent keep Mac OS
+		 * 8's menus byte for byte.
 		 */
 		commands?: "mac" | "windows";
 	};
@@ -383,6 +390,32 @@ export type ClassicyAppearanceLayout = {
 		 * (3)"…, selected.
 		 */
 		names?: "mac" | "windows";
+		/**
+		 * What opening a file no application but the Finder opens does.
+		 * `"default"` (the default, Mac OS 8's Finder): the Finder's own
+		 * plain file window, else the alert "Finder cannot open the file
+		 * type you requested.". `"openWith"` (WIG Ch.10 "Registering File
+		 * Extensions" (p.192): an unregistered type's default command is
+		 * Open With; Windows 98 SE's dialog, shell32.dll): Finder's Open With
+		 * dialog (`ClassicyOpenWithDialog`) lists the applications that open
+		 * files, opens the file in the one chosen under the trust the open
+		 * arrived with, and with "Always use this program to open this type
+		 * of file" checked makes it the type's handler; Explorer's commands
+		 * title the item's first menu command "Open With…".
+		 */
+		unregisteredOpen?: "default" | "openWith";
+		/**
+		 * Whether names show their extension. `"shown"` (the default, Mac OS
+		 * 8): every surface shows the stored name. `"hideRegistered"` (WIG
+		 * Ch.10 "System Naming Conventions" (p.210); Windows 98's Folder
+		 * Options "Hide file extensions for known file types", on by
+		 * default): a file whose type an application other than the Finder
+		 * opens is shown without its final extension
+		 * (`classicyDisplayFileName`) in the folder views, on the desktop and
+		 * in its property sheet, a rename editing the shown name and keeping
+		 * the extension; Finder Preferences offers the check box.
+		 */
+		extensions?: "shown" | "hideRegistered";
 	};
 	/**
 	 * How the file browser (`ClassicyFileBrowser`, the Finder's windows)
@@ -964,6 +997,17 @@ export type ClassicyAppearancePackage = {
 	sounds?: ClassicySoundPack[];
 	/** Per-app display overrides keyed by app id (`"MoviePlayer.app"`); read with `useClassicyAppIdentity`. */
 	apps?: Readonly<Record<string, ClassicyAppIdentityOverride>>;
+	/**
+	 * Names for file types, keyed by type (`"text_file"`), shown in place of
+	 * the core's ("Text file") in a list view's Kind column and a property
+	 * sheet's Type (`fileTypeDisplayName`, `useClassicyFileTypeDisplayName`;
+	 * WIG Ch.10 "The Application Identifier Key" (pp.197-198): a title-case
+	 * name of at most 40 characters). Display only; stored as a frozen copy.
+	 * Windows 98 names Windows' ("File Folder", "Text Document").
+	 */
+	fileTypeNames?: Readonly<
+		Partial<Record<ClassicyFileSystemEntryFileType, string>>
+	>;
 	/**
 	 * The id of the screen saver this package prefers: in effect when the
 	 * user's stored choice is not offered under the package. A registered saver

@@ -172,6 +172,12 @@ interface ClassicyIconProps {
 	 * (`onRenameCancel`). Clicks and keys inside the field stay in it.
 	 */
 	renaming?: boolean;
+	/**
+	 * With `renaming`: the text the field starts with, selected. Defaults to
+	 * `name`. The file browser's icon view passes the shown name, a hidden
+	 * extension left off (`layout.files.extensions`), and puts it back.
+	 */
+	renameText?: string;
 	/** With `renaming`: the new name, when committed. */
 	onRenameCommit?: (name: string) => void;
 	/** With `renaming`: Escape. */
@@ -258,6 +264,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	listOption = false,
 	tabStop = true,
 	renaming = false,
+	renameText,
 	onRenameCommit,
 	onRenameCancel,
 	className,
@@ -499,7 +506,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const labelEl = renaming ? (
 		<ClassicyRenameField
 			className={"classicyIconRename"}
-			name={name}
+			name={renameText ?? name}
 			onCommit={(value) => onRenameCommit?.(value)}
 			onCancel={() => onRenameCancel?.()}
 		/>

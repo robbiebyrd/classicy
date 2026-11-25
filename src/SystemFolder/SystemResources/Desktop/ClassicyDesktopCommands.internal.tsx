@@ -1,5 +1,10 @@
 import { useMemo } from "react";
 import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import {
+	APPEARANCE_MANAGER_APP_ID,
+	APPEARANCE_MANAGER_DESKTOP_TAB,
+	APPEARANCE_MANAGER_TABS_KEY,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
@@ -30,11 +35,17 @@ import {
 	ensureClassicyDesktopFolder,
 	moveClassicyItemsToTrash,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import {
+	CLASSICY_PROPERTIES_TITLE,
+	classicyDesktopIconPropertiesTarget,
+	classicyPropertiesOpenAction,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileProperties";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { openClassicyAppAtTab } from "@/SystemFolder/SystemResources/Tabs/useClassicySessionTab";
 
 /** The desktop's Explorer commands (`useClassicyDesktopCommands`). */
 export type ClassicyDesktopCommands = {
@@ -42,14 +53,14 @@ export type ClassicyDesktopCommands = {
 	 * The desktop's File, Edit and View menus (ids `finder_file`,
 	 * `finder_edit`, `finder_view`, the ids of the desktop's own), for
 	 * `Desktop.appMenu` and the headless bar's chords: File ▸ Open ⌃O, New ▸,
-	 * Create Shortcut, Delete (Del) and Rename; Edit ▸ Select All ⌃A; View ▸
-	 * Arrange Icons ▸ and Line Up Icons.
+	 * Create Shortcut, Delete (Del), Rename and Properties; Edit ▸ Select
+	 * All ⌃A; View ▸ Arrange Icons ▸ and Line Up Icons.
 	 */
 	barMenu?: ClassicyMenuItem[];
 	/**
 	 * The desktop's white-space menu, opened at the client point `at`:
-	 * Arrange Icons ▸, Line Up Icons and New ▸, a new item's icon going to
-	 * `at`.
+	 * Arrange Icons ▸, Line Up Icons, New ▸ (a new item's icon going to
+	 * `at`) and Properties (Display Properties).
 	 */
 	whiteSpaceMenu?: (at: [number, number]) => ClassicyMenuItem[];
 };
@@ -157,10 +168,16 @@ export const classicyOpenDesktopIcon = (
  *   hold no size or date) and Line Up Icons (each icon to its nearest free
  *   cell, `ClassicyDesktopIconLineUp`).
  *
+ * - Properties: the selected icons' property sheet
+ *   (`ClassicyAppFinderPropertiesOpen`, `classicyDesktopIconPropertiesTarget`);
+ *   with none selected, and on the white space, Display Properties: the
+ *   Appearance control panel opened on its Desktop tab
+ *   (`openClassicyAppAtTab`), or brought forward as it stands when open.
+ *
  * Windows 98 SE's desktop menu also held Active Desktop ▸, Refresh, Undo,
- * Paste, Paste Shortcut and Properties; Refresh has nothing to do in a live
- * tree, Classicy has no file undo, and Paste, Paste Shortcut and
- * Properties are other items' (they add to these menus).
+ * Paste and Paste Shortcut; Refresh has nothing to do in a live tree,
+ * Classicy has no file undo, and Paste and Paste Shortcut are another
+ * item's (they add to these menus).
  */
 export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 	const windowsCommands = useClassicyWindowsFinderCommands();
@@ -233,6 +250,37 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 					.map((icon) => icon.appId),
 			});
 		};
+		// Explorer's Properties (WIG Ch.2 pp.12-13; Ch.5 "Properties",
+		// p.51): the desktop's Display Properties (the Appearance control
+		// panel on its Desktop tab), or the selected icons' sheet.
+		const displayProperties = () => {
+			openClassicyAppAtTab(
+				dispatch,
+				APPEARANCE_MANAGER_APP_ID,
+				APPEARANCE_MANAGER_TABS_KEY,
+				APPEARANCE_MANAGER_DESKTOP_TAB,
+			);
+		};
+		const properties = () => {
+			const desktop = useAppManager.getState().System.Manager.Desktop;
+			const selected = selectedDesktopIcons();
+			const target =
+				selected.length > 0
+					? classicyDesktopIconPropertiesTarget(
+							desktop.icons,
+							desktop.selectedIcons ?? [],
+							selected[0].appId,
+						)
+					: undefined;
+			if (target) dispatch(classicyPropertiesOpenAction(target));
+			else displayProperties();
+		};
+		const propertiesItem = (id: string, onProperties: () => void) => ({
+			id: `${id}_properties`,
+			title: CLASSICY_PROPERTIES_TITLE,
+			...key("r"),
+			onClickFunc: onProperties,
+		});
 		const arrangeItems = (id: string): ClassicyMenuItem[] => [
 			classicyArrangeIconsMenuItem(id, ak, ["name", "kind"], (by) =>
 				dispatch({ type: "ClassicyDesktopIconSort", sortBy: by }),
@@ -263,6 +311,7 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 					classicyCreateShortcutMenuItem("finder_file", ak, createShortcut),
 					classicyDeleteMenuItem("finder_file", ak, remove),
 					classicyRenameMenuItem("finder_file", ak, rename),
+					propertiesItem("finder_file", properties),
 				],
 			},
 			{
@@ -292,6 +341,8 @@ export const useClassicyDesktopCommands = (): ClassicyDesktopCommands => {
 			classicyNewMenuItem("finder_desktop", ak, creatableTypes, (what) =>
 				newItem(what, at),
 			),
+			{ id: "spacer" },
+			propertiesItem("finder_desktop", displayProperties),
 		];
 		return { barMenu, whiteSpaceMenu };
 	}, [windowsCommands, ak, dispatch, getFileSystem, creatableTypes]);

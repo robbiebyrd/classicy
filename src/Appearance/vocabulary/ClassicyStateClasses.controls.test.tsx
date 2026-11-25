@@ -23,6 +23,9 @@ vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	() => ({
 		useAppManagerDispatch: () => vi.fn(),
+		// An empty store: the list view reads how names are shown
+		// (`useClassicyDisplayFileName`) from it.
+		useAppManager: (selector: (state: unknown) => unknown) => selector({}),
 	}),
 );
 vi.mock(

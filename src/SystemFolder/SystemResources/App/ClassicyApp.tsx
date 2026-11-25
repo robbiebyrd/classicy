@@ -191,7 +191,10 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	// icons store none (null clears one a Windows session stored).
 	const windowsCommands =
 		useClassicyAppearanceLayout().finder?.commands === "windows";
-	const openAccessKey = useClassicyBundledAccessKeys()("o");
+	const bundledAccessKey = useClassicyBundledAccessKeys();
+	const openAccessKey = bundledAccessKey("o");
+	// Properties' (shell32.dll's "P&roperties"), the menu's last command.
+	const propertiesAccessKey = bundledAccessKey("r");
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: contextMenu is intentionally omitted to prevent re-firing with inline menu literals
 	useEffect(() => {
@@ -251,6 +254,18 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 											app: { id, name, icon },
 										},
 									},
+									// Explorer's Properties, last (WIG Ch.5
+									// "Properties", p.51): the application's sheet.
+									{ id: "spacer" },
+									{
+										id: `${id}_desktop_icon_properties`,
+										title: "Properties",
+										...(propertiesAccessKey !== undefined
+											? { accessKey: propertiesAccessKey }
+											: {}),
+										event: "ClassicyAppFinderPropertiesOpen",
+										eventData: { appId: id },
+									},
 								],
 							}
 						: // A Windows session's stored Open (this menu, never one a
@@ -307,6 +322,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		icon,
 		windowsCommands,
 		openAccessKey,
+		propertiesAccessKey,
 	]);
 
 	// Runtime presence, separate from the persisted app record: Control Strip

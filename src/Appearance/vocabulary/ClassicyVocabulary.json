@@ -314,6 +314,17 @@
 			"WellColumns",
 			"WellViewport"
 		],
+		"FileProperties": [
+			"Attributes",
+			"Buttons",
+			"General",
+			"Head",
+			"Icon",
+			"Label",
+			"Name",
+			"Rows",
+			"Value"
+		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
 		"HyperCard": [
@@ -408,6 +419,7 @@
 			"Value"
 		],
 		"NoAppearancePackage": ["Body", "Code", "Heading", "Message"],
+		"OpenWithDialog": ["Buttons", "Icon", "Prompt", "Top"],
 		"Output": ["Inset", "Mono", "Plain"],
 		"Pager": ["Arrow", "ArrowNext", "ArrowPrev", "Page"],
 		"PictureViewer": ["Image"],

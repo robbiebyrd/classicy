@@ -120,3 +120,122 @@ export const classicyFirstFreeName = (
 		if (!fs.resolve(`${folder}${fs.separator}${candidate}`)) return candidate;
 	}
 };
+
+/** The Finder's id: a type only it opens is no registered type. */
+const FINDER_APP_ID = "Finder.app";
+
+/** The types no extension is ever hidden from: folders and drives. */
+const NEVER_HIDDEN_TYPES: ReadonlySet<string> = new Set(["directory", "drive"]);
+
+/**
+ * What counts as an extension to hide: a final `.` and one to five ASCII
+ * letters or digits, at least one a letter, after a name of its own
+ * ("Read Me.txt", "BuckBunny.mov"), so "Version 1.2" and ".profile" keep
+ * their whole text.
+ */
+const HIDEABLE_EXTENSION =
+	/(?<=.)\.(?=[A-Za-z0-9]{0,4}[A-Za-z])[A-Za-z0-9]{1,5}$/;
+
+/**
+ * Whether `layout` hides registered types' extensions
+ * (`files.extensions` `"hideRegistered"`) and the user has not turned it
+ * off (Finder Preferences' "Hide file extensions for known file types",
+ * `hideFileExtensions`, on unless false).
+ */
+export const classicyFileExtensionsHidden = (
+	layout: Pick<ClassicyAppearanceLayout, "files">,
+	hideFileExtensions: boolean = true,
+): boolean =>
+	layout.files?.extensions === "hideRegistered" && hideFileExtensions;
+
+/**
+ * Whether files of `type` are a registered type: one an application other
+ * than the Finder opens (`fileTypeHandlers`, the kernel's handler map, as
+ * `ClassicyAppRegisterFileTypes` and `ClassicyAppSetDefaultFileTypeHandler`
+ * write it; WIG Ch.10 "Registering File Extensions", p.192).
+ */
+export const classicyFileTypeIsRegistered = (
+	type: string | undefined,
+	fileTypeHandlers: Readonly<Partial<Record<string, string>>> | undefined,
+): boolean => {
+	if (type === undefined || !fileTypeHandlers) return false;
+	if (!Object.hasOwn(fileTypeHandlers, type)) return false;
+	const handler = fileTypeHandlers[type];
+	return typeof handler === "string" && handler !== FINDER_APP_ID;
+};
+
+/** Options for `classicyDisplayFileName` and `classicyHiddenFileExtension`. */
+export type ClassicyDisplayFileNameOptions = {
+	/**
+	 * The kernel's handler map (`System.Manager.Applications.fileTypeHandlers`).
+	 * Omitted, no type counts as registered, so every name shows whole.
+	 */
+	fileTypeHandlers?: Readonly<Partial<Record<string, string>>>;
+	/**
+	 * The user's Finder Preferences choice, "Hide file extensions for known
+	 * file types" (Finder's `hideFileExtensions`). Defaults to true.
+	 */
+	hideFileExtensions?: boolean;
+};
+
+/**
+ * The final extension of `name` with its dot (".txt"), or `""`, when `entry`
+ * is a file (never a folder or a drive) of a registered type
+ * (`classicyFileTypeIsRegistered`): the extension Windows hides. Pure; the
+ * layout and the user's choice are `classicyHiddenFileExtension`'s.
+ */
+export const classicyRegisteredFileExtension = (
+	name: string,
+	entry: { _type?: string } | undefined,
+	fileTypeHandlers: Readonly<Partial<Record<string, string>>> | undefined,
+): string => {
+	const type = entry?._type;
+	if (type === undefined || NEVER_HIDDEN_TYPES.has(type)) return "";
+	if (!classicyFileTypeIsRegistered(type, fileTypeHandlers)) return "";
+	return HIDEABLE_EXTENSION.exec(name)?.[0] ?? "";
+};
+
+/**
+ * The extension `name` is shown without under `packageId`'s package (the
+ * active one when omitted), with its dot (".txt"), or `""`: under
+ * `layout.files.extensions` `"hideRegistered"` (WIG Ch.10 "System Naming
+ * Conventions", p.210), the final extension of a file, never a folder or a
+ * drive, whose type an application other than the Finder opens. A rename
+ * edits the name without it and puts it back. Store-free.
+ */
+export const classicyHiddenFileExtension = (
+	name: string,
+	entry: { _type?: string } | undefined,
+	packageId?: string,
+	{
+		fileTypeHandlers,
+		hideFileExtensions = true,
+	}: ClassicyDisplayFileNameOptions = {},
+): string => {
+	if (
+		!classicyFileExtensionsHidden(
+			getClassicyAppearanceLayout(packageId),
+			hideFileExtensions,
+		)
+	)
+		return "";
+	return classicyRegisteredFileExtension(name, entry, fileTypeHandlers);
+};
+
+/**
+ * `name` as `packageId`'s package (the active one when omitted) shows it:
+ * without its extension where `classicyHiddenFileExtension` hides one, else
+ * as stored. Store-free (the handler map and the user's choice come in
+ * `options`); components use `useClassicyDisplayFileName`.
+ */
+export const classicyDisplayFileName = (
+	name: string,
+	entry: { _type?: string } | undefined,
+	packageId?: string,
+	options: ClassicyDisplayFileNameOptions = {},
+): string =>
+	name.slice(
+		0,
+		name.length -
+			classicyHiddenFileExtension(name, entry, packageId, options).length,
+	);

@@ -11,10 +11,15 @@ import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import {
 	CLASSICY_WINDOWS_FILE_NAME_REFUSAL,
 	CLASSICY_WINDOWS_FORBIDDEN_FILE_NAME_CHARACTERS,
+	classicyDisplayFileName,
+	classicyFileExtensionsHidden,
 	classicyFileNameRefusal,
+	classicyFileTypeIsRegistered,
 	classicyFirstFreeName,
 	classicyFirstFreeNameAmong,
 	classicyForbiddenFileNameCharacters,
+	classicyHiddenFileExtension,
+	classicyRegisteredFileExtension,
 	classicyWindowsFileNames,
 	isClassicyValidFileName,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileNames";
@@ -25,7 +30,11 @@ import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/Classicy
 // mark too, as Windows 98 shipped) and number a clash "New Folder (2)";
 // Mac OS 8's refuse the separator alone.
 
-const registerPackage = (id: string, names?: "mac" | "windows") =>
+const registerPackage = (
+	id: string,
+	names?: "mac" | "windows",
+	extensions?: "shown" | "hideRegistered",
+) =>
 	registerClassicyAppearancePackage({
 		id,
 		name: id,
@@ -37,7 +46,14 @@ const registerPackage = (id: string, names?: "mac" | "windows") =>
 		},
 		layout: {
 			...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
-			...(names ? { files: { names } } : {}),
+			...(names || extensions
+				? {
+						files: {
+							...(names ? { names } : {}),
+							...(extensions ? { extensions } : {}),
+						},
+					}
+				: {}),
 		},
 	});
 
@@ -143,5 +159,109 @@ describe("classicyFirstFreeName", () => {
 				extension: "txt",
 			}),
 		).toBe("New Text Document (2).txt");
+	});
+});
+
+// The remaining chapters' audit's 10.8 (WIG Ch.10 "System Naming
+// Conventions", p.210): under `files.extensions` "hideRegistered" a file of a
+// type an application other than the Finder opens is shown without its
+// final extension; Mac OS 8 shows every name whole.
+describe("classicyDisplayFileName", () => {
+	const handlers = {
+		text_file: "SimpleText.app",
+		video: "MoviePlayer.app",
+		file: "Finder.app",
+	};
+
+	it("hides nothing under a package that shows names whole", () => {
+		registerPackage("shown-names", undefined, "shown");
+		registerPackage("absent-names");
+		for (const id of ["shown-names", "absent-names"]) {
+			expect(
+				classicyDisplayFileName("Read Me.txt", { _type: "text_file" }, id, {
+					fileTypeHandlers: handlers,
+				}),
+			).toBe("Read Me.txt");
+			expect(
+				classicyHiddenFileExtension("Read Me.txt", { _type: "text_file" }, id, {
+					fileTypeHandlers: handlers,
+				}),
+			).toBe("");
+		}
+		expect(
+			classicyFileExtensionsHidden(CLASSICY_DEFAULT_APPEARANCE_LAYOUT),
+		).toBe(false);
+	});
+
+	it("hides a registered type's final extension under hideRegistered", () => {
+		registerPackage("hidden-names", undefined, "hideRegistered");
+		const display = (name: string, type: string) =>
+			classicyDisplayFileName(name, { _type: type }, "hidden-names", {
+				fileTypeHandlers: handlers,
+			});
+		expect(display("Read Me.txt", "text_file")).toBe("Read Me");
+		expect(display("BuckBunny.mov", "video")).toBe("BuckBunny");
+		expect(display("archive.tar.gz", "text_file")).toBe("archive.tar");
+		// The Finder's own types, folders and drives keep their names.
+		expect(display("data.bin", "file")).toBe("data.bin");
+		expect(display("Photos.old", "directory")).toBe("Photos.old");
+		expect(display("Disk.vol", "drive")).toBe("Disk.vol");
+		// What reads as no extension stays.
+		expect(display("Version 1.2", "text_file")).toBe("Version 1.2");
+		expect(display(".profile", "text_file")).toBe(".profile");
+		expect(display("notes.verylong", "text_file")).toBe("notes.verylong");
+		expect(display("Plan", "text_file")).toBe("Plan");
+		expect(
+			classicyHiddenFileExtension(
+				"Read Me.txt",
+				{ _type: "text_file" },
+				"hidden-names",
+				{ fileTypeHandlers: handlers },
+			),
+		).toBe(".txt");
+	});
+
+	it("follows the user's choice and needs the handler map", () => {
+		registerPackage("choice-names", undefined, "hideRegistered");
+		expect(
+			classicyDisplayFileName(
+				"Read Me.txt",
+				{ _type: "text_file" },
+				"choice-names",
+				{ fileTypeHandlers: handlers, hideFileExtensions: false },
+			),
+		).toBe("Read Me.txt");
+		// No handler map: no type counts as registered.
+		expect(
+			classicyDisplayFileName(
+				"Read Me.txt",
+				{ _type: "text_file" },
+				"choice-names",
+			),
+		).toBe("Read Me.txt");
+		expect(
+			classicyFileExtensionsHidden(
+				{ files: { extensions: "hideRegistered" } },
+				false,
+			),
+		).toBe(false);
+		expect(
+			classicyFileExtensionsHidden({ files: { extensions: "hideRegistered" } }),
+		).toBe(true);
+	});
+
+	it("counts a type registered only when an app but the Finder opens it", () => {
+		expect(classicyFileTypeIsRegistered("text_file", handlers)).toBe(true);
+		expect(classicyFileTypeIsRegistered("file", handlers)).toBe(false);
+		expect(classicyFileTypeIsRegistered("pdf", handlers)).toBe(false);
+		expect(classicyFileTypeIsRegistered(undefined, handlers)).toBe(false);
+		expect(classicyFileTypeIsRegistered("text_file", undefined)).toBe(false);
+		expect(classicyFileTypeIsRegistered("constructor", handlers)).toBe(false);
+		expect(
+			classicyRegisteredFileExtension("clip.mp4", { _type: "video" }, handlers),
+		).toBe(".mp4");
+		expect(
+			classicyRegisteredFileExtension("clip.mp4", undefined, handlers),
+		).toBe("");
 	});
 });

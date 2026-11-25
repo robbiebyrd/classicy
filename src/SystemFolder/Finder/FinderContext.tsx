@@ -39,6 +39,11 @@ import {
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import {
+	type ClassicyPropertiesTarget,
+	classicyPropertiesKey,
+	classicyPropertiesWindowId,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileProperties";
+import {
 	classicyShortcutProblem,
 	resolveClassicyFileShortcut,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileShortcut";
@@ -155,6 +160,33 @@ export const FinderDataSchema = z.looseObject({
 		.describe(
 			"A Create Shortcut waiting for its answer (Explorer's commands): items whose folder takes no shortcut, which Windows 98 offers to make on the desktop instead. Session-only: never persisted.",
 		),
+	hideFileExtensions: z
+		.boolean()
+		.optional()
+		.describe(
+			'Finder Preferences\' "Hide file extensions for known file types" (Windows 98\'s Folder Options, offered under `layout.files.extensions` "hideRegistered"): on unless false.',
+		),
+	properties: z
+		.array(
+			z.object({
+				key: z.string(),
+				paths: z.array(z.string()).optional(),
+				appId: z.string().optional(),
+			}),
+		)
+		.optional()
+		.describe(
+			"The open property sheets (Explorer's Properties, `layout.finder.commands` \"windows\"), in open order: each its key (one path, several sorted paths joined by ::, or : and an app id) and the items' paths or the application's id. Session-only: never persisted.",
+		),
+	openWith: z
+		.object({
+			path: z.string(),
+			trust: z.enum(["trusted", "untrusted"]),
+		})
+		.optional()
+		.describe(
+			'An open waiting in the Open With dialog (`layout.files.unregisteredOpen` "openWith"): the file\'s path and the trust the open arrived with. Session-only: never persisted.',
+		),
 });
 
 export type FinderData = z.infer<typeof FinderDataSchema>;
@@ -200,6 +232,52 @@ const openInFinder = (
 		app: { id: "Finder.app" },
 		path,
 	});
+};
+
+/** The types Finder's open routes itself, never to an application. */
+const ROUTED_BY_FINDER: ReadonlySet<string> = new Set([
+	ClassicyFileSystemEntryFileType.Extension,
+	ClassicyFileSystemEntryFileType.FileShortcut,
+	ClassicyFileSystemEntryFileType.AppShortcut,
+	ClassicyFileSystemEntryFileType.Shortcut,
+	ClassicyFileSystemEntryFileType.Directory,
+	ClassicyFileSystemEntryFileType.Drive,
+]);
+
+/**
+ * Whether opening `file` would show the Open With dialog (Finder's
+ * `ClassicyAppFinderOpenFile`, under `packageId`'s layout, the active
+ * package's when omitted, saying `files.unregisteredOpen: "openWith"`): a
+ * file Finder does not route itself (no system file, Extension, shortcut,
+ * folder, drive or legacy QuickTime document) whose type has no loaded
+ * application but the Finder in `applications.fileTypeHandlers`. Its
+ * item's menu then titles Open "Open With…". Store-free and pure.
+ */
+export const classicyFinderOpensWithDialog = (
+	file: Record<string, unknown> | undefined,
+	applications: {
+		fileTypeHandlers: Readonly<Partial<Record<string, string>>>;
+		apps: Readonly<Record<string, unknown>>;
+	},
+	packageId?: string,
+): boolean => {
+	if (
+		getClassicyAppearanceLayout(packageId).files?.unregisteredOpen !==
+		"openWith"
+	)
+		return false;
+	if (!file || file._system === true || file._creator === "QuickTime")
+		return false;
+	const type = file._type;
+	if (typeof type !== "string" || ROUTED_BY_FINDER.has(type)) return false;
+	const handler = Object.hasOwn(applications.fileTypeHandlers, type)
+		? applications.fileTypeHandlers[type]
+		: undefined;
+	return !(
+		typeof handler === "string" &&
+		handler !== "Finder.app" &&
+		Object.hasOwn(applications.apps, handler)
+	);
 };
 
 export const classicyFinderEventHandler = (
@@ -353,8 +431,23 @@ export const classicyFinderEventHandler = (
 					setAppWindow(app, { ...record, id: newPath });
 				}
 			}
+			// An open property sheet follows its items too (a rename through
+			// its own name field included), its window record with it.
+			const sheets = appData.properties?.map((sheet) => {
+				if (!sheet.paths) return sheet;
+				const paths = sheet.paths.map(rename);
+				if (paths.every((p, i) => p === sheet.paths?.[i])) return sheet;
+				const key = classicyPropertiesKey({ paths });
+				const record = getAppWindow(app, classicyPropertiesWindowId(sheet.key));
+				if (record) {
+					removeAppWindow(app, classicyPropertiesWindowId(sheet.key));
+					setAppWindow(app, { ...record, id: classicyPropertiesWindowId(key) });
+				}
+				return { key, paths };
+			});
 			appData = {
 				...appData,
+				...(sheets ? { properties: sheets } : {}),
 				...(appData.openPaths
 					? { openPaths: appData.openPaths.map(rename) }
 					: {}),
@@ -407,6 +500,88 @@ export const classicyFinderEventHandler = (
 		}
 		case "ClassicyAppFinderOfferDesktopShortcutClose": {
 			const { desktopShortcutOffer: _answered, ...rest } = appData;
+			appData = rest;
+			break;
+		}
+		case "ClassicyAppFinderPropertiesOpen": {
+			// Explorer's Properties (WIG Ch.2 pp.12-13; Ch.5 "Properties",
+			// p.51): a sheet for the items or the application, or the open
+			// one focused, as choosing Properties again activates it.
+			const { paths: rawPaths, appId: rawAppId } = action as {
+				paths?: unknown;
+				appId?: unknown;
+			};
+			const paths = Array.isArray(rawPaths)
+				? rawPaths.filter((p): p is string => typeof p === "string" && p !== "")
+				: [];
+			const target: ClassicyPropertiesTarget | undefined =
+				paths.length > 0
+					? { paths }
+					: typeof rawAppId === "string" && rawAppId !== ""
+						? { appId: rawAppId }
+						: undefined;
+			if (!target) break;
+			const key = classicyPropertiesKey(target);
+			const open = appData.properties ?? [];
+			if (!open.some((sheet) => sheet.key === key)) {
+				appData = {
+					...appData,
+					properties: [
+						...open,
+						"appId" in target
+							? { key, appId: target.appId }
+							: { key, paths: [...target.paths] },
+					],
+				};
+			}
+			ds = focusWindow(ds, appId, classicyPropertiesWindowId(key));
+			break;
+		}
+		case "ClassicyAppFinderPropertiesClose": {
+			const key = (action as { key?: unknown }).key;
+			if (typeof key !== "string") break;
+			appData = {
+				...appData,
+				properties: (appData.properties ?? []).filter(
+					(sheet) => sheet.key !== key,
+				),
+			};
+			// A sheet keeps no place: the next opens where Windows opens one.
+			removeAppWindow(
+				ds.System.Manager.Applications.apps[appId],
+				classicyPropertiesWindowId(key),
+			);
+			break;
+		}
+		case "ClassicyAppFinderSetHideFileExtensions": {
+			const hide = (action as { hide?: unknown }).hide;
+			if (typeof hide !== "boolean") break;
+			appData = { ...appData, hideFileExtensions: hide };
+			break;
+		}
+		case "ClassicyAppFinderOpenWithChoose": {
+			// The Open With dialog's OK: the file opens in the application
+			// chosen, under the trust its open arrived with (or this
+			// action's, should it be the lesser).
+			const pending = appData.openWith;
+			const { openWith: _answered, ...rest } = appData;
+			appData = rest;
+			const chosen = (action as { appId?: unknown }).appId;
+			const app =
+				typeof chosen === "string" && chosen !== appId
+					? ds.System.Manager.Applications.apps[chosen]
+					: undefined;
+			if (!pending || !app) break;
+			ds.System.Manager.Applications.apps[appId].data = { ...appData };
+			const level =
+				classicyActionTrustOf(trust) === "untrusted" ||
+				pending.trust === "untrusted"
+					? "untrusted"
+					: "trusted";
+			return routeClassicyAppOpenFile(ds, app, pending.path, level);
+		}
+		case "ClassicyAppFinderOpenWithClose": {
+			const { openWith: _answered, ...rest } = appData;
 			appData = rest;
 			break;
 		}
@@ -597,6 +772,21 @@ export const classicyFinderEventHandler = (
 					// when its manifest declares one, else the generic handler;
 					// under the trust this open arrived with.
 					ds = routeClassicyAppOpenFile(ds, targetApp, action.path, trust);
+				} else if (
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId)
+						.files?.unregisteredOpen === "openWith"
+				) {
+					// A type no application but the Finder opens: Windows' Open
+					// With (WIG Ch.10 "Registering File Extensions", p.192),
+					// which Finder shows, keeping the trust this open arrived
+					// with for the open it chooses.
+					ds.System.Manager.Applications.apps[appId].data = {
+						...appData,
+						openWith: {
+							path: action.path,
+							trust: classicyActionTrustOf(trust),
+						},
+					};
 				} else if (targetApp) {
 					// Finder's own OpenFile case is this dispatcher (it takes a
 					// `file`), so a file Finder opens itself is queued generically.
@@ -721,6 +911,45 @@ registerApp({
 		ClassicyAppFinderOfferDesktopShortcutClose: {
 			description:
 				"Dismiss a pending desktop-shortcut offer (its Yes or No was chosen).",
+		},
+		ClassicyAppFinderPropertiesOpen: {
+			description:
+				"Open the property sheet of items, or of an application (Explorer's Properties: its General page), or focus it when it is open.",
+			params: z.object({
+				paths: z
+					.array(z.string())
+					.optional()
+					.describe("Absolute paths of the items the sheet describes."),
+				appId: z
+					.string()
+					.optional()
+					.describe("An application's id, for its desktop icon's sheet."),
+			}),
+		},
+		ClassicyAppFinderPropertiesClose: {
+			description: "Close a property sheet (its OK, Cancel or close box).",
+			params: z.object({
+				key: z.string().describe("The sheet's key, as its open recorded it."),
+			}),
+		},
+		ClassicyAppFinderSetHideFileExtensions: {
+			description:
+				'Set Finder Preferences\' "Hide file extensions for known file types" (under `layout.files.extensions` "hideRegistered").',
+			params: z.object({
+				hide: z
+					.boolean()
+					.describe("Whether registered types' extensions are hidden."),
+			}),
+		},
+		ClassicyAppFinderOpenWithChoose: {
+			description:
+				"The Open With dialog's OK: open the waiting file in the application chosen, under the trust its open arrived with.",
+			params: z.object({
+				appId: z.string().describe("The id of the application to open it in."),
+			}),
+		},
+		ClassicyAppFinderOpenWithClose: {
+			description: "Dismiss the Open With dialog without opening the file.",
 		},
 		ClassicyAppFinderEmptyTrash: {
 			description:

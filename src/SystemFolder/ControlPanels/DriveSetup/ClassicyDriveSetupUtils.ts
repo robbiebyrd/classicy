@@ -90,6 +90,14 @@ export function buildDriveContextMenu(
 		createShortcut?: boolean;
 		/** Create Shortcut's access key, when the package gives one (shell32.dll's "Create &Shortcut"). */
 		createShortcutAccessKey?: string;
+		/**
+		 * End with Properties after a separator (Explorer's commands; WIG
+		 * Ch.2 "Putting Theory into Practice", pp.12-13; Ch.5 "Properties",
+		 * p.51): the drive's property sheet (`ClassicyAppFinderPropertiesOpen`).
+		 */
+		properties?: boolean;
+		/** Properties' access key, when the package gives one (shell32.dll's "P&roperties"). */
+		propertiesAccessKey?: string;
 	} = {},
 ): ClassicyMenuItem[] {
 	return [
@@ -138,6 +146,20 @@ export function buildDriveContextMenu(
 							? { accessKey: options.createShortcutAccessKey }
 							: {}),
 						event: "ClassicyAppFinderOfferDesktopShortcut",
+						eventData: { paths: [drive] },
+					},
+				]
+			: []),
+		...(options.properties
+			? [
+					{ id: "spacer" },
+					{
+						id: `drive_${drive}_properties`,
+						title: "Properties",
+						...(options.propertiesAccessKey !== undefined
+							? { accessKey: options.propertiesAccessKey }
+							: {}),
+						event: "ClassicyAppFinderPropertiesOpen",
 						eventData: { paths: [drive] },
 					},
 				]

@@ -3,6 +3,7 @@ import { produce } from "immer";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	type ClassicyAppearanceLayout,
+	type ClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackage";
@@ -31,12 +32,17 @@ export const TEST_WINDOWS_KEYS_LAYOUT: ClassicyAppearanceLayout = {
 
 /**
  * Registers `test-windows-keys` (no CSS, Platinum's default theme,
- * `TEST_WINDOWS_KEYS_LAYOUT` with `layout` spread over it) and makes it the
- * store's active package. The returned function puts the previous package
- * back and unregisters it.
+ * `TEST_WINDOWS_KEYS_LAYOUT` with `layout` spread over it, and the optional
+ * package fields `extra`, such as `fileTypeNames`) and makes it the store's
+ * active package. The returned function puts the previous package back and
+ * unregisters it.
  */
 export const activateTestWindowsKeysPackage = (
 	layout: Partial<ClassicyAppearanceLayout> = {},
+	extra: Pick<
+		Partial<ClassicyAppearancePackage>,
+		"fileTypeNames" | "apps"
+	> = {},
 ): (() => void) => {
 	const previous = useAppManager.getState().System.Manager.Appearance.packageId;
 	const setPackageId = (packageId: string) =>
@@ -58,6 +64,7 @@ export const activateTestWindowsKeysPackage = (
 				package: TEST_WINDOWS_KEYS_PACKAGE_ID,
 			},
 			layout: { ...TEST_WINDOWS_KEYS_LAYOUT, ...layout },
+			...extra,
 		});
 	});
 	setPackageId(TEST_WINDOWS_KEYS_PACKAGE_ID);

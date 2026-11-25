@@ -271,6 +271,57 @@ describe("ClassicyListBox scroll bar while its rows fit", () => {
 	});
 });
 
+// A label's access key (WIG Ch.4 "Access Keys", p.27; Windows 98 SE's Open
+// With, "&Choose the program you want to use:"): handed to the label, drawn
+// only under a package whose layout has access keys.
+describe("ClassicyListBox label access key", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const keys = (container: HTMLElement) =>
+		[...container.querySelectorAll('[data-classicy-part="access-key"]')].map(
+			(part) => part.textContent,
+		);
+
+	it("draws none under a layout without access keys", () => {
+		const { container } = render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				label="Fruits"
+				accessKey="u"
+			/>,
+		);
+		expect(keys(container)).toEqual([]);
+	});
+
+	it("underlines the given key under a package with access keys", () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage({
+			id: "test-access-keys",
+			name: "Access Keys",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-access-keys-default",
+				package: "test-access-keys",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				menu: { accessKeys: "explicit" },
+			},
+		});
+		const { container } = render(
+			<ClassicyListBox
+				id="lb"
+				options={options}
+				label="Fruits"
+				accessKey="u"
+			/>,
+		);
+		expect(keys(container)).toEqual(["u"]);
+	});
+});
+
 // WIG Ch.7 "Extended and Multiple Selection List Boxes" (pp.122-123, Figure
 // 7.15): "Precede each item in a multiple selection list box with a check
 // box ... It also serves to differentiate keyboard navigation from the state

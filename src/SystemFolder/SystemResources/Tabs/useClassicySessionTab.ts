@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -40,4 +41,36 @@ export const useClassicySessionTab = (
 		[dispatch, appId, key],
 	);
 	return { defaultTab, onTabChange };
+};
+
+/**
+ * Opens `appId`'s window on the tab `index` of its remembering strip `key`
+ * (`useClassicySessionTab`): when the app is closed, its strip's remembered
+ * tab is set first, so it opens there; when it is open, it is brought
+ * forward as it stands, as Windows activates an open control panel without
+ * turning its page (Explorer's Properties on the desktop opening Display
+ * Properties). Returns false, opening nothing, when the app is not loaded.
+ * Reads the store when it runs, so a menu item may call it at any time.
+ */
+export const openClassicyAppAtTab = (
+	dispatch: (action: ActionMessage) => void,
+	appId: string,
+	key: string,
+	index: number,
+): boolean => {
+	const app = useAppManager.getState().System.Manager.Applications.apps[appId];
+	if (!app) return false;
+	if (!app.open) {
+		dispatch({
+			type: "ClassicyAppRememberTab",
+			app: { id: appId },
+			tabs: key,
+			index,
+		});
+	}
+	dispatch({
+		type: "ClassicyAppOpen",
+		app: { id: app.id, name: app.name, icon: app.icon },
+	});
+	return true;
 };

@@ -2,6 +2,7 @@ import "./FinderPreferences.scss";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { useMemo } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -38,7 +39,16 @@ export const FinderPreferences: FunctionalComponent<FinderPreferencesProps> = ({
 		() => resolveStandardViews((rawData ?? {}) as FinderData),
 		[rawData],
 	);
-	const viewsTab = useFinderViewsTab(standardViews);
+	// Windows 98's "Hide file extensions for known file types", offered
+	// under `layout.files.extensions` "hideRegistered" (on unless false).
+	const offersExtensions =
+		useClassicyAppearanceLayout().files?.extensions === "hideRegistered";
+	const hideFileExtensions =
+		(rawData as FinderData | undefined)?.hideFileExtensions !== false;
+	const viewsTab = useFinderViewsTab(
+		standardViews,
+		offersExtensions ? { hide: hideFileExtensions } : undefined,
+	);
 	const tabs = useMemo(() => [viewsTab], [viewsTab]);
 	// Reopened in the session, on the tab it was left on.
 	const sessionTab = useClassicySessionTab(appId, "preferences");

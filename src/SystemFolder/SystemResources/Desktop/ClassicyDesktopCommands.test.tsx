@@ -95,6 +95,7 @@ describe("useClassicyDesktopCommands", () => {
 			["Create Shortcut", "S"],
 			["Delete", "D"],
 			["Rename", "m"],
+			["Properties", "r"],
 		]);
 		expect(child(file.menuChildren, "Open")?.keyboardShortcut).toBe("⌘O");
 		expect(child(file.menuChildren, "Delete")).toMatchObject({
@@ -117,6 +118,8 @@ describe("useClassicyDesktopCommands", () => {
 			["Line Up Icons", "U"],
 			"—",
 			["New", "w"],
+			"—",
+			["Properties", "r"],
 		]);
 	});
 
@@ -334,6 +337,87 @@ describe("useClassicyDesktopCommands", () => {
 					`${DESKTOP_FOLDER}:Shortcut to Macintosh HD`,
 				),
 			).toBeUndefined();
+		});
+
+		// The remaining chapters' audit's 2.2 / 5.27 (WIG Ch.2 pp.12-13; Ch.5
+		// "Properties", p.51): Properties last, on the selection's sheet, else
+		// on Display Properties, the Appearance panel's Desktop tab.
+		const finderProperties = () =>
+			(
+				useAppManager.getState().System.Manager.Applications.apps["Finder.app"]
+					?.data as { properties?: unknown }
+			)?.properties;
+		const loadAppearancePanel = () =>
+			act(() =>
+				dispatch({
+					type: "ClassicyAppLoad",
+					app: {
+						id: "AppearanceManager.app",
+						name: "Appearance Manager",
+						icon: "",
+					},
+				}),
+			);
+		const appearancePanel = () =>
+			useAppManager.getState().System.Manager.Applications.apps[
+				"AppearanceManager.app"
+			];
+
+		it("shows the selected items' sheet from File ▸ Properties", () => {
+			useWindowsLayout();
+			render(<Harness />);
+			const a = seedItem("a.txt");
+			const b = seedItem("b.txt");
+			select([a, b]);
+			act(() => fileItem("Properties")?.onClickFunc?.());
+			expect(finderProperties()).toEqual([
+				{
+					key: `${DESKTOP_FOLDER}:a.txt::${DESKTOP_FOLDER}:b.txt`,
+					paths: [`${DESKTOP_FOLDER}:a.txt`, `${DESKTOP_FOLDER}:b.txt`],
+				},
+			]);
+		});
+
+		it("shows an app icon's sheet, and Display Properties with nothing selected", () => {
+			useWindowsLayout();
+			render(<Harness />);
+			loadAppearancePanel();
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopIconAdd",
+					app: { id: "TV.app", name: "TV", icon: "" },
+					kind: "app_shortcut",
+				}),
+			);
+			select(["TV.app"]);
+			act(() => fileItem("Properties")?.onClickFunc?.());
+			expect(finderProperties()).toEqual([{ key: ":TV.app", appId: "TV.app" }]);
+			select([]);
+			act(() => fileItem("Properties")?.onClickFunc?.());
+			expect(appearancePanel()?.open).toBe(true);
+			expect(appearancePanel()?.session?.tabs?.main).toBe(3);
+		});
+
+		it("opens the Appearance panel on its Desktop tab from the white space, and keeps an open panel's tab", () => {
+			useWindowsLayout();
+			render(<Harness />);
+			loadAppearancePanel();
+			const properties = child(commands.whiteSpaceMenu?.([0, 0]), "Properties");
+			act(() => properties?.onClickFunc?.());
+			expect(appearancePanel()?.open).toBe(true);
+			expect(appearancePanel()?.session?.tabs?.main).toBe(3);
+			// Open on another page, it is brought forward as it stands, as
+			// Windows activates an open control panel.
+			act(() =>
+				dispatch({
+					type: "ClassicyAppRememberTab",
+					app: { id: "AppearanceManager.app" },
+					tabs: "main",
+					index: 5,
+				}),
+			);
+			act(() => properties?.onClickFunc?.());
+			expect(appearancePanel()?.session?.tabs?.main).toBe(5);
 		});
 
 		it("selects every drawn icon, arranges by name and lines the icons up", () => {

@@ -9,6 +9,8 @@ import {
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+// Finder's reducer, which Properties reaches.
+import "@/SystemFolder/Finder/FinderContext";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import {
 	classicyDesktopIconRenaming,
@@ -141,5 +143,107 @@ describe("ClassicyDesktopIcon's name edited in place", () => {
 		);
 		expect(classicyDesktopIconRenaming()).toBe(ITEM_ID);
 		expect(field(second.container)).not.toBeNull();
+	});
+});
+
+// The remaining chapters' audit's 10.8 (WIG Ch.10 "System Naming
+// Conventions", p.210) and 2.2 / B.10 (App. B Table B.2, p.358; Ch.5 "View
+// Shortcuts", p.47): a Desktop Folder item's registered extension hidden,
+// kept by a rename; Alt+Enter and an Alt double-click showing Properties.
+describe("ClassicyDesktopIcon under Windows' names and commands", () => {
+	const registerWindows = (
+		layout: Partial<typeof CLASSICY_DEFAULT_APPEARANCE_LAYOUT>,
+	) =>
+		registerClassicyAppearancePackage({
+			id: "test-desktop-names",
+			name: "Names",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-desktop-names-default",
+				package: "test-desktop-names",
+			},
+			layout: { ...CLASSICY_DEFAULT_APPEARANCE_LAYOUT, ...layout },
+		});
+	const registerTextHandler = () =>
+		act(() =>
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Applications.fileTypeHandlers.text_file =
+						"SimpleText.app";
+				}),
+			),
+		);
+	const sheets = () =>
+		(
+			useAppManager.getState().System.Manager.Applications.apps["Finder.app"]
+				?.data as { properties?: unknown }
+		)?.properties;
+
+	it("shows the name without a registered type's extension, and a rename keeps it", () => {
+		registerWindows({ files: { extensions: "hideRegistered" } });
+		registerTextHandler();
+		seed([ITEM_ID]);
+		const { container } = renderIcon();
+		expect(container.querySelector("p")?.textContent).toBe("Plan");
+		act(() => startClassicyDesktopIconRename(ITEM_ID));
+		const input = field(container) as HTMLInputElement;
+		expect(input.value).toBe("Plan");
+		fireEvent.change(input, { target: { value: "Budget" } });
+		fireEvent.keyDown(input, { key: "Enter" });
+		expect(
+			new ClassicyFileSystem().resolve(`${FOLDER}:Budget.txt`),
+		).toBeDefined();
+	});
+
+	it("shows the whole name without the key", () => {
+		registerTextHandler();
+		seed();
+		const { container } = renderIcon();
+		expect(container.querySelector("p")?.textContent).toBe("Plan.txt");
+	});
+
+	it("shows its Properties on Alt+Enter and an Alt double-click under Explorer's commands", () => {
+		registerWindows({ finder: { commands: "windows" } });
+		seed([ITEM_ID]);
+		const { container } = renderIcon();
+		const icon = container.querySelector(".classicyDesktopIcon") as Element;
+		fireEvent.keyDown(icon, { key: "Enter", altKey: true });
+		expect(sheets()).toEqual([{ key: PLAN, paths: [PLAN] }]);
+		act(() =>
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					(
+						draft.System.Manager.Applications.apps["Finder.app"].data as {
+							properties?: unknown;
+						}
+					).properties = [];
+				}),
+			),
+		);
+		fireEvent.doubleClick(icon, { altKey: true });
+		expect(sheets()).toEqual([{ key: PLAN, paths: [PLAN] }]);
+	});
+
+	it("opens on an Alt double-click, and shows no Properties, without the key", () => {
+		seed([ITEM_ID]);
+		let opened = 0;
+		const { container } = render(
+			<ClassicyDesktopIcon
+				appId={ITEM_ID}
+				appName="Plan.txt"
+				icon="/i.png"
+				kind="file"
+				filePath={PLAN}
+				onOpenFilePath={() => {
+					opened++;
+				}}
+			/>,
+		);
+		const icon = container.querySelector(".classicyDesktopIcon") as Element;
+		fireEvent.doubleClick(icon, { altKey: true });
+		expect(opened).toBe(1);
+		fireEvent.keyDown(icon, { key: "Enter", altKey: true });
+		expect(sheets()).toBeUndefined();
 	});
 });

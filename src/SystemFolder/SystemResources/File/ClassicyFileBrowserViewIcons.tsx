@@ -69,6 +69,7 @@ import {
 	isClassicyTrashFolder,
 	useClassicyTrashIcon,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
+import { useClassicyDisplayFileName } from "@/SystemFolder/SystemResources/File/useClassicyDisplayFileName";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 import {
 	classicyIconsRoveFocus,
@@ -198,6 +199,8 @@ type iconType = {
 	filePath: string;
 	/** A folder or a drive: listed first under `fileList.foldersFirst`. */
 	isFolder: boolean;
+	/** The entry's type: whether its name's extension is shown. */
+	fileType: string;
 	/**
 	 * The icon's React key: its name, and the layout epoch once Arrange
 	 * Icons or Line Up Icons has laid the view out (remounting the icon at
@@ -236,6 +239,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			className,
 			style,
 		}) => {
+			// How names are shown (`layout.files.extensions`).
+			const shownNames = useClassicyDisplayFileName();
 			const activeTheme = useAppManager(
 				(s) => s.System.Manager.Appearance.activeTheme,
 			);
@@ -476,6 +481,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 						mountKey: epoch > 0 ? `${filename}\u0000${epoch}` : filename,
 						filePath: itemPath,
 						isFolder: isFolderEntry(properties),
+						fileType: properties._type,
 						dropFolderPath:
 							properties._type === "directory" ? itemPath : undefined,
 						appId: appId,
@@ -946,9 +952,12 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				item.onClickFunc();
 			};
 
-			const commitRename = (itemPath: string, name: string) => {
+			const commitRename = (itemPath: string, typed: string) => {
 				setRenaming(null);
 				const oldName = itemPath.split(fs.separator).pop() ?? "";
+				// A hidden extension (`layout.files.extensions`) stays on.
+				const name =
+					typed + shownNames.hiddenExtension(oldName, fs.resolve(itemPath));
 				if (name === oldName) return;
 				const el = iconElement(itemPath);
 				const place = el ? iconElementPlace(el) : undefined;
@@ -1170,32 +1179,40 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					onMouseDown={onMouseDown}
 					onKeyDown={onKeyDown}
 				>
-					{items.map(({ isFolder: _isFolder, mountKey, ...item }) => (
-						<ClassicyIcon
-							{...item}
-							key={mountKey}
-							onClickFunc={() => openIcon(item)}
-							onFileDrag={(target, _point, outlineTopLeft, moved) =>
-								dropIcon(item.filePath, target, outlineTopLeft, moved)
-							}
-							fileDragParts={
-								dragsSelection ? () => dragParts(item.filePath) : undefined
-							}
-							moveBy={
-								groupMove?.paths.has(item.filePath)
-									? { by: groupMove.by, id: groupMove.id }
-									: undefined
-							}
-							selected={selectedSet.has(item.filePath)}
-							onSelectPress={(e) => selectFromPress(item.filePath, e)}
-							onSelectClick={(e) => selectFromClick(item.filePath, e)}
-							listOption={selectKeys}
-							tabStop={!roveFocus || item.filePath === tabStopPath}
-							renaming={renaming === item.filePath}
-							onRenameCommit={(name) => commitRename(item.filePath, name)}
-							onRenameCancel={() => setRenaming(null)}
-						/>
-					))}
+					{items.map(({ isFolder: _isFolder, fileType, mountKey, ...item }) => {
+						// The name as the package shows it (a registered type's
+						// extension hidden under `layout.files.extensions`).
+						const shown = shownNames.display(item.name, { _type: fileType });
+						return (
+							<ClassicyIcon
+								{...item}
+								{...(shown !== item.name
+									? { label: shown, renameText: shown }
+									: {})}
+								key={mountKey}
+								onClickFunc={() => openIcon(item)}
+								onFileDrag={(target, _point, outlineTopLeft, moved) =>
+									dropIcon(item.filePath, target, outlineTopLeft, moved)
+								}
+								fileDragParts={
+									dragsSelection ? () => dragParts(item.filePath) : undefined
+								}
+								moveBy={
+									groupMove?.paths.has(item.filePath)
+										? { by: groupMove.by, id: groupMove.id }
+										: undefined
+								}
+								selected={selectedSet.has(item.filePath)}
+								onSelectPress={(e) => selectFromPress(item.filePath, e)}
+								onSelectClick={(e) => selectFromClick(item.filePath, e)}
+								listOption={selectKeys}
+								tabStop={!roveFocus || item.filePath === tabStopPath}
+								renaming={renaming === item.filePath}
+								onRenameCommit={(name) => commitRename(item.filePath, name)}
+								onRenameCancel={() => setRenaming(null)}
+							/>
+						);
+					})}
 					{marquee && (
 						<div
 							className={"classicyFileBrowserSelect"}

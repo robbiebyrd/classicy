@@ -21,7 +21,10 @@ import type {
 	ClassicyTheme,
 	ClassicyThemeTypography,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+import {
+	APPEARANCE_MANAGER_APP_ID,
+	APPEARANCE_MANAGER_TABS_KEY,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import {
 	isCustomThemeActive,
 	listClassicyPackageThemes,
@@ -639,7 +642,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	// Reopened in the session, the panel shows the page it was left on (WIG
 	// Ch.8 p.146; HIG7 p.146).
-	const sessionTab = useClassicySessionTab(APP_ID, "main");
+	const sessionTab = useClassicySessionTab(APP_ID, APPEARANCE_MANAGER_TABS_KEY);
 	const tabs = useMemo(
 		// Packages and Options follow Themes: the package is the outermost
 		// choice, its knobs next. Colors sits between Desktop and Fonts: Mac OS

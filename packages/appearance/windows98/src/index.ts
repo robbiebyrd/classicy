@@ -40,6 +40,7 @@ import { windows98SoundPack } from "./assets/sounds/windows98";
 import windows98Css from "./styles/windows98.scss?inline";
 import windows98JsonSource from "./windows98.json";
 import { deepFreeze } from "./windows98DeepFreeze.internal";
+import { windows98FileTypeNames } from "./windows98FileTypeNames";
 import { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 export * from "./assets/sounds/windows98";
@@ -145,4 +146,7 @@ registerClassicyAppearancePackage({
 	},
 	layout: windows98JsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [windows98SoundPack],
+	// Windows' names for the file types (10.2): "File Folder", "Text
+	// Document", in the Kind column and a property sheet's Type.
+	fileTypeNames: windows98FileTypeNames,
 });

@@ -871,6 +871,33 @@ double-click would, under the open's trust; a missing one shows "Problem
 with Shortcut" under the flag (`classicyShortcutProblem`), the core's text
 otherwise. An item's menu lists its handler's `verbs` after Open.
 
+Properties (2.2, 5.27, B.10) ends every item's, Desktop Folder item's,
+drive's (`buildDriveContextMenu`'s `properties`), app shortcut's (`ClassicyApp`)
+and the Trash's menu, and sits after Rename in the File menus; Alt+Enter and
+an Alt double-click run it (`ClassicyFileBrowser`'s `onPropertiesItems`,
+`ClassicyDesktopIcon` itself). It dispatches `ClassicyAppFinderPropertiesOpen
+{ paths } | { appId }` (`File/ClassicyFileProperties.ts`: the key, the window
+id `properties:<key>`, `classicyDesktopIconPropertiesTarget`, Windows 98 SE's
+General page text), and Finder renders one `ClassicyFilePropertiesWindow`
+(`Finder/`) per sheet in its session-only `properties` (sanitize drops them and
+their window records; a sheet follows its items through PathsMoved; choosing it
+again focuses it). The empty desktop's Properties opens the Appearance panel on
+its Desktop tab (`openClassicyAppAtTab`, `Tabs/useClassicySessionTab.ts`;
+`APPEARANCE_MANAGER_DESKTOP_TAB`). `layout.files.unregisteredOpen: "openWith"`
+turns Finder's last OpenFile route (a type only the Finder opens) into Finder's
+session-only `openWith: { path, trust }`, shown as `ClassicyOpenWithDialog`,
+whose OK (`ClassicyAppFinderOpenWithChoose`) routes through
+`routeClassicyAppOpenFile` under the kept trust; the item's first command then
+reads "Open With…" (`classicyFinderOpensWithDialog`). `layout.files.extensions:
+"hideRegistered"` hides a registered type's extension wherever names show
+(`useClassicyDisplayFileName`, `classicyDisplayFileName` in
+`ClassicyFileNames.ts`, which takes the handler map: store-free), renames
+keeping it, and Finder Preferences offers the check box (Finder's persisted
+`hideFileExtensions`). A package's `fileTypeNames` (Windows 98's "File Folder",
+"Text Document") name the types in the Kind column and the sheet's Type
+(`fileTypeDisplayName(type, packageId?)`, `useClassicyFileTypeDisplayName`,
+`src/Appearance/ClassicyFileTypeNames.ts`).
+
 ### Finder Drag and Drop
 
 Finder items (icon and list views) and the desktop's file icons drag as Mac OS

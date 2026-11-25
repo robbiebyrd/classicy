@@ -9,6 +9,7 @@ import {
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { withPortableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
+import { isClassicyPropertiesWindowId } from "@/SystemFolder/SystemResources/File/ClassicyFileProperties";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type {
 	ClassicyStoreSystemAppearanceManager,
@@ -45,6 +46,7 @@ import {
 	mergeClassicyState,
 } from "./ClassicyAppManager";
 import { validateAppStateForAction } from "./ClassicyAppManifest";
+import { listAppWindows, removeAppWindow } from "./ClassicyAppWindows";
 import {
 	markClassicyDefaultStateSeedApplied,
 	wasClassicyDefaultStateSeedApplied,
@@ -814,6 +816,21 @@ export function sanitizeStateForPersistence(
 		// So does a Create Shortcut waiting for its desktop offer's answer.
 		if (finderApp?.data && "desktopShortcutOffer" in finderApp.data) {
 			delete (finderApp.data as Record<string, unknown>).desktopShortcutOffer;
+		}
+		// And the property sheets and the Open With dialog (Explorer's
+		// Properties and Open With): Windows reopens none after a restart,
+		// and a sheet's window keeps no place.
+		if (finderApp?.data && "properties" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).properties;
+		}
+		if (finderApp?.data && "openWith" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).openWith;
+		}
+		if (finderApp?.windows) {
+			for (const record of listAppWindows(finderApp)) {
+				if (isClassicyPropertiesWindowId(record.id))
+					removeAppWindow(finderApp, record.id);
+			}
 		}
 		// The Special menu's confirmation alert belongs to the session that
 		// opened it; a reload must not greet the user with Empty Trash. An

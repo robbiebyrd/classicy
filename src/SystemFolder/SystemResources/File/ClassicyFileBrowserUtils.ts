@@ -1,4 +1,10 @@
+import { useCallback } from "react";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	type ClassicyFileTypeNames,
+	getClassicyFileTypeNames,
+	useClassicyFileTypeNames,
+} from "@/Appearance/ClassicyFileTypeNames";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
@@ -10,13 +16,50 @@ export const capitalizeFirst = (s: string) => {
 	return s && String(s[0]).toUpperCase() + String(s).slice(1);
 };
 
-/**
- * Human-readable label for a ClassicyFileSystemEntryFileType value in file
- * listings ("app_shortcut" → "Application", "text_file" → "Text file").
- */
-export const fileTypeDisplayName = (fileType: string) => {
+/** The core's name for a file type: its id, spaced and capitalized. */
+const coreFileTypeName = (fileType: string): string => {
 	if (fileType === "app_shortcut") return "Application";
 	return capitalizeFirst(fileType.replaceAll("_", " "));
+};
+
+/**
+ * A type's name from `names` (a package's `fileTypeNames`), else the core's
+ * ("text_file" → "Text file"). Looked up with `Object.hasOwn`, so a type
+ * such as `"constructor"` never reaches the prototype. Pure.
+ */
+export const classicyFileTypeNameFrom = (
+	names: ClassicyFileTypeNames,
+	fileType: string,
+): string =>
+	Object.hasOwn(names, fileType)
+		? ((names as Record<string, string>)[fileType] ??
+			coreFileTypeName(fileType))
+		: coreFileTypeName(fileType);
+
+/**
+ * Human-readable label for a ClassicyFileSystemEntryFileType value in file
+ * listings and property sheets: `packageId`'s package's name for it (the
+ * active package's when no id is given; its `fileTypeNames`, Windows 98's
+ * "Text Document" or "File Folder"), else the core's ("app_shortcut" →
+ * "Application", "text_file" → "Text file"). Store-free; components use
+ * `useClassicyFileTypeDisplayName`, which follows a package switch.
+ */
+export const fileTypeDisplayName = (fileType: string, packageId?: string) =>
+	classicyFileTypeNameFrom(getClassicyFileTypeNames(packageId), fileType);
+
+/**
+ * `fileTypeDisplayName` for the active package, live: the callback changes
+ * when the package's names do, so a list re-renders its Kind column on a
+ * package switch.
+ */
+export const useClassicyFileTypeDisplayName = (): ((
+	fileType: string,
+) => string) => {
+	const names = useClassicyFileTypeNames();
+	return useCallback(
+		(fileType: string) => classicyFileTypeNameFrom(names, fileType),
+		[names],
+	);
 };
 
 /**

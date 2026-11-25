@@ -1,7 +1,17 @@
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { getClassicyFileTypeNames } from "@/Appearance/ClassicyFileTypeNames";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	capitalizeFirst,
+	classicyFileTypeNameFrom,
 	classicyFreeIconCell,
 	classicyLineUpIconPlaces,
 	cleanupIcon,
@@ -10,6 +20,7 @@ import {
 	getGridPosition,
 	iconGridLattice,
 	readClassicyDesktopIconMetrics,
+	useClassicyFileTypeDisplayName,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import { snapToGrid } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 
@@ -25,6 +36,67 @@ describe("fileTypeDisplayName", () => {
 	it("capitalizes simple types", () => {
 		expect(fileTypeDisplayName("directory")).toBe("Directory");
 		expect(fileTypeDisplayName("pdf")).toBe("Pdf");
+	});
+
+	// The remaining chapters' audit's 10.2 (WIG Ch.10 "The Application
+	// Identifier Key", pp.197-198): a package's `fileTypeNames` name the
+	// types; one that names none keeps the core's.
+	describe("with a package's names", () => {
+		afterEach(() => resetClassicyAppearancePackagesForTests());
+		const registerNamed = (
+			id: string,
+			fileTypeNames?: Record<string, string>,
+		) =>
+			registerClassicyAppearancePackage({
+				id,
+				name: id,
+				css: "",
+				defaults: {
+					...CLASSICY_CORE_DEFAULT_THEME,
+					id: `${id}-default`,
+					package: id,
+				},
+				layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				...(fileTypeNames ? { fileTypeNames } : {}),
+			});
+
+		it("reads the given package's name, else the core's", () => {
+			registerNamed("named", {
+				directory: "File Folder",
+				text_file: "Text Document",
+			});
+			registerNamed("plain");
+			expect(fileTypeDisplayName("directory", "named")).toBe("File Folder");
+			expect(fileTypeDisplayName("text_file", "named")).toBe("Text Document");
+			// A type it names not.
+			expect(fileTypeDisplayName("pdf", "named")).toBe("Pdf");
+			expect(fileTypeDisplayName("directory", "plain")).toBe("Directory");
+			expect(fileTypeDisplayName("app_shortcut", "plain")).toBe("Application");
+			expect(getClassicyFileTypeNames("plain")).toEqual({});
+		});
+
+		it("stores a frozen copy, so the caller's object changes nothing", () => {
+			const names: Record<string, string> = { directory: "File Folder" };
+			registerNamed("copied", names);
+			names.directory = "Changed";
+			expect(fileTypeDisplayName("directory", "copied")).toBe("File Folder");
+			expect(Object.isFrozen(getClassicyFileTypeNames("copied"))).toBe(true);
+		});
+
+		it("looks names up as own keys only", () => {
+			expect(classicyFileTypeNameFrom({}, "constructor")).toBe("Constructor");
+			expect(classicyFileTypeNameFrom({ video: "Video Clip" }, "video")).toBe(
+				"Video Clip",
+			);
+		});
+
+		it("follows the active package live (useClassicyFileTypeDisplayName)", () => {
+			const { result } = renderHook(() => useClassicyFileTypeDisplayName());
+			expect(result.current("directory")).toBe("Directory");
+			act(() => registerNamed("live", { directory: "File Folder" }));
+			// The only registered package is the one drawn.
+			expect(result.current("directory")).toBe("File Folder");
+		});
 	});
 });
 

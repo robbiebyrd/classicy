@@ -21,8 +21,11 @@ import {
 	buildDriveContextMenu,
 	isDriveSyncConnected,
 } from "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupUtils";
+import { ClassicyFilePropertiesWindow } from "@/SystemFolder/Finder/ClassicyFilePropertiesWindow";
+import { ClassicyOpenWithDialog } from "@/SystemFolder/Finder/ClassicyOpenWithDialog";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import {
+	classicyFinderOpensWithDialog,
 	type FinderData,
 	type FinderIconViewOptions,
 	type FinderListViewOptions,
@@ -81,6 +84,10 @@ import {
 	renameClassicyFileSystemItem,
 	restoreClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import {
+	CLASSICY_PROPERTIES_TITLE,
+	classicyPropertiesOpenAction,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileProperties";
 import {
 	CLASSICY_SHORTCUT_DESKTOP_OFFER,
 	CLASSICY_SHORTCUT_TITLE,
@@ -171,6 +178,13 @@ type FinderWindowProps = {
 		paths: string[],
 		commands: ClassicyFileBrowserCommands | null,
 	) => void;
+	/**
+	 * Explorer's Properties on the items at `paths` (their property sheet,
+	 * `ClassicyFilePropertiesWindow`): File ▸ Properties, Alt+Enter and an
+	 * Alt double-click in the window, the window's folder when nothing is
+	 * selected.
+	 */
+	showProperties: (paths: string[]) => void;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -205,6 +219,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	creatableTypes,
 	newItem,
 	createShortcuts,
+	showProperties,
 }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
 	// The bundled menus' access keys under a package that has them (WIG
@@ -386,7 +401,6 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 											if (only.length === 1 && classicyCanRename(fs, only[0]))
 												commandsRef.current?.rename(only[0]);
 										}),
-										{ id: "spacer" },
 									]),
 							...(op === CLASSICY_TRASH_PATH
 								? [
@@ -399,9 +413,20 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 													commandsRef.current?.selectedPaths() ?? [],
 												),
 										},
-										{ id: "spacer" },
 									]
 								: []),
+							// Explorer's File ▸ Properties (WIG Ch.5 "Properties",
+							// p.51): the selection's sheet, else the folder's.
+							{
+								id: `${appId}_${op}_file_properties`,
+								title: CLASSICY_PROPERTIES_TITLE,
+								...(ak("r") !== undefined ? { accessKey: ak("r") } : {}),
+								onClickFunc: () => {
+									const selected = commandsRef.current?.selectedPaths() ?? [];
+									showProperties(selected.length > 0 ? selected : [op]);
+								},
+							},
+							{ id: "spacer" },
 							{
 								id: `${appId}_${op}_file_closew`,
 								title: "Close",
@@ -558,6 +583,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			windowsViewItems,
 			windowsArrangeItems,
 			createShortcuts,
+			showProperties,
 		],
 	);
 
@@ -608,6 +634,13 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				onRenameItem={renameItem}
 				backgroundContextMenu={
 					windowsCommands ? backgroundContextMenu : undefined
+				}
+				// Explorer's Alt+Enter and Alt double-click: the selection's
+				// sheet, else the folder's.
+				onPropertiesItems={
+					windowsCommands
+						? (paths) => showProperties(paths.length > 0 ? paths : [op])
+						: undefined
 				}
 			/>
 		</ClassicyWindow>
@@ -927,6 +960,9 @@ export const Finder = () => {
 					// And offer Create Shortcut, on the desktop (10.6).
 					createShortcut: windowsCommands,
 					createShortcutAccessKey: ak("S"),
+					// And end with Properties, the drive's sheet (2.2).
+					properties: windowsCommands,
+					propertiesAccessKey: ak("r"),
 				}),
 			});
 		});
@@ -1022,6 +1058,19 @@ export const Finder = () => {
 									paths: [CLASSICY_TRASH_PATH],
 								}),
 							),
+							// Explorer's Properties, last (2.2): the Trash's sheet.
+							{ id: "spacer" },
+							{
+								id: "finder_trash_properties",
+								title: CLASSICY_PROPERTIES_TITLE,
+								...(ak("r") !== undefined ? { accessKey: ak("r") } : {}),
+								onClickFunc: () =>
+									desktopEventDispatch(
+										classicyPropertiesOpenAction({
+											paths: [CLASSICY_TRASH_PATH],
+										}),
+									),
+							},
 						]
 					: []),
 			],
@@ -1127,6 +1176,38 @@ export const Finder = () => {
 		},
 		[fs, fileVerbs, ak, desktopEventDispatch],
 	);
+	// Explorer's Properties (2.2; WIG Ch.5 "Properties", p.51): the items'
+	// property sheet, or the open one brought forward.
+	const showProperties = useCallback(
+		(paths: string[]) => {
+			if (paths.length > 0)
+				desktopEventDispatch(classicyPropertiesOpenAction({ paths }));
+		},
+		[desktopEventDispatch],
+	);
+	const propertiesItem = useCallback(
+		(targets: () => string[]): ClassicyMenuItem => ({
+			id: "finder_item_properties_sheet",
+			title: CLASSICY_PROPERTIES_TITLE,
+			...(ak("r") !== undefined ? { accessKey: ak("r") } : {}),
+			onClickFunc: () => showProperties(targets()),
+		}),
+		[ak, showProperties],
+	);
+	// The first command of an item's menu: Open, or "Open With…" for a file
+	// whose type only the Finder opens under `layout.files.unregisteredOpen`
+	// "openWith" (WIG Ch.10 "Registering File Extensions", p.192: Open With
+	// is an unregistered type's default command; shell32.dll's "Open With...").
+	const openTitle = useCallback(
+		(path: string) =>
+			classicyFinderOpensWithDialog(
+				fs.resolve(path),
+				useAppManager.getState().System.Manager.Applications,
+			)
+				? "Open With\u2026"
+				: "Open",
+		[fs],
+	);
 	// Every item of a selection a double-click opens (the list view, under
 	// `layout.selection.modifiers` "windows"), each as openItem opens it.
 	const openItems = useCallback(
@@ -1173,12 +1254,18 @@ export const Finder = () => {
 					: [
 							{
 								id: "finder_item_open",
-								title: "Open",
+								title: openTitle(path),
 								accessKey: ak("o"),
 								isDefault: true,
 								onClickFunc: () => openItem(path),
 							},
 						];
+			// Explorer's Properties ends every item's menu (2.2), an
+			// Extension's but its own (its Properties is its control panel).
+			const properties: ClassicyMenuItem[] =
+				windowsCommands && !panelId
+					? [{ id: "spacer" }, propertiesItem(() => targets)]
+					: [];
 			if (isClassicyTrashItem(fs, path)) {
 				return [
 					...open,
@@ -1188,10 +1275,11 @@ export const Finder = () => {
 						...(ak("e") !== undefined ? { accessKey: ak("e") } : {}),
 						onClickFunc: () => restoreItems(targets),
 					},
+					...properties,
 				];
 			}
 			if (isInClassicyTrash(fs, path))
-				return open.length > 0 ? open : undefined;
+				return open.length > 0 ? [...open, ...properties] : undefined;
 			if (windowsCommands) {
 				// Explorer's item menu (Windows 98 SE, shell32.dll): Open, the
 				// handler's verbs, then Create Shortcut, Delete and Rename;
@@ -1210,6 +1298,7 @@ export const Finder = () => {
 						() => commands?.rename(path),
 						targets.length !== 1 || !classicyCanRename(fs, path),
 					),
+					...properties,
 				];
 			}
 			return [
@@ -1230,6 +1319,8 @@ export const Finder = () => {
 			ak,
 			verbItems,
 			createShortcuts,
+			openTitle,
+			propertiesItem,
 		],
 	);
 	// A desktop file or folder icon's menu under Explorer's commands
@@ -1263,7 +1354,7 @@ export const Finder = () => {
 			return [
 				{
 					id: "finder_item_open",
-					title: "Open",
+					title: openTitle(path),
 					...(ak("o") !== undefined ? { accessKey: ak("o") } : {}),
 					isDefault: true,
 					onClickFunc: () => openItemRef.current(path),
@@ -1283,9 +1374,13 @@ export const Finder = () => {
 							`${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`,
 						);
 				}),
+				// Explorer's Properties, last (2.2): the desktop's selected
+				// items' sheet when this is one.
+				{ id: "spacer" },
+				propertiesItem(targets),
 			];
 		},
-		[trashItems, ak, fs, verbItems, createShortcuts],
+		[trashItems, ak, fs, verbItems, createShortcuts, openTitle, propertiesItem],
 	);
 
 	// Mirror the Desktop Folder onto the desktop: an icon for each item in it,
@@ -1399,6 +1494,7 @@ export const Finder = () => {
 							creatableTypes={creatableTypes}
 							newItem={newItem}
 							createShortcuts={createShortcuts}
+							showProperties={showProperties}
 						/>
 					))
 				: null}
@@ -1415,6 +1511,25 @@ export const Finder = () => {
 					appId={appId}
 					fs={fs}
 					paths={finderData.desktopShortcutOffer.paths}
+				/>
+			) : null}
+			{/* Explorer's property sheets (2.2) and Open With (10.1). */}
+			{(finderData.properties ?? []).map((sheet, index) => (
+				<ClassicyFilePropertiesWindow
+					key={sheet.key}
+					appId={appId}
+					fs={fs}
+					paths={sheet.paths}
+					targetAppId={sheet.appId}
+					index={index}
+					trashIcon={trashIcon}
+				/>
+			))}
+			{finderData.openWith ? (
+				<ClassicyOpenWithDialog
+					appId={appId}
+					fs={fs}
+					path={finderData.openWith.path}
 				/>
 			) : null}
 			{aboutWindow}

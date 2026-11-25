@@ -86,7 +86,23 @@ and `nodenext` resolution).
   desktop, every Delete (the menus, the Delete key, Ctrl+Backspace, a drop on
   the Trash) asking Windows 98's "Confirm File Delete" first, names refusing
   \ / : * ? " < > | in Windows 98's words, and the file dialog's New Folder
-  offering "New Folder" (or its first free number),
+  offering "New Folder" (or its first free number), Properties last on
+  every item's, drive's, app's and the Trash's menu and in the File menus,
+  and on Alt+Enter and an Alt double-click, opening Windows 98's property
+  sheet (the General page: the icon and name, renamed there, Type, Location,
+  Size, a folder's Contains, Created, Modified and the Read-only and Hidden
+  attributes, with OK, Cancel and Apply; a drive's used space; a multiple
+  selection's "2 Files, 1 Folders", "All of type …" and "All in …"), the
+  empty desktop's Properties opening the Appearance control panel on its
+  Desktop tab, a file no program opens asking Open With ("Click the program
+  you want to use to open the file 'data.bin'.", the programs that open
+  files, "Always use this program to open this type of file"; the item's
+  first command then reads "Open With…"), the extension of a file a program
+  opens hidden ("Read Me.txt" shown as "Read Me", in both views, on the
+  desktop and in the sheet; a rename keeps it; Finder Preferences' "Hide
+  file extensions for known file types" shows them again), and the Type
+  column and the sheet naming types as Windows 98 does ("File Folder",
+  "Text Document", "Local Disk", "Shortcut"),
   an access key on every menu title, menu item, label of a control and
   push button (the first free letter of its text, underlined, unless the
   app gives it one; OK and Cancel take none, as Enter and Esc reach them;

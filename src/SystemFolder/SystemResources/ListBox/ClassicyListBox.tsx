@@ -111,6 +111,13 @@ type ClassicyListBoxProps = {
 	labelPosition?: ClassicyLabelPosition;
 	/** Label text size. */
 	labelSize?: ClassicyControlLabelSize;
+	/**
+	 * The label's access key (`ClassicyControlLabel`'s `accessKey`: Alt and
+	 * the key moves focus to the list), read only under the package's
+	 * `layout.menu.accessKeys`; absent, the label takes what that layout
+	 * gives it (none under Platinum and System 7).
+	 */
+	accessKey?: string;
 	/** Dims the list and ignores clicks and keys. Defaults to `false`. */
 	disabled?: boolean;
 	/** Extra class names, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
@@ -182,6 +189,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 	label,
 	labelPosition = "above",
 	labelSize,
+	accessKey,
 	disabled = false,
 	className,
 	style,
@@ -622,6 +630,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 				label={label}
 				labelFor={id}
 				labelSize={labelSize}
+				accessKey={accessKey}
 				disabled={disabled}
 			/>
 			{listbox}

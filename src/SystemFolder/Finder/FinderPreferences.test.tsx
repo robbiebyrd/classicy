@@ -172,3 +172,71 @@ describe("FinderPreferences", () => {
 		});
 	});
 });
+
+// The remaining chapters' audit's 10.8 (WIG Ch.10 "System Naming
+// Conventions", p.210; Windows 98's Folder Options): "Hide file extensions
+// for known file types", offered under `layout.files.extensions`
+// "hideRegistered" only, checked unless the user turned it off.
+describe("FinderPreferences' hide-extensions check box", () => {
+	afterEach(async () => {
+		const { resetClassicyAppearancePackagesForTests } = await import(
+			"@/Appearance/ClassicyAppearancePackage"
+		);
+		resetClassicyAppearancePackagesForTests();
+	});
+	const registerHiding = async () => {
+		await import(
+			"../../../packages/appearance/platinum/src/assets/sounds/platinum"
+		);
+		const { registerClassicyAppearancePackage } = await import(
+			"@/Appearance/ClassicyAppearancePackage"
+		);
+		const { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } = await import(
+			"@/Appearance/ClassicyAppearanceDefaults"
+		);
+		const { CLASSICY_CORE_DEFAULT_THEME } = await import(
+			"@/Appearance/ClassicyCoreTheme"
+		);
+		registerClassicyAppearancePackage({
+			id: "test-hiding",
+			name: "Hiding",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-hiding-default",
+				package: "test-hiding",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				files: { extensions: "hideRegistered" },
+			},
+		});
+	};
+	const label = "Hide file extensions for known file types";
+
+	it("is not offered without the key", () => {
+		withFinderData({});
+		render(<FinderPreferences />);
+		expect(screen.queryByRole("checkbox", { name: label })).toBeNull();
+	});
+
+	it("is checked by default under the key, and dispatches the user's choice", async () => {
+		await registerHiding();
+		withFinderData({});
+		render(<FinderPreferences />);
+		const box = screen.getByRole("checkbox", { name: label });
+		expect(box).toBeChecked();
+		box.click();
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppFinderSetHideFileExtensions",
+			hide: false,
+		});
+	});
+
+	it("is unchecked when the user turned it off", async () => {
+		await registerHiding();
+		withFinderData({ hideFileExtensions: false });
+		render(<FinderPreferences />);
+		expect(screen.getByRole("checkbox", { name: label })).not.toBeChecked();
+	});
+});

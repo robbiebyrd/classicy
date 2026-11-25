@@ -14,7 +14,10 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
-import { useClassicySessionTab } from "@/SystemFolder/SystemResources/Tabs/useClassicySessionTab";
+import {
+	openClassicyAppAtTab,
+	useClassicySessionTab,
+} from "@/SystemFolder/SystemResources/Tabs/useClassicySessionTab";
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext",
@@ -141,5 +144,42 @@ describe("useClassicySessionTab", () => {
 		expect(result.current.defaultTab).toBe(0);
 		act(() => result.current.onTabChange(1));
 		expect(session()?.tabs?.toString).toBe(1);
+	});
+});
+
+// Explorer's Properties on the desktop opens Display Properties (the
+// remaining chapters' audit's 2.2): a panel opened on a remembered tab when
+// it is closed, brought forward as it stands when open.
+describe("openClassicyAppAtTab", () => {
+	it("opens a closed app on the tab, and brings an open one forward as it stands", () => {
+		expect(session()?.tabs).toBeUndefined();
+		expect(openClassicyAppAtTab(dispatch, APP, "main", 3)).toBe(true);
+		const app = () =>
+			useAppManager.getState().System.Manager.Applications.apps[APP];
+		expect(app()?.open).toBe(true);
+		expect(session()?.tabs).toEqual({ main: 3 });
+		act(() =>
+			dispatch({
+				type: "ClassicyAppRememberTab",
+				app: { id: APP },
+				tabs: "main",
+				index: 1,
+			}),
+		);
+		expect(openClassicyAppAtTab(dispatch, APP, "main", 3)).toBe(true);
+		expect(session()?.tabs).toEqual({ main: 1 });
+	});
+
+	it("opens nothing for an app that is not loaded", () => {
+		const calls: unknown[] = [];
+		expect(
+			openClassicyAppAtTab(
+				(action) => calls.push(action),
+				"Nope.app",
+				"main",
+				3,
+			),
+		).toBe(false);
+		expect(calls).toEqual([]);
 	});
 });

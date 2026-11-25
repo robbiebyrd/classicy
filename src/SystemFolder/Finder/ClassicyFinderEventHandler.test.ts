@@ -18,6 +18,7 @@ import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppMan
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	classicyFinderEventHandler,
+	classicyFinderOpensWithDialog,
 	FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID,
 	isFinderData,
 } from "@/SystemFolder/Finder/FinderContext";
@@ -1051,5 +1052,373 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOfferDesktopShortcut",
 			"trusted",
 		);
 		expect(data(ds).desktopShortcutOffer).toBeUndefined();
+	});
+});
+
+// The remaining chapters' audit's 2.2 / 5.27 / B.10 (WIG Ch.2 pp.12-13; Ch.5
+// "Properties", p.51): property sheets kept by key, focused when chosen
+// again, following their items, closed with their window records, and never
+// persisted.
+describe("classicyFinderEventHandler — property sheets", () => {
+	const data = (ds: ClassicyStore) =>
+		ds.System.Manager.Applications.apps["Finder.app"].data as {
+			properties?: unknown;
+			hideFileExtensions?: unknown;
+		};
+	const open = (ds: ClassicyStore, action: Record<string, unknown>) =>
+		classicyFinderEventHandler(
+			ds,
+			{ type: "ClassicyAppFinderPropertiesOpen", ...action },
+			"trusted",
+		);
+
+	it("opens one sheet per target, and only one", () => {
+		const ds = makeStore();
+		open(ds, { paths: ["Macintosh HD:a.txt", "", 3] });
+		open(ds, { paths: ["Macintosh HD:b", "Macintosh HD:a.txt"] });
+		open(ds, { appId: "TV.app" });
+		open(ds, { paths: ["Macintosh HD:a.txt"] });
+		expect(data(ds).properties).toEqual([
+			{ key: "Macintosh HD:a.txt", paths: ["Macintosh HD:a.txt"] },
+			{
+				key: "Macintosh HD:a.txt::Macintosh HD:b",
+				paths: ["Macintosh HD:b", "Macintosh HD:a.txt"],
+			},
+			{ key: ":TV.app", appId: "TV.app" },
+		]);
+		open(ds, {});
+		open(ds, { paths: [] });
+		expect((data(ds).properties as unknown[]).length).toBe(3);
+	});
+
+	it("brings an open sheet forward when it is chosen again", () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord(
+			...([
+				{
+					id: "properties:Macintosh HD:a.txt",
+					closed: false,
+					focused: false,
+					size: [300, 300],
+					position: [0, 0],
+					minimumSize: [0, 0],
+					zOrder: 1,
+				},
+				{
+					id: "Macintosh HD",
+					closed: false,
+					focused: true,
+					size: [300, 300],
+					position: [0, 0],
+					minimumSize: [0, 0],
+					zOrder: 2,
+				},
+			] as never[]),
+		);
+		open(ds, { paths: ["Macintosh HD:a.txt"] });
+		const sheet = listAppWindows(
+			ds.System.Manager.Applications.apps["Finder.app"],
+		).find((w) => w.id === "properties:Macintosh HD:a.txt");
+		expect(sheet?.focused).toBe(true);
+	});
+
+	it("closes a sheet and drops its window record", () => {
+		const ds = makeStore();
+		open(ds, { paths: ["Macintosh HD:a.txt"] });
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord(
+			...([
+				{
+					id: "properties:Macintosh HD:a.txt",
+					closed: true,
+					size: [300, 300],
+					position: [10, 10],
+					minimumSize: [0, 0],
+				},
+			] as never[]),
+		);
+		classicyFinderEventHandler(
+			ds,
+			{ type: "ClassicyAppFinderPropertiesClose", key: "Macintosh HD:a.txt" },
+			"trusted",
+		);
+		expect(data(ds).properties).toEqual([]);
+		expect(
+			listAppWindows(ds.System.Manager.Applications.apps["Finder.app"]),
+		).toEqual([]);
+		// A close without a key changes nothing.
+		classicyFinderEventHandler(
+			ds,
+			{ type: "ClassicyAppFinderPropertiesClose" },
+			"trusted",
+		);
+		expect(data(ds).properties).toEqual([]);
+	});
+
+	it("follows its items when they move or are renamed, its window record too", () => {
+		const ds = makeStore();
+		open(ds, { paths: ["Macintosh HD:a.txt"] });
+		open(ds, { appId: "TV.app" });
+		ds.System.Manager.Applications.apps["Finder.app"].windows = windowsRecord(
+			...([
+				{
+					id: "properties:Macintosh HD:a.txt",
+					closed: false,
+					size: [300, 300],
+					position: [40, 40],
+					minimumSize: [0, 0],
+				},
+			] as never[]),
+		);
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderPathsMoved",
+				moves: [{ from: "Macintosh HD:a.txt", to: "Macintosh HD:b.txt" }],
+			},
+			"trusted",
+		);
+		expect(data(ds).properties).toEqual([
+			{ key: "Macintosh HD:b.txt", paths: ["Macintosh HD:b.txt"] },
+			{ key: ":TV.app", appId: "TV.app" },
+		]);
+		const records = listAppWindows(
+			ds.System.Manager.Applications.apps["Finder.app"],
+		);
+		expect(records.map((w) => [w.id, w.position])).toEqual([
+			["properties:Macintosh HD:b.txt", [40, 40]],
+		]);
+	});
+
+	it("is never persisted: neither the sheets nor their windows", () => {
+		const pending = structuredClone(DefaultAppManagerState);
+		open(pending, { paths: ["Macintosh HD"] });
+		pending.System.Manager.Applications.apps["Finder.app"].windows = {
+			...pending.System.Manager.Applications.apps["Finder.app"].windows,
+			...windowsRecord(
+				...([
+					{
+						id: "properties:Macintosh HD",
+						closed: false,
+						size: [300, 300],
+						position: [0, 0],
+						minimumSize: [0, 0],
+					},
+				] as never[]),
+			),
+		};
+		const saved = sanitizeStateForPersistence(pending);
+		expect(data(saved).properties).toBeUndefined();
+		expect(
+			listAppWindows(saved.System.Manager.Applications.apps["Finder.app"]).some(
+				(w) => w.id.startsWith("properties:"),
+			),
+		).toBe(false);
+	});
+
+	it("keeps Finder Preferences' hide-extensions choice, persisted", () => {
+		const ds = classicyFinderEventHandler(
+			structuredClone(DefaultAppManagerState),
+			{ type: "ClassicyAppFinderSetHideFileExtensions", hide: false },
+			"trusted",
+		);
+		expect(data(ds).hideFileExtensions).toBe(false);
+		classicyFinderEventHandler(
+			ds,
+			{ type: "ClassicyAppFinderSetHideFileExtensions", hide: "no" },
+			"trusted",
+		);
+		expect(data(ds).hideFileExtensions).toBe(false);
+		expect(data(sanitizeStateForPersistence(ds)).hideFileExtensions).toBe(
+			false,
+		);
+	});
+});
+
+// The remaining chapters' audit's 10.1 (WIG Ch.10 "Registering File
+// Extensions", p.192): under `files.unregisteredOpen` "openWith" a type no
+// application but the Finder opens waits in Open With, which opens it in the
+// application chosen under the trust the open arrived with.
+describe("classicyFinderEventHandler — Open With", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const data = (ds: ClassicyStore) =>
+		ds.System.Manager.Applications.apps["Finder.app"].data as {
+			openWith?: unknown;
+			openFiles?: unknown;
+		};
+	const openWithStore = () => {
+		registerClassicyAppearancePackage({
+			id: "windows-open-with",
+			name: "Windows Open With",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-open-with-default",
+				package: "windows-open-with",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				files: { unregisteredOpen: "openWith" },
+			},
+		});
+		const ds = makeStore();
+		ds.System.Manager.Appearance.packageId = "windows-open-with";
+		ds.System.Manager.Applications.apps["Viewer.app"] = {
+			id: "Viewer.app",
+			name: "Viewer",
+			icon: "",
+			windows: {},
+			open: false,
+			data: {},
+		} as never;
+		return ds;
+	};
+	const openFile = (
+		ds: ClassicyStore,
+		trust: "trusted" | "untrusted" = "trusted",
+		type = ClassicyFileSystemEntryFileType.File,
+	) =>
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFile",
+				file: { _type: type },
+				path: "Macintosh HD:data.bin",
+			},
+			trust,
+		);
+
+	it("waits in Open With, with the open's trust, for a type only the Finder opens", () => {
+		const ds = openFile(openWithStore(), "untrusted");
+		expect(data(ds).openWith).toEqual({
+			path: "Macintosh HD:data.bin",
+			trust: "untrusted",
+		});
+		expect(data(ds).openFiles).toBeUndefined();
+		expect(ds.System.Manager.Desktop.errorDialog).toBeFalsy();
+	});
+
+	it("opens a registered type in its application, as before", () => {
+		const ds = openWithStore();
+		ds.System.Manager.Applications.fileTypeHandlers.file = "Viewer.app";
+		openFile(ds);
+		expect(data(ds).openWith).toBeUndefined();
+		expect(
+			(
+				ds.System.Manager.Applications.apps["Viewer.app"].data as {
+					openFiles?: string[];
+				}
+			).openFiles,
+		).toEqual(["Macintosh HD:data.bin"]);
+	});
+
+	it("opens in the application chosen, under the open's trust", () => {
+		const ds = openFile(openWithStore());
+		classicyFinderEventHandler(
+			ds,
+			{ type: "ClassicyAppFinderOpenWithChoose", appId: "Viewer.app" },
+			"trusted",
+		);
+		expect(data(ds).openWith).toBeUndefined();
+		expect(
+			(
+				ds.System.Manager.Applications.apps["Viewer.app"].data as {
+					openFiles?: string[];
+				}
+			).openFiles,
+		).toEqual(["Macintosh HD:data.bin"]);
+	});
+
+	it("refuses the open for an untrusted one, as its own route would", () => {
+		const ds = openFile(openWithStore(), "untrusted");
+		classicyFinderEventHandler(
+			ds,
+			{ type: "ClassicyAppFinderOpenWithChoose", appId: "Viewer.app" },
+			"trusted",
+		);
+		expect(data(ds).openWith).toBeUndefined();
+		expect(
+			(
+				ds.System.Manager.Applications.apps["Viewer.app"].data as {
+					openFiles?: string[];
+				}
+			).openFiles,
+		).toBeUndefined();
+	});
+
+	it("opens nothing for Cancel, an unknown app or the Finder", () => {
+		for (const close of [
+			{ type: "ClassicyAppFinderOpenWithClose" },
+			{ type: "ClassicyAppFinderOpenWithChoose", appId: "Nope.app" },
+			{ type: "ClassicyAppFinderOpenWithChoose", appId: "Finder.app" },
+		]) {
+			const ds = openFile(openWithStore());
+			classicyFinderEventHandler(ds, close, "trusted");
+			expect(data(ds).openWith).toBeUndefined();
+			expect(
+				(
+					ds.System.Manager.Applications.apps["Viewer.app"].data as {
+						openFiles?: string[];
+					}
+				).openFiles,
+			).toBeUndefined();
+		}
+	});
+
+	it("keeps today's open without the key", () => {
+		const ds = makeStore();
+		openFile(ds);
+		expect(data(ds).openWith).toBeUndefined();
+		expect(data(ds).openFiles).toEqual(["Macintosh HD:data.bin"]);
+	});
+
+	it("is never persisted", () => {
+		const ds = openFile(openWithStore());
+		expect(data(sanitizeStateForPersistence(ds)).openWith).toBeUndefined();
+	});
+
+	it("titles the menu's open Open With for the same files (classicyFinderOpensWithDialog)", () => {
+		const ds = openWithStore();
+		const apps = ds.System.Manager.Applications;
+		expect(
+			classicyFinderOpensWithDialog(
+				{ _type: "file" },
+				apps,
+				"windows-open-with",
+			),
+		).toBe(true);
+		for (const file of [
+			{ _type: "directory" },
+			{ _type: "extension" },
+			{ _type: "app_shortcut" },
+			{ _type: "file", _system: true },
+			{ _type: "file", _creator: "QuickTime" },
+			undefined,
+		]) {
+			expect(
+				classicyFinderOpensWithDialog(file, apps, "windows-open-with"),
+				JSON.stringify(file),
+			).toBe(false);
+		}
+		apps.fileTypeHandlers.file = "Viewer.app";
+		expect(
+			classicyFinderOpensWithDialog(
+				{ _type: "file" },
+				apps,
+				"windows-open-with",
+			),
+		).toBe(false);
+		// A handler that is not loaded opens nothing: Open With again.
+		apps.fileTypeHandlers.file = "Gone.app";
+		expect(
+			classicyFinderOpensWithDialog(
+				{ _type: "file" },
+				apps,
+				"windows-open-with",
+			),
+		).toBe(true);
+		// Without the key (no package declaring it), never.
+		resetClassicyAppearancePackagesForTests();
+		expect(classicyFinderOpensWithDialog({ _type: "file" }, apps)).toBe(false);
 	});
 });

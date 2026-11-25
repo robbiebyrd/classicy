@@ -70,10 +70,42 @@ describe("Finder drive icons", () => {
 				"Backup",
 				"—",
 				"Create Shortcut",
+				"—",
+				"Properties",
 			]);
+			// Properties, last (2.2), a stored event for the drive's sheet.
+			expect(driveIcon()?.contextMenu?.at(-1)).toEqual(
+				expect.objectContaining({
+					accessKey: "r",
+					event: "ClassicyAppFinderPropertiesOpen",
+					eventData: { paths: ["Macintosh HD"] },
+				}),
+			);
 		} finally {
 			restore();
 		}
+	});
+
+	it("builds Properties last only when asked", () => {
+		expect(
+			buildDriveContextMenu("Disk", false).some(
+				(m) => m.title === "Properties",
+			),
+		).toBe(false);
+		const menu = buildDriveContextMenu("Disk", false, {
+			properties: true,
+			propertiesAccessKey: "r",
+		});
+		expect(menu.slice(-2)).toEqual([
+			{ id: "spacer" },
+			{
+				id: "drive_Disk_properties",
+				title: "Properties",
+				accessKey: "r",
+				event: "ClassicyAppFinderPropertiesOpen",
+				eventData: { paths: ["Disk"] },
+			},
+		]);
 	});
 
 	it("builds Open first only when asked", () => {
@@ -142,14 +174,32 @@ describe("Finder drive icons", () => {
 		render(<Finder />);
 		await waitFor(() => expect(trashMenu()).toBeDefined());
 		expect(trashMenu()?.some((m) => m.title === "Create Shortcut")).toBe(false);
+		expect(trashMenu()?.some((m) => m.title === "Properties")).toBe(false);
 		cleanup();
 		const restore = activateTestWindowsKeysPackage();
 		try {
 			render(<Finder />);
 			await waitFor(() =>
-				expect(trashMenu()?.at(-1)?.title).toBe("Create Shortcut"),
+				expect(trashMenu()?.at(-1)?.title).toBe("Properties"),
 			);
+			// Explorer's Recycle Bin menu: Create Shortcut, then Properties
+			// after a separator (2.2), which opens the Trash's sheet.
+			expect(trashMenu()?.at(-2)).toEqual({ id: "spacer" });
 			act(() => trashMenu()?.at(-1)?.onClickFunc?.());
+			expect(
+				(
+					useAppManager.getState().System.Manager.Applications.apps[
+						"Finder.app"
+					]?.data as { properties?: unknown }
+				)?.properties,
+			).toEqual([{ key: "Trash", paths: ["Trash"] }]);
+			act(() =>
+				dispatch({ type: "ClassicyAppFinderPropertiesClose", key: "Trash" }),
+			);
+			const createShortcut = trashMenu()?.find(
+				(m) => m.title === "Create Shortcut",
+			);
+			act(() => createShortcut?.onClickFunc?.());
 			expect(
 				(
 					useAppManager.getState().System.Manager.Applications.apps[

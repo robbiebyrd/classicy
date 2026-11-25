@@ -1353,7 +1353,11 @@ describe("the Windows 98 appearance package", () => {
 			},
 			keyboard: { contextMenuKey: true, command: "ctrl" },
 			finder: { commands: "windows" },
-			files: { names: "windows" },
+			files: {
+				names: "windows",
+				unregisteredOpen: "openWith",
+				extensions: "hideRegistered",
+			},
 			fileBrowser: {
 				keys: "windows",
 				iconSelection: "view",
@@ -1485,6 +1489,27 @@ describe("the Windows 98 appearance package", () => {
 			message: { label: "Message box" },
 			icon: { label: "Icon" },
 		});
+	});
+
+	// Windows' names for the file types (the remaining chapters' audit's
+	// 10.2; WIG Ch.10 "The Application Identifier Key", pp.197-198; Windows 98
+	// SE's shell32.dll and registry): Explorer's Type column's and a property
+	// sheet's Type, the rest keeping the core's names.
+	it("names the file types as Windows 98 does", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("windows98");
+		expect(pkg?.fileTypeNames).toEqual({
+			directory: "File Folder",
+			drive: "Local Disk",
+			text_file: "Text Document",
+			video: "Video Clip",
+			app_shortcut: "Application",
+			shortcut: "Internet Shortcut",
+			file_shortcut: "Shortcut",
+			stack: "HyperCard Stack",
+			pdf: "PDF Document",
+		});
+		expect(Object.isFrozen(pkg?.fileTypeNames)).toBe(true);
 	});
 
 	// The exported data is a frozen copy: editing it edits no registered theme.

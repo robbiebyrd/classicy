@@ -198,6 +198,18 @@ type ClassicyFileBrowserProps = {
 	backgroundContextMenu?: (
 		at: [number, number],
 	) => ClassicyMenuItem[] | undefined;
+	/**
+	 * Explorer's Properties from the keyboard and the mouse (WIG App. B
+	 * Table B.2, p.358: Alt+Enter; Ch.5 "View Shortcuts", p.47: an Alt
+	 * double-click): called with the selection's paths (none when nothing is
+	 * selected) on Alt+Enter (⌥↩ where the browser delivers it) in the view,
+	 * or with the selection holding the item (else the item alone) on an
+	 * Alt double-click on one, in place of opening it; the key's and the
+	 * double-click's defaults are prevented. Finder shows the items' property
+	 * sheet under `layout.finder.commands` "windows". Without it, Alt+Enter
+	 * and an Alt double-click do what Enter and a double-click do.
+	 */
+	onPropertiesItems?: (paths: string[]) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -281,6 +293,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	commandsRef,
 	onRenameItem,
 	backgroundContextMenu,
+	onPropertiesItems,
 	className,
 	style,
 }) => {
@@ -335,6 +348,42 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		}),
 		[currentSelection, display],
 	);
+
+	// Alt+Enter, ahead of the views (whose Enter opens the item): the
+	// selection's Properties.
+	const onKeyDownCapture = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (
+			!onPropertiesItems ||
+			e.defaultPrevented ||
+			e.key !== "Enter" ||
+			!e.altKey ||
+			e.ctrlKey ||
+			e.metaKey ||
+			e.shiftKey ||
+			(e.target as HTMLElement).closest("input, textarea")
+		)
+			return;
+		e.preventDefault();
+		e.stopPropagation();
+		onPropertiesItems(currentSelection());
+	};
+	// An Alt double-click on an item, ahead of the item's own (which opens
+	// it): the Properties of the selection holding it, else of the item.
+	const onDoubleClickCapture = (e: MouseEvent<HTMLDivElement>) => {
+		if (!onPropertiesItems || !e.altKey) return;
+		// An icon, or a list row anywhere along it (its id is its path).
+		const target = e.target as Element;
+		const icon = target.closest(`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`);
+		const item = icon ?? target.closest("tr[data-row-id]");
+		const itemPath = icon
+			? icon.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE)
+			: item?.getAttribute("data-row-id");
+		if (!item || !itemPath || !rootRef.current?.contains(item)) return;
+		e.preventDefault();
+		e.stopPropagation();
+		const selected = currentSelection();
+		onPropertiesItems(selected.includes(itemPath) ? selected : [itemPath]);
+	};
 
 	const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		// Windows: F2 renames the one selected row (Explorer's Rename), as
@@ -500,6 +549,8 @@ export const ClassicyFileBrowser: FunctionalComponent<
 			style={style}
 			{...{ [CLASSICY_DROP_FOLDER_ATTRIBUTE]: path }}
 			onKeyDown={onKeyDown}
+			onKeyDownCapture={onKeyDownCapture}
+			onDoubleClickCapture={onDoubleClickCapture}
 			onContextMenu={onContextMenu}
 			onMouseDown={onMouseDown}
 		>

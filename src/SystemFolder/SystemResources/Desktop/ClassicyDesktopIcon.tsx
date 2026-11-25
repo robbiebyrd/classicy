@@ -45,9 +45,14 @@ import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
 	renameClassicyFileSystemItem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import {
+	classicyDesktopIconPropertiesTarget,
+	classicyPropertiesOpenAction,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileProperties";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { useClassicyDisplayFileName } from "@/SystemFolder/SystemResources/File/useClassicyDisplayFileName";
 import { ClassicyRenameField } from "@/SystemFolder/SystemResources/Icon/ClassicyRenameField.internal";
 import {
 	classicyIconsRoveFocus,
@@ -244,14 +249,19 @@ const ClassicyDesktopIconRenameField: FunctionalComponent<{
 }> = ({ iconId, filePath }) => {
 	const getFileSystem = useClassicyFileSystemAccessor();
 	const desktopEventDispatch = useAppManagerDispatch();
+	const shownNames = useClassicyDisplayFileName();
 	const fs = getFileSystem();
 	const name = filePath.split(fs.separator).pop() ?? filePath;
+	// A hidden extension (`layout.files.extensions`) is left off the field
+	// and kept on the new name.
+	const extension = shownNames.hiddenExtension(name, fs.resolve(filePath));
 	return (
 		<ClassicyRenameField
 			className={"classicyDesktopIconRename"}
-			name={name}
-			onCommit={(value) => {
+			name={name.slice(0, name.length - extension.length)}
+			onCommit={(typed) => {
 				stopClassicyDesktopIconRename(iconId);
+				const value = typed + extension;
 				if (value === name) return;
 				const renamed = renameClassicyFileSystemItem(
 					getFileSystem(),
@@ -433,7 +443,19 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// label falls back to the name too. (Only an app shortcut's name can
 			// differ from `appName`, and only kinds that are not one get stock
 			// copy.)
-			const shownName = label || identity.name;
+			// A Desktop Folder item's name as the package shows it: under
+			// `layout.files.extensions` "hideRegistered" (Windows 98) a
+			// registered type's extension is hidden.
+			const shownNames = useClassicyDisplayFileName();
+			const getItemFileSystem = useClassicyFileSystemAccessor();
+			const itemName =
+				shownNames.hides && isDesktopItem && filePath !== undefined && !label
+					? shownNames.display(
+							identity.name,
+							getItemFileSystem().resolve(filePath),
+						)
+					: identity.name;
+			const shownName = label || itemName;
 			const effectiveBalloonHelp = balloonHelp
 				? { ...balloonHelp, title: balloonHelp.title ?? shownName }
 				: identity.description
@@ -538,6 +560,23 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						],
 					});
 				}
+			};
+
+			// Explorer's Properties from the icon (`layout.finder.commands`
+			// "windows"; WIG App. B Table B.2, p.358: Alt+Enter; Ch.5 "View
+			// Shortcuts", p.47: an Alt double-click): the property sheet of
+			// the desktop's selection when the icon is in it, else of the
+			// icon's item or application.
+			const propertiesFromIcon = layout.finder?.commands === "windows";
+			const showProperties = () => {
+				const desktop = useAppManager.getState?.()?.System?.Manager?.Desktop;
+				if (!desktop) return;
+				const target = classicyDesktopIconPropertiesTarget(
+					desktop.icons,
+					desktop.selectedIcons ?? [],
+					appId,
+				);
+				if (target) desktopEventDispatch(classicyPropertiesOpenAction(target));
 			};
 
 			const launchIcon = () => {
@@ -818,7 +857,14 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					onMouseDown={startDrag}
 					onMouseMove={changeIcon}
 					onMouseUp={() => stopChangeIcon(false)}
-					onDoubleClick={launchIcon}
+					onDoubleClick={(e: MouseEvent<HTMLDivElement>) => {
+						if (propertiesFromIcon && e.altKey) {
+							e.preventDefault();
+							showProperties();
+							return;
+						}
+						launchIcon();
+					}}
 					draggable={false}
 					{...(filePath !== undefined &&
 					(kind === "drive" || kind === "directory" || kind === "trash")
@@ -826,6 +872,20 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: {})}
 					onClick={clickFocus}
 					onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+						// Windows: Alt+Enter shows the Properties (Table B.2).
+						if (
+							e.key === "Enter" &&
+							e.altKey &&
+							propertiesFromIcon &&
+							!e.ctrlKey &&
+							!e.metaKey &&
+							!e.shiftKey
+						) {
+							e.preventDefault();
+							e.stopPropagation();
+							showProperties();
+							return;
+						}
 						// Windows: F2 renames the item (Explorer's Rename), the
 						// one selected (`layout.fileBrowser.keys` "windows").
 						if (

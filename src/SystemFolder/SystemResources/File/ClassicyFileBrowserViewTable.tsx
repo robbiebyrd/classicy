@@ -1,7 +1,8 @@
 import {
-	fileTypeDisplayName,
 	iconImageByType,
+	useClassicyFileTypeDisplayName,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
+import { useClassicyDisplayFileName } from "@/SystemFolder/SystemResources/File/useClassicyDisplayFileName";
 import "./ClassicyFileBrowserViewTable.scss";
 import classNames from "classnames";
 import {
@@ -475,17 +476,24 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					tableApiRef.current?.sortBy?.(ARRANGE_COLUMNS[key], false),
 				lineUp: () => {},
 			}));
+			// The Kind column's names (the package's `fileTypeNames`) and the
+			// shown names (`layout.files.extensions` "hideRegistered": a
+			// registered type's extension hidden, a rename keeping it).
+			const typeName = useClassicyFileTypeDisplayName();
+			const shownNames = useClassicyDisplayFileName();
 			const commitRename = useCallback(
-				(rowPath: string, name: string) => {
+				(rowPath: string, typed: string) => {
 					setRenaming(null);
 					const oldName = rowPath.split(fs.separator).pop() ?? "";
+					const name =
+						typed + shownNames.hiddenExtension(oldName, fs.resolve(rowPath));
 					if (name === oldName) return;
 					const renamed = onRenameItem?.(rowPath, name);
 					if (typeof renamed === "string" && renamed !== rowPath) {
 						pendingCommandsRef.current.select = [renamed];
 					}
 				},
-				[fs, onRenameItem],
+				[fs, onRenameItem, shownNames],
 			);
 
 			const columns = useMemo<ClassicyTableColumn<FileRow>[]>(() => {
@@ -555,7 +563,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 									{renaming !== null && row._path === renaming ? (
 										<ClassicyRenameField
 											className={"classicyFileBrowserViewTableRename"}
-											name={row._name ?? ""}
+											name={shownNames.display(row._name ?? "", row)}
 											onCommit={(name) => commitRename(renaming, name)}
 											onCancel={() => setRenaming(null)}
 										/>
@@ -563,7 +571,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 										<span
 											className={"classicyFileBrowserViewTableRowIconLabel"}
 										>
-											{row._name}
+											{shownNames.display(row._name ?? "", row)}
 										</span>
 									)}
 								</div>
@@ -628,7 +636,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						id: "_type",
 						title: "Kind",
 						accessor: (row) => row._type,
-						render: (row) => <span>{fileTypeDisplayName(row._type)}</span>,
+						render: (row) => <span>{typeName(row._type)}</span>,
 					});
 				}
 				if (columnFlags.label) {
@@ -666,6 +674,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				startRowDrag,
 				renaming,
 				commitRename,
+				typeName,
+				shownNames,
 			]);
 
 			return (

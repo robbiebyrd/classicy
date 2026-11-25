@@ -259,6 +259,7 @@ describe("Finder folder-window menus' access keys", () => {
 				["Create Shortcut", "S"],
 				["Delete", "D"],
 				["Rename", "m"],
+				["Properties", "r"],
 				["Close", "c"],
 			]);
 			expect(edit.slice(0, 2)).toEqual(["Edit", "e"]);
@@ -335,6 +336,7 @@ describe("Finder folder-window menus under Explorer's commands", () => {
 				"Create Shortcut",
 				"Delete",
 				"Rename",
+				"Properties",
 				"—",
 				"Close",
 			]);

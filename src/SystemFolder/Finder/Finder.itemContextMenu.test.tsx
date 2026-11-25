@@ -125,19 +125,31 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 
 		const menu = itemMenus[DOCUMENTS](`${DOCUMENTS}:Projects`, []) ?? [];
 		// Windows 98 SE Explorer's item menu (shell32.dll): Open, then Create
-		// Shortcut, Delete and Rename (the audit's 1.21, 5.39, 10.3 and 10.6).
+		// Shortcut, Delete and Rename (the audit's 1.21, 5.39, 10.3 and 10.6),
+		// Properties last (2.2).
 		expect(titles(menu)).toEqual([
 			"Open",
 			"—",
 			"Create Shortcut",
 			"Delete",
 			"Rename",
+			"—",
+			"Properties",
 		]);
 		expect(menu[0].isDefault).toBe(true);
 		expect(menu.slice(1).some((item) => item.isDefault)).toBe(false);
 
 		act(() => menu[0].onClickFunc?.());
 		expect(finderData().openPaths).toContain(`${DOCUMENTS}:Projects`);
+		// Properties opens the item's sheet.
+		act(() => menu.at(-1)?.onClickFunc?.());
+		expect((finderData() as { properties?: unknown }).properties).toEqual([
+			{ key: `${DOCUMENTS}:Projects`, paths: [`${DOCUMENTS}:Projects`] },
+		]);
+		dispatch({
+			type: "ClassicyAppFinderPropertiesClose",
+			key: `${DOCUMENTS}:Projects`,
+		});
 	});
 
 	it("leads the Trash's items with Open too, before Restore", async () => {
@@ -150,7 +162,7 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 			metadata: { _trashed: true, _trashedFrom: DOCUMENTS },
 		});
 		const menu = itemMenus.Trash("Trash:Old", []) ?? [];
-		expect(menu.map((item) => item.title)).toEqual(["Open", "Restore"]);
+		expect(titles(menu)).toEqual(["Open", "Restore", "—", "Properties"]);
 		expect(menu[0].isDefault).toBe(true);
 	});
 
@@ -167,6 +179,8 @@ describe("Finder item menus lead with Open under Explorer's commands (layout.fin
 				"Create Shortcut",
 				"Delete",
 				"Rename",
+				"—",
+				"Properties",
 			]);
 			expect(icon?.contextMenu?.[0].isDefault).toBe(true);
 		});
@@ -457,6 +471,8 @@ describe("Explorer's Create Shortcut and verbs in Finder's item menus", () => {
 					"Create Shortcut",
 					"Delete",
 					"Rename",
+					"—",
+					"Properties",
 				]),
 			);
 			const print = itemMenus[DOCUMENTS](targets[0], targets)?.[1];
@@ -503,5 +519,68 @@ describe("Finder item menus without Explorer's commands", () => {
 			release();
 			setTextHandler("Finder.app");
 		}
+	});
+});
+
+// The remaining chapters' audit's 2.2 and 10.1: Finder renders the open
+// property sheets and the Open With dialog, and an unregistered type's
+// first command reads "Open With…" (WIG Ch.10 p.192).
+describe("Finder's property sheets and Open With", () => {
+	let restore: () => void = () => {};
+	afterEach(() => {
+		restore();
+		restore = () => {};
+		const data = useAppManager.getState().System.Manager.Applications.apps[
+			"Finder.app"
+		]?.data as { properties?: { key: string }[] } | undefined;
+		for (const sheet of data?.properties ?? [])
+			dispatch({ type: "ClassicyAppFinderPropertiesClose", key: sheet.key });
+		dispatch({ type: "ClassicyAppFinderOpenWithClose" });
+	});
+
+	it("renders a sheet for each open one", async () => {
+		restore = activateTestWindowsKeysPackage();
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS}:a.txt`, "a");
+		render(<Finder />);
+		act(() =>
+			dispatch({
+				type: "ClassicyAppFinderPropertiesOpen",
+				paths: [`${DOCUMENTS}:a.txt`],
+			}),
+		);
+		expect(await screen.findByText("a.txt Properties")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+		await waitFor(() =>
+			expect(screen.queryByText("a.txt Properties")).toBeNull(),
+		);
+	});
+
+	it("shows Open With for a type only the Finder opens, titling the item's open so", async () => {
+		restore = activateTestWindowsKeysPackage({
+			files: { unregisteredOpen: "openWith" },
+		});
+		const fs = new ClassicyFileSystem();
+		const path = `${DOCUMENTS}:data.bin`;
+		fs.writeFile(path, "bytes");
+		fs.setMetadata(path, { _type: "file" as never });
+		fs.mkDir(`${DOCUMENTS}:Projects`);
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		render(<Finder />);
+		await waitFor(() => expect(itemMenus[DOCUMENTS]).toBeDefined());
+		const menu = itemMenus[DOCUMENTS](path, []) ?? [];
+		expect(menu[0].title).toBe("Open With…");
+		expect(menu[0].isDefault).toBe(true);
+		act(() => menu[0].onClickFunc?.());
+		expect(await screen.findByText("Open With")).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				"Click the program you want to use to open the file 'data.bin'.",
+			),
+		).toBeInTheDocument();
+		// A folder keeps Open.
+		expect(itemMenus[DOCUMENTS](`${DOCUMENTS}:Projects`, [])?.[0]?.title).toBe(
+			"Open",
+		);
 	});
 });
