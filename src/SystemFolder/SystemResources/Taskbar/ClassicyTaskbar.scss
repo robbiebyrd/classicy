@@ -1,0 +1,110 @@
+// The Windows 95/98 taskbar (plan 0020-w98 §2; WIG Ch.3 "The Taskbar",
+// p.15, Figure 3.1): the Start button at its left, a button for each open
+// primary window in the middle, the status area at its right. ClassicyDesktop
+// mounts it in the Control Strip's place only when the Appearance Package's
+// layout declares `taskbar`, so no rule here reaches a package without one.
+//
+// Structure only: the package's stylesheet sizes every part (its height,
+// which the taskbar publishes as the band windows, icons and menus keep
+// above), and draws every bevel, color and glyph. This sheet holds the
+// bottom docking, the stacking band and the flex arrangement.
+//
+// It floats over application windows and palettes (350), in the Control
+// Strip's band, and stays under the modal-dialog scrim (360), so a modal
+// dialog blocks it as it blocks the desktop.
+
+.classicyTaskbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 355;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  box-sizing: border-box;
+  margin: 0;
+  cursor: default;
+  user-select: none;
+}
+
+// The three regions are flex items placed by `order` from their
+// data-classicy-part, so a package can rearrange them with `order` alone.
+$classicy-taskbar-order: (
+  taskbar-start: 10,
+  taskbar-tasks: 20,
+  taskbar-tray: 30,
+);
+
+@each $part, $order in $classicy-taskbar-order {
+  .classicyTaskbar > [data-classicy-part="#{$part}"] {
+    order: $order;
+  }
+}
+
+.classicyTaskbarStart {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  margin: 0;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.classicyTaskbarStartIcon,
+.classicyTaskbarStartLabel {
+  flex: 0 0 auto;
+}
+
+// The window buttons share what the Start button and the tray leave; each
+// may shrink to nothing here, and the package gives them Windows' widths.
+.classicyTaskbarTasks {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+  }
+}
+
+.classicyTaskbarTask {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  margin: 0;
+  overflow: hidden;
+  font: inherit;
+  text-align: start;
+}
+
+.classicyTaskbarTaskIcon {
+  flex: 0 0 auto;
+}
+
+// A title too long for its button is cut with an ellipsis; the button then
+// shows the whole title as a tooltip (ClassicyTaskbarTasks.internal.tsx).
+.classicyTaskbarTaskLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.classicyTaskbarTray {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}

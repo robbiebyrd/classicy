@@ -511,6 +511,16 @@
 			"SortArrowAscending"
 		],
 		"Tabs": [],
+		"Taskbar": [
+			"Start",
+			"StartIcon",
+			"StartLabel",
+			"Task",
+			"TaskIcon",
+			"TaskLabel",
+			"Tasks",
+			"Tray"
+		],
 		"TextEditor": [
 			"Area",
 			"AreaAutoHeight",
@@ -636,7 +646,10 @@
 			"scroll-corner",
 			"scroll-drag-outline",
 			"menu-scroll-up",
-			"menu-scroll-down"
+			"menu-scroll-down",
+			"taskbar-start",
+			"taskbar-tasks",
+			"taskbar-tray"
 		]
 	}
 }

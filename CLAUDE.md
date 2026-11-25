@@ -297,7 +297,7 @@ path is what stays free of user data.
 - `position`: one of `top-left | top-center | top-right | bottom-left | bottom-center | bottom-right` (default `top-left`)
 - `delay`: hover delay in ms before balloon appears (default `600`)
 - Rendered via a React portal into `#classicyDesktop` so it is never clipped by parent overflow
-- The wrapper is `position: relative; display: inline-block`. If that would break your layout (e.g. an absolutely positioned element), use the `useClassicyBalloonHelp(ref, config)` hook instead — it returns `{ handlers, balloon }` to spread onto an element you already own, adding no DOM. `ClassicyDesktopIcon` does this.
+- The wrapper is `position: relative; display: inline-block`. If that would break your layout (e.g. an absolutely positioned element), use the `useClassicyBalloonHelp(ref, config, options?)` hook instead — it returns `{ handlers, balloon }` to spread onto an element you already own, adding no DOM. `ClassicyDesktopIcon` does this. `options.force` shows it even while balloon help is off (a tooltip: the taskbar's cut-short window titles).
 - Globally disabled by `System.Manager.Desktop.disableBalloonHelp` (Zustand store). Toggle with event `ClassicyDesktopSetBalloonHelp` — e.g. `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`
 
 ### Schema-Driven Forms
@@ -598,6 +598,20 @@ of the Sound control (the menu bar has no speaker widget). Its `controlStrip`
 prop takes the strip's props (`disabledModules`, `defaultCollapsed`,
 `defaultWidth`) or `false` to hide it; Storybook desktop stories opt out with
 `parameters.classicy.controlStrip: false`.
+
+Under a package whose layout declares `taskbar` (plan 0020-w98 §2),
+`ClassicyDesktop` mounts `ClassicyTaskbar` (`Taskbar/`) in the strip's place,
+at the same point among its children, and no strip: a `<nav>` along the
+bottom (z-index 355) with the Start button (`taskbar-start`, `open`), a
+button per open primary window from the window registry (`taskbar-tasks`;
+no modal or palette; `active` for the active window or, under its app's
+dialog or palette, the app's front window; `collapsed`; `pressed`; a click
+restores, minimizes or activates through the registry, button 2 asks for
+the window's `systemMenu`; creation order for the session; a cut-short title
+is a forced 500 ms tooltip) and the status area (`taskbar-tray`). It takes
+`controlStrip`'s `disabledModules` (published for the control panel, as the
+strip does) and `hideModules` for `controlStrip={false}`, and publishes its
+measured height as the taskbar band.
 
 Modules come only from `registerClassicyControlStripModule`
 (`ClassicyControlStripRegistry.ts`) — `{ id, label, icon, appId?, order?,

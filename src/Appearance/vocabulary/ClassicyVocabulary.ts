@@ -100,6 +100,7 @@ export const CLASSICY_COMPONENT = {
 	SubMenu: "classicySubMenu",
 	Table: "classicyTable",
 	Tabs: "classicyTabContainer",
+	Taskbar: "classicyTaskbar",
 	TextEditor: "classicyTextEditor",
 	TimePicker: "classicyTimePicker",
 	Tree: "classicyTree",

@@ -25,6 +25,15 @@ export interface ClassicyIconBalloonHelp {
 	delay?: number;
 }
 
+/** How `useClassicyBalloonHelp` treats the global Balloon Help toggle. */
+export interface ClassicyBalloonHelpOptions {
+	/**
+	 * Show the balloon even while balloon help is turned off
+	 * (`disableBalloonHelp`): a tooltip, not a help balloon. Default `false`.
+	 */
+	force?: boolean;
+}
+
 // Read --window-control-size from the desktop element at the time of display
 // (the default theme's 12 px before the desktop mounts).
 const readControlSize = (): number =>
@@ -252,7 +261,14 @@ const BalloonTail: FC<{ className: string }> = ({ className }) => (
  * Spread `handlers` (`onMouseEnter`/`onMouseLeave`) onto the element that
  * `anchorRef` points at and render `balloon` anywhere (it portals itself).
  * With no `config`, or while balloon help is globally disabled, `balloon` is
- * always `null`.
+ * always `null`, unless `options.force` is set.
+ *
+ * `options.force` shows the balloon even while balloon help is turned off
+ * (`System.Manager.Desktop.disableBalloonHelp`): for a surface whose tip is
+ * a tooltip, which Windows shows whatever Balloon Help says (a taskbar
+ * button's abbreviated title, WIG Ch.3 "Window Buttons", p.15; a tray
+ * icon's name, Ch.10 "Status Notification", p.212). Omitted, the global
+ * toggle hides it as before.
  *
  * ```tsx
  * const ref = useRef<HTMLDivElement>(null);
@@ -263,6 +279,7 @@ const BalloonTail: FC<{ className: string }> = ({ className }) => (
 export const useClassicyBalloonHelp = (
 	anchorRef: RefObject<HTMLElement | null>,
 	config?: ClassicyIconBalloonHelp,
+	options?: ClassicyBalloonHelpOptions,
 ): {
 	handlers: {
 		onMouseEnter: () => void;
@@ -333,8 +350,9 @@ export const useClassicyBalloonHelp = (
 		setPlaced((current) => (current === next ? current : next));
 	}, [visible, rect, position, controlSize]);
 
+	const hiddenByToggle = disableBalloonHelp && options?.force !== true;
 	const balloon =
-		!config || disableBalloonHelp || !visible || !rect
+		!config || hiddenByToggle || !visible || !rect
 			? null
 			: createPortal(
 					<div

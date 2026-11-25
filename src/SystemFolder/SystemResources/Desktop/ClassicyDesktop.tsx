@@ -114,6 +114,7 @@ import {
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
+import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
 
 import "../../../index.css";
 
@@ -155,7 +156,10 @@ export interface ClassicyDesktopProps {
 	 * desktop — home of the Sound control. Shown by default with every
 	 * registered module (`registerClassicyControlStripModule`); pass its props
 	 * to configure it (`disabledModules`, `defaultCollapsed`, `defaultWidth`),
-	 * or `false` to hide it.
+	 * or `false` to hide it. Under an Appearance Package whose layout declares
+	 * `taskbar` (Windows 98), a `ClassicyTaskbar` is drawn in its place: it
+	 * takes `disabledModules`, and `false` keeps every module out of its
+	 * status area.
 	 */
 	controlStrip?: boolean | ClassicyControlStripProps;
 	/** Extra class names, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
@@ -803,10 +807,25 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{!disableCalculator && <Calculator />}
 			<ClassicyOpenUrlController />
 			<ClassicyControlPanels />
-			{controlStrip !== false && (
-				<ClassicyControlStrip
-					{...(controlStrip === true ? {} : controlStrip)}
+			{/* The Windows shell's taskbar takes the Control Strip's place, at
+			    the same point among the desktop's children, only under a
+			    layout that declares one; every other package draws the strip
+			    exactly as before. */}
+			{layout.taskbar ? (
+				<ClassicyTaskbar
+					disabledModules={
+						typeof controlStrip === "object"
+							? controlStrip.disabledModules
+							: undefined
+					}
+					hideModules={controlStrip === false}
 				/>
+			) : (
+				controlStrip !== false && (
+					<ClassicyControlStrip
+						{...(controlStrip === true ? {} : controlStrip)}
+					/>
+				)
 			)}
 			{showAbout
 				? getClassicyAboutWindow({
@@ -905,7 +924,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
  * in one tag.
  *
  * It mounts the whole shell for you: the menu bar (`ClassicyDesktopMenuBar`),
- * the Control Strip, Finder, the built-in apps and control panels, the Trash
+ * the Control Strip (or, under a package whose layout declares a taskbar,
+ * `ClassicyTaskbar` in its place), Finder, the built-in apps and control
+ * panels, the Trash
  * and the other desktop icons, the contextual-menu provider, a crash boundary
  * (`ClassicyCrashScreen`) and the startup sequence. The empty desktop supports
  * rubber-band icon selection, arrow-key and type-to-select icon navigation,

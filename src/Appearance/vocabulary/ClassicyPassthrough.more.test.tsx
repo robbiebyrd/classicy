@@ -42,6 +42,7 @@ import { QuickTimeCaptionsOverlay } from "@/SystemFolder/SystemResources/QuickTi
 import { QuickTimeFullscreenButton } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeFullscreenButton";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 import { QuickTimePlayPauseButton } from "@/SystemFolder/SystemResources/QuickTime/QuickTimePlayPauseButton";
+import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
@@ -246,6 +247,11 @@ const cases: Row[] = [
 		"ClassicyDesktopMenuWidgetTime",
 		() => <ClassicyDesktopMenuWidgetTime className={HOST} style={STYLE} />,
 		".classicyDesktopMenuTime",
+	],
+	[
+		"ClassicyTaskbar",
+		() => <ClassicyTaskbar className={HOST} style={STYLE} />,
+		"nav.classicyTaskbar",
 	],
 	[
 		"ClassicyFileBrowserViewIcons",

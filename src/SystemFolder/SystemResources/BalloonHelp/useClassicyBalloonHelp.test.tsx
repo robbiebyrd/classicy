@@ -19,13 +19,20 @@ vi.mock(
 );
 
 import {
+	type ClassicyBalloonHelpOptions,
 	type ClassicyIconBalloonHelp,
 	useClassicyBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 
-const Harness = ({ config }: { config?: ClassicyIconBalloonHelp }) => {
+const Harness = ({
+	config,
+	options,
+}: {
+	config?: ClassicyIconBalloonHelp;
+	options?: ClassicyBalloonHelpOptions;
+}) => {
 	const ref = useRef<HTMLDivElement>(null);
-	const { handlers, balloon } = useClassicyBalloonHelp(ref, config);
+	const { handlers, balloon } = useClassicyBalloonHelp(ref, config, options);
 	return (
 		<div ref={ref} data-testid="anchor" {...handlers}>
 			anchor
@@ -64,6 +71,47 @@ describe("useClassicyBalloonHelp", () => {
 		fireEvent.mouseEnter(screen.getByTestId("anchor"));
 		await new Promise((resolve) => setTimeout(resolve, 10));
 		expect(screen.queryByText("Drag items here.")).not.toBeInTheDocument();
+	});
+
+	// A tooltip (a taskbar button's cut-short title, a tray icon's name) shows
+	// whatever the global toggle says.
+	it("shows the balloon while balloon help is globally disabled when forced", async () => {
+		mockState.disableBalloonHelp = true;
+		render(
+			<Harness
+				config={{ content: "Drag items here.", delay: 0 }}
+				options={{ force: true }}
+			/>,
+		);
+		fireEvent.mouseEnter(screen.getByTestId("anchor"));
+		expect(await screen.findByText("Drag items here.")).toBeInTheDocument();
+		expect(screen.getByTestId("anchor")).toHaveAttribute("aria-describedby");
+	});
+
+	it("keeps the global toggle without force, or with force: false", async () => {
+		mockState.disableBalloonHelp = true;
+		render(
+			<Harness
+				config={{ content: "Drag items here.", delay: 0 }}
+				options={{ force: false }}
+			/>,
+		);
+		render(
+			<Harness config={{ content: "Drop here.", delay: 0 }} options={{}} />,
+		);
+		for (const anchor of screen.getAllByTestId("anchor"))
+			fireEvent.mouseEnter(anchor);
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(screen.queryByText("Drag items here.")).not.toBeInTheDocument();
+		expect(screen.queryByText("Drop here.")).not.toBeInTheDocument();
+	});
+
+	it("still needs a config when forced", async () => {
+		mockState.disableBalloonHelp = false;
+		render(<Harness options={{ force: true }} />);
+		fireEvent.mouseEnter(screen.getByTestId("anchor"));
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(document.querySelector(".classicyBalloonHelp")).toBeNull();
 	});
 
 	it("hides the balloon on mouse leave", async () => {

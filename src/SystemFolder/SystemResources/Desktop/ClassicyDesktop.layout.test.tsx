@@ -7,6 +7,10 @@ import {
 	registerTestMirrorPackage,
 	TEST_MIRROR_PACKAGE_ID,
 } from "@/__tests__/testMirrorPackage";
+import {
+	registerTestTaskbarPackage,
+	TEST_TASKBAR_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
 import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
 import {
 	type ClassicyAppearancePackage,
@@ -21,6 +25,8 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
+import type { ClassicyControlStripProps } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
+import { useClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -32,10 +38,17 @@ const platinum = getClassicyAppearancePackage(
 	PLATINUM_APPEARANCE_PACKAGE_ID,
 ) as ClassicyAppearancePackage;
 
-const renderDesktop = (style?: CSSProperties) =>
+const renderDesktop = (
+	style?: CSSProperties,
+	controlStrip?: boolean | ClassicyControlStripProps,
+) =>
 	render(
 		<ClassicyAppManagerProvider>
-			<ClassicyDesktop startupScreen={false} style={style} />
+			<ClassicyDesktop
+				startupScreen={false}
+				style={style}
+				controlStrip={controlStrip}
+			/>
 		</ClassicyAppManagerProvider>,
 	);
 
@@ -329,6 +342,117 @@ describe("ClassicyDesktop layout", () => {
 				}),
 			);
 			expect(document.querySelector(".classicyWindowMenuBar")).toBeNull();
+		});
+	});
+
+	// Plan 0020-w98 §2, "Mounting": the taskbar takes the Control Strip's
+	// place among the desktop's children, and only under a layout that
+	// declares one.
+	describe("taskbar", () => {
+		// Each child of the desktop root, by tag, first class and id: the app
+		// containers are bare divs, the desktop icons carry their ids.
+		const children = (container: HTMLElement) =>
+			Array.from(
+				desktopRoot(container)?.children ?? [],
+				(el) =>
+					`${el.tagName.toLowerCase()}.${el.classList[0] ?? ""}${el.id ? `#${el.id}` : ""}`,
+			);
+
+		it("draws the Control Strip and no taskbar under Platinum, the desktop's children and root attributes as before", () => {
+			const { container } = renderDesktop();
+			expect(container.querySelector(".classicyControlStrip")).not.toBeNull();
+			expect(container.querySelector(".classicyTaskbar")).toBeNull();
+			const list = children(container);
+			// The menu bar, then the apps' containers, then the strip, then
+			// the desktop icons.
+			expect(list[0]).toBe("nav.classicyDesktopMenuBar");
+			const strip = list.indexOf("div.classicyControlStrip");
+			const firstIcon = list.findIndex((c) =>
+				c.startsWith("div.classicyDesktopIcon"),
+			);
+			expect(strip).toBe(firstIcon - 1);
+			expect(list.slice(1, strip).every((c) => c === "div.")).toBe(true);
+			expect(list.slice(firstIcon)).toEqual([
+				"div.classicyDesktopIcon#Finder.app.shortcut",
+				"div.classicyDesktopIcon#Trash.shortcut",
+			]);
+			expect(desktopRoot(container)?.getAttributeNames()).toEqual([
+				"role",
+				"id",
+				"data-classicy-appearance",
+				"data-classicy-menu-bar",
+				"data-classicy-grow-box",
+				"tabindex",
+				"style",
+				"class",
+				"data-classicy-drop-desktop",
+			]);
+		});
+
+		it("draws a taskbar in the Control Strip's place under a layout that declares one", () => {
+			registerTestMirrorPackage();
+			registerTestTaskbarPackage();
+			const { container } = renderDesktop();
+			// The same window placement without a taskbar, for the comparison.
+			activate(TEST_MIRROR_PACKAGE_ID);
+			const withStrip = children(container);
+			expect(withStrip).toContain("div.classicyControlStrip");
+
+			activate(TEST_TASKBAR_PACKAGE_ID);
+			expect(container.querySelector(".classicyControlStrip")).toBeNull();
+			const taskbar = container.querySelectorAll(".classicyTaskbar");
+			expect(taskbar).toHaveLength(1);
+			expect(taskbar[0].parentElement).toBe(desktopRoot(container));
+			expect(children(container)).toEqual(
+				withStrip.map((c) =>
+					c === "div.classicyControlStrip" ? "nav.classicyTaskbar" : c,
+				),
+			);
+			// The root gains no attribute for it.
+			expect(desktopRoot(container)?.getAttributeNames()).toEqual([
+				"role",
+				"id",
+				"data-classicy-appearance",
+				"data-classicy-menu-bar",
+				"data-classicy-grow-box",
+				"tabindex",
+				"style",
+				"class",
+				"data-classicy-drop-desktop",
+			]);
+
+			activate(PLATINUM_APPEARANCE_PACKAGE_ID);
+			expect(container.querySelector(".classicyTaskbar")).toBeNull();
+			expect(container.querySelector(".classicyControlStrip")).not.toBeNull();
+		});
+
+		it("keeps the taskbar under controlStrip={false}, and forwards the strip's disabled modules", () => {
+			registerTestTaskbarPackage();
+			activate(TEST_TASKBAR_PACKAGE_ID);
+			const hidden = renderDesktop(undefined, false);
+			expect(hidden.container.querySelector(".classicyTaskbar")).not.toBeNull();
+			expect(
+				hidden.container.querySelector(".classicyControlStrip"),
+			).toBeNull();
+			hidden.unmount();
+
+			const seen: (readonly string[])[] = [];
+			const Probe = () => {
+				seen.push(useClassicyControlStripDisabledModules());
+				return null;
+			};
+			render(
+				<ClassicyAppManagerProvider>
+					<ClassicyDesktop
+						startupScreen={false}
+						controlStrip={{ disabledModules: ["classicy-sound"] }}
+					>
+						<Probe />
+					</ClassicyDesktop>
+				</ClassicyAppManagerProvider>,
+			);
+			expect(document.querySelector(".classicyTaskbar")).not.toBeNull();
+			expect(seen.at(-1)).toEqual(["classicy-sound"]);
 		});
 	});
 });
