@@ -673,6 +673,59 @@ describe("what a variant warns, for a theme of another package (0235-xgi N4, N5)
 		]);
 	});
 
+	// Review G round 3, F13: a theme that names no package is the default
+	// package's ("missing → platinum"), never the drawing package's.
+	it("takes a theme naming no package for the default package's", async () => {
+		const theme: Partial<ClassicyTheme> = themeOf("platinum", "sepia");
+		delete theme.package;
+		activate("sys7", theme as ClassicyTheme);
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/sys7-app.png");
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("sepia", "platinum"),
+		]);
+	});
+
+	// Review G round 3, F10: a package that is not registered is not loaded,
+	// so it is never named as lacking a variant; the variant is not drawn by
+	// the package that draws, which holds whatever that package has.
+	it("names a theme's package that is not registered only as not drawing its variant", async () => {
+		// A host that dropped its package: a Custom of it naming `bw`.
+		activate("platinum", themeOf("gone7", "bw"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/platinum-app.png");
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_DRAWN("bw", "gone7", "platinum"),
+		]);
+	});
+
+	it("never names a package that registers a task later as lacking the variant", async () => {
+		// Stored and the theme's own, but imported later (a dynamic import):
+		// Platinum draws until it registers.
+		activate("late7", themeOf("late7", "bw"));
+		const before = await lookUp();
+		expect(before.drawn).toBe("/platinum-app.png");
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		act(() => {
+			registerClassicyAppearancePackage(stub("late7"));
+			registerClassicyAssets(
+				"icons",
+				"late7",
+				{ app: "/late7-bw-app.png" },
+				{ variant: "bw" },
+			);
+		});
+		const after = await lookUp();
+		expect(after.drawn).toBe("/late7-bw-app.png");
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		await lookUp();
+		// What held before it registered, and nothing once it draws.
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_DRAWN("bw", "late7", "platinum"),
+		]);
+	});
+
 	// Review F11: the warning does not depend on a lookup made with the
 	// theme's own package's id, which in the core only the default package
 	// gets. A theme of any package naming a variant that draws no art warns,

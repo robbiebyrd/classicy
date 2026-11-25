@@ -2691,13 +2691,18 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   with: `Theme asset variant "<v>" is not registered for package "<id>"; its
   base assets are used` for the drawing package when it takes the variant
   and never registered it, and for the theme's own package, when another
-  draws, if that never registered it either (both, when both hold); else
-  `Theme asset variant "<v>" of package "<own>" is not drawn by package
-  "<drawing>"; its base assets are used` (the variant is its own package's,
-  and the drawing package takes none of another package's theme). So a
-  System 7 Custom theme naming `sepia` drawn under Platinum warns for
-  `"system7"`, and System 7's 1-bit theme drawn under Platinum warns that
-  `bw` is not drawn by `"platinum"`. A theme whose variant the drawing
+  draws, if that package is registered and never registered it either
+  (both, when both hold); else `Theme asset variant "<v>" of package
+  "<own>" is not drawn by package "<drawing>"; its base assets are used`
+  (the variant is its own package's, or its package is not registered,
+  and the drawing package takes none of another package's theme). A theme
+  with no `package` is the default package's. So a System 7 Custom theme
+  naming `sepia` drawn under Platinum warns for `"system7"`, System 7's
+  1-bit theme drawn under Platinum warns that `bw` is not drawn by
+  `"platinum"`, and so does a Custom theme naming `bw` whose package is not
+  loaded: one the host dropped, or one a later import registers (a dynamic
+  import, as Storybook's Package toolbar does), which is never named as
+  lacking a variant it may well have. A theme whose variant the drawing
   package draws logs nothing: a Platinum theme naming `bw` under System 7
   draws System 7's 1-bit art, and the lookups the core makes with Platinum's
   id (`classicyCoreIcon`, `iconImageByType(type,

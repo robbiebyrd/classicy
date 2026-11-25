@@ -4,6 +4,7 @@ import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefa
 import {
 	getClassicyAssetPackageSource,
 	hasClassicyPackageVariantTheme,
+	isClassicyPackageRegistered,
 	onClassicyAssetPackageSourceConnect,
 } from "./ClassicyAssetPackageSource.internal";
 import {
@@ -252,11 +253,14 @@ const isRegisteredVariant = (packageId: string, variant: string): boolean =>
  *
  * - the drawn package is named when it takes the variant and never
  *   registered it;
- * - the theme's own package, when another draws, is named when it never
- *   registered the variant either (a misspelled name, most likely);
- * - with neither to name (the variant is the theme's own package's, and the
- *   drawn package takes none of another package's theme), the warning names
- *   both packages.
+ * - the theme's own package, when another draws, is named when it is
+ *   registered and never registered the variant either (a misspelled name,
+ *   most likely);
+ * - with neither to name, the warning names both packages: the theme's
+ *   package's variant is not drawn by the drawn package. So it says of a
+ *   variant the theme's own package registered, and of a theme whose
+ *   package is not registered (one the host dropped, or one a later import
+ *   registers), which is never named as lacking a variant it may well have.
  *
  * Nothing here depends on which package's id a lookup was made with. A
  * theme's lookups made with its own package's id while another draws (in the
@@ -281,7 +285,12 @@ const undrawnThemeVariantWarnings = (
 			() =>
 				`Theme asset variant "${variant}" is not registered for package "${packageId}"; its base assets are used`,
 		);
-	const ownUnregistered = own !== drawn && !isRegisteredVariant(own, variant);
+	// A package that is not registered is not loaded, and is never named as
+	// lacking a variant it may well have (review G round 3, F10).
+	const ownUnregistered =
+		own !== drawn &&
+		isClassicyPackageRegistered(own) &&
+		!isRegisteredVariant(own, variant);
 	if (taken) unregistered(drawn);
 	if (ownUnregistered) unregistered(own);
 	if (!taken && !ownUnregistered)

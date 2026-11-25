@@ -1,8 +1,8 @@
 // Library-internal: the link from the asset registry to the active Appearance
 // Package. Not public API — `.internal.ts` modules are excluded from the
 // barrels (.ts-barrel.json), so only the store module (which connects it),
-// the package registry (which sets the variant lookup below) and the asset
-// registry (which reads both) import this file, by path. A leaf: no runtime
+// the package registry (which sets the two lookups below) and the asset
+// registry (which reads them) import this file, by path. A leaf: no runtime
 // imports, so any side may evaluate first.
 
 /** Where the asset registry learns which Appearance Package is active. */
@@ -83,3 +83,32 @@ export const hasClassicyPackageVariantTheme = (
 	packageId: string,
 	variant: string,
 ): boolean => variantThemeLookup(packageId, variant);
+
+// Whether a package is registered, set by the package registry too: the
+// variant warning never names a package that is not loaded (one the host
+// dropped, or one a later import registers) as lacking a variant
+// (integration review G round 3, F10).
+
+/** Whether `packageId` is a registered Appearance Package. */
+export type ClassicyPackageRegisteredLookup = (packageId: string) => boolean;
+
+let registeredLookup: ClassicyPackageRegisteredLookup = () => false;
+
+/**
+ * Sets the registered-package lookup. Called once, by
+ * ClassicyAppearancePackageRegistry.
+ * @internal
+ */
+export const setClassicyPackageRegisteredLookup = (
+	next: ClassicyPackageRegisteredLookup,
+): void => {
+	registeredLookup = next;
+};
+
+/**
+ * Whether `packageId` is a registered Appearance Package; `false` before the
+ * package registry has loaded, when none is.
+ * @internal
+ */
+export const isClassicyPackageRegistered = (packageId: string): boolean =>
+	registeredLookup(packageId);

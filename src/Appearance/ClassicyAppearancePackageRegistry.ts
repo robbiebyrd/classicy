@@ -22,7 +22,10 @@ import {
 	CLASSICY_APPEARANCE_STYLE_ELEMENT_PREFIX,
 	injectClassicyAppearanceStyles,
 } from "./ClassicyAppearanceStyles";
-import { setClassicyPackageVariantThemeLookup } from "./ClassicyAssetPackageSource.internal";
+import {
+	setClassicyPackageRegisteredLookup,
+	setClassicyPackageVariantThemeLookup,
+} from "./ClassicyAssetPackageSource.internal";
 import { CLASSICY_CORE_DEFAULT_THEME } from "./ClassicyCoreTheme";
 
 // The registry itself, apart from the store-reading hooks in
@@ -237,6 +240,11 @@ setClassicyPackageVariantThemeLookup((id, variant) => {
 		pkg !== undefined && builtInThemeWithVariant(pkg, variant) !== undefined
 	);
 });
+
+// Which packages are registered: the variant warning names only a loaded
+// package as lacking a variant (`ClassicyAssetRegistry`,
+// `undrawnThemeVariantWarnings`).
+setClassicyPackageRegisteredLookup((id) => registry.has(id));
 
 // Package color families (`classicyThemeColorFamilyDefaults`): the theme's
 // own package only, never another's. A missing id is the default package's,
