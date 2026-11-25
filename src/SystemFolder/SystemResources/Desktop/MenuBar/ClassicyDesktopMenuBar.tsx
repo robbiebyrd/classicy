@@ -233,7 +233,11 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// is open the blink stops where it is, and an open title shows its own
 	// icon, as Mac OS 8.1 draws them (observed for the Application title; the
 	// Apple title's is inferred, as stock 8.1 blinks nothing there); nothing
-	// blinks where this bar is not drawn (window placement).
+	// blinks where this bar is not drawn (window placement). On a request's
+	// frame the Application title is that request's icon alone, centered in
+	// the title's unchanged width, as Mac OS 8.5 draws it (the 8.5 audit's
+	// F1: its name gone, the icon at x 584-599 of the Finder's 555-628
+	// title; the grip and the clock unmoved).
 	const notifiedAppIds = useClassicyNotifiedAppIds();
 	const notifications = useClassicyNotifications();
 	const [openTitle, setOpenTitle] = useState<string | null>(null);
@@ -335,6 +339,11 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			titleClassName: "classicyDesktopMenuAppSwitcherName",
 			className: classNames(
 				"classicyDesktopMenuAppSwitcher",
+				// A request's frame of the blink: its icon alone, centered in
+				// the title's width, the name hidden but keeping its width, as
+				// Mac OS 8.5 draws it (ClassicyDesktopMenuBar.scss).
+				switcherTitleIcon !== undefined &&
+					"classicyDesktopMenuAppSwitcherRequest",
 				classicyStateClasses({ collapsed: appMenuTitleCollapsed }),
 			),
 			part: "switcher",

@@ -2161,8 +2161,22 @@ blinking icon, the sound, then the alert.
   Menu Manager tracking and the same `NMTask` that does not run during it,
   but a stock 8.1 has nothing that posts an unmarked request (every
   request there comes from an application, marked, so it blinks over the
-  Application menu), so no icon blinks over the Apple menu to watch. The Application menu's title
-  swaps only its image; its name stays. While a title carries requests it
+  Application menu), so no icon blinks over the Apple menu to watch. On a
+  request's frame the Application menu's title is that request's icon
+  alone, centered in the title, as Mac OS 8.5 draws it (observed on
+  Infinite Mac, the 8.5 audit's F1: Script Editor's 1-bit icon at x
+  584-599 of the Finder's 555-628 title, the name gone, the grip, the
+  title's width and the clock unmoved;
+  `resources/screenshots/mac-os-8.5/platinum-85-appmenu-blink-name.png` and
+  `-blink-request.png`): the title carries
+  `classicyDesktopMenuAppSwitcherRequest`, and the base sheet hides the name
+  (`visibility: hidden`, so its width is kept) and moves the icon to the
+  middle of the title's contents on a whole pixel (`round(up, 50%)` less
+  half the icon, which is 8.5's Menu Manager place, the title's left plus
+  half its width less the icon's, rounded down, while the end padding is the
+  start's or one more). The other frame is the front application's icon and
+  name. A title showing its icon alone (the grip's setting, or System 7's)
+  swaps the icon in place, as Mac OS 8.1's icon-only title does. While a title carries requests it
   carries an `aria-description` naming their apps ("Mail requests your
   attention", "Mail and Chat request your attention";
   `classicyNotificationMenuBarDescriptions`).

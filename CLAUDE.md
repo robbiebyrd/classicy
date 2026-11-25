@@ -711,7 +711,9 @@ menu (`ClassicyMenuItem.mark: "diamond"`, class `classicyMenuItemDiamond` in
 the mark column, drawn by each package; entries carry `notified` from
 `appSwitcherAppsFrom(apps, overrides, { frontAppId, notifiedAppIds })`, so the ◆ and ✓ follow the front app) and blinks each
 request's icon (default the app's) over the Application menu's title (a
-marked, listed app) or the Apple menu's, 1 s per frame
+marked, listed app; on the request's frame the icon alone, centered in the
+title, the name hidden but keeping its width, as Mac OS 8.5 draws it:
+`classicyDesktopMenuAppSwitcherRequest`) or the Apple menu's, 1 s per frame
 (`CLASSICY_NOTIFICATION_BLINK_MS`, measured on Mac OS 8.1), steady under
 reduced motion; while a menu is open the blink stops on its frame and an
 open title shows its own icon (observed on 8.1 for the Application title;

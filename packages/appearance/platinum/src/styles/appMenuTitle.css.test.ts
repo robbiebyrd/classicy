@@ -147,6 +147,8 @@ const barBackdrop = () =>
 const finder = capture("platinum-85-appmenu-title-finder.png");
 const pressed = capture("platinum-85-appmenu-grip-pressed.png");
 const iconOnly = capture("platinum-85-appmenu-title-icon-only.png");
+const blinkName = capture("platinum-85-appmenu-blink-name.png");
+const blinkRequest = capture("platinum-85-appmenu-blink-request.png");
 const knobs = platinum.defaults.measurements.menuBar;
 
 describe("Platinum's Application menu title grip (Mac OS 8.5)", () => {
@@ -275,5 +277,55 @@ describe("Platinum's Application menu title geometry (Mac OS 8.5)", () => {
 					break;
 				}
 		expect(594 - 1 - clock).toBe(knobs.clockEnd + 1);
+	});
+});
+
+// A Notification Manager request blinking over the Application menu's title
+// (the 8.5 audit's F1; Script Editor's request from behind the Finder): the
+// frames alternate between the Finder's icon and name and the request's
+// 1-bit icon alone, centered in the title, whose width does not change.
+describe("Platinum's Application menu title while a request blinks (Mac OS 8.5)", () => {
+	const inkRuns = (
+		at: (x: number, y: number) => string,
+		from: number,
+		to: number,
+	) => {
+		const runs: [number, number][] = [];
+		for (let x = from; x <= to; x++) {
+			let ink = false;
+			for (let y = 1; y <= 17; y++) if (at(x, y) !== "#DDDDDD") ink = true;
+			if (!ink) continue;
+			const last = runs.at(-1);
+			if (last && last[1] === x - 1) last[1] = x;
+			else runs.push([x, x]);
+		}
+		return runs;
+	};
+
+	it("draws the request's icon alone where the base sheet centers it, the grip and clock unmoved", () => {
+		// The Finder's frame: icon 561-576, name ink 582-620 (the title 555-628).
+		const name = inkRuns(blinkName, 555, 628);
+		expect(name[0]).toEqual([561, 576]);
+		expect(name.at(-1)?.[1]).toBe(620);
+		// The request's frame: the only ink in the title is the icon, 584-599.
+		expect(inkRuns(blinkRequest, 555, 628)).toEqual([[584, 599]]);
+		// The base sheet's rule: the icon at the middle of the title's
+		// contents, rounded up, less half the icon (round(up, 50%) and
+		// translateX(-50%)): contents from 555 + switcherTitleStart to the
+		// name's advance, 621, before switcherTitleEnd.
+		const box = [555, 628];
+		const contentStart = box[0] + knobs.switcherTitleStart;
+		const contentWidth = box[1] + 1 - knobs.switcherTitleEnd - contentStart;
+		expect(contentWidth).toBe(61);
+		expect(contentStart + Math.ceil(contentWidth / 2) - 16 / 2).toBe(584);
+		// 8.5's Menu Manager: the title's left plus half its width less the
+		// icon's, rounded down; the same pixel.
+		expect(box[0] + Math.floor((box[1] + 1 - box[0] - 16) / 2)).toBe(584);
+		// Outside the title the two frames are the same: the grip, the clock.
+		for (let x = 0; x < 640; x++) {
+			if (x >= 561 && x <= 620) continue;
+			for (let y = 0; y < 20; y++)
+				expect(blinkRequest(x, y), `${x},${y}`).toBe(blinkName(x, y));
+		}
 	});
 });

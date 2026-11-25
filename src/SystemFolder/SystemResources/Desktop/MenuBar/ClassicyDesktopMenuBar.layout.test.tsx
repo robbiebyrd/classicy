@@ -125,6 +125,28 @@ describe("ClassicyDesktopMenuBar layout — styles", () => {
 	// name cut with an ellipsis; collapsed, the name is not drawn. jsdom lays
 	// nothing out, so the compiled rules are pinned. Integration review G
 	// round 6, finding 4.
+	// A request's frame of the Notification Manager's blink, as Mac OS 8.5
+	// draws it (the 8.5 audit's F1): the icon alone in the middle of the
+	// title's contents, the name hidden but keeping its width; the icon
+	// alone swaps in place.
+	it("centers a request's icon in the Application menu title and keeps the name's width", () => {
+		const request =
+			":where(.classicyDesktopMenuAppSwitcher).classicyDesktopMenuAppSwitcherRequest:not(.collapsed)";
+		expect(rule(`${request} .classicyDesktopMenuAppSwitcherName`)).toEqual({
+			visibility: "hidden",
+		});
+		// On a whole pixel, rounded up (8.5's x 584 in a 74-px title), with
+		// the unrounded value first for a browser without `round()`.
+		expect(rule(`${request} > p > img`)).toEqual({
+			position: "relative",
+			left: "round(up, 50%, var(--window-border-size))",
+			transform: "translateX(-50%)",
+		});
+		expect(css).toMatch(
+			/ > p > img \{\n\s+position: relative;\n\s+left: 50%;\n\s+left: round\(up, 50%, var\(--window-border-size\)\);/,
+		);
+	});
+
 	it("sizes the Application menu title by the grip's width and cuts or hides its name", () => {
 		expect(rule(".classicyDesktopMenuAppSwitcher").width).toBe(
 			"var(--classicy-app-menu-title-width, auto)",

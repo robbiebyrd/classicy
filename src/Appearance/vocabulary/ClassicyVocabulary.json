@@ -283,6 +283,7 @@
 			"AppSwitcher",
 			"AppSwitcherGrip",
 			"AppSwitcherName",
+			"AppSwitcherRequest",
 			"Apple",
 			"Extension",
 			"ExtensionTrigger",

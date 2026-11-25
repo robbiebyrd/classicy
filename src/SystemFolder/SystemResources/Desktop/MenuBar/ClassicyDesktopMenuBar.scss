@@ -199,6 +199,30 @@ $classicy-menu-bar-order: (
   display: none;
 }
 
+// A Notification Manager request's frame of the blink, as Mac OS 8.5 draws
+// it (the 8.5 audit's F1; `platinum-85-appmenu-blink-name.png` and
+// `-blink-request.png`): the request's icon alone, centered in the title,
+// whose width does not change, so the grip and the clock stay put. The name
+// is hidden but keeps its width, and the icon moves to the middle of the
+// title's contents, on a whole pixel: rounded up, so with an end padding one
+// pixel past the start (Platinum's 7 and 6) or equal to it the icon lands
+// where 8.5's Menu Manager puts it, the title's left plus half its width
+// less the icon's, rounded down (x 584 in the Finder's 555-628 title). The
+// icon alone (collapsed) swaps in place, as 8.1's icon-only title does.
+:where(.classicyDesktopMenuAppSwitcher).classicyDesktopMenuAppSwitcherRequest:not(.collapsed) {
+  .classicyDesktopMenuAppSwitcherName {
+    visibility: hidden;
+  }
+
+  > p > img {
+    position: relative;
+    // Unrounded first, for a browser without `round()` (Chrome 120-124).
+    left: 50%;
+    left: round(up, 50%, var(--window-border-size));
+    transform: translateX(-50%);
+  }
+}
+
 // The grip at the title's left edge: a part of its own, as tall as the bar,
 // its width and art the package's (none here, so a package that draws no
 // grip shows none; System 7 hides it). Dragged, it takes the pointer: no

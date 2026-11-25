@@ -228,6 +228,38 @@ describe("the blinking icon", () => {
 		expect(apple).not.toBe("/icons/Mail.png");
 	});
 
+	// Mac OS 8.5 (the 8.5 audit's F1, `platinum-85-appmenu-blink-name.png`
+	// and `-blink-request.png`): a request's frame is its icon alone,
+	// centered in the title; the name is hidden but kept, so the title's
+	// width, the grip and the clock do not move. The other frame is the
+	// front application's icon and name. (This replaces 0225-ci7's R11, "the
+	// name stays", unsourced for 8.5 then.)
+	it("draws a request's frame as its icon alone, the name kept for the title's width", () => {
+		render(<ClassicyDesktopMenuBar />);
+		const name = () =>
+			switcher().querySelector(".classicyDesktopMenuAppSwitcherName");
+		expect(switcher()).not.toHaveClass("classicyDesktopMenuAppSwitcherRequest");
+		notify({ appId: "Mail.app" });
+		expect(switcherImage()).toBe("/icons/Mail.png");
+		expect(switcher()).toHaveClass("classicyDesktopMenuAppSwitcherRequest");
+		expect(name()?.textContent).toBe("Finder");
+		act(() => {
+			vi.advanceTimersByTime(CLASSICY_NOTIFICATION_BLINK_MS);
+		});
+		expect(switcherImage()).toBe("/icons/Finder.png");
+		expect(switcher()).not.toHaveClass("classicyDesktopMenuAppSwitcherRequest");
+		expect(name()?.textContent).toBe("Finder");
+		act(() => {
+			vi.advanceTimersByTime(CLASSICY_NOTIFICATION_BLINK_MS);
+		});
+		expect(switcher()).toHaveClass("classicyDesktopMenuAppSwitcherRequest");
+		// Open, the title is the front application's, icon and name.
+		fireEvent.click(switcher().querySelector("p") ?? switcher());
+		expect(switcherImage()).toBe("/icons/Finder.png");
+		expect(switcher()).not.toHaveClass("classicyDesktopMenuAppSwitcherRequest");
+		fireEvent.mouseDown(document.body);
+	});
+
 	it("blinks an unmarked request's icon over the Apple menu", () => {
 		render(<ClassicyDesktopMenuBar />);
 		const apple = appleImage();

@@ -56,6 +56,7 @@ as #DDDDDD. They are the references for the Application Switcher
 | `platinum-85-switcher-notification.png` | A background Script Editor's notification: the menu's ◆, and no mark in the palette |
 | `platinum-85-switcher-collapsed.png` | The collapse box: the palette collapsed to its title bar |
 | `platinum-85-tearoff-reopened.png` | Torn off again after its close box: the options kept |
+| `platinum-85-appmenu-blink-name.png`, `platinum-85-appmenu-blink-request.png` | A background Script Editor's Notification Manager request (`display dialog` after `tell application "Finder" to activate`) blinking over the Application menu's title, two consecutive frames: the Finder's icon (x 561-576) and name (ink 582-620) in its 555-628 title, then Script Editor's 1-bit icon alone at x 584-599, centered in the unchanged title; outside x 561-620 the two frames are the same, so the grip and the clock do not move (the 8.5 audit's F1) |
 | `platinum-85-appmenu-modal.png` | A modal dialog up in Script Editor (`display dialog`): the Application menu's title dimmed, and a press on it opens nothing to tear off |
 | `platinum-85-command-tab-modal.png` | The same dialog: Command-Tab switches nothing |
 | `platinum-85-switcher-modal.png` | The same dialog with the palette torn off: the palette drawn above the dialog, every button dimmed, and a click on Finder's switches nothing |
