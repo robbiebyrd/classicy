@@ -64,7 +64,7 @@ and icon art go missing.
 
 **Upgrading from 3.4.x?** [`docs/RELEASE-NOTES-3.5.md`](docs/RELEASE-NOTES-3.5.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
 
-**Upgrading from 3.7.x?** [`docs/RELEASE-NOTES-3.8.md`](docs/RELEASE-NOTES-3.8.md): the new Windows 98 package, `@classicy/appearance-windows98`, Windows 95 and 98 as a third look; nothing changes for a host that does not load it.
+**Upgrading from 3.7.x?** [`docs/RELEASE-NOTES-3.8.md`](docs/RELEASE-NOTES-3.8.md): the new Windows 98 package, `@classicy/appearance-windows98`, Windows 95 and 98 as a third look, with the Windows shell; a host that does not load it sees one change, Help as one menu in every package (and a few behaviors Mac OS 8's Finder and menus had too, listed there).
 
 **Upgrading from 3.6.x?** [`docs/RELEASE-NOTES-3.7.md`](docs/RELEASE-NOTES-3.7.md): smaller packages (sound sprites in ogg and m4a only, source maps with Classicy's own text only, no declaration maps, WebP art, a compressed PDF worker), PDFs render on the supported browsers, and the Trash folder's icon follows the active package. Most hosts change nothing. On any earlier 3.x the PDF viewer draws no page on the browsers at Classicy's floor either (every release from 0.71.6 through 3.6.0 bundled the same pdf.js build), so 3.7 fixes it there too; read each version's notes above in turn.
 
@@ -446,8 +446,16 @@ with an arrow at each end, raised menus and rectangular controls, in the
 thirty-three color schemes of Windows 98's Display control panel ("Windows
 Standard", Brick, Desert, Rainy Day, the High Contrast schemes, …, each read
 from Windows 98 SE's own scheme data) and "Windows 95", each a recoloring
-of one stylesheet. It ships Windows 98's own icons, Start flag, Recycle Bin,
-shortcut overlay, Windows logo and cursors, and a pixel recreation of MS Sans
+of one stylesheet. Through its layout it is the Windows 95/98 shell too: a
+taskbar with the Start menu, a button per window, the status area and the
+clock in place of the Mac menu bar and Control Strip; a menu bar in each
+window; Minimize to the taskbar, Maximize to the work area, sizing from every
+edge, the window pop-up menu and titled dialogs; access keys and Windows'
+menu keyboard; Explorer's selection, commands, Properties, Cut, Copy and
+Paste and drags in the Finder; Notepad's documents; WinHelp, What's This? and
+ToolTips. Every such behavior is an optional layout key only this package
+declares, so Platinum and System 7 keep theirs. It ships Windows 98's own
+icons, Recycle Bin, shortcut overlay, Windows logo and cursors, and a pixel recreation of MS Sans
 Serif as its font; it shows the bundled apps, the Trash and the startup disk
 by Windows 98's names (Notepad, Display, Recycle Bin, My Computer, …) and
 plays Windows 98's own sounds where its default sound scheme did (The

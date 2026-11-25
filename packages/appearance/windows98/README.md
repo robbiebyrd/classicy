@@ -366,8 +366,8 @@ and `nodenext` resolution).
   page number, Back dimmed on the first page and Next on the last, standing
   together before the page's own Finish and Cancel, on a ButtonFace page
   ruled off by etched lines under its title and above its buttons, as
-  Windows 98's wizards are. The Help topic window (Help ▸ About Balloon
-  Help…) reads as a WinHelp topic: cream (InfoWindow) behind the title and
+  Windows 98's wizards are. The Help topic window (a topic chosen in
+  Help Topics, such as "Using Help") reads as a WinHelp topic: cream (InfoWindow) behind the title and
   the text, both in the system font at 8 point, a black line under the
   title, and green jumps (the Colors tab's Help ▸ Jump text). It is a
   window you can size, and Help Topics, Back and Options (Alt+T, Alt+O)
