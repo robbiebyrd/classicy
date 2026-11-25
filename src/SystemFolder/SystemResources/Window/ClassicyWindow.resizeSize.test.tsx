@@ -17,11 +17,13 @@ import {
 } from "@/Appearance/ClassicyAppearancePackage";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import {
 	ClassicyWindow,
 	clampWindowPositionToViewport,
 	classicyWindowContentSize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { computeClassicyWindowResize } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 // The mocked store's window record: `resizing` is what a grow-box press
@@ -94,6 +96,21 @@ vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
 vi.mock(
 	"@/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
 	() => ({}),
+);
+
+// Pass-through spy, so a test can read the limits the window passes.
+vi.mock(
+	"@/SystemFolder/SystemResources/Window/ClassicyWindowResize",
+	async (importOriginal) => {
+		const actual =
+			await importOriginal<
+				typeof import("@/SystemFolder/SystemResources/Window/ClassicyWindowResize")
+			>();
+		return {
+			...actual,
+			computeClassicyWindowResize: vi.fn(actual.computeClassicyWindowResize),
+		};
+	},
 );
 
 // The window's chrome per side, as the SCSS would apply it: a fractional
@@ -170,6 +187,7 @@ describe("ClassicyWindow stored size (#291)", () => {
 
 	beforeEach(() => {
 		mockDispatch.mockClear();
+		vi.mocked(computeClassicyWindowResize).mockClear();
 		rectSpy = vi
 			.spyOn(Element.prototype, "getBoundingClientRect")
 			.mockImplementation(function (this: HTMLElement) {
@@ -243,6 +261,50 @@ describe("ClassicyWindow stored size (#291)", () => {
 		expect(last?.size).toEqual([400, 260]);
 		expect(root.style.width).toBe("400px");
 		expect(root.style.height).toBe("260px");
+	});
+
+	// Plan 0020-w98 §2 "Sizing": while a taskbar's band is published, the
+	// window passes its top as the resize's ceiling, so a drag into the
+	// taskbar stops there instead of being moved back up by the release
+	// clamp; with no band it passes none and the numbers are today's.
+	describe("with a taskbar's band", () => {
+		const ceilings = () =>
+			vi.mocked(computeClassicyWindowResize).mock.calls.map((call) => call[7]);
+
+		it("passes no ceiling with no band", () => {
+			const { container } = renderWindow();
+			const resizer = container.querySelector(
+				".classicyWindowResizer",
+			) as HTMLElement;
+			fireEvent.mouseDown(resizer, { clientX: 530, clientY: 410 });
+			fireEvent.mouseMove(document.body, { clientX: 605, clientY: 900 });
+			fireEvent.mouseUp(document.body, { clientX: 605, clientY: 900 });
+
+			expect(ceilings()).toEqual([undefined]);
+			// |110 − 900| + 5: past the bottom of the viewport, as before.
+			expect(resizeDispatches().at(-1)?.size).toEqual([500, 795]);
+		});
+
+		it("stops a grow-box drag into the taskbar at its top", () => {
+			setClassicyTaskbarBand(28);
+			const { container, root } = renderWindow();
+			const resizer = container.querySelector(
+				".classicyWindowResizer",
+			) as HTMLElement;
+			fireEvent.mouseDown(resizer, { clientX: 530, clientY: 410 });
+			fireEvent.mouseMove(document.body, { clientX: 605, clientY: 900 });
+			fireEvent.mouseUp(document.body, { clientX: 605, clientY: 900 });
+
+			// jsdom's 768 px viewport less the 28 px band.
+			expect(ceilings()).toEqual([[Number.POSITIVE_INFINITY, 740]]);
+			// The top (110) plus the height reaches 740 and no further, which
+			// the release clamp leaves where it is.
+			expect(resizeDispatches().at(-1)?.size).toEqual([500, 630]);
+			expect(root.style.height).toBe("630px");
+			expect(
+				clampWindowPositionToViewport([110, 110], [500, 630], 0, 28),
+			).toEqual([110, 110]);
+		});
 	});
 
 	it("stores the drawn size when the release lands outside the window", () => {
@@ -328,6 +390,29 @@ describe("ClassicyWindow stored size (#291)", () => {
 			zoom(container);
 			expect(root.style.width).toBe("425px");
 			expect(Number.parseFloat(root.style.height)).toBeCloseTo(roomH());
+		});
+
+		// Plan 0020-w98 §2: the standard state's room is the work area, the
+		// desktop less a taskbar's band as well as the menu bar.
+		it("leaves a taskbar's band out of the room", () => {
+			setClassicyTaskbarBand(28);
+			const { container, root } = renderWindow();
+			setInnerExtent(container, {
+				clientWidth: 400,
+				clientHeight: 250,
+				scrollWidth: 5000,
+				scrollHeight: 5000,
+			});
+			zoom(container);
+			expect(Number.parseFloat(root.style.width)).toBeCloseTo(roomW());
+			expect(Number.parseFloat(root.style.height)).toBeCloseTo(roomH() - 28);
+		});
+
+		it("leaves it out of a vertical zoom too", () => {
+			setClassicyTaskbarBand(28);
+			const { container, root } = renderWindow({ zoomMode: "vertical" });
+			zoom(container);
+			expect(Number.parseFloat(root.style.height)).toBeCloseTo(roomH() - 28);
 		});
 
 		it("fits the content without adding the chrome to the fit", () => {

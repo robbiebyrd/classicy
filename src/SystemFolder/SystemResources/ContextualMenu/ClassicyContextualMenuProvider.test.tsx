@@ -5,6 +5,7 @@ import {
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 
 const menuA: ClassicyMenuItem[] = [{ id: "a1", title: "Alpha One" }];
 const menuB: ClassicyMenuItem[] = [{ id: "b1", title: "Beta One" }];
@@ -201,6 +202,49 @@ describe("ClassicyContextualMenuProvider", () => {
 		const expected = Math.max(0, window.innerHeight - 5 + 1 - 200);
 		expect(wrapper.style.top).toBe(`${expected}px`);
 		expect(wrapper.style.left).toBe("11px");
+		rectSpy.mockRestore();
+	});
+
+	// Plan 0020-w98 §2 "Menus": a mounted taskbar's band is off the bottom of
+	// the box a menu keeps to, so a menu that would run under the taskbar
+	// opens above the point instead; with no band it opens below as before.
+	it.each([
+		[0, 561],
+		[28, 361],
+	])("keeps a menu above a %i px taskbar band", (band, top) => {
+		setClassicyTaskbarBand(band);
+		const rectSpy = vi
+			.spyOn(Element.prototype, "getBoundingClientRect")
+			.mockReturnValue({
+				width: 100,
+				height: 200,
+				top: 0,
+				bottom: 0,
+				left: 0,
+				right: 0,
+				x: 0,
+				y: 0,
+				toJSON: () => ({}),
+			} as DOMRect);
+		// 561 + 200 = 761: inside jsdom's 768 px viewport, past 768 − 28.
+		const NearBottomTrigger = () => {
+			const { showContextMenu } = useClassicyContextualMenu();
+			return (
+				<button type="button" onClick={() => showContextMenu(menuA, [10, 560])}>
+					show-near-bottom
+				</button>
+			);
+		};
+		render(
+			<ClassicyContextualMenuProvider>
+				<NearBottomTrigger />
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.click(screen.getByText("show-near-bottom"));
+		const wrapper = document.querySelector(
+			".classicyContextMenuWrapper",
+		) as HTMLElement;
+		expect(wrapper.style.top).toBe(`${top}px`);
 		rectSpy.mockRestore();
 	});
 

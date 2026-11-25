@@ -1147,6 +1147,21 @@ drag keeps the opposite corner fixed (`computeClassicyWindowResize`); with
 `layout.menuBar.placement: "window"` a window with an `appMenu` draws it in
 its own menu bar under the title bar. See §8, "Layout declarations".
 
+A window keeps to the work area: below the menu bar's band and, while a
+taskbar is mounted (the Windows shell, plan 0020-w98), above the taskbar's
+band, the taskbar's own measured height. Its opening size (a percentage
+height is a share of the room between the two bands), its opening position
+(`"center"` centers within that room, `"bottom"` sits on the taskbar), the
+clamp that keeps it on screen (re-applied on every render, so a window
+drawn before the taskbar measured itself is moved above it at once), the
+zoom's standard state and a grow-box drag (stopped at the taskbar's top)
+all leave the band out. The exported `resolveSize(size, menuBarHeight?,
+bottomBand?)`, `resolvePosition(pos, size, menuBarHeight?, centering?,
+bottomBand?)` and `clampWindowPositionToViewport(position, size,
+menuBarHeight?, bottomBand?)` take it as an optional last argument, default
+0; with no taskbar the window passes 0, so every other package's numbers
+are unchanged.
+
 Each mounted window, modals included, also registers in the core's window
 registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
 a surface that lists windows or acts on one, such as the Windows 98 shell's
@@ -1286,10 +1301,16 @@ agrees). Every package, no declaration needed:
   overlaps the viewport. A desktop embedded in a page ends inside the
   viewport; one wider or taller than the window (a host that fixes its
   size, a scrolled page) is cut to it. With no desktop, one not laid out or
-  one wholly off screen, the viewport. A menu is measured as painted: its
-  list's border box with its outer `box-shadow` and any absolutely placed
-  `::before`/`::after` (every package's frame shadow), and a scrolling
-  list's `.classicyMenuScrollShadow`.
+  one wholly off screen, the viewport. While a taskbar is mounted (the
+  Windows shell, plan 0020-w98), its band comes off the bottom of that box
+  (the desktop's, or the viewport's where it stands in) before the overlap
+  is taken, so every menu, pop-up menu, combo box list, contextual menu and
+  bevel pop-up flips, scrolls or is pinned above the taskbar rather than
+  running under it, as Windows keeps a popup menu to the work area (Wine
+  `MENU_ShowPopup`); with no taskbar the box is as described above. A menu
+  is measured as painted: its list's border box with its outer `box-shadow`
+  and any absolutely placed `::before`/`::after` (every package's frame
+  shadow), and a scrolling list's `.classicyMenuScrollShadow`.
 - A menu bar's pull-down (the screen bar's and a window's own bar's,
   `menuBar.placement: "window"`) hangs where its package hangs it, under its
   title's left side. One that would pass the bounds' right edge there is
@@ -4390,7 +4411,7 @@ how they look) has two halves:
 
 | Key | Values (Platinum's first) | Drives |
 |---|---|---|
-| `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7 and Windows 98): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
+| `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?, bottomBand?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7 and Windows 98): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
@@ -4488,9 +4509,9 @@ under a window-placement package draws the screen bar and, in each window
 with an `appMenu`, a window bar as well.
 
 **`computeClassicyWindowResize(corner, rect, pointer, chrome, fudge?,
-minimum?, floor?)`** → `{ size: [w, h], position: [left, top] }`. Pure; the
-size and position for a resize drag whose grow box is in `corner`. The
-corner opposite the grow box is the anchor: the size is the pointer's
+minimum?, floor?, ceiling?)`** → `{ size: [w, h], position: [left, top] }`.
+Pure; the size and position for a resize drag whose grow box is in
+`corner`. The corner opposite the grow box is the anchor: the size is the pointer's
 distance from it plus `fudge` (default 5, which keeps the grow box under the
 pointer; `ClassicyWindow` passes the live `--window-resize-inset`, 5 px under
 Platinum, read once per gesture), and the position keeps the anchor fixed.
@@ -4514,9 +4535,22 @@ axis whose grow box moves the left or top edge:
   is not 30 px still releases a top-edge resize exactly where it stopped.
 
 `bottom-right` moves no edge, ignores both limits, and gives the numbers
-Classicy always used. `ClassicyWindow` writes `size` as the window's width
-and height during the drag and, for any other corner, `position` as its
-left and top.
+Classicy always used.
+
+A third optional limit applies only on an axis whose grow box moves the
+right or bottom edge (both axes of `bottom-right`):
+
+- `ceiling` (`[right, bottom]`, default `[Infinity, Infinity]`, no limit):
+  the largest right/bottom that edge may reach, measured as the release
+  clamp measures it, the left or top plus the content size; past it the
+  size shrinks so the edge stops there (never below 0). `ClassicyWindow`
+  passes `[Infinity, innerHeight − band]`, the taskbar's top, only while a
+  taskbar's band is published (plan 0020-w98 §2), so a drag into the
+  taskbar stops at its top instead of being moved back up by the release
+  clamp. With no taskbar it passes none, and the numbers are today's.
+
+`ClassicyWindow` writes `size` as the window's width and height during the
+drag and, for any other corner, `position` as its left and top.
 
 Types: `ClassicyWindowRect` is the `rect` argument (`{ left, top, right,
 bottom }`, viewport pixels, frame included); `ClassicyWindowResizeResult` is
@@ -4530,7 +4564,16 @@ column from the origin's edge, then to the next column. Every counted column
 fits the viewport, and a bottom origin also keeps its last row clear of the
 menu bar, so no cleaned-up icon lands off-screen. In a viewport too short
 for even one row below that band, a bottom origin's one row is clamped to
-the top origins' first-row height (`4 × padding`).
+the top origins' first-row height (`4 × padding`). While a taskbar is
+mounted (plan 0020-w98), rows are laid out in the height above its band: a
+bottom origin's rows are measured up from the taskbar's top, and a top
+origin counts only the rows whose cell ends above it (`floor(height /
+pitch)`, the count with no taskbar, can let the last row run past the
+bottom, by up to `3 × padding` with the default row geometry, where the
+taskbar would cover it), as Windows' icon view starts a new column unless
+an icon fits whole (comctl32 `LISTVIEW_NextIconPosLeft`). An icon dragged
+by hand may still be dropped anywhere. With no taskbar the grid is exactly
+as described.
 `classicyDesktopIconGridPosition(metrics, col, row, origin?)` is the
 grid-position-to-location function. `metrics` is a
 `ClassicyDesktopIconMetrics` (`{ size, padding, cell }`, below under

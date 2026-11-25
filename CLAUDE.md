@@ -228,6 +228,16 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   `useClassicyWindowEntries()` and `runClassicyWindowCommand(appId, windowId,
   command)`. The entry is updated in place, a stale token unregisters
   nothing, and registering adds no DOM and no store field.
+- A mounted taskbar's measured height is the **taskbar band**
+  (`Taskbar/ClassicyTaskbarBand.internal.ts`, store-free:
+  `setClassicyTaskbarBand(px, owner?)`, the tallest band any owner
+  publishes in effect, `getClassicyTaskbarBand`, `useClassicyTaskbarBand`;
+  0 with no taskbar).
+  Window geometry (`resolveSize`, `resolvePosition`,
+  `clampWindowPositionToViewport`, each with an optional `bottomBand`, the
+  zoom's standard state, and a grow-box drag's `ceiling`, passed only while
+  the band is not 0), Clean Up's grid and every menu's bounds keep above it,
+  so with no taskbar every number is today's.
 
 ### Analytics
 
@@ -552,7 +562,8 @@ Menus open where they show (`ClassicyMenuPlacement.internal.ts`,
 `useClassicySubmenuPlacement.internal.ts`): measured in layout effects, frame
 shadow included (border box, outer `box-shadow`, absolute
 `::before`/`::after`), against the bounds, `.classicyDesktop`'s box where it
-overlaps the viewport, on both axes. A pull-down (screen or window bar) or
+overlaps the viewport, less a mounted taskbar's band along its bottom, on
+both axes. A pull-down (screen or window bar) or
 submenu that would pass the right edge gets `classicySubMenuFlipLeft`, a
 pull-down then hanging with its right side under its title's right side
 (base `ClassicyDesktopMenuBar.scss`; a package that places pull-downs itself

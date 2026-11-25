@@ -34,6 +34,7 @@ import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/Syste
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { getClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 
 /**
  * The desktop-icon grid metrics, in px: the icon `size`, the `padding` around
@@ -87,6 +88,14 @@ const rowStep = ({ padding, cell, rowPitch }: ClassicyDesktopIconMetrics) =>
 /** The first row's top: the package's, else `4 × padding`. */
 const firstRowTop = ({ padding, top }: ClassicyDesktopIconMetrics) =>
 	top ?? padding * 4;
+
+/**
+ * The height the grid lays rows in: the viewport's, less the taskbar's band
+ * along its bottom (`getClassicyTaskbarBand`, 0 with no taskbar, so every
+ * package without one lays out exactly as before). Read from the module, as
+ * `window.innerHeight` is, so the reducer path never touches the store.
+ */
+const gridHeight = () => window.innerHeight - getClassicyTaskbarBand();
 
 // One named derivation's value in px, rounded exactly as getThemeVars emits
 // it (px3), so the reducer's number equals the stylesheet's.
@@ -142,6 +151,15 @@ export const classicyDesktopIconMetrics = (
  * viewport shorter than that plus one row still gets one; there
  * `classicyDesktopIconGridPosition` clamps a bottom origin's y to at least
  * the first-row top, keeping that row on screen.
+ *
+ * Rows are counted in the height above the taskbar's band (`gridHeight`).
+ * While a band is published, a top origin counts only the rows whose cell
+ * ends above it, as Windows' icon view starts a new column unless the next
+ * icon fits whole (comctl32 `LISTVIEW_NextIconPosLeft`): `floor(h / pitch)`
+ * can let the last row run past `h` (by up to `3 × padding` with the default
+ * row geometry: Windows 98's tenth row at 768 px would end 4 px into a 28 px
+ * taskbar), where the taskbar, drawn above the icons, would cover it. With
+ * no band the count is today's.
  */
 const createGrid = (
 	metrics: ClassicyDesktopIconMetrics,
@@ -149,16 +167,22 @@ const createGrid = (
 ) => {
 	const { padding, cell } = metrics;
 	const pitch = rowStep(metrics);
+	const height = gridHeight();
+	const topRows =
+		getClassicyTaskbarBand() > 0
+			? Math.max(
+					1,
+					Math.floor((height - firstRowTop(metrics) - cell) / pitch) + 1,
+				)
+			: Math.floor(height / pitch);
 	return [
 		Math.floor(window.innerWidth / (cell + padding)),
 		origin.startsWith("bottom")
 			? Math.max(
 					1,
-					Math.floor(
-						(window.innerHeight - firstRowTop(metrics) - padding * 4) / pitch,
-					),
+					Math.floor((height - firstRowTop(metrics) - padding * 4) / pitch),
 				)
-			: Math.floor(window.innerHeight / pitch),
+			: topRows,
 	];
 };
 
@@ -169,7 +193,9 @@ const createGrid = (
  * pitch (the same, unless the package declares `desktopIconGrid.rowGap`),
  * the first row of a top origin at the first-row top (`4 × padding`, unless
  * it declares `desktopIconGrid.top`). `top-right` (Platinum) is the original
- * formula: columns step in from the right edge, rows down from the top.
+ * formula: columns step in from the right edge, rows down from the top. A
+ * bottom origin's rows are measured up from the taskbar's top (the bottom of
+ * `gridHeight`, the viewport's while no taskbar is mounted).
  */
 export const classicyDesktopIconGridPosition = (
 	metrics: ClassicyDesktopIconMetrics,
@@ -192,7 +218,7 @@ export const classicyDesktopIconGridPosition = (
 				// viewport too short for it stays on screen.
 				Math.max(
 					top,
-					Math.floor(window.innerHeight - pitch * (row + 1)) - padding * 4,
+					Math.floor(gridHeight() - pitch * (row + 1)) - padding * 4,
 				),
 	];
 };

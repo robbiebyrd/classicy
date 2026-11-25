@@ -11,6 +11,7 @@ import {
 	classicyMenuPassesEnd,
 	classicyMenuPinShift,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
+import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 
 const box = (left: number, right: number): ClassicyMenuBox => ({
 	left,
@@ -72,6 +73,71 @@ describe("classicyMenuBounds", () => {
 		root.className = "classicyDesktop";
 		document.body.append(root);
 		expect(classicyMenuBounds(root)).toEqual(viewport);
+	});
+
+	// Plan 0020-w98 §2 "Menus": a mounted taskbar's band comes off the
+	// bottom of the box every menu keeps to (Wine keeps a popup menu to the
+	// work area, `MENU_ShowPopup`), and nothing else moves.
+	describe("above a taskbar's band", () => {
+		const desktopAt = (rect: DOMRectInit) => {
+			const root = document.createElement("div");
+			root.className = "classicyDesktop";
+			document.body.append(root);
+			vi.spyOn(root, "getBoundingClientRect").mockReturnValue(
+				DOMRect.fromRect(rect),
+			);
+			return root;
+		};
+		const embedded = { x: 16, y: 16, width: 992, height: 736 };
+		const oversized = { x: -50, y: -20, width: 1400, height: 900 };
+		const viewport = () => ({
+			left: 0,
+			top: 0,
+			right: window.innerWidth,
+			bottom: window.innerHeight,
+		});
+
+		it("a band of 0 is today's box", () => {
+			const root = desktopAt(embedded);
+			const before = classicyMenuBounds(root);
+			setClassicyTaskbarBand(28);
+			setClassicyTaskbarBand(0);
+			expect(classicyMenuBounds(root)).toEqual(before);
+			expect(before).toEqual({ left: 16, top: 16, right: 1008, bottom: 752 });
+		});
+
+		it("takes the band off the desktop's bottom, and only its bottom", () => {
+			const root = desktopAt(embedded);
+			setClassicyTaskbarBand(28);
+			expect(classicyMenuBounds(root)).toEqual({
+				left: 16,
+				top: 16,
+				right: 1008,
+				bottom: 724,
+			});
+		});
+
+		it("measures the band from the desktop's own bottom, then cuts to the viewport", () => {
+			// The desktop ends 112 px below the window: its taskbar (bottom 880,
+			// top 852) is off screen, so the viewport's bottom still binds.
+			const root = desktopAt(oversized);
+			setClassicyTaskbarBand(28);
+			expect(classicyMenuBounds(root)).toEqual(viewport());
+		});
+
+		it("takes the band off the viewport where the viewport stands in", () => {
+			setClassicyTaskbarBand(28);
+			expect(classicyMenuBounds(null)).toEqual({
+				...viewport(),
+				bottom: window.innerHeight - 28,
+			});
+		});
+
+		it("falls back to the viewport when the band leaves no room", () => {
+			const root = desktopAt({ x: 0, y: 0, width: 640, height: 20 });
+			setClassicyTaskbarBand(28);
+			expect(classicyMenuBounds(root)).toEqual(viewport());
+		});
 	});
 });
 

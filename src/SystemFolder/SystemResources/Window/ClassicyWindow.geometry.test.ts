@@ -5,16 +5,24 @@
 // #classicyDesktop element; no getComputedStyle stub is needed.
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render } from "@/__tests__/test-utils";
+import { act, fireEvent, render } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
+import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import {
 	ClassicyWindow,
+	clampWindowPositionToViewport,
 	resolvePosition,
 	resolveSize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
+// The mocked store record's geometry, so a test can place it low on the
+// screen (the taskbar band tests); every other test keeps [110, 110].
+const mockRecord = vi.hoisted(() => ({
+	position: [110, 110] as [number, number],
+	size: [350, 200] as [number, number],
+}));
 
 // Pass-through spy, so the resize test can count reads of the inset.
 vi.mock(
@@ -54,8 +62,8 @@ vi.mock(
 										resizing: false,
 										zoomed: false,
 										closed: false,
-										size: [350, 200] as [number, number],
-										position: [110, 110] as [number, number],
+										size: mockRecord.size,
+										position: mockRecord.position,
 										minimumSize: [0, 0] as [number, number],
 										menuBar: [] as unknown[],
 										default: false,
@@ -140,6 +148,8 @@ const renderWindow = (
 beforeEach(() => {
 	mockDispatch.mockClear();
 	vi.mocked(readClassicyThemeVar).mockClear();
+	mockRecord.position = [110, 110];
+	mockRecord.size = [350, 200];
 });
 
 afterEach(() => {
@@ -242,6 +252,157 @@ describe("ClassicyWindow geometry from theme variables", () => {
 				.at(-1);
 			expect(last?.size).toEqual([402, 262]);
 			unmount();
+		});
+	});
+});
+
+// Plan 0020-w98 §2 "The band": a mounted taskbar's band along the desktop's
+// bottom comes out of the room every geometry function gives a window, as
+// Windows keeps windows to the work area (WIG Ch.6, p.84). Each function
+// defaults the band to 0, and the window reads 0 while no taskbar is
+// mounted, so every other desktop computes today's numbers.
+describe("ClassicyWindow geometry above the taskbar's band", () => {
+	// jsdom's viewport, which these numbers assume.
+	beforeEach(() =>
+		expect([window.innerWidth, window.innerHeight]).toEqual([1024, 768]),
+	);
+
+	describe("resolveSize", () => {
+		it("a band of 0 is today's size", () => {
+			mountDesktop({}, [800, 600]);
+			for (const size of [
+				["100%", "100%"],
+				["50%", "25%"],
+				[320, 240],
+			] as Parameters<typeof resolveSize>[0][]) {
+				expect(resolveSize(size, 40, 0)).toEqual(resolveSize(size, 40));
+			}
+		});
+
+		it("takes the band off a percentage height", () => {
+			mountDesktop({}, [800, 600]);
+			expect(resolveSize(["100%", "100%"], 0, 28)).toEqual([800, 572]);
+			expect(resolveSize(["50%", "50%"], 0, 28)).toEqual([400, 286]);
+			// Below a menu bar too: the room is what is left between the two.
+			expect(resolveSize(["100%", "100%"], 30, 28)).toEqual([800, 542]);
+			// A number is a number.
+			expect(resolveSize([320, 240], 0, 28)).toEqual([320, 240]);
+		});
+	});
+
+	describe("resolvePosition", () => {
+		const ys = ["top", "center", "bottom", 200] as const;
+
+		it("a band of 0 is today's position", () => {
+			for (const y of ys) {
+				for (const centering of ["exact", "wholePixel"] as const) {
+					expect(
+						resolvePosition(["center", y], [300, 101], 30, centering, 0),
+					).toEqual(resolvePosition(["center", y], [300, 101], 30, centering));
+				}
+			}
+		});
+
+		it("centers within the height above the band", () => {
+			// (768 − 28 − 101) / 2, on the half pixel or rounded.
+			expect(
+				resolvePosition(["center", "center"], [300, 101], 0, "exact", 28),
+			).toEqual([362, 319.5]);
+			expect(
+				resolvePosition(["center", "center"], [300, 101], 0, "wholePixel", 28),
+			).toEqual([362, 320]);
+		});
+
+		it("puts a bottom window on the band, and leaves top and numbers alone", () => {
+			expect(
+				resolvePosition(["left", "bottom"], [300, 100], 0, "exact", 28),
+			).toEqual([0, 640]);
+			expect(
+				resolvePosition(["left", "top"], [300, 100], 0, "exact", 28),
+			).toEqual([0, 0]);
+			expect(resolvePosition([40, 700], [300, 100], 0, "exact", 28)).toEqual([
+				40, 700,
+			]);
+		});
+
+		it("never goes above the menu bar for a window taller than the room", () =>
+			expect(
+				resolvePosition(["left", "bottom"], [300, 900], 30, "exact", 28),
+			).toEqual([0, 30]));
+	});
+
+	describe("clampWindowPositionToViewport", () => {
+		it("a band of 0 is today's clamp", () => {
+			for (const position of [
+				[110, 110],
+				[-20, 900],
+				[2000, 5],
+			] as [number, number][]) {
+				expect(
+					clampWindowPositionToViewport(position, [350, 200], 30, 0),
+				).toEqual(clampWindowPositionToViewport(position, [350, 200], 30));
+			}
+		});
+
+		it("caps y at the band's top less the window's height", () => {
+			expect(
+				clampWindowPositionToViewport([110, 700], [350, 200], 0, 28),
+			).toEqual([110, 540]);
+			// Above that the window stays where it is.
+			expect(
+				clampWindowPositionToViewport([110, 500], [350, 200], 0, 28),
+			).toEqual([110, 500]);
+			// Across, nothing changes.
+			expect(
+				clampWindowPositionToViewport([900, 700], [350, 200], 0, 28),
+			).toEqual([674, 540]);
+		});
+
+		it("keeps a window taller than the room on the menu bar's floor", () =>
+			expect(
+				clampWindowPositionToViewport([110, 400], [350, 900], 30, 28),
+			).toEqual([110, 30]));
+	});
+
+	describe("a mounted window", () => {
+		const opened = () =>
+			dispatched().find((action) => action.type === "ClassicyWindowOpen") as
+				| { window: { position: [number, number] } }
+				| undefined;
+
+		it("registers a new centered window within the room above the band", () => {
+			mountDesktop({ "--menu-bar-height": "0px" });
+			setClassicyTaskbarBand(28);
+			renderWindow({
+				id: "NewWindow",
+				initialSize: [300, 200],
+				initialPosition: ["center", "center"],
+			});
+			// (1024 − 300) / 2 and (768 − 28 − 200) / 2.
+			expect(opened()?.window.position).toEqual([362, 270]);
+		});
+
+		it("registers the same window at today's place with no band", () => {
+			mountDesktop({ "--menu-bar-height": "0px" });
+			renderWindow({
+				id: "NewWindow",
+				initialSize: [300, 200],
+				initialPosition: ["center", "center"],
+			});
+			expect(opened()?.window.position).toEqual([362, 284]);
+		});
+
+		it("draws a stored window above the band as soon as it is published", () => {
+			mockRecord.position = [110, 560];
+			const { container } = renderWindow();
+			const root = container.querySelector(".classicyWindow") as HTMLElement;
+			// 768 − 200 leaves room for 560 with no taskbar.
+			expect(root.style.top).toBe("560px");
+			act(() => setClassicyTaskbarBand(28));
+			expect(root.style.top).toBe("540px");
+			// The taskbar going gives the room back.
+			act(() => setClassicyTaskbarBand(0));
+			expect(root.style.top).toBe("560px");
 		});
 	});
 });

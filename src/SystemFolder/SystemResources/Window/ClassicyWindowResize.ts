@@ -43,7 +43,17 @@ export type ClassicyWindowResizeResult = {
  *   minimum would have to start the gesture with its edge already past the
  *   floor, and the release clamp forbids such a press rect. If it is ever
  *   reached, the release clamp still moves the window onto the floor.
- * Bottom-right moves no edge, so it ignores both and its numbers are today's.
+ * Bottom-right moves no edge, so it ignores both.
+ *
+ * On an axis whose grow box moves the window's right or bottom edge (the far
+ * edge: `bottom-right` on both axes), `ceiling` is the largest right/bottom
+ * that edge may reach, measured as the release clamp measures it: the left or
+ * top plus the content size. Past it the size shrinks so the edge stops
+ * there. The default, `[Infinity, Infinity]`, sets no limit, so a caller that
+ * passes none gets today's numbers; `ClassicyWindow` passes the taskbar's top
+ * (`[Infinity, innerHeight − band]`) only while a taskbar's band is
+ * published, so a grow-box drag into the taskbar stops at its top instead of
+ * being moved back up by the release clamp.
  */
 export const computeClassicyWindowResize = (
 	corner: ClassicyAppearanceLayout["window"]["growBoxCorner"],
@@ -53,6 +63,7 @@ export const computeClassicyWindowResize = (
 	fudge = CLASSICY_WINDOW_RESIZE_FUDGE,
 	minimum: [number, number] = [0, 0],
 	floor: [number, number] = [0, 0],
+	ceiling: [number, number] = [Infinity, Infinity],
 ): ClassicyWindowResizeResult => {
 	const flipped = [
 		corner === "bottom-left" || corner === "top-left",
@@ -65,7 +76,14 @@ export const computeClassicyWindowResize = (
 	for (const i of [0, 1]) {
 		const anchor = flipped[i] ? far[i] : near[i];
 		size[i] = Math.abs(anchor - pointer[i]) + fudge;
-		if (!flipped[i]) continue;
+		if (!flipped[i]) {
+			// The far edge moves; the anchor is the left or top. Never below
+			// 0, even for a press whose left or top is already past the limit.
+			if (anchor + size[i] > ceiling[i]) {
+				size[i] = Math.max(0, ceiling[i] - anchor);
+			}
+			continue;
+		}
 		if (anchor - (size[i] + chrome[i]) < floor[i]) {
 			size[i] = anchor - chrome[i] - floor[i];
 		}

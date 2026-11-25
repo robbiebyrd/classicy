@@ -61,6 +61,7 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
+import { useClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
@@ -88,9 +89,25 @@ export type ClassicyWindowSizeDimension = number | `${number}%`;
 // the left or top edge stops there, and resolveSize, resolvePosition and the
 // zoom's standard state keep the menu bar's band (its y) out of the room they
 // give a window.
+//
+// The bottom has its counterpart, `bottomBand`: the height a mounted taskbar
+// takes along the desktop's bottom (`useClassicyTaskbarBand`, 0 with no
+// taskbar). The same functions keep it out of the room, so a window keeps to
+// the work area (WIG Ch.6, p.84: "excluding the space used by the taskbar"),
+// and every one defaults it to 0, so a desktop with no taskbar computes what
+// it always computed.
 const windowViewportFloor = (menuBarHeight: number): [number, number] => [
 	0,
 	menuBarHeight,
+];
+
+// The largest right/bottom a resize that moves the right or bottom edge may
+// reach (`computeClassicyWindowResize`'s `ceiling`): no limit across, and the
+// taskbar's top down, the bottom clampWindowPositionToViewport keeps a window
+// above, so the resize and the release clamp agree.
+const windowViewportCeiling = (bottomBand: number): [number, number] => [
+	Number.POSITIVE_INFINITY,
+	(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand,
 ];
 
 // The geometry prop defaults, module-level so they keep one identity: an
@@ -132,9 +149,12 @@ const themeMenuBarHeight = (
 // `menuBarHeight` defaults to a live read of `--menu-bar-height`; a caller on a
 // render path passes the value it already read, so no render forces a style
 // read (ClassicyWindow reads it once per theme and menu-bar placement).
+// `bottomBand` (default 0) is the taskbar's band along the desktop's bottom: a
+// percentage height is a share of the room left between the two bands.
 export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
+	bottomBand = 0,
 ): [number, number] {
 	const desktop =
 		typeof document !== "undefined"
@@ -146,7 +166,8 @@ export function resolveSize(
 	const dh =
 		(desktop?.clientHeight ??
 			(typeof window !== "undefined" ? window.innerHeight : 600)) -
-		menuBarHeight;
+		menuBarHeight -
+		bottomBand;
 
 	const resolve = (dim: ClassicyWindowSizeDimension, max: number): number => {
 		if (typeof dim === "number") return dim;
@@ -206,17 +227,21 @@ export type ClassicyWindowCentering = NonNullable<
  * A window's opening position, `pos` resolved against the viewport. A
  * `"center"` axis is centered exactly (on a half pixel when the free space
  * is odd), or, with `centering` `"wholePixel"`, rounded to a whole pixel.
+ * `bottomBand` (default 0) is the taskbar's band along the bottom: a
+ * `"center"` y centers within the height above it, and `"bottom"` sits on it.
  */
 export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
 	centering: ClassicyWindowCentering = "exact",
+	bottomBand = 0,
 ): [number, number] {
 	const center = (free: number) =>
 		centering === "wholePixel" ? Math.round(free / 2) : free / 2;
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
-	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
+	const vh =
+		(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand;
 
 	let x: number;
 	if (typeof pos[0] === "number") {
@@ -248,16 +273,20 @@ export function resolvePosition(
  * fits; for a window larger than the viewport itself, only the top-left
  * corner is guaranteed on-screen — the title bar and its close box may still
  * render off-screen in that case. Pure and exported so it's unit-testable
- * without a real ResizeObserver.
+ * without a real ResizeObserver. `bottomBand` (default 0) is the taskbar's
+ * band along the bottom, which the window then stays above: `y` is capped at
+ * `innerHeight − bottomBand − height`, never above the menu bar's floor.
  */
 export function clampWindowPositionToViewport(
 	position: [number, number],
 	windowSize: [number, number],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
+	bottomBand = 0,
 ): [number, number] {
 	const [minX, minY] = windowViewportFloor(menuBarHeight);
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
-	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
+	const vh =
+		(typeof window !== "undefined" ? window.innerHeight : 600) - bottomBand;
 
 	const maxX = Math.max(minX, vw - windowSize[0]);
 	const maxY = Math.max(minY, vh - windowSize[1]);
@@ -686,6 +715,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		),
 	);
 	const menuBarPlacement = layout.menuBar.placement;
+	// The taskbar's band along the desktop's bottom (0 with no taskbar, so
+	// every package without one computes what it always did): the geometry
+	// below keeps it out of the room it gives the window, and a re-render on
+	// its change re-clamps every record above it.
+	const taskbarBand = useClassicyTaskbarBand();
 	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the placement, not the whole layout: only the placement changes --menu-bar-height
 	useLayoutEffect(() => {
 		setMenuBarHeight(
@@ -731,12 +765,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, []);
 
 	const resolvedSize = useMemo(
-		() => resolveSize(initialSize, menuBarHeight),
-		[initialSize, menuBarHeight],
+		() => resolveSize(initialSize, menuBarHeight, taskbarBand),
+		[initialSize, menuBarHeight, taskbarBand],
 	);
 	const resolvedMinimumSize = useMemo(
-		() => resolveSize(minimumSize, menuBarHeight),
-		[minimumSize, menuBarHeight],
+		() => resolveSize(minimumSize, menuBarHeight, taskbarBand),
+		[minimumSize, menuBarHeight, taskbarBand],
 	);
 
 	// Non-resizable windows can't be user-resized, so persisted size from the
@@ -864,11 +898,20 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					resolvedSize,
 					menuBarHeight,
 					centering,
+					taskbarBand,
 				),
 				size,
 				menuBarHeight,
+				taskbarBand,
 			),
-		[initialPosition, resolvedSize, size, menuBarHeight, centering],
+		[
+			initialPosition,
+			resolvedSize,
+			size,
+			menuBarHeight,
+			centering,
+			taskbarBand,
+		],
 	);
 
 	// #248: only a symbolic position (e.g. "center") should ever re-center as
@@ -904,12 +947,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// content that grew after that position was saved) — clamp it using
 			// the window's own persisted size, not resolvedSize, since a
 			// resized-and-persisted window's real size can exceed its default.
+			// Above the taskbar's band too, on every render: a window that
+			// registered before the taskbar measured its band (the same
+			// commit) is drawn above it at once, and its stored position is
+			// corrected on its next move.
 			return {
 				...currentWindow,
 				position: clampWindowPositionToViewport(
 					currentWindow.position,
 					currentWindow.size,
 					menuBarHeight,
+					taskbarBand,
 				),
 			};
 		}
@@ -931,6 +979,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		resolvedPosition,
 		resolvedSize,
 		resolvedMinimumSize,
+		taskbarBand,
 		windowType,
 	]);
 
@@ -957,9 +1006,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const rect = el.getBoundingClientRect();
 		const measuredSize: [number, number] = [rect.width, rect.height];
 		const recentered = clampWindowPositionToViewport(
-			resolvePosition(initialPosition, measuredSize, menuBarHeight, centering),
+			resolvePosition(
+				initialPosition,
+				measuredSize,
+				menuBarHeight,
+				centering,
+				taskbarBand,
+			),
 			measuredSize,
 			menuBarHeight,
+			taskbarBand,
 		);
 		if (
 			Math.round(recentered[0]) === Math.round(wsPositionRef.current[0]) &&
@@ -1276,6 +1332,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// The minimum windowStyle draws, so the moved edge stops there.
 			[resolvedMinimumSize[0], ws.collapsed ? 0 : resolvedMinimumSize[1]],
 			windowViewportFloor(menuBarHeight),
+			// The taskbar's top, which the release clamp keeps the window
+			// above: given only while a band is published (undefined takes the
+			// default, no limit), so a desktop with no taskbar resizes with
+			// today's numbers.
+			taskbarBand > 0 ? windowViewportCeiling(taskbarBand) : undefined,
 		);
 		pendingSizeRef.current = size;
 		const el = windowRef.current;
@@ -1656,12 +1717,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// Every size returned here is applied as the window's content-box
 		// width/height, so the desktop's outer room loses the window's chrome
 		// first, and the current size is the content size, not the rect (#291).
+		// The room is the work area: below the menu bar, above the taskbar.
 		const el = windowRef.current;
 		const [chromeW, chromeH] = el ? classicyWindowChromeSize(el) : [0, 0];
 		const stdW = Math.max(resolvedMinimumSize[0], dw - margin * 2 - chromeW);
 		const stdH = Math.max(
 			resolvedMinimumSize[1],
-			dh - menuBarHeight - margin * 2 - chromeH,
+			dh - menuBarHeight - taskbarBand - margin * 2 - chromeH,
 		);
 
 		// The axis a one-way zoom keeps is the size the window already applies,
@@ -1692,7 +1754,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		let targetW = stdW;
 		let targetH = stdH;
 		if (idealSize) {
-			const [iw, ih] = resolveSize(idealSize, menuBarHeight);
+			const [iw, ih] = resolveSize(idealSize, menuBarHeight, taskbarBand);
 			targetW = clamp(iw, resolvedMinimumSize[0], stdW);
 			targetH = clamp(ih, resolvedMinimumSize[1], stdH);
 		} else {
