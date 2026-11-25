@@ -6,4 +6,18 @@
   .classicyStartupScreenPanel {
     @include mixins.platinum-window-border;
   }
+
+  // "Starting Up..." over Mac OS 8.5's progress bar, its frame 160 x 12
+  // (`progressBar.startupWidth`, `startupHeight`; the 8.5 audit's F12: x
+  // 240-399, y 338-349 of a 640 x 480 screen), its well around it, centered
+  // under the label.
+  .classicyStartupScreenProgress .classicyProgressDeterminate {
+    width: max-content;
+    margin: 0 auto;
+
+    progress[value] {
+      width: var(--progress-bar-startup-width);
+      height: var(--progress-bar-startup-height);
+    }
+  }
 }

@@ -104,12 +104,12 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 
 	it("holds exactly the knobs AGENT-REFERENCE §8 marks structural", () => {
 		const documented = documentedKnobs();
-		expect(documented.size).toBe(124);
+		expect(documented.size).toBe(127);
 		const structural = [...documented]
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)
 			.sort();
-		expect(structural).toHaveLength(121);
+		expect(structural).toHaveLength(124);
 		const knobs = leaves(CLASSICY_CORE_MEASUREMENT_DEFAULTS)
 			.filter((path) => !CORE_FIVE.includes(path.split(".")[0]))
 			.sort();

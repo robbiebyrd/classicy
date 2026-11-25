@@ -61,8 +61,11 @@ import {
 // to --zoom-rects-tile-size) after those; integration review G round 6
 // added the menuBar family's six (--menu-bar-end-inset to
 // --menu-bar-clock-end, the Application menu title's geometry, Mac OS 8.5's)
-// after --application-switcher-named-button-width (every other key and
-// value unchanged each time).
+// after --application-switcher-named-button-width; the 8.5 audit's F12
+// added --progress-bar-pixel (the bar's art grid) and
+// --progress-bar-startup-width and --progress-bar-startup-height (the
+// startup bar's 160 x 12 frame) after --progress-bar-stripe-width (every
+// other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -96,8 +99,11 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // Application Switcher palette's named buttons' least width, Mac OS 8.5's
 // 150, made 28 families and 118 keys, integration review G round 3, F5;
 // the Application menu title's geometry, Mac OS 8.5's, the menuBar family's
-// six knobs, made 29 families and 124 keys, integration review G round 6).
-const PLATINUM_KNOB_COUNT = 124;
+// six knobs, made 29 families and 124 keys, integration review G round 6;
+// Platinum's determinate progress bar's art grid and the startup bar's
+// frame, Mac OS 8.5's 160 x 12, three progressBar knobs, made 127, the 8.5
+// audit's F12).
+const PLATINUM_KNOB_COUNT = 127;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

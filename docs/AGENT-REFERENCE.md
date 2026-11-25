@@ -1749,7 +1749,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicySeparator` | `orientation?`, `decorative?` (`role="presentation"`, no `aria-orientation`: a divider inside a list that may hold only its items, as a pop-up's listbox) | |
 | `ClassicyPlacard` | `menuItems?`, `onSelect?(id)`, `onClick?`, `disabled?` | window-corner placard |
 | `ClassicyImageWell` | `src?`, `onDrop?(files, e)`, `selected?`, `enabled?` | drag-and-drop image slot |
-| `ClassicyProgressBar` | `value?`, `max? (100)`, `indeterminate?`, `autoSwitch?`, `chasingArrows?`, `label?` | barber-pole when indeterminate (its stripes slide by animating the registered `--slide-var`; Safari 16.2–16.3 and Firefox 113–127 have no `@property`: in Safari, which draws the stripes, the bar carries `classicyProgressSlideByScript`, its keyframes stopped, and sets the offset on its `<progress>` from a frame loop along the same path, the period read once when it starts, the `<progress>` marked `data-classicy-paint-only-style` meanwhile so the pattern-origin watcher and the scroll area skip its per-frame writes; Firefox draws no stripes, `::-webkit-progress-value` being the only part they are drawn on, so nothing runs there); with `autoSwitch` an indeterminate bar becomes determinate as soon as it has a `value` |
+| `ClassicyProgressBar` | `value?`, `max? (100)`, `indeterminate?`, `autoSwitch?`, `chasingArrows?`, `label?` | barber-pole when indeterminate (its stripes slide by animating the registered `--slide-var`; Safari 16.2–16.3 and Firefox 113–127 have no `@property`: in Safari, which draws the stripes, the bar carries `classicyProgressSlideByScript`, its keyframes stopped, and sets the offset on its `<progress>` from a frame loop along the same path, the period read once when it starts, the `<progress>` marked `data-classicy-paint-only-style` meanwhile so the pattern-origin watcher and the scroll area skip its per-frame writes; Firefox draws no stripes, `::-webkit-progress-value` being the only part they are drawn on, so nothing runs there); with `autoSwitch` an indeterminate bar becomes determinate as soon as it has a `value`. The fill's look is the package's (the base sheet draws none): Platinum's determinate bar is Mac OS 8.5's Appearance progress bar pixel for pixel (`_ProgressBar.scss`; the 8.5 audit's F12, `resources/screenshots/mac-os-8.5/platinum-85-startup-progress.png`): a one-pixel well (#AAAAAA top and left, white bottom and right) around a black frame, a fill of ten one-pixel rows from theme-05 to theme-01 and back to theme-07 with a lit second column and per-row end shading, a black end line and a #555555/#888888 inner shadow, a #BBBBBB track with an #888888 top row and #DDDDDD bottom row and last column, on its own grid knob (`progressBar.pixel`), in Chromium and Firefox (`::-moz-progress-bar`); a taller bar keeps its top four and bottom five rows and stretches the highlight. The startup screen's bar is 8.5's 160 × 12 (`progressBar.startupWidth`, `startupHeight`), centered under "Starting Up…" (a centered label alone in its row has no side margin) |
 | `ClassicyMeter` | `value` *, `min?/max? (0/100)`, `low?/high?/optimum?`, `segments?`, `showValue?`, `label?` | native `<meter>` zone semantics: the region holding `optimum` is optimal (theme accent), adjacent is suboptimal (`--color-alert`), two away is bad (`--color-error`); `meterZone()` exported |
 | `ClassicyOutput` | `id` *, `value?` or children, `htmlFor?: string[]`, `variant? ("plain"\|"inset")`, `mono?`, `label?`, `disabled?` (dimmed) | real `<output>`; `inset` is the white beveled result well |
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
@@ -6423,7 +6423,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 29 families of its own (124 keys)
+**Package knob families.** Platinum adds 29 families of its own (127 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -6453,9 +6453,9 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 121 of the 124 are
+  overriding the knob's value, never the base CSS. 124 of the 127 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift), the 29 only Platinum's
+  table, so the floor and the column cannot drift), the 32 only Platinum's
   partials read among them (`_ControlStrip.scss`'s bevel, the
   `platinum-menu-frame` and `platinum-scrollbars` mixins'
   `--menu-frame-*` and `--scrollbar-thumb-grip-*`, `_Window.scss`'s windoid
@@ -6464,11 +6464,13 @@ literals.
   `_SelectionMarquee.scss`'s and `_ZoomRects.scss`'s two each, and
   `_ApplicationSwitcher.scss`'s named buttons' least width, and
   `_Menu.scss`'s six `menuBar` knobs, the Application menu title's
-  geometry): until story 0225-ci7 the first 18 were look-only, Platinum's
+  geometry, and the progress bar's three, `_ProgressBar.scss`'s art grid
+  and `_StartupScreen.scss`'s startup frame): until story 0225-ci7 the first 18 were look-only, Platinum's
   alone, and a theme of another package drawn under Platinum emitted none
   of them; the rectangles' four (stories 0228-e9l and 0230-n6c), the
-  palette's one (integration review G round 3, F5) and the title's six
-  (integration review G round 6) are on the floor for the same reason.
+  palette's one (integration review G round 3, F5), the title's six
+  (integration review G round 6) and the startup bar's two (the 8.5
+  audit's F12, with the bar's grid) are on the floor for the same reason.
   Since story 0235-xgi a theme drawn under another package is completed
   from the drawing package's own defaults ("A theme drawn under another
   package", below), which supplies those knobs whatever the floor holds;
@@ -6659,6 +6661,9 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlPanel.listMaxHeight` | `--control-panel-list-max-height` | 180 | — | yes | DriveSetupList.scss |
 | `controlPanel.colorsScrollMaxHeight` | `--control-panel-colors-scroll-max-height` | 210 | — | yes | ClassicyAppearanceManager.Colors.scss |
 | `progressBar.stripeWidth` | `--progress-bar-stripe-width` | 10 | — | yes | ClassicyProgressBar.scss |
+| `progressBar.pixel` | `--progress-bar-pixel` | 1 | — | yes | _ProgressBar.scss (the grid of Platinum's determinate bar, Mac OS 8.5's, pixel for pixel) |
+| `progressBar.startupWidth` | `--progress-bar-startup-width` | 160 | — | yes | _StartupScreen.scss (the startup screen's progress bar, its frame, Mac OS 8.5's) |
+| `progressBar.startupHeight` | `--progress-bar-startup-height` | 12 | — | yes | _StartupScreen.scss (the startup screen's progress bar, its frame, Mac OS 8.5's) |
 | `utilityTitleBar.textureWidth` | `--utility-title-bar-texture-width` | 4 | — | yes | _Window.scss |
 | `utilityTitleBar.textureHeight` | `--utility-title-bar-texture-height` | 3 | — | yes | _Window.scss |
 | `boot.halftoneTile` | `--boot-halftone-tile` | 4 | — | yes | ClassicyBootSequence.scss |
@@ -7439,7 +7444,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 45 sites over 12 files, the sites kept on purpose
+the list ends at these 46 sites over 13 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -7463,6 +7468,11 @@ the list ends at these 45 sites over 12 files, the sites kept on purpose
   triangle, the dotted group box and separator), one-pixel rectangles on
   the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
   Strip's.
+- Platinum's `_ProgressBar.scss`, the one `progress-bar-pixel × n` in its
+  `px()` helper: the determinate bar drawn pixel for pixel from Mac OS
+  8.5's startup screen (the 8.5 audit's F12), the end line and the
+  track's two shadow columns after the fill and the end's shading
+  columns, one-pixel columns on the bar's grid (H-R7), as the slider's.
 - Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
   helper: the slider drawn pixel for pixel from HIGOS8 Figures 2-18 and
   2-19 at rest (the channel and its caps, the indicator, the knob, the

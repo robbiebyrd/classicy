@@ -71,6 +71,15 @@
 // flex-start is the flexbox default, keeping default rendering unchanged.
 .classicyLabelAlignCenter > .classicyControlLabelHolder {
   justify-content: center;
+
+  // A label alone in its row (no icon or control beside it) has nothing to
+  // keep its spacing from, and the one-sided margin would push it off the
+  // center: Mac OS 8.5's "Starting Up..." is centered over its bar, ink and
+  // bar both on x 319.5 (the 8.5 audit's F12).
+  > .classicyControlLabel:only-child {
+    margin-right: 0;
+    margin-left: 0;
+  }
 }
 
 .classicyLabelAlignRight > .classicyControlLabelHolder {

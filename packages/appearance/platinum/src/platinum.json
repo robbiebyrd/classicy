@@ -208,7 +208,10 @@
 				"colorsScrollMaxHeight": 210
 			},
 			"progressBar": {
-				"stripeWidth": 10
+				"stripeWidth": 10,
+				"pixel": 1,
+				"startupWidth": 160,
+				"startupHeight": 12
 			},
 			"utilityTitleBar": {
 				"textureWidth": 4,

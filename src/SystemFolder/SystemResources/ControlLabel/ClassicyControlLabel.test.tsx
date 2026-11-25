@@ -1,3 +1,5 @@
+import path from "node:path";
+import * as sass from "sass";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@/__tests__/test-utils";
 import {
@@ -119,5 +121,24 @@ describe("labelAlignClass", () => {
 
 	it("maps right to classicyLabelAlignRight", () => {
 		expect(labelAlignClass("right")).toBe("classicyLabelAlignRight");
+	});
+});
+
+// A centered label alone in its row (a progress bar's, the startup screen's
+// "Starting Up...") has no margin on one side, which would push it off the
+// center: Mac OS 8.5 centers that label's ink over its bar (the 8.5 audit's
+// F12; it sat three pixels right of the bar's center).
+describe("ClassicyControlLabel's stylesheet", () => {
+	it("gives a lone centered label no side margin", () => {
+		const css = sass.compile(
+			path.resolve(
+				process.cwd(),
+				"src/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel.scss",
+			),
+			{ style: "expanded" },
+		).css;
+		expect(css).toMatch(
+			/\.classicyLabelAlignCenter > \.classicyControlLabelHolder > \.classicyControlLabel:only-child \{\n\s+margin-right: 0;\n\s+margin-left: 0;\n\}/,
+		);
 	});
 });

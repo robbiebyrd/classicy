@@ -167,7 +167,16 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		},
 		formControl: { fileInputHiddenSize: 1 },
 		controlPanel: { listMaxHeight: 180, colorsScrollMaxHeight: 210 },
-		progressBar: { stripeWidth: 10 },
+		// Platinum's determinate bar's art grid and the startup screen's bar,
+		// Mac OS 8.5's 160 x 12 frame (Platinum's _ProgressBar.scss and
+		// _StartupScreen.scss; the 8.5 audit's F12), on the floor for
+		// 0225-ci7's reason.
+		progressBar: {
+			stripeWidth: 10,
+			pixel: 1,
+			startupWidth: 160,
+			startupHeight: 12,
+		},
 		boot: { halftoneTile: 4 },
 		helpButton: { glyphSize: 14 },
 		// `markPixel`: the grid of Platinum's menu marks (_marks.scss), on

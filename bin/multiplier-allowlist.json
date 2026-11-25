@@ -17,6 +17,12 @@
 			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."
 		}
 	],
+	"packages/appearance/platinum/src/styles/components/_ProgressBar.scss": [
+		{
+			"count": 1,
+			"reason": "Platinum's determinate progress bar, Mac OS 8.5's pixel for pixel (the 8.5 audit's F12): the end line and the track's two shadow columns after the fill, and the end's shading columns, are one-pixel columns placed in multiples of the bar's one grid knob (--progress-bar-pixel x n, one site in the px() helper); coordinates in the art, not theme proportions (H-R7, as the slider's)."
+		}
+	],
 	"packages/appearance/platinum/src/styles/components/_Slider.scss": [
 		{
 			"count": 1,

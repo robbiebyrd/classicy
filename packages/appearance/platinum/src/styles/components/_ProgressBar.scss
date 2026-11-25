@@ -1,12 +1,167 @@
-// The Platinum progress bar look (from ClassicyProgressBar.scss): the inset
-// track border.
+// The Platinum progress bar look (from ClassicyProgressBar.scss): a
+// determinate bar is Mac OS 8.5's Appearance progress bar, as its startup
+// screen draws it (the 8.5 audit's F12; Infinite Mac's Power Macintosh
+// 9500, `resources/screenshots/mac-os-8.5/platinum-85-startup-progress.png`,
+// `platinum-85-startup-parade.png` full), pixel for pixel on a bar ten rows
+// tall inside its frame:
+//
+// - a one-pixel well around the black frame: #AAAAAA along the top and
+//   left, white along the bottom and right, the face at the two far
+//   corners;
+// - the fill, ten one-pixel rows, top to bottom theme-05, 04, 03, 02, 01,
+//   02, 03, 04, 05 and 07 (#333399 #6666CC #9999FF #CCCCFF #EEEEEE ...
+//   #000055); its first column theme-04, its second each row's color a step
+//   lighter (the #000055 row's theme-05); its end shaded per row: the third
+//   column from its end theme-02 on the theme-01 row, the second theme-05
+//   on rows 3-9, the last theme-07 on rows 2-10, the top row unshaded;
+// - after the fill a black end line, then a #555555 and a #888888 column
+//   (the track's inner shadow; at the frame's right side, a full bar, they
+//   are under the frame and clipped);
+// - the track: a #BBBBBB face, its top row #888888 but for its last pixel,
+//   its bottom row and last column #DDDDDD.
+//
+// One pixel is the bar's own grid knob (`progressBar.pixel`). A taller bar
+// (`--progress-height`, 16 under Platinum) keeps the top four and bottom
+// five rows and stretches the highlight row between them; the startup
+// screen's bar is 8.5's 160 x 12 (`progressBar.startupWidth`,
+// `progressBar.startupHeight`).
+// Firefox draws the fill as `::-moz-progress-bar` and the track as the
+// element's own face; Chromium as `::-webkit-progress-value` over
+// `::-webkit-progress-bar`.
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../marks";
 @use "../mixins";
+
+// One pixel of the bar's art: its own grid knob (`progressBar.pixel`, 1),
+// as the slider's and the marks' are, not the editable border size.
+$px: var(--progress-bar-pixel);
+
+// A length of `$n` grid pixels.
+@function px($n) {
+  @if $n == 1 {
+    @return $px;
+  }
+  @return calc(#{$px} * #{$n});
+}
+
+// A column one pixel wide at `$x` (a length or a position from the right,
+// `100%`), inked `$stops` (a vertical gradient's color stops).
+@function column($x, $stops...) {
+  @return linear-gradient(to bottom, $stops) #{$x} top / #{$px} 100% no-repeat;
+}
+
+// The rows from the top and from the bottom, so a taller bar than 8.5's
+// (`--progress-height`) keeps its one-pixel bands crisp and stretches its
+// highlight row, theme-01, alone.
+@function from-bottom($n) {
+  @return calc(100% - #{px($n)});
+}
+
+$fill-rows: linear-gradient(
+  to bottom,
+  var(--color-theme-05) 0 px(1),
+  var(--color-theme-04) px(1) px(2),
+  var(--color-theme-03) px(2) px(3),
+  var(--color-theme-02) px(3) px(4),
+  var(--color-theme-01) px(4) from-bottom(5),
+  var(--color-theme-02) from-bottom(5) from-bottom(4),
+  var(--color-theme-03) from-bottom(4) from-bottom(3),
+  var(--color-theme-04) from-bottom(3) from-bottom(2),
+  var(--color-theme-05) from-bottom(2) from-bottom(1),
+  var(--color-theme-07) from-bottom(1) 100%
+);
+
+// First listed, drawn on top: the end's shading, then the two lit columns
+// at the start, then the rows.
+$fill:
+  column(100%, transparent 0 px(1), var(--color-theme-07) px(1) 100%),
+  column(
+    calc(100% - #{px(1)}),
+    transparent 0 px(2),
+    var(--color-theme-05) px(2) from-bottom(1),
+    transparent from-bottom(1) 100%
+  ),
+  column(
+    calc(100% - #{px(2)}),
+    transparent 0 px(4),
+    var(--color-theme-02) px(4) from-bottom(5),
+    transparent from-bottom(5) 100%
+  ),
+  column(
+    $px,
+    var(--color-theme-04) 0 px(1),
+    var(--color-theme-03) px(1) px(2),
+    var(--color-theme-02) px(2) px(3),
+    var(--color-theme-01) px(3) from-bottom(4),
+    var(--color-theme-02) from-bottom(4) from-bottom(3),
+    var(--color-theme-03) from-bottom(3) from-bottom(2),
+    var(--color-theme-04) from-bottom(2) from-bottom(1),
+    var(--color-theme-05) from-bottom(1) 100%
+  ),
+  column(0, var(--color-theme-04) 0 100%),
+  $fill-rows;
+
+// The end line and the track's inner shadow, right after the fill.
+$fill-end: px(1) 0 0 0 var(--color-black), px(2) 0 0 0 marks.ramp("5"), px(3) 0 0 0 marks.ramp("8");
+
+// The track, with its inner shadow at its own start for an empty bar.
+$track:
+  layout.classicy-px-rect(marks.ramp("-b"), 100%, 0, $px, $px),
+  layout.classicy-px-rect(var(--color-system-02), 100%, 100%, $px, calc(100% - #{$px})),
+  layout.classicy-px-rect(var(--color-system-02), 0, 100%, 100%, $px),
+  layout.classicy-px-rect(marks.ramp("8"), 0, 0, calc(100% - #{$px}), $px),
+  layout.classicy-px-rect(marks.ramp("5"), 0, 0, $px, 100%),
+  layout.classicy-px-rect(marks.ramp("8"), $px, 0, $px, 100%),
+  marks.ramp("-b");
+
+// The well around the frame.
+$well:
+  layout.classicy-px-rect(var(--color-system-04), 0, 0, calc(100% - #{$px}), $px),
+  layout.classicy-px-rect(var(--color-system-04), 0, 0, $px, calc(100% - #{$px})),
+  layout.classicy-px-rect(var(--color-white), 100%, 100%, $px, calc(100% - #{$px})),
+  layout.classicy-px-rect(var(--color-white), 100%, 100%, calc(100% - #{$px}), $px);
 
 @mixin progressBar {
   .classicyProgress {
     progress[value] {
       &::-webkit-progress-bar {
         @include mixins.platinum-window-inner-border;
+      }
+    }
+  }
+
+  .classicyProgressDeterminate {
+    box-sizing: border-box;
+    padding: $px;
+    background: $well;
+
+    progress[value] {
+      appearance: none;
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      // The frame, whose inside clips the end line and the shadow past a
+      // full fill.
+      overflow: hidden;
+      padding: 0;
+      border: $px solid var(--color-black);
+      // Firefox's track.
+      background: $track;
+
+      &::-webkit-progress-bar {
+        border: 0;
+        box-shadow: none;
+        background: $track;
+      }
+
+      &::-webkit-progress-value {
+        background: $fill;
+        box-shadow: $fill-end;
+      }
+
+      &::-moz-progress-bar {
+        background: $fill;
+        box-shadow: $fill-end;
       }
     }
   }
