@@ -307,6 +307,73 @@ describe("ClassicyScrollArea", () => {
 		expect(thumbStyle(part(container, "scroll-thumb")).offset).toBe("83px");
 	});
 
+	// WIG Ch.6 "Scroll Arrows" (p.87): the arrow toward where the content
+	// cannot scroll further is disabled. The state follows the scroll
+	// position, from the same measurement that moves the thumb.
+	it("disables the arrow at the end of its travel: the start arrow at 0, the end arrow at the maximum, neither between", () => {
+		const { container, viewport } = renderTall();
+		const disabled = () => ({
+			start: part(container, "scroll-arrow-start").classList.contains(
+				CLASSICY_STATE.disabled,
+			),
+			end: part(container, "scroll-arrow-end").classList.contains(
+				CLASSICY_STATE.disabled,
+			),
+		});
+		// At the top: the up arrow alone.
+		expect(disabled()).toEqual({ start: true, end: false });
+		act(() => {
+			viewport.scrollTop = 400;
+			fireEvent.scroll(viewport);
+		});
+		// Mid-way: neither.
+		expect(disabled()).toEqual({ start: false, end: false });
+		act(() => {
+			viewport.scrollTop = 800;
+			fireEvent.scroll(viewport);
+		});
+		// At the bottom (1000 - 200): the down arrow alone.
+		expect(disabled()).toEqual({ start: false, end: true });
+		act(() => {
+			viewport.scrollTop = 0;
+			fireEvent.scroll(viewport);
+		});
+		expect(disabled()).toEqual({ start: true, end: false });
+		// The bar's other states are untouched by it.
+		expect(
+			part(container, "scrollbar").classList.contains(CLASSICY_STATE.fits),
+		).toBe(false);
+	});
+
+	it("disables both arrows of a bar whose axis fits", () => {
+		// Paired bars over content that is only too tall: the horizontal
+		// axis is at both of its ends at once, the vertical at its start.
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 1000,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container } = render(
+			<ClassicyScrollArea pairBars>
+				<p>Content</p>
+			</ClassicyScrollArea>,
+		);
+		const arrows = (bar: Element) =>
+			Array.from(bar.querySelectorAll(".classicyScrollBarArrow")).map((a) =>
+				a.classList.contains(CLASSICY_STATE.disabled),
+			);
+		const vertical = container.querySelector(
+			".classicyScrollBarVertical",
+		) as HTMLElement;
+		const horizontal = container.querySelector(
+			".classicyScrollBarHorizontal",
+		) as HTMLElement;
+		expect(horizontal.classList.contains(CLASSICY_STATE.fits)).toBe(true);
+		expect(arrows(horizontal)).toEqual([true, true]);
+		expect(arrows(vertical)).toEqual([true, false]);
+	});
+
 	it("follows the content's size as it changes", () => {
 		const { container, rerender } = renderTall();
 		viewportBox = { ...viewportBox, scrollHeight: 400 };
@@ -1447,8 +1514,9 @@ describe("ClassicyScrollArea live thumb drag (no declaration)", () => {
 });
 
 describe("ClassicyScrollArea vocabulary and stylesheet", () => {
-	it("declares its parts and the fits state", () => {
+	it("declares its parts and the fits and disabled states", () => {
 		expect(CLASSICY_STATE.fits).toBe("fits");
+		expect(CLASSICY_STATE.disabled).toBe("disabled");
 		expect(CLASSICY_PART_ATTRIBUTE.part).toBe("data-classicy-part");
 		const vocabulary = JSON.parse(
 			readFileSync(

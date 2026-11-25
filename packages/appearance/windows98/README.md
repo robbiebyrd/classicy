@@ -72,9 +72,10 @@ and `nodenext` resolution).
     rectangular tabs on a raised panel, the block progress bar, etched group
     boxes, trackbar sliders, raised placards and bevel buttons;
   - scroll bars: an arrow at each end on a checkered track, a raised scroll
-    box, the paged side of the track inverted while the mouse holds it, the
-    bars kept in an inactive window and drawn, disabled, where the content
-    fits;
+    box, the paged side of the track inverted while the mouse holds it, an
+    arrow embossed (disabled) at the end of its travel (the up arrow at the
+    top of a document, the down arrow at its bottom), the bars kept in an
+    inactive window and drawn, disabled, where the content fits;
   - the desktop: icons with plain labels that take the highlight when
     selected, a selected icon blended with a 50% dither of the highlight
     (as Explorer drew it) on the desktop, in icon views and in the Finder's

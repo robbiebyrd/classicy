@@ -449,7 +449,13 @@ in every browser (Firefox now shows Platinum's full bars).
 - States: `inactive` (root, bars, corner) from `ClassicyWindowActiveContext`
   (`ClassicyWindow` provides it) or the `inactive` prop; `fits` on a bar whose
   axis has nothing to scroll (no thumb); `pressed` on a held arrow or track;
-  `dragging` on the thumb.
+  `dragging` on the thumb; `disabled` on an arrow at the end of its travel
+  (`classicyScrollAxisEnds`: the start arrow while the axis is scrolled to 0,
+  the end arrow while it is at its maximum, within a pixel, both while the
+  axis fits), from the measurement that sets `fits` and the thumb, so on
+  every scroll; WIG Ch.6 "Scroll Arrows" (p.87) asks the application to
+  disable that arrow, Windows 98 embosses it, and Platinum and System 7 read
+  it not at all (a press there scrolls nothing, as before).
 - Behavior: arrows scroll `lineStep` and repeat while held, the track pages
   toward the pointer until the thumb reaches it (both through
   `useClassicyPressRepeat`, `LittleArrows/useClassicyPressRepeat.internal.ts`,

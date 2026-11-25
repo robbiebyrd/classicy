@@ -128,6 +128,16 @@ System 7 draw, and a package that reads none of them sees nothing new.
   a window that cannot be sized the dialog's three-ring fixed frame, with no
   sizing border (WIG Ch.6 "Maximizing Windows", "Window Frames"); Platinum
   and System 7 read neither.
+- **A scroll arrow at the end of its travel.** Each arrow of a
+  `ClassicyScrollArea` bar carries `disabled` while the content cannot
+  scroll further its way: the start arrow while the axis is scrolled to 0,
+  the end arrow while it is at its maximum (within a pixel, for the
+  fractional offsets a zoomed page reports), both while the axis fits
+  (beside the bar's `fits`), set from the same measurement that moves the
+  thumb, so on every scroll. A press there scrolls nothing, as before.
+  Windows 98 embosses that arrow as it embosses a fitting bar's, the rule
+  the Windows Interface Guidelines leave to the application (WIG Ch.6
+  "Scroll Arrows"); Platinum and System 7 read it not at all.
 
 ## Upgrade
 

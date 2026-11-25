@@ -31,10 +31,12 @@ import {
 	type ClassicyScrollAreaHeadSlot,
 } from "./ClassicyScrollAreaHead.internal";
 import {
+	type ClassicyScrollAxisEnds,
 	type ClassicyScrollAxisMetrics,
 	type ClassicyScrollBarPolicy,
 	type ClassicyScrollBarsShown,
 	type ClassicyScrollThumb,
+	classicyScrollAxisEnds,
 	classicyScrollAxisFits,
 	classicyScrollPositionForThumb,
 	computeClassicyScrollBars,
@@ -129,6 +131,7 @@ export type ClassicyScrollAreaViewportProps = {
 };
 
 type Thumbs = Record<ClassicyScrollBarOrientation, ClassicyScrollThumb>;
+type Ends = Record<ClassicyScrollBarOrientation, ClassicyScrollAxisEnds>;
 type BarRefs = {
 	bar: RefObject<HTMLDivElement | null>;
 	track: RefObject<HTMLDivElement | null>;
@@ -136,6 +139,8 @@ type BarRefs = {
 };
 
 const NO_THUMB: ClassicyScrollThumb = { length: 0, offset: 0 };
+// An axis not measured yet is taken to fit: at both of its ends.
+const AT_BOTH_ENDS: ClassicyScrollAxisEnds = { start: true, end: true };
 
 const setRef = <T,>(ref: Ref<T> | undefined, value: T | null) => {
 	if (typeof ref === "function") ref(value);
@@ -254,8 +259,19 @@ const snapClassicyScrollPart = (el: HTMLElement | null) => {
  * `scroll-thumb`, and `scroll-corner` where two bars meet. Arrangement is
  * CSS `order` on the arrows and track. States: `inactive` on the root and
  * bars (the owning window is inactive), `fits` on a bar whose axis has
- * nothing to scroll (no thumb), `pressed` on a held arrow or track and
- * `dragging` on a dragged thumb.
+ * nothing to scroll (no thumb), `pressed` on a held arrow or track,
+ * `dragging` on a dragged thumb, and `disabled` on an arrow at the end of
+ * its travel: the start arrow while the axis is scrolled to 0, the end
+ * arrow while it is at its maximum, both while the axis fits, from the
+ * same measurement that sets `fits` and the thumb (so on every scroll).
+ * The state exists for the Windows Interface Guidelines' rule that an
+ * application disables the arrow toward where the content cannot scroll
+ * (WIG Ch.6 "Scroll Arrows" (p.87): "When a window cannot be scrolled any
+ * further in a particular direction, disable the scroll arrow corresponding
+ * to that direction"; Ch.7 "List Boxes" (p.120), "Scroll Bars" (p.131)),
+ * which the Windows 98 package draws embossed; it changes nothing the arrow
+ * does (a press there scrolls nothing, as before), and Platinum and System
+ * 7 read it not at all.
  *
  * An arrow press scrolls a line and repeats while held; a track press pages
  * toward the pointer and repeats until the thumb reaches it; dragging the
@@ -335,10 +351,16 @@ export const ClassicyScrollArea = forwardRef<
 		horizontal: NO_THUMB,
 	});
 	const [fits, setFits] = useState({ vertical: true, horizontal: true });
-	// The thumbs and fits states as last set, for `update` to compare with
-	// without waiting for the render.
+	// Each axis at its start and its end (the arrows' `disabled`).
+	const [ends, setEnds] = useState<Ends>({
+		vertical: AT_BOTH_ENDS,
+		horizontal: AT_BOTH_ENDS,
+	});
+	// The thumbs, fits and ends states as last set, for `update` to compare
+	// with without waiting for the render.
 	const thumbsRef = useRef(thumbs);
 	const fitsRef = useRef(fits);
+	const endsRef = useRef(ends);
 	const policyRef = useRef({
 		vertical: verticalPolicy,
 		horizontal: horizontalPolicy,
@@ -430,9 +452,11 @@ export const ClassicyScrollArea = forwardRef<
 		}
 		const nextThumbs: Thumbs = { vertical: NO_THUMB, horizontal: NO_THUMB };
 		const nextFits = { vertical: true, horizontal: true };
+		const nextEnds: Ends = { vertical: AT_BOTH_ENDS, horizontal: AT_BOTH_ENDS };
 		for (const orientation of ["vertical", "horizontal"] as const) {
 			const axis = axisOf(el, orientation);
 			nextFits[orientation] = classicyScrollAxisFits(axis);
+			nextEnds[orientation] = classicyScrollAxisEnds(axis);
 			if (!current[orientation]) continue;
 			const track = trackOf(refs[orientation], orientation);
 			const thumb = thumbOf(axis, track.length, refs[orientation], orientation);
@@ -457,6 +481,16 @@ export const ClassicyScrollArea = forwardRef<
 			fitsRef.current = nextFits;
 			setFits(nextFits);
 		}
+		const endsNow = endsRef.current;
+		if (
+			endsNow.vertical.start !== nextEnds.vertical.start ||
+			endsNow.vertical.end !== nextEnds.vertical.end ||
+			endsNow.horizontal.start !== nextEnds.horizontal.start ||
+			endsNow.horizontal.end !== nextEnds.horizontal.end
+		) {
+			endsRef.current = nextEnds;
+			setEnds(nextEnds);
+		}
 		const overflow = {
 			vertical: el.scrollHeight > el.clientHeight + 1,
 			horizontal: el.scrollWidth > el.clientWidth + 1,
@@ -477,11 +511,11 @@ export const ClassicyScrollArea = forwardRef<
 
 	// Every render may have moved something (bars drawn or removed, a policy
 	// changed): measure before paint. Not the render that only commits the
-	// thumbs or fits states `update` itself set (one measurement per scroll
-	// frame): that moves nothing it reads. It is told by what the render
-	// committed, never by a flag a bailed-out render could leave set: the
-	// thumbs or fits object changed since the last commit, to the one
-	// `update` set last, and the bars and their policies did not.
+	// thumbs, fits or ends states `update` itself set (one measurement per
+	// scroll frame): that moves nothing it reads. It is told by what the
+	// render committed, never by a flag a bailed-out render could leave set:
+	// the thumbs, fits or ends object changed since the last commit, to the
+	// one `update` set last, and the bars and their policies did not.
 	const layoutInputs = [
 		verticalPolicy,
 		horizontalPolicy,
@@ -493,16 +527,18 @@ export const ClassicyScrollArea = forwardRef<
 		inputs: string;
 		thumbs: Thumbs;
 		fits: typeof fits;
+		ends: Ends;
 	} | null>(null);
 	useLayoutEffect(() => {
 		const last = committedRef.current;
-		committedRef.current = { inputs: layoutInputs, thumbs, fits };
+		committedRef.current = { inputs: layoutInputs, thumbs, fits, ends };
 		const ownStateOnly =
 			last !== null &&
 			last.inputs === layoutInputs &&
-			(last.thumbs !== thumbs || last.fits !== fits) &&
+			(last.thumbs !== thumbs || last.fits !== fits || last.ends !== ends) &&
 			thumbs === thumbsRef.current &&
-			fits === fitsRef.current;
+			fits === fitsRef.current &&
+			ends === endsRef.current;
 		if (ownStateOnly) return;
 		update();
 	});
@@ -632,6 +668,7 @@ export const ClassicyScrollArea = forwardRef<
 			viewportRef={viewportElRef}
 			thumb={thumbs[orientation]}
 			fits={fits[orientation]}
+			ends={ends[orientation]}
 			inactive={isInactive}
 			lineStep={lineStep}
 			thumbDrag={thumbDrag}
@@ -720,6 +757,8 @@ type ClassicyScrollBarProps = {
 	viewportRef: RefObject<HTMLElement | null>;
 	thumb: ClassicyScrollThumb;
 	fits: boolean;
+	/** The axis at its start and its end: the arrows' `disabled`. */
+	ends: ClassicyScrollAxisEnds;
 	inactive: boolean;
 	lineStep: number;
 	thumbDrag: ClassicyScrollThumbDrag;
@@ -737,6 +776,7 @@ const ClassicyScrollBar = ({
 	viewportRef,
 	thumb,
 	fits,
+	ends,
 	inactive,
 	lineStep,
 	thumbDrag,
@@ -1082,7 +1122,10 @@ const ClassicyScrollBar = ({
 				className={classNames(
 					"classicyScrollBarArrow",
 					"classicyScrollBarArrowStart",
-					classicyStateClasses({ pressed: pressed === "start" }),
+					classicyStateClasses({
+						pressed: pressed === "start",
+						disabled: ends.start,
+					}),
 				)}
 				data-classicy-part="scroll-arrow-start"
 				onMouseDown={(e) => pressArrow(e, -1)}
@@ -1102,7 +1145,10 @@ const ClassicyScrollBar = ({
 				className={classNames(
 					"classicyScrollBarArrow",
 					"classicyScrollBarArrowEnd",
-					classicyStateClasses({ pressed: pressed === "end" }),
+					classicyStateClasses({
+						pressed: pressed === "end",
+						disabled: ends.end,
+					}),
 				)}
 				data-classicy-part="scroll-arrow-end"
 				onMouseDown={(e) => pressArrow(e, 1)}

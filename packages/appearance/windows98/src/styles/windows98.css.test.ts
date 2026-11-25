@@ -134,4 +134,28 @@ describe("windows98.scss (compiled)", () => {
 			has(".classicyWindow.classicyWindowNoResize .classicyWindowPlacardBar"),
 		).toBe(true);
 	});
+
+	// The scroll-arrow hook of the audit's second pass (6.8 / 7.24): the core
+	// sets `disabled` on the arrow at the end of its travel, and the package
+	// embosses that one arrow as it embosses a fitting bar's, each rule after
+	// the pressed rules so a held arrow at its end draws no press (WIG Ch.6
+	// "Scroll Arrows", p.87).
+	it("embosses a scroll arrow at the end of its travel", () => {
+		const selectors = selectorsOf(css);
+		const has = (tail: string) =>
+			selectors.some((selector) => selector.endsWith(tail));
+		for (const bar of ["Vertical", "Horizontal"]) {
+			for (const arrow of ["Start", "End"]) {
+				const disabled = `.classicyScrollBar${bar} .classicyScrollBarArrow${arrow}.disabled`;
+				expect(has(disabled), disabled).toBe(true);
+				expect(has(`${disabled}::before`), disabled).toBe(true);
+				// After the pressed rule of the same weight.
+				const pressed = `.classicyScrollBar${bar} .classicyScrollBarArrow${arrow}.pressed`;
+				const at = (tail: string) =>
+					selectors.findIndex((selector) => selector.endsWith(tail));
+				expect(at(pressed), pressed).toBeGreaterThanOrEqual(0);
+				expect(at(disabled)).toBeGreaterThan(at(pressed));
+			}
+		}
+	});
 });

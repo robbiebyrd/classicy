@@ -36,6 +36,14 @@
 // - Nothing to scroll (`fits`): Windows disables the bar, its arrows drawn
 //   embossed, GrayText over a ButtonHilight copy one pixel down and right,
 //   on the raised face, no thumb (the core draws none), the checker kept.
+// - An arrow at the end of its travel (`disabled`, which the core sets on
+//   the start arrow while the axis is scrolled to 0, on the end arrow while
+//   it is at its maximum, and on both where the content fits) is drawn as a
+//   fitting bar's: embossed on the raised face, never held. WIG Ch.6
+//   "Scroll Arrows" (p.87): "When a window cannot be scrolled any further
+//   in a particular direction, disable the scroll arrow corresponding to
+//   that direction" (an application's duty: Windows' own bars kept both
+//   arrows live); Ch.7 "List Boxes" (p.120), "Scroll Bars" (p.131).
 // - Inactive (the window is): Windows draws a scroll bar the same in an
 //   inactive window, so nothing changes.
 // - The corner where two bars meet is plain ButtonFace (the window's own
@@ -220,6 +228,24 @@ $thumb-min: px(8);
   }
 
   .classicyScrollBarHorizontal.fits .classicyScrollBarArrowEnd {
+    @include arrow-glyph-disabled($arrow-right);
+  }
+
+  // At the end of its travel (the header): the one arrow embossed, at the
+  // weight of the pressed rules, so holding it draws no press.
+  .classicyScrollBarVertical .classicyScrollBarArrowStart.disabled {
+    @include arrow-glyph-disabled($arrow-up);
+  }
+
+  .classicyScrollBarVertical .classicyScrollBarArrowEnd.disabled {
+    @include arrow-glyph-disabled($arrow-down);
+  }
+
+  .classicyScrollBarHorizontal .classicyScrollBarArrowStart.disabled {
+    @include arrow-glyph-disabled($arrow-left);
+  }
+
+  .classicyScrollBarHorizontal .classicyScrollBarArrowEnd.disabled {
     @include arrow-glyph-disabled($arrow-right);
   }
 
