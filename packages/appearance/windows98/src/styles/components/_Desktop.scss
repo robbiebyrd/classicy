@@ -26,8 +26,8 @@
 //   alias badge, the default package's art) but its label is upright:
 //   Windows never italicized a shortcut.
 // - Selected, the label's rectangle fills with Hilight under HilightText,
-//   the drop shadow goes, and the dotted focus rectangle lies on the
-//   rectangle's outer pixel ring (DrawFocusRect over the highlighted label);
+//   the drop shadow goes (the dotted focus rectangle is the focus icon's
+//   alone, below, LVIS_FOCUSED, not every selected label's), and
 //   the image is blended with Hilight pixel by pixel (ImageList_Draw with
 //   ILD_SELECTED: a 50% dither of the highlight color over the icon's
 //   opaque pixels), drawn as a two-pixel checker layer over the image and
@@ -75,14 +75,12 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
 $label-shadow: var(--desktop-label-shadow);
 $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shadow}) * 10000);
 
-// A selected label: Hilight under HilightText, no shadow, the dotted focus
-// rectangle on its outer pixel ring.
+// A selected label: Hilight under HilightText, no shadow. The dotted focus
+// rectangle is the focus icon's alone (below), selected or not.
 @mixin label-selected {
   color: b.$highlight-text;
   text-shadow: none;
   background: b.$highlight;
-  outline: b.$b dotted b.$highlight-text;
-  outline-offset: b.$neg-b;
 }
 
 @mixin desktop {
@@ -165,6 +163,20 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
     p {
       @include label-selected;
     }
+  }
+
+  // The focus icon (LVIS_FOCUSED): one dotted rectangle, on the label of the
+  // icon that has the focus, while it has it (a press gives it; WIG Ch.5
+  // "Keyboard Selection", p.43, "Selection Feedback", p.36), in the desktop
+  // text color, or HilightText over a highlighted label; a selected icon
+  // without the focus takes none.
+  .classicyDesktopIcon:focus p {
+    outline: b.$b dotted var(--package-color-desktop-text, var(--color-white));
+    outline-offset: b.$neg-b;
+  }
+
+  .classicyDesktopIcon.selected:focus p {
+    outline-color: b.$highlight-text;
   }
 
   // Opened: as any other icon. The base inverts the shape and hides the

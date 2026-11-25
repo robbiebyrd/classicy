@@ -109,3 +109,55 @@ describe("Finder opens every selected item at a double-click (layout.selection.m
 		expect(openPaths()).not.toContain(PROJECTS);
 	});
 });
+
+// The icon view's part (the audit's 5.8 / A.1: the icon view keeps the
+// selection a double-click opens): under the Windows 98 layout the press
+// selects, the second press of a double-click changes nothing, and the
+// double-click opens every selected icon; under the default layout it opens
+// the icon double-clicked.
+describe("Finder's icon view opens every selected item at a double-click", () => {
+	const renderDocumentsIcons = async () => {
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		dispatch({
+			type: "ClassicyAppFinderSetFolderView",
+			path: DOCUMENTS,
+			viewType: "icons",
+		});
+		const view = render(<Finder />);
+		const icon = (path: string) =>
+			view.container.querySelector(
+				`.classicyIcon[data-classicy-file-path="${CSS.escape(path)}"]`,
+			) as HTMLElement;
+		await waitFor(() => {
+			expect(icon(PROJECTS)).not.toBeNull();
+			expect(icon(ARCHIVE)).not.toBeNull();
+		});
+		return icon;
+	};
+
+	it("opens both selected folders under the Windows layout", async () => {
+		useWindowsLayout();
+		const icon = await renderDocumentsIcons();
+		fireEvent.mouseDown(icon(PROJECTS), { button: 0, detail: 1 });
+		fireEvent.click(icon(PROJECTS), { detail: 1 });
+		fireEvent.mouseDown(icon(ARCHIVE), { button: 0, detail: 1, ctrlKey: true });
+		fireEvent.click(icon(ARCHIVE), { detail: 1, ctrlKey: true });
+		fireEvent.mouseDown(icon(ARCHIVE), { button: 0, detail: 2, ctrlKey: true });
+		fireEvent.click(icon(ARCHIVE), { detail: 2, ctrlKey: true });
+		fireEvent.doubleClick(icon(ARCHIVE), { ctrlKey: true });
+		await waitFor(() => {
+			expect(openPaths()).toEqual(
+				expect.arrayContaining([DOCUMENTS, PROJECTS, ARCHIVE]),
+			);
+		});
+	});
+
+	it("opens the double-clicked folder alone under the default layout", async () => {
+		const icon = await renderDocumentsIcons();
+		fireEvent.click(icon(PROJECTS));
+		fireEvent.click(icon(ARCHIVE), { metaKey: true });
+		fireEvent.doubleClick(icon(ARCHIVE));
+		await waitFor(() => expect(openPaths()).toContain(ARCHIVE));
+		expect(openPaths()).not.toContain(PROJECTS);
+	});
+});

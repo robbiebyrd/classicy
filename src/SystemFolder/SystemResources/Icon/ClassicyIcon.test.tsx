@@ -366,3 +366,184 @@ describe("ClassicyIcon — dragging it under the Windows layout", () => {
 		fireEvent.mouseUp(icon);
 	});
 });
+
+// The props the file browser's icon view uses under the Windows 98 layout
+// (the WIG audit's 5.8 / 5.22, 5.16 and 5.17): a press handed to the
+// caller before any drag, the option role, one Tab stop, the outline's
+// parts and the travel a drop reports, moving with others, and Space as
+// the Select key under `selection.keyboard` "windows".
+describe("ClassicyIcon — the icon view's props", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const props = {
+		appId: "Test.app",
+		name: "thing.pdf",
+		icon: "data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+	};
+	const iconRoot = () =>
+		screen.getByRole("img").closest(".classicyIcon") as HTMLElement;
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-icon-view",
+			name: "Windows icon view",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-icon-view-default",
+				package: "windows-icon-view",
+			},
+			layout: windows98.layout as never,
+		});
+
+	it("hands every button's press to onSelectPress when controlled, before the drag", () => {
+		const onSelectPress = vi.fn();
+		const onFileDrag = vi.fn(() => true);
+		render(
+			<ClassicyIcon
+				{...props}
+				selected={false}
+				onSelectPress={onSelectPress}
+				onFileDrag={onFileDrag}
+			/>,
+		);
+		fireEvent.mouseDown(iconRoot(), { button: 2 });
+		fireEvent.mouseDown(iconRoot(), { button: 0, ctrlKey: true });
+		expect(onSelectPress.mock.calls.map(([e]) => e.button)).toEqual([2, 0]);
+		expect(onSelectPress.mock.calls[1][0].ctrlKey).toBe(true);
+		fireEvent.mouseUp(document);
+	});
+
+	it("never calls onSelectPress uncontrolled", () => {
+		const onSelectPress = vi.fn();
+		render(<ClassicyIcon {...props} onSelectPress={onSelectPress} />);
+		fireEvent.mouseDown(iconRoot(), { button: 0 });
+		fireEvent.mouseUp(iconRoot());
+		expect(onSelectPress).not.toHaveBeenCalled();
+	});
+
+	it("is a list box's option with listOption, a button otherwise", () => {
+		const { rerender } = render(
+			<ClassicyIcon {...props} selected={true} listOption />,
+		);
+		expect(iconRoot().getAttribute("role")).toBe("option");
+		expect(iconRoot().getAttribute("aria-selected")).toBe("true");
+		rerender(<ClassicyIcon {...props} selected={true} />);
+		expect(iconRoot().getAttribute("role")).toBe("button");
+		expect(iconRoot().hasAttribute("aria-selected")).toBe(false);
+	});
+
+	it("is a Tab stop unless tabStop is false", () => {
+		const { rerender } = render(<ClassicyIcon {...props} />);
+		expect(iconRoot().getAttribute("tabindex")).toBe("0");
+		rerender(<ClassicyIcon {...props} tabStop={false} />);
+		expect(iconRoot().getAttribute("tabindex")).toBe("-1");
+	});
+
+	it("reports the pointer's travel to onFileDrag, and outlines fileDragParts", () => {
+		const holder = createRef<HTMLDivElement>();
+		const parts = vi.fn(() => []);
+		const onFileDrag = vi.fn(
+			(
+				_target: unknown,
+				_point: [number, number],
+				_outlineTopLeft: [number, number],
+				_moved: [number, number],
+			) => true,
+		);
+		const folder = document.createElement("div");
+		folder.setAttribute("data-classicy-drop-folder", "Elsewhere");
+		render(
+			<div ref={holder}>
+				<ClassicyIcon
+					{...props}
+					holder={holder}
+					onFileDrag={onFileDrag}
+					fileDragParts={parts}
+				/>
+			</div>,
+		);
+		const original = document.elementsFromPoint;
+		document.elementsFromPoint = () => [folder];
+		try {
+			fireEvent.mouseDown(iconRoot(), { button: 0, clientX: 10, clientY: 10 });
+			// Read when the drag begins, not at the press.
+			expect(parts).not.toHaveBeenCalled();
+			fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+			expect(parts).toHaveBeenCalledOnce();
+			fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
+		} finally {
+			document.elementsFromPoint = original;
+		}
+		expect(onFileDrag.mock.calls[0][3]).toEqual([30, 20]);
+	});
+
+	it("moves by moveBy each time its id changes, never at mount or locked", () => {
+		const at = () => [iconRoot().style.left, iconRoot().style.top];
+		const { rerender } = render(
+			<ClassicyIcon
+				{...props}
+				initialPosition={[10, 10]}
+				moveBy={{ by: [5, 5], id: 1 }}
+			/>,
+		);
+		expect(at()).toEqual(["10px", "10px"]);
+		rerender(
+			<ClassicyIcon
+				{...props}
+				initialPosition={[10, 10]}
+				moveBy={{ by: [30, 20], id: 2 }}
+			/>,
+		);
+		expect(at()).toEqual(["40px", "30px"]);
+		// Snapped onto the grid when it has one.
+		rerender(
+			<ClassicyIcon
+				{...props}
+				initialPosition={[10, 10]}
+				snapTo={[50, 50]}
+				moveBy={{ by: [12, 0], id: 3 }}
+			/>,
+		);
+		expect(at()).toEqual(["50px", "50px"]);
+		rerender(
+			<ClassicyIcon
+				{...props}
+				initialPosition={[10, 10]}
+				positionLocked
+				moveBy={{ by: [100, 100], id: 4 }}
+			/>,
+		);
+		expect(at()).toEqual(["50px", "50px"]);
+	});
+
+	it("selects on Space and toggles on Control-Space under Windows' keys, opening on Return alone", () => {
+		useWindowsLayout();
+		const onClickFunc = vi.fn();
+		render(<ClassicyIcon {...props} onClickFunc={onClickFunc} />);
+		fireEvent.keyDown(iconRoot(), { key: " " });
+		expect(iconRoot()).toHaveClass("selected");
+		fireEvent.keyDown(iconRoot(), { key: " " });
+		expect(iconRoot()).toHaveClass("selected");
+		fireEvent.keyDown(iconRoot(), { key: " ", ctrlKey: true });
+		expect(iconRoot()).not.toHaveClass("selected");
+		expect(onClickFunc).not.toHaveBeenCalled();
+		fireEvent.keyDown(iconRoot(), { key: "Enter" });
+		expect(onClickFunc).toHaveBeenCalledOnce();
+	});
+
+	it("leaves Space to its caller when controlled, under Windows' keys", () => {
+		useWindowsLayout();
+		const onClickFunc = vi.fn();
+		render(
+			<ClassicyIcon {...props} selected={false} onClickFunc={onClickFunc} />,
+		);
+		expect(fireEvent.keyDown(iconRoot(), { key: " " })).toBe(true);
+		expect(onClickFunc).not.toHaveBeenCalled();
+	});
+
+	it("opens on Space under the default layout", () => {
+		const onClickFunc = vi.fn();
+		render(<ClassicyIcon {...props} onClickFunc={onClickFunc} />);
+		expect(fireEvent.keyDown(iconRoot(), { key: " " })).toBe(false);
+		expect(onClickFunc).toHaveBeenCalledOnce();
+	});
+});

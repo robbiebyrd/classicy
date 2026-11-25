@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import {
+	classicyIconsRoveFocus,
 	classicyListPageIndex,
 	classicyListPageOf,
 	classicyListPageRows,
@@ -74,6 +75,12 @@ describe("the list keys' layout readers", () => {
 			classicyWindowsSelectionKeys({ selection: { keyboard: "follow" } }),
 		).toBe(false);
 		expect(classicyWindowsTreeKeys({ tree: { keys: "mac" } })).toBe(false);
+		expect(classicyIconsRoveFocus(CLASSICY_DEFAULT_APPEARANCE_LAYOUT)).toBe(
+			false,
+		);
+		expect(
+			classicyIconsRoveFocus({ selection: { iconNavigation: "each" } }),
+		).toBe(false);
 	});
 
 	it("read Windows' keys from Windows 98's layout", () => {
@@ -84,6 +91,7 @@ describe("the list keys' layout readers", () => {
 		expect(classicyPageKeysMove(layout)).toBe(true);
 		expect(classicyWindowsSelectionKeys(layout)).toBe(true);
 		expect(classicyWindowsTreeKeys(layout)).toBe(true);
+		expect(classicyIconsRoveFocus(layout)).toBe(true);
 	});
 });
 

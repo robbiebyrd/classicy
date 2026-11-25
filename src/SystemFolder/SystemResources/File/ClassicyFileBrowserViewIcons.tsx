@@ -28,15 +28,22 @@ import type { ArrowDirection } from "@/SystemFolder/SystemResources/Desktop/Clas
 import {
 	CLASSICY_FILE_BROWSER_RENAME_DELAY_MS,
 	CLASSICY_FILE_BROWSER_TYPEAHEAD_MS,
+	type ClassicyFileBrowserIconBox,
 	type ClassicyFileBrowserIconPlace,
 	type ClassicyFileBrowserIconSelection,
+	classicyFileBrowserRegionSelect,
 	classicyIconClickSelection,
 	classicyIconInDirection,
+	classicyIconMarqueeSelection,
 	classicyIconPage,
-	classicyIconRange,
+	classicyIconRectRange,
 	classicyIconTypeahead,
-	classicyRectsIntersect,
+	classicyIconViewDragsSelection,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserIconSelection";
+import {
+	type ClassicyFileBrowserMarqueeBox,
+	startClassicyFileBrowserMarquee,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import {
 	cleanupIcon,
 	iconGridLattice,
@@ -52,14 +59,22 @@ import {
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
-import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { listClassicyTrashItems } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import {
 	isClassicyTrashFolder,
 	useClassicyTrashIcon,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
+import {
+	classicyIconsRoveFocus,
+	classicyWindowsSelectionKeys,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import {
+	classicySecondaryButtonSelects,
+	classicySelectsOnPress,
+	classicyWindowsSelectionModifiers,
+} from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 export type ClassicyFileBrowserViewIconsProps = {
 	fs: ClassicyFileSystem;
@@ -67,6 +82,20 @@ export type ClassicyFileBrowserViewIconsProps = {
 	appId: string;
 	dirOnClickFunc?: (path: string) => void;
 	fileOnClickFunc?: (path: string) => void;
+	/**
+	 * Opens every selected item at once: under `layout.selection.modifiers`
+	 * "windows", a double-click (or Return) on a selected icon hands it the
+	 * whole selection, in the view's order (WIG App. A Tables A.2,
+	 * pp.352-353, and A.3, p.356). Omitted, or under any other layout, the
+	 * icon opens alone through `dirOnClickFunc` / `fileOnClickFunc`.
+	 */
+	openItemsFunc?: (paths: string[]) => void;
+	/**
+	 * Called with the selected paths, in the view's order, in the commit
+	 * that draws a change of the selection (and the first): the browser
+	 * (`ClassicyFileBrowser`) reads its icon selection from it.
+	 */
+	onSelectionChange?: (paths: string[]) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
 	/** List entries marked `_invisible` (drawn dimmed). Defaults to true. */
@@ -117,16 +146,12 @@ type iconType = {
 	positionLocked?: boolean;
 	dropFolderPath?: string;
 	filePath: string;
-	onFileDrag: (
-		target: ClassicyFileDropTarget | null,
-		point: [number, number],
-		outlineTopLeft: [number, number],
-	) => boolean;
 	/** A folder or a drive: listed first under `fileList.foldersFirst`. */
 	isFolder: boolean;
 };
 
 const ARROWS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+const NO_MODIFIERS = { shiftKey: false, metaKey: false, ctrlKey: false };
 
 /** Where an icon element sits in its holder: its inline left and top. */
 const iconElementPlace = (el: HTMLElement): [number, number] => [
@@ -142,6 +167,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			appId,
 			dirOnClickFunc,
 			fileOnClickFunc,
+			openItemsFunc,
+			onSelectionChange,
 			holderRef,
 			hideFilesCreatedAfter = null,
 			showInvisible = true,
@@ -158,6 +185,20 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			const layout = useClassicyAppearanceLayout();
 			// Windows' selection keys, or the Mac's (the default).
 			const keys = layout.fileBrowser?.keys ?? "mac";
+			// Under Windows' layout (WIG Ch.5 "Selection with the Mouse",
+			// pp.37-38; App. A Tables A.1-A.3): a press selects; button 2
+			// selects what it presses on; a drag carries the selection; the
+			// rectangle scrolls the window; Space selects, the view a list
+			// box of options; one Tab stop; a double-click opens the
+			// selection.
+			const selectsOnPress = classicySelectsOnPress(layout);
+			const secondarySelects = classicySecondaryButtonSelects(layout);
+			const dragsSelection = classicyIconViewDragsSelection(layout);
+			const regionScrolls = classicyFileBrowserRegionSelect(layout);
+			const selectKeys = classicyWindowsSelectionKeys(layout);
+			const roveFocus = classicyIconsRoveFocus(layout);
+			const windowsModifiers = classicyWindowsSelectionModifiers(layout);
+			const opensSelection = windowsModifiers && !!openItemsFunc;
 			// Folders before files (Windows Explorer), or together (the Finder).
 			const foldersFirst = layout.fileList?.foldersFirst === true;
 			// A listing of the root shows the Trash (when invisibles show):
@@ -299,34 +340,6 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 						isFolder: isFolderEntry(properties),
 						dropFolderPath:
 							properties._type === "directory" ? itemPath : undefined,
-						// Let go in this same folder: rearrange (return false). Over
-						// another folder or the desktop: move it there. Anywhere
-						// else: it stays put.
-						onFileDrag: (
-							target: ClassicyFileDropTarget | null,
-							_point: [number, number],
-							outlineTopLeft: [number, number],
-						) => {
-							if (
-								target?.destination.kind === "folder" &&
-								target.destination.path === path
-							) {
-								// Moved within the folder: the icon is selected, as
-								// it was when it kept its own selection, unless it is
-								// one of the selection already.
-								setSelection((prev) =>
-									prev.selected.includes(itemPath)
-										? prev
-										: { selected: [itemPath], anchor: itemPath },
-								);
-								cursorRef.current = itemPath;
-								return false;
-							}
-							if (target && onMoveItems) {
-								onMoveItems([itemPath], target.destination, outlineTopLeft);
-							}
-							return true;
-						},
 						appId: appId,
 						name: filename,
 						invisible: properties._invisible,
@@ -370,7 +383,6 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				arrangement,
 				keepArrangedBy,
 				iconSizeStep,
-				onMoveItems,
 				trashIcon,
 				foldersFirst,
 			]);
@@ -385,14 +397,24 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			const selectionRef = useRef(selection);
 			selectionRef.current = selection;
 			// The icon the keyboard continues from (the last one clicked or
-			// moved to).
+			// moved to), and, under `selection.iconNavigation` "roving", the
+			// view's one Tab stop.
 			const cursorRef = useRef<string | undefined>(undefined);
+			const [focusPath, setFocusPath] = useState<string | undefined>();
+			const setCursor = (itemPath: string | undefined) => {
+				cursorRef.current = itemPath;
+				if (roveFocus) setFocusPath(itemPath);
+			};
 			const [renaming, setRenaming] = useState<string | null>(null);
-			const [marquee, setMarquee] = useState<{
-				left: number;
-				top: number;
-				width: number;
-				height: number;
+			const [marquee, setMarquee] =
+				useState<ClassicyFileBrowserMarqueeBox | null>(null);
+			// The other icons a drag of the selection let go in this folder
+			// moves, as far as the pointer went (`fileBrowser.iconSelection`
+			// "view"); each drop a new id.
+			const [groupMove, setGroupMove] = useState<{
+				paths: Set<string>;
+				by: [number, number];
+				id: number;
 			} | null>(null);
 
 			const itemsRef = useRef(items);
@@ -420,6 +442,23 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					if (!listed.has(key)) renamedPlacesRef.current.delete(key);
 				}
 			}, [items]);
+
+			// The selection in the view's order: what a drag, a double-click
+			// opening the selection and the browser's commands act on.
+			const orderedSelection = (): string[] => {
+				const held = new Set(selectionRef.current.selected);
+				return itemsRef.current
+					.map((item) => item.filePath)
+					.filter((p) => held.has(p));
+			};
+			// Reported in the commit that draws it, so a contextual menu or a
+			// key the next event brings reads the selection as drawn.
+			const onSelectionChangeRef = useRef(onSelectionChange);
+			onSelectionChangeRef.current = onSelectionChange;
+			// biome-ignore lint/correctness/useExhaustiveDependencies: the selection and the listing are the triggers; the order is read from the refs they set
+			useLayoutEffect(() => {
+				onSelectionChangeRef.current?.(orderedSelection());
+			}, [selection, items]);
 
 			useImperativeHandle(
 				selectionApiRef,
@@ -455,6 +494,35 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 						location: el ? iconElementPlace(el) : item.initialPosition,
 					};
 				});
+			// Every icon in the view's order and the box it covers on screen,
+			// for Windows' range, the rectangle two icons span.
+			const boxes = (): ClassicyFileBrowserIconBox[] =>
+				itemsRef.current.flatMap((item) => {
+					const el = iconElement(item.filePath);
+					if (!el) return [];
+					const r = el.getBoundingClientRect();
+					return [
+						{
+							path: item.filePath,
+							left: r.left,
+							top: r.top,
+							right: r.right,
+							bottom: r.bottom,
+						},
+					];
+				});
+			const clickSelection = (
+				itemPath: string,
+				mods: { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean },
+			) =>
+				classicyIconClickSelection(
+					keys,
+					itemsRef.current.map((item) => item.filePath),
+					selectionRef.current,
+					itemPath,
+					mods,
+					keys === "windows" ? boxes() : undefined,
+				);
 
 			// A slow second click on a selected icon's name renames it: armed
 			// by the click, canceled by a second click (a double-click), any
@@ -483,27 +551,93 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				);
 			};
 
+			// The press a click on an icon ends, when it selected at the press
+			// (`selection.selectOn` "press"), or left the click to reset the
+			// selection to its icon (`deferred`: an unmodified press on a
+			// selected icon, comctl32's `nLButtonDownItem`, so a drag from it
+			// carries the selection); `before` is the selection it found.
+			const iconPressRef = useRef<{
+				path: string;
+				deferred: boolean;
+				before: ClassicyFileBrowserIconSelection;
+			} | null>(null);
+			// The icon a drag of the selection was let go from: the click that
+			// ends the drag (released over it) changes nothing.
+			const draggedRef = useRef<string | null>(null);
+
+			// A press on an icon (any button), before any drag it starts. Under
+			// `selection.secondaryButton` "select", button 2 on an unselected
+			// icon selects it alone (with no Shift or Control, as comctl32's
+			// LISTVIEW_RButtonDown), and on a selected one keeps the selection,
+			// so the menu its release shows acts on what is drawn selected
+			// (WIG Ch.5 "Selection with the Mouse", pp.37-38). Under
+			// `selection.selectOn` "press", button 1 selects here (pp.37-38;
+			// App. A Table A.1, p.349; comctl32's LISTVIEW_LButtonDown): an
+			// unselected icon, or any modified press, at once; the second
+			// press of a double-click changes nothing.
+			const selectFromPress = (
+				itemPath: string,
+				e: MouseEvent<HTMLElement>,
+			) => {
+				iconPressRef.current = null;
+				if (e.button === 2) {
+					if (!secondarySelects) return;
+					cancelRenameTimer();
+					setCursor(itemPath);
+					if (
+						selectionRef.current.selected.includes(itemPath) ||
+						e.shiftKey ||
+						e.metaKey ||
+						e.ctrlKey
+					) {
+						return;
+					}
+					setSelection({ selected: [itemPath], anchor: itemPath });
+					return;
+				}
+				if (e.button !== 0 || !selectsOnPress) return;
+				cancelRenameTimer();
+				const before = selectionRef.current;
+				if (e.detail > 1) {
+					iconPressRef.current = { path: itemPath, deferred: false, before };
+					return;
+				}
+				const modified = e.shiftKey || e.metaKey || e.ctrlKey;
+				const deferred = !modified && before.selected.includes(itemPath);
+				iconPressRef.current = { path: itemPath, deferred, before };
+				setCursor(itemPath);
+				if (!deferred) setSelection(clickSelection(itemPath, e));
+			};
+
 			const selectFromClick = (
 				itemPath: string,
 				e: MouseEvent<HTMLElement>,
 			) => {
 				cancelRenameTimer();
-				const before = selectionRef.current;
-				const order = itemsRef.current.map((item) => item.filePath);
-				const next = classicyIconClickSelection(
-					keys,
-					order,
-					before,
-					itemPath,
-					e,
-				);
+				const press = iconPressRef.current;
+				iconPressRef.current = null;
+				if (draggedRef.current === itemPath) {
+					draggedRef.current = null;
+					return;
+				}
+				let before = selectionRef.current;
+				if (press?.path === itemPath) {
+					// The press selected: the click adds nothing.
+					if (!press.deferred) return;
+					before = press.before;
+				} else if (windowsModifiers && e.detail > 1) {
+					// Windows' second click of a double-click adjusts nothing (the
+					// double-click acts on the set).
+					return;
+				}
+				const next = clickSelection(itemPath, e);
 				setSelection(next);
-				cursorRef.current = itemPath;
-				const press = pressRef.current;
+				setCursor(itemPath);
+				const click = pressRef.current;
 				const still =
-					press !== null &&
-					Math.abs(press[0] - e.clientX) <= 4 &&
-					Math.abs(press[1] - e.clientY) <= 4;
+					click !== null &&
+					Math.abs(click[0] - e.clientX) <= 4 &&
+					Math.abs(click[1] - e.clientY) <= 4;
 				const onName =
 					e.target instanceof Element && e.target.closest("p") !== null;
 				if (
@@ -525,6 +659,77 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				}
 			};
 
+			// What a drag from `itemPath` carries: the selection, when the icon
+			// is in it and the package's drags carry it (`fileBrowser.iconSelection`
+			// "view"), else the icon alone. Read when the drag begins and ends,
+			// after any selection its press made.
+			const draggedPaths = (itemPath: string): string[] => {
+				if (!dragsSelection) return [itemPath];
+				const selected = orderedSelection();
+				return selected.includes(itemPath) ? selected : [itemPath];
+			};
+			const dragParts = (itemPath: string) =>
+				draggedPaths(itemPath).map((p) => {
+					const el = iconElement(p);
+					return {
+						image: el?.querySelector("img"),
+						label: el?.querySelector("p"),
+					};
+				});
+			const groupMoveIdRef = useRef(0);
+			// Let go in this same folder: rearrange (return false), the other
+			// icons it carried moving as far. Over another folder or the
+			// desktop: move them there. Anywhere else: they stay put.
+			const dropIcon = (
+				itemPath: string,
+				target: ClassicyFileDropTarget | null,
+				outlineTopLeft: [number, number],
+				moved: [number, number],
+			): boolean => {
+				const dragged = draggedPaths(itemPath);
+				if (dragsSelection) draggedRef.current = itemPath;
+				if (
+					target?.destination.kind === "folder" &&
+					target.destination.path === path
+				) {
+					// Moved within the folder: the icon is selected, as it was
+					// when it kept its own selection, unless it is one of the
+					// selection already.
+					setSelection((prev) =>
+						prev.selected.includes(itemPath)
+							? prev
+							: { selected: [itemPath], anchor: itemPath },
+					);
+					setCursor(itemPath);
+					if (dragged.length > 1) {
+						groupMoveIdRef.current += 1;
+						setGroupMove({
+							paths: new Set(dragged.filter((p) => p !== itemPath)),
+							by: moved,
+							id: groupMoveIdRef.current,
+						});
+					}
+					return false;
+				}
+				if (target && onMoveItems) {
+					onMoveItems(dragged, target.destination, outlineTopLeft);
+				}
+				return true;
+			};
+
+			// Opens an icon (a double-click, or Return): under Windows'
+			// modifiers with `openItemsFunc`, the whole selection it is in.
+			const openIcon = (item: Pick<iconType, "filePath" | "onClickFunc">) => {
+				if (opensSelection) {
+					const selected = orderedSelection();
+					if (selected.includes(item.filePath)) {
+						openItemsFunc?.(selected);
+						return;
+					}
+				}
+				item.onClickFunc();
+			};
+
 			const commitRename = (itemPath: string, name: string) => {
 				setRenaming(null);
 				const oldName = itemPath.split(fs.separator).pop() ?? "";
@@ -535,21 +740,26 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				if (typeof renamed === "string" && renamed !== itemPath) {
 					if (place) renamedPlacesRef.current.set(renamed, place);
 					setSelection({ selected: [renamed], anchor: renamed });
-					cursorRef.current = renamed;
+					setCursor(renamed);
 				}
 			};
 
 			// Moves to `target` from the keyboard: selects it (from the anchor
-			// with Shift, under Windows' keys) and focuses its icon.
+			// with Shift, under Windows' keys: the rectangle the anchor's icon
+			// and its span, as Explorer's icon view takes it) and focuses its
+			// icon.
 			const moveTo = (target: string, extend: boolean) => {
 				const order = itemsRef.current.map((item) => item.filePath);
 				const anchor = selectionRef.current.anchor;
 				setSelection(
 					extend && keys === "windows" && anchor && order.includes(anchor)
-						? { selected: classicyIconRange(order, anchor, target), anchor }
+						? {
+								selected: classicyIconRectRange(boxes(), anchor, target),
+								anchor,
+							}
 						: { selected: [target], anchor: target },
 				);
-				cursorRef.current = target;
+				setCursor(target);
 				iconElement(target)?.focus({ preventScroll: false });
 			};
 
@@ -625,6 +835,25 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					}
 					return;
 				}
+				// Space is the Select key under `selection.keyboard` "windows"
+				// (WIG Ch.5 "Keyboard Selection", p.43; App. B Table B.2, p.358;
+				// comctl32's LISTVIEW_KeySelection): the keyboard's icon (the
+				// first, with none) alone, Control (or ⌘) toggling it and
+				// making it the anchor, Shift ranging from the anchor.
+				if (e.key === " " && selectKeys && !e.altKey) {
+					e.preventDefault();
+					const at = from ?? order[0];
+					if (e.ctrlKey || e.metaKey) {
+						setSelection(
+							clickSelection(at, { ...NO_MODIFIERS, ctrlKey: true }),
+						);
+						setCursor(at);
+						iconElement(at)?.focus({ preventScroll: false });
+						return;
+					}
+					moveTo(at, e.shiftKey);
+					return;
+				}
 				if (e.key.length === 1 && e.key !== " " && !modified) {
 					e.preventDefault();
 					if (typeTimerRef.current !== null) clearTimeout(typeTimerRef.current);
@@ -645,82 +874,69 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 
 			// A press on empty space: deselects (unless a modifier is held)
 			// and, dragged, draws the selection rectangle, selecting the icons
-			// it touches (added to the selection with a modifier).
+			// it touches (`classicyIconMarqueeSelection`: added to the
+			// selection with a modifier, or under Windows' keys added with
+			// Shift and toggled with Control). Button 2 does the same under
+			// `selection.secondaryButton` "select", clearing whatever is held
+			// (comctl32's LISTVIEW_RButtonDown). Under `fileBrowser.regionSelect`
+			// the window scrolls toward an edge the pointer is near or past.
 			const marqueeEndRef = useRef<(() => void) | null>(null);
 			useEffect(() => () => marqueeEndRef.current?.(), []);
 			const onMouseDown = (e: MouseEvent<HTMLDivElement>) => {
 				pressRef.current = [e.clientX, e.clientY];
+				// A new press: a drag's last release is long gone.
+				draggedRef.current = null;
 				const holder = resolvedHolderRef.current;
-				if (e.button !== 0 || !holder || e.target !== holder) return;
+				if (!holder || e.target !== holder) return;
+				const secondary = e.button === 2 && secondarySelects;
+				if (e.button !== 0 && !secondary) return;
 				cancelRenameTimer();
 				// The keys go on from here: an arrow then selects the first icon.
 				holder.focus({ preventScroll: true });
-				const extend = e.shiftKey || e.metaKey || e.ctrlKey;
-				const base = extend ? selectionRef.current.selected : [];
+				const mods = secondary
+					? NO_MODIFIERS
+					: { shiftKey: e.shiftKey, metaKey: e.metaKey, ctrlKey: e.ctrlKey };
+				const extend = mods.shiftKey || mods.metaKey || mods.ctrlKey;
+				const before = selectionRef.current;
+				const base = extend ? before.selected : [];
 				if (!extend) setSelection({ selected: [] });
-				const startRect = holder.getBoundingClientRect();
-				const start: [number, number] = [
-					e.clientX - startRect.left,
-					e.clientY - startRect.top,
-				];
-				let moved = false;
-				const move = (ev: globalThis.MouseEvent) => {
-					const rect = holder.getBoundingClientRect();
-					const now: [number, number] = [
-						ev.clientX - rect.left,
-						ev.clientY - rect.top,
-					];
-					if (
-						!moved &&
-						Math.abs(now[0] - start[0]) < 2 &&
-						Math.abs(now[1] - start[1]) < 2
-					) {
-						return;
-					}
-					moved = true;
-					const box = {
-						left: Math.min(start[0], now[0]),
-						top: Math.min(start[1], now[1]),
-						width: Math.abs(now[0] - start[0]),
-						height: Math.abs(now[1] - start[1]),
-					};
-					setMarquee(box);
-					const client = {
-						left: box.left + rect.left,
-						top: box.top + rect.top,
-						right: box.left + box.width + rect.left,
-						bottom: box.top + box.height + rect.top,
-					};
-					const touched = itemsRef.current
-						.map((item) => item.filePath)
-						.filter((itemPath) => {
-							const el = iconElement(itemPath);
-							return (
-								!!el &&
-								classicyRectsIntersect(client, el.getBoundingClientRect())
-							);
-						});
-					const selected = [...new Set([...base, ...touched])];
-					setSelection((prev) => ({
-						selected,
-						anchor: prev.anchor ?? touched[0],
-					}));
-					cursorRef.current = touched[0] ?? cursorRef.current;
-				};
-				const end = () => {
-					document.removeEventListener("mousemove", move);
-					document.removeEventListener("mouseup", end);
-					stopWatching();
-					marqueeEndRef.current = null;
-					setMarquee(null);
-				};
-				const stopWatching = onClassicyPointerStreamLost(end);
-				marqueeEndRef.current = end;
-				document.addEventListener("mousemove", move);
-				document.addEventListener("mouseup", end);
+				marqueeEndRef.current?.();
+				marqueeEndRef.current = startClassicyFileBrowserMarquee({
+					holder,
+					start: e,
+					items: () =>
+						holder.querySelectorAll(".classicyIcon[data-classicy-file-path]"),
+					onBox: setMarquee,
+					onTouched: (touched) => {
+						const selected = classicyIconMarqueeSelection(
+							keys,
+							base,
+							touched,
+							mods,
+						);
+						setSelection((prev) => ({
+							selected,
+							anchor: prev.anchor ?? touched[0],
+						}));
+						if (touched[0] !== undefined) setCursor(touched[0]);
+					},
+					autoScroll: regionScrolls,
+					// Escape (`input.escapeCancels`): the selection the press found.
+					onCancel: () => setSelection(before),
+					onEnd: () => {
+						marqueeEndRef.current = null;
+					},
+				});
 			};
 
 			const selectedSet = new Set(selection.selected);
+			// The view's Tab stop, when it keeps one: the keyboard's icon,
+			// else the first.
+			const tabStopPath =
+				focusPath !== undefined &&
+				items.some((item) => item.filePath === focusPath)
+					? focusPath
+					: items[0]?.filePath;
 
 			return (
 				// biome-ignore lint/a11y/noStaticElementInteractions: keys bubble here from the focused icon; a press on empty space starts the selection rectangle
@@ -731,6 +947,10 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					// Focusable by a press on its empty space only, so the keys
 					// reach the view with no icon focused.
 					tabIndex={-1}
+					// A list box of options under Windows' selection keys.
+					{...(selectKeys
+						? { role: "listbox", "aria-multiselectable": true }
+						: {})}
 					onMouseDown={onMouseDown}
 					onKeyDown={onKeyDown}
 				>
@@ -738,8 +958,23 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 						<ClassicyIcon
 							{...item}
 							key={item.name}
+							onClickFunc={() => openIcon(item)}
+							onFileDrag={(target, _point, outlineTopLeft, moved) =>
+								dropIcon(item.filePath, target, outlineTopLeft, moved)
+							}
+							fileDragParts={
+								dragsSelection ? () => dragParts(item.filePath) : undefined
+							}
+							moveBy={
+								groupMove?.paths.has(item.filePath)
+									? { by: groupMove.by, id: groupMove.id }
+									: undefined
+							}
 							selected={selectedSet.has(item.filePath)}
+							onSelectPress={(e) => selectFromPress(item.filePath, e)}
 							onSelectClick={(e) => selectFromClick(item.filePath, e)}
+							listOption={selectKeys}
+							tabStop={!roveFocus || item.filePath === tabStopPath}
 							renaming={renaming === item.filePath}
 							onRenameCommit={(name) => commitRename(item.filePath, name)}
 							onRenameCancel={() => setRenaming(null)}

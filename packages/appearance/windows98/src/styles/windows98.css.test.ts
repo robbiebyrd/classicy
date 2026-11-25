@@ -510,8 +510,10 @@ describe("windows98.scss (compiled)", () => {
 		// The Finder and dialogs' hooks: a label being edited (a slow second
 		// click on a selected item's label, or F2) is the list view's edit
 		// control, WindowText on Window in a one-pixel WindowFrame border; a
-		// drag across empty space draws DrawFocusRect's dotted rectangle in
-		// WindowText; and the Open dialog's list, flowing in columns
+		// drag across empty space, in either view (the list view's under
+		// `fileBrowser.regionSelect`, the audit's 5.12), draws DrawFocusRect's
+		// dotted rectangle, XORed over what lies under it (white dots under
+		// `difference`); and the Open dialog's list, flowing in columns
 		// (`fileDialog.listFlow`), sets them Wine's TRAILING_LABEL_PADDING (12)
 		// apart.
 		it("draws a label being edited, the selection rectangle and the dialog list's columns", () => {
@@ -524,12 +526,49 @@ describe("windows98.scss (compiled)", () => {
 			expect(field).toContain("outline: none");
 			const marquee = rule(".classicyFileBrowserSelect");
 			expect(marquee).toContain(
-				"border: var(--window-border-size) dotted var(--color-black)",
+				"border: var(--window-border-size) dotted var(--color-white)",
 			);
 			expect(marquee).toContain("outline: none");
+			expect(marquee).toContain("mix-blend-mode: difference");
 			expect(
 				rule(".classicyFileOpenDialogWellColumns .classicyTree"),
 			).toContain("column-gap: var(--layout-group-gap)");
+		});
+
+		// WIG Ch.5 "Keyboard Selection" (p.43), "Selection Feedback" (p.36);
+		// comctl32's LVIS_FOCUSED (the audit's 5.15): the dotted focus
+		// rectangle lies on the focus item's label alone, while it has the
+		// focus, WindowText (the desktop's text color on the desktop) or
+		// HilightText over a highlighted label; a selected label, or a
+		// folder under a drag, takes the highlight and no rectangle.
+		it("rings the focus icon's label alone, never every selected label", () => {
+			for (const [icon, ink] of [
+				[".classicyIcon", "var(--color-black)"],
+				[
+					".classicyDesktopIcon",
+					"var(--package-color-desktop-text, var(--color-white))",
+				],
+			]) {
+				const focused = rule(`${icon}:focus p`);
+				expect(focused, icon).toContain(
+					`outline: var(--window-border-size) dotted ${ink}`,
+				);
+				expect(focused, icon).toContain(
+					"outline-offset: calc(var(--window-border-size) * -1)",
+				);
+				expect(rule(`${icon}.selected:focus p`), icon).toContain(
+					"outline-color: var(--package-color-selection-text, var(--color-white))",
+				);
+				for (const state of [".selected", ".classicyFileDropTarget"]) {
+					const label = rule(`${icon}${state} p`);
+					expect(label, `${icon}${state}`).toContain(
+						"background: var(--color-highlight)",
+					);
+					expect(label, `${icon}${state}`).not.toContain("outline");
+				}
+			}
+			// No browser ring on an icon in a window, focused or not.
+			expect(rule(".classicyIcon:focus-visible")).toContain("outline: none");
 		});
 
 		// WIG Ch.7 "Tooltip Controls" (p.133); Wine's TOOLTIPS_Show: 20 below

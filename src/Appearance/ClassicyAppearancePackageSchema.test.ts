@@ -299,6 +299,7 @@ describe("ClassicyAppearancePackageSchema", () => {
 			modifiers: "windows",
 			pageKeys: "move",
 			keyboard: "windows",
+			iconNavigation: "roving",
 		};
 		layout.contextMenu = { openOn: "release" };
 		layout.mouse = "windows";
@@ -312,6 +313,7 @@ describe("ClassicyAppearancePackageSchema", () => {
 			modifiers: "windows",
 			pageKeys: "move",
 			keyboard: "windows",
+			iconNavigation: "roving",
 		});
 		expect(result.data?.layout.contextMenu).toEqual({ openOn: "release" });
 		expect(result.data?.layout.mouse).toBe("windows");
@@ -324,6 +326,7 @@ describe("ClassicyAppearancePackageSchema", () => {
 			["selection", { modifiers: "mac" }],
 			["selection", { pageKeys: "scroll" }],
 			["selection", { keyboard: "follow" }],
+			["selection", { iconNavigation: "each" }],
 			["contextMenu", {}],
 			["contextMenu", { openOn: "event" }],
 			["mouse", "mac"],
@@ -343,6 +346,7 @@ describe("ClassicyAppearancePackageSchema", () => {
 			["selection", "modifiers", "linux"],
 			["selection", "pageKeys", "jump"],
 			["selection", "keyboard", "mac"],
+			["selection", "iconNavigation", "tabs"],
 			["contextMenu", "openOn", "press"],
 			["input", "escapeCancels", "yes"],
 		]) {
@@ -364,6 +368,48 @@ describe("ClassicyAppearancePackageSchema", () => {
 			"layout",
 			"mouse",
 		]);
+	});
+
+	// The file browser's selection (the WIG audit's 5.8 / 5.22 / A.1 and
+	// 5.12): `fileBrowser.iconSelection` and `regionSelect`, optional keys of
+	// the optional group, beside `listColumnTitles` and `keys`.
+	it("takes optional fileBrowser.iconSelection and regionSelect, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).fileBrowser = {
+			keys: "windows",
+			iconSelection: "view",
+			regionSelect: true,
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.fileBrowser).toEqual({
+			keys: "windows",
+			iconSelection: "view",
+			regionSelect: true,
+		});
+		for (const value of [
+			{},
+			{ iconSelection: "perIcon" },
+			{ regionSelect: false },
+		]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).fileBrowser = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [key, value] of [
+			["iconSelection", "each"],
+			["regionSelect", "yes"],
+		]) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).fileBrowser = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				"fileBrowser",
+				key,
+			]);
+		}
 	});
 
 	it("rejects defaults that belong to another package", () => {

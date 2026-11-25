@@ -3833,7 +3833,9 @@
 			"listFlow": "columns"
 		},
 		"fileBrowser": {
-			"keys": "windows"
+			"keys": "windows",
+			"iconSelection": "view",
+			"regionSelect": true
 		},
 		"fileList": {
 			"foldersFirst": true
@@ -3850,7 +3852,8 @@
 			"dragRange": true,
 			"modifiers": "windows",
 			"pageKeys": "move",
-			"keyboard": "windows"
+			"keyboard": "windows",
+			"iconNavigation": "roving"
 		},
 		"contextMenu": {
 			"openOn": "release"

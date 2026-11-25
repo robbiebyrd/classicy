@@ -34,6 +34,15 @@ export const classicyWindowsSelectionKeys = (
 ): boolean => layout.selection?.keyboard === "windows";
 
 /**
+ * Whether a view's icons share one Tab stop, the icon last pressed or moved
+ * to (`layout.selection.iconNavigation` `"roving"`, Windows' icon views),
+ * rather than each being a Tab stop (absent or `"each"`, today's rule).
+ */
+export const classicyIconsRoveFocus = (
+	layout: Pick<ClassicyAppearanceLayout, "selection">,
+): boolean => layout.selection?.iconNavigation === "roving";
+
+/**
  * Whether a tree takes Windows' tree-view keys (`layout.tree.keys`
  * `"windows"`): the bare arrows along a branch, and the Control chords
  * scrolling (`TREEVIEW_ScrollKeyDown`). A table's tree rows read it too.

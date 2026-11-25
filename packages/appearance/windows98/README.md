@@ -66,10 +66,23 @@ and `nodenext` resolution).
   and Right moving a column), Save As opening with the file name selected,
   folders listed before files in the Finder's windows (last when a list's
   sort runs down, as Explorer's did), the icon view's selection keys as
-  Explorer's (Shift-click and Shift with an arrow selecting from the anchor,
-  Ctrl-click adding or removing one item, Home, End, Page Up and Page Down
-  selecting, a letter typed again stepping to the next item starting with
-  it, F2 renaming), dialogs and alerts centered on whole pixels,
+  Explorer's (Shift-click and Shift with an arrow selecting the icons in the
+  rectangle between the anchor and the item, Ctrl-click adding or removing
+  one item, Ctrl+Shift-click adding or removing that rectangle without
+  losing the rest, Home, End, Page Up and Page Down selecting, a letter
+  typed again stepping to the next item starting with it, F2 renaming,
+  Space selecting the focused icon and Ctrl+Space adding or removing it,
+  Enter alone opening, and Tab stopping at one icon of the view, the one
+  last clicked or moved to), the icon view's mouse as Explorer's (an icon
+  selected as the button goes down; a click on one icon of several selected
+  leaving it alone selected; dragging any selected icon carrying them all,
+  out to a folder or around the window; a right-click on an unselected icon
+  selecting it, and on empty space clearing the selection), a selection
+  rectangle in the list view too (dragged from below the last row, the rows
+  it touches selected), either view's rectangle adding to the selection with
+  Shift and toggling what it touches with Ctrl, scrolling the window when
+  dragged past its edge, and taken back with Escape, dialogs and alerts
+  centered on whole pixels,
   so their one-pixel bevels and glyphs stay sharp, trees driven by the bare
   arrow keys as Windows' tree view is (Right expands a folder or goes into
   it, Left collapses it or goes up to its parent, and Ctrl with an arrow,
@@ -110,8 +123,11 @@ and `nodenext` resolution).
     their caption (no icon, no Minimize), palette windows with Close alone,
     a modeless dialog's frame flattened to a plain ButtonFace box;
   - the Finder's icon view: a label being renamed in the list view's edit
-    box (WindowText on white in a one-pixel black border), and a drag
-    across empty space drawing the dotted selection rectangle in black;
+    box (WindowText on white in a one-pixel black border), a drag across
+    empty space (in the list view too) drawing the dotted selection
+    rectangle inverted over what lies under it, as Windows XORed it, and
+    the dotted focus rectangle on the focused icon's label alone (in icon
+    views and on the desktop), never around every selected label;
   - menus: the flat menu bar, raised pull-down and contextual menus with an
     inverted highlight and embossed dimmed items (one item highlighted at a
     time: the keyboard's, while the arrow keys moved it last, the

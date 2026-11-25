@@ -7,11 +7,13 @@ import {
 	type MouseEvent,
 	type RefObject,
 	useCallback,
+	useEffect,
 	useImperativeHandle,
 	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type {
@@ -24,6 +26,14 @@ import {
 } from "@/SystemFolder/Finder/FinderViewOptions";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
+	classicyFileBrowserRegionSelect,
+	classicyIconMarqueeSelection,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserIconSelection";
+import {
+	type ClassicyFileBrowserMarqueeBox,
+	startClassicyFileBrowserMarquee,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
+import {
 	type ClassicyFileBrowserMoveItems,
 	ClassicyFileBrowserViewIcons,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
@@ -35,6 +45,8 @@ import {
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import { classicySameSelection } from "@/SystemFolder/SystemResources/Utils/ClassicyListPressSelection.internal";
+import { classicySecondaryButtonSelects } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 /** Commands a host (e.g. a window's menu) can run on a file browser. */
 export type ClassicyFileBrowserCommands = {
@@ -57,12 +69,13 @@ type ClassicyFileBrowserProps = {
 	fileOnClickFunc?: (path: string) => void;
 	/**
 	 * Called with every selected item's path when a double-click opens the
-	 * whole selection: in the list view, under a package whose layout says
+	 * whole selection: under a package whose layout says
 	 * `selection.modifiers: "windows"` (Windows 98; WIG App. A Tables A.2,
 	 * pp.352-353, and A.3, p.356), the selection as the double-click's own
-	 * clicks left it. Finder opens each. Omitted, or under any other layout,
-	 * a double-click opens its own item through `dirOnClickFunc` /
-	 * `fileOnClickFunc`.
+	 * clicks left it, in either view (Return on a selected icon too, as
+	 * Explorer opens its selection). Finder opens each. Omitted, or under
+	 * any other layout, a double-click opens its own item through
+	 * `dirOnClickFunc` / `fileOnClickFunc`.
 	 */
 	openItemsFunc?: (paths: string[]) => void;
 	/**
@@ -94,7 +107,11 @@ type ClassicyFileBrowserProps = {
 	now?: Date;
 	/** Receives the view's `{ selectAll }` handle (e.g. for Edit ▸ Select All), in either view. */
 	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
-	/** Controlled selection by row path. Omit for uncontrolled. List view only. */
+	/**
+	 * Controlled selection by row path. Omit for uncontrolled. List view
+	 * only. Under `layout.fileBrowser.regionSelect` the list view's
+	 * selection rectangle selects through it (and `onSelectionChange`).
+	 */
 	selectedPaths?: string[];
 	/** Called with the selected row paths whenever the selection changes. List view only. */
 	onSelectionChange?: (paths: string[]) => void;
@@ -166,10 +183,15 @@ const defaultFileOnClick = () => {};
  *   `layout.fileBrowser.keys` is `"windows"`, Shift-click and Shift-arrows
  *   select from the anchor, Control-click toggles, Home, End, Page Up and
  *   Page Down select, and a letter typed again steps to the next icon
- *   starting with it.
+ *   starting with it. Windows 98's layout (`selection` and `fileBrowser`
+ *   keys) also selects at the press, lets button 2 select, drags the whole
+ *   selection, takes Space as the Select key, keeps one Tab stop and opens
+ *   the whole selection at a double-click (`openItemsFunc`).
  * - `display="list"`: a `ClassicyTable` list view with sortable columns,
  *   disclosure triangles that expand folders in place, multi-selection
- *   (Shift / Command-click) and full keyboard navigation.
+ *   (Shift / Command-click) and full keyboard navigation; under
+ *   `layout.fileBrowser.regionSelect` a drag from below its rows draws the
+ *   icon view's selection rectangle over the rows' names.
  *
  * Items drag like the Mac OS 8 Finder's: a dotted outline follows the pointer,
  * and letting go over another folder or the desktop calls `onMoveItems`
@@ -222,26 +244,39 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	const holderRef = useRef<HTMLDivElement>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const { showContextMenu } = useClassicyContextualMenu();
+	const layout = useClassicyAppearanceLayout();
+	// The list view's selection rectangle (Windows Explorer's), and button 2
+	// starting it (`selection.secondaryButton` "select").
+	const listRegionSelect = classicyFileBrowserRegionSelect(layout);
+	const secondarySelects = classicySecondaryButtonSelects(layout);
 
-	// The list view reports its selection; the icon view's lives in each icon
-	// (highlighted ones carry the selected state class), so it is read from the DOM.
+	// Each view reports its selection: the list view's table, and the icon
+	// view, which keeps one selection for its icons (in the commit that draws
+	// it, so a menu or key the next event brings reads what is drawn).
 	const listSelectionRef = useRef<string[]>(selectedPaths ?? []);
+	// The list's selection, kept here when the caller does not hold it:
+	// while the list view takes a selection rectangle, which selects through
+	// the table's controlled `selected`, the table draws it.
+	const [ownListSelection, setOwnListSelection] = useState<string[]>([]);
+	const holdsListSelection = listRegionSelect && selectedPaths === undefined;
+	const callerHoldsList = selectedPaths !== undefined;
 	const trackListSelection = useCallback(
 		(paths: string[]) => {
 			listSelectionRef.current = paths;
+			if (!callerHoldsList) setOwnListSelection(paths);
 			onSelectionChange?.(paths);
 		},
-		[onSelectionChange],
+		[onSelectionChange, callerHoldsList],
 	);
-	const currentSelection = useCallback((): string[] => {
-		if (display === "list") return listSelectionRef.current;
-		return Array.from(
-			rootRef.current?.querySelectorAll(
-				`.classicyIcon.selected[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
-			) ?? [],
-			(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) ?? "",
-		).filter(Boolean);
-	}, [display]);
+	const iconSelectionRef = useRef<string[]>([]);
+	const trackIconSelection = useCallback((paths: string[]) => {
+		iconSelectionRef.current = paths;
+	}, []);
+	const currentSelection = useCallback(
+		(): string[] =>
+			display === "list" ? listSelectionRef.current : iconSelectionRef.current,
+		[display],
+	);
 	useImperativeHandle(
 		commandsRef,
 		() => ({ selectedPaths: currentSelection }),
@@ -259,6 +294,67 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		// Handled here, so the menu bar's ⌃⌫ doesn't act a second time.
 		e.preventDefault();
 		onDeleteItems(paths);
+	};
+
+	// The list view's selection rectangle, under `layout.fileBrowser.regionSelect`
+	// (Windows Explorer's details view; WIG Ch.5 "Region Selection", p.42;
+	// Ch.7 "List View Controls", p.123): a press on the list's empty space
+	// (below its last row; never a row or the column titles) clears the
+	// selection unless Shift, Control or ⌘ is held (comctl32's
+	// LISTVIEW_LButtonDown; button 2, under `selection.secondaryButton`
+	// "select", always, as LISTVIEW_RButtonDown) and, dragged, draws the
+	// rectangle the icon view draws, selecting the rows whose names it
+	// touches as it goes, with the icon view's modifiers
+	// (`classicyIconMarqueeSelection`), the window scrolling toward an edge
+	// the pointer is near or past.
+	const [listMarquee, setListMarquee] =
+		useState<ClassicyFileBrowserMarqueeBox | null>(null);
+	const listMarqueeEndRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => listMarqueeEndRef.current?.(), []);
+	const onMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+		if (display !== "list" || !listRegionSelect) return;
+		const root = rootRef.current;
+		const target = e.target as Element;
+		if (!root?.contains(target)) return;
+		const secondary = e.button === 2 && secondarySelects;
+		if (e.button !== 0 && !secondary) return;
+		if (
+			target.closest(
+				`tr[data-row-id], thead, .classicyScrollAreaHead, [${CLASSICY_FILE_PATH_ATTRIBUTE}], input, textarea, button`,
+			)
+		) {
+			return;
+		}
+		const mods = secondary
+			? { shiftKey: false, metaKey: false, ctrlKey: false }
+			: { shiftKey: e.shiftKey, metaKey: e.metaKey, ctrlKey: e.ctrlKey };
+		const extend = mods.shiftKey || mods.metaKey || mods.ctrlKey;
+		const before = listSelectionRef.current;
+		const base = extend ? before : [];
+		if (!extend && before.length > 0) trackListSelection([]);
+		const keys = layout.fileBrowser?.keys ?? "mac";
+		listMarqueeEndRef.current?.();
+		listMarqueeEndRef.current = startClassicyFileBrowserMarquee({
+			holder: root,
+			start: e,
+			items: () =>
+				root.querySelectorAll(
+					`.classicyFileBrowserViewTableRowContainer[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+				),
+			onBox: setListMarquee,
+			onTouched: (touched) => {
+				const next = classicyIconMarqueeSelection(keys, base, touched, mods);
+				if (!classicySameSelection(next, listSelectionRef.current)) {
+					trackListSelection(next);
+				}
+			},
+			autoScroll: true,
+			// Escape (`input.escapeCancels`): the selection the press found.
+			onCancel: () => trackListSelection(before),
+			onEnd: () => {
+				listMarqueeEndRef.current = null;
+			},
+		});
 	};
 
 	const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
@@ -321,6 +417,7 @@ export const ClassicyFileBrowser: FunctionalComponent<
 			{...{ [CLASSICY_DROP_FOLDER_ATTRIBUTE]: path }}
 			onKeyDown={onKeyDown}
 			onContextMenu={onContextMenu}
+			onMouseDown={onMouseDown}
 		>
 			{display === "list" ? (
 				<ClassicyFileBrowserViewTable
@@ -351,7 +448,9 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					listViewOptions={listViewOptions}
 					now={now}
 					selectionApiRef={selectionApiRef}
-					selectedPaths={selectedPaths}
+					selectedPaths={
+						selectedPaths ?? (holdsListSelection ? ownListSelection : undefined)
+					}
 					onSelectionChange={trackListSelection}
 					focusTargetRef={focusTargetRef}
 				/>
@@ -369,6 +468,20 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					iconViewOptions={iconViewOptions}
 					selectionApiRef={selectionApiRef}
 					onRenameItem={onRenameItem}
+					openItemsFunc={openItemsFunc}
+					onSelectionChange={trackIconSelection}
+				/>
+			)}
+			{listMarquee && (
+				<div
+					className={"classicyFileBrowserSelect"}
+					aria-hidden={true}
+					style={{
+						left: listMarquee.left,
+						top: listMarquee.top,
+						width: listMarquee.width,
+						height: listMarquee.height,
+					}}
 				/>
 			)}
 		</div>

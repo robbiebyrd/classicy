@@ -4,11 +4,13 @@
 // pp.38-45) share most of them; where they differ, the package's
 // `layout.fileBrowser.keys` chooses ("mac", the default, or "windows").
 
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	type ArrowDirection,
 	nearestIconInDirection,
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
+import { classicyRangeSetTo } from "@/SystemFolder/SystemResources/Utils/ClassicyListPressSelection.internal";
 
 /** Which platform's selection rules the icon view follows. */
 export type ClassicyFileBrowserKeys = "mac" | "windows";
@@ -24,6 +26,18 @@ export type ClassicyFileBrowserIconPlace = {
 export type ClassicyFileBrowserIconSelection = {
 	selected: string[];
 	anchor?: string;
+};
+
+/**
+ * One icon of the view and the box it covers on screen (client px; right
+ * and bottom past its last pixel, as a `DOMRect`'s are).
+ */
+export type ClassicyFileBrowserIconBox = {
+	path: string;
+	left: number;
+	top: number;
+	right: number;
+	bottom: number;
 };
 
 type Modifiers = { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean };
@@ -46,12 +60,48 @@ export const classicyIconRange = (
 };
 
 /**
+ * The icons whose top-left corner lies in the rectangle spanned by the
+ * boxes of `a` and `b` (their union; right and bottom edges out), in
+ * `boxes`' order: comctl32's icon-view group selection
+ * (`LISTVIEW_SetGroupSelection` outside the list and report views, which
+ * tests each item's position against the union of the two items' bounds).
+ * `[b]` when either is not in `boxes`.
+ */
+export const classicyIconRectRange = (
+	boxes: readonly ClassicyFileBrowserIconBox[],
+	a: string,
+	b: string,
+): string[] => {
+	const from = boxes.find((box) => box.path === a);
+	const to = boxes.find((box) => box.path === b);
+	if (!from || !to) return [b];
+	const left = Math.min(from.left, to.left);
+	const top = Math.min(from.top, to.top);
+	const right = Math.max(from.right, to.right);
+	const bottom = Math.max(from.bottom, to.bottom);
+	return boxes
+		.filter(
+			(box) =>
+				box.left >= left &&
+				box.left < right &&
+				box.top >= top &&
+				box.top < bottom,
+		)
+		.map((box) => box.path);
+};
+
+/**
  * The selection after a click on `path`. A plain click selects the icon
  * alone. Under "mac", Shift, ⌘ or Control adds it or takes it out (the
  * Finder's icons are discrete objects, a discontinuous selection, HIG7
- * p.290). Under "windows", Control (or ⌘) adds it or takes it out, Shift
- * selects from the anchor to it in the view's order, and Control with Shift
- * adds that range (WIG Ch.5 "Mouse Selection").
+ * p.290). Under "windows", Control (or ⌘) adds it or takes it out and
+ * moves the anchor; Shift selects the anchor's range alone, the anchor
+ * staying; and Control with Shift keeps the other selections and sets the
+ * anchor's range to the anchor's state (WIG Ch.5 "Selection Adjustment",
+ * pp.38-39). The range is the icons in the rectangle spanned by the
+ * anchor's box and the item's (`classicyIconRectRange`) when `boxes` is
+ * given, as Explorer's icon view takes it, else the items from the anchor
+ * to it in `order`.
  */
 export const classicyIconClickSelection = (
 	keys: ClassicyFileBrowserKeys,
@@ -59,6 +109,7 @@ export const classicyIconClickSelection = (
 	current: ClassicyFileBrowserIconSelection,
 	path: string,
 	{ shiftKey, metaKey, ctrlKey }: Modifiers,
+	boxes?: readonly ClassicyFileBrowserIconBox[],
 ): ClassicyFileBrowserIconSelection => {
 	if (keys === "mac") {
 		if (shiftKey || metaKey || ctrlKey) {
@@ -68,10 +119,19 @@ export const classicyIconClickSelection = (
 	}
 	const toggle = metaKey || ctrlKey;
 	if (shiftKey && current.anchor && order.includes(current.anchor)) {
-		const range = classicyIconRange(order, current.anchor, path);
+		const anchor = current.anchor;
+		const range = boxes
+			? classicyIconRectRange(boxes, anchor, path)
+			: classicyIconRange(order, anchor, path);
 		return {
-			selected: toggle ? [...new Set([...current.selected, ...range])] : range,
-			anchor: current.anchor,
+			selected: toggle
+				? classicyRangeSetTo(
+						current.selected,
+						range,
+						current.selected.includes(anchor),
+					)
+				: range,
+			anchor,
 		};
 	}
 	if (toggle) {
@@ -190,6 +250,56 @@ export const CLASSICY_FILE_BROWSER_TYPEAHEAD_MS = 1000;
  * Mac OS 8's (32 ticks).
  */
 export const CLASSICY_FILE_BROWSER_RENAME_DELAY_MS = 500;
+
+/**
+ * The selection a selection rectangle drawn from a press on the view's
+ * empty space makes, `boxed` being the items it touches now and `base` the
+ * selection the press found. With no modifier: `boxed` alone. Under "mac"
+ * (L2-E's rule, the Finder's), Shift, ⌘ or Control adds `boxed` to `base`.
+ * Under "windows" (WIG Ch.5 "Region Selection", p.42, applying "Selection
+ * Adjustment"'s modifiers): Shift adds `boxed` to `base`, and Control (or
+ * ⌘), with or without Shift, toggles each of `boxed` in `base` (the
+ * symmetric difference, as comctl32's marquee inverts the items it
+ * covers while Control is down, `LISTVIEW_MarqueeHighlight`).
+ */
+export const classicyIconMarqueeSelection = (
+	keys: ClassicyFileBrowserKeys,
+	base: readonly string[],
+	boxed: readonly string[],
+	{ shiftKey, metaKey, ctrlKey }: Modifiers,
+): string[] => {
+	const toggle = metaKey || ctrlKey;
+	if (!shiftKey && !toggle) return [...boxed];
+	if (keys === "windows" && toggle) {
+		const covered = new Set(boxed);
+		const held = new Set(base);
+		return [
+			...base.filter((p) => !covered.has(p)),
+			...boxed.filter((p) => !held.has(p)),
+		];
+	}
+	return [...new Set([...base, ...boxed])];
+};
+
+/**
+ * Whether a drag of a selected icon in the icon view carries the view's
+ * whole selection (`layout.fileBrowser.iconSelection` `"view"`, Windows
+ * Explorer) rather than the icon pressed alone (absent or `"perIcon"`,
+ * today's rule).
+ */
+export const classicyIconViewDragsSelection = (
+	layout: Pick<ClassicyAppearanceLayout, "fileBrowser">,
+): boolean => layout.fileBrowser?.iconSelection === "view";
+
+/**
+ * Whether the file browser's list view takes a selection rectangle and
+ * either view's rectangle scrolls the window
+ * (`layout.fileBrowser.regionSelect`, Windows Explorer) rather than the
+ * icon view's alone, never scrolling (absent or `false`, today's rule).
+ */
+export const classicyFileBrowserRegionSelect = (
+	layout: Pick<ClassicyAppearanceLayout, "fileBrowser">,
+): boolean => layout.fileBrowser?.regionSelect === true;
 
 /** Whether the client rectangles `a` and `b` overlap. */
 export const classicyRectsIntersect = (

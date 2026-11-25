@@ -36,7 +36,10 @@
 // the image drawn ILD_NORMAL; WIG Ch.6 "Activating and Deactivating
 // Windows", p.81; Ch.13 "Highlighting", p.318): a selected row, or the
 // Finder's selected name, ButtonFace under WindowText, the name's icon
-// unblended, and no focus rectangle.
+// unblended, and no focus rectangle. The selection rectangle a drag across
+// the Finder's list below its rows draws (`.classicyFileBrowserSelect`,
+// under `layout.fileBrowser.regionSelect`) is the icon view's, drawn by
+// _Icon.scss: DrawFocusRect's dots XORed over the rows.
 //
 // Overrides ClassicyTable.scss and ClassicyFileBrowserViewTable.scss.
 //

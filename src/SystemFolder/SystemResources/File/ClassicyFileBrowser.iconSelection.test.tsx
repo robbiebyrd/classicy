@@ -10,9 +10,32 @@ import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
 import { CLASSICY_FILE_BROWSER_RENAME_DELAY_MS } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserIconSelection";
+import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { registerClassicyScrollViewport } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollViewportRegistry.internal";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
+
+// The parts each drag's outline traces, in the order the drags began.
+const outlines = vi.hoisted(() => ({
+	parts: [] as ClassicyFileDragOutlinePart[][],
+}));
+vi.mock(
+	"@/SystemFolder/SystemResources/File/ClassicyFileDragOutline",
+	async (importOriginal) => {
+		const actual =
+			await importOriginal<
+				typeof import("@/SystemFolder/SystemResources/File/ClassicyFileDragOutline")
+			>();
+		return {
+			...actual,
+			drawClassicyDragOutline: (parts: ClassicyFileDragOutlinePart[]) => {
+				outlines.parts.push(parts);
+				return actual.drawClassicyDragOutline(parts);
+			},
+		};
+	},
+);
 
 // The icon view keeps one selection for its icons. What Mac OS 8's Finder
 // did too is the core's, for every package (a click selects one icon, a
@@ -29,6 +52,7 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	vi.useRealTimers();
 	resetClassicyAppearancePackagesForTests();
+	outlines.parts.length = 0;
 });
 
 let counter = 0;
@@ -66,6 +90,22 @@ const placeOnScreen = () =>
 					width: 64,
 					height: 64,
 				});
+			// The window's viewport: 300 x 200.
+			if (this.classList.contains("classicyScrollAreaViewport"))
+				return DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 200 });
+			// A list row's name, one 20 px row under another from y 20.
+			if (this.classList.contains("classicyFileBrowserViewTableRowContainer")) {
+				const row = this.closest("tr");
+				const index = row?.parentElement
+					? Array.from(row.parentElement.children).indexOf(row)
+					: 0;
+				return DOMRect.fromRect({
+					x: 0,
+					y: 20 + index * 20,
+					width: 100,
+					height: 18,
+				});
+			}
 			return DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
 		});
 
@@ -372,20 +412,58 @@ describe("the icon view's selection under Windows' keys", () => {
 	//   Folder (12,12)   apple (108,12)
 	//   banana (12,108)  blueberry (108,108)
 	//   cherry (12,204)  date (108,204)
-	it("selects from the anchor with Shift, toggles one with Control", () => {
+	// Shift selects the icons in the rectangle the anchor's icon and the
+	// clicked one span (comctl32's icon-view LISTVIEW_SetGroupSelection),
+	// not a run of the view's order.
+	it("selects the rectangle from the anchor with Shift, toggles one with Control", () => {
 		const { icon, selected } = renderBrowser();
 		fireEvent.click(icon("apple"));
+		// apple (108,12) and cherry (12,204) span both columns, three rows.
 		fireEvent.click(icon("cherry"), { shiftKey: true });
-		expect(selected()).toEqual(["apple", "banana", "blueberry", "cherry"]);
+		expect(selected()).toEqual([
+			"Folder",
+			"apple",
+			"banana",
+			"blueberry",
+			"cherry",
+			"date",
+		]);
 		fireEvent.click(icon("banana"), { ctrlKey: true });
-		expect(selected()).toEqual(["apple", "blueberry", "cherry"]);
-		// Shift from the new anchor (banana).
+		expect(selected()).toEqual([
+			"Folder",
+			"apple",
+			"blueberry",
+			"cherry",
+			"date",
+		]);
+		// Shift from the new anchor (banana): banana (12,108) to date
+		// (108,204), the lower two rows; the rest go.
 		fireEvent.click(icon("date"), { shiftKey: true });
 		expect(selected()).toEqual(["banana", "blueberry", "cherry", "date"]);
-		// Shift with an arrow extends from the anchor too.
+		// Shift with an arrow takes the rectangle too: Folder over banana,
+		// one column, apple beside them left out.
 		fireEvent.click(icon("Folder"));
 		fireEvent.keyDown(icon("Folder"), { key: "ArrowDown", shiftKey: true });
-		expect(selected()).toEqual(["Folder", "apple", "banana"]);
+		expect(selected()).toEqual(["Folder", "banana"]);
+	});
+
+	// WIG Ch.5 "Selection Adjustment" (p.39): Control with Shift keeps the
+	// other selections and sets the anchor's rectangle to the anchor's state.
+	it("keeps the rest with Control-Shift, the rectangle taking the anchor's state", () => {
+		const { icon, selected } = renderBrowser();
+		fireEvent.click(icon("Folder"));
+		fireEvent.click(icon("date"), { ctrlKey: true });
+		// The anchor (date) is selected: Folder stays, cherry joins.
+		fireEvent.click(icon("cherry"), { ctrlKey: true, shiftKey: true });
+		expect(selected()).toEqual(["Folder", "cherry", "date"]);
+		// Control-click takes date out and makes it the (unselected) anchor:
+		// its rectangle with blueberry (the right column's lower two) is
+		// taken out; cherry, beside it, stays.
+		fireEvent.click(icon("blueberry"), { ctrlKey: true });
+		fireEvent.click(icon("date"), { ctrlKey: true });
+		expect(selected()).toEqual(["Folder", "blueberry", "cherry"]);
+		fireEvent.click(icon("blueberry"), { ctrlKey: true, shiftKey: true });
+		expect(selected()).toEqual(["Folder", "cherry"]);
 	});
 
 	it("selects the first, the last and a page's icons with Home, End and the page keys", () => {
@@ -452,5 +530,534 @@ describe("the icon view's selection under Windows' keys", () => {
 			(container.querySelector(".classicyIconRename") as HTMLInputElement)
 				.value,
 		).toBe("apple");
+	});
+});
+
+// What the icon view does under the Windows 98 layout beyond Explorer's
+// keys (the WIG audit's 5.8 / 5.22 / A.1, 5.12 and the icon view's parts of
+// 5.5, 5.6, 5.16 and 5.17; WIG Ch.5 "Selection with the Mouse", pp.37-38,
+// "Selection Adjustment", pp.38-39, "Region Selection", p.42, "Keyboard
+// Selection", p.43, "Operations for a Multiple Selection", p.44, "Direct
+// Manipulation Transfers", p.66; App. A Tables A.1-A.3), each beside the
+// default layout's behavior, which is today's.
+//
+// With Folder first (Windows' foldersFirst) the layout is:
+//   Folder (12,12)   apple (108,12)
+//   banana (12,108)  blueberry (108,108)
+//   cherry (12,204)  date (108,204)
+describe("the icon view under the Windows 98 layout", () => {
+	const press = (
+		el: HTMLElement,
+		init: Partial<MouseEventInit & { detail: number }> = {},
+	) => {
+		fireEvent.mouseDown(el, { button: 0, detail: 1, ...init });
+		fireEvent.mouseUp(el, { button: 0, ...init });
+		fireEvent.click(el, { detail: 1, ...init });
+	};
+
+	describe("a press selects (selection.selectOn: press)", () => {
+		it("selects an unselected icon at the press, and a modified press at once", () => {
+			registerWindowsKeys();
+			const { icon, selected } = renderBrowser();
+			fireEvent.mouseDown(icon("apple"), { button: 0, detail: 1 });
+			expect(selected()).toEqual(["apple"]);
+			fireEvent.click(icon("apple"), { detail: 1 });
+			expect(selected()).toEqual(["apple"]);
+			// Control toggles at the press, and its click adds nothing.
+			fireEvent.mouseDown(icon("banana"), {
+				button: 0,
+				detail: 1,
+				ctrlKey: true,
+			});
+			expect(selected()).toEqual(["apple", "banana"]);
+			fireEvent.click(icon("banana"), { detail: 1, ctrlKey: true });
+			expect(selected()).toEqual(["apple", "banana"]);
+		});
+
+		it("keeps the selection a plain press lands in until its click resets it to that icon", () => {
+			registerWindowsKeys();
+			const { icon, selected } = renderBrowser();
+			press(icon("apple"));
+			press(icon("banana"), { ctrlKey: true });
+			fireEvent.mouseDown(icon("apple"), { button: 0, detail: 1 });
+			expect(selected()).toEqual(["apple", "banana"]);
+			fireEvent.click(icon("apple"), { detail: 1 });
+			expect(selected()).toEqual(["apple"]);
+		});
+
+		it("changes nothing at a double-click's second press", () => {
+			registerWindowsKeys();
+			const { icon, selected } = renderBrowser();
+			press(icon("apple"));
+			fireEvent.mouseDown(icon("banana"), {
+				button: 0,
+				detail: 2,
+				ctrlKey: true,
+			});
+			fireEvent.click(icon("banana"), { detail: 2, ctrlKey: true });
+			expect(selected()).toEqual(["apple"]);
+		});
+
+		it("selects nothing at a press under the default layout, only at the click", () => {
+			const { icon, selected } = renderBrowser();
+			fireEvent.mouseDown(icon("apple"), { button: 0, detail: 1 });
+			expect(selected()).toEqual([]);
+			fireEvent.click(icon("apple"), { detail: 1 });
+			expect(selected()).toEqual(["apple"]);
+		});
+	});
+
+	describe("button 2 (selection.secondaryButton: select)", () => {
+		const rightPress = (el: HTMLElement, init: MouseEventInit = {}) => {
+			fireEvent.mouseDown(el, { button: 2, ...init });
+			fireEvent.contextMenu(el, { button: 2, ...init });
+			fireEvent.mouseUp(el, { button: 2, ...init });
+		};
+
+		it("selects an unselected icon alone, keeps a selection it lands in, and the menu acts on what is drawn", () => {
+			registerWindowsKeys();
+			const itemContextMenu = vi.fn(() => [{ id: "x", title: "Delete" }]);
+			const { icon, selected } = renderBrowser({ itemContextMenu });
+			press(icon("apple"));
+			rightPress(icon("banana"));
+			expect(selected()).toEqual(["banana"]);
+			expect(itemContextMenu).toHaveBeenLastCalledWith("D:banana", [
+				"D:banana",
+			]);
+			press(icon("apple"), { ctrlKey: true });
+			rightPress(icon("apple"));
+			expect(selected()).toEqual(["apple", "banana"]);
+			expect(itemContextMenu).toHaveBeenLastCalledWith("D:apple", [
+				"D:apple",
+				"D:banana",
+			]);
+			// With Control held it changes nothing (LISTVIEW_RButtonDown).
+			rightPress(icon("cherry"), { ctrlKey: true });
+			expect(selected()).toEqual(["apple", "banana"]);
+		});
+
+		it("clears the selection on empty space and draws the rectangle", () => {
+			registerWindowsKeys();
+			const { container, icon, selected, holder } = renderBrowser();
+			press(icon("apple"));
+			fireEvent.mouseDown(holder, {
+				button: 2,
+				clientX: 0,
+				clientY: 0,
+				shiftKey: true,
+			});
+			expect(selected()).toEqual([]);
+			fireEvent.mouseMove(document, { clientX: 80, clientY: 150 });
+			expect(
+				container.querySelector(".classicyFileBrowserSelect"),
+			).not.toBeNull();
+			expect(selected()).toEqual(["Folder", "banana"]);
+			fireEvent.mouseUp(document, { button: 2 });
+			expect(selected()).toEqual(["Folder", "banana"]);
+		});
+
+		it("leaves the selection as it is under the default layout", () => {
+			const itemContextMenu = vi.fn(() => [{ id: "x", title: "Delete" }]);
+			const { icon, selected, holder } = renderBrowser({ itemContextMenu });
+			press(icon("apple"));
+			rightPress(icon("banana"));
+			expect(selected()).toEqual(["apple"]);
+			expect(itemContextMenu).toHaveBeenLastCalledWith("D:banana", ["D:apple"]);
+			fireEvent.mouseDown(holder, { button: 2, clientX: 0, clientY: 0 });
+			fireEvent.mouseMove(document, { clientX: 80, clientY: 150 });
+			fireEvent.mouseUp(document, { button: 2 });
+			expect(selected()).toEqual(["apple"]);
+		});
+	});
+
+	describe("a drag carries the selection (fileBrowser.iconSelection: view)", () => {
+		const dropOn = (folderPath: string) => {
+			const folder = document.createElement("div");
+			folder.setAttribute("data-classicy-drop-folder", folderPath);
+			return folder;
+		};
+		const drag = (
+			from: HTMLElement,
+			to: [number, number],
+			over: HTMLElement,
+		) => {
+			const original = document.elementsFromPoint;
+			document.elementsFromPoint = () => [over];
+			try {
+				fireEvent.mouseDown(from, {
+					button: 0,
+					detail: 1,
+					clientX: 0,
+					clientY: 0,
+				});
+				fireEvent.mouseMove(document, { clientX: to[0], clientY: to[1] });
+				fireEvent.mouseUp(document, { clientX: to[0], clientY: to[1] });
+				fireEvent.click(from, { detail: 1, clientX: to[0], clientY: to[1] });
+			} finally {
+				document.elementsFromPoint = original;
+			}
+		};
+
+		it("moves every selected item, outlining each, and keeps the selection", () => {
+			registerWindowsKeys();
+			const onMoveItems = vi.fn();
+			const { icon, selected } = renderBrowser({ onMoveItems });
+			press(icon("apple"));
+			press(icon("cherry"), { ctrlKey: true });
+			drag(icon("cherry"), [40, 40], dropOn("Elsewhere"));
+			expect(onMoveItems).toHaveBeenCalledWith(
+				["D:apple", "D:cherry"],
+				{ kind: "folder", path: "Elsewhere" },
+				expect.any(Array),
+			);
+			expect(outlines.parts).toHaveLength(1);
+			expect(outlines.parts[0].map((part) => part.label?.textContent)).toEqual([
+				"apple",
+				"cherry",
+			]);
+			// The click that ends the drag (over the icon) keeps the selection.
+			expect(selected()).toEqual(["apple", "cherry"]);
+		});
+
+		it("carries an unselected icon alone, selected at the press", () => {
+			registerWindowsKeys();
+			const onMoveItems = vi.fn();
+			const { icon, selected } = renderBrowser({ onMoveItems });
+			press(icon("apple"));
+			drag(icon("banana"), [40, 40], dropOn("Elsewhere"));
+			expect(onMoveItems.mock.calls[0][0]).toEqual(["D:banana"]);
+			expect(selected()).toEqual(["banana"]);
+		});
+
+		it("moves every selected icon as far, let go in its own folder", () => {
+			registerWindowsKeys();
+			const { icon } = renderBrowser({ onMoveItems: vi.fn() });
+			press(icon("apple"));
+			press(icon("banana"), { ctrlKey: true });
+			drag(icon("apple"), [40, 20], dropOn("D"));
+			expect([icon("apple").style.left, icon("apple").style.top]).toEqual([
+				"148px",
+				"32px",
+			]);
+			expect([icon("banana").style.left, icon("banana").style.top]).toEqual([
+				"52px",
+				"128px",
+			]);
+			// One not selected stays.
+			expect([icon("cherry").style.left, icon("cherry").style.top]).toEqual([
+				"12px",
+				"204px",
+			]);
+		});
+
+		it("carries the pressed icon alone under the default layout", () => {
+			const onMoveItems = vi.fn();
+			const { icon } = renderBrowser({ onMoveItems });
+			press(icon("apple"));
+			press(icon("cherry"), { ctrlKey: true });
+			drag(icon("cherry"), [40, 40], dropOn("Elsewhere"));
+			expect(onMoveItems.mock.calls[0][0]).toEqual(["D:cherry"]);
+			expect(outlines.parts[0].map((part) => part.label?.textContent)).toEqual([
+				"cherry",
+			]);
+		});
+	});
+
+	describe("the keyboard and assistive technology (selection.keyboard, iconNavigation)", () => {
+		it("selects on Space, toggles on Control-Space and opens on Return alone", () => {
+			registerWindowsKeys();
+			const fileOnClickFunc = vi.fn();
+			const { icon, selected, holder } = renderBrowser({ fileOnClickFunc });
+			// The view focused, nothing selected: Space selects the first.
+			fireEvent.mouseDown(holder, { button: 0, clientX: 250, clientY: 290 });
+			fireEvent.mouseUp(document);
+			fireEvent.keyDown(holder, { key: " " });
+			expect(selected()).toEqual(["Folder"]);
+			fireEvent.keyDown(icon("Folder"), { key: "ArrowRight" });
+			expect(selected()).toEqual(["apple"]);
+			fireEvent.keyDown(icon("apple"), { key: " ", ctrlKey: true });
+			expect(selected()).toEqual([]);
+			fireEvent.keyDown(icon("apple"), { key: " ", ctrlKey: true });
+			expect(selected()).toEqual(["apple"]);
+			fireEvent.keyDown(icon("apple"), { key: " " });
+			expect(fileOnClickFunc).not.toHaveBeenCalled();
+			fireEvent.keyDown(icon("apple"), { key: "Enter" });
+			expect(fileOnClickFunc).toHaveBeenCalledWith("D:apple");
+		});
+
+		it("opens on Space under the default layout", () => {
+			const fileOnClickFunc = vi.fn();
+			const { icon } = renderBrowser({ fileOnClickFunc });
+			fireEvent.keyDown(icon("apple"), { key: " " });
+			expect(fileOnClickFunc).toHaveBeenCalledWith("D:apple");
+		});
+
+		it("is a list box of options under Windows' keys, and buttons otherwise", () => {
+			registerWindowsKeys();
+			const windows = renderBrowser();
+			expect(windows.holder.getAttribute("role")).toBe("listbox");
+			expect(windows.holder.getAttribute("aria-multiselectable")).toBe("true");
+			press(windows.icon("apple"));
+			expect(windows.icon("apple").getAttribute("role")).toBe("option");
+			expect(windows.icon("apple").getAttribute("aria-selected")).toBe("true");
+			expect(windows.icon("banana").getAttribute("aria-selected")).toBe(
+				"false",
+			);
+			cleanup();
+			resetClassicyAppearancePackagesForTests();
+			const mac = renderBrowser();
+			expect(mac.holder.hasAttribute("role")).toBe(false);
+			expect(mac.holder.hasAttribute("aria-multiselectable")).toBe(false);
+			expect(mac.icon("apple").getAttribute("role")).toBe("button");
+			expect(mac.icon("apple").hasAttribute("aria-selected")).toBe(false);
+		});
+
+		it("keeps one Tab stop, the icon last pressed or moved to, under iconNavigation roving", () => {
+			registerWindowsKeys();
+			const { container, icon } = renderBrowser();
+			const stops = () =>
+				Array.from(
+					container.querySelectorAll(".classicyIcon"),
+					(el) =>
+						`${el.getAttribute("data-classicy-file-path")?.slice(2)}:${el.getAttribute("tabindex")}`,
+				).filter((entry) => entry.endsWith(":0"));
+			expect(stops()).toEqual(["Folder:0"]);
+			press(icon("cherry"));
+			expect(stops()).toEqual(["cherry:0"]);
+			fireEvent.keyDown(icon("cherry"), { key: "ArrowRight" });
+			expect(stops()).toEqual(["date:0"]);
+			expect(icon("Folder").getAttribute("tabindex")).toBe("-1");
+		});
+
+		it("makes every icon a Tab stop under the default layout", () => {
+			const { container } = renderBrowser();
+			for (const el of container.querySelectorAll(".classicyIcon"))
+				expect(el.getAttribute("tabindex")).toBe("0");
+		});
+	});
+
+	describe("a double-click opens the selection (selection.modifiers: windows)", () => {
+		it("hands the whole selection to openItemsFunc", () => {
+			registerWindowsKeys();
+			const openItemsFunc = vi.fn();
+			const fileOnClickFunc = vi.fn();
+			const { icon } = renderBrowser({ openItemsFunc, fileOnClickFunc });
+			press(icon("apple"));
+			press(icon("cherry"), { ctrlKey: true });
+			fireEvent.mouseDown(icon("cherry"), { button: 0, detail: 2 });
+			fireEvent.click(icon("cherry"), { detail: 2 });
+			fireEvent.doubleClick(icon("cherry"));
+			expect(openItemsFunc).toHaveBeenCalledWith(["D:apple", "D:cherry"]);
+			expect(fileOnClickFunc).not.toHaveBeenCalled();
+		});
+
+		it("opens the icon alone under the default layout", () => {
+			const openItemsFunc = vi.fn();
+			const fileOnClickFunc = vi.fn();
+			const { icon } = renderBrowser({ openItemsFunc, fileOnClickFunc });
+			press(icon("apple"));
+			press(icon("cherry"), { ctrlKey: true });
+			fireEvent.doubleClick(icon("cherry"));
+			expect(fileOnClickFunc).toHaveBeenCalledWith("D:cherry");
+			expect(openItemsFunc).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("the selection rectangle", () => {
+		it("adds with Shift and toggles with Control under Windows' keys", () => {
+			registerWindowsKeys();
+			const { icon, selected, holder } = renderBrowser();
+			press(icon("Folder"));
+			press(icon("apple"), { ctrlKey: true });
+			// Control: the icons touched, the right column's top two, toggle
+			// (apple out, blueberry in); Folder, untouched, stays.
+			fireEvent.mouseDown(holder, {
+				button: 0,
+				clientX: 299,
+				clientY: 0,
+				ctrlKey: true,
+			});
+			fireEvent.mouseMove(document, { clientX: 80, clientY: 150 });
+			fireEvent.mouseUp(document);
+			expect(selected()).toEqual(["Folder", "blueberry"]);
+			// Shift: added.
+			fireEvent.mouseDown(holder, {
+				button: 0,
+				clientX: 0,
+				clientY: 299,
+				shiftKey: true,
+			});
+			fireEvent.mouseMove(document, { clientX: 20, clientY: 220 });
+			fireEvent.mouseUp(document);
+			expect(selected()).toEqual(["Folder", "blueberry", "cherry"]);
+		});
+
+		it("adds with Control under the default layout", () => {
+			const { icon, selected, holder } = renderBrowser();
+			press(icon("apple"));
+			press(icon("banana"), { ctrlKey: true });
+			fireEvent.mouseDown(holder, {
+				button: 0,
+				clientX: 299,
+				clientY: 0,
+				ctrlKey: true,
+			});
+			fireEvent.mouseMove(document, { clientX: 150, clientY: 50 });
+			fireEvent.mouseUp(document);
+			expect(selected()).toEqual(["apple", "banana"]);
+		});
+
+		const scrollingViewport = (container: HTMLElement) => {
+			const viewport = container.querySelector(
+				".classicyScrollAreaViewport",
+			) as HTMLElement;
+			Object.defineProperty(viewport, "scrollHeight", { value: 600 });
+			Object.defineProperty(viewport, "clientHeight", { value: 200 });
+			Object.defineProperty(viewport, "scrollWidth", { value: 300 });
+			Object.defineProperty(viewport, "clientWidth", { value: 300 });
+			const scrollBy = vi.fn();
+			registerClassicyScrollViewport(viewport, {
+				lineStep: () => 16,
+				scrollBy,
+			});
+			return scrollBy;
+		};
+
+		it("scrolls the window toward an edge the pointer is past (fileBrowser.regionSelect)", () => {
+			vi.useFakeTimers();
+			registerWindowsKeys();
+			const { container, holder } = renderBrowser();
+			const scrollBy = scrollingViewport(container);
+			fireEvent.mouseDown(holder, { button: 0, clientX: 10, clientY: 100 });
+			fireEvent.mouseMove(document, { clientX: 10, clientY: 260 });
+			expect(scrollBy).not.toHaveBeenCalled();
+			act(() => vi.advanceTimersByTime(120));
+			expect(scrollBy).toHaveBeenCalledWith(0, 16);
+			act(() => vi.advanceTimersByTime(120));
+			expect(scrollBy).toHaveBeenCalledTimes(2);
+			// Back inside, clear of the edge: it stops.
+			fireEvent.mouseMove(document, { clientX: 10, clientY: 100 });
+			act(() => vi.advanceTimersByTime(360));
+			expect(scrollBy).toHaveBeenCalledTimes(2);
+			fireEvent.mouseUp(document);
+		});
+
+		it("never scrolls under the default layout", () => {
+			vi.useFakeTimers();
+			const { container, holder } = renderBrowser();
+			const scrollBy = scrollingViewport(container);
+			fireEvent.mouseDown(holder, { button: 0, clientX: 10, clientY: 100 });
+			fireEvent.mouseMove(document, { clientX: 10, clientY: 260 });
+			act(() => vi.advanceTimersByTime(600));
+			expect(scrollBy).not.toHaveBeenCalled();
+			fireEvent.mouseUp(document);
+		});
+
+		it("takes the selection back on Escape (input.escapeCancels)", () => {
+			registerWindowsKeys();
+			const { container, icon, selected, holder } = renderBrowser();
+			press(icon("cherry"));
+			fireEvent.mouseDown(holder, { button: 0, clientX: 0, clientY: 0 });
+			fireEvent.mouseMove(document, { clientX: 150, clientY: 100 });
+			expect(selected()).toEqual(["Folder", "apple"]);
+			fireEvent.keyDown(document, { key: "Escape" });
+			expect(container.querySelector(".classicyFileBrowserSelect")).toBeNull();
+			expect(selected()).toEqual(["cherry"]);
+			// The release after it changes nothing.
+			fireEvent.mouseMove(document, { clientX: 299, clientY: 299 });
+			fireEvent.mouseUp(document);
+			expect(selected()).toEqual(["cherry"]);
+		});
+	});
+});
+
+// The list view's selection rectangle (`fileBrowser.regionSelect`, the
+// audit's 5.12; WIG Ch.5 "Region Selection", p.42; Ch.7 "List View
+// Controls", p.123): from a press below the rows, the rows whose names it
+// touches. The rows' names lie 20 px apart from y 20 (placeOnScreen):
+// Folder, apple, banana, blueberry, cherry, date.
+describe("the list view's selection rectangle", () => {
+	const rows = (container: HTMLElement) =>
+		Array.from(
+			container.querySelectorAll("tr.classicyTableRow.selected"),
+			(row) => row.getAttribute("data-row-id")?.slice(2),
+		);
+	const emptySpace = (container: HTMLElement) =>
+		container.querySelector(
+			".classicyFileBrowserViewTableContainer",
+		) as HTMLElement;
+
+	it("selects the rows it touches, live, and keeps them at the release", () => {
+		registerWindowsKeys();
+		const onSelectionChange = vi.fn();
+		const { container } = renderBrowser({
+			display: "list",
+			onSelectionChange,
+		});
+		fireEvent.click(
+			container.querySelector('tr[data-row-id="D:apple"]') as HTMLElement,
+		);
+		expect(rows(container)).toEqual(["apple"]);
+		fireEvent.mouseDown(emptySpace(container), {
+			button: 0,
+			clientX: 150,
+			clientY: 290,
+		});
+		// The press clears the selection.
+		expect(rows(container)).toEqual([]);
+		fireEvent.mouseMove(document, { clientX: 10, clientY: 70 });
+		const box = container.querySelector(
+			".classicyFileBrowserSelect",
+		) as HTMLElement;
+		expect(box.getAttribute("aria-hidden")).toBe("true");
+		expect([box.style.left, box.style.top]).toEqual(["10px", "70px"]);
+		expect(rows(container)).toEqual(["banana", "blueberry", "cherry", "date"]);
+		expect(onSelectionChange).toHaveBeenLastCalledWith([
+			"D:banana",
+			"D:blueberry",
+			"D:cherry",
+			"D:date",
+		]);
+		fireEvent.mouseUp(document);
+		expect(container.querySelector(".classicyFileBrowserSelect")).toBeNull();
+		expect(rows(container)).toEqual(["banana", "blueberry", "cherry", "date"]);
+		// With Control the rows it touches toggle, the rest staying.
+		fireEvent.mouseDown(emptySpace(container), {
+			button: 0,
+			clientX: 150,
+			clientY: 290,
+			ctrlKey: true,
+		});
+		fireEvent.mouseMove(document, { clientX: 10, clientY: 110 });
+		fireEvent.mouseUp(document);
+		expect(rows(container)).toEqual(["banana", "blueberry"]);
+	});
+
+	it("starts no rectangle on a row", () => {
+		registerWindowsKeys();
+		const { container } = renderBrowser({ display: "list" });
+		const name = container.querySelector(
+			'[data-classicy-file-path="D:apple"]',
+		) as HTMLElement;
+		fireEvent.mouseDown(name, { button: 0, clientX: 10, clientY: 30 });
+		fireEvent.mouseMove(document, { clientX: 10, clientY: 130 });
+		expect(container.querySelector(".classicyFileBrowserSelect")).toBeNull();
+		fireEvent.mouseUp(document);
+	});
+
+	it("draws none under the default layout", () => {
+		const { container } = renderBrowser({ display: "list" });
+		fireEvent.click(
+			container.querySelector('tr[data-row-id="D:apple"]') as HTMLElement,
+		);
+		fireEvent.mouseDown(emptySpace(container), {
+			button: 0,
+			clientX: 150,
+			clientY: 290,
+		});
+		fireEvent.mouseMove(document, { clientX: 10, clientY: 70 });
+		expect(container.querySelector(".classicyFileBrowserSelect")).toBeNull();
+		fireEvent.mouseUp(document);
+		expect(rows(container)).toEqual(["apple"]);
 	});
 });

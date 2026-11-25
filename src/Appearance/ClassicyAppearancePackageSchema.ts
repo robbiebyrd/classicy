@@ -104,6 +104,8 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
 			keys: z.enum(["mac", "windows"]).optional(),
+			iconSelection: z.enum(["perIcon", "view"]).optional(),
+			regionSelect: z.boolean().optional(),
 		})
 		.optional(),
 	fileList: z.object({ foldersFirst: z.boolean().optional() }).optional(),
@@ -119,6 +121,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			modifiers: z.enum(["mac", "windows"]).optional(),
 			pageKeys: z.enum(["scroll", "move"]).optional(),
 			keyboard: z.enum(["follow", "windows"]).optional(),
+			iconNavigation: z.enum(["each", "roving"]).optional(),
 		})
 		.optional(),
 	contextMenu: z

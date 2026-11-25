@@ -305,20 +305,58 @@ export type ClassicyAppearanceLayout = {
 		 * How the icon view's selection answers the keyboard and modified
 		 * clicks. `"mac"` (the default, Mac OS 8's Finder, HIG7 pp.288-291):
 		 * Shift-, ⌘- or Control-click adds an icon to the selection or takes
-		 * it out; the paging keys scroll the window. `"windows"` (Windows
-		 * Explorer's list view; WIG Ch.5 "Selection", pp.38-45): Shift-click
-		 * and Shift with an arrow select from the anchor to the item, in the
-		 * view's order; Control-click adds or takes out one item; Home, End,
-		 * Page Up and Page Down select the first item, the last, and the
-		 * item a window's height above or below; and typing one letter again
-		 * goes to the next item starting with it. Under either, a click
-		 * selects one icon, an arrow the nearest icon its way, typing the
-		 * item whose name starts with what was typed (forgotten after a
-		 * second), a drag across empty space selects the icons it touches,
-		 * and a click on a selected icon's name, not followed by a second,
-		 * renames it.
+		 * it out, a selection rectangle drawn with any of them adds the icons
+		 * it touches, and the paging keys scroll the window. `"windows"`
+		 * (Windows Explorer's list view; WIG Ch.5 "Selection", pp.38-45):
+		 * Shift-click and Shift with an arrow, Home or End select the icons
+		 * whose top left lies in the rectangle spanned by the anchor's icon
+		 * and the item's, replacing the rest (comctl32's icon-view group
+		 * selection, `LISTVIEW_SetGroupSelection`); Control-click adds or
+		 * takes out one item and moves the anchor; Control with Shift keeps
+		 * the other selections and sets that rectangle's icons to the
+		 * anchor's state, the anchor staying (WIG p.39, as `selection.modifiers`
+		 * "windows" has it for a list); a selection rectangle drawn with Shift
+		 * adds the icons it touches, with Control (or ⌘) toggles them (the
+		 * symmetric difference, as Explorer's marquee inverts them), and with
+		 * neither selects them alone; Home, End, Page Up and Page Down select
+		 * the first item, the last, and the item a window's height above or
+		 * below; and typing one letter again goes to the next item starting
+		 * with it. Under either, a click selects one icon, an arrow the
+		 * nearest icon its way, typing the item whose name starts with what
+		 * was typed (forgotten after a second), a drag across empty space
+		 * selects the icons it touches, and a click on a selected icon's
+		 * name, not followed by a second, renames it.
 		 */
 		keys?: "mac" | "windows";
+		/**
+		 * What dragging a selected icon of the icon view carries. `"perIcon"`
+		 * (the default, today's rule): the icon pressed, alone, whatever else
+		 * is selected. `"view"` (Windows Explorer; WIG Ch.5 "Operations for a
+		 * Multiple Selection", p.44, "Direct Manipulation Transfers", p.66;
+		 * App. A Tables A.1-A.3): the view's whole selection, each selected
+		 * icon's image and label in the outline that follows the pointer,
+		 * moved together to the folder or desktop it is let go over
+		 * (`onMoveItems` gets every path), or, let go in its own folder,
+		 * every selected icon moved as far as the pointer went; the click
+		 * that ends such a drag leaves the selection as it is. The view keeps
+		 * one selection under either (a click selects an icon, a press on its
+		 * empty space clears it); this key decides only what a drag takes.
+		 */
+		iconSelection?: "perIcon" | "view";
+		/**
+		 * `true` (Windows Explorer; WIG Ch.5 "Region Selection", p.42; Ch.7
+		 * "List View Controls", p.123): the list view takes a selection
+		 * rectangle too, from a press on its empty space (below its last
+		 * row, never on a row or its column titles), selecting the rows whose
+		 * names it touches, live, as the icon view's does, with the same
+		 * modifiers (`keys`); and while either view's rectangle is drawn the
+		 * window scrolls toward an edge the pointer is near or past, a line
+		 * at a time at a held scroll arrow's rate, as a file drag scrolls
+		 * it. A press there clears the list's selection first unless Shift,
+		 * Control or ⌘ is held. Absent or `false`: the list view has no
+		 * rectangle, and the icon view's never scrolls the window.
+		 */
+		regionSelect?: boolean;
 	};
 	/**
 	 * How lists of files order their items (`ClassicyFileBrowser`'s views,
@@ -498,8 +536,24 @@ export type ClassicyAppearanceLayout = {
 		 * with a navigation key sets the anchor's range to the anchor's
 		 * state, the other selections staying. Leaving Add mode keeps the
 		 * selection; the next plain click or navigation key replaces it.
+		 * The file browser's icon view reads it too: under `"windows"` Space
+		 * selects the keyboard's icon alone and Control (or ⌘) with Space
+		 * toggles it, Return alone opening it (Space opens an icon under
+		 * `"follow"`), and the view is a list box of options (`role="listbox"`,
+		 * `aria-multiselectable`, each icon `role="option"` with
+		 * `aria-selected`) rather than a set of buttons.
 		 */
 		keyboard?: "follow" | "windows";
+		/**
+		 * How Tab reaches a view's icons (the file browser's icon view).
+		 * `"each"` (the default, today's rule): every icon is a Tab stop.
+		 * `"roving"` (Windows; WIG Ch.5 Table 5.1, pp.35-36, "Keyboard
+		 * Selection", p.43; Ch.7 "List View Controls", p.123: an icon view is
+		 * one field the arrows move inside): one icon is the view's Tab stop,
+		 * the one last pressed or moved to, else the first in the view's
+		 * order; the rest are reached by the arrows, Home, End and typing.
+		 */
+		iconNavigation?: "each" | "roving";
 	};
 	/**
 	 * When a contextual menu opens (`ClassicyContextualMenuProvider`).

@@ -276,13 +276,18 @@ describe("the Windows 98 appearance package", () => {
 	// keyboard row alone and Shift+F8 takes Add mode
 	// (`selection.keyboard` "windows", 5.16 / 5.18; pp.43-44), and Control
 	// with an arrow scrolls a tree (`tree.keys` "windows", B.3; App. B
-	// Table B.1, p.357); a tab is
+	// Table B.1, p.357); a drag of the icon view's selection carries all of
+	// it (`fileBrowser.iconSelection` "view", 5.8 / 5.22 / A.1; WIG Ch.5
+	// p.44, p.66), the list view takes a selection rectangle and either
+	// view's scrolls the window (`fileBrowser.regionSelect`, 5.12; p.42),
+	// and an icon view is one Tab stop (`selection.iconNavigation`
+	// "roving", 5.17; Table 5.1, pp.35-36); a tab is
 	// chosen at the press, an icon waits 4 px before it moves and only
 	// button 1 drags (`mouse` "windows", 4.8-4.10; WIG Ch.4 "Mouse
 	// Actions", pp.24-25); and Escape takes a drag back
 	// (`input.escapeCancels`, 1.18 / 4.16; WIG Ch.1 "Forgiveness",
 	// pp.2-3; Ch.4 "Shortcut Keys", p.27).
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, lists selecting at the press and across a drag, Control with Shift adding a range and a double-click opening the selection, the page keys moving a list's row, Space, Control and Add mode building a selection, Windows' press discipline, Escape taking a drag back", async () => {
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, menus kept open and cascades on a time-out, access keys on every title, item and label, shortcuts spelled by name, scroll bars kept where the content fits and their thumbs snapping back past Windows' rectangle, one folder at a time in the file dialogs, flowing in columns, Explorer's selection keys, folders before files, dialogs centered on whole pixels, trees on the bare arrows, ToolTips at the pointer, button 2 selecting and its menus at the release, lists selecting at the press and across a drag, Control with Shift adding a range and a double-click opening the selection, the page keys moving a list's row, Space, Control and Add mode building a selection, a drag carrying the icon view's selection, the list view's selection rectangle, one Tab stop for the icons, Windows' press discipline, Escape taking a drag back", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
@@ -306,7 +311,11 @@ describe("the Windows 98 appearance package", () => {
 				saveName: "selected",
 				listFlow: "columns",
 			},
-			fileBrowser: { keys: "windows" },
+			fileBrowser: {
+				keys: "windows",
+				iconSelection: "view",
+				regionSelect: true,
+			},
 			fileList: { foldersFirst: true },
 			tree: { keys: "windows" },
 			balloonHelp: { placement: "pointer" },
@@ -317,6 +326,7 @@ describe("the Windows 98 appearance package", () => {
 				modifiers: "windows",
 				pageKeys: "move",
 				keyboard: "windows",
+				iconNavigation: "roving",
 			},
 			contextMenu: { openOn: "release" },
 			mouse: "windows",
