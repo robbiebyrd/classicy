@@ -4,6 +4,10 @@ import {
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { ClassicyAppearancePackageSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
+import {
+	resolveClassicyAsset,
+	resolveClassicyCursorHotspot,
+} from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	getAllThemes,
@@ -1422,6 +1426,7 @@ describe("the Windows 98 appearance package", () => {
 			input: { escapeCancels: true },
 			dialog: { flushInput: true },
 			icon: { aliasBadge: "everywhere" },
+			crashScreen: "fatalException",
 		});
 	});
 
@@ -1825,6 +1830,78 @@ describe("the Windows 98 appearance package", () => {
 			pdf: "PDF Document",
 		});
 		expect(Object.isFrozen(pkg?.fileTypeNames)).toBe(true);
+	});
+
+	// What lane 3 left (the audit's 1.14, 1.15, 10.4, 12.5, 12.6): the crash
+	// screen's text form, the drives' tip, the three bundled apps' tips,
+	// the document icons by type and the two pointers lane 4 added.
+	it("names the crash screen, the drives' and three apps' tips, the type icons and two pointers", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("windows98");
+		expect(pkg?.layout.crashScreen).toBe("fatalException");
+		expect(pkg?.desktopIcons?.drive).toEqual({
+			description: "Shows the files and folders on this disk.",
+		});
+		expect(pkg?.desktopIcons?.trash).toEqual({
+			name: "Recycle Bin",
+			description:
+				"Contains deleted items you can permanently remove or restore.",
+		});
+		expect(
+			Object.fromEntries(
+				["PDFViewer.app", "HyperCard.app", "DriveSetup.app"].map((id) => [
+					id,
+					pkg?.apps?.[id],
+				]),
+			),
+		).toEqual({
+			"PDFViewer.app": {
+				description:
+					"Opens PDF documents, and lets you zoom and scroll their pages.",
+			},
+			"HyperCard.app": {
+				description: "Opens, plays and edits HyperCard stacks.",
+			},
+			"DriveSetup.app": {
+				description:
+					"Initializes the startup disk or syncs it with its backend.",
+			},
+		});
+		for (const [type, stem] of [
+			["text_file", "shell32-152-32"],
+			["image", "kodakimg-129-32"],
+			["video", "quartz-100-32"],
+			["audio", "quartz-200-32"],
+		])
+			expect(
+				resolveClassicyAsset(
+					"icons",
+					`system.files.byType.${type}`,
+					"windows98",
+				),
+				type,
+			).toMatch(new RegExp(`/${stem}\\.webp$`));
+		for (const type of ["markdown", "pdf", "stack"])
+			expect(
+				resolveClassicyAsset(
+					"icons",
+					`system.files.byType.${type}`,
+					"windows98",
+				),
+				type,
+			).toBeUndefined();
+		expect(resolveClassicyAsset("cursors", "notAllowed", "windows98")).toMatch(
+			/\/user-cursor-110\.png$/,
+		);
+		expect(resolveClassicyCursorHotspot("notAllowed", "windows98")).toEqual([
+			15, 15,
+		]);
+		expect(resolveClassicyAsset("cursors", "appStarting", "windows98")).toMatch(
+			/\/user-cursor-111\.png$/,
+		);
+		expect(resolveClassicyCursorHotspot("appStarting", "windows98")).toEqual([
+			0, 0,
+		]);
 	});
 
 	// The exported data is a frozen copy: editing it edits no registered theme.

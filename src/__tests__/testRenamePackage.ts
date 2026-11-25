@@ -27,13 +27,17 @@ export const TEST_DESKTOP_ICONS = {
 		icon: TEST_STARTUP_DISK_ICON,
 		description: "Shows what is on this computer.",
 	},
+	drive: {
+		description: "Shows what is on this disk.",
+	},
 } as const;
 
 /**
  * Registers `test-rename`, an Appearance Package with no CSS and Platinum's
  * layout whose `apps` renames and re-icons Movie Player (with balloon copy)
  * and renames the host app `TV.app`; with `{ desktopIcons: true }`, its
- * `desktopIcons` also relabels the Trash and the startup disk
+ * `desktopIcons` also relabels the Trash and the startup disk (and gives the
+ * other drives balloon copy)
  * (`TEST_DESKTOP_ICONS`). Tests that call it reset the registry afterwards
  * (`resetClassicyAppearancePackagesForTests`) and put Platinum back.
  */

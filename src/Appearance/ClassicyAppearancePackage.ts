@@ -1170,6 +1170,16 @@ export type ClassicyAppearanceLayout = {
 		 */
 		aliasBadge?: "desktop" | "everywhere";
 	};
+	/**
+	 * What `ClassicyCrashScreen` draws when a descendant throws. Absent or
+	 * `"sadMac"` (Mac OS 8 and System 7): the `sadMac` system art on black.
+	 * `"fatalException"` (Windows 98, WIG Ch.1 "Consistency", p.2): Windows'
+	 * own fatal-exception screen, VGA text in light gray on blue, with
+	 * vwin32.vxd's message (the class `classicyCrashScreenFatalException`).
+	 * Read at render with `getClassicyAppearanceLayout()`, store-free, so
+	 * the fallback stays self-contained.
+	 */
+	crashScreen?: "sadMac" | "fatalException";
 };
 
 /**
@@ -1387,8 +1397,8 @@ export type ClassicyDesktopIconOverride = {
 
 /**
  * The desktop's own icons a package may show by another name, image or
- * balloon copy (`desktopIcons`): the Trash (Windows 98's Recycle Bin) and the
- * startup disk (its My Computer).
+ * balloon copy (`desktopIcons`): the Trash (Windows 98's Recycle Bin), the
+ * startup disk (its My Computer) and the other drives (balloon copy only).
  */
 export type ClassicyDesktopIconOverrides = {
 	/**
@@ -1401,6 +1411,12 @@ export type ClassicyDesktopIconOverrides = {
 	 * its label, image and balloon copy. Other drives keep theirs.
 	 */
 	startupDisk?: ClassicyDesktopIconOverride;
+	/**
+	 * Every other drive's desktop icon (`kind: "drive"`, the startup disk
+	 * too while the package declares no `startupDisk`): its balloon copy, in
+	 * place of the kind's stock copy. Its label and image stay its own.
+	 */
+	drive?: Pick<ClassicyDesktopIconOverride, "description">;
 };
 
 /**

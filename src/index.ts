@@ -236,6 +236,7 @@ export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
 export * from "./SystemFolder/SystemResources/File/ClassicyFileSystemValidation";
 export * from "./SystemFolder/SystemResources/File/ClassicyTrash";
+export * from "./SystemFolder/SystemResources/File/ClassicyTrashName";
 export * from "./SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 export * from "./SystemFolder/SystemResources/File/useClassicyDisplayFileName";
 export * from "./SystemFolder/SystemResources/File/useResolvedMediaSource";

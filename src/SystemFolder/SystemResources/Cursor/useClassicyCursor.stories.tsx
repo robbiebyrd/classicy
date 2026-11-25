@@ -63,12 +63,15 @@ const cursorNames: ClassicyCursorRole[] = [
 	"resizeL",
 	"resizeR",
 	"help",
+	"notAllowed",
+	"appStarting",
 ];
 
 /**
  * Every cursor role, one button each, so the full set can be compared. Platinum
- * registers no cursor for `ibeam`, `crosshair`, `resizeNwse`, `resizeNesw` or
- * `help` (What's This?'s pointer, which Mac OS 8 never had), so those buttons
+ * registers no cursor for `ibeam`, `crosshair`, `resizeNwse`, `resizeNesw`,
+ * `help` (What's This?'s pointer, which Mac OS 8 never had), `notAllowed` or
+ * `appStarting` (Windows' Unavailable and Working in Background), so those buttons
  * restore the default. Remember to Reset afterwards — the
  * cursor stays until changed.
  */

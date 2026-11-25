@@ -406,8 +406,21 @@ Each `ClassicyCursorRole`, registered with `registerClassicyCursors` at its reso
 | `resizeL` | Horizontal Resize | `user.exe` cursor 107 | `cursors/user-cursor-107.png` | 16, 16 | no one-way cursor in Windows |
 | `resizeR` | Horizontal Resize | `user.exe` cursor 107 | `cursors/user-cursor-107.png` | 16, 16 | no one-way cursor in Windows |
 | `help` | Help Select | `user.exe` cursor 112 | `cursors/user-cursor-112.png` | 5, 7 | the arrow with a question mark, over the active window while What's This? is on |
+| `notAllowed` | Unavailable | `user.exe` cursor 110 | `cursors/user-cursor-110.png` | 15, 15 | the slashed circle over a place a drag cannot drop (`data-classicy-drop="none"`); registered by `windows98AssetAdditions.ts` |
+| `appStarting` | Working in Background | `user.exe` cursor 111 | `cursors/user-cursor-111.png` | 0, 0 | the arrow with a small hourglass while a PDF loads behind its window; registered by `windows98AssetAdditions.ts` |
 
-USER.EXE's other cursors have no role: Up Arrow (Alternate Select, 104), Move (109), Unavailable (110), Working in Background (111) and Handwriting (113). The CD's loose cursor files are the other schemes' (Windows Standard large and extra large, Windows Black and Windows Inverted, each at three sizes: `arrow_l.cur`, `arrow_m.cur`, `arrow_r.cur`, `cross_i.cur`, …), the animated cursors (`appstart.ani`, `globe.ani`, …) and the Desktop Themes', none of them the default scheme's.
+USER.EXE's other cursors have no role: Up Arrow (Alternate Select, 104), Move (109) and Handwriting (113). The CD's loose cursor files are the other schemes' (Windows Standard large and extra large, Windows Black and Windows Inverted, each at three sizes: `arrow_l.cur`, `arrow_m.cur`, `arrow_r.cur`, `cross_i.cur`, …), the animated cursors (`appstart.ani`, `globe.ani`, …) and the Desktop Themes', none of them the default scheme's.
+
+## Document icons by type
+
+The icons `iconImageByType` draws for an entry of a file type before the generic page (`system.files.byType.<type>`, registered by `src/assets/windows98AssetAdditions.ts`, `WINDOWS98_FILE_TYPE_ICON_FILES`): each type Windows 98 registered a handler's document icon for (WIG Ch.10 "Registering Icons", p.200, Figure 10.1). Markdown, PDF and HyperCard stacks had no Windows 98 handler, so they keep `system.files.file` (`shell32.dll` #1), as an unregistered type did. An entry that stores its own `_icon` keeps it.
+
+| Type | Windows 98 SE resource | Files | Source of the choice |
+| --- | --- | --- | --- |
+| `text_file` | `shell32.dll` icon group 152, the text document | `shell32-152-32.webp`, `shell32-152-16.webp` | `txtfile` DefaultIcon `shell32.dll,-152` (`shell.inf`) |
+| `image` | `kodakimg.exe` icon group 129, Imaging's document | `kodakimg-129-32.webp`, `kodakimg-129-16.webp` | `Imaging.Document` DefaultIcon `KodakImg.Exe,1` (`imagevue.inf`); Picture Viewer is Imaging |
+| `video` | `quartz.dll` icon group 100, the video clip | `quartz-100-32.webp`, `quartz-100-16.webp` | the `.avi` `MediaType.Icon` `quartz.dll,-100` Media Player registered (`amovie.inf`); the older `avifile` DefaultIcon names `mplayer.exe`, which the CD does not hold |
+| `audio` | `quartz.dll` icon group 200, the sound clip | `quartz-200-32.webp`, `quartz-200-16.webp` | the `.wav` `MediaType.Icon` `quartz.dll,-200` (`amovie.inf`); the Movie Player is Media Player |
 
 ## Fonts
 
@@ -529,15 +542,18 @@ The package's `apps` overrides (`ClassicyAppIdentityOverride`), display only: th
 | `MoviePlayer.app` | Media Player | — (`system.quicktime.player`: `mplayer2.exe` #110) | Plays audio, video and animation files. | `MPlayerLinkDesc` |
 | `PictureViewer.app` | Imaging | — (`applications.pictureViewer.app`: `kodakimg.exe` #128) | Opens, views and prints pictures. | `IMAGEVUE_LINK` |
 | `WebViewer.app` | Internet Explorer | — (`applications.internetExplorer.globe`: `iexplore.exe` #32528) | Displays pages on the World Wide Web or your corporate intranet, or connects you to the Internet. | Windows 98's own (`Browser_Infotip`) |
-| `PDFViewer.app` | — | — (`system.files.document`: `shell32.dll` #2) | — | Windows 98 had no PDF viewer |
-| `HyperCard.app` | — | — (`system.files.application`: `shell32.dll` #3) | — | no Windows counterpart |
-| `DriveSetup.app` | — | — (`system.drives.disk`: `shell32.dll` #9) | — | Windows 98 set disks up with MS-DOS's FDISK and FORMAT; no windowed program did Drive Setup's job |
+| `PDFViewer.app` | — | — (`system.files.document`: `shell32.dll` #2) | Opens PDF documents, and lets you zoom and scroll their pages. | Windows 98 had no PDF viewer; the tip is written verb first, as Windows' own (WIG Ch.12 p.275) |
+| `HyperCard.app` | — | — (`system.files.application`: `shell32.dll` #3) | Opens, plays and edits HyperCard stacks. | no Windows counterpart; the tip is written verb first |
+| `DriveSetup.app` | — | — (`system.drives.disk`: `shell32.dll` #9) | Initializes the startup disk or syncs it with its backend. | Windows 98 set disks up with MS-DOS's FDISK and FORMAT; no windowed program did Drive Setup's job; the tip is written verb first |
 
 ## Desktop icons
 
-The package's `desktopIcons` (`ClassicyDesktopIconOverrides`), display only: the icons' records, paths, analytics and saved state keep their own names. Windows 98 put no drive on its desktop, only My Computer, its way to the disks, so the startup disk is shown as My Computer. The tips are written from Windows 98 (the desktop's tips are not in the CD's string tables).
+The package's `desktopIcons` (`ClassicyDesktopIconOverrides`), display only: the icons' records, paths, analytics and saved state keep their own names. Windows 98 put no drive on its desktop, only My Computer, its way to the disks, so the startup disk is shown as My Computer. The Recycle Bin's and My Computer's tips are Windows 98's own (below); the other drives' are written in their voice.
 
 | Icon | Name | Icon image | Description |
 | --- | --- | --- | --- |
-| `trash` | Recycle Bin | — (the `trashEmpty`/`trashFull` art) | Contains the files and folders that you have deleted. |
+| `trash` | Recycle Bin | — (the `trashEmpty`/`trashFull` art) | Contains deleted items you can permanently remove or restore. |
 | `startupDisk` | My Computer | `explorer.exe` #100 (`explorer-100-32.webp`, the `system.mac` key's) | Displays the contents of your computer. |
+| `drive` | — | — (its own drive icon) | Shows the files and folders on this disk. |
+
+Every other drive's balloon copy (`drive`, description only): Windows 98 put no drive on its desktop and gave a drive no tip (neither `shell32.dll`, `shdoc401.dll` nor `shdocvw.dll` holds one, nor any `InfoTip` the CD's INF files write), so it is written in the voice of the others. The Recycle Bin's and My Computer's are Windows 98's own InfoTips, read from the setup INF `shell32.dll` carries (`RECYCLEBIN_IT`, `MYCOMPUTER_IT`).

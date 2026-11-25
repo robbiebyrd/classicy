@@ -23,6 +23,7 @@ import {
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { decodeClassicyWebp } from "../../../../../bin/classicyWebp";
+import { WINDOWS98_FILE_TYPE_ICON_FILES } from "./windows98AssetAdditions";
 import { WINDOWS98_SYSTEM_ART, windows98IconFile } from "./windows98Assets";
 import {
 	WINDOWS98_ICON_FILES,
@@ -111,7 +112,9 @@ afterEach(() => switchPackage(PLATINUM));
 describe("Windows 98's assets", () => {
 	describe("files", () => {
 		it("are WebP: no PNG, JPG, BMP, GIF or ICO is left in icons/ or art/", () => {
-			expect(webps.length).toBe(148);
+			// Lane 3's 148 and the four document icons by type
+			// (windows98AssetAdditions.ts: kodakimg #129 and quartz #200).
+			expect(webps.length).toBe(152);
 			for (const dir of ["icons", "art"])
 				expect(
 					readdirSync(path.join(assets, dir)).filter((file) =>
@@ -157,11 +160,12 @@ describe("Windows 98's assets", () => {
 			}
 		});
 
-		it("ships every icon a key, a leaf of its own or the system art names, and no other", () => {
+		it("ships every icon a key, a leaf of its own, a file type or the system art names, and no other", () => {
 			const named = new Set(
 				[
 					...Object.values(WINDOWS98_ICON_FILES),
 					...Object.values(WINDOWS98_OWN_ICON_FILES),
+					...Object.values(WINDOWS98_FILE_TYPE_ICON_FILES),
 				].flatMap(({ src, small }) => (small ? [src, small] : [src])),
 			);
 			for (const source of Object.values(WINDOWS98_SYSTEM_ART)) {

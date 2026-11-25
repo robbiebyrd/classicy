@@ -33,7 +33,7 @@ export const TEST_WINDOWS_KEYS_LAYOUT: ClassicyAppearanceLayout = {
 /**
  * Registers `test-windows-keys` (no CSS, Platinum's default theme,
  * `TEST_WINDOWS_KEYS_LAYOUT` with `layout` spread over it, and the optional
- * package fields `extra`, such as `fileTypeNames`) and makes it the store's
+ * package fields `extra`, such as `fileTypeNames` or `desktopIcons`) and makes it the store's
  * active package. The returned function puts the previous package back and
  * unregisters it.
  */
@@ -41,7 +41,7 @@ export const activateTestWindowsKeysPackage = (
 	layout: Partial<ClassicyAppearanceLayout> = {},
 	extra: Pick<
 		Partial<ClassicyAppearancePackage>,
-		"fileTypeNames" | "apps"
+		"fileTypeNames" | "apps" | "desktopIcons"
 	> = {},
 ): (() => void) => {
 	const previous = useAppManager.getState().System.Manager.Appearance.packageId;

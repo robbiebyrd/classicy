@@ -148,6 +148,10 @@ const PLATINUM_CURSORS: Record<ClassicyCursorRole, boolean> = {
 	// The contextual Help pointer of Windows' What's This? (WIG Ch.12
 	// "Context-Sensitive Help", p.273): Mac OS 8 had no such mode.
 	help: false,
+	// Windows' Unavailable and Working in Background pointers (WIG Ch.4
+	// Table 4.1), read only by the Windows 98 package's stylesheet.
+	notAllowed: false,
+	appStarting: false,
 };
 
 describe("Platinum cursors", () => {

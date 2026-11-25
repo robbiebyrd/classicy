@@ -12,6 +12,10 @@ import { getClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/Cl
 import { WINDOWS98_SCREEN_SAVER_IDS } from "../screenSavers/windows98ScreenSavers";
 import { WINDOWS98_APPS, WINDOWS98_DESKTOP_ICONS } from "../windows98Apps";
 import { windows98SoundPack } from "./sounds/windows98";
+import {
+	WINDOWS98_CURSOR_ADDITIONS,
+	WINDOWS98_FILE_TYPE_ICON_FILES,
+} from "./windows98AssetAdditions";
 import { WINDOWS98_CURSORS, WINDOWS98_SYSTEM_ART } from "./windows98Assets";
 import { WINDOWS98_FONT_FACES } from "./windows98Fonts.internal";
 import { WINDOWS98_ICON_FILES, WINDOWS98_ICON_REUSE } from "./windows98Icons";
@@ -125,7 +129,10 @@ describe("docs/windows98-asset-inventory.md", () => {
 		expect(rows.map(([role]) => code(role))).toEqual(CURSOR_ROLES);
 		for (const [roleCell, , , file, hotspot] of rows) {
 			const role = code(roleCell) as ClassicyCursorRole;
-			const { src, hotspot: registered } = WINDOWS98_CURSORS[role];
+			const { src, hotspot: registered } = {
+				...WINDOWS98_CURSORS,
+				...WINDOWS98_CURSOR_ADDITIONS,
+			}[role];
 			expect(src, role).toMatch(
 				new RegExp(`/${code(file).replace(".", "\\.")}$`),
 			);
@@ -209,7 +216,10 @@ describe("docs/windows98-asset-inventory.md", () => {
 		);
 		for (const [iconCell, name, , description] of rows) {
 			const icon = code(iconCell) as keyof typeof WINDOWS98_DESKTOP_ICONS;
-			expect(WINDOWS98_DESKTOP_ICONS[icon]?.name, icon).toBe(name);
+			const override = WINDOWS98_DESKTOP_ICONS[icon] as
+				| { name?: string }
+				| undefined;
+			expect(override?.name, icon).toBe(name === "—" ? undefined : name);
 			expect(WINDOWS98_DESKTOP_ICONS[icon]?.description, icon).toBe(
 				description,
 			);
@@ -217,6 +227,23 @@ describe("docs/windows98-asset-inventory.md", () => {
 		expect(WINDOWS98_DESKTOP_ICONS.startupDisk?.icon).toMatch(
 			/\/explorer-100-32\.webp$/,
 		);
+	});
+
+	// The document icons registered by file type (`system.files.byType`,
+	// windows98AssetAdditions.ts): each row's files are what the type draws.
+	it("lists every document icon by type, each drawing its files", () => {
+		const rows = sectionRows("Document icons by type");
+		expect(rows.map(([type]) => code(type))).toEqual(
+			Object.keys(WINDOWS98_FILE_TYPE_ICON_FILES),
+		);
+		for (const [typeCell, , files] of rows) {
+			const { src, small } = WINDOWS98_FILE_TYPE_ICON_FILES[code(typeCell)] ?? {
+				src: "",
+			};
+			expect(codes(files), code(typeCell)).toEqual(
+				[src, small].filter(Boolean).map((stem) => `${stem}.webp`),
+			);
+		}
 	});
 
 	it("lists every wallpaper, its CD bitmap, size and file, in the Display control panel's order", () => {

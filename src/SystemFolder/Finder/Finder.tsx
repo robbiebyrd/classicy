@@ -124,6 +124,7 @@ import {
 	useClassicyStoredTrashIcon,
 	useClassicyTrashIcon,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
+import { useClassicyTrashName } from "@/SystemFolder/SystemResources/File/ClassicyTrashName";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
@@ -270,6 +271,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	// The user's own shortcuts (`keyboard.editableShortcuts`; WIG Ch.4
 	// "Shortcut Keys", p.27), under the ids the desktop's menus share.
 	const shortcut = useClassicyMenuItemShortcuts();
+	// The Trash as the package names it (Windows 98's Recycle Bin, 1.15):
+	// its window's title and the Special menu's Empty.
+	const trashName = useClassicyTrashName();
 	// The browser's selection, for File ▸ Move To Trash and Restore.
 	const commandsRef = useRef<ClassicyFileBrowserCommands | null>(null);
 	const inTrash = isInClassicyTrash(fs, op);
@@ -643,6 +647,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				menuChildren: classicySpecialMenuItems(
 					desktopEventDispatch,
 					`${appId}_${op}`,
+					trashName,
 				),
 			},
 			{
@@ -691,13 +696,16 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			copyItems,
 			pasteMenuItems,
 			shortcut,
+			trashName,
 		],
 	);
 
 	return (
 		<ClassicyWindow
 			id={op}
-			title={dir._name}
+			// The Trash's window is titled with its name as the package shows
+			// it; its folder keeps its stored name.
+			title={op === CLASSICY_TRASH_PATH ? trashName : dir._name}
 			// The Trash draws the active package's art at render, as its desktop
 			// icon does, not the `_icon` stored with the folder; with no Trash
 			// art registered, that `_icon`, else the directory icon.
@@ -807,8 +815,9 @@ const FinderDeleteConfirmation: FunctionalComponent<{
 	trust: "trusted" | "untrusted";
 }> = ({ appId, fs, paths, trust }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
+	const trashName = useClassicyTrashName();
 	const present = paths.filter((path) => fs.resolve(path));
-	const { title, message } = classicyDeleteConfirmation(fs, present);
+	const { title, message } = classicyDeleteConfirmation(fs, present, trashName);
 	return (
 		<ClassicyAlert
 			id={"finder_confirm_delete"}
@@ -1126,6 +1135,7 @@ export const Finder = () => {
 	// Trash icon — which shows full while anything is in it. The desktop icon
 	// and the Trash window draw the active package's art at render.
 	const trashIcon = useClassicyTrashIcon(listClassicyTrashItems(fs).length > 0);
+	const trashName = useClassicyTrashName();
 	// The folder stores the default package's art, never the active one's, so
 	// a package switch writes nothing. Runs on every tree change (`fs` is
 	// handed out afresh), so it must stay idempotent: it writes only to create
@@ -1166,7 +1176,13 @@ export const Finder = () => {
 				},
 				{
 					id: "finder_trash_empty",
-					title: "Empty Trash",
+					// Named after the Trash as the package shows it: "Empty
+					// Recycle Bin" under Windows 98 (1.15), its access key B
+					// (shell32.dll's "Empty Recycle &Bin").
+					title: `Empty ${trashName}`,
+					...(ak("b") !== undefined && /b/i.test(trashName)
+						? { accessKey: ak("b") }
+						: {}),
 					confirms: true,
 					onClickFunc: () =>
 						desktopEventDispatch({
@@ -1203,7 +1219,7 @@ export const Finder = () => {
 					: []),
 			],
 		});
-	}, [trashIcon, desktopEventDispatch, ak, windowsCommands]);
+	}, [trashIcon, desktopEventDispatch, ak, windowsCommands, trashName]);
 
 	const trashItems = useCallback(
 		(paths: string[]) => {

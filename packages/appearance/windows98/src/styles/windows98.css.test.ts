@@ -785,14 +785,20 @@ describe("windows98.scss (compiled)", () => {
 			const dragging = `${root}[data-classicy-drop]`;
 			expect(ruleAt(dragging)).toContain("cursor: default");
 			expect(ruleAt(`${dragging} *`)).toContain("cursor: default");
+			// The refused drop's pointer is Windows 98's own Unavailable (the
+			// `notAllowed` role, USER.EXE's cursor 110), the host's `no-drop`
+			// behind it; USER.EXE has no copy or link pointer.
+			const notAllowed =
+				'cursor: var(--classicy-cursor-not-allowed, url("data:,")) var(--classicy-cursor-not-allowed-hotspot, 0 0), no-drop';
 			for (const [value, cursor] of [
-				["none", "no-drop"],
-				["copy", "copy"],
-				["link", "alias"],
+				["none", notAllowed],
+				["copy", "cursor: copy"],
+				["link", "cursor: alias"],
 			]) {
 				const effect = `${root}[data-classicy-drop=${value}]`;
-				expect(ruleAt(effect)).toContain(`cursor: ${cursor}`);
-				expect(ruleAt(`${effect} *`)).toContain(`cursor: ${cursor}`);
+				const flatRule = (text: string) => text.replace(/\s+/g, " ");
+				expect(flatRule(ruleAt(effect))).toContain(cursor);
+				expect(flatRule(ruleAt(`${effect} *`))).toContain(cursor);
 				expect(css.indexOf(effect)).toBeGreaterThan(css.indexOf(dragging));
 			}
 			// After every other pointer rule in the sheet: only its own four
@@ -1393,8 +1399,10 @@ describe("windows98.scss (compiled)", () => {
 			expect(rule(`${scope} .classicyStartupScreenExtensions`)).toContain(
 				"display: none",
 			);
-			expect(rule(`${scope} .pdfViewerDocumentLoading`)).toContain(
-				"cursor: progress",
+			// Windows 98's own Working in Background (the `appStarting` role,
+			// USER.EXE's cursor 111), the host's `progress` behind it.
+			expect(flat(rule(`${scope} .pdfViewerDocumentLoading`))).toContain(
+				registry("app-starting", "progress", "0 0"),
 			);
 		});
 

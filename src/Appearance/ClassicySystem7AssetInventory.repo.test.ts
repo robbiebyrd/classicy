@@ -148,6 +148,7 @@ describe("System 7 asset inventory", () => {
 		// A key built at run time (`system.extensions.${name}`) reads some
 		// leaf under its fixed prefix: the prefix must be a branch of the
 		// icon tree, every leaf of which the first test above holds listed.
+		const PACKAGE_ONLY_ICON_FAMILY = "system.files.byType.";
 		it("reads every templated icon key under a branch of the icon tree", () => {
 			const prefixes = new Set<string>();
 			for (const file of globSync(
@@ -164,6 +165,15 @@ describe("System 7 asset inventory", () => {
 					prefixes.add(m[1] ?? "");
 			}
 			expect(prefixes.size).toBeGreaterThan(0);
+			// `system.files.byType.<type>` is an optional family the core tree
+			// does not hold: a package registers a type's document icon there,
+			// and `iconImageByType` falls back to `system.files.file` without
+			// one (the audit's 10.4). System 7 registers none.
+			expect(prefixes.has(PACKAGE_ONLY_ICON_FAMILY)).toBe(true);
+			prefixes.delete(PACKAGE_ONLY_ICON_FAMILY);
+			expect(
+				treeKeys.some((key) => key.startsWith(PACKAGE_ONLY_ICON_FAMILY)),
+			).toBe(false);
 			const listed = keysOf(rows(), "Key");
 			for (const prefix of prefixes) {
 				expect(prefix, prefix).toMatch(/^[a-zA-Z]+(\.[a-zA-Z0-9]+)*\.$/);

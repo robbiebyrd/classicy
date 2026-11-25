@@ -19,7 +19,7 @@ import { windows98IconFile } from "./assets/windows98Assets";
  * (assets/windows98Icons.ts), so only the Finder, whose icon is the OS
  * emblem's key, names an icon: Windows Explorer's (explorer.exe #101). The
  * PDF viewer, HyperCard and Drive Setup had no Windows 98 counterpart and
- * keep their names.
+ * keep their names, with verb-first descriptions of their own.
  */
 export const WINDOWS98_APPS: Readonly<
 	Record<string, ClassicyAppIdentityOverride>
@@ -79,6 +79,19 @@ export const WINDOWS98_APPS: Readonly<
 		description:
 			"Displays pages on the World Wide Web or your corporate intranet, or connects you to the Internet.",
 	},
+	// Apps Windows 98 had no counterpart for keep their names, but their
+	// tips start with a verb, in common terms, as Windows' own did (WIG
+	// Ch.12 "Guidelines for Writing Context-Sensitive Help", p.275).
+	"PDFViewer.app": {
+		description:
+			"Opens PDF documents, and lets you zoom and scroll their pages.",
+	},
+	"HyperCard.app": {
+		description: "Opens, plays and edits HyperCard stacks.",
+	},
+	"DriveSetup.app": {
+		description: "Initializes the startup disk or syncs it with its backend.",
+	},
 };
 
 /**
@@ -86,17 +99,26 @@ export const WINDOWS98_APPS: Readonly<
  * Bin (its art is the package's `trashEmpty`/`trashFull`, the Recycle Bin's),
  * and the startup disk My Computer, with My Computer's icon (explorer.exe
  * #100): Windows 98 put no drive on its desktop, only My Computer, its way
- * to the disks. The tips are written from Windows 98 (the desktop's tips
- * are not in the CD's string tables).
+ * to the disks. The Recycle Bin's and My Computer's tips are Windows 98's own
+ * InfoTips (`RECYCLEBIN_IT` and `MYCOMPUTER_IT`, in the setup INF
+ * `shell32.dll` carries).
  */
 export const WINDOWS98_DESKTOP_ICONS: Readonly<ClassicyDesktopIconOverrides> = {
 	trash: {
 		name: "Recycle Bin",
-		description: "Contains the files and folders that you have deleted.",
+		description:
+			"Contains deleted items you can permanently remove or restore.",
 	},
 	startupDisk: {
 		name: "My Computer",
 		icon: windows98IconFile("explorer-100-32"),
 		description: "Displays the contents of your computer.",
+	},
+	// Every other drive's tip (the startup disk is My Computer). Windows 98
+	// put no drive on its desktop and gave a drive no tip (neither shell32,
+	// shdoc401 nor shdocvw holds one, nor any InfoTip the CD's INF files
+	// write), so it is written in the voice of the others (WIG Ch.12 p.275).
+	drive: {
+		description: "Shows the files and folders on this disk.",
 	},
 };

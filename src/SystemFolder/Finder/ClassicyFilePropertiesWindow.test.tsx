@@ -311,4 +311,50 @@ describe("ClassicyFilePropertiesWindow", () => {
 		expect(fs.resolve(`${DOCS}:Ideas.txt`)).toBeDefined();
 		expect(sheets()).toEqual([]);
 	});
+
+	// The audit's 1.15: the Trash's sheet and its items' Location name it as
+	// the package shows it (Windows 98's Recycle Bin), display only.
+	it("names the Trash, and its items' Location, the package's way", () => {
+		restore = activateTestWindowsKeysPackage(
+			{},
+			{ desktopIcons: { trash: { name: "Recycle Bin" } } },
+		);
+		const fs = seed();
+		fs.mkDir("Trash");
+		fs.writeFile("Trash:Old.txt", "old");
+		openSheet(["Trash"]);
+		const { unmount } = render(
+			<ClassicyFilePropertiesWindow
+				appId={"Finder.app"}
+				fs={fs}
+				paths={["Trash"]}
+			/>,
+		);
+		expect(screen.getByText("Recycle Bin Properties")).toBeInTheDocument();
+		expect(fs.resolve("Trash")).toBeDefined();
+		unmount();
+		openSheet(["Trash:Old.txt"]);
+		render(
+			<ClassicyFilePropertiesWindow
+				appId={"Finder.app"}
+				fs={fs}
+				paths={["Trash:Old.txt"]}
+			/>,
+		);
+		expect(rowValue("Location:")).toBe("Recycle Bin");
+	});
+
+	it("keeps the Trash's own name without a name of the package's", () => {
+		const fs = seed();
+		fs.mkDir("Trash");
+		openSheet(["Trash"]);
+		render(
+			<ClassicyFilePropertiesWindow
+				appId={"Finder.app"}
+				fs={fs}
+				paths={["Trash"]}
+			/>,
+		);
+		expect(screen.getByText("Trash Properties")).toBeInTheDocument();
+	});
 });

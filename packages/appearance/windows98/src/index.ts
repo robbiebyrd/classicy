@@ -41,6 +41,10 @@ import "./assets/sounds/windows98";
 // wallpapers and desktop patterns, from the Windows 98 Second Edition CD, and
 // its interface font (docs/windows98-asset-inventory.md).
 import "./assets/windows98Assets";
+// Registers at module load, after it: the document icons by file type
+// (`system.files.byType`) and the Unavailable and Working in Background
+// pointers.
+import "./assets/windows98AssetAdditions";
 // Registers at module load: Windows 98's screen savers, before the package,
 // whose `defaultScreenSaver` names one of them.
 import "./screenSavers/windows98ScreenSavers";
@@ -57,6 +61,10 @@ import { windows98FileTypeNames } from "./windows98FileTypeNames";
 import { readWindows98ThemeFile } from "./windows98ThemeFile";
 
 export * from "./assets/sounds/windows98";
+export {
+	WINDOWS98_CURSOR_ADDITIONS,
+	WINDOWS98_FILE_TYPE_ICON_FILES,
+} from "./assets/windows98AssetAdditions";
 export {
 	WINDOWS98_CURSORS,
 	WINDOWS98_SYSTEM_ART,

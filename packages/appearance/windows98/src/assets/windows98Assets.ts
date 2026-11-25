@@ -178,10 +178,15 @@ const verticalResize = userCursor(108, [15, 16]);
  * `resizeR` the horizontal one. Help Select, the arrow with a question mark,
  * is the What's This? pointer (`help`). The package's stylesheet gives the size grip
  * the diagonal cursor (`resizeNwse`), as Windows did, where the base reads the
- * Mac grow box's `resizeLr`.
+ * Mac grow box's `resizeLr`. The roles added after this registration,
+ * `notAllowed` and `appStarting`, are registered by `windows98AssetAdditions.ts`
+ * (`WINDOWS98_CURSOR_ADDITIONS`).
  */
 export const WINDOWS98_CURSORS: Readonly<
-	Record<ClassicyCursorRole, ClassicyCursorLeaf>
+	Record<
+		Exclude<ClassicyCursorRole, "notAllowed" | "appStarting">,
+		ClassicyCursorLeaf
+	>
 > = {
 	arrow: userCursor(100, [0, 0]),
 	watch: userCursor(102, [16, 16]),

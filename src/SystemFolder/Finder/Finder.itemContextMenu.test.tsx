@@ -838,3 +838,68 @@ describe("Finder's drop handler by the drop's effect", () => {
 		tidy(fs);
 	});
 });
+
+// The audit's 1.15: the Trash is named as the package shows it
+// (`desktopIcons.trash.name`, Windows 98's "Recycle Bin") on every surface
+// Finder draws, display only: its window's title, its icon's Empty (access
+// key B, shell32.dll's "Empty Recycle &Bin"), the Special menu's Empty and
+// Delete's question. Without a name of the package's, every one keeps
+// "Trash".
+describe("the Trash's name on Finder's surfaces", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+	const trashIcon = () =>
+		useAppManager
+			.getState()
+			.System.Manager.Desktop.icons.find((i) => i.appId === "Trash");
+	const emptyItem = () =>
+		trashIcon()?.contextMenu?.find((item) => item.id === "finder_trash_empty");
+	const windowTitles = () =>
+		[...document.querySelectorAll(".classicyWindowTitleText")].map(
+			(title) => title.textContent,
+		);
+
+	it("titles the window, Empty and Delete's question with the package's name", async () => {
+		restore = activateTestWindowsKeysPackage(
+			{ menu: { keys: "windows", accessKeys: "explicit" } },
+			{ desktopIcons: { trash: { name: "Recycle Bin" } } },
+		);
+		const fs = new ClassicyFileSystem();
+		fs.writeFile(`${DOCUMENTS}:Plan.txt`, "a");
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: DOCUMENTS });
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: "Trash" });
+		render(<Finder />);
+		await waitFor(() => expect(emptyItem()?.title).toBe("Empty Recycle Bin"));
+		expect(emptyItem()?.accessKey).toBe("b");
+		expect(emptyItem()?.confirms).toBe(true);
+		await waitFor(() => expect(windowTitles()).toContain("Recycle Bin"));
+		expect(windowTitles()).not.toContain("Trash");
+		// The folder keeps its own name and path.
+		expect(fs.resolve("Trash")).toBeDefined();
+		act(() =>
+			itemMenus[DOCUMENTS](`${DOCUMENTS}:Plan.txt`, [])
+				?.find((item) => item.title === "Delete")
+				?.onClickFunc?.(),
+		);
+		expect(
+			await screen.findByText(
+				"Are you sure you want to send 'Plan.txt' to the Recycle Bin?",
+			),
+		).toBeTruthy();
+	});
+
+	it("keeps Trash everywhere without a name of the package's", async () => {
+		restore = activateTestWindowsKeysPackage({
+			menu: { keys: "windows", accessKeys: "explicit" },
+		});
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: "Trash" });
+		render(<Finder />);
+		await waitFor(() => expect(emptyItem()?.title).toBe("Empty Trash"));
+		// "Empty Trash" has no B: no access key is given that the title lacks.
+		expect(emptyItem()?.accessKey).toBeUndefined();
+		await waitFor(() => expect(windowTitles()).toContain("Trash"));
+	});
+});

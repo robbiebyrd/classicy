@@ -30,6 +30,7 @@ import {
 	restoreClassicyFileSystemItems,
 	trashClassicyFileSystemItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { classicyTrashDisplayName } from "@/SystemFolder/SystemResources/File/ClassicyTrashName";
 
 /**
  * The folder whose contents are the desktop's files and folders — Mac OS 8's
@@ -404,9 +405,9 @@ const trashRefusalMessage = (
 ): string => {
 	switch (reason) {
 		case "locked":
-			return `“${name}” can’t be moved to the Trash, because it is locked or used by the system software.`;
+			return `“${name}” can’t be moved to the ${classicyTrashDisplayName()}, because it is locked or used by the system software.`;
 		default:
-			return `“${name}” could not be moved to the Trash.`;
+			return `“${name}” could not be moved to the ${classicyTrashDisplayName()}.`;
 	}
 };
 
@@ -500,7 +501,7 @@ const restoreRefusalMessage = (
 ): string => {
 	switch (reason) {
 		case "no-origin":
-			return `“${name}” can’t be restored, because the folder it came from no longer exists. Drag it out of the Trash instead.`;
+			return `“${name}” can’t be restored, because the folder it came from no longer exists. Drag it out of the ${classicyTrashDisplayName()} instead.`;
 		case "exists":
 			return `“${name}” can’t be restored, because an item with that name is already where it came from.`;
 		default:

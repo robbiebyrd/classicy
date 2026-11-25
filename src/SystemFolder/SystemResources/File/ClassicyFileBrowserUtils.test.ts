@@ -1,11 +1,18 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
-import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+} from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	registerClassicyAssets,
+	resolveClassicyAsset,
+} from "@/Appearance/ClassicyAssetRegistry";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { getClassicyFileTypeNames } from "@/Appearance/ClassicyFileTypeNames";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
@@ -19,6 +26,7 @@ import {
 	fileTypeDisplayName,
 	getGridPosition,
 	iconGridLattice,
+	iconImageByType,
 	readClassicyDesktopIconMetrics,
 	useClassicyFileTypeDisplayName,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
@@ -316,5 +324,48 @@ describe("classicyFreeIconCell", () => {
 				[64, 64],
 			),
 		).toBeUndefined();
+	});
+});
+
+// The audit's 10.4: a package may register a document icon per file type
+// (`system.files.byType.<type>`), which `iconImageByType` draws before the
+// generic file icon; Platinum and System 7 register none, so every type
+// draws `system.files.file`, as before.
+describe("iconImageByType", () => {
+	const BY_TYPE = "test-icons-by-type";
+	registerClassicyAssets("icons", BY_TYPE, {
+		system: {
+			files: {
+				file: "/by-type/generic.webp",
+				byType: { text_file: "/by-type/text.webp" },
+			},
+			folders: { directory: "/by-type/folder.webp" },
+		},
+	});
+
+	it("draws a type's own document icon when the package registers one", () =>
+		expect(iconImageByType("text_file", BY_TYPE)).toBe("/by-type/text.webp"));
+
+	it("draws the package's generic file icon for a type it has none for", () => {
+		expect(iconImageByType("video", BY_TYPE)).toBe("/by-type/generic.webp");
+		expect(iconImageByType("", BY_TYPE)).toBe("/by-type/generic.webp");
+		expect(iconImageByType("__proto__", BY_TYPE)).toBe("/by-type/generic.webp");
+	});
+
+	it("keeps the folder icon for a directory", () =>
+		expect(iconImageByType("directory", BY_TYPE)).toBe("/by-type/folder.webp"));
+
+	it("draws the core's generic file icon for every type without byType keys", () => {
+		const generic = resolveClassicyAsset(
+			"icons",
+			"system.files.file",
+			CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+		);
+		expect(generic).toBeTruthy();
+		for (const type of ["text_file", "image", "video", "audio", "file"])
+			expect(
+				iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
+				type,
+			).toBe(generic);
 	});
 });

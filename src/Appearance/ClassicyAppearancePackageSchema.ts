@@ -206,6 +206,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 	icon: z
 		.object({ aliasBadge: z.enum(["desktop", "everywhere"]).optional() })
 		.optional(),
+	crashScreen: z.enum(["sadMac", "fatalException"]).optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
 // Every ClassicyAssetKind, once. The `satisfies` and the check below fail the
@@ -429,8 +430,9 @@ const desktopIconDescription = overrideDescription
 
 /**
  * A package's `desktopIcons`: display overrides for the desktop's own icons,
- * the Trash (a label and balloon copy; its image is the package's Trash art)
- * and the startup disk (a label, image and balloon copy). The names follow
+ * the Trash (a label and balloon copy; its image is the package's Trash art),
+ * the startup disk (a label, image and balloon copy) and the other drives
+ * (balloon copy). The names follow
  * the `apps` rules. Unknown keys are refused at every level.
  */
 export const ClassicyDesktopIconOverridesSchema = z
@@ -452,6 +454,12 @@ export const ClassicyDesktopIconOverridesSchema = z
 			})
 			.optional()
 			.describe("The startup disk's (the first drive's) desktop icon."),
+		drive: z
+			.strictObject({ description: desktopIconDescription })
+			.optional()
+			.describe(
+				"Every other drive's desktop icon (the startup disk too without a startupDisk override): its balloon copy.",
+			),
 	})
 	.describe(
 		"A package's display overrides for the desktop's own icons. Display only: the icons' records, paths, analytics and saved state never change.",

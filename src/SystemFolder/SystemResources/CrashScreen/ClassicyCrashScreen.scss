@@ -21,3 +21,44 @@
 		image-rendering: pixelated;
 	}
 }
+
+/* Windows 98's fatal-exception screen (`layout.crashScreen:
+   "fatalException"`): VGA text mode, light gray (#AAAAAA, attribute 7) on
+   blue (#0000AA, attribute 1), its title inverted. Like the Sad Mac's black,
+   the colors are the screen's own, outside any theme, and the text is sized
+   in viewport units: 80 columns across most of the width, 25 rows down at
+   most. */
+.classicyCrashScreen.classicyCrashScreenFatalException {
+	color: #aaaaaa;
+	background: #0000aa;
+	cursor: default;
+
+	.classicyCrashScreenMessage {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		width: 80ch;
+		font-family: "Perfect DOS VGA 437", "Lucida Console", "Courier New",
+			monospace;
+		font-size: min(1.9vw, 3.4vh);
+		line-height: 1.2;
+		text-align: left;
+		white-space: pre;
+	}
+
+	.classicyCrashScreenTitle {
+		align-self: center;
+		color: #0000aa;
+		background: #aaaaaa;
+	}
+
+	.classicyCrashScreenLine {
+		display: block;
+		padding-inline-start: 2ch;
+	}
+
+	.classicyCrashScreenPrompt {
+		display: block;
+		align-self: center;
+	}
+}

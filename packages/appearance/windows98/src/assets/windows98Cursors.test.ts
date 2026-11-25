@@ -13,7 +13,15 @@ import {
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
 import { dispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { WINDOWS98_CURSORS } from "./windows98Assets";
+import { WINDOWS98_CURSOR_ADDITIONS } from "./windows98AssetAdditions";
+import { WINDOWS98_CURSORS as WINDOWS98_FIRST_CURSORS } from "./windows98Assets";
+
+// Every role's cursor: lane 3's registration and the roles added beside it
+// (windows98AssetAdditions.ts).
+const WINDOWS98_CURSORS = {
+	...WINDOWS98_FIRST_CURSORS,
+	...WINDOWS98_CURSOR_ADDITIONS,
+};
 
 // Windows 98's cursors (docs/windows98-asset-inventory.md, "Cursors"):
 // USER.EXE's system cursors, read from the Windows 98 SE CD, one per
@@ -64,9 +72,9 @@ afterEach(() => switchPackage(PLATINUM));
 
 describe("Windows 98's cursors", () => {
 	describe("files", () => {
-		it("are the ten USER.EXE cursors the roles draw", () =>
+		it("are the twelve USER.EXE cursors the roles draw", () =>
 			expect(files).toEqual(
-				[100, 101, 102, 103, 105, 106, 107, 108, 112, 114].map(
+				[100, 101, 102, 103, 105, 106, 107, 108, 110, 111, 112, 114].map(
 					(id) => `user-cursor-${id}.png`,
 				),
 			));
@@ -145,6 +153,10 @@ describe("Windows 98's cursors", () => {
 			["resizeR", "user-cursor-107", [16, 16]],
 			// Help Select, the arrow with a question mark: What's This?'s pointer.
 			["help", "user-cursor-112", [5, 7]],
+			// Unavailable, the slashed circle: a refused drop.
+			["notAllowed", "user-cursor-110", [15, 15]],
+			// Working in Background, the arrow with a small hourglass.
+			["appStarting", "user-cursor-111", [0, 0]],
 		] as const)("draws %s as %s at its hotspot %j", (role, stem, hotspot) => {
 			const src = resolveClassicyAsset("cursors", role, WINDOWS98) ?? "";
 			expect(stemOf(src)).toBe(stem);

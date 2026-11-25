@@ -240,7 +240,7 @@
 			"Tab",
 			"TabRight"
 		],
-		"CrashScreen": [],
+		"CrashScreen": ["FatalException", "Line", "Message", "Prompt", "Title"],
 		"DateAndTimeManager": [
 			"ButtonRow",
 			"Column",

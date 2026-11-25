@@ -1727,7 +1727,7 @@ plain integers (`0xRRGGBB`).
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
 | `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
 | `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `startupDisk? (false)`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination, target, effect)` moves the selection's items (`target` the drop target, its marked element included, for `activateClassicyDropWindow`; `effect` the drop's, `"move"` unless the package's `layout.transfer` made it `"copy"` or `"link"`, §8). `ClassicyDesktop` wires both callbacks. Under `layout.transfer.secondaryButton: "menu"` a file icon drags on button 2 too, ending in Windows 98 SE's transfer menu (`useClassicyFileDropMenu`); under `copyModifier: "ctrl"` Control at the release copies and Control and Shift make shortcuts; a copy or shortcut let go on the desktop itself is made by the icon (`transferClassicyFileSystemItems`), each new icon where its original's outline was let go. Under `layout.transfer.desktopIconDrag: "outline"` (Windows 98) an icon that stands for no file drags as an outline of the selected icons, which stay put until it is let go on the desktop (a folder, drive or the Trash refuses it); Escape or a lost pointer stream leaves them where they were. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. A `trash` icon, and a `drive` icon with `startupDisk` (`ClassicyDesktop` sets it on the first drive's), show the package's `desktopIcons` name, image and balloon copy instead (§8, "Desktop icon overrides"). The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, for the Trash and the startup disk the package's `desktopIcons` description, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon`. Right-clicking selects the icon (collapsing a multiple selection to it) before its `contextMenu` shows; under a package whose layout says `selection.secondaryButton: "select"` (§8; Windows 98, WIG Ch.5 pp.37-38) the button-2 press selects an unselected icon and a right-click on a selected one keeps the whole selection, so its menu acts on every selected icon (Finder's Move To Trash does), the icon still taking focus. A non-file icon follows the pointer from its first move on any button; under `mouse: "windows"` only button 1 drags it (button 2 selects it, the middle button and the others do nothing), and it moves only once the pointer is 4 px from the press, keeping where it was grabbed; under `input.escapeCancels`, Escape mid-drag moves it back where the press found it (`ClassicyDesktopIconMove`, so the selection it carried goes back too), ends the drag (`dragEnd` with `canceled: true`) and swallows the release's click. Under `selection.modifiers: "windows"` (WIG Ch.5 "Selection Adjustment", pp.38-39; App. A Tables A.2, A.3) a button-1 Control- or ⌘-click toggles it, a Shift-click selects the anchor's rectangle to it, both set that rectangle to the anchor's state, through `ClassicyDesktopIconSelect { iconId, mode: "toggle" \| "range" \| "addRange" }` (`classicyDesktopIconSelectMode`); the press's modifiers decide, an unselected icon taking the selection at the press (Table A.3, "CTRL+Press": selects) and a selected one at the click, so a drag from it, a file drag included, carries the selection, and a modified press never collapses the selection. Under `selection.keyboard: "windows"` it is `role="option"` with `aria-selected` (an option of the desktop's list box, `classicyDesktopListboxAttributes`): Space selects it alone (`ClassicyDesktopIconFocus`), Control or ⌘ with Space toggles it, Shift with Space extends to it, Option with Space does nothing, and the key stops there; Enter alone opens it. Under `selection.iconNavigation: "roving"` its `tabIndex` is 0 only while it is the desktop's focus icon (`classicyDesktopFocusIconId`: `Desktop.focusIcon`, else the first icon), else -1, and a press on a selected icon makes it the focus icon (`ClassicyDesktopIconMoveFocus`). Without the keys a modified click selects it alone, Space and Enter open it, and every icon is a Tab stop. A Desktop Folder item's name is edited in place while `startClassicyDesktopIconRename(appId)` (`Desktop/ClassicyDesktopIconRename.internal.ts`, session state outside the store) names it: the label becomes `classicyDesktopIconRename` (structure in the base sheet, Windows 98's list view edit control), Return or a click elsewhere renames the item (`renameClassicyFileSystemItem`, its refusals told as any rename's) and selects its icon under the new name, Escape cancels; Explorer's Rename and New on the desktop start it under `layout.finder.commands` "windows", and F2 on the one selected item under `layout.fileBrowser.keys` "windows". Under `layout.files.extensions: "hideRegistered"` a Desktop Folder item's label and its rename field show the name without a registered type's extension, the rename keeping it (`useClassicyDisplayFileName`). Under `layout.finder.commands: "windows"` Alt+Enter on the focused icon and an Alt double-click on it show its Properties (WIG App. B Table B.2, p.358; Ch.5 "View Shortcuts", p.47): the property sheet of the desktop's selection when the icon is in it, else of its item or application (`classicyDesktopIconPropertiesTarget`, `ClassicyAppFinderPropertiesOpen`), the key's default prevented and the icon not opened; without the key they do what Enter and a double-click do. A file or folder icon whose `filePath` the file clipboard holds as cut (Explorer's Cut, `useClassicyFileCut`, §7 "Cut, Copy and Paste") carries `classicyFileCut` until the Paste, another Cut or Copy, or Escape; only Windows 98's stylesheet draws it (the image blended with the Background) |
-| `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
+| `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen; under a package whose layout declares `crashScreen: "fatalException"` (§8; Windows 98) Windows' own fatal-exception screen instead (`CLASSICY_FATAL_EXCEPTION_SCREEN`: VGA text, light gray on blue, " Windows " inverted, vwin32.vxd's message, `classicyCrashScreenFatalException` with its parts `Title`, `Message`, `Line`, `Prompt`; the accessible name says the system crashed and a key restarts it). Either reloads on a click or any key. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
 | `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted. It no longer floats right: the menu bar places its clusters by flex `order`, so mounted in a container that is not a flex row it floats left |
@@ -2035,6 +2035,15 @@ registerClassicyWallpapers('platinum', [{ name: 'Bubbles', file: 'bubbles.png', 
 registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
 ```
 
+- **Document icons by type.** The icon tree's optional `system.files.byType`
+  family (`system.files.byType.<type>`, a `ClassicyFileSystemEntryFileType`
+  value) is the document icon of an entry of that type that stores none of
+  its own: `iconImageByType(type, packageId?)` reads it (the active or given
+  package, then the default package) before the generic
+  `system.files.file`. Platinum and System 7 register none, so every type
+  draws the generic page as before; Windows 98 registers the text document,
+  Imaging's, and the video and sound clips (WIG Ch.10 "Registering Icons",
+  p.200; the audit's 10.4).
 - **Deep merge.** Registration merges into the package's tree for that kind:
   new leaves are added, an existing leaf is replaced, and sibling entries are
   kept. `registerClassicyIcons({ system: { files: { document } } })` therefore
@@ -2260,8 +2269,9 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   active theme draws those keys differently.
   - **Store core URLs.** Code that stores an icon stores the core's
     (`resolveClassicyAsset("icons", path, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`,
-    `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`), never the
-    active package's, so the stored bytes are the same under every package
+    `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`, the
+    generic page, since the default package registers no
+    `system.files.byType` key), never the active package's, so the stored bytes are the same under every package
     and nothing keeps another package's art after a switch. The file system
     does this for new folders, the derived folders, the Desktop Folder's
     desktop icons, and the Open and Save dialogs' volumes (their entries'
@@ -2891,14 +2901,21 @@ own form table, `"image"` or `"pixelArt"` per key, is exhaustive the same way).
 
 `ClassicyCursorRole`: `arrow`, `watch`, `hand`, `ibeam`, `crosshair`,
 `resizeLr`, `resizeUd`, `resizeNwse`, `resizeNesw`, `resizeU`, `resizeD`,
-`resizeL`, `resizeR`, `help`. Platinum registers `arrow`, `watch`, `hand`, `resizeLr`,
+`resizeL`, `resizeR`, `help`, `notAllowed`, `appStarting`. Platinum registers `arrow`, `watch`, `hand`, `resizeLr`,
 `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR`; `ibeam`, `crosshair`,
 `resizeNwse` and `resizeNesw` have no Platinum file and stay unregistered, so
 the browser's own cursor shows for them. `help` is the contextual Help
 pointer What's This? shows over the active window (§4.8; WIG Ch.12 p.273,
 Figure 12.2), read as `--classicy-cursor-help` with the browser's `help`
 keyword behind it; Mac OS had no such mode, so neither Platinum nor System 7
-registers it.
+registers it. `notAllowed` (Windows' Unavailable, the slashed circle) and
+`appStarting` (Working in Background, the arrow with a small hourglass; WIG
+Ch.4 Table 4.1) are read only by the Windows 98 package's stylesheet (a
+refused drop's `data-classicy-drop="none"`, a loading PDF), as
+`--classicy-cursor-not-allowed` and `--classicy-cursor-app-starting` with
+the browser's `no-drop` and `progress` keywords behind them; Windows 98
+registers USER.EXE's cursors 110 and 111, and no Mac package registers
+either.
 
 `useClassicyCursor()` returns a stable `setCursor(role?)` that reads the role
 from the registry at call time and sets `document.body.style.cursor`; a role
@@ -3136,7 +3153,20 @@ Trash. Special menu:
 `ClassicyDesktopShowSystemDialog { dialog: "emptyTrash" | "resetPram" | null }`
 (`Desktop.systemDialog`, never persisted, like the refusal alerts'
 `Desktop.errorDialog`); `classicySpecialMenuItems(dispatch,
-idPrefix)` and `ClassicyEmptyTrashAlert` are the shared pieces. Once the
+idPrefix, trashName?)` and `ClassicyEmptyTrashAlert` are the shared pieces,
+each naming the Trash as the package shows it (`useClassicyTrashName`,
+Windows 98's "Recycle Bin", §8 "Desktop icon overrides"). Under
+`layout.finder.commands` "windows" the alert is Windows 98 SE's own
+confirmation (`classicyEmptyTrashConfirmation(itemCount, only?)`,
+shell32.dll's strings): one file "Confirm File Delete" / "Are you sure you
+want to delete '<name>'?", one folder "Confirm Folder Delete" / "Are you
+sure you want to remove the folder '<name>' and all its contents?", more
+"Confirm Multiple File Delete" / "Are you sure you want to delete these
+<n> items?", Yes (the default) and No, the lone item's original name read
+through the file system accessor; an empty Recycle Bin gets the note "The
+Recycle Bin is empty.", since Windows dimmed the command instead and the
+desktop renders the alert whenever it is asked for. Elsewhere it is worded
+as Mac OS 8 wrote it. Once the
 alert's OK removes something, the desktop plays `ClassicyTrashEmpty`
 (`ClassicySoundPlayInterrupt`), an optional sprite (§10): Windows 98's pack
 plays its Empty Recycle Bin sound, and a pack without it, Platinum's and
@@ -4016,7 +4046,7 @@ registerClassicyAppearancePackage({
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
 | `fileTypeNames` | `Partial<Record<ClassicyFileSystemEntryFileType, string>>`: the package's names for the file types (WIG Ch.10 "The Application Identifier Key", pp.197-198: title case, at most 40 characters; every word must begin with a character that is no lower-case letter, a display name's character rules apply, a key must be a type and none may be `__proto__`, `constructor` or `prototype`), shown in a list view's Kind column (`ClassicyFileBrowser`) and a property sheet's Type (`ClassicyFilePropertiesWindow`) in place of the core's ("Text file", "Directory", "Pdf"); a type it names not keeps the core's. Display only. Stored as a frozen copy, as `apps` is. Read with `fileTypeDisplayName(type, packageId?)` (`File/ClassicyFileBrowserUtils.ts`; the active package's without an id), `getClassicyFileTypeNames(packageId?)` (store-free, `src/Appearance/ClassicyFileTypeNames.ts`) or, live in components, `useClassicyFileTypeDisplayName()` / `useClassicyFileTypeNames()`. Windows 98 names directory "File Folder", drive "Local Disk", text_file "Text Document", video "Video Clip", app_shortcut "Application", shortcut "Internet Shortcut", file_shortcut "Shortcut", stack "HyperCard Stack" and pdf "PDF Document" (`windows98FileTypeNames.ts`); Platinum and System 7 declare none. The core's "Pdf" stays under the Mac packages: changing a core default would change their Kind column and needs its own HIGOS8 check (the audit's 10.2) |
-| `desktopIcons` | `{ trash?: { name?, description? }, startupDisk?: { name?, icon?, description? } }` (`ClassicyDesktopIconOverrides`): display overrides for the desktop's own icons, the Trash and the startup disk; read with `useClassicyDesktopIconIdentity` / `resolveClassicyDesktopIconIdentity`. See "Desktop icon overrides" below |
+| `desktopIcons` | `{ trash?: { name?, description? }, startupDisk?: { name?, icon?, description? }, drive?: { description? } }` (`ClassicyDesktopIconOverrides`): display overrides for the desktop's own icons, the Trash (whose name every surface takes, 1.15), the startup disk and the other drives' balloon copy; read with `useClassicyDesktopIconIdentity` / `resolveClassicyDesktopIconIdentity`. See "Desktop icon overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
 **Registering.** `registerClassicyAppearancePackage(pkg)` runs at module
@@ -4507,7 +4537,7 @@ first fallback is `label`. With `label` omitted, `name` is the own label.
 
 A package's `desktopIcons` shows the desktop's own icons by other names, as
 `apps` shows the apps: the Trash (Windows 98's Recycle Bin) and the startup
-disk (its My Computer). Display only, and absent by default: a package that
+disk (its My Computer), and gives the other drives balloon copy. Display only, and absent by default: a package that
 declares none (Platinum, System 7) draws today's labels, images and stock
 balloons.
 
@@ -4516,8 +4546,9 @@ registerClassicyAppearancePackage({
     id: 'windows98',
     // name, css, defaults, layout, apps, … as above
     desktopIcons: {
-        trash: { name: 'Recycle Bin', description: 'Contains the files and folders that you have deleted.' },
+        trash: { name: 'Recycle Bin', description: 'Contains deleted items you can permanently remove or restore.' },
         startupDisk: { name: 'My Computer', icon: myComputerIcon, description: 'Displays the contents of your computer.' },
+        drive: { description: 'Shows the files and folders on this disk.' },
     },
 })
 ```
@@ -4530,6 +4561,10 @@ registerClassicyAppearancePackage({
   `ClassicyDesktop` reads it through the file-system accessor only while the
   active package declares `startupDisk`, and passes `startupDisk` to that
   drive's `ClassicyDesktopIcon`; other drives keep theirs.
+- **`drive`** (the audit's 12.5): `description` only, the balloon copy of
+  every other drive icon (`kind: "drive"`; the startup disk too while the
+  package declares no `startupDisk`), in place of the kind's stock "This is
+  a disk icon…". Its label and image stay its own.
 
 **Where it shows.** The icon's label, image, alt text and mask; its balloon
 (title the shown name; the `description` in place of the kind's stock copy;
@@ -4538,12 +4573,30 @@ shown name. A non-empty `label` beats the override, as for `apps`.
 
 **What never changes.** The icons' records (`appId`, `appName`, `icon`,
 `filePath`), the Trash's path and the drive's, the open actions, analytics
-payloads and persisted state. Window titles and menus that say "Trash"
-(Special ▸ Empty Trash…, the Trash window's title, the empty alert) are not
-desktop icons and keep their words.
+payloads and persisted state.
+
+**The Trash's name everywhere else** (the audit's 1.15; WIG Ch.1
+"Consistency", p.2, Ch.10 "Recycle Bin Integration", p.212). `trash.name`
+names the Trash on every surface that names it, display only
+(`File/ClassicyTrashName.ts`: `CLASSICY_TRASH_NAME` "Trash",
+`classicyTrashDisplayName(packageId?)` store-free, `useClassicyTrashName()`
+live): the Trash window's title (Finder, `op === CLASSICY_TRASH_PATH`), its
+property sheet's name and caption and its items' Location, the Empty item
+(`Empty ${name}`, `confirms`, so "Empty Trash…" under the Mac packages and
+"Empty Recycle Bin" under Windows 98, its access key B on the Trash icon's
+menu under `menu.accessKeys`, shell32.dll's "Empty Recycle &Bin"; Restore's
+E was there already) in the Trash icon's menu and every Special menu
+(`classicySpecialMenuItems(dispatch, idPrefix, trashName?)`, which reads the
+active package itself when no name is given, so the desktop's own call
+needs no change), Delete's question (`classicyDeleteConfirmation(fs, paths,
+trashName)`: "Are you sure you want to send 'x' to the Recycle Bin?"), the
+refusal alerts of a move into or out of it, and the Empty alert
+(`ClassicyEmptyTrashAlert`, below). `CLASSICY_TRASH_PATH`, the folder's
+stored name and every saved byte keep "Trash".
 
 **Validation.** `ClassicyDesktopIconOverridesSchema`, strict at every level
-(only `trash` and `startupDisk`; the Trash takes no `icon`), each `name` under
+(only `trash`, `startupDisk` and `drive`; the Trash takes no `icon`, a drive
+only a `description`), each `name` under
 the `apps` display-name rules, each `icon` an asset source, each
 `description` 1–512 characters with no surrounding whitespace. The registry
 stores a frozen copy of the validated value, as for `apps`.
@@ -4551,7 +4604,7 @@ stores a frozen copy of the validated value, as for `apps`.
 **Reading it.** In `ClassicyAppIdentity.ts`, store-free like the rest:
 
 ```ts
-type ClassicyDesktopSystemIcon = "trash" | "startupDisk"
+type ClassicyDesktopSystemIcon = "trash" | "startupDisk" | "drive"
 
 useClassicyDesktopIconIdentity(icon: ClassicyDesktopSystemIcon | undefined, fallback: ClassicyAppIdentity): ClassicyAppIdentity
 useClassicyDesktopIconOverrides(): Readonly<ClassicyDesktopIconOverrides>
@@ -5674,7 +5727,10 @@ README lists what it ships and every asset's source.
   `hand` 114, IDC_HAND, at 5, 0; `ibeam` 101 and `crosshair` 103 at 15, 16;
   `resizeLr` 107 at 16, 16; `resizeUd` 108 at 15, 16; `resizeNwse` 105 and
   `resizeNesw` 106 at 16, 16; `help` 112, Help Select (What's This?'s
-  pointer), at 5, 7. Windows had no one-way size cursors, so
+  pointer), at 5, 7; and, from `windows98AssetAdditions.ts`
+  (`WINDOWS98_CURSOR_ADDITIONS`), `notAllowed` 110, Unavailable (a refused
+  drop), at 15, 15 and `appStarting` 111, Working in Background (a PDF
+  loading), at 0, 0. Windows had no one-way size cursors, so
   `resizeU`/`resizeD` draw 108 and `resizeL`/`resizeR` 107.
 - **Fonts** (`src/assets/windows98Fonts.internal.ts`,
   `WINDOWS98_FONT_FACES`): `"Pixelated MS Sans Serif"` normal and bold
@@ -5690,9 +5746,21 @@ README lists what it ships and every asset's source.
   Display, the Sound Manager as Sounds, Date and Time as Date/Time, the
   Control Strip as Taskbar & Start Menu, Apple Guide as Windows Help, Movie
   Player as Media Player, Picture Viewer as Imaging and Web Viewer as
-  Internet Explorer, with Windows 98's descriptions; `desktopIcons` shows the
-  Trash as the Recycle Bin and the startup disk as My Computer ("Desktop icon
-  overrides").
+  Internet Explorer, with Windows 98's descriptions, and gives the PDF
+  viewer, HyperCard and Drive Setup verb-first descriptions of their own
+  (12.6); `desktopIcons` shows the Trash as the Recycle Bin (its name on
+  every surface: the window, Empty Recycle Bin, Delete's question, the
+  Empty alert; 1.15) and the startup disk as My Computer, with Windows 98's
+  own InfoTips, and gives the other drives "Shows the files and folders on
+  this disk." (12.5) ("Desktop icon overrides").
+- **What lane 3 left** (`src/assets/windows98AssetAdditions.ts`): the
+  document icons by type (`system.files.byType`: the text document,
+  shell32.dll #152; Imaging's document, kodakimg.exe #129; the video and
+  sound clips, quartz.dll #100 and #200; 10.4), and USER.EXE's Unavailable
+  (cursor 110, `notAllowed`, the refused drop's pointer) and Working in
+  Background (cursor 111, `appStarting`, a PDF loading) pointers.
+  `crashScreen: "fatalException"` draws Windows 98's fatal-exception screen
+  in place of the Sad Mac (1.14).
 - **Documents.** `document: { confirmUnsavedClose: true, reopenActivates:
   true }`, `window.restoreViewState: true` and `menu.standardShortcuts:
   "windows"` (§8, "Layout declarations"): SimpleText asks Notepad's "The
@@ -5929,6 +5997,7 @@ how they look) has two halves:
 | `input.escapeCancels` (optional) | `false`, `true` | whether Escape takes back a direct manipulation in progress (WIG Ch.4 "Shortcut Keys", p.27: "Use the ESC key to stop a function in process or to cancel a direct manipulation operation"; Ch.1 "Forgiveness", pp.2-3). Absent or `false` (Platinum, System 7): only a file drag, System 7's on-release thumb drag, a pop-up and a combo list cancel on Escape, under every package. `true` (Windows 98): a capture-phase document `keydown` for Escape, while a gesture lasts (`useClassicyEscapeCancel(active, onCancel)` for one held in state, `onClassicyEscapeCancel(onCancel, layout?)` for one held in a closure; `Keyboard/useClassicyEscapeCancel.internal.ts`), prevents the key, stops it there and puts back what the press found: a split view's sizes (closed again if it was), a slider's value, a non-file icon's place (the desktop's carrying its selection back), a table column's width; nothing is committed, and a `dragEnd` the gesture reports carries `canceled: true`. In HyperCard's editor, Escape on the card (`HyperCardEditorOverlay`) or in the Tools palette (`HyperCardToolsPalette`) disarms an armed part tool (`ClassicyAppHCEditSetPlacing` with no `partType`; WIG Ch.1 "User in Control", p.1: a mode is easy to cancel; the audit's 1.4), whatever is selected, the next Escape deselecting the part as it always has |
 | `dialog.flushInput` (optional) | `false`, `true` | whether a dialog takes the keys pressed before it showed (WIG Ch.10 "Message Notification", p.212; the audit's 10.20; §4.5). Absent or `false` (Platinum, System 7: today's behavior): `useKeyboardEquivalents` runs the default action on any Return keydown, an auto-repeat of a Return held from the command that raised the alert included, which then dismisses the alert the moment it mounts. `true` (Windows 98): every auto-repeated keydown is ignored, and so is every keydown that came before the hook mounted (an event stamped earlier than a fresh event at mount), until the dialog is armed by a keyup anywhere or a new keydown after the mount. The defect stands under every package, but it is gated here: changing Platinum's and System 7's dialogs waits for a check against HIGOS8 and HIG7. The group holds `flushInput` alone on this branch (the shell's `dialog.caption` and `dialog.modality` join it at the merge) |
 | `icon.aliasBadge` (optional) | `desktop`, `everywhere` | where a shortcut's badge (the `aliasBadge` system art) is drawn (WIG Ch.11 "Displaying Objects", p.230, Figure 11.11; the audit's 11.2). Absent or `desktop` (Platinum, System 7: Mac OS 8 badges aliases on the desktop alone): the desktop's icons only, and `ClassicyIcon`'s `alias` changes nothing. `everywhere` (Windows 98: the shell's shortcut overlay in every view): also a `ClassicyIcon` given `alias` (the Finder's icon view passes `isAliasKind(_type)`) and a shortcut's row in the list view, each image and its badge inside a `classicyIconImage` element (`classicyIconMaskOuter classicyIconAliasBadge` in the icon view, `span.classicyIconAliasBadge` after the row icon in the list view). The 16 px row takes the same art scaled: the asset registry holds no small image for the badge |
+| `crashScreen` (optional) | `sadMac`, `fatalException` | what `ClassicyCrashScreen` draws when a descendant throws (WIG Ch.1 "Consistency", p.2; the audit's 1.14), read at render with the store-free `getClassicyAppearanceLayout()`, so the fallback stays self-contained. Absent or `sadMac` (Platinum, System 7): the `sadMac` system art on black, as before. `fatalException` (Windows 98, which has no picture for it): Windows 98's fatal-exception screen in VGA text mode, `classicyCrashScreenFatalException` (parts `Title`, `Message`, `Line`, `Prompt`), light gray `#AAAAAA` on blue `#0000AA` (literals, as the Sad Mac's black, outside any theme), the text sized in viewport units, 80 columns: shell.vxd's " Windows " title, inverted and centered; vwin32.vxd's `A fatal exception %12x has occurred at %24x:%38x in VXD %4s. The current application will be terminated.` filled with the well-known capture's 0E, 0028:C0011E36 and VMM(01) + 00010E36, wrapped at Windows' 80 columns, and its two bullets; shell.vxd's "Press any key to continue" with the text-mode cursor, centered. A click or any key reloads; the accessible name says the system crashed and a key restarts it |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
 | `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open (a folder row with no icon of its own draws the package's `fileDialogFolderIcon` system art, else the folder icon), Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |
@@ -7163,7 +7232,9 @@ skips:
 - the helpers' own definitions and the screen savers' ported art under
   `packages/appearance/platinum/src/screenSavers/` (whole files);
 - the crash screen's `var(--color-black, black)`: the Sad Mac replaces the
-  desktop, so it renders outside the element that carries the theme;
+  desktop, so it renders outside the element that carries the theme; and,
+  for the same reason, Windows 98's fatal-exception screen's VGA light gray
+  `#aaaaaa` on blue `#0000aa` (its four declarations);
 - in `ClassicyColorPicker.scss`, only the crayon box's art (its cardboard,
   bevel, lip and lip edge) and the RGB/CMYK slider tracks, each listed by
   declaration (`EXEMPT_DECLARATIONS`);

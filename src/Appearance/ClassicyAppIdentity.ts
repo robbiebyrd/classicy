@@ -141,7 +141,7 @@ export const useClassicyAppIdentity = (
 
 // ─── The desktop's own icons (`desktopIcons`) ───────────────────────────────
 
-/** The desktop's own icons a package may show otherwise: the Trash and the startup disk. */
+/** The desktop's own icons a package may show otherwise: the Trash, the startup disk and the other drives. */
 export type ClassicyDesktopSystemIcon = keyof ClassicyDesktopIconOverrides;
 
 /** The `desktopIcons` of a package that declares none (Platinum's). */

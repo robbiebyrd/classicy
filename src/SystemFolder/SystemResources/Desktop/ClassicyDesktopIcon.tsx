@@ -363,13 +363,16 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: undefined,
 				},
 			);
-			// And how it shows the desktop's own icons, the Trash and the
-			// startup disk (its `desktopIcons`): display only, like `apps`.
+			// And how it shows the desktop's own icons, the Trash, the startup
+			// disk and the other drives (its `desktopIcons`): display only,
+			// like `apps`.
 			const systemIcon: ClassicyDesktopSystemIcon | undefined =
 				kind === "trash"
 					? "trash"
-					: kind === "drive" && startupDisk
-						? "startupDisk"
+					: kind === "drive"
+						? startupDisk
+							? "startupDisk"
+							: "drive"
 						: undefined;
 			const identity = useClassicyDesktopIconIdentity(systemIcon, appIdentity);
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
@@ -500,8 +503,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// The text under the icon, which also titles its balloon: an empty
 			// label falls back to the name too. (Only an app shortcut's, the
 			// Trash's and the startup disk's name can differ from `appName`; a
-			// package's description for the Trash or the startup disk replaces
-			// the kind's stock copy.)
+			// package's description for the Trash, the startup disk or a drive
+			// replaces the kind's stock copy.)
 			// A Desktop Folder item's name as the package shows it: under
 			// `layout.files.extensions` "hideRegistered" (Windows 98) a
 			// registered type's extension is hidden.

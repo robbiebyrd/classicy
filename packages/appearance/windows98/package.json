@@ -45,6 +45,7 @@
 		"./dist/*.js",
 		"./src/index.ts",
 		"./src/assets/windows98Assets.ts",
+		"./src/assets/windows98AssetAdditions.ts",
 		"./src/assets/sounds/windows98.ts",
 		"./src/screenSavers/windows98ScreenSavers.ts",
 		"**/*.css",

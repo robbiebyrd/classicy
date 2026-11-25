@@ -78,6 +78,7 @@ describe("packages/appearance/windows98/package.json", () => {
 	// sound pack, the screen savers) are side effects too, since a bundler that
 	// builds the source (Storybook, the example's dev server) would otherwise
 	// drop `import "./assets/windows98Assets"`,
+	// `import "./assets/windows98AssetAdditions"`,
 	// `import "./assets/sounds/windows98"` and
 	// `import "./screenSavers/windows98ScreenSavers"`.
 	it("marks the entry, the registering modules and the styles as side effects", () =>
@@ -85,6 +86,7 @@ describe("packages/appearance/windows98/package.json", () => {
 			"./dist/*.js",
 			"./src/index.ts",
 			"./src/assets/windows98Assets.ts",
+			"./src/assets/windows98AssetAdditions.ts",
 			"./src/assets/sounds/windows98.ts",
 			"./src/screenSavers/windows98ScreenSavers.ts",
 			"**/*.css",

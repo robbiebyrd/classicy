@@ -583,6 +583,44 @@ describe("test-rename", () => {
 			expect(balloonTitle()).toBe("Wastebasket");
 		});
 
+		// The audit's 12.5: the other drives' balloon copy (`desktopIcons.drive`),
+		// their label and image their own.
+		it("shows the package's balloon copy for a drive that is not the startup disk", async () => {
+			relabel();
+			renderDrive(false);
+			expect(label("Finder.app")).toBe("Macintosh HD");
+			fireEvent.mouseEnter(iconRoot("Finder.app"));
+			expect(
+				await screen.findByText(
+					"Shows what is on this disk.",
+					{},
+					{ timeout: 2000 },
+				),
+			).toBeInTheDocument();
+			expect(balloonTitle()).toBe("Macintosh HD");
+		});
+
+		it("keeps the startup disk's own copy over the drives'", async () => {
+			relabel();
+			renderDrive(true);
+			fireEvent.mouseEnter(iconRoot("Finder.app"));
+			expect(
+				await screen.findByText(
+					"Shows what is on this computer.",
+					{},
+					{ timeout: 2000 },
+				),
+			).toBeInTheDocument();
+		});
+
+		it("keeps a drive's stock balloon under a package that declares none", async () => {
+			renderDrive(false);
+			fireEvent.mouseEnter(iconRoot("Finder.app"));
+			expect(
+				await screen.findByText(/This is a disk icon\./, {}, { timeout: 2000 }),
+			).toBeInTheDocument();
+		});
+
 		it("keeps the stock balloon under a package that declares none", async () => {
 			renderTrash();
 			fireEvent.mouseEnter(iconRoot("Trash"));

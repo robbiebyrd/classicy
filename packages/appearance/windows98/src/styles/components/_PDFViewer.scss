@@ -2,13 +2,16 @@
 // wrapper, over the core's PDFViewerDocument.scss.
 //
 // - While a document loads ("Loading…", `.pdfViewerDocumentLoading`), the
-//   pointer over it is the arrow with the hourglass, the host's `progress`
-//   pointer: Windows' Working In Background pointer, "the application is
+//   pointer over it is the arrow with the hourglass, Windows 98's own
+//   Working in Background pointer (the `appStarting` cursor role, USER.EXE's
+//   cursor 111), the host's `progress` behind it: "the application is
 //   busy but the user can still interact with it" (WIG Ch.4 "Mouse
 //   Pointers", p.23, Table 4.1; Ch.13 "Pointer Design", p.316; the audit's
 //   4.5), not the base's arrow.
+@use "../bevels" as b;
+
 @mixin pdf-viewer {
   .pdfViewerDocumentLoading {
-    cursor: progress;
+    @include b.registry-cursor(app-starting, progress);
   }
 }

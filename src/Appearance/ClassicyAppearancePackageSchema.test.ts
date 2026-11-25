@@ -1456,3 +1456,53 @@ describe("ClassicyAppearancePackageSchema desktopIcons", () => {
 			/desktop's own icons/,
 		));
 });
+
+// The audit's 12.5: the other drives' balloon copy, `desktopIcons.drive`,
+// description only.
+describe("ClassicyAppearancePackageSchema desktopIcons.drive", () => {
+	const issues = (desktopIcons: unknown) => {
+		const result = ClassicyAppearancePackageSchema.safeParse({
+			...platinumShaped(),
+			desktopIcons,
+		});
+		return result.success ? [] : result.error.issues;
+	};
+
+	it("accepts the drives' balloon copy", () => {
+		expect(
+			issues({ drive: { description: "Shows the files on this disk." } }),
+		).toEqual([]);
+		expect(issues({ drive: {} })).toEqual([]);
+	});
+
+	it.each([
+		["a name", { drive: { name: "Disk" } }],
+		["an image", { drive: { icon: "/disk.png" } }],
+		["a padded description", { drive: { description: " Disk " } }],
+	])("refuses %s", (_what, desktopIcons) =>
+		expect(issues(desktopIcons).length).toBeGreaterThan(0));
+});
+
+// The audit's 1.14: `layout.crashScreen`, the crash screen's form.
+describe("ClassicyAppearancePackageSchema crashScreen", () => {
+	const withLayout = (layout: Record<string, unknown>) => {
+		const input = platinumShaped();
+		Object.assign(input.layout as Record<string, unknown>, layout);
+		return ClassicyAppearancePackageSchema.safeParse(input);
+	};
+
+	it.each(["sadMac", "fatalException"])("takes %s", (crashScreen) => {
+		const result = withLayout({ crashScreen });
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.crashScreen).toBe(crashScreen);
+	});
+
+	it("refuses another form, at its path", () => {
+		const result = withLayout({ crashScreen: "blueScreen" });
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"crashScreen",
+		]);
+	});
+});

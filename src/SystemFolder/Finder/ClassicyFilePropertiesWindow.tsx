@@ -49,6 +49,7 @@ import {
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { CLASSICY_TRASH_PATH } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { useClassicyTrashName } from "@/SystemFolder/SystemResources/File/ClassicyTrashName";
 import { useClassicyDisplayFileName } from "@/SystemFolder/SystemResources/File/useClassicyDisplayFileName";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
@@ -196,6 +197,9 @@ export const ClassicyFilePropertiesWindow: FunctionalComponent<
 	const ak = useClassicyBundledAccessKeys();
 	const typeName = useClassicyFileTypeDisplayName();
 	const shownNames = useClassicyDisplayFileName();
+	// The Trash as the package names it (Windows 98's Recycle Bin, 1.15):
+	// its own sheet's name and caption, and its items' Location.
+	const trashName = useClassicyTrashName();
 	const contentRef = useRef<HTMLDivElement | null>(null);
 
 	const key = classicyPropertiesKey(
@@ -228,7 +232,9 @@ export const ClassicyFilePropertiesWindow: FunctionalComponent<
 	});
 
 	const singleName = single
-		? (single.path.split(fs.separator).pop() ?? single.path)
+		? single.path === CLASSICY_TRASH_PATH
+			? trashName
+			: (single.path.split(fs.separator).pop() ?? single.path)
 		: "";
 	const hiddenExtension = single
 		? shownNames.hiddenExtension(singleName, single.entry)
@@ -368,7 +374,9 @@ export const ClassicyFilePropertiesWindow: FunctionalComponent<
 	).length;
 	const counts = { files: entries.length - folderCount, folders: folderCount };
 	const contains = isFolder ? classicyCountFolderContents(single?.entry) : null;
-	const location = single ? classicyParentPath(fs, single.path) : "";
+	const parentFolder = single ? classicyParentPath(fs, single.path) : "";
+	const location =
+		parentFolder === CLASSICY_TRASH_PATH ? trashName : parentFolder;
 
 	const general = (
 		<div className={"classicyFilePropertiesGeneral"}>

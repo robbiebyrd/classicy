@@ -639,6 +639,8 @@ Every `ClassicyCursorRole`. One set serves both themes (the pointer stays black,
 | — | `resizeL` | Resize left only | draw | System 7 has none: copy Platinum's `cursor-resize-l.png` (implementer) | `cursors/resize-l.png` | (8, 8) |
 | — | `resizeR` | Resize right only | draw | System 7 has none: copy Platinum's `cursor-resize-r.png` (implementer) | `cursors/resize-r.png` | (8, 8) |
 | — | `help` | Contextual Help pointer (Windows' What's This?) | none | System 7 has no What's This? mode (its help is Balloon Help, with no pointer of its own), so the role stays unregistered and never shows | — | — |
+| — | `notAllowed` | Windows' Unavailable pointer (a drag over a place that refuses it) | none | System 7 has no such pointer (a refused drop showed the arrow); only the Windows 98 package's stylesheet reads the role, so it stays unregistered and never shows | — | — |
+| — | `appStarting` | Windows' Working in Background pointer (the arrow with a small hourglass) | none | System 7 has no such pointer (the watch alone); only the Windows 98 package's stylesheet reads the role, so it stays unregistered and never shows | — | — |
 
 ## Sounds
 

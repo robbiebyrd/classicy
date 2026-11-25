@@ -64,8 +64,12 @@ export const useClassicyFileTypeDisplayName = (): ((
 
 /**
  * The icon for an entry of type `byType` that has none of its own: the
- * folder icon for a directory, the generic file icon otherwise, from
- * `packageId`'s icons (default: the active package's). Pass
+ * folder icon for a directory; otherwise the type's own document icon,
+ * `system.files.byType.<type>`, when a package registers one (Windows 98
+ * does, for the types it had a handler's icon for: WIG Ch.10 "Registering
+ * Icons", p.200; Platinum and System 7 register none), else the generic file
+ * icon, `system.files.file`; each from `packageId`'s icons (default: the
+ * active package's), then the default package's. Pass
  * `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID` for the core's icon, which every
  * icon surface draws as the active package's (`resolveClassicyIconImage`),
  * to store an icon or hand it to a surface that may not re-render on a
@@ -81,7 +85,15 @@ export const iconImageByType = (byType: string, packageId?: string) => {
 		}
 		default: {
 			return (
-				resolveClassicyAsset("icons", "system.files.file", packageId) ?? ""
+				(byType !== ""
+					? resolveClassicyAsset(
+							"icons",
+							`system.files.byType.${byType}`,
+							packageId,
+						)
+					: undefined) ??
+				resolveClassicyAsset("icons", "system.files.file", packageId) ??
+				""
 			);
 		}
 	}

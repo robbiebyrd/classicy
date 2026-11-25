@@ -421,16 +421,34 @@ and `nodenext` resolution).
   same job: Windows Explorer (the Finder, with Explorer's icon), Notepad,
   Display, Sounds, Date/Time, Taskbar & Start Menu, Windows Help, Media
   Player, Imaging and Internet Explorer, with Windows 98's descriptions in
-  their desktop ToolTips; the Trash shows as the Recycle Bin and the
-  startup disk as My Computer. Display only: their ids, records and saved
+  their desktop ToolTips (the PDF viewer, HyperCard and Drive Setup keep
+  their names, with tips that start with a verb); the Trash shows as the
+  Recycle Bin and the startup disk as My Computer, each with Windows 98's
+  own tip, and another disk's tip reads "Shows the files and folders on
+  this disk." The Recycle Bin is named so everywhere: its window's title,
+  Empty Recycle Bin (B) on its menu and the Special menu, Delete's
+  question ("…to the Recycle Bin?") and its Properties. Emptying it asks
+  Windows 98's own question ("Are you sure you want to delete these 3
+  items?", Yes and No). Display only: their ids, records, paths and saved
   state keep their own names.
+- **Windows 98's document icons.** A text file shows Windows' text
+  document, a picture Imaging's document, a movie the video clip and a
+  sound the sound clip; a type Windows 98 had no icon for keeps the generic
+  page.
+- **Windows 98's fatal-exception screen.** When Classicy crashes it shows
+  the blue screen in place of the Sad Mac: " Windows ", "A fatal exception
+  0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36. The current
+  application will be terminated.", its two bullets and "Press any key to
+  continue _", in light gray on blue. A click or any key restarts.
 - **Windows 98's cursors**, `USER.EXE`'s own, at their own hotspots: the
   arrow, the hourglass (Busy), the pointing hand (Link Select, the PDF
   viewer's pan tool), the I-beam and the cross (drawn black: every pixel of
   theirs inverted the screen, which a CSS cursor cannot), and the four
   two-way size arrows, which also stand in for the one-way ones Windows
-  never had, and Help Select, the arrow with a question mark, while What's
-  This? is on. The size grip shows the diagonal one, as Windows' did.
+  never had, Help Select, the arrow with a question mark, while What's
+  This? is on, Unavailable, the slashed circle, over a place a dragged file
+  cannot go, and Working in Background, the arrow with a small hourglass,
+  while a PDF loads. The size grip shows the diagonal one, as Windows' did.
 - **Windows 98's wallpapers and desktop patterns**, offered in the
   Appearance Manager's Desktop tab (its Patterns pop-up) while Windows 98 is
   active: the nineteen wallpaper bitmaps of Windows 98 Second Edition (Black
@@ -466,7 +484,9 @@ and `nodenext` resolution).
   frozen), `readWindows98ThemeFile` (the `.theme` reader Load Theme…
   uses), `WINDOWS98_SYSTEM_ART` (the system art it
   registers), `WINDOWS98_CURSORS` (its cursors by role, each with its
-  hotspot), `WINDOWS98_APPS` and `WINDOWS98_DESKTOP_ICONS` (its `apps` and
+  hotspot) and `WINDOWS98_CURSOR_ADDITIONS` (the Unavailable and Working
+  in Background pointers), `WINDOWS98_FILE_TYPE_ICON_FILES` (the document
+  icon files it registers by file type), `WINDOWS98_APPS` and `WINDOWS98_DESKTOP_ICONS` (its `apps` and
   `desktopIcons`), `WINDOWS98_WALLPAPERS` and `WINDOWS98_DESKTOP_PATTERNS`
   (each wallpaper's and pattern's label and identity filename, and a
   wallpaper's CD bitmap and size or a pattern's eight bytes), and each
@@ -623,6 +643,7 @@ carries a re-encoded copy, the CD's bytes were taken.
 | `inetcpl-1323-32.webp`, `inetcpl-1323-16.webp` | `inetcpl.cpl` icon group 1323 | Users (Control Panel) |
 | `intl-101-32.webp`, `intl-101-16.webp` | `intl.cpl` icon group 101 | Regional Settings (Control Panel) |
 | `kodakimg-128-32.webp`, `kodakimg-128-16.webp` | `kodakimg.exe` icon group 128 | Imaging (Kodak Imaging for Windows) |
+| `kodakimg-129-32.webp`, `kodakimg-129-16.webp` | `kodakimg.exe` icon group 129 | Imaging document (Imaging.Document DefaultIcon KodakImg.Exe,1): an image file's icon |
 | `main-200-32.webp`, `main-200-16.webp` | `main.cpl` icon group 200 | Keyboard (Control Panel) |
 | `mmsys-99-32.webp`, `mmsys-99-16.webp` | `mmsys.cpl` icon group 99 | Multimedia (Control Panel) |
 | `mmsys-110-32.webp`, `mmsys-110-16.webp` | `mmsys.cpl` icon group 110 | Sounds (Control Panel); its 16 px image is the taskbar's volume icon |
@@ -635,6 +656,7 @@ carries a re-encoded copy, the CD's bytes were taken.
 | `password-1000-32.webp`, `password-1000-16.webp` | `password.cpl` icon group 1000 | Passwords (Control Panel) |
 | `pifmgr-1-32.webp` | `pifmgr.dll` icon group 1 | MS-DOS Prompt / MS-DOS program |
 | `quartz-100-32.webp`, `quartz-100-16.webp` | `quartz.dll` icon group 100 | Video clip (.avi/.mov, ActiveMovie) |
+| `quartz-200-32.webp`, `quartz-200-16.webp` | `quartz.dll` icon group 200 | Sound clip (.wav, the MediaType.Icon Media Player registered): an audio file's icon |
 | `regwizc-117-32.webp`, `regwizc-117-16.webp` | `regwizc.dll` icon group 117 | Registration Wizard |
 | `scrnsave-100-32.webp`, `scrnsave-100-16.webp` | `scrnsave.scr` icon group 100 | Screen saver (Blank Screen, the generic .scr icon) |
 | `shell32-1-32.webp`, `shell32-1-16.webp` | `shell32.dll` icon group 1 | Unknown file type (Windows logo on a page); shell32.dll index 0 |
@@ -715,6 +737,8 @@ resource declares:
 | `user-cursor-106.png` | `user.exe` cursor 106 | Diagonal Resize 2 | `resizeNesw` | 16, 16 |
 | `user-cursor-107.png` | `user.exe` cursor 107 | Horizontal Resize | `resizeLr`, `resizeL`, `resizeR` | 16, 16 |
 | `user-cursor-108.png` | `user.exe` cursor 108 | Vertical Resize | `resizeUd`, `resizeU`, `resizeD` | 15, 16 |
+| `user-cursor-110.png` | `user.exe` cursor 110 | Unavailable | `notAllowed` | 15, 15 |
+| `user-cursor-111.png` | `user.exe` cursor 111 | Working in Background | `appStarting` | 0, 0 |
 | `user-cursor-112.png` | `user.exe` cursor 112 | Help Select | `help` | 5, 7 |
 | `user-cursor-114.png` | `user.exe` cursor 114 | Link Select | `hand` | 5, 0 |
 

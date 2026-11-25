@@ -316,8 +316,11 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
 // there takes the drop (a window, the menu bar, a folder the drag refuses;
 // WIG Ch.4 Table 4.1, Ch.13 p.316, Ch.5 Figure 5.17); the arrow with a plus
 // for a copy, Control held, and with the shortcut curl for shortcuts,
-// Control and Shift held (Figure 5.16). The host's own pointers until the
-// package registers Windows 98's. Keyed on the desktop root's id
+// Control and Shift held (Figure 5.16). The no-drop pointer is Windows 98's
+// own Unavailable (the `notAllowed` cursor role, USER.EXE's cursor 110),
+// the host's `no-drop` behind it; the copy and link pointers are the host's,
+// since USER.EXE has none (Windows drew the plus and the curl over the
+// arrow at run time). Keyed on the desktop root's id
 // (`#classicyDesktop`, which ClassicyDesktop always gives it), so they
 // outrank every element's own pointer rule, and included last in the
 // package, each effect after the arrow.
@@ -329,7 +332,7 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
 
   &#classicyDesktop[data-classicy-drop='none'],
   &#classicyDesktop[data-classicy-drop='none'] * {
-    cursor: no-drop;
+    @include b.registry-cursor(not-allowed, no-drop);
   }
 
   &#classicyDesktop[data-classicy-drop='copy'],
