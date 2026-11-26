@@ -5,6 +5,7 @@ import {
 	type FC as FunctionalComponent,
 	type PropsWithChildren,
 	useEffect,
+	useInsertionEffect,
 	useMemo,
 	useRef,
 } from "react";
@@ -19,9 +20,14 @@ import {
 	wasHydratedFromStorage,
 	withClassicyDefaultStateSeed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { rememberClassicyDefaultStateSeed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDefaultStateSeed.internal";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
+import {
+	publishClassicyDesktopFileSystemStorageKey,
+	withdrawClassicyDesktopFileSystemStorageKey,
+} from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
 import {
 	ClassicyDefaultFileSystemContext,
 	type ClassicyDefaultFileSystemMode,
@@ -37,6 +43,11 @@ export type ClassicyAppManagerProviderProps = {
 	defaultState?: DeepPartial<ClassicyStore>;
 	defaultFileSystem?: ClassicyFileSystemTree;
 	defaultFileSystemMode?: ClassicyDefaultFileSystemMode;
+	/** The localStorage key the desktop's file system is kept under (default
+	 *  `"classicyStorage"`): the Finder's, every built-in app's and Recent
+	 *  Items' file system, and any `useClassicyFileSystem()` or
+	 *  `useClassicyFileSystemAccessor()` called without a key of its own. */
+	fileSystemStorageKey?: string;
 	/** One-time corrections applied to a returning visitor's persisted
 	 *  filesystem tree — see ClassicyFileSystemSeedMigrations.ts. */
 	defaultFileSystemSeedMigrations?: ClassicyFileSystemSeedMigration[];
@@ -76,6 +87,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	defaultFileSystem,
 	defaultFileSystemMode,
 	defaultFileSystemSeedMigrations,
+	fileSystemStorageKey,
 	disableSimpleText,
 	disablePDFViewer,
 	disableMoviePlayer,
@@ -86,6 +98,10 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	defaultMuted,
 }) => {
 	const seeded = useRef(false);
+	// Reset PRAM sends adapters a first session's state, this seed included.
+	useEffect(() => {
+		rememberClassicyDefaultStateSeed(defaultState);
+	}, [defaultState]);
 	useEffect(() => {
 		// Once per page session: a remount (a route, a `key`, Fast Refresh, a
 		// second provider) must not seed again over the user's state.
@@ -106,13 +122,39 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 		);
 	}, [defaultState]);
 
+	// For reducers, which read no context (Recent Items' documents):
+	// published only when the provider commits, and before any child's
+	// layout or passive effect runs (insertion effects run first in a
+	// commit), so a child dispatching as it mounts reads it; a render that
+	// never commits (an error above, a suspended tree) publishes nothing.
+	// Withdrawn when the provider unmounts; a changed key keeps the
+	// provider's place among mounted providers.
+	const fileSystemKeyToken = useRef<symbol>(
+		Symbol("ClassicyAppManagerProvider"),
+	);
+	useInsertionEffect(() => {
+		const token = fileSystemKeyToken.current;
+		return () => withdrawClassicyDesktopFileSystemStorageKey(token);
+	}, []);
+	useInsertionEffect(() => {
+		publishClassicyDesktopFileSystemStorageKey(
+			fileSystemKeyToken.current,
+			fileSystemStorageKey,
+		);
+	}, [fileSystemStorageKey]);
 	const fsContextValue = useMemo(
 		() => ({
+			storageKey: fileSystemStorageKey,
 			defaultFileSystem,
 			mode: defaultFileSystemMode ?? ("merge" as const),
 			seedMigrations: defaultFileSystemSeedMigrations,
 		}),
-		[defaultFileSystem, defaultFileSystemMode, defaultFileSystemSeedMigrations],
+		[
+			fileSystemStorageKey,
+			defaultFileSystem,
+			defaultFileSystemMode,
+			defaultFileSystemSeedMigrations,
+		],
 	);
 
 	const defaultAppsContextValue = useMemo(
@@ -136,7 +178,12 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 		],
 	);
 
+	// Built only where there is a window: the instance starts a queue timer
+	// that is never cleared, so a server render would leak one per request
+	// (story 0223-a0y). Without it no AnalyticsProvider is mounted, and
+	// useClassicyAnalytics falls back to its no-ops.
 	const analytics = useMemo(() => {
+		if (typeof window === "undefined") return null;
 		const plugins: AnalyticsPlugin[] = [];
 
 		if (gaMeasurementIds && gaMeasurementIds.length > 0) {
@@ -151,19 +198,26 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	}, [appName, gaMeasurementIds, gtmContainerId]);
 
 	useEffect(() => {
+		if (!analytics) return;
 		const userId = getOrCreateUserId(`${appName}_user_id`);
 		analytics.identify(userId);
 	}, [analytics, appName]);
+
+	const sound = (
+		<ClassicySoundManagerProvider defaultMuted={defaultMuted}>
+			{children}
+		</ClassicySoundManagerProvider>
+	);
 
 	return (
 		<ClassicyAnalyticsPrefixContext.Provider value={eventPrefix}>
 			<ClassicyDefaultFileSystemContext.Provider value={fsContextValue}>
 				<ClassicyDefaultAppsContext.Provider value={defaultAppsContextValue}>
-					<AnalyticsProvider instance={analytics}>
-						<ClassicySoundManagerProvider defaultMuted={defaultMuted}>
-							{children}
-						</ClassicySoundManagerProvider>
-					</AnalyticsProvider>
+					{analytics ? (
+						<AnalyticsProvider instance={analytics}>{sound}</AnalyticsProvider>
+					) : (
+						sound
+					)}
 				</ClassicyDefaultAppsContext.Provider>
 			</ClassicyDefaultFileSystemContext.Provider>
 		</ClassicyAnalyticsPrefixContext.Provider>

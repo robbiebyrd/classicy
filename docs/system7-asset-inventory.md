@@ -10,7 +10,7 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 
 | Section | Rows | Your work |
 | --- | --- | --- |
-| Icons | 296 keys | 64 export (up to 4 WebP files each; the Map control panel's world map is a picture, one file at both depths); 91 reuse and 141 core need nothing. Every ID is settled (each row's Source); five exports became reuses, their files not in the 7.5.5 install |
+| Icons | 298 keys | 64 export (up to 4 WebP files each; the Map control panel's world map is a picture, one file at both depths); 91 reuse and 143 core need nothing. Every ID is settled (each row's Source); five exports became reuses, their files not in the 7.5.5 install |
 | System art | 45 keys | the export and crop rows |
 | Cursors | 13 roles | 3 exports (`CURS` 1, 2, 4) |
 | Sounds | 6 alerts | Done: 5 sampled `snd ` written as WAV, Simple Beep rendered from its synthesizer commands, and one copy (plan 0018-dbd §4.2) |
@@ -250,6 +250,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `applications.systemProfiler.app` | Apple System Profiler application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | [x] | `applications.simpletext.app` | SimpleText application | export | SimpleText (Apple Extras), ID 128 (`APPL` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `applications-simpletext-app.webp` |
 | [x] | `applications.calculator.app` | Calculator desk accessory | export | Calculator (Apple Menu Items), ID -16000 (`dfil`, the desk accessory file, in its `BNDL`: a desk accessory's own resources are numbered from -16000) | `ICN#` `icl8` `ics#` `ics8` | `applications-calculator-app.webp` |
+| — | `applications.findFile.app` | Find File application | core | The core tree's image, Find File's own 8-bit color icon (Platinum's `resources/app-icons/applications/Find File-3.png`, from Mac OS 8.1's Find File; story 0227-815): System 7.5 has Find File, but its 7.5.5 export (ID 128, `APPL` in its `BNDL`) is still to be made, an open question | — | — |
 
 ### Control panels
 
@@ -262,6 +263,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `controlPanels.appearanceManager.backgroundTile` | Wallpaper position glyph: tile | core | Classicy UI glyph | — | — |
 | — | `controlPanels.appearanceManager.file` | Appearance theme file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | — | `controlPanels.appearanceManager.preferences` | Appearance preferences file | reuse | `system.files.preferences` (generic preferences) | — | — |
+| — | `controlPanels.appleMenuOptions.app` | Apple Menu Options control panel | core | The core tree's image, Apple Menu Options' own color control panel icon (Platinum's `resources/app-icons/unclassified/A/Apple Menu Options-8.png`; story 0226-a6f): System 7.5 has the panel, but its 7.5.5 export (ID -4064, as for the other control panels) is still to be made, an open question | — | — |
 | [x] | `controlPanels.controlStripManager.app` | Control Strip control panel | export | Control Strip control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-control-strip-manager-app.webp` |
 | [x] | `controlPanels.dateTimeManager.dateTimeManager` | Date & Time control panel | export | Date & Time control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-date-time-manager-date-time-manager.webp` |
 | [x] | `controlPanels.keyboard.app` | Keyboard control panel | export | Keyboard control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-keyboard-app.webp` |

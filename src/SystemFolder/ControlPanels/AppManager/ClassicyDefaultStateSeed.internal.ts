@@ -9,6 +9,21 @@
  */
 let applied = false;
 
+/**
+ * The `defaultState` seed of the mounted provider, applied or not: Reset
+ * PRAM hands storage adapters the state a first session starts from, seed
+ * included (`resetClassicyPersistedState`, ClassicyStateSync.internal.ts).
+ */
+let seed: unknown;
+
+/** Notes the provider's `defaultState` seed (undefined for none). */
+export const rememberClassicyDefaultStateSeed = (value: unknown): void => {
+	seed = value;
+};
+
+/** The provider's `defaultState` seed, as last noted. */
+export const rememberedClassicyDefaultStateSeed = (): unknown => seed;
+
 /** True once a `defaultState` seed has been applied in this page session. */
 export const wasClassicyDefaultStateSeedApplied = (): boolean => applied;
 
@@ -20,4 +35,5 @@ export const markClassicyDefaultStateSeedApplied = (): void => {
 /** Tests only: forget the applied seed, as a new page session would. */
 export const resetClassicyDefaultStateSeedForTests = (): void => {
 	applied = false;
+	seed = undefined;
 };

@@ -217,10 +217,305 @@ it is never fetched, on `file:`, CDN and custom-scheme hosts alike. The viewer
 uses pdf.js's legacy build, which installs core-js polyfills on the page's
 built-in prototypes (`Map`, `Set`, `WeakMap`, `Iterator`,
 `Uint8Array.prototype.toBase64` and others) where a method is missing or
-nonconforming: in the UMD bundle when it loads, in the ES build when the first
-PDF opens.
+nonconforming, when the first PDF opens (in both builds: the UMD bundle, which
+carries pdf.js inline, runs it only then too).
 `import '@classicy/classicy/fonts'` is a deprecated no-op (the Platinum
 package registers its fonts), and `dist/fonts.css` no longer exists.
+
+**Which format to use.** Each package ships an ES build and a UMD bundle:
+
+| Consumer | Use | It resolves |
+|---|---|---|
+| A browser app through a bundler (Vite, webpack, esbuild, Rollup) | `import` | `dist/classicy.es.js` |
+| A Node server (Next.js, Remix, Astro), ES modules | `import` | `dist/classicy.es.js` |
+| A Node server or test runner in CommonJS | `require()` (Node 20.19, 22.12 or later) | `dist/classicy.umd.cjs`, which runs `dist/classicy.umd.js` |
+| A page's `<script>` tag (unpkg, jsDelivr) | the file | `dist/classicy.umd.js`, globals `classicy`, `classicyAppearancePlatinum`, … |
+
+Each Appearance Package is the same with its own names
+(`dist/appearance-platinum.es.js`, `.umd.cjs`, `.umd.js`). `require()` is
+supported in Node only: these packages are `"type": "module"`, so Node reads
+`dist/classicy.umd.js` as an ES module and cannot `require()` it itself, and
+the exports map's `require` names, under `node`, a few-line CommonJS loader
+beside it that runs it as CommonJS. It needs Node 20.19, 22.12 or later
+(and every Node from 23.0): the core's UMD bundle requires `react-player`,
+which ships ES modules only, and those are the first releases whose own
+`require()` loads an ES module without a flag (nodejs/node#55085, "module:
+unflag --experimental-require-module", in the
+[22.12.0](https://nodejs.org/en/blog/release/v22.12.0) and
+[20.19.0](https://nodejs.org/en/blog/release/v20.19.0) notes). The loader asks
+Node itself, `process.features.require_module`, so on an older Node, on 22.10
+and 22.11 (where that is off by default) or under `--no-require-module` it
+throws an error naming those versions (`import` works there: checked on
+20.18.3 and 22.11.0). Node 22.12.x and Node 23 before 23.5 print Node's own
+`ExperimentalWarning` the first time `require()` loads an ES module (22.12 and
+23.4 only when the `require()` comes from a path outside `node_modules`, a
+linked checkout: nodejs/node#55960); 20.19, 22.13 and 23.5 on print it only
+under `--trace-require-module` (nodejs/node#56194). Every such Node has
+`process.getBuiltinModule` (20.16, 22.3), with which the UMD bundle reaches
+Node's `url` module, never a static `require("url")`. For every other
+`require` resolver the exports map's `require` is `null`, so a browser bundle
+that `require()`s a Classicy package fails at its build, at the `require()`:
+esbuild (`--platform=browser`) reports that `"."` `cannot be imported from
+package "@classicy/classicy" because it was explicitly disabled by the package
+author`, pointing at the `"default": null` under `"require"`, and webpack
+(`target: "web"`) that `"." is not
+exported under the conditions […"require"…"browser"]`. Use `import` there:
+both bundlers would otherwise bundle `dist/classicy.umd.js` as the ES module
+it is in a `"type": "module"` package, whose UMD wrapper then finds no
+`module`, reads its dependencies from `window` and throws when the page
+runs. `main` still names `dist/classicy.umd.js` for resolvers that read no
+exports map.
+
+**Server rendering (Next.js, Remix, Astro).** Every package's bundles load in
+Node with no DOM (verify:dist invariant 19, the packages' invariant 11: each
+bundle imported and each loader required in a child Node, once with the
+browser's globals deleted and once with Node's own, `localStorage` and
+`sessionStorage` failing on any read; story 0223-a0y ran it under Node
+20.19.0, 22.23.1, 24.19.0, 25.2.0, 25.5.0 and 26.7.0, under 22.12.0, whose
+only output was the `ExperimentalWarning` above, since the gate loads the
+packages from outside `node_modules`, and the `import` half under 20.18.3
+and 22.11.0), so a server-rendering host imports Classicy as it is, without
+`dynamic(() => import(…), { ssr: false })` or a client-only island.
+
+What renders where: on the server, `ClassicyDesktop` (and `Classicy`) renders
+an empty shell, `<div class="classicyDesktop">` with the host's `className`
+and `style`. The client's hydration renders the same shell, so nothing can
+mismatch, and the desktop draws right after it. Everything the desktop shows
+waits for the client: the state saved in `localStorage`, the viewport, the
+theme's CSS variables, the asset URLs (relative to the bundle's own URL,
+which is a `file:` path on the server), sound and the startup screen. A host
+that renders with `createRoot` draws the desktop on its first render, as
+before. Lone components outside a desktop (a button, a pop-up menu, a
+checkbox on the host's own page) render in full on the server. On the server
+the provider builds no analytics instance (its queue timer is never cleared)
+and no sound player, and nothing reads `localStorage` or `sessionStorage` (from
+Node 25 Node defines both, and without `--localstorage-file` a read throws,
+returns an object without `setItem`, or warns), so a server render starts no
+timer, raises no warning and logs nothing. Import the Appearance Package
+in a module both the server and the browser load (in Next.js's App Router, a
+client module: "Next.js (App Router)", below). The
+stylesheet still arrives with the JS (`<style id="classicy-styles">`,
+inserted when the bundle loads in a browser); a host that wants it in the
+server's HTML links `dist/classicy.css` and the package stylesheets, as a
+strict-CSP host does.
+
+- **Keep `@classicy/*` external in a server bundle that `require()`s them.**
+  A Node-target bundler (esbuild `--platform=node`, webpack's `target:
+  "node"`) that bundles a `require()` copies the CommonJS loader without the
+  UMD bundle it reads; the loader then throws `@classicy/classicy: its UMD
+  bundle, … is missing beside its CommonJS loader`. Mark the packages
+  external, or `import` them. (Next.js's Pages Router keeps `node_modules`
+  external on the server by default; its App Router bundles them, and
+  `import`s Classicy, so the loader never takes part there.)
+- **One format per process.** A process that both `import`s and
+  `require()`s Classicy loads two separate libraries, each with its own
+  store and registries (Node's dual-package hazard): an Appearance Package
+  `import`ed registers into the ES library only. Load the core and its
+  packages the same way (`verify:host-types` checks it: `host-both.mjs`).
+- **Stack traces and source maps.** The loader runs the UMD bundle with a
+  strict direct `eval` carrying `//# sourceURL=` the bundle's file URL (a
+  plain path holding a space, `Application Support` or `First Last`, is
+  dropped by V8), so a stack trace names `file:///…/classicy.umd.js` and its
+  own lines and columns, and `--enable-source-maps` maps them through
+  `classicy.umd.js.map` (Node maps generated code with a source URL). Strict,
+  so the bundle runs as fast through `require()` as through `import`. Under
+  `--disallow-code-generation-from-strings` it compiles the bundle with
+  `vm.runInThisContext` instead: the same file, lines and columns, no source
+  maps.
+- **TypeScript in CommonJS.** The exports map's `require` has its own
+  `types`: each declaration ships again as a `.d.cts` twin
+  (`dist/types/src/index.d.cts`), so a `.cts` host, or a CommonJS one on
+  `module: node16` or `nodenext`, type-checks `require("@classicy/classicy")`
+  with or without `skipLibCheck` (`verify:host-types` checks `node16-cjs`,
+  `node16-cjs-lib-check` and `nodenext-cjs`).
+- **Jest.** Jest's CommonJS runtime reaches the loader, and the bundle runs
+  in the test's own realm (its globals and fake timers). Jest 30 resolves a
+  `require()` under `node` in every environment, `jsdom` included. Jest 29's
+  `jsdom` environment resolves under `browser` instead, for which the exports
+  map's `require` is `null` (`Cannot find module '@classicy/classicy'`), so
+  give that environment Node's conditions,
+  `testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] }`
+  (every package with a `node` entry, not only Classicy, then resolves to it
+  in those tests), or, narrower, map only the Classicy packages to the files
+  Node's own resolution gives them, their CommonJS loaders, and every other
+  package keeps the environment's `browser` conditions:
+
+  ```js
+  // jest.config.cjs, on Jest 29, instead of customExportConditions
+  moduleNameMapper: {
+  	"^@classicy/classicy$": require.resolve("@classicy/classicy"), // …/dist/classicy.umd.cjs
+  	"^@classicy/appearance-platinum$": require.resolve("@classicy/appearance-platinum"),
+  	"^@classicy/appearance-system7$": require.resolve("@classicy/appearance-system7"), // when you load it
+  },
+  ```
+
+  Its `node` environment needs nothing. The rest is the
+  host's in both versions: `react-player`, one of the core's dependencies,
+  ships ES modules only, which Jest cannot `require()`, so transform it, and
+  jsdom has no `structuredClone` (Platinum calls it when it registers),
+  `TextEncoder` (the file system hashes with it when it boots) or
+  `TextDecoder` (HyperCard reads stacks with it), so hand the environment
+  Node's:
+
+  ```js
+  // jest.config.cjs (with @babel/plugin-transform-modules-commonjs installed)
+  module.exports = {
+  	transform: {
+  		"^.+\\.js$": ["babel-jest", { plugins: ["@babel/plugin-transform-modules-commonjs"] }],
+  	},
+  	transformIgnorePatterns: ["/node_modules/(?!react-player/)"],
+  	// testEnvironment: "./jsdom-environment.cjs" for the jsdom tests, and on Jest 29:
+  	// testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] },
+  };
+
+  // jsdom-environment.cjs
+  const { TestEnvironment } = require("jest-environment-jsdom");
+  module.exports = class extends TestEnvironment {
+  	constructor(...args) {
+  		super(...args);
+  		Object.assign(this.global, { structuredClone, TextEncoder, TextDecoder });
+  	}
+  };
+  ```
+
+  Jest 29's jsdom (20.0) cannot parse CSS cascade layers, so in each test
+  file that loads the core it reports `Could not parse CSS stylesheet` for
+  Classicy's stylesheet (Jest 30's jsdom 26 parses it), and Jest maps that
+  report's stack through `classicy.umd.js.map`, which cost 1 to 2 s per test
+  file where it was measured. An environment that drops those reports, and
+  only those, saves both; add this to the constructor above:
+
+  ```js
+  	// Jest 29: jsdom 20 cannot parse CSS cascade layers.
+  	const virtualConsole = this.dom.virtualConsole;
+  	const report = virtualConsole.listeners("jsdomError");
+  	virtualConsole.removeAllListeners("jsdomError");
+  	virtualConsole.on("jsdomError", (error) => {
+  		if (error.type !== "css parsing") for (const listener of report) listener(error);
+  	});
+  ```
+
+  jsdom plays no audio, so in either version a test that draws the desktop
+  logs the sound manager's `Failed to load audio sprite` error (`No codec
+  support for selected audio sources.`). Checked against the packed
+  packages with Jest 29.7.0 (jest-environment-jsdom 29.7.0, jsdom 20.0.3) and
+  Jest 30.5.2 (jest-environment-jsdom 30.5.2, jsdom 26.1.0), each in its
+  `node` and `jsdom` environments, with and without the setting: only Jest
+  29's `jsdom` environment without it fails (story 0223-a0y). The
+  `moduleNameMapper` alternative passed Jest 29.7.0's `node` and `jsdom`
+  environments too, with the same output (story 0224-siu).
+
+**Next.js (App Router).** The core's ES build starts with `"use client";`
+(verify:dist invariant 20), so Next.js treats `@classicy/classicy` as a
+client module: a server component (`app/page.tsx`, a layout) imports
+Classicy's components and renders them, with no `"use client"` wrapper file
+of the host's. (Without the directive Next.js evaluates the core as a
+server module, and the build fails: `TypeError: (0 , V.createContext) is not
+a function`.) In a server component every export of
+the core is a client reference: render the components, passing them
+serializable props (strings, numbers, plain objects, JSX children); a
+function prop (`onClick`, a menu item's `onClickFunc`), a call of a function
+export (`registerApp`, `registerClassicyIcons`, `classicyLog`) and a
+constant's value belong in a client module. Route handlers, server actions
+and `generateMetadata` run in that same server layer and have no client
+module to move a call into, so they cannot call any Classicy function: React
+refuses to call a client reference on the server (a route handler or server
+action calling `getAllThemes()` answers 500 with `Attempted to call
+getAllThemes() from the server but getAllThemes is on the client`).
+
+The Pages Router needs none of this: its pages are not server components, so
+a page imports the core and an Appearance Package as in any React app, with
+no client file, and `getServerSideProps` may call Classicy's functions
+(checked with a page that imports Platinum and `Classicy` and calls
+`getAllThemes()` in `getServerSideProps`). The directive matters only to a
+React Server Components bundler: a host without one (a Vite app, Remix or
+React Router in framework mode, Astro, webpack, esbuild, Jest) is unaffected.
+The one trace is a warning from Rollup used on its own: bundling the core it
+prints `MODULE_LEVEL_DIRECTIVE: … Module level directives cause errors when
+bundled, "use client" in "…/classicy.es.js" was ignored.` once per build. It
+is harmless (Rollup drops the directive, which only an RSC bundler reads);
+silence it in the host's Rollup config:
+
+```js
+// rollup.config.mjs
+export default {
+    // …
+    onwarn(warning, warn) {
+        if (warning.code === "MODULE_LEVEL_DIRECTIVE" && warning.message.includes('"use client"')) return;
+        warn(warning);
+    },
+};
+```
+
+A Vite build prints nothing (checked with Vite 7.3.7, with and without
+`@vitejs/plugin-react`, which filters this warning itself), and neither do
+esbuild (0.28.2) or webpack (5.113.0).
+
+The Appearance Packages carry no directive (their invariant 12): a package
+registers itself when it runs, which must happen in the browser, so import
+it from a client module, either the client component that renders the
+desktop or, when server components render it, a client component of one
+import that the root layout renders (the browser runs a client module a
+server component imports only when the page renders one of its exports).
+Imported from a server
+component, it fails the build (`Attempted to call
+encodeClassicyPixelArtRows() from the server but encodeClassicyPixelArtRows
+is on the client`); were it a client module, that import would build and
+never run, and the desktop would draw its "No Appearance Package is loaded"
+screen.
+
+```tsx
+// app/classicy-packages.tsx
+"use client";
+import "@classicy/appearance-platinum";
+
+export function ClassicyPackages() {
+    return null;
+}
+
+// app/layout.tsx (a server component)
+import { ClassicyPackages } from "./classicy-packages";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <html lang="en">
+            <body>
+                <ClassicyPackages />
+                {children}
+            </body>
+        </html>
+    );
+}
+
+// app/page.tsx (a server component)
+import { Classicy, ClassicyApp, ClassicyButton, ClassicyWindow } from "@classicy/classicy";
+
+export default function Page() {
+    return (
+        <Classicy style={{ height: "100vh" }}>
+            <ClassicyApp id="Hello.app" name="Hello" icon="/hello.svg">
+                <ClassicyWindow id="hello" appId="Hello.app" title="Hello" defaultWindow>
+                    <p>Rendered by a server component.</p>
+                    <ClassicyButton>OK</ClassicyButton>
+                </ClassicyWindow>
+            </ClassicyApp>
+        </Classicy>
+    );
+}
+```
+
+The page prerenders the desktop's empty shell (above), and the desktop
+draws after hydration, with no hydration warning. The packages' files need
+no setting: Next.js's bundler (Turbopack, its default, or webpack with
+`next build --webpack`) reads each `new URL("assets/…", import.meta.url)`,
+copies the file into its build and serves it under `/_next/static/media/`,
+so nothing is copied into `public/`; no `transpilePackages` or
+`serverExternalPackages` entry is needed either. Checked with Next.js 16.4.6
+(React 19.3.1) on both bundlers, from the packed packages: `next build` and
+`next start`, the Platinum desktop drawn in Chromium and Firefox with its
+fonts, art and sprites loaded and no console error, and `next dev`, all
+three routes drawn with no hydration warning (React reports hydration
+mismatches in full only in development) (story 0224-siu).
 
 **Source maps and declarations.** Every bundle ships its source map. A map
 holds the source text of Classicy's own modules only (3.7): a bundled
@@ -400,7 +695,8 @@ export default function App() {
 with your apps as its children. It takes every prop of both, all optional:
 the provider's (below) go to the provider, and the desktop's (`children`,
 `startupScreen`, `startupDuration`, `preBootScreen`, `startupLogo`,
-`startupWordmark`, `bootScreen`, `controlStrip`, `className`, `style`; §4)
+`startupWordmark`, `bootScreen`, `controlStrip`, `themeLinks`, `className`,
+`style`; §4)
 go to the desktop, whose root `#classicyDesktop` takes `className` and
 `style`. The two sets share no name. It mounts the desktop in the provider's
 own commit, so the lazy-mount hazard (the desktop a tick after the provider)
@@ -427,13 +723,16 @@ All optional, and all accepted by `Classicy` too:
 | `defaultState` | `DeepPartial<ClassicyStore>` | — | Initial store overrides; applied ONCE, and only when nothing was hydrated from localStorage |
 | `defaultFileSystem` | `ClassicyFileSystemTree` | — | Seed file system tree |
 | `defaultFileSystemMode` | `"merge" \| "exclusive"` | `"merge"` | How the seed combines with stored state |
+| `fileSystemStorageKey` | `string` | `"classicyStorage"` | The `localStorage` key the desktop's file system is kept under: the Finder's, every built-in app's and Recent Items', and that of every `useClassicyFileSystem()` / `useClassicyFileSystemAccessor()` called without a key of its own (published to reducers store-free, for Recent Documents, while the provider is mounted: on commit, before any child's effects, never by a render that does not commit; with two providers on one page, which share one store, the first mounted that is still mounted wins) |
 | `defaultFileSystemSeedMigrations` | `ClassicyFileSystemSeedMigration[]` | — | Corrections applied to a **returning** visitor's persisted tree (see `ClassicyFileSystemSeedMigrations.ts`), after the core's own `DefaultFSSeedMigrations` (skipped in `"exclusive"` mode). Without an `id` an op runs every boot, kept harmless by its guards (`ifData`, or `ifUrl` on `delete`); with one it runs once per storage key, recorded in `localStorage["<key>:seedMigrations"]`, and a fresh seed records it unrun. Give every `add` an id, or a deleted entry returns on the next boot |
 | `disableSimpleText`, `disablePDFViewer`, `disableMoviePlayer`, `disablePictureViewer`, `disableHyperCard`, `disableWebViewer`, `disableCalculator` | `boolean` | `false` | Turn off individual built-in apps. `ClassicyDesktop` also clears what a disabled app saved earlier (Apple-menu entry, icon record, open record; `classicyDisabledDefaultAppCleanup`, `ClassicyDisabledDefaultApps.ts`) unless the app is mounted anyway |
 | `defaultMuted` | `boolean` | `false` | Boot with sound off (first mount only; not persisted) |
 
 State persists automatically to `localStorage` under the key
 `classicyDesktopState` (debounced 500 ms). Because persisted state wins over
-`defaultState`, clearing that key resets the desktop.
+`defaultState`, clearing that key resets the desktop. A host can mirror it
+to its own backend with `registerClassicyStateAdapter` (§7, "Mirroring the
+desktop state").
 
 ---
 
@@ -472,7 +771,11 @@ interface ClassicyStore {
 
 Note: the app slice is `System.Manager.Applications` (not `.App`). Each app is
 `{ id, name, icon, windows, open, focused?, data?: Record<string, unknown>, ... }` —
-`data` is your app's private state bag, written by your event handler.
+`data` is your app's private state bag, written by your event handler. An
+extension's record also carries `extension: true` and, when its `ClassicyApp`
+passes `bootIcon={false}`, `noBootParade: true` (the startup screen leaves it
+out of the parade; `ClassicyAppLoad` sets or clears it on every mount, so it
+is never stale).
 
 `windows` is a `Record<windowId, ClassicyStoreSystemAppWindow>` (exported alias
 `ClassicyStoreSystemAppWindows`; each entry's `id` equals its key). Read and
@@ -529,14 +832,15 @@ registration, file-system adapters, or engine callbacks.
 1. Trust gate — untrusted actions that fail the gate are rejected before any handler runs.
 2. `ClassicyWindow*` → window operations (focus, move, resize, collapse, zoom)
 3. `ClassicyDesktopIcon*` → icon add/selection/interaction
-4. `ClassicyDesktop*` → desktop (menus, themes, backgrounds, balloon help toggle)
-5. `ClassicyBootParadeIcon*` → boot parade
-6. `ClassicyManagerDateTime*` → date/time manager
-7. `ClassicyShortcut*` → keyboard shortcut registry
-8. **Registered plugin handlers** — first registered prefix that matches wins
+4. `ClassicyDesktopRecentItems*` → Recent Items (Apple Menu Options; §11, "Recent Items")
+5. `ClassicyDesktop*` → desktop (menus, themes, backgrounds, balloon help toggle)
+6. `ClassicyBootParadeIcon*` → boot parade
+7. `ClassicyManagerDateTime*` → date/time manager
+8. `ClassicyShortcut*` → keyboard shortcut registry
+9. **Registered plugin handlers** — first registered prefix that matches wins
    (insertion order, NOT longest-match; register more specific prefixes first)
-9. `ClassicyApp*` → generic app lifecycle (open, close, focus, activate)
-10. Otherwise: dev-mode "Unhandled action type" warning.
+10. `ClassicyApp*` → generic app lifecycle (open, close, focus, activate)
+11. Otherwise: dev-mode "Unhandled action type" warning.
 
 Add `debug: true` to any action to get a `console.group` dump of before/after
 state (non-production only).
@@ -546,6 +850,7 @@ Common built-in actions:
 | Action | Payload | Effect |
 |---|---|---|
 | `ClassicyAppOpen` | `{ app: { id, name, icon } }` | Open an app |
+| `ClassicyAppLoad` | `{ app: { id, name, icon }, contextMenu?, extension?, bootParade? }` | Register or refresh an app's record (`ClassicyApp` sends it on mount; `name`, `icon`, `contextMenu` and the extension flags are code-derived, refreshed on every load). `bootParade: false` on an extension (`ClassicyApp`'s `bootIcon={false}`) sets the record's `noBootParade`, which keeps it out of the startup parade; a load without it clears the field, and a non-extension never takes it |
 | `ClassicyAppClose` | `{ app: { id } }` | Close an app |
 | `ClassicyAppFocus` | `{ app: { id } }` | Focus an app (and show it, when hidden) |
 | `ClassicyAppHide` | `{ app: { id } }` | Hide an open app (the Application menu's Hide <app>, HIG7 p.127): `apps[id].hidden` (session state: `sanitizeStateForPersistence` drops it, so a reload shows every app; `closeApp` clears it), its `ClassicyApp` container `hidden`, its windows mounted, a portaled modal and its scrim `display: none`; any focus (`focusApp`, `focusWindow`, a window opening, the desktop focusing the Finder: `markAppFocused`) shows it; the next shown app (the most recently focused, Finder last) takes the menu bar. No-op for an extension, a closed app or the last shown app |
@@ -553,6 +858,10 @@ Common built-in actions:
 | `ClassicyAppShowAll` | `{}` | Show every hidden app (Show All) |
 | `ClassicyWindowOpen` | `{ app: { id }, window: { id, size, minimumSize, position?, autoPosition?, menuBar?, windowType?, collapsable?, modal? } }` | Register (or reopen) a window. A new window opens at `position` as given, `[0, 0]` included. With no `position`, or with `autoPosition: true`, it is cascaded instead: `[30 + 10·n, 30 + 10·n]`, n being the app's window count. An existing window keeps its stored position. `ClassicyWindow` always passes a position (its `initialPosition`, default `[110, 110]`), so it never cascades |
 | `ClassicyWindowFocus` | `{ app: { id }, window: { id } }` | Focus a window |
+| `ClassicyAppFinderOpenFolder` | `{ path, focus? }` | Open a Finder window on a folder or disk; with `focus: true` the Finder and that window also come to the front (what `openClassicyFileSystemPath` sends, so a folder opened from another app is seen) |
+| `ClassicyAppFinderRevealItem` | `{ path }` | Find File's Open Enclosing Folder: the Finder comes to the front with the item selected, in its folder's window (opened or focused; `Finder.app` `data.reveal { path, seq }`, session only, which that window's `ClassicyFileBrowser` applies as its `reveal`), or, for an item mirrored on the desktop (`classicy-desktop-item:<path>`), its desktop icon selected and no window. Use `revealClassicyFileSystemPath`, which refuses invisible places first (§11, "Find File") |
+| `ClassicyAppFinderRevealDone` | `{ seq }` | Sent by the folder's Finder window once its browser has selected the revealed item: forgets `data.reveal` when its `seq` matches, so the reveal is never applied again (closing that folder's window, `ClassicyAppFinderCloseFolder`, forgets it too) |
+| `ClassicyAppFindFileShowFind` | `{}` | Launch Find File, or bring its Find window to the front (the Finder's File ▸ Find…, ⌥F) |
 | `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (the active package's loaded built-ins, then its defaults and presets, then custom themes, then other packages' built-ins) |
 | `ClassicyDesktopChangeAppearancePackage` | `{ packageId: string }` | Switch the active Appearance Package (`System.Manager.Appearance.packageId`, persisted, default `"platinum"`); activates a copy of the package's default theme unless the active theme already belongs to it (`theme.package`). An unregistered id is a logged no-op; untrusted dispatches never reach it (`ClassicyDesktop*` floor) |
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` or `{ family, key, color }` | Set one theme color, or one of the active package's own colors (forks a built-in into "Custom"; see §8, "Package color families") |
@@ -562,12 +871,22 @@ Common built-in actions:
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (Platinum included: no package counts as installed until it registers) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename, `<package>\|<file>` or its source) is stored by filename when it is the theme's package's, or Platinum's and the theme's package has no file of that name, else as `<package>\|<file>` (`portableClassicyWallpaper(value, theme.package)`; never decided by the active package). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
+| `ClassicyDesktopSetAppMenuName` | `{ showName: boolean }` | Show the front application's name in the Application menu's title, or its icon alone, for every application (`System.Manager.Desktop.appMenuShowsName`, persisted; absent, shown). The title's grip sets it (§4.12, "The Application menu's title"); a package that draws the title as its icon alone (System 7) draws it so either way |
 | `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
 | `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
 | `ClassicyDesktopChangeAlertVolume` | `{ alertVolume: number }` | Set the alert level, 0–100 (clamped, rounded; non-finite ignored) |
 
-Helper functions (exported, callable inside custom handlers): `openApp`,
-`closeApp`, `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
+Helper functions (exported, callable inside custom handlers): `openApp`
+(`(ds, id, name, icon, { document?, windows?, forOwnWindow? }?)`: a plain
+open reopens every window the app closed that is mounted, and of a running
+app left with no window open counts a reopen for `ClassicyApp`'s `onReopen`;
+a document open reopens and fronts only the document's windows
+(`${id}_file_${document}`, `classicyDocumentWindowId`, and `windows`), holds
+a launch to the same rule, and remembers `document` under Recent Documents,
+§11 "Recent Items"; `forOwnWindow`, a plain open made for a document whose
+window the kernel cannot name, counts no reopen),
+`closeApp` (quit: closes the windows and the documents, `data.openFiles`
+and what the app's quit handler closes), `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
 `loadApp`, `getDefaultAppForFileType`, `pickSuccessorApp`,
 `dispatchToPlugin(ds, prefix, action)` (cross-app orchestration without a
 direct import; it carries no trust and always reduces as **trusted**, so never
@@ -611,11 +930,13 @@ Full props:
 | `desktopIconBalloonHelp` | `string \| ClassicyIconBalloonHelp` | — | stored on the icon record as given; an untitled balloon is titled at render with the name the icon shows. Omitted, the icon shows the package's `apps[id].description`, else the manifest `description`, resolved at render |
 | `addSystemMenu` | `boolean` | — | contribute to the system menu |
 | `extension` | `boolean` | — | background app: no windows UI affordances, no icons |
-| `globalShortcuts` | `{ shortcut, event, eventData? }[]` | — | honored only for extensions |
-| `bootIcon` | `boolean \| string` | — | show in the boot icon parade (string = custom icon) |
+| `globalShortcuts` | `{ shortcut, event, eventData?, title? }[]` | — | honored only for extensions |
+| `windowlessMenu` | `ClassicyMenuItem[]` (memoize) | — | the menus shown while the app is the front application with **no open window record** (not `ClassicyWindow`'s `appMenu`: a dialog, About or palette keeps it out); under `menuBar.placement: "window"` only its chords act |
+| `onReopen` | `() => void` | — | called when the app, already running with **no open window record**, is opened again by a plain `ClassicyAppOpen` (its icon, the Apple menu, Recent Applications), its launch over: Finder 8's reopen application Apple event (Apple Technote TN1102, "Mac OS 8", https://developer.apple.com/library/archive/technotes/tn/tn1102.html, "If no windows are open in the application, the action taken should be similar to what happens when the open application ('oapp') Apple event is received after the application is launched"). Show a window as on launch (SimpleText opens an untitled one, as Mac OS 8.1's did); never called for a document open (the generic queue's `forOwnWindow` open included), during the app's launch, or while any window, a palette or dialog included, is open. `openApp` counts the request in `apps[id].reopened` (session state, cleared by a quit, so a run counts from 1 again); `ClassicyApp` answers a count that changes while it is mounted, recording every value it sees, the cleared one included |
+| `bootIcon` | `boolean \| string` | — | show in the boot icon parade (string = custom icon); an `extension` parades already, and `false` keeps it out (Mac OS 8.5's Application Switcher shows no icon there) |
 | `debug` | `boolean` | `false` | |
 | `handlesFileTypes` | `ClassicyFileSystemEntryFileType[]` | — | register as a file-type handler |
-| `handlesOwnFiles` | `boolean` | `false` | |
+| `handlesOwnFiles` | `boolean` | `false` | draw your own windows for the queued `data.openFiles` (else `ClassicyApp` draws one plain window per path). Give a document's window the id `` `${id}_file_${path}` `` (`classicyDocumentWindowId`) and dispatch `` `ClassicyApp${name}CloseFile` `` with the path when it closes (§11, "Recent Items": the window-id convention) |
 | `contextMenu` | `ClassicyMenuItem[]` | — | app-level right-click menu |
 | `noDesktopIcon`, `inApplicationsFolder` | `boolean` | — | **deprecated** aliases; note `noDesktopIcon` alone no longer hides the app from Applications |
 
@@ -623,6 +944,26 @@ Menu/lifecycle hooks for app authors: `useClassicyWindowClose`,
 `useClassicyAboutMenu`, `useClassicyHelpMenu`, `useClassicyEditMenu`, plus
 menu-item helpers `quitAppHelper`, `quitMenuItemHelper`,
 `closeWindowMenuItemHelper`, `closeAllWindowsMenuItemHelper`.
+
+**Quitting with unsaved work** (`ClassicyAppQuit.ts`): `ClassicyAppClose`
+(and `quitAppHelper`'s action) quits at once and discards whatever the app
+has not saved. To quit the way an app's own File > Quit does, asking first,
+call `requestClassicyAppQuit(appId)`: it runs the app's quit guard and
+dispatches `ClassicyAppClose` only when the guard resolves `true`. It resolves
+whether the app quit and never rejects: a guard that throws or rejects is a
+refusal (the app keeps running) and is logged through `classicyLog`
+(`ClassicyAppQuit`, `error`). A second request for the same app while one is
+asking joins it, but only while the guard it waits on is still the app's;
+requests for other apps never wait on it. **A guard must always settle**
+(resolve once the user answers, or at once with nothing to ask): one that
+never does holds every later request for its app until it is replaced or
+unregistered, which releases the app, so the next request asks afresh. An
+app with unsaved work registers its guard from an effect,
+`registerClassicyAppQuitGuard(appId, () => boolean | Promise<boolean>)`
+(returns the unregister), and points its Quit item at
+`requestClassicyAppQuit` (`{ ...quitMenuItemHelper(…), onClickFunc }`).
+SimpleText's guard asks to save each unsaved document, HyperCard's each
+unsaved stack.
 `ClassicyAppIdContext` provides the current app id to descendants.
 
 Text your app draws that names the app (a window title, a proxy icon, an
@@ -674,6 +1015,11 @@ Rules (enforced/warned by the kernel):
   `state` schema wins (a different second schema warns).
 - `scriptable: true` auto-adds the action type to the untrusted allowlist and
   validates script-authored args against `params` before dispatch.
+- `controlPanel: true` marks the app a control panel, not an application:
+  Recent Applications never lists it (§11, "Recent Items"). Any registration
+  of the id that says so makes it one; the bundled control panels (Appearance,
+  Sound, Date & Time, Screen Saver, Control Strip, Apple Menu Options) do.
+  Drive Setup is an application on the Mac, and stays one.
 - Dev builds validate `apps[id].data` against the schema after each routed
   action — **warn-only**, never rejects.
 - **Opening files from Finder.** Declare `<prefix>OpenFile` (e.g.
@@ -734,7 +1080,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, description?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark: "diamond"` draws the Notification Manager's ◆ in the mark column of an item that is not checked, §4.11; `description` is the item's `aria-description`; `titleClassName` draws the title's text in a `<span>` of that class, which a stylesheet can size or cut apart from the item's image: the Application menu's name, `classicyDesktopMenuAppSwitcherName`; `titleWidthSamples` reserves the widest of several labels, and the Application menu no longer passes it)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -903,7 +1249,7 @@ on Classicy's internal class names carry one of four attributes
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
 | `data-classicy-selection` | `all`, `tail` | a `ClassicyInput`'s `<input>` while it is `selected`: `all` when the selection starts at the text's first character (the whole text), `tail` when it starts at a later one. A tail scrolled so its first character sits at the field's left edge publishes `--classicy-input-selection-start: 0px`, as the whole text does, so this is what tells them apart (System 7 highlights a tail from its first character's pen position, the whole line a pixel left of the text's). Absent while the field is not `selected` |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3) |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `switcher-grip`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down`; `selection-marquee`; `zoom-rect` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher (the Application menu's title) and its grip, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3); and the selection rectangle a drag from empty space draws on the desktop and in a file browser (`classicySelectionMarquee`; on the desktop also `classicyDesktopSelect`; §7, "Selection rectangle"); and each zoom rectangle a window opening from an icon or closing back to it draws on the desktop (`classicyZoomRect`, in the `classicyZoomRects` layer; §4.1, "Zoom rectangles") |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -983,7 +1329,8 @@ and icon states own:
 - No passthrough, because there is no root element of their own:
   `ClassicyApp` and every bundled app built on it (`Finder`, `SimpleText`,
   `HyperCard`, `MoviePlayer`, `QuickTimePictureViewer`, `PDFViewer`,
-  `WebViewer`, `AppleGuide`, `ClassicyScreenSaver`, the control panels and
+  `WebViewer`, `AppleGuide`, `ClassicyScreenSaver`,
+  `ClassicyApplicationSwitcher`, the control panels and
   `ClassicyControlPanels`); the providers (`ClassicyAppManagerProvider`,
   `ClassicySoundManagerProvider`, `ClassicyMenuProvider`,
   `ClassicyContextualMenuProvider`); the controllers that render nothing or
@@ -1039,6 +1386,8 @@ manager. Must be a descendant of `ClassicyApp`.
 | `header` / `placard` | `ReactNode` | — |
 | `appMenu` / `contextMenu` | `ClassicyMenuItem[]` | — |
 | `alwaysOnTop` / `contentFrame` / `dimContents` | `boolean` | `false` / `false` / `true` |
+| `utilityTitle` | `boolean` | `false`: a utility window draws `title` in its drag region, between two bands of the windoid's texture, with no proxy icon (the bar gets `classicyWindowTitleBarUtilityTitle`; Platinum textures both bands), as the Application Switcher's palette does (§4.12) |
+| `onZoomBox` | `(keys: { option, shift }) => boolean` | — : replaces what the zoom box does (it no longer zooms); called with the Option and Shift keys held at the press, and returns whether the window now draws larger, the `zoomed` of the `zoom` event the package hears (its zoom sound). The palette sets its options this way |
 | `analyticsPath` / `analyticsExclude` | `string` / `boolean` | derived / `false` (see §9) |
 | `onCloseFunc` | `(id: string) => void` | — |
 | `onBeforeClose` | `(id: string) => boolean \| Promise<boolean>` | — (close always proceeds) |
@@ -1046,8 +1395,10 @@ manager. Must be a descendant of `ClassicyApp`.
 | `hidden` | `boolean` | `false` |
 | `growable` | `boolean` | `false` |
 | `type` | `"default" \| "error"` | `"default"` |
+| `playAlertSound` | `boolean` (an error modal's alert sound on open) | `true` |
 | `backgroundColor` | `string` | — |
 | `initialFocusRef` | `RefObject<HTMLElement \| null>` | — (nothing focused) |
+| `zoomIconPath` | `string` (a folder's or drive's path) | — (closes with no zoom) |
 
 `initialFocusRef` names the element that takes keyboard focus whenever the
 window *becomes* the focused window (the store's `focused` flag turning true
@@ -1056,9 +1407,10 @@ windows only the focused one takes it). It is skipped when focus is already
 inside the window (an input the user clicked keeps it), re-applied on a
 title-bar press in the already-focused window, and focused with
 `preventScroll`. For a `modal` window it is the focus trap's initial target
-instead. Finder passes its list view's list box (via
-`ClassicyFileBrowser`'s `focusTargetRef` / `ClassicyTable`'s `containerRef`)
-so arrows and Return work as soon as a folder opens.
+instead. Finder passes its list view's list box, or its icon view's icons'
+holder (via `ClassicyFileBrowser`'s `focusTargetRef` / `ClassicyTable`'s
+`containerRef`), so the arrow keys, Return and Select All work as soon as a
+folder opens or its window comes to the front.
 
 `onBeforeClose` is a close veto. It runs before every close that goes through
 the window (the close box, Escape or ⌘-period on a modal), ahead of
@@ -1089,10 +1441,12 @@ can drop the title bar of the fixed one only. Both packages drop it for a
 bar (the drag affordance of a movable modal, p.59) and the items on one
 placard-like face inside the window's frame and bevel, with no line across
 the top and no second bevel on the contents
-(`.classicyWindowModalFixed:not(.classicyWindowRed)`). Platinum's fixed
-alert keeps its red title bar. With no title bar, such a modal has no close
-or collapse box to show, so pass `closable={false}` (Escape then beeps) and
-`collapsable={false}`, and dismiss it with its own buttons.
+(`.classicyWindowModalFixed`). Platinum's fixed alert has no title bar
+either (HIGOS8 p.62, Figure 3-5, and Mac OS 8.1's Finder alerts): its
+contents draw the alert's red rings (`ClassicyAlert`, §4.6). With no title
+bar, such a modal has no close or collapse box to show, so pass
+`closable={false}` (Escape then beeps) and `collapsable={false}`, and
+dismiss it with its own buttons.
 
 A modal's inner area (`.classicyWindowContentsModalInner`) carries
 `classicyWindowContentsSelfPadded` while its content root lays itself out
@@ -1139,6 +1493,180 @@ drag keeps the opposite corner fixed (`computeClassicyWindowResize`); with
 `layout.menuBar.placement: "window"` a window with an `appMenu` draws it in
 its own menu bar under the title bar. See §8, "Layout declarations".
 
+#### Zoom rectangles
+
+A window opened from an icon zooms out of it, and a folder's window zooms
+back to its icon when it closes, with the Finder's outline rectangles
+(story 0230-n6c; `Window/ClassicyZoomRects.ts`). Measured in Infinite Mac
+(Mac OS 8.1 and System 7.5, every frame read off the emulator's canvas at
+the display's rate; the captures cited are in
+`packages/appearance/platinum/resources/screenshots/zoom-rects/`, never
+published) and documented by the Drag Manager's `ZoomRects` (Apple's
+patent US5754178, which reproduces the Drag Manager reference: "gray
+dithered rectangles incrementally toward the destination rectangle", at
+most one step per tick, `kZoomAccelerate` making each step larger than the
+last):
+
+- **The path.** From the icon's box (step 0: the icon's image, not its
+  label) to the window's (step `steps`), step k lies
+  `(growth^k − 1) / (growth^steps − 1)` of the way
+  (`classicyZoomFraction`), each step `growth` times the one before; both
+  Finders measured lay 11 steps of 1.4. Rectangles are whole pixels
+  (`computeClassicyZoomRects`).
+- **Opening** draws steps `firstStep` … `steps − 1`, then erases them all a
+  tick after the last, when the window is drawn. It ends at the window's
+  content area (`classicyWindowContentRect`: the union of its own menu bar,
+  header, contents with their scroll bars, and placard, inside the frame and
+  below the title bar), where 8.1's ended (`[45,89,421,249)` for a window
+  whose frame was `[40,68,427,255)`, `mac-os-8.1/open-from-window/`). Mac OS
+  8.1 (Platinum, `firstStep` 5) draws the six steps nearest the window and
+  keeps them all (`trail` 0): 100 ms at 60 Hz. System 7.5 (`firstStep` 0,
+  `trail` 4) draws all 11, erasing each four steps after it is drawn: 183 ms
+  (widths 39, 43, 47, 55, 64, 75, 95, 119, 156, 205, 275, the last six
+  8.1's, `system-7.5/open-from-window/`).
+  Until then the window is laid out but transparent
+  (`classicyWindowZoomHidden`: `opacity: 0`), as the Finder drew it after its
+  rectangles; it is in the store, focused and given the keyboard as soon as
+  it opens, and it takes the pointer: a click made during the zoom (a third
+  click after the double-click) lands on the new window, never on the
+  window or desktop under it, as the Mac queued it for the window drawn
+  next. The hidden state sets only the opacity, so a floating window (§11,
+  drawn in the floating layer with an inline `pointer-events: auto`) zoomed
+  this way takes the pointer too; no icon opens one today.
+- **Pacing.** The first rectangle is drawn at once, with the window's box
+  known (in the window's layout effect), and the display frame that shows it
+  starts the clock. Each later frame (`requestAnimationFrame`) draws the next
+  step once its tick is due (`1000 / rate` ms after the one before, within a
+  quarter of a tick), never more than one a frame, as `ZoomRects` drew one a
+  tick: one a frame at 60 Hz, one every other frame at 120 Hz, and a frame
+  the page is late to draw delays the rest without skipping or bunching any.
+  A page with no display frames paces by a timer at `1000 / rate` ms; a
+  hidden page draws no zoom.
+- **Closing** (a window with `zoomIconPath`) draws the same steps the other
+  way, `steps` … `firstStep + 1`, from the window's whole box (its frame and
+  title bar) toward the icon, after the window is gone (8.1: widths 387,
+  286, 213, 161, 124, 98 from the frame `[40,68,427,255)`,
+  `mac-os-8.1/close-to-window-icon/`, and the same steps to a desktop icon,
+  `mac-os-8.1/close-to-desktop-icon/`; 7.5 the same way with its trail of
+  four, `system-7.5/close-to-window-icon/`). The icon is the one
+  for `zoomIconPath`, else the nearest enclosing folder's or drive's that
+  shows (`findClassicyZoomIcon`; 8.1 zoomed a window whose parent window was
+  closed to the disk's icon, `mac-os-8.1/close-after-parent/`): a desktop
+  icon, an icon in an icon view or a row of a list view, counted only where
+  its window shows it (not scrolled out of its window's box); one covered by
+  another window counts (8.1 zoomed to an icon under a Stickies note,
+  `mac-os-8.1/close-to-covered-icon/`). None found, no zoom. It runs a tick
+  after the window leaves the DOM, and only when the window's record is
+  `closed` then (not for a window unmounting open, StrictMode's phantom
+  detach, or a folder renamed under a new id).
+- **Close All** (File ▸ Close All Windows in a Finder window) closes every
+  folder window at once and zooms back only the window it was chosen from
+  (else the focused one); the others close with no zoom
+  (`skipClassicyWindowCloseZoom`, internal). Measured: 8.1's Option-click on
+  a close box erased all three windows in one frame and drew one zoom, the
+  clicked window's, back to its disk icon (`mac-os-8.1/close-all/`).
+- **The open zoom ends early** when the window closes, unmounts or opens
+  again during it: its rectangles go and the window is no longer hidden; an
+  effect torn down and run again at once (StrictMode) starts the same zoom
+  over.
+- **Menu opens zoom too.** Mac OS 8.1's File ▸ Open (⌘O) on a selected icon
+  and its contextual Open zoomed from the icon exactly as a double-click
+  (`mac-os-8.1/file-open/`, `mac-os-8.1/contextual-open/`). Classicy's one
+  menu open of an icon, the Trash's contextual Open, records the Trash
+  icon's origin the same way.
+- **Launching** an application from its icon (a desktop app shortcut, or a
+  document or application opened from a Finder window or the desktop) zooms
+  from the icon to the whole desktop, only when the open started the
+  application (8.1: opening a document in SimpleText while it ran drew none,
+  `mac-os-8.1/launch/` and `mac-os-8.1/document-in-running-app/`;
+  `withClassicyLaunchZoom`, `ClassicyLaunchZoom.ts`, compares the open apps
+  before and after the dispatch). The started application's windows that
+  open while it runs wait for it (hidden the same way) and are drawn when it
+  ends, as 8.1 drew SimpleText's window after its zoom; they open without a
+  zoom of their own. Quitting draws none (`mac-os-8.1/quit/`).
+- **Not zoomed:** a folder whose window is already open (it comes to the
+  front; 7.5 drew none, `system-7.5/reopen-open-folder/`), a window opened by
+  anything but an icon (a restored session, a direct
+  `ClassicyAppFinderOpenFolder` with no source), a package that has not opted
+  in, and a user who prefers reduced motion (`prefers-reduced-motion:
+  reduce`: no rectangles, the window drawn at once).
+
+**The open path carries the source.** An icon that opens a window passes its
+zoom origin, `ClassicyZoomOrigin` (`{ rect, desktop }`: its image's box in
+viewport pixels and the `.classicyDesktop` it is on, `classicyZoomOriginOf`),
+on the open path: `ClassicyIcon`'s `onClickFunc(origin)`,
+`ClassicyFileBrowser`'s `dirOnClickFunc(path, origin)` and
+`fileOnClickFunc(path, origin)` (from the icon view's icon, or the list
+view's row, found by its path, `classicyZoomOriginForPath`), and
+`ClassicyDesktopIcon`'s `onOpenFilePath(path, origin)`, by the mouse and by
+the keyboard (Enter on an icon, Return in a list), and only when there is
+one (a call without it keeps its old arguments). Whoever opens the window
+records it for the window just before the open dispatch:
+`noteClassicyWindowZoomSource(appId, windowId, origin)` (Finder's
+`openFolder`, the desktop's folder and drive icons, the Trash's contextual
+Open, for a window not open yet). The window takes it
+(`takeClassicyWindowZoomSource`, once, within `CLASSICY_ZOOM_SOURCE_TTL_MS`,
+1 s) when it becomes open, mounting open or going from closed to open, in a
+layout effect, so it never shows before its rectangles. Nothing goes in the
+store: no action, record or persisted byte changes. A host app opening its
+own window from its own icon does the same:
+
+```ts
+noteClassicyWindowZoomSource("Notes.app", "note-1", classicyZoomOriginOf(iconEl));
+dispatch({ type: "ClassicyAppOpen", app: { id: "Notes.app", name: "Notes", icon } });
+```
+
+`playClassicyZoomRects({ desktop, icon, window, direction, settings?, onEnd? })`
+draws one (null when it draws nothing; else `{ durationMs, cancel }`), and
+`playClassicyLaunchZoom(origin, appIds?)` the launch.
+
+**The package opts in and draws the look.** The rectangles are drawn in a
+layer the core appends to the desktop (`classicyZoomRects`, `aria-hidden`:
+absolute, covering the desktop, no stacking context), outside React, one
+element per rectangle (`classicyZoomRect`, part
+`data-classicy-part="zoom-rect"`, base `z-index` 1000: over windows, the
+menu bar, the Control Strip and contextual menus, as `ZoomRects` drew on the
+whole screen; under open pull-down menus), each carrying the desktop's
+corner from its own as `--classicy-pattern-origin-x` / `-y`. The core draws
+no look, so the zoom is opt-in: a package that wants it sets its themes'
+`zoomRects.enabled` to 1 (a package's own knob, not on the core floor; the
+core reads it with a fallback of 0, `readClassicyZoomRectsSettings`) **and**
+draws the part in its stylesheet. A package that sets neither (a host's own
+package written before this release, Storybook's probe) has no zoom: no
+rectangles and no hidden window. The opt-in follows the drawing package
+(story 0235-xgi, §8, "A theme drawn under another package"): a theme that
+carries its own package's `enabled: 1` draws no zoom under a package that
+has not opted in, and only a theme's own edit (0, say) overrides the
+drawing package's value. Platinum and System 7 opt in and draw it in
+`_ZoomRects.scss`: Platinum Mac OS 8.1's two-pixel frame
+(`mac-os-8.1/style/`), System 7 the 7.5 Finder's one-pixel frame
+(`system-7.5/style/`, four kept at a time), both the 50% checker in XOR
+laid from the desktop
+(`mix-blend-mode: difference`, the selection rectangle's pen:
+`platinum-xor-checker-frame` in Platinum's `_mixins.scss`, System 7's
+`xor-checker-frame` in `_checkerFrame.scss`), sized by the knobs
+`zoomRects.width` and `zoomRects.tileSize` (on the core floor at Platinum's
+values, so a theme of another package drawn under Platinum still sizes
+them). The path and pace are the
+structural `zoomRects` knobs the core reads from the desktop: `steps`,
+`growthPercent` (each step's length over the last's: 140, the growth of
+1.4), `firstStep`, `trail` (rectangles kept; 0 keeps all) and `rate` (steps
+per second), whole numbers like every knob, on the core floor at Mac OS
+8.1's values (11, 140, 5, 0, 60), System 7 overriding `firstStep` 0 and
+`trail` 4 (§8, "Package knob families").
+
+**Not measured.** The emulator's pace equals a real Mac's as far as the
+Finder waits on ticks: one rectangle came each 1/60 s frame in both systems,
+as the Drag Manager's one step per tick says, so the 100 ms (8.1) and 183
+ms (7.5) are taken as the real pace on any machine fast enough to draw a
+step a tick. The Finder's own icon box was a few pixels larger than the icon
+(7.5's first rectangle, 39 × 34 around a 32 × 32 icon); Classicy starts from
+the icon image's box. 8.1's desktop icons started their zoom from a box
+offset from where the icon was drawn (Infinite Mac lays the disks out for
+its screen size; `mac-os-8.1/open-from-desktop/`); Classicy starts from the
+icon. Whether 8.1 zoomed from an
+already-open folder's icon was captured only in 7.5 (none).
+
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`. It draws the
 window's own title bar (`ClassicyWindowTitleBar`, always focused, with no
@@ -1156,9 +1684,11 @@ dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
 |---|---|---|
 | `title` * | `string` | `""` draws one title-less center band (`classicyWindowTitleCenter`) |
 | `icon` / `hideIcon` | `string` / `boolean` | the proxy icon before the title (document variant) |
-| `variant` | `"document" \| "utility"` | default `"document"` (side bands around the title); `"utility"` draws the windoid's center band and no title text |
+| `variant` | `"document" \| "utility"` | default `"document"` (side bands around the title); `"utility"` draws the windoid's center band and no title text, unless `utilityTitle` |
 | `modal` | `boolean` | adds `classicyWindowTitleBarModal`; never a zoom box |
 | `onClose` / `onZoom` | `() => void` | each draws its box (a `data-classicy-control` wrapper) and is called, with no arguments, by a click, Enter or Space |
+| `onZoomKeys` | `(keys: ClassicyZoomBoxKeys) => void` | draws the zoom box like `onZoom` and is called instead of it, with `{ option, shift }` held at the click, Enter or Space |
+| `utilityTitle` | `boolean` | the `"utility"` variant draws `title` between its two bands (no proxy icon), the bar marked `classicyWindowTitleBarUtilityTitle` |
 | `onCollapse` | `(e: MouseEvent<HTMLDivElement>) => void` | draws the collapse box; called by its click |
 | `onCollapseKey` | `() => void` | Enter or Space on the collapse box; without it those keys click the box |
 | `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
@@ -1192,7 +1722,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>`; carries the `selected` state while focused with a selection running to its text's end, and `--classicy-input-selection-start` and `data-classicy-selection` (`all` or `tail`) with it (§4.0.1) |
+| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?`, `analyticsPrivate?` (its `selected` analytics event carries neither the text typed nor the prefill; Find File's fields, which hold search words, set it) | forwardRef to `<input>`; carries the `selected` state while focused with a selection running to its text's end, and `--classicy-input-selection-start` and `data-classicy-selection` (`all` or `tail`) with it (§4.0.1). The selection is read once a new value has committed, never in an `input` listener: a read there re-rendered the field with its old value between the browser's listeners, and text typed or pasted over a selection was lost |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
 | `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `ghost` draws a ghost indicator that follows the pointer while it drags, and under a package whose layout says `slider.thumbDrag: "onRelease"` (Platinum, §8 "Layout declarations") the indicator stays put meanwhile and the value changes, once, on release (live otherwise; a slider without a ghost always drags live, the HIG's "live feedback"); on a vertical slider the ghost travels up the track, where the indicator lies across it. A mouse or pen press (first button) is the slider's own, not the browser's: its `mousedown` default (the engine's range drag) is prevented, while the `pointerdown`, `mousedown` and `mouseup` still reach the page; a press on the thumb grabs it where it is, so a press that never moves changes nothing, in every engine (Firefox moved the thumb to the pointer on every press), and the value follows the pointer's travel from there, on the step grid; a press on the track puts the thumb's center under the pointer (onRelease: the ghost) and drags from there; the input captures the pointer, so the release reaches it, and a drag that loses the capture, sees a move with the button up or a release only the document hears ends where it is; the value is set through the input's prototype setter with a synthetic `input` event (which `onChangeFunc` receives), and a `change` event is dispatched by hand on a release that moved it. Touch, the keyboard and the wheel stay the browser's; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws the HIGOS8 figures pixel for pixel (Figures 2-18 and 2-19 at rest: a 7 px etched channel with one-pixel pixel-art ends, a 15 × 16 pixel-art indicator in the theme's lavender ramp lit from the top left, its flat side 3 px past the channel and its point 6 px past it, Figure 2-18's 3 × 8 tick marks; the 1996 draft's Figure 13, a four-gray screenshot whose grays are the ramp's, for the vertical channel and the left-pointing indicator, which is lit from the top left too, not the down one turned; the up- and right-pointing indicators, which no figure draws, lit by the same rule; pressed or highlighted, the same art every ink a step down the ramp, Figure 2-17's tone, since that figure is 2-18's slider resampled a row and a column larger; a pointless knob centered on the channel, turned under the same light on a vertical one; a gray ghost; the `slider` knob family, every placement derived from it), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders. The base sheet resets Firefox's thumb border and 0.5em corner radius, which would clip a package's thumb art round, and raises the track layer (`z-index: 1`, the stack `isolation: isolate`) above the tick rail, so a thumb overhanging the input is never painted under a tick |
@@ -1201,8 +1731,8 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
 | `ClassicyDatePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock (`DateAndTime.dateTime`); re-syncs when `prefillValue` changes to a different moment |
 | `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock, like the date picker; re-syncs when `prefillValue` changes to a different moment |
-| `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs. A list too long for its space scrolls as Mac OS menus do (HIG7 pp.78, 83), with no scroll bar: an indicator over the first or last row while items lie hidden past that end (`data-classicy-part` `menu-scroll-up` / `menu-scroll-down`, `.classicyPopUpMenuScrollArrow` + `Up`/`Down`, `aria-hidden`, a fixed-position sibling of the list that the package draws), and the list scrolls a row at a time while the pointer rests on one; the wheel over an indicator scrolls it (by rows for a wheel that counts lines), and the keyboard's highlight scrolls it clear of the indicators (scroll padding a row tall). Opened aligned and scrolled, the selection never lands under an indicator: it sits a row in from that end |
-| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard. Its vertical bar shows while the rows overflow, or always (in the `fits` state while they fit) under a package whose layout says `scrollBar.fitsBars: "shown"` (§8) |
+| `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?, dividerBefore?}` or `{groupLabel, options}` entries; `dividerBefore` draws a divider, a `ClassicySeparator`, above that item in the open menu, starting a group as Find File's location and date pop-ups do; ignored on the first item; each package draws it as its menus' divider), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?`, `analyticsPrivate?` (its `selected` analytics event names neither the item chosen nor the options nor the current choice: Find File's location pop-up, whose choices name the user's disks, sets it) | Platinum select; a divider is a decorative `ClassicySeparator` (`role="presentation"`: a listbox holds options only); group entries render `<optgroup>`-style titled, non-selectable runs. A list too long for its space scrolls as Mac OS menus do (HIG7 pp.78, 83), with no scroll bar: an indicator over the first or last row while items lie hidden past that end (`data-classicy-part` `menu-scroll-up` / `menu-scroll-down`, `.classicyPopUpMenuScrollArrow` + `Up`/`Down`, `aria-hidden`, a fixed-position sibling of the list that the package draws), and the list scrolls a row at a time while the pointer rests on one; the wheel over an indicator scrolls it (by rows for a wheel that counts lines), and the keyboard's highlight scrolls it clear of the indicators (scroll padding a row tall). Opened aligned and scrolled, the selection never lands under an indicator: it sits a row in from that end |
+| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?, depth?}[]`; `depth` indents the row one icon's width a level, published as `--classicy-listbox-depth`, as Find File's path pane does), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard. Its vertical bar shows while the rows overflow, or always (in the `fits` state while they fit) under a package whose layout says `scrollBar.fitsBars: "shown"` (§8) |
 | `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic and its scroll indicators; focus stays in the input (`aria-activedescendant`) |
 
 ### 4.4 Labels, grouping, display
@@ -1216,28 +1746,27 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicySchemaForm` | `schema` * (a zod object), `values` *, `onChange(path, value)` *, `idPrefix` *, `path?` | the rows of a `ClassicyControlGroup layout="form"`, derived from a zod object: number → spinner, boolean → checkbox, enum → pop-up menu, string → text field (label above), a nested object → a titled group on a full-width row laying out its own fields; other types render nothing. A field's label is its `.describe()` text, else the humanized key (`speedSeconds` → "Speed seconds", `classicySchemaFieldLabel`); control ids are `<idPrefix>_<key>` for a top-level key and `<idPrefix>_<path…>.<key>` for a nested one, each segment with `%` and `.` percent-encoded so a key such as `a_b` can never take a nested field's id (`classicySchemaFieldId`); `unwrapClassicySchemaField(field)` peels `.optional()`/`.default()`/`.nullable()`/`.readonly()` and returns `{ schema, description }`, the outermost `.describe()` text winning, which is how the form reads a field's kind and label; `onChange` gets the field's full path. A number field reports its entry clamped to `.min()`/`.max()` (no `.min()`: 0, so a negative entry reports 0) and rounded for `.int()`; an empty or non-numeric entry reports nothing. Display gap (the shared spinner): an `.int()` field keeps showing the fraction typed, and an emptied field shows its minimum, until the next edit or a new value re-syncs it. No root of its own, so no `className`/`style`. The Screen Saver options and the Appearance Manager's Options tab use it |
 | `ClassicyForm` | `onSubmitFunc?`, `layout? ("default"\|"dialog")`, children * | real `<form>`; always calls `preventDefault` (never navigates); make the confirming button `isDefault buttonType="submit"` so Enter submits |
 | `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--button-gap`, group-gap above |
-| `ClassicySeparator` | `orientation?` | |
+| `ClassicySeparator` | `orientation?`, `decorative?` (`role="presentation"`, no `aria-orientation`: a divider inside a list that may hold only its items, as a pop-up's listbox) | |
 | `ClassicyPlacard` | `menuItems?`, `onSelect?(id)`, `onClick?`, `disabled?` | window-corner placard |
 | `ClassicyImageWell` | `src?`, `onDrop?(files, e)`, `selected?`, `enabled?` | drag-and-drop image slot |
-| `ClassicyProgressBar` | `value?`, `max? (100)`, `indeterminate?`, `autoSwitch?`, `chasingArrows?`, `label?` | barber-pole when indeterminate (its stripes slide by animating the registered `--slide-var`; Safari 16.2–16.3 and Firefox 113–127 have no `@property`: in Safari, which draws the stripes, the bar carries `classicyProgressSlideByScript`, its keyframes stopped, and sets the offset on its `<progress>` from a frame loop along the same path, the period read once when it starts, the `<progress>` marked `data-classicy-paint-only-style` meanwhile so the pattern-origin watcher and the scroll area skip its per-frame writes; Firefox draws no stripes, `::-webkit-progress-value` being the only part they are drawn on, so nothing runs there); with `autoSwitch` an indeterminate bar becomes determinate as soon as it has a `value` |
+| `ClassicyProgressBar` | `value?`, `max? (100)`, `indeterminate?`, `autoSwitch?`, `chasingArrows?`, `label?` | barber-pole when indeterminate (its stripes slide by animating the registered `--slide-var`; Safari 16.2–16.3 and Firefox 113–127 have no `@property`: in Safari, which draws the stripes, the bar carries `classicyProgressSlideByScript`, its keyframes stopped, and sets the offset on its `<progress>` from a frame loop along the same path, the period read once when it starts, the `<progress>` marked `data-classicy-paint-only-style` meanwhile so the pattern-origin watcher and the scroll area skip its per-frame writes; Firefox draws no stripes, `::-webkit-progress-value` being the only part they are drawn on, so nothing runs there); with `autoSwitch` an indeterminate bar becomes determinate as soon as it has a `value`. The fill's look is the package's (the base sheet draws none): Platinum's determinate bar is Mac OS 8.5's Appearance progress bar pixel for pixel (`_ProgressBar.scss`; the 8.5 audit's F12, `resources/screenshots/mac-os-8.5/platinum-85-startup-progress.png`): a one-pixel well (#AAAAAA top and left, white bottom and right) around a black frame, a fill of ten one-pixel rows from theme-05 to theme-01 and back to theme-07 with a lit second column and per-row end shading, a black end line and a #555555/#888888 inner shadow, a #BBBBBB track with an #888888 top row and #DDDDDD bottom row and last column, on its own grid knob (`progressBar.pixel`), in Chromium and Firefox (`::-moz-progress-bar`); a taller bar keeps its top four and bottom five rows and stretches the highlight. The startup screen's bar is 8.5's 160 × 12 (`progressBar.startupWidth`, `startupHeight`), centered under "Starting Up…" (a centered label alone in its row has no side margin) |
 | `ClassicyMeter` | `value` *, `min?/max? (0/100)`, `low?/high?/optimum?`, `segments?`, `showValue?`, `label?` | native `<meter>` zone semantics: the region holding `optimum` is optimal (theme accent), adjacent is suboptimal (`--color-alert`), two away is bad (`--color-error`); `meterZone()` exported |
 | `ClassicyOutput` | `id` *, `value?` or children, `htmlFor?: string[]`, `variant? ("plain"\|"inset")`, `mono?`, `label?`, `disabled?` (dimmed) | real `<output>`; `inset` is the white beveled result well |
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list; a `disabled` node's `leftIcon` is dimmed by the active package's `iconDimming.disabledItem` rule where it declares one (§8, "Icon dimming") |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window); `headerPlacement? ("inList"\|"aboveList", "inList")` (`aboveList`: the column titles above the list's scrolling region, in its scroll area's head, its own or, with `scrollable={false}`, the scrolling ancestor's: a copy, `classicyTableDetachedHeader`, `aria-hidden`, taking the container's custom properties, its table and each column as wide as the list's, padded after by the head's room past the viewport so the two scroll as far sideways; the table's own header row stays for assistive technology, laid out with no height, `classicyTableHeaderHidden`; with no scroll area the titles stay in the list) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks. The sorted column's body cells carry the part class `classicyTableCellSorted`, and the root publishes the sorted header's place from its left edge as `--classicy-table-sorted-start` and `--classicy-table-sorted-width` (px, both `0px` with nothing sorted; measured after each sort or column resize and as the table resizes), so a package can draw the sorted column below the last row too: Platinum draws it in `--color-system-02` in the Finder's list view only (`.classicyFileBrowserViewTableContainer`), cells and the empty list alike, as HIGOS8 Figs. 2-24 and 2-43 (Finder list views) do; generic tables keep one face |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `onSortChange?({ columnId, desc } \| undefined)` (after a header click changes the sort, never for the one it starts with; Find File's View menu follows it), `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll, select? }`; `select(ids)` selects exactly those rows in `"multi"` mode, as the file browser's selection rectangle does), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window); `windowed? (false)` (draw only the rows its scroll area shows and ten either side, two `classicyTableSpacer` rows, `aria-hidden`, holding the others' height; every row one height, measured from the first drawn; the table gets `aria-rowcount` (header rows plus all rows), the header row `aria-rowindex="1"` and each body row its place after it, so the titles above the list (`headerPlacement="aboveList"`) count from the table's own header row; arrows, Home, End, type-select and Shift ranges reach rows not drawn, scrolling to them; a sort keeps the scroll position; with `scrollable` only; before it can measure, the first 60 rows; Find File's Items Found), `onRowsShown?(ids)` (with `windowed`: after a commit that changes them, the ids of the rows drawn, in the visual order, compared id by id; a table that is not windowed reports nothing), `headerPlacement? ("inList"\|"aboveList", "inList")` (`aboveList`: the column titles above the list's scrolling region, in its scroll area's head, its own or, with `scrollable={false}`, the scrolling ancestor's: a copy, `classicyTableDetachedHeader`, `aria-hidden`, taking the container's custom properties, its table and each column as wide as the list's, padded after by the head's room past the viewport so the two scroll as far sideways; the table's own header row stays for assistive technology, laid out with no height, `classicyTableHeaderHidden`; with no scroll area the titles stay in the list) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks. The sorted column's body cells carry the part class `classicyTableCellSorted`, and the root publishes the sorted header's place from its left edge as `--classicy-table-sorted-start` and `--classicy-table-sorted-width` (px, both `0px` with nothing sorted; measured after each sort or column resize and as the table resizes), so a package can draw the sorted column below the last row too: Platinum draws it in `--color-system-02` in the Finder's list view only (`.classicyFileBrowserViewTableContainer`), cells and the empty list alike, as HIGOS8 Figs. 2-24 and 2-43 (Finder list views) do; generic tables keep one face |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
 | `ClassicyScrollArea` | `children`, `vertical?`/`horizontal? ("auto"\|"always"\|"never", "auto")`, `pairBars?` (either drawn → both), `scrollable? (true)` (`false` clips), `inactive?` (default: its window's), `lineStep? (16)`, `viewportRef?` (`Ref<HTMLElement>`: the area's `<div>`, or a `renderViewport` scroller), `viewportClassName?`, `viewportProps?`, `onScroll?`, `onOverflowChange?({ vertical, horizontal })` (whether the content overflows each axis by more than a pixel, once measured and on each change; `ClassicyWindow` decides its bars from it), `renderViewport?(viewport)` (a scroller of your own, e.g. a `<textarea>`), `head?` (content above the viewport and the vertical bar, the area's full width, scrolled sideways with the viewport: the part `classicyScrollAreaHead`, which the vertical bar starts under; the area also draws one while a descendant asks for it, as a list with `scrollable={false}` does to put its titles there), `onHeadChange?(present)` (whether the head is drawn, once and on each change, and `false` when the area unmounts while drawing one; `ClassicyWindow` marks its header `classicyWindowHeaderAboveHead` from it), and any `<div>` attribute for the root (forwarded `ref`) | a scrolling area with Classicy's own scroll bars, which an Appearance Package draws (parts and states in §4.0.1). The content scrolls natively in the viewport (wheel, keyboard, touch, selection and accessibility are the browser's), whose own bars are hidden (`scrollbar-width: none` and `::-webkit-scrollbar`); the bars are `aria-hidden` and never take focus. An arrow press scrolls a line and repeats while held; a track press pages toward the pointer, repeating until the thumb reaches it; dragging the thumb scrolls in proportion, as it goes, or on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"` (§8, "Layout declarations": the thumb stays put while a `scroll-drag-outline` part follows the pointer, snapping back over the thumb while the pointer is more than the theme's `--scroll-bar-snap-back`, else the bar's thickness, from the bar; Escape cancels it, and the keys and the wheel wait while it is held); a lost pointer stream ends any of them (an on-release drag scrolling nothing). Content changes (elements, text, and the `class`, `style` and `hidden` attributes) are measured once an animation frame. A root made focusable by its caller scrolls for Page Up/Down, Space, Home/End and the arrows its own `onKeyDown` leaves. Thumb length and position follow Chromium's rules (`computeClassicyScrollThumb`), and each bar sits on the device-pixel grid, so a package draws exactly what the browser drew. Bars are sized by `--window-scrollbar-size`; the thumb's minimum length is the package's `min-height` (vertical) or `min-width` (horizontal), and its maximum the package's `max-height` or `max-width` (the minimum winning, as in CSS; equal limits fix its length, as System 7's square scroll box does); only px lengths count, any other value leaving that limit unset. Windows, list boxes, tables, text editors, split-view panes, the Assistant, file dialogs and the color picker scroll in one |
 | `ClassicySpinner` | see inputs | |
-| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
-(→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
+| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?(origin?)` (open: double-click, Enter or Space; passed the icon's zoom origin, its image's box and desktop, when it has one, §4.1 "Zoom rectangles"), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?` (→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft, travel) → handled` (`travel`: how far the pointer went from the press), `fileDragParts?()` (the outline's parts, read at the press; default its own image and label), `moveBy?: { id, dx, dy }` (moves the icon by `dx`, `dy`, snapped, each time `id` changes; not at mount), `selected?`/`onSelectedChange?(selected)` (the container keeps the selection: the icon shows `selected` and reports the click, drag or open that would change it), `onSelectionGesture?({ type: "press" \| "click", shiftKey, metaKey })` (with `selected`: presses and clicks go to the container, which applies its own rules, and a click no longer toggles the icon itself; a contextual-menu press comes as a `press` with no modifiers, and the click ending a drag is not reported) | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target. Alone, a click toggles its selection, except the click ending a drag (a press counts as a drag only past `CLASSICY_FILE_DRAG_THRESHOLD`, 4 px, the Finder drag's threshold, so an unsteady click still toggles; a click with `detail` 0, a keyboard's or a script's, always counts); after its own drag the icon stays selected (no `select { selected: false }`); a Control-press or right-press is the contextual-menu click: it selects the icon, never drags it, and a Control-press opens the menu where the browser does not (§7, "Selection rectangle"). The file browser's icon view keeps the selection for its icons (`selected`, `onSelectedChange`, `onSelectionGesture`) and drags a selection as one (`fileDragParts`, `moveBy`) |
 
 ### 4.5 Menus
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount), `onOpenItemChange?(itemId \| null)` (the id of the item whose menu opens, `null` when it closes; the menu bar draws an open title's own icon with it) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned |
@@ -1333,6 +1862,18 @@ agrees). Every package, no declaration needed:
   `.classicyPopUpMenuList` and a bevel button's menu, so a fixed surface
   near the right edge is not shrunk to the room left, which wrapped its
   items).
+- Every pull-down (screen or window bar) and every submenu is as wide as
+  its widest item too (`width: max-content` on `.classicySubMenu` and
+  `.classicyContextSubMenu`), as Mac OS sizes a menu: an absolute list with
+  no width of its own shrank to the room its title's wrapper left it (CSS
+  2.1 §10.3.7), so a long item wrapped, in the Application menu under a
+  short front application's name ("Date and Time Manager") and in the Apple
+  menu on a 640-pixel desktop, which held it only at its `min-width`. The
+  Apple menu and its submenus have no `min-width` of their own (it was a
+  fifth of the viewport, wider than their items on a wide screen). The
+  Application menu hangs left of its title's right side (`left: auto`).
+  No item wraps; the placement above keeps the wider menu inside the
+  bounds.
 - Measured in layout effects, each re-render before paint, so no frame
   shows a menu outside the bounds; again each time it opens, and when its
   desktop changes size while it is open: the outermost open menu (a menu
@@ -1346,15 +1887,26 @@ agrees). Every package, no declaration needed:
   it across (measured after every render while capped; a combo box's after
   typing re-places it).
 
-`node bin/check-menus-on-desktop.ts --port <n> [--embed WxH+L+T]
-[storyId ...]` opens, in a served static Storybook's stories (by default
-System 7 and Platinum stories with menu bars, submenus, a scrolling
-pull-down, pop-ups, a combo box, bevel pop-ups and contextual menus), every
-first-level menu-bar menu and its first submenu, its first pop-up menu,
-combo box and pop-up bevel button moved to the desktop's bottom-right
-corner, and the contextual menu at that corner, and fails when one passes
-its bounds on either axis. `--embed` puts the desktop in a W x H box at
+`node bin/check-menus-on-desktop.ts --port <n> [--browser chromium|firefox]
+[--embed WxH+L+T] [storyId ...]` opens, in a served static Storybook's
+stories (by default System 7 and Platinum stories with menu bars, submenus,
+a scrolling pull-down, pop-ups, a combo box, bevel pop-ups and contextual
+menus), every first-level menu-bar menu and its first submenu, its first
+pop-up menu, combo box and pop-up bevel button moved to the desktop's
+bottom-right corner, and the contextual menu at that corner, and fails when
+one passes its bounds on either axis, or when an item of a pull-down, a
+submenu or a contextual menu runs onto a second line. In a desktop story
+it then opens Date and Time Manager and Calculator from the Apple menu,
+where it lists them, and every menu-bar menu again, so the Application
+menu holds a long name under a short front application's. `--embed` puts the desktop in a W x H box at
 (L, T) of the viewport, as a host page embeds it.
+
+`node bin/check-list-view-marquee.ts --port <n> [--browser chromium|firefox]`
+drags a selection rectangle in the `FileBrowser` list-view story, under
+Platinum and System 7, from below the last row and from beside a name, and
+fails unless the rectangle draws and every row it crosses is selected (a
+press below the rows lands on the list's own box in a browser; jsdom lays
+nothing out). Firefox needs a Playwright that has it (`$PARITY_PLAYWRIGHT`).
 
 `ClassicyMenuItem.link` is analytics only: it is reported with the item's
 analytics event, and choosing the item does not navigate. Open a URL with
@@ -1378,7 +1930,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `dialogBox?`, `playSound? (true)`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound when it opens, unless `playSound` is `false` (a notification's alert, §4.11). A `movable` alert is a movable alert box: Platinum draws red highlights on its title bar (six white rows over the dark red, white first) and the red frame of HIGOS8 Figures 3-4, 3-6 and 3-8 (a light red and dark red ring inside the black border, a white and gray ring inside that, the title bar beveled white and light red) for every `alertType`; a fixed alert (the default) has no title bar and the same two rings inside its black border (Figure 3-5, as Mac OS 8.1's Finder alerts draw it). The colors are Figures 3-6 and 3-8's, which the PDF prints in the screen's palette and Mac OS 8.1 draws: the light red #FF9999 and the dark red #FF6666 the error token mixed with white 60% and 40%, the inner shadow #999999 `--color-system-04` mixed with black 10%, the title bar's face #FFCCCC the error token with white 80%; each ring is `--window-border-size` wide (story 0236-2f8). The look is the package's, so System 7 (whose HIG has no movable alert box) draws a movable modal dialog's title bar. `dialogBox` (with `movable`) draws it in a movable modal dialog box's frame instead, the plain title bar (HIGOS8 p.59), for an alert the Mac put in a dialog box (Mac OS 8.1's SimpleText "Save changes…"). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `defaultButtonId={null}`: no default at all, for a choice whose answers may each lose data (HIG7 p.206): no ring, Return and Enter do nothing, and the alert itself (`tabIndex={-1}`, no outline) takes the focus on open, never a button, so a keystroke meant for a field answers nothing; Tab and Shift-Tab still cycle its buttons. The `alertdialog` is named by its `label` (`aria-labelledby`) and described by its `message` (`aria-describedby`, absent without one), so a screen reader reads the whole question. `id` is the window id, needed when two alerts can be open at once |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -1409,15 +1961,15 @@ plain integers (`0xRRGGBB`).
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
-| `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
-| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
+| `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`), `themeLinks? (false)` | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `themeLinks` opens the theme link in the page's address after asking, and offers Copy Theme Link (§8 "Theme links"); `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session, and call `useClassicyBootScreenActive(visible)` from it so the desktop holds a theme link's alerts and the Notification Manager's requests until it ends); `controlStrip={false}` hides the strip |
+| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?(path, origin?)` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. A Control-press or right-press is the contextual-menu click (§7, "Selection rectangle"): it selects an unselected icon alone and keeps a selection the icon is in (the selection is kept; what a `contextMenu` item acts on is its handler's: Finder's drive menu acts on its one drive), never drags, and a Control-press opens the menu where the browser does not; the click ending a file drag is no click, so a dragged selection stays selected. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Opening a drive's, the Trash's or a folder's icon whose Finder window is not open zooms that window out of the icon, and opening an icon that starts its application zooms to the desktop, when the active package opts in (§4.1, "Zoom rectangles"). Open and analytics payloads carry `appName`/`icon` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
-| `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
+| `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time. A click toggles the time and the date, a double-click opens the Date and Time Manager. Its readout is a `<button>` inside the clock's `<li>`, the bar's one Tab stop: Enter or Space toggles (WCAG 2.1.1, over Mac OS 8.1, whose bar had no keyboard path), its name says what it toggles ("Clock: show the date" or "… the time") and `aria-description` is what it shows, to the minute; a pointer press takes no keyboard focus. The base sheet takes the button's native chrome away; a package may draw its `:focus-visible` ring, which both shipped packages draw beside the readout's box (an `::after`, the box being the text), never over the ink: within the item's side paddings under Platinum (2 px out, inside its 7.5 and 6 px paddings), and under System 7 one pixel of face out (3 px), its end past the item's 1 px end padding, over the Help title's leading face |
 | `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted. It no longer floats right: the menu bar places its clusters by flex `order`, so mounted in a container that is not a flex row it floats left |
 | `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel |
 | `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` (its file's 32 px icon; default the core's generic module file icon; a core icon URL, `ClassicyIcons.*`, draws as the active package's, though it misses a later re-registration of its key, §5) | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`; `appearance` → `classicy-appearance`, order 30, owned by `AppearanceManager.app`: the active package's themes, checked, and the installed packages when there are two or more) |
-| `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
+| `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled. Its contents are on the window's document face, white under both packages, as Mac OS 8.5's Control Strip 2.0 draws them (8.1's was #EEEEEE; `resources/screenshots/mac-os-8.5/platinum-85-control-strip-panel.png`) |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
 | `ClassicyPixelArt` | `rows` (`string[]` of palette tokens, `.` transparent) **or** `art` (a `ClassicySystemArtKey` holding pixel art, read from the active package at render time), `className?`, `style?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors). `useClassicyPixelArtRows(key)` returns a key's rows; a package registers rows as system art with `encodeClassicyPixelArtRows(rows)` (a `data:text/x-classicy-pixel-art,…` source, `CLASSICY_PIXEL_ART_MIME`), and `decodeClassicyPixelArtRows(src)` reads one back outside React |
 
@@ -1495,7 +2047,8 @@ off:
 | Component | Purpose | Disable via provider prop |
 |---|---|---|
 | `Finder` | The Finder (file browsing, trash, Applications) | always on |
-| `ClassicyControlPanels` | Appearance, Date & Time, Drive Setup, Sound panels | always on |
+| `FindFile` | Find File (the Finder's File ▸ Find…, ⌥F, and the Apple menu): search the file system, and the host's search sources (§11, "Find File") | always on |
+| `ClassicyControlPanels` | Appearance, Sound, Date & Time, Drive Setup, Screen Saver, Control Strip and Apple Menu Options panels | always on |
 | `SimpleText` | Text editor | `disableSimpleText` |
 | `HyperCard` | Stack player (+ `HyperCard/Editor/*` authoring UI) | `disableHyperCard` |
 | `PDFViewer` | PDF viewer | `disablePDFViewer` |
@@ -1504,11 +2057,14 @@ off:
 | `WebViewer` | Web browser | `disableWebViewer` |
 | `Calculator` | Four-function calculator (Apple menu and Applications) | `disableCalculator` |
 | `AppleGuide` | Help system extension | always on |
+| `ClassicyApplicationSwitcher` | The Application Switcher extension: the Application menu's tear-off palette and switching applications from the keyboard (§4.12) | always on (the chord can be turned off by the user) |
 
 The components are still individually exported (all take no props) for
-advanced setups that build their own desktop shell. The four control panels
+advanced setups that build their own desktop shell. The control panels
 are also individually exported (`ClassicyAppearanceManager`,
-`ClassicyDateAndTimeManager`, `ClassicyDriveSetup`, `ClassicySoundManager`),
+`ClassicyDateAndTimeManager`, `ClassicyDriveSetup`, `ClassicySoundManager`,
+`ClassicyScreenSaverManager`, `ClassicyControlStripManager`,
+`ClassicyAppleMenuOptions`),
 and `PDFViewerDocument` (`{ url, data? }` — data = gzip+base64url bytes) is a
 standalone PDF renderer with zoom/pan usable inside any consumer window.
 
@@ -1547,6 +2103,455 @@ Exported zod schemas / types / guards: `MoviePlayerOpenFileSchema`,
 `isPictureViewerData`, `PDFViewerData`/`isPDFViewerData`,
 `WebViewerOpenUrlSchema`, `WebViewerData`/`isWebViewerData` (prefer
 `parseAppData` for new code).
+
+### 4.11 Notifications (the Notification Manager)
+
+An app or a host asks for the user's attention, from anywhere (outside React
+included), the way the Mac OS Notification Manager let a background
+application do (Inside Macintosh: Processes, ch. 5, pp. 5-3 to 5-11):
+
+```ts
+import { classicyNotify, removeClassicyNotification } from '@classicy/classicy'
+
+const id = classicyNotify({
+    appId: 'Mail.app',                      // required: the app asking
+    message: 'You have 3 new messages.',    // optional: a note alert with OK
+    sound: true,                            // optional: the user's alert sound
+    onResponse: (id) => {},                 // optional: after OK
+})
+removeClassicyNotification(id)              // NMRemove
+```
+
+| Field | Default | What it does (the `NMRec` field) |
+|---|---|---|
+| `appId` * | — | the app asking; a missing or empty one posts nothing (`""` returned, one `classicyLog` error) |
+| `mark?` | `true` | a ◆ beside the app in the Application menu (`nmMark`), while the app is listed there and in the background: the front app keeps its ✓ ("the diamond is replaced by a checkmark", p. 5-4) |
+| `icon?` | the app's icon, as the Application menu shows it | the small icon that blinks in the menu bar (`nmIcon`); `false` for none |
+| `sound?` | none | `true`, the user's alert sound; a string, a sprite of the loaded sound packs (`nmSound`). Played once through the sound manager at the alert volume (system volume × `Appearance.alertVolume`), silent while muted (`classicyAlertVolumeSoundAction`) |
+| `message?` | none | a non-empty string shows a note alert with that text and an OK button (`nmStr`, Figure 5-2), once |
+| `onResponse?` | — | called once with the id, last (`nmResp`): after the alert's OK, or, with no alert, once the request is presented; never for a request removed first. An exception it throws is logged, not rethrown |
+| `removeOnActivate?` | `true` | remove the request when its app comes to the front (below) |
+
+What the user sees, in the reference's order (p. 5-4): the mark, the
+blinking icon, the sound, then the alert.
+
+- **The icon** blinks over the Application menu's title when the request
+  marks an app that menu lists, else over the Apple menu's (p. 5-4; a
+  request from an app that is not open, or with `mark: false`, blinks over
+  the Apple menu). Each title shows its requests' icons in turn, then its
+  own, each for `CLASSICY_NOTIFICATION_BLINK_MS` (exported; 1000 ms,
+  measured on Mac OS 8.1 under Infinite Mac, 1002 ms on average over 11
+  frames, and the System 7.1 Notification Manager's 60-tick wait; Inside
+  Macintosh says only "periodically"), so one request's icon alternates
+  with the title's own; with icons over both titles the two alternate half
+  a period apart. The timer runs only while a title blinks where it is
+  drawn: once a second, twice while both titles blink, never under window
+  placement. For users who prefer reduced motion
+  (`prefers-reduced-motion: reduce`) nothing blinks: each title shows its
+  first request's icon steadily. While a menu of the bar is open the blink
+  stops on the frame it showed, and the open title itself shows its own
+  icon, as Mac OS 8.1 draws them (observed on Infinite Mac: with the
+  Finder's File menu open the Application title kept whichever icon it
+  showed; with the Application menu open its title showed the front
+  application's icon, at every phase tried; the title crops, twelve
+  frames each, are `packages/appearance/platinum/resources/screenshots/mac-os-8.1/platinum-81-blink-filemenu-open-sheet.png`
+  and `platinum-81-blink-appmenu-open-sheet.png`, the open menu
+  `platinum-81-appmenu-notification-open.png`). The Apple title's case is
+  inferred from the Application title's, not observed: it is the same
+  Menu Manager tracking and the same `NMTask` that does not run during it,
+  but a stock 8.1 has nothing that posts an unmarked request (every
+  request there comes from an application, marked, so it blinks over the
+  Application menu), so no icon blinks over the Apple menu to watch. On a
+  request's frame the Application menu's title is that request's icon
+  alone, centered in the title, as Mac OS 8.5 draws it (observed on
+  Infinite Mac, the 8.5 audit's F1: Script Editor's 1-bit icon at x
+  584-599 of the Finder's 555-628 title, the name gone, the grip, the
+  title's width and the clock unmoved;
+  `resources/screenshots/mac-os-8.5/platinum-85-appmenu-blink-name.png` and
+  `-blink-request.png`): the title carries
+  `classicyDesktopMenuAppSwitcherRequest`, and the base sheet hides the name
+  (`visibility: hidden`, so its width is kept) and moves the icon to the
+  middle of the title's contents on a whole pixel (`round(up, 50%)` less
+  half the icon, which is 8.5's Menu Manager place, the title's left plus
+  half its width less the icon's, rounded down, while the end padding is the
+  start's plus one, as Platinum's are; with equal paddings only for an even
+  content width). The other frame is the front application's icon and
+  name. A title showing its icon alone (the grip's setting, or System 7's)
+  swaps the icon in place, as Mac OS 8.1's icon-only title does. While a title carries requests it
+  carries an `aria-description` naming their apps ("Mail requests your
+  attention", "Mail and Chat request your attention";
+  `classicyNotificationMenuBarDescriptions`).
+- **The alert** is a `ClassicyAlert` (note icon, the message as its label,
+  OK), one request at a time, oldest first; the others wait their turn. It
+  opens over the front application (`useFrontAppId()`; an extension's
+  floating window, Apple Guide's, never hosts it), as a window of that app,
+  so it makes no other app active. The one exception is a dialog an
+  extension put up over the front app while it holds the focus: the alert
+  is then that extension's window, over the dialog, so answering it hands
+  the focus back to the dialog (`ClassicyWindowDestroy` focuses the
+  extension's open modal first) rather than to the front app under it. It
+  plays no sound of its own (`playSound={false}`):
+  the request's `sound` is its only sound. It stays that app's window only
+  while the app is open and shown: should it quit or be hidden, the alert
+  moves to the app in front (else the Finder, else the first shown
+  application), and with no app shown it waits, drawing nothing. Its
+  window id carries a per-page token, and no modal window's record is
+  persisted, so an alert open at a reload leaves nothing behind. A `sound`
+  naming a sprite no registered pack has plays nothing and is logged once
+  (`ClassicyNotification`).
+- **Requests stay** until they are removed, as the reference's do: the mark
+  and the icon remain; the sound and the alert are presented once (p. 5-5).
+  A request is removed by `removeClassicyNotification(id)` (which also
+  dismisses its alert, unanswered, if it is showing or waiting); when its
+  app comes to the front (it becomes the front application, `frontAppIdOf`;
+  the raw `focusedAppId` is not read, so a click from Apple Guide's floating
+  window back to the app in front, or an extension's dialog handing the
+  focus back, brings nothing forward), unless
+  `removeOnActivate` is `false`, which is what Inside Macintosh asks an
+  application to do ("you can do this in the response procedure or when
+  your application returns to the foreground", p. 5-6): the Notification
+  Manager itself never removed a request; and when its app quits (an open
+  app closing), as the Notification Manager flushed a quitting
+  application's requests. A request posted by the front app for itself
+  stays until the app comes forward again, or until the user answers its
+  alert (below). With no app in front the alert opens as a window of the
+  Finder or of the first shown application, which may be the notifying
+  app, and opening it focuses that app; that focus is the alert's, not the
+  user's (Mac OS's alert never changed the front process), so it removes
+  nothing. When the user answers an alert its own app hosts (the front
+  app's own request, or that fallback), they have attended to that app:
+  the request is removed after `onResponse`, unless `removeOnActivate` is
+  `false`; the app's other requests stay until it comes forward again. A
+  request for an app that is not open stays until it opens (which brings
+  it forward).
+- **Presentation needs a desktop.** `ClassicyDesktop` mounts the controller
+  that plays the sound, shows the alert, calls `onResponse` and removes
+  requests; a request posted before it mounts is presented once it does,
+  and each request's sound and alert are presented once, across remounts.
+  While a boot screen covers the desktop, presentation waits (sound, alert
+  and response), as the system notified the user "after the startup
+  process completes" (p. 5-10): Classicy's own startup screen and the
+  power-on overlay before it, and a host's own `bootScreen` that calls
+  `useClassicyBootScreenActive(visible)`. It is the same hold a theme
+  link's alerts wait on (§8 "Theme links"; `Boot/ClassicyBootScreenActive.ts`,
+  read with `useClassicyBooting()`); a host boot screen that does not call
+  it holds nothing. The hold lasts as long as a caller passes `true` and
+  stays mounted, so pass the screen's real visibility: a host boot screen
+  kept mounted and hidden by CSS while it still passes `true` silences
+  every notification for the session (no sound, no alert, no
+  `onResponse`) and holds every theme link's alert.
+  Under a package whose `layout.menuBar.placement` is `"window"` there is no
+  Apple or Application menu, so the mark and the icon are not drawn; the
+  sound and the alert still are.
+- **Session state.** Requests live in a module store, never persisted.
+
+Reading: `useClassicyNotifications()` (the installed requests, oldest first;
+`useSyncExternalStore`), `listClassicyNotifications()`,
+`getClassicyNotification(id)`, `subscribeClassicyNotifications(listener)`,
+`useClassicyNotifiedAppIds()` / `getClassicyNotifiedAppIds()` (the apps a
+request marks). Each `ClassicyNotification` is `{ id, appId, message?, mark,
+icon?, sound?, removeOnActivate, onResponse? }`, frozen. For a list of apps
+of your own (a palette of the same apps), pass the marked set to
+`appSwitcherAppsFrom(apps, overrides, { notifiedAppIds, frontAppId })`:
+each entry gets `notified: true`, and `appSwitcherEntryMark(entry, front)`
+gives the menu item's `{ checked, mark? }`. Pass `frontAppId:
+useFrontAppId()` too, as the menu bar does, so the front application alone
+is `focused` (an extension's floating window never takes the ✓) and a front
+extension's entry carries `extension: true`. `classicyNotificationMenuBarIcons(requests,
+listed, iconFor)` sorts the icons onto the two titles.
+
+The ◆ is `ClassicyMenuItem.mark: "diamond"`: the item's mark column carries
+`classicyMenuItemDiamond` beside `classicyMenuItemCheck`, unless the item is
+checked, and the package draws it (Platinum: Charcoal 12's 7 × 7 diamond
+from Mac OS 8.1, pixel art on the title's baseline, as its check is;
+System 7: Chicago 12's 7 × 7 diamond from Figure 5-1's bitmap as pixel
+art, its top on the check's). The glyph sits in the
+`aria-hidden` mark column, so the item carries `aria-description="Requests
+your attention"`.
+
+**HyperCard stacks may not post notifications** (story 0225-ci7's ruling):
+there is no scriptable action for it. HyperTalk had no Notification Manager
+command of its own that we found, and a request can play a sound and put up
+a modal alert, which an untrusted stack should not be able to repeat at the
+user. A host that wants it builds it on its own action and allowlist.
+
+### 4.12 The Application Switcher
+
+Mac OS 8.5 let the user tear the Application menu off into a floating
+palette of the open applications, and switch applications from the
+keyboard. `ClassicyDesktop` mounts `ClassicyApplicationSwitcher`
+(`src/SystemFolder/Extensions/ApplicationSwitcher/`), a background extension
+(`ApplicationSwitcher.app`, listed in the Extensions folder) that does both.
+The references are Mac OS 8.5 on Infinite Mac (captures in
+`packages/appearance/platinum/resources/screenshots/mac-os-8.5/`), its Mac
+OS Help page "Switching between open programs", and HIG7 pp.93-95
+("Tear-Off Menus").
+
+**The Application menu's title.** As Mac OS 8.5 draws it (observed on
+Infinite Mac; captures `platinum-85-appmenu-title-finder.png`,
+`-title-long-name.png`, `-title-icon-only.png`, `-grip-pressed.png` and
+`-grip-drag-cut.png`): the front application's small icon, then its name
+(`titleClassName` `classicyDesktopMenuAppSwitcherName`), in a title as wide
+as that name, so an application opening behind it changes nothing and a
+switch moves the clock and the bar items left of it (8.1's title was the
+icon alone; 8.5 named it). No width is reserved for the other open
+applications' names any more (`titleWidthSamples`). Its left edge is a grip,
+a part of its own beside the title (`data-classicy-part="switcher-grip"`,
+`classicyDesktopMenuAppSwitcherGrip`, `ClassicyAppMenuTitleGrip.internal.tsx`),
+so a press on it never opens the menu or tears it off, closes an open menu,
+and moves no focus. Dragged, the title follows the pointer live
+(its border box on the bar's `--classicy-app-menu-title-width`), as narrow
+as its icon alone and as wide as its whole name, the name cut with an
+ellipsis between; let go, a drag right leaves the icon alone and a drag left
+the name (8.5: 19 px right, 11 px left), unchanged when let go where it was
+pressed; Escape cancels, a lost pointer stream ends it where it is. The
+result is one setting for every application, `ClassicyDesktopSetAppMenuName`
+(`System.Manager.Desktop.appMenuShowsName`, persisted; TN1142's Menu
+Manager: "It is now possible to remove the current application's name from
+the application menu"). Collapsed, the title carries the `collapsed` state
+and its name is not drawn; its accessible name is its icon's text, the
+application's name. The grip is an ARIA window splitter (`role="separator"` on an `<li>`, an
+item of the bar's list as every child of the bar's `<ul>` must be;
+`aria-valuenow` 100 with the name, 0 without), out of the Tab order as the
+bar's titles are (`tabIndex` -1: 8.5 has no key for it), and focused, it
+takes Left Arrow or Home (name), Right Arrow or End (icon alone) and Enter
+(toggle). The look is the package's: Platinum draws 8.5's grip pixel for
+pixel (`_Menu.scss`) and the title's geometry from its `menuBar` knobs (§8);
+System 7 hides the grip and draws the title as its icon alone, as 7.5.5
+does, whatever the setting.
+
+**Tearing off.** With the mouse button held from a press on the Application
+menu (its title, or the open menu), dragging past the menu's bottom (three
+pixels, HIG7 p.93) shows a dotted outline of the menu, centered across the
+pointer with its bottom edge at the pointer, as 8.5 draws it; back over the
+menu the outline goes, and letting go past the bottom closes the menu and
+opens the palette at the outline's top-left corner, kept on the desktop (no
+further left than its edge or up than the menu bar's underside, no further
+right or down than leaves the outline's box on it:
+`classicyAppSwitcherTearOffPosition`). The release and the click the
+browser sends after it are the tear-off's (stopped on the document in the
+capture phase), so a window under the pointer never comes forward: 8.5
+never switches applications on a tear-off. A press on the closed
+title pulled down past it opens the menu first. Escape or a lost pointer
+stream ends the drag with nothing torn off, and nothing tears off while a
+modal window is open (8.5 dims the Application menu's title under a dialog:
+`platinum-85-appmenu-modal.png`). Tearing off again moves the
+palette: one copy at a time (HIG7 p.93). The tracker is
+`ClassicyAppSwitcherTearOff.internal.tsx`, mounted in the screen menu bar
+(none under window placement, which has no Application menu).
+
+**The palette.** A utility window (`windowType="utility"`, `utilityTitle`)
+titled "Applications", with a bevel button for each application the
+Application menu lists, in its order: the front application's held down
+(`aria-pressed`), a hidden application's icon dimmed by the package's
+`iconDimming` rule (`hiddenApp`), as the menu dims it. 8.5's palette draws
+no ◆ for an application a notification marks (its menu does:
+`platinum-85-switcher-notification.png`), so the palette has none. A click
+switches to the application through the menu's path (`focusApp`: a hidden
+one is shown); an Option-click also hides the application that was in
+front. The zoom box sets its options, as in 8.5: a click shows or hides the
+names, an Option-click switches small (16) and large (32) icons, an
+Option-Shift-click switches vertical and horizontal (the drag bar then runs
+down the left side: close box at the top, zoom and collapse boxes at the
+bottom); a column of small icons without names draws no title and no
+collapse box. It is an extension's menuless window, so it floats in the
+desktop's floating layer (§11) above every application's windows, stacking
+by recency with Apple Guide's, and never takes the menu bar, the focus, the
+keyboard or the chord scope from the front application: activating an
+extension whose only open windows are menuless (`ClassicyApp`'s container
+click, `ClassicyAppActivate`, `ClassicyAppFocus`) raises its most recent
+window through `focusWindow`'s floating path and never marks it focused
+(`focusApp`); a press anywhere in the palette moves no DOM focus (its
+default is prevented in the capture phase), and a switch from it releases a
+focus left in another application or on a palette button, so typed keys,
+Enter and Space included, reach the application switched to. A hidden
+application's button, like its Application menu row, has the accessible
+description "Hidden". More applications than a column the desktop can hold
+wrap into another column (another row, horizontal): the line comes from the
+desktop's capacity (its height from the menu bar's underside, and no more
+than the window's maximum height, its computed `max-height` resolved in
+pixels, `classicyCssLengthPx`: a browser reports it as `calc(100% - 54px)`;
+or its width), less the palette's own frame,
+filled by the buttons' natural sizes (`classicyAppSwitcherPaletteLines`:
+the most per line whose grid fits, each track as large as its largest
+button, the list's gap between; so a line that fits by the sum of its
+buttons stays one line). The stylesheet sizes the wrapped grid's tracks the
+same way (`max-content`), so a wrapped palette never shrinks to the room
+left of where it sits, squeezing its names, and keeps its shape when moved.
+The natural sizes are read from copies of the buttons, laid out together in
+one hidden, unwrapped copy of the list as large as its content, placed
+beside the palette's list and removed at once: a copy's size along the line
+(its height in a column, its width in a row) is its button's natural size,
+which the palette's own wrap never changes, so the count always settles;
+across the line the copies stretch to the largest, as the list's buttons
+do, so that size is no button's own. The count
+starts when the buttons' list mounts, not when the window's record exists:
+after a reload the record is there from the first render, and the window
+draws a render later, once the desktop's floating layer has committed. It
+is made again when the desktop resizes (from the natural sizes it holds:
+no copy is built), when a
+button resizes and its natural size with it (a metric edit, a theme switch,
+a font that loads late; the copy is built only when a button's box is no
+longer what it was when the sizes were last read, and a resize the wrap
+alone caused counts nothing),
+when the theme changes (the frame and the menu bar's height) and when its
+buttons (each keyed by its application's id, so another application of the
+same name is another button, counted and watched), options or collapse
+state change, never on a move, so a palette
+dragged partly past an edge keeps its
+shape and clips like any window. Across (horizontal), the window's contents
+lay the list out as a stretched flex item, so the list's whole box, a
+package's margin and border around the buttons included, fits the height
+the drag bar gives the window (Platinum's well closes at the bottom, as
+8.5's does). Collapsed across, it keeps its height and shows its drag bar
+alone, down its side, so its close, zoom and collapse boxes stay in reach
+(the base sheet: the hidden contents keep their height and give the window
+no width; a utility window's collapsed height, a bar across the top, cut
+off the zoom and collapse boxes there); down a column it collapses to its
+bar, as 8.5's does (`platinum-85-switcher-collapsed.png`).
+`node bin/check-app-switcher-palette.ts --port <n> [--browser
+chromium|firefox]` checks it in a browser, in a served static Storybook's
+`ManyApplications` story (jsdom lays nothing out: the unit tests run on a
+layout model): down a column with large and small icons, and across a row
+with large and small icons, on desktops of several sizes, the palette
+settles, the window cuts no button and no part of the list, the count is
+the most the desktop holds, the copy it read was hidden and unwrapped, and
+each copy's size along the line was that button's laid out alone; across,
+the list with its margin fills the window's contents from top to bottom;
+collapsed across, its three boxes lie inside it and are what a click there
+hits, and a click on the collapse box expands it with its list where it
+was. In the `Persisted` story, whose page keeps its desktop state as a
+host's does (Storybook's `parameters.classicy.persistence`,
+`storybook/.storybook/StorybookSavedDesktop.ts`; every other story saves
+nothing), it waits for the desktop to save a wrapped column, then reloads
+twice (moving the palette between): each reload draws the palette from its
+saved window record, where it was left (the story tears nothing off once
+the palette is open), counted and wrapped as above, and counted again on a
+resize. In the `Palette` story the palette with names is 158 pixels wide;
+under System 7 no palette is drawn. Firefox needs a Playwright that has it
+(`$PARITY_PLAYWRIGHT`). 8.5's palette with more applications than
+its screen holds was not observed (the emulator hung while they were
+launched); Classicy wraps only a line the desktop cannot hold at all. Like 8.5's, the switcher shows no icon in the startup
+parade (`platinum-85-startup-parade.png`; `bootIcon={false}`). While a modal window is
+open its buttons are dimmed and do nothing, as 8.5's are under a dialog
+(`platinum-85-switcher-modal.png`); 8.5 draws the palette above the dialog,
+Classicy keeps it under (modal dialogs come above utility windows, HIG7
+p.145, and the floating layer sits under the modal bands, §11). Its window record keeps its position, and `paletteOpen` its
+open state, so both survive a reload.
+
+**Its look under Platinum** (`components/_ApplicationSwitcher.scss`, from
+`platinum-85-switcher-palette.png` and its variants, row for row): a
+one-pixel black frame and bevel with no padding; a 12-row bar, the boxes
+against its ends, three rows of raised dots on a 3 x 3 grid (white, then
+#777777 down and right) broken by the title in the small UI font, bold,
+centered on the window (no dots in the narrow palette); a sunken well
+around a black line holding the buttons with no gap, each a #CCCCCC face in
+two one-pixel bevels, the held one #888888, its icon 4 pixels in from its
+edge on every side (`--control-padding-loose`: 24 x 24 and 40 x 40 without
+names, as `-no-names.png` and `-large-icons.png` draw them) and its name's
+box 23 pixels in, its first ink at 8.5's column 24; with names a button is
+at least 150 pixels wide (`applicationSwitcher.namedButtonWidth`, §8, on
+the core floor), so the palette is 8.5's 158 whatever the names
+(`-palette.png`, `-notification.png`, `-modal.png` and `-click.png`), and
+a longer name than it holds widens it; the names in the small UI font
+(the theme's `--ui-font-small`, else the body font) at
+`--ui-font-size-small`, 8 rows tall as 8.5's. 8.5's grays between
+Platinum's seven are the theme's black mixed toward its white.
+
+**Switching from the keyboard.** The chord switches to the next application
+in the Application menu's order, wrapping, and the same chord with Shift to
+the previous one; switching to a hidden application shows it; extensions
+are skipped; nothing happens while a modal window is open (8.5's
+Command-Tab does nothing under a dialog: `platinum-85-command-tab-modal.png`). It switches at once, with no
+overlay, as 8.5's Command-Tab did. The default is **Control-`**
+(`CLASSICY_APP_SWITCHER_DEFAULT_SHORTCUT`, `"⌃`"`): 8.5's Command-Tab
+belongs to the operating system in a browser (Command-Tab on macOS, and
+Alt-Tab on Windows and Linux desktops), Control-Tab and Control-Shift-Tab
+to the browser's tabs (they never reach the page in Chromium or Firefox),
+and Command to the browser. Any key but a letter is matched by the character typed or by
+its physical key (`code`, so Shift-` typing `~` and a layout that types
+another character there both match). `ClassicyApplicationSwitcher` reads it
+on the document in the capture phase, ahead of the menu bar's dispatcher
+and the windows' own keys (8.5 took Command-Tab ahead of the front
+application), and leaves a key another handler already took (a
+keyboard-equivalent dialog recording, which listens on `window` first) and
+any key while the screen saver shows (the saver's alone, whichever of the
+two capture listeners runs first). A chord with both Control and Command
+needs both held; a letter matches by the character typed (the physical key
+only where Option composed another character), so on a layout that moves
+letters one key matches it. A switch hands the keyboard to the application
+switched to, as 8.5's Command-Tab did and as the palette's buttons do: an
+element with the DOM focus outside that application's own windows (a text
+field of the application left behind) gives it up, so the keys that follow
+reach the new front application; a chord that switches nothing (a modal
+window open) leaves the focus where it is. Both
+chords are also registered as global shortcuts (`Keyboard.global`, titled
+"Switch to the next/previous application"), so the Keyboard Shortcuts topic
+lists them and another extension cannot take them.
+
+**Changing the chord.** Help ▸ Keyboard Shortcuts… has a fourth page,
+"Switching applications" (`ClassicyApplicationSwitcherShortcutPage.internal.tsx`),
+the counterpart of 8.5's Mac OS Help script "Help me modify the keyboard
+shortcuts" (whether to use a shortcut at all, then a modifier and a key): a
+checkbox, "Use a keyboard shortcut to switch applications", and a
+`ClassicyKeyboardEquivalentField` that records the chord for the next
+application. A chord needs Control, Option or Command and no Shift (Shift
+reverses it; `classicyAppSwitcherShortcutProblem`), and may not be one the
+system menus, the Help menu, another extension's global shortcut or any
+open application's menus use (its windows' menus, the front application's
+published menu, and the chords an application claimed while in front, for a
+windowless menu; `classicyAppMenuEquivalentsInUse`), with or without Shift
+(the previous-application chord), Control and Command counted as one (a ⌘
+menu command answers to Control too; `classicyAppSwitcherChordConflicts`):
+the refusal names the command and its application ("Quit in
+Calculator").
+
+**State and actions.** `apps["ApplicationSwitcher.app"].data`
+(`ClassicyApplicationSwitcherData`, `classicyApplicationSwitcherSettings`
+fills the defaults): `paletteOpen`, `paletteAt` (where a palette with no
+window record yet opens), `showNames` (default `true`), `iconSize`
+(`"small"`), `orientation` (`"vertical"`), `keyboardCycling` (`true`) and
+`cyclingShortcut` (`"⌃`"`); the palette's position is its window record's
+(`apps["ApplicationSwitcher.app"].windows.applications`).
+
+| Action (prefix `ClassicyAppApplicationSwitcher`) | Payload | Does |
+|---|---|---|
+| `TearOff` | `{ position?: [x, y] }` (desktop coordinates) | opens the palette, there when given (moving an existing window record) |
+| `Close` | — | closes the palette |
+| `SetPalette` | `{ showNames?, iconSize?: "small" \| "large", orientation?: "vertical" \| "horizontal" }` | sets the palette's options |
+| `SetCycling` | `{ enabled?: boolean, shortcut?: string }` | turns keyboard switching on or off, or sets its chord (refused unless usable) |
+| `Cycle` | `{ direction: 1 \| -1 }` | switches to the next or previous application |
+| `Switch` | `{ app: { id }, hideFront?: boolean }` | switches to an open application (refused for an extension, a closed app, or under a modal window); `hideFront` hides the one that was in front |
+
+None is scriptable. Helpers: `nextClassicyAppSwitcherAppId(ids, frontId,
+direction)`, `classicyAppSwitcherChordDirection(shortcut, event)` (`1`,
+`-1` or `0`), `classicyAppSwitcherReverseShortcut(shortcut)`,
+`isClassicyAppSwitcherShortcut(shortcut)`, `classicyAppMenuEquivalentsInUse(sources)`,
+`classicyAppSwitcherChordConflicts(inUse)`; internal (in the `.internal`
+tracker and palette modules, out of the barrel):
+`classicyAppSwitcherTearOffPosition(outline, desktop, menuBarHeight)`,
+`classicyAppSwitcherPaletteLines(space, chrome, naturalSizes, gap?)`
+(`space`: the room the desktop has along the line; `chrome`: the palette's
+own frame along the line, what lies before the first button and after the
+last, together; `gap`: the list's, between tracks),
+`classicyCssLengthPx(value, whole)` (a computed length holding a percentage,
+in pixels).
+
+**Per package.** A package's `layout.applicationSwitcher.palette` (§8,
+"Layout declarations") is `"tearOff"` (the default) or `"none"`. System 7
+declares `"none"`: System 7.5's Application menu had no tear-off, and there
+is no 7.5 palette to draw, so the menu does not tear off there and the
+palette is not drawn (its state is kept, so switching back to Platinum
+shows it again). The keyboard chord is behavior every package shares.
+
+**The Application menu's order.** `appSwitcherAppsFrom` lists the
+applications alphabetically by the name shown (the package's display name
+included; a tie by id), as 8.5's Application menu and palette do
+(`platinum-85-appmenu-order.png`) and 8.1's menu does
+(`mac-os-8.1/platinum-81-appmenu-order.png`: Scrapbook, Note Pad, Key Caps
+and Calculator launched in that order are listed Calculator, Finder, Key
+Caps, Note Pad, Scrapbook, Stickies), so the menu, the palette and the
+chord share one order, independent of the store's key order.
 
 ---
 
@@ -1746,14 +2751,46 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   the package (`CLASSICY_ASSET_VARIANT_NAME`: a letter or digit, then letters,
   digits, `_` or `-`, at most 64), deep-merged like the base tree. A theme
   selects it with `assetVariant: "bw"`, which the schema, theme files,
-  persistence and custom-theme forks keep. The variant applies only while the
-  active theme belongs to the drawn package; `variant` defaults to that
-  theme's, and every reader (`useClassicyAsset`, `useClassicyAssetTree`,
-  `resolveClassicyAsset`, the published `--classicy-art-*` /
-  `--classicy-cursor-*`) follows a theme switch. A variant the package never
-  registered draws the base tree, with one `classicyLog` warning per package
-  and variant per page (checked after the current task, so trees registered
-  in the same module evaluation never warn). A variant is registered by its
+  persistence and custom-theme forks keep. The variant applies while the
+  active theme belongs to the drawn package, and to another package's theme
+  only when one of the drawn package's built-in themes names that variant
+  (its knobs then complete from that built-in, §8; story 0235-xgi: a
+  Platinum theme naming `bw` draws System 7's 1-bit art under System 7);
+  `variant` defaults to that theme's, and every reader (`useClassicyAsset`,
+  `useClassicyAssetTree`, `resolveClassicyAsset`, the published
+  `--classicy-art-*` / `--classicy-cursor-*`) follows a theme switch. A
+  variant's art is the drawing package's: it is drawn when that package
+  takes the variant (the theme is its own, or one of its built-in themes
+  names the variant) and registered trees for it. A theme naming a variant
+  that draws no art (a misspelled name, a variant its package never
+  registered, a variant only another package has) draws the drawing
+  package's base assets and is warned once per page with `classicyLog`,
+  whichever package draws it and whichever package's id a lookup is made
+  with: `Theme asset variant "<v>" is not registered for package "<id>"; its
+  base assets are used` for the drawing package when it takes the variant
+  and never registered it, and for the theme's own package, when another
+  draws, if that package is registered and never registered it either
+  (both, when both hold); else `Theme asset variant "<v>" of package
+  "<own>" is not drawn by package "<drawing>"; its base assets are used`
+  (the variant is its own package's, or its package is not registered,
+  and the drawing package takes none of another package's theme). A theme
+  with no `package` is the default package's. So a System 7 Custom theme
+  naming `sepia` drawn under Platinum warns for `"system7"`, System 7's
+  1-bit theme drawn under Platinum warns that `bw` is not drawn by
+  `"platinum"`, and so does a Custom theme naming `bw` whose package is not
+  loaded: one the host dropped, or one a later import registers (a dynamic
+  import, as Storybook's Package toolbar does), which is never named as
+  lacking a variant it may well have. A theme whose variant the drawing
+  package draws logs nothing: a Platinum theme naming `bw` under System 7
+  draws System 7's 1-bit art, and the lookups the core makes with Platinum's
+  id (`classicyCoreIcon`, `iconImageByType(type,
+  CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`) read Platinum's base tree, as
+  they should (0235-xgi N4). Each warning is checked after the current
+  task, against what holds then (trees, or a drawing package, registered in
+  the same module evaluation never warn), and one that no longer applies
+  leaves no mark, so it is logged if it applies again (a variant another
+  package drew, once its own package draws it). Lookups given an explicit
+  `variant` (`resolveClassicyThemeAsset`) never warn. A variant is registered by its
   first accepted leaf: a variant registration whose every leaf is dropped
   (or that holds none) registers nothing, so a theme naming it is still
   warned. Wallpapers vary by name only
@@ -2295,10 +3332,10 @@ authors:
   `platinum-menu-frame` reads `--menu-frame-border-width`, `-bevel-width`,
   `-shadow-start`, `-shadow-gap` and `-shadow-width`, and
   `platinum-scrollbars` reads `--scrollbar-thumb-grip-width` and `-height`.
-  They are look-only knobs, Platinum's own: inside a desktop Platinum's
-  themes emit them, and a package that `@use`s the mixins declares them in
-  its own `defaults.measurements` (the core floor holds only the structural
-  knobs); a host that includes the mixins anywhere else spreads
+  Inside a desktop every theme emits them (they were Platinum's alone, and
+  a package that `@use`s the mixins declared them in its own
+  `defaults.measurements`, until story 0225-ci7 put them on the core
+  floor); a host that includes the mixins anywhere else spreads
   `getThemeVars(theme)` there too. The inset shadows of the `platinum-window-*` and
   `platinum-depressable-*` mixins and of the scroll-bar track now read the
   derivation `--control-frame-width` (border × 2) where they computed
@@ -2355,7 +3392,7 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 
 | Registered by Platinum | Notes |
 |---|---|
-| `appleMenu`, `sadMac`, `startupLogo`, `trashEmpty`, `trashFull`, `aliasBadge`, `helpButton`, `aboutLogo` | read by the menu bar, crash screen, startup screen, Finder, desktop icons, `ClassicyHelpButton`, About This Computer |
+| `appleMenu`, `sadMac`, `startupLogo`, `trashEmpty`, `trashFull`, `aliasBadge`, `helpButton`, `aboutLogo` | read by the menu bar, crash screen, startup screen, Finder, desktop icons, `ClassicyHelpButton`, About This Computer. The Trash art (and the generic folder, the core's `folders/directory.png` and Platinum's 16 px `system.folders.directory.small`) is Mac OS 8.5's, its shadow graded (an 8-bit mask, TN1142), where 8.1's 1-bit mask drew it opaque (the 8.5 audit's F10). Of the other core icons Platinum draws with 8.1's 1-bit mask and opaque #222222, #444444 or #555555 pixels, every one the 8.5 disk holds is now 8.5's, as 8.5 draws it, each solved per pixel from 8.5 captures over two flat backgrounds and composited over both by `platinumIconShadows.test.ts` (integration review G rounds 5 and 6; `resources/README.md`). With an 8-bit mask, a graded shadow: the Clipboard, the System suitcase, System Resources, the System Folder and the Apple Menu Items, Extensions, Fonts, Preferences and PrintMonitor Documents folders, the generic preferences file, the font suitcase (`folders/suitcase.png`, the Fonts folder's), the sound file (`files/sound.png`, the System suitcase's), and the generic document and stationery (`files/file.png`, `files/stationary-black.png`, a gradient fill). With a 1-bit mask, as 8.5 still draws them, their dark pixels 8.5's own opaque shadow: AppleShare, Apple Guide, Ethernet, Contextual Menu, FM Radio, SystemAV, Time Synchronizer, Sherlock, Network Browser, QuickTime Settings, Internet, the caution icon, the Crayon and HTML pickers, PrintingLib (`printer.png`, without its LIB label), and five whose art the core had from elsewhere and now takes from 8.5: the generic extension (`extension.png`), QuickDraw 3D (`extensions/quickdraw.png`), QuickTime and QuickTime MPEG Extension (`extensions/quicktime.png`, `quicktime-mpeg.png`, 8.5's QuickTime 3 Q, not Mac OS 9's blue one) and Sound Manager (`extensions/sound-manager.png`). The rest keep their 1-bit masks and 8.1's opaque shadows because 8.5 offers no capture of them (the test's `NO_85_CAPTURE` names each): hardware and volumes the emulator cannot present (`drives/cdrom`, `dvd`, `dvd-audio`, `dvd-video`, `drive-external`, `floppy`, `floppy-mac`, `floppy-pc`, `network-drive`, `raid`, `rom`; a CD-ROM image mounts there as a SCSI disk); items the 8.5 disk does not hold, most of them later art (`big-switch-off`, `big-switch-on`, `comport1`, `comport2`, `info`, `internet`, `mac`, `mac-wink`, `shockwave`, `files/file-invisible`, `file-pc`, `internationalization`, `photo`, `settings-sync`, `slideshow`, `folders/folder-flip`, `folder-ldap`, `folder-system-protected`, `network/file-server`, `globe`, `globe-animated`, `ldap-directory`, `network-public`, `ssl`, `ssl-invalid`, `usenet`, `user-directory`, `sherlock/search-data`, `search-files`, `sherlock`); and two that are not icons (`quicktime/cc.png`, a 306 x 230 picture; `rich-text-editor/menubar/bold-depressed.png`, a toolbar button) |
 | `windowStripes`, `windowStripesRed` | the title-bar pinstripes, gray and red, in their own colors: each stripe band's `background` image (`platinum-title-bar-stripes` in `_mixins.scss`) |
 | `windowUtilityTexture` | the windoid's title-bar texture, tiled 4px × 3px on its center band |
 | `windowGrip`, `windowDither` | the grow-box grip and the control boxes' luminosity dither (images) |
@@ -2653,12 +3690,20 @@ A live tree is seeded from a deep copy of its default tree, so neither
 `DefaultFSContent` nor a host's `defaultFileSystem` is ever changed by edits.
 
 Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
-`display? ("icons"|"list")`, `dirOnClickFunc?`, `fileOnClickFunc?`,
+`display? ("icons"|"list")`, `dirOnClickFunc?(path, origin?)`,
+`fileOnClickFunc?(path, origin?)` — the opened item's zoom origin, when it
+has a box, for a window it opens (§4.1, "Zoom rectangles"),
 `onMoveItems?(paths, destination, outlineTopLeft)`,
 `showInvisible? (true)` — list `_invisible` entries (Finder passes false),
 `onDeleteItems?(paths)` — Delete/⌃⌫ with a selection,
 `itemContextMenu?(path, selectedPaths) → ClassicyMenuItem[] | undefined` —
-right-click on an item, `commandsRef?` — `{ selectedPaths() }`), with
+right-click on an item, `commandsRef?` — `{ selectedPaths() }`,
+`reveal?: { paths, key }` — select those items, alone, whenever `key`
+changes, in the view shown (its own selection, set as the selection
+rectangle sets it: the icon view's, or the list's table through `select`),
+and scroll the first into view once drawn: the Finder's reveal for Find
+File's Open Enclosing Folder; clicks and keys then change the selection by
+the view's usual rules), with
 `ClassicyFileBrowserViewIcons` / `ClassicyFileBrowserViewTable` as the
 individual views. With `onMoveItems`, items drag as Mac OS 8 Finder items: a
 dotted outline (icon shape ∪ label box) follows the pointer; let go on a folder
@@ -2675,6 +3720,207 @@ lost stream sets `lost`) callbacks are how the views emit
 the appearance `dragStart`/`dragEnd` events (§8, "Package hooks"). The desktop's files and
 folders live in the invisible `Desktop Folder` on the startup disk; Finder
 mirrors it as desktop icons (`kind` `file`/`directory`, `filePath` set).
+
+#### Selection rectangle
+
+A drag from empty space selects icons with a rectangle, as the Mac OS 8.1
+Finder does (story 0228-e9l; observed in Infinite Mac, HIG7 pp.288-290
+"Selection by Dragging"): on the desktop (from the bare desktop), in a file
+browser's icon view (from the space around the icons, the window contents
+below them included) and in its list view (from a row's name cell beside its
+icon and name, or from below the rows; a press on the icon, the name, a
+disclosure triangle or another column is on the row, as before). One engine,
+`useClassicyMarqueeSelection` (`File/useClassicyMarqueeSelection.internal.ts`),
+serves all three:
+
+- A press without Shift deselects everything at once. The rectangle starts
+  once the pointer has traveled `CLASSICY_MARQUEE_THRESHOLD` (2 px) on either
+  axis from the press: a 1 px move draws none in 8.1, 2 px does.
+- It spans the press point and the pointer, half-open as QuickDraw's rects
+  (`classicyMarqueeRect`; an empty one, after a move along one axis, draws
+  nothing). An item is touched where the rectangle meets its icon's opaque
+  pixels (alpha above half, the drag outline's rule,
+  `readClassicyIconOpaqueMask`, read when the rectangle starts and cached by
+  image source and size, so a folder of hundreds of items sharing a few
+  images reads each image once; a transparent corner of the icon's box does
+  not count, and an icon a canvas cannot read counts by its box) or its
+  label's box (`classicyMarqueeTouches`). The selection follows it live, as
+  it grows and as it shrinks away.
+- With Shift held at the press the selection is kept and the touched items
+  toggle against it (`classicyMarqueeSelection`; HIG7 p.290). Command (and
+  Option) does nothing more than a plain press, as in 8.1.
+- A Control-press is not a rectangle: it is Mac OS 8's contextual-menu
+  click, and a right-press is the same click (HIGOS8 p.93: "Pressing the
+  Control key while clicking on an item displays a pop-up menu … (The
+  contextual menu may also be invoked by clicking on an item with the right
+  button on a two-button mouse.)"). On the desktop and in a file browser,
+  wherever a menu can open (`ClassicyContextualPress.internal.ts`), it does
+  what the 8.1 Finder does (Infinite Mac): on empty space (the bare desktop,
+  around the icon view's icons, beside a row's icon and name or below the
+  rows) it deselects; on an icon or a row it selects it as a press does,
+  alone unless it is selected already (then the selection is kept; what a
+  menu item acts on is its handler's: Finder's drive menu acts on its one
+  drive); it never drags the item or a
+  rectangle (moving the pointer tracks the menu); and the menu opens at the
+  press. A macOS browser fires `contextmenu` for a Control-click itself;
+  elsewhere, where none comes, the press sends one from its target once its
+  own task has passed without one (`openClassicyControlPressContextMenu`),
+  and swallows the click the browser sends at the release
+  (`swallowClassicyPressClick`, the gesture's own click only), as 8.1 had
+  no click after it: so in a file browser's list a Control-click no longer
+  toggles a row off macOS (Command-click and Shift-click still do; the
+  Command-click substitute there, the Windows or Super key, is mostly the
+  system's, so in practice discontiguous selection by mouse in the list is
+  the Shift-rectangle), and a desktop icon's right-click keeps a selection
+  the icon is in. Outside the
+  desktop and file browsers, a Control-click is left to the component (the
+  lists, `ClassicyTable`, `ClassicyListBox` and `ClassicyTree`, take it as
+  Command-click off macOS, and a host's components may use it).
+- Release ends it, keeping the selection. Escape cancels it and restores the
+  selection from before the press (the 8.1 Finder kept dragging and cleared
+  the selection on the queued Escape after the release; the story asks for
+  the cancel, as every other Classicy gesture has one). Every other key but a
+  bare modifier is held off (`preventDefault`, not passed on) from the press
+  to the end, as 8.1 tracked the mouse alone, so an arrow key or type-ahead
+  never changes the selection under the rectangle; and the engine compares
+  each selection it makes with the selection as it is
+  (`getSelection()`), so a change made by code mid-gesture is put right on
+  the next move. A lost pointer stream (`onClassicyPointerStreamLost`) ends
+  it where it is, as a release would.
+- Held past the edge of the window's contents (the `ClassicyScrollArea`
+  viewport a file browser scrolls in, less a list's sticky column titles
+  where they lie inside it, Platinum's `inList`), the contents scroll a line
+  (`CLASSICY_SCROLL_LINE_STEP`, 16 px) at once and every
+  `CLASSICY_PRESS_REPEAT_INTERVAL_MS` (120 ms), the scroll arrows' rate
+  (HIG7 p.167), until the pointer comes back or the rectangle ends; the press
+  point scrolls with the contents, so items scrolled under the rectangle are
+  selected.
+- Past that edge the rectangle is clipped, never framed again: its sides run
+  to the edge and no line is drawn along it, as QuickDraw clipped the
+  Finder's frame to the window's contents (8.1, `im/s3-past-3.png`). The
+  layer is a clip box, `classicySelectionMarqueeClip` (`aria-hidden`,
+  absolute, `overflow: hidden`, at the part of the surface that shows, so the
+  rectangle never widens what the scroller can scroll to; it sets no
+  `z-index`, `opacity`, `transform` or `isolation`, so it makes no stacking
+  context), holding the part `data-classicy-part="selection-marquee"`
+  (`classicySelectionMarquee`) at the whole rectangle's geometry, in its
+  surface's coordinates. The base sheet gives the part only its place:
+  absolute, `z-index` 15 (over icons, 10; on the desktop under every window,
+  20 and up, as 8.1 drew the desktop's under the windows over it), no
+  pointer events.
+- The part carries the desktop's padding-box corner from its own as
+  `--classicy-pattern-origin-x` / `-y` (whole px), so a package lays its
+  pattern from the desktop, as QuickDraw laid the Finder's from the screen
+  (8.1, Infinite Mac: moving the window by a pixel left the frame's checker
+  in the screen's phase).
+- Platinum draws Mac OS 8.1's two-pixel frame and System 7 the 7.5 Finder's
+  one-pixel frame, both the 50% checker in XOR (`mix-blend-mode: difference`
+  with white, its white cells at the desktop's odd x + y), each package's
+  `selectionMarquee` knobs sizing the pen (`width`) and the checker's tile
+  (`tileSize`). QuickDraw inverted an 8-bit pixel's palette index, which no
+  blend reproduces, so over a color the frame inverts as RGB does (exact in
+  black and white).
+
+**For package authors.** The core draws no look for the rectangle. The base
+sheet used to give the desktop's `classicyDesktopSelect` two dotted black
+lines; story 0228-e9l removed that look, so an Appearance Package that does not
+style `[data-classicy-part="selection-marquee"]` shows an invisible
+rectangle (the selection still follows it). Draw the part in your package's
+stylesheet, as Platinum's and System 7's `_SelectionMarquee.scss` do, and
+give every theme the variables it reads (Platinum and System 7 read their
+`selectionMarquee` knobs, which the core floor gives every theme at
+Platinum's values, story 0225-ci7's rule; a package reading a knob of its
+own that is not on the floor gives it to its themes, since a theme of
+another package lacks it and an undefined `var()` voids the declaration). Lay any pattern from
+`--classicy-pattern-origin-x` / `-y`, and keep the part's box: the core's
+clip box cuts it at a window's edge.
+
+The desktop selects through the store (`ClassicyDesktopIconSelectBox
+{ iconIds }`; a Shift-press sends `ClassicyDesktopFocus { keepSelection:
+true }`, which focuses Finder without clearing the selection) and keeps the
+keyboard: the arrow keys, Tab and type-ahead continue from the selection it
+made (`ClassicyDesktopKeyNav.ts`), and a rectangle's selection reports no
+keyboard `select` (`ClassicyDesktopIconKeyboardSelection.internal.ts`).
+
+The desktop and the icon view take the arrow keys and Tab by one set of
+rules, the Mac OS 8.1 Finder's (Infinite Mac, the 8.1 desktop and an
+icon-view window; HIG7 p.282: "the Finder uses arrow keys to change the
+selection"): an arrow selects the nearest icon that way
+(`nearestIconInDirection`), from the icon selected last for Right and Down
+and from the one selected first for Left and Up, and with nothing that way
+the selection stays; with nothing selected, Left and Up select the first
+icon and Right and Down the last, in reading order (top to bottom, then left
+to right: on the 8.1 desktop Left chose Macintosh HD, the top icon, not
+Infinite HD, the first by name) (`iconForArrowKey`). Tab and Shift-Tab select
+the next and previous icon by the name it shows, from the icon selected
+last, and with nothing selected the first and last name (`iconForTabKey`).
+At the ends they leave the icons: Tab at the last name moves the keyboard to
+the page's next stop after the icons (a dialog, else whatever follows the
+desktop in the host's page), Shift-Tab at the first name to the previous
+one before them (the Control Strip, a window's last control); in an icon
+view, the next or previous stop outside the icons' holder. The selection
+stays as it is, and the stop is never another icon of the group
+(`moveClassicyFocusOutOf`, `Keyboard/ClassicyTabbable.internal.ts`, which
+reads the page's focus order; with nothing after the icons, it puts the
+keyboard on the last icon and lets the browser's own Tab leave the page from
+there). This departs from 8.1, which wrapped from the last name to the
+first: 8.1 owned the screen and its Tab had nowhere else to go, but Classicy
+lives in a page, beside a host's content and assistive technology, where a
+wrap is a keyboard trap (WCAG 2.2 SC 2.1.2, No Keyboard Trap, a
+non-interference criterion), so the requirement wins, as it does for Escape
+cancelling the rectangle. The keyboard moves to the icon selected. The list
+view's Tab is `ClassicyTable`'s: the list box is one stop, and Tab leaves
+it.
+
+The icon view keeps its icons' selection itself (`ClassicyIcon`'s
+`selected`, `onSelectedChange` and `onSelectionGesture`), with the 8.1
+Finder's rules: a click selects the icon alone, Shift or Command toggles it,
+a press on empty space deselects every icon, and a press on an unselected
+icon selects it alone at once, while a press on a selected one keeps the
+selection. A drag of a selected icon carries the whole selection, as on the
+desktop and in the list view: its outline traces every selected icon
+(`fileDragParts`), a drop on another folder or the desktop moves every
+selected item (`onMoveItems(paths)`), and a drop back in its own folder moves
+the selection's other icons as far as the dragged one (`moveBy`, snapped to
+the grid; not under "Keep arranged"). The click that ends a drag is no
+click: a group nudged and let go over the icon pressed stays selected, as in
+8.1 (`ClassicyIcon` ignores the click after a press that became a drag, a
+file drag or its own; `ClassicyDesktopIcon` after a file drag). The arrow
+keys and Tab change the selection by the desktop's rules (above), the
+keyboard moving to the icon selected and scrolling it into view. Its icons
+are memoized with stable
+handlers, so a selection change redraws only the icons it changes. Its
+selection handle (`selectionApiRef`, `{ selectAll, select }`) is lent
+through `ClassicyFileBrowser`'s `selectionApiRef` in either view, so the
+Finder's Edit → Select All works in icon view too. Its key is the browser's
+own, ⌘A (Ctrl-A where that is the browser's), declared `nativeShortcut` like
+every editing command (`useClassicyEditMenu`): the app-wide dispatcher leaves
+it alone, a text field selects its own text, and the file browser with the
+keyboard selects every icon or row (`ClassicyFileBrowser`'s key handler; the
+list's table takes it itself). A press on the icon view's empty space puts
+the keyboard on its icons (the holder takes focus, `tabIndex` -1), and one
+beside a row's name or below a list's rows on the list, so Select All, Delete
+and the arrow keys act there after a rectangle, never on the desktop's icons:
+the press's `mousedown` is `preventDefault`ed before the focus, since the
+browser's own focus would follow the handler and put the keyboard on the
+nearest focusable ancestor, the desktop (a text field, the window's controls
+and the icons themselves take focus as before; none of them is that empty
+space). The browser's `focusTargetRef` is the holder in icon view and the
+list box in list view, so a window passing it as `initialFocusRef`, as
+Finder does, puts the keyboard there whenever it becomes the focused window.
+
+The list view selects through its table (`ClassicyTableSelectionApi.select`,
+which also puts the keyboard cursor and the Shift-range anchor on the first
+selected row in the current order, so the arrow keys go on from the
+rectangle's rows). The click and double-click ending a press that started a
+rectangle on a row are swallowed, so they neither select nor open it: only
+the gesture's own (`detail` above 0; a keyboard Space or Enter on a button,
+a title-bar control or a link clicks with `detail` 0 and passes), and only
+until a task after the first one, or the next press. The list's rectangle is
+`ClassicyFileBrowser`'s (it draws it over the list, and tells the list
+through an internal context); a `ClassicyFileBrowserViewTable` used alone has
+none, and its rows still drag from anywhere in the name cell. A
+`ClassicyFileBrowserViewIcons` used alone keeps its own.
 
 ### Mirroring to a backend
 
@@ -2694,7 +3940,11 @@ registerClassicyFileSystemAdapter({
 
 All hooks are optional (capability-based). Register at app entry before
 rendering. Re-registering an id replaces it; `unregisterClassicyFileSystemAdapter(id)`
-removes it. Adapter exceptions are isolated — a faulty adapter can never block
+removes it. `flushClassicyFileSystemPending()` writes every storage key's
+debounced persist now, as `pagehide` does; a test harness that gives each case
+a fresh `localStorage` calls it first, or the next case's first instance drains
+the last case's pending write into the fresh storage and reads it back as its
+tree. Adapter exceptions are isolated — a faulty adapter can never block
 local operation. Derived folders (Applications, Extensions, Control Strip
 Modules) never journal, and their `_derived` entries never reach persistence:
 `snapshot()` (the localStorage write and every adapter snapshot, whose `tree`
@@ -2709,6 +3959,246 @@ stands for its key"); so does an app's or module's icon given as a core URL
 (the built-in modules' `fileIcon`s are). **Upgrading:** an
 adapter sees one snapshot-hash change on the first save after upgrading to a
 build with this rule, as the derived entries leave the persisted tree.
+
+### Mirroring the desktop state
+
+The desktop state (`localStorage["classicyDesktopState"]`: the active and
+custom themes, windows, icons, the Control Strip, Finder's views and every
+other setting) mirrors to a backend the same way, so a signed-in user's look
+and layout follow them across devices (story 0229-ymq;
+`ClassicyStateAdapter.ts`, implementation `ClassicyStateSync.internal.ts`):
+
+```ts
+import {
+    flushClassicyState,
+    reconcileClassicyState,
+    registerClassicyStateAdapter,
+} from '@classicy/classicy'
+
+registerClassicyStateAdapter({
+    id: 'my-backend',
+    // debounced, one at a time: { state, hash, seq, storageKey: "classicyDesktopState", version, timestamp }
+    // must throw or reject when it did not store the snapshot
+    onSnapshot: async (snapshot) => { /* … */ },
+    // at boot, on Classicy's retries and on reconcileClassicyState(); bounded;
+    // errors, timeouts and invalid states keep local
+    reconcile: async (local, { signal, reason, userActed }) =>
+        ({ action: 'useLocal' }),  // or { action: 'replace', state, merged? }
+}, { snapshotDebounceMs: 500, reconcileTimeoutMs: 5000 })
+```
+
+Register at app entry, before rendering; both hooks are optional, and
+re-registering an id replaces it (`unregisterClassicyStateAdapter(id)`,
+`getClassicyStateAdapters()`). With none registered nothing changes, and
+localStorage stays the primary store either way.
+
+- **The snapshot.** `state` is `sanitizeStateForPersistence`'s output as
+  JSON, byte for byte what localStorage holds, so it carries every field
+  the build persists, a new one included, and never the built-in themes
+  (`availableThemes`; a built-in active theme is its reference,
+  `{ id, package, defaults? }`) or session state (the shortcut registry,
+  parade icons, dialogs, hidden apps, window gesture flags, HyperCard's
+  runtime and undo, the screen saver's `active`, the Browser's history).
+  `hash` is the sha256 hex of that JSON. `version` is the
+  `@classicy/classicy` version that built it, so a backend can refuse to
+  let an older build's copy replace a newer one's.
+- **What counts as a change.** The saved state holds the virtual clock
+  (`DateAndTime.dateTime`), which the menu bar clock writes once a minute.
+  That tick is not a change: whether to send, and `seq`, follow a key that
+  leaves `dateTime` out (the sha256 of the saved state without it) plus the
+  clock edits this page saw. A write of the clock is an edit unless it is
+  the menu bar clock's tick (it notes each one,
+  `ClassicyClockTick.internal.ts`) or moves the virtual clock with the real
+  one, within 1 s of the last tick or edit (a host running the clock
+  itself; one running it faster drifts past that 1 s and counts). So an idle desktop
+  sends nothing; a snapshot sent for any other reason carries the clock as
+  it is.
+- **`seq`** is the version of the saved state in this browser: one more
+  each time it changes as above, stored in
+  `localStorage["classicyDesktopState:seq"]` (with `:seqContent`), the
+  larger of the stored and remembered value, so it grows across reloads
+  and follows another tab's. Whether the state changed is judged against
+  this page's own last state (the stored one only before it has one), so
+  two tabs' different states do not count each other up. Gaps are normal (the local snapshot handed to
+  `reconcile`, another tab's snapshots, changes the debounce coalesced);
+  two tabs reading the same value may give two different states the same
+  number; clearing the site's data starts it again at 1. It orders one
+  browser's states, never two devices'.
+- **When.** One shared timer, the shortest registered `snapshotDebounceMs`
+  (default 500 ms) after the last store change; the localStorage write
+  keeps its own 500 ms. An adapter is never handed the key it has (a
+  delivery that throws or rejects is logged, `error`, `ClassicyStateAdapter`,
+  and forgotten, so the next change sends again), and gets one delivery at
+  a time: a snapshot due while one is under way waits, and only the latest
+  is sent when it ends, so an older state never lands after a newer one.
+  A snapshot still due when the page hides (`pagehide`), on its debounce or
+  waiting behind a delivery under way, is sent then, at once and alongside
+  that delivery, best-effort, and the pending localStorage write is made
+  with it, so the backend never gets a state this browser did not save. An `onSnapshot`
+  that cannot store (offline, signed out) must throw or reject: resolving
+  tells Classicy the backend has it.
+- **Boot reconcile.** `ClassicyDesktop` runs the page's first reconcile when
+  it first mounts in the browser, after the local load and migration, and
+  draws only its empty shell (as on the server) until it settles. Each
+  adapter implementing `reconcile`, in registration order, is offered the
+  local snapshot and `{ signal, reason, userActed }` (below), and has
+  `reconcileTimeoutMs` to answer
+  (default 5000 ms; finite, above 0 and at most 2^31 − 1, else the default
+  with a warning); then its `signal` aborts, a late answer is ignored and
+  the next adapter is asked, so the desktop waits at most the sum of those
+  timeouts. The first valid `replace` wins (unless this computer holds work
+  that adapter never took: the user is asked, below): its `state` goes through the
+  localStorage load path itself, as JSON (no `__proto__` key survives), the
+  same shape check (every container the default state holds must be a
+  container of the same kind, before and after the merge, and every app
+  record and its windows, every desktop icon and every custom theme an
+  object; a `windows` value or window that is no record is dropped by the
+  migration, as on a local load), merged over the defaults, `migrateClassicyState` (a state an
+  older build saved is upgraded as it would be on load), the built-in active
+  theme refreshed from the code and the drawn package's defaults in place of
+  another's; then it is saved to localStorage at once and applied. The
+  session's `availableThemes` and this browser's `Desktop.fsVersion` (a
+  file-system reload epoch) are kept, and a provider's `defaultState` no
+  longer seeds (`wasHydratedFromStorage()` is true). The adapters after the
+  winner are asked too, with the adopted state as `local`: a `useLocal`
+  makes them take it as their next snapshot; a `replace` of theirs is not
+  adopted over the winner's: they stay held, with a warning and no retry
+  timer, until the host's next `reconcileClassicyState()`.
+  The winner is not sent back what it just handed over. An error, a
+  timeout or a state without the saved shape keeps the local state with a
+  `classicyLog` warning.
+- **No snapshot before a successful reconcile.** An adapter implementing
+  `reconcile` takes no snapshot (and `flushClassicyState()` counts it as not
+  taken) until a reconcile with it has succeeded in this page, a `useLocal`
+  or an adopted `replace`; until then the local state may be a new device's
+  defaults or an old device's stale desktop, and sent, it would replace the
+  account's copy on every device that trusts it. This holds whether or not
+  the page loaded a saved state of its own: a saved state can be as stale
+  as none. A failed one (error, timeout, invalid state) is asked again
+  10 s later (`CLASSICY_STATE_RECONCILE_RETRY_MS`), each failure in a row
+  doubling the wait up to 5 minutes (`CLASSICY_STATE_RECONCILE_RETRY_MAX_MS`),
+  and by every `reconcileClassicyState()`; a retry is a later reconcile (a
+  `replace` is adopted as a restart, below), and its success sends the
+  snapshot held meanwhile. A later reconcile that fails holds the adapter
+  again. An invalid copy is never overwritten from this device: the host
+  repairs or removes it. An adapter registered once the page's first
+  reconcile has started is asked on its own at once. Snapshots of every
+  adapter also wait while any reconcile runs, and until the page's first one
+  settles when one will run.
+- **Why it is asked, and whether the user has worked.** The context's
+  `reason` is `"boot"` (the page's first reconcile), `"retry"` (Classicy
+  asking again after a failure, or an adapter registered after the first
+  reconcile) or `"request"` (the host's `reconcileClassicyState()`).
+  `userActed` is true when this computer holds work the adapter never took:
+  an earlier session left its work unsent (below), or the page has had a
+  trusted `pointerdown` or `keydown` since the desktop was last drawn
+  (loaded, or an adopted state) and either a press came after the latest
+  state the adapter holds (the last snapshot it took, counted when that
+  snapshot was built, or its own adopted state; an adapter that has taken
+  none counts every press since the desktop was drawn), or the live state
+  is not that state. A press counts even when it changes no saved state
+  (typing in an open document, which a restart onto another state would
+  drop); the state test catches a press's change that lands after a
+  snapshot built while the press was down (on release, after a menu's
+  flash, from an async handler), which a count cannot bound. One
+  capture-phase listener counts the presses from the page's first
+  reconcile on, whatever is registered, so the work done while a failing
+  request runs, or before an adapter registers late, counts too.
+- **Unsent work survives the page.** `localStorage["classicyDesktopState:unsent"]`
+  (beside `:seq` and `:reset`) lists, as a JSON array, the ids of the
+  adapters this browser holds work for that they never took. An id is
+  added, synchronously, when a snapshot comes due for an adapter that is
+  held while `userActed` is true, or comes due while a reconcile holds every
+  snapshot (a host's request or a retry under way, sent once it settles),
+  when a delivery to it fails while `userActed` is true, and when the user
+  is asked (below); it is removed when the adapter takes a snapshot built
+  after it was added (or one it already had), when its state
+  is adopted (Use Saved, a `merged` replace, a host's request), and for
+  every adapter by Reset PRAM. Only adapters that take snapshots are
+  listed: one that never does could never take the work. At the next boot,
+  a listed adapter's context carries `userActed: true`, and its `replace`
+  that is not `merged` is not adopted: the boot settles on the local state,
+  the desktop draws, the adapter is held with no timer, and the desktop
+  asks, as below; a `useLocal` syncs it and sends this computer's state
+  (after the snapshot debounce, with no change needed: any `useLocal` while
+  `userActed` does), which removes the id. So a reload out of the alert, or a backend
+  down for the whole session, never drops the work unasked. An id whose
+  adapter is not registered is ignored (and kept). A snapshot sent as the
+  page hides is taken to have landed: the page is gone before it can learn
+  otherwise. A host can close that gap itself: a snapshot carries this
+  browser's `seq` and `hash`, and `reconcile` gets `local` with both, so an
+  adapter that keeps, per browser, the last `seq` it stored sees at the next
+  boot that `local.seq` is past it, and can answer `useLocal` or a `merged`
+  replace (Classicy gives no browser identity; the host keeps one).
+- **A boot or a retry never replaces the user's work unasked.** On a
+  `"boot"` or a `"retry"` with `userActed`, a valid `replace` is not adopted
+  on the spot: the adapter stays held, its retry timer stops, and the
+  desktop shows a caution alert (`Desktop.systemDialog` `"syncChoice"`,
+  never persisted; it waits while another system or error alert is up):
+  "Use your saved settings on this computer?" — "This computer has changes
+  that were never added to your saved settings. Using the saved settings
+  replaces this computer's, and those changes are lost. Keeping the
+  current settings replaces the saved ones on every computer that shares
+  them." That holds at boot, on a retry and after a late registration.
+  **Use Saved** adopts the answer, a restart; **Keep Current** keeps this
+  desktop, marks the adapter synced and sends it. Neither is the default,
+  since either may lose work (HIG7 p.206: "Don't use a default button if
+  the most likely action is dangerous ... When there is no default button,
+  pressing Return or Enter has no effect"), and the alert, not a button,
+  takes the keyboard focus (`ClassicyAlert`'s `defaultButtonId={null}`),
+  so a keystroke meant for a field the user was typing in answers nothing.
+  (The label summarizes the condition and the narrative its consequences,
+  HIGOS8 1997 p.61; the buttons are verbs of three words at most, HIG7
+  p.206; the message says what happens in the user's words, HIG7
+  pp.310–311.) An adapter that merged `local` into its answer says so with
+  `{ action: "replace", state, merged: true }`, which is adopted without
+  asking. A host's request adopts as before (its `userActed` is
+  informative); a host's request while the alert is up settles it (the
+  alert closes). Unanswered when the page closes, the work stays listed as
+  unsent, and the next boot asks again.
+- **Later reconciles.** `reconcileClassicyState()` runs one again, when the
+  remote copy may have changed under the page (a user signing in): it
+  resolves true iff the state was replaced, never rejects, and concurrent
+  calls share one run; a call made while Classicy retries an adapter waits
+  for that retry, then runs in full. The desktop stays drawn meanwhile. An adopted state
+  is a restart: the gate closes, the store is replaced and the desktop's
+  subtree is keyed anew in one synchronous step, so the mounted tree never
+  renders or runs an effect against the adopted state; the new tree's apps
+  register again (their windows, icons, menus and shortcuts). Host apps
+  inside the desktop lose their component state then; a host that wants to
+  avoid it reconciles before it mounts the desktop after a sign-in. Edits
+  made while a later reconcile runs are part of no snapshot yet, and a
+  `replace` drops them.
+- **`flushClassicyState()`** saves now: writes localStorage and hands each
+  adapter the current snapshot, canceling the pending debounce (after a
+  reconcile that runs), resolving true when every adapter took it (or had
+  it); false when one failed or has no successful reconcile yet. For a host
+  about to sign the user out or leave; it waits as long as the adapters do.
+- **Special ▸ Reset PRAM**, when an adapter takes snapshots, says in its
+  alert that the settings are cleared "on this computer and on every other
+  computer that shares them" (a caution alert says what the action does in
+  the user's words: HIG7 pp.195, 310–311; HIGOS8 1997 pp.62–63). On Reset it
+  shows the wristwatch (HIG7 p.270), stops saving, removes the saved state,
+  hands every such adapter a snapshot of a first session's state, a
+  provider's `defaultState` seed included (so the backend's copy resets
+  too, as Drive Setup's Initialize hands the file-system adapters the erased
+  tree), waits for them for at most 5000 ms, then reloads; the boot after it
+  skips its reconcile, once (`localStorage["classicyDesktopState:reset"]`),
+  and sends its state. A second Reset meanwhile does nothing. With no
+  adapter taking snapshots it reloads at once as before and marks nothing: a
+  reconcile-only adapter's copy is read-only to Classicy, and comes back.
+- **Servers.** Without a `window` nothing is scheduled or read: a store
+  change sends nothing, `reconcileClassicyState()` resolves false without
+  asking anyone, and `flushClassicyState()` resolves true.
+
+The example app shows one (`example/src/stateSync/mockStateAdapter.ts`, the
+shape of a production adapter: pushes deduplicated by hash, sent with
+`keepalive` when under 60 KiB, since the Fetch standard caps in-flight
+`keepalive` bodies at 64 KiB in all and fails a larger one, and the
+account's copy winning in reconcile) against a mock backend its dev and
+preview servers run (`example/mockStateServer.ts`, in memory): open it in two
+browser profiles with the same `?stateSync=<account>`, and a theme or window
+layout changed in one is there in the other after a reload.
 
 ---
 
@@ -2990,8 +4480,10 @@ package's `defaults` and `presets`, in registration order), and
 `getTheme(id, overrides?)` returns the one with that id (the first one for
 an unknown id), a deep-merged clone when given `overrides`; with no package
 registered both serve the core's own `CLASSICY_CORE_DEFAULT_THEME` (no
-wallpaper, the core floor's measurements). `getThemeVars(theme)` returns the
-CSS custom-property map. Platinum's SCSS is importable via
+wallpaper, the core floor's measurements). `getThemeVars(theme,
+drawnPackageId?)` returns the CSS custom-property map (`drawnPackageId`, the
+package drawing the theme, completes its knobs from that package's defaults;
+§8, "A theme drawn under another package"). Platinum's SCSS is importable via
 `@classicy/appearance-platinum/scss/*` (`mixins`, `scrollbars`, `assets`; the
 `platinum-*` mixins), the state vocabulary via `@classicy/classicy/scss/vocabulary`
 (§4.0.1), and the layout helpers and package wrapper via
@@ -3047,9 +4539,11 @@ registerClassicyAppearancePackage({
 | `css` | The compiled stylesheet: exactly one `@layer classicy.package { … }` block, every rule scoped under `.classicyDesktop[data-classicy-appearance="<id>"]` |
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
+| `foreignThemeDefaults` | Optional id of the built-in (`defaults` or a preset) whose measurements complete another package's theme while this package draws it; absent, `defaults`. System 7 names `system7-color` (§8, "A theme drawn under another package") |
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
 | `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, desktop.iconGridOrigin, scrollBar?, slider?, fileDialog?, fileBrowser? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
+| `helpMenu` | `{ aboutTitle? }`: the standard Help menu's first item (Platinum "About Help", HIGOS8 Figure 4-2; System 7 "About Balloon Help…", HIGOS7 Figure 4-88; absent, "About Balloon Help…") |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
@@ -3107,7 +4601,7 @@ set.
 **Glyphs and colors a package supplies.** Some text glyphs are look, so the
 components render an empty span and the package draws the glyph as `::before`
 content: the menu check and mixed dash (`.classicyMenuItemCheck.checked`,
-`.mixed`), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
+`.mixed`), the Notification Manager's ◆ (`.classicyMenuItemCheck.classicyMenuItemDiamond`, §4.11), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
 the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 `.classicyBevelButtonArrowVertical`), the placard arrow
 (`.classicyPlacardArrow`) and the file input's remove cross
@@ -3115,8 +4609,37 @@ the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 (`role="button"`, `aria-pressed`, `.selected`; a toggle: pressing the armed
 entry again disarms it) gets its " ✓" as `::after`
 content on the aria-hidden `.classicyHyperCardPaletteEntryMark` after its
-label. Platinum uses the font's ✓ – ▸ ▾ ✕ and
-writes them as escapes with `string.unquote('"\\2713"')`, because Sass
+label. Platinum draws its checks and the ◆ as Charcoal 12's own bitmaps,
+pixel art in `currentColor` (`_marks.scss`, the grid knob
+`menu.markPixel`; from Mac OS 8.1 captures, story 0225-ci7: the bundled
+Charcoal has neither glyph, so a font glyph fell back to whatever font the
+browser found), on the title's baseline at the mark column's left edge
+(a 9 × 8 check, a 7 × 7 diamond, the palette's check after a space). The
+checkbox is HIGOS8 Figure 2-8 (p.28) pixel for pixel, as Mac OS 8.1
+draws it at the default metrics (`_Checkbox.scss`, `_marks.scss`): the box
+(a black frame; inside it a white top and left edge and a #888888 right and
+bottom edge, the two corners where they meet in the #DDDDDD face; no shadow
+outside; pressed, a #777777 face between #555555 and #999999 edges; dimmed,
+a #888888 frame around the face alone), its bevel bands a
+`window.borderSize` wide and running from the box's edges, so it follows
+the editable `window.controlSize` and `window.borderSize` as the inset
+shadows it replaced did, and its marks, fixed art on their own grid knob
+`checkbox.pixel`, the Appearance Manager's own shaded bitmaps, not a font's:
+the check (drawn from the box's inner corner over a 13 × 9 area that
+reaches two pixels past the box's right side), the mixed dash and the X
+(`mark="x"`), each at rest, pressed and dimmed as the figure draws them
+(the figure prints its dimmed X only at another size; the dimmed X follows
+its rule for the check and the dash, the black pixels alone in #888888).
+The grays are the gray ramp, each with its core fallback. A click shows
+no focus ring, as Mac OS 8 gives a checkbox no keyboard focus (HIGOS8
+p.66); the browser's keyboard focus (`:focus-visible`) draws the theme's
+outline two grid pixels out, clear of the check. The Mac OS 8.1 captures are
+committed in `packages/appearance/platinum/resources/screenshots/mac-os-8.1/` (never
+published): `platinum-81-appmenu-notification.png`,
+`platinum-81-finder-view-menu.png`, `platinum-81-popup-font.png` and
+`platinum-81-finder-preferences.png` (the checkbox). It
+uses the font's – ▸ ▾ ✕ and
+writes them as escapes with `string.unquote('"\\2013"')`, because Sass
 decodes a quoted escape and prepends `@charset`; that keeps the Sass output
 ASCII. The shipped files stay ASCII because the library build sets
 `esbuild: { charset: "ascii" }` (Vite's CSS minifier would otherwise write
@@ -3409,7 +4932,9 @@ The helpers built on it:
 
 - `ClassicyAppSwitcherUtils.ts` (`src/SystemFolder/SystemResources/Desktop/MenuBar/`)
   holds the menu helpers, including the one the window menu bar uses:
-  `appSwitcherAppsFrom(apps, overrides?)`;
+  `appSwitcherAppsFrom(apps, overrides?, { frontAppId?, notifiedAppIds? }?)`
+  (`ClassicyAppSwitcherOptions`; §4.11; in alphabetical order of the names
+  shown, which the Application Switcher's palette and chord share, §4.12);
   `withClassicyAppIdentityMenuItems(items, overrides)`, which retitles and
   re-images the Apple-menu app entries (ids
   `` `${CLASSICY_SYSTEM_MENU_APP_PREFIX}${appId}` ``, `"system_menu_<appId>"`)
@@ -3546,7 +5071,7 @@ validated at registration:
 ```ts
 iconDimming: {
     hiddenApp: {
-        blend: { color: '#FFFFFF', amount: 0.5 }, // each channel halfway to white, rounded down
+        blend: { color: '#FFFFFF', amount: 0.5 }, // each channel halfway to white, rounded down (depth: 16 blends c * 257 and keeps the high byte)
         bits: 4,                                  // keep 4 bits per channel, widened by repeating them (0x7 -> 0x77)
         palette: ['#FFFFFF', '#FFFFCC', /* … */], // then the nearest entry over all three channels (ties: the earlier)
     },
@@ -3554,7 +5079,12 @@ iconDimming: {
 }
 ```
 
-Only `blend` is required; `bits` defaults to 8 and `palette` to none. A
+Only `blend` is required; its `depth` defaults to 8, `bits` to 8 and
+`palette` to none. With `depth: 16` the blend is made on 16-bit components,
+as QuickDraw's `RGBColor` holds them: each channel widened to `c * 257`,
+moved, rounded down, and its high byte kept (halfway to white, the high byte
+of `(c * 257 + 65535) / 2`: 0x44 to 0xA2 and 0xCC to 0xE6, where 8 bits give
+0xA1 and 0xE5). A
 pixel's alpha is never changed, so the icon keeps its mask. The dimmed image
 is a `data:` URL, cached per source, rule and size for the page (except a failed load, which is drawn again on the next request: a cross-origin icon without CORS fails to load under `crossOrigin = "anonymous"`, and `onerror` carries no reason, so that cannot be told from a network error and is requested again on each dimmed mount; each source logs one `warn`), and the
 `<img>` drawing it carries the part class `classicyIconDimmedImage`
@@ -3570,16 +5100,27 @@ cross-origin host that sends CORS headers is read; one that does not fails
 that load and is logged once per source at `warn`). This is a browser limit, not a
 choice: serve icons from the page's origin, as `data:` URLs, or with CORS.
 
-System 7 and Platinum declare the same `hiddenApp` rule
-(`system7IconDimming.ts`, `platinumIconDimming.ts`), and System 7 the same
-again for `disabledItem` (`color-dialog-standardfile-save.png`: SimpleText's
-dimmed icon, every pixel; null in 1-bit, where its stylesheet's checker
-dims the icon, `:where(.classicyTreeNodeLabelHolder).disabled
-.classicyTreeNodeIcon:not(.classicyIconDimmedImage)`): blend halfway to white, 4 bits, the Macintosh
-8-bit system palette (the 6x6x6 cube, then the red, green, blue and gray
-ramps). It reproduces 7.5.5's dimmed Finder icon and 8.1's dimmed Stickies
-icon pixel for pixel. System 7's `bw` variant declares none: 1-bit dims
-through the 50% checker. Components draw an icon dimmed with
+System 7 declares the same `hiddenApp` rule for 7.5.5 and again for
+`disabledItem` (`system7IconDimming.ts`; `color-dialog-standardfile-save.png`:
+SimpleText's dimmed icon, every pixel; null in 1-bit, where its stylesheet's
+checker dims the icon, `:where(.classicyTreeNodeLabelHolder).disabled
+.classicyTreeNodeIcon:not(.classicyIconDimmedImage)`): blend halfway to
+white, 4 bits, the Macintosh 8-bit system palette (the 6x6x6 cube, then the
+red, green, blue and gray ramps). It reproduces 7.5.5's dimmed Finder icon
+pixel for pixel, and 8.1's dimmed Stickies icon on Infinite Mac's Quadra
+650, which draws at that lower depth. Platinum declares Mac OS 8.5's rule at
+true color (`platinumIconDimming.ts`, the 8.5 audit's M10): halfway to
+white on 16-bit components (`depth: 16`), no bits step, no palette, which
+draws every pixel of the Apple menu's title dimmed under an alert in 8.5
+and in 8.1 on Infinite Mac's Power Macintosh 9500 (`platinumIconDimming.test.ts`,
+`resources/screenshots/mac-os-8.5/platinum-85-apple-title{,-dimmed}.png`,
+`mac-os-8.1/platinum-81-9500-apple-title{,-dimmed}.png`; the hidden
+Stickies icon of `platinum-85-appmenu-hidden-app.png` draws the rule's
+outputs too, #7F7F7F, #FFFF7F, #FFE6CC, #E6CCB3 and #D5D5D5, none of them
+a palette color); its stylesheet's
+fallback opacity, 0.42, puts black at the rule's #7F7F7F on the menu's
+#DDDDDD in Chromium and Firefox. System 7's `bw` variant declares none:
+1-bit dims through the 50% checker. Components draw an icon dimmed with
 `ClassicyMenuItem.imageDimmed` (the App Switcher sets it on a hidden app's
 row); `useClassicyDimmedIconImage(src, dimmed)` and
 `resolveClassicyIconDimmingRule(purpose, packageId?, variant?)` are the
@@ -3795,7 +5336,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
 | MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
-| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
+| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys, Tab and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box) and dragEnd `{ kind, lost }`, pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` (`lost: true`) |
 | Assistant | `div.classicyAssistant` | none | change `{ page, input }` (pager arrows, ←/→; not for a refused or no-op move) |
@@ -3866,7 +5407,7 @@ DesktopIcon and Icon:
 - DesktopIcon `select` is emitted when a gesture changes the selection to
   this icon (it becomes selected, or a multiple selection collapses to it),
   once per gesture: a press or click on the icon (`input` from that press),
-  or a key press that selects it (the desktop's arrow keys and type-ahead,
+  or a key press that selects it (the desktop's arrow keys, Tab and type-ahead,
   `input: "keyboard"`), which the icon reports after the selection commits:
   the desktop marks the id it selects, and the icon reports only a marked
   change, never inferring it from the last key. A click that re-selects an
@@ -4040,7 +5581,8 @@ Platinum (§1); its README lists what it ships.
   under it, a hidden application's icon dimmed (the checker in 1-bit; in
   color by the package's `iconDimming` rule, §8 "Icon dimming", with
   `menuItem.hiddenIconOpacity`/`hiddenIconOpacityScale` as the fallback
-  opacity; Platinum declares the same rule, its fallback 0.46 opacity); list rows are white, 18 px apart
+  opacity; Platinum declares Mac OS 8.5's 16-bit blend instead, its
+  fallback 0.42 opacity); list rows are white, 18 px apart
   (`fileBrowserList.rowPadding` 1, no row lines), each row's parts placed
   by System 7's own `fileBrowserList` knobs, read only by its stylesheet
   (`disclosureWidth` 15 and `disclosureTop` 4, the triangle's gutter;
@@ -4253,6 +5795,7 @@ how they look) has two halves:
 | `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open (a folder row with no icon of its own draws the package's `fileDialogFolderIcon` system art, else the folder icon), Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |
 | `fileBrowser.listColumnTitles` (optional) | `inList`, `aboveList` | where `ClassicyFileBrowser`'s list view (the Finder's) draws its column titles (`ClassicyTable`'s `headerPlacement`). `inList` (the default, Mac OS 8): the list's first row, pinned while it scrolls, beside the vertical bar. `aboveList` (System 7, HIG p.218, `*-755-finder-list-row-selected.png`): above the list's scrolling region, in its window's scroll area's head (`classicyScrollAreaHead`, the window's full width, over the vertical bar's column, scrolled sideways with the rows), so the vertical bar starts under them; the titles drawn there are a copy (`classicyTableDetachedHeader`, `aria-hidden`, its columns sized from the list's), while the list keeps its own header row for assistive technology, laid out with no height (`classicyTableHeaderHidden`); the window's header, when it has one, is marked `classicyWindowHeaderAboveHead` meanwhile, so a package can move its bottom rule under the titles |
+| `applicationSwitcher.palette` (optional) | `tearOff`, `none` | whether the Application menu tears off into the Application Switcher's palette (§4.12). `tearOff` (the default, Mac OS 8.5): dragging past the menu's bottom tears it off, and the palette is drawn while it is open. `none` (System 7, whose 7.5 had no palette): no tear-off, and the palette is not drawn, its open state and position kept for a package that draws it. The keyboard chord works under both |
 | `fileDialog.saveName` (optional) | `plain`, `selected` | how the Save box opens. `plain` (the default, Mac OS 8): the modal focuses its first control. `selected` (System 7.5, `*-dialog-standardfile-save.png`): the name field is the modal's first focus (`initialFocusRef`) and, once it shows the default name, takes focus with the whole name selected (the field's `selected` state, which System 7 draws as TextEdit's whole-line highlight) |
 | `slider.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicySlider` drawn with a `ghost` drags. `live` (the default): the indicator follows the pointer and the value changes as it goes, the ghost with it. `onRelease` (Platinum, HIGOS8 p.34, Figure 2-17, "a slider with a downward pointing indicator shadowed by a ghost indicator"): the indicator stays where it was while the ghost follows the pointer, and the value changes once, when the button comes up (`onChangeFunc`, then `onCommitFunc`); a lost pointer stream drops the ghost's value. A slider without a ghost drags live under either, the HIG's "live feedback" (p.35); the keyboard and the wheel are unaffected; touch stays the browser's live drag, even under `onRelease` |
 | `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
@@ -4303,7 +5846,7 @@ theme's variables, so it wins over the theme's 30 px, and before the host's
 | Window title bar | `[data-classicy-control="close"]` 10, `.classicyWindowTitle` 20, `[data-classicy-control="zoom"]` 30, `[data-classicy-control="collapse"]` 40 | the stripes are `.classicyWindowTitleLeft`/`Center`/`Right`, which a package may hide (`display: none`) |
 | Alert top row (`.classicyAlertTop`) | `.classicyAlertIcon` 10, `.classicyAlertBody` 20 | |
 | Alert buttons (`.classicyAlertButtons`) | each button by `[data-classicy-role="default\|cancel\|other"]` | no base `order`: the button list's order, default last; flip with `flex-direction`. Help keeps `margin-right: auto` |
-| Menu bar (`.classicyDesktopMenu`) | `[data-classicy-part]` `apple` 10, `app` 20, `help` 30, `extensions` 40, `clock` 50, `switcher` 60 | `extensions` carries `margin-left: auto`, which pushes the right-hand cluster over. A title with balloon help is wrapped in an anchor; that anchor is the flex item, ordered by the part it wraps (`:has()`), and sized by its title. Window menu bars use the same rules |
+| Menu bar (`.classicyDesktopMenu`) | `[data-classicy-part]` `apple` 10, `app` 20, `help` 30, `extensions` 40, `clock` 50, `switcher-grip` 59, `switcher` 60 | `extensions` carries `margin-left: auto`, which pushes the right-hand cluster over. A title with balloon help is wrapped in an anchor; that anchor is the flex item, ordered by the part it wraps (`:has()`), and sized by its title. Window menu bars use the same rules |
 | Tabs (`.classicyTabContainer`, a flex column) | `.classicyTabButtonsRow` (strip), `.classicyTabsHolder` (panel) | `stripPosition="bottom"` (`.classicyTabStripBottom`) moves the strip below with `order: 1` and moves its 1 px overhang to the top edge |
 | Disclosure header (`.classicyDisclosureHeader`) | the triangle, then `.classicyControlLabelHolder` | `labelPosition="left"` (`.classicyDisclosureLabelLeft`) sets the label's `order: -1` |
 
@@ -4500,8 +6043,10 @@ and is kept. Types are strict:
 ```ts
 import {
     exportClassicyTheme,      // (theme) => JSON string (envelope, portable wallpaper)
+    compactClassicyThemeFile, // (theme) => the same file as compact JSON (what a theme link carries)
     downloadClassicyTheme,    // (theme) => { ok: true } | { ok: false, error } — round-trip checked first
-    parseClassicyThemeFile,   // (text) => { ok: true, theme } | { ok: false, error }
+    parseClassicyThemeFile,   // (text, source = "file" | "link") => { ok: true, theme } | { ok: false, error }; source names it in errors
+    CLASSICY_THEME_FILE_MAX_LENGTH, // 256 * 1024: longer text is refused unread
     readClassicyTheme,        // (unknown) => same result; validate + make loadable (no envelope)
     readClassicyLoadedThemes, // (unknown[]) => { themes, dropped: { index, id, issue }[] }; ClassicyDesktopLoadThemes' check
     classicyThemeFileName,    // ({ name }) => "french-blue.classicy-theme.json"
@@ -4532,9 +6077,19 @@ Identity rules (`assignImportedClassicyThemeIdentity`):
   overwrite an existing theme or hide behind a preset ChangeTheme finds
   first, and re-importing the same file adds a second entry.
 - The name is kept unless a theme already has it (case-insensitive, the
-  active package's presets included); then
-  `" 2"`, `" 3"`, … is appended, counting up from an existing trailing number
-  (`"Azul 2"` → `"Azul 3"`).
+  active package's presets included); then it is named as the Mac OS 8.1
+  Finder names a duplicate (Mac OS 9 Help, "Duplicating items in the
+  Finder": "with the word 'copy' at the end"; the numbering observed in
+  8.1 on Infinite Mac in the story's re-review): `" copy"` on the name,
+  then `" copy 1"`, `" copy 2"`, … while that is taken too (`"Azul"` →
+  `"Azul copy"` → `"Azul copy 1"`). A copy of a copy continues the
+  numbering: a name ending in `" copy"` or `" copy <n>"` (any case) loses
+  that suffix first, so with `"zed"` and `"zed copy"` to `"zed copy 3"`
+  taken, `"zed copy 1"` imports as `"zed copy 4"` and `"zed copy"` then as
+  `"zed copy 5"` (the Finder's own results), never `"… copy copy"`. Any
+  other number the name ends with is part of the name and never counted up
+  (`"System 7"` → `"System 7 copy"`). The name, never the suffix, is
+  shortened to keep within 64 characters.
 
 An imported theme is a custom theme, so edits modify it in place (no fork).
 Like every `ClassicyDesktop*` action it is unreachable to untrusted
@@ -4549,6 +6104,142 @@ entry leaves `availableThemes` unchanged (an empty list still empties it).
 Unlike an import, a theme for an unregistered package is kept, since a host
 may load its themes before registering the package. A dropped theme is not
 in the list, so `ClassicyDesktopChangeTheme` can never activate it.
+
+### Theme links (share by link)
+
+A theme travels as a link: the theme file above, in the page address's
+fragment (`ClassicyThemeLink.ts`, story 0232-tj2).
+
+```
+https://host/page#classicy-theme=<base64url(deflate(theme file JSON))>
+```
+
+- **Format.** The payload is the file Save Theme… writes
+  (`compactClassicyThemeFile`: the same envelope and theme, without the
+  indentation), UTF-8, raw DEFLATE at level 9 (fflate's `deflateSync`, not
+  `CompressionStream`, which Safari 16.2 lacks), then unpadded base64url, so
+  it needs no escaping; a padded payload is read too, and so is a key whose
+  `=` a messenger percent-encoded (`#classicy-theme%3D…`, escapes in the
+  payload decoded too). A fragment is never
+  sent to the server. Platinum's themes make payloads of about 2,300
+  characters and System 7's about 3,400; `CLASSICY_THEME_LINK_MAX_LENGTH`
+  (8192) caps them both ways: a longer theme is refused a link ("Save it as
+  a file instead."), and a longer fragment is refused unread. The codec
+  (`ClassicyThemeLinkCodec.internal.ts`, which imports only fflate) loads on
+  first use with `import()`, a lazy chunk in the ES build (fflate is its own
+  lazy chunk, `fflate-[hash].js`, by `chunkFileNames` in `vite.config.ts`,
+  shared with the PDF viewer's worker source), so neither reaches the entry.
+- **Making one.** `createClassicyThemeLink(theme, href = location.href)`
+  resolves to `{ ok: true, url, payload }` (the address with its fragment
+  replaced) or `{ ok: false, error }`: the theme is read back first, as
+  `downloadClassicyTheme` does, so a theme that could not be opened (its
+  package not installed) gets no link. `classicyThemeLinkUrl(payload,
+  href?)` builds the address for a payload. The Themes tab's **Copy Theme
+  Link** copies the active theme's link to the clipboard (the Clipboard API,
+  else the `copy` command on a temporary read-only text field whose
+  contents are selected first, the standard technique, since Safari copies
+  only a selection; focus goes back to the button), then says "The link to
+  “<name>” is on the clipboard." in a status line
+  (`classicyAppearanceManagerThemeLinkStatus`, `--layout-item-gap` above
+  the checkboxes while it says something); a failure shows the tab's stop
+  alert. The
+  link is made ahead, whenever the active theme changes, so the click writes
+  the clipboard while Safari still counts it as the user's gesture, and the
+  address is read at the click. The button shows only while a mounted
+  desktop has `themeLinks` on (a link to a page that ignores it would open
+  nothing).
+- **Reading one.** `readClassicyThemeLink(hash)` (`location.hash`, with or
+  without `#`) resolves to `null` when the fragment is not a theme link
+  (`classicyThemeLinkPayload(hash)` is `null`), else to what
+  `parseClassicyThemeFile(text, "link")` gives for the decoded text: the
+  schema, the installed-package check and the wallpaper rules of Load
+  Theme…, with errors naming a link (`This theme link was made by a newer
+  version of Classicy …`). Before that it refuses a payload over the cap
+  ("This theme link is too long to open."), one that is not base64url, raw
+  DEFLATE and UTF-8, JSON or a theme file ("This link is damaged: it does
+  not hold a theme."), and one that inflates past
+  `CLASSICY_THEME_FILE_MAX_LENGTH` (256 K; "This theme link holds more than
+  a theme."). The payload cap bounds the inflate (about 6 KB of DEFLATE, at
+  most about 6 MB).
+- **Opening one: `ClassicyDesktop`'s `themeLinks`** (and `Classicy`'s),
+  **off by default**, since the host decides whether its addresses import
+  themes; the example app and Storybook's desktop decorator turn it on. On
+  mount and on every `hashchange` the desktop reads the page's link
+  (`ClassicyThemeLinkImport.internal.tsx`) and shows, in its dialog
+  overlay, once no boot screen covers the desktop (below):
+  1. a stop alert, "The theme in this link could not be added.", with the
+     reason, for a link that cannot be opened (oversized, damaged, invalid
+     settings, an uninstalled package). The reason is shown without control
+     or format characters, like the name below, since it can quote the
+     link's package id or setting names. While it shows, a change to the
+     package registry reads the link again, so a package a host registers
+     late (Storybook imports System 7 only once chosen) still opens it;
+  2. else a caution alert, "Add the theme “<name>” from this link?", naming
+     its appearance and whether adding it switches to another one, with
+     **Cancel the default** (HIGOS8 p.63 makes a caution alert's go-ahead
+     button the default; p.23 allows Cancel when going ahead is at all
+     risky, and accepting untrusted input the user never asked for is). The
+     buttons keep their places, Cancel left of Add Theme, with the ring on
+     Cancel: HIGOS8 p.72 ("The default button is not necessarily the button
+     in the lower-right corner … If this choice was 'Cancel', for example,
+     the default button would be on the left side of the dialog box") and
+     HIG7 p.196 (the action button lower right, Cancel to its left, so the
+     buttons do not move with the default). The name is shown without
+     control or format characters (`\p{Cc}`, `\p{Cf}`: bidi overrides,
+     zero-width characters). Nothing is dispatched before **Add Theme**. A
+     link the user cancels is not asked about again during that page load
+     (the same payload arriving again is dropped quietly, and taken out of
+     the address);
+  3. for a theme whose `desktop.backgroundImage` is an http(s) URL
+     (`classicyThemeLinkRemoteWallpaperHost`; a registered wallpaper reads
+     back as its filename, so any URL left is remote), a second caution
+     alert, "Use the desktop picture from <host>?" (the host in its ASCII
+     form), with **Don’t Use the default**: until **Use Picture** the URL is
+     neither shown nor stored, so a link never makes the browser fetch it
+     unasked. Don’t Use (or Escape) imports the theme with no picture (`""`,
+     its color);
+  4. the import itself, as Load Theme… does it: a theme of another
+     installed package dispatches `ClassicyDesktopChangeAppearancePackage`
+     first, then `ClassicyDesktopImportTheme` adds it as a new custom theme
+     (the reducer validates it again and names it apart, above) and makes it
+     current.
+
+  **No alert shows while a boot screen covers the desktop** (the pre-boot
+  screen until power-on, the startup screen while it runs): one there would
+  take the focus, and the keystrokes meant for the boot screen. The link is
+  read and held meanwhile and stays in the address. The boot screens say
+  they cover the desktop with `useClassicyBootScreenActive(covering)`
+  (`Boot/ClassicyBootScreenActive.ts`; `useClassicyBooting()` reads it); a
+  host's own `bootScreen` should call it too, with its own visibility, or
+  the desktop cannot tell when it ends and asks at once. The Notification
+  Manager waits on the same hold (§4.11), so a host boot screen that passes
+  `true` and stays mounted after it is hidden holds both for the session.
+
+  Once the alert closes, whatever the answer, the link is removed from the
+  address (`history.replaceState` with `withoutClassicyThemeLink(href)`),
+  so a reload does not ask again. A page with several desktops asks once
+  (the first to see the link claims it); one unmounted mid-question leaves
+  the link in the address and hands it on to another mounted desktop that
+  opens links. A second link arriving while one is asked about waits for
+  that answer, then is asked about (it is not the first's to remove). A
+  read that fails unexpectedly is logged (`classicyLog` error,
+  `ClassicyThemeLink`) and gives the claim back. A desktop without the prop
+  leaves the fragment alone.
+
+```ts
+import {
+    createClassicyThemeLink,      // (theme, href?) => Promise<{ ok: true, url, payload } | { ok: false, error }>
+    readClassicyThemeLink,        // (hash) => Promise<null | { ok: true, theme } | { ok: false, error }>
+    classicyThemeLinkPayload,     // (hash) => payload string | null
+    classicyThemeLinkUrl,         // (payload, href?) => address with the theme link | undefined
+    classicyThemeLinkRemoteWallpaperHost, // (theme) => host of a remote http(s) picture | undefined
+    withoutClassicyThemeLink,     // (href) => href without its fragment
+    CLASSICY_THEME_LINK_KEY,      // "classicy-theme"
+    CLASSICY_THEME_LINK_MAX_LENGTH, // 8192
+} from '@classicy/classicy'
+
+<Classicy themeLinks>…</Classicy>
+```
 
 ### Appearance Manager tabs
 
@@ -4565,13 +6256,13 @@ edit on a built-in theme forks its package's Custom theme (above).
 
 | Tab | Hook (props) | What it shows and dispatches |
 |---|---|---|
-| Themes | `useThemesTab({ packageIcon?, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" with `packageIcon` (the active package's `icon`, from `useActiveClassicyAppearancePackage().icon`), else the generic package glyph (the icon tree's `system.extension`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
+| Themes | `useThemesTab({ packageIcon?, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile, copyThemeLink?, copiedThemeName? })` | "The current Appearance Package is <name>" with `packageIcon` (the active package's `icon`, from `useActiveClassicyAppearancePackage().icon`), else the generic package glyph (the icon tree's `system.extension`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); Copy Theme Link and its status line, only with `copyThemeLink` (the panel passes it while a desktop has `themeLinks` on; "Theme links" above); the scrolling and collapse checkboxes |
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
-| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
+| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing the value `getThemeVars` draws under the active package (`classicyDrawnThemeMeasurements(theme, pkg.id)`: `measurements.<family>.<key>`, or, when the theme lacks it, the package's defaults over the core floor, H-R29c; for a theme of another package, the active package's value wherever the theme carries no edit of its own, story 0235-xgi), and the knob's `default` only when none has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (None first, which stores `""`: no picture, the desktop's solid color; then the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`). `bg` is the resolved picture, `""` for none (the picker reads None and the preview shows the desktop color) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies? })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
-| Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
+| Metrics | `useMetricsTab({ theme, packageId?, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, showing the value drawn under `packageId` (the active package; `withDrawnThemeMetrics`, so a theme of another package shows that package's metric wherever it carries no edit of its own, story 0235-xgi), grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
 | Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.5, and a call without it works as in 3.1) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
 `appearanceThemeEditNotice(themeName, editingCustomTheme, change)` returns
@@ -4583,7 +6274,8 @@ text queries to the visible `tabpanel`.
 ### CSS custom properties
 
 The active theme is materialized as CSS custom properties by
-`getThemeVars(theme)` and applied inline on the desktop root by
+`getThemeVars(theme, packageId)` (the active package's id: a theme of another
+package takes that package's knobs) and applied inline on the desktop root by
 `ClassicyDesktop` — so they are available to (and only to) elements rendered
 inside the desktop. **Style your own components with these variables**, never
 hard-coded colors/sizes, and they will follow theme changes automatically:
@@ -4688,7 +6380,10 @@ change), the way it declares measurement families. They are additive, 3.5.
   `defaults.color.families` only (the presets are filled when it
   registers). Its slider reads them (the channel's #222222 border and
   #AAAAAA etch and fill, the tick's #888888 shadow, the ghost's grays), so
-  it draws Figs. 2-18 and 2-19 at rest, and Fig. 2-17's ghost in the figure's own grays. **System 7** declares
+  it draws Figs. 2-18 and 2-19 at rest, and Fig. 2-17's ghost in the figure's own grays;
+  so does its checkbox (Fig. 2-8's #444444, #555555, #777777, #888888,
+  #999999 and #AAAAAA, the new steps 5, 7 and 9 falling back to
+  `--color-system-06`, `-05` and `-04`). **System 7** declares
   `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
   `controlStrip.face` / `darkEdge` / `shadow` / `pressedFace` (#CCCCCC /
   #444444 / #AAAAAA / #888888; white / black / black / white, the 1-bit
@@ -4730,7 +6425,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 24 families of its own (105 keys)
+**Package knob families.** Platinum adds 29 families of its own (127 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -4745,28 +6440,48 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 18 families are emitted and editable in
+  groups under Platinum. The other 23 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
   interface, not of Platinum's look: every package's themes must emit it.
+  So is one Platinum's own partials read without a fallback, since
+  `ChangeTheme` may draw any package's theme under Platinum, whose sheet
+  then reads that theme's variables (story 0225-ci7: a System 7 theme drawn
+  under Platinum emitted no `--slider-*`, and the slider lost its channel,
+  indicator and ticks).
   The core floor guarantees that: `CLASSICY_CORE_MEASUREMENT_DEFAULTS`
   (`src/Appearance/ClassicyCoreTheme.ts`, the core's own data at Platinum's
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 85 of the 105 are
+  overriding the knob's value, never the base CSS. 124 of the 127 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift). Two of the rest are
-  the optional `fileBrowserList` knobs (below). The other 18 are
-  look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
-  `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`), they are not in the floor and come only from
-  Platinum's `platinum.json`. A package with stylesheets of its own may
-  ignore them, unless it `@use`s Platinum's published mixins
-  (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
-  and `--scrollbar-thumb-grip-*` knobs): it then declares them in its own
-  `defaults.measurements`.
+  table, so the floor and the column cannot drift), the 32 only Platinum's
+  partials read among them (`_ControlStrip.scss`'s bevel, the
+  `platinum-menu-frame` and `platinum-scrollbars` mixins'
+  `--menu-frame-*` and `--scrollbar-thumb-grip-*`, `_Window.scss`'s windoid
+  texture, `_QuickTimeMovieEmbed.scss`'s caption shadow, `_Slider.scss`'s
+  seven, the selection and zoom rectangles' pens and checkers,
+  `_SelectionMarquee.scss`'s and `_ZoomRects.scss`'s two each, and
+  `_ApplicationSwitcher.scss`'s named buttons' least width, and
+  `_Menu.scss`'s six `menuBar` knobs, the Application menu title's
+  geometry, and the progress bar's three, `_ProgressBar.scss`'s art grid
+  and `_StartupScreen.scss`'s startup frame): until story 0225-ci7 the first 18 were look-only, Platinum's
+  alone, and a theme of another package drawn under Platinum emitted none
+  of them; the rectangles' four (stories 0228-e9l and 0230-n6c), the
+  palette's one (integration review G round 3, F5), the title's six
+  (integration review G round 6) and the startup bar's two (the 8.5
+  audit's F12, with the bar's grid) are on the floor for the same reason.
+  Since story 0235-xgi a theme drawn under another package is completed
+  from the drawing package's own defaults ("A theme drawn under another
+  package", below), which supplies those knobs whatever the floor holds;
+  they stay on the floor so no theme's emitted variables change. A package
+  with stylesheets of its own may ignore them; its themes emit them anyway.
+  The other three are optional: the two `fileBrowserList` knobs (below) and
+  `zoomRects.enabled`, the zoom rectangles' opt-in (§4.1, "Zoom
+  rectangles"), which the core reads with a fallback of 0 so a package
+  that does not set it, and draws no rectangles, has no zoom.
 - **Optional knobs.** A third kind of knob is read by a core derivation but
   has no floor value: `menuBar.bandHeight`. `--menu-bar-height` is
   `menuBar.bandHeight` when a theme sets it to a finite number of zero or
@@ -4829,11 +6544,12 @@ literals.
   row's (rows step by `desktop.iconSize` plus it, so the pitch follows an
   edited icon size; the metrics' `rowPitch`), and `top`, the first row's
   top for a top origin and the highest a bottom origin's row goes (the
-  metrics' `top`). Each is read from the theme completed by its package's
-  defaults (`withDefaultThemeMetrics(theme,
-  classicyThemeMeasurementDefaults(theme.package))`, as `getThemeVars`
-  reads every knob), so a saved Custom theme, which persistence stores
-  without the values equal to those defaults, keeps its package's rows.
+  metrics' `top`). Each is read from the measurements the theme draws with
+  under the drawing package (`classicyDrawnThemeMeasurements(theme,
+  packageId)`, as `getThemeVars` reads every knob), so a saved Custom
+  theme, which persistence stores without the values equal to its
+  package's defaults, keeps its package's rows, and a theme of another
+  package takes the drawing package's.
   Each counts when that value is a finite number of zero or more; unset in
   the theme and in its package, rows step by `cell + padding` from
   `4 × padding`, as columns always do, so Platinum, which sets neither,
@@ -4864,7 +6580,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlStrip.narrowCellWidth` | `--control-strip-narrow-cell-width` | 13 | "Narrow cell width", 6–40 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleWidth` | `--control-strip-module-width` | 30 | "Module width", 16–96 | yes | ClassicyControlStrip.scss, ClassicyControlStrip.tsx |
 | `controlStrip.borderWidth` | `--control-strip-border-width` | 1 | "Border width", 0–4 | yes | ClassicyControlStrip.scss, ClassicyControlStrip.tsx |
-| `controlStrip.bevelWidth` | `--control-strip-bevel-width` | 1 | "Bevel width", 0–4 | no | _ControlStrip.scss |
+| `controlStrip.bevelWidth` | `--control-strip-bevel-width` | 1 | "Bevel width", 0–4 | yes | _ControlStrip.scss |
 | `controlStrip.pressedShift` | `--control-strip-pressed-shift` | 1 | "Pressed shift", 0–4 | yes | ClassicyControlStrip.scss |
 | `controlStrip.collapseGlyphLeft` | `--control-strip-collapse-glyph-left` | 2 | "Collapse glyph left", 0–16 | yes | ClassicyControlStrip.scss |
 | `controlStrip.collapseGlyphTop` | `--control-strip-collapse-glyph-top` | 7 | "Collapse glyph top", 0–32 | yes | ClassicyControlStrip.scss |
@@ -4874,11 +6590,11 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlStrip.moduleIconTop` | `--control-strip-module-icon-top` | 3 | "Module icon top", 0–32 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleArrowLeft` | `--control-strip-module-arrow-left` | 22 | "Module arrow left", 0–64 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleArrowTop` | `--control-strip-module-arrow-top` | 7 | "Module arrow top", 0–32 | yes | ClassicyControlStrip.scss |
-| `menuFrame.borderWidth` | `--menu-frame-border-width` | 1 | "Border width", 0–4 | no | _mixins.scss |
-| `menuFrame.bevelWidth` | `--menu-frame-bevel-width` | 1 | "Bevel width", 0–4 | no | _mixins.scss, _BevelButton.scss |
-| `menuFrame.shadowWidth` | `--menu-frame-shadow-width` | 1 | "Shadow width", 0–4 | no | _mixins.scss |
-| `menuFrame.shadowStart` | `--menu-frame-shadow-start` | 1 | "Shadow start", 0–8 | no | _mixins.scss |
-| `menuFrame.shadowGap` | `--menu-frame-shadow-gap` | 0 | "Shadow gap", 0–4 | no | _mixins.scss |
+| `menuFrame.borderWidth` | `--menu-frame-border-width` | 1 | "Border width", 0–4 | yes | _mixins.scss |
+| `menuFrame.bevelWidth` | `--menu-frame-bevel-width` | 1 | "Bevel width", 0–4 | yes | _mixins.scss, _BevelButton.scss |
+| `menuFrame.shadowWidth` | `--menu-frame-shadow-width` | 1 | "Shadow width", 0–4 | yes | _mixins.scss |
+| `menuFrame.shadowStart` | `--menu-frame-shadow-start` | 1 | "Shadow start", 0–8 | yes | _mixins.scss |
+| `menuFrame.shadowGap` | `--menu-frame-shadow-gap` | 0 | "Shadow gap", 0–4 | yes | _mixins.scss |
 | `pager.borderWidth` | `--pager-border-width` | 1 | "Border width", 0–4 | yes | ClassicyPager.scss |
 | `pager.arrowWidth` | `--pager-arrow-width` | 42 | "Arrow width", 16–96 | yes | ClassicyPager.scss |
 | `pager.cellHeight` | `--pager-cell-height` | 36 | "Row height", 16–96 | yes | ClassicyPager.scss |
@@ -4900,8 +6616,8 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `popUpSlider.trackLeft` | `--pop-up-slider-track-left` | 4 | "Track left", 4–4 | yes | ClassicyPopUpSlider.scss |
 | `popUpSlider.trackTop` | `--pop-up-slider-track-top` | 3 | "Track top", 0–32 | yes | ClassicyPopUpSlider.scss, ClassicyPopUpSlider.tsx |
 | `popUpSlider.thumbLeft` | `--pop-up-slider-thumb-left` | 1 | "Thumb left", 1–1 | yes | ClassicyPopUpSlider.scss |
-| `scrollbar.thumbGripWidth` | `--scrollbar-thumb-grip-width` | 7 | "Thumb grip width (across the bar)", 3–32 | no | _scrollbars.scss |
-| `scrollbar.thumbGripHeight` | `--scrollbar-thumb-grip-height` | 8 | "Thumb grip height (along the bar)", 3–32 | no | _scrollbars.scss |
+| `scrollbar.thumbGripWidth` | `--scrollbar-thumb-grip-width` | 7 | "Thumb grip width (across the bar)", 3–32 | yes | _scrollbars.scss |
+| `scrollbar.thumbGripHeight` | `--scrollbar-thumb-grip-height` | 8 | "Thumb grip height (along the bar)", 3–32 | yes | _scrollbars.scss |
 | `hyperCard.fontSize` | `--hyper-card-font-size` | 11 | — | yes | HyperCard.scss |
 | `hyperCard.handleSize` | `--hyper-card-handle-size` | 6 | — | yes | HyperCard.scss |
 | `hyperCard.paletteMaxWidth` | `--hyper-card-palette-max-width` | 220 | — | yes | HyperCard.scss |
@@ -4947,24 +6663,46 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlPanel.listMaxHeight` | `--control-panel-list-max-height` | 180 | — | yes | DriveSetupList.scss |
 | `controlPanel.colorsScrollMaxHeight` | `--control-panel-colors-scroll-max-height` | 210 | — | yes | ClassicyAppearanceManager.Colors.scss |
 | `progressBar.stripeWidth` | `--progress-bar-stripe-width` | 10 | — | yes | ClassicyProgressBar.scss |
-| `utilityTitleBar.textureWidth` | `--utility-title-bar-texture-width` | 4 | — | no | _Window.scss |
-| `utilityTitleBar.textureHeight` | `--utility-title-bar-texture-height` | 3 | — | no | _Window.scss |
+| `progressBar.pixel` | `--progress-bar-pixel` | 1 | — | yes | _ProgressBar.scss (the grid of Platinum's determinate bar, Mac OS 8.5's, pixel for pixel) |
+| `progressBar.startupWidth` | `--progress-bar-startup-width` | 160 | — | yes | _StartupScreen.scss (the startup screen's progress bar, its frame, Mac OS 8.5's) |
+| `progressBar.startupHeight` | `--progress-bar-startup-height` | 12 | — | yes | _StartupScreen.scss (the startup screen's progress bar, its frame, Mac OS 8.5's) |
+| `utilityTitleBar.textureWidth` | `--utility-title-bar-texture-width` | 4 | — | yes | _Window.scss |
+| `utilityTitleBar.textureHeight` | `--utility-title-bar-texture-height` | 3 | — | yes | _Window.scss |
 | `boot.halftoneTile` | `--boot-halftone-tile` | 4 | — | yes | ClassicyBootSequence.scss |
 | `helpButton.glyphSize` | `--help-button-glyph-size` | 14 | — | yes | ClassicyHelpButton.scss |
-| `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | no | _QuickTimeMovieEmbed.scss |
+| `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | yes | _QuickTimeMovieEmbed.scss |
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
+| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | yes | _marks.scss (Charcoal's menu check and diamond; on the floor so a theme of another package drawn under Platinum keeps its marks) |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
-| `slider.pixel` | `--slider-pixel` | 1 | — | no | _Slider.scss |
-| `slider.channel` | `--slider-channel` | 7 | — | no | _Slider.scss |
-| `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | no | _Slider.scss |
-| `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | no | _Slider.scss |
-| `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | no | _Slider.scss |
-| `slider.tickWidth` | `--slider-tick-width` | 3 | — | no | _Slider.scss |
-| `slider.tickHeight` | `--slider-tick-height` | 8 | — | no | _Slider.scss |
+| `slider.pixel` | `--slider-pixel` | 1 | — | yes | _Slider.scss |
+| `slider.channel` | `--slider-channel` | 7 | — | yes | _Slider.scss |
+| `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | yes | _Slider.scss |
+| `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | yes | _Slider.scss |
+| `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | yes | _Slider.scss |
+| `slider.tickWidth` | `--slider-tick-width` | 3 | — | yes | _Slider.scss |
+| `slider.tickHeight` | `--slider-tick-height` | 8 | — | yes | _Slider.scss |
+| `checkbox.pixel` | `--checkbox-pixel` | 1 | — | yes | _marks.scss (the grid of the checkbox's check, mixed dash and X, Figure 2-8's bitmaps; on the floor so a theme of another package drawn under Platinum keeps its checkboxes) |
 | `fileBrowserList.mediumIconSize` | `--file-browser-list-medium-icon-size` | 16 | — | no | ClassicyFileBrowser.tsx (optional; HIGOS8 Fig. 2-24) |
 | `fileBrowserList.rowPadding` | `--file-browser-list-row-padding` | 1 | — | no | ClassicyFileBrowserViewTable.scss (optional; HIGOS8 Fig. 2-24) |
+| `selectionMarquee.width` | `--selection-marquee-width` | 2 | — | yes | _SelectionMarquee.scss (on the floor so a theme of another package drawn under Platinum keeps its selection rectangle) |
+| `selectionMarquee.tileSize` | `--selection-marquee-tile-size` | 2 | — | yes | _SelectionMarquee.scss |
+| `zoomRects.enabled` | `--zoom-rects-enabled` | 1 | — | no | ClassicyZoomRects.ts (optional, the package's opt-in; fallback 0) |
+| `zoomRects.steps` | `--zoom-rects-steps` | 11 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.growthPercent` | `--zoom-rects-growth-percent` | 140 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.firstStep` | `--zoom-rects-first-step` | 5 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.trail` | `--zoom-rects-trail` | 0 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.rate` | `--zoom-rects-rate` | 60 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.width` | `--zoom-rects-width` | 2 | — | yes | _ZoomRects.scss (on the floor for the same reason) |
+| `zoomRects.tileSize` | `--zoom-rects-tile-size` | 2 | — | yes | _ZoomRects.scss |
+| `applicationSwitcher.namedButtonWidth` | `--application-switcher-named-button-width` | 150 | — | yes | _ApplicationSwitcher.scss (the palette's named buttons' least width, Mac OS 8.5's; on the floor for the same reason) |
+| `menuBar.endInset` | `--menu-bar-end-inset` | 11 | — | yes | _Menu.scss (the menu bar's right end after the Application menu's title, Mac OS 8.5's; on the floor for the same reason; System 7's own is 6) |
+| `menuBar.switcherTitleStart` | `--menu-bar-switcher-title-start` | 6 | — | yes | _Menu.scss (the Application menu title's padding before its icon) |
+| `menuBar.switcherTitleGap` | `--menu-bar-switcher-title-gap` | 5 | — | yes | _Menu.scss (between the title's icon and the front application's name) |
+| `menuBar.switcherTitleEnd` | `--menu-bar-switcher-title-end` | 7 | — | yes | _Menu.scss (the title's padding after its name, or after its icon alone) |
+| `menuBar.titleArtSize` | `--menu-bar-title-art-size` | 16 | — | yes | _Menu.scss (the title's icon) |
+| `menuBar.clockEnd` | `--menu-bar-clock-end` | 6 | — | yes | _Menu.scss (the clock's padding before the title's grip: its last ink seven pixels clear of it) |
 
 `formControl.fileInputHiddenSize` is the `formControl` family's first knob.
 The family holds the sizes of form-control parts outside dialogs, which no
@@ -4990,7 +6728,9 @@ the thumb's margins on a vertical channel (`channel + thumbRise -
 (thumbAcross + thumbAlong) / 2` pointing left, `(thumbAcross - thumbAlong)
 / 2 - thumbRise` pointing right) and Firefox's translations of its centered
 thumb (`(thumbAcross - channel) / 2 - thumbRise`, and its negation) are
-derived from them. All look-only: only Platinum reads them.
+derived from them. Only Platinum reads them; they are on the core floor
+all the same (structural, story 0225-ci7), so a theme of another package
+drawn under Platinum keeps the slider.
 
 `dither.tileSize` is the switch of the dither vocabulary
 (`@classicy/classicy/scss/dither`, §8 "Dither vocabulary"): the edge of the
@@ -5027,11 +6767,12 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
   floor, `CLASSICY_CORE_MEASUREMENT_DEFAULTS`), then the registered
   package's own `defaults.measurements`, merged key by key with the
   package's values winning. A package that declares part of a family keeps
-  the floor's structural keys it leaves out, but never a look-only knob: a
-  package that draws with Platinum's stylesheet declares those itself
-  (Storybook's Test Pack declares `controlStrip { cellHeight, tabWidth,
-  bevelWidth }`; `storybook/.storybook/StorybookPackageKnobs.test.ts` checks
-  every Storybook package). An unknown or missing id gets the registered
+  the floor's keys it leaves out, the knobs only Platinum's partials read
+  included (story 0225-ci7); only Platinum's optional `fileBrowserList`
+  knobs are never filled (Storybook's Test Pack declares `controlStrip {
+  cellHeight, tabWidth, bevelWidth }`;
+  `storybook/.storybook/StorybookPackageKnobs.test.ts` checks every
+  Storybook package). An unknown or missing id gets the registered
   default package's (never another registered package's), else the floor
   alone. The result is frozen and cached per package registration.
 - `withDefaultThemeMetrics(theme, defaults = CLASSICY_DEFAULT_THEME_METRICS)`
@@ -5045,12 +6786,122 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
 - **Who fills what (H-R17).** The state migration (`migrateClassicyState`)
   runs before a host can register its package, so it fills only the core
   five. Knob families are filled at read time: `getThemeVars` completes the
-  theme from `classicyThemeMeasurementDefaults(theme.package)` before it
-  walks it, so a theme that reaches it unmigrated (a preview, a story, a
-  test) never emits `undefined` or `NaNpx`. The Options tab shows a knob's
-  default when the theme lacks the key. Theme export, Platinum's
-  registration of its presets, `ClassicyDesktopLoadThemes` and package
-  activation fill from the theme's own package as well.
+  theme from the drawing package's defaults before it walks it (below), so
+  a theme that reaches it unmigrated (a preview, a story, a test) never
+  emits `undefined` or `NaNpx`. The Options and Metrics tabs show the value
+  drawn when the theme lacks the key. Theme export, Platinum's registration
+  of its presets, `ClassicyDesktopLoadThemes` and package activation fill
+  from the theme's own package (theme data, never the drawing package's).
+- **A theme drawn under another package** (story 0235-xgi). `ChangeTheme`
+  may activate another package's theme (a reload keeps it), and a preset or
+  Custom theme stays active when a registry change alters what draws (a
+  host dropping a package; `ClassicyDesktopChangeAppearancePackage` itself
+  activates the new package's own theme), so the drawing package's
+  stylesheet reads a theme its package never completed (a Platinum theme
+  under System 7 lacked 156 of the variables System 7's sheet reads without
+  a fallback).
+  - **Who passes the drawing package.** `getThemeVars(theme,
+    drawnPackageId?)` takes the package drawing the theme, and so do
+    `classicyDesktopIconMetrics(theme, drawnPackageId?)` and
+    `readClassicyDesktopIconMetrics(theme, el?, drawnPackageId?)`.
+    `ClassicyDesktop` passes the resolved `Appearance.packageId`;
+    `ClassicyWindow`'s menu-bar height, the desktop Clean Up (from the
+    draft's `packageId`), the file browser's icon view, the Options and
+    Metrics tabs and Storybook's plain frame pass it too. The measurements
+    are completed with `classicyDrawnThemeMeasurements(theme,
+    drawnPackageId)` (`withDrawnThemeMetrics` for a whole theme).
+  - **The completion order.** Under the theme's own package, or with no
+    `drawnPackageId`, it is `withDefaultThemeMetrics(theme,
+    classicyThemeMeasurementDefaults(theme.package))`, as before. Under
+    another package it is, key by key:
+    1. the core floor;
+    2. the drawing package's defaults;
+    3. the measurements of the built-in theme the drawing package names
+       for foreign themes, `ClassicyAppearancePackage.foreignThemeDefaults`
+       (the id of its defaults or of a preset; absent, its defaults;
+       `classicyForeignThemeMeasurementDefaults(packageId)`). System 7
+       names its color preset, `system7-color`, so a Platinum theme under
+       System 7 draws System 7's color look (beveled boxes, scroll-bar
+       grips, no 1-bit dither), not its black-and-white one. Platinum
+       names none. The registry refuses an id that names none of the
+       package's built-ins. A foreign theme naming an `assetVariant` that
+       one of the drawing package's built-ins names (its defaults first,
+       then its presets) completes from that built-in instead, and draws
+       the drawing package's art of that variant (§5, "Per-theme
+       variants"): a Platinum theme naming `bw` draws System 7's 1-bit
+       knobs and art under System 7; one naming a variant no built-in
+       names takes `foreignThemeDefaults` and the base art (fix round 2);
+    4. the theme's own values: every value that differs from its own
+       package's default (the core five included), and every value its
+       explicit-edit record names (below).
+  - **What that draws.** A Platinum theme under System 7 draws System 7's
+    knobs (`--window-control-size` 11, `--window-scrollbar-size` 16,
+    `--title-bar-box-gap`, Standard File's layout), and the reverse draws
+    Platinum's. An edit the theme carries wins under every package. A value
+    equal to its package's default, and not in the record, follows the
+    drawing package's (as persistence has it), so an opt-in follows the
+    drawing package too: a theme carrying its package's
+    `zoomRects.enabled: 1` draws no zoom under a package that has not opted
+    in, and one that set it to 0 keeps it off everywhere.
+  - **The explicit-edit record** (`ClassicyTheme.measurementPins`, family →
+    keys; fix round 1). Without it, a value the user sets to the theme's own
+    package default while another package draws (Control Size 12 on a
+    Platinum theme under System 7, which draws 11) would change nothing
+    drawn. Five editable knobs differ between the shipped packages:
+    `window.controlSize`, `window.scrollbarSize`,
+    `window.utilityTitleBarHeight` and `button.minWidth` (Metrics), and
+    `menuFrame.shadowStart` (Platinum's Options).
+    - **Written.** `ClassicyDesktopChangeMetric` (either form) records such
+      a value (`updateClassicyMeasurementPin`, `ClassicyThemeMeasurementPins.ts`)
+      and clears the key when a later edit moves it off the default or is
+      made under the theme's own package. The record changing is an edit,
+      so a built-in forks into its Custom theme as for any edit.
+    - **Honored.** Drawing and `withoutDefaultThemeMeasurements` (so
+      persistence) keep a recorded leaf. Theme files carry it
+      (`ClassicyThemeSchema`: camelCase families, each an array of
+      camelCase keys named once). `migrateClassicyState` normalizes a
+      malformed one (`withValidClassicyMeasurementPins`).
+    - **Off-limits to options.** `ClassicyDesktopChangeAppearanceOption`
+      cannot write it: `measurementPins` is a reserved root, like
+      `measurements`.
+    - **Never written by a single-package host.** A host that draws only
+      its own package's themes never writes the record, so its persisted
+      bytes are what they were
+      (`ClassicyThemeMeasurementPins.platinumOnly.test.ts` compares them
+      with the build's before the record). A theme file exported where
+      another package drew the theme may carry one, and importing it keeps
+      it; it changes nothing drawn while the theme's own package draws.
+    - **Kept when the theme's own package draws again.** The record stays
+      on the theme after its own package draws it again, until each key is
+      edited (an edit under the theme's own package clears that key), so
+      the recorded value still holds if the other package draws again. A
+      recorded leaf of a non-core family stays in persisted state meanwhile,
+      though it equals the default; that is the record doing its job, not a
+      leak.
+  - **A theme whose package is not registered** keeps all its values,
+    since nothing tells its edits from its package's defaults (persistence
+    keeps them all too). The visible effect: its core five and every knob
+    it carries win over the drawing package's. A theme naming an
+    unregistered package, or a saved Platinum Custom on a host that
+    registers only System 7, draws with Control Size 12, scroll bar 17 and
+    `dither.tileSize` 0 under System 7; the drawing package supplies only
+    the knobs it lacks.
+  - **Not completed this way.** Nothing of the drawing package's is written
+    to the theme, so persisted state holds the theme's own values alone,
+    and a theme and its stored copy draw the same. Package colors are not
+    completed this way: they are the theme's palette
+    (`classicyThemeColorFamilyDefaults(theme.package)`), and every read of
+    one carries a `--color-*` fallback. Render code that reads the
+    desktop's live variables (`readClassicyThemeVar`) already gets the
+    drawn values.
+  - **The test.** `ClassicyPackageKnobReads.test.ts` reads every workspace
+    package's stylesheet (`packages/appearance/<id>/src/styles/<id>.scss`).
+    It draws every registered package's themes (and their stored copies,
+    and a package declaring only the core five) under every registered
+    package. It requires every variable the drawing package's sheet and the
+    core's base sheets read without a fallback, and every knob the drawing
+    package declares, and an unedited foreign theme to draw the drawing
+    package's foreign reference.
 - **Persistence.** `sanitizeStateForPersistence` stores each theme without
   the package-family values equal to its package's defaults
   (`withoutDefaultThemeMeasurements(theme, defaults)`), and drops a family
@@ -5058,7 +6909,9 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
   a later change to a package's knob defaults reaches existing users. A
   theme whose package is not registered when state is saved (Platinum's
   included, before Platinum registers) is stored whole, so an edit that
-  happens to equal another package's value is never lost.
+  happens to equal another package's value is never lost. A leaf the
+  theme's explicit-edit record (`measurementPins`) names is kept even when
+  it equals the default.
 
 **Derived metrics** are computed by `getThemeVars` from those inputs, so a
 theme that changes an input gets them for free (never stored in JSON):
@@ -5150,8 +7003,8 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--radio-mixed-mark-top` | `controlSize / 2.5` | 4.8 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-height` | `controlSize / 4` | 3 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-border` | `controlSize / 8` | 1.5 | ClassicyRadioInput.scss |
-| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | _Checkbox.scss |
-| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | _Checkbox.scss |
+| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | none: deprecated, still emitted for a host stylesheet that reads it (Platinum draws Figure 2-8's X since story 0225-ci7) |
+| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | none: deprecated, as above |
 | `--balloon-help-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | ClassicyBalloonHelp.scss |
 | `--quick-time-time-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | QuickTimeMovieEmbed.scss |
 | `--quick-time-control-icon-size` | `controlSize × 0.875` | 10.5 | QuickTimeMovieEmbed.scss |
@@ -5480,7 +7333,8 @@ the variable instead of hard-coding the number:
   not emit, so pass an explicit fallback for a package-only variable.
 - **Cost.** Each call forces a style read. Read once per gesture, theme or
   layout pass, never per render or `mousemove`, and never from a reducer:
-  reducers compute from `getThemeVars(theme)`.
+  reducers compute from `getThemeVars(theme, packageId)` (the draft's
+  `Appearance.packageId`).
 - **Readers.** `ClassicyWindow` passes its own element as `el`, so it reads
   the desktop it is in (custom properties inherit) even with several desktops
   on a page. It reads `--menu-bar-height` (once per active theme and
@@ -5592,7 +7446,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 43 sites over 11 files, the sites kept on purpose
+the list ends at these 46 sites over 13 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -5616,6 +7470,11 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   triangle, the dotted group box and separator), one-pixel rectangles on
   the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
   Strip's.
+- Platinum's `_ProgressBar.scss`, the one `progress-bar-pixel × n` in its
+  `px()` helper: the determinate bar drawn pixel for pixel from Mac OS
+  8.5's startup screen (the 8.5 audit's F12), the end line and the
+  track's two shadow columns after the fill and the end's shading
+  columns, one-pixel columns on the bar's grid (H-R7), as the slider's.
 - Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
   helper: the slider drawn pixel for pixel from HIGOS8 Figures 2-18 and
   2-19 at rest (the channel and its caps, the indicator, the knob, the
@@ -5627,6 +7486,12 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   quarter turn swings it about its center, so its margin is the knobs' sum
   or difference halved; Firefox centers the box, so its translation is half
   the box's overhang of the channel), geometry, not a role (H-R21).
+- Platinum's `_marks.scss`, the `menu-mark-pixel × n` and the
+  `checkbox-pixel × n` in its `px()` helper: Charcoal 12's menu check and
+  diamond from Mac OS 8.1, and the checkbox's check, mixed dash and X from
+  HIGOS8 Figure 2-8 (story 0225-ci7), one-pixel rectangles on each
+  art's grid inside
+  `classicy-px-rect` (H-R7), as System 7's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle
@@ -5711,6 +7576,12 @@ display name for its app (the control panels, HyperCard) sends that name
 payloads keep the app's own name and icon; a window's `track` payload carries
 its `icon` prop, which for the control panels' windows is the display icon.
 
+A menu item that stands for user data sets `analyticsPrivate: true`
+(`ClassicyMenuItem`): its `hover` and `selected` events then carry only its
+`id`, `disabled`, `event` and `childrenCount`, so give it an id free of that
+data too. The Apple menu's Recent Applications and Recent Documents items do
+(§11, "Recent Items").
+
 ---
 
 ## 10. Sound
@@ -5746,6 +7617,49 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 pack loads),
 `ClassicyAlertSound`, `ClassicySoundSetAlertSound`, `ClassicySoundSetAlertVolume`
 (`{ alertVolume }` 0–100, clamped and rounded). `useSound()` reads state.
+**The provider's reducer is pure** (`classicySoundStateReducer`; React calls
+a reducer twice in StrictMode): the plays and stops (`ClassicySoundPlay`,
+`…PlayInterrupt`, `…PlayError`, `ClassicyAlertSound`, `ClassicySoundStop`;
+`isClassicySoundCommand`) are queued in the state's `commands`, each with
+the mute, alert sound and levels it was queued under (`policy`: a play
+followed by a mute in one batch still plays), and `ClassicySoundLoad` only
+records the pack to play (`packId`, `pack`, `sprites`, `fallbackPackId`).
+`ClassicySoundManagerProvider` builds the players in an effect
+(`buildClassicySoundPlayers`, one Howl per pack, kept across StrictMode's
+rehearsal unmount and unloaded, if the player has `unload`
+(`unloadClassicySoundPlayer`), a tick after a real unmount; they reach the state as `soundPlayer`/`fallbackPlayer`
+through `ClassicySoundSetPlayers`), sets each new player's gain, then runs
+each queued command once on the state's players (`runClassicySoundCommand`,
+then `ClassicySoundCommandsRun { through }`), so an alert keeps system gain
+× alert volume even when it plays in the commit its player arrives. A
+command queued before the players for the state's pack are set (a child's
+mount effect) waits for them. `ClassicySoundSet { soundPlayer }` sets a
+player of the host's own, which the commands then play on; the provider's
+own players for the same pack leave it in place (`hostPlayerPackId`), also
+when it was set from a child's mount effect, before they were built, and
+the next load of another pack replaces it, as it always did, and forgets
+it, so coming back to its pack plays on the provider's player for that
+pack. The seed
+(`seedClassicySoundState`) builds no player and returns its start state
+without a window; the provider reads the persisted alert sound and volume
+into it at once. Where the environment plays no audio at all (Howler's
+`noAudio`, or none of the formats Howler knows: jsdom, a browser with
+audio disabled; `classicyAudioAvailable`), no Howl is built
+(`createSoundPlayer` returns `null`), sounds play nothing, and one `info`
+entry per page (`ClassicySoundManager`, "Sound is unavailable here…") says
+so, where a Howl would have logged "Failed to load audio sprite … No codec
+support" as an error for every load. Where audio works, every pack gets its
+Howl, so a pack whose own sources fail (an ogg-only pack where ogg does not
+play, a `blob:` or extensionless URL, a missing file) logs that error, per
+pack.
+**Deprecated: `ClassicySoundStateEventReducer` and `seedSoundState`.** They
+keep their old behavior for a provider of the host's own
+(`useReducer(ClassicySoundStateEventReducer, initialPlayer, (b) =>
+seedSoundState(b, packId, muted))` with the exported contexts) and for
+direct callers: a pack load builds the players (unloading the one it
+replaces), a play or stop runs at once, and the returned state holds no
+queued commands. They play and build twice under StrictMode, as they always
+did; move to `ClassicySoundManagerProvider`.
 **Alert volume**: the persisted `Appearance.alertVolume` (default 100, set by
 `ClassicyDesktopChangeAlertVolume` from the Appearance Manager's Sound tab) is
 mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and
@@ -5895,12 +7809,24 @@ registerClassicySoundPack({            // module scope, like the other registrie
 | `registerClassicyScreenSaver(def)` | Add screensavers to the idle-activated Screen Saver extension, offered under the Appearance Packages `def.packages` names (see "Screen savers" below) |
 | `registerClassicyLogSink(sink)` | Receive Classicy's logs, errors, and crash reports in the host app (see "Logging & diagnostics" below) |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
+| `registerClassicyRecentItemsSource({ id, kind, list, subscribe? })` | Add a host's own recent items to the Apple menu's Recent Applications or Recent Documents, merged with the remembered ones by time (see "Recent Items" below) |
+| `registerClassicyFindSource({ id, name, icon?, search })` | Make a host's own content findable: Find File lists the source as a channel on its Search Internet tab and calls `search(words, { signal })`, a promise of `{ name, kind, icon?, open }` results (see "Find File and search sources" below) |
 | `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars |
 | `useFinderFolderSize`, `FinderContext` | Finder integration points |
 | `useClassicyCursor()` | Platinum cursor management |
 | `mergeClassicyState(base, overrides)`, `DefaultAppManagerState`, `sanitizeStateForPersistence` | Building custom `defaultState` for the provider |
 | `wasHydratedFromStorage()`, `startAppManagerPersistence()`, `stopAppManagerPersistence()` | Persistence lifecycle control (tests, SSR, demos) |
 | `resetStartupScreenSession()` (+ `hasShownStartupScreenThisSession`, `markStartupScreenShownThisSession`) | The startup screen shows once per browser session; reset in tests/demos |
+
+**Keyboard Shortcuts topic** (`AppleGuideKeyboardShortcuts.tsx`, id `KEYBOARD_SHORTCUTS_TOPIC_ID`, opened by Help ▸ Keyboard Shortcuts). Topics need no API change to be live: a page is a `ReactNode`, so a page that is a component reads the store when it renders. This topic has three such pages: why Control (⌃) and Option (⌥) stand in for Command (the browser keeps ⌘, except the editing commands, which keep the browser's own keys and are listed marked "the browser's own", Ctrl on Windows and Linux); the items of the front application's menus that carry a `keyboardShortcut` (`Desktop.appMenu`); and the system's (the Apple menu's `systemMenu` items, the standard Help menu's own items and extension `globalShortcuts`, listed by their optional `title`, else the extension's name). Titles are entity-decoded. `collectShortcutEntries(items)` is the exported walker.
+
+**The front application** is `frontAppIdOf` (`ClassicyFrontAppId.ts`, store-free) / `useFrontAppId` (`ClassicyFrontApp.ts`): the focused app, except an extension that holds focus with no menu-publishing window, when it is the most recently focused open, shown non-extension app (`lastFocusedAt`), else Finder. An extension window that publishes no menus (Apple Guide's) is a **floating window** (`isFloatingExtensionWindow`): `focusWindow` marks it active (a topic's first open included, before its window registers) but leaves `focusedAppId`, the front app's windows (they stay active), `Desktop.appMenu`, chords and keyboard alone, and `deFocusApps` keeps it active, as floating windows sit "on top of other document windows" of the active app (HIGOS7 p. 145, Figure 5-13). Typing stays with the front app's window: plain typing reaches the front app wherever DOM focus is, the Assistant and a clicked guide button included; only Enter and Space aimed at an interactive control of another window (`isActivationKeyAimedAtOtherWindowControl`) are kept from the front app's listeners, and a key a control consumes (`defaultPrevented`) is skipped by them. Activating an extension that has no document window to restore (`focusApp`: `ClassicyApp`'s container click, `ClassicyAppActivate`, `ClassicyAppFocus`) raises its most recent open window through `focusWindow` (floating, when menuless) and never marks the extension focused, so a click in a floating utility window (the Application Switcher's palette, §4.12) leaves the front app's window focused. A modal window or alert never floats, whichever app owns it: it keeps its modal band and takes the keyboard while the bar stays with the front app (its menus empty, as for any modal), and closing a window over it hands focus back to the dialog still open under it (the extension's most recent open modal), else to the extension's own menu window, else to the front application. Floating windows draw in one shared stacking context, the floating layer (`#classicy-floating-layer`, `ClassicyFloatingLayer`: an element of `ClassicyDesktop`'s own tree, so there is one per desktop, it exists before any floating window renders (a topic open at a reload included) and a server render touches no DOM; a full-size, pointer-transparent layer at z-index 356 (`CLASSICY_FLOATING_LAYER_Z_INDEX`): above the palettes and the Control Strip, 355, as Mac OS 8.5 draws its Application Switcher palette dropped over the strip, and under the modal bands and every other system layer): every extension's floating windows portal into it and stack there by recency with z-indices 1..N (`zOrder` rank), so any number of topics or extensions stack correctly, a click raises the clicked one, and a raise moves no node in the DOM (a move resets scroll offsets, blurs focus and can drop the click in flight). A window rendered with no desktop around it (a story or a test) finds or appends a layer of its own under its root, once. With an extension in front, Hide and Hide Others are dimmed. An extension window that does publish menus is an ordinary window of the front application (the bar, the Application menu's entry and the chord scope all name it). The menu bar, Application menu (its ✓ and the Notification Manager's ◆), chord registration, the dispatcher's app scope, `ClassicyDesktop`'s bar-ownership effect, the window layer, the Notification Manager (which app hosts its alert, and which app "comes forward" to take its requests down, §4.11) and the Application Switcher (the palette's held-down button and where the chord starts, §4.12; its palette is itself a floating window) all read the front app; Hide hands the bar on from it either way.
+
+A **windowless front app keeps its menu bar** (Mac OS): `ClassicyApp`'s optional `windowlessMenu` prop is published to `Desktop.appMenu` while the app is the front application with no open window (SimpleText: File, Edit and Help; closing its last window opens no other, and it opens a new untitled window on launch and when opened again with no window, its `onReopen`).
+
+**Layer order** (z-index of `.classicyWindow` and the system layers sharing the desktop's stacking context): the desktop's selection rectangle 15 (under every window, §7), background windows 20, front app's inactive windows 150, active document 300, palettes 350, Control Strip 355, **the floating layer 356 (extension windows, stacked 1..N inside it; above the Control Strip, as Mac OS 8.5 draws its Application Switcher palette over the strip: `platinum-85-switcher-over-strip.png`)**, modal scrim 360, modal band 370, menu bar and raised icons 500, contextual menu 900, zoom rectangles 1000 (§4.1), crash screen 2000, menus and pop-up lists 5000, drag ghost 99000, error scrim 99998, red band and desktop dialogs 99999, balloon help, startup and boot 100000, Screen Saver 100001, QuickTime full screen 999999.
+
+**The standard Help menu** is built by one hook, `useClassicyStandardHelpMenu` (`ClassicyStandardHelpMenu.ts`), for the screen bar and each window's own bar (`ClassicyWindowMenuBar`, window placement). In three groups divided as HIGOS8 Figure 4-2 and HIGOS7 Figure 4-88 divide them: the About item; Show/Hide Balloons (⌥H, `BALLOON_HELP_SHORTCUT`); Keyboard Shortcuts, then the app's `useClassicyHelpMenu` items and the items of any top-level "Help" menu the app publishes in `appMenu` (Finder did; the bar draws one Help menu, and a divider left at an end is trimmed). The About item's wording is the active package's `helpMenu.aboutTitle` (Platinum "About Help", HIGOS8 Figure 4-2; System 7 "About Balloon Help…", HIGOS7 Figure 4-88; absent, "About Balloon Help…"). An extension's `ClassicyGlobalShortcut` takes an optional `title`, which the topic shows.
 
 ### Authoring HyperCard stacks
 
@@ -6068,6 +7994,487 @@ Logos list in registration order (built-ins first). Read side:
 `useClassicyScreenSaverLogos()` (live), `unregisterClassicyScreenSaverLogo(id)`.
 A saved config naming a logo that is no longer registered draws the default.
 
+### Recent Items (Apple Menu Options)
+
+The Apple menu lists **Recent Applications** and **Recent Documents**, and the
+**Apple Menu Options** control panel (`AppleMenuOptions.app`, in
+`ClassicyControlPanels`; `src/SystemFolder/ControlPanels/AppleMenuOptions/`)
+turns them on and off and sets how many items each remembers. Story 0226-a6f.
+Reference, observed on Infinite Mac (Mac OS 8.1, System 7.5.3, Mac OS 8.5):
+the panel's "Recent Items" group, "Remember recently used items" (on),
+Documents 10, Applications 10 (each 0–99; 999 typed is stored as 99); the
+fields dim and empty while the box is off. A count is set when its field is
+left, on Return, or when the panel closes, never per keystroke (a smaller
+count forgets the items past it, and "15" typed over "10" passes through
+"1"); a field left empty or not a number shows the stored count again.
+
+**Behavior change for every host: the Apple menu is alphabetical.** The
+Apple menu's items after the About section are now listed in alphabetical
+order (HIG7 p.98, "They appear in alphabetical order in the menu", and all
+three observed systems), the two Recent entries among them; before, they
+were in the order the apps mounted. A host that wants items kept apart puts
+them in their own group: each group a divider (`{ id: "spacer" }`) starts is
+sorted on its own, and a system menu with no divider is left as it is.
+
+**Turning Recent Items off** (it is on for every host, and keeps the user's
+history in `localStorage` with the rest of the desktop): seed it off in the
+provider's `defaultState`, `defaultState={{ System: { Manager: { Desktop: {
+recentItems: { enabled: false } } } } }}` (merged over the defaults, so the
+counts stay 10; like every seed, applied only when nothing was hydrated from
+`localStorage`, so a returning user keeps what they chose), or dispatch
+`ClassicyDesktopRecentItemsSetEnabled { enabled: false }` (trusted only),
+which also forgets every item. The Apple menu then has no Recent
+entries; the control panel stays, and the user can turn it back on.
+
+**What is remembered** (`src/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems.ts`,
+store-free, called by the kernel):
+
+- An **application** each time `openApp` opens one that is really there:
+  its `ClassicyApp` is mounted (`isClassicyAppMounted`) and the store holds
+  its record. So `ClassicyAppOpen` (the Apple menu, the Control Strip, a
+  HyperCard script), a desktop icon (`ClassicyDesktopIconOpen`), a Finder
+  app shortcut and a document that opens its app all count, while an id
+  nothing mounted (a stack script's invention, a removed app's saved record)
+  never does, however often it is opened, trusted or not. Only an app the
+  user can find, on the desktop or in the Applications folder (it has an
+  `app_shortcut` icon record, which `ClassicyApp` registers for either) or
+  in the Apple menu (`addSystemMenu`): an app with none of the three (Web
+  Viewer, opened only by its pages) is never listed, since chosen on its
+  own it would have nothing to show. Never the Finder, an extension, or an
+  app whose manifest says `controlPanel: true` (the Mac remembered
+  applications; a control panel opened from the Apple menu was not added). It is remembered by its **internal** name; the menu shows the name
+  its record holds now, by the active package's display name (§8, "App
+  display overrides").
+- A **document** each time one is opened, through the one helper
+  `recordClassicyRecentDocument(ds, path)`, which remembers a path only when
+  it names a file in the desktop's file system (`isClassicyRecentDocumentPath`:
+  an entry that is not a folder or disk, read with `peekClassicyFileSystemEntry`,
+  which looks at the live tree without building a file system), the one the
+  provider's `fileSystemStorageKey` names (default `"classicyStorage"`; §1
+  provider props), as the Finder, the apps and the Recent Documents menu all
+  read it. So a
+  generic-queue `path` that is a URL or a key is queued as before but not
+  remembered. The opens that record: the Finder's routing
+  (`ClassicyAppFinderOpenFile` → `routeClassicyAppOpenFile`, an app's own
+  OpenFile case when its trust permits it; a QuickTime document the Finder
+  hands to Movie Player), the generic `ClassicyApp${name}OpenFile` queue
+  (`data.openFiles`; SimpleText's File ▸ Open… and HyperCard's Open Stack…
+  use it), the apps' own actions (`ClassicyAppPDFViewerOpenFile`,
+  `ClassicyAppPictureViewerOpenFile`, `ClassicyAppMoviePlayerOpenFile`, a path
+  given to their `OpenDocument`/`OpenDocuments`, never a URL document, and
+  `ClassicyAppHyperCardOpenStack` with a `stackSource` path), and the Open
+  dialog: `ClassicyFileDialog` (Standard File) dispatches
+  `ClassicyDesktopRecentItemsRecordDocument { path }` for each chosen file of
+  the Classicy file system before calling `onOpenFunc`. So **a file chosen in
+  any app's Open dialog is a recent document**, a host app's
+  `ClassicyFileOpenDialog` included, whatever the app then does with it, as
+  every file chosen in Standard File was on the Mac. `ClassicyFileInput`
+  records nothing: it picks files from the host computer (the browser's own
+  picker), which are not in the Classicy file system. A host app that opens
+  documents by its own action calls `openApp(ds, id, name, icon, { document:
+  path })`, or `recordClassicyRecentDocument(ds, path)`.
+- Each use moves the item to the front; one per app or path; the oldest past
+  the count is forgotten. `ClassicyAppFinderPathsMoved` moves a document's
+  path with it (a moved document, or one in a moved folder), as the Mac's
+  aliases followed their originals, **into the Trash too**, and back out on
+  Restore. Choosing a document whose original is in the Trash draws the
+  Finder's alert, "The alias “<name>” could not be opened, because the
+  original item is in the trash.", opens nothing, and keeps the item (Mac OS
+  8.1, observed); Restore makes it open again, Empty Trash makes it missing.
+
+**Opening and quitting an app** (`ClassicyAppHelpers.ts`). Mac OS 8.1,
+observed on Infinite Mac: a document launching SimpleText shows that
+document alone; quitting with a document open and relaunching shows a new
+untitled window only.
+
+- `openApp(ds, appId, name, icon, options?)` (§2 helpers) opens an app
+  **plainly**, reopening every window it closed whose `ClassicyWindow` is
+  mounted (`ClassicyMountedWindows.internal.ts`); a window that is not
+  mounted (its app was quit, or the document it showed closed) reopens itself
+  if and when it mounts (`ClassicyWindowOpen` on a closed record), so no
+  window record ever reads open with nothing on screen. A plain open of an app
+  **already running** with no window open afterward is Finder 8's reopen
+  (TN1102, https://developer.apple.com/library/archive/technotes/tn/tn1102.html;
+  never during its launch or for a document's open): `openApp` counts it
+  (`reopened`, session state, cleared by a quit) and `ClassicyApp`'s `onReopen` shows a window as on launch
+  (SimpleText: a new untitled window, as Mac OS 8.1's SimpleText did when
+  chosen again with every window closed); an app without `onReopen` just
+  comes to the front, its `windowlessMenu` in the bar.
+- With `options.document` (a path) or `options.windows` (ids), it opens the
+  app **for a document**: only the document's windows reopen and come to the
+  front (`` `${appId}_file_${document}` ``, which `classicyDocumentWindowId`
+  builds, and the ids in `windows`), and every other window the app closed
+  stays closed. When this launches the app (it was not open, and its
+  `ClassicyApp` is mounted), the windows that mount with the launch are held
+  to the same rule (`launchedFor`, `mayClassicyWindowReopen`, read by
+  `ClassicyWindowOpen`), except a modal window (a dialog the document's
+  opening shows, such as a HyperCard stack's `answer`) and a utility window
+  (a palette, such as HyperCard's Tools and Info), which always open: after
+  a quit, or on a first launch, a document open shows only that document and
+  its dialogs and palettes, never a main window or one the user closed.
+  `ClassicyApp` ends the launch once those windows have registered
+  (`ClassicyAppLaunchSettled`, `settleAppLaunch`). If none of the windows
+  the hold applies to opened (the launch named none the app draws: a host
+  showing its documents in a window of its own; a dialog or palette that
+  opened does not count), the end **fails open**: every mounted window
+  reopens, as on a plain launch, so the app is never left in front with
+  nothing on screen but a palette. The end also fronts the window the app last had in
+  front when none is. `launching` and `launchedFor` are session state,
+  stripped on save.
+- `closeApp` (Quit) closes the app's windows and its documents: it empties
+  `data.openFiles`, and runs the app's quit handler for documents kept
+  elsewhere (`registerClassicyAppQuitHandler`, internal: Web Viewer's
+  `openUrls`, HyperCard's `openStacks` and `activeStackId`; a stack's edit
+  session stays, and HyperCard's Quit asks about it first; reopened, the
+  stack shows its Tools and Info palettes again). So a later launch never
+  brings back a document the app had open before it quit. On a plain
+  relaunch Movie Player and Picture Viewer load their sample again, as on
+  their first launch (the check restarts on every launch, a Quit and a
+  relaunch in one tick included); HyperCard shows its empty window;
+  SimpleText a new untitled window. **PDF Viewer** opens only documents and
+  has no window without one, so a launch that opens none shows its Open
+  dialog (a Quit and a relaunch in one tick included: it reads the launch's
+  `launching` mark), and so does opening it again while it runs with no
+  window (`onReopen`, Finder 8's reopen). With no document (Cancel in that
+  dialog, its last document closed, or a saved session that left it open
+  with none) it keeps running with no window, its File (Open…, Quit) and
+  Help menus in the bar (`windowlessMenu`), as a Mac application with every
+  window closed does. (Story 0226-a6f had it quit there, while an app with
+  no window had no menu bar to quit it from; re-review 3's N4, done when
+  windowless menus arrived.)
+- `ClassicyAppClose` is the immediate quit: it discards what the app has
+  not saved. `requestClassicyAppQuit(appId)` (§2, "Quitting with unsaved
+  work") quits as the app's File > Quit does, asking first.
+- **SimpleText asks before it discards text** (Mac OS 8.1's SimpleText,
+  observed): closing a window, or quitting (its File > Quit, or
+  `requestClassicyAppQuit`), with unsaved text (an untitled window typed in,
+  a file edited since it was opened or saved) shows a caution alert, "Save
+  changes to the document “<title>” before closing?" (the same words for a
+  Quit; a new document is "untitled", as on 8.1), with **Don’t Save**,
+  **Cancel** and **Save**, Save the default, in a movable modal dialog box's
+  frame (gray, as 8.1 draws it: `ClassicyAlert`'s `dialogBox`). Cancel keeps
+  the document, and stops the Quit; Save writes a file (an untitled one
+  through the Save dialog, whose Cancel cancels the close; a Save As… chosen
+  from the menu meanwhile is a Save As, which also answers the alert). A
+  Quit asks about each unsaved document in turn, the front window first,
+  closing each as it is answered, as the Mac did; Cancel leaves the rest
+  open. Two paths SimpleText cannot ask on: a reload or closing the browser
+  tab, where the browser's own confirmation asks instead (SimpleText
+  registers a `beforeunload` handler while any document is unsaved), and a
+  `ClassicyAppClose` dispatched from code, which quits at once and discards
+  unsaved text (a host that wants the alert calls
+  `requestClassicyAppQuit("SimpleText.app")`); one dispatched while the
+  alert is up answers it Cancel and removes it (a request waiting on it
+  resolves `false`), so it never reappears beside a relaunched SimpleText.
+
+**The window-id convention** (a host app's document windows). The kernel
+names a document's window `` `${appId}_file_${path}` ``. `ClassicyApp` draws
+its own windows for `data.openFiles` under that id (`handlesOwnFiles`
+`false`). What a host app does:
+
+1. **Its documents on the generic queue, in windows it draws**
+   (`handlesOwnFiles`, as SimpleText and PDF Viewer do): give the window it
+   draws for a queued path the id `` `${appId}_file_${path}` ``
+   (`classicyDocumentWindowId(appId, path)`), so a document open reopens and
+   fronts that window only, and a document launch shows it alone; and
+   dispatch `` `ClassicyApp${name}CloseFile` `` with the path when that
+   window closes, so the path leaves the queue (the window unmounts, and the
+   next open of the document queues it again and the window opens, in
+   front).
+2. **Its documents opened by its own action** (its reducer calls
+   `openApp(ds, id, name, icon, { document: path })`): pass the ids of the
+   windows that show the document too, `{ document: path, windows: [id] }`,
+   as Movie Player, Picture Viewer (`moviePlayerWindowId`,
+   `pictureViewerWindowId`), Web Viewer (`` `${appId}_url_${url}` ``) and
+   HyperCard (`hypercard_main`) do. Then a document launch shows those
+   windows alone.
+
+A host that does neither still shows its documents. A document already
+queued with no `` `${appId}_file_${path}` `` window makes the generic queue
+reopen every window the app closed, as a plain open, so a closed window of
+its own comes back; and a document launch that opens none of the app's
+windows fails open, as above, so its windows open as on a plain launch.
+
+State, persisted with the desktop (`System.Manager.Desktop.recentItems`,
+`ClassicyStoreRecentItems`; `defaultClassicyRecentItemsState()` in the
+default state; a state saved before it existed gets the defaults by the load
+merge; `normalizeClassicyRecentItems` reads any stored shape, and a
+`migrateClassicyState` step stores a malformed one normalized on load):
+
+```ts
+{ enabled: boolean, counts: { application: number, document: number },
+  items: { kind: "application" | "document", appId?, path?, name, at }[] } // newest first
+```
+
+Actions (prefix `ClassicyDesktopRecentItems`, routed before `ClassicyDesktop*`,
+so on the untrusted floor):
+
+| Action | Payload | Effect |
+|---|---|---|
+| `ClassicyDesktopRecentItemsSetEnabled` | `{ enabled }` | Off removes both entries from the Apple menu and **forgets every item** (the Mac emptied its Recent folders); on again starts empty |
+| `ClassicyDesktopRecentItemsSetCount` | `{ kind, count }` | Clamped to a whole number 0–99; items past it are forgotten |
+| `ClassicyDesktopRecentItemsRecordDocument` | `{ path }` | Remember a document opened outside the reducers (the Open dialog), when `path` names a file |
+| `ClassicyDesktopRecentItemsForget` | `{ kind, appId \| path }` | Forget one item |
+| `ClassicyDesktopRecentItemsMissing` | `{ kind, appId \| path, name? }` | Forget it (when it is remembered) and show the Finder's alert: "The alias “<name>” could not be opened, because the original item could not be found." (Mac OS 8.1's wording, a stop alert with OK) |
+
+**In the Apple menu** (`ClassicyRecentItemsMenu.ts`,
+`useClassicyRecentItemsMenuItems`): each entry is drawn with its folder icon
+(`system.folders.applications`, the Applications folder's art, which is the
+Recent Applications folder's in the Mac OS 8.1 capture; and
+`system.folders.recentDocuments`; System 7 shows its generic folder for both)
+among the Apple menu's items, sorted as above
+(`withClassicyRecentItemsMenuItems`). Its submenu lists the newest items up to
+the count, **alphabetically, by name, without icons** (as all three systems
+draw them). An empty one is dimmed with no submenu (the Mac opened the empty
+folder; Classicy has none). Choosing a document opens it the way the Finder
+would (`openClassicyFileSystemPath(fs, path, dispatch)`,
+`SystemResources/File/ClassicyFileOpen.ts`: a folder or disk in a Finder
+window, anything else through `ClassicyAppFinderOpenFile`; reusable by any
+surface that opens a path it holds); choosing an application dispatches
+`ClassicyAppOpen` with its record. A document no longer at its path, or an
+application no longer mounted, draws the missing-alias alert and is dropped
+(the Mac kept a broken alias, but the user could delete it from the Recent
+folder; Classicy has none). The Mac's Recent Servers and the panel's Submenus
+group are left out: Classicy has no file servers, and its Apple menu no
+folders of its own.
+
+**Host items**: `registerClassicyRecentItemsSource({ id, kind, list,
+subscribe? })` (`ClassicyRecentItemsSources.ts`; returns the unregister;
+registering an `id` again replaces it; `unregisterClassicyRecentItemsSource(id)`)
+adds items such as recently viewed pages. `list()` returns `{ name, at (Date
+or ms), key?, open?, appId?, path? }[]`, read whenever the menu bar draws; an
+item opens by `open()` first (one that throws is logged and changes
+nothing), else `path` (through the Finder), else `appId`; it is shown by its
+own `name`, even when it names a known app. Its items merge with the
+remembered ones **by time** under the same count, and one naming a
+remembered document's path (or app id) meets it, the newer use winning;
+items of two sources stay apart even when they share a `key`; Classicy never
+stores them. One that cannot be opened draws the missing-alias alert, as its
+own kind, and forgets nothing remembered. Pass `subscribe(onChange)` to
+redraw an open menu when they change. An item with no name, time or opener,
+and a `list` that throws, are skipped with one `ClassicyRecentItems` warning
+per source.
+
+**Analytics**: every Recent item in the menu carries
+`ClassicyMenuItem.analyticsPrivate`, so its `hover`/`selected` payloads hold
+only its id (`apple-recent-documents-3`), `disabled`, `event` and
+`childrenCount`, never its name, icon or path; the alerts are
+`analyticsExclude`. Any host menu item standing for user data can set the flag
+too. (A document reopened from the menu opens its window as the Finder would,
+and that window's *title* reaches GA as every window title does, §9.)
+
+### Find File and search sources
+
+**Find File** (`FindFile.app`, `src/SystemFolder/FindFile/`, mounted by
+`ClassicyDesktop`, always on; story 0227-815) is Mac OS 8.1's: the Finder's
+File ▸ Find… (**⌥F**; 8.1's ⌘F, HIG7 Table 4-3) on every Finder File menu,
+the desktop's included, and an Apple-menu entry, launch it or bring its Find
+window to the front (`ClassicyAppFindFileShowFind`). Reference, observed on
+Infinite Mac (Mac OS 8.0 and 8.1, the same Find File; System 7.5.3; and
+Sherlock in Mac OS 8.5; HIGOS8 1997 Figure 1-2 draws the window). The
+captures cited below are in `packages/appearance/platinum/resources/screenshots/find-file/`
+(never published).
+
+- **The Find window** (no title-bar icon, as 8.1's): "Find items [location]
+  whose", then rows of [criterion] [operator] [value], More Choices (dimmed
+  at ten rows), Fewer Choices (shown with two rows or more) and Find (the
+  default; it reads Stop while a search runs, every control dims,
+  "Items Found:N" counts what it has found so far beside Stop, and the
+  asynchronous arrows spin after "whose" (`ClassicyProgressBar`'s
+  `chasingArrows`, HIGOS8 p.53), as 8.1's do,
+  `81-contents-searching-count.png`). The location pop-up: on all
+  disks, on local disks (the default), on the desktop (the Desktop Folder
+  itself and what is in it: 8.1 listed the Desktop Folder too,
+  `81-within-2-months-of-09-22-desktop-folder-only.png`), then on each disk
+  by name. 8.1's "on mounted servers" (dimmed with none mounted) is left
+  out, Classicy having no file servers; "in the Finder selection" is not
+  offered yet: it searches the Finder's selection, which the Finder's
+  windows do not publish today; it takes its place after "on the desktop"
+  once they do. The pop-up's choices stay out of analytics
+  (`analyticsPrivate`: they name the user's disks). It is kept across launches (`data.location`,
+  `ClassicyAppFindFileSetLocation`); the rows start again as one empty name
+  row. More Choices adds the first criterion no row uses (8.1: name, then
+  size, then kind; after a row of size, name).
+- **Criteria and operators** (`CLASSICY_FIND_CRITERIA`,
+  `ClassicyFindCriteria.ts`; every row must match):
+
+  | Criterion | Operators | Value | Classicy reads |
+  |---|---|---|---|
+  | name | contains, starts with, ends with, is, is not, doesn't contain | text (case ignored) | the item's name |
+  | size | is less than, is greater than | K (128) | files only: a size Classicy holds answers at once (`_data`'s length, a recorded `_size`); any other (compressed `_data`, a `_url` file's HEAD request, `fs.size`) is read only for a file every other row matched, a few at a time, under the search's signal; one that cannot be read is not asked again while Find File runs |
+  | kind | is, is not | alias, application, clipping file, control panel, document, extension, folder, font, letter, sound, stationery | `classicyFindKindOf`: a folder or disk is a folder, a shortcut an alias, an app shortcut an application, an extension an extension, audio (or a QuickTime file of format Audio) a sound, any other file a document; Classicy has no clipping files, control panel files, fonts, letters or stationery |
+  | label | is, is not | None, Essential, Hot, In Progress, Cool, Personal, Project 1, Project 2 | `_label`, when it is one of the seven, else None |
+  | date created, date modified | is, is before, is after, is not, is within 1/2/3 days of, 1/2/3 weeks of, 1/2/3/6 months of | a day (today on Classicy's clock) | `_createdOn` / `_modifiedOn`, by day in the clock's zone; an item without the date matches none. "Is within N of" a day D, as 8.1 measured it (below): N days is D−N through D+N; a week counts 7 days and a month 31 (not calendar months), with one day more before D than after it: N weeks is D−7N−1 through D+7N, N months D−31N−1 through D+31N |
+  | version | is, is not | text | `_version` |
+  | comments | contain, do not contain | text | `_comments` |
+  | lock attribute | is | locked, unlocked | files only: `_readOnly` |
+  | folder attribute | is, is not | empty, shared, mounted | folders only: empty is no visible item; none is shared or mounted |
+  | file type | is, is not | text | `_type` (`text_file`, `pdf`, …) |
+  | creator | is, is not | text | `_creator` |
+  | contents (Option) | contain, do not contain | text (case ignored) | files only: their `_data`, inflated when it is gzip + base64url (`compressToBase64`) and read as UTF-8, else read as text (a note that merely begins "H4sI" is text), only for a file every other row matched, a few at a time, under the search's signal; at most its first `CLASSICY_FIND_CONTENTS_LIMIT` (5 MiB: Classicy keeps its tree in localStorage, 5 MiB per origin in every browser, MDN "Storage quotas and eviction criteria", so no plain stored file is longer; a compressed one is inflated chunk by chunk and cut there), the inflation ending as soon as the signal aborts; the read phase yields to the event loop every 8 ms; a `_url` file's contents are never fetched, so it matches neither operator; an empty value matches every file with data |
+  | name/icon lock (Option) | is | locked, unlocked | `_nameLocked` |
+  | visibility (Option) | is | invisible, visible | `_invisible` |
+
+  The last three are 8.1's hidden criteria: they are listed only when the
+  criterion pop-up is opened with Option held (or the row already uses one,
+  `81-criteria-popup-option-row-keeps-hidden.png`). Contents is 8.1's
+  (`81-contents-operators.png`): it ignored case ("infinite macintosh"
+  found the Stickies file, `81-contents-found-case-insensitive.png`), found
+  no folder ("do not contain zzq" on a desktop of folders found none,
+  `81-contents-do-not-contain-no-folders.png`), refused no empty value and
+  matched a file with it (`81-contents-empty-*.png`). 8.1's fourth, custom
+  icon, is left out: an entry's `_icon` is how every special folder is
+  drawn, so "custom" has no meaning. "Is within N of" was measured on 8.1
+  with three folders modified 11/24/26, searched on the desktop: 1 day of
+  11/23 and 11/25 found them, of 11/22 and 11/26 did not; 1 week of 12/2
+  found them (8 days after) and of 11/16 did not (8 days before); 2 weeks
+  of 12/9 found them, of 12/10 and 11/9 did not; 1 month of 12/26 and 10/24
+  found them, of 12/27 and 10/23 did not; 2 months of 9/23 and 6 months of
+  5/22 found them (62 and 186 days), of 9/22 and 5/21 did not
+  (`81-within-*.png`). The other spans follow the same rule. Find refuses, with 8.1's
+  caution alert and words, an empty name ("Please enter a name before
+  searching."), and kind is folder with a size or a lock row ("You have
+  asked to search for items which are folders, but also specified a file
+  size. …", "… a lock status. Only files can be locked. …";
+  `classicyFindCriteriaProblem`).
+- **What is searched** (`searchClassicyFileSystem(fs, { location, criteria,
+  signal, timeZoneOffsetMinutes, onProgress?, memory? })`, async, abortable,
+  yielding every 250 items; `onProgress(n)` counts the items found so far):
+  it checks every row that needs no read first, then reads a size or
+  contents only for the items that passed them, at most four reads at once
+  across the session, under `signal`; a name search over files behind URLs
+  makes no request at all. Results carry a `size` only when a size row read
+  it. The live shared tree of the desktop's `fileSystemStorageKey`
+  (`useClassicyFileSystem()`), under the disks (and the Trash, its items
+  under the disk they came from, `_trashedFrom`), the Desktop Folder, or
+  one disk. An invisible item is never found unless a visibility row asks
+  for it (8.1 found Desktop DB only that way), but the search looks inside
+  invisible folders (8.1 found an item in the Trash). Classicy's Desktop
+  Folder is invisible only to keep it out of Finder windows; it counts as
+  visible, as the Mac's is. Disks themselves are never results.
+- **Items Found** (`FindFile.app_results`, no title-bar icon): one window,
+  reused by each search (results replace the last; "No items were found."
+  is a note alert and leaves the last results as they were; a search that
+  fails is logged and told in a stop alert, "The search could not be
+  completed because an unexpected error occurred.", HIG7 pp.196 and 310).
+  The list (Name, Size, Kind, Last Modified; sorted by name, the first item
+  selected, its name highlighted as the Finder's list view does, the list
+  holding the keyboard) over the path pane, the selected item under its
+  disk and folders, indented, with icons (double-click one to open it; an
+  item in the Trash sits under its disk's Trash, "Macintosh HD › Trash ›
+  item", as on 8.1); then "Found N Items" ("Found 1 Item"). The list draws
+  only the rows in view (`ClassicyTable`'s `windowed`), reads a file's size
+  as its row is drawn (all of them when sorted by size), and draws nothing
+  again for a keystroke in the Find window or a write elsewhere in the tree
+  (it is memoized; a row whose item draws the same keeps its object): in
+  jsdom, 2,000 results opened in 0.8 s instead of 3.1 s, with 60 rows drawn
+  instead of 2,000, a keystroke cost 6 ms instead of 580 and an unrelated
+  write 22 ms instead of 620. Last Modified shows Classicy's clock, as the
+  date rows compare. The View menu sorts by Name, Size, Kind or Date and
+  follows a header click, which drops the selection (8.1); the Label menu
+  sets the selected file's label (not for a read-only, system or derived
+  item). Results follow the live tree: an item that has gone leaves the
+  list, and each row is drawn from the item now at its path. Closing Items
+  Found leaves the Find window and ends its size reads; closing the last
+  window quits Find File, as 8.1 did; a reload closes an Items Found window
+  saved open (its results were the session's).
+- **Opening and revealing**: Open Item (**⌥O**, double-click, Return) opens a
+  result with `openClassicyFileSystemPath`, the Finder's routing under the
+  trust of the dispatch (a document is recorded under Recent Documents
+  exactly as a Finder open is; a folder comes to the front in its Finder
+  window). Open Enclosing Folder (**⌥E**) uses
+  `revealClassicyFileSystemPath(fs, path, dispatch)` →
+  `"revealed" | "invisible" | "missing"`: the Finder comes to the front with
+  the item selected in its folder's window, or on the desktop for an item in
+  the Desktop Folder (`ClassicyAppFinderRevealItem`, §2). A reveal is spent
+  once shown: the window sends `ClassicyAppFinderRevealDone { seq }`, and
+  closing the folder's window forgets it too, so the folder opened again by
+  hand selects nothing. An invisible item,
+  or one inside an invisible folder (the Trash included), is refused with
+  8.1's alert, "Unable to open enclosing folder for “name” because it is
+  invisible (or is inside an invisible folder)."
+- **Menus**, on both windows: File (About, Find… ⌥F, Close Window ⌥W, More
+  Choices ⌥M, Fewer Choices ⌥R, Open Item ⌥O, Open Enclosing Folder ⌥E,
+  Quit ⌥Q: 8.1's ⌘ keys on Option, the browser keeping ⌘), Edit (the
+  standard text Edit menu), View, Label. 8.1's Print Item, Get Info,
+  Sharing… and Preferences (list font, "full descriptions") are left out:
+  Classicy has no printing, Get Info or file sharing, and the list draws in
+  the theme's font.
+
+**Search sources** (`registerClassicyFindSource`,
+`ClassicyFindSources.ts`) make a host's own content findable, after
+Sherlock's Search Internet (Mac OS 8.5: "Words", a list of sites each with an
+On box, Search). With one or more registered, Find File gains tabs, Find File
+and Search Internet (8.5's names; without any, it is 8.1's window, no tabs).
+A host whose content is not on the Internet names them in its own words:
+
+```ts
+import { registerClassicyFindSource, dispatch } from '@classicy/classicy'
+
+registerClassicyFindSource({
+    id: 'my-archive',              // registering an id again replaces it in place
+    name: 'The Archive',           // the channel list and the results' Site column
+    icon: archiveIcon,             // optional
+    search: async (words, { signal }) => {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(words)}`, { signal })
+        const hits = await res.json()
+        return hits.map((hit) => ({
+            name: hit.title,           // required
+            kind: 'broadcast',         // required: the Kind column
+            icon: hit.thumb,           // optional
+            open: () => dispatch({ type: 'ClassicyDesktopOpenUrl', url: hit.url, disposition: 'browser-new' }),
+        }))
+    },
+    timeoutMs: 15_000,             // optional: give up after 15 s (default 30 s)
+}, {
+    // optional: in place of Sherlock's "Search Internet", "Search Sites", "Site"
+    labels: { tab: 'Search Archive', sites: 'Collections', site: 'Collection' },
+})
+```
+
+- `search(query, { signal })` gets the words typed and returns a promise of
+  results; each source switched on is asked at once. `signal` aborts when a
+  new search starts (Return in the Words field while one runs; a search on
+  the Find File tab too), on Stop, when Find File quits, or when the source
+  has not settled within its `timeoutMs` (default
+  `CLASSICY_FIND_SOURCE_TIMEOUT_MS`, 30 s: Classicy's bound, Sherlock's own
+  was not observed): stop work and settle. Whatever a source answers after
+  its signal aborted is ignored; a source given up is logged at `warn`
+  (outcome `timedOut`). While the sources search, the Find File tab stays
+  usable (each tab dims only for its own search).
+- Labels: `registerClassicyFindSource(source, { labels })` names the tab,
+  the list of sources and the results' site column (`tab`, `sites`, `site`;
+  each a single line of 1 to 64 characters, else ignored with a `warn`);
+  the first source registered with labels names them, a label left out
+  keeping Sherlock's word; registering a source again replaces its labels
+  too (without `labels`, it has none). `getClassicyFindSourceLabels()` /
+  `useClassicyFindSourceLabels()` read them; `CLASSICY_FIND_SOURCE_LABELS`
+  holds Sherlock's.
+- Isolation: a source that throws, rejects or resolves with no array gives
+  no results and is logged, `classicyLog("error", "ClassicyFindFile",
+  'Search source "<id>" failed', { source, error })`; the others are shown.
+  Results without a string `name` and `kind` and an `open` function are
+  dropped with a `warn`. An aborted search logs nothing.
+- Results list each source's in registration order (its own order kept),
+  under Name, Kind and Site, then sorted by the list; the path pane shows
+  the site, then the result. Open Item calls `open()` through
+  `openClassicyFindSourceResult` (a throw, or a returned promise that
+  rejects, is logged at `error`); Open Enclosing Folder is dimmed for them.
+- `unregisterClassicyFindSource(id)`, `listClassicyFindSources()`,
+  `subscribeClassicyFindSources(listener)` and `useClassicyFindSources()`
+  read and follow the registry; `searchClassicyFindSources(query, {
+  sourceIds?, signal, onResults? })` runs them as Find File does.
+- **Both packages show the channels.** System 7.5 had Find File but no
+  Sherlock; System 7 shows them anyway (in its own tab look), so a host's
+  content stays findable whichever package is drawn. A host without sources
+  sees System 7.5's own Find File, which is 8.1's (observed on 7.5.3).
+- Privacy: the words typed (name, text rows, Words) never reach analytics
+  (`ClassicyInput`'s `analyticsPrivate`), nor do the location pop-up's
+  choices (`ClassicyPopUpMenu`'s `analyticsPrivate`); Find File's window
+  titles are fixed. Opening or revealing a result sends the opened window's
+  title, as a Finder double-click does (the repo-wide trade-off, CLAUDE.md
+  "Analytics").
+
 ### Logging & diagnostics
 
 All of Classicy's internal diagnostics flow through one pipeline that hosts
@@ -6150,7 +8557,11 @@ File-system entries with `_type: "shortcut"` carry `_url` plus `_openIn`, a
 Programmatic navigation dispatches
 `{ type: 'ClassicyDesktopOpenUrl', url: string, disposition?: ClassicyShortcutDisposition }`.
 Invalid/non-http URLs raise the desktop error dialog; browser dispositions
-are executed exactly once by the auto-mounted `ClassicyOpenUrlController`.
+are executed exactly once by the auto-mounted `ClassicyOpenUrlController`,
+in a task of its own after React's commit (Firefox's `window.open` runs the
+page's queued tasks before it returns, which inside the commit re-entered
+React: "Should not already be working."; found by story 0227-815), still
+within the click's user activation.
 Note the action is on the guarded `ClassicyDesktop*` floor — it can never be
 dispatched untrusted (stack scripts cannot navigate the page), so dispatch it
 trusted from your own code. `readShortcutDisposition(value)` normalizes
@@ -6162,7 +8573,7 @@ untrusted disposition strings.
 
 1. **Always select** when reading the store: `useAppManager(s => s.System.Manager.Applications.apps[id])`. The app slice is `Applications`, not `App`.
 2. **Never mutate app/file-system state directly.** Apps change state only by dispatching actions handled by their registered handler; file system changes only via `fs.writeFile`/`mkDir`/`rmDir`/`setMetadata`.
-3. **Module-scope registration, render-time reads**: `registerClassicyIcons` (and the other `registerClassicy*` asset registrars, §5), `registerApp`, `registerClassicyFileSystemAdapter`, and HyperCard registrations must run before first render (top-level of an entry module). Registering is module scope; reading an asset is not: use `useClassicyAsset`/`resolveClassicyAsset`, never a module-scope capture of an icon or art URL.
+3. **Module-scope registration, render-time reads**: `registerClassicyIcons` (and the other `registerClassicy*` asset registrars, §5), `registerApp`, `registerClassicyFileSystemAdapter`, `registerClassicyStateAdapter`, and HyperCard registrations must run before first render (top-level of an entry module). Registering is module scope; reading an asset is not: use `useClassicyAsset`/`resolveClassicyAsset`, never a module-scope capture of an icon or art URL.
 4. **App state schemas are loose and optional**: `z.looseObject` with `.optional()` top-level fields, or the kernel's own writes will "fail" your schema in dev warnings.
 5. **Plugin prefix routing is insertion-order first-match**, not longest-match. Register more specific prefixes before general ones, and pick prefixes that don't collide with the built-in `ClassicyWindow*`/`ClassicyDesktop*`/`ClassicyApp*` families except intentionally under `ClassicyApp<YourApp>*`.
 6. **Guarded actions can never be scripted**: `ClassicyDesktop*`, `ClassicyWindow*`, `ClassicyAppFinderEmptyTrash`, `ClassicyAppHCEditSetScript`. Allowlisting them is a silent no-op by design.

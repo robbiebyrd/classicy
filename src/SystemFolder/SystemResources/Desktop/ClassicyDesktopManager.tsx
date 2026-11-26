@@ -32,6 +32,10 @@ import {
 	CLASSICY_THEME_FONT_SIZE_MIN,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import {
+	classicyThemeMetricPath,
+	updateClassicyMeasurementPin,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementPins";
+import {
 	isValidThemeMetricFamily,
 	setThemeMetric,
 	setThemeMetricFamily,
@@ -62,6 +66,7 @@ import {
 	hasModuleOrder,
 	hasMouseEvent,
 	hasPackageId,
+	hasShowName,
 	hasSmartScrolling,
 	hasStripPosition,
 	hasStripWidth,
@@ -83,6 +88,7 @@ import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/Bal
 import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import type { ClassicyStoreRecentItems } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
@@ -118,7 +124,12 @@ export interface ClassicyStoreControlStrip {
 export type ClassicyControlStripEdge = "left" | "right";
 
 /** The Special menu's confirmation alerts (see `systemDialog`). */
-export type ClassicyDesktopSystemDialog = "emptyTrash" | "resetPram";
+export type ClassicyDesktopSystemDialog =
+	| "emptyTrash"
+	| "resetPram"
+	/** A desktop state adapter's choice: use the account's copy or keep this
+	 * desktop (ClassicyStateSync.internal.ts). */
+	| "syncChoice";
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
@@ -170,6 +181,16 @@ export interface ClassicyStoreSystemDesktopManager
 		active: boolean;
 	};
 	disableBalloonHelp: boolean;
+	/**
+	 * Whether the Application menu's title shows the front application's name
+	 * beside its icon (Mac OS 8.5: TN1142's Menu Manager, "It is now possible
+	 * to remove the current application's name from the application menu"),
+	 * set by dragging the title's grip (`ClassicyDesktopSetAppMenuName`) and
+	 * kept for every application. Undefined (state built by hand, or saved
+	 * before it existed) is shown. A package that draws the title as its icon
+	 * alone (System 7) draws it so either way.
+	 */
+	appMenuShowsName?: boolean;
 	/** The Control Strip's persisted arrangement. Optional for state built
 	 * by hand; the defaults always carry it. */
 	controlStrip?: ClassicyStoreControlStrip;
@@ -210,6 +231,10 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Bumped on each request so the controller's effect re-fires even for a
 	 *  repeated identical request. */
 	openUrlRequestId?: number;
+	/** Recent Items (Apple Menu Options): the applications and documents
+	 *  used most recently, and the panel's settings. Persisted. Optional for
+	 *  state built by hand; the defaults always carry it. */
+	recentItems?: ClassicyStoreRecentItems;
 }
 
 /** The default Control Strip arrangement: shown, nothing hidden or reordered. */
@@ -289,7 +314,10 @@ export const classicyDesktopEventHandler = (
 				(action.e.target as Record<string, unknown>).id === "classicyDesktop"
 			) {
 				markAppFocused(ds, "Finder.app");
-				ds.System.Manager.Desktop.selectedIcons = [];
+				// A Shift-press keeps the selection: the rectangle it starts
+				// toggles icons against it.
+				if (action.keepSelection !== true)
+					ds.System.Manager.Desktop.selectedIcons = [];
 				ds.System.Manager.Desktop.selectBox.active = true;
 				ds.System.Manager.Desktop.selectBox.start = [
 					action.e.clientX,
@@ -460,11 +488,23 @@ export const classicyDesktopEventHandler = (
 		// bounds), creating a declared knob a theme does not carry yet.
 		case "ClassicyDesktopChangeMetric": {
 			const appearance = ds.System.Manager.Appearance;
+			// An edit to the theme's own package default while another package
+			// draws it is recorded (`updateClassicyMeasurementPin`, story
+			// 0235-xgi), so it draws and persists as the theme's own; the record
+			// changing makes it an edit, which forks a built-in.
 			if (hasThemeMetricChange(action)) {
 				const target = action;
-				editActiveClassicyTheme(appearance, (theme) =>
-					setThemeMetric(theme, target, target.value),
-				);
+				const path = classicyThemeMetricPath(target.metricKey);
+				editActiveClassicyTheme(appearance, (theme) => {
+					setThemeMetric(theme, target, target.value);
+					if (path)
+						updateClassicyMeasurementPin(
+							theme,
+							path.family,
+							path.key,
+							appearance.packageId,
+						);
+				});
 				break;
 			}
 			if (!hasThemeMetricFamilyChange(action)) break;
@@ -488,6 +528,13 @@ export const classicyDesktopEventHandler = (
 			let written = false;
 			editActiveClassicyTheme(appearance, (theme) => {
 				written = setThemeMetricFamily(theme, target, target.value, knobs);
+				if (written)
+					updateClassicyMeasurementPin(
+						theme,
+						target.family,
+						target.key,
+						appearance.packageId,
+					);
 			});
 			if (!written) {
 				// Only a family carried as something other than an object
@@ -669,6 +716,11 @@ export const classicyDesktopEventHandler = (
 			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
 			break;
 		}
+		case "ClassicyDesktopSetAppMenuName": {
+			if (!hasShowName(action)) break;
+			ds.System.Manager.Desktop.appMenuShowsName = action.showName;
+			break;
+		}
 		case "ClassicyDesktopControlStripSetVisible": {
 			if (!hasVisible(action)) break;
 			controlStripState(ds).visible = action.visible;
@@ -729,7 +781,9 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopShowSystemDialog": {
 			// Unknown values close the dialog rather than open a blank one.
 			ds.System.Manager.Desktop.systemDialog =
-				action.dialog === "emptyTrash" || action.dialog === "resetPram"
+				action.dialog === "emptyTrash" ||
+				action.dialog === "resetPram" ||
+				action.dialog === "syncChoice"
 					? action.dialog
 					: null;
 			break;

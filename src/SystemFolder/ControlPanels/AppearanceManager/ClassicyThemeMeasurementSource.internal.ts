@@ -39,6 +39,78 @@ export const getClassicyPackageMeasurements = (
 	packageId: string | undefined,
 ): unknown => lookup(packageId);
 
+// The measurements of the built-in theme a registered package completes a
+// foreign theme from, by package id and the foreign theme's `assetVariant`:
+// the package's built-in theme naming that variant, else the one its
+// `ClassicyAppearancePackage.foreignThemeDefaults` names, else its defaults;
+// set by the registry too (story 0235-xgi).
+
+/** A registered package's foreign-theme reference measurements for a theme
+ * naming `assetVariant` (or none), or `undefined` for an unregistered id. */
+export type ClassicyForeignPackageMeasurementsLookup = (
+	packageId: string,
+	assetVariant?: string,
+) => unknown;
+
+let foreignMeasurementsLookup: ClassicyForeignPackageMeasurementsLookup = () =>
+	undefined;
+
+/**
+ * Sets the foreign-theme reference lookup. Called once, by
+ * ClassicyAppearancePackageRegistry.
+ * @internal
+ */
+export const setClassicyForeignPackageMeasurementsLookup = (
+	next: ClassicyForeignPackageMeasurementsLookup,
+): void => {
+	foreignMeasurementsLookup = next;
+};
+
+/**
+ * The measurements of the theme `packageId` completes a foreign theme naming
+ * `assetVariant` (or none) from, or `undefined` while that package is not
+ * registered.
+ * @internal
+ */
+export const getClassicyForeignPackageMeasurements = (
+	packageId: string,
+	assetVariant?: string,
+): unknown => foreignMeasurementsLookup(packageId, assetVariant);
+
+// The package that draws for a stored `Appearance.packageId`
+// (`classicyDrawnThemeMeasurements`, story 0235-xgi): resolved as the
+// desktop resolves it (`getRegisteredClassicyAppearancePackageOrDefault`),
+// set by the registry too, for the same reason.
+
+/** The id of the package that draws for `packageId`: that package when
+ * registered, else the registered default package, else the first
+ * registered; `undefined` while no package is registered. */
+export type ClassicyDrawnPackageLookup = (
+	packageId: string | undefined,
+) => string | undefined;
+
+let drawnPackageLookup: ClassicyDrawnPackageLookup = () => undefined;
+
+/**
+ * Sets the drawn package lookup. Called once, by
+ * ClassicyAppearancePackageRegistry.
+ * @internal
+ */
+export const setClassicyDrawnPackageLookup = (
+	next: ClassicyDrawnPackageLookup,
+): void => {
+	drawnPackageLookup = next;
+};
+
+/**
+ * The id of the registered package that draws for `packageId`, or
+ * `undefined` while no package is registered.
+ * @internal
+ */
+export const getClassicyDrawnPackageId = (
+	packageId: string | undefined,
+): string | undefined => drawnPackageLookup(packageId);
+
 // The same for a package's `defaults.color.families`
 // (`classicyThemeColorFamilyDefaults`), set by the registry too. Unlike the
 // measurements' lookup it never falls back to another package: a package's

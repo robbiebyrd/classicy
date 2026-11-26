@@ -57,6 +57,26 @@ export const classicyPackDefaultAlert = (
 };
 
 /**
+ * The sound-manager action that plays a sound at the alert volume (system
+ * volume × `Appearance.alertVolume`), silent while sound is muted: `true`,
+ * the user's alert sound; a string, that sprite of the loaded packs. A
+ * notification's sound plays this way, as System 7.5's Notification Manager
+ * set its sound channel to the alert volume before playing (`NotificationMgr.c`
+ * change `<SM5>`).
+ */
+export const classicyAlertVolumeSoundAction = (
+	sound: true | string,
+):
+	| { type: "ClassicyAlertSound" }
+	| {
+			type: "ClassicySoundPlayError";
+			sound: string;
+	  } =>
+	sound === true
+		? { type: "ClassicyAlertSound" }
+		: { type: "ClassicySoundPlayError", sound };
+
+/**
  * The alert to play: the stored choice when `pack` offers it, else the pack's
  * default; undefined when the pack has no alerts. Never rewrites the stored
  * choice. With no pack known (none loaded), the stored choice or Platinum's

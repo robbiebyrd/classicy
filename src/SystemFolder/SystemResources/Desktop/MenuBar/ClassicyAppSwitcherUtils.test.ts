@@ -3,6 +3,7 @@ import { CLASSICY_NO_APP_IDENTITY_OVERRIDES } from "@/Appearance/ClassicyAppIden
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	appSwitcherAppsFrom,
+	appSwitcherEntryMark,
 	CLASSICY_SYSTEM_MENU_APP_PREFIX,
 	withClassicyAppIdentityAboutItem,
 	withClassicyAppIdentityMenuItems,
@@ -29,6 +30,34 @@ describe("appSwitcherAppsFrom", () => {
 			"TV.app": app("TV.app"),
 		});
 		expect(result.map((a) => a.id)).toEqual(["Finder.app", "TV.app"]);
+	});
+
+	it("lists them alphabetically by the name shown, as Mac OS 8.5's Application menu and palette do", () => {
+		const apps = {
+			"Notes.app": app("Notes.app"),
+			"Finder.app": app("Finder.app", { focused: true }),
+			"calc.app": app("calc.app", { name: "calculator" }),
+			"Zed.app": app("Zed.app"),
+		};
+		expect(appSwitcherAppsFrom(apps).map((a) => a.name)).toEqual([
+			"calculator",
+			"Finder",
+			"Notes",
+			"Zed",
+		]);
+		// A package's display name decides the place.
+		expect(
+			appSwitcherAppsFrom(apps, { "Zed.app": { name: "Alpha" } }).map(
+				(a) => a.id,
+			),
+		).toEqual(["Zed.app", "calc.app", "Finder.app", "Notes.app"]);
+		// Equal names keep the ids' order, whatever the store's key order.
+		expect(
+			appSwitcherAppsFrom({
+				"b.app": app("b.app", { name: "Same" }),
+				"a.app": app("a.app", { name: "Same" }),
+			}).map((a) => a.id),
+		).toEqual(["a.app", "b.app"]);
 	});
 
 	it("excludes closed, unfocused apps", () => {
@@ -83,6 +112,102 @@ describe("appSwitcherAppsFrom — display identity", () => {
 			{ "B.app": { icon: "/icons/bee.png" } },
 		);
 		expect(entry).toMatchObject({ name: "B", icon: "/icons/bee.png" });
+	});
+});
+
+// Story 0225-ci7: the Notification Manager's ◆ (Inside Macintosh:
+// Processes, p. 5-4), carried on the entries so any list of the same apps
+// can draw it.
+describe("appSwitcherAppsFrom — notification marks", () => {
+	it("sets notified on each app the set names, and only those", () => {
+		const result = appSwitcherAppsFrom(
+			{ "A.app": app("A.app"), "B.app": app("B.app") },
+			CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+			{ notifiedAppIds: new Set(["B.app", "Closed.app"]) },
+		);
+		expect(result.map((a) => [a.id, a.notified])).toEqual([
+			["A.app", undefined],
+			["B.app", true],
+		]);
+	});
+});
+
+// Stories 0233-c79 and 0225-ci7 together: one options object carries the
+// front application (an extension's floating window never replaces it) and
+// the notified apps, so the ◆ and the ✓ follow the front app.
+describe("appSwitcherAppsFrom — front application and notification marks", () => {
+	const apps = () => ({
+		"Calc.app": app("Calc.app"),
+		"Mail.app": app("Mail.app"),
+		// The extension holds the focus flag (its window floats).
+		"Guide.app": app("Guide.app", { extension: true, focused: true }),
+	});
+
+	it("focuses only the front app, keeps a floating extension out, and marks the notified", () => {
+		const result = appSwitcherAppsFrom(
+			apps(),
+			CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+			{
+				frontAppId: "Calc.app",
+				notifiedAppIds: new Set(["Mail.app", "Calc.app"]),
+			},
+		);
+		expect(
+			result.map((a) => [a.id, a.focused, a.notified, a.extension]),
+		).toEqual([
+			["Calc.app", true, true, undefined],
+			["Mail.app", false, true, undefined],
+		]);
+		// The front app's row is checked, the background one carries the ◆.
+		expect(
+			result.map((a) => appSwitcherEntryMark(a, a.id === "Calc.app")),
+		).toEqual([{ checked: true }, { checked: false, mark: "diamond" }]);
+	});
+
+	it("lists a front extension (its window publishes menus) as an extension", () => {
+		const result = appSwitcherAppsFrom(
+			apps(),
+			CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+			{ frontAppId: "Guide.app", notifiedAppIds: new Set(["Calc.app"]) },
+		);
+		// `extension` dims Hide and Hide Others for it (HIG7 p.127).
+		expect(result.find((a) => a.id === "Guide.app")).toMatchObject({
+			focused: true,
+			extension: true,
+		});
+		expect(result.find((a) => a.id === "Calc.app")).toMatchObject({
+			focused: false,
+			notified: true,
+		});
+	});
+
+	it("keeps each record's own focus flag with no front app given", () => {
+		const result = appSwitcherAppsFrom(
+			{
+				"Calc.app": app("Calc.app", { focused: true }),
+				"Mail.app": app("Mail.app"),
+			},
+			CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+			{},
+		);
+		expect(result.map((a) => [a.id, a.focused])).toEqual([
+			["Calc.app", true],
+			["Mail.app", undefined],
+		]);
+	});
+});
+
+describe("appSwitcherEntryMark", () => {
+	it("checks the front app, marks a notified background app with ◆, else nothing", () => {
+		expect(appSwitcherEntryMark({ notified: true }, true)).toEqual({
+			checked: true,
+		});
+		expect(appSwitcherEntryMark({ notified: true }, false)).toEqual({
+			checked: false,
+			mark: "diamond",
+		});
+		expect(appSwitcherEntryMark({}, false)).toEqual({ checked: false });
+		expect(appSwitcherEntryMark({}, true)).toEqual({ checked: true });
 	});
 });
 

@@ -107,6 +107,12 @@ interface ClassicyInputProps {
 	 * for any host styling that targets it; removed in the next major version.
 	 */
 	isDefault?: boolean;
+	/**
+	 * Keep the field's text out of analytics: its `selected` event still
+	 * fires, without the value typed or the prefill (Find File's fields hold
+	 * the user's search words). Defaults to `false`.
+	 */
+	analyticsPrivate?: boolean;
 	/** Field fill color (any CSS color). Defaults to the theme's white. */
 	backgroundColor?: string;
 	/** Forwarded to the native `<input>`. */
@@ -147,6 +153,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			disabled = false,
 			labelDisabled,
 			isDefault,
+			analyticsPrivate = false,
 			backgroundColor,
 			onChangeFunc,
 			onEnterFunc,
@@ -161,7 +168,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			id,
 			labelTitle,
 			placeholder,
-			prefillValue,
+			...(analyticsPrivate ? {} : { prefillValue }),
 			disabled,
 			isDefault,
 		};
@@ -247,12 +254,15 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 				read();
 				readNextFrame();
 			};
+			// Not `input`: read while the browser is still inserting, a state
+			// set there renders the field with the value it had before (React
+			// has yet to hear the change), and the text typed over a selection
+			// is lost. The value is read once committed (below) instead.
 			const events = [
 				"select",
 				"selectionchange",
 				"keyup",
 				"click",
-				"input",
 				"scroll",
 				"focus",
 				"blur",
@@ -294,7 +304,12 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 		const handleOnChangeFunc: ChangeEventHandler<HTMLInputElement> = (e) => {
 			setValue(e.target.value);
 			appearance.emit("change", { value: e.target.value });
-			track("selected", { ...analyticsArgs, selected: e.target.value });
+			track(
+				"selected",
+				analyticsPrivate
+					? analyticsArgs
+					: { ...analyticsArgs, selected: e.target.value },
+			);
 			if (onChangeFunc) onChangeFunc(e);
 		};
 

@@ -7,10 +7,14 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { ClassicyControlPanels } from "@/SystemFolder/ControlPanels/ClassicyControlPanels";
 import { AppleGuide } from "@/SystemFolder/Extensions/AppleGuide/AppleGuide";
+import { ClassicyApplicationSwitcher } from "@/SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcher";
 import { ClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import { Finder } from "@/SystemFolder/Finder/Finder";
+import { classicyFinderFindMenuItem } from "@/SystemFolder/FindFile/ClassicyFinderFindMenuItem.internal";
+import { FindFile } from "@/SystemFolder/FindFile/FindFile";
 import { HyperCard } from "@/SystemFolder/HyperCard/HyperCard";
 import { PDFViewer } from "@/SystemFolder/PDFViewer/PDFViewer";
 import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
@@ -25,7 +29,15 @@ import {
 	ClassicyContextualMenuProvider,
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import {
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
+import {
+	ClassicyFloatingLayer,
+	ClassicyFloatingLayerProvider,
+} from "@/SystemFolder/SystemResources/Window/ClassicyFloatingLayer";
 // Static, never lazy: WebViewer.tsx registers the "ClassicyAppWebViewer" plugin
 // handler as a module-graph side effect (it imports ./WebViewerContext), not a
 // mount side effect. A static import means the handler exists even when
@@ -69,17 +81,25 @@ import {
 	useClassicyAppearanceLayout,
 } from "@/Appearance/useClassicyAppearanceLayout";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import {
+	resetClassicyPersistedState,
+	resolveClassicyStateChoice,
+	useClassicyStateMirrored,
+	useClassicyStateSyncGate,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 import {
 	ClassicyControlStrip,
 	type ClassicyControlStripProps,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
+import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { markClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import {
 	type ArrowDirection,
-	nearestIconInDirection,
+	iconForArrowKey,
+	iconForTabKey,
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import {
@@ -93,7 +113,10 @@ import {
 	classicySpecialMenuItems,
 	SYSTEM_DIALOG_WINDOW_IDS,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
+import { useClassicyThemeLinkImport } from "@/SystemFolder/SystemResources/Desktop/ClassicyThemeLinkImport.internal";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import { useClassicyClientRender } from "@/SystemFolder/SystemResources/Desktop/useClassicyClientRender.internal";
+import { useClassicyDesktopMarquee } from "@/SystemFolder/SystemResources/Desktop/useClassicyDesktopMarquee.internal";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	type ClassicyFileDropDestination,
@@ -105,15 +128,18 @@ import {
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
-import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import {
 	CLASSICY_TRASH_PATH,
 	emptyClassicyTrash,
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { moveClassicyFocusOutOf } from "@/SystemFolder/SystemResources/Keyboard/ClassicyTabbable.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyNotificationController } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationController.internal";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
+import { withClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/ClassicyLaunchZoom";
+import type { ClassicyZoomOrigin } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 import "../../../index.css";
 
@@ -147,7 +173,12 @@ export interface ClassicyDesktopProps {
 	 * the built-in splash — it owns its own visuals, timing, and (if desired)
 	 * session-once gating via the exported
 	 * `hasShownStartupScreenThisSession`/`markStartupScreenShownThisSession`
-	 * helpers. Still subject to the `startupScreen` gate.
+	 * helpers. Still subject to the `startupScreen` gate. Call
+	 * `useClassicyBootScreenActive(visible)` from it, so the desktop holds
+	 * what must not open unseen behind it (a theme link's alerts, the
+	 * Notification Manager's sounds and alerts) until it ends. Pass its real
+	 * visibility: one that stays mounted, hidden, while passing `true` holds
+	 * them for the whole session.
 	 */
 	bootScreen?: ReactNode;
 	/**
@@ -158,6 +189,15 @@ export interface ClassicyDesktopProps {
 	 * or `false` to hide it.
 	 */
 	controlStrip?: boolean | ClassicyControlStripProps;
+	/**
+	 * Open the theme link in the page's address (`#classicy-theme=…`, which
+	 * the Appearance Manager's Copy Theme Link makes), and offer Copy Theme
+	 * Link. Off by default: the host decides whether its URLs import themes.
+	 * A link is validated as a theme file is, the theme is added only when the
+	 * user agrees in an alert (and in a second one before a remote desktop
+	 * picture is used), and the link is then removed from the address.
+	 */
+	themeLinks?: boolean;
 	/** Extra class names, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
 	className?: string;
 	/** Inline style, merged onto the `#classicyDesktop` surface (a style is merged after the theme custom properties) after the component's own. */
@@ -173,19 +213,18 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip = true,
+	themeLinks = false,
 	className,
 	style,
 }) => {
+	const themeLinkAlert = useClassicyThemeLinkImport(themeLinks);
 	const macosIcon = useClassicyAsset("icons", "system.macos") ?? "";
 	const [showAbout, setShowAbout] = useState(false);
 
-	const [selectBoxStart, setSelectBoxStart] = useState([0, 0]);
-	const [selectBoxSize, setSelectBoxSize] = useState([0, 0]);
-	const [selectBox, setSelectBox] = useState(false);
-
 	const { showContextMenu } = useClassicyContextualMenu();
-	const rafIdRef = useRef<number | null>(null);
 	const desktopRef = useRef<HTMLDivElement>(null);
+	// The selection rectangle a drag from the bare desktop draws.
+	const desktopMarquee = useClassicyDesktopMarquee(desktopRef);
 	// The elements a package lays a pattern in from a fixed origin
 	// (`layout.patternOrigin.elements`): those outside every window.
 	useClassicyPatternOriginElements(desktopRef);
@@ -240,9 +279,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const systemDialog = useAppManager(
 		(s) => s.System.Manager.Desktop.systemDialog ?? null,
 	);
-	const focusedAppId = useAppManager(
-		(s) => s.System.Manager.Applications.focusedAppId,
-	);
+	const focusedAppId = useFrontAppId();
 	const finderHasOpenWindow = useAppManager((s) =>
 		listAppWindows(s.System.Manager.Applications.apps["Finder.app"]).some(
 			(w) => !w.closed,
@@ -276,12 +313,18 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			desktopEventDispatch(action);
 	}, [disabledAppsKey, desktopEventDispatch]);
 
-	// Special ▸ Reset PRAM: forget every saved setting and start over.
+	// Special ▸ Reset PRAM: forget every saved setting and start over (a
+	// desktop state adapter's copy too: ClassicyStateSync.internal.ts). The
+	// wristwatch shows while the adapters take the reset (HIG7 p.270).
+	const stateMirrored = useClassicyStateMirrored();
+	const setCursor = useClassicyCursor();
 	const resetPram = useCallback(() => {
-		localStorage.removeItem("classicyDesktopState");
-		resetStartupScreenSession();
-		window.location.reload();
-	}, []);
+		setCursor("watch");
+		resetClassicyPersistedState(() => {
+			resetStartupScreenSession();
+			window.location.reload();
+		});
+	}, [setCursor]);
 
 	const closeSystemDialog = useCallback(() => {
 		desktopEventDispatch({
@@ -369,15 +412,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		}
 	}, [desktopEventDispatch, availableThemes, appearancePackages]);
 
-	// Cancel any pending RAF on unmount to prevent state updates after teardown
-	useEffect(() => {
-		return () => {
-			if (rafIdRef.current !== null) {
-				cancelAnimationFrame(rafIdRef.current);
-			}
-		};
-	}, []);
-
 	// Cancel any pending typeahead timer on unmount
 	useEffect(() => {
 		return () => {
@@ -414,18 +448,45 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				// Delete, or ⌃⌫ (handled here so the menu bar doesn't run it twice).
 				if (trashSelectedDesktopItems()) e.preventDefault();
 			} else if (arrowKeys.includes(e.key)) {
+				// Mac OS 8.1's rules, with nothing selected too
+				// (`iconForArrowKey`).
 				e.preventDefault();
-				const currentId = selectedIcons[0];
-				if (!currentId) return;
-				const nextId = nearestIconInDirection(
+				const nextId = iconForArrowKey(
 					desktopIcons,
-					currentId,
+					selectedIcons,
 					e.key as ArrowDirection,
 				);
 				if (nextId) {
 					selectIconFromKeyboard(nextId);
 					document.getElementById(`${nextId}.shortcut`)?.focus();
 				}
+			} else if (
+				e.key === "Tab" &&
+				!e.altKey &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				desktopIcons.length > 0
+			) {
+				// Tab and Shift-Tab select by name, as the 8.1 Finder's did
+				// (`iconForTabKey`); past the last (first) name the keyboard
+				// leaves the icons for the page's next (previous) stop, where
+				// 8.1 wrapped (no keyboard trap, WCAG 2.2 SC 2.1.2).
+				const nextId = iconForTabKey(typeaheadIcons, selectedIcons, e.shiftKey);
+				if (nextId) {
+					e.preventDefault();
+					selectIconFromKeyboard(nextId);
+					document.getElementById(`${nextId}.shortcut`)?.focus();
+				} else if (
+					moveClassicyFocusOutOf(
+						Array.from(
+							desktopRef.current?.querySelectorAll<HTMLElement>(
+								":scope > .classicyDesktopIcon",
+							) ?? [],
+						),
+						e.shiftKey,
+					)
+				)
+					e.preventDefault();
 			} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 				e.preventDefault();
 				if (typePrefixTimerRef.current !== null) {
@@ -455,102 +516,30 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const startSelectBox = (e: MouseEvent<HTMLDivElement>) => {
 		if ("id" in e.target && e.target.id === "classicyDesktop") {
 			if (e.button > 1) {
+				// A right-press is the contextual-menu click, as a
+				// Control-press is (HIGOS8 p.93): it deselects too.
+				if (e.button === 2) clearActives(e);
 				toggleDesktopContextMenu(e);
 			} else {
 				desktopRef.current?.focus();
+				// The rectangle first, so Escape can restore the selection
+				// the press clears; Shift keeps it. A Control-press is the
+				// contextual-menu click (8.1): no rectangle, the menu.
+				const controlPress = isClassicyControlPress(e);
+				if (e.button === 0 && !controlPress) desktopMarquee.start(e);
 				clearActives(e);
-				selectionIconElementsRef.current =
-					document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
-				setSelectBox(true);
-				setSelectBoxStart([e.clientX, e.clientY]);
-				setSelectBoxSize([0, 0]);
+				if (controlPress) openClassicyControlPressContextMenu(e.nativeEvent);
 			}
 		}
 	};
-
-	const getNormalizedSelectRect = (
-		start: number[],
-		size: number[],
-	): DOMRect => {
-		const x = size[0] < 0 ? start[0] + size[0] : start[0];
-		const y = size[1] < 0 ? start[1] + size[1] : start[1];
-		const w = Math.abs(size[0]);
-		const h = Math.abs(size[1]);
-		return new DOMRect(x, y, w, h);
-	};
-
-	const rectsIntersect = (a: DOMRect, b: DOMRect): boolean => {
-		return (
-			a.left < b.right &&
-			a.right > b.left &&
-			a.top < b.bottom &&
-			a.bottom > b.top
-		);
-	};
-
-	// Cache icon NodeList for the duration of a selection drag
-	const selectionIconElementsRef = useRef<NodeListOf<HTMLDivElement> | null>(
-		null,
-	);
-
-	const getIconsInSelectBox = (
-		boxStart: number[],
-		boxSize: number[],
-	): string[] => {
-		const selectRect = getNormalizedSelectRect(boxStart, boxSize);
-		const selectedIds: string[] = [];
-		const iconElements =
-			selectionIconElementsRef.current ??
-			document.querySelectorAll<HTMLDivElement>(".classicyDesktopIcon");
-		iconElements.forEach((el) => {
-			const iconRect = el.getBoundingClientRect();
-			if (rectsIntersect(selectRect, iconRect)) {
-				const iconId = el.id.replace(/\.shortcut$/, "");
-				selectedIds.push(iconId);
-			}
-		});
-		return selectedIds;
-	};
-
-	const resizeSelectBox = (e: MouseEvent<HTMLDivElement>) => {
-		if (!selectBox) return;
-		const x = e.clientX;
-		const y = e.clientY;
-		if (rafIdRef.current !== null) {
-			cancelAnimationFrame(rafIdRef.current);
-		}
-		rafIdRef.current = requestAnimationFrame(() => {
-			const newSize = [x - selectBoxStart[0], y - selectBoxStart[1]];
-			setSelectBoxSize(newSize);
-
-			const selectedIds = getIconsInSelectBox(selectBoxStart, newSize);
-			desktopEventDispatch({
-				type: "ClassicyDesktopIconSelectBox",
-				iconIds: selectedIds,
-			});
-
-			rafIdRef.current = null;
-		});
-	};
-
-	const clearSelectBox = () => {
-		selectionIconElementsRef.current = null;
-		setSelectBoxSize([0, 0]);
-		setSelectBoxStart([0, 0]);
-		setSelectBox(false);
-	};
-
-	// The pointer stream lost mid-selection (the window blurred, a
-	// pointercancel, the page hidden): the rectangle ends where it is, as a
-	// release would end it, keeping the icons it selected.
-	useClassicyPointerStreamLost(selectBox, clearSelectBox);
 
 	const clearActives = (e: MouseEvent<HTMLDivElement>) => {
-		clearSelectedIcons();
+		if (!e.shiftKey) clearSelectedIcons();
 		desktopEventDispatch({
 			type: "ClassicyDesktopFocus",
 			e: e,
 			menuBar: defaultMenuItems,
+			keepSelection: e.shiftKey,
 		});
 	};
 
@@ -584,6 +573,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 							trashSelectedDesktopItems();
 						},
 					},
+					{ id: "spacer" },
+					classicyFinderFindMenuItem("finder", desktopEventDispatch),
 				],
 			},
 			{
@@ -662,16 +653,18 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	// registry: re-read when wallpapers register or the active package changes
 	// (the tree's identity changes with both).
 	const wallpapers = useClassicyAssetTree("wallpapers");
-	// biome-ignore lint/correctness/useExhaustiveDependencies: wallpapers is the registry's change signal for getThemeVars' wallpaper lookup
-	const currentTheme = useMemo(
-		() => getThemeVars(activeTheme),
-		[activeTheme, wallpapers],
-	);
-	const assetVars = useClassicyAssetVars();
 	// The resolved id, not the stored one: an id whose package is not (yet)
 	// registered renders as the default package, else the first registered
 	// one, so the CSS scope and the JS agree.
 	const appearancePackageId = useActiveClassicyAppearancePackage().id;
+	// Drawn by the active package: a theme of another package takes that
+	// package's knobs (story 0235-xgi).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: wallpapers is the registry's change signal for getThemeVars' wallpaper lookup
+	const currentTheme = useMemo(
+		() => getThemeVars(activeTheme, appearancePackageId),
+		[activeTheme, appearancePackageId, wallpapers],
+	);
+	const assetVars = useClassicyAssetVars();
 	const storedPackageId = useAppManager(
 		(s) => s.System.Manager.Appearance.packageId,
 	);
@@ -720,8 +713,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		[currentTheme, layoutVars, assetVars, style],
 	);
 
+	// The icon's zoom origin: a folder's window zooms out of it (the icon
+	// left the source), an application a file starts zooms to the desktop.
 	const openDesktopItem = useCallback(
-		(path: string) => {
+		(path: string, origin?: ClassicyZoomOrigin) => {
 			const entry = getFileSystem().resolve(path);
 			if (!entry) return;
 			if (
@@ -730,11 +725,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			) {
 				desktopEventDispatch({ type: "ClassicyAppFinderOpenFolder", path });
 			} else {
-				desktopEventDispatch({
-					type: "ClassicyAppFinderOpenFile",
-					file: entry,
-					path,
-				});
+				withClassicyLaunchZoom(origin, () =>
+					desktopEventDispatch({
+						type: "ClassicyAppFinderOpenFile",
+						file: entry,
+						path,
+					}),
+				);
 			}
 		},
 		[getFileSystem, desktopEventDispatch],
@@ -766,34 +763,20 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				{ classicyDesktopSplitArrows: smartScrolling === false },
 				className,
 			)}
-			onMouseMove={resizeSelectBox}
 			onContextMenu={toggleDesktopContextMenu}
-			onMouseUp={clearSelectBox}
 			onMouseDown={startSelectBox}
 			onKeyDown={handleKeyDown}
 			{...{ [CLASSICY_DROP_DESKTOP_ATTRIBUTE]: "" }}
 		>
-			{selectBox && (
-				<div
-					className={"classicyDesktopSelect"}
-					style={{
-						left: Math.min(
-							selectBoxStart[0],
-							selectBoxStart[0] + selectBoxSize[0],
-						),
-						top: Math.min(
-							selectBoxStart[1],
-							selectBoxStart[1] + selectBoxSize[1],
-						),
-						width: Math.abs(selectBoxSize[0]),
-						height: Math.abs(selectBoxSize[1]),
-					}}
-				/>
-			)}
+			{/* The one floating layer (extension windows float in it). */}
+			<ClassicyFloatingLayer />
+			{desktopMarquee.marquee}
 			<ClassicyDesktopMenuBar />
 			<Finder />
+			<FindFile />
 			<AppleGuide />
 			<ClassicyScreenSaver />
+			<ClassicyApplicationSwitcher />
 			{!disableSimpleText && <SimpleText />}
 			{!disablePDFViewer && <PDFViewer />}
 			{!disableHyperCard && <HyperCard />}
@@ -802,6 +785,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{!disableWebViewer && <WebViewer />}
 			{!disableCalculator && <Calculator />}
 			<ClassicyOpenUrlController />
+			<ClassicyNotificationController />
 			<ClassicyControlPanels />
 			{controlStrip !== false && (
 				<ClassicyControlStrip
@@ -851,7 +835,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 						alertType={"caution"}
 						label={"Are you sure you want to reset PRAM?"}
 						message={
-							"This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
+							stateMirrored
+								? "This clears all saved settings — windows, icons, appearance — on this computer and on every other computer that shares them, and restarts Classicy. Files on your disks are kept. This action cannot be undone."
+								: "This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
 						}
 						defaultButtonId={"cancel"}
 						buttons={[
@@ -861,6 +847,41 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 								label: "Reset",
 								role: "normal",
 								onClick: resetPram,
+							},
+						]}
+						onClose={closeSystemDialog}
+					/>
+				</div>
+			) : null}
+			{systemDialog === "syncChoice" ? (
+				// A desktop state adapter answered with the account's saved
+				// desktop while this computer holds work it never took (at boot,
+				// on a retry, after a late registration): the user chooses
+				// (ClassicyStateSync.internal.ts). Either answer loses something,
+				// so neither is the default and no button takes the focus
+				// (HIG7 p.206); copy per HIGOS8 p.61, HIG7 pp.206, 310-311.
+				<div className={"classicyDesktopDialogOverlay"}>
+					<ClassicyAlert
+						id={SYSTEM_DIALOG_WINDOW_IDS.syncChoice}
+						appId={"Finder.app"}
+						alertType={"caution"}
+						label={"Use your saved settings on this computer?"}
+						message={
+							"This computer has changes that were never added to your saved settings. Using the saved settings replaces this computer's, and those changes are lost. Keeping the current settings replaces the saved ones on every computer that shares them."
+						}
+						defaultButtonId={null}
+						buttons={[
+							{
+								id: "keepCurrent",
+								label: "Keep Current",
+								role: "normal",
+								onClick: () => resolveClassicyStateChoice("keep"),
+							},
+							{
+								id: "useSaved",
+								label: "Use Saved",
+								role: "normal",
+								onClick: () => resolveClassicyStateChoice("adopt"),
 							},
 						]}
 						onClose={closeSystemDialog}
@@ -885,6 +906,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 					/>
 				</div>
 			) : null}
+			{themeLinkAlert}
 			{children}
 			<ClassicyBootSequence
 				startupScreen={startupScreen}
@@ -918,6 +940,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
  * which takes `className` and `style`) until a package registers, and mounts
  * none of its children.
  *
+ * A server render draws only an empty `classicyDesktop` shell with the
+ * `className` and `style`, and so does the client's hydration of it; the
+ * desktop draws right after (`docs/AGENT-REFERENCE.md` §1, "Server
+ * rendering").
+ *
  * ```tsx
  * <ClassicyAppManagerProvider>
  *   <ClassicyDesktop controlStrip={{ defaultCollapsed: true }}>
@@ -935,29 +962,44 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip,
+	themeLinks,
 	className,
 	style,
 }) => {
 	// No package, no desktop: nothing below can draw without one.
 	const packages = useClassicyAppearancePackages();
+	// A server render (and the client's hydration of it) draws an empty shell,
+	// the desktop right after (useClassicyClientRender.internal.ts).
+	const clientRender = useClassicyClientRender();
+	// A desktop state adapter's boot reconcile draws the shell too, for at
+	// most its timeout; an adopted state remounts the desktop, as a restart
+	// (ClassicyStateSync.internal.ts).
+	const stateSync = useClassicyStateSyncGate();
+	if (!clientRender || !stateSync.ready)
+		return (
+			<div className={classNames("classicyDesktop", className)} style={style} />
+		);
 	if (packages.length === 0)
 		return <ClassicyNoAppearancePackage className={className} style={style} />;
 	return (
-		<ClassicyCrashScreen>
+		<ClassicyCrashScreen key={stateSync.epoch}>
 			<ClassicyContextualMenuProvider>
-				<ClassicyDesktopInner
-					startupScreen={startupScreen}
-					startupDuration={startupDuration}
-					preBootScreen={preBootScreen}
-					startupLogo={startupLogo}
-					startupWordmark={startupWordmark}
-					bootScreen={bootScreen}
-					controlStrip={controlStrip}
-					className={className}
-					style={style}
-				>
-					{children}
-				</ClassicyDesktopInner>
+				<ClassicyFloatingLayerProvider>
+					<ClassicyDesktopInner
+						startupScreen={startupScreen}
+						startupDuration={startupDuration}
+						preBootScreen={preBootScreen}
+						startupLogo={startupLogo}
+						startupWordmark={startupWordmark}
+						bootScreen={bootScreen}
+						controlStrip={controlStrip}
+						themeLinks={themeLinks}
+						className={className}
+						style={style}
+					>
+						{children}
+					</ClassicyDesktopInner>
+				</ClassicyFloatingLayerProvider>
 			</ClassicyContextualMenuProvider>
 		</ClassicyCrashScreen>
 	);

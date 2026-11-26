@@ -6,6 +6,8 @@ import {
 	APPLE_GUIDE_APP_NAME,
 	isAppleGuideData,
 } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+// Registers the Keyboard Shortcuts topic the Help menu offers.
+import "@/SystemFolder/Extensions/AppleGuide/AppleGuideKeyboardShortcuts";
 import { AppleGuideWindow } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 
@@ -22,6 +24,8 @@ export const AppleGuide: FunctionalComponent = () => {
 	);
 	const normalizedData = rawData ?? {};
 	const data = isAppleGuideData(normalizedData) ? normalizedData : {};
+	// Rendered in opening order and never reordered: the topics stack by recency
+	// in the shared floating layer (`ClassicyWindow`), so a raise moves no node.
 	const openTopics = data.openTopics ?? [];
 
 	return (

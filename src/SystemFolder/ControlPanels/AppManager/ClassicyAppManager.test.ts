@@ -32,7 +32,11 @@ import platinumJson from "../../../../packages/appearance/platinum/src/platinum.
 import "@/SystemFolder/Finder/FinderContext";
 import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+import { APPLE_GUIDE_APP_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+import { APPLICATION_SWITCHER_APP_ID } from "@/SystemFolder/Extensions/ApplicationSwitcher/ClassicyApplicationSwitcherContext";
+import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { markClassicyWindowMounted } from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
 
 function makeStore(
 	overrides: Partial<{
@@ -106,6 +110,154 @@ function makeStore(
 		},
 	};
 }
+
+// Re-review M-R1 of story 0231-8c6: `focusApp` (reached by a container
+// click's ClassicyAppActivate, ClassicyAppFocus, ClassicyAppOpen and window
+// succession) never marks an extension focused when it has no document
+// window to restore; it raises its most recent open window through
+// focusWindow (floating when menuless), or does nothing. The front
+// application here is Calculator, its window focused.
+describe("focusApp — every kind of extension", () => {
+	const win = (
+		id: string,
+		extra: Partial<ClassicyStoreSystemAppWindow> = {},
+	): ClassicyStoreSystemAppWindow => ({
+		id,
+		closed: false,
+		focused: false,
+		size: [200, 100],
+		position: [0, 0],
+		minimumSize: [0, 0],
+		zOrder: 10,
+		...extra,
+	});
+	const MENUS = [{ id: "file", title: "File" }];
+	const withFront = (
+		extensionId: string,
+		windows: ClassicyStoreSystemAppWindow[],
+	) => {
+		const ds = makeStore();
+		const apps = ds.System.Manager.Applications.apps;
+		apps["Finder.app"].focused = false;
+		apps["Calculator.app"] = {
+			id: "Calculator.app",
+			name: "Calculator",
+			icon: "",
+			open: true,
+			focused: true,
+			lastFocusedAt: 50,
+			data: {},
+			windows: windowsRecord(win("calc", { focused: true, zOrder: 100 })),
+		};
+		apps[extensionId] = {
+			id: extensionId,
+			name: extensionId.replace(".app", ""),
+			icon: "",
+			open: true,
+			focused: false,
+			extension: true,
+			data: {},
+			windows: windowsRecord(...windows),
+		};
+		ds.System.Manager.Applications.focusedAppId = "Calculator.app";
+		return ds;
+	};
+	const ACTIVATIONS = ["ClassicyAppActivate", "ClassicyAppFocus"] as const;
+	// ClassicyAppOpen needs the app's name and icon (`hasDesktopAppRef`).
+	const run = (ds: ClassicyStore, type: string, id: string) =>
+		classicyDesktopStateEventReducer(ds, {
+			type,
+			app: { id, name: id.replace(".app", ""), icon: "" },
+		});
+	const expectCalculatorKeepsTheFocus = (ds: ClassicyStore, id: string) => {
+		const apps = ds.System.Manager.Applications.apps;
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Calculator.app");
+		expect(apps["Calculator.app"].focused).toBe(true);
+		expect(getAppWindow(apps["Calculator.app"], "calc")?.focused).toBe(true);
+		expect(apps[id].focused).toBeFalsy();
+	};
+
+	for (const type of [...ACTIVATIONS, "ClassicyAppOpen"]) {
+		it(`${type}: an extension with no window (the Screen Saver) changes nothing`, () => {
+			const ds = withFront(SCREEN_SAVER_APP_ID, []);
+			run(ds, type, SCREEN_SAVER_APP_ID);
+			expectCalculatorKeepsTheFocus(ds, SCREEN_SAVER_APP_ID);
+		});
+	}
+
+	for (const type of ACTIVATIONS) {
+		it(`${type}: an extension whose only window is closed changes nothing`, () => {
+			const ds = withFront("Ext.app", [win("doc", { closed: true })]);
+			run(ds, type, "Ext.app");
+			expectCalculatorKeepsTheFocus(ds, "Ext.app");
+			expect(
+				getAppWindow(ds.System.Manager.Applications.apps["Ext.app"], "doc")
+					?.focused,
+			).toBe(false);
+		});
+
+		it(`${type}: an extension with only a menuless utility window (the Application Switcher's palette) raises it, floating`, () => {
+			const ds = withFront(APPLICATION_SWITCHER_APP_ID, [
+				win("applications", { windowType: "utility" }),
+			]);
+			run(ds, type, APPLICATION_SWITCHER_APP_ID);
+			expectCalculatorKeepsTheFocus(ds, APPLICATION_SWITCHER_APP_ID);
+			const palette = getAppWindow(
+				ds.System.Manager.Applications.apps[APPLICATION_SWITCHER_APP_ID],
+				"applications",
+			);
+			expect(palette?.focused).toBe(true);
+			expect(palette?.zOrder).toBeGreaterThan(100);
+		});
+
+		it(`${type}: an extension whose utility window publishes menus becomes the front application with it`, () => {
+			const ds = withFront("Tools.app", [
+				win("palette", { windowType: "utility", menuBar: MENUS }),
+			]);
+			run(ds, type, "Tools.app");
+			const apps = ds.System.Manager.Applications.apps;
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("Tools.app");
+			expect(getAppWindow(apps["Tools.app"], "palette")?.focused).toBe(true);
+			expect(getAppWindow(apps["Calculator.app"], "calc")?.focused).toBe(false);
+			expect(ds.System.Manager.Desktop.appMenu).toEqual(MENUS);
+		});
+
+		it(`${type}: Apple Guide's menuless document window floats over the front application`, () => {
+			const ds = withFront(APPLE_GUIDE_APP_ID, [
+				win("apple_guide_about-balloon-help"),
+			]);
+			run(ds, type, APPLE_GUIDE_APP_ID);
+			expectCalculatorKeepsTheFocus(ds, APPLE_GUIDE_APP_ID);
+			expect(
+				getAppWindow(
+					ds.System.Manager.Applications.apps[APPLE_GUIDE_APP_ID],
+					"apple_guide_about-balloon-help",
+				)?.focused,
+			).toBe(true);
+		});
+
+		it(`${type}: an extension's document window that publishes menus takes the front`, () => {
+			const ds = withFront("Viewer.app", [win("doc", { menuBar: MENUS })]);
+			run(ds, type, "Viewer.app");
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("Viewer.app");
+			expect(
+				getAppWindow(ds.System.Manager.Applications.apps["Viewer.app"], "doc")
+					?.focused,
+			).toBe(true);
+		});
+
+		it(`${type}: an extension's modal (the Notification Manager's alert over its dialog) takes the focus, as a modal never floats`, () => {
+			const ds = withFront("Ext.app", [win("n1-alert-token", { modal: true })]);
+			run(ds, type, "Ext.app");
+			const apps = ds.System.Manager.Applications.apps;
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("Ext.app");
+			expect(getAppWindow(apps["Ext.app"], "n1-alert-token")?.focused).toBe(
+				true,
+			);
+			expect(getAppWindow(apps["Calculator.app"], "calc")?.focused).toBe(false);
+		});
+	}
+});
 
 describe("deFocusApps", () => {
 	it("defocuses the tracked focused app and its windows", () => {
@@ -303,31 +455,36 @@ describe("openApp", () => {
 		);
 	});
 
-	it("sets open=true and reopens windows for an existing app", () => {
+	it("sets open=true and reopens the windows that are mounted", () => {
 		const ds = makeStore();
+		const closedWindow = (id: string) => ({
+			id,
+			closed: true,
+			size: [400, 300] as [number, number],
+			position: [0, 0] as [number, number],
+			minimumSize: [100, 100] as [number, number],
+		});
 		ds.System.Manager.Applications.apps["Notes.app"] = {
 			id: "Notes.app",
 			name: "Notes",
 			icon: "",
 			open: false,
 			focused: false,
-			windows: windowsRecord({
-				id: "main",
-				closed: true,
-				size: [400, 300],
-				position: [0, 0],
-				minimumSize: [100, 100],
-			}),
+			windows: windowsRecord(closedWindow("main"), closedWindow("doc")),
 			data: {},
 		};
+		const release = markClassicyWindowMounted("Notes.app", "main");
 
 		openApp(ds, "Notes.app", "Notes", "notes-icon.png");
+		release();
 
-		expect(ds.System.Manager.Applications.apps["Notes.app"].open).toBe(true);
-		expect(
-			listAppWindows(ds.System.Manager.Applications.apps["Notes.app"])[0]
-				.closed,
-		).toBe(false);
+		const notes = ds.System.Manager.Applications.apps["Notes.app"];
+		expect(notes.open).toBe(true);
+		expect(getAppWindow(notes, "main")?.closed).toBe(false);
+		// Not on screen to draw (story 0226-a6f, R1): it reopens itself if
+		// and when its ClassicyWindow mounts, never as an open record with
+		// nothing on screen.
+		expect(getAppWindow(notes, "doc")?.closed).toBe(true);
 	});
 });
 
@@ -873,6 +1030,40 @@ describe("ClassicyAppLoad — code-derived identity", () => {
 			name: "A2",
 			icon: "b.png",
 		});
+	});
+});
+
+describe("ClassicyAppLoad — an extension out of the startup parade", () => {
+	it("sets noBootParade from bootParade: false on every load, and clears it", () => {
+		const ds = makeStore();
+		const load = (extra: Record<string, unknown>) =>
+			classicyDesktopStateEventReducer(ds, {
+				type: "ClassicyAppLoad",
+				app: { id: "Bg.app", name: "Bg", icon: "bg.png" },
+				extension: true,
+				...extra,
+			});
+		load({ bootParade: false });
+		expect(ds.System.Manager.Applications.apps["Bg.app"].noBootParade).toBe(
+			true,
+		);
+		load({});
+		expect(
+			ds.System.Manager.Applications.apps["Bg.app"].noBootParade,
+		).toBeUndefined();
+		load({ bootParade: false });
+		expect(ds.System.Manager.Applications.apps["Bg.app"].noBootParade).toBe(
+			true,
+		);
+		// Only an extension takes it.
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "Fg.app", name: "Fg", icon: "fg.png" },
+			bootParade: false,
+		});
+		expect(
+			ds.System.Manager.Applications.apps["Fg.app"].noBootParade,
+		).toBeUndefined();
 	});
 });
 

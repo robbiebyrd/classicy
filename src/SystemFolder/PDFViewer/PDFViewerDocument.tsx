@@ -22,6 +22,7 @@ import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyI
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
+import { classicyDeferredExports } from "./ClassicyDeferredExports.internal";
 
 // pdfjs-dist's canvas module references the browser-only `DOMMatrix` global
 // at module-evaluation time. A static import here would run that the instant
@@ -51,8 +52,11 @@ function loadPdfjs(): Promise<Pdfjs> {
 	// document imports again, which loads it wherever the browser fetches a
 	// failed module anew. Only these imports are retried; pdf.js keeps its own
 	// failures (a fake worker that did not set up stays failed for the page).
+	// pdf.js arrives deferred from the library build, so that the UMD bundle,
+	// which carries it inline, does not run it at load (story 0223-a0y): its
+	// body runs here, on the first document.
 	pdfjsModules ??= Promise.all([
-		import("pdfjs-dist/legacy/build/pdf.mjs"),
+		import("pdfjs-dist/legacy/build/pdf.mjs").then(classicyDeferredExports),
 		import("./ClassicyPdfWorkerSource.internal"),
 	]).catch((error: unknown) => {
 		pdfjsModules = null;

@@ -30,6 +30,8 @@
 @use "components/ScrollBar";
 @use "components/Desktop";
 @use "components/Icon";
+@use "components/SelectionMarquee";
+@use "components/ZoomRects";
 @use "components/ControlStrip";
 @use "components/Tabs";
 @use "components/AppearanceManager";
@@ -57,6 +59,8 @@
   @include ScrollBar.scroll-bar;
   @include Desktop.desktop;
   @include Icon.icon;
+  @include SelectionMarquee.selection-marquee;
+  @include ZoomRects.zoom-rects;
   @include ControlStrip.control-strip;
   @include Tabs.tabs;
   @include AppearanceManager.appearance-manager;

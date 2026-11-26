@@ -1,4 +1,5 @@
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { isActivationKeyAimedAtOtherWindowControl } from "@/SystemFolder/SystemResources/Window/ClassicyActivationKeyAimedAtOtherWindow";
 import "./QuickTimeMovieEmbed.scss";
 import classNames from "classnames";
 import {
@@ -204,6 +205,19 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 			if (!playerWindowFocused) {
 				return;
 			}
+			// A key a control already consumed, and Enter or Space on a control
+			// of another window (a floating guide), are not the movie's.
+			if (event.defaultPrevented) {
+				return;
+			}
+			if (
+				isActivationKeyAimedAtOtherWindowControl(
+					event,
+					`${appId}_${shortcutWindowId}`,
+				)
+			) {
+				return;
+			}
 			switch (event.key) {
 				case " ":
 					handlePlayPause();
@@ -239,6 +253,8 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 		hideControls,
 		handlePlayPause,
 		playerWindowFocused,
+		appId,
+		shortcutWindowId,
 		seekForward,
 		seekBackward,
 		toggleFullscreen,

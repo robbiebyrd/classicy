@@ -15,9 +15,8 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import { classicyThemeDerivations } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import {
+	classicyDrawnThemeMeasurements,
 	classicyMeasurementVars,
-	classicyThemeMeasurementDefaults,
-	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -221,6 +220,20 @@ export type ClassicyTheme = {
 	color: ClassicyThemeColors;
 	typography: ClassicyThemeTypography;
 	measurements: ClassicyThemeMeasurements;
+	/**
+	 * The explicit-edit record (story 0235-xgi): family → keys whose value
+	 * the user set while another package drew the theme, to the value the
+	 * theme's own package defaults to. Such a value is otherwise no edit (it
+	 * follows the drawing package's), so the record keeps it the theme's own
+	 * for drawing and persistence (`classicyDrawnThemeMeasurements`,
+	 * `withoutDefaultThemeMeasurements`). Written only by
+	 * `ClassicyDesktopChangeMetric` under another package
+	 * (`updateClassicyMeasurementPin`), so never written by a host that draws
+	 * only its own package's themes. A theme file exported where another
+	 * package drew the theme may carry one, and importing it keeps it; it
+	 * changes nothing drawn while the theme's own package draws.
+	 */
+	measurementPins?: Record<string, string[]>;
 	desktop: ClassicyThemeDesktop;
 	sound: ClassicyThemeSound;
 	/**
@@ -228,8 +241,13 @@ export type ClassicyTheme = {
 	 * (`registerClassicyAssets(kind, package, tree, { variant })`): icons,
 	 * system art, cursors and wallpapers by name resolve the variant's tree,
 	 * then the package's base tree, then the default package's. Absent, the
-	 * base tree; a variant the package never registered draws the base tree
-	 * too, with one warning.
+	 * base tree. While another package draws the theme, that package's art of
+	 * the variant is drawn when one of its built-in themes names the variant
+	 * and it registered trees for it. A variant that draws no art (one the
+	 * drawing package never registered, or does not take from another
+	 * package's theme) draws the drawing package's base tree, with one
+	 * warning per page; a variant whose art is drawn logs nothing
+	 * (AGENT-REFERENCE §5, "Per-theme variants").
 	 */
 	assetVariant?: string;
 };
@@ -238,16 +256,21 @@ export type ClassicyTheme = {
 const classicyDesktopPictureVar = (src: string): string =>
 	src ? `url("${src}")` : "none";
 
-export const getThemeVars = (theme: ClassicyTheme) => {
-	// Completed first, key by key, from the theme's package defaults over
-	// Platinum's (H-R2): themes reach here unmigrated (previews, stories,
-	// tests, a theme saved before a family existed), and a missing knob
-	// would leave a base stylesheet reading an unset variable. Copy-on-write,
-	// so a complete theme costs no allocation.
-	const m = withDefaultThemeMetrics(
-		theme,
-		classicyThemeMeasurementDefaults(theme.package),
-	).measurements;
+/**
+ * The CSS variables `theme` draws with. `drawnPackageId` is the package
+ * drawing it (the store's `Appearance.packageId`; `ClassicyDesktop` passes
+ * the resolved id): a theme of another package is completed from that
+ * package's knobs (`classicyDrawnThemeMeasurements`, story 0235-xgi). Left
+ * out, the theme's own package draws it.
+ */
+export const getThemeVars = (theme: ClassicyTheme, drawnPackageId?: string) => {
+	// Completed first, key by key, from the core floor and the drawing
+	// package's defaults (the theme's own package's unless another draws it;
+	// H-R2): themes reach here unmigrated (previews, stories, tests, a theme
+	// saved before a family existed), and a missing knob would leave a
+	// stylesheet reading an unset variable. Copy-on-write, so a complete
+	// theme under its own package costs no allocation.
+	const m = classicyDrawnThemeMeasurements(theme, drawnPackageId);
 	const border = m.window.borderSize;
 	const colorFamilyDefaults = classicyThemeColorFamilyDefaults(theme.package);
 	return {

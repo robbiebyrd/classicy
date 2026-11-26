@@ -7,12 +7,14 @@
  * do at the kernel's entry. Otherwise the kernel's generic OpenFile handler
  * queues the path, as before. Unlike a store dispatch, the dev-mode manifest
  * check (`validateAppStateForAction`) does not run for the routed open; it
- * runs once, for the action that reached Finder.
+ * runs once, for the action that reached Finder. Either way an open that
+ * reaches the app is remembered under Recent Documents (Apple Menu Options).
  */
 import {
 	type ClassicyActionTrust,
 	checkClassicyActionTrust,
 	classicyActionTrustOf,
+	isActionTrustPermitted,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ClassicyStore,
@@ -21,6 +23,7 @@ import {
 	findAppEventHandlerPrefix,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { recordClassicyRecentDocument } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 
 /**
  * The generic OpenFile type for an app, built from its internal record name
@@ -75,11 +78,16 @@ export function routeClassicyAppOpenFile(
 	const level = classicyActionTrustOf(trust);
 	const own = resolveClassicyAppOpenFileType(app.id);
 	if (own) {
-		return classicyDesktopStateEventReducer(
+		ds = classicyDesktopStateEventReducer(
 			ds,
 			{ type: own, app: { id: app.id }, path },
 			level,
 		);
+		// Recent Documents remembers an open the app's own case received; the
+		// generic queue below remembers its own.
+		return isActionTrustPermitted(level, own)
+			? recordClassicyRecentDocument(ds, path)
+			: ds;
 	}
 	const type = classicyGenericOpenFileType(app.name);
 	if (!checkClassicyActionTrust(level, type)) return ds;

@@ -39,6 +39,12 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 const APP_ID = CONTROL_STRIP_MANAGER_APP_ID;
 const APP_NAME = CONTROL_STRIP_MANAGER_APP_NAME;
 const WINDOW_ID = "ControlStripManager_1";
+/**
+ * The face the window's contents draw on (`.classicyWindowContents`'
+ * background), so the group titles mask their frames on the face they sit on.
+ */
+const CONTENTS_FACE =
+	"var(--classicy-window-contents-bg, var(--color-window-document))";
 
 /**
  * The Control Strip control panel: show or hide the strip, and choose which
@@ -129,7 +135,11 @@ export function ClassicyControlStripManager() {
 				initialSize={[360, 0]}
 				initialPosition={[340, 100]}
 				modal={false}
-				backgroundColor="var(--color-system-03)"
+				// Its contents on the window's document face (white under
+				// Platinum and System 7), as Mac OS 8.5's Control Strip 2.0
+				// draws them (the 8.5 audit's F13: #FFFFFF, where 8.1's control
+				// panel was #EEEEEE). The group titles mask their frames on that
+				// same face (CONTENTS_FACE), not the package's gray window face.
 				appMenu={[
 					{
 						id: `${APP_ID}_file`,
@@ -155,7 +165,10 @@ export function ClassicyControlStripManager() {
 				]}
 			>
 				<div style={{ padding: "var(--window-padding-size)" }}>
-					<ClassicyControlGroup label="Control Strip">
+					<ClassicyControlGroup
+						label="Control Strip"
+						backgroundColor={CONTENTS_FACE}
+					>
 						<ClassicyCheckbox
 							id="ControlStripManager_visible"
 							label="Show Control Strip"
@@ -168,7 +181,7 @@ export function ClassicyControlStripManager() {
 							}
 						/>
 					</ClassicyControlGroup>
-					<ClassicyControlGroup label="Modules">
+					<ClassicyControlGroup label="Modules" backgroundColor={CONTENTS_FACE}>
 						{modules.length === 0 ? (
 							<span>No Control Strip modules are installed.</span>
 						) : (

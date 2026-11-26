@@ -25,11 +25,23 @@ const deepFreeze = <T>(value: T): Readonly<T> => {
  * The measurements every theme is completed with, whatever its package
  * (`classicyThemeMeasurementDefaults` merges the registered package's own
  * values over these): the core five families (`CLASSICY_DEFAULT_THEME_METRICS`)
- * and every structural knob, the 85 knobs a base stylesheet (`classicy.base`),
- * component code or the SCSS vocabulary (`dither.tileSize`) reads
- * ("Structural: yes", AGENT-REFERENCE §8). The 11 look-only knobs, read only
- * by Platinum's own partials, are Platinum's and stay in its
- * `platinum.json`. Frozen all the way down.
+ * and every structural knob ("Structural: yes", AGENT-REFERENCE §8), the 115
+ * knobs a base stylesheet (`classicy.base`), component code (the `zoomRects`
+ * path and pace) or the SCSS vocabulary (`dither.tileSize`) reads, and those
+ * Platinum's own partials read without a fallback: `ChangeTheme` may draw
+ * any package's theme under Platinum, whose sheet then reads that theme's
+ * variables (story 0225-ci7: the menu marks' grid, the checkbox's, the
+ * slider, the menu frame, the scroll-bar grip, the windoid texture, the
+ * Control Strip's bevel and the QuickTime caption's shadow; stories 0228-e9l
+ * and 0230-n6c: the selection and zoom rectangles' pens and checkers; the
+ * Application Switcher palette's named buttons' least width; since
+ * story 0235-xgi such a theme is also completed from the drawing package's
+ * own defaults, `classicyDrawnThemeMeasurements`, and they stay here so no
+ * theme's variables change). Only
+ * Platinum's three optional knobs stay in its `platinum.json` alone: the two
+ * `fileBrowserList` knobs, which the file browser reads with a fallback, and
+ * `zoomRects.enabled`, the zoom rectangles' opt-in, a package's own (read
+ * with a fallback of 0). Frozen all the way down.
  */
 export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasurements> =
 	deepFreeze({
@@ -56,6 +68,7 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 			narrowCellWidth: 13,
 			moduleWidth: 30,
 			borderWidth: 1,
+			bevelWidth: 1,
 			pressedShift: 1,
 			collapseGlyphLeft: 2,
 			collapseGlyphTop: 7,
@@ -65,6 +78,13 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 			moduleIconTop: 3,
 			moduleArrowLeft: 22,
 			moduleArrowTop: 7,
+		},
+		menuFrame: {
+			borderWidth: 1,
+			bevelWidth: 1,
+			shadowWidth: 1,
+			shadowStart: 1,
+			shadowGap: 0,
 		},
 		pager: {
 			borderWidth: 1,
@@ -93,6 +113,7 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 			trackTop: 3,
 			thumbLeft: 1,
 		},
+		scrollbar: { thumbGripWidth: 7, thumbGripHeight: 8 },
 		hyperCard: {
 			fontSize: 11,
 			handleSize: 6,
@@ -146,14 +167,85 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		},
 		formControl: { fileInputHiddenSize: 1 },
 		controlPanel: { listMaxHeight: 180, colorsScrollMaxHeight: 210 },
-		progressBar: { stripeWidth: 10 },
+		// Platinum's determinate bar's art grid and the startup screen's bar,
+		// Mac OS 8.5's 160 x 12 frame (Platinum's _ProgressBar.scss and
+		// _StartupScreen.scss; the 8.5 audit's F12), on the floor for
+		// 0225-ci7's reason.
+		progressBar: {
+			stripeWidth: 10,
+			pixel: 1,
+			startupWidth: 160,
+			startupHeight: 12,
+		},
 		boot: { halftoneTile: 4 },
 		helpButton: { glyphSize: 14 },
-		menu: { popUpMaxHeight: 300 },
+		// `markPixel`: the grid of Platinum's menu marks (_marks.scss), on
+		// the floor so a theme of another package drawn under Platinum still
+		// draws its checks and diamond (story 0225-ci7, review K1).
+		menu: { popUpMaxHeight: 300, markPixel: 1 },
 		table: { resizerWidth: 15 },
 		stripMenu: { overlap: 3 },
+		// `pixel`: the grid of Platinum's checkbox marks (_marks.scss; the
+		// box's bevel follows the window metrics), on the floor for the same
+		// reason (story 0225-ci7, fix round 3).
+		checkbox: { pixel: 1 },
+		// Platinum's own partials' knobs (_Window.scss, _QuickTimeMovieEmbed
+		// .scss, _Slider.scss), on the floor for the same reason: a theme of
+		// another package drawn under Platinum emitted none of them, and its
+		// slider lost its art (story 0225-ci7).
+		utilityTitleBar: { textureWidth: 4, textureHeight: 3 },
+		quickTime: { captionShadowBlur: 3 },
+		slider: {
+			pixel: 1,
+			channel: 7,
+			thumbAlong: 15,
+			thumbAcross: 17,
+			thumbRise: 3,
+			tickWidth: 3,
+			tickHeight: 8,
+		},
 		// The dither vocabulary's switch (`_dither.scss`): 0 is plain ink.
 		dither: { tileSize: 0 },
+		// The selection rectangle's pen and checker, Platinum's
+		// (_SelectionMarquee.scss), on the floor for 0225-ci7's reason: a
+		// theme of another package drawn under Platinum still draws it
+		// (story 0228-e9l).
+		selectionMarquee: { width: 2, tileSize: 2 },
+		// The zoom rectangles' path and pace (ClassicyZoomRects.ts): Mac OS
+		// 8.1's, the six steps nearest the window of an 11-step path, each
+		// 1.4 times the last, one a tick, all kept to the end; and their pen
+		// and checker, Platinum's (_ZoomRects.scss), for the same reason as
+		// the selection rectangle's. Not `enabled`: a package opts in with
+		// its own knob (read with a fallback of 0), as it must also draw the
+		// rectangles (story 0230-n6c).
+		zoomRects: {
+			steps: 11,
+			growthPercent: 140,
+			firstStep: 5,
+			trail: 0,
+			rate: 60,
+			width: 2,
+			tileSize: 2,
+		},
+		// The Application Switcher palette's named buttons' least width,
+		// Mac OS 8.5's 150 (Platinum's _ApplicationSwitcher.scss), on the floor
+		// for 0225-ci7's reason (integration review G round 3, F5).
+		applicationSwitcher: { namedButtonWidth: 150 },
+		// The Application menu title's geometry, Mac OS 8.5's (Platinum's
+		// _Menu.scss): the bar's right end, the title's paddings, the gap
+		// between its icon and its name, its icon's size and the clock's end
+		// before the title's grip; on the floor for 0225-ci7's reason
+		// (integration review G round 6, W14/B3). System 7 overrides five of
+		// the six in its own `menuBar` family; its icon-only title reads no
+		// `switcherTitleGap`, so it keeps the floor's.
+		menuBar: {
+			endInset: 11,
+			switcherTitleStart: 6,
+			switcherTitleGap: 5,
+			switcherTitleEnd: 7,
+			titleArtSize: 16,
+			clockEnd: 6,
+		},
 	});
 
 /**

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { closeApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyHyperCardEventHandler } from "@/SystemFolder/HyperCard/HyperCardContext";
 import type { HCStack } from "@/SystemFolder/HyperCard/HyperCardModel";
@@ -266,5 +267,30 @@ describe("OpenFile routing (.stack documents)", () => {
 		});
 		expect(data(store).openFiles).toEqual([path]);
 		expect(data(store).openStacks[path].currentCardId).toBe("c1");
+	});
+});
+
+// Story 0226-a6f (N3): Quit closes the stacks, as it closes an app's
+// data.openFiles documents, so a relaunch never brings one back.
+describe("Quit", () => {
+	it("closes every open stack", () => {
+		const store = makeStore();
+		dispatch(store, {
+			type: "ClassicyAppHyperCardOpenStack",
+			stackId: "demo",
+			stack: demoStack,
+		});
+		closeApp(store, APP_ID);
+		expect(store.System.Manager.Applications.apps[APP_ID].open).toBe(false);
+		expect(data(store).openStacks).toEqual({});
+		expect(data(store).activeStackId).toBeUndefined();
+
+		// A relaunch by another stack shows that stack alone.
+		dispatch(store, {
+			type: "ClassicyAppHyperCardOpenStack",
+			stackId: "other",
+			stack: { ...demoStack, name: "Other" },
+		});
+		expect(Object.keys(data(store).openStacks)).toEqual(["other"]);
 	});
 });

@@ -11,7 +11,12 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { deflateRawSync } from "node:zlib";
 import { afterAll, describe, expect, it } from "vitest";
+import {
+	classicyCommonJsDeclaration,
+	classicyCommonJsDeclarationFile,
+} from "./classicyCommonJsDeclarations";
 import { CLASSICY_DEFLATE_MARK } from "./classicyDeflateAsset";
+import { escapeClassicyRegExp } from "./classicyRegExpEscape";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
 // The real bin/check-dist-imports.mjs, run in
@@ -101,7 +106,7 @@ describe("check-dist-imports.mjs invariant 7: no package CSS in the core (named 
 		expect(stderr.trim().split("\n")).toEqual([
 			expect.stringMatching(
 				new RegExp(
-					`^${join("fx", "pdf-DcHjwfzs\\.js")}: .*${PACKAGE_FREE.source}`,
+					`^${escapeClassicyRegExp(join("fx", "pdf-DcHjwfzs.js"))}: .*${PACKAGE_FREE.source}`,
 				),
 			),
 		]);
@@ -193,7 +198,7 @@ describe("check-dist-imports.mjs invariant 9: stylesheet charset (named files)",
 		const { status, stderr } = check({}, { [FILE]: '.a::before{content:"✓"}' });
 		expect(status).toBe(1);
 		expect(stderr.trim()).toMatch(
-			new RegExp(`^${FILE.replace(".", "\\.")}: non-ASCII byte at offset 20`),
+			new RegExp(`^${escapeClassicyRegExp(FILE)}: non-ASCII byte at offset 20`),
 		);
 	});
 });
@@ -223,7 +228,7 @@ describe("check-dist-imports.mjs invariant 15: the browser floor's CSS math (nam
 		expect(status).toBe(1);
 		expect(stderr.trim()).toMatch(
 			new RegExp(
-				`^${FILE.replace(".", "\\.")}: \`left: round\\(50% - 6px,1px\\)\` in \`\\.a\` calls round\\(\\)`,
+				`^${escapeClassicyRegExp(FILE)}: \`left: round\\(50% - 6px,1px\\)\` in \`\\.a\` calls round\\(\\)`,
 			),
 		);
 	});
@@ -356,6 +361,122 @@ describe("check-dist-imports.mjs invariant 13: production JSX runtime (named fil
 	});
 });
 
+// Invariant 1's floor (story 0224-siu review, M1): the scan must read each
+// entry bundle's head, or a head it cannot parse yields no import and passes.
+describe("check-dist-imports.mjs invariant 1: the scan reads the entry heads (named files)", () => {
+	const ES = join("dist", "classicy.es.js");
+	const UMD = join("dist", "classicy.umd.js");
+	const UMD_BODY =
+		'(function(g,f){typeof exports=="object"?f(exports,require("react")):f(g.classicy={},g.React)})(this,function(e,r){});';
+	const run1 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		for (const [file, text] of Object.entries(files)) {
+			mkdirSync(dirname(join(dir, file)), { recursive: true });
+			writeFileSync(join(dir, file), text);
+		}
+		const r = spawnSync(process.execPath, [SCRIPT, ...Object.keys(files)], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		// Other invariants also fail on these stand-ins; only 1's lines count.
+		const lines = `${r.stdout}${r.stderr}`
+			.split("\n")
+			.filter((line) =>
+				/ import\(s\), clean$|the import scan read no/.test(line),
+			);
+		return { status: r.status, lines };
+	};
+	const ES_PROBLEM = `${ES}: the import scan read no static import of "react" -> bin/classicyBundleSpecifiers.ts cannot read this bundle's head (a quote style, or a directive or comment it does not skip), so this check would pass it unread; teach the parser the new head.`;
+
+	it("passes entry bundles whose heads it reads", () =>
+		expect(
+			run1({
+				[ES]: '"use client";\nimport*as r from"react";import{jsx as j}from"react/jsx-runtime";export{r,j};\n',
+				[UMD]: UMD_BODY,
+			}).lines,
+		).toEqual([`${ES}: 2 import(s), clean`, `${UMD}: 1 import(s), clean`]));
+
+	it.each([
+		[
+			"a directive with no semicolon",
+			'"use client"\nimport*as r from"react";export{r};\n',
+		],
+		["single-quoted imports", "import*as r from'react';export{r};\n"],
+		["a hashbang", '#!/usr/bin/env node\nimport*as r from"react";export{r};\n'],
+		["no import at all", "const a=1;export{a};\n"],
+	])("fails an ES entry with %s", (_name, text) => {
+		const { status, lines } = run1({ [ES]: text, [UMD]: UMD_BODY });
+		expect(status).toBe(1);
+		expect(lines).toEqual([`${UMD}: 1 import(s), clean`, ES_PROBLEM]);
+	});
+
+	it("fails a UMD bundle that requires no react", () => {
+		const { status, lines } = run1({
+			[UMD]: UMD_BODY.replace('require("react")', "require('react-dom')"),
+		});
+		expect(status).toBe(1);
+		expect(lines).toEqual([
+			`${UMD}: the import scan read no require("react") -> bin/classicyBundleSpecifiers.ts cannot read this bundle's head (a quote style, or a directive or comment it does not skip), so this check would pass it unread; teach the parser the new head.`,
+		]);
+	});
+
+	it("asks no floor of another bundle", () =>
+		expect(
+			run1({ [join("dist", "pdf-DcHjwfzs.js")]: "const a=1;export{a};" }).lines,
+		).toEqual([`${join("dist", "pdf-DcHjwfzs.js")}: 0 import(s), clean`]));
+});
+
+// Invariant 20 (story 0224-siu): the ES entry starts with "use client";, so a
+// React Server Components bundler treats it as a client module.
+describe('check-dist-imports.mjs invariant 20: the ES entry starts with "use client"; (named files)', () => {
+	const run20 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		for (const [file, text] of Object.entries(files)) {
+			mkdirSync(dirname(join(dir, file)), { recursive: true });
+			writeFileSync(join(dir, file), text);
+		}
+		const r = spawnSync(process.execPath, [SCRIPT, ...Object.keys(files)], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		// Invariants 3 and 10 also fail on these stand-ins; only 20's lines count.
+		const lines = `${r.stdout}${r.stderr}`
+			.split("\n")
+			.filter((line) => line.includes('"use client";'));
+		return { status: r.status, lines };
+	};
+	const ES = join("dist", "classicy.es.js");
+	const BODY = 'import{useState as u}from"react";const a=()=>u(1);export{a};\n';
+
+	it("passes an ES entry whose first statement is the directive", () =>
+		expect(run20({ [ES]: `"use client";\n${BODY}` }).lines).toEqual([
+			`${ES}: starts with "use client";, a client module to a React Server Components bundler`,
+		]));
+
+	it.each([
+		["without the directive", BODY],
+		["with a comment ahead of it", `/*! Classicy */\n"use client";\n${BODY}`],
+		["with it after the imports", `${BODY}"use client";\n`],
+	])("fails an ES entry %s", (_name, text) => {
+		const { status, lines } = run20({ [ES]: text });
+		expect(status).toBe(1);
+		expect(lines).toEqual([
+			`${ES}: does not start with "use client"; -> a React Server Components bundler (Next.js's App Router) evaluates it as a server module, where React has no createContext or hooks, so a server component that imports it fails the host's build; check classicyUseClientPlugin in vite.config.ts (bin/classicyUseClient.ts).`,
+		]);
+	});
+
+	it("asks nothing of the UMD bundle or a lazy chunk", () =>
+		expect(
+			run20({
+				[ES]: `"use client";\n${BODY}`,
+				[join("dist", "classicy.umd.js")]: BODY,
+				[join("dist", "pdf-DcHjwfzs.js")]: BODY,
+			}).lines,
+		).toEqual([
+			`${ES}: starts with "use client";, a client module to a React Server Components bundler`,
+		]));
+});
+
 describe("check-dist-imports.mjs invariant 14: no screen saver in the core (named files)", () => {
 	const lines14 = (stderr: string) =>
 		stderr.split("\n").filter((l) => /classicySaver/.test(l));
@@ -434,12 +555,20 @@ describe("check-dist-imports.mjs invariant 5: saver art (whole dist)", () => {
 // and two empty entry bundles, so the other invariants report what that dist
 // lacks; only the dist/types lines are read.
 describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist)", () => {
-	const types = (declarations: Record<string, string>) => {
+	// Each .d.ts with its .d.cts twin, as the build writes them, unless
+	// `twins` is false.
+	const types = (declarations: Record<string, string>, twins = true) => {
 		const dir = join(root, `case-${run++}`);
 		mkdirSync(join(dir, "dist"), { recursive: true });
 		for (const bundle of ["classicy.es.js", "classicy.umd.js"])
 			writeFileSync(join(dir, "dist", bundle), "export{};");
-		for (const [file, text] of Object.entries(declarations)) {
+		const files = { ...declarations };
+		if (twins)
+			for (const [file, text] of Object.entries(declarations))
+				if (file.endsWith(".d.ts"))
+					files[classicyCommonJsDeclarationFile(file)] =
+						classicyCommonJsDeclaration(text);
+		for (const [file, text] of Object.entries(files)) {
 			const path = join(dir, "dist", "types", file);
 			mkdirSync(dirname(path), { recursive: true });
 			writeFileSync(path, text);
@@ -463,10 +592,27 @@ describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist
 			}),
 		).toEqual({
 			out: [
-				`${join("dist", "types")}: 3 file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension`,
+				`${join("dist", "types")}: 5 file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension; every .d.ts with its .d.cts twin for require()`,
 			],
 			err: [],
 		}));
+
+	// The exports map's `require` types (story 0223-a0y).
+	it("fails a declaration without its .d.cts twin, and a stray twin", () =>
+		expect(
+			types(
+				{
+					"src/index.d.ts": "export * from './a.js';\n",
+					"src/a.d.ts": "export type A = 1;\n",
+					"src/a.d.cts": "export type A = 1;\n",
+					"src/stray.d.cts": "export {};\n",
+				},
+				false,
+			).err,
+		).toEqual([
+			"dist/types/src/index.d.cts: missing -> a CommonJS TypeScript host reads it for require(); check afterBuild (classicyCommonJsDeclarationsWriter) on dts in vite.config.ts.",
+			"dist/types/src/stray.d.cts: has no src/stray.d.ts -> a .d.cts is only ever a .d.ts's CommonJS twin.",
+		]));
 
 	it("invariant 8 fails on a .d.ts.map in dist/types", () =>
 		expect(
@@ -739,7 +885,7 @@ describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole
 		).toEqual([
 			expect.stringMatching(
 				new RegExp(
-					`^${UMD.replaceAll(".", "\\.")}: carries a deflated pdf.js worker that does not inflate \\(.+\\) -> check classicyDeflateAssetPlugin in vite.config.ts\\.$`,
+					`^${escapeClassicyRegExp(UMD)}: carries a deflated pdf.js worker that does not inflate \\(.+\\) -> check classicyDeflateAssetPlugin in vite.config.ts\\.$`,
 				),
 			),
 		]));

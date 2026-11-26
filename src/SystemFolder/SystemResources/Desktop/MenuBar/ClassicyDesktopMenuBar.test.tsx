@@ -381,7 +381,7 @@ describe("ClassicyDesktopMenuBar — shortcut auto-registration (Keyboard regist
 	});
 });
 
-describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
+describe("ClassicyDesktopMenuBar — the Application menu title follows the front application's own name", () => {
 	beforeEach(() => {
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
@@ -401,7 +401,13 @@ describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
 		...extra,
 	});
 
-	it("reserves the width of every open app's name so the switcher never resizes", () => {
+	// Mac OS 8.5 sizes the title to the front application's name alone: an
+	// application opening behind it changes nothing, and the clock moves when
+	// the front application changes (integration review G round 6, W14/B3;
+	// the 8.5 Finder title is as wide with only the Finder running as with
+	// Appearance, Note Pad and SimpleText running). No width is reserved for
+	// the other open applications' names, as an earlier build did.
+	it("reserves no width for the other open applications' names", () => {
 		setStore((draft) => {
 			draft.System.Manager.Applications.apps = {
 				"Finder.app": app("Finder.app", "Finder", { focused: true }),
@@ -414,31 +420,14 @@ describe("ClassicyDesktopMenuBar — App Switcher width stability", () => {
 		render(<ClassicyDesktopMenuBar />);
 
 		const switcher = document.querySelector("#app-switcher");
-		const reserved = [
-			...(switcher?.querySelectorAll(
-				":scope > p .classicyMenuItemTitleSample",
-			) ?? []),
-		].map((s) => s.textContent);
-		expect(reserved).toEqual(["PictureViewer", "SimpleText"]);
-	});
-
-	it("does not reserve width for background extensions", () => {
-		setStore((draft) => {
-			draft.System.Manager.Applications.apps = {
-				"Finder.app": app("Finder.app", "Finder", { focused: true }),
-				"AppleGuide.app": app("AppleGuide.app", "AnExtremelyLongExtension", {
-					extension: true,
-				}),
-			};
-			draft.System.Manager.Applications.focusedAppId = "Finder.app";
-		});
-
-		render(<ClassicyDesktopMenuBar />);
-
-		const switcher = document.querySelector("#app-switcher");
-		expect(
-			switcher?.querySelector(":scope > p .classicyMenuItemTitleSample"),
-		).toBeNull();
+		expect(switcher?.querySelector(".classicyMenuItemTitleSample")).toBeNull();
+		expect(switcher?.querySelector(".classicyMenuItemTitleSizer")).toBeNull();
+		// The title is the front application's icon, then its name alone.
+		const name = switcher?.querySelector(
+			":scope > p > .classicyDesktopMenuAppSwitcherName",
+		);
+		expect(name?.textContent).toBe("Finder");
+		expect(switcher?.querySelector(":scope > p")?.textContent).toBe("Finder");
 	});
 });
 
@@ -541,17 +530,24 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 			["app-switcher_hide-others", "Hide Others", false, false, false],
 			["app-switcher_show-all", "Show All", false, false, false],
 			["divider"],
+			// Alphabetical, as Mac OS lists them (story 0231-8c6).
 			["Finder.app", "Finder", false, false, true],
-			["SimpleText.app", "SimpleText", false, true, true],
 			["Notes.app", "Notes", false, false, true, "hidden"],
+			["SimpleText.app", "SimpleText", false, true, true],
 		]);
+		// A screen reader hears what the dimmed icon shows (review M7).
+		const row = (id: string) => document.getElementById(id) as HTMLElement;
+		expect(row("Notes.app").getAttribute("aria-description")).toBe("Hidden");
+		expect(row("Finder.app").hasAttribute("aria-description")).toBe(false);
 	});
 
-	it("dims Hide and Hide Others while an extension holds focus (no front app)", () => {
+	it("keeps the front application while an extension holds focus", () => {
 		setStore((draft) => {
 			draft.System.Manager.Applications.apps = {
 				"Finder.app": app("Finder.app", "Finder"),
-				"SimpleText.app": app("SimpleText.app", "SimpleText"),
+				"SimpleText.app": app("SimpleText.app", "SimpleText", {
+					lastFocusedAt: 5,
+				}),
 				"Guide.app": app("Guide.app", "Guide", {
 					focused: true,
 					extension: true,
@@ -560,17 +556,85 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 			draft.System.Manager.Applications.focusedAppId = "Guide.app";
 		});
 		render(<ClassicyDesktopMenuBar />);
+		// The extension's window floats over SimpleText, the app last in use:
+		// the bar's front application (story 0233-c79).
 		const [hide, hideOthers] = items();
 		expect(hide.slice(0, 3)).toEqual([
 			"app-switcher_hide",
-			"Hide Finder",
-			true,
+			"Hide SimpleText",
+			false,
 		]);
 		expect(hideOthers.slice(0, 3)).toEqual([
 			"app-switcher_hide-others",
 			"Hide Others",
-			true,
+			false,
 		]);
+	});
+});
+
+// Story 0233-c79: with an extension in front (its window publishes menus) Hide
+// and Hide Others have nothing to hide (`hideApp` and `hideOtherApps` ignore an
+// extension), so they dim (HIG7 p.127: a command dims when it would do nothing).
+describe("ClassicyDesktopMenuBar: an extension in front", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("dims Hide and Hide Others", () => {
+		useAppManager.setState(
+			produce(DefaultAppManagerState, (draft) => {
+				draft.System.Manager.Applications.apps = {
+					"Finder.app": {
+						id: "Finder.app",
+						name: "Finder",
+						icon: "",
+						windows: {},
+						open: true,
+						focused: false,
+						data: {},
+					},
+					"Other.app": {
+						id: "Other.app",
+						name: "Other",
+						icon: "",
+						windows: {},
+						open: true,
+						focused: false,
+						data: {},
+					},
+					"Ext.app": {
+						id: "Ext.app",
+						name: "Ext",
+						icon: "",
+						extension: true,
+						open: true,
+						focused: true,
+						data: {},
+						windows: {
+							w: {
+								id: "w",
+								closed: false,
+								focused: true,
+								size: [1, 1],
+								position: [0, 0],
+								minimumSize: [1, 1],
+								menuBar: [{ id: "ext_m", title: "Ext" }],
+							},
+						},
+					},
+				};
+				draft.System.Manager.Applications.focusedAppId = "Ext.app";
+			}),
+			true,
+		);
+		render(<ClassicyDesktopMenuBar />);
+		const switcher = document.querySelector("#app-switcher") as HTMLElement;
+		fireEvent.click(switcher.querySelector("p") ?? switcher);
+		for (const id of ["app-switcher_hide", "app-switcher_hide-others"]) {
+			expect(document.getElementById(id)?.classList.contains("disabled")).toBe(
+				true,
+			);
+		}
 	});
 });
 

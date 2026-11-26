@@ -319,6 +319,17 @@
 				"saveDividerWidth": 84,
 				"saveCancelTop": 133,
 				"saveOpenTop": 164
+			},
+			"selectionMarquee": {
+				"width": 1,
+				"tileSize": 2
+			},
+			"zoomRects": {
+				"enabled": 1,
+				"firstStep": 0,
+				"trail": 4,
+				"width": 1,
+				"tileSize": 2
 			}
 		},
 		"desktop": {
@@ -1082,6 +1093,9 @@
 		},
 		"fileBrowser": {
 			"listColumnTitles": "aboveList"
+		},
+		"applicationSwitcher": {
+			"palette": "none"
 		}
 	},
 	"knobs": {},

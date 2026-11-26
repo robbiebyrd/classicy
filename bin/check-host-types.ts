@@ -13,6 +13,11 @@
 // whose types are a devDependency (`howler` without `@types/howler`) resolves
 // to nothing there, an `any` under `skipLibCheck` and an error without it.
 //
+// A CommonJS host (`host.cts`) is checked too (story 0223-a0y): it reads the
+// exports map's `require` types, the `.d.cts` twins of the declarations. And
+// the host runs the packed packages in Node (CLASSICY_HOST_RUNTIME): by
+// `import`, by `require()`, and both in one process.
+//
 // The check packs the packages (`pnpm pack`, as 4.1 publishes them: the core,
 // Platinum and System 7, plan 0018-dbd §2.2), extracts
 // the tarballs into a scratch host's node_modules beside links, from this
@@ -70,9 +75,32 @@ export const CLASSICY_HOST_MODES = {
 		moduleResolution: "nodenext",
 		skipLibCheck: true,
 	},
+	// A CommonJS host (host.cts: its imports compile to require()), which
+	// reads the exports map's `require` types, the .d.cts twins (story
+	// 0223-a0y): node16 cannot require() an ES module's declarations at all
+	// (TS1479), so it is checked without skipLibCheck too.
+	"node16-cjs": {
+		module: "node16",
+		moduleResolution: "node16",
+		skipLibCheck: true,
+	},
+	"node16-cjs-lib-check": {
+		module: "node16",
+		moduleResolution: "node16",
+		skipLibCheck: false,
+	},
+	"nodenext-cjs": {
+		module: "nodenext",
+		moduleResolution: "nodenext",
+		skipLibCheck: true,
+	},
 } as const;
 
 export type ClassicyHostMode = keyof typeof CLASSICY_HOST_MODES;
+
+/** The host file a mode checks: the CommonJS one for a `-cjs` mode. */
+export const classicyHostFile = (mode: ClassicyHostMode): string =>
+	mode.includes("-cjs") ? "host.cts" : "host.ts";
 
 /** The fields of a package.json the host reads. */
 export type ClassicyHostManifest = {
@@ -121,7 +149,7 @@ export const classicyHostTsconfig = (mode: ClassicyHostMode) => ({
 		noEmit: true,
 		types: [],
 	},
-	files: ["host.ts"],
+	files: [classicyHostFile(mode)],
 });
 
 /** What `manifest` declares a host installs: its dependencies and peers. */
@@ -206,6 +234,8 @@ export const writeClassicyHost = (
 		`${JSON.stringify({ name: "classicy-host", private: true, type: "module" }, null, "\t")}\n`,
 	);
 	writeFileSync(join(hostDir, "host.ts"), CLASSICY_HOST_SOURCE);
+	// The same source as CommonJS: in a .cts file its imports are require()s.
+	writeFileSync(join(hostDir, "host.cts"), CLASSICY_HOST_SOURCE);
 	for (const mode of Object.keys(CLASSICY_HOST_MODES) as ClassicyHostMode[])
 		writeFileSync(
 			join(hostDir, `tsconfig.${mode}.json`),
@@ -267,6 +297,98 @@ export const summarizeClassicyTscOutput = (output: string): string[] => {
 		...other,
 	];
 };
+
+/**
+ * The host's runtime checks (story 0223-a0y): the packed packages loaded in
+ * Node as a server-rendering host loads them, by `import` and by `require()`,
+ * each rendering the desktop to its server shell with both Appearance
+ * Packages registered, and one process loading both formats, which gets two
+ * separate libraries (the dual-package hazard: each format its own
+ * registries), as docs/AGENT-REFERENCE.md §1 says. Script name → [source,
+ * the one line of JSON it must print].
+ */
+export const CLASSICY_HOST_RUNTIME: Record<string, [string, string]> = {
+	"host-import.mjs": [
+		`import { createElement } from "react";
+import { renderToString } from "react-dom/server";
+import * as core from "@classicy/classicy";
+import "@classicy/appearance-platinum";
+import "@classicy/appearance-system7";
+const ids = core.listClassicyAppearancePackages().map((p) => p.id).sort().join(",");
+const html = renderToString(createElement(core.ClassicyAppManagerProvider, null, createElement(core.ClassicyDesktop)));
+console.log(JSON.stringify({ ids, html }));
+`,
+		JSON.stringify({
+			ids: "platinum,system7",
+			html: '<div class="classicyDesktop"></div>',
+		}),
+	],
+	"host-require.cjs": [
+		`const { createElement } = require("react");
+const { renderToString } = require("react-dom/server");
+const core = require("@classicy/classicy");
+require("@classicy/appearance-platinum");
+require("@classicy/appearance-system7");
+const ids = core.listClassicyAppearancePackages().map((p) => p.id).sort().join(",");
+const html = renderToString(createElement(core.ClassicyAppManagerProvider, null, createElement(core.ClassicyDesktop)));
+console.log(JSON.stringify({ ids, html }));
+`,
+		JSON.stringify({
+			ids: "platinum,system7",
+			html: '<div class="classicyDesktop"></div>',
+		}),
+	],
+	"host-both.mjs": [
+		`import { createRequire } from "node:module";
+import * as esm from "@classicy/classicy";
+import "@classicy/appearance-platinum";
+const cjs = createRequire(import.meta.url)("@classicy/classicy");
+console.log(JSON.stringify({
+	same: cjs.ClassicyDesktop === esm.ClassicyDesktop,
+	importRegistry: esm.listClassicyAppearancePackages().map((p) => p.id),
+	requireRegistry: cjs.listClassicyAppearancePackages().map((p) => p.id),
+}));
+`,
+		JSON.stringify({
+			same: false,
+			importRegistry: ["platinum"],
+			requireRegistry: [],
+		}),
+	],
+};
+
+export type ClassicyHostRuntimeResult = {
+	script: string;
+	ok: boolean;
+	output: string;
+};
+
+/**
+ * Writes and runs each of CLASSICY_HOST_RUNTIME's scripts in `hostDir` with
+ * this Node: each passes when it exits 0, prints exactly its expected line
+ * and writes nothing to stderr (no warning).
+ */
+export const runClassicyHostRuntime = (
+	hostDir: string,
+): ClassicyHostRuntimeResult[] =>
+	Object.entries(CLASSICY_HOST_RUNTIME).map(([script, [source, expected]]) => {
+		writeFileSync(join(hostDir, script), source);
+		const result = spawnSync(process.execPath, [script], {
+			cwd: hostDir,
+			encoding: "utf8",
+			timeout: 60_000,
+		});
+		const stdout = result.stdout.trim();
+		const ok =
+			result.status === 0 && stdout === expected && result.stderr.trim() === "";
+		return {
+			script,
+			ok,
+			output: ok
+				? stdout
+				: `exit ${result.status}; printed ${stdout || "nothing"}, expected ${expected}${result.stderr.trim() ? `; stderr: ${result.stderr.trim().slice(0, 500)}` : ""}`,
+		};
+	});
 
 /** Packs the package in `packageDir` with pnpm into `out`; the tarball's path. */
 const pack = (packageDir: string, out: string): string => {
@@ -374,6 +496,16 @@ if (
 			);
 			for (const line of summarizeClassicyTscOutput(output).slice(0, 20))
 				console.error(`  ${line}`);
+		}
+		for (const { script, ok, output } of runClassicyHostRuntime(host)) {
+			if (ok) {
+				console.log(`host runtime (${script}): ${output}`);
+				continue;
+			}
+			failed = true;
+			console.error(
+				`host runtime (${script}): ${output} -> the packed packages must load in Node by import and by require() and server-render the desktop's shell (story 0223-a0y).`,
+			);
 		}
 	} finally {
 		rmSync(scratch, { recursive: true, force: true });

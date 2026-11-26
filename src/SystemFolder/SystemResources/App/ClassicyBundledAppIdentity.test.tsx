@@ -12,6 +12,11 @@ import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppe
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
 import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+import { ClassicyAppleMenuOptions } from "@/SystemFolder/ControlPanels/AppleMenuOptions/ClassicyAppleMenuOptions";
+import {
+	APPLE_MENU_OPTIONS_APP_ID,
+	APPLE_MENU_OPTIONS_APP_NAME,
+} from "@/SystemFolder/ControlPanels/AppleMenuOptions/ClassicyAppleMenuOptionsManifest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
@@ -92,6 +97,12 @@ const PANELS: [string, string, FC, string][] = [
 		"Screen Saver",
 		ClassicyScreenSaverManager,
 		"ScreenSaverManager_1",
+	],
+	[
+		APPLE_MENU_OPTIONS_APP_ID,
+		APPLE_MENU_OPTIONS_APP_NAME,
+		ClassicyAppleMenuOptions,
+		"AppleMenuOptions_1",
 	],
 ];
 

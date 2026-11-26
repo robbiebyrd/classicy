@@ -9,6 +9,7 @@ import classNames from "classnames";
 import {
 	type ChangeEvent,
 	type CSSProperties,
+	Fragment,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	useCallback,
@@ -37,6 +38,7 @@ import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
+import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
 
@@ -51,6 +53,12 @@ export type ClassicyPopUpMenuOption = {
 	label: string;
 	/** Optional small icon (URL or data URI) drawn before the label in the menu. */
 	icon?: string;
+	/**
+	 * Draw a divider above this item in the open menu, starting a new group
+	 * (HIG7 p.83; Find File's location and date pop-ups). Ignored for the
+	 * first item.
+	 */
+	dividerBefore?: boolean;
 };
 
 /** The `<optgroup>` equivalent: a titled, non-selectable run of options. */
@@ -147,6 +155,12 @@ type classicyPopUpMenuProps = {
 	style?: CSSProperties;
 	/** Disables the button. Defaults to `false`. */
 	disabled?: boolean;
+	/**
+	 * Keep the choices out of analytics: the `selected` event still fires,
+	 * without the item chosen, the options or the current choice (Find
+	 * File's location pop-up names the user's disks). Defaults to `false`.
+	 */
+	analyticsPrivate?: boolean;
 };
 
 /**
@@ -184,6 +198,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	size = "medium",
 	onChangeFunc,
 	disabled = false,
+	analyticsPrivate = false,
 }) => {
 	// For the control label, "mini" maps to "small" — "mini" is a menu-only size
 	const controlLabelSize: ClassicyControlLabelSize =
@@ -268,14 +283,19 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			if (value === PLACEHOLDER_VALUE) return;
 			setSelectedItem(value);
 			emitAppearance("change", withClassicyAppearanceInput({ value }));
-			track("selected", {
-				type: "ClassicyPopUpMenu",
-				itemId: value,
-				id,
-				label,
-				options,
-				selected,
-			});
+			track(
+				"selected",
+				analyticsPrivate
+					? { type: "ClassicyPopUpMenu", id, label }
+					: {
+							type: "ClassicyPopUpMenu",
+							itemId: value,
+							id,
+							label,
+							options,
+							selected,
+						},
+			);
 			if (onChangeFunc) {
 				// Synthesize a `{ target: { value } }`-shaped event so consumers
 				// written against the old native <select> API keep working.
@@ -286,7 +306,16 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				onChangeFunc(evt);
 			}
 		},
-		[onChangeFunc, track, id, label, options, selected, emitAppearance],
+		[
+			onChangeFunc,
+			track,
+			id,
+			label,
+			options,
+			selected,
+			emitAppearance,
+			analyticsPrivate,
+		],
 	);
 
 	const closeMenu = useCallback(() => {
@@ -690,45 +719,51 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 									const { option: o, flatIndex: index, grouped } = row;
 									const isSelected = o.value === selectedItem;
 									return (
-										<div
-											key={id + o.value}
-											id={optionId(index)}
-											role="option"
-											tabIndex={-1}
-											aria-selected={isSelected}
-											className={classNames(
-												"classicyPopUpMenuListItem",
-												grouped && "classicyPopUpMenuListItemGrouped",
-												index === highlight &&
-													"classicyPopUpMenuListItemHighlight",
+										<Fragment key={id + o.value}>
+											{o.dividerBefore && rowIndex > 0 && (
+												// A listbox holds options only: the divider is drawn,
+												// not announced.
+												<ClassicySeparator decorative />
 											)}
-											onMouseEnter={() => setHighlight(index)}
-											onClick={() => commitIndex(index)}
-											onKeyDown={(e) => {
-												if (e.key === "Enter" || e.key === " ") {
-													e.preventDefault();
-													commitIndex(index);
-												}
-											}}
-										>
-											<span
+											<div
+												id={optionId(index)}
+												role="option"
+												tabIndex={-1}
+												aria-selected={isSelected}
 												className={classNames(
-													"classicyPopUpMenuCheck",
-													classicyStateClasses({ checked: isSelected }),
+													"classicyPopUpMenuListItem",
+													grouped && "classicyPopUpMenuListItemGrouped",
+													index === highlight &&
+														"classicyPopUpMenuListItemHighlight",
 												)}
-												aria-hidden={true}
-											/>
-											{o.icon && (
-												<ClassicyIconImage
-													className="classicyPopUpMenuListItemIcon"
-													src={o.icon}
-													alt=""
+												onMouseEnter={() => setHighlight(index)}
+												onClick={() => commitIndex(index)}
+												onKeyDown={(e) => {
+													if (e.key === "Enter" || e.key === " ") {
+														e.preventDefault();
+														commitIndex(index);
+													}
+												}}
+											>
+												<span
+													className={classNames(
+														"classicyPopUpMenuCheck",
+														classicyStateClasses({ checked: isSelected }),
+													)}
+													aria-hidden={true}
 												/>
-											)}
-											<span className="classicyPopUpMenuListItemLabel">
-												{o.label}
-											</span>
-										</div>
+												{o.icon && (
+													<ClassicyIconImage
+														className="classicyPopUpMenuListItemIcon"
+														src={o.icon}
+														alt=""
+													/>
+												)}
+												<span className="classicyPopUpMenuListItemLabel">
+													{o.label}
+												</span>
+											</div>
+										</Fragment>
 									);
 								})}
 							</div>

@@ -3,6 +3,8 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 import {
 	getClassicyAssetPackageSource,
+	hasClassicyPackageVariantTheme,
+	isClassicyPackageRegistered,
 	onClassicyAssetPackageSourceConnect,
 } from "./ClassicyAssetPackageSource.internal";
 import {
@@ -184,7 +186,8 @@ const variantTrees = new Map<
 >();
 /** Every variant name each package registered, of any kind. */
 const registeredVariants = new Map<string, Set<string>>();
-/** `<package>|<variant>` pairs a theme named unregistered: warned or queued. */
+/** The keys of the variant warnings logged or queued this page
+ * (`undrawnThemeVariantWarnings`). */
 const reportedVariants = new Set<string>();
 /** Every registered face per package, with its full fallback source list. */
 const fontFaces = new Map<string, Map<string, StoredFontFace>>();
@@ -217,15 +220,21 @@ export const getActiveClassicyAppearancePackageId = (): string =>
 export const CLASSICY_ASSET_VARIANT_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 
 /**
- * The active theme's `assetVariant`, when that theme belongs to `packageId`:
- * a variant names one package's trees, so a theme drawn under another
- * package (its own not registered yet) selects none. Pure: no warning.
+ * The active theme's `assetVariant`, when that theme belongs to `packageId`.
+ * A variant names one package's trees, so another package's theme selects
+ * none of `packageId`'s, unless `packageId` is the drawn package and one of
+ * its built-in themes names that variant: the theme's knobs then complete
+ * from that built-in (`classicyDrawnThemeMeasurements`, story 0235-xgi), and
+ * its art follows (a Platinum theme naming `bw` draws System 7's 1-bit look
+ * under System 7). Pure: no warning.
  */
 const themeVariantFor = (packageId: string): string | undefined => {
 	const theme = getClassicyAssetPackageSource()?.getActiveTheme?.();
 	const variant = theme?.assetVariant;
 	if (typeof variant !== "string") return undefined;
-	return (theme?.package ?? DEFAULT_PACKAGE) === packageId
+	if ((theme?.package ?? DEFAULT_PACKAGE) === packageId) return variant;
+	return packageId === getActiveClassicyAppearancePackageId() &&
+		hasClassicyPackageVariantTheme(packageId, variant)
 		? variant
 		: undefined;
 };
@@ -234,31 +243,89 @@ const isRegisteredVariant = (packageId: string, variant: string): boolean =>
 	registeredVariants.get(packageId)?.has(variant) ?? false;
 
 /**
- * `themeVariantFor`, warning once per package and variant per page when the
- * package never registered that variant (its lookups then read the base
- * tree, which they do anyway: an unregistered variant has no tree). Checked
- * after the current task, so a package whose variant trees register in the
- * same module evaluation as a first lookup is never warned.
+ * Calls `warn` for each thing there is to warn of the active theme's asset
+ * variant, with the key the warning is logged once per page under; never
+ * when the theme names no variant or the variant's art is drawn. A variant's
+ * art is the drawn package's: that package takes the variant
+ * (`themeVariantFor`: the theme is its own, or one of its built-in themes
+ * names the variant) and registered trees for it. Otherwise the drawn
+ * package's base assets are used, and:
+ *
+ * - the drawn package is named when it takes the variant and never
+ *   registered it;
+ * - the theme's own package, when another draws, is named when it is
+ *   registered and never registered the variant either (a misspelled name,
+ *   most likely);
+ * - with neither to name, the warning names both packages: the theme's
+ *   package's variant is not drawn by the drawn package. So it says of a
+ *   variant the theme's own package registered, and of a theme whose
+ *   package is not registered (one the host dropped, or one a later import
+ *   registers), which is never named as lacking a variant it may well have.
+ *
+ * Nothing here depends on which package's id a lookup was made with. A
+ * theme's lookups made with its own package's id while another draws (in the
+ * core, the default package's: `classicyCoreIcon`, `iconImageByType(type,
+ * CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`) read that package's trees, which
+ * is not the theme's variant being drawn (story 0235-xgi, Re-review 2 N4;
+ * integration review G round 2, F11).
+ */
+const undrawnThemeVariantWarnings = (
+	warn: (key: string, message: () => string) => void,
+): void => {
+	const theme = getClassicyAssetPackageSource()?.getActiveTheme?.();
+	const variant = theme?.assetVariant;
+	if (typeof variant !== "string") return;
+	const drawn = getActiveClassicyAppearancePackageId();
+	const taken = themeVariantFor(drawn) === variant;
+	if (taken && isRegisteredVariant(drawn, variant)) return;
+	const own = theme?.package ?? DEFAULT_PACKAGE;
+	const unregistered = (packageId: string) =>
+		warn(
+			`${packageId}|${variant}`,
+			() =>
+				`Theme asset variant "${variant}" is not registered for package "${packageId}"; its base assets are used`,
+		);
+	// A package that is not registered is not loaded, and is never named as
+	// lacking a variant it may well have (review G round 3, F10).
+	const ownUnregistered =
+		own !== drawn &&
+		isClassicyPackageRegistered(own) &&
+		!isRegisteredVariant(own, variant);
+	if (taken) unregistered(drawn);
+	if (ownUnregistered) unregistered(own);
+	if (!taken && !ownUnregistered)
+		warn(
+			`${own}>${drawn}|${variant}`,
+			() =>
+				`Theme asset variant "${variant}" of package "${own}" is not drawn by package "${drawn}"; its base assets are used`,
+		);
+};
+
+/**
+ * `themeVariantFor`, with the warning for a theme whose variant draws no
+ * art (`undrawnThemeVariantWarnings`), logged once per page each, whichever
+ * package draws the theme and whichever package's id the lookup was made
+ * with. Checked after the current task, against what holds then, so a
+ * package whose variant trees register in the same module evaluation as a
+ * first lookup is never warned, nor a theme whose drawn package registers in
+ * it; a warning that no longer applies then leaves no mark, so it is logged
+ * if it applies again (a variant another package drew, once its own package
+ * draws it).
  */
 const activeVariantFor = (packageId: string): string | undefined => {
-	const variant = themeVariantFor(packageId);
-	if (variant === undefined || isRegisteredVariant(packageId, variant))
-		return variant;
-	const key = `${packageId}|${variant}`;
-	if (reportedVariants.has(key)) return variant;
-	reportedVariants.add(key);
-	queueMicrotask(() => {
-		if (isRegisteredVariant(packageId, variant)) {
-			reportedVariants.delete(key);
-			return;
-		}
-		classicyLog(
-			"warn",
-			SUBSYSTEM,
-			`Theme asset variant "${variant}" is not registered for package "${packageId}"; its base assets are used`,
-		);
+	undrawnThemeVariantWarnings((key) => {
+		if (reportedVariants.has(key)) return;
+		reportedVariants.add(key);
+		queueMicrotask(() => {
+			let stillApplies: string | undefined;
+			undrawnThemeVariantWarnings((now, message) => {
+				if (now === key) stillApplies = message();
+			});
+			if (stillApplies === undefined) reportedVariants.delete(key);
+			else classicyLog("warn", SUBSYSTEM, stillApplies);
+		});
 	});
-	return variant;
+	return themeVariantFor(packageId);
 };
 
 /** The active package and its theme's variant: what every snapshot keys on. */
@@ -897,10 +964,10 @@ export const useClassicyAsset = (
 	kind: ClassicyAssetKind,
 	path: string,
 ): ClassicyAssetSource | undefined => {
-	// One getSnapshot per input. Under a theme naming a variant its package
-	// never registered, a read may queue that warning's check
-	// (`activeVariantFor`), once per package and variant per page, so calling
-	// it on every render stays side-effect free after the first.
+	// One getSnapshot per input. Under a theme whose variant draws no art, a
+	// read may queue that warning's check (`activeVariantFor`), once per
+	// warning per page, so calling it on every render stays side-effect free
+	// after the first.
 	const getSnapshot = useCallback(
 		() => resolveClassicyAsset(kind, path),
 		[kind, path],

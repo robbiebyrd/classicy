@@ -224,7 +224,8 @@ describe("resolution with a theme naming a variant", () => {
 	});
 
 	it("a variant of the package never reaches another package's lookups", () => {
-		// The active theme is sys7's, but the drawn package is Platinum.
+		// The active theme is sys7's, but the drawn package is Platinum, which
+		// registers a `bw` tree but ships no built-in theme naming it.
 		registerClassicyAssets(
 			"icons",
 			"platinum",
@@ -235,6 +236,42 @@ describe("resolution with a theme naming a variant", () => {
 		);
 		activate("platinum", themeOf("sys7", "bw"));
 		expect(resolveClassicyAsset("icons", "app")).toBe("/platinum-app.png");
+	});
+
+	// Story 0235-xgi, fix round 2: another package's theme naming a variant
+	// one of the drawn package's built-in themes names draws the drawn
+	// package's trees of that variant, as its knobs complete from that
+	// built-in (classicyDrawnThemeMeasurements): one look, art and knobs.
+	it("another package's theme draws the drawn package's variant when one of its built-ins names it", () => {
+		const id = "sys7v";
+		registerClassicyAppearancePackage({
+			...stub(id),
+			defaults: { ...stub(id).defaults, assetVariant: "bw" },
+		});
+		registerClassicyAssets("icons", id, { app: "/sys7v-app.png" });
+		registerClassicyAssets(
+			"icons",
+			id,
+			{ app: "/sys7v-bw-app.png" },
+			{ variant: "bw" },
+		);
+		registerClassicyAssets(
+			"icons",
+			id,
+			{ app: "/sys7v-sepia-app.png" },
+			{ variant: "sepia" },
+		);
+		activate(id, themeOf("platinum", "bw"));
+		expect(resolveClassicyAsset("icons", "app")).toBe("/sys7v-bw-app.png");
+		// A variant it registers but no built-in names: its base tree.
+		activate(id, themeOf("platinum", "sepia"));
+		expect(resolveClassicyAsset("icons", "app")).toBe("/sys7v-app.png");
+		// A theme naming no variant: its base tree.
+		activate(id, themeOf("platinum"));
+		expect(resolveClassicyAsset("icons", "app")).toBe("/sys7v-app.png");
+		// Not the drawn package: none of its variants.
+		activate("platinum", themeOf("sys7", "bw"));
+		expect(resolveClassicyAsset("icons", "app", id)).toBe("/sys7v-app.png");
 	});
 });
 
@@ -487,5 +524,331 @@ describe("registration", () => {
 		expect(resolveClassicyAsset("systemArt", "triangle", "sys7", "bw")).toBe(
 			"/bw-arrow.png",
 		);
+	});
+});
+
+// Story 0235-xgi, Re-review 2 N4 and N5, and integration review G round 2
+// (F9 to F11): a theme's variant draws art only as the drawn package's, when
+// that package takes it (the theme is its own, or one of its built-ins names
+// the variant) and registered trees for it. A Platinum theme naming `bw`
+// drawn under a package whose built-in names `bw` draws that package's 1-bit
+// art, and logs nothing: the lookups the core makes with Platinum's id
+// (`classicyCoreIcon`, `iconImageByType(type, "platinum")`) read Platinum's
+// base tree, as they should. A theme whose variant draws no art is warned
+// once, whichever package draws it and whichever id a lookup is made with.
+const NOT_REGISTERED = (variant: string, packageId: string) =>
+	`Theme asset variant "${variant}" is not registered for package "${packageId}"; its base assets are used`;
+const NOT_DRAWN = (variant: string, own: string, drawn: string) =>
+	`Theme asset variant "${variant}" of package "${own}" is not drawn by package "${drawn}"; its base assets are used`;
+
+describe("what a variant warns, for a theme of another package (0235-xgi N4, N5)", () => {
+	const drawnWithBw = () => {
+		const id = "sys7v";
+		registerClassicyAppearancePackage({
+			...stub(id),
+			defaults: { ...stub(id).defaults, assetVariant: "bw" },
+		});
+		registerClassicyAssets("icons", id, { app: "/sys7v-app.png" });
+		registerClassicyAssets(
+			"icons",
+			id,
+			{ app: "/sys7v-bw-app.png" },
+			{ variant: "bw" },
+		);
+		return id;
+	};
+	/** Lookups by the drawn package and by the default package's id. */
+	const lookUp = async () => {
+		const drawn = resolveClassicyAsset("icons", "app");
+		const core = resolveClassicyAsset("icons", "core", "platinum");
+		await Promise.resolve();
+		await Promise.resolve();
+		return { drawn, core };
+	};
+
+	it("logs nothing when the drawn package draws the theme's variant", async () => {
+		const id = drawnWithBw();
+		activate(id, themeOf("platinum", "bw"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/sys7v-bw-app.png");
+		expect(seen.core).toBe("/platinum-core.png");
+		expect(variantWarnings()).toEqual([]);
+	});
+
+	it("warns once, for the theme's own package, when no built-in of the drawn package names the variant", async () => {
+		const id = drawnWithBw();
+		activate(id, themeOf("platinum", "sepia"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/sys7v-app.png");
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("sepia", "platinum"),
+		]);
+	});
+
+	it("warns for a variant its own package draws and never registered", async () => {
+		drawnWithBw();
+		activate("platinum", themeOf("platinum", "bw"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/platinum-app.png");
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("bw", "platinum"),
+		]);
+	});
+
+	it("still warns once the theme's own package draws, after a page that drew the variant elsewhere", async () => {
+		const id = drawnWithBw();
+		activate(id, themeOf("platinum", "bw"));
+		await lookUp();
+		expect(variantWarnings()).toEqual([]);
+		activate("platinum", themeOf("platinum", "bw"));
+		await lookUp();
+		expect(variantWarnings()).toHaveLength(1);
+		expect(variantWarnings()[0].message).toContain('"platinum"');
+	});
+
+	// Review F9: each half of "the drawn package draws the variant", and the
+	// check made after the current task.
+	it("warns for the theme's own package when the drawn package has the variant's trees and no built-in naming it", async () => {
+		// sys7 registers `bw` trees; none of its built-ins names `bw`, so a
+		// Platinum theme naming it draws sys7's base tree.
+		activate("sys7", themeOf("platinum", "bw"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/sys7-app.png");
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("bw", "platinum"),
+		]);
+	});
+
+	it("warns for both packages when the drawn package's built-in names a variant neither registered", async () => {
+		const id = "named-only";
+		registerClassicyAppearancePackage({
+			...stub(id),
+			defaults: { ...stub(id).defaults, assetVariant: "bw" },
+		});
+		registerClassicyAssets("icons", id, { app: "/named-only-app.png" });
+		activate(id, themeOf("platinum", "bw"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/named-only-app.png");
+		await lookUp();
+		expect(
+			variantWarnings()
+				.map((e) => e.message)
+				.sort(),
+		).toEqual(
+			[NOT_REGISTERED("bw", id), NOT_REGISTERED("bw", "platinum")].sort(),
+		);
+	});
+
+	it("does not warn when the package that draws the variant registers in the same task as the first lookup", async () => {
+		const id = "late";
+		// The stored package is not registered yet: Platinum draws.
+		activate(id, themeOf("platinum", "bw"));
+		expect(resolveClassicyAsset("icons", "core", "platinum")).toBe(
+			"/platinum-core.png",
+		);
+		expect(resolveClassicyAsset("icons", "app")).toBe("/platinum-app.png");
+		act(() => {
+			registerClassicyAppearancePackage({
+				...stub(id),
+				defaults: { ...stub(id).defaults, assetVariant: "bw" },
+			});
+			registerClassicyAssets(
+				"icons",
+				id,
+				{ app: "/late-bw-app.png" },
+				{ variant: "bw" },
+			);
+		});
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(variantWarnings()).toEqual([]);
+		expect(resolveClassicyAsset("icons", "app")).toBe("/late-bw-app.png");
+		// No mark was left: its own package drawing it is still warned.
+		activate("platinum", themeOf("platinum", "bw"));
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("bw", "platinum"),
+		]);
+	});
+
+	// Review G round 3, F13: a theme that names no package is the default
+	// package's ("missing → platinum"), never the drawing package's.
+	it("takes a theme naming no package for the default package's", async () => {
+		const theme: Partial<ClassicyTheme> = themeOf("platinum", "sepia");
+		delete theme.package;
+		activate("sys7", theme as ClassicyTheme);
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/sys7-app.png");
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("sepia", "platinum"),
+		]);
+	});
+
+	// Review G round 3, F10: a package that is not registered is not loaded,
+	// so it is never named as lacking a variant; the variant is not drawn by
+	// the package that draws, which holds whatever that package has.
+	it("names a theme's package that is not registered only as not drawing its variant", async () => {
+		// A host that dropped its package: a Custom of it naming `bw`.
+		activate("platinum", themeOf("gone7", "bw"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/platinum-app.png");
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_DRAWN("bw", "gone7", "platinum"),
+		]);
+	});
+
+	it("never names a package that registers a task later as lacking the variant", async () => {
+		// Stored and the theme's own, but imported later (a dynamic import):
+		// Platinum draws until it registers.
+		activate("late7", themeOf("late7", "bw"));
+		const before = await lookUp();
+		expect(before.drawn).toBe("/platinum-app.png");
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		act(() => {
+			registerClassicyAppearancePackage(stub("late7"));
+			registerClassicyAssets(
+				"icons",
+				"late7",
+				{ app: "/late7-bw-app.png" },
+				{ variant: "bw" },
+			);
+		});
+		const after = await lookUp();
+		expect(after.drawn).toBe("/late7-bw-app.png");
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		await lookUp();
+		// What held before it registered, and nothing once it draws.
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_DRAWN("bw", "late7", "platinum"),
+		]);
+	});
+
+	// Review F11: the warning does not depend on a lookup made with the
+	// theme's own package's id, which in the core only the default package
+	// gets. A theme of any package naming a variant that draws no art warns,
+	// under any package, through any lookup.
+	describe.each([
+		["the drawn package's id", () => resolveClassicyAsset("icons", "app")],
+		[
+			"the default package's id",
+			() => resolveClassicyAsset("icons", "core", "platinum"),
+		],
+		[
+			"the theme's own package's id",
+			() => resolveClassicyAsset("icons", "app", "sys7"),
+		],
+		[
+			"a third package's id",
+			() => resolveClassicyAsset("icons", "app", "sys7v"),
+		],
+		[
+			"a hook",
+			() => {
+				captureHook(() => useClassicyAsset("icons", "app"));
+			},
+		],
+		[
+			"the published variables",
+			() => {
+				captureHook(() => useClassicyAssetVars());
+			},
+		],
+	])("through a lookup made with %s", (_how, read) => {
+		const flush = async () => {
+			await Promise.resolve();
+			await Promise.resolve();
+		};
+
+		it("warns once for a non-default package's theme naming a variant nothing registered, drawn under the default package", async () => {
+			drawnWithBw();
+			activate("platinum", themeOf("sys7", "sepia"));
+			read();
+			await flush();
+			read();
+			read();
+			await flush();
+			expect(variantWarnings().map((e) => e.message)).toEqual([
+				NOT_REGISTERED("sepia", "sys7"),
+			]);
+		});
+
+		it("warns once for a variant of the theme's own package that the drawn package does not take", async () => {
+			drawnWithBw();
+			// `bw` is sys7's, registered; Platinum draws, and takes none of it.
+			activate("platinum", themeOf("sys7", "bw"));
+			read();
+			await flush();
+			read();
+			read();
+			await flush();
+			expect(variantWarnings().map((e) => e.message)).toEqual([
+				NOT_DRAWN("bw", "sys7", "platinum"),
+			]);
+		});
+
+		it("logs nothing for a theme whose variant the drawn package draws", async () => {
+			const id = drawnWithBw();
+			// Its own package's theme, then another package's.
+			activate("sys7", themeOf("sys7", "bw"));
+			read();
+			await flush();
+			activate(id, themeOf("platinum", "bw"));
+			read();
+			await flush();
+			activate(id, themeOf("sys7", "bw"));
+			read();
+			await flush();
+			expect(variantWarnings()).toEqual([]);
+		});
+	});
+
+	it("warns each mistake once in a page, and again for another", async () => {
+		drawnWithBw();
+		activate("platinum", themeOf("sys7", "sepia"));
+		await lookUp();
+		activate("platinum", themeOf("sys7", "bw"));
+		await lookUp();
+		activate("sys7", themeOf("sys7", "sepia"));
+		await lookUp();
+		activate("platinum", themeOf("sys7", "sepia"));
+		await lookUp();
+		activate("platinum", themeOf("sys7", "bw"));
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("sepia", "sys7"),
+			NOT_DRAWN("bw", "sys7", "platinum"),
+		]);
+		// Another name is its own warning. The same misspelling under another
+		// drawing package is not: it is keyed by the theme's package and name.
+		activate("platinum", themeOf("sys7", "noir"));
+		await lookUp();
+		activate("sys7v", themeOf("sys7", "sepia"));
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("sepia", "sys7"),
+			NOT_DRAWN("bw", "sys7", "platinum"),
+			NOT_REGISTERED("noir", "sys7"),
+		]);
+	});
+
+	it("warns of what holds after the task, and leaves no mark for what does not", async () => {
+		drawnWithBw();
+		// A lookup under a theme whose variant draws nothing, then, in the
+		// same task, a theme naming none: nothing to warn of.
+		activate("platinum", themeOf("sys7", "sepia"));
+		resolveClassicyAsset("icons", "app");
+		activate("platinum", themeOf("platinum"));
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(variantWarnings()).toEqual([]);
+		// The same mistake later is still warned.
+		activate("platinum", themeOf("sys7", "sepia"));
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			NOT_REGISTERED("sepia", "sys7"),
+		]);
 	});
 });

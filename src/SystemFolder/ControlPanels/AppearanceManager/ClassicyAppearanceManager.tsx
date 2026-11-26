@@ -32,6 +32,7 @@ import {
 	downloadClassicyTheme,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import { useClassicyThemeLinkCopy } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeLinkCopy.internal";
 import type {
 	ClassicyThemeMetricChange,
 	ClassicyThemeMetricFamilyChange,
@@ -184,6 +185,21 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 			});
 		}
 	}, []);
+
+	// Copy Theme Link (only while a desktop opens theme links): the active
+	// theme as a link, on the clipboard; a failure shows the same alert.
+	const reportThemeLinkError = useCallback(
+		(label: string, message: string) => setThemeFileError({ label, message }),
+		[],
+	);
+	const panelOpen = useAppManager(
+		(s) => !!s.System.Manager.Applications.apps[APP_ID]?.open,
+	);
+	const themeLinkCopy = useClassicyThemeLinkCopy(
+		appearanceState.activeTheme,
+		reportThemeLinkError,
+		panelOpen,
+	);
 
 	const loadThemeFile = useCallback(
 		async (file: File) => {
@@ -504,6 +520,8 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		toggleDoubleClickTitleToCollapse,
 		saveTheme,
 		loadThemeFile,
+		copyThemeLink: themeLinkCopy?.copy,
+		copiedThemeName: themeLinkCopy?.copiedThemeName ?? null,
 	});
 
 	const packagesTab = usePackagesTab({
@@ -555,6 +573,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const metricsTab = useMetricsTab({
 		theme: appearanceState.activeTheme,
+		packageId: activePackage.id,
 		editingCustomTheme: isCustomThemeActive(appearanceState),
 		changeMetric,
 	});

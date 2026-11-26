@@ -1,0 +1,170 @@
+// The Application Switcher palette's structure (Mac OS 8.5,
+// `packages/appearance/platinum/resources/screenshots/mac-os-8.5/`): a
+// column (or row) of bevel buttons, each an application's small (or large)
+// icon and, unless hidden, its name. The look of the buttons is the bevel
+// button's; a package draws the window's titled bar.
+
+.classicyApplicationSwitcherButtons {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--control-bevel-sm);
+}
+
+// More buttons than a line holds before the desktop's edge wrap into the
+// next column (the next row, horizontal), `--application-switcher-lines` a
+// line, which the palette measures from the room the desktop has. Each
+// track is as wide as its widest button (`max-content`), wherever the
+// palette sits: `auto` tracks over buttons with no minimum width let the
+// grid shrink to the room left of the window, squeezing the names and
+// reshaping the palette as it moved. It is the extent the count reads.
+.classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--application-switcher-lines), auto);
+  grid-auto-columns: max-content;
+}
+
+.classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped {
+  grid-auto-flow: row;
+  grid-template-rows: none;
+  grid-template-columns: repeat(var(--application-switcher-lines), max-content);
+}
+
+// Three classes, so the palette's geometry beats the bevel button's own
+// (one class) and its toolbar and help variants (two).
+.classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton {
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 0;
+  // HIGOS8 p.103: 22-by-22 buttons with a small bevel hold 16-by-16 icons.
+  padding: var(--control-bevel-sm);
+  white-space: nowrap;
+
+  .classicyBevelButtonLabel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--control-padding);
+  }
+}
+
+.classicyApplicationSwitcherIcon {
+  display: block;
+  flex: none;
+  width: var(--icon-small-size);
+  height: var(--icon-small-size);
+  user-select: none;
+  pointer-events: none;
+}
+
+// The names are small text: "Calculator" is 8 rows tall in Mac OS 8.5
+// (`platinum-85-switcher-palette.png`), as Geneva is at the small UI size;
+// the theme's small UI family when it names one, else its body font (Geneva
+// under Platinum, whose UI family is Charcoal).
+.classicyApplicationSwitcherName {
+  padding-right: var(--control-padding);
+  font-family: var(--ui-font-small, var(--body-font)), sans-serif;
+  font-size: var(--ui-font-size-small);
+}
+
+.classicyApplicationSwitcherLargeIcons .classicyApplicationSwitcherIcon {
+  width: var(--icon-size-regular);
+  height: var(--icon-size-regular);
+}
+
+// Option-Shift-click on the zoom box: the buttons run across, and the drag
+// bar runs down the window's left side, its close box at the top and its
+// zoom and collapse boxes at the bottom (`platinum-85-switcher-horizontal.png`).
+.classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons {
+  flex-direction: row;
+  // As wide as its buttons, wherever the palette sits.
+  flex: none;
+}
+
+// The buttons fill the height the drag bar gives the window: the window's
+// contents lay the list out as a flex item, stretched, so its whole box (a
+// package's margin and border around the buttons included) fits the
+// contents. `height: 100%` on the list made its content that tall, and a
+// package's well around it overflowed the window, which clipped its bottom
+// line (Mac OS 8.5 closes the well: `platinum-85-switcher-horizontal.png`).
+.classicyApplicationSwitcherHorizontal .classicyWindowContentsInner {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+// Named down to the utility window, so these beat the windoid's own rules.
+.classicyWindow.classicyWindowUtility.classicyApplicationSwitcherHorizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+
+  > .classicyWindowTitleBar {
+    flex-direction: column;
+    align-items: center;
+    width: var(--window-utility-title-bar-height);
+    min-width: var(--window-utility-title-bar-height);
+    height: auto;
+    min-height: 0;
+    top: 0;
+    left: calc(var(--control-frame-width) * -1);
+    padding-bottom: 0;
+    padding-right: var(--window-border-size);
+    row-gap: var(--control-bevel-lg);
+    column-gap: 0;
+
+    // The drag region keeps a box's height between the boxes, so a row of
+    // small icons grows the window to hold the bar.
+    .classicyWindowTitle {
+      flex-direction: column;
+      align-self: stretch;
+      min-height: var(--window-control-size);
+    }
+
+    .classicyWindowTitle .classicyWindowTitleCenter {
+      width: auto;
+      height: auto;
+      margin: 0 var(--window-border-size);
+    }
+  }
+
+  > .classicyWindowContents {
+    height: auto;
+  }
+}
+
+// Collapsed across, the palette keeps its height and shows its drag bar
+// alone, down its left side, so its close, zoom and collapse boxes stay in
+// reach: the hidden contents (`.classicyWindowContents.collapsed`) keep
+// their height and give the window no width. A utility window's collapsed
+// height (`.classicyWindowUtility.collapsed`) is the height of a bar across
+// the top, which down the side cut off the zoom and collapse boxes at the
+// bar's bottom, so the palette could not be expanded from them (integration
+// review G round 3, F2). Down a column it collapses to its bar, as Mac OS
+// 8.5 does (`platinum-85-switcher-collapsed.png`).
+.classicyWindow.classicyWindowUtility.classicyApplicationSwitcherHorizontal.collapsed {
+  height: auto;
+
+  > .classicyWindowContents {
+    max-width: 0;
+  }
+}
+
+// The outline a tear-off drags across the desktop, the size of the
+// Application menu (`platinum-85-tearoff-outline.png`): fixed to the
+// viewport, above the menus, and never under the pointer's events.
+.classicyApplicationSwitcherTearOffOutline {
+  position: fixed;
+  z-index: 5001;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: var(--window-border-size) dotted var(--color-system-06);
+}
+
+// The Keyboard Shortcuts topic's page that changes the chord.
+.classicyApplicationSwitcherShortcutPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--control-padding);
+}

@@ -4,11 +4,14 @@ import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
+import { classicyCommonJsDeclarationsWriter } from "./bin/classicyCommonJsDeclarations";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
 import { classicyDeclarationExtensionsWriter } from "./bin/classicyDeclarationSpecifiers";
+import { classicyDeferredModulePlugin } from "./bin/classicyDeferredModule";
 import { classicyDeflateAssetPlugin } from "./bin/classicyDeflateAsset";
 import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
+import { classicyNodeEntryPlugin } from "./bin/classicyNodeEntry";
 import {
 	isClassicyAppearanceSourcePath,
 	noInlineAppearanceAssetsPlugin,
@@ -18,6 +21,9 @@ import {
 	classicyStyleInjector,
 	prependLayerOrder,
 } from "./bin/classicyStyleInjector";
+import { classicyUmdLoaderPlugin } from "./bin/classicyUmdLoader";
+import { classicyUmdNodeUrlPlugin } from "./bin/classicyUmdNodeUrl";
+import { classicyUseClientPlugin } from "./bin/classicyUseClient";
 
 // `import "@classicy/classicy"` should be enough to get a styled desktop (#303): no CSS
 // loader to configure, no second import to remember. This plugin embeds the
@@ -199,6 +205,14 @@ const config = defineConfig({
 		],
 	},
 	plugins: [
+		// The bundles import in Node, so a server-rendering host can import them
+		// (story 0223-a0y): micromark's decode-named-character-reference resolves
+		// to its default entry, not the `browser` one that touches `document` at
+		// load (bin/classicyNodeEntry.ts; verify:dist invariant 19).
+		classicyNodeEntryPlugin(),
+		// pdf.js's body runs when the PDF viewer first loads a document, not
+		// when the UMD bundle that inlines it loads (bin/classicyDeferredModule.ts).
+		classicyDeferredModulePlugin(),
 		// An Appearance Package's assets ship as files (bin/classicyNoInlineAssets.ts);
 		// the core's bundle reaches none since it stopped bundling Platinum, and
 		// verify:dist (invariant 5) fails if it ever does.
@@ -221,6 +235,10 @@ const config = defineConfig({
 			// `"type": "module"` package (verify:dist invariant 8,
 			// bin/check-host-types.ts).
 			beforeWriteFile: classicyDeclarationExtensionsWriter({ root: __dirname }),
+			// And again as `.d.cts` twins, the exports map's `require` types: a
+			// CommonJS TypeScript host reads the `.d.ts` ones as ES modules
+			// (bin/classicyCommonJsDeclarations.ts, story 0223-a0y).
+			afterBuild: classicyCommonJsDeclarationsWriter(),
 		}),
 		richSvg(),
 		VitePluginImageTools({
@@ -237,6 +255,18 @@ const config = defineConfig({
 		// `?classicy-deflate` imports embed a file raw-deflated as base64 text
 		// (the pdf.js worker, plan 0019-fb7 Part 2; bin/classicyDeflateAsset.ts).
 		classicyDeflateAssetPlugin(),
+		// dist/classicy.umd.cjs, the exports map's `require` under `node`: it
+		// runs classicy.umd.js as CommonJS, which this "type": "module" package
+		// cannot `require()` as it is (bin/classicyUmdLoader.ts, invariant 19).
+		classicyUmdLoaderPlugin("classicy.umd.js", "@classicy/classicy"),
+		// The UMD bundle reaches Node's url module with process.getBuiltinModule,
+		// not a static require("url") a browser bundler cannot resolve
+		// (bin/classicyUmdNodeUrl.ts, invariant 19).
+		classicyUmdNodeUrlPlugin(),
+		// `"use client";` heads the ES entry, so a Next.js server component
+		// imports Classicy with no client wrapper of its own; the UMD bundle and
+		// the lazy chunks carry none (bin/classicyUseClient.ts, invariant 20).
+		classicyUseClientPlugin("classicy.es.js"),
 		// Last: the published maps keep Classicy's own text and drop third-party
 		// and asset text (verify:dist invariant 16), after injectCssPlugin has
 		// changed the entry bundles.
@@ -268,6 +298,18 @@ const config = defineConfig({
 					)
 						? "assets/[name][extname]"
 						: "[name][extname]",
+				// Lazy chunks keep their default name, except the one holding only
+				// fflate (shared by the PDF viewer's worker source and the theme
+				// link codec), which would be named after fflate's file,
+				// `browser`: it is `fflate-[hash].js`, so a host listing the
+				// chunks can tell what it is. The UMD bundle has no chunks.
+				chunkFileNames: (chunk) =>
+					chunk.moduleIds.length > 0 &&
+					chunk.moduleIds.every((id) =>
+						/[\\/]node_modules[\\/]fflate[\\/]/.test(id),
+					)
+						? "fflate-[hash].js"
+						: "[name]-[hash].js",
 				globals: {
 					react: "React",
 					"react-dom": "ReactDOM",

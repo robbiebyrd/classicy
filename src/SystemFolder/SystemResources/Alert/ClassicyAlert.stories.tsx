@@ -141,8 +141,10 @@ export const WithHelpButton: Story = {
 
 /**
  * The movable variant (`movable`): a draggable window whose title bar carries
- * the red highlight and shows `title`, instead of the fixed alert's red
- * content border (HIGOS8 p.57). It plays the alert sound itself on open.
+ * the red highlight and shows `title`, where the fixed alert has no title bar
+ * (HIGOS8 p.57). Both draw the red frame of HIGOS8 pp.61-64, Figures 3-4 to
+ * 3-8, around their contents (under Platinum). It plays the alert sound
+ * itself on open.
  */
 export const Movable: Story = {
 	render: () => (
@@ -158,6 +160,68 @@ export const Movable: Story = {
 				buttons={[
 					{ id: "cancel", label: "Cancel", role: "cancel", onClick: fn() },
 					{ id: "replace", label: "Replace", role: "default", onClick: fn() },
+				]}
+				onClose={fn()}
+			/>
+		</StoryApp>
+	),
+};
+
+/**
+ * A movable `note` alert: the same red title-bar highlight as every movable
+ * alert box (HIGOS8 p.61); only the icon tells the types apart.
+ */
+export const MovableNote: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyAlert
+				id="alert-movable-note"
+				appId="storybook.app"
+				alertType="note"
+				movable={true}
+				label="The document has been printed."
+				buttons={[{ id: "ok", label: "OK", role: "default", onClick: fn() }]}
+				onClose={fn()}
+			/>
+		</StoryApp>
+	),
+};
+
+/** A movable `stop` alert: the same frame, with the stop icon. */
+export const MovableStop: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyAlert
+				id="alert-movable-stop"
+				appId="storybook.app"
+				alertType="stop"
+				movable={true}
+				label="The file could not be saved, because the disk is full."
+				buttons={[{ id: "ok", label: "OK", role: "default", onClick: fn() }]}
+				onClose={fn()}
+			/>
+		</StoryApp>
+	),
+};
+
+/**
+ * `dialogBox`: an alert in a movable modal dialog box's frame, the plain
+ * title bar (HIGOS8 p.59), as Mac OS 8.1's SimpleText asks "Save changes…".
+ */
+export const MovableDialogBox: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyAlert
+				id="alert-movable-dialog-box"
+				appId="storybook.app"
+				alertType="caution"
+				movable={true}
+				dialogBox={true}
+				label="Save changes to the document “untitled” before closing?"
+				buttons={[
+					{ id: "dont-save", label: "Don’t Save", onClick: fn() },
+					{ id: "cancel", label: "Cancel", role: "cancel", onClick: fn() },
+					{ id: "save", label: "Save", role: "default", onClick: fn() },
 				]}
 				onClose={fn()}
 			/>

@@ -174,11 +174,18 @@ const PLATINUM_KNOB_FAMILIES = [
 	"table",
 	"stripMenu",
 	"slider",
+	"checkbox",
 	"dither",
+	"selectionMarquee",
+	"zoomRects",
+	"applicationSwitcher",
+	"menuBar",
 ];
 
 // A package shaped like Storybook's Test Pack: a partial controlStrip (one
-// Platinum key, one of its own) and a family Platinum does not have.
+// Platinum key, one of its own) and a family Platinum does not have
+// (`tickerTape`; Platinum has a `menuBar` family since integration review G
+// round 6, the Test Pack's own knob there now beside Platinum's).
 const PARTIAL_PACK_ID = "partial-pack";
 const partialPack = (): ClassicyAppearancePackage => {
 	const base = getTheme("default");
@@ -195,7 +202,7 @@ const partialPack = (): ClassicyAppearancePackage => {
 				...base.measurements,
 				window: { ...base.measurements.window, borderSize: 2 },
 				controlStrip: { cellHeight: 30, tabWidth: 12 },
-				menuBar: { barHeight: 20 },
+				tickerTape: { barHeight: 20 },
 			},
 		},
 		layout: {
@@ -250,9 +257,9 @@ describe("classicyThemeMeasurementDefaults", () => {
 				CLASSICY_CORE_MEASUREMENT_DEFAULTS,
 			);
 		}
-		// Platinum's look-only knobs are its own, never the core's.
+		// Platinum's optional knobs are its own, never the core's.
 		expect(classicyThemeMeasurementDefaults("platinum")).not.toHaveProperty(
-			"menuFrame",
+			"fileBrowserList",
 		);
 	});
 
@@ -287,17 +294,17 @@ describe("classicyThemeMeasurementDefaults", () => {
 		// The package's own values win, its own keys and families are kept…
 		expect(d.controlStrip.cellHeight).toBe(30);
 		expect(d.controlStrip.tabWidth).toBe(12);
-		expect(d.menuBar).toEqual({ barHeight: 20 });
+		expect(d.tickerTape).toEqual({ barHeight: 20 });
 		expect(d.window.borderSize).toBe(2);
-		// …and every structural key it leaves out comes from the core floor;
-		// Platinum's look-only bevelWidth is Platinum's alone.
+		// …and every structural key it leaves out comes from the core floor
+		// (the Control Strip's bevel too, which Platinum's sheet reads).
 		for (const key of Object.keys(
 			CLASSICY_CORE_MEASUREMENT_DEFAULTS.controlStrip,
 		)) {
 			expect(typeof d.controlStrip[key], key).toBe("number");
 		}
-		expect(d.controlStrip).not.toHaveProperty("bevelWidth");
-		expect(Object.keys(d.controlStrip)).toHaveLength(14);
+		expect(d.controlStrip.bevelWidth).toBe(1);
+		expect(Object.keys(d.controlStrip)).toHaveLength(15);
 		expect(d.pager.arrowWidth).toBe(42);
 	});
 
@@ -367,7 +374,7 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 			measurements: {
 				...CLASSICY_DEFAULT_THEME_METRICS,
 				controlStrip: { cellHeight: 30, tabWidth: 12 },
-				menuBar: { barHeight: 20 },
+				tickerTape: { barHeight: 20 },
 			},
 		};
 		const t = withDefaultThemeMetrics(
@@ -375,7 +382,7 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 			classicyThemeMeasurementDefaults("platinum"),
 		);
 		expect(t.measurements.controlStrip.tabWidth).toBe(12);
-		expect(t.measurements.menuBar).toEqual({ barHeight: 20 });
+		expect(t.measurements.tickerTape).toEqual({ barHeight: 20 });
 		expect(Object.keys(t.measurements.controlStrip)).toHaveLength(15);
 	});
 
@@ -437,7 +444,7 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 		expect(again).toBe(filled);
 	});
 
-	it("a Test Pack-shaped theme with a partial controlStrip still gets all 13 structural strip variables", () => {
+	it("a Test Pack-shaped theme with a partial controlStrip still gets all 14 structural strip variables", () => {
 		registerClassicyAppearancePackage(partialPack());
 		const base = getTheme("default");
 		const vars = getThemeVars({
@@ -458,9 +465,9 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 				classicyMeasurementVarName("controlStrip", key),
 			);
 		}
-		// The look-only bevel is Platinum's: the package declares none.
-		expect(vars).not.toHaveProperty("--control-strip-bevel-width");
-		expect(strip).toHaveLength(14);
+		// The bevel Platinum's sheet reads comes from the floor too.
+		expect(vars["--control-strip-bevel-width"]).toBe("1px");
+		expect(strip).toHaveLength(15);
 		expect(vars["--strip-menu-overlap"]).toBe("3px");
 		expect(vars["--control-strip-cell-height"]).toBe("30px");
 		expect(vars["--control-strip-tab-width"]).toBe("12px");

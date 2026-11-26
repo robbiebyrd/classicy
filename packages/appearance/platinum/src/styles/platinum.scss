@@ -34,6 +34,8 @@
 @use "components/Tabs";
 @use "components/ScrollArea";
 @use "components/DesktopIcon";
+@use "components/SelectionMarquee";
+@use "components/ZoomRects";
 @use "components/HyperCard";
 @use "components/FileInput";
 @use "components/Meter";
@@ -41,6 +43,7 @@
 @use "components/Placard";
 @use "components/SplitView";
 @use "components/WindowFrame";
+@use "components/ApplicationSwitcher";
 @use "components/AppearanceManager";
 @use "screenSavers";
 
@@ -78,6 +81,10 @@
   // viewport re-asserts its hidden native bar over the desktop's fallback.
   @include ScrollArea.scrollArea;
   @include DesktopIcon.desktopIcon;
+  // The selection rectangle, over the icons.
+  @include SelectionMarquee.selectionMarquee;
+  // The zoom rectangles, over the windows.
+  @include ZoomRects.zoomRects;
   @include HyperCard.hyperCard;
   @include FileInput.fileInput;
   @include Meter.meter;
@@ -85,6 +92,9 @@
   @include Placard.placard;
   @include SplitView.splitView;
   @include WindowFrame.windowFrame;
+  // After the window and the bevel button: the palette's own frame and
+  // buttons over theirs.
+  @include ApplicationSwitcher.applicationSwitcher;
   @include AppearanceManager.appearanceManager;
   // The screen savers (plan 0016-vbq §2.1): in the package layer, but at its
   // root, outside the package scope, keyed on their own classes (see

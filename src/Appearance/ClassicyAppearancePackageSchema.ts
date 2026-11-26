@@ -18,7 +18,7 @@ const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
 /**
  * The three arrangement groups, every one required, and the optional
  * behavior groups (`scrollBar`, `patternOrigin`, `slider`, `fileDialog`,
- * `fileBrowser`), each key of which is optional too.
+ * `fileBrowser`, `applicationSwitcher`), each key of which is optional too.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
@@ -79,6 +79,9 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
 		})
+		.optional(),
+	applicationSwitcher: z
+		.object({ palette: z.enum(["tearOff", "none"]).optional() })
 		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
@@ -284,6 +287,7 @@ const iconDimmingRule = z
 		blend: z.object({
 			color: dimmingColor,
 			amount: z.number().min(0).max(1),
+			depth: z.union([z.literal(8), z.literal(16)]).optional(),
 		}),
 		bits: z.number().int().min(1).max(8).optional(),
 		palette: z.array(dimmingColor).min(1).max(256).optional(),
@@ -323,6 +327,13 @@ export const ClassicyAppearancePackageSchema = z
 			),
 		defaults: ClassicyPackageThemeSchema,
 		presets: z.array(ClassicyPackageThemeSchema).max(256).optional(),
+		foreignThemeDefaults: z
+			.string()
+			.min(1)
+			.optional()
+			.describe(
+				"The id of the built-in theme (defaults or a preset) whose measurements complete another package's theme while this package draws it; absent, the defaults.",
+			),
 		knobs: z.record(z.string(), z.record(z.string(), knob)).optional(),
 		colorFamilies: colorFamilies
 			.optional()
@@ -332,6 +343,13 @@ export const ClassicyAppearancePackageSchema = z
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
 		sounds: z.array(ClassicySoundPackSchema).optional(),
+		helpMenu: z
+			.object({ aboutTitle: z.string().min(1).optional() })
+			.strict()
+			.optional()
+			.describe(
+				'The standard Help menu\'s wording: aboutTitle is its first item (Mac OS 8: "About Help", HIGOS8 Figure 4-2; System 7: "About Balloon Help…", HIGOS7 Figure 4-88).',
+			),
 		defaultScreenSaver: z
 			.string()
 			.min(1)
@@ -348,7 +366,7 @@ export const ClassicyAppearancePackageSchema = z
 		iconDimming: iconDimming
 			.optional()
 			.describe(
-				"How the package dims an icon per pixel (a hidden application's icon): blend each channel toward a color, keep the top bits of each, then take the nearest palette entry. Per asset variant, null declares none.",
+				"How the package dims an icon per pixel (a hidden application's icon): blend each channel toward a color (on 8- or 16-bit components), keep the top bits of each, then take the nearest palette entry. Per asset variant, null declares none.",
 			),
 	})
 	// The defaults are the theme a switch to this package activates; one that
@@ -375,6 +393,23 @@ export const ClassicyAppearancePackageSchema = z
 					});
 				}
 			}
+		}
+	})
+	// The theme that completes a foreign theme must be one of the package's
+	// own built-ins (story 0235-xgi).
+	.check((ctx) => {
+		const { defaults, presets, foreignThemeDefaults } = ctx.value;
+		if (
+			foreignThemeDefaults !== undefined &&
+			defaults.id !== foreignThemeDefaults &&
+			!(presets ?? []).some((theme) => theme.id === foreignThemeDefaults)
+		) {
+			ctx.issues.push({
+				code: "custom",
+				input: foreignThemeDefaults,
+				path: ["foreignThemeDefaults"],
+				message: `must be the id of the defaults or of a preset, not "${foreignThemeDefaults}"`,
+			});
 		}
 	})
 	.check((ctx) => {

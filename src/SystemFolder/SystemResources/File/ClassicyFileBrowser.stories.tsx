@@ -1,4 +1,9 @@
-import { desktopParameters, StoryApp } from "@sb/helpers";
+import {
+	desktopParameters,
+	dragClassicySelectionRectangle,
+	dragClassicySelectionRectanglePastEdge,
+	StoryApp,
+} from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type {
@@ -120,4 +125,26 @@ export const IconViewKeptArranged: Story = {
 			}}
 		/>
 	),
+};
+
+/**
+ * The selection rectangle (story 0228-e9l): a drag from the empty space
+ * above the first icon to the middle of the second, the button still held.
+ * Platinum draws Mac OS 8.1's: a two-pixel frame of the 50% checker in XOR,
+ * black over the white window, inverted over the icons it crosses; both
+ * icons it touches are selected.
+ */
+export const IconViewSelectionRectangle: Story = {
+	render: () => <BrowserWindow display="icons" variant="icons-marquee" />,
+	play: dragClassicySelectionRectangle,
+};
+
+/**
+ * The selection rectangle held past the window's bottom edge (story
+ * 0228-e9l): the window's contents clip it, so its sides run to the edge and
+ * no line is drawn along it, as the Mac OS 8.1 Finder clipped its frame.
+ */
+export const IconViewSelectionRectanglePastEdge: Story = {
+	render: () => <BrowserWindow display="icons" variant="icons-marquee-edge" />,
+	play: dragClassicySelectionRectanglePastEdge,
 };

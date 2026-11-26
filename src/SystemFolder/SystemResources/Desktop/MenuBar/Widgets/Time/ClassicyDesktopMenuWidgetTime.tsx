@@ -20,7 +20,6 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
-	type KeyboardEvent,
 	useEffect,
 	useRef,
 	useState,
@@ -29,6 +28,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { noteClassicyClockTick } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyClockTick.internal";
 import { computeAnchoredTime } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 
 type ClassicyDesktopMenuWidgetTimeProps = {
@@ -158,6 +158,8 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent<
 
 			if (newMinutes !== prevMinutesRef.current) {
 				prevMinutesRef.current = newMinutes;
+				// A tick, not an edit: state adapters send nothing for it.
+				noteClassicyClockTick(date);
 				desktopEventDispatch({
 					type: "ClassicyManagerDateTimeSet",
 					dateTime: date,
@@ -192,6 +194,29 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent<
 		return;
 	};
 
+	// What the clock shows, to the minute, for assistive technology: the
+	// readout without its seconds, so a focused clock is not described anew
+	// every second.
+	const hoursShown = militaryTime
+		? convertToTwoDigit(time.hours)
+		: convertTo12HourPeriod(time.hours);
+	const readout = showingTime
+		? [
+				displayDay
+					? displayLongDay
+						? daysOfWeek[time.day]
+						: daysOfWeek[time.day].slice(0, 3)
+					: "",
+				`${hoursShown}:${convertToTwoDigit(time.minutes)}${
+					!militaryTime && displayPeriod ? time.period : ""
+				}`,
+			]
+				.filter(Boolean)
+				.join(" ")
+		: `${time.month + 1}/${time.date}/${time.year}`;
+
+	const toggle = () => setShowingTime((shown) => !shown);
+
 	const openDateTimeManager = () => {
 		desktopEventDispatch({
 			type: "ClassicyAppOpen",
@@ -206,6 +231,7 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent<
 	return (
 		<>
 			{show && (
+				// biome-ignore lint/a11y/useKeyWithClickEvents: the keyboard toggles it through its button (Enter or Space), whose click reaches this item's
 				<li
 					className={classNames(
 						"classicyMenuItem",
@@ -215,56 +241,62 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent<
 					)}
 					style={style}
 					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "clock" }}
+					// A press anywhere on the clock toggles it and takes no
+					// keyboard focus, as the bar's titles take none.
+					onMouseDown={(e) => e.preventDefault()}
 					onDoubleClick={openDateTimeManager}
-					onClick={() => {
-						setShowingTime(!showingTime);
-					}}
-					onKeyDown={(e: KeyboardEvent) => {
-						if (e.key === "Enter" || e.key === " ") {
-							e.preventDefault();
-							setShowingTime(!showingTime);
-						}
-					}}
+					onClick={toggle}
 				>
-					{showingTime ? (
-						<div>
-							{displayDay && (
-								<span className={"classicyDesktopMenuTimeSeparatorRight"}>
-									{displayLongDay
-										? daysOfWeek[time.day]
-										: daysOfWeek[time.day].slice(0, 3)}
+					{/* A Tab stop, so Enter and Space toggle the date (WCAG 2.1.1,
+					    which wins over Mac OS 8.1, whose menu bar had no keyboard
+					    path at all): a button, whose click reaches the item's.
+					    Its name says what it toggles; it is described by what it
+					    shows, to the minute. */}
+					<button
+						type="button"
+						aria-label={
+							showingTime ? "Clock: show the date" : "Clock: show the time"
+						}
+						aria-description={readout}
+					>
+						{showingTime ? (
+							<>
+								{displayDay && (
+									<span className={"classicyDesktopMenuTimeSeparatorRight"}>
+										{displayLongDay
+											? daysOfWeek[time.day]
+											: daysOfWeek[time.day].slice(0, 3)}
+									</span>
+								)}
+								<span>
+									{" "}
+									{militaryTime
+										? convertToTwoDigit(time.hours)
+										: convertTo12HourPeriod(time.hours)}
 								</span>
-							)}
-							<span>
-								{" "}
-								{militaryTime
-									? convertToTwoDigit(time.hours)
-									: convertTo12HourPeriod(time.hours)}
-							</span>
-							<span>
-								<span className={displaySeconds ? "" : toBlink()}>:</span>
-								{convertToTwoDigit(time.minutes)}
-							</span>
-							{displaySeconds && (
-								<>
-									<span className={toBlink()}>:</span>
-									<span>{convertToTwoDigit(time.seconds)}</span>
-								</>
-							)}
-							{!militaryTime && displayPeriod && (
-								<span className={"classicyDesktopMenuTimeSeparatorLeft"}>
-									{time.period}
+								<span>
+									<span className={displaySeconds ? "" : toBlink()}>:</span>
+									{convertToTwoDigit(time.minutes)}
 								</span>
-							)}
-						</div>
-					) : (
-						<div>
+								{displaySeconds && (
+									<>
+										<span className={toBlink()}>:</span>
+										<span>{convertToTwoDigit(time.seconds)}</span>
+									</>
+								)}
+								{!militaryTime && displayPeriod && (
+									<span className={"classicyDesktopMenuTimeSeparatorLeft"}>
+										{time.period}
+									</span>
+								)}
+							</>
+						) : (
 							<span>
 								{" "}
 								{time.month + 1}/{time.date}/{time.year}
 							</span>
-						</div>
-					)}
+						)}
+					</button>
 				</li>
 			)}
 		</>

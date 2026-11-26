@@ -17,6 +17,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	activateApp,
+	classicyDocumentWindowId,
 	closeApp,
 	deFocusApps,
 	focusApp,
@@ -27,8 +28,10 @@ import {
 	loadApp,
 	openApp,
 	pickSuccessorApp,
+	settleAppLaunch,
 	showAllApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -45,6 +48,11 @@ import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Deskt
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	classicyRecentItemsEventHandler,
+	defaultClassicyRecentItemsState,
+	recordClassicyRecentDocument,
+} from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
@@ -70,13 +78,42 @@ export interface ClassicyStoreSystemApp {
 	open: boolean;
 	data?: Record<string, unknown>;
 	focused?: boolean;
-	// Wall-clock (Date.now) of the app's most recent focus. The only cross-app
-	// recency signal in the store — window zOrder is per-app. Used to pick the
-	// successor that inherits the menu bar when the front app quits.
+	// Wall-clock (Date.now) of the app's most recent focus: the app-level
+	// recency signal. Used to pick the successor that inherits the menu bar when
+	// the front app quits, and the front app while an extension holds the focus
+	// flag. (A window's `zOrder` is strictly increasing across apps too, but it
+	// ranks windows, not apps.)
 	lastFocusedAt?: number;
 	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;
 	extension?: boolean;
+	/**
+	 * Session state (stripped on save): `openApp` launched the app (it was
+	 * not open) and its windows have not all mounted yet. `ClassicyApp`
+	 * ends it (`ClassicyAppLaunchSettled`, `settleAppLaunch`), as a quit does.
+	 */
+	launching?: boolean;
+	/**
+	 * Session state (stripped on save): the launch was a document open
+	 * (`openApp` with `document` or `windows`), so a window that mounts with
+	 * the launch opens only when it shows the document
+	 * (`mayClassicyWindowReopen`, read by `ClassicyWindowOpen`). A plain open,
+	 * the launch's end or a quit ends it.
+	 */
+	launchedFor?: { documents: string[]; windows: string[] };
+	/**
+	 * Session state (stripped on save): how many times the running app was
+	 * opened again with no window open (a plain `openApp` of an open app),
+	 * as Finder 8 sends a running application the reopen application Apple
+	 * event (TN1102). `ClassicyApp` calls its `onReopen` on each change, for
+	 * the app to show a window as on launch. A quit clears it.
+	 */
+	reopened?: number;
+	/**
+	 * An extension kept out of the startup parade (`ClassicyApp`'s
+	 * `bootIcon={false}`): code-derived, refreshed on every load.
+	 */
+	noBootParade?: boolean;
 	/**
 	 * Hidden by the Application menu's Hide commands (HIG7 p.127): the app
 	 * stays open, its windows out of sight, until Show All or until it takes
@@ -157,7 +194,15 @@ export interface ClassicyStoreSystemKeyboardManager
 	/** Extension globals: canonical chord → dispatched action. Unique; first-wins. */
 	global: Record<
 		string,
-		{ appId: string; event: string; eventData?: Record<string, unknown> }
+		{
+			appId: string;
+			event: string;
+			eventData?: Record<string, unknown>;
+			/** The chord as the extension spelled it, for display. */
+			shortcut?: string;
+			/** What the chord does, for the Keyboard Shortcuts topic. */
+			title?: string;
+		}
 	>;
 }
 
@@ -318,6 +363,7 @@ export const classicyAppEventHandler = (
 						? (action.contextMenu as ClassicyMenuItem[])
 						: undefined,
 					action.extension === true,
+					action.bootParade === false,
 				);
 			}
 			break;
@@ -345,6 +391,13 @@ export const classicyAppEventHandler = (
 				deFocusApps(ds);
 			}
 
+			break;
+		}
+		// ClassicyApp: the windows that mount with a launch have registered.
+		case "ClassicyAppLaunchSettled": {
+			if (hasApp(action)) {
+				settleAppLaunch(ds, action.app.id);
+			}
 			break;
 		}
 		case "ClassicyAppFocus": {
@@ -438,12 +491,31 @@ export const classicyAppEventHandler = (
 				if (app) {
 					if (!app.data) app.data = {};
 					const openFiles = app.data.openFiles;
+					const alreadyQueued =
+						Array.isArray(openFiles) && openFiles.includes(action.path);
 					if (!Array.isArray(openFiles)) {
 						app.data.openFiles = [action.path];
 					} else if (!openFiles.includes(action.path)) {
 						app.data.openFiles = [...openFiles, action.path];
 					}
-					openApp(ds, app.id, app.name, app.icon);
+					// A document open: only the document's window
+					// (`${id}_file_${path}`, the id ClassicyApp gives it) reopens,
+					// and Recent Documents remembers the path when it names a file.
+					// An app that draws its own windows for the queue under ids of
+					// its own, and kept this path queued when its window closed
+					// (it dispatches no CloseFile), has a window for it that the
+					// kernel cannot name: every window it closed reopens, as a plain
+					// open, so that one does (story 0226-a6f).
+					const ownWindow =
+						alreadyQueued &&
+						app.open &&
+						!getAppWindow(app, classicyDocumentWindowId(app.id, action.path));
+					if (ownWindow) {
+						openApp(ds, app.id, app.name, app.icon, { forOwnWindow: true });
+						recordClassicyRecentDocument(ds, action.path);
+					} else {
+						openApp(ds, app.id, app.name, app.icon, { document: action.path });
+					}
 				}
 			} else if (action.type.endsWith("CloseFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
@@ -496,6 +568,12 @@ export const classicyShortcutEventHandler = (
 						appId: String(action.appId ?? ""),
 						event: action.event,
 						eventData: action.eventData as Record<string, unknown> | undefined,
+						...(typeof action.shortcut === "string"
+							? { shortcut: action.shortcut }
+							: {}),
+						...(typeof action.title === "string"
+							? { title: action.title }
+							: {}),
 					};
 				}
 			}
@@ -532,6 +610,7 @@ const BUILT_IN_ROUTES: ReadonlyArray<
 > = [
 	["ClassicyWindow", classicyWindowEventHandler],
 	["ClassicyDesktopIcon", classicyDesktopIconEventHandler],
+	["ClassicyDesktopRecentItems", classicyRecentItemsEventHandler],
 	["ClassicyDesktop", classicyDesktopEventHandler],
 	["ClassicyBootParadeIcon", classicyBootEventHandler],
 	["ClassicyManagerDateTime", classicyDateTimeManagerEventHandler],
@@ -661,6 +740,7 @@ export const DefaultAppManagerState: ClassicyStore = {
 				doubleClickTitleToCollapse: true,
 				errorDialog: null,
 				fsVersion: 0,
+				recentItems: defaultClassicyRecentItemsState(),
 			},
 			Applications: {
 				focusedAppId: "Finder.app",

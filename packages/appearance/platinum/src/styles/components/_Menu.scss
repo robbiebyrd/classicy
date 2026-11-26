@@ -2,19 +2,145 @@
 // Figure 6-15 on every menu, its dividers, the submenu triangle, the flash of
 // a chosen item, and the check and dash glyphs of checked and mixed items.
 @use "sass:string";
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../marks";
 @use "../mixins";
+
+// A top-level title of the screen's menu bar: the plain one, and the one a
+// balloon-help anchor wraps.
+$bar: ".classicyDesktopMenuBar .classicyDesktopMenu";
+$titles: "#{$bar} > .classicyMenuItem, #{$bar} > .classicyMenuItemBalloonAnchor > .classicyMenuItem";
+
+// The Application menu title's grip, Mac OS 8.5's, pixel for pixel on the
+// menu marks' grid (`menu.markPixel`): six columns from the grip's left,
+// over the bar's rows below its first. At rest (Finder in front, the grip at
+// x 549-554 of a 640 x 480 screen: audit-85b `im85/a0-desktop.png`,
+// `sheets/s17-grip.png`): a white column, the face, a column of four
+// raised dots (#888888 #AAAAAA over #BBBBBB #FFFFFF, at rows 4, 7, 10 and
+// 13), the face, a #999999 column; the bar's top row runs over the first
+// five columns and is the face over the sixth. Pressed
+// (`im85/c6-grip-held-545.png`): a #555555 column and top row, an #888888
+// face, the dots #555555 #777777 over #777777 #AAAAAA, a #BBBBBB column.
+// The inks are Platinum's gray ramp, each with the core token nearest it.
+$grip-dots-top-left: (2 4) (2 7) (2 10) (2 13);
+$grip-dots-top-right: (3 4) (3 7) (3 10) (3 13);
+$grip-dots-bottom-left: (2 5) (2 8) (2 11) (2 14);
+$grip-dots-bottom-right: (3 5) (3 8) (3 11) (3 14);
+
+// `$w` columns from column `$x`, from the grip's second row to its bottom.
+@function grip-columns($ink, $x, $w: 1) {
+  @return layout.classicy-px-rect($ink, marks.px($x), marks.px(1), marks.px($w), calc(100% - #{marks.px(1)}));
+}
+
+@function grip-dots($top-left, $top-right, $bottom-left, $bottom-right) {
+  @return marks.pixel-art($top-left, $grip-dots-top-left), marks.pixel-art($top-right, $grip-dots-top-right),
+    marks.pixel-art($bottom-left, $grip-dots-bottom-left), marks.pixel-art($bottom-right, $grip-dots-bottom-right);
+}
 
 @mixin menu {
   // A hidden application's icon in the Application menu. The core draws it
   // with Platinum's dimming rule (`iconDimming`, platinumIconDimming.ts), as
-  // Mac OS 8.1 does (Infinite Mac, the capture script's
-  // `platinum-81-appmenu-hidden-app.png`; HIGOS8 describes no dimmed icon:
+  // Mac OS 8.5 does at true color (Infinite Mac's 9500,
+  // `resources/screenshots/mac-os-8.5/platinum-85-appmenu-hidden-app.png`:
+  // halfway to white on 16-bit components; HIGOS8 describes no dimmed icon:
   // its glossary, p.129, says only that a disabled item "may appear
   // dimmed"). This opacity is the fallback for an icon a canvas cannot read
-  // (cross-origin, no CORS): it puts black at the rule's #777777 on the
-  // menu's #DDDDDD.
-  .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage) {
-    opacity: 0.46;
+  // (cross-origin, no CORS): it puts black at the rule's #7F7F7F on the
+  // menu's #DDDDDD (0.42, measured in Chromium and Firefox: 0.43 draws
+  // #7D7D7D, 0.46 the old rule's #777777). The Application Switcher's
+  // palette, the menu torn off, dims a hidden application's icon the same
+  // way (`platinum-85-switcher-hidden-app.png`).
+  .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage),
+  .classicyApplicationSwitcherHidden .classicyApplicationSwitcherIcon:not(.classicyIconDimmedImage) {
+    opacity: 0.42;
+  }
+
+  // The Application menu's title as Mac OS 8.5 draws it (integration review
+  // G round 6, W14/B3; audit-85b `im85/a0-desktop.png`, `b1-asp.png`,
+  // `c5-finder-icononly.png`): the grip, then a box with
+  // `menuBar.switcherTitleStart` (6) before the front application's
+  // `menuBar.titleArtSize` (16) icon, `switcherTitleGap` (5) before its
+  // name and `switcherTitleEnd` (7) after it (the Finder's box 555-628, its
+  // icon 561-576, its name's ink 582-620); its icon alone, a box of 6, 16
+  // and 7 (600-628). Its right edge is `menuBar.endInset` (11) in from the
+  // bar's, and the clock's text ends `menuBar.clockEnd` (6) before the grip,
+  // so its last ink is seven pixels clear of it (541 against 549).
+  #{$bar} {
+    padding-right: var(--menu-bar-end-inset);
+  }
+
+  :is(#{$titles}).classicyDesktopMenuAppSwitcher {
+    padding: 0 var(--menu-bar-switcher-title-end) 0 var(--menu-bar-switcher-title-start);
+
+    > p > img {
+      width: var(--menu-bar-title-art-size);
+      height: var(--menu-bar-title-art-size);
+      margin: 0 var(--menu-bar-switcher-title-gap) 0 0;
+    }
+
+    &.collapsed > p > img {
+      margin-right: 0;
+    }
+
+    // Its menu hangs with the frame's right column under the title's last,
+    // as Mac OS 8.1 and 8.5 both draw it (x 633 in
+    // `mac-os-8.1/platinum-81-appmenu-order.png`; x 628 with Apple System
+    // Profiler in front in 8.5, audit-85b `im85/b2-asp-appmenu.png`): past
+    // the title's content box, where the base sheet hangs it, by the
+    // title's end padding.
+    > .classicyMenuWrapper > .classicySubMenu {
+      right: calc(var(--menu-bar-switcher-title-end) * -1);
+    }
+  }
+
+  #{$bar} > .classicyMenuItem.classicyDesktopMenuTime {
+    margin-right: 0;
+    padding-right: var(--menu-bar-clock-end);
+
+    // The clock's keyboard ring (its readout is the bar's one Tab stop), the
+    // grip's, inside the bar; a press moves no focus, so a click shows none.
+    // The readout's box is its text, so the ring is drawn beside it, two
+    // pixels from each side (Charcoal's W bleeds a pixel of anti-aliasing
+    // before its box, so a pixel of face is left), in the item's side
+    // paddings (7.5 and 6), and within the bar's height: the ink is never
+    // painted over and never moves.
+    > button:focus-visible {
+      position: relative;
+      outline: none;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0 calc((var(--control-frame-width) + var(--control-frame-width)) * -1);
+        border: var(--control-frame-width) solid var(--color-outline);
+        pointer-events: none;
+      }
+    }
+  }
+
+  .classicyDesktopMenuAppSwitcherGrip {
+    width: marks.px(6);
+    background:
+      grip-dots(marks.ramp("8"), marks.ramp("-a"), marks.ramp("-b"), var(--color-white)),
+      grip-columns(var(--color-white), 0),
+      grip-columns(marks.ramp("9"), 5),
+      marks.pixel-art(var(--color-system-02), ((5 0),));
+
+    &.pressed {
+      background:
+        grip-dots(marks.ramp("5"), marks.ramp("7"), marks.ramp("7"), marks.ramp("-a")),
+        marks.pixel-art(marks.ramp("5"), ((0 0 6 1),)),
+        grip-columns(marks.ramp("5"), 0),
+        grip-columns(marks.ramp("-b"), 5),
+        grip-columns(marks.ramp("8"), 1, 4);
+    }
+
+    // The keyboard's ring (the grip is a focusable window splitter); a
+    // press moves no focus, so a click shows none.
+    &:focus-visible {
+      outline: var(--color-outline) solid var(--control-frame-width);
+      outline-offset: 0;
+    }
   }
 
   .classicyMenu {
@@ -125,16 +251,29 @@
     }
   }
 
-  // The check and mixed-state dash in an item's check gutter (HIGOS8 Ch. 4).
-  // Font glyphs, as escapes kept by `string.unquote`, so the Sass output
-  // stays ASCII (Sass decodes a quoted escape and prepends `@charset`; the
-  // build keeps dist ASCII, verify:dist invariant 9). The
-  // gutter is an inline-flex box, so each glyph is centered in it as the text
-  // was.
-  .classicyMenuItemCheck.checked::before {
-    content: string.unquote('"\\2713"'); // ✓
+  // The check gutter (HIGOS8 Ch. 4) holds one line of the title's font,
+  // as a block, so its marks sit on the title's baseline (the gutter and
+  // the title are centered alike in the row) and start at its left edge,
+  // as Mac OS 8.1 puts every mark in one column.
+  .classicyMenuItemCheck {
+    display: block;
   }
 
+  // The check, and the Notification Manager's diamond beside an application
+  // asking for attention (Inside Macintosh: Processes, p. 5-4, Figure 5-1):
+  // Charcoal 12's own bitmaps (_marks.scss).
+  .classicyMenuItemCheck.checked::before {
+    @include marks.check;
+  }
+
+  .classicyMenuItemCheck.classicyMenuItemDiamond::before {
+    @include marks.diamond;
+  }
+
+  // The mixed-state dash: the bundled Charcoal has the en dash, as an
+  // escape kept by `string.unquote`, so the Sass output stays ASCII (Sass
+  // decodes a quoted escape and prepends `@charset`; the build keeps dist
+  // ASCII, verify:dist invariant 9).
   .classicyMenuItemCheck.mixed::before {
     content: string.unquote('"\\2013"'); // –
   }

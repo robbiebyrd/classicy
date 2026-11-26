@@ -1,4 +1,10 @@
 {
+	"packages/appearance/platinum/src/styles/_marks.scss": [
+		{
+			"count": 2,
+			"reason": "Platinum's marks, Charcoal 12's menu check and diamond from Mac OS 8.1 captures, and the checkbox's check, mixed dash and X from HIGOS8 Figure 2-8 (story 0225-ci7): one-pixel rectangles placed in multiples of a grid knob (--menu-mark-pixel x n and --checkbox-pixel x n, one site each in the px() helper), coordinates in the art, not theme proportions (H-R7, as System 7's)."
+		}
+	],
 	"packages/appearance/platinum/src/styles/_scrollbars.scss": [
 		{
 			"count": 3,
@@ -9,6 +15,12 @@
 		{
 			"count": 8,
 			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."
+		}
+	],
+	"packages/appearance/platinum/src/styles/components/_ProgressBar.scss": [
+		{
+			"count": 1,
+			"reason": "Platinum's determinate progress bar, Mac OS 8.5's pixel for pixel (the 8.5 audit's F12): the end line and the track's two shadow columns after the fill, and the end's shading columns, are one-pixel columns placed in multiples of the bar's one grid knob (--progress-bar-pixel x n, one site in the px() helper); coordinates in the art, not theme proportions (H-R7, as the slider's)."
 		}
 	],
 	"packages/appearance/platinum/src/styles/components/_Slider.scss": [

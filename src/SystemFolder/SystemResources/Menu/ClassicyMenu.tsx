@@ -75,6 +75,19 @@ export interface ClassicyMenuItem {
 	 * checkmark, which means it applies to the whole selection).
 	 */
 	checked?: boolean | "mixed";
+	/**
+	 * A mark drawn in the item's mark column when it is not checked:
+	 * `"diamond"` (◆), the Notification Manager's mark beside an application
+	 * asking for attention (Inside Macintosh: Processes, p. 5-4), drawn by the
+	 * package; the item's `aria-description` then defaults to "Requests your
+	 * attention". A check (`checked: true`) or dash wins over it.
+	 */
+	mark?: "diamond";
+	/**
+	 * The item's accessible description (`aria-description`), for state its
+	 * look alone shows (a title blinking with a notification's icon).
+	 */
+	description?: string;
 	/** Icon drawn before the title. */
 	icon?: string;
 	/**
@@ -99,11 +112,20 @@ export interface ClassicyMenuItem {
 	/**
 	 * Labels this item's title may take over its lifetime. The item reserves the
 	 * width of the widest of them (rendered as hidden, non-measured siblings of
-	 * the title), so a title that changes at runtime — the menu bar's App
-	 * Switcher tracking the focused app — never resizes the item and shifts the
-	 * layout around it. Slack sits to the right of the title.
+	 * the title), so a title that changes at runtime never resizes the item and
+	 * shifts the layout around it. Slack sits to the right of the title. (Not
+	 * the Application menu's title, which follows its front application's own
+	 * name, as Mac OS 8.5 draws it.)
 	 */
 	titleWidthSamples?: string[];
+	/**
+	 * A class for a `<span>` the title's text is drawn in, so a stylesheet can
+	 * size or cut the text apart from the item's image (the Application
+	 * menu's title, its name cut with an ellipsis while its grip is dragged).
+	 * Without it the text is the title's bare text. Not with
+	 * `titleWidthSamples`, whose sizer wraps the text instead.
+	 */
+	titleClassName?: string;
 	/**
 	 * Analytics only: reported with the item's analytics event. Choosing the
 	 * item does not navigate — use `onClickFunc` or `event:
@@ -130,6 +152,13 @@ export interface ClassicyMenuItem {
 	 * It is never rendered as a DOM `part` (shadow-parts) attribute.
 	 */
 	part?: string;
+	/**
+	 * The item stands for user data (a recent document, say): its analytics
+	 * events carry its `id`, `disabled`, `event` and `childrenCount` only,
+	 * never its `title`, `image`, `icon`, `link` or `eventData`. Give such an
+	 * item an `id` that holds none of that data either.
+	 */
+	analyticsPrivate?: boolean;
 	/** Balloon help for the item, shown while balloons are on. */
 	balloon?: {
 		title?: string;
@@ -173,6 +202,12 @@ interface ClassicyMenuProps {
 	 * scrolls (below).
 	 */
 	open?: boolean;
+	/**
+	 * Called with the id of the item whose menu opens, and `null` when it
+	 * closes (this list's own items only, not a submenu's). The menu bar
+	 * uses it to draw an open title's own icon over a blinking one.
+	 */
+	onOpenItemChange?: (itemId: string | null) => void;
 }
 
 // A pull-down too long for the screen keeps at least this much of its rows
@@ -231,9 +266,15 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	className,
 	style,
 	open,
+	onOpenItemChange,
 }) => {
 	const { closeSignal } = useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
+	const onOpenItemChangeRef = useRef(onOpenItemChange);
+	onOpenItemChangeRef.current = onOpenItemChange;
+	useEffect(() => {
+		onOpenItemChangeRef.current?.(openChildId);
+	}, [openChildId]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: closeSignal is intentionally used as a trigger; the effect resets menu state when the signal changes
 	useEffect(() => {
@@ -561,19 +602,27 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = useMemo(
-		() => ({
-			id: menuItem.id,
-			// An image-only title (the Apple menu, System 7's Help balloon) is
-			// tracked by its accessible name.
-			title: menuItem.title ?? menuItem.imageAlt,
-			image: menuItem.image,
-			disabled: menuItem.disabled,
-			icon: menuItem.icon,
-			link: menuItem.link,
-			event: menuItem.event,
-			eventData: menuItem.eventData,
-			childrenCount: menuItem.menuChildren?.length,
-		}),
+		() =>
+			menuItem.analyticsPrivate
+				? {
+						id: menuItem.id,
+						disabled: menuItem.disabled,
+						event: menuItem.event,
+						childrenCount: menuItem.menuChildren?.length,
+					}
+				: {
+						id: menuItem.id,
+						// An image-only title (the Apple menu, System 7's Help balloon)
+						// is tracked by its accessible name.
+						title: menuItem.title ?? menuItem.imageAlt,
+						image: menuItem.image,
+						disabled: menuItem.disabled,
+						icon: menuItem.icon,
+						link: menuItem.link,
+						event: menuItem.event,
+						eventData: menuItem.eventData,
+						childrenCount: menuItem.menuChildren?.length,
+					},
 		[menuItem],
 	);
 
@@ -719,6 +768,8 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	// it the state would reach assistive technology only through the look.
 	// ARIA 1.2 allows "mixed" on menuitemcheckbox, not on menuitemradio.
 	const checkable = menuItem.checked !== undefined;
+	// The ◆ is package CSS in the same aria-hidden gutter: say what it means.
+	const diamond = menuItem.mark === "diamond" && !menuItem.checked;
 
 	// ClassicyMenu renders dividers itself, so every item here is a real one.
 	const li = (
@@ -732,6 +783,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						? "mixed"
 						: menuItem.checked === true
 					: undefined
+			}
+			aria-description={
+				menuItem.description ??
+				(diamond ? "Requests your attention" : undefined)
 			}
 			tabIndex={-1}
 			ref={itemRef}
@@ -785,7 +840,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			style={appearance.style}
 		>
 			<p>
-				{menuItem.checked !== undefined && (
+				{(menuItem.checked !== undefined || menuItem.mark) && (
 					<span
 						className={classNames(
 							"classicyMenuItemCheck",
@@ -793,6 +848,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 								checked: menuItem.checked === true,
 								mixed: menuItem.checked === "mixed",
 							}),
+							diamond && "classicyMenuItemDiamond",
 						)}
 						aria-hidden={"true"}
 					/>
@@ -825,6 +881,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 									{he.decode(sample)}
 								</span>
 							))}
+						</span>
+					) : menuItem.titleClassName ? (
+						<span className={menuItem.titleClassName}>
+							{he.decode(menuItem.title)}
 						</span>
 					) : (
 						he.decode(menuItem.title)

@@ -28,8 +28,15 @@ import {
 	STORYBOOK_DEFAULT_PACKAGE_ID,
 	STORYBOOK_PACKAGE_GLOBAL,
 } from "./StorybookPackages";
+import {
+	claimClassicyStorybookLoadedState,
+	classicyStorybookSavedStateOwner,
+	keepClassicyStorybookDesktopSaved,
+} from "./StorybookSavedDesktop";
 
-// Stories must not write desktop state into the user's localStorage.
+// Stories must not write desktop state into the user's localStorage, except
+// one that keeps it across a reload (`parameters.classicy.persistence`,
+// ./StorybookSavedDesktop), while it is shown.
 stopAppManagerPersistence();
 
 const resetClassicyStore = (themeId: string) => {
@@ -45,21 +52,31 @@ const ClassicyDesktopFrame = ({
 	themeId,
 	controlStrip,
 	appearancePackage,
+	persistence,
 	children,
 }: {
 	themeId: string;
 	controlStrip: boolean;
 	appearancePackage?: string;
+	/** With `parameters.classicy.persistence`, whom the desktop state is kept
+	 * for across a reload, as a host's page keeps it (the story, package and
+	 * theme: `classicyStorybookSavedStateOwner`). */
+	persistence?: string;
 	children: ReactNode;
 }) => {
 	const [ready, setReady] = useState(false);
 
 	useLayoutEffect(() => {
-		resetClassicyStore(themeId);
+		// A story that keeps its desktop state draws the state this page
+		// loaded for it, as a host's page draws it; otherwise the defaults.
+		const restored =
+			persistence !== undefined &&
+			claimClassicyStorybookLoadedState(persistence);
+		if (!restored) resetClassicyStore(themeId);
 		// After the reset, which would otherwise wipe it: the switch sets
 		// Appearance.packageId and activates the package's defaults (so
 		// activeTheme.package follows).
-		if (appearancePackage) {
+		if (appearancePackage && !restored) {
 			dispatch({
 				type: "ClassicyDesktopChangeAppearancePackage",
 				packageId: appearancePackage,
@@ -71,18 +88,27 @@ const ClassicyDesktopFrame = ({
 			if (theme !== currentThemeId())
 				dispatch({ type: "ClassicyDesktopChangeTheme", activeTheme: theme });
 		}
+		const stopSaving =
+			persistence !== undefined
+				? keepClassicyStorybookDesktopSaved(persistence)
+				: undefined;
 		setReady(true);
 		// The store outlives the story: put the default package back when a
 		// story that switched leaves, so the next non-desktop story (whose
-		// frame reads the store's package) never inherits it.
+		// frame reads the store's package) never inherits it, and the
+		// defaults when one that kept its state leaves.
 		return () => {
-			if (appearancePackage) resetClassicyStore(themeId);
+			stopSaving?.();
+			if (appearancePackage || persistence !== undefined)
+				resetClassicyStore(themeId);
 		};
-	}, [themeId, appearancePackage]);
+	}, [themeId, appearancePackage, persistence]);
 
 	if (!ready) return null;
 	return (
-		<Classicy startupScreen={false} controlStrip={controlStrip}>
+		// themeLinks: a story's address (its iframe's) opens a theme link
+		// Copy Theme Link made, after asking.
+		<Classicy startupScreen={false} controlStrip={controlStrip} themeLinks>
 			{children}
 		</Classicy>
 	);
@@ -306,6 +332,11 @@ const ClassicyStory = ({
 					// Stories that mount their own strip set `controlStrip: false`.
 					controlStrip={context.parameters.classicy?.controlStrip ?? true}
 					appearancePackage={appearancePackage}
+					persistence={
+						context.parameters.classicy?.persistence === true
+							? classicyStorybookSavedStateOwner(context.id, packageId, themeId)
+							: undefined
+					}
 				>
 					<Story />
 				</ClassicyDesktopFrame>
@@ -318,8 +349,11 @@ const ClassicyStory = ({
 	// (its package swapped in) and leaves the store alone; a switched package
 	// also takes the store (StoryPackageScope), so its hooks follow.
 	const theme = getTheme(storyPackage ? toolbarThemeId : themeId);
+	// Drawn by the frame's package, as the desktop frame draws (story
+	// 0235-xgi): a theme of another package takes its knobs.
 	const vars = getThemeVars(
 		storyPackage ? { ...theme, package: storyPackage } : theme,
+		packageId,
 	) as CSSProperties;
 	const isCanvas = context.viewMode === "story";
 	const typography: CSSProperties = {
@@ -364,6 +398,14 @@ const ClassicyStory = ({
 };
 
 export const withClassicy: Decorator = (Story, context) => {
+	// The desktop state this page loaded is drawn only by a story that keeps
+	// it (its frame claims it); any other first story starts from the
+	// defaults, before anything of it draws.
+	if (
+		context.parameters.classicy?.persistence !== true &&
+		claimClassicyStorybookLoadedState()
+	)
+		resetClassicyStore("default");
 	// `parameters.classicy.appearancePackage`: render the story under that
 	// registered Appearance Package (e.g. "mirrored", via mirroredParameters).
 	const storyPackage = context.parameters.classicy?.appearancePackage as

@@ -191,7 +191,7 @@ interface ClassicyAppProps {
 | `addSystemMenu` | — | Add an Apple-menu entry. Forced off for extensions. |
 | `extension` | `false` | Background app: always open, no icon, no focus, no Apple-menu entry. |
 | `globalShortcuts` | — | Honored **only** when `extension` is set. |
-| `bootIcon` | — | Show an icon in the startup parade. `true` uses the app icon; a string uses that icon. |
+| `bootIcon` | — | Show an icon in the startup parade. `true` uses the app icon; a string uses that icon. An `extension` parades already; `false` keeps it out. |
 | `debug` | `false` | Render a JSON-tree debugger window over the app's store entry. |
 | `handlesFileTypes` | — | File types Finder should route to this app. |
 | `handlesOwnFiles` | `false` | Suppress the automatic file windows and render your own. |
@@ -834,6 +834,10 @@ useClassicyHelpMenu(appId, items)              // items MUST be memoized
 useClassicyEditMenu(idPrefix)                  // → a standard Edit menu item
 ```
 
+`useClassicyHelpMenu` is the way to add help items: they join the one standard Help menu (About, Show/Hide Balloons, Keyboard Shortcuts, then yours). A top-level "Help" menu in your `appMenu` is folded into that same menu, right after Keyboard Shortcuts, so the bar never draws two; prefer the hook.
+
+`ClassicyApp`'s optional `windowlessMenu` prop holds the menus shown while the app is the front application with no open window (File ▸ New, Open, Quit: the Mac keeps an application's menu bar with every window closed); it is not `ClassicyWindow`'s `appMenu`, and any open window record keeps it out. Memoize it. Its `onReopen` prop is called when the app, running with no window open, is opened again (its icon, the Apple menu, Recent Applications), as Finder 8 sends a running application the reopen Apple event: show a window as on launch, as SimpleText opens an untitled one.
+
 `useClassicyAboutMenu` returns both a menu item and the window that renders it.
 Put the item in your File menu and render `aboutWindow` as a `ClassicyApp` child:
 
@@ -1099,6 +1103,100 @@ can follow an Appearance Package's display names: an entry never overwrites a
 static file of the same name, and takes "<own name> (<id>)" instead
 (AGENT-REFERENCE §8, "App display overrides").
 
+The desktop state (themes, windows, icons, settings) mirrors the same way, so
+a signed-in user's desktop follows them across devices:
+
+```ts
+registerClassicyStateAdapter({
+    id: 'my-backend',
+    onSnapshot: (snapshot) => {},   // debounced saved state + sha256 + seq
+    reconcile: async (local, { signal }) => ({ action: 'useLocal' }),   // or { action: 'replace', state }
+}, { snapshotDebounceMs: 500, reconcileTimeoutMs: 5000 })
+```
+
+The desktop draws nothing until the boot reconcile settles, for at most each
+adapter's `reconcileTimeoutMs`; errors, timeouts and invalid states keep the
+local state, and an adapter that reconciles takes no snapshot until a
+reconcile with it succeeds (it is retried), so a failed boot never pushes a
+device's defaults over the account's copy. The menu bar clock's minute tick
+sends nothing. `onSnapshot` must throw when it did not store the snapshot.
+Call `reconcileClassicyState()` again when the remote copy may have changed
+(a sign-in), and `flushClassicyState()` to save before signing out
+(AGENT-REFERENCE §7, "Mirroring the desktop state").
+
+### Making your content findable: search sources
+
+The Finder's File ▸ Find… (⌥F) opens **Find File**, which searches the file
+system by name, kind, dates, size, label and more. To let users find your
+own content there too (an archive, a catalog, a remote API), register a
+**search source**. Find File then shows a Search Internet tab, after Mac OS
+8.5's Sherlock: the words typed, your source as a channel with an On box,
+and Search.
+
+```ts
+// At module scope (or in an effect, keeping the returned unregister).
+import { dispatch, registerClassicyFindSource } from '@classicy/classicy'
+
+registerClassicyFindSource({
+    id: 'tv-archive',
+    name: 'TV Archive',
+    search: async (words, { signal }) => {
+        // Pass `signal` on: a new search, Stop or Quit aborts this one.
+        const res = await fetch(`/api/search?q=${encodeURIComponent(words)}`, { signal })
+        const hits: { title: string; url: string }[] = await res.json()
+        return hits.map((hit) => ({
+            name: hit.title,
+            kind: 'broadcast',          // the results' Kind column
+            open: () => dispatch({
+                type: 'ClassicyDesktopOpenUrl',
+                url: hit.url,
+                disposition: 'browser-new',
+            }),
+        }))
+    },
+})
+```
+
+- `search` must return a promise. Each source switched on is asked at once,
+  and the results window lists each source's results under its name (the
+  Site column) as they arrive.
+- A source that throws or rejects only loses its own results: the error goes
+  to `classicyLog` (`"ClassicyFindFile"`, level `error`), and the other
+  sources' results still show. Results without a `name`, a `kind` and an
+  `open` function are dropped with a warning.
+- Once the search's `signal` aborts, whatever your source returns is
+  ignored; stop the work you started (a `fetch` given the signal does). A
+  source that has not answered within 30 seconds is given up (its signal
+  aborts, a warning is logged); set `timeoutMs` on the source for another
+  bound.
+- Not on the Internet? Name the tab, the list and the results' column in
+  your own words when you register: `registerClassicyFindSource(source, {
+  labels: { tab: 'Search Archive', sites: 'Collections', site: 'Collection' } })`.
+  Without labels they keep Sherlock's "Search Internet", "Search Sites" and
+  "Site"; with several sources, the first registered with labels names them.
+  Registering a source again replaces its labels too.
+- `open()` runs when the user opens a result: open a window of your app,
+  a URL (`ClassicyDesktopOpenUrl`, trusted from your code), or a file
+  (`openClassicyFileSystemPath(fs, path, dispatch)`, the Finder's way, which
+  also records a Recent Document). It may return a promise; one that
+  rejects is logged like a throw.
+- Re-registering the same `id` replaces the source; the call returns the
+  unregister. `useClassicyFindSources()` lists the sources in a component.
+- With no source registered, Find File is Mac OS 8.1's window, with no tabs.
+  Both Appearance Packages show the tab once one is.
+- Your own files are found by Find File without a source: it searches the
+  desktop's file system (`fileSystemStorageKey`). A file whose bytes live
+  behind a `_url` is found without a request; its size is read (a HEAD
+  request) only when Items Found draws its row or a size row asks, a few at
+  a time. Record `_size` on such files to spare the requests. Its contents
+  are never fetched for the contents criterion (Option), which reads
+  `_data` only, and at most its first 5 MiB (the localStorage quota the
+  tree lives in).
+
+The example app registers one (`example/src/Applications/FindSources/`).
+Full reference: [AGENT-REFERENCE §11, "Find File and search
+sources"](AGENT-REFERENCE.md#find-file-and-search-sources).
+
 ---
 
 ## 12. Dialogs and alerts
@@ -1128,10 +1226,52 @@ or a control is a window, not an alert.
 
 Button roles: `default` (Return triggers it, gets the ring), `cancel`
 (Escape / Command-period), `help` (far left), `normal`. Omit `buttons` and a
-sensible set is generated from `alertType`.
+sensible set is generated from `alertType`. `defaultButtonId={null}` makes
+no button the default (no ring, Return does nothing, the alert rather than a
+button takes the focus), for a choice where every answer can lose data
+(HIG7 p.206).
 
 > **`onClose` fires after *every* button**, in addition to that button's own
 > `onClick`. A handler pair that undoes itself is a real failure mode here.
+
+### Notifications: asking for attention from the background
+
+An alert is for the app in front. When your app (or the host behind it)
+needs the user while they are elsewhere, a finished download, a new
+message, the end of a long job, post a **notification** instead, as a Mac OS
+application did through the Notification Manager (Inside Macintosh:
+Processes, ch. 5). It works from anywhere, outside React included:
+
+```ts
+import { classicyNotify, removeClassicyNotification } from '@classicy/classicy'
+
+const id = classicyNotify({
+    appId,                                   // your ClassicyApp id
+    message: "The download is complete.",    // optional: a note alert with OK
+    sound: true,                             // optional: the user's alert sound
+    onResponse: () => markSeen(),            // optional: after the user clicks OK
+})
+```
+
+By default the request puts a ◆ beside your app's name in the Application
+menu (while your app is in the background; in front it keeps its ✓) and
+blinks your app's icon over the Application menu's own, once a second
+(steady for users who prefer reduced motion). That is the reference's
+suggested default: no sound and no alert unless you ask. `mark: false`
+blinks the icon over the Apple menu instead, `icon: "/other.png"` or
+`icon: false` changes or drops it, and `sound: "ClassicyAlertQuack"` names a
+sprite. The sound plays once at the alert volume (silent when muted); the
+alert shows once, one request's at a time.
+
+The mark and the icon **stay until the request is removed**. Classicy
+removes it for you when your app comes to the front, or when the user
+answers its alert while your own app hosts it (pass `removeOnActivate:
+false` to keep it, then call `removeClassicyNotification(id)` yourself),
+and when your app quits. Post one
+request per occurrence: each is presented separately. Requests are session
+state, never persisted; `useClassicyNotifications()` lists them.
+HyperCard stacks cannot post them. Full reference:
+[`docs/AGENT-REFERENCE.md`](AGENT-REFERENCE.md) §4.11.
 
 ### File dialogs
 

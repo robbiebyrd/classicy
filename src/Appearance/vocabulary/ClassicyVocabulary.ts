@@ -31,6 +31,8 @@ export const classicyStateClasses = (
 export const CLASSICY_COMPONENT = {
 	Alert: "classicyAlert",
 	AppearanceManager: "classicyAppearanceManager",
+	AppleMenuOptions: "classicyAppleMenuOptions",
+	ApplicationSwitcher: "classicyApplicationSwitcher",
 	Assistant: "classicyAssistant",
 	BalloonHelp: "classicyBalloonHelp",
 	BevelButton: "classicyBevelButton",
@@ -60,6 +62,7 @@ export const CLASSICY_COMPONENT = {
 	FileDialog: "classicyFileDialog",
 	FileInput: "classicyFileInput",
 	FileOpenDialog: "classicyFileOpenDialog",
+	FindFile: "classicyFindFile",
 	Form: "classicyForm",
 	HelpButton: "classicyHelpButton",
 	HyperCard: "classicyHyperCard",

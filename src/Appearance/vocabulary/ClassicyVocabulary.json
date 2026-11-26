@@ -17,7 +17,9 @@
 		"FileBrowser": [
 			"classicyFileDragGhost",
 			"classicyFileDragging",
-			"classicyFileDropTarget"
+			"classicyFileDropTarget",
+			"classicySelectionMarquee",
+			"classicySelectionMarqueeClip"
 		],
 		"MenuItem": ["classicyMenuWrapper"],
 		"PixelArt": [
@@ -54,7 +56,8 @@
 			"classicyTabsHolder",
 			"classicyTabsSizeLarge",
 			"classicyTabsSizeSmall"
-		]
+		],
+		"Window": ["classicyZoomRect", "classicyZoomRects"]
 	},
 	"components": {
 		"Alert": [
@@ -91,7 +94,23 @@
 			"PackageSwatches",
 			"SoundColumn",
 			"SoundSlider",
-			"ThemeFileRow"
+			"ThemeFileRow",
+			"ThemeLinkStatus"
+		],
+		"AppleMenuOptions": [],
+		"ApplicationSwitcher": [
+			"Button",
+			"Buttons",
+			"Hidden",
+			"Horizontal",
+			"Icon",
+			"LargeIcons",
+			"Name",
+			"NoNames",
+			"Palette",
+			"ShortcutPage",
+			"TearOffOutline",
+			"Wrapped"
 		],
 		"Assistant": [
 			"AccessoryIcon",
@@ -262,6 +281,9 @@
 		"DesktopMenu": [
 			"AppHidden",
 			"AppSwitcher",
+			"AppSwitcherGrip",
+			"AppSwitcherName",
+			"AppSwitcherRequest",
 			"Apple",
 			"Extension",
 			"ExtensionTrigger",
@@ -306,6 +328,35 @@
 			"Volume",
 			"Well",
 			"WellViewport"
+		],
+		"FindFile": [
+			"Busy",
+			"Buttons",
+			"ButtonsSpacer",
+			"ChannelIcon",
+			"ChannelList",
+			"ChannelName",
+			"Channels",
+			"Criteria",
+			"Criterion",
+			"CriterionKey",
+			"Form",
+			"Location",
+			"Operator",
+			"OperatorText",
+			"Path",
+			"Progress",
+			"ResultIcon",
+			"ResultName",
+			"Results",
+			"ResultsList",
+			"ResultsSplit",
+			"Size",
+			"SizeUnit",
+			"Status",
+			"Text",
+			"Value",
+			"Words"
 		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
@@ -367,6 +418,7 @@
 			"BalloonAnchor",
 			"Check",
 			"ChildMenuIndicator",
+			"Diamond",
 			"Flash",
 			"FlashKeyframes",
 			"HasImage",
@@ -502,7 +554,8 @@
 			"HeaderSticky",
 			"Row",
 			"SortArrow",
-			"SortArrowAscending"
+			"SortArrowAscending",
+			"Spacer"
 		],
 		"Tabs": [],
 		"TextEditor": [
@@ -577,13 +630,15 @@
 			"Title",
 			"TitleBar",
 			"TitleBarModal",
+			"TitleBarUtilityTitle",
 			"TitleCenter",
 			"TitleLeft",
 			"TitleRight",
 			"TitleText",
 			"Utility",
 			"WithMenuBar",
-			"ZoomBox"
+			"ZoomBox",
+			"ZoomHidden"
 		]
 	},
 	"states": [
@@ -613,6 +668,7 @@
 			"app",
 			"help",
 			"switcher",
+			"switcher-grip",
 			"extensions",
 			"clock",
 			"window-menu-bar",
@@ -628,7 +684,9 @@
 			"scroll-corner",
 			"scroll-drag-outline",
 			"menu-scroll-up",
-			"menu-scroll-down"
+			"menu-scroll-down",
+			"selection-marquee",
+			"zoom-rect"
 		]
 	}
 }

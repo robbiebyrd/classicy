@@ -144,5 +144,7 @@ registerClassicyAppearancePackage({
 	sounds: [platinumSoundPack],
 	hooks: platinumAppearanceHooks,
 	defaultScreenSaver: "bouncing-ball",
+	// The Help menu's first item, as HIGOS8 Figure 4-2 (p. 92) words it.
+	helpMenu: { aboutTitle: "About Help" },
 	iconDimming: PLATINUM_ICON_DIMMING,
 });

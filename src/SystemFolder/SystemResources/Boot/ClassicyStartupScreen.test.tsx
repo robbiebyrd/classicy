@@ -36,6 +36,7 @@ type MockApp = {
 	icon: string;
 	open: boolean;
 	extension?: boolean;
+	noBootParade?: boolean;
 };
 
 type MockParadeIcon = {
@@ -272,6 +273,25 @@ describe("ClassicyStartupScreen extension parade", () => {
 		);
 		expect(imgs).toHaveLength(1);
 		expect(screen.getByAltText("Alpha")).toBeInTheDocument();
+	});
+
+	// Mac OS 8.5's Application Switcher shows no icon in its startup parade
+	// (`platinum-85-startup-parade.png`): `bootIcon={false}` keeps an
+	// extension out.
+	it("excludes an extension kept out of the parade", () => {
+		mockApps.current = {
+			"AExt.app": extApp("AExt.app", "Alpha"),
+			"Quiet.app": { ...extApp("Quiet.app", "Quiet"), noBootParade: true },
+		};
+		const { container } = render(<ClassicyStartupScreen />);
+		act(() => {
+			vi.advanceTimersByTime(3000);
+		});
+		expect(
+			[
+				...container.querySelectorAll(".classicyStartupScreenExtensions img"),
+			].map((img) => img.getAttribute("alt")),
+		).toEqual(["Alpha"]);
 	});
 
 	it("parades injected icons without any extension apps", () => {

@@ -11,6 +11,7 @@ import {
 import {
 	focusApp,
 	focusWindow,
+	mayClassicyWindowReopen,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
@@ -26,6 +27,7 @@ import {
 	setAppWindow,
 	updateAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const initialWindowState = {
@@ -181,6 +183,15 @@ export const classicyWindowEventHandler = (
 			if (typeof win.collapsable === "boolean")
 				flags.collapsable = win.collapsable;
 			if (typeof win.modal === "boolean") flags.modal = win.modal;
+			// An app launched for a document opens only that document's
+			// windows (and its dialogs and palettes): another of its windows
+			// mounting with the launch (a main window, one the user closed
+			// before the quit) registers closed, until the launch's end opens
+			// it should nothing else have opened (story 0226-a6f).
+			const mayOpen = mayClassicyWindowReopen(app, win.id, {
+				modal: win.modal,
+				windowType: win.windowType ?? getAppWindow(app, win.id)?.windowType,
+			});
 			if (!getAppWindow(app, win.id)) {
 				// G18: only a window that supplied no position is cascaded, by the
 				// number already registered. The signal is explicit: [0, 0] is a
@@ -199,7 +210,7 @@ export const classicyWindowEventHandler = (
 					minimumSize: win.minimumSize,
 					size: win.size,
 					position: paddedPosition,
-					closed: false,
+					closed: !mayOpen,
 					hidden: false,
 					menuBar: win.menuBar,
 					windowType: win.windowType,
@@ -207,7 +218,7 @@ export const classicyWindowEventHandler = (
 				} as ClassicyStoreSystemAppWindow);
 				// A genuinely new window opens focused (Mac behavior); re-registered
 				// persisted windows must not steal focus.
-				ds = focusWindow(ds, action.app.id, win.id);
+				if (mayOpen) ds = focusWindow(ds, action.app.id, win.id);
 			} else {
 				const existing = getAppWindow(app, win.id);
 				// A window closed earlier this session and now registering again
@@ -216,6 +227,12 @@ export const classicyWindowEventHandler = (
 				// Anything else is a persisted window re-registering after a
 				// reload or remount, which must not steal focus.
 				const reopening = !!existing?.closed && !!existing?.closedThisSession;
+				// Read before the update below: the record is a live draft.
+				const wasClosed = existing?.closed === true;
+				if (wasClosed && !mayOpen) {
+					ds = updateWindow(action.app.id, win.id, { ...flags });
+					break;
+				}
 				// A persisted record may predate #278 (no flags) or the props may
 				// have changed since; the mounting component's props win.
 				ds = updateWindow(action.app.id, win.id, {
@@ -223,7 +240,19 @@ export const classicyWindowEventHandler = (
 					closedThisSession: false,
 					...flags,
 				});
-				if (reopening) {
+				// A window reopening as it mounts in the front app, which has no
+				// window in front (relaunched after a quit, a document's window
+				// mounting again), takes focus: nothing is taken from another
+				// window. A launch leaves that to its end, which fronts the window
+				// the app last had in front (settleAppLaunch).
+				const frontless =
+					wasClosed &&
+					app.focused === true &&
+					app.launching !== true &&
+					!listAppWindows(app).some(
+						(w) => w.id !== win.id && w.focused && !w.closed,
+					);
+				if (reopening || frontless) {
 					ds = focusWindow(ds, action.app.id, win.id);
 				}
 			}
@@ -253,9 +282,25 @@ export const classicyWindowEventHandler = (
 				closedThisSession: true,
 				focused: false,
 			});
-			// Promote a sibling only when this app holds focus — closing a
-			// background app's window must not steal global focus.
-			if (ds.System.Manager.Applications.focusedAppId !== action.app.id) {
+			// An extension that held focus through a window with menus and has
+			// no open window with menus left hands focus on to the front application.
+			if (
+				ds.System.Manager.Applications.focusedAppId === action.app.id &&
+				ds.System.Manager.Applications.apps[action.app.id]?.extension ===
+					true &&
+				!listAppWindows(
+					ds.System.Manager.Applications.apps[action.app.id],
+				).some((w) => !w.closed && (w.menuBar?.length ?? 0) > 0)
+			) {
+				const next = frontAppIdOf(ds.System.Manager.Applications);
+				if (next && next !== action.app.id) focusApp(ds, next);
+				break;
+			}
+			// Promote a sibling only when this app holds the bar — closing a
+			// background app's window must not steal global focus. The front
+			// application, not the raw focus flag, so a floating extension
+			// window holding the flag changes nothing.
+			if (frontAppIdOf(ds.System.Manager.Applications) !== action.app.id) {
 				break;
 			}
 			const nextFocus = mostRecentAppWindow(
@@ -310,7 +355,25 @@ export const classicyWindowEventHandler = (
 			// skipping utility palettes). Removal happens first so the destroyed
 			// window can never select itself.
 			if (heldFocus) {
-				focusApp(ds, action.app.id);
+				// An extension hands focus back to the dialog still open under the
+				// closed window (its most recent open modal), else to its own menu
+				// window (it stays the front application), else to the front
+				// application.
+				const owner = ds.System.Manager.Applications.apps[action.app.id];
+				const open = owner?.extension
+					? listAppWindows(owner).filter((w) => !w.closed)
+					: [];
+				const successor =
+					mostRecentAppWindow(open.filter((w) => w.modal)) ??
+					mostRecentAppWindow(open.filter((w) => (w.menuBar?.length ?? 0) > 0));
+				if (successor) {
+					ds = focusWindow(ds, action.app.id, successor.id);
+				} else {
+					const target = owner?.extension
+						? (frontAppIdOf(ds.System.Manager.Applications) ?? action.app.id)
+						: action.app.id;
+					focusApp(ds, target);
+				}
 			}
 			break;
 		}

@@ -56,6 +56,24 @@ describe("dimClassicyIconPixels", () => {
 		expect(data[7]).toBe(255);
 	});
 
+	// Mac OS 8.5 at true color (the 8.5 audit's M10): halfway to white on
+	// QuickDraw's 16-bit components, the high byte of (c * 257 + 65535) / 2,
+	// which the 8-bit blend misses by one where c * 257 is odd (0x44, 0xCC).
+	it("blends on 16-bit components with depth 16, keeping the high byte", () => {
+		const channels = [0x00, 0x33, 0x44, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xff];
+		const data = px(...channels.map((c) => [c, c, c, 255]));
+		dimClassicyIconPixels(data, {
+			blend: { color: "#FFFFFF", amount: 0.5, depth: 16 },
+		});
+		expect(channels.map((_, n) => data[n * 4])).toEqual([
+			0x7f, 0x99, 0xa2, 0xc4, 0xcc, 0xd5, 0xdd, 0xe6, 0xff,
+		]);
+		// At 8 bits (the default) 0x44 and 0xCC land one lower.
+		const eight = px([0x44, 0xcc, 0, 255]);
+		dimClassicyIconPixels(eight, { blend: { color: "#FFFFFF", amount: 0.5 } });
+		expect([...eight]).toEqual([0xa1, 0xe5, 0x7f, 255]);
+	});
+
 	it("quantizes without a palette when none is given", () => {
 		const data = px([0, 0, 0, 255]);
 		dimClassicyIconPixels(data, {
@@ -260,6 +278,32 @@ describe("resolveClassicyIconDimmingRule", () => {
 		expect(
 			resolveClassicyIconDimmingRule("hiddenApp", "plain", undefined),
 		).toBeUndefined();
+	});
+
+	it("takes a blend depth of 8 or 16 at registration, and refuses any other", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		registerClassicyAppearancePackage(
+			makePackage("deep", {
+				iconDimming: {
+					hiddenApp: { blend: { color: "#FFFFFF", amount: 0.5, depth: 16 } },
+				},
+			}),
+		);
+		expect(getClassicyAppearancePackage("deep")).toBeDefined();
+		registerClassicyAppearancePackage(
+			makePackage("odd", {
+				iconDimming: {
+					hiddenApp: {
+						blend: {
+							color: "#FFFFFF",
+							amount: 0.5,
+							depth: 12 as unknown as 16,
+						},
+					},
+				},
+			}),
+		);
+		expect(getClassicyAppearancePackage("odd")).toBeUndefined();
 	});
 
 	it("refuses a malformed rule at registration", () => {

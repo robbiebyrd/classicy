@@ -14,24 +14,8 @@
 
     &::-webkit-progress-value {
       transition: 1s all;
-      background: linear-gradient(
-                      to bottom,
-                      var(--color-theme-07),
-                      var(--color-theme-06),
-                      var(--color-theme-05),
-                      var(--color-theme-04),
-                      var(--color-theme-03),
-                      var(--color-theme-02),
-                      var(--color-theme-01),
-                      var(--color-white),
-                      var(--color-theme-01),
-                      var(--color-theme-02),
-                      var(--color-theme-03),
-                      var(--color-theme-04),
-                      var(--color-theme-05),
-                      var(--color-theme-06),
-                      var(--color-theme-07)
-      );
+      // The fill's look is the package's (Platinum: Mac OS 8.5's banded
+      // Appearance bar; System 7: its flat fill).
     }
   }
 }

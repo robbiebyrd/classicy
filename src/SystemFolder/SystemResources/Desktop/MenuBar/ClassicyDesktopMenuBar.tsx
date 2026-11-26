@@ -20,6 +20,7 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import {
@@ -28,15 +29,42 @@ import {
 } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
-import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
-import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
-import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
+import {
+	CLASSICY_PART_ATTRIBUTE,
+	classicyStateClasses,
+} from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
+import { useClassicyAppMenuTitleGrip } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppMenuTitleGrip.internal";
+import { ClassicyAppSwitcherTearOff } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherTearOff.internal";
 import {
 	appSwitcherAppsFrom,
+	appSwitcherEntryDescription,
+	appSwitcherEntryMark,
 	withClassicyAppIdentityMenuItems,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
+import {
+	trimMenuSpacers,
+	useClassicyStandardHelpMenu,
+} from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyStandardHelpMenu";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+import { useClassicyNotificationBlink } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationBlink.internal";
+import {
+	type ClassicyNotificationMenuBarIcons,
+	classicyNotificationMenuBarDescriptions,
+	classicyNotificationMenuBarIcons,
+	useClassicyNotifications,
+	useClassicyNotifiedAppIds,
+} from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationManager";
+import {
+	useClassicyRecentItemsMenuItems,
+	withClassicyRecentItemsMenuItems,
+} from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItemsMenu";
+
+const NO_NOTIFICATION_ICONS: ClassicyNotificationMenuBarIcons = {
+	apple: [],
+	application: [],
+};
 
 export type ClassicyDesktopMenuBarProps = {
 	/** Extra class names, merged onto the `<nav>` after the component's own. */
@@ -93,24 +121,6 @@ const findAppAboutItem = (
 const isAboutThisComputerItem = (item: ClassicyMenuItem): boolean =>
 	item.id === "about" || item.title === "About This Computer";
 
-/** Drop leading/trailing dividers and collapse runs left behind by a removal. */
-const trimSpacers = (items: ClassicyMenuItem[]): ClassicyMenuItem[] => {
-	const trimmed: ClassicyMenuItem[] = [];
-	for (const item of items) {
-		if (
-			item.id === "spacer" &&
-			(trimmed.length === 0 || trimmed[trimmed.length - 1].id === "spacer")
-		) {
-			continue;
-		}
-		trimmed.push(item);
-	}
-	while (trimmed.length > 0 && trimmed[trimmed.length - 1].id === "spacer") {
-		trimmed.pop();
-	}
-	return trimmed;
-};
-
 /**
  * Remove the hoisted About entry (matched by reference — it came out of this
  * same tree via `findAppAboutItem`) from the app's published menus so About
@@ -124,7 +134,7 @@ const stripAboutItem = (
 	items.flatMap((item) => {
 		if (item === aboutItem) return [];
 		if (!item.menuChildren || item.menuChildren.length === 0) return [item];
-		const menuChildren = trimSpacers(
+		const menuChildren = trimMenuSpacers(
 			stripAboutItem(item.menuChildren, aboutItem),
 		);
 		if (menuChildren.length === 0) return [];
@@ -141,9 +151,11 @@ const stripAboutItem = (
  *
  * From left to right it shows the Apple menu (the system menu, led by "About
  * <focused app>" when that app publishes an About item — the item is moved
- * out of the app's own menus), the focused window's `appMenu`, the standard
+ * out of the app's own menus — then its items in alphabetical order, Recent
+ * Applications and Recent Documents among them), the focused window's
+ * `appMenu`, the standard
  * Help menu (always the rightmost: About Balloon Help…, Show/Hide Balloons
- * ⌥H, then the focused app's `useClassicyHelpMenu` items), then, at the far
+ * ⌥H, Keyboard Shortcuts…, then the focused app's `useClassicyHelpMenu` items and the items of a top-level "Help" menu the app publishes itself, as Finder does: the bar draws one Help menu), then, at the far
  * right, menu bar extensions (`ClassicyMenuBarExtension`), the clock and the
  * App Switcher. Menus are sticky (HIGOS8 p.92): a click leaves one open, and
  * it closes after 15 seconds idle or on a click outside the bar.
@@ -177,22 +189,25 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 > = ({ className, style, placement }) => {
 	const layout = useClassicyAppearanceLayout();
 	const resolvedPlacement = placement ?? layout.menuBar.placement;
-	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
-	// System 7 titles its Help menu with an icon, the balloon with a "?" (HIG
-	// p.52): a package that registers the art gets it in place of the word.
-	const helpMenuTitleArt = useClassicyAsset("systemArt", "helpMenuTitle");
+	const appleMenuArt = useClassicyAsset("systemArt", "appleMenu") ?? "";
+	// The Help menu's title art (System 7's balloon) is read by
+	// `useClassicyStandardHelpMenu`, which builds the Help menu below.
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
+	const frontAppId = useFrontAppId();
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
-	const disableBalloonHelp = useAppManager(
-		(s) => s.System.Manager.Desktop.disableBalloonHelp,
-	);
-	// Optional per-app Help entries, keyed by appId. Read defensively so the bar
-	// works whether or not a consumer has populated the slot.
-	const helpMenus = useAppManager((s) => s.System.Manager.Desktop?.helpMenu);
+	const recentMenuItems = useClassicyRecentItemsMenuItems();
 	const desktopEventDispatch = useAppManagerDispatch();
 	const navRef = useRef<HTMLElement>(null);
 	useClassicyMenuCloseOnOutsideMouseDown(navRef);
+	// The Application menu title's grip (Mac OS 8.5): dragged, it shows the
+	// front application's name or its icon alone, for every application.
+	const {
+		grip: appMenuTitleGrip,
+		resizing: appMenuTitleResizing,
+		showsName: appMenuShowsName,
+	} = useClassicyAppMenuTitleGrip(navRef);
+	const appMenuTitleCollapsed = !appMenuShowsName && !appMenuTitleResizing;
 	// Window placement unmounts the bar but keeps its provider, so a menu
 	// open at the switch (a keyboard equivalent or host code changed the
 	// package, with no mouse-down to close it) would leave the provider
@@ -211,10 +226,57 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		icon: "",
 	}).name;
 
+	// Notification Manager requests (Inside Macintosh: Processes, p. 5-4):
+	// a ◆ beside each app a request marks, and each request's icon blinking
+	// over the Application menu's title (a marked app it lists) or the Apple
+	// menu's (any other), described for assistive technology. While a menu
+	// is open the blink stops where it is, and an open title shows its own
+	// icon, as Mac OS 8.1 draws them (observed for the Application title; the
+	// Apple title's is inferred, as stock 8.1 blinks nothing there); nothing
+	// blinks where this bar is not drawn (window placement). On a request's
+	// frame the Application title is that request's icon alone, centered in
+	// the title's unchanged width, as Mac OS 8.5 draws it (the 8.5 audit's
+	// F1: its name gone, the icon at x 584-599 of the Finder's 555-628
+	// title; the grip and the clock unmoved).
+	const notifiedAppIds = useClassicyNotifiedAppIds();
+	const notifications = useClassicyNotifications();
+	const [openTitle, setOpenTitle] = useState<string | null>(null);
 	const appSwitcherData = useMemo(
-		() => appSwitcherAppsFrom(apps, overrides),
-		[apps, overrides],
+		() => appSwitcherAppsFrom(apps, overrides, { frontAppId, notifiedAppIds }),
+		[apps, overrides, frontAppId, notifiedAppIds],
 	);
+	const { notificationIcons, notificationDescriptions } = useMemo(() => {
+		const listed = new Set(appSwitcherData.map((a) => a.id));
+		const identity = (appId: string) =>
+			classicyAppIdentityFrom(
+				overrides,
+				appId,
+				apps[appId] ?? { name: appId, icon: "" },
+			);
+		return {
+			notificationIcons: classicyNotificationMenuBarIcons(
+				notifications,
+				listed,
+				(appId) => identity(appId).icon,
+			),
+			notificationDescriptions: classicyNotificationMenuBarDescriptions(
+				notifications,
+				listed,
+				(appId) => identity(appId).name,
+			),
+		};
+	}, [notifications, appSwitcherData, overrides, apps]);
+	const blinkingIcons = useClassicyNotificationBlink(
+		resolvedPlacement === "window" ? NO_NOTIFICATION_ICONS : notificationIcons,
+		openTitle !== null,
+	);
+	const appleMenuDescription = notificationDescriptions.apple;
+	const appleMenuIcon =
+		openTitle === "apple-menu"
+			? appleMenuArt
+			: (blinkingIcons.apple ?? appleMenuArt);
+	const switcherTitleIcon =
+		openTitle === "app-switcher" ? undefined : blinkingIcons.application;
 
 	const setActiveApp = (appId: string) => {
 		desktopEventDispatch({
@@ -228,11 +290,16 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		const openApps = appSwitcherData.filter((a) => a.open);
 		// The Application menu's commands (HIG7 p.127): each dimmed when it
 		// would do nothing, as 7.5.5 draws them (`*-755-appmenu-open.png`).
-		// The front application: none while an extension holds focus, when
-		// Hide and Hide Others have no app to act on.
+		// The front application (`frontAppIdOf`: a floating extension window
+		// never replaces it); none only when no app is focused, when Hide and
+		// Hide Others have no app to act on.
 		const frontId = focusedApp?.id;
+		// Hide and Hide Others have nothing to hide for an extension in front
+		// (HIG7 p.127: a command dims when it would do nothing; an extension is
+		// not a hideable application, as `hideApp` has it).
 		const othersShown =
 			frontId !== undefined &&
+			focusedApp?.extension !== true &&
 			openApps.some((a) => a.id !== frontId && !a.hidden);
 		const anyHidden = openApps.some((a) => a.hidden);
 		const commands: ClassicyMenuItem[] = [
@@ -261,28 +328,51 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		];
 		return {
 			id: "app-switcher",
-			image: focusedApp?.icon || "",
+			image: switcherTitleIcon ?? (focusedApp?.icon || ""),
+			...(notificationDescriptions.application
+				? { description: notificationDescriptions.application }
+				: {}),
 			title: focusedApp?.name || finderName,
-			className: "classicyDesktopMenuAppSwitcher",
+			// The name in a span of its own, which the grip's drag cuts with an
+			// ellipsis; collapsed, the title is the icon alone (its accessible
+			// name the icon's alternative text, the application's name).
+			titleClassName: "classicyDesktopMenuAppSwitcherName",
+			className: classNames(
+				"classicyDesktopMenuAppSwitcher",
+				// A request's frame of the blink: its icon alone, centered in
+				// the title's width, the name hidden but keeping its width, as
+				// Mac OS 8.5 draws it (ClassicyDesktopMenuBar.scss).
+				switcherTitleIcon !== undefined &&
+					"classicyDesktopMenuAppSwitcherRequest",
+				classicyStateClasses({ collapsed: appMenuTitleCollapsed }),
+			),
 			part: "switcher",
-			// The switcher's title follows the focused app, and it sits at the
-			// right end of the bar — so a name-length change would otherwise resize
-			// it and shove the clock and extensions sideways. Reserve the widest open
-			// app's width up front and the bar stays put.
-			titleWidthSamples: openApps.map((app) => app.name),
+			// As wide as the front application's own name, as Mac OS 8.5 draws
+			// it: an application opening behind it changes nothing, and a
+			// switch to one with a longer or shorter name moves the clock and
+			// the bar items left of the title (8.5's Finder, Note Pad and
+			// Apple System Profiler titles; no width is reserved for the
+			// widest open application's name, as an earlier build did).
 			menuChildren: [
 				...commands,
 				...openApps.map((app) => ({
 					id: app.id,
 					icon: app.icon,
 					title: app.name,
-					// The front application is checked, beside its icon; a hidden
-					// one's icon is dimmed: by the package's rule on a canvas
-					// (`imageDimmed`), else by its stylesheet
-					// (`classicyDesktopMenuAppHidden`).
-					checked: app.id === focusedApp?.id,
+					// The front application is checked, beside its icon, and one a
+					// notification marks has a ◆; a hidden one's icon is dimmed:
+					// by the package's rule on a canvas (`imageDimmed`), else by
+					// its stylesheet (`classicyDesktopMenuAppHidden`).
+					...appSwitcherEntryMark(app, app.id === focusedApp?.id),
 					...(app.hidden
-						? { className: "classicyDesktopMenuAppHidden", imageDimmed: true }
+						? {
+								className: "classicyDesktopMenuAppHidden",
+								imageDimmed: true,
+								// Screen readers hear what the dimmed icon shows.
+								description: appSwitcherEntryDescription(app, {
+									marked: app.id !== focusedApp?.id,
+								}),
+							}
 						: {}),
 					onClickFunc: () => {
 						setActiveApp(app.id);
@@ -290,63 +380,27 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				})),
 			],
 		};
+	}, [
+		appSwitcherData,
+		finderName,
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
-	}, [appSwitcherData, finderName, setActiveApp]);
+		setActiveApp,
+		switcherTitleIcon,
+		notificationDescriptions.application,
+		appMenuTitleCollapsed,
+	]);
 
-	// The app whose menus the bar is showing. Extensions (e.g. Apple Guide) can
-	// take window focus but must never be treated as "the focused app" here —
-	// mirrors appSwitcherAppsFrom, which excludes them for the same reason.
-	// Consumed by both the Apple menu (About <app>) and the Help menu (per-app
-	// items). Distinct from the `focusedAppId` memo further down, which feeds
-	// shortcut-scope registration and intentionally does not exclude extensions.
+	// The app whose menus the bar is showing: the front application
+	// (`frontAppIdOf`), which an extension's window (Apple Guide) never
+	// replaces. Consumed by the Apple menu (About <app>) and the Help menu.
 	const focusedMenuApp = useMemo(() => {
 		const appList = Object.values(apps);
 		return (
-			appList.find((a) => a.focused === true && !a.extension) ??
+			(frontAppId ? apps[frontAppId] : undefined) ??
 			apps["Finder.app"] ??
 			appList[0]
 		);
-	}, [apps]);
-
-	// Standard Help menu (HIG Ch. 4 "Menu Bar"): rightmost of the standard
-	// menus. About Balloon Help, a Show/Hide Balloons toggle wired to the
-	// existing balloon-help store flag, and a slot for app-supplied help items.
-	const helpMenuItem: ClassicyMenuItem = useMemo(() => {
-		const helpChildren: ClassicyMenuItem[] = [
-			{
-				id: "help-about-balloon",
-				title: "About Balloon Help…",
-				event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
-				eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
-			},
-			{
-				id: "help-toggle-balloons",
-				title: disableBalloonHelp ? "Show Balloons" : "Hide Balloons",
-				// Real working equivalent — Option-H rather than a ⌘ combo, since
-				// the browser reserves most ⌘/Ctrl+letter chords. Fires whether or
-				// not the Help menu is dropped down.
-				keyboardShortcut: "⌥H",
-				event: "ClassicyDesktopSetBalloonHelp",
-				eventData: { disableBalloonHelp: !disableBalloonHelp },
-			},
-		];
-		const appHelpMenu = focusedMenuApp?.id
-			? helpMenus?.[focusedMenuApp.id]
-			: undefined;
-		if (appHelpMenu && appHelpMenu.length > 0) {
-			helpChildren.push({ id: "spacer" }, ...appHelpMenu);
-		}
-		return {
-			id: "help-menu",
-			// The art replaces the word, which stays its accessible name.
-			...(helpMenuTitleArt
-				? { image: helpMenuTitleArt, imageAlt: "Help" }
-				: { title: "Help" }),
-			className: "classicyDesktopMenuHelp",
-			part: "help",
-			menuChildren: helpChildren,
-		};
-	}, [disableBalloonHelp, helpMenus, focusedMenuApp, helpMenuTitleArt]);
+	}, [apps, frontAppId]);
 
 	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
 	// the focused app (fallback Finder), *move* its About entry out of the app's
@@ -362,10 +416,16 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		const aboutItem = findAppAboutItem(appMenu, focusedAppId);
 
 		let menuChildren: ClassicyMenuItem[];
+		// The system menu's items in alphabetical order (HIG7 p.98), Recent
+		// Applications and Recent Documents (Apple Menu Options) among them.
+		const systemItems = withClassicyRecentItemsMenuItems(
+			withClassicyAppIdentityMenuItems(systemMenu, overrides) ?? [],
+			recentMenuItems,
+		);
 		if (aboutItem) {
 			// Drop the system menu's leading "About This Computer" (and a spacer
 			// immediately after it) so our injected spacer isn't doubled.
-			let rest = withClassicyAppIdentityMenuItems(systemMenu, overrides) ?? [];
+			let rest = systemItems;
 			if (rest[0] && isAboutThisComputerItem(rest[0])) {
 				rest = rest.slice(1);
 				if (rest[0]?.id === "spacer") rest = rest.slice(1);
@@ -380,10 +440,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				...rest,
 			];
 		} else {
-			// No app About available — leave the system menu as it is, apart
-			// from showing its app entries by their display names.
-			menuChildren =
-				withClassicyAppIdentityMenuItems(systemMenu, overrides) ?? [];
+			// No app About available: the system menu as sorted above, its app
+			// entries shown by their display names.
+			menuChildren = systemItems;
 		}
 
 		return {
@@ -392,6 +451,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				image: appleMenuIcon,
 				// The art is the title: its accessible name.
 				imageAlt: "Apple",
+				description: appleMenuDescription,
 				menuChildren,
 				className: "classicyDesktopMenuApple",
 				part: "apple",
@@ -405,14 +465,27 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		appMenu,
 		systemMenu,
 		appleMenuIcon,
+		appleMenuDescription,
 		overrides,
 		finderName,
+		recentMenuItems,
 	]);
+
+	// The standard Help menu, built from the app's menus with the About item
+	// already hoisted into the Apple menu; it absorbs a top-level "Help" the
+	// app publishes (Finder's), so the bar draws one.
+	const { helpItem: helpMenuItem, appMenu: appMenuWithoutHelp } =
+		useClassicyStandardHelpMenu({
+			appMenu: strippedAppMenu,
+			appId: focusedMenuApp?.id,
+		});
 
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
-		if (strippedAppMenu) {
-			items.push(...strippedAppMenu.map((item) => ({ ...item, part: "app" })));
+		if (appMenuWithoutHelp) {
+			items.push(
+				...appMenuWithoutHelp.map((item) => ({ ...item, part: "app" })),
+			);
 		}
 		// Help is the rightmost standard menu; the App Switcher sits at the far
 		// right of the bar (8.5+ construct) and is kept last in the data. Where
@@ -421,14 +494,17 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		items.push(helpMenuItem);
 		items.push(appSwitcherMenuMenuItem);
 		return items;
-	}, [appleMenuItem, strippedAppMenu, helpMenuItem, appSwitcherMenuMenuItem]);
+	}, [
+		appleMenuItem,
+		appMenuWithoutHelp,
+		helpMenuItem,
+		appSwitcherMenuMenuItem,
+	]);
 
 	useClassicyShortcutDispatcher(defaultMenuItems);
 
-	const focusedAppId = useMemo(() => {
-		const focused = Object.values(apps).find((a) => a.focused === true);
-		return focused?.id ?? "Finder.app";
-	}, [apps]);
+	// The front app owns the app keyboard scope (an extension never does).
+	const focusedAppId = frontAppId ?? "Finder.app";
 
 	// App scope: the focused app's menu chords, keyed by appId. Re-runs when the
 	// focused app or its published menu changes.
@@ -486,9 +562,13 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				menuItems={defaultMenuItems}
 				navClass={"classicyDesktopMenu"}
 				subNavClass={"classicySubMenu"}
+				onOpenItemChange={setOpenTitle}
 			>
 				{/* Sound lives on the Control Strip (ClassicyDesktop mounts it). */}
 				<ClassicyDesktopMenuWidgetTime />
+				{/* The Application menu title's grip, placed beside the title by
+				    its data-classicy-part (ClassicyDesktopMenuBar.scss). */}
+				{appMenuTitleGrip}
 				{/* Portal target for app Menu Bar Extensions. Order via
 				    data-classicy-part; see ClassicyDesktopMenuBar.scss: it lands
 				    left of the clock and pushes the right cluster to the end. */}
@@ -498,6 +578,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "extensions" }}
 				/>
 			</ClassicyMenu>
+			{/* Dragging past the Application menu's bottom tears it off into
+			    the Application Switcher's palette (Mac OS 8.5). */}
+			<ClassicyAppSwitcherTearOff navRef={navRef} />
 		</nav>
 	);
 };

@@ -3,6 +3,7 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
+	useRef,
 } from "react";
 import { pickWindowToRestore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import {
@@ -13,6 +14,7 @@ import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
@@ -26,6 +28,12 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 export type ClassicyGlobalShortcut = {
 	/** The chord, in any `parseKeyboardShortcut` spelling (e.g. `"⌃⌘S"`). */
 	shortcut: string;
+	/**
+	 * What the chord does, in a few words ("Toggle Screen Saver"). Optional:
+	 * the Keyboard Shortcuts topic lists the chord under the extension's own
+	 * name without it.
+	 */
+	title?: string;
 	/** Action type dispatched when the chord fires. */
 	event: string;
 	/** Extra fields spread into the dispatched action. */
@@ -84,8 +92,10 @@ export interface ClassicyAppProps {
 	globalShortcuts?: ClassicyGlobalShortcut[];
 	/** Show an icon in the startup parade without being an extension.
 	 *  `true` uses the app's own icon; a string (any icon URL, including
-	 *  ClassicyIcons.* values) shows that icon instead. Ignored when
-	 *  `extension` is set — extensions already parade. */
+	 *  ClassicyIcons.* values) shows that icon instead. An `extension`
+	 *  already parades: `true` and a string are ignored there, and `false`
+	 *  keeps it out of the parade (Mac OS 8.5's Application Switcher shows
+	 *  no icon there). */
 	bootIcon?: boolean | string;
 	/** File types Finder may open with this app. Opening one dispatches
 	 *  `` `ClassicyApp${name}OpenFile` ``; unless the app handles that action
@@ -93,13 +103,41 @@ export interface ClassicyAppProps {
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
 	/** Render your own windows for queued `openFiles`. When `false`, the app
 	 *  renders one plain window per queued path whose close dispatches
-	 *  `` `ClassicyApp${name}CloseFile` ``. Defaults to `false`. */
+	 *  `` `ClassicyApp${name}CloseFile` ``. Defaults to `false`.
+	 *
+	 *  When `true`, give the window you draw for a queued path the id
+	 *  `` `${id}_file_${path}` `` (`classicyDocumentWindowId`), as SimpleText
+	 *  and PDF Viewer do: a document open then reopens and fronts that window
+	 *  only, and launching the app for a document after a quit shows that
+	 *  window only. And dispatch `` `ClassicyApp${name}CloseFile` `` (with
+	 *  the path) when that window closes, so the path leaves the queue and a
+	 *  later open queues it again. A window under an id of your own whose
+	 *  path stays queued after it closes is reopened by the next open of its
+	 *  document with every other window the app closed, as a plain open. */
 	handlesOwnFiles?: boolean;
 	/** App-level right-click menu: the fallback for any of this app's windows
 	 *  without its own `contextMenu` (a `ClassicyContextualMenuTarget` inside a
 	 *  window wins over both). Sent with `ClassicyAppLoad`, which does not
 	 *  re-run when only this array changes. */
 	contextMenu?: ClassicyMenuItem[];
+	/** The menus shown while this app is the front application with **no open
+	 *  window**, as on the Mac, where an application with every window closed
+	 *  keeps its menu bar (File ▸ New, Open, Quit). Not `ClassicyWindow`'s
+	 *  `appMenu`: any open window record of the app (a dialog, About, a
+	 *  palette) keeps this out and its own `appMenu` is the bar's. Under
+	 *  `menuBar.placement: "window"` there is no window to draw it in, so only
+	 *  its chords act. Memoize it: a new array each render is re-sent. */
+	windowlessMenu?: ClassicyMenuItem[];
+	/** Called when the app, already running with **no open window**, is
+	 *  opened again: a plain `ClassicyAppOpen` (its desktop icon, the Apple
+	 *  menu, Recent Applications), as Finder 8 sends a running application
+	 *  the reopen application Apple event (Apple Technote TN1102, "Mac OS 8",
+	 *  https://developer.apple.com/library/archive/technotes/tn/tn1102.html).
+	 *  Show a window, as on launch: SimpleText opens an untitled one. Never
+	 *  called for a document open, during the app's launch, or while any
+	 *  window of the app (a palette or dialog included) is open. Without it,
+	 *  the app just comes to the front. */
+	onReopen?: () => void;
 	/** The app's windows (`ClassicyWindow`) and other UI. Rendered only while
 	 *  the app is open. */
 	children?: ReactNode;
@@ -147,6 +185,8 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	handlesFileTypes,
 	handlesOwnFiles = false,
 	contextMenu,
+	windowlessMenu,
+	onReopen,
 	children,
 }) => {
 	const appContext = useAppManager(
@@ -189,6 +229,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 			app: { id, name, icon },
 			contextMenu,
 			extension,
+			...(extension && bootIcon === false ? { bootParade: false } : {}),
 		});
 
 		// Extensions are background-only: no Apple-menu entry and no desktop
@@ -269,6 +310,30 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	// Runtime presence, separate from the persisted app record: Control Strip
 	// modules registered with this app's id show only while it is mounted.
 	useEffect(() => markClassicyAppMounted(id), [id]);
+	// A launch ends once the windows that mount with it have registered:
+	// their effects run before this one, in the commit that opened the app.
+	const launching = appContext?.open === true && appContext.launching === true;
+	useEffect(() => {
+		if (!launching) return;
+		desktopEventDispatch({ type: "ClassicyAppLaunchSettled", app: { id } });
+	}, [launching, desktopEventDispatch, id]);
+
+	// Opened again with no window open (`apps[id].reopened`, counted by
+	// `openApp`): the app's onReopen shows a window. Only a change seen
+	// while mounted counts, so a remount never answers an old request. Every
+	// value is recorded, `undefined` included: a quit clears the count, so
+	// the next run counts from 1 again, and its first reopen must not be
+	// taken for one answered in an earlier run.
+	const reopened = appContext?.reopened;
+	const onReopenRef = useRef(onReopen);
+	onReopenRef.current = onReopen;
+	const seenReopenRef = useRef(reopened);
+	useEffect(() => {
+		const seen = seenReopenRef.current;
+		seenReopenRef.current = reopened;
+		if (reopened === undefined || reopened === seen) return;
+		onReopenRef.current?.();
+	}, [reopened]);
 
 	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";
 	useEffect(() => {
@@ -297,6 +362,8 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 				scope: "global",
 				appId: id,
 				chord,
+				shortcut: gs.shortcut,
+				...(gs.title ? { title: gs.title } : {}),
 				event: gs.event,
 				eventData: gs.eventData,
 			});
@@ -344,6 +411,29 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		// appContext is the re-run trigger (any change to this app's record);
 		// the body reads the live store.
 	}, [appContext, defaultWindow, restoreWindowFocus, desktopEventDispatch, id]);
+
+	// The windowless menu bar: while this app is the front application and has
+	// no open window, no window publishes menus, so publish the app's own.
+	const frontAppId = useFrontAppId();
+	const hasOpenWindow = appContext
+		? listAppWindows(appContext).some((w) => !w.closed)
+		: false;
+	const appIsOpen = appContext?.open === true;
+	useEffect(() => {
+		if (!windowlessMenu || !appIsOpen || hasOpenWindow || frontAppId !== id)
+			return;
+		desktopEventDispatch({
+			type: "ClassicyWindowMenu",
+			menuBar: windowlessMenu,
+		});
+	}, [
+		windowlessMenu,
+		appIsOpen,
+		hasOpenWindow,
+		frontAppId,
+		id,
+		desktopEventDispatch,
+	]);
 
 	const rawOpenFiles = appContext?.data?.openFiles;
 	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];

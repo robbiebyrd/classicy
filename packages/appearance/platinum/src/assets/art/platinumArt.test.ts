@@ -106,10 +106,12 @@ describe("Platinum window, menu, slider and tab art", () => {
 		}
 	});
 
-	// The stripes are the original art, drawn as images: twelve one-unit rows
-	// alternating light and dark, over the original viewBoxes (the gray rows
-	// overhang a 11.53-wide box by 0.24 on each side), so the tile keeps its
-	// size and the rows their colors.
+	// The stripes are drawn as images, over the original viewBoxes (the gray
+	// rows overhang a 11.53-wide box by 0.24 on each side), so the tile keeps
+	// its size: the gray art twelve one-unit rows alternating light and dark,
+	// the red art (story 0236-2f8, HIGOS8 Figures 3-6 and 3-8) the six white
+	// rows alone, white first, over the dark red the alert's bands draw from
+	// the theme.
 	it("pins the stripe art", () => {
 		const s = read("title-bar-center.svg");
 		expect(s).toContain('viewBox="0 0 11.53 12"');
@@ -121,11 +123,15 @@ describe("Platinum window, menu, slider and tab art", () => {
 			expect(row).toMatch(/d="M-\.24 \d+h12\.01v1H-\.24z"/);
 		const r = read("title-bar-center-red.svg");
 		expect(r).toContain('viewBox="0 0 12.01 12"');
-		expect(r).toMatch(/\.cls-1 \{\s*fill: #ef8c89;/);
-		expect(r).toMatch(/\.cls-2 \{\s*fill: #f9dada;/);
+		expect(r).toMatch(/\.cls-1 \{\s*fill: #fff;/);
+		expect(r).not.toMatch(/cls-2/);
 		expect(rows(r)).toEqual(
-			Array.from({ length: 12 }, (_, y) => [y, y % 2 ? "cls-2" : "cls-1"]),
+			Array.from({ length: 6 }, (_, i) => [2 * i, "cls-1"]),
 		);
+		// The white rows overhang the box by 0.24 on each side, as the gray
+		// rows do, so Firefox draws no seam where the tiles meet.
+		for (const row of r.match(/<path\b[^>]*>/g) ?? [])
+			expect(row).toMatch(/d="M-\.24,\d+h12\.49v1H-\.24v-1Z"/);
 	});
 
 	// The zoom glyph is an image (E 6.1), so it keeps the Illustrator rich black

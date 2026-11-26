@@ -38,6 +38,8 @@ vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	() => ({
 		useAppManagerDispatch: () => dispatch,
+		// requestClassicyAppQuit (File > Quit) dispatches the module's own.
+		dispatch: (...args: unknown[]) => dispatch(...args),
 		useAppManager: Object.assign(
 			(sel: (s: unknown) => unknown): unknown => sel(mockState),
 			{ getState: (): unknown => mockState },

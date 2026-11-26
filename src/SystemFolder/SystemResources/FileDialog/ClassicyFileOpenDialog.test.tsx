@@ -259,6 +259,60 @@ describe("ClassicyFileOpenDialog", () => {
 		expect(onOpenFunc.mock.calls[0][0][0].entry.id).toBe("movie");
 	});
 
+	// Standard File's Open is a document use (story 0226-a6f): each chosen
+	// file of the Classicy file system is recorded for Recent Documents.
+	it("records a chosen Classicy file for Recent Documents, before onOpenFunc", async () => {
+		const user = userEvent.setup();
+		mockDispatch.mockClear();
+		const order: string[] = [];
+		mockDispatch.mockImplementation((action: { type: string }) =>
+			order.push(action.type),
+		);
+		const onOpenFunc = vi.fn(() => order.push("onOpenFunc"));
+		const vol = makeVolume({
+			list: vi.fn(async () => [
+				{
+					id: "plan",
+					name: "Plan.txt",
+					kind: "file" as const,
+					fileType: "text_file",
+					meta: { classicyPath: "Macintosh HD:Plan.txt" },
+				},
+				{
+					id: "remote",
+					name: "remote.txt",
+					kind: "file" as const,
+					fileType: "text_file",
+				},
+			]),
+		});
+		renderWithProviders(
+			<ClassicyFileOpenDialog
+				{...baseProps}
+				onOpenFunc={onOpenFunc}
+				volumes={[vol]}
+			/>,
+		);
+		await user.dblClick(await screen.findByText("Plan.txt"));
+		expect(mockDispatch).toHaveBeenCalledWith({
+			type: "ClassicyDesktopRecentItemsRecordDocument",
+			path: "Macintosh HD:Plan.txt",
+		});
+		expect(order.slice(-2)).toEqual([
+			"ClassicyDesktopRecentItemsRecordDocument",
+			"onOpenFunc",
+		]);
+		mockDispatch.mockClear();
+		await user.dblClick(screen.getByText("remote.txt"));
+		expect(
+			mockDispatch.mock.calls.filter(
+				([action]) =>
+					action.type === "ClassicyDesktopRecentItemsRecordDocument",
+			),
+		).toHaveLength(0);
+		mockDispatch.mockReset();
+	});
+
 	it("switches volumes via the popup and resets the selection", async () => {
 		const user = userEvent.setup();
 		const volB = makeVolume({

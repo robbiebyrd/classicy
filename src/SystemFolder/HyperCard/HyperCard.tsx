@@ -1,5 +1,9 @@
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	registerClassicyAppQuitGuard,
+	requestClassicyAppQuit,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppQuit";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 /**
  * HyperCard.app — a JSON-driven HyperCard stack player for Classicy.
@@ -59,10 +63,7 @@ import {
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
-import {
-	quitAppHelper,
-	quitMenuItemHelper,
-} from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -288,23 +289,28 @@ export const HyperCard: FunctionalComponent = () => {
 	// stacks were opened/entered edit mode in is the closest analog). Cancel
 	// on any one alert aborts the whole quit immediately; Save/Discard
 	// resolves that stack and the loop re-reads the freshest state to find
-	// the next remaining dirty stack, repeating until none are left.
+	// the next remaining dirty stack, repeating until none are left. It is
+	// HyperCard's quit guard, so requestClassicyAppQuit (File > Quit, or a
+	// host asking HyperCard to quit) asks the same way.
+	useEffect(
+		() =>
+			registerClassicyAppQuitGuard(appId, async () => {
+				for (;;) {
+					const freshData = useAppManager.getState().System.Manager.Applications
+						.apps[appId]?.data as HyperCardEditorData | undefined;
+					const dirtyStackId = Object.keys(freshData?.edits ?? {}).find(
+						(id) => freshData?.edits?.[id]?.dirty,
+					);
+					if (!dirtyStackId) return true;
+					const proceed = await confirmDirtyStack(dirtyStackId);
+					if (!proceed) return false;
+				}
+			}),
+		[confirmDirtyStack],
+	);
 	const handleQuit = useCallback(() => {
-		const runCascade = async (): Promise<void> => {
-			for (;;) {
-				const freshData = useAppManager.getState().System.Manager.Applications
-					.apps[appId]?.data as HyperCardEditorData | undefined;
-				const dirtyStackId = Object.keys(freshData?.edits ?? {}).find(
-					(id) => freshData?.edits?.[id]?.dirty,
-				);
-				if (!dirtyStackId) break;
-				const proceed = await confirmDirtyStack(dirtyStackId);
-				if (!proceed) return;
-			}
-			dispatch(quitAppHelper(appId, appName, appIcon));
-		};
-		void runCascade();
-	}, [confirmDirtyStack, dispatch, appIcon]);
+		void requestClassicyAppQuit(appId);
+	}, []);
 
 	// Browse-preview: entering the browse tool pushes the draft into the player.
 	const editTool = edit?.tool;

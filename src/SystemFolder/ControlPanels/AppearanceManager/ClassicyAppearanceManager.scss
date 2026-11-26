@@ -14,6 +14,12 @@
   margin: var(--layout-focus-gap) 0;
 }
 
+// Copy Theme Link's status line: apart from the checkboxes below it, and
+// taking no room while it says nothing.
+.classicyAppearanceManagerThemeLinkStatus:not(:empty) {
+  margin-block-end: var(--layout-item-gap);
+}
+
 .classicyAppearanceManagerDesktopRow {
   display: flex;
   flex-direction: row;

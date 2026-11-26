@@ -1,11 +1,13 @@
 // Side-effect import: registers the Sound Control Strip module, which needs
 // this provider's context.
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
+import type { Howl } from "howler";
 import {
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useEffect,
 	useReducer,
+	useRef,
 } from "react";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { findClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPackLookup.internal";
@@ -14,13 +16,44 @@ import {
 	useClassicySoundPacks,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import {
+	buildClassicySoundPlayers,
+	ClassicySoundActionTypes,
 	ClassicySoundDispatchContext,
 	ClassicySoundManagerContext,
-	ClassicySoundStateEventReducer,
+	type ClassicySoundState,
 	classicySoundGain,
+	classicySoundStateReducer,
 	initialPlayer,
-	seedSoundState,
+	runClassicySoundCommand,
+	seedClassicySoundState,
+	unloadClassicySoundPlayer,
 } from "./ClassicySoundManagerUtils";
+
+/**
+ * The seeded state with the persisted alert sound and alert volume read in
+ * at once, so an alert a child plays from its mount effect (before the
+ * bridge effects below have run) is judged by them.
+ */
+const withStoredAlert = (ss: ClassicySoundState): ClassicySoundState => {
+	// A store stand-in without `getState` (a test's) seeds nothing here; the
+	// bridge effects below still mirror the values in.
+	const appearance =
+		typeof useAppManager.getState === "function"
+			? useAppManager.getState()?.System?.Manager?.Appearance
+			: undefined;
+	let next = ss;
+	if (appearance?.alertSound)
+		next = classicySoundStateReducer(next, {
+			type: ClassicySoundActionTypes.ClassicySoundSetAlertSound,
+			sound: appearance.alertSound,
+		});
+	if (typeof appearance?.alertVolume === "number")
+		next = classicySoundStateReducer(next, {
+			type: ClassicySoundActionTypes.ClassicySoundSetAlertVolume,
+			alertVolume: appearance.alertVolume,
+		});
+	return next;
+};
 
 export const ClassicySoundManagerProvider: FunctionalComponent<{
 	children: ReactNode;
@@ -46,10 +79,46 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 		) ?? CLASSICY_DEFAULT_SOUND_PACK_ID;
 	const packs = useClassicySoundPacks();
 	const [sound, soundDispatch] = useReducer(
-		ClassicySoundStateEventReducer,
+		classicySoundStateReducer,
 		initialPlayer,
-		(base) => seedSoundState(base, packId, defaultMuted),
+		(base) =>
+			withStoredAlert(seedClassicySoundState(base, packId, defaultMuted)),
 	);
+
+	// The players, built here and never in the reducer (React calls reducers
+	// and initializers twice in StrictMode): one Howl per pack, kept in a
+	// cache that survives StrictMode's simulated unmount and is unloaded
+	// when the provider really unmounts. They reach the state through
+	// `ClassicySoundSetPlayers`, and the commands run on the state's players,
+	// so a host's `ClassicySoundSet` player plays too.
+	const cache = useRef(new Map<string, Howl>());
+	const mounted = useRef(false);
+	useEffect(() => {
+		mounted.current = true;
+		const built = cache.current;
+		return () => {
+			mounted.current = false;
+			// StrictMode remounts at once; only a real unmount lets this run
+			// with the provider still gone.
+			setTimeout(() => {
+				if (mounted.current) return;
+				for (const player of built.values()) unloadClassicySoundPlayer(player);
+				built.clear();
+			}, 0);
+		};
+	}, []);
+	const { packId: loadedPackId, fallbackPackId, pack: loadedPack } = sound;
+	useEffect(() => {
+		const built = buildClassicySoundPlayers(
+			{ packId: loadedPackId, fallbackPackId, pack: loadedPack },
+			cache.current,
+		);
+		soundDispatch({
+			type: ClassicySoundActionTypes.ClassicySoundSetPlayers,
+			soundPlayer: built.soundPlayer ?? undefined,
+			fallbackPlayer: built.fallbackPlayer,
+		});
+	}, [loadedPackId, fallbackPackId, loadedPack]);
 
 	// Load the theme's pack when it changes, or when it is registered after
 	// mount (`packs` is the registry snapshot). Falls back to the default pack
@@ -65,7 +134,7 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 			// Loaded already; only the stand-in for the sprites it lacks can be
 			// missing, when the default pack registered after this one loaded.
 			if (
-				!sound.fallbackPlayer &&
+				!sound.fallbackPackId &&
 				pack.id !== CLASSICY_DEFAULT_SOUND_PACK_ID &&
 				findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID)
 			) {
@@ -80,7 +149,7 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 				useAppManager.getState().System.Manager.Appearance?.activeTheme?.sound
 					?.disabled,
 		});
-	}, [packId, packs, sound.packId, sound.fallbackPlayer]);
+	}, [packId, packs, sound.packId, sound.fallbackPackId]);
 
 	// Bridge the persisted Appearance selection (Zustand) into the sound state
 	// so the reducer stays pure and the ClassicyAlertSound/PlayError events can
@@ -104,12 +173,44 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 	}, [alertVolume]);
 
 	// The system volume (ClassicyVolumeSet) is the player's gain. Re-applied
-	// when a sound theme loads a new player, so the level carries over.
+	// when a sound theme loads a new player, so the level carries over. It
+	// runs before the queued commands below, in the same commit: a gain set
+	// on a whole player after an alert played would override the alert's
+	// own level (system gain × alert volume).
+	// A player already at the gain is left alone: re-setting a whole
+	// player's gain would reset an alert still sounding on it (a pack switch
+	// keeps the default pack's player as the stand-in).
 	const { soundPlayer, fallbackPlayer, volume } = sound;
+	const gains = useRef(new WeakMap<Howl, number>());
 	useEffect(() => {
-		soundPlayer?.volume(classicySoundGain(volume));
-		fallbackPlayer?.volume(classicySoundGain(volume));
+		const gain = classicySoundGain(volume);
+		for (const player of [soundPlayer, fallbackPlayer]) {
+			if (!player || gains.current.get(player) === gain) continue;
+			player.volume(gain);
+			gains.current.set(player, gain);
+		}
 	}, [soundPlayer, fallbackPlayer, volume]);
+
+	// The queued commands (plays, stops), each run once, in order, on the
+	// state's players, each judged by the mute, alert sound and levels it was
+	// queued under; a command queued before the players for the state's pack
+	// are set waits for them (the boot chime a child asks for on mount).
+	// With no pack at all they run on no player: silence, as before.
+	const ranThrough = useRef(0);
+	useEffect(() => {
+		const pending = (sound.commands ?? []).filter(
+			(c) => c.id > ranThrough.current,
+		);
+		if (pending.length === 0) return;
+		if ((sound.playersPackId ?? null) !== sound.packId) return;
+		for (const command of pending)
+			runClassicySoundCommand({ ...sound, ...command.policy }, command.action);
+		ranThrough.current = pending[pending.length - 1].id;
+		soundDispatch({
+			type: ClassicySoundActionTypes.ClassicySoundCommandsRun,
+			through: ranThrough.current,
+		});
+	}, [sound]);
 
 	return (
 		<ClassicySoundManagerContext.Provider value={sound}>

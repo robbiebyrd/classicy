@@ -91,12 +91,105 @@ describe("ClassicyDesktopMenuBar layout — styles", () => {
 			["help", "30"],
 			["extensions", "40"],
 			["clock", "50"],
+			["switcher-grip", "59"],
 			["switcher", "60"],
 		])
 			expect(
 				rule(`.classicyDesktopMenu > [data-classicy-part="${part}"]`).order,
 			).toBe(order);
 		expect(menuBarCss + timeCss).not.toMatch(/float: right/);
+	});
+
+	// The Application menu title's grip (Mac OS 8.5) sits at the title's
+	// left edge: after the clock and right before the title, with no other
+	// part between them. Without its rule it takes order 0 and draws at the
+	// bar's left end, ahead of the Apple menu. Integration review G round 6,
+	// finding 3.
+	it("puts the Application menu title's grip right before the title", () => {
+		const order = (part: string) =>
+			Number(
+				rule(`.classicyDesktopMenu > [data-classicy-part="${part}"]`).order,
+			);
+		const grip = order("switcher-grip");
+		expect(grip).toBeGreaterThan(order("clock"));
+		expect(grip).toBeLessThan(order("switcher"));
+		for (const part of ["apple", "app", "help", "extensions", "clock"])
+			expect(order(part), part).toBeLessThan(grip);
+		// Never wrapped in a balloon anchor, so it has no :has() twin.
+		expect(menuBarCss).not.toContain(
+			':has(> [data-classicy-part="switcher-grip"])',
+		);
+	});
+
+	// A request's frame of the Notification Manager's blink, as Mac OS 8.5
+	// draws it (the 8.5 audit's F1): the icon alone in the middle of the
+	// title's contents, the name hidden but keeping its width; the icon
+	// alone swaps in place.
+	it("centers a request's icon in the Application menu title and keeps the name's width", () => {
+		const request =
+			":where(.classicyDesktopMenuAppSwitcher).classicyDesktopMenuAppSwitcherRequest:not(.collapsed)";
+		expect(rule(`${request} .classicyDesktopMenuAppSwitcherName`)).toEqual({
+			visibility: "hidden",
+		});
+		// On a whole pixel, rounded up (8.5's x 584 in a 74-px title), with
+		// the unrounded value first for a browser without `round()`.
+		expect(rule(`${request} > p > img`)).toEqual({
+			position: "relative",
+			left: "round(up, 50%, var(--window-border-size))",
+			transform: "translateX(-50%)",
+		});
+		expect(css).toMatch(
+			/ > p > img \{\n\s+position: relative;\n\s+left: 50%;\n\s+left: round\(up, 50%, var\(--window-border-size\)\);/,
+		);
+	});
+
+	// The clock's readout is a <button> (its keyboard path): the base sheet
+	// takes the native button's chrome away so it draws as the item's text
+	// did, D24's gap before the grip included. jsdom lays nothing out, so the
+	// compiled reset is pinned whole (integration review G round 5, finding 9).
+	it("draws the clock's readout button with no native chrome", () => {
+		expect(rule(".classicyDesktopMenuTime > button")).toEqual({
+			display: "block",
+			margin: "0",
+			padding: "0",
+			border: "0",
+			background: "transparent",
+			color: "inherit",
+			font: "inherit",
+			"letter-spacing": "inherit",
+			"word-spacing": "inherit",
+			"text-align": "inherit",
+			"text-transform": "inherit",
+			"text-indent": "inherit",
+			"text-shadow": "inherit",
+			"white-space": "inherit",
+			cursor: "inherit",
+			appearance: "none",
+		});
+	});
+
+	// The title follows its grip's drag on the bar's custom property, its
+	// name cut with an ellipsis; collapsed, the name is not drawn. jsdom lays
+	// nothing out, so the compiled rules are pinned. Integration review G
+	// round 6, finding 4.
+	it("sizes the Application menu title by the grip's width and cuts or hides its name", () => {
+		expect(rule(".classicyDesktopMenuAppSwitcher").width).toBe(
+			"var(--classicy-app-menu-title-width, auto)",
+		);
+		expect(rule(".classicyDesktopMenuAppSwitcher")["box-sizing"]).toBe(
+			"border-box",
+		);
+		expect(rule(".classicyDesktopMenuAppSwitcherName")).toEqual({
+			"min-width": "0",
+			overflow: "hidden",
+			"white-space": "nowrap",
+			"text-overflow": "ellipsis",
+		});
+		expect(
+			rule(
+				":where(.classicyDesktopMenuAppSwitcher).collapsed .classicyDesktopMenuAppSwitcherName",
+			),
+		).toEqual({ display: "none" });
 	});
 
 	// The bar is a flex item of its .classicyMenuWrapper, which already shrank
@@ -223,11 +316,19 @@ describe("ClassicyDesktopMenuBar layout — clusters", () => {
 
 	it("tags every cluster", () => {
 		const { container } = render(<ClassicyDesktopMenuBar />);
-		for (const part of ["apple", "help", "switcher", "extensions", "clock"])
+		for (const part of [
+			"apple",
+			"help",
+			"switcher",
+			"switcher-grip",
+			"extensions",
+			"clock",
+		])
 			expect(
 				container.querySelector(
 					`.classicyDesktopMenu > [data-classicy-part="${part}"]`,
 				),
+				part,
 			).not.toBeNull();
 	});
 

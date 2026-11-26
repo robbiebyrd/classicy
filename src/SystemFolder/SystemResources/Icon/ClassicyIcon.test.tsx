@@ -1,5 +1,12 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+} from "@testing-library/react";
+import { createRef } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	ClassicyIcon,
 	snapToGrid,
@@ -82,5 +89,106 @@ describe("ClassicyIcon consumer style", () => {
 			.closest(".classicyIcon") as HTMLElement;
 		expect(icon.style.zIndex).toBe("");
 		expect(icon.style.opacity).toBe("0.5");
+	});
+});
+
+describe("ClassicyIcon contextual-menu click, and the click after a drag", () => {
+	// Held in a container, so it drags by itself (no Finder drag).
+	const renderHeld = () => {
+		const holder = createRef<HTMLDivElement>();
+		const view = render(
+			<div ref={holder}>
+				<ClassicyIcon
+					appId={"Test.app"}
+					name={"thing.pdf"}
+					icon={"data:image/gif;base64,R0lGODlhAQABAAAAACw="}
+					initialPosition={[50, 50]}
+					holder={holder}
+				/>
+			</div>,
+		);
+		const icon = screen
+			.getByRole("img")
+			.closest(".classicyIcon") as HTMLElement;
+		return { ...view, icon };
+	};
+	const click = (icon: HTMLElement, init: MouseEventInit = {}) => {
+		fireEvent.mouseDown(icon, { button: 0, ...init });
+		fireEvent.mouseUp(icon, init);
+		fireEvent.click(icon, { detail: 1, ...init });
+	};
+
+	it("keeps an icon it dragged selected: the click ending a drag is no click", () => {
+		const { icon } = renderHeld();
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 90, clientY: 90 });
+		fireEvent.mouseUp(icon, { clientX: 90, clientY: 90 });
+		fireEvent.click(icon, { detail: 1 });
+		expect(icon.classList).toContain("selected");
+		// The next click is a click again: it toggles.
+		click(icon);
+		expect(icon.classList).not.toContain("selected");
+	});
+
+	it("takes an unsteady click, under the drag threshold, as a click: the icon stays put and toggles", () => {
+		const { icon } = renderHeld();
+		click(icon);
+		expect(icon.classList).toContain("selected");
+		// 3 px of travel, under CLASSICY_FILE_DRAG_THRESHOLD (4 px).
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 63, clientY: 62 });
+		fireEvent.mouseUp(icon, { clientX: 63, clientY: 62 });
+		fireEvent.click(icon, { detail: 1 });
+		expect(icon.style.left).toBe("50px");
+		expect(icon.style.top).toBe("50px");
+		expect(icon.classList).not.toContain("selected");
+	});
+
+	it("lets a keyboard's or a script's click (detail 0) through after a drag", () => {
+		const { icon } = renderHeld();
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 90, clientY: 90 });
+		// Let go off the icon: no click of the drag's own follows.
+		fireEvent.mouseUp(icon, { clientX: 90, clientY: 90 });
+		expect(icon.classList).toContain("selected");
+		fireEvent.click(icon, { detail: 0 });
+		expect(icon.classList).not.toContain("selected");
+	});
+
+	it("takes a Control-press as the contextual-menu click: selected, not dragged, the menu, no click after", async () => {
+		const { icon, container } = renderHeld();
+		const menus = vi.fn();
+		container.addEventListener("contextmenu", menus);
+		fireEvent.mouseDown(icon, {
+			button: 0,
+			clientX: 60,
+			clientY: 60,
+			ctrlKey: true,
+		});
+		expect(icon.classList).toContain("selected");
+		expect(icon.classList).not.toContain("dragging");
+		fireEvent.mouseMove(icon, { clientX: 90, clientY: 90 });
+		expect(icon.style.left).toBe("50px");
+		fireEvent.mouseUp(icon, { clientX: 90, clientY: 90 });
+		// The click a browser off macOS sends at the release toggles nothing.
+		fireEvent.click(icon, { detail: 1, ctrlKey: true });
+		expect(icon.classList).toContain("selected");
+		await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+		expect(menus).toHaveBeenCalledTimes(1);
+		expect(menus.mock.calls[0][0].target).toBe(icon);
+	});
+
+	it("takes a right-press as it takes a Control-press: selected, not dragged", () => {
+		const { icon } = renderHeld();
+		fireEvent.mouseDown(icon, { button: 2, clientX: 60, clientY: 60 });
+		expect(icon.classList).toContain("selected");
+		expect(icon.classList).not.toContain("dragging");
+		fireEvent.mouseMove(icon, { clientX: 90, clientY: 90 });
+		expect(icon.style.left).toBe("50px");
+		fireEvent.mouseUp(icon, { clientX: 90, clientY: 90 });
+		// Already selected: a second right-press keeps it so.
+		fireEvent.mouseDown(icon, { button: 2, clientX: 60, clientY: 60 });
+		expect(icon.classList).toContain("selected");
+		fireEvent.mouseUp(icon);
 	});
 });

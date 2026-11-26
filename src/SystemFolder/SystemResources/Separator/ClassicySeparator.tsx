@@ -12,6 +12,12 @@ export type ClassicySeparatorProps = {
 	 * draws a full-height one for side-by-side content regions.
 	 */
 	orientation?: ClassicySeparatorOrientation;
+	/**
+	 * Drawn only, with no meaning to assistive technology
+	 * (`role="presentation"`): a divider inside a list that may hold only its
+	 * items, as a pop-up menu's listbox. Defaults to `false`.
+	 */
+	decorative?: boolean;
 	/** Extra class names to merge onto the separator element. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -34,6 +40,7 @@ export type ClassicySeparatorProps = {
  */
 export const ClassicySeparator: FunctionalComponent<ClassicySeparatorProps> = ({
 	orientation = "horizontal",
+	decorative = false,
 	className,
 	style,
 }) => {
@@ -52,7 +59,9 @@ export const ClassicySeparator: FunctionalComponent<ClassicySeparatorProps> = ({
 				className,
 			)}
 			style={style}
-			aria-orientation={orientation}
+			{...(decorative
+				? { role: "presentation" }
+				: { "aria-orientation": orientation })}
 		/>
 	);
 };

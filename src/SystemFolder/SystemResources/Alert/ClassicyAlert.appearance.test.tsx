@@ -148,9 +148,58 @@ describe("Alert's window and the fixed-modal marker", () => {
 		expect(alertWindow()).toHaveClass("hostAlert");
 	});
 
+	// Every alert type's movable window is marked alike: the highlight marks
+	// an alert box (HIGOS8 p.61), the icon its type.
+	it("marks every alert type's movable window alike", () => {
+		for (const alertType of ["note", "caution", "stop"] as const) {
+			const { unmount } = render(
+				<ClassicyAlert label={alertType} alertType={alertType} movable />,
+			);
+			expect(alertWindow(), alertType).toHaveClass(
+				"classicyAlertMovableWindow",
+			);
+			unmount();
+		}
+	});
+
+	// `dialogBox`: an alert in a movable modal dialog box's frame (Mac OS
+	// 8.1's SimpleText "Save changes" box), so no alert highlight.
+	it("leaves a movable alert drawn as a dialog box unmarked", () => {
+		render(<ClassicyAlert label="Save changes?" movable dialogBox />);
+		expect(alertWindow()).not.toHaveClass("classicyAlertMovableWindow");
+	});
+
 	it("leaves a fixed alert's window without it", () => {
 		render(<ClassicyAlert label="Note" className="hostAlert" />);
 		expect(alertWindow()).not.toHaveClass("classicyAlertMovableWindow");
 		expect(alertWindow()).toHaveClass("hostAlert");
+	});
+
+	// Platinum's alert frame (HIGOS8 Figures 3-4 to 3-8, story 0236-2f8) is
+	// keyed on the window's own parts with child combinators: the movable
+	// window's class, or the fixed one's `classicyWindowRed`, then the title
+	// bar and the contents as its children, the alert inside the contents.
+	// A part moved deeper would leave the frame silently undrawn.
+	it("keeps the title bar and the contents the alert window's own children", () => {
+		for (const movable of [true, false]) {
+			const name = movable ? "movable" : "fixed";
+			const { unmount } = render(
+				<ClassicyAlert label="Note" movable={movable} />,
+			);
+			const win = alertWindow() as HTMLElement;
+			expect(win, name).toHaveClass(
+				movable ? "classicyAlertMovableWindow" : "classicyWindowRed",
+			);
+			expect(
+				win.querySelector(":scope > .classicyWindowTitleBar"),
+				name,
+			).not.toBeNull();
+			const contents = win.querySelector(
+				":scope > .classicyWindowContentsModal",
+			);
+			expect(contents, name).not.toBeNull();
+			expect(contents?.contains(root()), name).toBe(true);
+			unmount();
+		}
 	});
 });

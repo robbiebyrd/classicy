@@ -3,8 +3,11 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
 	memo,
 	type RefObject,
+	useCallback,
+	useEffect,
 	useLayoutEffect,
 	useRef,
 	useState,
@@ -17,17 +20,34 @@ import {
 	finderEntryComparator,
 	iconViewIconSize,
 } from "@/SystemFolder/Finder/FinderViewOptions";
+import {
+	isClassicyContextualPress,
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
 import type { ClassicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+import {
+	type ArrowDirection,
+	iconForArrowKey,
+	iconForTabKey,
+	type KeyNavIcon,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
+import {
+	classicyFileBrowserScroller,
+	isClassicyFileBrowserBackground,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserMarquee.internal";
 import {
 	cleanupIcon,
 	iconGridLattice,
 	iconImageByType,
 	readClassicyDesktopIconMetrics,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
-import type {
-	ClassicyFileDropDestination,
-	ClassicyFileDropTarget,
+import {
+	CLASSICY_FILE_PATH_ATTRIBUTE,
+	type ClassicyFileDropDestination,
+	type ClassicyFileDropTarget,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { listClassicyTrashItems } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
@@ -35,14 +55,37 @@ import {
 	isClassicyTrashFolder,
 	useClassicyTrashIcon,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
-import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
+import {
+	type ClassicyMarqueeItem,
+	useClassicyMarqueeSelection,
+} from "@/SystemFolder/SystemResources/File/useClassicyMarqueeSelection.internal";
+import {
+	ClassicyIcon,
+	type ClassicyIconSelectionGesture,
+} from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
+import { moveClassicyFocusOutOf } from "@/SystemFolder/SystemResources/Keyboard/ClassicyTabbable.internal";
+import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import type { ClassicyZoomOrigin } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
+
+const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+
+// An icon re-renders only when its own props change: a selection change
+// redraws the icons it changes, not every icon in the folder.
+const ClassicyFileBrowserIcon = memo(ClassicyIcon);
+
+/** One icon's handlers, kept for as long as its item is listed. */
+type IconHandlers = {
+	onSelectedChange: (selected: boolean) => void;
+	onSelectionGesture: (gesture: ClassicyIconSelectionGesture) => void;
+	fileDragParts: () => ClassicyFileDragOutlinePart[];
+};
 
 export type ClassicyFileBrowserViewIconsProps = {
 	fs: ClassicyFileSystem;
 	path: string;
 	appId: string;
-	dirOnClickFunc?: (path: string) => void;
-	fileOnClickFunc?: (path: string) => void;
+	dirOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
+	fileOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
 	/** List entries marked `_invisible` (drawn dimmed). Defaults to true. */
@@ -53,6 +96,11 @@ export type ClassicyFileBrowserViewIconsProps = {
 	 * `ClassicyFileBrowser`). Without it, icons can only be rearranged here.
 	 */
 	onMoveItems?: ClassicyFileBrowserMoveItems;
+	/**
+	 * Receives the view's selection handle (`{ selectAll, select }`), for
+	 * menu commands such as Edit → Select All.
+	 */
+	selectionApiRef?: RefObject<ClassicyTableSelectionApi | null>;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/** Inline style for the root element. */
@@ -88,6 +136,7 @@ type iconType = {
 		target: ClassicyFileDropTarget | null,
 		point: [number, number],
 		outlineTopLeft: [number, number],
+		travel: [number, number],
 	) => boolean;
 };
 
@@ -104,11 +153,17 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			showInvisible = true,
 			iconViewOptions,
 			onMoveItems,
+			selectionApiRef,
 			className,
 			style,
 		}) => {
 			const activeTheme = useAppManager(
 				(s) => s.System.Manager.Appearance.activeTheme,
+			);
+			// The package drawing it: the metrics' fallback before the desktop
+			// mounts follows its knobs (story 0235-xgi).
+			const drawnPackageId = useAppManager(
+				(s) => s.System.Manager.Appearance.packageId,
 			);
 			// A listing of the root shows the Trash (when invisibles show):
 			// drawn with the active package's art, not its stored `_icon`
@@ -124,6 +179,258 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			const resolvedHolderRef = holderRef ?? internalHolderRef;
 
 			const [items, setItems] = useState<iconType[]>([]);
+			const itemsRef = useRef(items);
+			itemsRef.current = items;
+
+			// The selected items' paths. The view keeps the selection, not
+			// each icon, so a selection rectangle can select many at once. The
+			// ref is the selection as of the last change, ahead of the render
+			// that shows it, so a press and the drag it starts read the same.
+			const [selected, setSelected] = useState<ReadonlySet<string>>(
+				() => new Set(),
+			);
+			const selectedRef = useRef(selected);
+			const updateSelection = useCallback(
+				(next: (prev: ReadonlySet<string>) => ReadonlySet<string>) => {
+					const value = next(selectedRef.current);
+					if (value === selectedRef.current) return;
+					selectedRef.current = value;
+					setSelected(value);
+				},
+				[],
+			);
+			const setItemSelected = useCallback(
+				(itemPath: string, isSelected: boolean) =>
+					updateSelection((prev) => {
+						if (prev.has(itemPath) === isSelected) return prev;
+						const next = new Set(prev);
+						if (isSelected) next.add(itemPath);
+						else next.delete(itemPath);
+						return next;
+					}),
+				[updateSelection],
+			);
+			// Mac OS 8.1's Finder: a click selects the icon alone, and Shift
+			// (or Command) toggles it; a press on an unselected icon selects it
+			// alone at once, so its drag carries it alone, while a press on a
+			// selected one keeps the selection for a drag of all of it.
+			const onGesture = useCallback(
+				(itemPath: string, gesture: ClassicyIconSelectionGesture) => {
+					const toggles = gesture.shiftKey || gesture.metaKey;
+					if (gesture.type === "press") {
+						if (!toggles && !selectedRef.current.has(itemPath))
+							updateSelection(() => new Set([itemPath]));
+						return;
+					}
+					if (toggles)
+						setItemSelected(itemPath, !selectedRef.current.has(itemPath));
+					else
+						updateSelection((prev) =>
+							prev.size === 1 && prev.has(itemPath)
+								? prev
+								: new Set([itemPath]),
+						);
+				},
+				[updateSelection, setItemSelected],
+			);
+			// An item that left the folder leaves the selection.
+			useEffect(() => {
+				updateSelection((prev) => {
+					const paths = new Set(items.map((item) => item.filePath));
+					const kept = [...prev].filter((p) => paths.has(p));
+					return kept.length === prev.size ? prev : new Set(kept);
+				});
+			}, [items, updateSelection]);
+
+			// Edit → Select All, and a selection made at once.
+			useEffect(() => {
+				if (!selectionApiRef) return;
+				selectionApiRef.current = {
+					selectAll: () =>
+						updateSelection(
+							() => new Set(itemsRef.current.map((item) => item.filePath)),
+						),
+					select: (paths) => updateSelection(() => new Set(paths)),
+				};
+				return () => {
+					selectionApiRef.current = null;
+				};
+			}, [selectionApiRef, updateSelection]);
+
+			// A drag of a selected icon carries the whole selection (Mac OS
+			// 8.1, as on the desktop and in the list view): its outline traces
+			// every selected icon, and a drop moves every selected item. The
+			// selection as of the press: a press on an unselected icon has
+			// already made it the selection alone.
+			const draggedWith = useCallback(
+				(itemPath: string): string[] =>
+					selectedRef.current.has(itemPath)
+						? [...selectedRef.current]
+						: [itemPath],
+				[],
+			);
+			const dragPartsOf = useCallback(
+				(itemPath: string): ClassicyFileDragOutlinePart[] => {
+					const holder = resolvedHolderRef.current;
+					return draggedWith(itemPath).flatMap((p) => {
+						const el = Array.from(
+							holder?.querySelectorAll(
+								`:scope > .classicyIcon[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+							) ?? [],
+						).find(
+							(icon) => icon.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) === p,
+						);
+						return el
+							? [
+									{
+										image: el.querySelector("img"),
+										label: el.querySelector("p"),
+									},
+								]
+							: [];
+					});
+				},
+				[draggedWith, resolvedHolderRef],
+			);
+			// The other dragged icons moved as far as the dragged one, when a
+			// group is let go in its own folder.
+			const [groupMove, setGroupMove] = useState<{
+				paths: ReadonlySet<string>;
+				move: { id: number; dx: number; dy: number };
+			} | null>(null);
+			const groupMoveIdRef = useRef(0);
+
+			// Each icon's handlers, the same functions for as long as it is
+			// listed, so the memoized icons do not re-render for new ones.
+			const handlersRef = useRef(new Map<string, IconHandlers>());
+			const handlersFor = (itemPath: string): IconHandlers => {
+				let handlers = handlersRef.current.get(itemPath);
+				if (!handlers) {
+					handlers = {
+						onSelectedChange: (isSelected) =>
+							setItemSelected(itemPath, isSelected),
+						onSelectionGesture: (gesture) => onGesture(itemPath, gesture),
+						fileDragParts: () => dragPartsOf(itemPath),
+					};
+					handlersRef.current.set(itemPath, handlers);
+				}
+				return handlers;
+			};
+
+			// Selection by dragging a rectangle from empty space, over the
+			// icons' shapes and labels, scrolling the window past its edges.
+			const { start: startMarquee, marquee } = useClassicyMarqueeSelection({
+				surfaceRef: resolvedHolderRef,
+				getItems: () =>
+					Array.from(
+						resolvedHolderRef.current?.querySelectorAll<HTMLElement>(
+							":scope > .classicyIcon[data-classicy-file-path]",
+						) ?? [],
+						(el): ClassicyMarqueeItem => ({
+							id: el.getAttribute("data-classicy-file-path") ?? "",
+							image: el.querySelector<HTMLImageElement>(
+								".classicyIconMask img",
+							),
+							label: el.querySelector("p"),
+						}),
+					),
+				getSelection: () => [...selectedRef.current],
+				onSelect: (paths) => updateSelection(() => new Set(paths)),
+				getScroller: () =>
+					classicyFileBrowserScroller(resolvedHolderRef.current),
+			});
+			// A press on empty space: the icons' holder, or the window
+			// contents around it (below the holder once they scroll). The
+			// contextual-menu click there (a Control-press or a right-press)
+			// deselects, and a Control-press opens the menu, as in 8.1; it
+			// draws no rectangle.
+			useEffect(() => {
+				const holder = resolvedHolderRef.current;
+				if (!holder) return;
+				const area = classicyFileBrowserScroller(holder) ?? holder;
+				const onDown = (e: MouseEvent) => {
+					if (e.defaultPrevented) return;
+					const contextual = isClassicyContextualPress(e);
+					if (e.button !== 0 && !contextual) return;
+					const target = e.target;
+					if (
+						!(target instanceof Element) ||
+						!isClassicyFileBrowserBackground(target, holder, area)
+					)
+						return;
+					// The keyboard to the icons, as the desktop takes it on a
+					// press on itself: Select All, Delete and the arrow keys act
+					// here. The browser's own focus would follow this handler
+					// and land on the nearest focusable ancestor, the desktop,
+					// so it is prevented (a press here selects no text either).
+					e.preventDefault();
+					holder.focus({ preventScroll: true });
+					if (contextual) {
+						updateSelection((prev) => (prev.size === 0 ? prev : new Set()));
+						if (isClassicyControlPress(e))
+							openClassicyControlPressContextMenu(e);
+						return;
+					}
+					startMarquee(e);
+				};
+				area.addEventListener("mousedown", onDown);
+				return () => area.removeEventListener("mousedown", onDown);
+			}, [resolvedHolderRef, startMarquee, updateSelection]);
+
+			// The arrow keys and Tab change the selection (HIG7 p.282: "the
+			// Finder uses arrow keys to change the selection") by the rules of
+			// the Mac OS 8.1 Finder, the same as on the desktop
+			// (`iconForArrowKey`, `iconForTabKey`): an arrow selects the
+			// nearest icon that way, Tab and Shift-Tab the next or previous
+			// by name, and with nothing selected the first or last; past the
+			// last (first) name Tab (Shift-Tab) leaves the icons. The
+			// keyboard goes to the icon selected, scrolling it into view.
+			const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+				if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+				const tab = e.key === "Tab";
+				if (!tab && !ARROW_KEYS.has(e.key)) return;
+				if (
+					(e.target as Element).closest(
+						"input, textarea, [contenteditable='true']",
+					)
+				)
+					return;
+				const holder = resolvedHolderRef.current;
+				if (!holder) return;
+				const icons = Array.from(
+					holder.querySelectorAll<HTMLElement>(
+						`:scope > .classicyIcon[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+					),
+				);
+				if (icons.length === 0) return;
+				const pathOf = (el: Element) =>
+					el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) ?? "";
+				const nav = icons.map(
+					(el): KeyNavIcon => ({
+						appId: pathOf(el),
+						appName: el.querySelector("p")?.textContent ?? pathOf(el),
+						location: [
+							Number.parseFloat(el.style.left) || 0,
+							Number.parseFloat(el.style.top) || 0,
+						],
+					}),
+				);
+				const selection = [...selectedRef.current];
+				const next = tab
+					? iconForTabKey(nav, selection, e.shiftKey)
+					: iconForArrowKey(nav, selection, e.key as ArrowDirection);
+				// Past the last (first) name, Tab (Shift-Tab) leaves the icons
+				// for the page's next (previous) stop: no keyboard trap.
+				if (tab && !next) {
+					if (moveClassicyFocusOutOf(icons, e.shiftKey, holder))
+						e.preventDefault();
+					return;
+				}
+				e.preventDefault();
+				if (!next) return;
+				updateSelection(() => new Set([next]));
+				icons.find((el) => pathOf(el) === next)?.focus();
+			};
 
 			// The desktop-icon metrics, read from the desktop once per active
 			// theme rather than once per icon: the layout effect re-runs on every
@@ -132,6 +439,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			// variables to #classicyDesktop.
 			const iconMetricsRef = useRef<{
 				theme: ClassicyTheme;
+				packageId: string | undefined;
 				metrics: ClassicyDesktopIconMetrics;
 			} | null>(null);
 
@@ -150,20 +458,18 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					return;
 				}
 
+				// The icon passes its zoom origin, for a window it opens.
 				const openFileOrFolder = (
 					properties: ClassicyFileSystemEntryMetadata,
 					path: string,
 					filename: string,
+					origin?: ClassicyZoomOrigin,
 				) => {
-					if (properties._type === "directory") {
-						if (dirOnClickFunc) {
-							return dirOnClickFunc(`${path}:${filename}`);
-						}
-						return;
-					}
-					if (fileOnClickFunc) {
-						return fileOnClickFunc(`${path}:${filename}`);
-					}
+					const open =
+						properties._type === "directory" ? dirOnClickFunc : fileOnClickFunc;
+					if (!open) return;
+					const itemPath = `${path}:${filename}`;
+					return origin ? open(itemPath, origin) : open(itemPath);
 				};
 
 				const containerMeasure: [number, number] = [
@@ -206,10 +512,18 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							)
 						: entries;
 
-				if (iconMetricsRef.current?.theme !== activeTheme) {
+				if (
+					iconMetricsRef.current?.theme !== activeTheme ||
+					iconMetricsRef.current.packageId !== drawnPackageId
+				) {
 					iconMetricsRef.current = {
 						theme: activeTheme,
-						metrics: readClassicyDesktopIconMetrics(activeTheme),
+						packageId: drawnPackageId,
+						metrics: readClassicyDesktopIconMetrics(
+							activeTheme,
+							undefined,
+							drawnPackageId,
+						),
 					};
 				}
 				const iconMetrics = iconMetricsRef.current.metrics;
@@ -242,15 +556,31 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							target: ClassicyFileDropTarget | null,
 							_point: [number, number],
 							outlineTopLeft: [number, number],
+							travel: [number, number],
 						) => {
+							const dragged = draggedWith(itemPath);
 							if (
 								target?.destination.kind === "folder" &&
 								target.destination.path === path
 							) {
+								// The dragged icon moves itself; the rest of the
+								// selection moves as far.
+								const others = dragged.filter((p) => p !== itemPath);
+								if (others.length > 0 && !positionLocked) {
+									groupMoveIdRef.current += 1;
+									setGroupMove({
+										paths: new Set(others),
+										move: {
+											id: groupMoveIdRef.current,
+											dx: travel[0],
+											dy: travel[1],
+										},
+									});
+								}
 								return false;
 							}
 							if (target && onMoveItems) {
-								onMoveItems([itemPath], target.destination, outlineTopLeft);
+								onMoveItems(dragged, target.destination, outlineTopLeft);
 							}
 							return true;
 						},
@@ -263,7 +593,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							(isClassicyTrashFolder(fs, path, filename) && trashIcon) ||
 							properties._icon ||
 							iconImageByType(properties._type),
-						onClickFunc: () => openFileOrFolder(properties, path, filename),
+						onClickFunc: (origin?: ClassicyZoomOrigin) =>
+							openFileOrFolder(properties, path, filename, origin),
 						holder: resolvedHolderRef,
 						initialPosition: cleanupIcon(
 							activeTheme,
@@ -287,6 +618,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				dirOnClickFunc,
 				fileOnClickFunc,
 				activeTheme,
+				drawnPackageId,
 				resolvedHolderRef.current,
 				resolvedHolderRef,
 				hideFilesCreatedAfter,
@@ -296,17 +628,41 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				iconSizeStep,
 				onMoveItems,
 				trashIcon,
+				draggedWith,
 			]);
 
+			// Handlers of items no longer listed go.
+			useEffect(() => {
+				const listed = new Set(items.map((item) => item.filePath));
+				for (const itemPath of handlersRef.current.keys())
+					if (!listed.has(itemPath)) handlersRef.current.delete(itemPath);
+			}, [items]);
+
 			return (
+				// biome-ignore lint/a11y/noStaticElementInteractions: the arrow keys and Tab come here from the holder (focused by a press on empty space or by the window) and from its icons
 				<div
 					className={classNames("classicyFileBrowserFill", className)}
 					style={style}
 					ref={resolvedHolderRef}
+					// Focusable from code only: a press on empty space (or the
+					// window, through the browser's `focusTargetRef`) puts the
+					// keyboard here, for Select All, Delete, the arrow keys and
+					// Tab.
+					tabIndex={-1}
+					onKeyDown={onKeyDown}
 				>
-					{items.map((item) => {
-						return <ClassicyIcon {...item} key={item.name} />;
-					})}
+					{items.map((item) => (
+						<ClassicyFileBrowserIcon
+							{...item}
+							{...handlersFor(item.filePath)}
+							key={item.name}
+							selected={selected.has(item.filePath)}
+							moveBy={
+								groupMove?.paths.has(item.filePath) ? groupMove.move : undefined
+							}
+						/>
+					))}
+					{marquee}
 				</div>
 			);
 		},

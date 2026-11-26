@@ -384,7 +384,10 @@
         height: var(--window-utility-control-box-size);
       }
 
-      & .classicyWindowCollapseBox {
+      // The zoom box too (the Application Switcher's palette draws one,
+      // as Mac OS 8.5's does).
+      & .classicyWindowCollapseBox,
+      & .classicyWindowZoomBox {
         width: var(--window-utility-control-box-size);
         height: var(--window-utility-control-box-size);
 
@@ -407,6 +410,27 @@
   .classicyWindowTitleCenter {
     height: var(--window-utility-title-bar-height);
     margin: 0 var(--window-padding-size);
+  }
+}
+
+// A windoid with a title (`utilityTitle`, the Application Switcher's
+// palette): the title in the bar's height, between two bands a package
+// textures like the center band of an untitled one.
+.classicyWindow.classicyWindowUtility .classicyWindowTitleBarUtilityTitle .classicyWindowTitle {
+  align-items: center;
+
+  .classicyWindowTitleLeft,
+  .classicyWindowTitleRight {
+    min-width: var(--window-control-size);
+    height: var(--window-utility-title-bar-height);
+    margin: 0 var(--window-border-size);
+  }
+
+  .classicyWindowTitleText {
+    height: var(--window-utility-title-bar-height);
+    font-size: var(--ui-font-size-mini);
+    line-height: var(--window-utility-title-bar-height);
+    align-items: center;
   }
 }
 
@@ -556,4 +580,14 @@
 
 .classicyWindowContentsFramedDimmed {
   border-color: var(--color-system-05);
+}
+
+// While a window zooms open out of an icon (ClassicyZoomRects.ts) it is laid
+// out but not drawn until the last rectangle is erased, as the Finder drew
+// the window after its rectangles. It still takes the pointer and the
+// keyboard focus its opening gives it: a click made during the zoom lands on
+// the new window, never on what lies under it, as the Mac queued it for the
+// window drawn next.
+.classicyWindowZoomHidden {
+  opacity: 0;
 }

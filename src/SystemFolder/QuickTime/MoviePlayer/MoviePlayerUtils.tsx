@@ -77,3 +77,11 @@ export const MoviePlayerAppInfo = {
 		return resolveClassicyAsset("icons", "system.quicktime.player") ?? "";
 	},
 };
+
+/** What a MoviePlayer document is known by: its file-system path, or its URL. */
+export const moviePlayerDocumentKey = (doc: MoviePlayerOpenFile): string =>
+	typeof doc === "string" ? doc : doc.url;
+
+/** The id of the window MoviePlayer draws for the document known by `key`. */
+export const moviePlayerWindowId = (key: string): string =>
+	`${MoviePlayerAppInfo.id}_MoviePlayer_${key}`;

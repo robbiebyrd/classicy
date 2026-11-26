@@ -279,13 +279,19 @@
 // image, and no stack of masks, two or four layers or one per row, blends
 // them the same (up to 21 levels off in Chromium, 25 in Firefox). A package
 // recolors the stripes by registering recolored art.
-@mixin platinum-title-bar-stripes($tone: "", $center-size: null, $side-size: null) {
+// `$ground`, when given, is the bands' color under the art, for art whose
+// rows leave it clear (the movable alert's red stripes, `_Alert.scss`).
+@mixin platinum-title-bar-stripes($tone: "", $center-size: null, $side-size: null, $ground: null) {
   .classicyWindowTitleBar .classicyWindowTitle {
     .classicyWindowTitleCenter {
       background: var(--classicy-art-window-stripes#{$tone});
 
       @if $center-size {
         background-size: $center-size;
+      }
+
+      @if $ground {
+        background-color: $ground;
       }
     }
 
@@ -295,6 +301,10 @@
 
       @if $side-size {
         background-size: $side-size;
+      }
+
+      @if $ground {
+        background-color: $ground;
       }
 
       // The base sheet's zero-height end boxes get an empty image layer: it
@@ -307,4 +317,25 @@
       }
     }
   }
+}
+
+// A frame of the 50% checker drawn in XOR, `$width` wide, its cells
+// `$tile-size` / 2 on a side: the Finder's dotted pens, the selection
+// rectangle (`_SelectionMarquee.scss`) and the zoom rectangles
+// (`_ZoomRects.scss`). The inversion is `difference` with white, exact in
+// black and white (QuickDraw's XOR inverted an 8-bit pixel's palette index,
+// which no blend reproduces, so a color inverts as RGB does). The checker is
+// laid from the corner the core publishes on the part
+// (`--classicy-pattern-origin-x` / `-y`), the desktop's, as QuickDraw laid
+// the pattern from the screen's: its white cells at odd x + y.
+@mixin platinum-xor-checker-frame($width, $tile-size) {
+  padding: $width;
+  background: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0);
+  background-position: var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y);
+  background-size: $tile-size $tile-size;
+  mask:
+    linear-gradient(var(--color-black), var(--color-black)) content-box,
+    linear-gradient(var(--color-black), var(--color-black));
+  mask-composite: exclude;
+  mix-blend-mode: difference;
 }

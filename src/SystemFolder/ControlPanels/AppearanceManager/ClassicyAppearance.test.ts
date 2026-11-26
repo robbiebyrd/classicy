@@ -51,7 +51,20 @@ import {
 // 0194-5bs added Platinum's slider family's seven knobs (--slider-pixel to
 // --slider-tick-height) before it; plan 0018-dbd Batch F-b added Platinum's
 // gray ramp, its first package color family, as the 14
-// --package-color-gray-ramp-step* variables after --color-theme-07 (every
+// --package-color-gray-ramp-step* variables after --color-theme-07; story
+// 0225-ci7 added menu.markPixel (--menu-mark-pixel, 1px), the grid of
+// Platinum's menu marks, after --menu-pop-up-max-height, and checkbox.pixel
+// (--checkbox-pixel, 1px), the grid of its checkbox's marks; story 0228-e9l
+// added the selectionMarquee family's two knobs (--selection-marquee-width,
+// --selection-marquee-tile-size, 2px each) after --dither-tile-size; story
+// 0230-n6c added the zoomRects family's eight knobs (--zoom-rects-enabled
+// to --zoom-rects-tile-size) after those; integration review G round 6
+// added the menuBar family's six (--menu-bar-end-inset to
+// --menu-bar-clock-end, the Application menu title's geometry, Mac OS 8.5's)
+// after --application-switcher-named-button-width; the 8.5 audit's F12
+// added --progress-bar-pixel (the bar's art grid) and
+// --progress-bar-startup-width and --progress-bar-startup-height (the
+// startup bar's 160 x 12 frame) after --progress-bar-stripe-width (every
 // other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
@@ -76,8 +89,21 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // families and 96 keys; story 0194-5bs's slider family, Platinum's slider
 // drawn from HIGOS8 Figure 2-17, made 23 families and 103 keys; the list
 // view's HIGOS8 Figure 2-24 icon size and row padding, the optional
-// fileBrowserList family, made 24 families and 105 keys).
-const PLATINUM_KNOB_COUNT = 105;
+// fileBrowserList family, made 24 families and 105 keys; story 0225-ci7's
+// menu.markPixel, the grid of Charcoal's menu marks, made 106, and its
+// checkbox.pixel, the grid of the checkbox's Figure 2-8 art, made 25
+// families and 107 keys; story 0228-e9l's selection rectangle, the
+// selectionMarquee family's pen and checker, made 26 families and 109 keys;
+// story 0230-n6c's zoom rectangles, the zoomRects family's six path and
+// pace knobs and its pen and checker, made 27 families and 117 keys; the
+// Application Switcher palette's named buttons' least width, Mac OS 8.5's
+// 150, made 28 families and 118 keys, integration review G round 3, F5;
+// the Application menu title's geometry, Mac OS 8.5's, the menuBar family's
+// six knobs, made 29 families and 124 keys, integration review G round 6;
+// Platinum's determinate progress bar's art grid and the startup bar's
+// frame, Mac OS 8.5's 160 x 12, three progressBar knobs, made 127, the 8.5
+// audit's F12).
+const PLATINUM_KNOB_COUNT = 127;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

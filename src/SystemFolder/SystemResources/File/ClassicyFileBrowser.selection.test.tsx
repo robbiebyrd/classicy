@@ -116,9 +116,9 @@ describe("ClassicyFileBrowser selection handle", () => {
 		]);
 	});
 
-	it("leaves the handle unset in the icons view, where the command is disabled", async () => {
+	it("hands the caller a working handle in the icons view too (story 0228-e9l)", async () => {
 		const apiRef = createRef<ClassicyTableSelectionApi>();
-		render(
+		const { container } = render(
 			<ClassicyFileBrowser
 				fs={makeFs("test-browser-icons")}
 				path="Documents"
@@ -127,7 +127,20 @@ describe("ClassicyFileBrowser selection handle", () => {
 				selectionApiRef={apiRef}
 			/>,
 		);
-		await waitFor(() => expect(apiRef.current).toBeNull());
+		await waitFor(() =>
+			expect(container.querySelectorAll(".classicyIcon")).toHaveLength(3),
+		);
+		expect(apiRef.current).not.toBeNull();
+		act(() => apiRef.current?.selectAll());
+		expect(container.querySelectorAll(".classicyIcon.selected")).toHaveLength(
+			3,
+		);
+		act(() => apiRef.current?.select?.(["Documents:mango.pdf"]));
+		expect(
+			Array.from(container.querySelectorAll(".classicyIcon.selected"), (el) =>
+				el.getAttribute("data-classicy-file-path"),
+			),
+		).toEqual(["Documents:mango.pdf"]);
 	});
 });
 

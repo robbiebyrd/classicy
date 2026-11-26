@@ -167,6 +167,45 @@ describe("system7.scss (compiled)", () => {
 		return layer;
 	};
 
+	// Story 0228-e9l: the System 7.5 Finder's selection rectangle, a one-
+	// pixel frame of the 50% checker drawn in XOR (Mac OS 8's is two), its
+	// white cells (inverted to black over white) at the screen's odd x + y.
+	it("draws the selection rectangle as a one-pixel XOR checker frame", () => {
+		const marquee = rule("[data-classicy-part=selection-marquee]");
+		expect(marquee).toMatch(/padding: var\(--selection-marquee-width\);/);
+		expect(marquee).toMatch(
+			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\);\s*background-position: var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\);\s*background-size: var\(--selection-marquee-tile-size\) var\(--selection-marquee-tile-size\);/,
+		);
+		expect(marquee).toMatch(/mask-composite: exclude;/);
+		expect(marquee).toMatch(/mix-blend-mode: difference;/);
+		expect(system7JsonSource.defaults.measurements.selectionMarquee).toEqual({
+			width: 1,
+			tileSize: 2,
+		});
+	});
+
+	// Story 0230-n6c: the System 7.5 Finder's zoom rectangles, a one-pixel
+	// XOR checker frame (Mac OS 8's is two); 7.5 drew every step of the
+	// path from the icon and kept four at a time, so System 7 overrides the
+	// core floor's (Mac OS 8.1's) first step and trail, and opts in.
+	it("draws the zoom rectangles as a one-pixel XOR checker frame, every step, four kept", () => {
+		const zoom = rule("[data-classicy-part=zoom-rect]");
+		expect(zoom).toMatch(/padding: var\(--zoom-rects-width\);/);
+		expect(zoom).toMatch(
+			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\);\s*background-position: var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\);\s*background-size: var\(--zoom-rects-tile-size\) var\(--zoom-rects-tile-size\);/,
+		);
+		expect(zoom).toMatch(/mask-composite: exclude;/);
+		expect(zoom).toMatch(/mix-blend-mode: difference;/);
+		// The zoom is opt-in: System 7 sets `enabled` itself (no floor value).
+		expect(system7JsonSource.defaults.measurements.zoomRects).toEqual({
+			enabled: 1,
+			firstStep: 0,
+			trail: 4,
+			width: 1,
+			tileSize: 2,
+		});
+	});
+
 	// Plan 0018-dbd §3.2: the window chrome, from the 7.5 captures.
 	describe("windows", () => {
 		it("frames a window in one pixel with a one-pixel drop shadow and no frame ring", () => {
@@ -490,6 +529,20 @@ describe("system7.scss (compiled)", () => {
 			);
 		});
 
+		// Story 0227-815: a divider between a pop-up's groups (Find File's
+		// location and date pop-ups) is a menu's, inside the list's frame.
+		it("draws a pop-up's divider as a menu's, inside the list's frame", () => {
+			const divider = rule(
+				".classicyPopUpMenuList > .classicySeparatorHorizontal",
+			);
+			expect(divider).toMatch(/background-color: var\(--color-theme-06\);/);
+			expect(divider).toMatch(/background-image: none;/);
+			expect(divider).toMatch(/height: var\(--window-border-size\);/);
+			expect(divider).toMatch(
+				/margin: var\(--menu-item-divider-top\) var\(--window-border-size\)/,
+			);
+		});
+
 		// The vocabulary's mixins mask with the `ditherChecker` art, which System
 		// 7 draws in CSS: a 2 x 2 checker, sized by the theme's dither knob.
 		it("draws the dither's checker tile itself", () =>
@@ -521,6 +574,14 @@ describe("system7.scss (compiled)", () => {
 					"currentColor",
 				),
 			).toBe(10);
+			// The Notification Manager's ◆, Chicago 12's from Inside
+			// Macintosh: Processes, Figure 5-1: 7 runs, its top on the check's
+			// (story 0225-ci7).
+			const diamond = rule(
+				".classicyMenuItemCheck.classicyMenuItemDiamond::before",
+			);
+			expect(layersOf(diamond, "currentColor")).toBe(7);
+			expect(diamond).toMatch(/top: var\(--menu-item-mark-top\);/);
 			expect(
 				layersOf(
 					rule(`${MENUS} .classicyMenuItemChildMenuIndicator::after`),
@@ -652,6 +713,16 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/margin: var\(--window-border-size\) 0 0;/);
 		});
 
+		// 7.5.5's Application menu title has no grip before it (Mac OS 8.5's
+		// is Platinum's; `*-755-appmenu-closed.png`): the core draws the grip
+		// part for every package, so System 7 hides it. Integration review G
+		// round 6, finding 4.
+		it("draws no grip before the Application menu's title", () => {
+			expect(rule(".classicyDesktopMenuAppSwitcherGrip")).toMatch(
+				/display: none;/,
+			);
+		});
+
 		// 7.5.5's Application menu title is the front application's small
 		// icon alone, in a title 34 px wide (`*-755-appmenu-closed.png`,
 		// story 0214-c61): the name is kept for screen readers, at no size.
@@ -726,6 +797,24 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(clock).toMatch(/margin-right: 0;/);
 			expect(clock).toMatch(/padding-right: var\(--menu-bar-clock-end\);/);
+			// Its readout is the bar's one Tab stop: the flat controls' ring,
+			// inside the bar (integration review G round 6).
+			// The readout's box is its text, so the ring is drawn beside it,
+			// three pixels out on each side (one of face), never over the ink
+			// (round 5, finding 2).
+			const focused =
+				".classicyDesktopMenu > .classicyMenuItem.classicyDesktopMenuTime > button:focus-visible";
+			expect(rule(focused)).toMatch(/position: relative;/);
+			expect(rule(focused)).toMatch(/outline: none;/);
+			expect(rule(focused)).not.toMatch(/outline-offset/);
+			const ring = rule(`${focused}::after`);
+			expect(ring).toMatch(/content: "";/);
+			expect(ring).toMatch(/position: absolute;/);
+			expect(ring).toMatch(/inset: 0 calc\(var\(--box-pixel\) \* -3\);/);
+			expect(ring).toMatch(
+				/border: calc\(var\(--box-pixel\) \* 2\) solid var\(--color-black\);/,
+			);
+			expect(ring).toMatch(/pointer-events: none;/);
 		});
 
 		// The Apple and Help titles are their art, 16 px, in the highlight
@@ -3187,6 +3276,11 @@ describe("system7.scss (compiled)", () => {
 			"dim",
 		],
 		[`${MENUS} .classicySeparatorHorizontal`]: ["Separator", "rule"],
+		// A pop-up's divider (story 0227-815) is the same separator.
+		".classicyPopUpMenuList > .classicySeparatorHorizontal": [
+			"Separator",
+			"rule",
+		],
 		":is(.classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem).disabled > p":
 			[".classicyMenuItem.disabled > p", "dim"],
 		".classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)": [
@@ -3291,6 +3385,15 @@ describe("system7.scss (compiled)", () => {
 				),
 			);
 
+	// Parts the core publishes the origin on itself, whatever the layout
+	// declares: the selection rectangle and each zoom rectangle carry the
+	// desktop's corner (useClassicyMarqueeSelection, story 0228-e9l;
+	// ClassicyZoomRects.ts, story 0230-n6c).
+	const CORE_PUBLISHED = new Set([
+		"[data-classicy-part=selection-marquee]",
+		"[data-classicy-part=zoom-rect]",
+	]);
+
 	it("reads the origin only where the package has it published", () => {
 		const declared = system7JsonSource.layout.patternOrigin as Record<
 			string,
@@ -3300,7 +3403,9 @@ describe("system7.scss (compiled)", () => {
 		expect(declared.elements.every((entry) => entry.origin === "window")).toBe(
 			true,
 		);
-		const found = [...new Set(readers().map(([host]) => host))].sort();
+		const hosts = new Set(readers().map(([host]) => host));
+		for (const host of CORE_PUBLISHED) expect(hosts, host).toContain(host);
+		const found = [...hosts].filter((host) => !CORE_PUBLISHED.has(host)).sort();
 		expect(found).toEqual(Object.keys(READERS).sort());
 		for (const [host, [by]] of Object.entries(READERS)) {
 			if (/^[A-Z]/.test(by)) expect(declared[by], host).toBe("window");

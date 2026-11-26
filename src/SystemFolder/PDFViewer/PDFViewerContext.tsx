@@ -51,11 +51,14 @@ export const classicyPDFViewerEventHandler = (
 			}
 			// Opening an already-open file still brings the app forward, as
 			// the generic OpenFile handler does.
+			// A document open: its window opens as it mounts, and Recent
+			// Documents remembers the path.
 			openApp(
 				ds,
 				PDFViewerAppInfo.id,
 				PDFViewerAppInfo.name,
 				PDFViewerAppInfo.icon,
+				{ document: action.path },
 			);
 			break;
 		}

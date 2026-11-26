@@ -1,0 +1,11 @@
+// The Apple Menu Options control panel (Mac OS 8.1): one group, its count
+// fields two digits wide, each starting where the others do.
+.classicyAppleMenuOptions {
+  padding: var(--window-padding-size);
+
+  // A count is 0 to 99: the field holds two digits, not the column's width.
+  .classicyInput {
+    justify-self: start;
+    width: 4ch;
+  }
+}

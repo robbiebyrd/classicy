@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { closeApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	classicyWebViewerEventHandler,
@@ -95,5 +96,31 @@ describe("classicyWebViewerEventHandler", () => {
 			url: "/press",
 		});
 		expect(dataOf(next).openUrls).toEqual([{ url: "/press", title: "/press" }]);
+	});
+});
+
+// Story 0226-a6f (N3): Quit closes the pages, as it closes an app's
+// data.openFiles documents, so a relaunch never brings one back.
+describe("Quit", () => {
+	it("closes every open page", () => {
+		let ds = classicyWebViewerEventHandler(makeStore(), {
+			type: "ClassicyAppWebViewerOpenUrl",
+			url: "/press",
+		});
+		ds = classicyWebViewerEventHandler(ds, {
+			type: "ClassicyAppWebViewerOpenUrl",
+			url: "/about",
+		});
+		closeApp(ds, WebViewerAppInfo.id);
+		expect(ds.System.Manager.Applications.apps[WebViewerAppInfo.id].open).toBe(
+			false,
+		);
+		expect(dataOf(ds).openUrls).toEqual([]);
+
+		ds = classicyWebViewerEventHandler(ds, {
+			type: "ClassicyAppWebViewerOpenUrl",
+			url: "/news",
+		});
+		expect(dataOf(ds).openUrls.map((u) => u.url)).toEqual(["/news"]);
 	});
 });

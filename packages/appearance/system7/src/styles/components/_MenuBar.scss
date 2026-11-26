@@ -200,6 +200,25 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
   .classicyDesktopMenu > .classicyMenuItem.classicyDesktopMenuTime {
     margin-right: 0;
     padding-right: var(--menu-bar-clock-end);
+
+    // The clock's keyboard ring (its readout is the bar's one Tab stop), the
+    // flat controls' two black pixels, inside the bar; a press moves no
+    // focus, so a click shows none. The readout's box is its text, so the
+    // ring is drawn beside it, one pixel of face from each side (past the
+    // end, over the Help title's leading face), and within the bar's height:
+    // the ink is never painted over and never moves.
+    > button:focus-visible {
+      position: relative;
+      outline: none;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0 px(-3);
+        border: px(2) solid var(--color-black);
+        pointer-events: none;
+      }
+    }
   }
 
   // A hidden application's icon in the Application menu is dimmed, as
@@ -220,10 +239,10 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
     }
   }
 
-  // The Application menu has no divider before it (Platinum's is a raised
-  // bar).
-  .classicyDesktopMenuAppSwitcher::before {
-    content: none;
+  // The Application menu has no grip before it (Platinum's is Mac OS 8.5's):
+  // its title is its icon alone, never resized.
+  .classicyDesktopMenuAppSwitcherGrip {
+    display: none;
   }
 
   // Its title is the front application's small icon alone, at its own size,

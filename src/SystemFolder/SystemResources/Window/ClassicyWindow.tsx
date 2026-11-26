@@ -3,6 +3,8 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
+import { isFloatingExtensionWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
@@ -21,6 +23,7 @@ import {
 	type ReactNode,
 	type RefObject,
 	useCallback,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
@@ -61,6 +64,14 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
+import {
+	ClassicyFloatingLayerContext,
+	classicyFallbackFloatingLayer,
+} from "@/SystemFolder/SystemResources/Window/ClassicyFloatingLayer";
+import {
+	isClassicyWindowMounted,
+	markClassicyWindowMounted,
+} from "@/SystemFolder/SystemResources/Window/ClassicyMountedWindows.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
@@ -68,7 +79,21 @@ import {
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
-import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
+import {
+	ClassicyWindowTitleBar,
+	type ClassicyZoomBoxKeys,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
+import {
+	type ClassicyZoomOrigin,
+	classicyWindowContentRect,
+	findClassicyZoomIcon,
+	playClassicyZoomRects,
+	takeClassicyWindowZoomSource,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
+import {
+	takeClassicyWindowCloseZoomSkip,
+	waitForClassicyLaunchZoom,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomSources.internal";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -112,10 +137,11 @@ const DEFAULT_MINIMUM_SIZE: [
 const themeMenuBarHeight = (
 	theme: ClassicyTheme | undefined,
 	layout: ClassicyAppearanceLayout,
+	packageId: string | undefined,
 ): number | undefined => {
 	if (!theme) return undefined;
 	const vars: Record<string, string> = {
-		...(getThemeVars(theme) as Record<string, string>),
+		...(getThemeVars(theme, packageId) as Record<string, string>),
 		...classicyLayoutThemeVars(layout),
 	};
 	const value = Number.parseFloat(vars["--menu-bar-height"]);
@@ -425,6 +451,14 @@ interface ClassicyWindowProps {
 	 */
 	analyticsExclude?: boolean;
 	/**
+	 * The file system path of the folder (or drive) this window shows. When
+	 * the window closes it zooms back to that item's icon, or the nearest
+	 * enclosing folder's or drive's that shows, as the Finder's windows do
+	 * (`findClassicyZoomIcon`). The zoom out of an icon when the window opens
+	 * needs no prop: it follows `noteClassicyWindowZoomSource`.
+	 */
+	zoomIconPath?: string;
+	/**
 	 * Fade the contents while the window is inactive (not applied to modals).
 	 * `false` uses a contrast-only inactive treatment instead. Defaults to
 	 * `true`.
@@ -458,6 +492,13 @@ interface ClassicyWindowProps {
 	 */
 	type?: string;
 	/**
+	 * On a `type="error"` modal, `false` keeps it from playing the alert
+	 * sound when it opens (an alert whose sound is played elsewhere, as a
+	 * notification's is). Its scrim still beeps at a click outside. Defaults
+	 * to `true`. `ClassicyAlert` passes its `playSound` here.
+	 */
+	playAlertSound?: boolean;
+	/**
 	 * Platinum window class (#205). `"document"` (default) uses the standard
 	 * 19px HIG title bar; `"utility"` renders a tool-palette style crosshatch
 	 * top drag region with no title. A utility window always draws its active
@@ -472,6 +513,23 @@ interface ClassicyWindowProps {
 	 * below error modals. No-op on document windows. Defaults to `false`.
 	 */
 	alwaysOnTop?: boolean;
+	/**
+	 * Utility-only. Draws `title` in the windoid's drag region, between two
+	 * bands of its texture and with no proxy icon, as Mac OS 8.5's
+	 * Application Switcher palette does (HIGOS8 p.103 allows a utility
+	 * window a title). No-op on document windows. Defaults to `false`.
+	 */
+	utilityTitle?: boolean;
+	/**
+	 * Replaces what the zoom box does: called with the Option and Shift keys
+	 * held at the press, instead of zooming. Returns whether the window now
+	 * draws larger, the `zoomed` of the `zoom` event the package hears (its
+	 * zoom sound). For a window whose zoom box sets an option, as the
+	 * Application Switcher's palette shows or hides its names, Option-click
+	 * changes its icon size and Option-Shift-click its orientation (Mac OS
+	 * 8.5). Drawn only when `zoomable`.
+	 */
+	onZoomBox?: (keys: ClassicyZoomBoxKeys) => boolean;
 	/**
 	 * Zoom-box behavior (#208, HIGOS8 p.104). `"full"` zooms both axes to the
 	 * standard state (see `idealSize`); `"horizontal"` widens to the desktop
@@ -556,10 +614,6 @@ interface ClassicyWindowProps {
  */
 const withoutStateOwnedStyle = withoutZIndex;
 
-// Mounted document windows by app + window id, so an unmount can tell whether
-// the same window has mounted again before its deferred close runs.
-const mountedWindowKeys = new Map<string, number>();
-
 /**
  * A Mac OS 8 Platinum window (HIGOS8 Ch.5, p.99): title bar with close box on
  * the left and zoom and collapse boxes on the right (p.101), a draggable frame,
@@ -603,6 +657,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	modal = false,
 	movable = true,
 	type = "default",
+	playAlertSound = true,
 	growable,
 	defaultWindow = false,
 	initialSize = DEFAULT_INITIAL_SIZE,
@@ -614,11 +669,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	contextMenu,
 	analyticsPath,
 	analyticsExclude,
+	zoomIconPath,
 	onCloseFunc,
 	onBeforeClose,
 	children,
 	windowType = "document",
 	alwaysOnTop = false,
+	utilityTitle = false,
+	onZoomBox,
 	zoomMode = "full",
 	idealSize,
 	headerVariant = "standard",
@@ -635,6 +693,37 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const currentApp = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
+	// The app holding the bar keeps its windows' layer and its menus' freshness
+	// while a floating extension window (Apple Guide) holds the focus flag.
+	const frontAppId = useFrontAppId();
+	const isFrontApp = !!currentApp?.focused || frontAppId === appId;
+	// A floating extension window (Apple Guide's) draws above the front app's
+	// windows, and floating windows stack among themselves by recency: its rank
+	// among every extension's open floating windows by `zOrder`, and how many
+	// there are.
+	const floatingLayerCtx = useContext(ClassicyFloatingLayerContext);
+	const isFloatingWindow = isFloatingExtensionWindow(
+		currentApp ?? { extension: false },
+		appMenu,
+		modal,
+	);
+	const floatingStack = useAppManager((s) => {
+		if (!isFloatingWindow) return "";
+		const all = s.System.Manager.Applications.apps;
+		const record = getAppWindow(all[appId], id);
+		// Before its record registers, a new window is the top one.
+		const mine = record ? (record.zOrder ?? 0) : Number.POSITIVE_INFINITY;
+		// Every extension's floating windows stack together, by recency.
+		const peers = Object.values(all)
+			.filter((a) => a.extension === true)
+			.flatMap((a) => listAppWindows(a))
+			.filter((w) => !w.closed && !w.modal && !w.menuBar?.length);
+		const below = peers.filter((w) => (w.zOrder ?? 0) < mine).length;
+		return `${below}/${peers.length + (record ? 0 : 1)}`;
+	});
+	const [floatingRank, floatingCount] = floatingStack
+		? floatingStack.split("/").map(Number)
+		: [-1, 0];
 	// #206: double-click-title-to-collapse is a desktop preference (Appearance
 	// checkbox in the HIG), defaulting on. Optional chaining keeps this safe when
 	// the Desktop slice is absent (e.g. isolated unit tests).
@@ -648,9 +737,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const { showContextMenu } = useClassicyContextualMenu();
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
+	// The window's live element, mirrored into state so the observers on it
+	// re-attach when the node changes (a remount into another parent). The
+	// root's callback ref, `setWindowElement` (with the close zoom, below),
+	// sets both.
+	const [windowNode, setWindowNode] = useState<HTMLDivElement | null>(null);
+	const nodeKeyedRef = useMemo(() => ({ current: windowNode }), [windowNode]);
 	// The elements a package lays a pattern in from a fixed origin
 	// (`layout.patternOrigin.elements`): this window's.
-	useClassicyPatternOriginElements(windowRef);
+	useClassicyPatternOriginElements(nodeKeyedRef);
 	const layout = useClassicyAppearanceLayout();
 	const centering: ClassicyWindowCentering = layout.window.centering ?? "exact";
 
@@ -672,10 +767,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const activeTheme = useAppManager(
 		(state) => state.System.Manager.Appearance?.activeTheme,
 	);
+	// The package drawing it (story 0235-xgi): its knobs, whatever the theme's.
+	const packageId = useAppManager(
+		(state) => state.System.Manager.Appearance?.packageId,
+	);
 	const [menuBarHeight, setMenuBarHeight] = useState(() =>
 		readClassicyThemeVar(
 			"--menu-bar-height",
-			themeMenuBarHeight(activeTheme, layout),
+			themeMenuBarHeight(activeTheme, layout, packageId),
 		),
 	);
 	const menuBarPlacement = layout.menuBar.placement;
@@ -684,11 +783,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		setMenuBarHeight(
 			readClassicyThemeVar(
 				"--menu-bar-height",
-				themeMenuBarHeight(activeTheme, layout),
+				themeMenuBarHeight(activeTheme, layout, packageId),
 				windowRef.current,
 			),
 		);
-	}, [activeTheme, menuBarPlacement]);
+	}, [activeTheme, packageId, menuBarPlacement]);
 
 	// A modal of type "error" (an alert) or with `movable={false}` cannot be
 	// moved (a fixed modal dialog box); every other modal can (a movable one).
@@ -971,12 +1070,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: ws.closed isn't read in the effect body — it's an intentional re-attachment trigger so a window that starts hidden re-observes once it becomes visible
 	useEffect(() => {
 		if (typeof ResizeObserver === "undefined") return;
-		const el = windowRef.current;
+		// The live node (mirrored into state by the ref callback), so the
+		// observer follows the window if its element is replaced.
+		const el = windowNode;
 		if (!el) return;
 		const observer = new ResizeObserver(() => handleContentResizeRef.current());
 		observer.observe(el);
 		return () => observer.disconnect();
-	}, [ws.closed]);
+	}, [ws.closed, windowNode]);
 
 	// Scroll bars only while there is something to scroll. The contents'
 	// ClassicyScrollArea draws both bars (Mac OS 8 style) only while its
@@ -1088,6 +1189,124 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (becameFocused) focusInitialTarget();
 	}, [modal, ws.closed, ws.collapsed, ws.focused, focusInitialTarget]);
 
+	// Zoom rectangles (ClassicyZoomRects.ts). Opening: a window that becomes
+	// open (mounting open, or closed → open) takes the source an icon left
+	// for it (`noteClassicyWindowZoomSource`) and, when a zoom draws, stays
+	// laid out but undrawn (`classicyWindowZoomHidden`: transparent, still
+	// taking the pointer and the keyboard, as the Mac queued the clicks and
+	// keys made during the zoom for the window) until its last rectangle is
+	// erased. Measured in a layout effect, so the window never shows before
+	// its rectangles. A window that was already open takes none (the 7.5
+	// Finder drew none for a folder whose window was open). With no source
+	// of its own, a window of an application whose launch zoom runs waits
+	// for it (8.1 drew the launched application's window after its zoom).
+	// The zoom ends early when the window closes, unmounts or opens again;
+	// an effect torn down and run again at once (StrictMode) starts the same
+	// zoom over.
+	const [zoomHidden, setZoomHidden] = useState(false);
+	const zoomWasOpenRef = useRef(false);
+	const zoomInterruptedRef = useRef<
+		{ origin: ClassicyZoomOrigin } | { launch: true } | null
+	>(null);
+	useLayoutEffect(() => {
+		const open = !ws.closed;
+		const opened = open && !zoomWasOpenRef.current;
+		zoomWasOpenRef.current = open;
+		const interrupted = zoomInterruptedRef.current;
+		zoomInterruptedRef.current = null;
+		if (!open) return;
+		const origin = opened
+			? takeClassicyWindowZoomSource(appId, id)
+			: interrupted && "origin" in interrupted
+				? interrupted.origin
+				: undefined;
+		const el = windowRef.current;
+		if (!el) return;
+		if (!origin) {
+			if (!opened && !(interrupted && "launch" in interrupted)) return;
+			const stopWaiting = waitForClassicyLaunchZoom(appId, () =>
+				setZoomHidden(false),
+			);
+			if (!stopWaiting) return;
+			setZoomHidden(true);
+			return () => {
+				stopWaiting();
+				zoomInterruptedRef.current = { launch: true };
+				setZoomHidden(false);
+			};
+		}
+		const desktop =
+			origin.desktop ?? el.closest<HTMLElement>(".classicyDesktop");
+		if (!desktop) return;
+		let ended = false;
+		const zoom = playClassicyZoomRects({
+			desktop,
+			icon: origin.rect,
+			window: classicyWindowContentRect(el),
+			direction: "open",
+			onEnd: () => {
+				ended = true;
+				setZoomHidden(false);
+			},
+		});
+		if (!zoom) return;
+		setZoomHidden(true);
+		return () => {
+			if (ended) return;
+			zoom.cancel();
+			zoomInterruptedRef.current = { origin };
+			setZoomHidden(false);
+		};
+	}, [ws.closed, appId, id]);
+
+	// Closing: the root element leaves the DOM (the record closed, or the
+	// window unmounted). Its box is read as it goes (a callback ref is
+	// detached before its element is removed), and a tick later, unless the
+	// element came back (StrictMode's phantom detach) or the record is not
+	// closed (a window unmounting open, or renamed under a new id), the
+	// rectangles run from that box back to the icon `zoomIconPath` names.
+	const zoomIconPathRef = useRef(zoomIconPath);
+	useLayoutEffect(() => {
+		zoomIconPathRef.current = zoomIconPath;
+	}, [zoomIconPath]);
+	const setWindowElement = useCallback(
+		(el: HTMLDivElement | null) => {
+			const previous = windowRef.current;
+			windowRef.current = el;
+			setWindowNode(el);
+			if (el || !previous?.isConnected) return;
+			const path = zoomIconPathRef.current;
+			if (path === undefined) return;
+			const desktop = previous.closest<HTMLElement>(".classicyDesktop");
+			if (!desktop) return;
+			const box = previous.getBoundingClientRect();
+			setTimeout(() => {
+				if (windowRef.current || !desktop.isConnected) return;
+				if (typeof useAppManager.getState !== "function") return;
+				const record = getAppWindow(
+					useAppManager.getState().System.Manager.Applications.apps[appId],
+					id,
+				);
+				if (!record?.closed) return;
+				if (takeClassicyWindowCloseZoomSkip(appId, id)) return;
+				const icon = findClassicyZoomIcon(desktop, path);
+				if (!icon) return;
+				playClassicyZoomRects({
+					desktop,
+					icon: icon.rect,
+					window: {
+						left: box.left,
+						top: box.top,
+						width: box.width,
+						height: box.height,
+					},
+					direction: "close",
+				});
+			}, 0);
+		},
+		[appId, id],
+	);
+
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);
 	useEffect(() => {
@@ -1148,16 +1367,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// is mounted again by then — StrictMode's phantom teardown remounts
 	// synchronously, and a remount (same instance or a new one) must not have
 	// its record closed out from under it.
+	//
+	// The mount itself is counted in one registry, by app and window id
+	// (`ClassicyMountedWindows.internal.ts`), which openApp reads too: it
+	// reopens only a window that is on screen to draw, and one that is not
+	// reopens itself when it mounts (ClassicyWindowOpen).
 	useEffect(() => {
-		if (modal) return;
-		const key = `${appId}\u0000${id}`;
-		mountedWindowKeys.set(key, (mountedWindowKeys.get(key) ?? 0) + 1);
+		const release = markClassicyWindowMounted(appId, id);
+		if (modal) return release;
 		return () => {
-			const remaining = (mountedWindowKeys.get(key) ?? 1) - 1;
-			if (remaining > 0) mountedWindowKeys.set(key, remaining);
-			else mountedWindowKeys.delete(key);
+			release();
 			setTimeout(() => {
-				if (mountedWindowKeys.has(key)) return;
+				if (isClassicyWindowMounted(appId, id)) return;
 				if (typeof useAppManager.getState !== "function") return;
 				const record = getAppWindow(
 					useAppManager.getState().System.Manager.Applications.apps[appId],
@@ -1192,13 +1413,32 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				menuBar: appMenu,
 			});
 		}
-		if (ws.focused) {
+		// The window holding the bar: the focused one, or the front app's last
+		// accessed one while a floating extension window holds the focus flag.
+		// A closed window never publishes (it can stay mounted when closed).
+		const holdsBar =
+			!ws.closed &&
+			(ws.focused ||
+				(frontAppId === appId && currentApp?.lastAccessedWindowId === id));
+		// An extension's window with an empty menu leaves the bar alone.
+		const leavesBar = currentApp?.extension === true && appMenu.length === 0;
+		if (holdsBar && !leavesBar) {
 			desktopEventDispatch({
 				type: "ClassicyWindowMenu",
 				menuBar: appMenu,
 			});
 		}
-	}, [ws.focused, appMenu, appId, id, desktopEventDispatch]);
+	}, [
+		ws.focused,
+		ws.closed,
+		appMenu,
+		appId,
+		id,
+		desktopEventDispatch,
+		frontAppId,
+		currentApp?.lastAccessedWindowId,
+		currentApp?.extension,
+	]);
 
 	// Updated every render so the stable document listeners always see fresh state.
 	docMoveHandlerRef.current = (e: globalThis.MouseEvent) => {
@@ -1495,6 +1735,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, [ws.focused, windowType]);
 
 	const front = modal || isActive();
+
 	const appearance = useClassicyAppearance(
 		"Window",
 		{
@@ -1509,6 +1750,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const setActive = useCallback(
 		(_e?: MouseEvent<HTMLDivElement>) => {
+			// A floating window under a newer floating sibling is raised by a
+			// click even though it is already focused.
+			const raisesFloating =
+				floatingRank >= 0 && floatingRank < floatingCount - 1;
+			if (ws.focused && raisesFloating) {
+				desktopEventDispatch({
+					type: "ClassicyWindowFocus",
+					app: { id: appId, appMenu: appMenu },
+					window: ws,
+				});
+			}
 			if (!ws.focused) {
 				// Inside the guard so "focus" means the window BECAME focused.
 				// The root binds both onMouseUp (which calls setActive) and
@@ -1527,16 +1779,26 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				});
 			}
 		},
-		[ws, appId, appMenu, desktopEventDispatch, track, analyticsArgs, emit],
+		[
+			ws,
+			appId,
+			appMenu,
+			desktopEventDispatch,
+			track,
+			analyticsArgs,
+			emit,
+			floatingRank,
+			floatingCount,
+		],
 	);
 
 	useEffect(() => {
 		// This ensures that once a window has opened it becomes the focus.
 		// setActive();
-		if (modal && type === "error") {
+		if (modal && type === "error" && playAlertSound) {
 			player({ type: "ClassicySoundPlayError" });
 		}
-	}, [modal, player, type]);
+	}, [modal, player, type, playAlertSound]);
 
 	const toggleCollapse = () => {
 		if (collapsable) {
@@ -1616,6 +1878,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		if (zoomable) {
 			applyZoom(!ws.zoomed);
 		}
+	};
+
+	// `onZoomBox`: the zoom box sets the owner's option instead of zooming;
+	// the package still hears a zoom (its sound).
+	const pressZoomBox = (keys: ClassicyZoomBoxKeys) => {
+		setActive();
+		if (!zoomable || !onZoomBox) return;
+		const grew = onZoomBox(keys);
+		emit("zoom", withClassicyAppearanceInput({ zoomed: grew, cause: "zoom" }));
 	};
 
 	// #208: compute the "standard state" rect the window zooms to. `full` fills
@@ -1921,8 +2192,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
 			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
+			// Inside the floating layer (356, above the palettes and the
+			// Control Strip, under the modal bands): the window's recency rank
+			// among every extension's floating windows. See `floatingLayerOf`.
+			...(floatingRank >= 0
+				? { zIndex: floatingRank + 1, pointerEvents: "auto" as const }
+				: {}),
 		}),
 		[
+			floatingRank,
 			size[0],
 			size[1],
 			ws.collapsed,
@@ -1994,7 +2272,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		<div
 			{...appearance.attrs}
 			id={[appId, id].join("_")}
-			ref={windowRef}
+			ref={setWindowElement}
 			role="application"
 			aria-label={title || undefined}
 			// Package, then consumer, then the window's own geometry; neither
@@ -2010,9 +2288,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					? "classicyWindowUtility"
 					: "classicyWindowDocument",
 				appearance.className,
-				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
+				isFrontApp && !isActive() ? "classicyWindowActiveApp" : "",
 				windowType === "utility"
-					? alwaysOnTop || currentApp?.focused
+					? alwaysOnTop || isFrontApp
 						? "classicyWindowFloating"
 						: "classicyWindowBackgrounded"
 					: "",
@@ -2025,12 +2303,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal && type === "error" ? "classicyWindowRed" : "",
 				// A fixed modal (HIG7 p.190: no drag region, and so no title bar
 				// in System 7) as opposed to a movable one: the window the move
-				// gesture refuses, an alert or `movable={false}`. Platinum drops
-				// the bar of the second only (its alert keeps the red bar).
+				// gesture refuses, an alert or `movable={false}`. Both packages
+				// drop its bar; Platinum's fixed alert draws its red rings around
+				// the contents instead (HIGOS8 Figure 3-5, story 0236-2f8).
 				fixedModal ? "classicyWindowModalFixed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 				showsMenuBar ? "classicyWindowWithMenuBar" : "",
+				zoomHidden ? "classicyWindowZoomHidden" : "",
 				className,
 			)}
 			onMouseMove={changeWindow}
@@ -2068,9 +2348,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				icon={icon}
 				hideIcon={hideIcon}
 				variant={windowType === "utility" ? "utility" : "document"}
+				utilityTitle={utilityTitle}
 				modal={modal === true}
 				onClose={closable ? close : undefined}
-				onZoom={zoomable ? toggleZoom : undefined}
+				onZoom={zoomable && !onZoomBox ? toggleZoom : undefined}
+				onZoomKeys={zoomable && onZoomBox ? pressZoomBox : undefined}
 				onCollapse={collapsable ? onCollapseBoxClick : undefined}
 				onCollapseKey={toggleCollapse}
 				onTitleMouseDown={onTitleMouseDown}
@@ -2192,6 +2474,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			</>,
 			desktopRoot,
 		);
+	}
+
+	// A floating window draws in the desktop's floating layer, not in place:
+	// the desktop's own element when there is one (nothing is drawn until the
+	// layer has committed, so the window mounts once, in it), else, outside a
+	// desktop, a layer found or appended under the root.
+	if (isFloatingWindow && !ws.closed) {
+		const layer = floatingLayerCtx
+			? floatingLayerCtx.element
+			: desktopRoot && classicyFallbackFloatingLayer(desktopRoot);
+		return layer ? createPortal(windowContent, layer) : null;
 	}
 
 	return <>{windowContent}</>;

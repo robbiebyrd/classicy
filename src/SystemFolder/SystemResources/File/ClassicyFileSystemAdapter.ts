@@ -1,4 +1,4 @@
-import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { invokeClassicyAdapterHook } from "@/SystemFolder/SystemResources/Utils/ClassicySyncAdapterHook.internal";
 /**
  * ClassicyFileSystem sync adapter API — lets a host application mirror the
  * browser-local filesystem to a backend of its choosing. Capability-based:
@@ -118,27 +118,13 @@ export function invokeClassicyFileSystemAdapterHook(
 	hook: "onChange" | "onSnapshot",
 	payload: ClassicyFileSystemJournalEntry | ClassicyFileSystemSnapshot,
 ): Promise<boolean> {
-	const fn = adapter[hook] as
-		| ((payload: unknown) => void | Promise<void>)
-		| undefined;
-	if (!fn) return Promise.resolve(true);
-	const logFailure = (error: unknown) => {
-		classicyLog(
-			"error",
-			"ClassicyFileSystem",
-			`adapter "${adapter.id}" failed in ${hook}`,
-			error,
-		);
-		return false;
-	};
-	try {
-		return Promise.resolve(fn.call(adapter, payload)).then(
-			() => true,
-			logFailure,
-		);
-	} catch (error) {
-		return Promise.resolve(logFailure(error));
-	}
+	return invokeClassicyAdapterHook(
+		"ClassicyFileSystem",
+		adapter,
+		hook,
+		adapter[hook] as ((payload: unknown) => void | Promise<void>) | undefined,
+		payload,
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -157,11 +143,20 @@ export function registerClassicyFileSystemPendingFlush(
 	pendingFlushes.set(flush, storageKey);
 	if (!pagehideListenerAttached && typeof window !== "undefined") {
 		pagehideListenerAttached = true;
-		window.addEventListener("pagehide", () => {
-			for (const pending of [...pendingFlushes.keys()]) {
-				pending();
-			}
-		});
+		window.addEventListener("pagehide", flushClassicyFileSystemPending);
+	}
+}
+
+/**
+ * Run every pending flush, whatever its storage key: what `pagehide` does.
+ * A test harness runs it before it gives the next case a fresh
+ * `localStorage`, so one case's debounced write lands in its own storage
+ * and never seeds the next case's tree (the next case's first instance
+ * drains whatever is still pending into the storage it reads).
+ */
+export function flushClassicyFileSystemPending(): void {
+	for (const pending of [...pendingFlushes.keys()]) {
+		pending();
 	}
 }
 

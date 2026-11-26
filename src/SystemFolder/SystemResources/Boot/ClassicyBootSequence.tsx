@@ -7,6 +7,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyBootScreenActive } from "@/SystemFolder/SystemResources/Boot/ClassicyBootScreenActive";
 import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreen";
 import {
 	hasShownStartupScreenThisSession,
@@ -66,6 +67,10 @@ export const ClassicyBootSequence: FunctionalComponent<
 			? "powerOn"
 			: "startup",
 	);
+	// The power-on screen covers the desktop until powerOn (the startup
+	// screen, if any, then covers it itself): theme-link alerts and
+	// notifications wait meanwhile.
+	useClassicyBootScreenActive(phase === "powerOn" && !!preBootScreen);
 
 	const powerOn = () => {
 		// When there is no startup screen to mount, ClassicyStartupScreen never

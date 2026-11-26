@@ -3,24 +3,14 @@
   <defs>
     <style>
       .cls-1 {
-        fill: #ef8c89;
-      }
-
-      .cls-2 {
-        fill: #f9dada;
+        fill: #fff;
       }
     </style>
   </defs>
-  <path class="cls-1" d="M0,0h12.01v1H0V0Z"/>
-  <path class="cls-2" d="M0,1h12.01v1H0v-1Z"/>
-  <path class="cls-1" d="M0,2h12.01v1H0v-1Z"/>
-  <path class="cls-2" d="M0,3h12.01v1H0v-1Z"/>
-  <path class="cls-1" d="M0,4h12.01v1H0v-1Z"/>
-  <path class="cls-2" d="M0,5h12.01v1H0v-1Z"/>
-  <path class="cls-1" d="M0,6h12.01v1H0v-1Z"/>
-  <path class="cls-2" d="M0,7h12.01v1H0v-1Z"/>
-  <path class="cls-1" d="M0,8h12.01v1H0v-1Z"/>
-  <path class="cls-2" d="M0,9h12.01v1H0v-1Z"/>
-  <path class="cls-1" d="M0,10h12.01v1H0v-1Z"/>
-  <path class="cls-2" d="M0,11h12.01v1H0v-1Z"/>
+  <path class="cls-1" d="M-.24,0h12.49v1H-.24v-1Z"/>
+  <path class="cls-1" d="M-.24,2h12.49v1H-.24v-1Z"/>
+  <path class="cls-1" d="M-.24,4h12.49v1H-.24v-1Z"/>
+  <path class="cls-1" d="M-.24,6h12.49v1H-.24v-1Z"/>
+  <path class="cls-1" d="M-.24,8h12.49v1H-.24v-1Z"/>
+  <path class="cls-1" d="M-.24,10h12.49v1H-.24v-1Z"/>
 </svg>
