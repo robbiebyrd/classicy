@@ -674,14 +674,15 @@ describe("ClassicyDesktop layout", () => {
 			// The tray: the Control Strip's three built-in modules, then the
 			// menu bar extensions' region and the clock. The Appearance
 			// module takes its app's display name, Windows 98's "Display"
-			// (the package's `apps` override for AppearanceManager.app).
+			// (the package's `apps` override for AppearanceManager.app), and
+			// Sound's is systray.exe's "Volume" (its `trayLabel`).
 			const tray = container.querySelector(".classicyTaskbarTray");
 			expect(
 				Array.from(
 					tray?.querySelectorAll(".classicyTaskbarTrayIcon") ?? [],
 					(icon) => icon.getAttribute("aria-label"),
 				),
-			).toEqual(["Sound", "Screen Saver", "Display"]);
+			).toEqual(["Volume", "Screen Saver", "Display"]);
 			expect(
 				tray?.querySelector("#classicyDesktopMenuExtensions"),
 			).not.toBeNull();

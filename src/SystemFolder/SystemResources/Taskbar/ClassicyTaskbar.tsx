@@ -12,6 +12,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyOwnAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
@@ -303,6 +304,12 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	const startLabel =
 		layout.taskbar?.startLabel ?? CLASSICY_TASKBAR_DEFAULT_START_LABEL;
 	const startBanner = layout.taskbar?.startBanner;
+	// The Start button's flag: the package's own `appleMenu` art (Windows 98's
+	// is Explorer's bitmap 143), drawn by its stylesheet from
+	// `--classicy-art-apple-menu` while the root carries
+	// `classicyTaskbarStartFlag`; never the default package's (Platinum's
+	// Apple), so a package without its own draws its own glyph instead.
+	const startFlag = Boolean(useClassicyOwnAsset("systemArt", "appleMenu"));
 	const rootRef = useRef<HTMLElement>(null);
 	const startRef = useRef<HTMLButtonElement>(null);
 	const appearance = useClassicyAppearance("Taskbar", {}, rootRef);
@@ -501,7 +508,13 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				onClick={onStartClick}
 				onKeyDown={onStartKeyDown}
 			>
-				<span className="classicyTaskbarStartIcon" aria-hidden="true" />
+				<span
+					className={classNames(
+						"classicyTaskbarStartIcon",
+						startFlag && "classicyTaskbarStartFlag",
+					)}
+					aria-hidden="true"
+				/>
 				<span className="classicyTaskbarStartLabel">{startLabel}</span>
 			</button>
 			{startTipBalloon}

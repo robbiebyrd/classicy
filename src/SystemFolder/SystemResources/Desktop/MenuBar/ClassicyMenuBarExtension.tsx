@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
@@ -23,15 +24,26 @@ export interface ClassicyMenuBarExtensionProps {
 	id: string;
 	/** CSS flex `order` among the menu bar's extension items. Defaults to `0`. */
 	order?: number;
-	/** Icon drawn in the menu bar when no `children` are given. */
+	/**
+	 * Icon drawn in the menu bar when no `children` are given. In the
+	 * taskbar's status area (`layout.taskbar`) it is always the item's
+	 * content, at 16 px: the active package's generic application icon
+	 * stands in for it when none is given.
+	 */
 	icon?: string;
-	/** Accessible name of the item's button (and the icon's alt text). */
+	/**
+	 * Accessible name of the item's button (and the icon's alt text). In the
+	 * taskbar's status area, its tooltip too, and never drawn as text.
+	 */
 	title?: string;
 	/** Menu dropped down below the item when it is clicked. */
 	menuItems?: ClassicyMenuItem[];
 	/** Called on every click, whether or not the item has a menu. */
 	onClick?: () => void;
-	/** Custom item content, drawn instead of `icon`. */
+	/**
+	 * Custom item content, drawn instead of `icon`; not drawn in the
+	 * taskbar's status area, which shows an icon alone (WIG Ch.10 p.211).
+	 */
 	children?: ReactNode;
 	/** Extra class names, merged onto the item's `<li>` after the component's own. */
 	className?: string;
@@ -197,9 +209,24 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 
 	if (!regionNode) return null;
 
-	const content =
-		children ??
-		(icon ? <ClassicyIconImage src={icon} alt={title ?? ""} /> : null);
+	// In the taskbar's status area the item is a notification icon, which
+	// shows a graphic and never text (WIG Ch.10 "Status Notification", p.211:
+	// "Present status notification information in the form of a graphic",
+	// and only information "of a global nature"): its 16 px `icon`, or,
+	// with none, the active package's generic application icon (the core
+	// URL draws the package's image for its key: Windows 98's shell32 #3, at
+	// its 16 px size); `children`, which may hold text, are not drawn there,
+	// and the title is the button's name and tooltip alone.
+	const content = hasTaskbar ? (
+		<ClassicyIconImage
+			src={icon ?? ClassicyIcons.system.files.application}
+			alt=""
+			draggable={false}
+		/>
+	) : (
+		(children ??
+		(icon ? <ClassicyIconImage src={icon} alt={title ?? ""} /> : null))
+	);
 
 	const item = (
 		<li

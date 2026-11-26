@@ -10,7 +10,7 @@ Windows 95 and 98's icons, bitmaps, cursors, sounds, wallpapers, screen savers a
 
 **Icons.** An icon group's 32 px and 16 px images, each the group's highest color depth (the 256-color image where there is one: Windows 98 drew it on a high-color screen), the AND mask made alpha (mask 1 is clear, every other pixel opaque; the few masked pixels whose XOR color is `#040404`, which Windows XORed onto the screen, are clear too). A group with no 16 px image registers its 32 px one alone, which Windows scaled. Files: `src/assets/icons/<binary>-<group id>-<size>.webp`.
 
-**Bitmaps.** The Start flag (`explorer.exe` bitmap 143) and the About box's Windows logo (`shell32.dll` bitmap 130, RLE-compressed) have a `#C0C0C0` ground, which Windows mapped to the button face as it loaded them: it is made clear, so each scheme's face shows through. Internet Explorer 5's toolbar cells are 20 x 20 cells of `browseui.dll` bitmaps 265 (gray, the buttons at rest) and 266 (color, the buttons under the pointer), their `#FF00FF` key made clear: `src/assets/icons/browseui-bitmap-<id>-cell-<n>.webp`. Web View's sky, `C:\WINDOWS\WEB\wvlogo.gif`, keeps every pixel. Files: `src/assets/art/<binary>-bitmap-<id>.webp`, `src/assets/icons/wvlogo.webp`.
+**Bitmaps.** The Start menu's banner (`explorer.exe` bitmap 157) keeps every pixel. The Start flag (`explorer.exe` bitmap 143) and the About box's Windows logo (`shell32.dll` bitmap 130, RLE-compressed) have a `#C0C0C0` ground, which Windows mapped to the button face as it loaded them: it is made clear, so each scheme's face shows through. Internet Explorer 5's toolbar cells are 20 x 20 cells of `browseui.dll` bitmaps 265 (gray, the buttons at rest) and 266 (color, the buttons under the pointer), their `#FF00FF` key made clear: `src/assets/icons/browseui-bitmap-<id>-cell-<n>.webp`. Web View's sky, `C:\WINDOWS\WEB\wvlogo.gif`, keeps every pixel. Files: `src/assets/art/<binary>-bitmap-<id>.webp`, `src/assets/icons/wvlogo.webp`.
 
 **Wallpapers.** The CD's wallpaper bitmaps (`WIN98_22.CAB`), 1-, 4- and 8-bit DIBs, every pixel kept, decoded twice (by the converter and by ffmpeg, which agree) before encoding. **Patterns** are no files in Windows: `shell.inf` writes each as eight decimal bytes, which are drawn as an 8 x 8 tile, a 1 bit opaque black and a 0 bit clear. Files: `src/assets/wallpapers/<name>.webp`. **3D Pipes' texture** is `sspipes.scr`'s resource 100/99, a 100 x 100 24-bit bitmap: `src/screenSavers/Pipes/pipes-texture.webp`.
 
@@ -385,6 +385,7 @@ Each `ClassicySystemArtKey`. "register" keys draw Windows 98's file; "default" k
 | `downArrow` | default | — | — | Windows drew it with Marlett in the text color: the package's stylesheet draws it from tokens |
 | `ditherChecker` | default | — | — | Windows drew it with Marlett in the text color: the package's stylesheet draws it from tokens |
 | `helpMenuTitle` | default | — | — | Windows titles Help in words; Platinum registers none either, so the word shows |
+| `startMenuBanner` | register | `explorer.exe` bitmap 157: the Start menu's "Windows98" banner (21 x 233, 4-bit) | `art/explorer-bitmap-157.webp` | the Start menu's banner, drawn upright at its foot with its first row (navy) stretched above it, as Explorer painted it (ReactOS `CMenuDeskBar::_OnPaint`); every pixel kept: Explorer drew it as loaded, under every scheme |
 
 ## Cursors
 

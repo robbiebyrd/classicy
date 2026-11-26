@@ -558,7 +558,13 @@
 		"SoundManager": ["Content"],
 		"Spinner": ["Default", "Holder", "InputGroup"],
 		"SplitView": ["Divider", "Horizontal", "Pane", "SplitBox", "Vertical"],
-		"StartMenu": ["Banner", "BannerEdition", "BannerTitle", "SmallIcons"],
+		"StartMenu": [
+			"Banner",
+			"BannerArt",
+			"BannerEdition",
+			"BannerTitle",
+			"SmallIcons"
+		],
 		"StartupScreen": ["Extensions", "Logo", "Panel", "Progress", "Wordmark"],
 		"Storage": [],
 		"SubMenu": ["FlipLeft"],
@@ -601,6 +607,7 @@
 			"QuickLaunchIcon",
 			"ShowDesktopIcon",
 			"Start",
+			"StartFlag",
 			"StartIcon",
 			"StartLabel",
 			"Task",

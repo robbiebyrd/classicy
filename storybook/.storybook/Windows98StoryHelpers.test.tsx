@@ -337,7 +337,7 @@ describe("Windows 98 shell play helpers on the story desktop", () => {
 	it("opens a tray icon's panel and menu, and the taskbar's menu and its Properties", async () => {
 		renderShellStory(() => <p>scene</p>);
 		await screen.findByText("scene", {}, { timeout: 20000 });
-		const panel = await openTrayIcon(document, "Sound", 1);
+		const panel = await openTrayIcon(document, "Volume", 1);
 		expect(panel.classList.contains("classicyTaskbarTrayPopup")).toBe(true);
 		await openTrayIcon(document, "Display", 2);
 		expect(

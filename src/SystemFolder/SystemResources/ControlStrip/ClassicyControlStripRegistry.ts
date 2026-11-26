@@ -60,6 +60,37 @@ export type ClassicyControlStripModuleDefinition = {
 	menuItems?: ClassicyMenuItem[] | (() => ClassicyMenuItem[]);
 	/** A surface other than a menu. Ignored when `menuItems` is set. */
 	content?: ComponentType;
+	/**
+	 * The control panel the module belongs to (HIGOS8 p.125), as the app
+	 * `classicyControlStripOpenControlPanelItem` opens: read only by the
+	 * Windows shell's status area (`ClassicyTaskbarTray`), never by the
+	 * Control Strip. There, the menu's copy of that item (known by its id,
+	 * `classicyControlStripOpenControlPanelItemId(panel.id)`) is the default
+	 * command, which a double-click on the icon runs (WIG Ch.10 "Status
+	 * Notification", p.212); a module with no `menuItems` gets a menu of that
+	 * one command, titled `command` (default `Open <name> Control Panel`).
+	 */
+	panel?: {
+		/** The panel's app id, opened with `ClassicyAppOpen`. */
+		id: string;
+		/** The panel's app name (the `ClassicyAppOpen` record's). */
+		name: string;
+		/** The panel's app icon. */
+		icon: string;
+		/**
+		 * The title of the command the status area makes for a module with
+		 * no `menuItems` (Sound's "Open Volume Controls", Windows 98 SE's
+		 * systray.exe string).
+		 */
+		command?: string;
+	};
+	/**
+	 * The module's name in the Windows shell's status area: its icon's
+	 * tooltip and accessible name, default the label (Sound's "Volume", and
+	 * "Volume (muted)" while muted, systray.exe's two tips). A function form
+	 * is a hook, as `icon`'s. Read only by the status area.
+	 */
+	trayLabel?: string | (() => string);
 };
 
 /** A registered module, as the strip and the control panel see it. */
@@ -277,6 +308,15 @@ export const classicyControlStripModuleLabel = (
 			}).name;
 
 /**
+ * The id of the item `classicyControlStripOpenControlPanelItem` makes for the
+ * panel `appId` (`open-<appId>`): how the Windows shell's status area finds a
+ * module's own copy of it to make it the default command.
+ */
+export const classicyControlStripOpenControlPanelItemId = (
+	appId: string,
+): string => `open-${appId}`;
+
+/**
  * The menu item that opens a module's control panel — HIGOS8 p.125: a module
  * belonging to a control panel must offer a way to open it (Figure 6-15's
  * "Open File Sharing Control Panel"). `dispatch` is `useAppManagerDispatch()`.
@@ -286,7 +326,7 @@ export const classicyControlStripOpenControlPanelItem = (
 	panelName: string,
 	app: { id: string; name: string; icon: string },
 ): ClassicyMenuItem => ({
-	id: `open-${app.id}`,
+	id: classicyControlStripOpenControlPanelItemId(app.id),
 	title: `Open ${panelName} Control Panel`,
 	onClickFunc: () => dispatch({ type: "ClassicyAppOpen", app }),
 });

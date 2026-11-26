@@ -112,6 +112,24 @@ $first-level-small: ".classicyStartMenu.classicyStartMenuSmallIcons > .classicyM
     rotate: 180deg;
   }
 
+  // The package's own banner (Explorer's bitmap 157, "Windows98", 21 x 233,
+  // registered as `startMenuBanner`), drawn upright and anchored to the
+  // banner's foot, the space above it filled with the bitmap's top row
+  // stretched, as Explorer painted it (a BitBlt of the bitmap at the foot, a
+  // StretchBlt of its first row above: ReactOS's CMenuDeskBar::_OnPaint).
+  // A border image does both with one image: its top slice, the first row,
+  // stretched over all but the last 232 pixels, and its middle, the other
+  // 232 rows, at their own size below. The text is then the banner's
+  // accessible name only.
+  .classicyStartMenuBanner.classicyStartMenuBannerArt {
+    padding: 0;
+    background: none;
+    border-image: var(--classicy-art-start-menu-banner, none) 1 0 0 0 fill /
+      calc(100% - px(232)) 0 0 0 stretch;
+    image-rendering: pixelated;
+    rotate: none;
+  }
+
   .classicyStartMenuBannerTitle {
     font-weight: bold;
   }

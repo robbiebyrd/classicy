@@ -608,6 +608,34 @@ describe("ClassicyWindow's window pop-up menu", () => {
 				expect(document.activeElement).toBe(field);
 			});
 
+			// B7 (audit 4.12): user.exe's system menu keys, "&Restore",
+			// "&Move", "&Size", "Mi&nimize", "Ma&ximize", "&Close", typed in
+			// the open menu under a layout with access keys and the menu
+			// keyboard (Windows 98's).
+			it("runs an item by its access key under a layout with access keys", async () => {
+				registerTestTaskbarPackage(
+					{
+						...TEST_SYSTEM_MENU_LAYOUT,
+						menu: { keys: "windows", accessKeys: "auto" },
+					},
+					"test-system-menu-keys",
+				);
+				usePackage("test-system-menu-keys");
+				renderShell(sysWindow());
+				altSpace();
+				expect(
+					items().map(
+						(li) =>
+							li.querySelector('[data-classicy-part="access-key"]')
+								?.textContent,
+					),
+				).toEqual(["R", "M", "S", "n", "x", "C"]);
+				fireEvent.keyDown(document.activeElement as Element, { key: "n" });
+				dispatchAnimationEnd(item("minimize"));
+				await waitFor(() => expect(record()?.collapsed).toBe(true));
+				unregisterClassicyAppearancePackage("test-system-menu-keys");
+			});
+
 			it("chooses the focused item on ENTER", async () => {
 				renderShell(sysWindow());
 				altSpace();

@@ -75,6 +75,24 @@ export const CLASSICY_WINDOW_SYSTEM_MENU_TITLES: Readonly<
 });
 
 /**
+ * Each item's access key, Windows 98 SE's (user.exe's system menu: "&Restore",
+ * "&Move", "&Size", "Mi&nimize", "Ma&ximize", "&Close"; audit 4.12). Only
+ * the Windows shell builds this menu (`layout.window.systemMenu`), so the
+ * keys need no further gate; a package without `layout.menu.accessKeys`
+ * draws and takes none.
+ */
+export const CLASSICY_WINDOW_SYSTEM_MENU_ACCESS_KEYS: Readonly<
+	Record<ClassicyWindowSystemMenuCommand, string>
+> = Object.freeze({
+	restore: "R",
+	move: "M",
+	size: "S",
+	minimize: "n",
+	maximize: "x",
+	close: "C",
+});
+
+/**
  * Close's keyboard equivalent, ALT+F4 (WIG App. B, Table B.2, p.358: "Close
  * the active window"), in the menu-item form (`⌥` is the Alt and Option key):
  * the menu draws it in the active package's glyph spelling, and
@@ -186,6 +204,7 @@ export function classicyWindowSystemMenuItems(
 		items.push({
 			id: classicyWindowSystemMenuItemId(state.appId, state.windowId, command),
 			title: CLASSICY_WINDOW_SYSTEM_MENU_TITLES[command],
+			accessKey: CLASSICY_WINDOW_SYSTEM_MENU_ACCESS_KEYS[command],
 			disabled: !enabled(command, state),
 			onClickFunc: handlers[command],
 			...(command === "close"

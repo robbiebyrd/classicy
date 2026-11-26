@@ -26,9 +26,11 @@ import {
 	type ClassicyControlStripModuleDefinition,
 	type ClassicyControlStripModuleRegistration,
 	classicyControlStripModuleLabel,
+	classicyControlStripOpenControlPanelItemId,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyTaskbarClock } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarClock.internal";
 import { CLASSICY_TASKBAR_TOOLTIP_DELAY_MS } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
@@ -110,6 +112,49 @@ export const classicyTaskbarTrayDefaultItem = (
 			!(item.menuChildren && item.menuChildren.length > 0),
 	);
 
+/**
+ * A module's menu as the status area offers it (B3, audit 1.10, 10.17): its
+ * `menuItems` with the tray's own copy of the item that opens its control
+ * panel (`panel`, found by `classicyControlStripOpenControlPanelItemId`)
+ * marked `isDefault`, so a double-click on the icon runs it (WIG Ch.10
+ * "Status Notification", p.212); for a module with a `panel` and no
+ * `menuItems` (Sound), a menu of that one command, titled `panel.command`
+ * (default `Open <name> Control Panel`), the default, its access key O
+ * (Windows 98 SE's "&Open Volume Controls") under a package with access
+ * keys (`accessKey`, `useClassicyBundledAccessKeys`'s). The module's own
+ * list and the shared helper are never changed (the Control Strip reads
+ * them as they are). No What's This? item: Windows 98 SE's own
+ * notification menus (systray.exe's Volume, Power and PC Card menus) have
+ * none, though the 1995 text (pp.211-212) asks for one. Pure.
+ */
+export const classicyTaskbarTrayMenuItems = (
+	menuItems: readonly ClassicyMenuItem[] | undefined,
+	panel: ClassicyControlStripModuleDefinition["panel"],
+	dispatch: (action: { type: string; [key: string]: unknown }) => void,
+	accessKey: (key: string) => string | undefined = () => undefined,
+): ClassicyMenuItem[] | undefined => {
+	if (!panel) return menuItems ? [...menuItems] : undefined;
+	const openId = classicyControlStripOpenControlPanelItemId(panel.id);
+	if (menuItems && menuItems.length > 0)
+		return menuItems.map((item) =>
+			item.id === openId ? { ...item, isDefault: true } : item,
+		);
+	const key = accessKey("O");
+	return [
+		{
+			id: openId,
+			title: panel.command ?? `Open ${panel.name} Control Panel`,
+			isDefault: true,
+			...(key === undefined ? {} : { accessKey: key }),
+			onClickFunc: () =>
+				dispatch({
+					type: "ClassicyAppOpen",
+					app: { id: panel.id, name: panel.name, icon: panel.icon },
+				}),
+		},
+	];
+};
+
 // Run a menu item as the menu runs a chosen one: its handler, else its
 // event dispatched with its data.
 const runMenuItem = (
@@ -162,17 +207,29 @@ const ClassicyTaskbarTrayIcon: FunctionalComponent<{
 	// Function forms are hooks; a definition never switches form without a
 	// new revision, which remounts this component.
 	const icon = typeof module.icon === "function" ? module.icon() : module.icon;
-	const menuItems =
+	const ownMenuItems =
 		typeof module.menuItems === "function"
 			? module.menuItems()
 			: module.menuItems;
+	const trayLabel =
+		typeof module.trayLabel === "function"
+			? module.trayLabel()
+			: module.trayLabel;
+	const accessKey = useClassicyBundledAccessKeys();
+	const menuItems = classicyTaskbarTrayMenuItems(
+		ownMenuItems,
+		module.panel,
+		dispatch,
+		accessKey,
+	);
 	const Content = module.content;
 	const hasMenu = (menuItems?.length ?? 0) > 0;
 	const opensContent = Content !== undefined;
 	const opensSomething = opensContent || hasMenu;
 	const defaultItem = classicyTaskbarTrayDefaultItem(menuItems);
-	// K-D7: a module an app owns shows the app's display name.
-	const label = classicyControlStripModuleLabel(module, overrides);
+	// K-D7: a module an app owns shows the app's display name, unless the
+	// module names itself in the tray (Sound's "Volume").
+	const label = trayLabel ?? classicyControlStripModuleLabel(module, overrides);
 	const popupId = classicyTaskbarTrayPopupId(module.id);
 
 	const buttonRef = useRef<HTMLButtonElement>(null);

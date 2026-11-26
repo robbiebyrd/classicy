@@ -74,8 +74,12 @@ and `nodenext` resolution).
     or Hide Balloons; Help;
     Run...; Empty Trash… and Reset PRAM…; then Log Off <name>... (when the
     host passes `userName` to the desktop) and Shut Down.... Its banner
-    reads "Windows 98" under every scheme. There is no Favorites or Find:
-    Classicy keeps no favorites, and its Finder has no search.
+    is Windows 98's own "Windows98" bitmap under every scheme. Its items
+    take Windows 98's letters (Programs P, Documents D, Settings S, Control
+    Panel C, Taskbar & Start Menu... T, Help H, Run... R, Log Off L, Shut
+    Down... u), so a letter in the open menu runs its item. There is no
+    Favorites or Find: Classicy keeps no favorites, and its Finder has no
+    search.
   - **Shut Down...** asks what to do over a dimmed screen, as Windows 98
     did: **Stand by** darkens the screen until you press a key or click;
     **Shut down** closes your programs and shows "It's now safe to turn off
@@ -113,9 +117,16 @@ and `nodenext` resolution).
   - **The notification area**, at its right, holds the Control Strip's
     modules as icons (Sound, Screen Saver, Appearance, and any module your
     app registers): a click opens a module's control or its menu, a
-    right-click its menu, and its name shows in a tooltip. The menu bar
-    extensions an app adds sit beside them and answer the same clicks and
-    show their names the same way, then the clock, in Windows'
+    right-click its menu, a double-click its control panel (the menu's
+    bold item), and its name shows in a tooltip. The volume icon reads
+    "Volume" ("Volume (muted)" while muted), as Windows 98's did; a click
+    opens its slider, and a right-click its menu, Open Volume Controls,
+    which opens the Sound control panel (Windows 98's second item, Adjust
+    Audio Properties, has no panel of its own here). The menu bar
+    extensions an app adds sit beside them as icons alone, never text (an
+    extension without an icon shows Windows' generic program icon), and
+    answer the same clicks and show their names the same way, then the
+    clock, in Windows'
     `4:37 PM` (or `16:37` with the 24-hour clock), the date in its
     tooltip; a double-click on it opens Date & Time. The Control Strip
     control panel chooses which modules show; Windows draws no Control
@@ -482,19 +493,21 @@ and `nodenext` resolution).
     own Help items join it after a separator (WIG Ch.7 "The Help Menu",
     p.99), so a Finder window adds no second Help title;
   - the taskbar: a 28-pixel bar with Windows' raised edge along its top;
-    the Start button raised, its label bold beside a small window drawn in
-    the scheme's title-bar colors (the package's own art, not Windows'
-    flag), pushed in while the Start menu is open; a button per window,
+    the Start button raised, its label bold beside Windows 98's flag
+    (Explorer's own 16-pixel bitmap), pushed in while the Start menu is
+    open; a button per window,
     160 pixels wide at most and sharing the bar evenly when it fills, the
     active window's pushed in over a checkered face with its title in bold,
     a flashing one in the scheme's highlight color;
     and the notification area in a sunken pane, its icons flat and the
     clock at its right end, as Windows 98 drew them;
   - the Start menu, sitting on the taskbar's top edge in one raised frame
-    around its banner and its items: the banner a navy-to-blue strip down
-    its left side, "Windows" in bold and "98" reading upward in white, as
-    Windows 98's banner was in every color scheme (its colors are the Start
-    menu color family in the Colors tab), the first level large 32-pixel
+    around its banner and its items: the banner Windows 98's own bitmap
+    down its left side, "Windows98" reading upward at its foot over its
+    dithered navy and blue, the navy carried up to the menu's top as
+    Windows 98 painted it, the same in every color scheme (a package
+    registering no banner art draws the Start menu color family's
+    navy-to-blue strip with the layout's text instead), the first level large 32-pixel
     icons on 32-pixel rows, and Programs, Settings and Control Panel
     ordinary menus with small icons; a notification icon's menu is an
     ordinary menu, and its panel (the Sound volume slider) sits in the same
@@ -906,7 +919,8 @@ carries a re-encoded copy, the CD's bytes were taken.
 
 | File | Windows 98 SE resource | What it is |
 | --- | --- | --- |
-| `explorer-bitmap-143.webp` | `explorer.exe` bitmap 143 | the Start button's flag (the Apple menu's title); its `#C0C0C0` ground made clear |
+| `explorer-bitmap-143.webp` | `explorer.exe` bitmap 143 | the Start button's flag (the Apple menu's title), drawn 16 x 16; its `#C0C0C0` ground made clear |
+| `explorer-bitmap-157.webp` | `explorer.exe` bitmap 157 | the Start menu's "Windows98" banner (21 x 233, 4-bit), every pixel kept, drawn at the banner's foot with its first row stretched above it |
 | `shell32-bitmap-130.webp` | `shell32.dll` bitmap 130 | the About Windows box's "Microsoft Windows" logo (the startup and About logo); its `#C0C0C0` ground made clear |
 | `windows98.svg` | drawn for the package | the package's own icon in the Appearance Manager: a window on the teal desktop |
 

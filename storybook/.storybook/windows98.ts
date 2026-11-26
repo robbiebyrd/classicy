@@ -288,7 +288,7 @@ export async function openStartMenu(
 }
 
 /**
- * The status area's icon named `label` ("Sound", "Screen Saver",
+ * The status area's icon named `label` ("Volume", "Screen Saver",
  * "Display": the Appearance module under Windows 98's name): button 1
  * opens its panel or menu, button 2 its menu at the pointer. Resolves with
  * the surface opened.

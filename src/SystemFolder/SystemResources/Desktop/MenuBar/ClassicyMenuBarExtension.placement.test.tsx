@@ -16,7 +16,9 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
+import { resolveClassicyIconImage } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
@@ -118,6 +120,69 @@ describe("ClassicyMenuBarExtension — menu bar placement", () => {
 				".classicyDesktopMenuBar #classicyDesktopMenuExtensions",
 			),
 		).toBeNull();
+	});
+
+	// B16 (audit 10.13): in the status area an extension is an icon alone,
+	// its title the name and the tooltip, never text; the screen bar keeps
+	// its children.
+	describe("in the taskbar's status area (B16)", () => {
+		const renderExtensions = () =>
+			render(
+				<>
+					<ClassicyDesktopMenuBar />
+					<LayoutTaskbar />
+					<ClassicyMenuBarExtension
+						id="user"
+						icon="/user.png"
+						title="Account"
+					/>
+					<ClassicyMenuBarExtension id="status" title="Connected to Server">
+						<span className="statusText">Connected to Server</span>
+					</ClassicyMenuBarExtension>
+				</>,
+			);
+		const trigger = (label: string) =>
+			document.querySelector<HTMLButtonElement>(
+				`.classicyDesktopMenuExtensionTrigger[aria-label="${label}"]`,
+			);
+
+		it("draws the item's icon alone, named by its title, with no text", () => {
+			setPackage(TEST_TASKBAR_PACKAGE_ID);
+			renderExtensions();
+			const account = trigger("Account");
+			expect(account?.closest(".classicyTaskbarTray")).not.toBeNull();
+			const img = account?.querySelector("img");
+			expect(img?.getAttribute("src")).toBe("/user.png");
+			expect(img).toHaveAttribute("alt", "");
+			expect(account?.textContent).toBe("");
+		});
+
+		it("draws the package's generic application icon for an item without one, and never its children", () => {
+			setPackage(TEST_TASKBAR_PACKAGE_ID);
+			renderExtensions();
+			const status = trigger("Connected to Server");
+			expect(status?.closest(".classicyTaskbarTray")).not.toBeNull();
+			expect(status?.querySelector(".statusText")).toBeNull();
+			expect(status?.textContent).toBe("");
+			const img = status?.querySelector("img");
+			expect(img).not.toBeNull();
+			expect(img?.getAttribute("src")).toBe(
+				resolveClassicyIconImage(ClassicyIcons.system.files.application),
+			);
+		});
+
+		it("keeps the children under the screen bar", () => {
+			renderExtensions();
+			const status = trigger("Connected to Server");
+			expect(status?.closest(".classicyDesktopMenuBar")).not.toBeNull();
+			expect(status?.querySelector(".statusText")).toHaveTextContent(
+				"Connected to Server",
+			);
+			expect(trigger("Account")?.querySelector("img")).toHaveAttribute(
+				"alt",
+				"Account",
+			);
+		});
 	});
 
 	it("follows the region from the screen bar into the tray and back", () => {

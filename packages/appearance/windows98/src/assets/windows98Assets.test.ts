@@ -95,6 +95,7 @@ const sizeOf = (file: string): [number, number] => {
 	const name = path.basename(file, ".webp");
 	if (name === "wvlogo") return [480, 480];
 	if (name === "explorer-bitmap-143") return [16, 16];
+	if (name === "explorer-bitmap-157") return [21, 233];
 	if (name === "shell32-bitmap-130") return [64, 64];
 	if (name.startsWith("browseui-bitmap-")) return [20, 20];
 	const size = Number(/-(\d+)$/.exec(name)?.[1]);
@@ -112,9 +113,10 @@ afterEach(() => switchPackage(PLATINUM));
 describe("Windows 98's assets", () => {
 	describe("files", () => {
 		it("are WebP: no PNG, JPG, BMP, GIF or ICO is left in icons/ or art/", () => {
-			// Lane 3's 148 and the four document icons by type
-			// (windows98AssetAdditions.ts: kodakimg #129 and quartz #200).
-			expect(webps.length).toBe(152);
+			// Lane 3's 148, the four document icons by type
+			// (windows98AssetAdditions.ts: kodakimg #129 and quartz #200) and
+			// the Start menu banner (Explorer's bitmap 157).
+			expect(webps.length).toBe(153);
 			for (const dir of ["icons", "art"])
 				expect(
 					readdirSync(path.join(assets, dir)).filter((file) =>
@@ -158,6 +160,22 @@ describe("Windows 98's assets", () => {
 							192, 192, 192,
 						]);
 			}
+		});
+
+		// The Start menu banner keeps every pixel of Explorer's bitmap 157
+		// (Explorer drew it as loaded, under every scheme): opaque, its top
+		// row navy, the row Explorer stretched over the space above it.
+		it("keeps every pixel of the Start menu banner, its top row navy", async () => {
+			const { width, data } = await decodeClassicyWebp(
+				new Uint8Array(
+					readFileSync(path.join(assets, "art", "explorer-bitmap-157.webp")),
+				),
+			);
+			for (let at = 3; at < data.length; at += 4) expect(data[at]).toBe(255);
+			for (let x = 0; x < width; x++)
+				expect([...data.slice(x * 4, x * 4 + 3)], `top row, x ${x}`).toEqual([
+					0, 0, 128,
+				]);
 		});
 
 		it("ships every icon a key, a leaf of its own, a file type or the system art names, and no other", () => {
@@ -337,6 +355,7 @@ describe("Windows 98's assets", () => {
 					"appleMenu",
 					"fileDialogFolderIcon",
 					"openFolderIcon",
+					"startMenuBanner",
 					"startupLogo",
 					"trashEmpty",
 					"trashFull",
@@ -361,6 +380,9 @@ describe("Windows 98's assets", () => {
 			);
 			expect(WINDOWS98_SYSTEM_ART.startupLogo).toMatch(
 				/\/art\/shell32-bitmap-130\.webp$/,
+			);
+			expect(WINDOWS98_SYSTEM_ART.startMenuBanner).toMatch(
+				/\/art\/explorer-bitmap-157\.webp$/,
 			);
 			expect(WINDOWS98_SYSTEM_ART.aboutLogo).toBe(
 				WINDOWS98_SYSTEM_ART.startupLogo,

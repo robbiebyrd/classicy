@@ -170,6 +170,21 @@ describe("classicyWindowSystemMenuItems", () => {
 		).toBe(false);
 	});
 
+	it("gives each item user.exe's access key", () => {
+		expect(
+			build()
+				.filter((i) => i.id !== "spacer")
+				.map((i) => [i.title, i.accessKey]),
+		).toEqual([
+			["Restore", "R"],
+			["Move", "M"],
+			["Size", "S"],
+			["Minimize", "n"],
+			["Maximize", "x"],
+			["Close", "C"],
+		]);
+	});
+
 	it("runs each item's handler", () => {
 		const h = handlers();
 		const items = classicyWindowSystemMenuItems(NORMAL, h);

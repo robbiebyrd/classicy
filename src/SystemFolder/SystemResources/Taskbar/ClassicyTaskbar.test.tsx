@@ -20,6 +20,10 @@ import {
 	CLASSICY_NO_APP_IDENTITY_OVERRIDES,
 	type ClassicyAppIdentityOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
+import {
+	registerClassicySystemArt,
+	resolveClassicyAsset,
+} from "@/Appearance/ClassicyAssetRegistry";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	type ClassicyStoreSystemApp,
@@ -702,6 +706,41 @@ describe("ClassicyTaskbar", () => {
 			expect(
 				container.querySelector(".classicyTaskbarStartLabel"),
 			).toHaveTextContent("Démarrer");
+		});
+
+		// B2 (audit 1.9): the Start flag is the package's own `appleMenu`
+		// art; the default package's (Platinum's Apple, which the merged
+		// tree would supply) never stands in for it.
+		it("marks the Start glyph as the flag only while the active package registers its own appleMenu art", () => {
+			registerTestTaskbarPackage();
+			registerTestTaskbarPackage(TEST_TASKBAR_LAYOUT, "test-taskbar-flag");
+			registerClassicySystemArt("test-taskbar-flag", {
+				appleMenu: "/art/flag.webp",
+			});
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: TEST_TASKBAR_PACKAGE_ID,
+				}),
+			);
+			const { container } = render(<ClassicyTaskbar />);
+			const icon = () => container.querySelector(".classicyTaskbarStartIcon");
+			// Platinum registers an Apple, which resolves under this package.
+			expect(resolveClassicyAsset("systemArt", "appleMenu")).toBeTruthy();
+			expect(icon()).not.toHaveClass("classicyTaskbarStartFlag");
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "test-taskbar-flag",
+				}),
+			);
+			expect(icon()).toHaveClass(
+				"classicyTaskbarStartIcon",
+				"classicyTaskbarStartFlag",
+			);
+			expect(icon()).toBeEmptyDOMElement();
+			expect(icon()).toHaveAttribute("aria-hidden", "true");
+			unregisterClassicyAppearancePackage("test-taskbar-flag");
 		});
 
 		it('labels the Start button "Start" under a layout without a taskbar', () => {

@@ -618,6 +618,7 @@ Every `ClassicySystemArtKey` (`src/Appearance/ClassicyAssetRegistry.ts`; Platinu
 | — | `downArrow` | Alias of `popupArrows` | reuse | `popupArrows` | — | — |
 | — | `ditherChecker` | The dither vocabulary's 50% checker tile (a mask: dimmed text and controls, dotted rules; HIG p.60, p.62) | draw | A 2×2 `currentColor` SVG with two opaque diagonal cells, as Platinum's `halftone.svg` (implementer). The `bw` theme sets `dither.tileSize` to 2 and the color theme leaves it 0, so one file serves both | — | — |
 | — | `helpMenuTitle` | Help menu title (the menu bar draws it in place of the word Help) | reuse | `helpButton` (its file is this glyph, the balloon with a "?" from the menu bar, HIG p.52, fig 4-2) | — | — |
+| — | `startMenuBanner` | The Windows shell's Start menu banner | core | None: System 7 has no taskbar or Start menu, and the default package registers none, so nothing draws it | — | — |
 
 ## Cursors
 

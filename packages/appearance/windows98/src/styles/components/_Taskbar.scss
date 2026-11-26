@@ -281,6 +281,15 @@ $edge: b.$b2;
     background: $start-glyph-art;
   }
 
+  // The package's own Start flag (Explorer's bitmap 143, registered as the
+  // `appleMenu` art): 16 x 16, whole pixels at any zoom, in place of the
+  // pixel-art window, which is drawn only while the package registers none.
+  .classicyTaskbarStartIcon.classicyTaskbarStartFlag {
+    height: px(16);
+    background: var(--classicy-art-apple-menu, none) 0 0 / px(16) px(16) no-repeat;
+    image-rendering: pixelated;
+  }
+
   .classicyTaskbarStartLabel {
     font-weight: bold;
   }

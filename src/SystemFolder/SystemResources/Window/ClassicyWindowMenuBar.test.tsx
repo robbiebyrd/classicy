@@ -37,6 +37,7 @@ import {
 	resetClassicyWhatsThisForTests,
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import {
 	ClassicyWindowMenuBar,
 	withClassicyExitItem,
@@ -863,7 +864,7 @@ describe("a window bar's Edit menu under Windows 98's layout (C9)", () => {
 // Shell addendum B8 (App. B Table B.2, p.358; Table B.5, p.360): a window
 // bar's menu-bar mode marks the title the keyboard tracks as the package's
 // sunken rule reads it, the root list `focused` and the title focused.
-describe("a window bar's menu-bar mode under Windows 98's layout (B8)", () => {
+describe("a window bar's keys and menu-bar mode under Windows 98's layout (B7, B8)", () => {
 	const PACKAGE_ID = "test-windows98-bar-mode";
 	beforeEach(() => {
 		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
@@ -889,6 +890,132 @@ describe("a window bar's menu-bar mode under Windows 98's layout (B8)", () => {
 		cleanup();
 		unregisterClassicyAppearancePackage(PACKAGE_ID);
 		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	// B7 (audit 4.21): the bar's keys through its root menu: Alt+F opens
+	// File, a bare Alt press and release focuses the bar as F10 does, and
+	// the appended Help title is H (Notepad's "&Help").
+	const SIMPLE_BAR: ClassicyMenuItem[] = [
+		{
+			id: "Notes.app_a_file",
+			title: "File",
+			menuChildren: [{ id: "Notes.app_a_new", title: "New" }],
+		},
+		{
+			id: "Notes.app_a_view",
+			title: "View",
+			menuChildren: [{ id: "Notes.app_a_zoom", title: "Zoom" }],
+		},
+	];
+
+	it("opens File on Alt+F", () => {
+		render(
+			<ClassicyWindowMenuBar
+				appId="Notes.app"
+				windowId="a"
+				menuItems={SIMPLE_BAR}
+			/>,
+		);
+		const file = document.getElementById("Notes.app_a_file") as HTMLElement;
+		expect(
+			file.querySelector('[data-classicy-part="access-key"]')?.textContent,
+		).toBe("F");
+		act(() => {
+			fireEvent.keyDown(window, { key: "f", code: "KeyF", altKey: true });
+		});
+		expect(file).toHaveClass("open");
+		expect(document.getElementById("Notes.app_a_new")).toBeVisible();
+	});
+
+	it("focuses the first title on a bare Alt press and release, as on F10", () => {
+		const { container } = render(
+			<ClassicyWindowMenuBar
+				appId="Notes.app"
+				windowId="a"
+				menuItems={SIMPLE_BAR}
+			/>,
+		);
+		const list = container.querySelector(
+			".classicyWindowMenuBar > .classicyMenuWrapper > ul",
+		) as HTMLElement;
+		act(() => {
+			fireEvent.keyDown(window, { key: "Alt", code: "AltLeft", altKey: true });
+			fireEvent.keyUp(window, { key: "Alt", code: "AltLeft" });
+		});
+		expect(document.activeElement).toBe(
+			document.getElementById("Notes.app_a_file"),
+		);
+		expect(list).toHaveClass("focused");
+	});
+
+	it("takes Alt and F10 in the active window's bar alone", () => {
+		const bar = (windowId: string, active: boolean) => (
+			<ClassicyWindowActiveContext.Provider value={active}>
+				<ClassicyWindowMenuBar
+					appId="Notes.app"
+					windowId={windowId}
+					menuItems={SIMPLE_BAR.map((menu) => ({
+						...menu,
+						id: menu.id.replace("_a_", `_${windowId}_`),
+						menuChildren: menu.menuChildren?.map((child) => ({
+							...child,
+							id: child.id.replace("_a_", `_${windowId}_`),
+						})),
+					}))}
+				/>
+			</ClassicyWindowActiveContext.Provider>
+		);
+		render(
+			<>
+				{bar("back", false)}
+				{bar("front", true)}
+			</>,
+		);
+		act(() => {
+			fireEvent.keyDown(window, { key: "Alt", code: "AltLeft", altKey: true });
+			fireEvent.keyUp(window, { key: "Alt", code: "AltLeft" });
+		});
+		expect(document.activeElement).toBe(
+			document.getElementById("Notes.app_front_file"),
+		);
+		act(() => {
+			fireEvent.keyDown(document.activeElement as HTMLElement, {
+				key: "Escape",
+			});
+		});
+		(document.activeElement as HTMLElement | null)?.blur();
+		act(() => {
+			fireEvent.keyDown(window, { key: "F10", code: "F10" });
+		});
+		expect(document.activeElement).toBe(
+			document.getElementById("Notes.app_front_file"),
+		);
+		act(() => {
+			fireEvent.keyDown(window, { key: "f", code: "KeyF", altKey: true });
+		});
+		expect(document.getElementById("Notes.app_back_file")).not.toHaveClass(
+			"open",
+		);
+	});
+
+	it("gives the appended Help title its H", () => {
+		render(
+			<ClassicyWindowMenuBar
+				appId="Notes.app"
+				windowId="a"
+				menuItems={SIMPLE_BAR}
+			/>,
+		);
+		const help = document.getElementById(
+			"Notes.app_a_help-menu",
+		) as HTMLElement;
+		expect(
+			help.querySelector('[data-classicy-part="access-key"]')?.textContent,
+		).toBe("H");
+		act(() => {
+			fireEvent.keyDown(window, { key: "h", code: "KeyH", altKey: true });
+		});
+		expect(help).toHaveClass("open");
 	});
 
 	it("focuses the first title in a focused root list on F10, and Right moves it", () => {

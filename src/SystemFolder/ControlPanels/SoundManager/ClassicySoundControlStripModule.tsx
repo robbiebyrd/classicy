@@ -4,6 +4,7 @@ import {
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import {
 	CLASSICY_CONTROL_STRIP_MODULE_IDS,
 	registerClassicyControlStripModule,
@@ -26,6 +27,13 @@ const useSoundModuleIcon = (): string => {
 		? (offIcon ?? ClassicyIcons.system.controlStrip.soundOff)
 		: (on ?? ClassicyIcons.system.controlStrip.sound);
 };
+
+/**
+ * The volume icon's tip in the Windows shell's status area: "Volume", and
+ * "Volume (muted)" while sound is off (Windows 98 SE's systray.exe strings).
+ */
+const useSoundTrayLabel = (): string =>
+	useSoundMuted() ? "Volume (muted)" : "Volume";
 
 /**
  * Figure 2-16's vertical slider. It sets the system volume (ClassicyVolumeSet);
@@ -64,4 +72,17 @@ export const CLASSICY_SOUND_CONTROL_STRIP_MODULE =
 		icon: useSoundModuleIcon,
 		fileIcon: ClassicyIcons.controlPanels.soundManager.app,
 		content: ClassicySoundControlStripSlider,
+		// The Windows shell's status area only (the Control Strip reads
+		// neither): Windows 98 SE's volume icon's menu, "&Open Volume
+		// Controls" (bold, the default), opens the Sound control panel, the
+		// one Classicy has; its second item, "&Adjust Audio Properties",
+		// opens Multimedia Properties, which Classicy has no separate panel
+		// for, so it is left out. Its tips are systray.exe's.
+		panel: {
+			id: SOUND_MANAGER_APP_ID,
+			name: "Sound Manager",
+			icon: ClassicyIcons.controlPanels.soundManager.app,
+			command: "Open Volume Controls",
+		},
+		trayLabel: useSoundTrayLabel,
 	});

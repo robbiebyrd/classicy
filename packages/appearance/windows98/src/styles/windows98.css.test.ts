@@ -1,4 +1,5 @@
 import path from "node:path";
+import { classicyAssetVarName } from "@classicy/classicy";
 import { compile, NodePackageImporter } from "sass";
 import { describe, expect, it } from "vitest";
 import { isSingleClassicyLayerBlock } from "../../../../../bin/classicyPackageCss";
@@ -1076,6 +1077,22 @@ describe("windows98.scss (compiled)", () => {
 			);
 		});
 
+		// The package's own Start flag (Explorer's bitmap 143, its
+		// `appleMenu` art), 16 x 16 from the variable the desktop publishes
+		// for that key, whole pixels at any zoom, while the button's glyph
+		// carries `classicyTaskbarStartFlag`; the pixel-art window stays the
+		// glyph without it.
+		it("draws the Start flag 16 x 16 from the published appleMenu art", () => {
+			const flag = block(".classicyTaskbarStartIcon.classicyTaskbarStartFlag");
+			const name = classicyAssetVarName("systemArt", "appleMenu");
+			expect(name).toBe("--classicy-art-apple-menu");
+			expect(flag).toContain(
+				`background: var(${name}, none) 0 0/calc(var(--pixel-unit) * 16) calc(var(--pixel-unit) * 16) no-repeat`,
+			);
+			expect(flag).toContain("height: calc(var(--pixel-unit) * 16)");
+			expect(flag).toContain("image-rendering: pixelated");
+		});
+
 		// A window button: an even share of the row up to 160 and never
 		// under 22, 3 px apart; raised at rest; pushed in on a plain face
 		// while held; the active window's pushed in over the
@@ -1396,6 +1413,25 @@ describe("windows98.scss (compiled)", () => {
 			);
 			for (const [, name, fallback] of reads)
 				expect(fallback, name).toBeDefined();
+		});
+
+		// The package's own banner (Explorer's bitmap 157, `startMenuBanner`)
+		// upright at the banner's foot, the space above it its first row
+		// stretched (Explorer's StretchBlt of row 0 over a BitBlt at the
+		// foot): one border image, its 1-row top slice over all but the last
+		// 232 pixels, its middle at its own size below; the gradient, the
+		// turn and the text's inset gone.
+		it("draws the banner bitmap at the foot with its first row stretched above", () => {
+			const art = block(".classicyStartMenuBanner.classicyStartMenuBannerArt");
+			const name = classicyAssetVarName("systemArt", "startMenuBanner");
+			expect(name).toBe("--classicy-art-start-menu-banner");
+			expect(art).toContain(
+				`border-image: var(${name}, none) 1 0 0 0 fill/calc(100% - var(--pixel-unit) * 232) 0 0 0 stretch`,
+			);
+			expect(art).toContain("background: none");
+			expect(art).toContain("padding: 0");
+			expect(art).toContain("rotate: none");
+			expect(art).toContain("image-rendering: pixelated");
 		});
 
 		// The first level's rows are the large icons' height, each icon 2 px

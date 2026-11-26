@@ -9,7 +9,10 @@ import {
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
-import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	useClassicyAsset,
+	useClassicyOwnAsset,
+} from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
@@ -255,20 +258,40 @@ export const ClassicyStartMenu: FunctionalComponent<ClassicyStartMenuProps> = ({
 }) => {
 	const menuItems = useClassicyStartMenuItems(userName);
 
+	// The package's own banner bitmap (`startMenuBanner`, Windows 98's
+	// Explorer bitmap 157), drawn by its stylesheet from
+	// `--classicy-art-start-menu-banner` while the banner carries
+	// `classicyStartMenuBannerArt`; the layout's text is then its accessible
+	// name only, drawn only without the bitmap.
+	const bannerArt = Boolean(
+		useClassicyOwnAsset("systemArt", "startMenuBanner"),
+	);
+	const bannerName = banner
+		? [banner.title, banner.edition].filter(Boolean).join(" ")
+		: "";
 	const aside =
 		banner && !smallIcons ? (
-			<div
-				className="classicyStartMenuBanner"
-				{...{ [CLASSICY_PART_ATTRIBUTE.part]: "start-menu-banner" }}
-				aria-hidden="true"
-			>
-				<span className="classicyStartMenuBannerTitle">{banner.title}</span>
-				{banner.edition !== undefined && (
-					<span className="classicyStartMenuBannerEdition">
-						{banner.edition}
-					</span>
-				)}
-			</div>
+			bannerArt ? (
+				<div
+					className="classicyStartMenuBanner classicyStartMenuBannerArt"
+					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "start-menu-banner" }}
+					role="img"
+					aria-label={bannerName}
+				/>
+			) : (
+				<div
+					className="classicyStartMenuBanner"
+					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "start-menu-banner" }}
+					aria-hidden="true"
+				>
+					<span className="classicyStartMenuBannerTitle">{banner.title}</span>
+					{banner.edition !== undefined && (
+						<span className="classicyStartMenuBannerEdition">
+							{banner.edition}
+						</span>
+					)}
+				</div>
+			)
 		) : undefined;
 
 	return (

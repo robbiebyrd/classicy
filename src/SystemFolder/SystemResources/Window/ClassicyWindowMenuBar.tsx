@@ -361,6 +361,9 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 			{
 				id: `${appId}_${windowId}_help-menu`,
 				title: "Help",
+				// Notepad's "&Help" (WIG App. B Table B.5), so the automatic
+				// pick never takes another letter.
+				...(ak("h") !== undefined ? { accessKey: ak("h") } : {}),
 				part: "help",
 				menuChildren: helpChildren,
 			},

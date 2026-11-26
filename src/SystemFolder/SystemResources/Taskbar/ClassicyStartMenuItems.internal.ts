@@ -216,12 +216,14 @@ const documentItems = ({
 const shellDialogItem = (
 	id: string,
 	title: string,
+	accessKey: string,
 	image: string,
 	dialog: "run" | "logOff" | "shutDown",
 	dispatch: (action: ActionMessage) => void,
 ): ClassicyMenuItem => ({
 	id: `${CLASSICY_START_MENU_ITEM_PREFIX}${id}`,
 	title,
+	accessKey,
 	image,
 	onClickFunc: () => {
 		dispatch({ type: "ClassicyDesktopShowSystemDialog", dialog });
@@ -259,7 +261,13 @@ const shellDialogItem = (
  * "Shut Down..." (three periods); Classicy's keep their "…".
  *
  * First-level items carry their icons through `image` and no keyboard
- * equivalent. Every id but the Special items' starts with
+ * equivalent. The shell's own items carry Windows 98 SE's access keys
+ * (explorer.exe's menu 204: "&Programs", "&Documents", "&Settings" with
+ * "&Control Panel" and "&Taskbar && Start Menu...", "&Help", "&Run...",
+ * "&Log Off %s...", "Sh&ut Down..."), so the automatic pick never takes
+ * them; Classicy's own (About This Computer, Empty Trash…, Reset PRAM…, the
+ * balloon toggle) take the automatic picks. A package without
+ * `layout.menu.accessKeys` draws and takes none. Every id but the Special items' starts with
  * `CLASSICY_START_MENU_ITEM_PREFIX`, so none repeats a menu bar's.
  */
 export const classicyStartMenuItems = (
@@ -291,6 +299,7 @@ export const classicyStartMenuItems = (
 	items.push({
 		id: programsId,
 		title: "Programs",
+		accessKey: "P",
 		image: images.programs,
 		menuChildren: programs.length > 0 ? programs : [emptyItem(programsId)],
 	});
@@ -300,6 +309,7 @@ export const classicyStartMenuItems = (
 	items.push({
 		id: documentsId,
 		title: "Documents",
+		accessKey: "D",
 		image: images.documents,
 		menuChildren: documents.length > 0 ? documents : [emptyItem(documentsId)],
 	});
@@ -318,11 +328,13 @@ export const classicyStartMenuItems = (
 	items.push({
 		id: `${CLASSICY_START_MENU_ITEM_PREFIX}settings`,
 		title: "Settings",
+		accessKey: "S",
 		image: images.controlPanel,
 		menuChildren: [
 			{
 				id: controlPanelId,
 				title: "Control Panel",
+				accessKey: "C",
 				image: images.controlPanel,
 				menuChildren:
 					controlPanels.length > 0
@@ -335,6 +347,7 @@ export const classicyStartMenuItems = (
 							...taskbarPanel,
 							id: `${CLASSICY_START_MENU_ITEM_PREFIX}taskbar`,
 							title: `${taskbarPanel.title}...`,
+							accessKey: "T",
 						},
 					]
 				: []),
@@ -356,6 +369,7 @@ export const classicyStartMenuItems = (
 	items.push({
 		id: `${CLASSICY_START_MENU_ITEM_PREFIX}help`,
 		title: "Help",
+		accessKey: "H",
 		image: images.help,
 		...(input.helpTopics
 			? // A menu item dispatches its event only with data.
@@ -366,7 +380,9 @@ export const classicyStartMenuItems = (
 				}),
 	});
 
-	items.push(shellDialogItem("run", "Run...", images.run, "run", dispatch));
+	items.push(
+		shellDialogItem("run", "Run...", "R", images.run, "run", dispatch),
+	);
 
 	items.push(SPACER);
 	for (const item of classicySpecialMenuItems(dispatch, "start")) {
@@ -386,6 +402,7 @@ export const classicyStartMenuItems = (
 			shellDialogItem(
 				"log-off",
 				`Log Off ${userName}...`,
+				"L",
 				images.logOff,
 				"logOff",
 				dispatch,
@@ -395,6 +412,7 @@ export const classicyStartMenuItems = (
 		shellDialogItem(
 			"shut-down",
 			"Shut Down...",
+			"u",
 			images.shutDown,
 			"shutDown",
 			dispatch,

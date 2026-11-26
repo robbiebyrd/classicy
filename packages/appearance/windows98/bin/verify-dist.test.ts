@@ -46,6 +46,7 @@ const SOURCES: Record<string, Buffer> = {
 	"src/assets/fonts/font-license.txt": Buffer.from("license"),
 	"src/assets/art/windows98.svg": Buffer.from("<svg/>"),
 	"src/assets/art/explorer-bitmap-143.webp": bytes(1),
+	"src/assets/art/explorer-bitmap-157.webp": bytes(17),
 	"src/assets/icons/shell32-4-32.webp": bytes(2),
 	"src/assets/icons/shell32-4-16.webp": bytes(3),
 	"src/assets/icons/browseui-bitmap-266-cell-4.webp": bytes(4),
@@ -163,6 +164,7 @@ describe("bin/verify-dist.mjs", () => {
 			["shell32-4-32.webp", "icons"],
 			["browseui-bitmap-266-cell-4.webp", "icons"],
 			["explorer-bitmap-143.webp", "art"],
+			["explorer-bitmap-157.webp", "art"],
 			["windows98.svg", "art"],
 			["user-cursor-105.png", "cursors"],
 			["PixelatedMSSansSerif-bold-normal.woff2", "fonts"],
@@ -316,6 +318,19 @@ describe("bin/verify-dist.mjs", () => {
 				/^dist\/classicy-windows98\.fonts\.css: missing/,
 			));
 	});
+});
+
+// The art the package ships, exactly: the Start flag (Explorer's bitmap 143),
+// the Start menu banner (Explorer's bitmap 157), the Windows logo (shell32's
+// bitmap 130) and the package's own SVG icon.
+it("ships exactly the package's art", () => {
+	const art = path.resolve(import.meta.dirname, "../src/assets/art");
+	expect(readdirSync(art).sort()).toEqual([
+		"explorer-bitmap-143.webp",
+		"explorer-bitmap-157.webp",
+		"shell32-bitmap-130.webp",
+		"windows98.svg",
+	]);
 });
 
 // The fixture mirrors the package's layout, and the script reads every asset

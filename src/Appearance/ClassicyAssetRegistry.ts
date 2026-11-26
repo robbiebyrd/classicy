@@ -161,7 +161,8 @@ export type ClassicySystemArtKey =
 	| "triangle"
 	| "downArrow"
 	| "ditherChecker"
-	| "helpMenuTitle";
+	| "helpMenuTitle"
+	| "startMenuBanner";
 
 export type ClassicyFontFace = {
 	family: string;
@@ -603,6 +604,28 @@ export const resolveClassicyAsset = (
 };
 
 /**
+ * The given (or active) package's OWN source for `path`: its `variant` tree
+ * (the active theme's when it belongs to the package), then its base tree,
+ * never the default package's, so `undefined` says that package registered
+ * nothing there itself (a read `resolveClassicyAsset` would fill from the
+ * default package). For a surface that draws a package's art only when the
+ * package supplies it, else a look of its own (the taskbar's Start flag and
+ * Start menu banner). Store-free.
+ */
+export const resolveClassicyOwnAsset = (
+	kind: ClassicyAssetKind,
+	path: string,
+	packageId?: string,
+	variant?: string,
+): ClassicyAssetSource | undefined => {
+	const id = packageId ?? getActiveClassicyAppearancePackageId();
+	return (
+		walk(variantTree(kind, id, variant ?? activeVariantFor(id)), path) ??
+		walk(trees.get(kind)?.get(id), path)
+	);
+};
+
+/**
  * Dotted-path lookup for `theme`, whatever theme is active: its package's
  * (`theme.package`, Platinum when absent) tree for its own `assetVariant`,
  * then that package's base tree, then the default package's. A theme naming
@@ -929,6 +952,26 @@ export const useClassicyAsset = (
 	);
 };
 
+/**
+ * `resolveClassicyOwnAsset` for the active package, kept current: the
+ * active package's own source for `path`, `undefined` while it registers
+ * none (the default package's is never read).
+ */
+export const useClassicyOwnAsset = (
+	kind: ClassicyAssetKind,
+	path: string,
+): ClassicyAssetSource | undefined => {
+	const getSnapshot = useCallback(
+		() => resolveClassicyOwnAsset(kind, path),
+		[kind, path],
+	);
+	return useSyncExternalStore(
+		subscribeClassicyAssets,
+		getSnapshot,
+		getSnapshot,
+	);
+};
+
 const treeCache = new Map<
 	string,
 	{ version: number; value: ClassicyAssetTree }
@@ -1139,6 +1182,7 @@ const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
 	downArrow: "image",
 	ditherChecker: "image",
 	helpMenuTitle: "image",
+	startMenuBanner: "image",
 };
 
 /**

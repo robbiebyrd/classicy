@@ -16,7 +16,7 @@
 //    (src/assets/fonts: the two woff2 faces, not their readme and license
 //    files, which ship in the tarball beside them), the art
 //    (src/assets/art: the package's SVG icon and the WebP bitmaps, the
-//    Start flag and the Windows logo), the icons (src/assets/icons: WebP,
+//    Start flag, the Start menu banner and the Windows logo), the icons (src/assets/icons: WebP,
 //    the Windows 98 SE icon groups' 32 px and 16 px images, IE 5's toolbar
 //    cells and Web View's sky), the cursors (src/assets/cursors: PNG,
 //    USER.EXE's), the wallpapers (src/assets/wallpapers: WebP, the CD's

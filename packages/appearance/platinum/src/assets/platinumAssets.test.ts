@@ -70,6 +70,9 @@ const PLATINUM_REGISTERS: Record<ClassicySystemArtKey, boolean> = {
 	// Platinum draws no dithers and titles its Help menu with the word.
 	ditherChecker: false,
 	helpMenuTitle: false,
+	// The Windows shell's Start menu banner: only a package with a taskbar
+	// draws one.
+	startMenuBanner: false,
 };
 
 const entries = Object.entries(PLATINUM_REGISTERS) as [
@@ -90,9 +93,9 @@ describe("Platinum system art", () => {
 		expect(resolveClassicyAsset("systemArt", key)).toBeUndefined();
 	});
 
-	it("registers 36 of the 45 keys", () => {
+	it("registers 36 of the 46 keys", () => {
 		expect(REGISTERED).toHaveLength(36);
-		expect(UNREGISTERED).toHaveLength(9);
+		expect(UNREGISTERED).toHaveLength(10);
 	});
 
 	it("draws the Apple menu, trash, alias badge, help button and Sad Mac from its own src/assets/art", () => {

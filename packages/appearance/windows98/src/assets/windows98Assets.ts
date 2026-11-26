@@ -134,8 +134,10 @@ registerClassicyAssets("icons", WINDOWS98, iconTree());
  * of a clear 32 x 32 image, which Windows drew over the whole icon) is the
  * alias badge, sized to the icon by the package's stylesheet; the "Microsoft
  * Windows" logo of the About Windows box (shell32's bitmap 130, its ground
- * made clear) is the startup and About logo; the open and closed folders'
- * 16 px images are the file dialog's.
+ * made clear) is the startup and About logo; the "Windows98" banner of the
+ * Start menu (Explorer's bitmap 157, 21 x 233, every pixel kept: Explorer
+ * drew it as loaded, under every scheme) is the Start menu banner; the open
+ * and closed folders' 16 px images are the file dialog's.
  */
 export const WINDOWS98_SYSTEM_ART: Readonly<
 	Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>
@@ -146,6 +148,7 @@ export const WINDOWS98_SYSTEM_ART: Readonly<
 	aliasBadge: windows98IconFile("shell32-30-32"),
 	startupLogo: art("shell32-bitmap-130"),
 	aboutLogo: art("shell32-bitmap-130"),
+	startMenuBanner: art("explorer-bitmap-157"),
 	openFolderIcon: windows98IconFile("shell32-5-16"),
 	fileDialogFolderIcon: windows98IconFile("shell32-4-16"),
 };

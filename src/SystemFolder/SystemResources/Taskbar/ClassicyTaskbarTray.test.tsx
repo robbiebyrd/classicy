@@ -18,12 +18,15 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
 	CLASSICY_CONTROL_STRIP_MODULE_IDS,
 	type ClassicyControlStripModuleDefinition,
 	type ClassicyControlStripModuleRegistration,
+	classicyControlStripOpenControlPanelItem,
+	classicyControlStripOpenControlPanelItemId,
 	registerClassicyControlStripModule,
 	unregisterClassicyControlStripModule,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
@@ -39,6 +42,7 @@ import { CLASSICY_TASKBAR_TOOLTIP_DELAY_MS } from "@/SystemFolder/SystemResource
 import {
 	CLASSICY_TASKBAR_DOUBLE_CLICK_MS,
 	classicyTaskbarTrayDefaultItem,
+	classicyTaskbarTrayMenuItems,
 	classicyTaskbarTrayModules,
 	classicyTaskbarTrayPopupId,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTray.internal";
@@ -153,6 +157,85 @@ describe("classicyTaskbarTrayDefaultItem", () => {
 			classicyTaskbarTrayDefaultItem([{ id: "plain", title: "Plain" }]),
 		).toBeUndefined();
 		expect(classicyTaskbarTrayDefaultItem(undefined)).toBeUndefined();
+	});
+});
+
+// B3 (audit 1.10, 10.16, 10.17, 10.18): a module's control panel is its
+// tray menu's default command; Sound's menu is Windows 98 SE's volume
+// icon's, less what Classicy has no panel for.
+describe("classicyTaskbarTrayMenuItems", () => {
+	const dispatched: unknown[] = [];
+	const record = (action: unknown) => {
+		dispatched.push(action);
+	};
+	const panel = { id: "Panel.app", name: "Panel", icon: "panel.png" };
+	beforeEach(() => {
+		dispatched.length = 0;
+	});
+
+	it("is the module's own menu, as a copy, without a panel", () => {
+		const items: ClassicyMenuItem[] = [{ id: "a", title: "A" }];
+		const tray = classicyTaskbarTrayMenuItems(items, undefined, record);
+		expect(tray).toEqual(items);
+		expect(tray).not.toBe(items);
+		expect(classicyTaskbarTrayMenuItems(undefined, undefined, record)).toBe(
+			undefined,
+		);
+	});
+
+	it("marks its own copy of the panel's Open item the default, leaving the module's menu as it is", () => {
+		const open = classicyControlStripOpenControlPanelItem(
+			record,
+			"Panel",
+			panel,
+		);
+		expect(open.id).toBe(
+			classicyControlStripOpenControlPanelItemId("Panel.app"),
+		);
+		const items: ClassicyMenuItem[] = [
+			{ id: "status", title: "On", disabled: true },
+			{ id: "spacer" },
+			open,
+		];
+		const tray = classicyTaskbarTrayMenuItems(items, panel, record);
+		expect(tray?.map((item) => [item.id, item.isDefault])).toEqual([
+			["status", undefined],
+			["spacer", undefined],
+			["open-Panel.app", true],
+		]);
+		expect(open.isDefault).toBeUndefined();
+		expect(items[2]).toBe(open);
+		expect(classicyTaskbarTrayDefaultItem(tray)?.title).toBe(
+			"Open Panel Control Panel",
+		);
+	});
+
+	it("makes a menu of the one Open command, the default, for a module with no menu", () => {
+		const [only, ...rest] =
+			classicyTaskbarTrayMenuItems(
+				undefined,
+				{ ...panel, command: "Open Volume Controls" },
+				record,
+				(key) => key,
+			) ?? [];
+		expect(rest).toEqual([]);
+		expect(only).toMatchObject({
+			id: "open-Panel.app",
+			title: "Open Volume Controls",
+			isDefault: true,
+			accessKey: "O",
+		});
+		only?.onClickFunc?.();
+		expect(dispatched).toEqual([
+			{
+				type: "ClassicyAppOpen",
+				app: { id: "Panel.app", name: "Panel", icon: "panel.png" },
+			},
+		]);
+		// No command title: the helper's; no access key without the flag.
+		const [plain] = classicyTaskbarTrayMenuItems([], panel, record) ?? [];
+		expect(plain?.title).toBe("Open Panel Control Panel");
+		expect(plain).not.toHaveProperty("accessKey");
 	});
 });
 
@@ -421,8 +504,60 @@ describe("the tray", () => {
 
 		it("holds the three built-in modules, Sound, Screen Saver and Appearance", () => {
 			renderDesktop();
-			expect(labels()).toEqual(["Sound", "Screen Saver", "Appearance"]);
+			// Sound is named "Volume" there, systray.exe's tip (B3).
+			expect(labels()).toEqual(["Volume", "Screen Saver", "Appearance"]);
 			expect(document.querySelector(".classicyControlStrip")).toBeNull();
+		});
+
+		// Windows 98 SE's volume icon (systray.exe): its tip "Volume", and
+		// "Volume (muted)" while muted; button 2 its menu, "Open Volume
+		// Controls" alone (no Adjust Audio Properties: Classicy has one
+		// Sound panel; no What's This?), the default, which a double-click
+		// runs: the Sound control panel opens.
+		it("names Sound Volume, muted or not, and its menu's default opens the Sound control panel", () => {
+			let sound: ReturnType<typeof useSoundDispatch> = () => {};
+			const Capture = () => {
+				sound = useSoundDispatch();
+				return null;
+			};
+			render(
+				<ClassicyAppManagerProvider>
+					<Capture />
+					<ClassicyDesktop startupScreen={false} />
+				</ClassicyAppManagerProvider>,
+			);
+			const volume = icon("Volume");
+			act(() => sound({ type: "ClassicySoundDisable", disabled: ["*"] }));
+			expect(volume).toHaveAttribute("aria-label", "Volume (muted)");
+			act(() => sound({ type: "ClassicySoundDisable", disabled: [] }));
+			expect(volume).toHaveAttribute("aria-label", "Volume");
+			fireEvent.contextMenu(volume, { clientX: 600, clientY: 470 });
+			const menu = contextMenu();
+			expect(
+				Array.from(
+					menu?.querySelectorAll(".classicyMenuItem") ?? [],
+					(el) => el.textContent,
+				),
+			).toEqual(["Open Volume Controls"]);
+			expect(document.getElementById("contextual-help")).toBeNull();
+			fireEvent.keyDown(document.body, { key: "Escape", code: "Escape" });
+			const apps = () =>
+				useAppManager.getState().System.Manager.Applications.apps;
+			expect(apps()["SoundManager.app"]?.open).not.toBe(true);
+			doubleClick(volume);
+			expect(apps()["SoundManager.app"]?.open).toBe(true);
+		});
+
+		it("makes the Screen Saver and Appearance modules' Open items their tray menus' defaults", () => {
+			renderDesktop();
+			for (const [label, id] of [
+				["Screen Saver", "open-ScreenSaverManager.app"],
+				["Appearance", "open-AppearanceManager.app"],
+			] as const) {
+				fireEvent.contextMenu(icon(label), { clientX: 600, clientY: 470 });
+				expect(document.getElementById(id), label).toHaveClass("default");
+				fireEvent.keyDown(document.body, { key: "Escape", code: "Escape" });
+			}
 		});
 
 		it("holds none under controlStrip={false}", () => {

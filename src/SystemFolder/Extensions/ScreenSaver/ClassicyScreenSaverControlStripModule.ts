@@ -100,4 +100,10 @@ export const CLASSICY_SCREEN_SAVER_CONTROL_STRIP_MODULE =
 		icon: useScreenSaverModuleIcon,
 		fileIcon: ClassicyIcons.system.extensions.screensaver,
 		menuItems: useScreenSaverModuleMenu,
+		// The Windows shell's status area makes its Open item the default.
+		panel: {
+			id: SCREEN_SAVER_MANAGER_APP_ID,
+			name: "Screen Saver",
+			icon: ClassicyIcons.system.extensions.screensaver,
+		},
 	});

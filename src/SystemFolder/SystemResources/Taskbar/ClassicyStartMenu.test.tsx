@@ -6,8 +6,16 @@ import {
 	TEST_TASKBAR_LAYOUT,
 	TEST_TASKBAR_PACKAGE_ID,
 } from "@/__tests__/testTaskbarPackage";
-import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
-import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	registerClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+import {
+	registerClassicySystemArt,
+	resolveClassicyAsset,
+	resolveClassicyOwnAsset,
+} from "@/Appearance/ClassicyAssetRegistry";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
@@ -22,6 +30,7 @@ import {
 	classicyDesktopHasOpenModal,
 	isClassicyStartMenuKey,
 } from "@/SystemFolder/SystemResources/Taskbar/useClassicyTaskbarKeys.internal";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 // Plan 0020-w98 §3, "The Start menu", and §2 "Keyboard": the menu the
 // taskbar's Start button opens, its placement above the taskbar's band, its
@@ -35,6 +44,8 @@ const START = { left: 2, top: 454, right: 56, bottom: 476 };
 const MENU = { width: 160, height: 200 };
 
 const BANNER_PACKAGE_ID = "test-taskbar-banner";
+const BANNER_ART_PACKAGE_ID = "test-taskbar-banner-art";
+const WINDOWS98_LAYOUT_PACKAGE_ID = "test-taskbar-windows98-layout";
 
 const box = (left: number, top: number, width: number, height: number) =>
 	DOMRect.fromRect({ x: left, y: top, width, height });
@@ -348,6 +359,52 @@ describe("the Start menu", () => {
 			expect(banner.nextElementSibling).toHaveClass("classicyMenuWrapper");
 		});
 
+		// B2 (audit 1.9): a package's own `startMenuBanner` art (Windows
+		// 98's Explorer bitmap 157) is the banner; the layout's text is then
+		// its accessible name, never drawn.
+		it("draws the package's own banner art, named by the layout's text, in place of the text", () => {
+			registerTestTaskbarPackage(
+				{
+					...TEST_TASKBAR_LAYOUT,
+					taskbar: {
+						startLabel: "Start",
+						startBanner: { title: "Classicy", edition: "98" },
+					},
+				},
+				BANNER_ART_PACKAGE_ID,
+			);
+			registerClassicySystemArt(BANNER_ART_PACKAGE_ID, {
+				startMenuBanner: "/art/banner.webp",
+			});
+			activate(BANNER_ART_PACKAGE_ID);
+			renderTaskbar();
+			fireEvent.mouseDown(start(), { button: 0 });
+			const banner = menu()?.firstElementChild as HTMLElement;
+			expect(banner).toHaveClass(
+				"classicyStartMenuBanner",
+				"classicyStartMenuBannerArt",
+			);
+			expect(banner).toHaveAttribute("data-classicy-part", "start-menu-banner");
+			expect(banner).toHaveAttribute("role", "img");
+			expect(banner).toHaveAttribute("aria-label", "Classicy 98");
+			expect(banner).not.toHaveAttribute("aria-hidden");
+			expect(banner).toBeEmptyDOMElement();
+			expect(banner.nextElementSibling).toHaveClass("classicyMenuWrapper");
+			unregisterClassicyAppearancePackage(BANNER_ART_PACKAGE_ID);
+		});
+
+		it("draws the text banner while the package registers no banner art", () => {
+			activate(BANNER_PACKAGE_ID);
+			expect(
+				resolveClassicyOwnAsset("systemArt", "startMenuBanner"),
+			).toBeUndefined();
+			renderTaskbar();
+			fireEvent.mouseDown(start(), { button: 0 });
+			const banner = menu()?.querySelector(".classicyStartMenuBanner");
+			expect(banner).not.toHaveClass("classicyStartMenuBannerArt");
+			expect(banner).not.toHaveAttribute("role");
+		});
+
 		it("draws no edition when the banner has none", () => {
 			registerTestTaskbarPackage(
 				{
@@ -580,6 +637,54 @@ describe("the Start menu", () => {
 			expect(classicyDesktopHasOpenModal(start())).toBe(false);
 			expect(ctrlEscape()).toBe(false);
 			expect(menu()).not.toBeNull();
+		});
+
+		// B7 (audit 4.21, 11.5): the shell's items carry Windows 98 SE's keys
+		// (explorer.exe's menu 204), so a letter in the open menu runs its
+		// item under Windows 98's layout, whatever the automatic picks.
+		it("runs an item by its Windows 98 SE access key under Windows 98's layout", async () => {
+			registerClassicyAppearancePackage({
+				id: WINDOWS98_LAYOUT_PACKAGE_ID,
+				name: "Windows 98 layout",
+				css: "",
+				defaults: {
+					...getTheme("default"),
+					id: `${WINDOWS98_LAYOUT_PACKAGE_ID}-default`,
+					package: WINDOWS98_LAYOUT_PACKAGE_ID,
+				},
+				layout: windows98.layout as never,
+			});
+			activate(WINDOWS98_LAYOUT_PACKAGE_ID);
+			renderTaskbar();
+			start().focus();
+			fireEvent.click(start(), { detail: 0 });
+			const key = (id: string) =>
+				item(id).querySelector('[data-classicy-part="access-key"]')
+					?.textContent;
+			expect(
+				[
+					"start-menu_programs",
+					"start-menu_documents",
+					"start-menu_settings",
+					"start-menu_help",
+					"start-menu_run",
+					"start-menu_shut-down",
+				].map(key),
+			).toEqual(["P", "D", "S", "H", "R", "u"]);
+			// S opens Settings; its Control Panel is C.
+			fireEvent.keyDown(document.activeElement as Element, { key: "s" });
+			expect(item("start-menu_settings")).toHaveClass("open");
+			expect(key("start-menu_control-panel")).toBe("C");
+			fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
+			// R runs Run..., closing the menu.
+			fireEvent.keyDown(document.activeElement as Element, { key: "r" });
+			await waitFor(() =>
+				expect(
+					useAppManager.getState().System.Manager.Desktop.systemDialog,
+				).toBe("run"),
+			);
+			expect(menu()).toBeNull();
+			unregisterClassicyAppearancePackage(WINDOWS98_LAYOUT_PACKAGE_ID);
 		});
 
 		it("stops when the taskbar unmounts", () => {

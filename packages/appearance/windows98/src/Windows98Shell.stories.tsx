@@ -218,11 +218,23 @@ export const TrayMenu: Story = {
 	},
 };
 
+/**
+ * The volume icon's menu: button 2 on it, Windows 98 SE's "Open Volume
+ * Controls" alone, bold, the command its double-click runs (shell
+ * addendum B3; WIG Ch.10 "Status Notification", p.212).
+ */
+export const TrayVolumeMenu: Story = {
+	render: () => <ThreeWindows />,
+	play: async ({ canvasElement }) => {
+		await openTrayIcon(canvasElement.ownerDocument, "Volume", 2);
+	},
+};
+
 /** The Sound icon's volume panel: button 1 on it (WIG Ch.10, p.212). */
 export const TraySoundPanel: Story = {
 	render: () => <ThreeWindows />,
 	play: async ({ canvasElement }) => {
-		await openTrayIcon(canvasElement.ownerDocument, "Sound", 1);
+		await openTrayIcon(canvasElement.ownerDocument, "Volume", 1);
 	},
 };
 
