@@ -731,27 +731,39 @@ describe("windows98.scss (compiled)", () => {
 		expect(hover).toContain("background-color: transparent");
 		expect(hover).toContain(menuText);
 		expect(hover).not.toContain("box-shadow");
-		// The open rule and the keyboard's share one block.
+		// The open rule and the keyboard's share one block: `:focus-visible`,
+		// and the title the keyboard tracks (the core's `focused` root list
+		// and the title's focus, B8), last in the list.
+		const keyed =
+			":is(.classicyDesktopMenu.focused > .classicyMenuItem:focus, .classicyDesktopMenu.focused > .classicyMenuItemBalloonAnchor > .classicyMenuItem:focus)";
 		expect(at(`${title}.open`)).toBeGreaterThanOrEqual(0);
-		const open = block(`${title}:focus-visible`);
+		expect(at(`${title}:focus-visible`)).toBeGreaterThanOrEqual(0);
+		const open = block(`${title}${keyed}`);
 		expect(open).toContain(
 			"box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-01), inset var(--window-border-size) var(--window-border-size) var(--color-system-05)",
 		);
 		expect(open).toContain("outline: none");
 		expect(open).toContain(menuText);
 		expect(open).toContain("background-color: transparent");
-		// The text stays where it is: the shared rule is the only one keyed on
-		// an open title, and it moves nothing.
+		// The text one pixel down and right, as ReactOS's MENU_DrawMenuItem
+		// offsets a highlighted, ungrayed menu bar item's (B8); the sunken
+		// rule itself moves nothing.
 		const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(
 			([, head, body]) => ({ selectors: splitSelectors(head.trim()), body }),
 		);
 		const openRules = rules.filter((rule) =>
-			rule.selectors.some((selector) => selector.includes(`${title}.open`)),
+			rule.selectors.some((selector) => selector.endsWith(`${title}.open`)),
 		);
 		expect(openRules).toHaveLength(1);
 		expect(openRules[0].body).not.toMatch(
 			/\b(top|left|transform|translate|padding):/,
 		);
+		const pushed = block(
+			`${title}:is(.open, :focus-visible, ${keyed.slice(4, -1)}):not(.disabled) > p`,
+		);
+		expect(pushed).toContain("position: relative");
+		expect(pushed).toContain("top: var(--window-border-size)");
+		expect(pushed).toContain("left: var(--window-border-size)");
 		// No Hilight band and no checker on any menu bar title.
 		const titleRules = rules.filter((rule) =>
 			rule.selectors.some((selector) => selector.includes(title)),
@@ -772,7 +784,9 @@ describe("windows98.scss (compiled)", () => {
 		);
 		// After the hover rule of the same weight, so a hovered one stays gray.
 		expect(at(`${title}.disabled`)).toBeGreaterThan(at(`${title}:hover`));
-		const reached = block(`${title}.disabled:is(.open, :focus-visible)`);
+		const reached = block(
+			`${title}.disabled:is(.open, :focus-visible, ${keyed.slice(4, -1)})`,
+		);
 		expect(reached).toContain(
 			"color: var(--package-color-text-gray, var(--color-system-05))",
 		);
@@ -780,6 +794,50 @@ describe("windows98.scss (compiled)", () => {
 		const wrapper = block(`${title} > .classicyMenuWrapper`);
 		expect(wrapper).toContain("top: 100%");
 		expect(wrapper).toContain("left: 0");
+	});
+
+	// Shell addendum B12 (WIG Ch.9 "Display Layout", p.187, Figure 9.6): an
+	// inactive window's bar is drawn as an active one's. No rule reads the
+	// window's `inactive` state on the bar, its titles or an access key, so
+	// the titles stay MenuText with their keys underlined; the base's
+	// inactive-window filter is undone; nothing hot-tracks (a hovered title
+	// is plain); only a disabled title is embossed.
+	it("draws an inactive window's menu bar as an active one's", () => {
+		const selectors = selectorsOf(css);
+		const block = (tail: string) =>
+			new RegExp(
+				`${tail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+			).exec(css)?.[1] ?? "";
+		const inactiveOnBar = selectors.filter(
+			(selector) =>
+				/\.inactive|:not\(\.active\)/.test(selector) &&
+				/classicyWindowMenuBar|classicyDesktopMenu|classicyMenuItem|access-key/.test(
+					selector,
+				),
+		);
+		expect(inactiveOnBar).toEqual([]);
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		expect(block(`${scope} .classicyWindow.inactive`)).toContain(
+			"filter: none",
+		);
+		const title =
+			":is(.classicyWindowMenuBar, .classicyDesktopMenuBar) :is(.classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem)";
+		const hover = block(`${title}:hover`);
+		expect(hover).toContain(
+			"color: var(--package-color-text-button, var(--color-black))",
+		);
+		expect(hover).not.toContain("box-shadow");
+		expect(block(".classicyMenuItem [data-classicy-part=access-key]")).toMatch(
+			/text-decoration/,
+		);
+		// GrayText is a disabled title's alone.
+		const gray = selectors.filter(
+			(selector) =>
+				selector.includes(title) &&
+				/--package-color-text-gray/.test(block(selector)),
+		);
+		expect(gray.length).toBeGreaterThan(0);
+		for (const selector of gray) expect(selector).toContain(".disabled");
 	});
 
 	// Every menu bar rule is scoped under a window's bar, a forced screen
