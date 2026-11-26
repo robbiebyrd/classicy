@@ -587,6 +587,34 @@ describe("ClassicyDesktop layout", () => {
 			expect(mainRecord()?.closed).toBe(true);
 			expect(document.querySelector(".classicyContextMenuWrapper")).toBeNull();
 		});
+
+		// Shell addendum B20: ALT+F6 and ALT+SHIFT+F6 switch windows only
+		// under a layout with a taskbar.
+		const altF6 = (shiftKey = false) =>
+			fireEvent.keyDown(document.body, {
+				key: "F6",
+				code: "F6",
+				altKey: true,
+				shiftKey,
+			});
+
+		it("leaves ALT+F6 to the page under Platinum", () => {
+			act(() => openApp());
+			renderDesktopWithWindow();
+			expect(altF6()).toBe(true);
+			expect(altF6(true)).toBe(true);
+		});
+
+		it("takes ALT+F6 and ALT+SHIFT+F6 under a layout with a taskbar", () => {
+			registerTestTaskbarPackage();
+			activate(TEST_TASKBAR_PACKAGE_ID);
+			act(() => openApp());
+			renderDesktopWithWindow();
+			expect(mainRecord()?.focused).toBe(true);
+			expect(altF6()).toBe(false);
+			expect(altF6(true)).toBe(false);
+			expect(mainRecord()?.focused).toBe(true);
+		});
 	});
 
 	// Plan 0020-w98 step 16: the Windows 98 package's own layout is the shell

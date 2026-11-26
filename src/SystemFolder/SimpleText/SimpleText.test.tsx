@@ -707,3 +707,67 @@ describe("SimpleText without Notepad's keys", {
 		expect(promptOf()).toBeNull();
 	});
 });
+
+// Shell addendum B1 (WIG Ch.7 "The File Menu", p.98): under Windows 98's own
+// layout (a taskbar, each window its own bar), SimpleText's File menu ends
+// with a divider and Exit, its Quit retitled, as Notepad's ends.
+describe("SimpleText's window bar under Windows 98's layout", {
+	timeout: INTEGRATION_TIMEOUT_MS,
+}, () => {
+	const SHELL = "simpletext-shell-probe";
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		registerClassicyAppearancePackage({
+			id: SHELL,
+			name: "Shell Probe",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: `${SHELL}-default`,
+				package: SHELL,
+			},
+			layout: windows98.layout as never,
+		});
+		useAppManager.setState(
+			produce(DefaultAppManagerState, (draft) => {
+				draft.System.Manager.Appearance.packageId = SHELL;
+			}),
+			true,
+		);
+	});
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(SHELL);
+	});
+
+	it("ends File with a divider and Exit", async () => {
+		renderDesktop();
+		openSimpleText();
+		// Titled as Notepad titles a window ("Untitled - SimpleText").
+		await waitFor(() => {
+			expect(
+				document.querySelector(
+					`[id^="${SIMPLE_TEXT.id}_"] .classicyWindowMenuBar`,
+				),
+			).not.toBeNull();
+		});
+		const bar = document.querySelector(
+			`[id^="${SIMPLE_TEXT.id}_"] .classicyWindowMenuBar`,
+		) as HTMLElement;
+		expect(bar).not.toBeNull();
+		// Its first title, File (its text split by the access key's span).
+		const file = bar.querySelector(
+			":scope > .classicyMenuWrapper > ul > li",
+		) as HTMLElement;
+		expect(file.querySelector(":scope > p")?.textContent).toBe("File");
+		const rows = Array.from(
+			file.querySelectorAll(":scope > .classicyMenuWrapper > ul > *"),
+		).map((row) =>
+			row.tagName === "HR"
+				? "—"
+				: (row.querySelector(":scope > p")?.textContent ?? "").trim(),
+		);
+		expect(rows.slice(-2)).toEqual(["—", "Exit"]);
+		expect(rows).not.toContain("Quit");
+	});
+});

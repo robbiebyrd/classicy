@@ -114,6 +114,7 @@ vi.mock("@/SystemFolder/Finder/FinderPreferences", () => ({
 	FinderPreferences: () => <div data-testid={"finder-preferences"} />,
 }));
 
+import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import { Finder } from "./Finder";
 
 const DOCUMENTS_PATH = "Macintosh HD:Documents";
@@ -552,6 +553,44 @@ describe("Finder folder-window menus under Explorer's commands", () => {
 				"Paste",
 				"Paste Shortcut",
 			]);
+		} finally {
+			restore();
+		}
+	});
+
+	// Shell addendum B1: drawn in its window bar under Windows 98's layout
+	// (a taskbar), a folder window's File ends with a divider and Close and
+	// no Special menu is drawn; Empty Recycle Bin stays on the Trash's own
+	// menu and Empty Trash and Reset PRAM in the Start menu.
+	it("draws a folder window's bar under Windows 98's layout with File ending in Close and no Special", async () => {
+		const restore = activateTestWindowsKeysPackage(
+			windows98.layout as unknown as Partial<ClassicyAppearanceLayout>,
+		);
+		try {
+			await openDocuments();
+			render(
+				<ClassicyWindowMenuBar
+					appId="Finder.app"
+					windowId={DOCUMENTS_PATH}
+					menuItems={folderMenu()}
+				/>,
+			);
+			const bar = document.querySelector(".classicyWindowMenuBar");
+			const barTitles = Array.from(
+				bar?.querySelectorAll(":scope > .classicyMenuWrapper > ul > li") ?? [],
+			).map((li) => li.querySelector(":scope > p")?.textContent);
+			expect(barTitles).toEqual(["File", "Edit", "View", "Help"]);
+			const fileId = menuNamed("File")?.id as string;
+			const rows = Array.from(
+				document.querySelectorAll(
+					`[id="${fileId}"] > .classicyMenuWrapper > ul > *`,
+				),
+			).map((row) =>
+				row.tagName === "HR"
+					? "—"
+					: (row.querySelector(":scope > p")?.textContent ?? "").trim(),
+			);
+			expect(rows.slice(-2)).toEqual(["—", "Close"]);
 		} finally {
 			restore();
 		}

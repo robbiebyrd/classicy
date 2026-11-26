@@ -317,9 +317,11 @@ and `nodenext` resolution).
   Close on a palette), each dimmed when it cannot apply, Close in bold with
   ALT+F4; the arrow keys walk the menu and ESC closes it, Move and Size move
   and size the window with the arrow keys until ENTER (ESC puts it back),
-  and a double-click on the icon or ALT+F4 closes the window. A browser on a
+  and a double-click on the icon or ALT+F4 closes the window. ALT+F6 goes
+  to the program's next window (its palettes included, not its minimized
+  windows or a dialog) and ALT+SHIFT+F6 to the previous one. A browser on a
   Windows computer keeps ALT+F4 and ALT+SPACE for itself; on a Mac they are
-  Option+F4 and Option+Space. Each caption button names itself (Minimize,
+  Option+F4, Option+F6 and Option+Space. Each caption button names itself (Minimize,
   Maximize or Restore, Close) in a tooltip when the pointer rests on it, as
   Windows 98 did. Every dialog and message box has a title (its
   application's name when it has none of its own; an About box reads "About"
@@ -344,7 +346,10 @@ and `nodenext` resolution).
   folder's window comes forward.
 - **Its Help menus.** Each window's Help menu leads with Help Topics,
   which opens the Help Topics browser, as Start ▸ Help does, then What's
-  This? (Shift+F1).
+  This? (Shift+F1), and ends with "About" and the program's name (its
+  access key A). It has no Show or Hide Balloons and Option+H does nothing,
+  since Windows 98's tooltips always show; Start ▸ Settings keeps the
+  switch.
 - **Its documents**, kept as Notepad and Explorer kept them. SimpleText
   asks before a changed document closes, with Notepad's own message box
   ("The text in the Letter.txt file has changed." / "Do you want to save the
@@ -352,7 +357,10 @@ and `nodenext` resolution).
   through Save As) and closes, No closes without saving, Cancel keeps it
   open; its document windows are titled "Untitled - Notepad", the
   document then the program, as Notepad's are, and every program's File
-  menu ends with Exit where Mac OS has Quit; its close box, File ▸ Close
+  menu ends with a separator and Exit where Mac OS has Quit (a folder
+  window's ends with Close); no window has a Special menu: Empty Recycle
+  Bin is on the Recycle Bin's own menu, and Empty Trash and Reset PRAM are
+  in the Start menu; its close box, File ▸ Close
   and Exit all ask, Exit once for each
   changed document. Opening a document or folder that is already open
   brings its own window to the front, from Finder or the desktop. A
@@ -457,8 +465,10 @@ and `nodenext` resolution).
     pixels in Windows Standard and taller in the large schemes, its titles
     in the scheme's menu font,
     as Windows 98 draws one, its titles plain under the pointer and sunken
-    while their menu is open or the keyboard is on them, an unavailable
-    title embossed; raised pull-down and contextual menus with an
+    while their menu is open or the keyboard is on them (ALT or F10, then
+    the arrows), the title's text a pixel down and right as a pushed
+    button's, an unavailable title embossed, and an inactive window's bar
+    drawn just as an active one's (only its caption changes); raised pull-down and contextual menus with an
     inverted highlight and embossed dimmed items (one item highlighted at a
     time: the keyboard's, while the arrow keys moved it last, the
     pointer's otherwise), etched separators, the access key's letter

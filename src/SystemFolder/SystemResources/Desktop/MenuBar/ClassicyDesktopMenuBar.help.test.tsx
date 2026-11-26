@@ -9,6 +9,11 @@ import {
 	waitFor,
 	within,
 } from "@/__tests__/test-utils";
+import {
+	registerTestTaskbarPackage,
+	TEST_TASKBAR_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
@@ -467,5 +472,39 @@ describe("Help menu — a focused Finder window adds no second Help", () => {
 		expect(screen.queryByText("Hide Balloon Help")).toBeNull();
 		// Finder's About is in the Apple menu, as before.
 		expect(document.getElementById("Finder.app_about_apple")).not.toBeNull();
+	});
+});
+
+// Shell addendum B19: under a taskbar, where the screen bar is headless and
+// each window's bar draws Help without the balloon toggle, the screen bar
+// claims no ⌥H either (Windows 98's ToolTips always show, WIG Ch.12 p.276);
+// under every other layout it keeps the toggle and its chord.
+describe("Help menu — the balloon toggle's chord under a taskbar", () => {
+	const systemChords = () =>
+		[...useAppManager.getState().System.Manager.Keyboard.system].sort();
+	afterEach(() => {
+		cleanup();
+		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	it("claims the toggle's chord without a taskbar and not under one", () => {
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		render(<ClassicyDesktopMenuBar />);
+		const withToggle = systemChords();
+		cleanup();
+		registerTestTaskbarPackage();
+		useAppManager.setState(
+			produce(structuredClone(DefaultAppManagerState), (draft) => {
+				draft.System.Manager.Appearance.packageId = TEST_TASKBAR_PACKAGE_ID;
+			}),
+			true,
+		);
+		render(<ClassicyDesktopMenuBar />);
+		const shell = systemChords();
+		const dropped = withToggle.filter((chord) => !shell.includes(chord));
+		expect(dropped).toHaveLength(1);
+		expect(dropped[0]).toMatch(/H/i);
+		expect(shell.every((chord) => withToggle.includes(chord))).toBe(true);
 	});
 });

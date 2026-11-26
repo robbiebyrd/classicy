@@ -30,7 +30,11 @@ import {
 	runClassicyWindowCommand,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
 import type { ClassicyWindowSystemMenuCommand } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSystemMenu";
-import { useClassicyWindowShellKeys } from "@/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal";
+import {
+	classicyWindowShellKey,
+	classicyWindowShellSwitchTarget,
+	useClassicyWindowShellKeys,
+} from "@/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal";
 
 // Plan 0020-w98 §5, "The window pop-up (system) menu": under a layout that
 // declares `window.systemMenu: true` (Windows 98) a right-click on the title
@@ -160,8 +164,17 @@ const altSpace = (target: Element = document.body) =>
 const altF4 = (target: Element = document.body) =>
 	fireEvent.keyDown(target, { key: "F4", code: "F4", altKey: true });
 
-const ShellKeys = ({ enabled }: { enabled: boolean }) => {
-	useClassicyWindowShellKeys(enabled);
+const altF6 = (target: Element = document.body, shiftKey = false) =>
+	fireEvent.keyDown(target, { key: "F6", code: "F6", altKey: true, shiftKey });
+
+const ShellKeys = ({
+	enabled,
+	switchWindows = false,
+}: {
+	enabled: boolean;
+	switchWindows?: boolean;
+}) => {
+	useClassicyWindowShellKeys(enabled, { switchWindows });
 	return null;
 };
 
@@ -182,10 +195,10 @@ const sysWindow = (
 	</ClassicyWindow>
 );
 
-const renderShell = (windows: ReactNode, keys = true) =>
+const renderShell = (windows: ReactNode, keys = true, switchWindows = false) =>
 	render(
 		<ClassicyContextualMenuProvider>
-			<ShellKeys enabled={keys} />
+			<ShellKeys enabled={keys} switchWindows={switchWindows} />
 			{windows}
 		</ClassicyContextualMenuProvider>,
 	);
@@ -754,5 +767,175 @@ describe("ClassicyWindow's window pop-up menu", () => {
 				expect(menu()).toBeNull();
 			});
 		});
+	});
+});
+
+// Shell addendum B20 (WIG App. B, Table B.2, p.358: ALT+F6, "Switch to the
+// next window (modeless-compatible)"): under a layout with a taskbar,
+// ALT+F6 and ALT+SHIFT+F6 activate the focused app's next or previous open,
+// unminimized, non-modal window, palettes included, in ascending `zOrder`
+// with wrap-around.
+describe("ALT+F6 and ALT+SHIFT+F6", () => {
+	const focusedId = () =>
+		Object.values(
+			useAppManager.getState().System.Manager.Applications.apps[APP]?.windows ??
+				{},
+		).find((w) => w.focused && !w.closed)?.id;
+
+	beforeEach(() => {
+		localStorage.clear();
+		Object.assign(window, {
+			innerWidth: VIEWPORT[0],
+			innerHeight: VIEWPORT[1],
+		});
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		act(() =>
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Applications.apps[APP] = {
+						id: APP,
+						name: "Sys",
+						icon: "",
+						windows: {},
+						open: true,
+						data: {},
+					};
+				}),
+			),
+		);
+		registerTestTaskbarPackage(
+			TEST_SYSTEM_MENU_LAYOUT,
+			TEST_SYSTEM_MENU_PACKAGE_ID,
+		);
+		usePackage(TEST_SYSTEM_MENU_PACKAGE_ID);
+	});
+
+	afterEach(() => {
+		cleanup();
+		unregisterClassicyAppearancePackage(TEST_SYSTEM_MENU_PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	it("reads ALT+F6 as the next window and ALT+SHIFT+F6 as the previous", () => {
+		const key = (shiftKey: boolean, extra: object = {}) =>
+			classicyWindowShellKey({
+				altKey: true,
+				ctrlKey: false,
+				metaKey: false,
+				shiftKey,
+				key: "F6",
+				code: "F6",
+				...extra,
+			});
+		expect(key(false)).toBe("nextWindow");
+		expect(key(true)).toBe("previousWindow");
+		expect(key(false, { ctrlKey: true })).toBeNull();
+		expect(key(false, { metaKey: true })).toBeNull();
+		expect(key(false, { altKey: false })).toBeNull();
+		// Shift keeps ALT+SPACE and ALT+F4 unbound, as before.
+		expect(key(true, { key: "F4", code: "F4" })).toBeNull();
+	});
+
+	it("goes through the windows in ascending zOrder, wrapping, skipping minimized and modal ones", () => {
+		const state = produce(useAppManager.getState(), (draft) => {
+			const app = draft.System.Manager.Applications.apps[APP];
+			draft.System.Manager.Applications.focusedAppId = APP;
+			const w = (
+				id: string,
+				zOrder: number,
+				extra: Record<string, unknown> = {},
+			) => ({ id, closed: false, zOrder, ...extra });
+			app.windows = {
+				a: w("a", 1),
+				palette: w("palette", 2, { windowType: "utility", collapsed: true }),
+				min: w("min", 3, { collapsed: true }),
+				dialog: w("dialog", 4, { modal: true }),
+				gone: w("gone", 5, { closed: true }),
+				b: w("b", 6, { focused: true }),
+			} as never;
+		});
+		expect(classicyWindowShellSwitchTarget(state, "next")).toEqual({
+			appId: APP,
+			windowId: "a",
+		});
+		expect(classicyWindowShellSwitchTarget(state, "previous")).toEqual({
+			appId: APP,
+			windowId: "palette",
+		});
+		// A modal holds the keys: its owner's windows wait for it.
+		const underModal = produce(state, (draft) => {
+			const windows = draft.System.Manager.Applications.apps[APP].windows;
+			windows.b.focused = false;
+			windows.dialog.focused = true;
+		});
+		expect(classicyWindowShellSwitchTarget(underModal, "next")).toBeUndefined();
+		// One window alone has nowhere to go.
+		const alone = produce(state, (draft) => {
+			const windows = draft.System.Manager.Applications.apps[APP].windows;
+			for (const id of ["a", "palette"]) windows[id].closed = true;
+		});
+		expect(classicyWindowShellSwitchTarget(alone, "next")).toBeUndefined();
+	});
+
+	it("activates the next and the previous window under a taskbar, taking the key", () => {
+		renderShell(
+			<>
+				{sysWindow()}
+				{sysWindow({ id: "b", title: "B", initialPosition: [300, 100] })}
+				{sysWindow({ id: "c", title: "C", initialPosition: [500, 100] })}
+			</>,
+			true,
+			true,
+		);
+		const before = focusedId();
+		expect(before).toBeDefined();
+		const order = () =>
+			Object.values(
+				useAppManager.getState().System.Manager.Applications.apps[APP]
+					?.windows ?? {},
+			)
+				.filter((w) => !w.closed)
+				.sort((x, y) => (x.zOrder ?? 0) - (y.zOrder ?? 0))
+				.map((w) => w.id);
+		// Next: the lowest in zOrder, the focused one being the highest.
+		const lowest = order()[0];
+		expect(altF6()).toBe(false);
+		expect(focusedId()).toBe(lowest);
+		// Previous: the one under the focused window in zOrder.
+		const under = order().at(-2);
+		expect(altF6(document.body, true)).toBe(false);
+		expect(focusedId()).toBe(under);
+		// The other window keys stay as they are.
+		expect(record(focusedId())?.closed).toBe(false);
+	});
+
+	it("is not bound without a taskbar's switch: the key reaches the page", () => {
+		renderShell(
+			<>
+				{sysWindow()}
+				{sysWindow({ id: "b", title: "B", initialPosition: [300, 100] })}
+			</>,
+			true,
+			false,
+		);
+		const before = focusedId();
+		expect(altF6()).toBe(true);
+		expect(altF6(document.body, true)).toBe(true);
+		expect(focusedId()).toBe(before);
+	});
+
+	it("binds ALT+F6 alone when only the switch is on", () => {
+		renderShell(
+			<>
+				{sysWindow()}
+				{sysWindow({ id: "b", title: "B", initialPosition: [300, 100] })}
+			</>,
+			false,
+			true,
+		);
+		const before = focusedId();
+		expect(altF4()).toBe(true);
+		expect(altF6()).toBe(false);
+		expect(focusedId()).not.toBe(before);
 	});
 });

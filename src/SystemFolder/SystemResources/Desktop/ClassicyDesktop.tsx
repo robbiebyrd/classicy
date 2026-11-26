@@ -922,9 +922,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	}, [storedPackageId, appearancePackageId]);
 	// The Windows shell's window keys (WIG App. B, Table B.2, p.358):
 	// ALT+SPACE opens the focused window's pop-up menu and ALT+F4 closes it,
-	// only under a layout that gives windows the system menu; under every
-	// other package nothing is bound.
-	useClassicyWindowShellKeys(layout.window.systemMenu === true);
+	// only under a layout that gives windows the system menu; ALT+F6 and
+	// ALT+SHIFT+F6 go to the focused app's next or previous window, only
+	// under a layout with a taskbar; under every other package nothing is
+	// bound.
+	useClassicyWindowShellKeys(layout.window.systemMenu === true, {
+		switchWindows: layout.taskbar !== undefined,
+	});
 	const layoutVars = useMemo(
 		() => ({
 			...classicyLayoutVars(layout),

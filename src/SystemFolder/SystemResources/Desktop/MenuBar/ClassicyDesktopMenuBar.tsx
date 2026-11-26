@@ -321,9 +321,18 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// and the focused app's registered ones (`useClassicyHelpMenu`): the Help
 	// menu the bar drew before the merge, and the one whose chords the system
 	// scope claims (below).
+	// Under a taskbar, with the bar headless (window placement), the
+	// windows' bars draw Help without the balloon toggle (Windows 98's
+	// ToolTips always show, WIG Ch.12 p.276; shell addendum B19), so this bar
+	// claims no ⌥H either; Start ▸ Settings keeps the toggle.
+	const shellHelp =
+		layout.taskbar !== undefined && resolvedPlacement === "window";
 	const systemHelpItems = useMemo(
-		() => classicySystemHelpItems(disableBalloonHelp),
-		[disableBalloonHelp],
+		() =>
+			classicySystemHelpItems(disableBalloonHelp).filter(
+				(item) => !shellHelp || item.id !== "help-toggle-balloons",
+			),
+		[disableBalloonHelp, shellHelp],
 	);
 	const registeredHelpItems = focusedMenuApp?.id
 		? helpMenus?.[focusedMenuApp.id]

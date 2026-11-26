@@ -9,6 +9,7 @@ import {
 } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { classicySpecialMenuItems } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import {
 	type ClassicyStartMenuItemsInput,
@@ -461,6 +462,25 @@ describe("classicyStartMenuItems", () => {
 			{ type: "ClassicyDesktopShowSystemDialog", dialog: "resetPram" },
 		]);
 		expect(child(items, "Empty Trash").id).toBe("start_special_empty_trash");
+	});
+
+	// Shell addendum B1: a window bar under a taskbar draws no Special menu
+	// (`withClassicyWindowsFileMenu`), so every item of it must be here.
+	it("holds every item of the Special menu a window bar leaves out", () => {
+		const ids = new Set<string>();
+		const walk = (list: ClassicyMenuItem[]) => {
+			for (const item of list) {
+				ids.add(item.id);
+				walk(item.menuChildren ?? []);
+			}
+		};
+		walk(classicyStartMenuItems(input()));
+		const special = classicySpecialMenuItems(() => {}, "w").filter(
+			(item) => item.id !== "spacer",
+		);
+		expect(special.length).toBeGreaterThan(0);
+		for (const item of special)
+			expect(ids.has(item.id.replace(/^w_/, "start_")), item.id).toBe(true);
 	});
 
 	it("gives no item an id a menu bar uses", () => {

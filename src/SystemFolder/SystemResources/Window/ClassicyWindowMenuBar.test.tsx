@@ -40,6 +40,7 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 import {
 	ClassicyWindowMenuBar,
 	withClassicyExitItem,
+	withClassicyWindowsFileMenu,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
@@ -285,7 +286,6 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 			expect(document.getElementById(finderHelpId)).toBeNull();
 			expect(rows(shellHelpId)).toEqual([
 				"help-about-balloon",
-				"help-toggle-balloons",
 				"—",
 				"host_finder_tips",
 				"—",
@@ -293,7 +293,6 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 				"—",
 				`${APP}_about`,
 			]);
-			expect(rowTitle("help-toggle-balloons")).toBe("Hide Balloons");
 			// About, with no ellipsis, by the app's name (WIG p.99).
 			expect(rowTitle(`${APP}_about`)).toBe("About Finder");
 			// Finder's own balloon toggle repeats the system's and is dropped.
@@ -302,7 +301,7 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 			).toBeNull();
 		});
 
-		it("titles the app's Quit item Exit, keeping its event; an item titled otherwise stays", () => {
+		it("titles the app's Quit item Exit, keeping its event; an item that is no Quit stays", () => {
 			const quit = {
 				id: `${APP}_quit`,
 				title: "Quit",
@@ -313,8 +312,12 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 			(menu[0].menuChildren as ClassicyMenuItem[]).push({ id: "spacer" }, quit);
 			renderBar(menu);
 			expect(rowTitle(`${APP}_quit`)).toBe("Exit");
+			// Known by its id as well as its title (B1).
 			expect(
 				withClassicyExitItem([{ ...quit, title: "Leave" }], APP)[0].title,
+			).toBe("Exit");
+			expect(
+				withClassicyExitItem([{ id: "x_leave", title: "Leave" }], APP)[0].title,
 			).toBe("Leave");
 			expect(withClassicyExitItem([quit], APP, "x")[0]).toEqual({
 				...quit,
@@ -331,18 +334,14 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 			await waitFor(() => expect(about).toHaveBeenCalledTimes(1));
 		});
 
-		it("toggles balloon help from the system item", async () => {
+		// B19: Windows 98's ToolTips always show (WIG Ch.12 p.276), so a
+		// window's Help carries no balloon toggle and no ⌥H; Start ▸ Settings
+		// keeps it.
+		it("draws no balloon toggle and no ⌥H in a window's Help", () => {
 			renderBar();
-			const item = document.getElementById(
-				"help-toggle-balloons",
-			) as HTMLElement;
-			fireEvent.click(item);
-			dispatchAnimationEnd(item);
-			await waitFor(() =>
-				expect(
-					useAppManager.getState().System.Manager.Desktop.disableBalloonHelp,
-				).toBe(true),
-			);
+			expect(document.getElementById("help-toggle-balloons")).toBeNull();
+			const help = document.getElementById(shellHelpId) as HTMLElement;
+			expect(help.textContent).not.toMatch(/Balloons|⌥H|Alt\+H/);
 		});
 
 		it("takes About out of whichever menu holds it", () => {
@@ -371,10 +370,7 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 				),
 			);
 			renderBar([{ id: "x_file", title: "File", menuChildren: [] }]);
-			expect(rows(shellHelpId)).toEqual([
-				"help-about-balloon",
-				"help-toggle-balloons",
-			]);
+			expect(rows(shellHelpId)).toEqual(["help-about-balloon"]);
 		});
 
 		it("titles About with the active package's display name", () => {
@@ -418,11 +414,15 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 
 		it("leads Help with Help Topics and What's This?, their letters and the drawn chord", () => {
 			renderBar();
-			expect(rows(shellHelpId).slice(0, 3)).toEqual([
+			expect(rows(shellHelpId)).toEqual([
 				"help-topics",
 				"help-whats-this",
-				"help-toggle-balloons",
+				"—",
+				"host_finder_tips",
+				"—",
+				`${APP}_about`,
 			]);
+			expect(document.getElementById("help-toggle-balloons")).toBeNull();
 			expect(rowTitle("help-topics")).toBe("Help Topics");
 			expect(document.getElementById("help-about-balloon")).toBeNull();
 			const whatsThis = document.getElementById(
@@ -435,6 +435,8 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 					?.textContent;
 			expect(letter("help-topics")).toBe("H");
 			expect(letter("help-whats-this")).toBe("W");
+			// About last, access key A (Notepad's "&About Notepad"; B19).
+			expect(letter(`${APP}_about`)).toBe("A");
 		});
 
 		it("opens the Help Topics browser from Help Topics", async () => {
@@ -494,11 +496,195 @@ describe("ClassicyWindowMenuBar's Help menu", () => {
 			registerTestTaskbarPackage();
 			usePackage(TEST_TASKBAR_PACKAGE_ID);
 			renderBar();
-			expect(rows(shellHelpId).slice(0, 2)).toEqual([
-				"help-about-balloon",
-				"help-toggle-balloons",
-			]);
+			expect(rows(shellHelpId)[0]).toBe("help-about-balloon");
+			expect(document.getElementById("help-toggle-balloons")).toBeNull();
 			expect(document.getElementById("help-whats-this")).toBeNull();
+		});
+	});
+});
+
+// Shell addendum B1 (WIG Ch.1 "Consistency", p.2; Ch.2 p.13; Ch.7 "The
+// File Menu", p.98): under a taskbar a window's File menu ends with a
+// divider and Exit (its Quit retitled and moved there), or, with no Quit
+// (a Finder folder window's), with Close (its Close Window retitled); the
+// Special menu is not drawn in a window bar, its items living in the Start
+// menu and on the Trash's own menu. Without a taskbar (the mirrored
+// package's layout) both bars are as given.
+describe("ClassicyWindowMenuBar's File and Special menus (B1)", () => {
+	const APP = "SimpleText.app";
+	const quit = {
+		id: `${APP}_quit`,
+		title: "Quit",
+		accessKey: "",
+		event: "ClassicyAppClose",
+		eventData: { app: { id: APP } },
+	};
+	// SimpleText's window menus as SimpleText.tsx builds them.
+	const simpleTextMenu: ClassicyMenuItem[] = [
+		{
+			id: "doc_file",
+			title: "File",
+			menuChildren: [
+				{ id: "doc_new", title: "New" },
+				{ id: "doc_open", title: "Open…" },
+				{ id: "spacer" },
+				quit,
+				{ id: "spacer" },
+				{ id: "doc_close", title: "Close" },
+				{ id: "doc_save", title: "Save" },
+			],
+		},
+		{
+			id: "doc_edit",
+			title: "Edit",
+			menuChildren: [{ id: "u", title: "Undo" }],
+		},
+	];
+	// Finder's folder window menus under Mac OS 8's commands.
+	const finderMenu: ClassicyMenuItem[] = [
+		{
+			id: "Finder.app_HD_file",
+			title: "File",
+			menuChildren: [
+				{ id: "Finder.app_HD_file_closew", title: "Close Window" },
+				{ id: "Finder.app_HD_file_closews", title: "Close All Windows" },
+				{ id: "spacer" },
+				{ id: "Finder.app_HD_file_move_to_trash", title: "Move To Trash" },
+			],
+		},
+		{
+			id: "Finder.app_HD_special",
+			title: "Special",
+			menuChildren: [
+				{ id: "Finder.app_HD_special_empty_trash", title: "Empty Trash" },
+			],
+		},
+	];
+	const titles = (container: HTMLElement) =>
+		Array.from(
+			container.querySelectorAll(
+				".classicyWindowMenuBar > .classicyMenuWrapper > ul > li",
+			),
+		).map((li) => li.querySelector(":scope > p")?.textContent);
+	const rowTitles = (menuId: string) =>
+		Array.from(
+			document.querySelectorAll(
+				`[id="${menuId}"] > .classicyMenuWrapper > ul > *`,
+			),
+		).map((row) =>
+			row.tagName === "HR"
+				? "—"
+				: (row.querySelector(":scope > p")?.textContent ?? "").trim(),
+		);
+	const usePackage = (id: string) =>
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: id,
+			}),
+		);
+	const renderBar = (appId: string, menuItems: ClassicyMenuItem[]) =>
+		render(
+			<ClassicyWindowMenuBar
+				appId={appId}
+				windowId="w"
+				menuItems={menuItems}
+			/>,
+		);
+
+	beforeEach(() => {
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+	afterEach(() => {
+		cleanup();
+		unregisterClassicyAppearancePackage(TEST_MIRROR_PACKAGE_ID);
+		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	describe("under a taskbar", () => {
+		beforeEach(() => {
+			registerTestTaskbarPackage({
+				...TEST_TASKBAR_LAYOUT,
+				menu: { accessKeys: "auto" },
+			});
+			usePackage(TEST_TASKBAR_PACKAGE_ID);
+		});
+
+		it("ends SimpleText's File with a divider and Exit, access key X", () => {
+			renderBar(APP, simpleTextMenu);
+			expect(rowTitles("doc_file")).toEqual([
+				"New",
+				"Open…",
+				"—",
+				"Close",
+				"Save",
+				"—",
+				"Exit",
+			]);
+			expect(
+				document.querySelector(
+					`[id="${APP}_quit"] [data-classicy-part="access-key"]`,
+				)?.textContent,
+			).toBe("x");
+		});
+
+		it("ends Finder's File with a divider and Close, and draws no Special menu", () => {
+			const { container } = renderBar("Finder.app", finderMenu);
+			expect(titles(container)).toEqual(["File", "Help"]);
+			expect(rowTitles("Finder.app_HD_file")).toEqual([
+				"Close All Windows",
+				"—",
+				"Move To Trash",
+				"—",
+				"Close",
+			]);
+			expect(document.getElementById("Finder.app_HD_special")).toBeNull();
+		});
+
+		it("drops a menu titled Special whatever its id, and keeps Exit's handler", () => {
+			const shaped = withClassicyWindowsFileMenu(
+				[
+					{ id: "f", title: "File", menuChildren: [quit] },
+					{ id: "odd", title: "Special", menuChildren: [] },
+					{ id: "x_special_thing", title: "Thing" },
+				],
+				APP,
+				{ exitKey: "x" },
+			);
+			expect(shaped.map((m) => m.title)).toEqual(["File", "Thing"]);
+			expect(shaped[0].menuChildren).toEqual([
+				{ ...quit, title: "Exit", accessKey: "x" },
+			]);
+		});
+	});
+
+	describe("without a taskbar (the mirrored package's layout)", () => {
+		beforeEach(() => {
+			registerTestMirrorPackage();
+			usePackage(TEST_MIRROR_PACKAGE_ID);
+		});
+
+		it("draws SimpleText's and Finder's bars as given", () => {
+			renderBar(APP, simpleTextMenu);
+			expect(rowTitles("doc_file")).toEqual([
+				"New",
+				"Open…",
+				"—",
+				"Quit",
+				"—",
+				"Close",
+				"Save",
+			]);
+			cleanup();
+			const { container } = renderBar("Finder.app", finderMenu);
+			expect(titles(container)).toEqual(["File", "Special"]);
+			expect(rowTitles("Finder.app_HD_file")).toEqual([
+				"Close Window",
+				"Close All Windows",
+				"—",
+				"Move To Trash",
+			]);
 		});
 	});
 });
@@ -671,5 +857,77 @@ describe("a window bar's Edit menu under Windows 98's layout (C9)", () => {
 		act(() => a.focus());
 		await choose("a", "select_all");
 		expect([a.selectionStart, a.selectionEnd]).toEqual([0, 11]);
+	});
+});
+
+// Shell addendum B8 (App. B Table B.2, p.358; Table B.5, p.360): a window
+// bar's menu-bar mode marks the title the keyboard tracks as the package's
+// sunken rule reads it, the root list `focused` and the title focused.
+describe("a window bar's menu-bar mode under Windows 98's layout (B8)", () => {
+	const PACKAGE_ID = "test-windows98-bar-mode";
+	beforeEach(() => {
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		registerClassicyAppearancePackage({
+			id: PACKAGE_ID,
+			name: "Windows 98 bar mode",
+			css: "",
+			defaults: {
+				...getTheme("default"),
+				id: `${PACKAGE_ID}-default`,
+				package: PACKAGE_ID,
+			},
+			layout: windows98.layout as never,
+		});
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: PACKAGE_ID,
+			}),
+		);
+	});
+	afterEach(() => {
+		cleanup();
+		unregisterClassicyAppearancePackage(PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	it("focuses the first title in a focused root list on F10, and Right moves it", () => {
+		const { container } = render(
+			<ClassicyWindowMenuBar
+				appId="Notes.app"
+				windowId="a"
+				menuItems={[
+					{
+						id: "Notes.app_a_file",
+						title: "File",
+						menuChildren: [{ id: "Notes.app_a_new", title: "New" }],
+					},
+					{
+						id: "Notes.app_a_view",
+						title: "View",
+						menuChildren: [{ id: "Notes.app_a_zoom", title: "Zoom" }],
+					},
+				]}
+			/>,
+		);
+		const list = container.querySelector(
+			".classicyWindowMenuBar > .classicyMenuWrapper > ul",
+		) as HTMLElement;
+		expect(list).not.toHaveClass("focused");
+		act(() => {
+			fireEvent.keyDown(window, { key: "F10", code: "F10" });
+		});
+		const file = document.getElementById("Notes.app_a_file");
+		expect(document.activeElement).toBe(file);
+		expect(list).toHaveClass("focused");
+		act(() => {
+			fireEvent.keyDown(file as HTMLElement, { key: "ArrowRight" });
+		});
+		expect(document.activeElement).toBe(
+			document.getElementById("Notes.app_a_view"),
+		);
+		expect(list).toHaveClass("focused");
+		// No ⌥H: the bar's Help has no balloon toggle (B19).
+		expect(document.getElementById("help-toggle-balloons")).toBeNull();
 	});
 });

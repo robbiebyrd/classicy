@@ -21,6 +21,7 @@ import {
 	findClassicyAppAboutItem,
 	splitClassicyAppHelpMenus,
 	stripClassicyAboutItem,
+	trimClassicyMenuSpacers,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyHelpMenu.internal";
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import {
@@ -33,16 +34,19 @@ import "./ClassicyWindowMenuBar.scss";
 
 /**
  * The system part of a window bar's Help menu under a taskbar: the screen
- * bar's items (`system`, `classicySystemHelpItems`) with About Balloon
- * Help… replaced by WinHelp's "Help Topics" (no ellipsis, access key H,
- * Windows 98 SE's "&Help Topics"; WIG Ch.12 "The Help Topics Browser",
- * p.284; Ch.7 "The Help Menu", p.99), dispatching
- * `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`, under `helpTopics`, and "What's
- * This?" (⇧F1 shown, access key W, user.exe's "&What's This?"; WIG Ch.12
- * p.275) after it under `whatsThis`, starting the mode over the window
- * (`startWhatsThis`). Shift+F1 itself is the What's This? key hook's, so
- * the item's chord is only drawn (`nativeShortcut`). Without either flag
- * `system` is returned as given.
+ * bar's items (`system`, `classicySystemHelpItems`) without the Show/Hide
+ * Balloons toggle (`help-toggle-balloons`, ⌥H): Windows 98's ToolTips always
+ * show (WIG Ch.12 "ToolTips", p.276), so a window's Help has no toggle, and
+ * Start ▸ Settings keeps it (plan 0020-w98 shell addendum B19). Under
+ * `helpTopics` About Balloon Help… is replaced by WinHelp's "Help Topics"
+ * (no ellipsis, access key H, Windows 98 SE's "&Help Topics"; WIG Ch.12
+ * "The Help Topics Browser", p.284; Ch.7 "The Help Menu", p.99),
+ * dispatching `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`, and under `whatsThis`
+ * "What's This?" (⇧F1 shown, access key W, user.exe's "&What's This?"; WIG
+ * Ch.12 p.275) follows it, starting the mode over the window
+ * (`startWhatsThis`). Shift+F1 itself is the What's This? key hook's, so the
+ * item's chord is only drawn (`nativeShortcut`). Without either flag the
+ * rest of `system` is returned as given.
  */
 export const classicyWindowSystemHelpItems = (
 	system: ClassicyMenuItem[],
@@ -58,7 +62,8 @@ export const classicyWindowSystemHelpItems = (
 		startWhatsThis: () => void;
 	},
 ): ClassicyMenuItem[] => {
-	if (!helpTopics && !whatsThis) return system;
+	const shown = system.filter((item) => item.id !== "help-toggle-balloons");
+	if (!helpTopics && !whatsThis) return shown;
 	const key = (letter: string) => {
 		const accessKey = ak(letter);
 		return accessKey !== undefined ? { accessKey } : {};
@@ -71,7 +76,7 @@ export const classicyWindowSystemHelpItems = (
 		onClickFunc: startWhatsThis,
 		...key("w"),
 	};
-	return system.flatMap((item) => {
+	return shown.flatMap((item) => {
 		if (item.id !== "help-about-balloon") return [item];
 		const first: ClassicyMenuItem = helpTopics
 			? {
@@ -101,10 +106,51 @@ export type ClassicyWindowMenuBarProps = {
 };
 
 /**
+ * True for an app's Quit item: its id ends with `_quit` (`quitMenuItemHelper`
+ * makes `<appId>_quit`) or it is titled "Quit".
+ */
+const isClassicyQuitItem = (item: ClassicyMenuItem): boolean =>
+	item.id?.endsWith("_quit") === true || item.title === "Quit";
+
+/**
+ * True for a window's Close Window item: titled "Close Window"
+ * (`closeWindowMenuItemHelper`) or with an id ending `_closew` (Finder's
+ * folder windows).
+ */
+const isClassicyCloseWindowItem = (item: ClassicyMenuItem): boolean =>
+	item.title === "Close Window" || item.id?.endsWith("_closew") === true;
+
+/**
+ * True for an app's Special menu: a menu (it has `menuChildren`) whose id
+ * ends with `_special` or titled "Special".
+ */
+export const isClassicySpecialMenu = (item: ClassicyMenuItem): boolean =>
+	item.menuChildren !== undefined &&
+	(item.id?.endsWith("_special") === true || item.title === "Special");
+
+/** True for an app's File menu: a menu whose id ends `_file` or titled "File". */
+const isClassicyFileMenu = (item: ClassicyMenuItem): boolean =>
+	item.menuChildren !== undefined &&
+	(item.id?.endsWith("_file") === true || item.title === "File");
+
+/** `item` retitled `title`, its access key `accessKey` when one is given. */
+const retitled = (
+	item: ClassicyMenuItem,
+	title: string,
+	accessKey: string | undefined,
+	keepOwnKey: boolean,
+): ClassicyMenuItem => {
+	const { accessKey: ownKey, ...rest } = item;
+	const key = accessKey ?? (keepOwnKey ? ownKey : undefined);
+	return { ...rest, title, ...(key !== undefined ? { accessKey: key } : {}) };
+};
+
+/**
  * Under a taskbar, the app's Quit item (`quitMenuItemHelper`, id
- * `<appId>_quit`, titled "Quit") reads "Exit", Windows' last File command
- * (WIG Ch.7 "The File Menu", p.98; its access key X, Appendix B Table B.5),
- * keeping its handler. An item the app titled otherwise is drawn as stored.
+ * `<appId>_quit`; any item whose id ends `_quit` or titled "Quit") reads
+ * "Exit", Windows' last File command (WIG Ch.7 "The File Menu", p.98; its
+ * access key X, Appendix B Table B.5), keeping its handler, wherever it sits.
+ * `withClassicyWindowsFileMenu` also moves it to the File menu's end.
  */
 export const withClassicyExitItem = (
 	menus: ClassicyMenuItem[],
@@ -112,14 +158,8 @@ export const withClassicyExitItem = (
 	accessKey?: string,
 ): ClassicyMenuItem[] =>
 	menus.map((item) => {
-		if (item.id === `${appId}_quit` && item.title === "Quit") {
-			const { accessKey: _quitKey, ...rest } = item;
-			return {
-				...rest,
-				title: "Exit",
-				...(accessKey !== undefined ? { accessKey } : {}),
-			};
-		}
+		if (isClassicyQuitItem(item) && !item.menuChildren)
+			return retitled(item, "Exit", accessKey, false);
 		return item.menuChildren
 			? {
 					...item,
@@ -131,6 +171,59 @@ export const withClassicyExitItem = (
 				}
 			: item;
 	});
+
+/**
+ * A window bar's menus under a taskbar, shaped as Windows 98's (WIG Ch.1
+ * "Consistency", p.2; Ch.2 p.13; Ch.7 "The File Menu", p.98; plan 0020-w98
+ * shell addendum B1):
+ * - The Special menu (`isClassicySpecialMenu`) is not drawn: its items have
+ *   their homes in the shell (Empty Trash… and Reset PRAM… in the Start menu,
+ *   `classicyStartMenuItems`; the Trash's own Empty on its icon's menu).
+ * - The File menu ends with a divider and Exit: its Quit item, retitled
+ *   "Exit" (access key `exitKey`), is moved there. A File menu with no Quit
+ *   (a Finder folder window's) ends with a divider and Close instead: its
+ *   Close Window item, retitled "Close" (access key `closeKey`, else its
+ *   own), moved there.
+ * - A Quit item anywhere else reads "Exit" in place (`withClassicyExitItem`).
+ */
+export const withClassicyWindowsFileMenu = (
+	menus: ClassicyMenuItem[],
+	appId: string,
+	{ exitKey, closeKey }: { exitKey?: string; closeKey?: string } = {},
+): ClassicyMenuItem[] =>
+	withClassicyExitItem(
+		menus.flatMap((menu) => {
+			if (isClassicySpecialMenu(menu)) return [];
+			if (!isClassicyFileMenu(menu)) return [menu];
+			const children = menu.menuChildren ?? [];
+			const quit = children.find(
+				(item) => !item.menuChildren && isClassicyQuitItem(item),
+			);
+			const close = quit
+				? undefined
+				: children.find(
+						(item) => !item.menuChildren && isClassicyCloseWindowItem(item),
+					);
+			const last = quit
+				? retitled(quit, "Exit", exitKey, false)
+				: close
+					? retitled(close, "Close", closeKey, true)
+					: undefined;
+			if (!last) return [menu];
+			const rest = trimClassicyMenuSpacers(
+				children.filter((item) => item !== (quit ?? close)),
+			);
+			return [
+				{
+					...menu,
+					menuChildren:
+						rest.length > 0 ? [...rest, { id: "spacer" }, last] : [last],
+				},
+			];
+		}),
+		appId,
+		exitKey,
+	);
 
 /**
  * A window's own menu bar, for Appearance Packages whose layout sets
@@ -156,8 +249,10 @@ export const withClassicyExitItem = (
  * its About item and its own Help menus taken out, then a last "Help" menu
  * (part `help`) holding the system's Help items, the app's registered items
  * (`useClassicyHelpMenu`), the items of its own Help menus, and, after a
- * divider, "About <display name>" when the app has an About item; the
- * app's Quit item reads "Exit" (`withClassicyExitItem`). The
+ * divider, "About <display name>" (access key A) when the app has an About
+ * item; the File menu ends with a divider and Exit, the app's Quit item
+ * retitled (or, with no Quit, Close, its Close Window retitled), and the
+ * Special menu is not drawn (`withClassicyWindowsFileMenu`). The
  * headless screen bar reserves no band: the desktop root's
  * `--menu-bar-height` is `0px` in this placement (`classicyLayoutThemeVars`),
  * so window geometry (`windowViewportFloor` in `ClassicyWindow.tsx`) lets a
@@ -201,9 +296,6 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 	const helpTopics = layout.help?.topicWindow === "winhelp";
 	const whatsThis = layout.balloonHelp?.contextHelp === "whatsThis";
 	const ak = useClassicyBundledAccessKeys();
-	const disableBalloonHelp = useAppManager(
-		(state) => state.System.Manager.Desktop.disableBalloonHelp,
-	);
 	// The app's registered Help items (`useClassicyHelpMenu`), read
 	// defensively as the screen bar reads them.
 	const registeredHelpItems = useAppManager(
@@ -228,7 +320,8 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		);
 		const helpChildren = classicyHelpMenuChildren(
 			classicyWindowSystemHelpItems(
-				classicySystemHelpItems(disableBalloonHelp),
+				// The toggle's title is never drawn here: the bar drops it.
+				classicySystemHelpItems(false),
 				{
 					helpTopics,
 					whatsThis,
@@ -245,18 +338,26 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		);
 		if (aboutItem) {
 			// "About <application name>", no ellipsis (WIG p.99), by the name
-			// the active package shows; the item keeps its handler.
+			// the active package shows, access key A (Notepad's "&About
+			// Notepad"; WIG App. B Table B.5); the item keeps its handler.
 			const { name } = classicyAppIdentityFrom(overrides, appId, {
 				name: appName ?? appId,
 				icon: "",
 			});
 			helpChildren.push(
 				{ id: "spacer" },
-				{ ...aboutItem, title: `About ${name}` },
+				{
+					...aboutItem,
+					title: `About ${name}`,
+					...(ak("a") !== undefined ? { accessKey: ak("a") } : {}),
+				},
 			);
 		}
 		return [
-			...withClassicyExitItem(menus, appId, ak("x")),
+			...withClassicyWindowsFileMenu(menus, appId, {
+				exitKey: ak("x"),
+				closeKey: ak("c"),
+			}),
 			{
 				id: `${appId}_${windowId}_help-menu`,
 				title: "Help",
@@ -271,7 +372,6 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 		windowId,
 		appName,
 		overrides,
-		disableBalloonHelp,
 		registeredHelpItems,
 		helpTopics,
 		whatsThis,
