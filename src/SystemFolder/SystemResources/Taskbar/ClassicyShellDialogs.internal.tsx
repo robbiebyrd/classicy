@@ -48,6 +48,7 @@ import {
 	startClassicyFreshSession,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyShellSession.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyWindowModalOwnerContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowModality.internal";
 import { ClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
 
 /**
@@ -633,17 +634,30 @@ export const ClassicyShellDialogs: FunctionalComponent<
 	return (
 		<>
 			{dimmed && <div className="classicyShellDialogDim" aria-hidden="true" />}
-			{dialog === "shutDown" && (
-				<ClassicyShutDownDialog
-					shell={shell}
-					onClose={close}
-					onChoose={choose}
-				/>
-			)}
-			{dialog === "logOff" && (
-				<ClassicyLogOffDialog shell={shell} onClose={close} onLogOff={logOff} />
-			)}
-			{dialog === "run" && <ClassicyRunDialog shell={shell} onClose={close} />}
+			{/* Shut Down and Log Off are system modal; Run is the taskbar's
+			    (explorer.exe's own window), so under an application modality it
+			    blocks no app (ClassicyWindowModality.internal.ts). */}
+			<ClassicyWindowModalOwnerContext.Provider value="system">
+				{dialog === "shutDown" && (
+					<ClassicyShutDownDialog
+						shell={shell}
+						onClose={close}
+						onChoose={choose}
+					/>
+				)}
+				{dialog === "logOff" && (
+					<ClassicyLogOffDialog
+						shell={shell}
+						onClose={close}
+						onLogOff={logOff}
+					/>
+				)}
+			</ClassicyWindowModalOwnerContext.Provider>
+			<ClassicyWindowModalOwnerContext.Provider value="taskbar">
+				{dialog === "run" && (
+					<ClassicyRunDialog shell={shell} onClose={close} />
+				)}
+			</ClassicyWindowModalOwnerContext.Provider>
 			{dialog === "taskbarDrop" && (
 				<ClassicyAlert
 					id={SYSTEM_DIALOG_WINDOW_IDS.taskbarDrop}

@@ -1296,6 +1296,21 @@ export type ClassicyAppearanceLayout = {
 		 * dialog mounted, until a key comes up or a new key goes down.
 		 */
 		flushInput?: boolean;
+		/**
+		 * What a modal blocks (WIG Ch.10 "Message Notification", p.212,
+		 * "Modeless Interaction", p.214; Ch.8 "Modeless vs. Modal", p.147).
+		 * Absent or `"desktop"` (today's behavior, Mac OS 8's): every modal
+		 * draws a desktop-wide scrim (`classicyWindowModalScrim`), so nothing
+		 * but the dialog takes a press. `"application"` (Windows, an
+		 * application-modal dialog, MB_APPLMODAL): a modal draws no scrim;
+		 * its own app's other windows are made `inert`, and a press over one
+		 * beeps (`ClassicySoundPlayError`) and focuses the modal, while other
+		 * apps, the desktop and the taskbar stay usable. A system-modal
+		 * dialog (an alert of `type="error"`, `Desktop.errorDialog`, the
+		 * desktop's Empty Trash and Reset PRAM, the shell's Shut Down and
+		 * Log Off) keeps the scrim above the taskbar.
+		 */
+		modality?: "desktop" | "application";
 	};
 	/**
 	 * The mouse's press discipline (WIG Ch.4 "Mouse Actions", pp.24-25).

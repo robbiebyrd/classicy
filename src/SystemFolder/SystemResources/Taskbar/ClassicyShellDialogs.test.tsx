@@ -407,6 +407,43 @@ describe("the Windows shell's dialogs", () => {
 		});
 	});
 
+	// B18 (audit 10.21): under an application modality (Windows 98's) Shut
+	// Down and Log Off stay system modal, their scrim above the taskbar, and
+	// Run, the taskbar's own dialog, takes no scrim and disables no window.
+	it("keeps Shut Down's and Log Off's scrim and gives Run none under an application modality", () => {
+		const packageId = "test-shell-application-modal";
+		registerTestTaskbarPackage(
+			{
+				...TEST_MINIMIZE_LAYOUT,
+				dialog: { caption: "titled", modality: "application" },
+			},
+			packageId,
+		);
+		usePackage(packageId);
+		renderShell();
+		const scrim = () => document.querySelector(".classicyWindowModalScrim");
+		show("shutDown");
+		expect(dialog("ShutDown")).not.toBeNull();
+		expect(scrim()).not.toBeNull();
+		show(null);
+		show("logOff");
+		expect(scrim()).not.toBeNull();
+		show(null);
+		show("run");
+		expect(dialog("Run")).not.toBeNull();
+		expect(scrim()).toBeNull();
+		expect(document.querySelector(".classicyWindow[inert]")).toBeNull();
+		show(null);
+		usePackage(TEST_MINIMIZE_PACKAGE_ID);
+		unregisterClassicyAppearancePackage(packageId);
+	});
+
+	it("draws Run over a scrim under the desktop modality (no dialog.modality), as before", () => {
+		renderShell();
+		show("run");
+		expect(document.querySelector(".classicyWindowModalScrim")).not.toBeNull();
+	});
+
 	it("draws none of them under a layout with no taskbar, Platinum's", () => {
 		renderShell();
 		usePackage("platinum");

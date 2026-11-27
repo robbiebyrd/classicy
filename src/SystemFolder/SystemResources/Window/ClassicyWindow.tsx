@@ -106,6 +106,10 @@ import {
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMaximize";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
+	ClassicyWindowModalOwnerContext,
+	useClassicyApplicationModal,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowModality.internal";
+import {
 	type ClassicyWindowCommand,
 	type ClassicyWindowGeometry,
 	type ClassicyWindowPlacement,
@@ -657,7 +661,11 @@ interface ClassicyWindowProps {
 	 * (Windows 98) its caption is always titled, with its app's display name
 	 * when `title` is empty, always has a Close box (`onCaptionClose`), and it
 	 * always moves by its caption, `movable={false}` and `type="error"`
-	 * included (WIG Ch.8, pp.145, 164, 166). Defaults to `false`.
+	 * included (WIG Ch.8, pp.145, 164, 166). Under `dialog.modality:
+	 * "application"` (Windows 98) it draws no scrim and blocks only its own
+	 * app's other windows (they are `inert`; a press there beeps and brings
+	 * the dialog back), unless it is of `type="error"` (WIG Ch.10, p.212).
+	 * Defaults to `false`.
 	 */
 	modal?: boolean;
 	/**
@@ -1117,6 +1125,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// beep, the error scrim and the red band), which key on `type` below,
 	// never on this value.
 	const fixedModal = modal && !titledCaption && (type === "error" || !movable);
+
+	// An application-modal dialog (`layout.dialog.modality` "application",
+	// Windows: WIG Ch.10 p.212, Ch.8 p.147) draws no desktop-wide scrim; an
+	// alert of type "error" and a system-modal dialog (the desktop's and the
+	// shell's, `ClassicyWindowModalOwnerContext` "system") keep it. One the
+	// taskbar owns ("taskbar": Run) disables no app's windows; any other
+	// disables its own app's (`useClassicyApplicationModal`, below).
+	const modalOwner = useContext(ClassicyWindowModalOwnerContext);
+	const applicationModal =
+		modal &&
+		layout.dialog?.modality === "application" &&
+		type !== "error" &&
+		modalOwner !== "system";
 
 	// `movable` applies to modals only (a document window always moves). Say
 	// so once per window, in development, rather than drop it silently.
@@ -2821,6 +2842,48 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		return () => window.removeEventListener("resize", reapply);
 	}, [maximized]);
 
+	// Re-clamping on a desktop resize (the shell addendum's B14; WIG Ch.10
+	// "Plug and Play Support", p.213: when the screen's size changes, windows
+	// are moved back into the work area). Under a layout with a taskbar a
+	// ResizeObserver on `#classicyDesktop` (else the viewport's resize)
+	// clamps the window's stored position into the work area, with the
+	// release clamp, and writes `ClassicyWindowMove` only when that moves
+	// it. A maximized window re-applies its rect instead (above); a window
+	// being moved or sized is left to its gesture. Updated every render, so
+	// the observer's stable callback reads the stored record now.
+	const reclampToWorkAreaRef = useRef<() => void>(() => {});
+	reclampToWorkAreaRef.current = () => {
+		if (!currentWindow || currentWindow.closed || maximized) return;
+		if (isDraggingRef.current || isResizingRef.current) return;
+		if (keyboardModeRef.current) return;
+		const stored = currentWindow.position;
+		const next = clampWindowPositionToViewport(
+			stored,
+			currentWindow.size,
+			menuBarHeight,
+			taskbarBand,
+		);
+		if (next[0] === stored[0] && next[1] === stored[1]) return;
+		setMoving(false, next);
+	};
+	const reclampsOnResize = layout.taskbar !== undefined;
+	useEffect(() => {
+		if (!reclampsOnResize) return;
+		const reclamp = () => reclampToWorkAreaRef.current();
+		const desktop =
+			typeof document !== "undefined"
+				? document.getElementById("classicyDesktop")
+				: null;
+		if (desktop && typeof ResizeObserver !== "undefined") {
+			const observer = new ResizeObserver(reclamp);
+			observer.observe(desktop);
+			return () => observer.disconnect();
+		}
+		if (typeof window === "undefined") return;
+		window.addEventListener("resize", reclamp);
+		return () => window.removeEventListener("resize", reclamp);
+	}, [reclampsOnResize]);
+
 	// #236: onBeforeClose is a veto, not a notification — it runs first, and a
 	// `false` (sync or resolved) result stops everything below it: no sound, no
 	// analytics, no ClassicyWindowClose dispatch, no onCloseFunc. setActive()
@@ -2880,6 +2943,24 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		e.stopPropagation();
 		player({ type: "ClassicySoundPlayError" });
 	};
+
+	// An application modal's hold on its app: the app's other windows are
+	// inert, and a press over one beeps and brings the dialog forward, as a
+	// disabled owner window does in Windows (MB_APPLMODAL).
+	useClassicyApplicationModal({
+		enabled:
+			applicationModal &&
+			modalOwner !== "taskbar" &&
+			!ws.closed &&
+			currentApp?.hidden !== true,
+		appId,
+		windowId: id,
+		modalRef: windowRef,
+		onBlockedPress: () => {
+			player({ type: "ClassicySoundPlayError" });
+			setActive();
+		},
+	});
 
 	// #194/#197: modal windows trap Tab focus within themselves and bind the
 	// dialog-wide Cancel equivalent. Scoped to this window so stacked modals
@@ -3790,7 +3871,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// Non-error modals (File Open/Save and other dialogs) stack in the
 				// modal-front band, above utility/tool palettes but below error
 				// alerts (classicyWindowRed). Error modals keep the red alert band.
-				modal && type !== "error" ? "classicyWindowModalFront" : "",
+				// An application modal of a background app leaves the band, so
+				// the focused app's windows come in front of it, as they do in
+				// Windows.
+				modal &&
+					type !== "error" &&
+					!(applicationModal && currentApp?.focused !== true)
+					? "classicyWindowModalFront"
+					: "",
 				modal && type === "error" ? "classicyWindowRed" : "",
 				// A fixed modal (HIG7 p.190: no drag region, and so no title bar
 				// in System 7) as opposed to a movable one: the window the move
@@ -4037,7 +4125,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		);
 		return createPortal(
 			<>
-				{modalScrim}
+				{applicationModal ? null : modalScrim}
 				{appHidden && windowContent
 					? cloneElement(windowContent, {
 							style: {

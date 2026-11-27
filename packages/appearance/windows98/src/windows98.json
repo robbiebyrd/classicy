@@ -11399,7 +11399,8 @@
 		},
 		"dialog": {
 			"caption": "titled",
-			"flushInput": true
+			"flushInput": true,
+			"modality": "application"
 		},
 		"menu": {
 			"standardShortcuts": "windows",

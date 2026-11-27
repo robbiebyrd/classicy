@@ -247,6 +247,7 @@ export const ClassicyAppearanceLayoutSchema = z
 			.object({
 				caption: z.enum(["plain", "titled"]).optional(),
 				flushInput: z.boolean().optional(),
+				modality: z.enum(["desktop", "application"]).optional(),
 			})
 			.optional(),
 		icon: z

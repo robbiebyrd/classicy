@@ -32,7 +32,16 @@ import {
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyWindowAlertTypeContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowAlertType.internal";
-import { runClassicyWindowCommand } from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
+import {
+	type ClassicyWindowModalOwner,
+	ClassicyWindowModalOwnerContext,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowModality.internal";
+import {
+	type ClassicyWindowRegistration,
+	registerClassicyWindow,
+	runClassicyWindowCommand,
+	unregisterClassicyWindow,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
 import { useClassicyWindowShellKeys } from "@/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -1003,5 +1012,222 @@ describe("ClassicyWindow's utility title (window.utilityTitle)", () => {
 			"classicyWindowTitleText",
 			"classicyWindowTitleRight",
 		]);
+	});
+});
+
+// The shell addendum's B18 (WIG Ch.10 "Message Notification", p.212,
+// "Modeless Interaction", p.214; Ch.8 "Modeless vs. Modal", p.147): under
+// `dialog.modality: "application"` a modal blocks its own app alone.
+describe("ClassicyWindow application-modal dialogs (dialog.modality)", () => {
+	const APP_MODAL_PACKAGE_ID = "test-application-modal";
+	const made: ClassicyWindowRegistration[] = [];
+	const elements: HTMLElement[] = [];
+	// A modeless window of `appId` in the registry, with a root drawn at
+	// 0,0 400 x 300 (jsdom lays nothing out).
+	const ownWindow = (appId: string, windowId: string) => {
+		const el = document.createElement("div");
+		el.id = `${appId}_${windowId}`;
+		el.className = "classicyWindow";
+		el.getBoundingClientRect = () =>
+			({ left: 0, top: 0, right: 400, bottom: 300 }) as DOMRect;
+		const inner = document.createElement("button");
+		inner.textContent = `${windowId} button`;
+		el.appendChild(inner);
+		document.body.appendChild(el);
+		elements.push(el);
+		made.push(
+			registerClassicyWindow({
+				appId,
+				windowId,
+				title: windowId,
+				icon: "",
+				modal: false,
+				windowType: "document",
+				closable: true,
+				zoomable: true,
+				collapsable: true,
+				resizable: true,
+				movable: true,
+				geometry: () => undefined,
+				run: () => true,
+			}),
+		);
+		return el;
+	};
+	const scrim = () => document.querySelector(".classicyWindowModalScrim");
+	const beeps = () =>
+		mockPlayer.mock.calls.filter(
+			(c) => (c[0] as { type: string }).type === "ClassicySoundPlayError",
+		).length;
+	const focusCalls = () =>
+		mockDispatch.mock.calls
+			.map((c) => c[0] as { type: string; window?: { id?: string } })
+			.filter((a) => a.type === "ClassicyWindowFocus");
+	const Dialog = ({
+		type,
+		owner,
+	}: {
+		type?: "default" | "error";
+		owner?: ClassicyWindowModalOwner;
+	}) => (
+		<ClassicyWindowModalOwnerContext.Provider value={owner}>
+			<ClassicyWindow
+				id="TestWindow"
+				appId="TestApp"
+				title="Dialog"
+				modal
+				type={type}
+			>
+				<button type="button">OK</button>
+			</ClassicyWindow>
+		</ClassicyWindowModalOwnerContext.Provider>
+	);
+	const useApplicationModality = () => {
+		registerTestTaskbarPackage(
+			{
+				...TEST_DIALOG_CAPTION_LAYOUT,
+				dialog: { caption: "titled", modality: "application" },
+			},
+			APP_MODAL_PACKAGE_ID,
+		);
+		activePackage.id = APP_MODAL_PACKAGE_ID;
+	};
+
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockPlayer.mockClear();
+		mockStore.focused = false;
+	});
+
+	afterEach(() => {
+		for (const registration of made.splice(0))
+			unregisterClassicyWindow(registration);
+		for (const el of elements.splice(0)) el.remove();
+		activePackage.id = "platinum";
+		mockStore.focused = false;
+		unregisterClassicyAppearancePackage(APP_MODAL_PACKAGE_ID);
+	});
+
+	describe('under "application" (Windows 98\'s)', () => {
+		beforeEach(useApplicationModality);
+
+		it("draws no scrim and makes its own app's other windows inert, not another app's", () => {
+			const owner = ownWindow("TestApp", "Owner");
+			const other = ownWindow("OtherApp", "Other");
+			const { unmount } = render(<Dialog />);
+			expect(scrim()).toBeNull();
+			expect(owner).toHaveAttribute("inert");
+			expect(other).not.toHaveAttribute("inert");
+			// The dialog itself stays usable.
+			expect(document.getElementById("TestApp_TestWindow")).not.toHaveAttribute(
+				"inert",
+			);
+			unmount();
+			expect(owner).not.toHaveAttribute("inert");
+		});
+
+		it("makes a window of its app that opens meanwhile inert too", () => {
+			render(<Dialog />);
+			const later = ownWindow("TestApp", "Later");
+			expect(later).toHaveAttribute("inert");
+		});
+
+		it("beeps and focuses the dialog on a press over an owner window, and leaves other presses alone", () => {
+			const owner = ownWindow("TestApp", "Owner");
+			const other = ownWindow("OtherApp", "Other");
+			render(<Dialog />);
+			mockDispatch.mockClear();
+			const blocked = fireEvent.mouseDown(
+				owner.querySelector("button") as HTMLElement,
+				{ button: 0, clientX: 20, clientY: 20 },
+			);
+			expect(blocked).toBe(false);
+			expect(beeps()).toBe(1);
+			expect(focusCalls().map((a) => a.window?.id)).toEqual(["TestWindow"]);
+			expect(document.activeElement).toHaveTextContent("OK");
+			// A browser hands a press on an inert window to what lies under it:
+			// the desktop there counts as the owner window.
+			const desktop = document.createElement("div");
+			desktop.id = "classicyDesktop";
+			document.body.appendChild(desktop);
+			elements.push(desktop);
+			fireEvent.mouseDown(desktop, { button: 0, clientX: 30, clientY: 30 });
+			expect(beeps()).toBe(2);
+			fireEvent.mouseDown(desktop, { button: 0, clientX: 600, clientY: 500 });
+			expect(beeps()).toBe(2);
+			// The dialog and another app's window take their presses.
+			mockPlayer.mockClear();
+			expect(
+				fireEvent.mouseDown(screen.getByRole("button", { name: "OK" }), {
+					button: 0,
+				}),
+			).toBe(true);
+			expect(
+				fireEvent.mouseDown(other.querySelector("button") as HTMLElement, {
+					button: 0,
+					clientX: 500,
+					clientY: 500,
+				}),
+			).toBe(true);
+			expect(beeps()).toBe(0);
+		});
+
+		it("keeps the modal-front band only while its app is focused", () => {
+			const { rerender } = render(<Dialog />);
+			const root = () =>
+				document.getElementById("TestApp_TestWindow") as HTMLElement;
+			expect(root()).not.toHaveClass("classicyWindowModalFront");
+			mockStore.focused = true;
+			rerender(<Dialog />);
+			expect(root()).toHaveClass("classicyWindowModalFront");
+		});
+
+		it("keeps the scrim for an error alert and a system-modal dialog", () => {
+			const owner = ownWindow("TestApp", "Owner");
+			const { unmount } = render(<Dialog type="error" />);
+			expect(scrim()).not.toBeNull();
+			expect(owner).not.toHaveAttribute("inert");
+			unmount();
+			render(<Dialog owner="system" />);
+			expect(scrim()).not.toBeNull();
+			expect(owner).not.toHaveAttribute("inert");
+		});
+
+		it("blocks nothing for a dialog the taskbar owns (Run)", () => {
+			const owner = ownWindow("TestApp", "Owner");
+			render(<Dialog owner="taskbar" />);
+			expect(scrim()).toBeNull();
+			expect(owner).not.toHaveAttribute("inert");
+			fireEvent.mouseDown(owner.querySelector("button") as HTMLElement, {
+				button: 0,
+			});
+			expect(beeps()).toBe(0);
+		});
+	});
+
+	describe("under Platinum's layout (no dialog.modality)", () => {
+		it("draws the scrim for every modal and makes nothing inert, as before", () => {
+			const owner = ownWindow("TestApp", "Owner");
+			render(<Dialog />);
+			expect(scrim()).not.toBeNull();
+			expect(owner).not.toHaveAttribute("inert");
+			expect(document.getElementById("TestApp_TestWindow")).toHaveClass(
+				"classicyWindowModalFront",
+			);
+			fireEvent.mouseDown(owner.querySelector("button") as HTMLElement, {
+				button: 0,
+			});
+			expect(beeps()).toBe(0);
+		});
+
+		it('keeps the scrim under dialog.caption "titled" alone', () => {
+			registerTestTaskbarPackage(
+				TEST_DIALOG_CAPTION_LAYOUT,
+				APP_MODAL_PACKAGE_ID,
+			);
+			activePackage.id = APP_MODAL_PACKAGE_ID;
+			render(<Dialog />);
+			expect(scrim()).not.toBeNull();
+		});
 	});
 });

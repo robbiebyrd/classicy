@@ -1689,7 +1689,7 @@ describe("the Windows 98 appearance package", () => {
 				startLabel: "Start",
 				startBanner: { title: "Windows", edition: "98" },
 			},
-			dialog: { caption: "titled", flushInput: true },
+			dialog: { caption: "titled", flushInput: true, modality: "application" },
 			icon: { aliasBadge: "everywhere" },
 			crashScreen: "fatalException",
 		});

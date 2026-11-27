@@ -315,6 +315,37 @@ describe("windows98.scss (compiled)", () => {
 		).toContain("-webkit-font-smoothing: none;");
 	});
 
+	// The shell addendum's B4 (audit 4.4; WIG Ch.4 "Mouse Pointers", p.23,
+	// Table 4.1; Ch.6 "Moving Windows", p.83): a move shows the arrow and a
+	// grip resize keeps the diagonal size pointer, where the base shows its
+	// grabbing hand for both.
+	it("keeps the arrow through a move and the diagonal size pointer through a grip resize", () => {
+		const blocks = (selector: string) =>
+			[
+				...css.matchAll(
+					new RegExp(
+						`(?:^|\\n|\\})\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+						"g",
+					),
+				),
+			].map((match) => match[1] ?? "");
+		const root = ".classicyDesktop[data-classicy-appearance=windows98]";
+		expect(blocks(`${root} .classicyWindow.dragging`).join("\n")).toContain(
+			'cursor: var(--classicy-cursor-arrow, url("data:,")) var(--classicy-cursor-arrow-hotspot, 0 0), default;',
+		);
+		expect(
+			blocks(
+				`${root} .classicyWindow.classicyWindowResizing .classicyWindowResizer`,
+			).join("\n"),
+		).toContain(
+			'cursor: var(--classicy-cursor-resize-nwse, url("data:,")) var(--classicy-cursor-resize-nwse-hotspot, 16 16), nwse-resize;',
+		);
+		// The idle grip keeps its rule.
+		expect(
+			blocks(`${root} .classicyWindow .classicyWindowResizer`).join("\n"),
+		).toContain("nwse-resize");
+	});
+
 	// The scroll-arrow hook of the audit's second pass (6.8 / 7.24): the core
 	// sets `disabled` on the arrow at the end of its travel, and the package
 	// embosses that one arrow as it embosses a fitting bar's, each rule after

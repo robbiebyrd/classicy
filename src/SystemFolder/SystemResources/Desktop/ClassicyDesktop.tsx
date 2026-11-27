@@ -135,6 +135,7 @@ import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Men
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyShellDialogs } from "@/SystemFolder/SystemResources/Taskbar/ClassicyShellDialogs.internal";
 import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
+import { ClassicyWindowModalOwnerContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowModality.internal";
 import { useClassicyWindowShellKeys } from "@/SystemFolder/SystemResources/Window/useClassicyWindowShellKeys.internal";
 
 import "../../../index.css";
@@ -1101,59 +1102,65 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				/>
 			))}
 			{systemDialog === "emptyTrash" ? (
-				<div className={"classicyDesktopDialogOverlay"}>
-					<ClassicyEmptyTrashAlert
-						itemCount={listClassicyTrashItems(getFileSystem()).length}
-						onEmpty={emptyTrash}
-						onClose={closeSystemDialog}
-					/>
-				</div>
+				<ClassicyWindowModalOwnerContext.Provider value="system">
+					<div className={"classicyDesktopDialogOverlay"}>
+						<ClassicyEmptyTrashAlert
+							itemCount={listClassicyTrashItems(getFileSystem()).length}
+							onEmpty={emptyTrash}
+							onClose={closeSystemDialog}
+						/>
+					</div>
+				</ClassicyWindowModalOwnerContext.Provider>
 			) : null}
 			{systemDialog === "resetPram" ? (
-				<div className={"classicyDesktopDialogOverlay"}>
-					<ClassicyAlert
-						id={SYSTEM_DIALOG_WINDOW_IDS.resetPram}
-						appId={"Finder.app"}
-						alertType={"caution"}
-						label={"Are you sure you want to reset PRAM?"}
-						message={
-							"This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
-						}
-						defaultButtonId={"cancel"}
-						buttons={[
-							{ id: "cancel", label: "Cancel", role: "cancel" },
-							{
-								id: "reset",
-								label: "Reset",
-								role: "normal",
-								onClick: resetPram,
-							},
-						]}
-						onClose={closeSystemDialog}
-					/>
-				</div>
+				<ClassicyWindowModalOwnerContext.Provider value="system">
+					<div className={"classicyDesktopDialogOverlay"}>
+						<ClassicyAlert
+							id={SYSTEM_DIALOG_WINDOW_IDS.resetPram}
+							appId={"Finder.app"}
+							alertType={"caution"}
+							label={"Are you sure you want to reset PRAM?"}
+							message={
+								"This clears all saved settings — windows, icons, appearance — and restarts Classicy. Files on your disks are kept. This action cannot be undone."
+							}
+							defaultButtonId={"cancel"}
+							buttons={[
+								{ id: "cancel", label: "Cancel", role: "cancel" },
+								{
+									id: "reset",
+									label: "Reset",
+									role: "normal",
+									onClick: resetPram,
+								},
+							]}
+							onClose={closeSystemDialog}
+						/>
+					</div>
+				</ClassicyWindowModalOwnerContext.Provider>
 			) : null}
 			{/* The Windows shell's own dialogs (Shut Down, Run, Log Off) and the
 			    screens Stand by and Shut down leave, from its Start menu: only
 			    under a layout that declares a taskbar. */}
 			{layout.taskbar ? <ClassicyShellDialogs onLogOff={onLogOff} /> : null}
 			{errorDialog ? (
-				<div className={"classicyDesktopDialogOverlay"}>
-					<ClassicyAlert
-						id={"error_dialog"}
-						appId={"Finder.app"}
-						alertType={"stop"}
-						title={errorDialog.title}
-						label={errorDialog.title ?? "Error"}
-						message={errorDialog.message}
-						buttons={[{ id: "ok", label: "OK", role: "default" }]}
-						onClose={() =>
-							desktopEventDispatch({
-								type: "ClassicyDesktopCloseErrorDialog",
-							})
-						}
-					/>
-				</div>
+				<ClassicyWindowModalOwnerContext.Provider value="system">
+					<div className={"classicyDesktopDialogOverlay"}>
+						<ClassicyAlert
+							id={"error_dialog"}
+							appId={"Finder.app"}
+							alertType={"stop"}
+							title={errorDialog.title}
+							label={errorDialog.title ?? "Error"}
+							message={errorDialog.message}
+							buttons={[{ id: "ok", label: "OK", role: "default" }]}
+							onClose={() =>
+								desktopEventDispatch({
+									type: "ClassicyDesktopCloseErrorDialog",
+								})
+							}
+						/>
+					</div>
+				</ClassicyWindowModalOwnerContext.Provider>
 			) : null}
 			{children}
 			<ClassicyBootSequence

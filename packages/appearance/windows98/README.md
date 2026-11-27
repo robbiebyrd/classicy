@@ -357,7 +357,14 @@ and `nodenext` resolution).
   and the name) and a Close button, which cancels it (a message box with
   only an OK takes OK), and moves by its caption, error messages included; a
   Yes/No question, which has no Cancel, shows its Close dimmed, and ALT+F4
-  leaves it open, as Windows' message boxes do. A window moves and sizes
+  leaves it open, as Windows' message boxes do. A dialog blocks only its own
+  program, as Windows 98's do: the program's other windows cannot be
+  clicked (a click there beeps and brings the dialog back), while other
+  programs, the desktop, the taskbar and the Start menu keep working; error
+  messages and the system's own dialogs (Shut Down, Log Off, emptying the
+  Recycle Bin, Reset PRAM) still block the whole screen, and Run blocks
+  nothing. When the screen gets smaller, every window that would fall off
+  it moves back onto it, above the taskbar. A window moves and sizes
   with the left mouse button only, and ESC during a move or a resize puts
   the window back where it was. A window opened again (a folder, a
   document) comes back scrolled where it was left. A dialog whose controls
@@ -659,7 +666,8 @@ and `nodenext` resolution).
   never had, Help Select, the arrow with a question mark, while What's
   This? is on, Unavailable, the slashed circle, over a place a dragged file
   cannot go, and Working in Background, the arrow with a small hourglass,
-  while a PDF loads. The size grip shows the diagonal one, as Windows' did.
+  while a PDF loads. The size grip shows the diagonal one, as Windows' did,
+  and keeps it while it is dragged; a window being moved shows the arrow.
 - **Windows 98's wallpapers and desktop patterns**, offered in the
   Appearance Manager's Desktop tab (its Patterns pop-up) while Windows 98 is
   active: the nineteen wallpaper bitmaps of Windows 98 Second Edition (Black

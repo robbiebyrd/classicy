@@ -905,6 +905,25 @@ $grip-shadow: runs($grip, "s");
     @include drag-band;
   }
 
+  // The pointers while a window moves or sizes (WIG Ch.4 "Mouse Pointers",
+  // p.23, Table 4.1; Ch.6 "Moving Windows", p.83): a move keeps the normal
+  // select arrow (USER.EXE's IDC_ARROW, the registry's `arrow`), where the
+  // base shows Classicy's grabbing hand; a resize from the grip keeps the
+  // diagonal size pointer (IDC_SIZENWSE, `resizeNwse`) wherever the pointer
+  // goes, as the base's grabbing hand would replace it. Outside a desktop the
+  // image never loads and the keyword cursor shows.
+  .classicyWindow.dragging {
+    cursor:
+      var(--classicy-cursor-arrow, url('data:,')) var(--classicy-cursor-arrow-hotspot, 0 0),
+      default;
+  }
+
+  .classicyWindow.classicyWindowResizing .classicyWindowResizer {
+    cursor:
+      var(--classicy-cursor-resize-nwse, url('data:,')) var(--classicy-cursor-resize-nwse-hotspot, 16 16),
+      nwse-resize;
+  }
+
   .classicyWindow.classicyWindowModal.dragging::after,
   .classicyWindow.classicyWindowModal.classicyWindowResizing::after,
   .classicyWindow.classicyWindowNoResize.dragging::after,

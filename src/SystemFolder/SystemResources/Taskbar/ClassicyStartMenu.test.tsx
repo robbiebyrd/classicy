@@ -30,6 +30,8 @@ import {
 	classicyDesktopHasOpenModal,
 	isClassicyStartMenuKey,
 } from "@/SystemFolder/SystemResources/Taskbar/useClassicyTaskbarKeys.internal";
+import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyWindowModalOwnerContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowModality.internal";
 import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 // Plan 0020-w98 §3, "The Start menu", and §2 "Keyboard": the menu the
@@ -637,6 +639,51 @@ describe("the Start menu", () => {
 			expect(classicyDesktopHasOpenModal(start())).toBe(false);
 			expect(ctrlEscape()).toBe(false);
 			expect(menu()).not.toBeNull();
+		});
+
+		// B18 (audit 10.21): under Windows 98's application modality a
+		// dialog draws no scrim, so CTRL+ESC still opens the Start menu; a
+		// system-modal one keeps its scrim and blocks it.
+		it("opens over an application-modal dialog under Windows 98's layout, not over a system-modal one", () => {
+			registerClassicyAppearancePackage({
+				id: WINDOWS98_LAYOUT_PACKAGE_ID,
+				name: "Windows 98 layout",
+				css: "",
+				defaults: {
+					...getTheme("default"),
+					id: `${WINDOWS98_LAYOUT_PACKAGE_ID}-default`,
+					package: WINDOWS98_LAYOUT_PACKAGE_ID,
+				},
+				layout: windows98.layout as never,
+			});
+			activate(WINDOWS98_LAYOUT_PACKAGE_ID);
+			const dialog = (owner?: "system") => (
+				<div className="classicyDesktop" id="classicyDesktop">
+					<ClassicyTaskbar />
+					<ClassicyWindowModalOwnerContext.Provider value={owner}>
+						<ClassicyWindow
+							id="Dialog"
+							appId="TestApp.app"
+							title="Dialog"
+							modal
+						>
+							<button type="button">OK</button>
+						</ClassicyWindow>
+					</ClassicyWindowModalOwnerContext.Provider>
+				</div>
+			);
+			const { rerender } = render(dialog());
+			expect(document.querySelector(".classicyWindowModalScrim")).toBeNull();
+			expect(ctrlEscape()).toBe(false);
+			expect(menu()).not.toBeNull();
+			ctrlEscape();
+			expect(menu()).toBeNull();
+			rerender(dialog("system"));
+			expect(
+				document.querySelector(".classicyWindowModalScrim"),
+			).not.toBeNull();
+			expect(ctrlEscape()).toBe(true);
+			expect(menu()).toBeNull();
 		});
 
 		// B7 (audit 4.21, 11.5): the shell's items carry Windows 98 SE's keys
