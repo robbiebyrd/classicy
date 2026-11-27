@@ -23,6 +23,7 @@ export const SYSTEM_DIALOG_WINDOW_IDS: Record<
 	shutDown: "shut_down",
 	run: "run",
 	logOff: "log_off",
+	taskbarDrop: "taskbar_drop",
 };
 
 /**

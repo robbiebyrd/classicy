@@ -1,8 +1,10 @@
 import classNames from "classnames";
 import {
+	type FocusEvent,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
+	type RefObject,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
@@ -17,7 +19,10 @@ import {
 } from "@/Appearance/ClassicyAppIdentity";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	useAppManager,
+	useAppManagerDispatch,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	getAppWindow,
 	listAppWindows,
@@ -26,6 +31,7 @@ import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHe
 import {
 	CLASSICY_DROP_ACTIVATE_ATTRIBUTE,
 	CLASSICY_DROP_ACTIVATE_EVENT,
+	CLASSICY_DROP_REFUSED_EVENT,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
@@ -102,11 +108,16 @@ const ownApp = (
 ): ClassicyStoreSystemApp | undefined =>
 	Object.hasOwn(apps, appId) ? apps[appId] : undefined;
 
-// A window with no button of its own: a modal dialog or a palette.
+// A window with no button of its own: a modal dialog, a palette, or a
+// modeless secondary window that says so (`taskbarButton={false}`).
 const isSecondary = (window: {
 	modal?: boolean;
 	windowType?: "document" | "utility";
-}): boolean => window.modal === true || window.windowType === "utility";
+	taskbarButton?: boolean;
+}): boolean =>
+	window.modal === true ||
+	window.windowType === "utility" ||
+	window.taskbarButton === false;
 
 /**
  * The key of the button drawn pushed in, if any (`ClassicyTaskbarTask`'s
@@ -141,9 +152,9 @@ const activeTaskKey = (
 /**
  * The window buttons, in the window registry's order (the order the
  * windows first mounted): every registered window that is neither a modal
- * nor a palette, whose record is open and whose app is open (extension apps
- * included, as Windows gives its help windows buttons), with its label, icon
- * and states. Pure: the taskbar passes the registry, the store's apps and the
+ * nor a palette nor registered with `taskbarButton` false, whose record is
+ * open and whose app is open (extension apps included, as Windows gives
+ * its help windows buttons), with its label, icon and states. Pure: the taskbar passes the registry, the store's apps and the
  * active package's app identity overrides.
  */
 export function classicyTaskbarTasks(
@@ -246,8 +257,13 @@ const liveTask = (
 const ClassicyTaskbarTaskButton: FunctionalComponent<{
 	task: ClassicyTaskbarTask;
 	overrides: ClassicyAppIdentityOverrides;
-}> = ({ task, overrides }) => {
+	/** The task band's one Tab stop (its roving focus). */
+	tabStop: boolean;
+	/** The button took the focus. */
+	onFocused: (key: string) => void;
+}> = ({ task, overrides, tabStop, onFocused }) => {
 	const { appId, windowId } = task.entry;
+	const dispatch = useAppManagerDispatch();
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const labelRef = useRef<HTMLSpanElement>(null);
 
@@ -255,7 +271,16 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 	// draws pushed in only then, as a Windows push button does.
 	const [press, setPress] = useState<{ over: boolean } | null>(null);
 	const held = press !== null;
-	const endPress = useCallback(() => setPress(null), []);
+	// A button-1 press on the button is still held (`pressedRef`), and the
+	// release that ended it came over the button (`releasedOverRef`): only
+	// then does the click that follows run the button's command (the shell
+	// addendum's B6), so a press whose stream was lost runs nothing.
+	const pressedRef = useRef(false);
+	const releasedOverRef = useRef(false);
+	const endPress = useCallback(() => {
+		pressedRef.current = false;
+		setPress(null);
+	}, []);
 	useEffect(() => {
 		if (!held) return;
 		document.addEventListener("mouseup", endPress);
@@ -292,17 +317,33 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 					type: classicyTaskbarDropActivateCommand(live),
 				} as ClassicyWindowCommand);
 		};
+		// A drag let go on the button is refused, and the shell says why:
+		// Windows 98's "You cannot drag an item onto a button on the
+		// taskbar." box (`ClassicyShellDialogs`' `"taskbarDrop"`).
+		const onDropRefused = () =>
+			dispatch({
+				type: "ClassicyDesktopShowSystemDialog",
+				dialog: "taskbarDrop",
+			});
 		button.addEventListener(CLASSICY_DROP_ACTIVATE_EVENT, onDropActivate);
-		return () =>
+		button.addEventListener(CLASSICY_DROP_REFUSED_EVENT, onDropRefused);
+		return () => {
 			button.removeEventListener(CLASSICY_DROP_ACTIVATE_EVENT, onDropActivate);
-	}, [task.key, overrides, appId, windowId]);
+			button.removeEventListener(CLASSICY_DROP_REFUSED_EVENT, onDropRefused);
+		};
+	}, [task.key, overrides, appId, windowId, dispatch]);
 
 	const onMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
 		if (e.button !== 0) return;
 		// A pointer press leaves the focus where it is: Windows' taskbar takes
 		// none from a click, which hands it to the window it activates.
 		e.preventDefault();
+		pressedRef.current = true;
+		releasedOverRef.current = false;
 		setPress({ over: true });
+	};
+	const onMouseUp = (e: MouseEvent<HTMLButtonElement>) => {
+		if (e.button === 0) releasedOverRef.current = pressedRef.current;
 	};
 	const onMouseEnter = () => {
 		const label = labelRef.current;
@@ -320,7 +361,12 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 	const onKeyUp = (e: KeyboardEvent<HTMLButtonElement>) => {
 		if (e.key === " ") endPress();
 	};
-	const onClick = () => {
+	const onClick = (e: MouseEvent<HTMLButtonElement>) => {
+		// Enter and Space reach it as a click with no press count; a pointer
+		// click counts only after a press released over the button.
+		const released = releasedOverRef.current;
+		releasedOverRef.current = false;
+		if (e.detail !== 0 && !released) return;
 		const live = liveTask(task.key, overrides);
 		if (live) run(classicyTaskbarClickCommand(live));
 	};
@@ -357,11 +403,14 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 				aria-describedby={handlers["aria-describedby"]}
 				{...{ [CLASSICY_DROP_ACTIVATE_ATTRIBUTE]: "" }}
 				onMouseDown={onMouseDown}
+				onMouseUp={onMouseUp}
 				onMouseEnter={onMouseEnter}
 				onMouseLeave={onMouseLeave}
 				onKeyDown={onKeyDown}
 				onKeyUp={onKeyUp}
 				onBlur={endPress}
+				onFocus={() => onFocused(task.key)}
+				tabIndex={tabStop ? 0 : -1}
 				onClick={onClick}
 				onContextMenu={onContextMenu}
 			>
@@ -379,6 +428,122 @@ const ClassicyTaskbarTaskButton: FunctionalComponent<{
 		</>
 	);
 };
+
+/**
+ * The task band's one Tab stop (the shell addendum's B10): the button last
+ * focused (`focusKey`) while it is shown, else the active window's
+ * (`activeKey`), else the first shown; `undefined` with no button. Pure.
+ */
+export function classicyTaskbarTabStop(
+	shown: readonly string[],
+	focusKey: string | null | undefined,
+	activeKey: string | null | undefined,
+): string | undefined {
+	if (focusKey && shown.includes(focusKey)) return focusKey;
+	if (activeKey && shown.includes(activeKey)) return activeKey;
+	return shown[0];
+}
+
+/**
+ * Where a key moves the task band's (or the status area's) roving focus
+ * from `from` among `keys` (WIG Ch.5 Table 5.1, pp.35-36): Left and Right,
+ * or Up and Down when `vertical` (a side taskbar), to the previous and next
+ * key, stopping at the ends; Home and End to the first and last. Returns
+ * the key to focus, `null` for a navigation key that moves nothing (an end
+ * reached, nothing focused), or `undefined` for a key it does not take.
+ * Pure.
+ */
+export function classicyTaskbarRovingKey(
+	keys: readonly string[],
+	from: string | null | undefined,
+	key: string,
+	vertical: boolean,
+): string | null | undefined {
+	const back = vertical ? "ArrowUp" : "ArrowLeft";
+	const ahead = vertical ? "ArrowDown" : "ArrowRight";
+	if (key !== back && key !== ahead && key !== "Home" && key !== "End")
+		return undefined;
+	if (keys.length === 0) return null;
+	if (key === "Home") return keys[0];
+	if (key === "End") return keys[keys.length - 1];
+	const index = from ? keys.indexOf(from) : -1;
+	if (index < 0) return keys[0];
+	const next = index + (key === ahead ? 1 : -1);
+	return next >= 0 && next < keys.length ? keys[next] : null;
+}
+
+/**
+ * A taskbar group that is one Tab stop with a roving focus (the shell
+ * addendum's B10: the status area, Quick Launch): the element under
+ * `rootRef` matching `selector` last focused, else the first, has
+ * `tabIndex` 0 and the rest -1, kept so as elements come and go (whichever
+ * component draws them: the menu bar extensions portal into the status
+ * area); Left and Right (Up and Down when `vertical`), Home and End move
+ * the focus among them (`classicyTaskbarRovingKey`). Spread the handlers on
+ * the root.
+ * @internal
+ */
+export function useClassicyTaskbarRovingGroup(
+	rootRef: RefObject<HTMLElement | null>,
+	selector: string,
+	vertical: boolean,
+): {
+	onFocusCapture: (e: FocusEvent<HTMLElement>) => void;
+	onKeyDown: (e: KeyboardEvent<HTMLElement>) => void;
+} {
+	const currentRef = useRef<HTMLElement | null>(null);
+	const itemsOf = useCallback(
+		(root: HTMLElement): HTMLElement[] =>
+			Array.from(root.querySelectorAll<HTMLElement>(selector)),
+		[selector],
+	);
+	const applyTabStop = useCallback(() => {
+		const root = rootRef.current;
+		if (!root) return;
+		const items = itemsOf(root);
+		const current =
+			currentRef.current && items.includes(currentRef.current)
+				? currentRef.current
+				: items[0];
+		for (const item of items) item.tabIndex = item === current ? 0 : -1;
+	}, [rootRef, itemsOf]);
+	useLayoutEffect(applyTabStop);
+	useEffect(() => {
+		const root = rootRef.current;
+		if (!root || typeof MutationObserver !== "function") return;
+		const observer = new MutationObserver(applyTabStop);
+		observer.observe(root, { childList: true, subtree: true });
+		return () => observer.disconnect();
+	}, [rootRef, applyTabStop]);
+	const onFocusCapture = (e: FocusEvent<HTMLElement>) => {
+		const root = rootRef.current;
+		if (!root || !(e.target instanceof HTMLElement)) return;
+		if (!itemsOf(root).includes(e.target)) return;
+		currentRef.current = e.target;
+		applyTabStop();
+	};
+	const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+		const root = rootRef.current;
+		if (!root || e.altKey || e.ctrlKey || e.metaKey) return;
+		const items = itemsOf(root);
+		const from = e.target instanceof HTMLElement ? items.indexOf(e.target) : -1;
+		if (from < 0) return;
+		const next = classicyTaskbarRovingKey(
+			items.map((_, i) => String(i)),
+			String(from),
+			e.key,
+			vertical,
+		);
+		if (next === undefined) return;
+		e.preventDefault();
+		if (next === null) return;
+		const item = items[Number(next)];
+		currentRef.current = item;
+		applyTabStop();
+		item.focus();
+	};
+	return { onFocusCapture, onKeyDown };
+}
 
 /**
  * How many window buttons one row of the task band holds (plan 0020-w98 E1,
@@ -546,6 +711,38 @@ export const ClassicyTaskbarTasks: FunctionalComponent<{
 		: order;
 	const step = (direction: 1 | -1) =>
 		setPage(Math.max(0, Math.min(pages - 1, shownPage + direction)));
+
+	// The keyboard (the shell addendum's B10; WIG Ch.5 Table 5.1, pp.35-36):
+	// the band is one Tab stop, the button last focused, else the active
+	// window's, else the first shown; Left and Right (Up and Down at a side)
+	// move the focus to the previous and next button, Home and End to the
+	// first and last, turning the page to show it; the button's own Enter
+	// and Space run its click.
+	const [focusKey, setFocusKey] = useState<string | null>(null);
+	const tabStopKey = classicyTaskbarTabStop(shown, focusKey, activeKey);
+	const pendingFocus = useRef<string | null>(null);
+	useLayoutEffect(() => {
+		const key = pendingFocus.current;
+		if (key === null) return;
+		const index = shown.indexOf(key);
+		if (index < 0) return;
+		pendingFocus.current = null;
+		listRef.current
+			?.querySelectorAll<HTMLButtonElement>("button.classicyTaskbarTask")
+			[index]?.focus();
+	});
+	const onListKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
+		if (e.altKey || e.ctrlKey || e.metaKey) return;
+		const from =
+			focusKey !== null && order.includes(focusKey) ? focusKey : tabStopKey;
+		const next = classicyTaskbarRovingKey(order, from, e.key, vertical);
+		if (next === undefined) return;
+		e.preventDefault();
+		if (next === null) return;
+		setFocusKey(next);
+		setPage(Math.floor(order.indexOf(next) / rowLength));
+		pendingFocus.current = next;
+	};
 	// The up/down control acts at the press, as an up-down control does, and
 	// takes no focus from a press; Enter and Space reach it as a click with
 	// no press count.
@@ -576,12 +773,18 @@ export const ClassicyTaskbarTasks: FunctionalComponent<{
 				})}
 				data-classicy-part="taskbar-tasks"
 				aria-label="Running windows"
+				onKeyDown={onListKeyDown}
 			>
 				{shown.map((key) => {
 					const task = byKey.get(key);
 					return task ? (
 						<li key={key}>
-							<ClassicyTaskbarTaskButton task={task} overrides={overrides} />
+							<ClassicyTaskbarTaskButton
+								task={task}
+								overrides={overrides}
+								tabStop={key === tabStopKey}
+								onFocused={setFocusKey}
+							/>
 						</li>
 					) : null;
 				})}

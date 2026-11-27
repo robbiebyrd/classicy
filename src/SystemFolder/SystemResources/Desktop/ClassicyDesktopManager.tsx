@@ -143,13 +143,22 @@ export type ClassicyDesktopSystemDialog =
 
 /**
  * The Windows shell's system dialogs, which the desktop opens only while the
- * active package's layout declares a `taskbar` (they are its Start menu's).
+ * active package's layout declares a `taskbar`: its Start menu's (Run, Log
+ * Off Windows, Shut Down Windows) and `"taskbarDrop"`, the message box a
+ * file dropped on a taskbar window button shows (the shell addendum's B15).
  */
-export type ClassicyShellSystemDialog = "shutDown" | "run" | "logOff";
+export type ClassicyShellSystemDialog =
+	| "shutDown"
+	| "run"
+	| "logOff"
+	| "taskbarDrop";
 
-/** Every `ClassicyShellSystemDialog`, in the Start menu's order. */
+/**
+ * Every `ClassicyShellSystemDialog`: the Start menu's, in its order, then
+ * the taskbar's message box.
+ */
 export const CLASSICY_SHELL_SYSTEM_DIALOGS: readonly ClassicyShellSystemDialog[] =
-	["run", "logOff", "shutDown"];
+	["run", "logOff", "shutDown", "taskbarDrop"];
 
 /** Whether `dialog` is one of the Windows shell's (`ClassicyShellSystemDialog`). */
 export const isClassicyShellSystemDialog = (

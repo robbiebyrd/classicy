@@ -796,6 +796,60 @@ describe("the tray", () => {
 		});
 	});
 
+	// The shell addendum's B10 (WIG Ch.5 Table 5.1, pp.35-36): the status
+	// area is one Tab stop with a roving focus.
+	describe("the keyboard", () => {
+		it("is one Tab stop, the arrows, Home and End moving among the icons", () => {
+			register(menuModule, defaultModule, contentModule);
+			renderTaskbar();
+			const order = icons();
+			expect(order.map((b) => b.tabIndex)).toEqual([0, -1, -1]);
+			act(() => order[0].focus());
+			fireEvent.keyDown(order[0], { key: "ArrowRight" });
+			expect(document.activeElement).toBe(order[1]);
+			expect(order.map((b) => b.tabIndex)).toEqual([-1, 0, -1]);
+			fireEvent.keyDown(order[1], { key: "End" });
+			expect(document.activeElement).toBe(order[2]);
+			fireEvent.keyDown(order[2], { key: "ArrowRight" });
+			expect(document.activeElement).toBe(order[2]);
+			fireEvent.keyDown(order[2], { key: "Home" });
+			expect(document.activeElement).toBe(order[0]);
+			fireEvent.keyDown(order[0], { key: "ArrowLeft" });
+			expect(document.activeElement).toBe(order[0]);
+		});
+
+		it("opens an icon's surface on Enter or Space, a click with no press count", () => {
+			register(contentModule);
+			renderTaskbar();
+			fireEvent.click(icon("Volume"), { detail: 0 });
+			expect(popup("volume")).not.toBeNull();
+		});
+
+		it("opens an icon's menu on Shift+F10 and the Application key", () => {
+			registerTestTaskbarPackage({
+				...TEST_TASKBAR_LAYOUT,
+				keyboard: { contextMenuKey: true },
+			});
+			register(menuModule);
+			renderTaskbar();
+			act(() => icon("File Sharing").focus());
+			act(() => {
+				fireEvent.keyDown(icon("File Sharing"), { key: "F10", shiftKey: true });
+			});
+			expect(document.getElementById("sharing-open")).not.toBeNull();
+			act(() => {
+				fireEvent.keyDown(document.activeElement ?? document.body, {
+					key: "Escape",
+				});
+			});
+			act(() => icon("File Sharing").focus());
+			act(() => {
+				fireEvent.keyDown(icon("File Sharing"), { key: "ContextMenu" });
+			});
+			expect(document.getElementById("sharing-open")).not.toBeNull();
+		});
+	});
+
 	describe("the tooltip", () => {
 		const balloonText = () =>
 			document.querySelector(".classicyBalloonHelpContent")?.textContent;

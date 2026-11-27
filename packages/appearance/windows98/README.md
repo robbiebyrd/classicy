@@ -101,19 +101,31 @@ and `nodenext` resolution).
     and each app you mark with `showInQuickLaunch` on its `ClassicyApp`,
     each named in a tooltip. Toolbars ▸ Quick Launch in the taskbar's menu
     hides it and shows it again, and the choice is kept.
-  - **A button for each open window** (not for dialogs or palettes), in
-    the order the windows opened, the active window's pressed. The Start
-    button says "Click here to begin." in a tooltip. Clicking a
+  - **A button for each open window** (not for dialogs, palettes or
+    secondary windows such as Finder Preferences and About This Computer),
+    in the order the windows opened, the active window's pressed. The Start
+    button says "Click here to begin." in a tooltip; press it and drag into
+    the menu to choose an item where you let go (let go off the menu and it
+    closes); right-click it for Open and Explore, which open the
+    Applications folder Start ▸ Programs lists. Clicking a
     button activates its window, minimizes it when it is already active,
-    and restores it when it is minimized; right-clicking it opens the
+    and restores it when it is minimized (let go off the button and
+    nothing happens); right-clicking it opens the
     window's pop-up menu; a title cut short shows whole in a tooltip; and
     a file dragged from a folder and held over a button brings its window
-    up for the drop. When an application in the background puts up a
+    up for the drop, while a file let go on a button is not dropped and
+    Windows 98's "You cannot drag an item onto a button on the taskbar."
+    message explains why. When an application in the background puts up a
     message while you are working elsewhere, its message waits behind your
     window and its button flashes (three times, then it stays highlighted)
     until you switch to it, as Windows 98 did. When too many windows are open for the buttons to
     fit, they shrink to their icons and show a row at a time, with small
     up and down arrows at the right to move between the rows.
+  - **From the keyboard**: CTRL+ESC then Escape leaves the focus on the
+    Start button, and Tab moves on to Quick Launch, the window buttons and
+    the notification area, one stop each; the arrow keys, Home and End move
+    within each, Enter or Space presses the button, and Shift+F10 opens a
+    notification icon's menu.
   - **The notification area**, at its right, holds the Control Strip's
     modules as icons (Sound, Screen Saver, Appearance, and any module your
     app registers): a click opens a module's control or its menu, a
@@ -134,7 +146,8 @@ and `nodenext` resolution).
   - **Right-click the taskbar** for Toolbars ▸ Quick Launch, Cascade
     Windows, Tile Windows Horizontally (one above another) and Tile
     Windows Vertically (side by side), Minimize All Windows, then Undo
-    Cascade, Undo Tile or Undo Minimize All to put the windows back, and
+    Cascade, Undo Tile or Undo Minimize All to put the windows back (Undo
+    Minimize All goes once you open or switch to another window), and
     Properties; right-click the clock for Adjust Date/Time first.
   - **Taskbar Properties** (the taskbar menu's Properties, or Start ▸
     Settings ▸ Taskbar & Start Menu, the Control Strip control panel under

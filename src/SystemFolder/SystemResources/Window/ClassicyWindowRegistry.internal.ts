@@ -142,6 +142,13 @@ export type ClassicyWindowEntry = {
 	 */
 	readonly movable: boolean;
 	/**
+	 * Whether the taskbar gives it a button (the `taskbarButton` prop,
+	 * default `true`): `false` for a modeless secondary window. A modal or a
+	 * palette has none whatever this says. Optional, so an entry registered
+	 * without it (a test's) has a button.
+	 */
+	readonly taskbarButton?: boolean;
+	/**
 	 * Where the window is drawn and what bounds its size
 	 * (`ClassicyWindowGeometry`), read now; `undefined` while it is not drawn
 	 * (closed, minimized, shaded, or a palette hidden with its app).

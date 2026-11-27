@@ -7,7 +7,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	CONTROL_STRIP_MANAGER_APP_ID,
 	CONTROL_STRIP_MANAGER_APP_NAME,
@@ -54,11 +57,18 @@ export type ClassicyTaskbarWindowRef = {
 
 /**
  * What Minimize All Windows did, remembered for its Undo: the windows it
- * minimized and the window that was active.
+ * minimized and the window that was active, and, as the store stood right
+ * after it, every open window (`classicyTaskbarOpenWindowKeys`) and the
+ * focused one (`classicyTaskbarFocusedWindowKey`), so a window opened or
+ * activated later forgets it (the shell addendum's B21).
  */
 export type ClassicyTaskbarMinimizedAll = {
 	readonly windows: readonly ClassicyTaskbarWindowRef[];
 	readonly active?: ClassicyTaskbarWindowRef;
+	/** The keys of every open window right after it (absent: not checked). */
+	readonly open?: readonly string[];
+	/** The focused window's key right after it, `""` for none (absent: not checked). */
+	readonly focus?: string;
 };
 
 /** A window's place before an arrangement, for its Undo. */
@@ -122,10 +132,48 @@ export function classicyTaskbarMinimizeAllTargets(
 	];
 }
 
+/** A window's key in `ClassicyTaskbarMinimizedAll`'s `open` and `focus`. */
+const windowKey = (appId: string, windowId: string): string =>
+	`${appId}\u0000${windowId}`;
+
+/**
+ * The keys of every open window of every open app (modals and palettes
+ * included), for `ClassicyTaskbarMinimizedAll`'s `open`. Pure.
+ */
+export function classicyTaskbarOpenWindowKeys(
+	apps: Readonly<Record<string, ClassicyStoreSystemApp>>,
+): string[] {
+	const keys: string[] = [];
+	for (const app of Object.values(apps)) {
+		if (!app.open) continue;
+		for (const window of listAppWindows(app))
+			if (!window.closed) keys.push(windowKey(app.id, window.id));
+	}
+	return keys;
+}
+
+/**
+ * The focused window's key (the focused app's focused, open window), `""`
+ * while none is (the desktop holds focus), for
+ * `ClassicyTaskbarMinimizedAll`'s `focus`. Pure.
+ */
+export function classicyTaskbarFocusedWindowKey(
+	apps: Readonly<Record<string, ClassicyStoreSystemApp>>,
+): string {
+	const app = Object.values(apps).find((a) => a.open && a.focused);
+	if (!app) return "";
+	const window = listAppWindows(app).find((w) => w.focused && !w.closed);
+	return window ? windowKey(app.id, window.id) : "";
+}
+
 /**
  * Whether `minimized` still stands, so the menu offers its Undo: it lists a
  * window, and every window it lists is still open, in an open app, and
- * collapsed. Restoring or closing any of them by other means forgets it.
+ * collapsed. Restoring or closing any of them by other means forgets it,
+ * and, as Windows 98's explorer forgets its list (WIG App. B, Table B.3,
+ * p.359; the shell addendum's B21), so does a window opening that was not
+ * open right after it (`open`) or a window other than the one focused right
+ * after it taking focus (`focus`); the focus going to the desktop keeps it.
  * Pure.
  */
 export function classicyTaskbarMinimizedAllStands(
@@ -133,12 +181,23 @@ export function classicyTaskbarMinimizedAllStands(
 	apps: Readonly<Record<string, ClassicyStoreSystemApp>>,
 ): boolean {
 	if (!minimized || minimized.windows.length === 0) return false;
-	return minimized.windows.every((ref) => {
+	const listed = minimized.windows.every((ref) => {
 		if (!isOpen(apps, ref)) return false;
 		return (
 			getAppWindow(ownApp(apps, ref.appId), ref.windowId)?.collapsed === true
 		);
 	});
+	if (!listed) return false;
+	if (minimized.open) {
+		const before = new Set(minimized.open);
+		if (classicyTaskbarOpenWindowKeys(apps).some((key) => !before.has(key)))
+			return false;
+	}
+	if (minimized.focus !== undefined) {
+		const focus = classicyTaskbarFocusedWindowKey(apps);
+		if (focus !== "" && focus !== minimized.focus) return false;
+	}
+	return true;
 }
 
 /**
@@ -390,7 +449,10 @@ const workArea = (): ClassicyArrangeArea => {
  * - **Undo** restores what the last of them changed: the windows Minimize
  *   All minimized that are still minimized, or the rects (and maximized
  *   state) the arranged windows had, then activates the window that was
- *   active.
+ *   active. Minimize All's list is forgotten, and the item reads Minimize
+ *   All Windows alone again, once one of its windows is restored or
+ *   closed, a window opens, or another window is activated
+ *   (`classicyTaskbarMinimizedAllStands`).
  * - **Properties** opens the Control Strip control panel, whose settings
  *   drive the status area.
  * - **Toolbars ▸ Quick Launch** shows or hides Quick Launch
@@ -464,7 +526,13 @@ export function useClassicyTaskbarCommands(): ClassicyTaskbarCommands {
 						getAppWindow(ownApp(now, appId), windowId)?.collapsed === true,
 				);
 			if (windows.length > 0)
-				undoRef.current = { kind: "minimizeAll", windows, active };
+				undoRef.current = {
+					kind: "minimizeAll",
+					windows,
+					active,
+					open: classicyTaskbarOpenWindowKeys(now),
+					focus: classicyTaskbarFocusedWindowKey(now),
+				};
 		};
 
 		const arrange = (

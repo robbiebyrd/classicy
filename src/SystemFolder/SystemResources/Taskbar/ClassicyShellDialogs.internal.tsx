@@ -94,6 +94,18 @@ export const CLASSICY_SAFE_TO_TURN_OFF_LINES = [
 	"your computer.",
 ] as const;
 
+/**
+ * The message box a file dropped on a taskbar window button shows (the shell
+ * addendum's B15; WIG Ch.10 "Taskbar Window Buttons", p.211): Windows 98
+ * SE's explorer.exe string 711, its two paragraphs, under the information
+ * icon with OK, titled with string 518, "Taskbar".
+ */
+export const CLASSICY_TASKBAR_DROP_TITLE = "Taskbar";
+export const CLASSICY_TASKBAR_DROP_MESSAGE = [
+	"You cannot drag an item onto a button on the taskbar.",
+	"However, if you do this without releasing the mouse button, the window will open and you can then drag the item into the window.",
+] as const;
+
 /** Props every shell dialog takes. */
 type ClassicyShellDialogFrameProps = {
 	/** The dialog's window id (`SYSTEM_DIALOG_WINDOW_IDS`). */
@@ -569,7 +581,8 @@ export type ClassicyShellDialogsProps = {
 
 /**
  * The Windows shell's system dialogs (`systemDialog` `"shutDown"`, `"run"`,
- * `"logOff"`) and power screens. Shut Down and Log Off are system modal:
+ * `"logOff"`, and the taskbar's message box, `"taskbarDrop"`) and power
+ * screens. Shut Down and Log Off are system modal:
  * the screen behind them is dimmed (`classicyShellDialogDim`, above the
  * taskbar, which the package draws as Windows 98's 50% dither of black). Run
  * is the taskbar's, and dims nothing.
@@ -631,6 +644,18 @@ export const ClassicyShellDialogs: FunctionalComponent<
 				<ClassicyLogOffDialog shell={shell} onClose={close} onLogOff={logOff} />
 			)}
 			{dialog === "run" && <ClassicyRunDialog shell={shell} onClose={close} />}
+			{dialog === "taskbarDrop" && (
+				<ClassicyAlert
+					id={SYSTEM_DIALOG_WINDOW_IDS.taskbarDrop}
+					appId={SHELL_APP_ID}
+					alertType="note"
+					title={CLASSICY_TASKBAR_DROP_TITLE}
+					label={CLASSICY_TASKBAR_DROP_MESSAGE[0]}
+					message={CLASSICY_TASKBAR_DROP_MESSAGE[1]}
+					buttons={[{ id: "ok", label: "OK", role: "default" }]}
+					onClose={close}
+				/>
+			)}
 			{power !== null && <ClassicyPowerScreen state={power} onWake={wake} />}
 		</>
 	);

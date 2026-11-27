@@ -101,6 +101,15 @@ export const CLASSICY_DROP_ACTIVATE_ATTRIBUTE = "data-classicy-drop-activate";
  */
 export const CLASSICY_DROP_ACTIVATE_EVENT = "classicy:dropactivate";
 /**
+ * The event a `CLASSICY_DROP_ACTIVATE_ATTRIBUTE` element gets when a drag is
+ * let go on it: the drop is refused (nothing is dropped, `onDrop` gets
+ * null), and the element may say so (the taskbar's window buttons show
+ * Windows 98's "You cannot drag an item onto a button on the taskbar." box;
+ * the shell addendum's B15). A plain `Event` that does not bubble and
+ * carries nothing of the drag.
+ */
+export const CLASSICY_DROP_REFUSED_EVENT = "classicy:droprefused";
+/**
  * How long a drag rests on a `CLASSICY_DROP_ACTIVATE_ATTRIBUTE` element
  * before it is activated, in ms. The guidelines give no figure; this is the
  * double-click time, the default Windows' own hover timers take (Wine
@@ -420,7 +429,8 @@ export type ClassicyFileDragOptions = {
  * `CLASSICY_DROP_ACTIVATE_EVENT`, once, however long the drag stays or
  * moves about on it. Leaving the element stops the timer, and coming back
  * starts it again; the drag ending, however it ends, stops it. The element
- * is not highlighted, and a release on it drops nothing.
+ * is not highlighted, and a release on it drops nothing and sends it
+ * `CLASSICY_DROP_REFUSED_EVENT`, after `onDrop`.
  *
  * While the outline is shown the desktop root (the `.classicyDesktop`
  * around `source`) carries `data-classicy-drop`, the drop effect under the
@@ -555,8 +565,6 @@ export function startClassicyFileDrag(
 		if (options.canDrop && !options.canDrop(target)) return null;
 		return effectsAt(target).length > 0 ? target : null;
 	};
-	// The target under a point that takes the drag, or null.
-	const targetAt = (x: number, y: number) => targetOf(hitAt(x, y));
 	// What a drop on `target` does with the keys as they are.
 	const effectAt = (target: ClassicyFileDropTarget) =>
 		classicyFileDropEffectFor(
@@ -696,7 +704,8 @@ export function startClassicyFileDrag(
 			return;
 		}
 		// Hit-tested once the outline and highlight are gone.
-		const target = targetAt(e.clientX, e.clientY);
+		const hit = hitAt(e.clientX, e.clientY);
+		const target = targetOf(hit);
 		const point: [number, number] = [e.clientX, e.clientY];
 		const outlineTopLeft: [number, number] = [
 			e.clientX - grabOffset[0],
@@ -712,6 +721,10 @@ export function startClassicyFileDrag(
 			return;
 		}
 		options.onDrop(target, point, outlineTopLeft, effect);
+		// Let go on an element a resting drag activates (a taskbar button):
+		// refused, and the element hears it, after the drop's own handling.
+		if (hit.kind === "activate" && hit.element.isConnected)
+			hit.element.dispatchEvent(new Event(CLASSICY_DROP_REFUSED_EVENT));
 	}
 
 	// Escape, a lost pointer stream (`lost`), or the caller abandoning the

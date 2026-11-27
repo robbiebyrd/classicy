@@ -25,7 +25,10 @@ import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyI
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { openClassicyFolderWindow } from "@/SystemFolder/SystemResources/Taskbar/ClassicyRunCommand.internal";
 import type { ClassicyShowTaskbarMenu } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
-import { CLASSICY_TASKBAR_TOOLTIP_DELAY_MS } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
+import {
+	CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
+	useClassicyTaskbarRovingGroup,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
 
 /**
  * The taskbar's Quick Launch toolbar (plan 0020-w98 E1): the band Windows 98
@@ -195,7 +198,9 @@ const ClassicyQuickLaunchButton: FunctionalComponent<{
 export const ClassicyTaskbarQuickLaunch: FunctionalComponent<{
 	showTaskbarMenu: ClassicyShowTaskbarMenu;
 	toggleDesktop: () => void;
-}> = ({ showTaskbarMenu, toggleDesktop }) => {
+	/** The taskbar stands at a side: Up and Down walk the buttons. */
+	vertical?: boolean;
+}> = ({ showTaskbarMenu, toggleDesktop, vertical = false }) => {
 	const dispatch = useAppManagerDispatch();
 	const overrides = useClassicyAppIdentityOverrides();
 	const mounted = useClassicyMountedApps();
@@ -256,12 +261,25 @@ export const ClassicyTaskbarQuickLaunch: FunctionalComponent<{
 		toggleDesktop,
 	]);
 
+	// One Tab stop with a roving focus, as a toolbar is (the shell
+	// addendum's B10).
+	const rootRef = useRef<HTMLDivElement>(null);
+	const roving = useClassicyTaskbarRovingGroup(
+		rootRef,
+		"button.classicyTaskbarQuickLaunchButton",
+		vertical,
+	);
+
 	return (
 		<div
+			ref={rootRef}
 			className="classicyTaskbarQuickLaunch"
 			data-classicy-part="taskbar-quick-launch"
 			role="toolbar"
 			aria-label="Quick Launch"
+			aria-orientation={vertical ? "vertical" : "horizontal"}
+			onFocusCapture={roving.onFocusCapture}
+			onKeyDown={roving.onKeyDown}
 		>
 			<span className="classicyTaskbarGripper" aria-hidden="true" />
 			<ul className="classicyTaskbarQuickLaunchButtons">

@@ -637,6 +637,17 @@ interface ClassicyWindowProps {
 	 */
 	fitsScrollBars?: boolean;
 	/**
+	 * Whether the Windows taskbar gives this window a button (plan 0020-w98
+	 * §2; WIG Ch.10 "Taskbar Window Buttons", p.211: "secondary windows ...
+	 * do not appear on the taskbar"; Ch.8 p.145). Read only by the taskbar's
+	 * membership, which a package mounts only under `layout.taskbar`
+	 * (Windows 98), so it changes nothing under any other package. A modal
+	 * and a palette (`windowType="utility"`) never have one; pass `false` for
+	 * a modeless secondary window (a preferences or About window), which then
+	 * has none either. Defaults to `true`.
+	 */
+	taskbarButton?: boolean;
+	/**
 	 * Make this a modal dialog (HIGOS8 p.57). The window portals into the
 	 * desktop above an input-blocking scrim (clicking outside beeps), traps Tab
 	 * focus, cancels on Escape / Command-period, and draws no zoom box. It is a
@@ -918,6 +929,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	resizable = true,
 	scrollable = true,
 	fitsScrollBars,
+	taskbarButton = true,
 	modal = false,
 	movable = true,
 	type = "default",
@@ -3619,6 +3631,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			collapsable: collapsesByBox,
 			resizable,
 			movable: movesByTitleBar,
+			taskbarButton,
 			geometry: () => geometryRef.current(),
 			run: (command: ClassicyWindowCommand) => runCommandRef.current(command),
 		};
@@ -3637,6 +3650,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		collapsesByBox,
 		resizable,
 		movesByTitleBar,
+		taskbarButton,
 	]);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the window's ids, which the body does not read: a new id is a new registration, so the old one goes first
 	useEffect(

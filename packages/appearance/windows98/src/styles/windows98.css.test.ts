@@ -1109,6 +1109,18 @@ describe("windows98.scss (compiled)", () => {
 			expect(list).toContain("padding-right: var(--taskbar-button-gap)");
 			expect(list).toContain("overflow: hidden");
 			const task = block("=windows98] .classicyTaskbarTask");
+			// The shell addendum's B10: the keyboard's focus is the dotted
+			// rectangle three pixels in, inside the bevel, on the window
+			// buttons, Quick Launch's buttons and the tray's icons alike.
+			expect(block(".classicyTaskbarTask:focus-visible")).toContain(
+				`outline-offset: calc(calc(${B2} + ${B}) * -1)`,
+			);
+			expect(
+				block(".classicyTaskbarQuickLaunchButton:focus-visible"),
+			).toContain(" dotted ");
+			expect(block(".classicyTaskbarTrayIcon:focus-visible")).toContain(
+				" dotted ",
+			);
 			expect(task).toContain("height: var(--taskbar-button-height)");
 			expect(task).toContain("padding: 0 var(--taskbar-button-padding-x)");
 			expect(task).toContain(RAISED);

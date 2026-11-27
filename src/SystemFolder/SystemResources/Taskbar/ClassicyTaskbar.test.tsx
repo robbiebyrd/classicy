@@ -50,21 +50,28 @@ import {
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
+	CLASSICY_START_BUTTON_MENU_IDS,
 	CLASSICY_TASKBAR_START_TOOLTIP,
 	ClassicyTaskbar,
+	classicyStartButtonMenuItems,
+	classicyStartPressRelease,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
 import { getClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import {
 	CLASSICY_TASKBAR_MENU_IDS,
+	classicyTaskbarFocusedWindowKey,
 	classicyTaskbarMenuItems,
 	classicyTaskbarMinimizeAllTargets,
 	classicyTaskbarMinimizedAllStands,
+	classicyTaskbarOpenWindowKeys,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
 import {
 	CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
 	classicyTaskbarClickCommand,
 	classicyTaskbarDropActivateCommand,
 	classicyTaskbarOrder,
+	classicyTaskbarRovingKey,
+	classicyTaskbarTabStop,
 	classicyTaskbarTaskKey,
 	classicyTaskbarTasks,
 	classicyTaskbarTasksPerPage,
@@ -162,6 +169,44 @@ describe("classicyTaskbarTasks", () => {
 		expect(keys(classicyTaskbarTasks(entries, apps, NONE))).toEqual([
 			k("A.app", "doc"),
 			k("Help.app", "topic"),
+		]);
+	});
+
+	// The shell addendum's B13 (WIG Ch.10 "Taskbar Window Buttons", p.211;
+	// Ch.8 p.145): a modeless secondary window says it has no button.
+	it("gives no button to a window registered with taskbarButton false, and one to a window that says true or nothing", () => {
+		const entries = [
+			entry("A.app", "doc"),
+			entry("A.app", "prefs", { taskbarButton: false }),
+			entry("A.app", "other", { taskbarButton: true }),
+		];
+		const apps = appsOf(app("A.app", [win("doc"), win("prefs"), win("other")]));
+		expect(keys(classicyTaskbarTasks(entries, apps, NONE))).toEqual([
+			k("A.app", "doc"),
+			k("A.app", "other"),
+		]);
+	});
+
+	it("keeps the owner's button pushed in while its buttonless secondary window holds focus", () => {
+		const tasks = classicyTaskbarTasks(
+			[
+				entry("A.app", "doc"),
+				entry("A.app", "prefs", { taskbarButton: false }),
+			],
+			appsOf(
+				app(
+					"A.app",
+					[
+						win("doc", { zOrder: 3 }),
+						win("prefs", { focused: true, zOrder: 4 }),
+					],
+					{ focused: true },
+				),
+			),
+			NONE,
+		);
+		expect(tasks.filter((t) => t.active).map((t) => t.key)).toEqual([
+			k("A.app", "doc"),
 		]);
 	});
 
@@ -424,6 +469,72 @@ describe("classicyTaskbarMinimizedAllStands", () => {
 				apps(),
 			),
 		).toBe(false);
+	});
+
+	// The shell addendum's B21 (WIG App. B, Table B.3, p.359; Windows 98 as
+	// shipped): a window opening, or another window taking focus, forgets it.
+	describe("with the open windows and the focus it left", () => {
+		const after = {
+			...minimized,
+			open: [k("A.app", "one"), k("B.app", "two"), k("C.app", "fixed")],
+			focus: k("C.app", "fixed"),
+		};
+		const live = (
+			c: ClassicyStoreSystemAppWindow[],
+			cFocused = true,
+		): ReturnType<typeof appsOf> => ({
+			...apps(),
+			...appsOf(app("C.app", c, { focused: cFocused })),
+		});
+
+		it("stands while nothing opened and the focus stayed, or went to the desktop", () => {
+			expect(
+				classicyTaskbarMinimizedAllStands(
+					after,
+					live([win("fixed", { focused: true })]),
+				),
+			).toBe(true);
+			expect(
+				classicyTaskbarMinimizedAllStands(
+					after,
+					live([win("fixed", { focused: true })], false),
+				),
+			).toBe(true);
+		});
+
+		it("falls once a window opens that was not open after it", () => {
+			expect(
+				classicyTaskbarMinimizedAllStands(
+					after,
+					live([win("fixed", { focused: true }), win("new")]),
+				),
+			).toBe(false);
+		});
+
+		it("falls once another window is activated", () => {
+			expect(
+				classicyTaskbarMinimizedAllStands(
+					{ ...after, open: [...after.open, k("C.app", "other")] },
+					live([win("fixed"), win("other", { focused: true })]),
+				),
+			).toBe(false);
+		});
+	});
+
+	it("lists every open window and the focused one", () => {
+		const list = appsOf(
+			app(
+				"A.app",
+				[win("one", { focused: true }), win("shut", { closed: true })],
+				{
+					focused: true,
+				},
+			),
+			app("B.app", [win("two")], { open: false }),
+		);
+		expect(classicyTaskbarOpenWindowKeys(list)).toEqual([k("A.app", "one")]);
+		expect(classicyTaskbarFocusedWindowKey(list)).toBe(k("A.app", "one"));
+		expect(classicyTaskbarFocusedWindowKey(apps())).toBe("");
 	});
 
 	it("is nothing to undo with no list, or an empty one", () => {
@@ -784,6 +895,97 @@ describe("ClassicyTaskbar", () => {
 			expect(start()).toHaveAttribute("aria-expanded", "false");
 		});
 
+		// The shell addendum's B6 (WIG Ch.4 "Mouse Actions", p.24; Ch.7
+		// p.97): the press that opened the menu is followed to its release.
+		describe("a press dragged into the menu", () => {
+			const menu = () => document.getElementById("classicy-start-menu");
+			const items = () =>
+				Array.from(
+					menu()?.querySelectorAll<HTMLElement>(
+						'li[role="menuitem"]:not(.disabled):not(.classicyMenuItemChildMenuIndicator)',
+					) ?? [],
+				);
+
+			it("chooses the enabled item it is released over", () => {
+				render(<ClassicyTaskbar />);
+				fireEvent.mouseDown(start(), { button: 0 });
+				const item = items()[0];
+				expect(item).toBeDefined();
+				const chosen = vi.fn();
+				item.addEventListener("click", chosen);
+				act(() => {
+					fireEvent.mouseUp(item, { button: 0 });
+				});
+				expect(chosen).toHaveBeenCalledTimes(1);
+			});
+
+			it("stays open released over the Start button or a submenu's item, and closes off both", () => {
+				render(<ClassicyTaskbar />);
+				fireEvent.mouseDown(start(), { button: 0 });
+				fireEvent.mouseUp(start(), { button: 0 });
+				expect(start()).toHaveClass("open");
+				fireEvent.mouseDown(start(), { button: 0 });
+				expect(start()).not.toHaveClass("open");
+				fireEvent.mouseDown(start(), { button: 0 });
+				const parent = menu()?.querySelector(
+					".classicyMenuItemChildMenuIndicator",
+				) as HTMLElement;
+				expect(parent).not.toBeNull();
+				act(() => {
+					fireEvent.mouseUp(parent, { button: 0 });
+				});
+				expect(start()).toHaveClass("open");
+				fireEvent.mouseDown(start(), { button: 0 });
+				fireEvent.mouseDown(start(), { button: 0 });
+				expect(start()).toHaveClass("open");
+				act(() => {
+					fireEvent.mouseUp(document.body, { button: 0 });
+				});
+				expect(start()).not.toHaveClass("open");
+			});
+
+			it("closes on a lost pointer stream, choosing nothing", () => {
+				render(<ClassicyTaskbar />);
+				fireEvent.mouseDown(start(), { button: 0 });
+				expect(start()).toHaveClass("open");
+				act(() => {
+					window.dispatchEvent(new Event("blur"));
+				});
+				expect(start()).not.toHaveClass("open");
+			});
+
+			it("leaves a later release alone once the menu is open", () => {
+				render(<ClassicyTaskbar />);
+				fireEvent.mouseDown(start(), { button: 0 });
+				fireEvent.mouseUp(start(), { button: 0 });
+				act(() => {
+					fireEvent.mouseUp(document.body, { button: 0 });
+				});
+				expect(start()).toHaveClass("open");
+			});
+		});
+
+		it("hands the focus to the button when Escape closes a menu CTRL+ESC opened", () => {
+			render(
+				<>
+					<input aria-label="elsewhere" />
+					<ClassicyTaskbar />
+				</>,
+			);
+			const elsewhere = document.querySelector("input") as HTMLInputElement;
+			elsewhere.focus();
+			act(() => {
+				fireEvent.keyDown(elsewhere, { key: "Escape", ctrlKey: true });
+			});
+			expect(start()).toHaveClass("open");
+			expect(document.activeElement).toBe(elsewhere);
+			act(() => {
+				fireEvent.keyDown(elsewhere, { key: "Escape" });
+			});
+			expect(start()).not.toHaveClass("open");
+			expect(document.activeElement).toBe(start());
+		});
+
 		it("ignores a button-2 press", () => {
 			render(<ClassicyTaskbar />);
 			fireEvent.mouseDown(start(), { button: 2 });
@@ -1013,6 +1215,101 @@ describe("ClassicyTaskbar", () => {
 				window.dispatchEvent(new Event("blur"));
 			});
 			expect(one).not.toHaveClass("pressed");
+		});
+
+		// The shell addendum's B6: the command runs at a release over the
+		// button pressed, never at a release elsewhere or after a lost stream.
+		describe("a pointer click", () => {
+			const pointerClick = (target: Element, from: Element = target) => {
+				fireEvent.mouseDown(from, { button: 0 });
+				fireEvent.mouseUp(target, { button: 0 });
+				if (target === from) fireEvent.click(target, { detail: 1 });
+			};
+
+			it("runs the button's command at a release over it", () => {
+				register(entry("A.app", "one", { title: "One" }));
+				register(entry("A.app", "two", { title: "Two" }));
+				setApps(app("A.app", [win("one", { focused: true }), win("two")]));
+				render(<ClassicyTaskbar />);
+				pointerClick(taskButton("Two"));
+				expect(commands).toEqual(["two:activate"]);
+			});
+
+			it("runs nothing at a release elsewhere, or once the pointer stream is lost", () => {
+				register(entry("A.app", "one", { title: "One" }));
+				register(entry("A.app", "two", { title: "Two" }));
+				setApps(app("A.app", [win("one", { focused: true }), win("two")]));
+				render(<ClassicyTaskbar />);
+				pointerClick(document.body, taskButton("Two"));
+				expect(commands).toEqual([]);
+				const two = taskButton("Two");
+				fireEvent.mouseDown(two, { button: 0 });
+				act(() => {
+					window.dispatchEvent(new Event("blur"));
+				});
+				fireEvent.mouseUp(two, { button: 0 });
+				fireEvent.click(two, { detail: 1 });
+				expect(commands).toEqual([]);
+				// A click with no press count is the keyboard's, and runs.
+				fireEvent.click(two, { detail: 0 });
+				expect(commands).toEqual(["two:activate"]);
+			});
+		});
+
+		// The shell addendum's B10 (WIG Ch.5 Table 5.1, pp.35-36).
+		describe("the keyboard", () => {
+			const threeTasks = () => {
+				register(entry("A.app", "one", { title: "One" }));
+				register(entry("A.app", "two", { title: "Two" }));
+				register(entry("A.app", "three", { title: "Three" }));
+				setApps(
+					app(
+						"A.app",
+						[win("one"), win("two", { focused: true }), win("three")],
+						{ focused: true },
+					),
+				);
+			};
+
+			it("makes the band one Tab stop, the active window's button", () => {
+				threeTasks();
+				render(<ClassicyTaskbar />);
+				expect(taskButtons().map((b) => b.tabIndex)).toEqual([-1, 0, -1]);
+			});
+
+			it("moves the focus with Left, Right, Home and End, and keeps the stop where it went", () => {
+				threeTasks();
+				render(<ClassicyTaskbar />);
+				act(() => taskButton("Two").focus());
+				fireEvent.keyDown(taskButton("Two"), { key: "ArrowRight" });
+				expect(document.activeElement).toBe(taskButton("Three"));
+				expect(taskButtons().map((b) => b.tabIndex)).toEqual([-1, -1, 0]);
+				fireEvent.keyDown(taskButton("Three"), { key: "ArrowRight" });
+				expect(document.activeElement).toBe(taskButton("Three"));
+				fireEvent.keyDown(taskButton("Three"), { key: "Home" });
+				expect(document.activeElement).toBe(taskButton("One"));
+				fireEvent.keyDown(taskButton("One"), { key: "End" });
+				expect(document.activeElement).toBe(taskButton("Three"));
+				fireEvent.keyDown(taskButton("Three"), { key: "ArrowLeft" });
+				expect(document.activeElement).toBe(taskButton("Two"));
+				// Up and Down are a side taskbar's.
+				fireEvent.keyDown(taskButton("Two"), { key: "ArrowDown" });
+				expect(document.activeElement).toBe(taskButton("Two"));
+				expect(commands).toEqual([]);
+			});
+
+			it("walks Up and Down at a side", () => {
+				threeTasks();
+				act(() =>
+					dispatch({ type: "ClassicyDesktopTaskbarSetEdge", edge: "left" }),
+				);
+				render(<ClassicyTaskbar />);
+				act(() => taskButton("Two").focus());
+				fireEvent.keyDown(taskButton("Two"), { key: "ArrowDown" });
+				expect(document.activeElement).toBe(taskButton("Three"));
+				fireEvent.keyDown(taskButton("Three"), { key: "ArrowUp" });
+				expect(document.activeElement).toBe(taskButton("Two"));
+			});
 		});
 
 		it("minimizes the active window, activates another and restores a minimized one", () => {
@@ -1521,6 +1818,93 @@ describe("ClassicyTaskbar", () => {
 	});
 });
 
+describe("classicyStartButtonMenuItems", () => {
+	it("is Windows 98's Open (default, O) and Explore (E), with no Find", () => {
+		const onOpen = vi.fn();
+		const onExplore = vi.fn();
+		const items = classicyStartButtonMenuItems({ onOpen, onExplore });
+		expect(
+			items.map((i) => [i.title, i.accessKey, i.isDefault === true]),
+		).toEqual([
+			["Open", "O", true],
+			["Explore", "E", false],
+		]);
+		items[0].onClickFunc?.();
+		items[1].onClickFunc?.();
+		expect(onOpen).toHaveBeenCalledTimes(1);
+		expect(onExplore).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("classicyStartPressRelease", () => {
+	it("chooses an enabled leaf item, keeps over the button or the rest of the menu, closes off both", () => {
+		document.body.innerHTML = `
+			<button id="start"><span id="label">Start</span></button>
+			<div id="menu">
+				<ul>
+					<li role="menuitem" id="leaf"><p id="text">Run...</p></li>
+					<li role="menuitem" id="parent" class="classicyMenuItemChildMenuIndicator"><p>Programs</p></li>
+					<li role="menuitem" id="dimmed" class="disabled"><p>Off</p></li>
+					<li id="divider" role="separator"></li>
+				</ul>
+			</div>
+			<div id="away"></div>`;
+		const el = (id: string) => document.getElementById(id);
+		const at = (id: string) =>
+			classicyStartPressRelease(el(id), el("start"), el("menu"));
+		expect(at("text")).toBe(el("leaf"));
+		expect(at("leaf")).toBe(el("leaf"));
+		expect(at("label")).toBe("keep");
+		expect(at("parent")).toBe("keep");
+		expect(at("dimmed")).toBe("keep");
+		expect(at("divider")).toBe("keep");
+		expect(at("away")).toBe("close");
+		expect(classicyStartPressRelease(null, el("start"), el("menu"))).toBe(
+			"close",
+		);
+		expect(classicyStartPressRelease(el("text"), el("start"), null)).toBe(
+			"close",
+		);
+		document.body.innerHTML = "";
+	});
+});
+
+describe("classicyTaskbarTabStop", () => {
+	it("is the button last focused, else the active one, else the first shown", () => {
+		expect(classicyTaskbarTabStop(["a", "b", "c"], "c", "b")).toBe("c");
+		expect(classicyTaskbarTabStop(["a", "b", "c"], "z", "b")).toBe("b");
+		expect(classicyTaskbarTabStop(["a", "b", "c"], null, "z")).toBe("a");
+		expect(classicyTaskbarTabStop([], "a", "a")).toBeUndefined();
+	});
+});
+
+describe("classicyTaskbarRovingKey", () => {
+	const keys = ["a", "b", "c"];
+	it("walks Left and Right along a horizontal taskbar, stopping at the ends", () => {
+		expect(classicyTaskbarRovingKey(keys, "b", "ArrowRight", false)).toBe("c");
+		expect(classicyTaskbarRovingKey(keys, "b", "ArrowLeft", false)).toBe("a");
+		expect(classicyTaskbarRovingKey(keys, "c", "ArrowRight", false)).toBeNull();
+		expect(classicyTaskbarRovingKey(keys, "a", "ArrowLeft", false)).toBeNull();
+		expect(
+			classicyTaskbarRovingKey(keys, "b", "ArrowDown", false),
+		).toBeUndefined();
+	});
+	it("walks Up and Down at a side", () => {
+		expect(classicyTaskbarRovingKey(keys, "b", "ArrowDown", true)).toBe("c");
+		expect(classicyTaskbarRovingKey(keys, "b", "ArrowUp", true)).toBe("a");
+		expect(
+			classicyTaskbarRovingKey(keys, "b", "ArrowRight", true),
+		).toBeUndefined();
+	});
+	it("goes to the first and last on Home and End, and takes no other key", () => {
+		expect(classicyTaskbarRovingKey(keys, "b", "Home", false)).toBe("a");
+		expect(classicyTaskbarRovingKey(keys, "b", "End", true)).toBe("c");
+		expect(classicyTaskbarRovingKey(keys, "b", "Enter", false)).toBeUndefined();
+		expect(classicyTaskbarRovingKey([], null, "Home", false)).toBeNull();
+		expect(classicyTaskbarRovingKey(keys, "z", "ArrowRight", false)).toBe("a");
+	});
+});
+
 describe("classicyTaskbarTasksPerPage", () => {
 	const room = { listWidth: 100, pagerWidth: 0, minWidth: 22, gap: 3 };
 	it("holds every button while each has its least width and gap", () => {
@@ -1640,6 +2024,30 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 		expect(ownButtons().map((b) => b.textContent)).toEqual(["Main"]);
 		// The dialog holds focus; its owner's button stays pressed under it.
 		expect(getAppWindow(appRecord(), "dialog")?.focused).toBe(true);
+		expect(button("Main")).toHaveClass("active");
+	});
+
+	// The shell addendum's B13: a modeless secondary window passing
+	// taskbarButton={false} (Finder's Preferences, About This Computer) has
+	// no button, and its owner's button stays pushed in under it.
+	it("gives no button to a modeless window that passes taskbarButton={false}", () => {
+		renderShell(
+			<>
+				<ClassicyWindow id="main" appId={APP_ID} title="Main">
+					<p>main</p>
+				</ClassicyWindow>
+				<ClassicyWindow
+					id="second"
+					appId={APP_ID}
+					title="Second"
+					taskbarButton={false}
+				>
+					<p>second</p>
+				</ClassicyWindow>
+			</>,
+		);
+		expect(ownButtons().map((b) => b.textContent)).toEqual(["Main"]);
+		expect(getAppWindow(appRecord(), "second")?.focused).toBe(true);
 		expect(button("Main")).toHaveClass("active");
 	});
 
@@ -1783,6 +2191,81 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 		}
 	});
 
+	// The shell addendum's B15: a drag let go on a window button is refused,
+	// and Windows 98's message box (explorer.exe strings 711 and 518) says
+	// why, under the information icon, with OK.
+	it("refuses a drop on a window button with Windows 98's message box", () => {
+		renderShell(
+			<ClassicyWindow id="main" appId={APP_ID} title="Main">
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		const onDrop = vi.fn();
+		const abandon = startClassicyFileDrag({
+			start: { clientX: 40, clientY: 300 },
+			parts: [],
+			onDrop,
+			elementsFromPoint: () => [button("Main")],
+		});
+		try {
+			fireEvent.mouseMove(document, { clientX: 140, clientY: 760 });
+			act(() => {
+				fireEvent.mouseUp(document, { clientX: 140, clientY: 760 });
+			});
+		} finally {
+			abandon();
+		}
+		expect(onDrop).toHaveBeenCalledWith(null, [140, 760], [140, 760], "move");
+		expect(useAppManager.getState().System.Manager.Desktop.systemDialog).toBe(
+			"taskbarDrop",
+		);
+		const box = document.querySelector(
+			".classicyAlert[role='alertdialog']",
+		) as HTMLElement;
+		expect(box).toHaveAttribute(
+			"aria-label",
+			"You cannot drag an item onto a button on the taskbar.",
+		);
+		expect(box).toHaveTextContent(
+			"However, if you do this without releasing the mouse button, the window will open and you can then drag the item into the window.",
+		);
+		expect(
+			document.getElementById(`Finder.app_taskbar_drop`),
+		).toHaveTextContent("Taskbar");
+		const ok = Array.from(box.querySelectorAll("button")).find(
+			(b) => b.textContent === "OK",
+		) as HTMLButtonElement;
+		act(() => {
+			fireEvent.click(ok);
+		});
+		expect(
+			useAppManager.getState().System.Manager.Desktop.systemDialog,
+		).toBeNull();
+	});
+
+	it("shows no message for a drag let go off the taskbar's buttons", () => {
+		renderShell(
+			<ClassicyWindow id="main" appId={APP_ID} title="Main">
+				<p>main</p>
+			</ClassicyWindow>,
+		);
+		const abandon = startClassicyFileDrag({
+			start: { clientX: 40, clientY: 300 },
+			parts: [],
+			onDrop: () => {},
+			elementsFromPoint: () => [],
+		});
+		try {
+			fireEvent.mouseMove(document, { clientX: 140, clientY: 760 });
+			fireEvent.mouseUp(document, { clientX: 140, clientY: 760 });
+		} finally {
+			abandon();
+		}
+		expect(
+			useAppManager.getState().System.Manager.Desktop.systemDialog ?? null,
+		).toBeNull();
+	});
+
 	it("drops a closed window's button", () => {
 		renderShell(
 			<ClassicyWindow id="main" appId={APP_ID} title="Main">
@@ -1884,7 +2367,8 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 					key: "Escape",
 				});
 			});
-			// The Start button shows nothing; a window button its window's.
+			// The Start button shows its own (the shell addendum's B11); a
+			// window button its window's.
 			const start = document.querySelector(
 				".classicyTaskbarStart",
 			) as HTMLElement;
@@ -1892,11 +2376,151 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 				bubbles: true,
 				cancelable: true,
 			});
-			start.dispatchEvent(onStart);
+			act(() => {
+				start.dispatchEvent(onStart);
+			});
 			expect(onStart.defaultPrevented).toBe(true);
 			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties)).toBeNull();
+			expect(
+				taskbarMenuItem(CLASSICY_START_BUTTON_MENU_IDS.open),
+			).not.toBeNull();
+			act(() => {
+				fireEvent.keyDown(document.activeElement ?? document.body, {
+					key: "Escape",
+				});
+			});
 			openTaskbarMenu(button("Main"));
 			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties)).toBeNull();
+		});
+
+		// The shell addendum's B11 (WIG Ch.5 pp.36-38, App. A Table A.1):
+		// button 2 on the taskbar's objects, its menus opening at the release
+		// under `contextMenu.openOn: "release"`.
+		describe("button 2 on the taskbar's objects", () => {
+			beforeEach(() => {
+				registerTestTaskbarPackage(
+					{
+						...TEST_SHELL_SYSTEM_MENU_LAYOUT,
+						contextMenu: { openOn: "release" },
+					},
+					TEST_SHELL_SYSTEM_MENU_PACKAGE_ID,
+				);
+				act(() =>
+					dispatch({
+						type: "ClassicyDesktopChangeAppearancePackage",
+						packageId: TEST_SHELL_SYSTEM_MENU_PACKAGE_ID,
+					}),
+				);
+			});
+			const menu = () => document.querySelector(".classicyContextMenuWrapper");
+			// A macOS or Linux host raises `contextmenu` at the press.
+			const pressButton2 = (target: Element) => {
+				fireEvent.mouseDown(target, { button: 2, clientX: 60, clientY: 750 });
+				fireEvent.contextMenu(target, { clientX: 60, clientY: 750 });
+			};
+			const release = (target: Element) =>
+				act(() => {
+					fireEvent.mouseUp(target, {
+						button: 2,
+						clientX: 60,
+						clientY: 750,
+					});
+				});
+
+			it("draws no press on a window button and opens its window's menu at the release", () => {
+				renderShell(threeWindows);
+				pressButton2(button("Main"));
+				expect(button("Main")).not.toHaveClass("pressed");
+				expect(menu()).toBeNull();
+				// Windows 98 activates the window at the right-click.
+				expect(getAppWindow(appRecord(), "main")?.focused).toBe(true);
+				release(button("Main"));
+				expect(menu()).not.toBeNull();
+				expect(
+					document.getElementById(`${APP_ID}_main_system_close`),
+				).toHaveClass("default");
+				expect(button("Main")).not.toHaveClass("pressed");
+			});
+
+			it("opens the taskbar's menu over its white space at the release", () => {
+				renderShell(threeWindows);
+				pressButton2(taskbar());
+				expect(
+					taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties),
+				).toBeNull();
+				release(taskbar());
+				expect(
+					taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.properties),
+				).not.toBeNull();
+			});
+
+			it("opens the Start button's Open and Explore at the release, Open the default", () => {
+				renderShell(threeWindows);
+				const start = document.querySelector(
+					".classicyTaskbarStart",
+				) as HTMLElement;
+				pressButton2(start);
+				expect(start).not.toHaveClass("open");
+				expect(taskbarMenuItem(CLASSICY_START_BUTTON_MENU_IDS.open)).toBeNull();
+				release(start);
+				const open = taskbarMenuItem(CLASSICY_START_BUTTON_MENU_IDS.open);
+				expect(open).toHaveTextContent("Open");
+				expect(open).toHaveClass("default");
+				expect(
+					taskbarMenuItem(CLASSICY_START_BUTTON_MENU_IDS.explore),
+				).toHaveTextContent("Explore");
+				// No Find... (Classicy has no Find), and no Help item.
+				expect(
+					Array.from(
+						(menu() as Element).querySelectorAll(".classicyMenuItem"),
+					).map((item) => item.textContent?.trim()),
+				).toEqual(["Open", "Explore"]);
+				expect(start).not.toHaveClass("open");
+			});
+
+			it("opens the Applications folder, Start ▸ Programs' source, from Open and Explore", async () => {
+				renderShell(threeWindows);
+				const finder = () =>
+					useAppManager.getState().System.Manager.Applications.apps[
+						"Finder.app"
+					];
+				act(() =>
+					useAppManager.setState((state) =>
+						produce(state, (draft) => {
+							draft.System.Manager.Applications.apps["Finder.app"] ??= {
+								id: "Finder.app",
+								name: "Finder",
+								icon: "",
+								windows: {},
+								open: true,
+								data: {},
+							};
+						}),
+					),
+				);
+				const start = document.querySelector(
+					".classicyTaskbarStart",
+				) as HTMLElement;
+				for (const id of [
+					CLASSICY_START_BUTTON_MENU_IDS.open,
+					CLASSICY_START_BUTTON_MENU_IDS.explore,
+				]) {
+					act(() =>
+						useAppManager.setState((state) =>
+							produce(state, (draft) => {
+								draft.System.Manager.Applications.apps["Finder.app"].data = {};
+							}),
+						),
+					);
+					pressButton2(start);
+					release(start);
+					await choose(id, () =>
+						expect(
+							(finder().data as { openPaths?: string[] }).openPaths,
+						).toEqual(["Macintosh HD:Applications"]),
+					);
+				}
+			});
 		});
 
 		it("never lets the desktop's menu open over the taskbar", () => {
@@ -2014,6 +2638,72 @@ describe("ClassicyTaskbar on a desktop, with real windows", () => {
 					type: "ClassicyWindowClose",
 					app: { id: APP_ID },
 					window: { id: "main" },
+				}),
+			);
+			openTaskbarMenu();
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toBeNull();
+		});
+
+		// The shell addendum's B21: a window opening forgets the list, so
+		// the item reads Minimize All Windows again.
+		it("forgets what it minimized once a new window opens", async () => {
+			renderShell(threeWindows);
+			openTaskbarMenu();
+			await choose(CLASSICY_TASKBAR_MENU_IDS.minimizeAll, () =>
+				expect(collapsed("second")).toBe(true),
+			);
+			act(() =>
+				dispatch({
+					type: "ClassicyWindowOpen",
+					app: { id: APP_ID, name: "T", icon: "" },
+					window: {
+						id: "third",
+						appId: APP_ID,
+						position: [10, 10],
+						size: [100, 100],
+						minimumSize: [0, 0],
+						closed: false,
+					},
+				}),
+			);
+			openTaskbarMenu();
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toBeNull();
+		});
+
+		it("forgets what it minimized once another window is activated", async () => {
+			renderShell(
+				<>
+					{threeWindows}
+					<ClassicyWindow
+						id="fixed"
+						appId={APP_ID}
+						title="Fixed"
+						collapsable={false}
+					>
+						<p>fixed</p>
+					</ClassicyWindow>
+				</>,
+			);
+			openTaskbarMenu();
+			await choose(CLASSICY_TASKBAR_MENU_IDS.minimizeAll, () =>
+				expect(collapsed("second")).toBe(true),
+			);
+			// The window with no Minimize box stays, and the focus with it.
+			expect(collapsed("fixed")).toBe(false);
+			openTaskbarMenu();
+			expect(taskbarMenuItem(CLASSICY_TASKBAR_MENU_IDS.undo)).toHaveTextContent(
+				"Undo Minimize All",
+			);
+			act(() => {
+				fireEvent.keyDown(document.activeElement ?? document.body, {
+					key: "Escape",
+				});
+			});
+			act(() =>
+				dispatch({
+					type: "ClassicyWindowFocus",
+					app: { id: APP_ID },
+					window: { id: "palette" },
 				}),
 			);
 			openTaskbarMenu();

@@ -22,12 +22,19 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { useClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import { CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupItems.internal";
 import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
+import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { setClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
 	classicyTaskbarEdge,
 	classicyTaskbarOptions,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { classicyStartupDisk } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
+import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { openClassicyFolderWindow } from "@/SystemFolder/SystemResources/Taskbar/ClassicyRunCommand.internal";
 import {
 	CLASSICY_START_MENU_ID,
 	ClassicyStartMenu,
@@ -101,6 +108,74 @@ export const CLASSICY_TASKBAR_DEFAULT_START_LABEL = "Start";
  * closed.
  */
 export const CLASSICY_TASKBAR_START_TOOLTIP = "Click here to begin.";
+
+/**
+ * What the release of a press that opened the Start menu does (the shell
+ * addendum's B6): the enabled menu item with no submenu it is over, to be
+ * chosen (`click()`ed); `"keep"` over the Start button (`button`) or
+ * anywhere else in the menu (`menu`: a dimmed item, a divider, an item with
+ * a submenu, the banner); `"close"` off both. Pure.
+ */
+export function classicyStartPressRelease(
+	target: EventTarget | null,
+	button: Element | null,
+	menu: Element | null,
+): HTMLElement | "keep" | "close" {
+	if (!(target instanceof Node)) return "close";
+	if (button?.contains(target)) return "keep";
+	if (!menu?.contains(target)) return "close";
+	const element = target instanceof Element ? target : target.parentElement;
+	const item = element?.closest<HTMLElement>(
+		CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR,
+	);
+	if (
+		item &&
+		menu.contains(item) &&
+		!item.classList.contains("classicyMenuItemChildMenuIndicator")
+	)
+		return item;
+	return "keep";
+}
+
+/** The Start button's pop-up menu items' ids (`classicyStartButtonMenuItems`). */
+export const CLASSICY_START_BUTTON_MENU_IDS = {
+	open: "taskbar-start-open",
+	explore: "taskbar-start-explore",
+} as const;
+
+/**
+ * The Start button's pop-up menu, button 2 on it (the shell addendum's B11;
+ * WIG Ch.5 pp.36-38, App. A Table A.1): Windows 98 SE's explorer.exe menu
+ * for its Start Menu folder, **Open** (the default, bold) and **Explore**,
+ * with their access keys O and E. Windows 98's third item, Find..., is left
+ * out: Classicy has no Find. Both open the folder Start ▸ Programs lists,
+ * the derived Applications folder, in a Finder window (`onOpen`,
+ * `onExplore`): Classicy has no Start Menu folder, and its Finder no
+ * Explorer pane, so Explore opens the same window as Open. Pure.
+ */
+export function classicyStartButtonMenuItems({
+	onOpen,
+	onExplore,
+}: {
+	onOpen: () => void;
+	onExplore: () => void;
+}): ClassicyMenuItem[] {
+	return [
+		{
+			id: CLASSICY_START_BUTTON_MENU_IDS.open,
+			title: "Open",
+			accessKey: "O",
+			isDefault: true,
+			onClickFunc: onOpen,
+		},
+		{
+			id: CLASSICY_START_BUTTON_MENU_IDS.explore,
+			title: "Explore",
+			accessKey: "E",
+			onClickFunc: onExplore,
+		},
+	];
+}
 
 export type ClassicyTaskbarProps = {
 	/**
@@ -356,18 +431,42 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 		const { top, bottom, left, right } = button.getBoundingClientRect();
 		setStartAnchor({ top, bottom, left, right });
 	}, []);
+	// Whether the last input while the menu was open was Escape: the menu
+	// it closes hands the focus to the Start button wherever the focus was
+	// (CTRL+ESC leaves it in the window it was in), so Tab then moves on
+	// through the taskbar, as in Windows 98 (the shell addendum's B10).
+	const escapedRef = useRef(false);
 	const closeStartMenu = useCallback(() => {
 		setStartAnchor(null);
 		// Hand the focus back to the button when it was in the menu (the
 		// keyboard, Escape), as Windows leaves it on the Start button.
 		const menu = document.getElementById(CLASSICY_START_MENU_ID);
-		if (menu?.contains(document.activeElement)) startRef.current?.focus();
+		const escaped = escapedRef.current;
+		escapedRef.current = false;
+		if (escaped || menu?.contains(document.activeElement))
+			startRef.current?.focus();
 	}, []);
 	const toggleStartMenu = () => {
 		if (startOpen) closeStartMenu();
 		else openStartMenu();
 	};
 	useClassicyTaskbarKeys(rootRef, startOpen, openStartMenu, closeStartMenu);
+	useEffect(() => {
+		if (!startOpen) return;
+		escapedRef.current = false;
+		const onKey = (e: globalThis.KeyboardEvent) => {
+			escapedRef.current = e.key === "Escape";
+		};
+		const onPress = () => {
+			escapedRef.current = false;
+		};
+		document.addEventListener("keydown", onKey, true);
+		document.addEventListener("mousedown", onPress, true);
+		return () => {
+			document.removeEventListener("keydown", onKey, true);
+			document.removeEventListener("mousedown", onPress, true);
+		};
+	}, [startOpen]);
 	// Auto hide: slid off its edge until the pointer reaches it, and shown
 	// while its Start menu is open (CTRL+ESC included) or it is being moved.
 	const autoHide = useClassicyTaskbarAutoHide(
@@ -391,7 +490,44 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	// it as a click with no press count.
 	const onStartMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
 		startTip.onMouseLeave();
-		if (e.button === 0) toggleStartMenu();
+		if (e.button !== 0) return;
+		const opening = !startOpen;
+		toggleStartMenu();
+		if (opening) followStartPress();
+	};
+	// A press that opened the menu is followed to its release (the shell
+	// addendum's B6; WIG Ch.4 "Mouse Actions", p.24, Ch.7 p.97), as lane 2's
+	// press-drag-release does for a menu bar title
+	// (`useClassicyMenuPress.internal.ts`): over an enabled item with no
+	// submenu the item is chosen, over the Start button or anywhere else in
+	// the menu the menu stays open, off both it closes; a lost pointer
+	// stream closes it, choosing nothing.
+	const startPressEndRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => startPressEndRef.current?.(), []);
+	const followStartPress = () => {
+		startPressEndRef.current?.();
+		const onUp = (ev: globalThis.MouseEvent) => {
+			if (ev.button !== 0) return;
+			end();
+			const verdict = classicyStartPressRelease(
+				ev.target,
+				startRef.current,
+				document.getElementById(CLASSICY_START_MENU_ID),
+			);
+			if (verdict === "close") closeStartMenu();
+			else if (verdict instanceof HTMLElement) verdict.click();
+		};
+		const stopWatching = onClassicyPointerStreamLost(() => {
+			end();
+			closeStartMenu();
+		});
+		const end = () => {
+			document.removeEventListener("mouseup", onUp, true);
+			stopWatching();
+			if (startPressEndRef.current === end) startPressEndRef.current = null;
+		};
+		document.addEventListener("mouseup", onUp, true);
+		startPressEndRef.current = end;
 	};
 	const onStartMouseEnter = () => {
 		if (!startOpen) startTip.onMouseEnter();
@@ -404,6 +540,30 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	}, [startOpen]);
 	const onStartClick = (e: MouseEvent<HTMLButtonElement>) => {
 		if (e.detail === 0) toggleStartMenu();
+	};
+	// Button 2 on the Start button: its pop-up menu (Open, Explore), at the
+	// release under a package that opens pop-up menus there.
+	const { showContextMenu } = useClassicyContextualMenu();
+	const getFileSystem = useClassicyFileSystemAccessor();
+	const openProgramsFolder = () => {
+		const fs = getFileSystem();
+		const disk = classicyStartupDisk(fs);
+		if (disk)
+			openClassicyFolderWindow(`${disk}${fs.separator}Applications`, dispatch);
+	};
+	const onStartContextMenu = (e: MouseEvent<HTMLButtonElement>) => {
+		if (e.defaultPrevented) return;
+		e.preventDefault();
+		startTip.onMouseLeave();
+		if (startOpen) closeStartMenu();
+		showContextMenu(
+			classicyStartButtonMenuItems({
+				onOpen: openProgramsFolder,
+				onExplore: openProgramsFolder,
+			}),
+			[e.clientX, e.clientY],
+			{ helpItem: false, keyboard: true },
+		);
 	};
 	const onStartKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
 		if (e.key === "Escape" && startOpen) {
@@ -506,6 +666,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				onMouseEnter={onStartMouseEnter}
 				onMouseLeave={startTip.onMouseLeave}
 				onClick={onStartClick}
+				onContextMenu={onStartContextMenu}
 				onKeyDown={onStartKeyDown}
 			>
 				<span
@@ -534,6 +695,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				<ClassicyTaskbarQuickLaunch
 					showTaskbarMenu={showTaskbarMenu}
 					toggleDesktop={toggleDesktop}
+					vertical={vertical}
 				/>
 			)}
 			<ClassicyTaskbarTasks gripper={quickLaunch} vertical={vertical} />
@@ -543,6 +705,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				showTaskbarMenu={showTaskbarMenu}
 				popupSide={popupSide}
 				showClock={options.showClock}
+				vertical={vertical}
 			/>
 		</nav>
 	);

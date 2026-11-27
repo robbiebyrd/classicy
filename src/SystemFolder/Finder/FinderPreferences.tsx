@@ -66,6 +66,7 @@ export const FinderPreferences: FunctionalComponent<FinderPreferencesProps> = ({
 			scrollable={false}
 			collapsable={false}
 			modal={false}
+			taskbarButton={false}
 			initialSize={[470, 0]}
 			initialPosition={["center", "center"]}
 			onCloseFunc={() =>

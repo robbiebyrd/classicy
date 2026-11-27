@@ -33,7 +33,10 @@ import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyI
 import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyTaskbarClock } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarClock.internal";
-import { CLASSICY_TASKBAR_TOOLTIP_DELAY_MS } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
+import {
+	CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
+	useClassicyTaskbarRovingGroup,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarTasks.internal";
 
 /**
  * The taskbar's status area (plan 0020-w98 §2, "The tray"; WIG Ch.3 "The
@@ -374,6 +377,11 @@ const ClassicyTaskbarTrayIcon: FunctionalComponent<{
 	);
 };
 
+// What the status area's roving focus walks: its notification icons, then
+// the menu bar extensions' triggers in their region.
+const TRAY_FOCUSABLE =
+	"button.classicyTaskbarTrayIcon, .classicyTaskbarTrayExtensions button.classicyDesktopMenuExtensionTrigger";
+
 /**
  * The status area (`div.classicyTaskbarTray`, `data-classicy-part=
  * "taskbar-tray"`, a `group` labelled "Notification area"): the Control
@@ -408,12 +416,15 @@ export const ClassicyTaskbarTray: FunctionalComponent<{
 	popupSide?: ClassicyBevelPopupSide;
 	/** Draw the clock (Taskbar Properties' "Show Clock"); default true. */
 	showClock?: boolean;
+	/** The taskbar stands at a side: Up and Down walk the icons. */
+	vertical?: boolean;
 }> = ({
 	disabledModules,
 	hideModules = false,
 	showTaskbarMenu,
 	popupSide = "below",
 	showClock = true,
+	vertical = false,
 }) => {
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
@@ -425,13 +436,30 @@ export const ClassicyTaskbarTray: FunctionalComponent<{
 		hide: hideModules,
 	});
 
+	// The keyboard (the shell addendum's B10; WIG Ch.5 Table 5.1,
+	// pp.35-36): the status area is one Tab stop, the icon last focused (the
+	// first at the start), its notification icons and the menu bar
+	// extensions' alike, whichever component draws them; Left and Right (Up
+	// and Down at a side), Home and End move among them. Enter and Space
+	// open an icon's surface (its click), and Shift+F10 or the Application
+	// key its menu (the context-menu key's `contextmenu`).
+	const rootRef = useRef<HTMLDivElement>(null);
+	const { onFocusCapture, onKeyDown } = useClassicyTaskbarRovingGroup(
+		rootRef,
+		TRAY_FOCUSABLE,
+		vertical,
+	);
+
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: the status area is a flex row of icons and the clock, not a form; a fieldset would bring a legend and form-control semantics
 		<div
+			ref={rootRef}
 			className="classicyTaskbarTray"
 			data-classicy-part="taskbar-tray"
 			role="group"
 			aria-label="Notification area"
+			onFocusCapture={onFocusCapture}
+			onKeyDown={onKeyDown}
 		>
 			<ul className="classicyTaskbarTrayIcons">
 				{shown.map(({ definition, revision }) => (
