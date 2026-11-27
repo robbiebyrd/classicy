@@ -82,6 +82,33 @@
 // Auto hide: the taskbar slides off its edge (ClassicyTaskbar sets the
 // `translate` and the slide's duration, Windows' speeds), and not at all
 // under reduced motion.
+// The inner edge a drag sizes the taskbar from (the shell addendum's B5):
+// laid along the side facing the desktop, over the bar's edge; the package
+// gives it its thickness and the size cursor.
+.classicyTaskbarSizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.classicyTaskbar.classicyTaskbarEdgeTop > .classicyTaskbarSizer {
+  top: auto;
+  bottom: 0;
+}
+
+.classicyTaskbar.classicyTaskbarVertical > .classicyTaskbarSizer {
+  bottom: 0;
+}
+
+.classicyTaskbar.classicyTaskbarEdgeLeft > .classicyTaskbarSizer {
+  left: auto;
+}
+
+.classicyTaskbar.classicyTaskbarEdgeRight > .classicyTaskbarSizer {
+  right: auto;
+}
+
 .classicyTaskbar.classicyTaskbarAutoHide {
   transition-property: translate;
   transition-timing-function: linear;

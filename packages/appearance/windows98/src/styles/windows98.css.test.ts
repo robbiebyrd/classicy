@@ -1108,6 +1108,32 @@ describe("windows98.scss (compiled)", () => {
 			expect(list).toContain("gap: var(--taskbar-button-gap)");
 			expect(list).toContain("padding-right: var(--taskbar-button-gap)");
 			expect(list).toContain("overflow: hidden");
+			// The shell addendum's B5: the inner edge's size cursors, and the
+			// window buttons in rows once the bar is sized taller.
+			const sizer = block("=windows98] .classicyTaskbarSizer");
+			expect(sizer).toContain(
+				"height: calc(var(--taskbar-height) - var(--taskbar-button-height) - ",
+			);
+			expect(sizer).toContain(
+				'cursor: var(--classicy-cursor-resize-ud, url("data:,")) var(--classicy-cursor-resize-ud-hotspot, 15 16), ns-resize',
+			);
+			expect(
+				block(".classicyTaskbarVertical > .classicyTaskbarSizer"),
+			).toContain(
+				'cursor: var(--classicy-cursor-resize-lr, url("data:,")) var(--classicy-cursor-resize-lr-hotspot, 16 16), ew-resize',
+			);
+			expect(block(".classicyTaskbar.classicyTaskbarRows")).toContain(
+				"height: auto",
+			);
+			const rowsGrid = block(".classicyTaskbarTasks.classicyTaskbarTasksRows");
+			expect(rowsGrid).toContain("display: grid");
+			expect(rowsGrid).toContain(
+				"grid-template-rows: repeat(var(--classicy-taskbar-rows), var(--taskbar-button-height))",
+			);
+			expect(rowsGrid).toContain("var(--classicy-taskbar-columns)");
+			expect(rowsGrid).toContain(
+				"minmax(var(--taskbar-button-min-width), var(--taskbar-button-max-width))",
+			);
 			const task = block("=windows98] .classicyTaskbarTask");
 			// The shell addendum's B10: the keyboard's focus is the dotted
 			// rectangle three pixels in, inside the bevel, on the window

@@ -43,6 +43,7 @@ import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/Contr
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { useClassicyControlStripDisabledModules } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import { classicyTaskbarSize } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import {
 	CLASSICY_DROP_ACTIVATE_ATTRIBUTE,
 	CLASSICY_DROP_ACTIVATE_DELAY_MS,
@@ -65,6 +66,11 @@ import {
 	classicyTaskbarMinimizedAllStands,
 	classicyTaskbarOpenWindowKeys,
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
+import {
+	classicyTaskbarMaxRows,
+	classicyTaskbarSizeFor,
+	classicyTaskbarThicknessAt,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarSize.internal";
 import {
 	CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
 	classicyTaskbarClickCommand,
@@ -770,6 +776,8 @@ describe("ClassicyTaskbar", () => {
 					el.getAttribute("data-classicy-part"),
 				),
 			).toEqual([
+				// The inner edge a drag sizes it from (the shell addendum's B5).
+				"taskbar-sizer",
 				"taskbar-start",
 				"taskbar-quick-launch",
 				"taskbar-tasks-gripper",
@@ -1585,6 +1593,202 @@ describe("ClassicyTaskbar", () => {
 		});
 	});
 
+	// The shell addendum's B5: a drag of the inner edge sizes the taskbar,
+	// by rows at the top and bottom and in px at a side, kept per edge.
+	describe("sizing", () => {
+		const restore: (() => void)[] = [];
+		afterEach(() => {
+			for (const undo of restore.splice(0)) undo();
+		});
+		const stub = (
+			name: "offsetHeight" | "offsetWidth",
+			value: (el: HTMLElement) => number,
+		) => {
+			const original = Object.getOwnPropertyDescriptor(
+				HTMLElement.prototype,
+				name,
+			);
+			Object.defineProperty(HTMLElement.prototype, name, {
+				configurable: true,
+				get(this: HTMLElement) {
+					return value(this);
+				},
+			});
+			restore.push(() => {
+				if (original)
+					Object.defineProperty(HTMLElement.prototype, name, original);
+			});
+		};
+		const layOut = () => {
+			// The bar grows by a 22 px row for each row past the first.
+			const rowsOf = (el: HTMLElement) =>
+				Number(
+					el
+						.querySelector<HTMLElement>(".classicyTaskbarTasks")
+						?.style.getPropertyValue("--classicy-taskbar-rows") || 1,
+				);
+			stub("offsetHeight", (el) =>
+				el.classList.contains("classicyTaskbar")
+					? 28 + (rowsOf(el) - 1) * 22
+					: el.classList.contains("classicyTaskbarStart")
+						? 22
+						: 0,
+			);
+			stub("offsetWidth", (el) =>
+				el.classList.contains("classicyTaskbar")
+					? 60
+					: el.classList.contains("classicyTaskbarStart")
+						? 54
+						: 0,
+			);
+			const rect = vi
+				.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+				.mockImplementation(function (this: HTMLElement) {
+					return this.classList.contains("classicyDesktop")
+						? ({
+								top: 0,
+								left: 0,
+								right: 1000,
+								bottom: 800,
+								width: 1000,
+								height: 800,
+								x: 0,
+								y: 0,
+								toJSON: () => ({}),
+							} as DOMRect)
+						: ({
+								top: 0,
+								left: 0,
+								right: 0,
+								bottom: 0,
+								width: 0,
+								height: 0,
+								x: 0,
+								y: 0,
+								toJSON: () => ({}),
+							} as DOMRect);
+				});
+			restore.push(() => rect.mockRestore());
+		};
+		const renderOnDesktop = () =>
+			render(
+				<div className="classicyDesktop">
+					<ClassicyTaskbar />
+				</div>,
+			);
+		const sizerEl = () =>
+			document.querySelector(".classicyTaskbarSizer") as HTMLElement;
+		const nav = () => document.querySelector("nav.classicyTaskbar");
+		const storedSize = () =>
+			useAppManager.getState().System.Manager.Desktop.taskbar?.size;
+		const dragSizer = (to: { clientX?: number; clientY?: number }) => {
+			fireEvent.mouseDown(sizerEl(), { button: 0 });
+			act(() => {
+				fireEvent.mouseMove(document, to);
+			});
+			act(() => {
+				fireEvent.mouseUp(document, { button: 0 });
+			});
+		};
+
+		it("lies on the inner edge, aria-hidden, and moves nothing of the taskbar", () => {
+			layOut();
+			renderOnDesktop();
+			expect(sizerEl()).toHaveAttribute("data-classicy-part", "taskbar-sizer");
+			expect(sizerEl()).toHaveAttribute("aria-hidden", "true");
+			dragSizer({ clientX: 500, clientY: 100 });
+			// A drag that far would dock a bar dragged from its empty area.
+			expect(
+				useAppManager.getState().System.Manager.Desktop.taskbar?.edge,
+			).toBeUndefined();
+		});
+
+		it("adds whole rows at the bottom, laying the window buttons in rows", () => {
+			layOut();
+			register(entry("A.app", "one", { title: "One" }));
+			register(entry("A.app", "two", { title: "Two" }));
+			register(entry("A.app", "three", { title: "Three" }));
+			setApps(app("A.app", [win("one"), win("two"), win("three")]));
+			renderOnDesktop();
+			const list = () => document.querySelector(".classicyTaskbarTasks");
+			expect(list()).not.toHaveClass("classicyTaskbarTasksRows");
+			expect(nav()).not.toHaveClass("classicyTaskbarRows");
+			// 28 + 22 px above the desktop's bottom: two rows.
+			dragSizer({ clientY: 800 - 28 - 22 });
+			expect(storedSize()).toEqual({ bottom: 2 });
+			expect(nav()).toHaveClass("classicyTaskbarRows");
+			expect(list()).toHaveClass("classicyTaskbarTasksRows");
+			const style = (list() as HTMLElement).style;
+			expect(style.getPropertyValue("--classicy-taskbar-rows")).toBe("2");
+			expect(style.getPropertyValue("--classicy-taskbar-columns")).toBe("2");
+			// Back below a row's middle: one row again.
+			dragSizer({ clientY: 800 - 30 });
+			expect(storedSize()).toEqual({ bottom: 1 });
+			expect(nav()).not.toHaveClass("classicyTaskbarRows");
+			// Never past half the desktop.
+			dragSizer({ clientY: 0 });
+			expect(storedSize()).toEqual({
+				bottom: classicyTaskbarMaxRows({ base: 28, pitch: 22, desktop: 800 }),
+			});
+		});
+
+		it("sizes a top taskbar from its bottom edge, keeping the bottom's size", () => {
+			layOut();
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopTaskbarSetSize",
+					edge: "bottom",
+					size: 3,
+				}),
+			);
+			act(() =>
+				dispatch({ type: "ClassicyDesktopTaskbarSetEdge", edge: "top" }),
+			);
+			renderOnDesktop();
+			expect(nav()).not.toHaveClass("classicyTaskbarRows");
+			dragSizer({ clientY: 28 + 22 });
+			expect(storedSize()).toEqual({ bottom: 3, top: 2 });
+			expect(nav()).toHaveClass("classicyTaskbarRows");
+		});
+
+		it.each([
+			["left", 200, 200],
+			["right", 1000 - 300, 300],
+		] as const)("sizes a %s taskbar in px, between the Start button and half the desktop", (edge, x, width) => {
+			layOut();
+			act(() => dispatch({ type: "ClassicyDesktopTaskbarSetEdge", edge }));
+			renderOnDesktop();
+			expect((nav() as HTMLElement).style.width).toBe("");
+			dragSizer({ clientX: x });
+			expect(storedSize()).toEqual({ [edge]: width });
+			expect((nav() as HTMLElement).style.width).toBe(`${width}px`);
+			expect(nav()).not.toHaveClass("classicyTaskbarRows");
+			dragSizer({ clientX: edge === "left" ? 900 : 100 });
+			expect(storedSize()).toEqual({ [edge]: 500 });
+			dragSizer({ clientX: edge === "left" ? 2 : 998 });
+			expect(storedSize()).toEqual({ [edge]: 54 });
+		});
+
+		it("takes no modified press, and keeps the size a lost pointer stream leaves", () => {
+			layOut();
+			renderOnDesktop();
+			fireEvent.mouseDown(sizerEl(), { button: 0, shiftKey: true });
+			act(() => {
+				fireEvent.mouseMove(document, { clientY: 700 });
+				fireEvent.mouseUp(document, { button: 0 });
+			});
+			expect(storedSize()).toBeUndefined();
+			fireEvent.mouseDown(sizerEl(), { button: 0 });
+			act(() => {
+				fireEvent.mouseMove(document, { clientY: 800 - 28 - 22 });
+			});
+			act(() => {
+				window.dispatchEvent(new Event("blur"));
+			});
+			expect(storedSize()).toEqual({ bottom: 2 });
+		});
+	});
+
 	describe("the band", () => {
 		const restore: (() => void)[] = [];
 		afterEach(() => {
@@ -1905,6 +2109,72 @@ describe("classicyTaskbarRovingKey", () => {
 	});
 });
 
+describe("taskbar sizing", () => {
+	const metrics = { base: 28, pitch: 25, minWidth: 60, desktop: 800 };
+	it("rounds a top or bottom thickness to whole rows, one to half the desktop", () => {
+		expect(classicyTaskbarMaxRows(metrics)).toBe(15);
+		expect(classicyTaskbarSizeFor("bottom", 28, metrics)).toBe(1);
+		expect(classicyTaskbarSizeFor("bottom", 40, metrics)).toBe(1);
+		expect(classicyTaskbarSizeFor("bottom", 41, metrics)).toBe(2);
+		expect(classicyTaskbarSizeFor("top", 78, metrics)).toBe(3);
+		expect(classicyTaskbarSizeFor("top", 0, metrics)).toBe(1);
+		expect(classicyTaskbarSizeFor("bottom", 2000, metrics)).toBe(15);
+		expect(classicyTaskbarMaxRows({ base: 28, pitch: 0, desktop: 800 })).toBe(
+			1,
+		);
+		expect(classicyTaskbarMaxRows({ base: 500, pitch: 25, desktop: 800 })).toBe(
+			1,
+		);
+	});
+	it("keeps a side's width between the Start button's and half the desktop", () => {
+		expect(classicyTaskbarSizeFor("left", 120.4, metrics)).toBe(120);
+		expect(classicyTaskbarSizeFor("right", 10, metrics)).toBe(60);
+		expect(classicyTaskbarSizeFor("left", 900, metrics)).toBe(400);
+	});
+	it("measures the thickness from the edge docked to", () => {
+		const rect = { top: 10, left: 20, right: 1020, bottom: 810 };
+		expect(classicyTaskbarThicknessAt("bottom", [0, 760], rect)).toBe(50);
+		expect(classicyTaskbarThicknessAt("top", [0, 60], rect)).toBe(50);
+		expect(classicyTaskbarThicknessAt("left", [120, 0], rect)).toBe(100);
+		expect(classicyTaskbarThicknessAt("right", [920, 0], rect)).toBe(100);
+	});
+	it("reads the stored size per edge: rows at least 1, a side's px or none", () => {
+		expect(classicyTaskbarSize(undefined, "bottom")).toBe(1);
+		expect(classicyTaskbarSize(undefined, "left")).toBeUndefined();
+		const taskbar = {
+			size: { bottom: 3, top: 0, left: 150.6, right: Number.NaN },
+		};
+		expect(classicyTaskbarSize(taskbar, "bottom")).toBe(3);
+		expect(classicyTaskbarSize(taskbar, "top")).toBe(1);
+		expect(classicyTaskbarSize(taskbar, "left")).toBe(151);
+		expect(classicyTaskbarSize(taskbar, "right")).toBeUndefined();
+	});
+	it("is written per edge by ClassicyDesktopTaskbarSetSize, which ignores anything else", () => {
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		const size = () =>
+			useAppManager.getState().System.Manager.Desktop.taskbar?.size;
+		dispatch({
+			type: "ClassicyDesktopTaskbarSetSize",
+			edge: "bottom",
+			size: 2.7,
+		});
+		dispatch({
+			type: "ClassicyDesktopTaskbarSetSize",
+			edge: "left",
+			size: 140.4,
+		});
+		dispatch({
+			type: "ClassicyDesktopTaskbarSetSize",
+			edge: "middle",
+			size: 3,
+		});
+		dispatch({ type: "ClassicyDesktopTaskbarSetSize", edge: "top", size: 0 });
+		dispatch({ type: "ClassicyDesktopTaskbarSetSize", edge: "top", size: "2" });
+		expect(size()).toEqual({ bottom: 2, left: 140 });
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+});
+
 describe("classicyTaskbarTasksPerPage", () => {
 	const room = { listWidth: 100, pagerWidth: 0, minWidth: 22, gap: 3 };
 	it("holds every button while each has its least width and gap", () => {
@@ -1930,6 +2200,23 @@ describe("classicyTaskbarTasksPerPage", () => {
 				pagerWidth: 16,
 			}),
 		).toBe(1);
+	});
+
+	// The shell addendum's B5: rows fill before the control appears.
+	it("fills every row of a taller band before paging, a page being its rows", () => {
+		// Four to a row: eight fit two rows, nine do not.
+		expect(classicyTaskbarTasksPerPage({ ...room, count: 8, rows: 2 })).toBe(8);
+		expect(classicyTaskbarTasksPerPage({ ...room, count: 9, rows: 2 })).toBe(8);
+		expect(classicyTaskbarTasksPerPage({ ...room, count: 9, rows: 3 })).toBe(9);
+		expect(
+			classicyTaskbarTasksPerPage({
+				...room,
+				count: 20,
+				rows: 2,
+				listWidth: 50,
+				pagerWidth: 16,
+			}),
+		).toBe(4);
 	});
 
 	it("holds every button with no least width or no width laid out", () => {

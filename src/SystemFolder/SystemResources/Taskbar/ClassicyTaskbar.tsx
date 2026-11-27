@@ -29,6 +29,7 @@ import { setClassicyControlStripDisabledModules } from "@/SystemFolder/SystemRes
 import {
 	classicyTaskbarEdge,
 	classicyTaskbarOptions,
+	classicyTaskbarSize,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { classicyStartupDisk } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
@@ -52,6 +53,7 @@ import {
 } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarDock.internal";
 import { useClassicyTaskbarCommands } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarMenu.internal";
 import { ClassicyTaskbarQuickLaunch } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarQuickLaunch.internal";
+import { useClassicyTaskbarSize } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarSize.internal";
 import {
 	CLASSICY_TASKBAR_TOOLTIP_DELAY_MS,
 	ClassicyTaskbarTasks,
@@ -403,6 +405,17 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	);
 	const edge = dock.edge;
 	const vertical = isClassicyTaskbarVertical(edge);
+	// Its size on that edge (the shell addendum's B5): rows of window
+	// buttons at the top and bottom, a width at a side, set by dragging its
+	// inner edge and kept per edge.
+	const sizer = useClassicyTaskbarSize(
+		rootRef,
+		edge,
+		classicyTaskbarSize(stored, edge),
+		(size) => dispatch({ type: "ClassicyDesktopTaskbarSetSize", edge, size }),
+	);
+	const rows = vertical ? 1 : Math.max(1, sizer.size ?? 1);
+	const sideWidth = vertical ? sizer.size : undefined;
 	const thickness = useClassicyTaskbarBandPublisher(
 		rootRef,
 		edge,
@@ -586,7 +599,8 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 		const at: [number, number] = [e.clientX, e.clientY];
 		if (
 			target === e.currentTarget ||
-			(target instanceof Element && target.matches(TASKBAR_BAND_SITE))
+			(target instanceof Element &&
+				target.matches(`${TASKBAR_BAND_SITE}, .classicyTaskbarSizer`))
 		)
 			showTaskbarMenu(at, [], { toolbars: true });
 		else if (target instanceof Element && target.matches(TASKBAR_STATUS_AREA))
@@ -615,7 +629,15 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 	// Under "Always on top" off it goes behind the windows, but for while it
 	// is in use (pressed or focused since a window was last activated, its
 	// Start menu open, being moved).
-	const below = !options.alwaysOnTop && !raised && !startOpen && !dock.dragging;
+	const below =
+		!options.alwaysOnTop &&
+		!raised &&
+		!startOpen &&
+		!dock.dragging &&
+		!sizer.sizing;
+	// A side taskbar sized by its edge takes that width.
+	const sized: CSSProperties =
+		sideWidth !== undefined ? { width: `${sideWidth}px` } : {};
 
 	return (
 		<nav
@@ -629,6 +651,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 					classicyTaskbarVertical: vertical,
 					classicyTaskbarAutoHide: options.autoHide,
 					classicyTaskbarBelow: below,
+					classicyTaskbarRows: rows > 1,
 				},
 				classicyStateClasses({
 					collapsed: autoHide.hidden,
@@ -637,7 +660,7 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				appearance.className,
 				className,
 			)}
-			style={{ ...appearance.style, ...slide, ...style }}
+			style={{ ...appearance.style, ...sized, ...slide, ...style }}
 			onContextMenu={onContextMenu}
 			onMouseDown={(e) => {
 				raise();
@@ -650,6 +673,18 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 				autoHide.onFocus();
 			}}
 		>
+			{/* The inner edge, the side facing the desktop: dragged, it sizes
+			    the taskbar (the shell addendum's B5); the package lays it
+			    along that edge and gives it the size cursor. */}
+			<span
+				className="classicyTaskbarSizer"
+				data-classicy-part="taskbar-sizer"
+				aria-hidden="true"
+				onMouseDown={(e) => {
+					raise();
+					sizer.onMouseDown(e);
+				}}
+			/>
 			<button
 				ref={startRef}
 				type="button"
@@ -698,7 +733,11 @@ export const ClassicyTaskbar: FunctionalComponent<ClassicyTaskbarProps> = ({
 					vertical={vertical}
 				/>
 			)}
-			<ClassicyTaskbarTasks gripper={quickLaunch} vertical={vertical} />
+			<ClassicyTaskbarTasks
+				gripper={quickLaunch}
+				vertical={vertical}
+				rows={rows}
+			/>
 			<ClassicyTaskbarTray
 				disabledModules={disabledModules}
 				hideModules={hideModules}

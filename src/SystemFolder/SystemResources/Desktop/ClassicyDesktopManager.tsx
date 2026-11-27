@@ -316,6 +316,13 @@ export interface ClassicyStoreTaskbar {
 	 * dragging the bar's empty area. Absent (the default) is the bottom, as
 	 * Windows 98 installs it; `ClassicyDesktopTaskbarSetEdge` writes it. */
 	edge?: ClassicyTaskbarEdge;
+	/** The taskbar's size on each edge (the shell addendum's B5), set by
+	 * dragging its inner edge, kept per edge as Windows keeps a rect for each
+	 * (ReactOS `CTrayWindow::m_TrayRects`): rows of window buttons at the top
+	 * and bottom (a whole number, 1 or more), the width in px at the left and
+	 * right. Absent for an edge (the default) is one row, or the package's
+	 * width; `ClassicyDesktopTaskbarSetSize` writes it. */
+	size?: Partial<Record<ClassicyTaskbarEdge, number>>;
 	/** Taskbar Properties' "Always on top": the taskbar stays above every
 	 * window. Absent (the default) is on, as Windows 98 installs it; off, a
 	 * window covers it until it is pressed. `ClassicyDesktopTaskbarSetOptions`
@@ -361,6 +368,27 @@ export const classicyTaskbarOptions = (
 	smallStartMenuIcons: taskbar?.smallStartMenuIcons === true,
 	showClock: taskbar?.showClock !== false,
 });
+
+/**
+ * The taskbar's stored size on `edge` (`ClassicyStoreTaskbar.size`): at the
+ * top and bottom its rows of window buttons, a whole number of at least 1
+ * (1 when nothing valid is stored); at a side its width in px, or
+ * `undefined` for the package's own width. Pure.
+ */
+export const classicyTaskbarSize = (
+	taskbar: ClassicyStoreTaskbar | undefined,
+	edge: ClassicyTaskbarEdge,
+): number | undefined => {
+	const stored =
+		taskbar?.size && Object.hasOwn(taskbar.size, edge)
+			? taskbar.size[edge]
+			: undefined;
+	const valid =
+		typeof stored === "number" && Number.isFinite(stored) && stored >= 1;
+	if (edge === "top" || edge === "bottom")
+		return valid ? Math.floor(stored) : 1;
+	return valid ? Math.round(stored) : undefined;
+};
 
 /** The edge the taskbar is docked to: the stored one, else the bottom. */
 export const classicyTaskbarEdge = (
@@ -1018,6 +1046,20 @@ export const classicyDesktopEventHandler = (
 			if (!isClassicyTaskbarEdge(action.edge)) break;
 			ds.System.Manager.Desktop.taskbar ??= {};
 			ds.System.Manager.Desktop.taskbar.edge = action.edge;
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetSize": {
+			// Sizing (the shell addendum's B5): written when a drag of the
+			// taskbar's inner edge ends, for the edge it is docked to.
+			if (!isClassicyTaskbarEdge(action.edge)) break;
+			const size = action.size;
+			if (typeof size !== "number" || !Number.isFinite(size) || size < 1) break;
+			const horizontal = action.edge === "top" || action.edge === "bottom";
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.size = {
+				...ds.System.Manager.Desktop.taskbar.size,
+				[action.edge]: horizontal ? Math.floor(size) : Math.round(size),
+			};
 			break;
 		}
 		case "ClassicyDesktopTaskbarSetOptions": {

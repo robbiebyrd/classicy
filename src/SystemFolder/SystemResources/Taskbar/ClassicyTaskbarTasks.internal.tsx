@@ -1,5 +1,6 @@
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FocusEvent,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
@@ -564,22 +565,31 @@ export function classicyTaskbarTasksPerPage({
 	pagerWidth,
 	minWidth,
 	gap,
+	rows = 1,
 }: {
 	count: number;
 	listWidth: number;
 	pagerWidth: number;
 	minWidth: number;
 	gap: number;
+	/**
+	 * The rows the band holds (the shell addendum's B5, a taskbar sized
+	 * taller): the buttons fill every row, `ceil(count / rows)` to a row,
+	 * and the control appears only when every row is full. Default 1.
+	 */
+	rows?: number;
 }): number {
 	const room = listWidth + pagerWidth;
+	const lines = Math.max(1, Math.floor(rows));
 	if (count <= 0 || !(minWidth > 0) || !(room > 0)) return count;
 	const slot = minWidth + Math.max(0, gap);
-	if (count * slot <= room) return count;
+	if (Math.ceil(count / lines) * slot <= room) return count;
 	// Beside the control: the list's own width once it is drawn, else the
 	// whole room for now (the next measure, with the control drawn, refines
 	// it).
 	const beside = pagerWidth > 0 ? listWidth : room;
-	return Math.max(1, Math.min(count, Math.floor(beside / slot)));
+	const perRow = Math.max(1, Math.floor(beside / slot));
+	return Math.max(1, Math.min(count, perRow * lines));
 }
 
 // A length a computed style holds, in px; 0 when it holds none.
@@ -622,7 +632,16 @@ export const ClassicyTaskbarTasks: FunctionalComponent<{
 	 * height below it), and the arrows walk the buttons up and down.
 	 */
 	vertical?: boolean;
-}> = ({ gripper = false, vertical = false }) => {
+	/**
+	 * The rows of buttons the band holds (the shell addendum's B5; a top or
+	 * bottom taskbar sized taller). Past one the list carries
+	 * `classicyTaskbarTasksRows` and lays its buttons in that many rows,
+	 * filled row by row, `--classicy-taskbar-rows` and
+	 * `--classicy-taskbar-columns` on it for the package's grid. Default 1.
+	 */
+	rows?: number;
+}> = ({ gripper = false, vertical = false, rows: rowsProp = 1 }) => {
+	const rows = vertical ? 1 : Math.max(1, Math.floor(rowsProp));
 	const entries = useClassicyWindowEntries();
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const overrides = useClassicyAppIdentityOverrides();
@@ -677,6 +696,7 @@ export const ClassicyTaskbarTasks: FunctionalComponent<{
 				? computedPx(vertical ? itemStyle.minHeight : itemStyle.minWidth)
 				: 0,
 			gap: computedPx(vertical ? listStyle.rowGap : listStyle.columnGap),
+			rows,
 		});
 		const cap = next < count ? next : null;
 		setRowCap((current) => (current === cap ? current : cap));
@@ -684,7 +704,7 @@ export const ClassicyTaskbarTasks: FunctionalComponent<{
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the dependencies are the triggers (the ref reads fresh state): the buttons coming and going, and the control appearing or going
 	useLayoutEffect(() => {
 		measureRef.current();
-	}, [count, rowCap, vertical]);
+	}, [count, rowCap, vertical, rows]);
 	useEffect(() => {
 		const list = listRef.current;
 		if (!list || typeof ResizeObserver !== "function") return;
@@ -770,7 +790,19 @@ export const ClassicyTaskbarTasks: FunctionalComponent<{
 				ref={listRef}
 				className={classNames("classicyTaskbarTasks", {
 					classicyTaskbarTasksPaged: paged,
+					classicyTaskbarTasksRows: rows > 1,
 				})}
+				style={
+					rows > 1
+						? ({
+								"--classicy-taskbar-rows": rows,
+								"--classicy-taskbar-columns": Math.max(
+									1,
+									Math.ceil((paged ? rowLength : count) / rows),
+								),
+							} as CSSProperties)
+						: undefined
+				}
 				data-classicy-part="taskbar-tasks"
 				aria-label="Running windows"
 				onKeyDown={onListKeyDown}

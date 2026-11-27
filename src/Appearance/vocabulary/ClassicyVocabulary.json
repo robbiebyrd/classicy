@@ -605,7 +605,9 @@
 			"QuickLaunchButton",
 			"QuickLaunchButtons",
 			"QuickLaunchIcon",
+			"Rows",
 			"ShowDesktopIcon",
+			"Sizer",
 			"Start",
 			"StartFlag",
 			"StartIcon",
@@ -616,6 +618,7 @@
 			"TaskLabel",
 			"Tasks",
 			"TasksPaged",
+			"TasksRows",
 			"Tray",
 			"TrayExtensions",
 			"TrayIcon",
@@ -764,6 +767,7 @@
 			"taskbar-pager",
 			"taskbar-tasks",
 			"taskbar-tray",
+			"taskbar-sizer",
 			"start-menu-banner",
 			"list-check"
 		]

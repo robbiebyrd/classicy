@@ -121,6 +121,11 @@ and `nodenext` resolution).
     until you switch to it, as Windows 98 did. When too many windows are open for the buttons to
     fit, they shrink to their icons and show a row at a time, with small
     up and down arrows at the right to move between the rows.
+  - **Size the taskbar** by dragging its inner edge (the edge facing the
+    desktop, where the pointer turns into the size arrows): a top or
+    bottom taskbar grows a row of window buttons at a time, up to half the
+    screen, and a side taskbar widens in pixels, from the Start button's
+    width to half the screen. Each edge keeps its own size.
   - **From the keyboard**: CTRL+ESC then Escape leaves the focus on the
     Start button, and Tab moves on to Quick Launch, the window buttons and
     the notification area, one stop each; the arrow keys, Home and End move

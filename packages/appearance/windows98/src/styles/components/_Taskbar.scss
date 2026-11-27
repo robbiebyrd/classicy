@@ -264,6 +264,48 @@ $edge: b.$b2;
       inset 0 $edge b.$hilight;
   }
 
+  // The inner edge (the shell addendum's B5): the bar's margin on the side
+  // facing the desktop, its raised edge included, is where a drag sizes
+  // it, under the vertical size cursor (or the horizontal one at a side;
+  // ReactOS `CTrayWindow::OnNcHitTest` answers HTTOP, HTBOTTOM, HTLEFT or
+  // HTRIGHT there).
+  .classicyTaskbarSizer {
+    height: calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2});
+    @include b.registry-cursor(resize-ud, ns-resize, 15 16);
+  }
+
+  .classicyTaskbarVertical > .classicyTaskbarSizer {
+    width: calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2});
+    height: auto;
+    @include b.registry-cursor(resize-lr, ew-resize, 16 16);
+  }
+
+  // Taller than a row (the shell addendum's B5): the bar takes the rows'
+  // height, the Start button, Quick Launch and the status area on the first
+  // row, and the window buttons in a grid of `--classicy-taskbar-rows` rows,
+  // filled a row at a time, each column between the buttons' least and
+  // greatest width (ReactOS `UpdateButtonsSize`), `--taskbar-button-gap`
+  // apart both ways.
+  .classicyTaskbar.classicyTaskbarRows {
+    height: auto;
+    align-items: flex-start;
+  }
+
+  .classicyTaskbarTasks.classicyTaskbarTasksRows {
+    display: grid;
+    grid-template-rows: repeat(var(--classicy-taskbar-rows), var(--taskbar-button-height));
+    grid-template-columns: repeat(
+      var(--classicy-taskbar-columns),
+      minmax(var(--taskbar-button-min-width), var(--taskbar-button-max-width))
+    );
+    align-content: start;
+    justify-content: start;
+  }
+
+  .classicyTaskbarTasks.classicyTaskbarTasksRows > li {
+    min-width: 0;
+  }
+
   // --- The Start button -------------------------------------------------------
   .classicyTaskbarStart {
     min-width: var(--taskbar-start-button-width);
