@@ -1,0 +1,1 @@
+import{h as c,s as e,a2 as u}from"./iframe-iHPPDpHV.js";const a=o=>`url("${o.replace(/["\\]/g,"\\$&")}")`,n=()=>c.useCallback(s=>{if(!s){document.body.style.cursor="";return}const t=e("cursors",s),r=u(s);document.body.style.cursor=t?`${a(t)}${r?` ${r[0]} ${r[1]}`:""}, auto`:""},[]);export{n as u};
