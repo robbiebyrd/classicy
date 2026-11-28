@@ -253,6 +253,11 @@ export const WINDOWS98_ICON_FILES: Readonly<
 	"system.folders.suitcase": { src: "shell32-156-32", small: "shell32-156-16" },
 	// shell32.dll #24: Help (Start menu, Windows Help).
 	"system.help": { src: "shell32-24-32", small: "shell32-24-16" },
+	// shell32.dll #28: Shut Down (Start menu).
+	"system.bigSwitchOff": { src: "shell32-28-32", small: "shell32-28-16" },
+	// shell32.dll #136: the Shut Down Windows dialog's icon (dialog 1064's
+	// static "#136").
+	"system.shutDown": { src: "shell32-136-32", small: "shell32-136-16" },
 	// user.exe #104: Information (MB_ICONINFORMATION), 32 px; its 16 px image comctl32.dll #20481.
 	"system.info": { src: "user-104-32", small: "comctl32-20481-16" },
 	// explorer.exe #100: My Computer (CLSID DefaultIcon Explorer.exe,0).

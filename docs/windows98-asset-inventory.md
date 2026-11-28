@@ -127,8 +127,9 @@ Each of the core icon tree's 296 keys, in the tree's order. **Fallback rule**: w
 | `system.controlStrip.soundOff` | export (16 px) | `sndvol32.exe` #303, its 16 px image | `sndvol32-303-16.webp` | the taskbar's muted volume icon |
 | `system.appleBlackOnWhite` | reuse | `system.windows` | — | the OS emblem: the Windows logo |
 | `system.appleWhiteOnBlack` | reuse | `system.windows` | — |  |
-| `system.bigSwitchOff` | core | — | — | Mac power-switch glyph |
+| `system.bigSwitchOff` | export | `shell32.dll` #28: Shut Down (Start menu) | `shell32-28-32.webp`, `shell32-28-16.webp` | Start ▸ Shut Down... |
 | `system.bigSwitchOn` | core | — | — | Mac power-switch glyph |
+| `system.shutDown` | export | `shell32.dll` #136: the Shut Down Windows dialog's icon (dialog 1064's static `#136`) | `shell32-136-32.webp`, `shell32-136-16.webp` | the Shut Down Windows dialog |
 | `system.clipboard` | reuse | `system.files.document` | — | the Clipboard Viewer's .clp icon is not in the sources' extracted set; a document |
 | `system.comport1` | core | — | — | hardware glyph with no file meaning (Fallback rule) |
 | `system.comport2` | core | — | — | hardware glyph with no file meaning (Fallback rule) |
@@ -386,6 +387,8 @@ Each `ClassicySystemArtKey`. "register" keys draw Windows 98's file; "default" k
 | `ditherChecker` | default | — | — | Windows drew it with Marlett in the text color: the package's stylesheet draws it from tokens |
 | `helpMenuTitle` | default | — | — | Windows titles Help in words; Platinum registers none either, so the word shows |
 | `startMenuBanner` | register | `explorer.exe` bitmap 157: the Start menu's "Windows98" banner (21 x 233, 4-bit) | `art/explorer-bitmap-157.webp` | the Start menu's banner, drawn upright at its foot with its first row (navy) stretched above it, as Explorer painted it (ReactOS `CMenuDeskBar::_OnPaint`); every pixel kept: Explorer drew it as loaded, under every scheme |
+| `taskbarPreview` | register | `explorer.exe` bitmaps 149 (the desktop picture), 150 (the large-icon Start menu), 151 (the taskbar), 152 (a window's edge) and 153 (the status area without the clock): Taskbar Properties' Taskbar Options preview (dialog 6, statics 1111-1115), stacked at y 0, 130, 229, 258 and 275 (274 x 297) | `art/taskbar-preview.webp` | loaded with LR_LOADMAP3DCOLORS, so the gray (192) is left clear for the scheme's ButtonFace drawn under it and the dark gray (128) is `taskbarPreviewShadow`'s; every other pixel as the bitmaps hold it |
+| `taskbarPreviewShadow` | register | the same five bitmaps' dark gray (128) pixels | `art/taskbar-preview-shadow.webp` | a mask the scheme's ButtonShadow fills (LR_LOADMAP3DCOLORS) |
 
 ## Cursors
 

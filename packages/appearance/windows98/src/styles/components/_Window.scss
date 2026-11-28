@@ -686,6 +686,45 @@ $grip-shadow: runs($grip, "s");
       inset 0 #{b.$neg-b2} b.$shadow;
   }
 
+  // A status bar (the core's `classicyWindowHeaderStatus`, `headerVariant`
+  // "status": Explorer's folder windows): comctl32's status bar under the
+  // contents, ButtonFace, no rule; its parts (`classicyWindowStatusPart`)
+  // two pixels apart (HORZ_GAP), each in a one-pixel sunken edge
+  // (BDR_SUNKENOUTER: ButtonShadow above and left, ButtonHilight below and
+  // right) with its text two pixels in; the objects take what is left,
+  // the size and the zone Explorer's fixed widths, and the size grip
+  // (the window's grow box) keeps the bar's right end.
+  .classicyWindow .classicyWindowHeader.classicyWindowHeaderStatus {
+    box-sizing: border-box;
+    align-items: stretch;
+    column-gap: px(2);
+    padding: px(2) var(--window-scrollbar-size) 0 0;
+    box-shadow: none;
+  }
+
+  .classicyWindow .classicyWindowStatusPart {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    padding: 0 px(2);
+    line-height: calc(#{$header} - #{px(4)});
+    box-shadow:
+      inset b.$b b.$b b.$shadow,
+      inset b.$neg-b b.$neg-b b.$hilight;
+  }
+
+  .classicyWindow .classicyWindowStatusPart:first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .classicyWindow .classicyWindowStatusPart:nth-child(2) {
+    width: px(90);
+  }
+
+  .classicyWindow .classicyWindowStatusPart:nth-child(3) {
+    width: px(160);
+  }
+
   // The list-view header (column headings) is not ruled off: the Table's
   // header buttons follow it.
   .classicyWindow .classicyWindowHeader.classicyWindowHeaderList {

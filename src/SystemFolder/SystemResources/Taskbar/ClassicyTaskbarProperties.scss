@@ -32,3 +32,17 @@
   justify-content: flex-end;
   gap: var(--layout-focus-gap);
 }
+
+// The Taskbar Options page's preview: a frame its pieces are placed in. The
+// package sizes the frame, places the pieces and paints both.
+.classicyTaskbarPropertiesPreview {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.classicyTaskbarPropertiesPreviewStartMenu,
+.classicyTaskbarPropertiesPreviewTaskbar,
+.classicyTaskbarPropertiesPreviewNoClock,
+.classicyTaskbarPropertiesPreviewWindow {
+  position: absolute;
+}

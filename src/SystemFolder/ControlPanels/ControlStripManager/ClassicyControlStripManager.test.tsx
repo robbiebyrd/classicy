@@ -271,6 +271,28 @@ describe("ClassicyControlStripManager under a taskbar", () => {
 		expect(button("Apply")).toBeDisabled();
 	});
 
+	it("draws the page's preview from the choices on the page, before Apply", () => {
+		renderOpen();
+		const preview = document.querySelector(
+			".classicyTaskbarPropertiesPreview",
+		) as HTMLElement;
+		expect(preview).toHaveAttribute("aria-hidden", "true");
+		const pieces = () =>
+			Array.from(preview.children).map((piece) =>
+				piece.className.replace("classicyTaskbarPropertiesPreview", ""),
+			);
+		// The defaults: the large-icon Start menu and the taskbar with its
+		// clock, always on top (no window over it).
+		expect(pieces()).toEqual(["StartMenu", "Taskbar"]);
+		fireEvent.click(checkbox("Always on top"));
+		fireEvent.click(checkbox("Show Clock"));
+		expect(pieces()).toEqual(["StartMenu", "Taskbar", "NoClock", "Window"]);
+		fireEvent.click(checkbox("Show small icons in Start menu"));
+		fireEvent.click(checkbox("Auto hide"));
+		expect(pieces()).toEqual(["Window"]);
+		expect(taskbar()?.autoHide).toBeUndefined();
+	});
+
 	it("stores its choices on Apply and OK, and none on Cancel", () => {
 		renderOpen();
 		fireEvent.click(checkbox("Auto hide"));

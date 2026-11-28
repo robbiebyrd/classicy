@@ -162,7 +162,9 @@ export type ClassicySystemArtKey =
 	| "downArrow"
 	| "ditherChecker"
 	| "helpMenuTitle"
-	| "startMenuBanner";
+	| "startMenuBanner"
+	| "taskbarPreview"
+	| "taskbarPreviewShadow";
 
 export type ClassicyFontFace = {
 	family: string;
@@ -1183,6 +1185,8 @@ const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
 	ditherChecker: "image",
 	helpMenuTitle: "image",
 	startMenuBanner: "image",
+	taskbarPreview: "image",
+	taskbarPreviewShadow: "image",
 };
 
 /**

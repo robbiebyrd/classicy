@@ -218,6 +218,20 @@
   column-gap: var(--window-control-size);
 }
 
+// The status-bar header (`headerVariant` "status"): under the contents, in
+// the flow, its parts (`classicyWindowStatusPart`) in a row from the left.
+:where(.classicyWindowHeader).classicyWindowHeaderStatus {
+  position: relative;
+  top: auto;
+  justify-content: flex-start;
+}
+
+.classicyWindowStatusPart {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 // #183: the list-view header variant (classicyWindowHeaderList) drops the
 // beveled bottom separator, so the header reads as a column-heading strip
 // rather than a raised bar: a look, in the Platinum package.

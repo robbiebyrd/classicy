@@ -149,6 +149,8 @@ export const WINDOWS98_SYSTEM_ART: Readonly<
 	startupLogo: art("shell32-bitmap-130"),
 	aboutLogo: art("shell32-bitmap-130"),
 	startMenuBanner: art("explorer-bitmap-157"),
+	taskbarPreview: art("taskbar-preview"),
+	taskbarPreviewShadow: art("taskbar-preview-shadow"),
 	openFolderIcon: windows98IconFile("shell32-5-16"),
 	fileDialogFolderIcon: windows98IconFile("shell32-4-16"),
 };

@@ -97,6 +97,7 @@ const sizeOf = (file: string): [number, number] => {
 	if (name === "explorer-bitmap-143") return [16, 16];
 	if (name === "explorer-bitmap-157") return [21, 233];
 	if (name === "shell32-bitmap-130") return [64, 64];
+	if (name.startsWith("taskbar-preview")) return [274, 297];
 	if (name.startsWith("browseui-bitmap-")) return [20, 20];
 	const size = Number(/-(\d+)$/.exec(name)?.[1]);
 	return [size, size];
@@ -116,7 +117,7 @@ describe("Windows 98's assets", () => {
 			// Lane 3's 148, the four document icons by type
 			// (windows98AssetAdditions.ts: kodakimg #129 and quartz #200) and
 			// the Start menu banner (Explorer's bitmap 157).
-			expect(webps.length).toBe(153);
+			expect(webps.length).toBe(159);
 			for (const dir of ["icons", "art"])
 				expect(
 					readdirSync(path.join(assets, dir)).filter((file) =>
@@ -235,7 +236,7 @@ describe("Windows 98's assets", () => {
 			const core = ICON_KEYS.filter(
 				(key) => !withFiles.includes(key) && !reused.includes(key),
 			);
-			expect(core.length).toBe(101);
+			expect(core.length).toBe(100);
 			for (const key of core)
 				expect(resolveClassicyAsset("icons", key, WINDOWS98), key).toBe(
 					coreIcon(key),
@@ -357,6 +358,8 @@ describe("Windows 98's assets", () => {
 					"openFolderIcon",
 					"startMenuBanner",
 					"startupLogo",
+					"taskbarPreview",
+					"taskbarPreviewShadow",
 					"trashEmpty",
 					"trashFull",
 				].sort(),

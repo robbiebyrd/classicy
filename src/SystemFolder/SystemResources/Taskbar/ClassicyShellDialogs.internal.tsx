@@ -17,6 +17,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
@@ -32,6 +33,7 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 import { desktopVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import {
 	useFocusTrap,
 	useKeyboardEquivalents,
@@ -210,13 +212,16 @@ type ClassicyShutDownDialogProps = {
 };
 
 /**
- * Shut Down Windows (shell32 dialog 1065): "What do you want the computer to
- * do?" over the choices Classicy can make, Stand by, Shut down and Restart,
- * opened on the last one chosen (Shut down the first time), then OK and
- * Cancel. Windows 98 SE hid the choices a computer could not make; Classicy
- * has no wake events, hibernation, MS-DOS mode or Log off here (Log Off is the
- * Start menu's), so those are left out as Windows left them out, and its Help
- * button too, which opened a Help topic Classicy does not have.
+ * Shut Down Windows (shell32 dialog 1064): its icon (shell32 #136,
+ * `system.shutDown`), "What do you want the computer to do?" over the choices
+ * Classicy can make, Stand by, Shut down and Restart, opened on the last one
+ * chosen (Shut down the first time), then OK, Cancel and Help. Windows 98 SE
+ * hid the choices a computer could not make; Classicy has no wake events,
+ * hibernation, MS-DOS mode or Log off here (Log Off is the Start menu's), so
+ * those are left out as Windows left them out. Help opens Help, as Start ▸
+ * Help does (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`: the Help Topics browser
+ * under `help.topicWindow` "winhelp", else the About Help topic), and leaves
+ * the dialog open, as WinHelp opened beside it.
  */
 const ClassicyShutDownDialog: FunctionalComponent<
 	ClassicyShutDownDialogProps
@@ -235,6 +240,12 @@ const ClassicyShutDownDialog: FunctionalComponent<
 		optionsRef.current = document.getElementById(`${contentKey}-${openedOn}`);
 	}, [openedOn]);
 	const ok = useCallback(() => onChoose(choice), [choice, onChoose]);
+	const dispatch = useAppManagerDispatch();
+	const accessKey = useClassicyBundledAccessKeys();
+	const help = useCallback(
+		() => dispatch({ type: APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT }),
+		[dispatch],
+	);
 	return (
 		<ClassicyShellDialogFrame
 			id={SYSTEM_DIALOG_WINDOW_IDS.shutDown}
@@ -246,7 +257,7 @@ const ClassicyShutDownDialog: FunctionalComponent<
 			initialFocusRef={optionsRef}
 		>
 			<div className="classicyShellDialogTop">
-				<ShellDialogIcon iconKey="system.bigSwitchOff" />
+				<ShellDialogIcon iconKey="system.shutDown" />
 				<div className="classicyShellDialogBody">
 					<p className="classicyShellDialogPrompt" id={`${contentKey}-prompt`}>
 						What do you want the computer to do?
@@ -272,6 +283,9 @@ const ClassicyShutDownDialog: FunctionalComponent<
 					OK
 				</ClassicyButton>
 				<ClassicyButton onClickFunc={onClose}>Cancel</ClassicyButton>
+				<ClassicyButton accessKey={accessKey("H")} onClickFunc={help}>
+					Help
+				</ClassicyButton>
 			</div>
 		</ClassicyShellDialogFrame>
 	);

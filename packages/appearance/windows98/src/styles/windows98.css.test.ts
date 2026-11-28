@@ -2796,4 +2796,50 @@ describe("windows98.scss (compiled)", () => {
 			expect(rowBadge).toContain("left: var(--file-browser-list-icon-spacing)");
 		});
 	});
+
+	describe("the status bar, Taskbar Properties' preview and the icons' labels", () => {
+		const scope = ".classicyDesktop[data-classicy-appearance=windows98]";
+		const rule = (selector: string) => {
+			const at = css.indexOf(`${selector} {`);
+			return at < 0 ? "" : css.slice(at, css.indexOf("}", at));
+		};
+		const flat = (text: string) => text.replace(/\s+/g, " ");
+
+		it("draws a folder window's status bar as comctl32's, its parts sunken", () => {
+			const bar = rule(
+				`${scope} .classicyWindow .classicyWindowHeader.classicyWindowHeaderStatus`,
+			);
+			expect(bar).toContain("box-shadow: none");
+			expect(bar).toContain("align-items: stretch");
+			const part = flat(
+				rule(`${scope} .classicyWindow .classicyWindowStatusPart`),
+			);
+			expect(part).toContain(
+				"inset var(--window-border-size) var(--window-border-size) var(--color-system-05)",
+			);
+			expect(part).toContain("var(--color-system-01)");
+			expect(
+				rule(`${scope} .classicyWindow .classicyWindowStatusPart:first-child`),
+			).toContain("flex: 1 1 0");
+		});
+
+		it("places the preview's pieces as explorer's dialog 6 does, from its art", () => {
+			const frame = rule(`${scope} .classicyTaskbarPropertiesPreview`);
+			expect(frame).toContain("width: calc(var(--pixel-unit) * 274)");
+			expect(frame).toContain("height: calc(var(--pixel-unit) * 130)");
+			for (const piece of ["StartMenu", "Taskbar", "NoClock", "Window"])
+				expect(
+					rule(`${scope} .classicyTaskbarPropertiesPreview${piece}`),
+					piece,
+				).toContain("background-color");
+			expect(css).toContain("var(--classicy-art-taskbar-preview, none)");
+			expect(css).toContain("var(--classicy-art-taskbar-preview-shadow, none)");
+		});
+
+		it("cuts a desktop label to the whole lines its icon's cell holds", () => {
+			expect(flat(css)).toContain(
+				"-webkit-line-clamp: max(1, tan(atan2(var(--desktop-icon-grid-row-gap) - calc(var(--pixel-unit) * 6), calc(var(--desktop-icon-font-size) + calc(var(--pixel-unit) * 2)))) - 0.5)",
+			);
+		});
+	});
 });

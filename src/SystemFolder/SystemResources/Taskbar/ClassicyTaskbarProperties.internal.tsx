@@ -39,9 +39,17 @@ import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
  *   Start menu" and "Show Clock", each a check box, stored on OK or Apply
  *   (`ClassicyDesktopTaskbarSetOptions`) and not before, as a property
  *   sheet's page applies its changes: Cancel and the Close box drop them.
- *   Windows 98 drew a preview of the taskbar above them, a bitmap of its own
- *   it redrew for each choice; Classicy leaves the picture out (the choices
- *   take effect at Apply, on the real taskbar).
+ *   Above them the page's preview (`classicyTaskbarPropertiesPreview`,
+ *   `aria-hidden`), drawn as explorer.exe drew it: its desktop picture
+ *   (bitmap 149) in a sunken frame and, over it, the pieces the page's
+ *   choices show (explorer's `ShowWindow` of each static): the large-icon
+ *   Start menu (bitmap 150, `classicyTaskbarPropertiesPreviewStartMenu`)
+ *   unless "Show small icons in Start menu" is checked, the taskbar (151,
+ *   `…PreviewTaskbar`) unless "Auto hide" is, its status area without the
+ *   clock (153, `…PreviewNoClock`) over it while the clock is off, and a
+ *   window's edge over the taskbar (152, `…PreviewWindow`) unless "Always on
+ *   top" is. The page's choices draw it, before Apply; the package places
+ *   and paints the pieces (Windows 98's art, `taskbarPreview`).
  * - **Start Menu Programs**: the "Documents menu" group's Clear, which
  *   empties Start ▸ Documents and the Run dialog's history ("the contents
  *   of the Documents menu and other personal history lists"), at once, as
@@ -99,6 +107,31 @@ const TASKBAR_PROPERTIES_WHATS_THIS = CLASSICY_TASKBAR_PROPERTIES_OPTIONS.map(
 	}),
 );
 
+/**
+ * The Taskbar Options page's preview (explorer.exe's dialog 6): the frame
+ * (static 1111) and, in explorer's z-order, the pieces the choices show:
+ * the large-icon Start menu (1112), the taskbar (1113), its status area
+ * without the clock (1115) and a window over the taskbar (1114).
+ */
+export const ClassicyTaskbarPropertiesPreview: FunctionalComponent<{
+	options: Required<ClassicyTaskbarOptions>;
+}> = ({ options }) => (
+	<div className="classicyTaskbarPropertiesPreview" aria-hidden="true">
+		{!options.smallStartMenuIcons && (
+			<div className="classicyTaskbarPropertiesPreviewStartMenu" />
+		)}
+		{!options.autoHide && (
+			<div className="classicyTaskbarPropertiesPreviewTaskbar" />
+		)}
+		{!options.autoHide && !options.showClock && (
+			<div className="classicyTaskbarPropertiesPreviewNoClock" />
+		)}
+		{!options.alwaysOnTop && (
+			<div className="classicyTaskbarPropertiesPreviewWindow" />
+		)}
+	</div>
+);
+
 export const ClassicyTaskbarProperties: FunctionalComponent<{
 	onClose: () => void;
 	/**
@@ -149,6 +182,7 @@ export const ClassicyTaskbarProperties: FunctionalComponent<{
 						title: "Taskbar Options",
 						children: (
 							<div className="classicyTaskbarPropertiesPage">
+								<ClassicyTaskbarPropertiesPreview options={draft} />
 								{CLASSICY_TASKBAR_PROPERTIES_OPTIONS.map(({ key, label }) => (
 									<ClassicyCheckbox
 										key={key}

@@ -505,6 +505,44 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 		expect(container.querySelector(".classicyWindowHeaderList")).not.toBeNull();
 	});
 
+	// The status-bar variant (Explorer's folder windows, WIG Ch.7 p.96): the
+	// header drawn after the contents, as a status region.
+	it("draws the status header variant after the contents, as a status", () => {
+		const { container } = renderWindow({
+			headerVariant: "status",
+			header: <span>4 object(s)</span>,
+		});
+		const header = container.querySelector(
+			".classicyWindowHeader",
+		) as HTMLElement;
+		expect(header.classList.contains("classicyWindowHeaderStatus")).toBe(true);
+		expect(header).toHaveAttribute("role", "status");
+		expect(container.querySelectorAll(".classicyWindowHeader")).toHaveLength(1);
+		const contents = container.querySelector(
+			".classicyWindowContents",
+		) as HTMLElement;
+		expect(
+			contents.compareDocumentPosition(header) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+	});
+
+	it("draws the standard header before the contents, with no status role", () => {
+		const { container } = renderWindow({ header: <span>4 items</span> });
+		const header = container.querySelector(
+			".classicyWindowHeader",
+		) as HTMLElement;
+		expect(header.classList.contains("classicyWindowHeaderStatus")).toBe(false);
+		expect(header).not.toHaveAttribute("role");
+		const contents = container.querySelector(
+			".classicyWindowContents",
+		) as HTMLElement;
+		expect(
+			contents.compareDocumentPosition(header) &
+				Node.DOCUMENT_POSITION_PRECEDING,
+		).toBeTruthy();
+	});
+
 	// Story 0216-1im F9: list titles drawn above the contents' scrolling
 	// region (the contents' scroll area's head) take over the header's
 	// bottom edge, so the header is marked while its contents have a head.

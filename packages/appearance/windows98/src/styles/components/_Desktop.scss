@@ -95,6 +95,9 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
 $label-shadow: var(--desktop-label-shadow);
 $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shadow}) * 10000);
 
+// One line of a desktop icon's label: the icon font's size and two pixels.
+$label-line: calc(var(--desktop-icon-font-size) + #{px(2)});
+
 // A selected label: Hilight under HilightText, no shadow. The dotted focus
 // rectangle is the focus icon's alone (below), selected or not.
 @mixin label-selected {
@@ -184,7 +187,7 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
       font-family: b.$icon-font;
       font-size: var(--desktop-icon-font-size);
       font-weight: b.$icon-font-weight;
-      line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
+      line-height: $label-line;
       color: var(--package-color-desktop-text, var(--color-white));
       text-shadow: $label-shadow-offset $label-shadow-offset 0 var(--color-black);
       background: transparent;
@@ -202,6 +205,23 @@ $label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shado
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
       overflow: hidden;
+      // And only the whole lines that fit in the icon's cell: the listview
+      // cuts an unfocused label to the lines between its top and the box's
+      // bottom, at least one, the last ending in the ellipsis (Wine
+      // `LISTVIEW_GetItemMetrics`: the box is the vertical icon spacing tall,
+      // the label's top 38 pixels down it, 2 + icon + 4, so 37 of the 75
+      // pixels are the label's). Windows 98 SE keeps the spacing whatever the
+      // scheme (its Display control panel applies a scheme's
+      // NONCLIENTMETRICS and icon font, and the spacing from its own Icon
+      // Spacing items, SM_CXICON added: desk.cpl), so a large scheme's icon
+      // font shows one line where Windows Standard's shows two. The room is
+      // the row gap less the label's 6 pixels above its text, in lines
+      // (`tan(atan2())` divides the two lengths), floored (an integer
+      // property rounds to the nearest, so half a line less).
+      -webkit-line-clamp: max(
+        1,
+        calc(tan(atan2(calc(var(--desktop-icon-grid-row-gap) - #{px(6)}), #{$label-line})) - 0.5)
+      );
       // Its own height, below the icon's cell as before (clipping would
       // otherwise let the column shrink it).
       flex-shrink: 0;

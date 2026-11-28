@@ -86,7 +86,9 @@ and `nodenext` resolution).
     your computer." until a key or a click starts a fresh session;
     **Restart** closes your programs and starts that session at once, the
     startup screen and all. Your settings and files are kept (Reset PRAM…
-    is what clears them), and the dialog opens on your last choice.
+    is what clears them), and the dialog opens on your last choice. It
+    carries Windows 98's own Shut Down icon and a Help button, which opens
+    Help Topics beside it.
   - **Run...** opens a program by its name, a file or folder by its path
     (`Macintosh HD:Documents:Read Me.txt`; `\` works too, and the case
     does not matter) or a web address in the browser, remembering what you
@@ -160,7 +162,8 @@ and `nodenext` resolution).
     until you click it), Auto hide (it slides off its edge, leaving a thin
     strip, and slides back when the pointer reaches that edge), Show small
     icons in Start menu (small icons and no banner) and Show Clock, applied
-    on OK or Apply; its Start Menu Programs page's Clear empties Start ▸
+    on OK or Apply, above them Windows 98's own preview picture, which
+    shows each choice as you check it; its Start Menu Programs page's Clear empties Start ▸
     Documents and the Run history. Like a file's Properties sheet, it
     starts on its selected tab (ENTER is OK, ESC Cancel) and carries the
     "?" caption box, whose What's This? describes each check box.
@@ -379,7 +382,14 @@ and `nodenext` resolution).
   focus without selecting, and Space selects. A file dragged from the
   desktop onto a folder is moved, copied with Ctrl, or made a shortcut with
   Ctrl+Shift (the right button's drag offers the three in a menu), and the
-  folder's window comes forward.
+  folder's window comes forward. Icons keep Windows 98's 75-pixel spacing
+  in every scheme, as Windows 98 did; a large scheme's labels show the
+  whole lines that fit in it (one, in the extra large ones), the last
+  ending in "...", until the icon is selected.
+- **Its folder windows' status bar.** A folder window ends with Explorer's
+  status bar in place of the Finder's header: "5 object(s)" ("plus 1
+  hidden" while hidden items are left out), "2 object(s) selected" while
+  some are, their files' size and "My Computer".
 - **Its Help menus.** Each window's Help menu leads with Help Topics,
   which opens the Help Topics browser, as Start ▸ Help does, then What's
   This? (Shift+F1), and ends with "About" and the program's name (its

@@ -322,13 +322,16 @@ describe("bin/verify-dist.mjs", () => {
 
 // The art the package ships, exactly: the Start flag (Explorer's bitmap 143),
 // the Start menu banner (Explorer's bitmap 157), the Windows logo (shell32's
-// bitmap 130) and the package's own SVG icon.
+// bitmap 130), Taskbar Properties' preview (Explorer's bitmaps 149-153,
+// stacked, and its ButtonShadow mask) and the package's own SVG icon.
 it("ships exactly the package's art", () => {
 	const art = path.resolve(import.meta.dirname, "../src/assets/art");
 	expect(readdirSync(art).sort()).toEqual([
 		"explorer-bitmap-143.webp",
 		"explorer-bitmap-157.webp",
 		"shell32-bitmap-130.webp",
+		"taskbar-preview-shadow.webp",
+		"taskbar-preview.webp",
 		"windows98.svg",
 	]);
 });

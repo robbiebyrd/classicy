@@ -262,8 +262,8 @@ describe("System 7's assets", () => {
 	});
 
 	describe("system art", () => {
-		// Every key but the Windows shell's Start menu banner, which only a
-		// package with a taskbar draws.
+		// Every key but the Windows shell's Start menu banner and Taskbar
+		// Properties' preview, which only a package with a taskbar draws.
 		it("registers every ClassicySystemArtKey", () => {
 			expect(ART_KEYS.length).toBeGreaterThan(40);
 			for (const variant of [BASE, BW])
@@ -271,6 +271,8 @@ describe("System 7's assets", () => {
 					ART_KEYS.filter(
 						(key) =>
 							key !== "startMenuBanner" &&
+							key !== "taskbarPreview" &&
+							key !== "taskbarPreviewShadow" &&
 							!resolveClassicyAsset("systemArt", key, SYSTEM7, variant),
 					),
 					String(variant),

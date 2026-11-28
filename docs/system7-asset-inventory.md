@@ -538,6 +538,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `system.appleWhiteOnBlack` | White Apple logo on black | core | Brand (Apple logo) | — | — |
 | — | `system.bigSwitchOff` | Power switch, off | core | Classicy UI glyph | — | — |
 | — | `system.bigSwitchOn` | Power switch, on | core | Classicy UI glyph | — | — |
+| — | `system.shutDown` | Power switch, off (the Windows shell's Shut Down dialog) | core | Classicy UI glyph | — | — |
 | [x] | `system.clipboard` | Clipboard file | export | System, ID -16509 (`CLIP` in the System's `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-clipboard.webp` |
 | — | `system.comport1` | COM1 serial port | core | Hardware glyph with no file-kind meaning | — | — |
 | — | `system.comport2` | COM2 serial port | core | Hardware glyph with no file-kind meaning | — | — |
@@ -619,6 +620,8 @@ Every `ClassicySystemArtKey` (`src/Appearance/ClassicyAssetRegistry.ts`; Platinu
 | — | `ditherChecker` | The dither vocabulary's 50% checker tile (a mask: dimmed text and controls, dotted rules; HIG p.60, p.62) | draw | A 2×2 `currentColor` SVG with two opaque diagonal cells, as Platinum's `halftone.svg` (implementer). The `bw` theme sets `dither.tileSize` to 2 and the color theme leaves it 0, so one file serves both | — | — |
 | — | `helpMenuTitle` | Help menu title (the menu bar draws it in place of the word Help) | reuse | `helpButton` (its file is this glyph, the balloon with a "?" from the menu bar, HIG p.52, fig 4-2) | — | — |
 | — | `startMenuBanner` | The Windows shell's Start menu banner | core | None: System 7 has no taskbar or Start menu, and the default package registers none, so nothing draws it | — | — |
+| — | `taskbarPreview` | Taskbar Properties' Taskbar Options preview (the Windows shell's) | core | None: System 7 has no taskbar, and the default package registers none, so nothing draws it | — | — |
+| — | `taskbarPreviewShadow` | The same preview's ButtonShadow mask | core | None, as `taskbarPreview` | — | — |
 
 ## Cursors
 

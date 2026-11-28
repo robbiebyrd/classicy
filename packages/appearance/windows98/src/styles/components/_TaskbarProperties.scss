@@ -1,0 +1,99 @@
+// Taskbar Properties' Taskbar Options page preview (the core's
+// `classicyTaskbarPropertiesPreview`, ClassicyTaskbarProperties.internal.tsx),
+// included by windows98.scss inside the package wrapper, drawn as Windows 98
+// SE's explorer.exe draws its dialog 6:
+//
+// - The frame (static 1111, SS_BITMAP | SS_SUNKEN) sized 274 x 130 pixels
+//   (explorer's SetWindowPos), its half-sunken edge one pixel (ButtonShadow
+//   above and left, ButtonHilight below and right), the desktop picture
+//   (bitmap 149) at its client origin, clipped to the client.
+// - The pieces explorer shows (siblings of the frame, placed from the
+//   frame's client origin, so not clipped by it): the large-icon Start menu
+//   (1112, bitmap 150) at (2, 0), 150 x 98; the taskbar (1113, bitmap 151) at
+//   (2, 100), 268 x 28; its status area without the clock (1115, bitmap 153)
+//   at (186, 103), 79 x 22; a window's lower left (1114, bitmap 152) at
+//   (212, 100), 61 x 6, its last column over the frame's edge, as explorer's
+//   static sat over it. Each static shows its bitmap's top-left part.
+// - The bitmaps are loaded with LR_LOADMAP3DCOLORS, so their gray (192) is
+//   the scheme's ButtonFace and their dark gray (128) its ButtonShadow: the
+//   art (`taskbarPreview`, the five bitmaps stacked: 149 at y 0, 150 at 130,
+//   151 at 229, 152 at 258, 153 at 275) holds every other pixel, the gray
+//   clear, over the face, and the dark gray is a mask
+//   (`taskbarPreviewShadow`) the shadow color fills. The desktop's teal and
+//   the rest are the bitmaps' own, as Windows drew them under every scheme.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+@mixin preview-piece($y) {
+  background-color: b.$face;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  &::before {
+    background-color: b.$shadow;
+    mask-image: var(--classicy-art-taskbar-preview-shadow, none);
+    mask-repeat: no-repeat;
+    mask-position: 0 px(-$y);
+  }
+
+  &::after {
+    background-image: var(--classicy-art-taskbar-preview, none);
+    background-repeat: no-repeat;
+    background-position: 0 px(-$y);
+  }
+}
+
+@mixin taskbar-properties {
+  .classicyTaskbarPropertiesPreview {
+    box-sizing: border-box;
+    width: px(274);
+    height: px(130);
+    margin-bottom: calc(#{px(21)} - var(--layout-focus-gap));
+    border: b.$b solid;
+    border-color: b.$shadow b.$hilight b.$hilight b.$shadow;
+    background-clip: padding-box;
+    // The desktop picture, clipped to the frame's client, under the pieces.
+    @include preview-piece(0);
+
+    > * {
+      z-index: 1;
+    }
+  }
+
+  .classicyTaskbarPropertiesPreviewStartMenu {
+    left: px(2);
+    top: 0;
+    width: px(150);
+    height: px(98);
+    @include preview-piece(130);
+  }
+
+  .classicyTaskbarPropertiesPreviewTaskbar {
+    left: px(2);
+    top: px(100);
+    width: px(268);
+    height: px(28);
+    @include preview-piece(229);
+  }
+
+  .classicyTaskbarPropertiesPreviewNoClock {
+    left: px(186);
+    top: px(103);
+    width: px(79);
+    height: px(22);
+    @include preview-piece(275);
+  }
+
+  .classicyTaskbarPropertiesPreviewWindow {
+    left: px(212);
+    top: px(100);
+    width: px(61);
+    height: px(6);
+    @include preview-piece(258);
+  }
+}

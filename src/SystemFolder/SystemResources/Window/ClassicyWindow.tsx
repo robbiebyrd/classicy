@@ -821,9 +821,13 @@ interface ClassicyWindowProps {
 	/**
 	 * Window header styling (#183, HIGOS8 p.50). `"list"` removes the header's
 	 * bottom separator line (list-view column header); `"standard"` keeps the
-	 * bevel. Defaults to `"standard"`.
+	 * bevel. `"status"` makes the header the window's status bar (WIG Ch.7
+	 * "Status Bars", p.96): drawn under the contents instead of over them
+	 * (`classicyWindowHeaderStatus`, `role="status"`), the contents giving up
+	 * its height as for a header; the Finder's folder windows under
+	 * `layout.finder.commands` "windows" pass it. Defaults to `"standard"`.
 	 */
-	headerVariant?: "standard" | "list";
+	headerVariant?: "standard" | "list" | "status";
 	/**
 	 * Draw a 2px active/inactive content-region frame around the window body
 	 * (#203, HIGOS8 p.51), used to distinguish a modeless dialog from a plain
@@ -4029,7 +4033,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					menuItems={appMenu}
 				/>
 			)}
-			{header && !shaded && (
+			{header && !shaded && headerVariant !== "status" && (
 				<div
 					className={classNames(
 						"classicyWindowHeader",
@@ -4069,6 +4073,20 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						{contentsInner}
 					</ClassicyScrollArea>
 				</ClassicyWindowActiveContext.Provider>
+			)}
+			{/* A status bar (`headerVariant` "status"): the header, under the
+			    contents. */}
+			{header && !shaded && headerVariant === "status" && (
+				<div
+					className={classNames(
+						"classicyWindowHeader",
+						"classicyWindowHeaderStatus",
+						isActive() ? "" : "classicyWindowHeaderDimmed",
+					)}
+					role="status"
+				>
+					{header}
+				</div>
 			)}
 			{/* #196: a Platinum placard status region pinned to the window's
 					    bottom-left, to the left of the horizontal scroll bar. Hidden

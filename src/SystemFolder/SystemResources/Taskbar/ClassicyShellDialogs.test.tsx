@@ -16,6 +16,8 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { APPLE_GUIDE_APP_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
+import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { hasShownStartupScreenThisSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 import {
@@ -143,13 +145,33 @@ describe("the Windows shell's dialogs", () => {
 				["Shut down", true],
 				["Restart", false],
 			]);
-			// No MS-DOS mode, no Help: Classicy has neither.
+			// No MS-DOS mode: Classicy has none. OK, Cancel and Help, as
+			// shell32's dialog 1064, under its icon (shell32 #136).
 			expect(root).not.toHaveTextContent("MS-DOS");
-			expect(button(root, "Help")).toBeUndefined();
+			expect(
+				Array.from(
+					root?.querySelectorAll(".classicyShellDialogButtons button") ?? [],
+				).map((b) => b.textContent),
+			).toEqual(["OK", "Cancel", "Help"]);
+			expect(
+				root?.querySelector(".classicyShellDialogTop img"),
+			).toBeInTheDocument();
 			expect(
 				document.querySelector(".classicyShellDialogDim"),
 			).toBeInTheDocument();
 			expect(document.querySelector(".classicyPowerScreen")).toBeNull();
+		});
+
+		it("opens Help from its Help button and stays open", () => {
+			renderShell();
+			show("shutDown");
+			fireEvent.click(button(dialog("ShutDown"), "Help"));
+			// Help Topics' event: without help.topicWindow, the About Help topic.
+			expect(app(APPLE_GUIDE_APP_ID)?.data?.openTopics).toEqual([
+				ABOUT_BALLOON_HELP_TOPIC_ID,
+			]);
+			expect(dialog("ShutDown")).toBeInTheDocument();
+			expect(desktop().systemDialog).toBe("shutDown");
 		});
 
 		it("closes on Cancel and on Escape, the dim with it, doing nothing", () => {

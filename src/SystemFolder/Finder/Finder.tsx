@@ -6,6 +6,7 @@ import {
 	useLayoutEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
@@ -33,6 +34,12 @@ import {
 	resolveStandardViews,
 } from "@/SystemFolder/Finder/FinderContext";
 import { FinderPreferences } from "@/SystemFolder/Finder/FinderPreferences";
+import {
+	CLASSICY_EXPLORER_STATUS_ZONE,
+	classicyExplorerStatusObjects,
+	classicyExplorerStatusSize,
+	useClassicyExplorerStatusSize,
+} from "@/SystemFolder/Finder/FinderStatusBar";
 import { useFinderFolderSize } from "@/SystemFolder/Finder/useFinderFolderSize";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
@@ -275,6 +282,35 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	// The browser's selection, for File ▸ Move To Trash and Restore.
 	const commandsRef = useRef<ClassicyFileBrowserCommands | null>(null);
 	const inTrash = isInClassicyTrash(fs, op);
+	// Explorer's status bar in place of the header (`finder.commands`
+	// "windows"): the objects, their size and the zone, following the
+	// browser's selection.
+	const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+	const statusBytes = useClassicyExplorerStatusSize(
+		fs,
+		op,
+		selectedPaths,
+		windowsCommands,
+	);
+	const header = windowsCommands ? (
+		<>
+			<span className="classicyWindowStatusPart">
+				{classicyExplorerStatusObjects(
+					dir._count ?? 0,
+					dir._countHidden ?? 0,
+					selectedPaths.length,
+				)}
+			</span>
+			<span className="classicyWindowStatusPart">
+				{classicyExplorerStatusSize(statusBytes)}
+			</span>
+			<span className="classicyWindowStatusPart">
+				{CLASSICY_EXPLORER_STATUS_ZONE}
+			</span>
+		</>
+	) : (
+		<span>{getHeaderString(dir)}</span>
+	);
 	// One handle per open folder window: a single shared ref would make every
 	// window's Select All drive whichever table mounted last.
 	const selectionApiRef = useRef<ClassicyTableSelectionApi | null>(null);
@@ -719,7 +755,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			hidden={false}
 			initialSize={[425, 300]}
 			initialPosition={[50 + idx * 50, 50 + idx * 50]}
-			header={<span>{getHeaderString(dir)}</span>}
+			header={header}
+			headerVariant={windowsCommands ? "status" : undefined}
 			onCloseFunc={closeFolder}
 			appMenu={appMenu}
 			initialFocusRef={focusTargetRef}
@@ -739,6 +776,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 				now={now}
 				selectionApiRef={selectionApiRef}
 				focusTargetRef={focusTargetRef}
+				onSelectionChange={windowsCommands ? setSelectedPaths : undefined}
 				onMoveItems={onMoveItems}
 				// Invisible items (the Desktop Folder) stay out of Finder windows,
 				// as in Mac OS 8; the header counts them as hidden.
