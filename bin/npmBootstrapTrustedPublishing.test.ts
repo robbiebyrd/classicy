@@ -21,6 +21,7 @@ const SCRIPT = join(ROOT, "bin/npm-bootstrap-trusted-publishing.sh");
 const CORE = join(ROOT, "package.json");
 const PLATINUM = join(ROOT, "packages/appearance/platinum/package.json");
 const SYSTEM7 = join(ROOT, "packages/appearance/system7/package.json");
+const WINDOWS98 = join(ROOT, "packages/appearance/windows98/package.json");
 
 const tmp = mkdtempSync(join(tmpdir(), "classicy-bootstrap-"));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
@@ -171,6 +172,7 @@ exit 0
 		"@classicy/classicy",
 		"@classicy/appearance-platinum",
 		"@classicy/appearance-system7",
+		"@classicy/appearance-windows98",
 	]) {
 		const f = join(dir, `placeholder-${slug(name)}.json`);
 		if (existsSync(f)) placeholders[name] = JSON.parse(readFileSync(f, "utf8"));
@@ -192,7 +194,7 @@ const trustArgs = (name: string) =>
 	`trust github ${name} --repo robbiebyrd/classicy --file push.yml --allow-publish`;
 
 describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
-	it("is a dry run by default, for the core, Platinum and System 7, changing nothing", () => {
+	it("is a dry run by default, for the core, Platinum, System 7 and Windows 98, changing nothing", () => {
 		const r = run([]);
 		expect(r.status, r.out).toBe(0);
 		expect(r.calls).toEqual([
@@ -205,6 +207,9 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 			"view @classicy/appearance-system7 name",
 			"publish --access public --tag bootstrap --dry-run",
 			`${trustArgs("@classicy/appearance-system7")} --dry-run`,
+			"view @classicy/appearance-windows98 name",
+			"publish --access public --tag bootstrap --dry-run",
+			`${trustArgs("@classicy/appearance-windows98")} --dry-run`,
 		]);
 		expect(r.calls.some((c) => c.startsWith("deprecate"))).toBe(false);
 		expect(r.out).toMatch(/dry run/i);
@@ -296,7 +301,7 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 			const r = run(args);
 			expect(r.status, r.out).toBe(0);
 			const publishes = r.calls.filter((c) => c.startsWith("publish"));
-			expect(publishes).toHaveLength(3);
+			expect(publishes).toHaveLength(4);
 			for (const c of publishes) {
 				expect(c).toContain("--tag bootstrap");
 				expect(c).not.toMatch(/--tag latest/);
@@ -304,7 +309,7 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 			expect(r.calls.some((c) => c.startsWith("dist-tag"))).toBe(false);
 			expect(r.out).toMatch(/`bootstrap` dist-tag/);
 			expect(r.out).toMatch(
-				/`latest` reads 0\.0\.0 until the 3\.0\.0 and 3\.5\.0 releases/,
+				/`latest` reads 0\.0\.0 until the 3\.0\.0, 3\.5\.0 and 3\.8\.0 releases/,
 			);
 			expect(r.out).toMatch(/`latest` stays unset until/);
 			expect(r.out).toContain("npm dist-tag ls <name>");
@@ -382,6 +387,13 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 				/^deprecate @classicy\/appearance-system7@0\.0\.0 /,
 			),
 			`${trustArgs("@classicy/appearance-system7")} --yes`,
+			"view @classicy/appearance-windows98 name",
+			"publish --access public --tag bootstrap",
+			"view @classicy/appearance-windows98@0.0.0 version",
+			expect.stringMatching(
+				/^deprecate @classicy\/appearance-windows98@0\.0\.0 /,
+			),
+			`${trustArgs("@classicy/appearance-windows98")} --yes`,
 		]);
 		expect(r.out).toMatch(/@classicy\/classicy@0\.0\.0 is already deprecated/);
 		expect(r.out).toMatch(/@classicy\/classicy is already trusted/);
@@ -389,8 +401,9 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 
 	// Controller ruling (plan 0018-dbd, task 2.3): each package's deprecation
 	// names its own first release. The core and Platinum shipped in 3.0.0, so
-	// they exist on npm and are skipped; System 7 is new and first ships in 3.5.0.
-	it("names each package's own first release: 3.0.0 for the core and Platinum, 3.5.0 for System 7", () => {
+	// they exist on npm and are skipped; System 7 first shipped in 3.5.0, and
+	// Windows 98 first ships in 3.8.0.
+	it("names each package's own first release: 3.0.0 for the core and Platinum, 3.5.0 for System 7, 3.8.0 for Windows 98", () => {
 		const r = run(["--publish"], {
 			existing: ["@classicy/classicy", "@classicy/appearance-platinum"],
 			trustList: {
@@ -410,6 +423,9 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 			expect.stringMatching(
 				/^deprecate @classicy\/appearance-system7@0\.0\.0 .*install @classicy\/appearance-system7@3\.5\.0 or later/,
 			),
+			expect.stringMatching(
+				/^deprecate @classicy\/appearance-windows98@0\.0\.0 .*install @classicy\/appearance-windows98@3\.8\.0 or later/,
+			),
 		]);
 		// System 7 alone: the closing notes name only its release.
 		const alone = run(["--publish", SYSTEM7]);
@@ -418,6 +434,16 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 		expect(alone.out).not.toContain("3.0.0");
 		expect(alone.placeholders["@classicy/appearance-system7"]).toMatchObject({
 			name: "@classicy/appearance-system7",
+			version: "0.0.0",
+		});
+		// Windows 98 alone, likewise.
+		const win98 = run(["--publish", WINDOWS98]);
+		expect(win98.status, win98.out).toBe(0);
+		expect(win98.out).toMatch(/until the 3\.8\.0 release/);
+		expect(win98.out).not.toContain("3.0.0");
+		expect(win98.out).not.toContain("3.5.0");
+		expect(win98.placeholders["@classicy/appearance-windows98"]).toMatchObject({
+			name: "@classicy/appearance-windows98",
 			version: "0.0.0",
 		});
 	});

@@ -1,6 +1,10 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { subscribeClassicyActiveAppearancePackage } from "./ClassicyActiveAppearancePackage.internal";
-import type { ClassicyAppIdentityOverride } from "./ClassicyAppearancePackage";
+import type {
+	ClassicyAppIdentityOverride,
+	ClassicyDesktopIconOverride,
+	ClassicyDesktopIconOverrides,
+} from "./ClassicyAppearancePackage";
 import { getRegisteredClassicyAppearancePackageOrDefault } from "./ClassicyAppearancePackageRegistry";
 import { getClassicyAssetPackageSource } from "./ClassicyAssetPackageSource.internal";
 
@@ -43,19 +47,12 @@ export const getClassicyAppIdentityOverrides = (
 		packageId ?? getClassicyAssetPackageSource()?.getId(),
 	)?.apps ?? CLASSICY_NO_APP_IDENTITY_OVERRIDES;
 
-/**
- * Pure merge: each override field wins over the fallback's; no override for
- * `appId`, or one that changes no field (`{}`), returns `fallback` itself.
- * Looked up with `Object.hasOwn`, so an id such as `"constructor"` never
- * reaches the prototype.
- */
-export const classicyAppIdentityFrom = (
-	overrides: ClassicyAppIdentityOverrides,
-	appId: string,
+/** Each field of `override` over `fallback`'s; `fallback` itself when none changes. */
+const mergeClassicyIdentity = (
+	override: ClassicyDesktopIconOverride | undefined,
 	fallback: ClassicyAppIdentity,
 ): ClassicyAppIdentity => {
-	if (!Object.hasOwn(overrides, appId)) return fallback;
-	const override = overrides[appId];
+	if (override === undefined) return fallback;
 	const name = override.name ?? fallback.name;
 	const icon = override.icon ?? fallback.icon;
 	const description = override.description ?? fallback.description;
@@ -70,6 +67,22 @@ export const classicyAppIdentityFrom = (
 	if (description !== undefined) identity.description = description;
 	return identity;
 };
+
+/**
+ * Pure merge: each override field wins over the fallback's; no override for
+ * `appId`, or one that changes no field (`{}`), returns `fallback` itself.
+ * Looked up with `Object.hasOwn`, so an id such as `"constructor"` never
+ * reaches the prototype.
+ */
+export const classicyAppIdentityFrom = (
+	overrides: ClassicyAppIdentityOverrides,
+	appId: string,
+	fallback: ClassicyAppIdentity,
+): ClassicyAppIdentity =>
+	mergeClassicyIdentity(
+		Object.hasOwn(overrides, appId) ? overrides[appId] : undefined,
+		fallback,
+	);
 
 /**
  * How `packageId`'s package (the active one when no id is given) shows
@@ -123,5 +136,95 @@ export const useClassicyAppIdentity = (
 				? fallback
 				: classicyAppIdentityFrom(overrides, appId, fallback),
 		[overrides, appId, name, icon, description],
+	);
+};
+
+// ─── The desktop's own icons (`desktopIcons`) ───────────────────────────────
+
+/** The desktop's own icons a package may show otherwise: the Trash, the startup disk and the other drives. */
+export type ClassicyDesktopSystemIcon = keyof ClassicyDesktopIconOverrides;
+
+/** The `desktopIcons` of a package that declares none (Platinum's). */
+export const CLASSICY_NO_DESKTOP_ICON_OVERRIDES: Readonly<ClassicyDesktopIconOverrides> =
+	Object.freeze({});
+
+/**
+ * The active (or given) package's `desktopIcons`, else the frozen empty
+ * object. An unregistered id resolves as `getClassicyAppIdentityOverrides`'s
+ * does. Store-free.
+ */
+export const getClassicyDesktopIconOverrides = (
+	packageId?: string,
+): Readonly<ClassicyDesktopIconOverrides> =>
+	getRegisteredClassicyAppearancePackageOrDefault(
+		packageId ?? getClassicyAssetPackageSource()?.getId(),
+	)?.desktopIcons ?? CLASSICY_NO_DESKTOP_ICON_OVERRIDES;
+
+/**
+ * Pure merge: the override for `icon` over `fallback`, field by field; none,
+ * or one that changes no field, returns `fallback` itself.
+ */
+export const classicyDesktopIconIdentityFrom = (
+	overrides: Readonly<ClassicyDesktopIconOverrides>,
+	icon: ClassicyDesktopSystemIcon,
+	fallback: ClassicyAppIdentity,
+): ClassicyAppIdentity =>
+	mergeClassicyIdentity(
+		Object.hasOwn(overrides, icon) ? overrides[icon] : undefined,
+		fallback,
+	);
+
+/**
+ * How `packageId`'s package (the active one when no id is given) shows the
+ * desktop's `icon`: its `desktopIcons` override merged over `fallback`, or
+ * `fallback` itself. Store-free; components use
+ * `useClassicyDesktopIconIdentity`.
+ */
+export const resolveClassicyDesktopIconIdentity = (
+	icon: ClassicyDesktopSystemIcon,
+	fallback: ClassicyAppIdentity,
+	packageId?: string,
+): ClassicyAppIdentity =>
+	classicyDesktopIconIdentityFrom(
+		getClassicyDesktopIconOverrides(packageId),
+		icon,
+		fallback,
+	);
+
+const getActiveDesktopIconOverrides =
+	(): Readonly<ClassicyDesktopIconOverrides> =>
+		getClassicyDesktopIconOverrides();
+
+/**
+ * The active package's `desktopIcons`. Live, like
+ * `useClassicyAppIdentityOverrides`; the snapshot is the package's own object.
+ */
+export const useClassicyDesktopIconOverrides =
+	(): Readonly<ClassicyDesktopIconOverrides> =>
+		useSyncExternalStore(
+			subscribeClassicyActiveAppearancePackage,
+			getActiveDesktopIconOverrides,
+			getActiveDesktopIconOverrides,
+		);
+
+/**
+ * How the active package shows the desktop's `icon` (see
+ * `resolveClassicyDesktopIconIdentity`), live. `icon === undefined` returns
+ * `fallback` (any other desktop icon). Memoized as `useClassicyAppIdentity`
+ * is, on the overrides and the fallback's fields.
+ */
+export const useClassicyDesktopIconIdentity = (
+	icon: ClassicyDesktopSystemIcon | undefined,
+	fallback: ClassicyAppIdentity,
+): ClassicyAppIdentity => {
+	const overrides = useClassicyDesktopIconOverrides();
+	const { name, icon: image, description } = fallback;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the fallback's fields, not its identity, so an inline literal does not recompute; the fallback captured with those fields is returned
+	return useMemo(
+		() =>
+			icon === undefined
+				? fallback
+				: classicyDesktopIconIdentityFrom(overrides, icon, fallback),
+		[overrides, icon, name, image, description],
 	);
 };

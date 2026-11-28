@@ -136,14 +136,15 @@ describe("package.json: the Appearance Packages surface", () => {
 	// Only the barrel barrelsby generates is ignored, so editing a
 	// hand-written index.ts (Platinum's) rebuilds in watch mode, and a change
 	// to Platinum rebuilds its own build, which the core's no longer carries.
-	it("rebuilds the core, Platinum and System 7 in watch mode", () => {
+	it("rebuilds the core, Platinum, System 7 and Windows 98 in watch mode", () => {
 		const watch = pkg.scripts["build:watchsource"];
 		expect(watch).not.toContain('--ignore "**/index.ts"');
 		expect(watch).toContain('--ignore "src/index.ts"');
 		expect(watch).toContain('--watch "packages/appearance/platinum/src/**"');
 		expect(watch).toContain('--watch "packages/appearance/system7/src/**"');
+		expect(watch).toContain('--watch "packages/appearance/windows98/src/**"');
 		expect(watch).toContain(
-			'--exec "tsc -b && vite build && pnpm --filter @classicy/appearance-platinum exec vite build && pnpm --filter @classicy/appearance-system7 exec vite build"',
+			'--exec "tsc -b && vite build && pnpm --filter @classicy/appearance-platinum exec vite build && pnpm --filter @classicy/appearance-system7 exec vite build && pnpm --filter @classicy/appearance-windows98 exec vite build"',
 		);
 	});
 
@@ -174,9 +175,9 @@ describe("package.json: the Appearance Packages surface", () => {
 	// 0018-dbd §2.2): the core's, then Platinum's and System 7's, whose
 	// `build` runs its own verify-dist. Then the packed packages type-check in
 	// a host under bundler, node16 and nodenext (0151-0cc).
-	it("builds and verifies the core, then Platinum, then System 7, then a host's types", () => {
+	it("builds and verifies the core, then Platinum, System 7 and Windows 98, then a host's types", () => {
 		expect(pkg.scripts["build:source"]).toBe(
-			"pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build && pnpm --filter @classicy/appearance-system7 build && pnpm verify:host-types",
+			"pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build && pnpm --filter @classicy/appearance-system7 build && pnpm --filter @classicy/appearance-windows98 build && pnpm verify:host-types",
 		);
 		expect(pkg.scripts["verify:host-types"]).toBe(
 			"node bin/check-host-types.ts",
@@ -346,6 +347,7 @@ describe("the example app's Vite config", () => {
 					"@classicy/classicy",
 					"@classicy/appearance-platinum",
 					"@classicy/appearance-system7",
+					"@classicy/appearance-windows98",
 				]),
 			);
 		} finally {

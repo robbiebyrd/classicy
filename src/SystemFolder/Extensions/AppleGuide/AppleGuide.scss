@@ -14,6 +14,27 @@
   height: 100%;
 }
 
+// WinHelp's task topic window (the package's `help.topicWindow` "winhelp"):
+// the row of command buttons above the topic, the assistant taking the rest
+// of the window's height. The row's look is the package's.
+.appleGuideWindowWithButtonBar {
+  display: flex;
+  flex-direction: column;
+}
+
+.appleGuideWindowWithButtonBar > .classicyAssistant {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.appleGuideButtonBar {
+  display: flex;
+  flex: none;
+  flex-direction: row;
+  align-items: stretch;
+}
+
 .appleGuideWindow .classicyAssistantHeader {
   // box-sizing: border-box so the 1px top and bottom borders of the
   // platinum-window-header-border mixin (packages/appearance/platinum/src/styles/_mixins.scss)

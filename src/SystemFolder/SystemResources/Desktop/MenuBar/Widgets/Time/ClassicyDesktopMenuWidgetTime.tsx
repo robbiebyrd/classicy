@@ -1,10 +1,26 @@
 import "./ClassicyDesktopMenuWidgetTime.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
+import classNames from "classnames";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	type KeyboardEvent,
+	useState,
+} from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import {
+	useAppManager,
+	useAppManagerDispatch,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	DATE_AND_TIME_MANAGER_APP_ID,
+	DATE_AND_TIME_MANAGER_APP_NAME,
+} from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
+import { useClassicyClockTime } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Time/useClassicyClockTime.internal";
 
-// Shared by the resync effect and the tick interval so the two can never
-// drift into computing the rendered shape differently.
+// The rendered shape of the clock's moment (a Date whose UTC fields read
+// the local time, `useClassicyClockTime`).
 const computeDisplayTime = (localDate: Date) => ({
 	year: localDate.getUTCFullYear(),
 	month: localDate.getUTCMonth(),
@@ -16,20 +32,15 @@ const computeDisplayTime = (localDate: Date) => ({
 	period: localDate.getUTCHours() < 12 ? " AM" : " PM",
 });
 
-import classNames from "classnames";
-import {
-	type CSSProperties,
-	type FC as FunctionalComponent,
-	type KeyboardEvent,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
-import {
-	useAppManager,
-	useAppManagerDispatch,
-} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { computeAnchoredTime } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
+const daysOfWeek = [
+	"Sunday",
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday",
+];
 
 type ClassicyDesktopMenuWidgetTimeProps = {
 	/** Extra class names, merged onto the clock's `<li>` after the component's own. */
@@ -61,112 +72,9 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent<
 
 	const [showingTime, setShowingTime] = useState(true);
 
-	const [time, setTime] = useState({
-		year: new Date(dateAndTime.dateTime).getFullYear(),
-		month: new Date(dateAndTime.dateTime).getMonth(),
-		date: new Date(dateAndTime.dateTime).getDate(),
-		day: new Date(dateAndTime.dateTime).getUTCDay(),
-		minutes: new Date(dateAndTime.dateTime).getUTCMinutes(),
-		hours: new Date(dateAndTime.dateTime).getUTCHours(),
-		seconds: new Date(dateAndTime.dateTime).getUTCSeconds(),
-		period: new Date(dateAndTime.dateTime).getUTCHours() > 12 ? " PM" : " AM",
-	});
-
-	const daysOfWeek = [
-		"Sunday",
-		"Monday",
-		"Tuesday",
-		"Wednesday",
-		"Thursday",
-		"Friday",
-		"Saturday",
-	];
-
-	// Wall-clock anchors: virtualAnchorMsRef holds the local (tz-shifted) epoch-ms
-	// when the anchor was last set; realAnchorMsRef holds Date.now() at that moment.
-	const virtualAnchorMsRef = useRef<number>(
-		new Date(dateAndTime.dateTime).getTime() +
-			parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000,
-	);
-	const realAnchorMsRef = useRef<number>(Date.now());
-
-	const timeZoneOffsetRef = useRef(dateAndTime.timeZoneOffset);
-	const prevMinutesRef = useRef(time.minutes);
-	const prevSecondsRef = useRef(time.seconds);
-	const pausedRef = useRef(dateAndTime.paused);
-
-	// When the store changes (user sets new time/tz), reset both anchors and
-	// the second/minute refs so the next tick always updates from the new baseline,
-	// and update the rendered display immediately — this must not wait for the
-	// tick interval, since that interval no-ops while paused.
-	useEffect(() => {
-		const newVirtualMs =
-			new Date(dateAndTime.dateTime).getTime() +
-			parseInt(dateAndTime.timeZoneOffset, 10) * 60 * 60 * 1000;
-		virtualAnchorMsRef.current = newVirtualMs;
-		realAnchorMsRef.current = Date.now();
-		const d = new Date(newVirtualMs);
-		prevSecondsRef.current = d.getUTCSeconds();
-		prevMinutesRef.current = d.getUTCMinutes();
-		setTime(computeDisplayTime(d));
-	}, [dateAndTime.dateTime, dateAndTime.timeZoneOffset]);
-
-	useEffect(() => {
-		timeZoneOffsetRef.current = dateAndTime.timeZoneOffset;
-	}, [dateAndTime.timeZoneOffset]);
-
-	useEffect(() => {
-		pausedRef.current = dateAndTime.paused;
-	}, [dateAndTime.paused]);
-
-	// Pause: snapshot both anchors at the current virtual moment so the formula
-	// yields that frozen time on subsequent ticks.
-	// Resume: reset only realAnchorMs so the clock continues from the paused instant.
-	useEffect(() => {
-		if (dateAndTime.paused) {
-			const frozenMs =
-				virtualAnchorMsRef.current + (Date.now() - realAnchorMsRef.current);
-			virtualAnchorMsRef.current = frozenMs;
-			realAnchorMsRef.current = Date.now();
-		} else {
-			realAnchorMsRef.current = Date.now();
-		}
-	}, [dateAndTime.paused]);
-
-	// Poll every 250ms; evaluate anchor formula and update display only when the
-	// second changes. Dispatches the global store update on minute boundaries.
-	useEffect(() => {
-		const intervalId = setInterval(() => {
-			if (pausedRef.current) return;
-			const localDate = computeAnchoredTime(
-				virtualAnchorMsRef.current,
-				realAnchorMsRef.current,
-			);
-
-			const newSeconds = localDate.getUTCSeconds();
-			if (newSeconds === prevSecondsRef.current) return;
-			prevSecondsRef.current = newSeconds;
-
-			const date = new Date(
-				localDate.getTime() -
-					parseInt(timeZoneOffsetRef.current, 10) * 60 * 60 * 1000,
-			);
-
-			const newMinutes = localDate.getUTCMinutes();
-
-			setTime(computeDisplayTime(localDate));
-
-			if (newMinutes !== prevMinutesRef.current) {
-				prevMinutesRef.current = newMinutes;
-				desktopEventDispatch({
-					type: "ClassicyManagerDateTimeSet",
-					dateTime: date,
-				});
-			}
-		}, 250);
-
-		return () => clearInterval(intervalId);
-	}, [desktopEventDispatch]);
+	// The virtual clock, ticking each second and writing the store on the
+	// minute, whether or not the clock is shown.
+	const time = computeDisplayTime(useClassicyClockTime());
 
 	const convertToTwoDigit = (num: number) => {
 		return num.toLocaleString("en-US", {
@@ -196,8 +104,8 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent<
 		desktopEventDispatch({
 			type: "ClassicyAppOpen",
 			app: {
-				id: "DateAndTimeManager.app",
-				name: "Date and Time Manager",
+				id: DATE_AND_TIME_MANAGER_APP_ID,
+				name: DATE_AND_TIME_MANAGER_APP_NAME,
 				icon: appIcon,
 			},
 		});

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	classicyPackAlerts,
+	classicyPackAlertTypeSound,
 	classicyPackDefaultAlert,
 	resolveClassicyAlertSound,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
@@ -145,6 +146,87 @@ describe("pack alerts", () => {
 				alerts: [{ value: "ClassicyAlertGhost", label: "Ghost" }],
 			}),
 		).toContain("ClassicyAlertGhost");
+	});
+});
+
+// A pack's `alertTypeSounds` (Windows 98's message box icon events): the
+// sound for an alert's type while no stored choice applies. Platinum's and
+// System 7's packs declare none, so every type resolves as before.
+describe("alert type sounds", () => {
+	const typed: ClassicySoundPack = {
+		...system7,
+		id: "typed",
+		sprite: sprite("ClassicyAlertSimpleBeep", "ClassicyAlertChord"),
+		alertTypeSounds: {
+			note: "ClassicyAlertChord",
+			caution: "ClassicyAlertGone",
+		},
+	};
+
+	it("reads the pack's own sound for a type, when it has the sprite", () => {
+		expect(classicyPackAlertTypeSound(typed, "note")).toBe(
+			"ClassicyAlertChord",
+		);
+		expect(classicyPackAlertTypeSound(typed, "caution")).toBeUndefined();
+		expect(classicyPackAlertTypeSound(typed, "stop")).toBeUndefined();
+		expect(classicyPackAlertTypeSound(typed, undefined)).toBeUndefined();
+		expect(classicyPackAlertTypeSound(undefined, "note")).toBeUndefined();
+	});
+
+	it("never takes the default pack's", () => {
+		registerClassicySoundPack({
+			...platinum,
+			alertTypeSounds: { note: "ClassicyAlertQuack" },
+		});
+		const bare: ClassicySoundPack = {
+			id: "bare",
+			name: "Bare",
+			src: ["b.mp3"],
+			sprite: sprite("ClassicyAlertQuack"),
+		};
+		expect(classicyPackAlertTypeSound(bare, "note")).toBeUndefined();
+		expect(resolveClassicyAlertSound(bare, undefined, "note")).toBe(
+			"ClassicyAlertSosumi",
+		);
+	});
+
+	it("plays the type's sound while the stored choice is not offered", () => {
+		expect(resolveClassicyAlertSound(typed, undefined, "note")).toBe(
+			"ClassicyAlertChord",
+		);
+		expect(
+			resolveClassicyAlertSound(typed, "ClassicyAlertSosumi", "note"),
+		).toBe("ClassicyAlertChord");
+		// No sound for the type, or one naming a sprite the pack lacks: the
+		// pack's default, as with no type at all.
+		for (const alertType of ["caution", "stop", undefined] as const)
+			expect(resolveClassicyAlertSound(typed, undefined, alertType)).toBe(
+				"ClassicyAlertSimpleBeep",
+			);
+	});
+
+	it("plays a stored choice the pack offers for every type", () => {
+		expect(resolveClassicyAlertSound(typed, "ClassicyAlertQuack", "note")).toBe(
+			"ClassicyAlertQuack",
+		);
+	});
+
+	it("resolves every type as before under a pack that declares none", () => {
+		for (const pack of [platinum, system7])
+			for (const stored of [undefined, "ClassicyAlertQuack", "nope"])
+				for (const alertType of ["note", "caution", "stop"] as const)
+					expect(resolveClassicyAlertSound(pack, stored, alertType)).toBe(
+						resolveClassicyAlertSound(pack, stored),
+					);
+		expect(resolveClassicyAlertSound(undefined, undefined, "stop")).toBe(
+			"ClassicyAlertSosumi",
+		);
+	});
+
+	it("reports a type's sprite the pack lacks as missing", () => {
+		const missing = classicySoundPackMissingSprites(typed);
+		expect(missing).toContain("ClassicyAlertGone");
+		expect(missing).not.toContain("ClassicyAlertChord");
 	});
 });
 

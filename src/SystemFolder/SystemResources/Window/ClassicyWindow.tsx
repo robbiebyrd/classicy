@@ -1,4 +1,8 @@
-import type { ClassicyStoreSystemAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { isClassicyWindowRestoreRect } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import type {
+	ClassicyStoreSystemAppWindow,
+	ClassicyStoreSystemAppWindowRect,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -19,8 +23,10 @@ import {
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	type ReactNode,
+	type PointerEvent as ReactPointerEvent,
 	type RefObject,
 	useCallback,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
@@ -29,6 +35,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
@@ -43,6 +50,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
+	classicyAppPalettesHidden,
+	isClassicyPrimaryWindow,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
@@ -56,19 +67,73 @@ import {
 	classicyWindowPageTitle,
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import {
+	classicyHasHelpAnchorWithin,
+	startClassicyWhatsThis,
+} from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyWhatsThis.internal";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { onClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
+import {
+	type ClassicyTaskbarBandArg,
+	classicyTaskbarHasBand,
+	classicyTaskbarInsetsOf,
+	useClassicyTaskbarInsets,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import { isClassicyGestureButton } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+import { ClassicyWindowAlertTypeContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowAlertType.internal";
+import {
+	classicyModalOpensInBackground,
+	classicyUserIsActive,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowAttention.internal";
+import {
+	type ClassicyWindowArrowKey,
+	type ClassicyWindowKeyboardMode,
+	type ClassicyWindowKeyboardModeEnd,
+	classicyKeyboardSizingEdges,
+	classicyWindowKeyboardStep,
+	classicyWindowSizingEdgesAt,
+	startClassicyWindowKeyboardMode,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowKeyboardMove.internal";
+import {
+	type ClassicyWindowChromeEdges,
+	classicyMaximizedWindowRect,
+	classicyWindowChromeEdges,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowMaximize";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
+	ClassicyWindowModalOwnerContext,
+	useClassicyApplicationModal,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowModality.internal";
+import {
+	type ClassicyWindowCommand,
+	type ClassicyWindowGeometry,
+	type ClassicyWindowPlacement,
+	type ClassicyWindowRegistration,
+	registerClassicyWindow,
+	unregisterClassicyWindow,
+	updateClassicyWindow,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowRegistry.internal";
+import {
 	type ClassicyWindowRect,
+	type ClassicyWindowSizingEdges,
+	computeClassicyWindowEdgeResize,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
+import {
+	type ClassicyWindowSystemMenuCommand,
+	type ClassicyWindowSystemMenuHandlers,
+	classicyWindowSystemMenuItemId,
+	classicyWindowSystemMenuItemIdPrefix,
+	classicyWindowSystemMenuItems,
+} from "@/SystemFolder/SystemResources/Window/ClassicyWindowSystemMenu";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
+import { useClassicyWindowViewState } from "@/SystemFolder/SystemResources/Window/ClassicyWindowViewState.internal";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -81,10 +146,114 @@ export type ClassicyWindowSizeDimension = number | `${number}%`;
 // the left or top edge stops there, and resolveSize, resolvePosition and the
 // zoom's standard state keep the menu bar's band (its y) out of the room they
 // give a window.
-const windowViewportFloor = (menuBarHeight: number): [number, number] => [
-	0,
-	menuBarHeight,
+//
+// The bottom has its counterpart, `bottomBand`: the height a mounted taskbar
+// takes along the desktop's bottom (`useClassicyTaskbarBand`, 0 with no
+// taskbar). The same functions keep it out of the room, so a window keeps to
+// the work area (WIG Ch.6, p.84: "excluding the space used by the taskbar"),
+// and every one defaults it to 0, so a desktop with no taskbar computes what
+// it always computed. A taskbar docked to another edge (plan 0020-w98 E4)
+// takes its band there instead: the same functions take the insets on every
+// edge (`ClassicyTaskbarBandArg`, a number being the bottom's), the floor
+// moving right of a left taskbar and below a top one, the room and the
+// ceiling stopping at a right one's left edge.
+const windowViewportFloor = (
+	menuBarHeight: number,
+	band: ClassicyTaskbarBandArg = 0,
+): [number, number] => {
+	const { left, top } = classicyTaskbarInsetsOf(band);
+	return [left, menuBarHeight + top];
+};
+
+// The largest right/bottom a resize that moves the right or bottom edge may
+// reach (`computeClassicyWindowResize`'s `ceiling`): no limit across, and the
+// taskbar's top down, the bottom clampWindowPositionToViewport keeps a window
+// above, so the resize and the release clamp agree.
+const windowViewportCeiling = (
+	band: ClassicyTaskbarBandArg,
+): [number, number] => {
+	const { right, bottom } = classicyTaskbarInsetsOf(band);
+	return [
+		right > 0
+			? (typeof window !== "undefined" ? window.innerWidth : 800) - right
+			: Number.POSITIVE_INFINITY,
+		(typeof window !== "undefined" ? window.innerHeight : 600) - bottom,
+	];
+};
+
+// The largest right/bottom a frame-edge sizing drag may reach
+// (`computeClassicyWindowEdgeResize`'s `ceiling`): the work area's right and
+// bottom, the viewport's right edge and the taskbar's top (its bottom edge
+// with no taskbar). Windows confines a sizing drag's pointer to the work
+// area (Wine's `sys_command_size_move` clips it to the monitor's `rcWork`),
+// so an edge never passes it; and the release clamp keeps a window inside
+// the same box, so it never moves a window the user has just sized.
+const windowWorkAreaCeiling = (
+	band: ClassicyTaskbarBandArg,
+): [number, number] => {
+	const { right, bottom } = classicyTaskbarInsetsOf(band);
+	return [
+		(typeof window !== "undefined" ? window.innerWidth : 800) - right,
+		(typeof window !== "undefined" ? window.innerHeight : 600) - bottom,
+	];
+};
+
+// The eight corner arms of a sizing border (`layout.window.frameEdges:
+// "resize"`), each `[corner, arm]`: `h` lies along the top or bottom edge,
+// `v` along a side. Each sizes both edges of its corner, as Windows' corner
+// hit zones do (Wine's `NC_HandleNCHitTest`).
+const FRAME_CORNER_ARMS: readonly [
+	Extract<
+		ClassicyWindowSizingEdges,
+		"top-left" | "top-right" | "bottom-left" | "bottom-right"
+	>,
+	"h" | "v",
+][] = [
+	["top-left", "h"],
+	["top-left", "v"],
+	["top-right", "h"],
+	["top-right", "v"],
+	["bottom-left", "h"],
+	["bottom-left", "v"],
+	["bottom-right", "h"],
+	["bottom-right", "v"],
 ];
+
+// The largest content height CSS draws a window at: `.classicyWindow`'s
+// `max-height: calc(100% - var(--window-max-height-reserve))`, a share of
+// its containing block's padding box (an absolutely positioned box's
+// percentage resolves against it whatever that block's own height), so a
+// frame-edge sizing drag stops where the drawn window would stop and its
+// fixed edge never moves. No limit outside a laid-out containing block
+// (jsdom has no `offsetParent`). Read once per gesture.
+const windowContentHeightCap = (el: HTMLElement): number => {
+	const block = el.offsetParent;
+	if (!(block instanceof HTMLElement)) return Number.POSITIVE_INFINITY;
+	return Math.max(
+		0,
+		block.clientHeight -
+			readClassicyThemeVar("--window-max-height-reserve", undefined, el),
+	);
+};
+
+// A press on a sizing border's edge or corner arm takes the pointer's
+// capture, so every move and the release go to it wherever the pointer
+// goes (over another window, the desktop or an iframe) and the browser
+// keeps showing its resize cursor, as Windows keeps the sizing cursor
+// through the drag. Button 1 only; the gesture itself starts on the
+// press's mousedown.
+const captureSizingPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
+	if (e.button !== 0) return;
+	e.currentTarget.setPointerCapture?.(e.pointerId);
+};
+
+// An edge that neither moves nor sizes its window (a fixed border under
+// `layout.window.frameEdges: "resize"`, WIG Ch.6 "Window Frames", p.76):
+// its press keeps the focus and the text selection where they are, as an
+// edge press always did, and does nothing else.
+const holdFrameEdge = (e: MouseEvent<HTMLDivElement>) => {
+	e.preventDefault();
+};
 
 // The geometry prop defaults, module-level so they keep one identity: an
 // array literal in the props destructuring is a new array every render, which
@@ -103,6 +272,76 @@ const DEFAULT_MINIMUM_SIZE: [
 	ClassicyWindowSizeDimension,
 	ClassicyWindowSizeDimension,
 ] = [300, 0];
+
+// The title bar's box names under the Windows shell's flags, Windows' button
+// names (WIG Ch.6 "Title Bar Buttons", p.80): under `window.collapse:
+// "minimize"` the collapse box is Minimize; under `window.zoom: "maximize"`
+// the zoom box is Maximize, and Restore while the window is maximized ("the
+// Maximize button is replaced by the Restore button", "Maximizing Windows",
+// p.84). Module-level, keyed by flag, so each keeps one identity.
+const SHELL_TITLE_BAR_LABELS = {
+	minimize: { collapse: "Minimize" },
+	maximize: { zoom: "Maximize" },
+	restore: { zoom: "Restore" },
+	minimizeMaximize: { collapse: "Minimize", zoom: "Maximize" },
+	minimizeRestore: { collapse: "Minimize", zoom: "Restore" },
+} as const;
+
+// A keyboard Move or Size mode in progress (the registry's `move` and `size`
+// commands, plan 0020-w98 §5 "Keyboard Move and Size"). The travel is
+// applied to `base`, the rect the mode stands on: the start, then the rect
+// each arrow and each edge choice leaves, so an arrow at a limit moves
+// nothing and the next one back moves at once, as Windows clamps its
+// tracking point to where it has an effect. `reference` is the pointer
+// position the mouse's travel counts from, taken at its first move since
+// the last re-base (the browser cannot put the pointer on the caption, as
+// Windows does).
+type ClassicyWindowKeyboardModeState = {
+	mode: ClassicyWindowKeyboardMode;
+	stop: () => void;
+	// Where the window was when the mode started, for ESC: its stored
+	// position and size, and (Size) the inline geometry the steps overwrite.
+	startPosition: [number, number];
+	startRecordSize: [number, number];
+	startInline: { width: string; height: string; left: string; top: string };
+	base: ClassicyWindowRect;
+	travel: [number, number];
+	reference: [number, number] | null;
+	// Size: the edges being moved, `null` until an arrow or the mouse picks
+	// one; the frame's chrome, the content-height cap CSS draws at, and the
+	// sizing border's thickness and corner reach the mouse's pick reads.
+	edges: ClassicyWindowSizingEdges | null;
+	chrome: [number, number];
+	maximum: [number, number];
+	frame: number;
+	reach: number;
+	// Where the mode has put the window: its outer left/top and content size.
+	position: [number, number];
+	size: [number, number];
+	changed: boolean;
+};
+
+// The rect a window at `position` with `contentSize` and `chrome` occupies
+// (frame included), in the store's coordinates.
+const windowRectAt = (
+	position: [number, number],
+	contentSize: [number, number],
+	chrome: [number, number],
+): ClassicyWindowRect => ({
+	left: position[0],
+	top: position[1],
+	right: position[0] + contentSize[0] + chrome[0],
+	bottom: position[1] + contentSize[1] + chrome[1],
+});
+
+// A chrome of nothing on every side: the maximized rect's when the window's
+// element is not mounted yet.
+const NO_CHROME: ClassicyWindowChromeEdges = {
+	left: 0,
+	top: 0,
+	right: 0,
+	bottom: 0,
+};
 
 // The --menu-bar-height the desktop root carries for `theme` under `layout`
 // (the theme's, then the layout's override: 0 under window placement), or
@@ -125,21 +364,31 @@ const themeMenuBarHeight = (
 // `menuBarHeight` defaults to a live read of `--menu-bar-height`; a caller on a
 // render path passes the value it already read, so no render forces a style
 // read (ClassicyWindow reads it once per theme and menu-bar placement).
+// `bottomBand` (default 0) is the taskbar's band along the desktop's bottom: a
+// percentage height is a share of the room left between the two bands. Given
+// as insets (a taskbar docked to another edge), a side band comes off the
+// width a percentage width is a share of, and a top band off the height.
 export function resolveSize(
 	size: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
+	bottomBand: ClassicyTaskbarBandArg = 0,
 ): [number, number] {
+	const band = classicyTaskbarInsetsOf(bottomBand);
 	const desktop =
 		typeof document !== "undefined"
 			? document.getElementById("classicyDesktop")
 			: null;
 	const dw =
-		desktop?.clientWidth ??
-		(typeof window !== "undefined" ? window.innerWidth : 800);
+		(desktop?.clientWidth ??
+			(typeof window !== "undefined" ? window.innerWidth : 800)) -
+		band.left -
+		band.right;
 	const dh =
 		(desktop?.clientHeight ??
 			(typeof window !== "undefined" ? window.innerHeight : 600)) -
-		menuBarHeight;
+		menuBarHeight -
+		band.top -
+		band.bottom;
 
 	const resolve = (dim: ClassicyWindowSizeDimension, max: number): number => {
 		if (typeof dim === "number") return dim;
@@ -199,38 +448,49 @@ export type ClassicyWindowCentering = NonNullable<
  * A window's opening position, `pos` resolved against the viewport. A
  * `"center"` axis is centered exactly (on a half pixel when the free space
  * is odd), or, with `centering` `"wholePixel"`, rounded to a whole pixel.
+ * `bottomBand` (default 0) is the taskbar's band along the bottom: a
+ * `"center"` y centers within the height above it, and `"bottom"` sits on it.
+ * Given as insets (a taskbar docked to another edge), every axis keeps to
+ * the work area the bands leave: `"left"` and `"top"` start past a left or
+ * top band, `"right"` ends at a right one.
  */
 export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
 	centering: ClassicyWindowCentering = "exact",
+	bottomBand: ClassicyTaskbarBandArg = 0,
 ): [number, number] {
+	const band = classicyTaskbarInsetsOf(bottomBand);
 	const center = (free: number) =>
 		centering === "wholePixel" ? Math.round(free / 2) : free / 2;
-	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
-	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
+	const vw =
+		(typeof window !== "undefined" ? window.innerWidth : 800) - band.right;
+	const vh =
+		(typeof window !== "undefined" ? window.innerHeight : 600) - band.bottom;
+	const minX = band.left;
+	const minY = menuBarHeight + band.top;
 
 	let x: number;
 	if (typeof pos[0] === "number") {
 		x = pos[0];
 	} else if (pos[0] === "left") {
-		x = 0;
+		x = minX;
 	} else if (pos[0] === "right") {
-		x = Math.max(0, vw - windowSize[0]);
+		x = Math.max(minX, vw - windowSize[0]);
 	} else {
-		x = Math.max(0, center(vw - windowSize[0]));
+		x = Math.max(minX, minX + center(vw - minX - windowSize[0]));
 	}
 
 	let y: number;
 	if (typeof pos[1] === "number") {
 		y = pos[1];
 	} else if (pos[1] === "top") {
-		y = menuBarHeight;
+		y = minY;
 	} else if (pos[1] === "bottom") {
-		y = Math.max(menuBarHeight, vh - windowSize[1]);
+		y = Math.max(minY, vh - windowSize[1]);
 	} else {
-		y = Math.max(menuBarHeight, center(vh - windowSize[1]));
+		y = Math.max(minY, band.top + center(vh - band.top - windowSize[1]));
 	}
 
 	return [x, y];
@@ -241,16 +501,25 @@ export function resolvePosition(
  * fits; for a window larger than the viewport itself, only the top-left
  * corner is guaranteed on-screen — the title bar and its close box may still
  * render off-screen in that case. Pure and exported so it's unit-testable
- * without a real ResizeObserver.
+ * without a real ResizeObserver. `bottomBand` (default 0) is the taskbar's
+ * band along the bottom, which the window then stays above: `y` is capped at
+ * `innerHeight − bottomBand − height`, never above the menu bar's floor.
+ * Given as insets (a taskbar docked to another edge), the window keeps to
+ * the work area on every side: right of a left band, below a top one, left
+ * of a right one.
  */
 export function clampWindowPositionToViewport(
 	position: [number, number],
 	windowSize: [number, number],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
+	bottomBand: ClassicyTaskbarBandArg = 0,
 ): [number, number] {
-	const [minX, minY] = windowViewportFloor(menuBarHeight);
-	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
-	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
+	const band = classicyTaskbarInsetsOf(bottomBand);
+	const [minX, minY] = windowViewportFloor(menuBarHeight, band);
+	const vw =
+		(typeof window !== "undefined" ? window.innerWidth : 800) - band.right;
+	const vh =
+		(typeof window !== "undefined" ? window.innerHeight : 600) - band.bottom;
 
 	const maxX = Math.max(minX, vw - windowSize[0]);
 	const maxY = Math.max(minY, vh - windowSize[1]);
@@ -291,12 +560,38 @@ interface ClassicyWindowProps {
 	/**
 	 * Draw the close box at the left of the title bar (HIGOS8 p.101). On a
 	 * `modal` window it also decides Escape / Command-period: a closable modal
-	 * closes, a non-closable one beeps. Defaults to `true`.
+	 * closes, a non-closable one beeps. Under a package whose layout says
+	 * `dialog.caption: "titled"` (Windows 98) a modal draws a Close box
+	 * whatever this says: a non-closable one's runs `onCaptionClose`, and is
+	 * drawn unavailable without it. Defaults to `true`.
 	 */
 	closable?: boolean;
 	/**
+	 * What a non-closable modal's caption Close box does under a package
+	 * whose layout says `dialog.caption: "titled"` (Windows 95/98, where
+	 * every dialog and message box has a Close box: WIG Ch.8 "Appearance and
+	 * Behavior", p.145, Figure 8.1; "Message Box Types", p.166, Figure 8.17).
+	 * Pass the path the dialog's own dismissing button runs, its Cancel, or
+	 * a message box's only button (Windows' `DefDlgProc` turns a dialog's
+	 * Close into its Cancel; a message box's into its Cancel, else, with OK
+	 * alone, its OK). The window pop-up menu's Close, ALT+F4 and a
+	 * double-click on the title bar's icon run it too. Without it that Close
+	 * box is drawn unavailable and none of them closes the dialog, as
+	 * Windows grays a Yes/No message box's Close. Read only on a `modal`
+	 * window that is not `closable`, under that layout: everywhere else it
+	 * changes nothing (Escape / Command-period included, which the dialog's
+	 * own keys handle).
+	 */
+	onCaptionClose?: () => void;
+	/**
 	 * Draw the zoom box (HIGOS8 p.104), left of the collapse box. Never drawn
-	 * on `modal` windows. See `zoomMode` and `idealSize`. Defaults to `true`.
+	 * on `modal` windows. See `zoomMode` and `idealSize`. Under a package
+	 * whose layout says `window.zoom: "maximize"` (Windows 98) the box is
+	 * Maximize, and Restore while maximized (WIG Ch.6 "Maximizing Windows",
+	 * pp.84–85): the window fills the work area with its frame outside it,
+	 * and returns to the rect it had, which its record keeps (`restoreRect`)
+	 * across a reload; a utility window draws no box there. Defaults to
+	 * `true`.
 	 */
 	zoomable?: boolean;
 	/**
@@ -304,14 +599,23 @@ interface ClassicyWindowProps {
 	 * (HIGOS8 p.103). Option-click collapses or expands every open window;
 	 * windows with `collapsable={false}` and modals are skipped when another
 	 * window's box is Option-clicked. Double-clicking the title bar collapses
-	 * too, when the desktop's `doubleClickTitleToCollapse` preference is on.
-	 * Defaults to `true`.
+	 * too, when the desktop's `doubleClickTitleToCollapse` preference is on
+	 * (under a package whose layout says `window.titleDoubleClick: "zoom"`,
+	 * Windows 98, it maximizes or restores the window instead, and never
+	 * collapses it). Under a package whose layout says `window.collapse: "minimize"` (the
+	 * Windows shell) the box is Minimize (WIG Ch.6 "Minimizing Windows",
+	 * p.85): the window leaves the screen, keeps its taskbar button and comes
+	 * back when it is activated; a `modal` or utility window draws no box
+	 * there. Defaults to `true`.
 	 */
 	collapsable?: boolean;
 	/**
 	 * Draw the grow box at the bottom-right corner. A non-resizable window
-	 * ignores any persisted size and always opens at `initialSize`. Defaults to
-	 * `true`.
+	 * ignores any persisted size and always opens at `initialSize`. Under a
+	 * package whose layout says `window.frameEdges: "resize"` (Windows 98)
+	 * a resizable window also sizes from any edge of its frame and from its
+	 * corners (WIG Ch.6 "Sizing Borders", p.83), and a non-resizable one's
+	 * frame neither moves nor sizes it. Defaults to `true`.
 	 */
 	resizable?: boolean;
 	/**
@@ -337,12 +641,31 @@ interface ClassicyWindowProps {
 	 */
 	fitsScrollBars?: boolean;
 	/**
+	 * Whether the Windows taskbar gives this window a button (plan 0020-w98
+	 * §2; WIG Ch.10 "Taskbar Window Buttons", p.211: "secondary windows ...
+	 * do not appear on the taskbar"; Ch.8 p.145). Read only by the taskbar's
+	 * membership, which a package mounts only under `layout.taskbar`
+	 * (Windows 98), so it changes nothing under any other package. A modal
+	 * and a palette (`windowType="utility"`) never have one; pass `false` for
+	 * a modeless secondary window (a preferences or About window), which then
+	 * has none either. Defaults to `true`.
+	 */
+	taskbarButton?: boolean;
+	/**
 	 * Make this a modal dialog (HIGOS8 p.57). The window portals into the
 	 * desktop above an input-blocking scrim (clicking outside beeps), traps Tab
 	 * focus, cancels on Escape / Command-period, and draws no zoom box. It is a
 	 * movable modal dialog box unless `movable={false}` or `type="error"`. Its
 	 * store record is dropped on unmount, so a modal keeps no geometry between
-	 * openings. Defaults to `false`.
+	 * openings. Under a package whose layout says `dialog.caption: "titled"`
+	 * (Windows 98) its caption is always titled, with its app's display name
+	 * when `title` is empty, always has a Close box (`onCaptionClose`), and it
+	 * always moves by its caption, `movable={false}` and `type="error"`
+	 * included (WIG Ch.8, pp.145, 164, 166). Under `dialog.modality:
+	 * "application"` (Windows 98) it draws no scrim and blocks only its own
+	 * app's other windows (they are `inert`; a press there beeps and brings
+	 * the dialog back), unless it is of `type="error"` (WIG Ch.10, p.212).
+	 * Defaults to `false`.
 	 */
 	modal?: boolean;
 	/**
@@ -478,7 +801,9 @@ interface ClassicyWindowProps {
 	 * keeping the current height; `"vertical"` heightens to the desktop keeping
 	 * the current width. Zoom targets are content-box sizes, clamped between
 	 * `minimumSize` and the room on the desktop. The user's pre-zoom rect is
-	 * remembered and restored on un-zoom. Defaults to `"full"`.
+	 * remembered and restored on un-zoom. Ignored under a package whose
+	 * layout says `window.zoom: "maximize"`: Windows has one maximized state.
+	 * Defaults to `"full"`.
 	 */
 	zoomMode?: "full" | "horizontal" | "vertical";
 	/**
@@ -489,15 +814,20 @@ interface ClassicyWindowProps {
 	 * filling the screen — the HIG is explicit that an app "should never simply
 	 * assume that the standard state should be as large as the screen." When
 	 * omitted, the zoom fits the current content, falling back to the available
-	 * desktop.
+	 * desktop. Ignored under `window.zoom: "maximize"`, which fills the work
+	 * area.
 	 */
 	idealSize?: [ClassicyWindowSizeDimension, ClassicyWindowSizeDimension];
 	/**
 	 * Window header styling (#183, HIGOS8 p.50). `"list"` removes the header's
 	 * bottom separator line (list-view column header); `"standard"` keeps the
-	 * bevel. Defaults to `"standard"`.
+	 * bevel. `"status"` makes the header the window's status bar (WIG Ch.7
+	 * "Status Bars", p.96): drawn under the contents instead of over them
+	 * (`classicyWindowHeaderStatus`, `role="status"`), the contents giving up
+	 * its height as for a header; the Finder's folder windows under
+	 * `layout.finder.commands` "windows" pass it. Defaults to `"standard"`.
 	 */
-	headerVariant?: "standard" | "list";
+	headerVariant?: "standard" | "list" | "status";
 	/**
 	 * Draw a 2px active/inactive content-region frame around the window body
 	 * (#203, HIGOS8 p.51), used to distinguish a modeless dialog from a plain
@@ -530,6 +860,16 @@ interface ClassicyWindowProps {
 	 * initial target instead. Opt-in: omitted, nothing is focused.
 	 */
 	initialFocusRef?: RefObject<HTMLElement | null>;
+	/**
+	 * A modeless window that offers context-sensitive Help as a dialog does:
+	 * under a package whose layout says `balloonHelp.contextHelp`
+	 * "whatsThis" (Windows 98) it draws the "?" caption box while its
+	 * content holds a described control, as a modal does (a property sheet,
+	 * WIG Ch.8 "Property Sheets", p.145: Explorer's Properties and Taskbar
+	 * Properties carry the "?" box). Absent or `false`, only a modal that is
+	 * not an alert does; under any other package nothing changes.
+	 */
+	contextHelp?: boolean;
 	/** Extra class names, merged onto the root `.classicyWindow` after the component's own. */
 	className?: string;
 	/**
@@ -595,11 +935,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	hideIcon = false,
 	hidden = false,
 	closable = true,
+	onCaptionClose,
 	zoomable = true,
 	collapsable = true,
 	resizable = true,
 	scrollable = true,
 	fitsScrollBars,
+	taskbarButton = true,
 	modal = false,
 	movable = true,
 	type = "default",
@@ -626,6 +968,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	placard,
 	backgroundColor,
 	initialFocusRef,
+	contextHelp = false,
 	className,
 	style,
 }) => {
@@ -645,14 +988,66 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const currentWindow = getAppWindow(currentApp, id);
 	const desktopEventDispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
-	const { showContextMenu } = useClassicyContextualMenu();
+	// The alert box this window holds (`ClassicyAlert`), read by the opening
+	// error sound below; a ref, so a type change never sounds it again.
+	const alertType = useContext(ClassicyWindowAlertTypeContext);
+	const alertTypeRef = useRef(alertType);
+	alertTypeRef.current = alertType;
+	const { showContextMenu, hideContextMenu } = useClassicyContextualMenu();
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
 	// The elements a package lays a pattern in from a fixed origin
 	// (`layout.patternOrigin.elements`): this window's.
 	useClassicyPatternOriginElements(windowRef);
 	const layout = useClassicyAppearanceLayout();
+	// The window's scroll position, kept on its record and put back when it
+	// opens again (`window.restoreViewState`, WIG Ch.2 "Persistence", p.12);
+	// both members undefined without the key.
+	const viewState = useClassicyWindowViewState(appId, id);
 	const centering: ClassicyWindowCentering = layout.window.centering ?? "exact";
+	// What the zoom box does under the active package (`layout.window.zoom`,
+	// plan 0020-w98 §5 "Maximize and restore"). `"standard"` (the default,
+	// every package but the Windows shell): Mac OS 8's standard state, as
+	// always. `"maximize"`: the window fills the work area, its frame just
+	// outside it (`classicyMaximizedWindowRect`), and returns to the rect it
+	// had. Only a primary window maximizes: a dialog has no Maximize button
+	// and neither has a palette, whose caption holds Close alone and whose
+	// menu is Close, Move and Size (WIG Ch.8 "Appearance and Behavior",
+	// p.145, Figure 8.1; "Palette Windows", p.164, Figure 8.16), so their zoom
+	// is ignored there (`zoomIgnored`), as their collapse is under minimize.
+	const maximizes = layout.window.zoom === "maximize";
+	const zoomIgnored =
+		maximizes && !isClassicyPrimaryWindow({ modal, windowType });
+	const maximizable = maximizes && !zoomIgnored;
+	// Whether the window draws a zoom box (a modal's bar never draws one).
+	const zoomsByBox = zoomable && !zoomIgnored;
+	// A double-click on the caption (`layout.window.titleDoubleClick`).
+	// `"collapse"` (the default): the desktop's `doubleClickTitleToCollapse`
+	// preference decides, as always. `"zoom"` (Windows 95/98 as shipped:
+	// Wine's `NC_HandleNCLButtonDblClk` sends SC_MAXIMIZE or SC_RESTORE when
+	// the window has a Maximize box): the zoom box's toggle, whatever the
+	// preference says (it stays stored and applies again under another
+	// package), and nothing on a window that cannot zoom or on a modal's
+	// caption, never a collapse.
+	const titleDoubleClickZooms = layout.window.titleDoubleClick === "zoom";
+	// What the four frame edges do (`layout.window.frameEdges`, plan 0020-w98
+	// §5 "Frame-edge sizing"). `"move"` (the default, every package but the
+	// Windows shell): Mac OS 8's frame is a drag region, so a press moves the
+	// window, as always. `"resize"` (Windows 95/98, WIG Ch.6 "Sizing
+	// Borders", p.83): a resizable window's frame is its sizing border
+	// (`sizingBorder`, below); a fixed one's edges do nothing.
+	const frameEdgesSize = layout.window.frameEdges === "resize";
+	// Whether the window has the window pop-up (system) menu
+	// (`layout.window.systemMenu`, plan 0020-w98 §5). Off (the default, every
+	// package but the Windows shell): a right-click on the title bar shows
+	// the window's or its app's `contextMenu`, as anywhere in the window,
+	// and the title bar's icon is inert. On (Windows 95/98, WIG Ch.6 "Title
+	// Bars", "Title Bar Icons", "Title Bar Buttons", pp.76–80; Ch.7 "The
+	// Window Pop-up Menu", p.102): a right-click anywhere in the title bar,
+	// a press on its icon and the registry's `systemMenu` command (ALT+SPACE,
+	// a taskbar button's right-click) open it, and a double-click on the
+	// icon closes the window.
+	const systemMenuEnabled = layout.window.systemMenu === true;
 
 	// `--menu-bar-height`, read once per theme and menu-bar placement instead
 	// of on every render: a drag re-renders on each mousemove, and a read
@@ -679,6 +1074,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		),
 	);
 	const menuBarPlacement = layout.menuBar.placement;
+	// The taskbar's bands on every edge (none with no taskbar, so every
+	// package without one computes what it always did; plan 0020-w98 E4 docks
+	// it to any edge): the geometry below keeps them out of the room it gives
+	// the window, and a re-render on their change re-clamps every record into
+	// the work area.
+	const taskbarBand = useClassicyTaskbarInsets();
 	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the placement, not the whole layout: only the placement changes --menu-bar-height
 	useLayoutEffect(() => {
 		setMenuBarHeight(
@@ -690,11 +1091,57 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		);
 	}, [activeTheme, menuBarPlacement]);
 
+	// How a modal is captioned (`layout.dialog.caption`, plan 0020-w98 §6).
+	// `"plain"` (the default, Mac OS 8, every package but Windows 98): the
+	// title it is given, a Close box only when `closable`, and an alert or a
+	// `movable={false}` modal fixed in place, as always. `"titled"` (Windows
+	// 95/98: WIG Ch.8 "Appearance and Behavior", p.145, Figure 8.1;
+	// "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17): a
+	// modal's caption names its context, its app, when given no title; its
+	// Close box is always drawn, closing a closable modal, running
+	// `onCaptionClose` for any other, and unavailable with neither (Windows
+	// grays the Close of a message box with no Cancel: ReactOS's
+	// `MessageBoxProc` removes `SC_CLOSE`, and Wine's `draw_close_button`
+	// grays the box for a missing or grayed `SC_CLOSE`); and every
+	// secondary window moves by its caption, an alert included. Only a modal
+	// changes: every other window is captioned as always.
+	const titledCaption = modal && layout.dialog?.caption === "titled";
+	// What the caption's Close box runs when the modal is not closable.
+	const captionClose = titledCaption && !closable ? onCaptionClose : undefined;
+	// Whether its Close (the box, the pop-up menu's Close, ALT+F4, the
+	// icon's double-click) does anything.
+	const closesByCaption = closable || captionClose !== undefined;
+	// The title the caption shows: the `title` prop, or, under a titled
+	// caption, its app's display name for an untitled modal (an alert): a
+	// message box's title "identifies the context in which the message is
+	// displayed—usually the name of the object" or application (p.164). The
+	// root's accessible name follows it.
+	const appIdentity = useClassicyAppIdentity(appId, {
+		name: currentApp?.name || appId.replace(/\.app$/, ""),
+		icon: "",
+	});
+	const shownTitle = titledCaption && title === "" ? appIdentity.name : title;
+
 	// A modal of type "error" (an alert) or with `movable={false}` cannot be
-	// moved (a fixed modal dialog box); every other modal can (a movable one).
-	// Only "error" carries the alert semantics (the beep, the error scrim and
-	// the red band), which key on `type` below, never on this value.
-	const fixedModal = modal && (type === "error" || !movable);
+	// moved (a fixed modal dialog box); every other modal can (a movable one),
+	// and, under a titled caption, every modal (WIG p.145: a secondary window
+	// moves by its title bar). Only "error" carries the alert semantics (the
+	// beep, the error scrim and the red band), which key on `type` below,
+	// never on this value.
+	const fixedModal = modal && !titledCaption && (type === "error" || !movable);
+
+	// An application-modal dialog (`layout.dialog.modality` "application",
+	// Windows: WIG Ch.10 p.212, Ch.8 p.147) draws no desktop-wide scrim; an
+	// alert of type "error" and a system-modal dialog (the desktop's and the
+	// shell's, `ClassicyWindowModalOwnerContext` "system") keep it. One the
+	// taskbar owns ("taskbar": Run) disables no app's windows; any other
+	// disables its own app's (`useClassicyApplicationModal`, below).
+	const modalOwner = useContext(ClassicyWindowModalOwnerContext);
+	const applicationModal =
+		modal &&
+		layout.dialog?.modality === "application" &&
+		type !== "error" &&
+		modalOwner !== "system";
 
 	// `movable` applies to modals only (a document window always moves). Say
 	// so once per window, in development, rather than drop it silently.
@@ -724,12 +1171,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, []);
 
 	const resolvedSize = useMemo(
-		() => resolveSize(initialSize, menuBarHeight),
-		[initialSize, menuBarHeight],
+		() => resolveSize(initialSize, menuBarHeight, taskbarBand),
+		[initialSize, menuBarHeight, taskbarBand],
 	);
 	const resolvedMinimumSize = useMemo(
-		() => resolveSize(minimumSize, menuBarHeight),
-		[minimumSize, menuBarHeight],
+		() => resolveSize(minimumSize, menuBarHeight, taskbarBand),
+		[minimumSize, menuBarHeight, taskbarBand],
 	);
 
 	// Non-resizable windows can't be user-resized, so persisted size from the
@@ -779,6 +1226,29 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	]);
 
 	const contentsRef = useRef<HTMLDivElement | null>(null);
+	// What's This? on dialogs (WIG Ch.8 "Appearance and Behavior", p.145;
+	// Ch.12 "Context-Sensitive Help", p.273): under a layout that declares
+	// `balloonHelp.contextHelp` "whatsThis", a modal that is not an alert
+	// (a message box has no "?" button) draws the "?" caption box while its
+	// content holds a described control, checked after every commit (the
+	// anchors register in their own effects, which run first). Its press
+	// starts the mode over this window. Absent the key nothing is checked.
+	// A modeless window with `contextHelp` (a property sheet) offers it too.
+	const offersHelpBox =
+		layout.balloonHelp?.contextHelp === "whatsThis" &&
+		((modal === true && alertType === undefined) || contextHelp);
+	const [hasHelpContent, setHasHelpContent] = useState(false);
+	useEffect(() => {
+		if (!offersHelpBox) return;
+		const contents = contentsRef.current;
+		const has = contents !== null && classicyHasHelpAnchorWithin(contents);
+		setHasHelpContent((prev) => (prev === has ? prev : has));
+	});
+	const helpBoxShown = offersHelpBox && hasHelpContent;
+	const startWhatsThisHere = useCallback(
+		() => startClassicyWhatsThis(windowRef.current ?? undefined),
+		[],
+	);
 	const pendingSizeRef = useRef<[number, number] | null>(null);
 	const isDraggingRef = useRef(false);
 	const isResizingRef = useRef(false);
@@ -799,6 +1269,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		bottom: 0,
 	});
 	const chromeRef = useRef<[number, number]>([0, 0]);
+	// A frame-edge sizing gesture's own inputs (`startEdgeResize`), beside
+	// the rect and chrome above: the edges it moves, the press's pointer, and
+	// the content-size cap CSS draws at; null for a grow-box resize and
+	// between gestures.
+	const edgeResizeRef = useRef<{
+		edges: ClassicyWindowSizingEdges;
+		startPointer: [number, number];
+		maximum: [number, number];
+	} | null>(null);
 	// `--window-resize-inset`, read once when a resize gesture starts
 	// (startResizeWindow); null until the first gesture.
 	const resizeInsetRef = useRef<number | null>(null);
@@ -829,7 +1308,54 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(() =>
 			docUpHandlerRef.current(true),
 		);
+		watchEscapeCancel();
 	};
+	// While a press lasts, Escape takes the move or resize back under a
+	// layout that declares `input.escapeCancels` (WIG Ch.4 "Shortcut Keys",
+	// p.27: ESC cancels "a direct manipulation operation"; Windows' own
+	// move and size loop restores the rect on ESC): the window returns to
+	// the position and size the press found (`gestureStartRef`) and the
+	// gesture ends. Absent the key, nothing listens.
+	const gestureStartRef = useRef<{
+		position: [number, number];
+		recordSize: [number, number];
+		drawnSize: [number, number];
+		inline: { width: string; height: string; left: string; top: string };
+	} | null>(null);
+	const stopEscapeCancelRef = useRef<(() => void) | null>(null);
+	const stopEscapeCancel = () => {
+		stopEscapeCancelRef.current?.();
+		stopEscapeCancelRef.current = null;
+	};
+	const escapeCancelRef = useRef<() => void>(() => {});
+	const watchEscapeCancel = () => {
+		stopEscapeCancel();
+		const el = windowRef.current;
+		gestureStartRef.current = {
+			position: [ws.position[0], ws.position[1]],
+			recordSize: [ws.size[0], ws.size[1]],
+			drawnSize: [size[0], size[1]],
+			inline: {
+				width: el?.style.width ?? "",
+				height: el?.style.height ?? "",
+				left: el?.style.left ?? "",
+				top: el?.style.top ?? "",
+			},
+		};
+		stopEscapeCancelRef.current = onClassicyEscapeCancel(
+			() => escapeCancelRef.current(),
+			layout,
+		);
+	};
+	// A keyboard Move or Size mode in progress (`startKeyboardMode`), or null,
+	// and what its input does, updated every render (as docMoveHandlerRef
+	// is) so the mode's document listeners always see fresh state.
+	const keyboardModeRef = useRef<ClassicyWindowKeyboardModeState | null>(null);
+	const keyboardModeHandlersRef = useRef<{
+		onArrow: (key: ClassicyWindowArrowKey) => void;
+		onPointerMove: (pointer: [number, number]) => void;
+		onEnd: (end: ClassicyWindowKeyboardModeEnd) => void;
+	}>({ onArrow: () => {}, onPointerMove: () => {}, onEnd: () => {} });
 
 	useEffect(() => {
 		const moveHandler = (e: globalThis.MouseEvent) =>
@@ -842,6 +1368,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			document.removeEventListener("mouseup", upHandler);
 			stopWatchingPointerStreamRef.current?.();
 			stopWatchingPointerStreamRef.current = null;
+			stopEscapeCancelRef.current?.();
+			stopEscapeCancelRef.current = null;
 		};
 	}, []);
 
@@ -857,11 +1385,20 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					resolvedSize,
 					menuBarHeight,
 					centering,
+					taskbarBand,
 				),
 				size,
 				menuBarHeight,
+				taskbarBand,
 			),
-		[initialPosition, resolvedSize, size, menuBarHeight, centering],
+		[
+			initialPosition,
+			resolvedSize,
+			size,
+			menuBarHeight,
+			centering,
+			taskbarBand,
+		],
 	);
 
 	// #248: only a symbolic position (e.g. "center") should ever re-center as
@@ -892,17 +1429,28 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		};
 
 		if (currentWindow) {
+			// Maximized (`window.zoom: "maximize"`): the frame lies just
+			// outside the work area by design, at a negative left and above
+			// the top band, so the stored rect stands unclamped.
+			if (maximizable && currentWindow.zoomed === true) {
+				return currentWindow;
+			}
 			// A window restored from persisted store state may have been saved
 			// with an off-screen position (e.g. from a since-shrunk viewport, or
 			// content that grew after that position was saved) — clamp it using
 			// the window's own persisted size, not resolvedSize, since a
 			// resized-and-persisted window's real size can exceed its default.
+			// Above the taskbar's band too, on every render: a window that
+			// registered before the taskbar measured its band (the same
+			// commit) is drawn above it at once, and its stored position is
+			// corrected on its next move.
 			return {
 				...currentWindow,
 				position: clampWindowPositionToViewport(
 					currentWindow.position,
 					currentWindow.size,
 					menuBarHeight,
+					taskbarBand,
 				),
 			};
 		}
@@ -920,16 +1468,56 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		defaultWindow,
 		hidden,
 		id,
+		maximizable,
 		menuBarHeight,
 		resolvedPosition,
 		resolvedSize,
 		resolvedMinimumSize,
+		taskbarBand,
 		windowType,
 	]);
 
 	useEffect(() => {
 		wsPositionRef.current = ws.position as [number, number];
 	}, [ws.position]);
+
+	// What the store's `collapsed` means under the active package
+	// (`layout.window.collapse`, plan 0020-w98 §5 "Minimize"). `"shade"` (the
+	// default, every package but the Windows shell): WindowShade, so `shaded`
+	// is `ws.collapsed` and nothing below changes. `"minimize"`: a primary
+	// window leaves the screen (`minimized`) and keeps its whole tree
+	// mounted; a modal or a palette has no taskbar button to come back from,
+	// so its collapse is ignored (`collapseIgnored`): drawn expanded, its
+	// stored flag kept for a package that shades it. Render decisions read
+	// `shaded`; the guards that must not measure or move a window that is not
+	// drawn at its size read `collapsedOrMinimized`.
+	const minimizes = layout.window.collapse === "minimize";
+	const collapseIgnored =
+		minimizes && !isClassicyPrimaryWindow({ modal, windowType });
+	const minimized = ws.collapsed === true && minimizes && !collapseIgnored;
+	const shaded = ws.collapsed === true && !minimizes;
+	const collapsedOrMinimized = shaded || minimized;
+	// Maximized: zoomed under `window.zoom: "maximize"` (a palette's or a
+	// dialog's ignored zoom excepted). It neither moves nor sizes, draws no
+	// frame edges or grow box, is not re-centered, and its root carries
+	// `classicyWindowMaximized`; the rect is re-applied when the work area
+	// changes (below).
+	const maximized = maximizable && ws.zoomed === true;
+	// The sizing border (`layout.window.frameEdges: "resize"`): a resizable
+	// window drawn at its size has one, its four edges and eight corner arms
+	// sizing it, and its root carries `classicyWindowSizingBorder`. A
+	// maximized window has none (Windows sizes no maximized window: Wine's
+	// `sys_command_size_move` returns at once), and neither has a shaded or
+	// minimized one, which is not drawn at its size.
+	const sizingBorder =
+		frameEdgesSize && resizable && !maximized && !collapsedOrMinimized;
+	// A minimized app's palettes go with it (WIG Ch.8, p.145): under
+	// minimize, a palette is hidden while its app has an open primary window
+	// and every one is minimized, read from the app record already subscribed.
+	const hiddenWithApp =
+		minimizes && windowType === "utility" && !modal
+			? classicyAppPalettesHidden(currentApp)
+			: false;
 
 	// #248: correct on first paint (resolvedPosition above), but an alert
 	// sized [0, 0] (auto) centers against a phantom empty box — any async
@@ -945,14 +1533,30 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// async re-layout must never undo it.
 		if (userRepositionedRef.current) return;
 		if (isDraggingRef.current || isResizingRef.current) return;
+		// Nor while the keyboard moves or sizes it.
+		if (keyboardModeRef.current) return;
+		// Off the screen (minimized, or a palette hidden with its app), the
+		// window measures 0 × 0: re-centering on that would move it. It is
+		// measured again when it comes back.
+		if (minimized || hiddenWithApp) return;
+		// A maximized window keeps the work area's rect, however its
+		// content resizes.
+		if (maximized) return;
 		const el = windowRef.current;
 		if (!el) return;
 		const rect = el.getBoundingClientRect();
 		const measuredSize: [number, number] = [rect.width, rect.height];
 		const recentered = clampWindowPositionToViewport(
-			resolvePosition(initialPosition, measuredSize, menuBarHeight, centering),
+			resolvePosition(
+				initialPosition,
+				measuredSize,
+				menuBarHeight,
+				centering,
+				taskbarBand,
+			),
 			measuredSize,
 			menuBarHeight,
+			taskbarBand,
 		);
 		if (
 			Math.round(recentered[0]) === Math.round(wsPositionRef.current[0]) &&
@@ -1082,11 +1686,42 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// matter) differ. Modals are left to the focus trap below.
 	const wasKeyboardFocusedRef = useRef(false);
 	useEffect(() => {
-		const ownsKeyboard = !modal && !ws.closed && !ws.collapsed && !!ws.focused;
+		const ownsKeyboard =
+			!modal && !ws.closed && !collapsedOrMinimized && !!ws.focused;
 		const becameFocused = ownsKeyboard && !wasKeyboardFocusedRef.current;
 		wasKeyboardFocusedRef.current = ownsKeyboard;
 		if (becameFocused) focusInitialTarget();
-	}, [modal, ws.closed, ws.collapsed, ws.focused, focusInitialTarget]);
+	}, [modal, ws.closed, collapsedOrMinimized, ws.focused, focusInitialTarget]);
+
+	// Under the Windows shell a modal that an inactive app opens while the
+	// user is not working in the page opens in the background, its app's
+	// taskbar button flashing (`classicyModalOpensInBackground`, plan 0020-w98
+	// E3). Decided once, as the window first renders.
+	const opensInBackgroundRef = useRef<boolean | null>(null);
+	if (opensInBackgroundRef.current === null) {
+		opensInBackgroundRef.current = classicyModalOpensInBackground({
+			modal,
+			hasTaskbar: layout.taskbar !== undefined,
+			appFocused: currentApp?.focused === true,
+			userActive: classicyUserIsActive(),
+		});
+	}
+	const opensInBackground = opensInBackgroundRef.current;
+	// Such a dialog takes the keyboard only once the user activates it: its
+	// initial focus (the default button, else its first control) moves in
+	// then, unless the click that activated it already put the focus inside.
+	useEffect(() => {
+		if (!opensInBackground || !modal || ws.closed || !ws.focused) return;
+		const root = windowRef.current;
+		if (!root || root.contains(document.activeElement)) return;
+		const target =
+			initialFocusRef?.current ??
+			root.querySelector<HTMLElement>(
+				'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
+			) ??
+			root;
+		target.focus({ preventScroll: true });
+	}, [opensInBackground, modal, ws.closed, ws.focused, initialFocusRef]);
 
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);
@@ -1103,13 +1738,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// reducer for the cascade (`autoPosition`); [0, 0] opens at [0, 0].
 			desktopEventDispatch({
 				type: "ClassicyWindowOpen",
-				window: { ...ws, collapsable, modal },
+				window: {
+					...ws,
+					collapsable,
+					modal,
+					...(opensInBackground ? { background: true } : {}),
+				},
 				app: {
 					id: appId,
 				},
 			});
 		}
-	}, [appId, ws, collapsable, modal, desktopEventDispatch]);
+	}, [appId, ws, collapsable, modal, opensInBackground, desktopEventDispatch]);
 
 	// A modal window is ephemeral: it carries no persisted geometry, and
 	// leaving its record in the store makes the next open a "known id", which
@@ -1226,12 +1866,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// stopChangeWindow), or the pointer stream lost.
 	docUpHandlerRef.current = (lost) => {
 		stopWatchingPointerStream();
+		stopEscapeCancel();
 		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
 		const wasResizing = isResizingRef.current;
 		userRepositionedRef.current = true;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
+		edgeResizeRef.current = null;
 
 		emit("dragEnd", { kind: wasResizing ? "resize" : "move", lost });
 		setActive();
@@ -1250,10 +1892,54 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		]);
 	};
 
+	// Escape during a press (`watchEscapeCancel`): a press not yet a drag
+	// ends; a move puts the window back where the press found it; a resize
+	// puts back the size, the inline geometry and the position. The release
+	// that follows finds no gesture (the refs are cleared) and the window
+	// where it started.
+	escapeCancelRef.current = () => {
+		stopWatchingPointerStream();
+		stopEscapeCancelRef.current = null;
+		const start = gestureStartRef.current;
+		gestureStartRef.current = null;
+		pendingDragRef.current = false;
+		if (!start || (!isDraggingRef.current && !isResizingRef.current)) return;
+		const wasResizing = isResizingRef.current;
+		isDraggingRef.current = false;
+		isResizingRef.current = false;
+		edgeResizeRef.current = null;
+		pendingSizeRef.current = null;
+		if (wasResizing) {
+			const el = windowRef.current;
+			if (el) Object.assign(el.style, start.inline);
+			setSize(start.drawnSize);
+			desktopEventDispatch({
+				type: "ClassicyWindowResize",
+				resizing: false,
+				window: ws,
+				size: start.recordSize,
+				app: { id: appId },
+			});
+		}
+		setDragging(false);
+		setMoving(false, start.position);
+		emit("dragEnd", {
+			kind: wasResizing ? "resize" : "move",
+			lost: false,
+			canceled: true,
+			input: "keyboard",
+		});
+	};
+
 	// Both resize move handlers: the size from the corner opposite the grow
 	// box (the rect measured on press, not the store position) and, for any
 	// grow box but bottom-right, the left/top that keep that corner in place.
 	const applyResize = (clientX: number, clientY: number) => {
+		const edgeResize = edgeResizeRef.current;
+		if (edgeResize) {
+			applyEdgeResize(edgeResize, clientX, clientY);
+			return;
+		}
 		const corner = layout.window.growBoxCorner;
 		const { size, position } = computeClassicyWindowResize(
 			corner,
@@ -1267,8 +1953,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					windowRef.current,
 				),
 			// The minimum windowStyle draws, so the moved edge stops there.
-			[resolvedMinimumSize[0], ws.collapsed ? 0 : resolvedMinimumSize[1]],
-			windowViewportFloor(menuBarHeight),
+			[
+				resolvedMinimumSize[0],
+				collapsedOrMinimized ? 0 : resolvedMinimumSize[1],
+			],
+			windowViewportFloor(menuBarHeight, taskbarBand),
+			// The taskbar's top, which the release clamp keeps the window
+			// above: given only while a band is published (undefined takes the
+			// default, no limit), so a desktop with no taskbar resizes with
+			// today's numbers.
+			classicyTaskbarHasBand(taskbarBand)
+				? windowViewportCeiling(taskbarBand)
+				: undefined,
 		);
 		pendingSizeRef.current = size;
 		const el = windowRef.current;
@@ -1281,8 +1977,43 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
+	// A frame-edge sizing drag's move (`layout.window.frameEdges: "resize"`):
+	// the named edges follow the pointer's travel since the press, the others
+	// stay (`computeClassicyWindowEdgeResize`), each moving edge stopped at
+	// the viewport floor, the work area's right and bottom
+	// (`windowWorkAreaCeiling`), the minimum size and the height CSS draws at
+	// most, so the release clamp leaves the window where the user left it.
+	const applyEdgeResize = (
+		edgeResize: NonNullable<typeof edgeResizeRef.current>,
+		clientX: number,
+		clientY: number,
+	) => {
+		const { size, position } = computeClassicyWindowEdgeResize(
+			edgeResize.edges,
+			resizeRectRef.current,
+			edgeResize.startPointer,
+			[clientX, clientY],
+			chromeRef.current,
+			resolvedMinimumSize,
+			windowViewportFloor(menuBarHeight, taskbarBand),
+			windowWorkAreaCeiling(taskbarBand),
+			edgeResize.maximum,
+		);
+		pendingSizeRef.current = size;
+		const el = windowRef.current;
+		if (!el) return;
+		el.style.width = `${size[0]}px`;
+		el.style.height = `${size[1]}px`;
+		if (edgeResize.edges.includes("left")) el.style.left = `${position[0]}px`;
+		if (edgeResize.edges.startsWith("top")) el.style.top = `${position[1]}px`;
+	};
+
 	const startResizeWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
+		// Under `layout.mouse` "windows" only button 1 sizes (WIG Ch.4
+		// "Mouse Actions", pp.24-25); absent the key, every button, as before.
+		if (!isClassicyGestureButton(e, layout)) return;
+		edgeResizeRef.current = null;
 		track("resize", { type: "ClassicyWindow", ...analyticsArgs });
 		const rect = windowRef?.current?.getBoundingClientRect();
 		const left = rect?.left ?? 0;
@@ -1328,12 +2059,70 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		emit("dragStart", { kind: "resize" });
 	};
 
+	// A press on a sizing border's edge or corner arm (`layout.window.frameEdges:
+	// "resize"`, plan 0020-w98 §5 "Frame-edge sizing"; WIG Ch.6 "Sizing
+	// Borders", p.83): a resize gesture that moves `edges`, through the grow
+	// box's machinery (the refs, the inline width and height, the release
+	// through `endResize` and `setMoving`, and the pointer-stream watch). The
+	// window is activated at once: "the action of sizing the window
+	// implicitly makes it active" (p.83). Button 1 only.
+	const startEdgeResize =
+		(edges: ClassicyWindowSizingEdges) => (e: MouseEvent<HTMLDivElement>) => {
+			e.preventDefault();
+			if (e.button !== 0 || !isClassicyGestureButton(e, layout)) return;
+			const el = windowRef.current;
+			if (!el) return;
+			setActive();
+			track("resize", { type: "ClassicyWindow", ...analyticsArgs });
+			const rect = el.getBoundingClientRect();
+			wsPositionRef.current = [rect.left, rect.top];
+			resizeRectRef.current = {
+				left: rect.left,
+				top: rect.top,
+				right: rect.right,
+				bottom: rect.bottom,
+			};
+			chromeRef.current = classicyWindowChromeSize(el);
+			edgeResizeRef.current = {
+				edges,
+				startPointer: [e.clientX, e.clientY],
+				maximum: [Number.POSITIVE_INFINITY, windowContentHeightCap(el)],
+			};
+			isResizingRef.current = true;
+			watchPointerStream();
+			desktopEventDispatch({
+				type: "ClassicyWindowPosition",
+				app: {
+					id: appId,
+				},
+				window: ws,
+				position: [rect.left, rect.top],
+			});
+			// The size the window is drawn at, in its content box (#291), as
+			// the grow box seeds its gesture.
+			const applied = appliedWindowSize();
+			const startSize: [number, number] = [
+				applied?.[0] || resolvedSize[0],
+				applied?.[1] || resolvedSize[1],
+			];
+			setResize(true, startSize);
+			setZoom(false, true, "resize");
+			setSize(startSize);
+			emit("dragStart", { kind: "resize" });
+		};
+
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
 		if (fixedModal) {
 			// A fixed modal dialog box (an alert, or `movable={false}`) never moves
 			return;
 		}
+		// Nor does a maximized window: dragging its caption does nothing in
+		// Windows 95/98, and its frame edges are not drawn.
+		if (maximized) return;
+		// Under `layout.mouse` "windows" only button 1 moves a window (WIG
+		// Ch.4 "Mouse Actions", pp.24-25); absent the key, every button.
+		if (!isClassicyGestureButton(e, layout)) return;
 		// Only arm a potential drag; it becomes a real drag once the pointer
 		// travels past dragThreshold (see promoteDragIfNeeded). A bare click
 		// must not enter drag state so double-click can collapse the window.
@@ -1353,6 +2142,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// left the document body focused). An unfocused window gets it from the
 	// focused-transition effect once the click focuses it.
 	const onTitleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+		// Under the system menu the title bar's icon is no drag handle: its
+		// press opens the window pop-up menu (`onSystemMenuIconMouseDown`),
+		// and arms no move, as Windows' HTSYSMENU press tracks the menu.
+		if (
+			systemMenuEnabled &&
+			e.target instanceof Element &&
+			e.target.closest(".classicyWindowIcon")
+		)
+			return;
 		startMoveWindow(e);
 		if (ws.focused && !modal) focusInitialTarget();
 	};
@@ -1437,9 +2235,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const wasResizing = isResizingRef.current;
 		// Clear refs so the document-level mouseup handler knows this event
 		// was already handled by the element and skips double-processing.
+		stopEscapeCancel();
 		pendingDragRef.current = false;
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
+		edgeResizeRef.current = null;
 		setActive();
 		// Most releases are plain clicks: they must not write a size at all, or
 		// the store drifts from the size the window is actually drawn at (#291).
@@ -1498,10 +2298,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const appearance = useClassicyAppearance(
 		"Window",
 		{
-			collapsed: ws.collapsed,
+			// WindowShade only: a minimized window is not drawn at all
+			// (`classicyWindowMinimized`, below), and a modal's or palette's
+			// ignored collapse is drawn expanded.
+			collapsed: shaded,
 			active: front,
 			inactive: !front,
 			dragging: ws.moving,
+			// `expanded` while the window is zoomed (the store's `zoomed`): the
+			// geometry stays inline (#208), but a package may key a rule on the
+			// state. Windows replaces a maximized window's Maximize button with
+			// Restore (WIG Ch.6 "Maximizing Windows" (pp.84–85), "Title Bar
+			// Buttons" (p.80)); Platinum and System 7 read it not at all.
+			expanded: ws.zoomed === true,
 		},
 		windowRef,
 	);
@@ -1534,12 +2343,20 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// This ensures that once a window has opened it becomes the focus.
 		// setActive();
 		if (modal && type === "error") {
-			player({ type: "ClassicySoundPlayError" });
+			// An alert box's carries its type, for the pack's type sound.
+			const openingType = alertTypeRef.current;
+			player(
+				openingType
+					? { type: "ClassicySoundPlayError", alertType: openingType }
+					: { type: "ClassicySoundPlayError" },
+			);
 		}
 	}, [modal, player, type]);
 
 	const toggleCollapse = () => {
-		if (collapsable) {
+		// Under minimize a modal's or palette's collapse is ignored: its box
+		// and its title's double-click do nothing (its stored flag is kept).
+		if (collapsable && !collapseIgnored) {
 			setCollapse(!ws.collapsed);
 		}
 	};
@@ -1568,6 +2385,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// was clicked, so its behavior is unchanged.
 				const isClicked = appKey === appId && w.id === id;
 				if (!isClicked && (w.collapsable === false || w.modal)) return;
+				// Under minimize only a primary window minimizes and restores
+				// (a palette's stored collapse is ignored there, and kept): the
+				// windows with a Minimize box, as the reducer's guard has it.
+				if (minimizes && !isClassicyPrimaryWindow(w)) return;
 				desktopEventDispatch({
 					type: toCollapse ? "ClassicyWindowCollapse" : "ClassicyWindowExpand",
 					window: w,
@@ -1579,6 +2400,12 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	// #206: the collapse box. Option-click collapses/expands ALL windows.
 	const onCollapseBoxClick = (e: MouseEvent<HTMLDivElement>) => {
+		// Under minimize the click must not reach the root's setActive (a
+		// window that was not focused) or ClassicyApp's container, whose
+		// ClassicyAppActivate would refocus the app's last-accessed window,
+		// the one just minimized, and so restore it at once. Under every
+		// other package it bubbles, as it always has.
+		if (minimizes) e.stopPropagation();
 		if (e.altKey) {
 			collapseOrExpandAll(!ws.collapsed);
 			return;
@@ -1589,7 +2416,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const setCollapse = (toCollapse: boolean) => {
 		if (toCollapse) {
 			track("collapse", { type: "ClassicyWindow", ...analyticsArgs });
-			setZoom(false, true, "collapse");
+			// WindowShade clears the zoom; a minimize keeps it, so a maximized
+			// window comes back maximized (Windows' SC_MINIMIZE keeps the
+			// maximized placement, SC_RESTORE from the taskbar returns to it).
+			if (!minimizes) setZoom(false, true, "collapse");
 			emit("collapse", withClassicyAppearanceInput());
 			desktopEventDispatch({
 				type: "ClassicyWindowCollapse",
@@ -1613,10 +2443,52 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const toggleZoom = () => {
 		setActive();
-		if (zoomable) {
+		if (zoomsByBox) {
 			applyZoom(!ws.zoomed);
 		}
 	};
+
+	// The rect a maximized window takes (`window.zoom: "maximize"`): the
+	// desktop less the menu bar's band (0 under window placement) and the
+	// taskbar's, its frame outside (`classicyMaximizedWindowRect`).
+	const computeMaximizedRect = (): ClassicyStoreSystemAppWindowRect => {
+		const desktop =
+			typeof document !== "undefined"
+				? document.getElementById("classicyDesktop")
+				: null;
+		const el = windowRef.current;
+		return classicyMaximizedWindowRect({
+			width:
+				desktop?.clientWidth ??
+				(typeof window !== "undefined" ? window.innerWidth : 800),
+			height:
+				desktop?.clientHeight ??
+				(typeof window !== "undefined" ? window.innerHeight : 600),
+			top: menuBarHeight,
+			bottomBand: taskbarBand,
+			chrome: el ? classicyWindowChromeEdges(el) : NO_CHROME,
+		});
+	};
+
+	// The rect the window opened at: its initial size at its initial
+	// position, resolved and clamped against that size (not the current one,
+	// which while maximized is the work area's). A maximized window with no
+	// remembered rect is restored to it (`applyZoom`).
+	const computeInitialRect = (): ClassicyStoreSystemAppWindowRect => ({
+		position: clampWindowPositionToViewport(
+			resolvePosition(
+				initialPosition,
+				resolvedSize,
+				menuBarHeight,
+				centering,
+				taskbarBand,
+			),
+			resolvedSize,
+			menuBarHeight,
+			taskbarBand,
+		),
+		size: [resolvedSize[0], resolvedSize[1]],
+	});
 
 	// #208: compute the "standard state" rect the window zooms to. `full` fills
 	// the available desktop; `horizontal`/`vertical` grow a single axis and keep
@@ -1643,12 +2515,24 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// Every size returned here is applied as the window's content-box
 		// width/height, so the desktop's outer room loses the window's chrome
 		// first, and the current size is the content size, not the rect (#291).
+		// The room is the work area: below the menu bar, above the taskbar.
 		const el = windowRef.current;
 		const [chromeW, chromeH] = el ? classicyWindowChromeSize(el) : [0, 0];
-		const stdW = Math.max(resolvedMinimumSize[0], dw - margin * 2 - chromeW);
+		// A docked taskbar's band comes off the edge it lies on.
+		const bandLeft = taskbarBand.left;
+		const bandTop = menuBarHeight + taskbarBand.top;
+		const stdW = Math.max(
+			resolvedMinimumSize[0],
+			dw - taskbarBand.left - taskbarBand.right - margin * 2 - chromeW,
+		);
 		const stdH = Math.max(
 			resolvedMinimumSize[1],
-			dh - menuBarHeight - margin * 2 - chromeH,
+			dh -
+				menuBarHeight -
+				taskbarBand.top -
+				taskbarBand.bottom -
+				margin * 2 -
+				chromeH,
 		);
 
 		// The axis a one-way zoom keeps is the size the window already applies,
@@ -1659,11 +2543,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const curTop = Math.round(rect?.top ?? ws.position[1]);
 
 		if (zoomMode === "horizontal") {
-			return { position: [margin, curTop], size: [stdW, curH] };
+			return { position: [bandLeft + margin, curTop], size: [stdW, curH] };
 		}
 		if (zoomMode === "vertical") {
 			return {
-				position: [curLeft, menuBarHeight + margin],
+				position: [curLeft, bandTop + margin],
 				size: [curW, stdH],
 			};
 		}
@@ -1679,7 +2563,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		let targetW = stdW;
 		let targetH = stdH;
 		if (idealSize) {
-			const [iw, ih] = resolveSize(idealSize, menuBarHeight);
+			const [iw, ih] = resolveSize(idealSize, menuBarHeight, taskbarBand);
 			targetW = clamp(iw, resolvedMinimumSize[0], stdW);
 			targetH = clamp(ih, resolvedMinimumSize[1], stdH);
 		} else {
@@ -1708,7 +2592,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			}
 		}
 		return {
-			position: [margin, menuBarHeight + margin],
+			position: [bandLeft + margin, bandTop + margin],
 			size: [targetW, targetH],
 		};
 	};
@@ -1719,12 +2603,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// which: the zoom event fires wherever the zoom sound plays (Platinum's
 	// hooks play it), collapse and resize-start included, and only
 	// `cause: "zoom"` is the zoom box.
+	// `restore` (a maximize only, `window.zoom: "maximize"`) is the rect to
+	// return to, stored as the record's `restoreRect`; every other zoom sends
+	// none, so its dispatch is the one it always was.
 	const setZoomFlag = (
 		toZoom: boolean,
 		playSound: boolean = true,
 		cause: "zoom" | "collapse" | "resize" = "zoom",
+		restore?: ClassicyStoreSystemAppWindowRect,
 	) => {
-		if (ws.collapsed) {
+		// A shaded or minimized window expands first; a modal's or palette's
+		// ignored collapse (under minimize) is kept.
+		if (collapsedOrMinimized) {
 			setCollapse(false);
 		}
 		if (playSound) {
@@ -1741,6 +2631,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			app: {
 				id: appId,
 			},
+			...(restore ? { restore } : {}),
 		});
 	};
 
@@ -1748,10 +2639,30 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// and restore it on un-zoom.
 	const applyZoom = (toZoom: boolean) => {
 		if (toZoom) {
-			userStateRef.current = {
+			const before: ClassicyStoreSystemAppWindowRect = {
 				position: [ws.position[0], ws.position[1]],
 				size: [size[0], size[1]],
 			};
+			userStateRef.current = before;
+			if (maximizable) {
+				// Maximize (`window.zoom: "maximize"`, WIG Ch.6 "Maximizing
+				// Windows", p.84): the work area's rect, whatever `zoomMode` and
+				// `idealSize` say (Windows has one maximized state). The rect it
+				// had goes with the zoom, as the record's `restoreRect`, so
+				// Restore survives a reload; one that is not two pairs of finite
+				// numbers is not sent.
+				const maximizedRect = computeMaximizedRect();
+				setZoomFlag(
+					true,
+					true,
+					"zoom",
+					isClassicyWindowRestoreRect(before) ? before : undefined,
+				);
+				setSize(maximizedRect.size);
+				setResize(false, maximizedRect.size);
+				setMoving(false, maximizedRect.position);
+				return;
+			}
 			const standard = computeStandardRect();
 			setZoomFlag(true);
 			setSize(standard.size);
@@ -1761,7 +2672,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			setMoving(false, standard.position);
 		} else {
 			setZoomFlag(false);
-			const previous = userStateRef.current;
+			// The rect from before the zoom: this mount's, else the record's
+			// `restoreRect` (a window maximized under `window.zoom:
+			// "maximize"`, before a reload or a package switch; read under
+			// every package, and only when it holds finite numbers), else,
+			// under maximize only, the rect the window opened at (a window
+			// zoomed under another package, or maximized with none stored).
+			// Under every other layout a zoom with no rect remembered keeps its
+			// geometry, as it always has.
+			const storedRect = currentWindow?.restoreRect;
+			const previous =
+				userStateRef.current ??
+				(isClassicyWindowRestoreRect(storedRect) ? storedRect : null) ??
+				(maximizable ? computeInitialRect() : null);
 			if (previous) {
 				setSize(previous.size);
 				setResize(false, previous.size);
@@ -1781,6 +2704,19 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// browser menu may appear over a window.
 		e.preventDefault();
 		e.stopPropagation();
+		// Under the system menu a right-click anywhere in the title bar, its
+		// icon and boxes included, shows the window pop-up menu at the
+		// pointer (WIG Ch.6, pp.76 and 80; Ch.7, p.102; Wine's
+		// `NC_HandleNCRButtonDown` for HTCAPTION and HTSYSMENU). Elsewhere in
+		// the window the contextual menu resolves as always.
+		if (systemMenuEnabled && isOwnTitleBarTarget(e.target)) {
+			openSystemMenu({
+				at: [e.clientX, e.clientY],
+				placement: "click",
+				focusFirstItem: false,
+			});
+			return;
+		}
 		setActive();
 		const items = contextMenu ?? currentApp?.contextMenu;
 		track("contextMenu", {
@@ -1815,7 +2751,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		// Skipping the dispatch entirely while collapsed leaves the last
 		// expanded size in the store untouched, so it survives a
 		// collapse/expand cycle intact.
-		if (!resizable || ws.collapsed) return;
+		// A minimized window is not drawn at all (display: none), so it has
+		// no size to measure either.
+		if (!resizable || collapsedOrMinimized) return;
 		const resolved = nextSize ?? appliedWindowSize();
 		if (!resolved) return;
 		desktopEventDispatch({
@@ -1835,6 +2773,120 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const endResize = () => {
 		setResize(false, pendingSizeRef.current ?? undefined);
 	};
+
+	// A keyboard Move or Size mode the window can no longer carry out (it
+	// closed, minimized, was hidden with its app or maximized, or, sizing,
+	// was shaded, by a path other than the input the mode holds: a host's
+	// dispatch) ends where it is. Before the maximized rect is re-applied
+	// (the effect below), so that rect wins. The mode and its end are read
+	// through refs; the dependencies are the triggers.
+	useEffect(() => {
+		const mode = keyboardModeRef.current;
+		if (!mode) return;
+		if (
+			ws.closed ||
+			minimized ||
+			hiddenWithApp ||
+			maximized ||
+			(mode.mode === "size" && shaded)
+		)
+			keyboardModeHandlersRef.current.onEnd({ commit: true, lost: false });
+	}, [ws.closed, minimized, hiddenWithApp, maximized, shaded]);
+
+	// A maximized window keeps the work area's rect (plan 0020-w98 §5): on
+	// mount (after a reload or a package switch: the record says zoomed, the
+	// geometry may be another package's standard state or another viewport's),
+	// when it is maximized, restored from the taskbar or reopened, when the
+	// menu bar's or the taskbar's band changes, and when the desktop resizes,
+	// as Windows moves a maximized window with the work area. Updated every
+	// render, as docMoveHandlerRef is, so the observer's stable callback sees
+	// fresh state; it writes only what differs, so a re-run is quiet.
+	const reapplyMaximizedRectRef = useRef<() => void>(() => {});
+	reapplyMaximizedRectRef.current = () => {
+		if (!maximized || collapsedOrMinimized || ws.closed) return;
+		if (isDraggingRef.current || isResizingRef.current) return;
+		const rect = computeMaximizedRect();
+		const drawnDiffers = size[0] !== rect.size[0] || size[1] !== rect.size[1];
+		// The record's size too: a window maximized while minimized (from its
+		// pop-up menu) could not store the size it is drawn at (setResize
+		// stores nothing for a window that is not drawn), so it is stored
+		// here, once the window is drawn again.
+		const storedDiffers =
+			ws.size?.[0] !== rect.size[0] || ws.size?.[1] !== rect.size[1];
+		if (drawnDiffers) setSize(rect.size);
+		if (drawnDiffers || storedDiffers) setResize(false, rect.size);
+		if (
+			ws.position[0] !== rect.position[0] ||
+			ws.position[1] !== rect.position[1]
+		) {
+			setMoving(false, rect.position);
+		}
+	};
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the dependencies are the triggers (the ref reads fresh state): becoming maximized or drawn again, and a band changing
+	useEffect(() => {
+		reapplyMaximizedRectRef.current();
+	}, [maximized, collapsedOrMinimized, ws.closed, menuBarHeight, taskbarBand]);
+	// The desktop's size, while maximized: a ResizeObserver on
+	// `#classicyDesktop`, or, with no desktop or no observer (outside a
+	// desktop, jsdom), the viewport's resize.
+	useEffect(() => {
+		if (!maximized) return;
+		const reapply = () => reapplyMaximizedRectRef.current();
+		const desktop =
+			typeof document !== "undefined"
+				? document.getElementById("classicyDesktop")
+				: null;
+		if (desktop && typeof ResizeObserver !== "undefined") {
+			const observer = new ResizeObserver(reapply);
+			observer.observe(desktop);
+			return () => observer.disconnect();
+		}
+		if (typeof window === "undefined") return;
+		window.addEventListener("resize", reapply);
+		return () => window.removeEventListener("resize", reapply);
+	}, [maximized]);
+
+	// Re-clamping on a desktop resize (the shell addendum's B14; WIG Ch.10
+	// "Plug and Play Support", p.213: when the screen's size changes, windows
+	// are moved back into the work area). Under a layout with a taskbar a
+	// ResizeObserver on `#classicyDesktop` (else the viewport's resize)
+	// clamps the window's stored position into the work area, with the
+	// release clamp, and writes `ClassicyWindowMove` only when that moves
+	// it. A maximized window re-applies its rect instead (above); a window
+	// being moved or sized is left to its gesture. Updated every render, so
+	// the observer's stable callback reads the stored record now.
+	const reclampToWorkAreaRef = useRef<() => void>(() => {});
+	reclampToWorkAreaRef.current = () => {
+		if (!currentWindow || currentWindow.closed || maximized) return;
+		if (isDraggingRef.current || isResizingRef.current) return;
+		if (keyboardModeRef.current) return;
+		const stored = currentWindow.position;
+		const next = clampWindowPositionToViewport(
+			stored,
+			currentWindow.size,
+			menuBarHeight,
+			taskbarBand,
+		);
+		if (next[0] === stored[0] && next[1] === stored[1]) return;
+		setMoving(false, next);
+	};
+	const reclampsOnResize = layout.taskbar !== undefined;
+	useEffect(() => {
+		if (!reclampsOnResize) return;
+		const reclamp = () => reclampToWorkAreaRef.current();
+		const desktop =
+			typeof document !== "undefined"
+				? document.getElementById("classicyDesktop")
+				: null;
+		if (desktop && typeof ResizeObserver !== "undefined") {
+			const observer = new ResizeObserver(reclamp);
+			observer.observe(desktop);
+			return () => observer.disconnect();
+		}
+		if (typeof window === "undefined") return;
+		window.addEventListener("resize", reclamp);
+		return () => window.removeEventListener("resize", reclamp);
+	}, [reclampsOnResize]);
 
 	// #236: onBeforeClose is a veto, not a notification — it runs first, and a
 	// `false` (sync or resolved) result stops everything below it: no sound, no
@@ -1896,13 +2948,33 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		player({ type: "ClassicySoundPlayError" });
 	};
 
+	// An application modal's hold on its app: the app's other windows are
+	// inert, and a press over one beeps and brings the dialog forward, as a
+	// disabled owner window does in Windows (MB_APPLMODAL).
+	useClassicyApplicationModal({
+		enabled:
+			applicationModal &&
+			modalOwner !== "taskbar" &&
+			!ws.closed &&
+			currentApp?.hidden !== true,
+		appId,
+		windowId: id,
+		modalRef: windowRef,
+		onBlockedPress: () => {
+			player({ type: "ClassicySoundPlayError" });
+			setActive();
+		},
+	});
+
 	// #194/#197: modal windows trap Tab focus within themselves and bind the
 	// dialog-wide Cancel equivalent. Scoped to this window so stacked modals
 	// don't cross-fire.
 	useFocusTrap({
 		ref: windowRef,
 		enabled: modal,
-		autoFocus: modal,
+		// A dialog opened in the background takes no focus as it opens (the
+		// effect above gives it the focus once the user activates it).
+		autoFocus: modal && !opensInBackground,
 		initialFocusRef,
 	});
 	useKeyboardEquivalents({
@@ -1911,21 +2983,800 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		onCancel: modal ? onModalCancel : undefined,
 	});
 
+	// The keyboard Move and Size modes (the registry's `move` and `size`
+	// commands, which the Windows shell's window pop-up menu runs; plan
+	// 0020-w98 §5 "Keyboard Move and Size", WIG Ch.6 "Moving Windows" and
+	// "Sizing Borders", p.83; Windows' SC_MOVE/SC_SIZE loop, Wine's
+	// `WINPOS_SysCommandSizeMove`). While one lasts its document listeners
+	// (`startClassicyWindowKeyboardMode`) hold the keys and the mouse
+	// buttons: each arrow moves the window, or the edges being sized,
+	// `CLASSICY_WINDOW_KEYBOARD_STEP` (8 px), the mouse moves them by its
+	// travel with no button held, ENTER, a button-1 release or a lost pointer
+	// stream ends the mode where it is (through the release clamp), and ESC
+	// puts the window back. Move shows the package's drag band through the
+	// store's `moving` (the root's `dragging`), Size through `resizing`
+	// (`classicyWindowResizing`), as a pointer drag does.
+
+	// Moves the window to `position` (Move): the store's position, as a
+	// title-bar drag writes it, drawn clamped to the viewport by `ws`.
+	const moveByKeyboard = (
+		mode: ClassicyWindowKeyboardModeState,
+		position: [number, number],
+	) => {
+		if (position[0] === mode.position[0] && position[1] === mode.position[1])
+			return;
+		mode.position = position;
+		mode.changed = true;
+		emit("change", { kind: "move", input: "keyboard" });
+		setMoving(true, position);
+	};
+
+	// Sizes the window by the mode's travel from its base (Size): the chosen
+	// edges move, the others stay (`computeClassicyWindowEdgeResize`), each
+	// stopping at the menu bar's underside or the screen's left, at the work
+	// area's right and bottom, at `minimumSize` and at the height CSS draws
+	// at most, as a frame-edge drag stops. Written to the inline style, as
+	// that drag writes it, and stored when the mode ends.
+	const sizeByKeyboard = (mode: ClassicyWindowKeyboardModeState) => {
+		if (!mode.edges) return;
+		const { size: next, position } = computeClassicyWindowEdgeResize(
+			mode.edges,
+			mode.base,
+			[0, 0],
+			mode.travel,
+			mode.chrome,
+			resolvedMinimumSize,
+			windowViewportFloor(menuBarHeight, taskbarBand),
+			windowWorkAreaCeiling(taskbarBand),
+			mode.maximum,
+		);
+		if (
+			next[0] === mode.size[0] &&
+			next[1] === mode.size[1] &&
+			position[0] === mode.position[0] &&
+			position[1] === mode.position[1]
+		)
+			return;
+		mode.size = next;
+		mode.position = position;
+		mode.changed = true;
+		const el = windowRef.current;
+		if (el) {
+			el.style.width = `${next[0]}px`;
+			el.style.height = `${next[1]}px`;
+			el.style.left = `${position[0]}px`;
+			el.style.top = `${position[1]}px`;
+		}
+		emit("change", { kind: "resize", input: "keyboard" });
+	};
+
+	// The travel starts again from where the window now is.
+	const rebaseKeyboardMode = (mode: ClassicyWindowKeyboardModeState) => {
+		mode.base = windowRectAt(mode.position, mode.size, mode.chrome);
+		mode.travel = [0, 0];
+		mode.reference = null;
+	};
+
+	// Ends the mode in progress: committed, the window stays where the mode
+	// left it (Move through the release clamp; Size storing the size it
+	// drew, and leaving a zoom's standard state as a grow-box resize does);
+	// canceled (ESC), it goes back to where the mode started. Either way the
+	// store's `moving` or `resizing` is cleared.
+	const finishKeyboardMode = ({
+		commit,
+		lost,
+	}: ClassicyWindowKeyboardModeEnd) => {
+		const mode = keyboardModeRef.current;
+		if (!mode) return;
+		keyboardModeRef.current = null;
+		mode.stop();
+		const moved = commit && mode.changed;
+		if (moved) userRepositionedRef.current = true;
+		if (mode.mode === "move") {
+			setMoving(
+				false,
+				commit
+					? clampWindowPositionToViewport(
+							mode.position,
+							ws.size,
+							menuBarHeight,
+							taskbarBand,
+						)
+					: mode.startPosition,
+			);
+			emit("dragEnd", {
+				kind: "move",
+				lost,
+				canceled: !commit,
+				input: "keyboard",
+			});
+			return;
+		}
+		const el = windowRef.current;
+		if (!moved && el) Object.assign(el.style, mode.startInline);
+		if (moved) setSize(mode.size);
+		desktopEventDispatch({
+			type: "ClassicyWindowResize",
+			resizing: false,
+			window: ws,
+			size: moved ? mode.size : mode.startRecordSize,
+			app: { id: appId },
+		});
+		if (moved) {
+			setMoving(
+				false,
+				clampWindowPositionToViewport(
+					mode.position,
+					mode.size,
+					menuBarHeight,
+					taskbarBand,
+				),
+			);
+			if (ws.zoomed) setZoom(false, true, "resize");
+		}
+		emit("dragEnd", {
+			kind: "resize",
+			lost,
+			canceled: !commit,
+			input: "keyboard",
+		});
+	};
+
+	keyboardModeHandlersRef.current = {
+		onArrow: (key) => {
+			const mode = keyboardModeRef.current;
+			if (!mode) return;
+			const step = classicyWindowKeyboardStep(key);
+			if (mode.mode === "move") {
+				moveByKeyboard(
+					mode,
+					clampWindowPositionToViewport(
+						[mode.position[0] + step[0], mode.position[1] + step[1]],
+						ws.size,
+						menuBarHeight,
+						taskbarBand,
+					),
+				);
+				rebaseKeyboardMode(mode);
+				return;
+			}
+			// The first arrow picks its edge, one across it adds the corner;
+			// neither moves anything (`classicyKeyboardSizingEdges`).
+			const edges = classicyKeyboardSizingEdges(mode.edges, key);
+			if (edges !== mode.edges) {
+				mode.edges = edges;
+				rebaseKeyboardMode(mode);
+				return;
+			}
+			mode.travel = [mode.travel[0] + step[0], mode.travel[1] + step[1]];
+			sizeByKeyboard(mode);
+			rebaseKeyboardMode(mode);
+		},
+		onPointerMove: (pointer) => {
+			const mode = keyboardModeRef.current;
+			if (!mode) return;
+			if (mode.mode === "size" && !mode.edges) {
+				// No edge yet: the mouse picks the one it crosses
+				// (`classicyWindowSizingEdgesAt`), and travels from there.
+				const el = windowRef.current;
+				if (!el) return;
+				const rect = el.getBoundingClientRect();
+				const edges = classicyWindowSizingEdgesAt(
+					{
+						left: rect.left,
+						top: rect.top,
+						right: rect.right,
+						bottom: rect.bottom,
+					},
+					pointer,
+					mode.frame,
+					mode.reach,
+				);
+				if (!edges) return;
+				mode.edges = edges;
+				mode.reference = pointer;
+				return;
+			}
+			if (!mode.reference) {
+				mode.reference = pointer;
+				return;
+			}
+			mode.travel = [
+				pointer[0] - mode.reference[0],
+				pointer[1] - mode.reference[1],
+			];
+			if (mode.mode === "move")
+				moveByKeyboard(mode, [
+					mode.base.left + mode.travel[0],
+					mode.base.top + mode.travel[1],
+				]);
+			else sizeByKeyboard(mode);
+		},
+		onEnd: finishKeyboardMode,
+	};
+
+	// Starts a keyboard mode on the window, activating it ("the implicit
+	// action of moving the window activates it", WIG p.83). `false`, starting
+	// nothing, with no element or when another mode is in effect on the page.
+	const startKeyboardMode = (mode: ClassicyWindowKeyboardMode): boolean => {
+		const el = windowRef.current;
+		if (!el) return false;
+		const applied = appliedWindowSize();
+		const startSize: [number, number] = [
+			applied?.[0] || resolvedSize[0],
+			applied?.[1] || resolvedSize[1],
+		];
+		const chrome = classicyWindowChromeSize(el);
+		const startPosition: [number, number] = [ws.position[0], ws.position[1]];
+		const state: ClassicyWindowKeyboardModeState = {
+			mode,
+			stop: () => {},
+			startPosition,
+			startRecordSize: [ws.size[0], ws.size[1]],
+			startInline: {
+				width: el.style.width,
+				height: el.style.height,
+				left: el.style.left,
+				top: el.style.top,
+			},
+			base: windowRectAt(startPosition, startSize, chrome),
+			travel: [0, 0],
+			reference: null,
+			edges: null,
+			chrome,
+			maximum: [Number.POSITIVE_INFINITY, windowContentHeightCap(el)],
+			frame:
+				mode === "size"
+					? readClassicyThemeVar("--window-frame-inset", undefined, el)
+					: 0,
+			reach:
+				mode === "size"
+					? readClassicyThemeVar("--window-title-bar-height", undefined, el)
+					: 0,
+			position: startPosition,
+			size: startSize,
+			changed: false,
+		};
+		const stop = startClassicyWindowKeyboardMode({
+			onArrow: (key) => keyboardModeHandlersRef.current.onArrow(key),
+			onPointerMove: (pointer) =>
+				keyboardModeHandlersRef.current.onPointerMove(pointer),
+			onEnd: (end) => keyboardModeHandlersRef.current.onEnd(end),
+		});
+		if (!stop) return false;
+		state.stop = stop;
+		keyboardModeRef.current = state;
+		setActive();
+		if (mode === "move") {
+			track("move", { type: "ClassicyWindow", ...analyticsArgs });
+			emit("dragStart", { kind: "move", input: "keyboard" });
+			setMoving(true, startPosition);
+		} else {
+			track("resize", { type: "ClassicyWindow", ...analyticsArgs });
+			emit("dragStart", { kind: "resize", input: "keyboard" });
+			desktopEventDispatch({
+				type: "ClassicyWindowResize",
+				resizing: true,
+				window: ws,
+				size: state.startRecordSize,
+				app: { id: appId },
+			});
+		}
+		return true;
+	};
+
+	// A mode still in progress when the window unmounts ends where it is, so
+	// its listeners go and the store's gesture flag is cleared.
+	useEffect(
+		() => () => {
+			keyboardModeHandlersRef.current.onEnd({ commit: true, lost: false });
+		},
+		[],
+	);
+
+	// Whether it moves by its title bar: not a fixed modal (an alert, or
+	// `movable={false}`).
+	const movesByTitleBar = !fixedModal;
+	// Whether it draws a collapse box: none on a modal or palette under
+	// minimize, which has no taskbar button to come back from.
+	const collapsesByBox = collapsable && !collapseIgnored;
+	// Under `window.zoom: "maximize"` (the Windows shell) a primary window's
+	// Minimize and Maximize come as a pair: one with either box draws both,
+	// the one it lacks unavailable, as Windows 95/98 draws them (Wine's
+	// `NC_DrawCaption`: "In win95 the two buttons are always there / But if
+	// the menu item is not in the menu they're disabled"; the Calculator's
+	// grayed Maximize). WIG Ch.6 "Title Bar Buttons" (p.80) would leave an
+	// unsupported button out; the OS as shipped wins. Under every other
+	// layout a box is drawn only when the window has it, as always.
+	const pairsCaptionBoxes =
+		maximizes &&
+		isClassicyPrimaryWindow({ modal, windowType }) &&
+		zoomsByBox !== collapsesByBox;
+	const zoomBoxDisabled = pairsCaptionBoxes && !zoomsByBox;
+	const collapseBoxDisabled = pairsCaptionBoxes && !collapsesByBox;
+
+	// The window pop-up (system) menu (`layout.window.systemMenu: true`, plan
+	// 0020-w98 §5; WIG Ch.7 "The Window Pop-up Menu", p.102): its items
+	// (`classicyWindowSystemMenuItems`, each enabled as Windows enables it and
+	// running the registry command of its name, so the box's sounds,
+	// analytics, veto and geometry stay where they live) in the desktop's one
+	// contextual menu, with no Help item (a Windows pop-up menu has none),
+	// taking the keyboard while it is open (the arrows walk it, ESC closes
+	// it), as Windows' menu loop does. Opened at the pointer (`"click"`: a
+	// right-click on the title bar, a taskbar button's right-click), or
+	// dropped from the caption (`"corner"`: a press on the icon, ALT+SPACE,
+	// the latter with its first item selected). The window is activated
+	// first unless it is off the screen (minimized, or a palette hidden with
+	// its app), whose menu opens without restoring it, and only at a given
+	// point: it draws nothing to drop the menu from. `false`, opening
+	// nothing, under a layout without the system menu, or for a closed or
+	// off-screen window given no point.
+	const liveRecord = (): ClassicyStoreSystemAppWindow | undefined =>
+		typeof useAppManager.getState === "function"
+			? getAppWindow(
+					useAppManager.getState().System.Manager.Applications.apps[appId],
+					id,
+				)
+			: currentWindow;
+	// Where the menu drops from: the caption's bottom-left corner, as Wine's
+	// `NC_GetSysPopupPos` places the system menu (the system button's square
+	// at the caption's left, the popup's top-left at its bottom-left), the
+	// icon drawn or not; a window drawing no caption, its own top-left.
+	const systemMenuCorner = (): [number, number] => {
+		const el = windowRef.current;
+		if (!el) return [ws.position[0], ws.position[1]];
+		const bar = el.querySelector<HTMLElement>(
+			":scope > .classicyWindowTitleBar",
+		);
+		const barRect = bar?.getBoundingClientRect();
+		if (barRect && (barRect.width > 0 || barRect.height > 0))
+			return [barRect.left, barRect.bottom];
+		const rect = el.getBoundingClientRect();
+		return [rect.left, rect.top];
+	};
+	const openSystemMenu = ({
+		at,
+		placement,
+		focusFirstItem,
+		anchor,
+	}: {
+		at?: [number, number];
+		placement: "click" | "corner";
+		focusFirstItem: boolean;
+		anchor?: Element;
+	}): boolean => {
+		if (!systemMenuEnabled || ws.closed) return false;
+		const offScreen = minimized || hiddenWithApp;
+		if (offScreen && !at) return false;
+		// The live record: a taskbar button's right-click activates the
+		// window in the same event, before this render has caught up.
+		if (!offScreen && liveRecord()?.focused !== true) setActive();
+		track("contextMenu", {
+			type: "ClassicyWindow",
+			show: true,
+			...analyticsArgs,
+		});
+		const run = (type: ClassicyWindowSystemMenuCommand) => () => {
+			runCommandRef.current({ type });
+		};
+		const handlers: ClassicyWindowSystemMenuHandlers = {
+			restore: run("restore"),
+			move: run("move"),
+			size: run("size"),
+			minimize: run("minimize"),
+			maximize: run("maximize"),
+			close: run("close"),
+		};
+		const items = classicyWindowSystemMenuItems(
+			{
+				appId,
+				windowId: id,
+				kind: modal
+					? "modal"
+					: windowType === "utility"
+						? "utility"
+						: "document",
+				minimized: collapsedOrMinimized,
+				// A window minimized while maximized is not maximized: Windows
+				// clears WS_MAXIMIZE as it minimizes (keeping
+				// WPF_RESTORETOMAXIMIZED), so its menu offers Maximize beside
+				// Restore (Wine's `MENU_InitSysMenuPopup`), and either brings
+				// it back maximized.
+				maximized: ws.zoomed === true && !zoomIgnored && !minimized,
+				offScreen,
+				movable: movesByTitleBar,
+				resizable,
+				minimizable: collapsesByBox,
+				maximizable: zoomsByBox && !modal,
+				// The Close box's path: closable, or a titled caption's
+				// `onCaptionClose`.
+				closable: closesByCaption,
+			},
+			handlers,
+		);
+		showContextMenu(items, at ?? systemMenuCorner(), {
+			helpItem: false,
+			placement,
+			focusFirstItem,
+			keyboard: true,
+			anchor,
+		});
+		return true;
+	};
+	// Whether a right-click's target lies in this window's own title bar
+	// (not one a `ClassicyWindowFrame` in its contents draws).
+	const isOwnTitleBarTarget = (target: EventTarget | null): boolean => {
+		if (!(target instanceof Element)) return false;
+		const bar = target.closest(".classicyWindowTitleBar");
+		return bar !== null && bar.parentElement === windowRef.current;
+	};
+	// A press on the title bar's icon (button 1; WIG Ch.6 "Title Bar Icons",
+	// p.78, and Ch.7, p.102: "for compatibility", as Windows 95/98 shipped)
+	// drops the menu from the caption and arms no move
+	// (`onTitleMouseDown`). The icon is the menu's anchor, so the menu's
+	// outside-press listener, in place before the press that opened it
+	// reaches the document, leaves presses on the icon to this handler. The
+	// press that ends a double-click's first click (`detail` 2) opens
+	// nothing, the double-click closing the window
+	// (`onSystemMenuIconDoubleClick`). A press while a contextual menu is
+	// open opens nothing either: this window's menu it closes (a second
+	// click on the icon, as in Windows), any other closes itself (its
+	// outside-press listener), as Windows' menu loop eats the click that
+	// ends a menu. Held, the press chooses the item it is released over, as
+	// Windows tracks a menu with the button down.
+	const onSystemMenuIconMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+		if (e.button !== 0) return;
+		e.preventDefault();
+		if (e.detail >= 2) return;
+		if (document.querySelector(".classicyContextMenuWrapper")) {
+			if (
+				document.getElementById(
+					classicyWindowSystemMenuItemId(appId, id, "close"),
+				)
+			)
+				hideContextMenu();
+			return;
+		}
+		if (
+			!openSystemMenu({
+				at: systemMenuCorner(),
+				placement: "corner",
+				focusFirstItem: false,
+				anchor: e.currentTarget,
+			})
+		)
+			return;
+		const prefix = classicyWindowSystemMenuItemIdPrefix(appId, id);
+		const chooseOnRelease = (up: globalThis.MouseEvent) => {
+			document.removeEventListener("mouseup", chooseOnRelease, true);
+			if (up.button !== 0 || !(up.target instanceof Element)) return;
+			const item = up.target.closest<HTMLElement>(
+				".classicyContextMenuWrapper li.classicyMenuItem",
+			);
+			if (item?.id.startsWith(prefix)) item.click();
+		};
+		document.addEventListener("mouseup", chooseOnRelease, true);
+	};
+	// A double-click on the icon closes the window (WIG Ch.6, p.78; Wine's
+	// `NC_HandleNCLButtonDblClk` sends SC_CLOSE for HTSYSMENU), through the
+	// caption Close box's path, the veto included, and nothing when it cannot
+	// close; the menu its first press opened goes. It never reaches the
+	// caption's own double-click (a maximize).
+	const onSystemMenuIconDoubleClick = (e: MouseEvent<HTMLDivElement>) => {
+		e.stopPropagation();
+		hideContextMenu();
+		runCommandRef.current({ type: "close" });
+	};
+
+	// The window registry (plan 0020-w98 §5, "Shared plumbing"): what the
+	// store record does not hold (the title, the icon, the capabilities) and
+	// this window's own commands, for a surface that lists windows or acts on
+	// one (the Windows shell's taskbar and window pop-up menu). Each command
+	// runs the path its box or click runs, so the sounds, analytics, the
+	// onBeforeClose veto and the zoom geometry stay here. Updated every render
+	// so a command always sees fresh state, the indirection docMoveHandlerRef
+	// uses; the entry's `run` calls through it, so the registration below
+	// re-runs only when a published value changes. Registering changes no DOM
+	// and no store.
+	const runCommandRef = useRef<(command: ClassicyWindowCommand) => boolean>(
+		() => false,
+	);
+	runCommandRef.current = (command) => {
+		// A closed window draws nothing for a command to act on.
+		if (ws.closed) return false;
+		if (
+			command.type === "move" ||
+			command.type === "size" ||
+			command.type === "place"
+		) {
+			// One mode at a time, and none during a pointer gesture.
+			if (
+				keyboardModeRef.current ||
+				pendingDragRef.current ||
+				isDraggingRef.current ||
+				isResizingRef.current
+			)
+				return false;
+		} else if (keyboardModeRef.current) {
+			// Any other command ends a keyboard mode where it is first.
+			finishKeyboardMode({ commit: true, lost: false });
+		}
+		switch (command.type) {
+			case "activate":
+				setActive();
+				return true;
+			case "minimize":
+				// Under minimize a modal or palette has no Minimize box.
+				if (!collapsable || collapseIgnored || ws.collapsed) return false;
+				setCollapse(true);
+				return true;
+			case "restore":
+				// A minimized window comes back as it was, maximized included;
+				// a palette's or a dialog's zoom ignored under maximize is
+				// nothing to restore.
+				if (collapsedOrMinimized) setCollapse(false);
+				else if (ws.zoomed && !zoomIgnored) applyZoom(false);
+				else return false;
+				setActive();
+				return true;
+			case "maximize":
+				// The zoom box's path; a modal draws none, nor, under
+				// maximize, a palette.
+				if (!zoomsByBox || modal) return false;
+				if (ws.zoomed) {
+					// Minimized while maximized: it comes back maximized, as
+					// Windows' SC_MAXIMIZE shows a minimized window maximized.
+					// Already maximized on the screen: nothing to do.
+					if (!minimized) return false;
+					setCollapse(false);
+					setActive();
+					return true;
+				}
+				applyZoom(true);
+				setActive();
+				return true;
+			case "close":
+				// The caption Close box's action: a closable window closes; a
+				// non-closable modal under a titled caption runs its
+				// `onCaptionClose`; anything else cannot close (a Yes/No
+				// message box), as Windows ignores ALT+F4 and the icon's
+				// double-click when Close is unavailable.
+				if (closable) {
+					close();
+					return true;
+				}
+				if (captionClose) {
+					captionClose();
+					return true;
+				}
+				return false;
+			case "move":
+				// The keyboard Move mode (Windows' SC_MOVE). Refused for a
+				// window that does not move (a fixed modal: an alert, or
+				// `movable={false}`), one that is maximized (Wine's
+				// `WINPOS_SysCommandSizeMove` returns at once for a zoomed
+				// window), and one that is not drawn (minimized, or a palette
+				// hidden with its app). A shaded window moves, as by its title
+				// bar.
+				if (fixedModal || maximized || minimized || hiddenWithApp) return false;
+				return startKeyboardMode("move");
+			case "size":
+				// The keyboard Size mode (Windows' SC_SIZE): a resizable
+				// window drawn at its size, as for its sizing border.
+				if (!resizable || maximized || collapsedOrMinimized || hiddenWithApp)
+					return false;
+				return startKeyboardMode("size");
+			case "place":
+				return placeWindow(command);
+			case "systemMenu":
+				// The window pop-up menu: at the point given (a taskbar
+				// button's right-click), else dropped from the caption with
+				// its first item selected, as ALT+SPACE opens it.
+				return command.at
+					? openSystemMenu({
+							at: command.at,
+							placement: "click",
+							focusFirstItem: false,
+						})
+					: openSystemMenu({ placement: "corner", focusFirstItem: true });
+			default:
+				return false;
+		}
+	};
+	// Whether the window is drawn on the desktop: open, its app shown, not
+	// minimized or shaded, and not a palette hidden with its app.
+	const drawnOnDesktop = () =>
+		!ws.closed &&
+		currentApp?.hidden !== true &&
+		!collapsedOrMinimized &&
+		!hiddenWithApp;
+	// The rect a Restore returns a maximized window to, as `applyZoom(false)`
+	// finds it: this mount's, else the record's `restoreRect`, else the rect
+	// it opened at.
+	const maximizedRestoreRect = (): ClassicyStoreSystemAppWindowRect => {
+		const storedRect = currentWindow?.restoreRect;
+		return (
+			userStateRef.current ??
+			(isClassicyWindowRestoreRect(storedRect) ? storedRect : null) ??
+			computeInitialRect()
+		);
+	};
+	// The registry's `geometry` (the taskbar's Cascade and Tile): read when
+	// asked, through a ref as the commands are, so it sees fresh state.
+	const geometryRef = useRef<() => ClassicyWindowGeometry | undefined>(
+		() => undefined,
+	);
+	geometryRef.current = () => {
+		if (!drawnOnDesktop()) return undefined;
+		const drawn = appliedWindowSize() ?? size;
+		const rect: ClassicyWindowPlacement = {
+			position: [ws.position[0], ws.position[1]],
+			size: [drawn[0], drawn[1]],
+		};
+		const restore = maximized ? maximizedRestoreRect() : rect;
+		const el = windowRef.current;
+		const edges = el ? classicyWindowChromeEdges(el) : NO_CHROME;
+		return {
+			rect,
+			restoreRect: {
+				position: [restore.position[0], restore.position[1]],
+				size: [restore.size[0], restore.size[1]],
+			},
+			maximized,
+			chrome: [edges.left + edges.right, edges.top + edges.bottom],
+			minimumSize: [resolvedMinimumSize[0], resolvedMinimumSize[1]],
+		};
+	};
+	// The registry's `place` command (the taskbar's Cascade, Tile and their
+	// Undo; Windows' `CascadeWindows`, `TileWindows`, `SetWindowPlacement`):
+	// the rect given, with no activation and no sound. A maximized window is
+	// restored first, its zoom cleared and the rect it remembered dropped
+	// (the zoom event carries `cause: "resize"`, the geometry changing by an
+	// arrangement, not the zoom box). With `maximized` (a window that can
+	// maximize) the rect becomes the one its Restore returns to, and the
+	// window takes the work area, as its Maximize does.
+	const placeWindow = (
+		command: Extract<ClassicyWindowCommand, { type: "place" }>,
+	): boolean => {
+		if (fixedModal || !drawnOnDesktop()) return false;
+		const position: [number, number] = [
+			Math.round(command.position[0]),
+			Math.round(command.position[1]),
+		];
+		// Sized as the window can be drawn: never below its minimum, nor
+		// taller than its `max-height` lets CSS draw it (the frame-edge
+		// drag's cap), so the stored size is the drawn one.
+		const el = windowRef.current;
+		const heightCap = el
+			? windowContentHeightCap(el)
+			: Number.POSITIVE_INFINITY;
+		const nextSize: [number, number] | undefined =
+			resizable && command.size
+				? [
+						Math.max(resolvedMinimumSize[0], Math.round(command.size[0])),
+						Math.max(
+							resolvedMinimumSize[1],
+							Math.min(heightCap, Math.round(command.size[1])),
+						),
+					]
+				: undefined;
+		if (command.maximized === true && maximizable) {
+			const before: ClassicyStoreSystemAppWindowRect = {
+				position,
+				size: nextSize ?? [size[0], size[1]],
+			};
+			userStateRef.current = before;
+			const maximizedRect = computeMaximizedRect();
+			setZoomFlag(
+				true,
+				false,
+				"resize",
+				isClassicyWindowRestoreRect(before) ? before : undefined,
+			);
+			setSize(maximizedRect.size);
+			setResize(false, maximizedRect.size);
+			setMoving(false, maximizedRect.position);
+			return true;
+		}
+		if (maximized) {
+			setZoomFlag(false, false, "resize");
+			userStateRef.current = null;
+		}
+		if (nextSize) {
+			setSize(nextSize);
+			setResize(false, nextSize);
+		}
+		userRepositionedRef.current = true;
+		setMoving(false, position);
+		return true;
+	};
+
+	// The registration, keyed on the values it publishes: the first run
+	// registers, a later one updates the entry in place (the window keeps its
+	// place in the list), and the effect after it unregisters on unmount or
+	// when the window's ids change. StrictMode's phantom cleanup unregisters
+	// and its re-run registers again.
+	const registrationRef = useRef<ClassicyWindowRegistration | null>(null);
+	useEffect(() => {
+		const entry = {
+			appId,
+			windowId: id,
+			// The title its caption shows (a titled caption's untitled modal:
+			// its app's display name).
+			title: shownTitle,
+			icon,
+			modal,
+			windowType,
+			// Whether its Close closes it (a titled caption's non-closable
+			// modal: through `onCaptionClose`).
+			closable: closesByCaption,
+			// Whether it draws a zoom box: under maximize, a palette or a
+			// dialog has no Maximize button.
+			zoomable: zoomsByBox,
+			collapsable: collapsesByBox,
+			resizable,
+			movable: movesByTitleBar,
+			taskbarButton,
+			geometry: () => geometryRef.current(),
+			run: (command: ClassicyWindowCommand) => runCommandRef.current(command),
+		};
+		const current = registrationRef.current;
+		if (current && updateClassicyWindow(current, entry)) return;
+		registrationRef.current = registerClassicyWindow(entry);
+	}, [
+		appId,
+		id,
+		shownTitle,
+		icon,
+		modal,
+		windowType,
+		closesByCaption,
+		zoomsByBox,
+		collapsesByBox,
+		resizable,
+		movesByTitleBar,
+		taskbarButton,
+	]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the window's ids, which the body does not read: a new id is a new registration, so the old one goes first
+	useEffect(
+		() => () => {
+			const registration = registrationRef.current;
+			registrationRef.current = null;
+			if (registration) unregisterClassicyWindow(registration);
+		},
+		[appId, id],
+	);
+
+	// The boxes' names under the shell's flags (none under any other
+	// layout, so the title bar keeps "Close", "Zoom" and "Collapse").
+	const titleBarLabels = minimizes
+		? maximizes
+			? ws.zoomed
+				? SHELL_TITLE_BAR_LABELS.minimizeRestore
+				: SHELL_TITLE_BAR_LABELS.minimizeMaximize
+			: SHELL_TITLE_BAR_LABELS.minimize
+		: maximizes
+			? ws.zoomed
+				? SHELL_TITLE_BAR_LABELS.restore
+				: SHELL_TITLE_BAR_LABELS.maximize
+			: undefined;
+
 	const windowStyle = useMemo(
 		() => ({
 			width: size[0] === 0 ? "auto" : size[0],
-			// Collapsed: no inline height, so `.collapsed` (ClassicyWindow.scss)
-			// sizes the window to its title bar by the cascade alone.
-			height: ws.collapsed ? undefined : size[1] === 0 ? "auto" : size[1],
+			// Shaded: no inline height, so `.collapsed` (ClassicyWindow.scss)
+			// sizes the window to its title bar by the cascade alone. A
+			// minimized window keeps its size, out of sight.
+			height: shaded ? undefined : size[1] === 0 ? "auto" : size[1],
 			left: ws.position[0],
 			top: ws.position[1],
 			minWidth: resolvedMinimumSize[0],
-			minHeight: ws.collapsed ? 0 : resolvedMinimumSize[1],
+			minHeight: shaded ? 0 : resolvedMinimumSize[1],
 		}),
 		[
 			size[0],
 			size[1],
-			ws.collapsed,
+			shaded,
 			ws.position[0],
 			ws.position[1],
 			resolvedMinimumSize[0],
@@ -1948,7 +3799,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		(appMenu?.length ?? 0) > 0 &&
 		windowType !== "utility" &&
 		!modal &&
-		!ws.collapsed;
+		!shaded;
 
 	// An array literal, so the class co-occurrence guard reads its classes.
 	const contentsClasses = [
@@ -1960,7 +3811,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		scrollable === true ? "" : "classicyWindowNoScroll",
 		modal === true ? "classicyWindowContentsModal" : "classicyWindowContents",
 		header ? "classicyWindowContentsWithHeader" : "",
-		classicyStateClasses({ collapsed: ws.collapsed }),
+		// The contents holding the modeless-dialog frame (`contentFrame`), so a
+		// package can style the holder without `:has()` (Firefox before 121).
+		contentFrame ? "classicyWindowContentsWithFrame" : "",
+		classicyStateClasses({ collapsed: shaded }),
 	];
 	const contentsStyle = backgroundColor
 		? ({
@@ -1996,7 +3850,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			id={[appId, id].join("_")}
 			ref={windowRef}
 			role="application"
-			aria-label={title || undefined}
+			aria-label={shownTitle || undefined}
 			// Package, then consumer, then the window's own geometry; neither
 			// may set the stacking.
 			style={{
@@ -2021,7 +3875,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// Non-error modals (File Open/Save and other dialogs) stack in the
 				// modal-front band, above utility/tool palettes but below error
 				// alerts (classicyWindowRed). Error modals keep the red alert band.
-				modal && type !== "error" ? "classicyWindowModalFront" : "",
+				// An application modal of a background app leaves the band, so
+				// the focused app's windows come in front of it, as they do in
+				// Windows.
+				modal &&
+					type !== "error" &&
+					!(applicationModal && currentApp?.focused !== true)
+					? "classicyWindowModalFront"
+					: "",
 				modal && type === "error" ? "classicyWindowRed" : "",
 				// A fixed modal (HIG7 p.190: no drag region, and so no title bar
 				// in System 7) as opposed to a movable one: the window the move
@@ -2029,8 +3890,28 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// the bar of the second only (its alert keeps the red bar).
 				fixedModal ? "classicyWindowModalFixed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
+				// A window that cannot be sized (`resizable={false}`: no grow box).
+				// Windows gives it the fixed frame, with no sizing border (WIG
+				// Ch.6 "Window Frames" (p.76)), which a package can draw from this
+				// class; Platinum and System 7 read it not at all.
+				resizable ? "" : "classicyWindowNoResize",
+				// Under `window.frameEdges: "resize"` only: a window whose frame
+				// is a sizing border (resizable, drawn at its size, not
+				// maximized), which keys the edges' and corner arms' resize
+				// cursors and thickness. No other package emits it.
+				sizingBorder ? "classicyWindowSizingBorder" : "",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 				showsMenuBar ? "classicyWindowWithMenuBar" : "",
+				// Under `window.collapse: "minimize"` only: a minimized window,
+				// or a palette hidden with its app, leaves the screen
+				// (`display: none`), its tree kept mounted. No other package
+				// emits it.
+				minimized || hiddenWithApp ? "classicyWindowMinimized" : "",
+				// Under `window.zoom: "maximize"` only: a maximized window,
+				// whose one base rule lifts the height reserve so it fills the
+				// work area. No other package emits it (a zoomed window there
+				// carries `expanded` alone).
+				maximized ? "classicyWindowMaximized" : "",
 				className,
 			)}
 			onMouseMove={changeWindow}
@@ -2046,8 +3927,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			onContextMenu={onContextMenuHandler}
 		>
 			{/* #205: drag the window from the narrow frame on all four sides,
-					    not just the title bar. Each edge reuses the title-bar move logic. */}
-			{!ws.collapsed &&
+					    not just the title bar. Each edge reuses the title-bar move logic.
+					    Under `window.frameEdges: "resize"` (the Windows shell) an edge
+					    sizes a window with a sizing border instead, and a fixed
+					    border's edges do nothing. */}
+			{/* A maximized window's frame is off the screen and neither moves
+			    nor sizes it, so its edges are not drawn. */}
+			{!shaded &&
+				!maximized &&
 				(["top", "right", "bottom", "left"] as const).map((edge) => (
 					// biome-ignore lint/a11y/noStaticElementInteractions: frame edge is a mouse-only drag handle
 					<div
@@ -2057,27 +3944,86 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 							`classicyWindowFrameEdge-${edge}`,
 						)}
 						role="presentation"
-						onMouseDown={startMoveWindow}
+						onPointerDown={sizingBorder ? captureSizingPointer : undefined}
+						onMouseDown={
+							frameEdgesSize
+								? sizingBorder
+									? startEdgeResize(edge)
+									: holdFrameEdge
+								: startMoveWindow
+						}
 						// stopChangeWindow is bound once, on the root classicyWindow
 						// element (below); mouseup here bubbles to it, so a second
 						// binding on this descendant would double-invoke the handler.
 					></div>
 				))}
+			{/* A sizing border's corners (`window.frameEdges: "resize"` only):
+			    two arms each, along the top or bottom edge and along the side,
+			    which size both of the corner's edges. */}
+			{sizingBorder &&
+				FRAME_CORNER_ARMS.map(([corner, arm]) => (
+					// biome-ignore lint/a11y/noStaticElementInteractions: a corner arm is a mouse-only sizing handle
+					<div
+						key={`${corner}-${arm}`}
+						className={classNames(
+							"classicyWindowFrameCorner",
+							`classicyWindowFrameCorner-${corner}-${arm}`,
+						)}
+						role="presentation"
+						onPointerDown={captureSizingPointer}
+						onMouseDown={startEdgeResize(corner)}
+					></div>
+				))}
 			<ClassicyWindowTitleBar
-				title={title}
+				title={shownTitle}
 				icon={icon}
 				hideIcon={hideIcon}
 				variant={windowType === "utility" ? "utility" : "document"}
 				modal={modal === true}
-				onClose={closable ? close : undefined}
-				onZoom={zoomable ? toggleZoom : undefined}
-				onCollapse={collapsable ? onCollapseBoxClick : undefined}
+				// Under a titled caption a modal always draws its Close box:
+				// its `onCaptionClose` when it is not closable, else drawn
+				// unavailable. Every other window draws one when closable.
+				onClose={closable ? close : captionClose}
+				closeDisabled={titledCaption && !closesByCaption}
+				// Each box names itself in a tooltip
+				// (`layout.window.captionTooltips`, Windows 98 as shipped).
+				buttonTooltips={layout.window.captionTooltips === true}
+				// A palette's bar shows its title (`layout.window.utilityTitle`,
+				// a Windows tool window's small caption).
+				utilityTitle={layout.window.utilityTitle === true}
+				onZoom={zoomsByBox ? toggleZoom : undefined}
+				// Under maximize, Windows' pair: the box a primary window
+				// lacks, drawn unavailable beside the one it has.
+				zoomDisabled={zoomBoxDisabled}
+				// Under minimize a modal or palette has no Minimize box: neither
+				// has a taskbar button to come back from.
+				onCollapse={collapsesByBox ? onCollapseBoxClick : undefined}
+				collapseDisabled={collapseBoxDisabled}
 				onCollapseKey={toggleCollapse}
+				// The "?" box, under What's This? (`balloonHelp.contextHelp`
+				// "whatsThis"), on a dialog with described content.
+				onHelp={helpBoxShown ? startWhatsThisHere : undefined}
+				labels={titleBarLabels}
 				onTitleMouseDown={onTitleMouseDown}
+				// Under the system menu only: the icon opens the window pop-up
+				// menu and its double-click closes the window; without the
+				// flag the icon stays inert.
+				onIconMouseDown={
+					systemMenuEnabled ? onSystemMenuIconMouseDown : undefined
+				}
+				onIconDoubleClick={
+					systemMenuEnabled ? onSystemMenuIconDoubleClick : undefined
+				}
 				// stopChangeWindow is bound once, on the root classicyWindow
 				// element; the title's mouseup bubbles to it (see comment there).
 				onTitleDoubleClick={
-					doubleClickTitleToCollapse ? toggleCollapse : undefined
+					titleDoubleClickZooms
+						? zoomsByBox && !modal
+							? toggleZoom
+							: undefined
+						: doubleClickTitleToCollapse
+							? toggleCollapse
+							: undefined
 				}
 			/>
 			{showsMenuBar && appMenu && (
@@ -2087,7 +4033,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					menuItems={appMenu}
 				/>
 			)}
-			{header && !ws.collapsed && (
+			{header && !shaded && headerVariant !== "status" && (
 				<div
 					className={classNames(
 						"classicyWindowHeader",
@@ -2121,15 +4067,31 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						horizontal={showScrollBars ? "always" : "never"}
 						onOverflowChange={onContentOverflow}
 						onHeadChange={setContentsHasHead}
+						initialScroll={viewState.initialScroll}
+						onScrollSettled={viewState.onScrollSettled}
 					>
 						{contentsInner}
 					</ClassicyScrollArea>
 				</ClassicyWindowActiveContext.Provider>
 			)}
+			{/* A status bar (`headerVariant` "status"): the header, under the
+			    contents. */}
+			{header && !shaded && headerVariant === "status" && (
+				<div
+					className={classNames(
+						"classicyWindowHeader",
+						"classicyWindowHeaderStatus",
+						isActive() ? "" : "classicyWindowHeaderDimmed",
+					)}
+					role="status"
+				>
+					{header}
+				</div>
+			)}
 			{/* #196: a Platinum placard status region pinned to the window's
 					    bottom-left, to the left of the horizontal scroll bar. Hidden
 					    while collapsed and kept clear of the bottom-right resizer. */}
-			{placard && !ws.collapsed && (
+			{placard && !shaded && (
 				<div
 					className={classNames(
 						"classicyWindowPlacardBar",
@@ -2139,7 +4101,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					{placard}
 				</div>
 			)}
-			{resizable && !ws.collapsed && (
+			{/* No grow box while maximized: Windows hides the size grip. */}
+			{resizable && !shaded && !maximized && (
 				// biome-ignore lint/a11y/noStaticElementInteractions: resize handle is mouse-only drag target
 				<div
 					className={classNames(
@@ -2180,7 +4143,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		);
 		return createPortal(
 			<>
-				{modalScrim}
+				{applicationModal ? null : modalScrim}
 				{appHidden && windowContent
 					? cloneElement(windowContent, {
 							style: {

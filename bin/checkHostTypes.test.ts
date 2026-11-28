@@ -80,6 +80,15 @@ const host = (extension: string, { untyped = false } = {}) => {
 			"export declare const system7Json: { presets: ReadonlyArray<Readonly<ClassicyTheme>> };",
 		].join("\n"),
 	});
+	write(join(dir, "node_modules/@classicy/appearance-windows98"), {
+		"package.json": manifest("@classicy/appearance-windows98"),
+		"types/index.d.ts": `export * from './assets.sounds${extension}';\n`,
+		"types/assets.sounds.d.ts": [
+			"import type { ClassicySoundPack, ClassicyTheme } from '@classicy/classicy';",
+			"export declare const windows98SoundPack: ClassicySoundPack;",
+			"export declare const windows98Json: { presets: ReadonlyArray<Readonly<ClassicyTheme>> };",
+		].join("\n"),
+	});
 	return Object.fromEntries(
 		checkClassicyHost(dir, TSC).map(({ mode, status, output }) => [
 			mode,
@@ -115,6 +124,9 @@ describe("check-host-types.ts", () => {
 			);
 			expect(results[resolution].output, resolution).toContain(
 				`error TS2305: Module '"@classicy/appearance-system7"' has no exported member 'system7Json'.`,
+			);
+			expect(results[resolution].output, resolution).toContain(
+				`error TS2305: Module '"@classicy/appearance-windows98"' has no exported member 'windows98Json'.`,
 			);
 		}
 	}, 60_000);

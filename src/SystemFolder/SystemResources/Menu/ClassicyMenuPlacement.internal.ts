@@ -10,9 +10,11 @@
 // Down, every menu keeps to the same box: a pull-down's scroll cap ends at
 // its bottom, and a menu still past it is pinned up. The screen is what
 // shows of the desktop: its box (`.classicyDesktop`) where it overlaps the
-// viewport, else the viewport. Pure measurement: the components publish the
-// decision (ClassicyMenu's `classicySubMenuFlipLeft`, a contextual menu's
-// `left` and `top`).
+// viewport, else the viewport, less a taskbar's band along its bottom. Pure
+// measurement: the components publish the decision (ClassicyMenu's
+// `classicySubMenuFlipLeft`, a contextual menu's `left` and `top`).
+
+import { getClassicyTaskbarInsets } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 
 /** A box in viewport pixels. */
 export type ClassicyMenuBox = {
@@ -49,21 +51,41 @@ const viewportBox = (): ClassicyMenuBox => ({
  * fixes its size, or a scrolled page) is cut to the viewport. With no
  * desktop, one with no box yet (not laid out) or one wholly outside the
  * viewport, the viewport's.
+ *
+ * A mounted taskbar's band (`getClassicyTaskbarInsets`, none with no
+ * taskbar) comes off the edge it is docked to (the bottom unless the user
+ * moved it, plan 0020-w98 E4) of the desktop's box, or of the viewport's
+ * where that stands in for it, before the overlap is taken: the box is the work area, as Windows
+ * keeps a popup menu to the monitor's work area (Wine `MENU_ShowPopup`,
+ * `rcWork`). A window's pull-downs live in its stacking context, under the
+ * taskbar's, so a menu that ran into the band would be hidden behind it; it
+ * flips, scrolls or is pinned above the band instead. With no band the box
+ * is exactly as before; one that leaves no work area falls back to the
+ * viewport, as a desktop wholly outside it does.
  */
 export const classicyMenuBounds = (el: Element | null): ClassicyMenuBox => {
 	const viewport = viewportBox();
+	const band = getClassicyTaskbarInsets();
 	const desktop =
 		el?.closest(".classicyDesktop") ??
 		el?.ownerDocument?.querySelector(".classicyDesktop") ??
 		null;
-	if (!desktop) return viewport;
-	const r = desktop.getBoundingClientRect();
-	if (!(r.width > 0) || !(r.height > 0)) return viewport;
+	const r = desktop?.getBoundingClientRect();
+	const box: ClassicyMenuBox =
+		r && r.width > 0 && r.height > 0
+			? { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+			: viewport;
+	const area: ClassicyMenuBox = {
+		left: box.left + band.left,
+		top: box.top + band.top,
+		right: box.right - band.right,
+		bottom: box.bottom - band.bottom,
+	};
 	const shown = {
-		left: Math.max(r.left, viewport.left),
-		top: Math.max(r.top, viewport.top),
-		right: Math.min(r.right, viewport.right),
-		bottom: Math.min(r.bottom, viewport.bottom),
+		left: Math.max(area.left, viewport.left),
+		top: Math.max(area.top, viewport.top),
+		right: Math.min(area.right, viewport.right),
+		bottom: Math.min(area.bottom, viewport.bottom),
 	};
 	return shown.right > shown.left && shown.bottom > shown.top
 		? shown

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	losePointerStream,
@@ -13,8 +13,23 @@ import {
 	userEvent,
 	waitFor,
 } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
+import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
+import { classicyBevelPopupShownItems } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupItems.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	resetClassicyMenuStatusTextForTests,
+	useClassicyMenuStatusText,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock(
 	"@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics",
@@ -707,5 +722,326 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(lasso, { button: 0 });
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+// Plan 0020-w98 §3: the surface's optional `aside` (the Windows Start menu's
+// banner), and the keyboard walking only the items a menu shows.
+describe("ClassicyBevelButtonPopup", () => {
+	const anchor = { top: 100, bottom: 120, left: 10, right: 40 };
+	const Surface = (
+		props: Partial<Parameters<typeof ClassicyBevelButtonPopup>[0]>,
+	) => {
+		const buttonRef = { current: null };
+		return (
+			<ClassicyBevelButtonPopup
+				id="surface"
+				anchor={anchor}
+				side="below"
+				buttonRef={buttonRef}
+				onClose={vi.fn()}
+				label="Surface"
+				{...props}
+			/>
+		);
+	};
+	const nested: ClassicyMenuItem[] = [
+		{ id: "one", title: "One", onClickFunc: vi.fn() },
+		{
+			id: "more",
+			title: "More",
+			menuChildren: [
+				{ id: "more-a", title: "A", onClickFunc: vi.fn() },
+				{ id: "more-b", title: "B", onClickFunc: vi.fn() },
+			],
+		},
+		{ id: "two", title: "Two", onClickFunc: vi.fn() },
+	];
+
+	it("draws the same DOM with no aside: the menu, or the panel's content, alone", () => {
+		render(<Surface menuItems={lassoItems(vi.fn())} />);
+		const menu = screen.getByRole("menu", { name: "Surface" });
+		expect(Array.from(menu.children, (el) => el.className)).toEqual([
+			"classicyMenuWrapper",
+		]);
+		const { unmount } = render(
+			<Surface id="panel" content={<input aria-label="Level" />} />,
+		);
+		const panel = screen.getByRole("dialog", { name: "Surface" });
+		expect(Array.from(panel.children, (el) => el.tagName)).toEqual(["INPUT"]);
+		unmount();
+	});
+
+	it("draws an aside as the surface's first child, before a menu or a panel's content", () => {
+		const aside = <div className="banner" aria-hidden="true" />;
+		render(<Surface menuItems={lassoItems(vi.fn())} aside={aside} />);
+		const menu = screen.getByRole("menu", { name: "Surface" });
+		expect(Array.from(menu.children, (el) => el.className)).toEqual([
+			"banner",
+			"classicyMenuWrapper",
+		]);
+		// The menu's items are still the surface's.
+		expect(screen.getByRole("menuitemcheckbox", { name: "Shrink" })).toBe(
+			menu.querySelector("#shrink"),
+		);
+		render(
+			<Surface
+				id="panel"
+				content={<input aria-label="Level" />}
+				aside={aside}
+			/>,
+		);
+		const panel = screen.getByRole("dialog", { name: "Surface" });
+		expect(
+			Array.from(panel.children, (el) => el.className || el.tagName),
+		).toEqual(["banner", "INPUT"]);
+	});
+
+	it("walks only the items shown: a closed submenu's are passed over", () => {
+		render(<Surface menuItems={nested} focusFirstItem />);
+		const menu = screen.getByRole("menu", { name: "Surface" });
+		expect(classicyBevelPopupShownItems(menu).map((el) => el.id)).toEqual([
+			"one",
+			"more",
+			"two",
+		]);
+		expect(document.getElementById("one")).toHaveFocus();
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.getElementById("more")).toHaveFocus();
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.getElementById("two")).toHaveFocus();
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowUp" });
+		// Opened, its items show, so they are walked, in document order.
+		fireEvent.keyDown(document.getElementById("more") as Element, {
+			key: "Enter",
+		});
+		expect(classicyBevelPopupShownItems(menu).map((el) => el.id)).toEqual([
+			"one",
+			"more",
+			"more-a",
+			"more-b",
+			"two",
+		]);
+		fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+		expect(document.getElementById("more-a")).toHaveFocus();
+	});
+
+	it("finds no item outside a surface", () => {
+		expect(classicyBevelPopupShownItems(null)).toEqual([]);
+	});
+
+	// Plan 0020-w98: the Windows shell's Start menu and tray pop-ups take the
+	// keyboard as Windows' menu loop does; every other surface is as before.
+	const dimmedFirst: ClassicyMenuItem[] = [
+		{ id: "status", title: "Status", disabled: true },
+		{ id: "one", title: "One", onClickFunc: vi.fn() },
+		{ id: "two", title: "Two", onClickFunc: vi.fn() },
+	];
+
+	it("without keyboard: walks the enabled items from inside, and closes after 15 s idle", () => {
+		vi.useFakeTimers();
+		try {
+			const onClose = vi.fn();
+			render(
+				<Surface menuItems={dimmedFirst} onClose={onClose} focusFirstItem />,
+			);
+			const menu = screen.getByRole("menu", { name: "Surface" });
+			expect(classicyBevelPopupShownItems(menu).map((el) => el.id)).toEqual([
+				"one",
+				"two",
+			]);
+			expect(document.getElementById("one")).toHaveFocus();
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowUp",
+			});
+			expect(document.getElementById("two")).toHaveFocus();
+			// From outside the menu the arrows are left alone.
+			(document.activeElement as HTMLElement).blur();
+			const down = fireEvent.keyDown(document.body, { key: "ArrowDown" });
+			expect(down).toBe(true);
+			expect(document.body).toHaveFocus();
+			act(() => {
+				vi.advanceTimersByTime(15_000);
+			});
+			expect(onClose).toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("with keyboard: walks dimmed items too, from anywhere, and never closes for idleness", () => {
+		vi.useFakeTimers();
+		try {
+			const onClose = vi.fn();
+			render(<Surface menuItems={dimmedFirst} onClose={onClose} keyboard />);
+			const menu = screen.getByRole("menu", { name: "Surface" });
+			expect(
+				classicyBevelPopupShownItems(menu, { dimmed: true }).map((el) => el.id),
+			).toEqual(["status", "one", "two"]);
+			// Nothing is selected until an arrow: Down the first item, dimmed
+			// or not, Up the last.
+			expect(document.body).toHaveFocus();
+			fireEvent.keyDown(document.body, { key: "ArrowDown" });
+			expect(document.getElementById("status")).toHaveFocus();
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowDown",
+			});
+			expect(document.getElementById("one")).toHaveFocus();
+			fireEvent.keyDown(document.activeElement as Element, {
+				key: "ArrowUp",
+			});
+			expect(document.getElementById("status")).toHaveFocus();
+			(document.activeElement as HTMLElement).blur();
+			fireEvent.keyDown(document.body, { key: "ArrowUp" });
+			expect(document.getElementById("two")).toHaveFocus();
+			act(() => {
+				vi.advanceTimersByTime(60_000);
+			});
+			expect(onClose).not.toHaveBeenCalled();
+			fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
+			expect(onClose).toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("with keyboard and focusFirstItem: focuses the first item, dimmed or not", () => {
+		render(<Surface menuItems={dimmedFirst} keyboard focusFirstItem />);
+		expect(document.getElementById("status")).toHaveFocus();
+	});
+
+	// Plan 0020-w98 §2: a surface flush on the bounds' bottom (the taskbar
+	// band's top edge, where the Windows shell's Start menu and tray pop-ups
+	// sit) keeps its menu whole under `menuScrollMargin={0}`; without it the
+	// menu's scroll cap keeps the pop-up menus' 4 px off the edge, as before,
+	// and a menu that fits there flush scrolls by that much. jsdom lays
+	// nothing out: the surface and its list share one stubbed 160 × 200 box.
+	describe("menuScrollMargin", () => {
+		const MENU = { width: 160, height: 200 };
+		// Below the bottom of the viewport (the bounds here): the surface
+		// flips above it and is pinned flush on the bounds' bottom.
+		const below = () => ({
+			top: window.innerHeight + 2,
+			bottom: window.innerHeight + 24,
+			left: 10,
+			right: 40,
+		});
+		const listOf = (surface: Element) =>
+			surface.querySelector(
+				":scope > .classicyMenuWrapper > ul",
+			) as HTMLElement;
+
+		beforeEach(() => {
+			vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+				function (this: Element) {
+					const surface = this.closest(".classicyBevelButtonPopup");
+					if (
+						surface &&
+						(this === surface || (this.tagName === "UL" && !this.closest("li")))
+					) {
+						const { left, top } = (surface as HTMLElement).style;
+						return DOMRect.fromRect({
+							x: Number.parseFloat(left) || 0,
+							y: Number.parseFloat(top) || 0,
+							width: MENU.width,
+							height: MENU.height,
+						});
+					}
+					return DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
+				},
+			);
+			const computed = window.getComputedStyle;
+			vi.spyOn(window, "getComputedStyle").mockImplementation(
+				(el: Element, pseudo?: string | null) =>
+					pseudo
+						? ({ content: "none" } as unknown as CSSStyleDeclaration)
+						: computed.call(window, el),
+			);
+		});
+
+		afterEach(() => vi.restoreAllMocks());
+
+		it("leaves the pop-up menus' margin without it: a menu flush on the bottom scrolls by it", () => {
+			render(<Surface menuItems={lassoItems(vi.fn())} anchor={below()} />);
+			const surface = screen.getByRole("menu", { name: "Surface" });
+			expect(Number.parseFloat(surface.style.top)).toBe(
+				window.innerHeight - MENU.height,
+			);
+			const list = listOf(surface);
+			expect(list).toHaveClass("classicyMenuListScrolls");
+			expect(list.style.maxHeight).toBe(`${MENU.height - 4}px`);
+		});
+
+		it("keeps the menu whole flush on the bottom under a margin of 0", () => {
+			render(
+				<Surface
+					menuItems={lassoItems(vi.fn())}
+					anchor={below()}
+					menuScrollMargin={0}
+				/>,
+			);
+			const surface = screen.getByRole("menu", { name: "Surface" });
+			expect(Number.parseFloat(surface.style.top)).toBe(
+				window.innerHeight - MENU.height,
+			);
+			const list = listOf(surface);
+			expect(list).not.toHaveClass("classicyMenuListScrolls");
+			expect(list.style.maxHeight).toBe("");
+			// The surface's DOM is the same: the margin is no element.
+			expect(Array.from(surface.children, (el) => el.className)).toEqual([
+				"classicyMenuWrapper",
+			]);
+		});
+	});
+});
+
+// The remaining chapters' audit's 12.13 (WIG Ch.12 "Status Bar Messages",
+// pp.276-277): under `layout.menu.itemHelp` "statusBar" a bevel button's
+// pop-up menu gives the menus' status text in a window, whose status bar
+// it belongs to, and none outside any (the taskbar's Start menu and tray,
+// the Control Strip's pop-ups).
+describe("ClassicyBevelButton pop-up menu and the status text", () => {
+	afterEach(() => {
+		resetClassicyMenuStatusTextForTests();
+		resetClassicyAppearancePackagesForTests();
+	});
+	const Status = () => (
+		<output data-testid="status">
+			{useClassicyMenuStatusText() ?? "(none)"}
+		</output>
+	);
+	const helpItems: ClassicyMenuItem[] = [
+		{ id: "shrink", title: "Shrink", balloon: { content: "Shrinks it." } },
+	];
+
+	it.each([
+		["in a window", true, "Shrinks it."],
+		["outside any window", undefined, "(none)"],
+	])("gives the highlighted item's help %s", (_, active, expected) => {
+		registerClassicyAppearancePackage({
+			id: "windows-popups",
+			name: "Windows pop-ups",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-popups-default",
+				package: "windows-popups",
+			},
+			layout: windows98.layout as never,
+		});
+		render(
+			<ClassicyWindowActiveContext.Provider value={active}>
+				<Status />
+				<ClassicyBevelButton
+					mode="popup"
+					aria-label="Marquee"
+					menuItems={helpItems}
+					popupHoldDelayMs={10_000}
+				/>
+			</ClassicyWindowActiveContext.Provider>,
+		);
+		quickClick(screen.getByRole("button", { name: "Marquee" }));
+		fireEvent.mouseOver(document.getElementById("shrink") as HTMLElement);
+		expect(screen.getByTestId("status")).toHaveTextContent(expected);
 	});
 });

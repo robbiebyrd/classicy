@@ -13,12 +13,18 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyLabelAccessKey } from "@/SystemFolder/SystemResources/ControlLabel/useClassicyLabelAccessKey.internal";
 import {
 	useClassicyKeyPress,
 	useClassicyPointerPress,
 } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import {
+	classicyNodeText,
+	renderClassicyAccessKeyNode,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 
 type ClassicyButtonProps = PropsWithChildren<{
 	/**
@@ -51,6 +57,26 @@ type ClassicyButtonProps = PropsWithChildren<{
 	padding?: "sm" | "md" | "lg" | "xl";
 	/** Outer spacing variant; scales off --window-padding-size. Defaults to `md`. */
 	margin?: "sm" | "md" | "lg" | "xl";
+	/**
+	 * The button's access key (mnemonic), one character of its text (WIG
+	 * Ch.4 "Access Keys" (p.27); Ch.8 "Navigation in Secondary Windows"
+	 * (pp.148-149); Appendix B Table B.5 (p.360)): Alt and the key, in the
+	 * window holding focus, focuses and clicks it, and so does the key alone
+	 * while focus is on a button, a check box or an option button. Its first
+	 * match in the text, the key's own case first, is wrapped in `<span
+	 * data-classicy-part="access-key">`, which a package underlines (Windows
+	 * 98 does). One register with `ClassicyControlLabel`'s keys
+	 * (`useClassicyLabelAccessKey`): unique among a window's controls, a
+	 * menu bar's title taking Alt and the key first outside a modal window,
+	 * and ahead of a menu item's Option chord. Read only under the package's
+	 * `layout.menu.accessKeys`; under `"auto"` (Windows 98) a button given
+	 * none takes the first character of its text no other control of its
+	 * window holds, except OK and Cancel, which Return and Escape reach
+	 * (Table B.5: "Avoid assigning access keys to OK and Cancel"). `""`
+	 * gives it none. Under a package without access keys (Platinum, System
+	 * 7) it is the native `accesskey` attribute, as it always was.
+	 */
+	accessKey?: string;
 }> &
 	Omit<
 		ButtonHTMLAttributes<HTMLButtonElement>,
@@ -79,6 +105,10 @@ const KEY_ACTIVE_MS = 125;
 
 const isActivationKey = (key: string): boolean =>
 	key === "Enter" || key === " " || key === "Spacebar";
+
+// The buttons Return and Escape reach, which take no automatic access key
+// (WIG Appendix B Table B.5, p.360).
+const NO_AUTOMATIC_ACCESS_KEY = new Set(["ok", "cancel"]);
 
 /**
  * The Platinum push button (HIGOS8 Ch.2 "Push Buttons", p.21) — use it
@@ -117,6 +147,7 @@ export const ClassicyButton = forwardRef<
 			padding = "md",
 			margin = "md",
 			onClickFunc,
+			accessKey,
 			children,
 			onKeyDown,
 			onKeyUp,
@@ -154,6 +185,24 @@ export const ClassicyButton = forwardRef<
 			{ default: isDefault, pressed: depressed || keyActive },
 			buttonRef,
 		);
+
+		// Its access key: one register with the labels', the button its own
+		// label and control. Without the package's `layout.menu.accessKeys`
+		// (Platinum, System 7) none, and `accessKey` stays the native attribute.
+		const accessKeysOn =
+			useClassicyAppearanceLayout().menu?.accessKeys !== undefined;
+		const text = classicyNodeText(children);
+		const buttonAccessKey = useClassicyLabelAccessKey({
+			labelRef: buttonRef,
+			holderRef: buttonRef,
+			text,
+			accessKey:
+				accessKey ??
+				(NO_AUTOMATIC_ACCESS_KEY.has(text.trim().toLowerCase())
+					? ""
+					: undefined),
+			labelFor: undefined,
+		});
 
 		// A mouse press ends in exactly one `release`: over the button, let go
 		// elsewhere (`canceled`), or, when its pointer stream is lost (the
@@ -205,6 +254,9 @@ export const ClassicyButton = forwardRef<
 			<button
 				{...appearance.attrs}
 				{...rest}
+				// Without access keys (Platinum, System 7) a given `accessKey`
+				// is the native attribute, passed through as before.
+				{...(accessKeysOn || accessKey === undefined ? {} : { accessKey })}
 				ref={setButtonRef}
 				type={buttonType}
 				tabIndex={0}
@@ -254,7 +306,7 @@ export const ClassicyButton = forwardRef<
 				onKeyUp={handleKeyUp}
 				disabled={disabled}
 			>
-				{children}
+				{renderClassicyAccessKeyNode(children, buttonAccessKey)}
 			</button>
 		);
 	},

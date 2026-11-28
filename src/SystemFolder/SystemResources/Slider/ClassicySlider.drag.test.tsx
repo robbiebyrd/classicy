@@ -13,6 +13,7 @@ import {
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 // A pointer press on the slider is the slider's own (story 0198-0kv): the
 // browser's default is prevented and the value follows the pointer's travel
@@ -383,5 +384,71 @@ describe("ClassicySlider ghost drag, live (the default)", () => {
 		expect(input.value).toBe("70");
 		expect(onChange.mock.calls).toEqual([[70]]);
 		expect(ghost.style.getPropertyValue("--classicy-ghost-pos")).toBe("0.7");
+	});
+});
+
+// Escape takes a drag back under a package whose layout says
+// `input.escapeCancels` (Windows 98; the audit's 1.18 / 4.16; WIG Ch.4
+// "Shortcut Keys", p.27): the value goes back to where the press found it
+// and nothing is committed. Without the key Escape is left alone.
+describe("ClassicySlider — Escape mid-drag (layout.input.escapeCancels)", () => {
+	const registerWindows = () =>
+		registerClassicyAppearancePackage({
+			id: "test-slider-windows",
+			name: "Slider Windows",
+			css: "",
+			defaults: {
+				...getTheme("default"),
+				id: "test-slider-windows-default",
+				package: "test-slider-windows",
+			},
+			layout: windows98.layout as never,
+		});
+	const pressEscape = () => {
+		const event = new KeyboardEvent("keydown", {
+			key: "Escape",
+			bubbles: true,
+			cancelable: true,
+		});
+		document.body.dispatchEvent(event);
+		return event;
+	};
+
+	it("puts the value back and commits nothing under the Windows layout", () => {
+		resetClassicyAppearancePackagesForTests();
+		registerWindows();
+		const released = vi.fn();
+		const { input, onChange, onCommit } = slider({ ghost: true });
+		input.addEventListener("pointerup", () => released());
+		fireEvent.pointerDown(input, at(false, centerOf(false, 40)));
+		fireEvent.pointerMove(input, at(false, centerOf(false, 70)));
+		expect(input.value).toBe("70");
+		expect(pressEscape().defaultPrevented).toBe(true);
+		expect(input.value).toBe("40");
+		// `onChangeFunc` hears the value go back.
+		expect(onChange.mock.calls).toEqual([[70], [40]]);
+		// The drag is over: the pointer moves nothing, the release commits
+		// nothing, and a second Escape goes on its way.
+		fireEvent.pointerMove(input, at(false, centerOf(false, 90)));
+		expect(input.value).toBe("40");
+		fireEvent.pointerUp(input, at(false, centerOf(false, 90)));
+		expect(released).toHaveBeenCalledOnce();
+		expect(onCommit).not.toHaveBeenCalled();
+		expect(pressEscape().defaultPrevented).toBe(false);
+		// The next press drags and commits as ever.
+		fireEvent.pointerDown(input, at(false, centerOf(false, 40)));
+		fireEvent.pointerMove(input, at(false, centerOf(false, 50)));
+		fireEvent.pointerUp(input, at(false, centerOf(false, 50)));
+		expect(onCommit.mock.calls).toEqual([[50, { lost: false }]]);
+	});
+
+	it("leaves Escape alone mid-drag without the key", () => {
+		const { input, onCommit } = slider();
+		fireEvent.pointerDown(input, at(false, centerOf(false, 40)));
+		fireEvent.pointerMove(input, at(false, centerOf(false, 70)));
+		expect(pressEscape().defaultPrevented).toBe(false);
+		expect(input.value).toBe("70");
+		fireEvent.pointerUp(input, at(false, centerOf(false, 70)));
+		expect(onCommit.mock.calls).toEqual([[70, { lost: false }]]);
 	});
 });

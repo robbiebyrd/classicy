@@ -7,7 +7,9 @@ import { type SoundData, SoundDataSchema } from "./ClassicySoundSchema";
  * A sound pack: one Howler audio sprite sheet (`src` + `sprite`) under a
  * kebab-case id. A theme selects a pack with `sound.pack`. A pack should
  * define every id in `CLASSICY_SOUND_SPRITE_IDS`; a sprite it lacks plays
- * from the Platinum pack instead, when that pack is registered.
+ * from the Platinum pack instead, when that pack is registered. An id in
+ * `CLASSICY_OPTIONAL_SOUND_SPRITE_IDS` plays only from the pack that defines
+ * it: a pack that lacks one is silent for it.
  */
 export type ClassicySoundPack = SoundData & {
 	id: string;
@@ -26,7 +28,28 @@ export type ClassicySoundPack = SoundData & {
 	 * when `alerts` is absent.
 	 */
 	defaultAlert?: string;
+	/**
+	 * The sprite an alert of each type plays while the stored alert choice is
+	 * not one of `alerts` (the default state stores none): Windows 98 played
+	 * a message box's icon event (Asterisk, Exclamation, Critical Stop) where
+	 * an error beep played the Default sound. Absent, or naming a sprite the
+	 * pack lacks: the default alert, as for any other alert. A stored choice
+	 * the pack offers wins for every alert. Never inherited from the default
+	 * pack.
+	 */
+	alertTypeSounds?: ClassicyAlertTypeSounds;
 };
+
+/**
+ * An alert's type (`ClassicyAlert`'s `alertType`), which a pack's
+ * `alertTypeSounds` may give its own sound.
+ */
+export type ClassicyAlertSoundType = "note" | "caution" | "stop";
+
+/** A pack's sprite per alert type (`ClassicySoundPack.alertTypeSounds`). */
+export type ClassicyAlertTypeSounds = Partial<
+	Record<ClassicyAlertSoundType, string>
+>;
 
 export interface ClassicyAlertSoundOption {
 	value: string;
@@ -50,6 +73,13 @@ export const ClassicySoundPackSchema: z.ZodType<ClassicySoundPack> =
 			.max(64)
 			.optional(),
 		defaultAlert: z.string().min(1).max(128).optional(),
+		alertTypeSounds: z
+			.object({
+				note: z.string().min(1).max(128).optional(),
+				caution: z.string().min(1).max(128).optional(),
+				stop: z.string().min(1).max(128).optional(),
+			})
+			.optional(),
 		src: z.array(z.string().min(1)).min(1),
 	});
 
@@ -112,6 +142,44 @@ export const CLASSICY_SOUND_SPRITE_IDS = [
 ] as const satisfies readonly string[];
 
 export type ClassicySoundSpriteId = (typeof CLASSICY_SOUND_SPRITE_IDS)[number];
+
+/**
+ * Sprite ids Classicy dispatches that a pack may leave out, each with the
+ * label the Sound control panel lists it under while the playing pack
+ * defines it. Unlike the contract's ids, one plays only from the pack that
+ * defines it: the default pack never stands in, a pack that lacks it is
+ * silent for it, and its absence is never reported as missing.
+ * `ClassicyTrashEmpty` plays after Special ▸ Empty Trash removes something
+ * (Windows 98's Empty Recycle Bin event).
+ */
+export const CLASSICY_OPTIONAL_SOUND_SPRITES = [
+	{
+		id: "ClassicyTrashEmpty",
+		group: "System",
+		label: "Empty Trash",
+		description: "",
+	},
+] as const satisfies readonly {
+	id: string;
+	group: string;
+	label: string;
+	description: string;
+}[];
+
+/** The ids of `CLASSICY_OPTIONAL_SOUND_SPRITES`. */
+export const CLASSICY_OPTIONAL_SOUND_SPRITE_IDS: readonly ClassicyOptionalSoundSpriteId[] =
+	CLASSICY_OPTIONAL_SOUND_SPRITES.map((sprite) => sprite.id);
+
+export type ClassicyOptionalSoundSpriteId =
+	(typeof CLASSICY_OPTIONAL_SOUND_SPRITES)[number]["id"];
+
+const OPTIONAL_SOUND_SPRITE_IDS: ReadonlySet<string> = new Set(
+	CLASSICY_OPTIONAL_SOUND_SPRITE_IDS,
+);
+
+/** Whether `id` is one of `CLASSICY_OPTIONAL_SOUND_SPRITE_IDS`. */
+export const isClassicyOptionalSoundSprite = (id: string): boolean =>
+	OPTIONAL_SOUND_SPRITE_IDS.has(id);
 
 const CONTRACT_ALERT_SPRITE_IDS: ReadonlySet<string> = new Set(
 	CLASSICY_CONTRACT_ALERT_SPRITE_IDS,
@@ -181,7 +249,8 @@ export const playingClassicySoundPack = (
 /**
  * Sprite ids `pack` should define but does not. The contract ids, except the
  * contract's alert ids when the pack declares its own `alerts` (the alerts
- * are pack-defined); plus each alert it declares.
+ * are pack-defined); plus each alert and alert-type sound it declares. The
+ * optional ids are never listed.
  */
 export const classicySoundPackMissingSprites = (
 	pack: ClassicySoundPack,
@@ -190,7 +259,13 @@ export const classicySoundPackMissingSprites = (
 	const required = CLASSICY_SOUND_SPRITE_IDS.filter(
 		(id) => !(own && CONTRACT_ALERT_SPRITE_IDS.has(id)),
 	);
-	const ids = [...required, ...(pack.alerts ?? []).map((a) => a.value)];
+	const ids = [
+		...required,
+		...(pack.alerts ?? []).map((a) => a.value),
+		...Object.values(pack.alertTypeSounds ?? {}).filter(
+			(id): id is string => typeof id === "string",
+		),
+	];
 	return [...new Set(ids)].filter((id) => !(id in pack.sprite));
 };
 

@@ -4,7 +4,16 @@
 
 // #208: Zoom geometry is computed in JS (standard-state vs user-state and the
 // horizontal/vertical zoom modes) and applied via the window's inline
-// position/size, so zoom has no class — see ClassicyWindow.tsx applyZoom().
+// position/size, so no rule here keys on zoom — see ClassicyWindow.tsx
+// applyZoom(). The root does carry the state `expanded` while zoomed (the
+// store's `zoomed`), for a package that redraws the zoom box as Windows'
+// Restore button (WIG Ch.6 "Maximizing Windows" (pp.84–85)); the base sheet,
+// Platinum and System 7 read it not at all. A window that cannot be sized
+// (`resizable={false}`) carries `classicyWindowNoResize` the same way (WIG
+// Ch.6 "Window Frames" (p.76): no sizing border); the base draws no grow box
+// for it and reads nothing else. Under `layout.window.zoom: "maximize"` a
+// zoomed window is maximized and carries `classicyWindowMaximized`, whose one
+// base rule (below) lifts the height reserve; no other layout emits it.
 
 // Layout: the base `.classicyWindow` rule, then its parts, then the window
 // variants, then every state. A state wins because it comes later in this
@@ -209,6 +218,20 @@
   column-gap: var(--window-control-size);
 }
 
+// The status-bar header (`headerVariant` "status"): under the contents, in
+// the flow, its parts (`classicyWindowStatusPart`) in a row from the left.
+:where(.classicyWindowHeader).classicyWindowHeaderStatus {
+  position: relative;
+  top: auto;
+  justify-content: flex-start;
+}
+
+.classicyWindowStatusPart {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 // #183: the list-view header variant (classicyWindowHeaderList) drops the
 // beveled bottom separator, so the header reads as a column-heading strip
 // rather than a raised bar: a look, in the Platinum package.
@@ -274,6 +297,85 @@
   bottom: 0;
   right: 0;
   width: var(--window-padding-size);
+}
+
+// Frame-edge sizing (`layout.window.frameEdges: "resize"`, the Windows shell,
+// plan 0020-w98 §5): a resizable window's frame is its sizing border (WIG
+// Ch.6 "Sizing Borders", p.83), and its root carries
+// `classicyWindowSizingBorder`, which only that layout emits, so no other
+// package's window matches a rule here. Windows sizes from the whole frame
+// and nothing inside it (Wine's `NC_HandleNCHitTest`: the window rect less
+// `SM_CXFRAME`, 4 px under Windows 98, the ring `--window-frame-inset`
+// draws), so each edge is the ring's width; a corner reaches `SM_CXSIZE`
+// (the caption's height, `--window-title-bar-height`, 18 px) past the inside
+// of the frame along both of its edges, as two arms
+// (`classicyWindowFrameCorner-<corner>-h` along the top or bottom edge, `-v`
+// along the side) as thick as the edges, so each covers its edge's end, above
+// the edges (6) and below the resizer (999). The cursors are the registry's
+// (as the grow box's: an image layer, then a keyword, so an undefined
+// variable never voids the declaration): the vertical and horizontal resize
+// cursors on the edges, the diagonal ones on the corners. After the edges'
+// `cursor: default`, and one class heavier.
+$sizing-border: var(--window-frame-inset);
+$sizing-corner: calc(var(--window-frame-inset) + var(--window-title-bar-height));
+
+.classicyWindowSizingBorder {
+  > .classicyWindowFrameEdge-top,
+  > .classicyWindowFrameEdge-bottom {
+    height: $sizing-border;
+    cursor:
+      var(--classicy-cursor-resize-ud, url('data:,')) var(--classicy-cursor-resize-ud-hotspot, 8 8),
+      ns-resize;
+  }
+
+  > .classicyWindowFrameEdge-left,
+  > .classicyWindowFrameEdge-right {
+    width: $sizing-border;
+    cursor:
+      var(--classicy-cursor-resize-lr, url('data:,')) var(--classicy-cursor-resize-lr-hotspot, 8 8),
+      ew-resize;
+  }
+
+  > .classicyWindowFrameCorner {
+    position: absolute;
+    z-index: 6; // above the edges (5), below the resizer (999)
+  }
+
+  @each $corner, $y, $x in (top-left, top, left), (top-right, top, right),
+    (bottom-left, bottom, left), (bottom-right, bottom, right)
+  {
+    > .classicyWindowFrameCorner-#{$corner}-h {
+      #{$y}: 0;
+      #{$x}: 0;
+      width: $sizing-corner;
+      height: $sizing-border;
+    }
+
+    > .classicyWindowFrameCorner-#{$corner}-v {
+      #{$y}: 0;
+      #{$x}: 0;
+      width: $sizing-border;
+      height: $sizing-corner;
+    }
+  }
+
+  > .classicyWindowFrameCorner-top-left-h,
+  > .classicyWindowFrameCorner-top-left-v,
+  > .classicyWindowFrameCorner-bottom-right-h,
+  > .classicyWindowFrameCorner-bottom-right-v {
+    cursor:
+      var(--classicy-cursor-resize-nwse, url('data:,')) var(--classicy-cursor-resize-nwse-hotspot, 8 8),
+      nwse-resize;
+  }
+
+  > .classicyWindowFrameCorner-top-right-h,
+  > .classicyWindowFrameCorner-top-right-v,
+  > .classicyWindowFrameCorner-bottom-left-h,
+  > .classicyWindowFrameCorner-bottom-left-v {
+    cursor:
+      var(--classicy-cursor-resize-nesw, url('data:,')) var(--classicy-cursor-resize-nesw-hotspot, 8 8),
+      nesw-resize;
+  }
 }
 
 // #196: Placard status region. A placard sits at the window's bottom edge, to
@@ -481,6 +583,25 @@
 // A collapsed window keeps its contents mounted but out of sight.
 :where(.classicyWindowContents, .classicyWindowContentsModal).collapsed {
   visibility: hidden;
+}
+
+// Minimized (`layout.window.collapse: "minimize"`, the Windows shell): the
+// window leaves the screen and keeps its taskbar button (WIG Ch.6
+// "Minimizing Windows", p.85), its whole tree mounted; so does a palette
+// while every primary window of its app is minimized. Only that layout emits
+// the class, so no other package's window ever matches.
+.classicyWindow.classicyWindowMinimized {
+  display: none;
+}
+
+// Maximized (`layout.window.zoom: "maximize"`, the Windows shell): the
+// window's content box is the whole work area (WIG Ch.6 "Maximizing
+// Windows", p.84), so the height reserve the base rule above keeps
+// (`--window-max-height-reserve`, 53 px under Windows 98) would stop it short
+// of the taskbar. Only that layout emits the class, so no other package's
+// window ever matches.
+.classicyWindow.classicyWindowMaximized {
+  max-height: none;
 }
 
 // The header and contents dim before the drag and resize rules: dragging or

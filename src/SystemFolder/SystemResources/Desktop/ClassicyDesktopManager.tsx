@@ -6,6 +6,7 @@ import {
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { portableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import { activatableClassicyPackageTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal";
 import {
@@ -55,6 +56,8 @@ import {
 	hasDrive,
 	hasErrorDialogMessage,
 	hasFont,
+	hasFontFamilyFont,
+	hasFontFamilySize,
 	hasFontSize,
 	hasImportableTheme,
 	hasMenuBar,
@@ -82,8 +85,18 @@ import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { canonicalChord } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	classicyEditableShortcuts,
+	classicyShortcutOverrideChord,
+	isClassicyShortcutOverrideId,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuShortcutOverrides";
 import { readShortcutDisposition } from "@/SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
+import {
+	type ClassicyTaskbarEdge,
+	isClassicyTaskbarEdge,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
 /**
@@ -117,8 +130,42 @@ export interface ClassicyStoreControlStrip {
 
 export type ClassicyControlStripEdge = "left" | "right";
 
-/** The Special menu's confirmation alerts (see `systemDialog`). */
-export type ClassicyDesktopSystemDialog = "emptyTrash" | "resetPram";
+/**
+ * The desktop's system dialogs (see `systemDialog`): the Special menu's
+ * confirmation alerts, Empty Trash and Reset PRAM, and the Windows shell's
+ * own (`CLASSICY_SHELL_SYSTEM_DIALOGS`), opened from its Start menu: Shut
+ * Down Windows, Run and Log Off Windows (plan 0020-w98 E2).
+ */
+export type ClassicyDesktopSystemDialog =
+	| "emptyTrash"
+	| "resetPram"
+	| ClassicyShellSystemDialog;
+
+/**
+ * The Windows shell's system dialogs, which the desktop opens only while the
+ * active package's layout declares a `taskbar`: its Start menu's (Run, Log
+ * Off Windows, Shut Down Windows) and `"taskbarDrop"`, the message box a
+ * file dropped on a taskbar window button shows (the shell addendum's B15).
+ */
+export type ClassicyShellSystemDialog =
+	| "shutDown"
+	| "run"
+	| "logOff"
+	| "taskbarDrop";
+
+/**
+ * Every `ClassicyShellSystemDialog`: the Start menu's, in its order, then
+ * the taskbar's message box.
+ */
+export const CLASSICY_SHELL_SYSTEM_DIALOGS: readonly ClassicyShellSystemDialog[] =
+	["run", "logOff", "shutDown", "taskbarDrop"];
+
+/** Whether `dialog` is one of the Windows shell's (`ClassicyShellSystemDialog`). */
+export const isClassicyShellSystemDialog = (
+	dialog: unknown,
+): dialog is ClassicyShellSystemDialog =>
+	typeof dialog === "string" &&
+	(CLASSICY_SHELL_SYSTEM_DIALOGS as readonly string[]).includes(dialog);
 
 export interface ClassicyStoreSystemDesktopManagerIcon {
 	appId: string;
@@ -161,6 +208,24 @@ export interface ClassicyStoreSystemDesktopManagerIcon {
 export interface ClassicyStoreSystemDesktopManager
 	extends ClassicyStoreSystemManager {
 	selectedIcons?: string[];
+	/**
+	 * The desktop selection's anchor (WIG Ch.5 "Selection Adjustment",
+	 * pp.38-39): the icon a plain or Control-click last selected, which a
+	 * Shift-click's rectangle starts from (`ClassicyDesktopIconSelect`).
+	 * Written under `layout.selection.modifiers` `"windows"` and by
+	 * `ClassicyDesktopIconSelect`; session state, never persisted
+	 * (`sanitizeStateForPersistence`).
+	 */
+	selectionAnchor?: string | null;
+	/**
+	 * The desktop's focus icon (comctl32's LVIS_FOCUSED; WIG Ch.5
+	 * "Keyboard Selection", p.43): the icon last pressed or moved to, the
+	 * desktop's one Tab stop under `layout.selection.iconNavigation`
+	 * `"roving"` (`classicyDesktopFocusIconId` falls back to the first icon).
+	 * Written under that key and by `ClassicyDesktopIconSelect` and
+	 * `ClassicyDesktopIconMoveFocus`; session state, never persisted.
+	 */
+	focusIcon?: string | null;
 	systemMenu: ClassicyMenuItem[];
 	appMenu: ClassicyMenuItem[];
 	icons: ClassicyStoreSystemDesktopManagerIcon[];
@@ -173,6 +238,10 @@ export interface ClassicyStoreSystemDesktopManager
 	/** The Control Strip's persisted arrangement. Optional for state built
 	 * by hand; the defaults always carry it. */
 	controlStrip?: ClassicyStoreControlStrip;
+	/** The Windows shell's taskbar preferences (`layout.taskbar`), written
+	 * only by the taskbar's own controls, so a desktop that never drew a
+	 * taskbar never carries it (the default state has none). */
+	taskbar?: ClassicyStoreTaskbar;
 	/** When true, double-clicking a window's title bar collapses it (Appearance
 	 * control-panel option). Defaults to true. */
 	doubleClickTitleToCollapse?: boolean;
@@ -183,9 +252,10 @@ export interface ClassicyStoreSystemDesktopManager
 	 * is deliberately immune to the Apple-menu About hoist. */
 	helpMenu?: Record<string, ClassicyMenuItem[]>;
 	errorDialog?: { title?: string; message: string } | null;
-	/** The Special menu's confirmation alert on screen, if any: Empty Trash or
-	 * Reset PRAM (`ClassicyDesktopShowSystemDialog`). Session-only — never
-	 * persisted. */
+	/** The system dialog on screen, if any: the Special menu's Empty Trash or
+	 * Reset PRAM alert, or, under a layout with a taskbar, the Windows shell's
+	 * Shut Down, Run or Log Off dialog (`ClassicyDesktopShowSystemDialog`).
+	 * Session-only — never persisted. */
 	systemDialog?: ClassicyDesktopSystemDialog | null;
 	/** Bumped when the filesystem tree is replaced out-of-band (adapter
 	 * reconcile) so useClassicyFileSystem rebuilds from localStorage. */
@@ -210,7 +280,174 @@ export interface ClassicyStoreSystemDesktopManager
 	/** Bumped on each request so the controller's effect re-fires even for a
 	 *  repeated identical request. */
 	openUrlRequestId?: number;
+	/**
+	 * The user's own keyboard shortcuts for the bundled apps' menu items
+	 * (WIG Ch.4 "Shortcut Keys", p.27): a stable shortcut id
+	 * (`CLASSICY_BUNDLED_MENU_SHORTCUTS`) to a canonical chord
+	 * (`"control+o"`). Written only under the active package's
+	 * `layout.keyboard.editableShortcuts` (`ClassicyDesktopSetShortcutOverride`,
+	 * `ClassicyDesktopResetShortcutOverrides`) and applied only under it
+	 * (`useClassicyMenuItemShortcut`); absent from the default state, kept
+	 * by `sanitizeStateForPersistence`, validated on load
+	 * (`migrateClassicyState`).
+	 */
+	shortcutOverrides?: Record<string, string>;
 }
+
+/**
+ * The taskbar's persisted preferences (plan 0020-w98 E1), each optional with
+ * Windows 98's default when absent.
+ */
+export interface ClassicyStoreTaskbar {
+	/** Toolbars ▸ Quick Launch: the Quick Launch toolbar shown beside the
+	 * Start button. Absent (the default) is shown, as Windows 98 installs it;
+	 * `ClassicyDesktopTaskbarSetQuickLaunch` writes it. */
+	quickLaunch?: boolean;
+	/** The Run dialog's earlier commands, most recent first, at most
+	 * `CLASSICY_RUN_HISTORY_LIMIT` (Windows 98's RunMRU, which the Open box
+	 * lists and the dialog opens with the first of). Absent until a command
+	 * runs; `ClassicyDesktopTaskbarAddRunCommand` writes it (plan 0020-w98 E2). */
+	runHistory?: string[];
+	/** The Shut Down Windows dialog's last choice, which it opens with, as
+	 * Windows 98 remembered it ("Shutdown Setting"). Absent is Shut down;
+	 * `ClassicyDesktopTaskbarSetShutDownChoice` writes it (plan 0020-w98 E2). */
+	shutDownChoice?: ClassicyShutDownChoice;
+	/** The screen edge the taskbar is docked to (plan 0020-w98 E4), moved by
+	 * dragging the bar's empty area. Absent (the default) is the bottom, as
+	 * Windows 98 installs it; `ClassicyDesktopTaskbarSetEdge` writes it. */
+	edge?: ClassicyTaskbarEdge;
+	/** The taskbar's size on each edge (the shell addendum's B5), set by
+	 * dragging its inner edge, kept per edge as Windows keeps a rect for each
+	 * (ReactOS `CTrayWindow::m_TrayRects`): rows of window buttons at the top
+	 * and bottom (a whole number, 1 or more), the width in px at the left and
+	 * right. Absent for an edge (the default) is one row, or the package's
+	 * width; `ClassicyDesktopTaskbarSetSize` writes it. */
+	size?: Partial<Record<ClassicyTaskbarEdge, number>>;
+	/** Taskbar Properties' "Always on top": the taskbar stays above every
+	 * window. Absent (the default) is on, as Windows 98 installs it; off, a
+	 * window covers it until it is pressed. `ClassicyDesktopTaskbarSetOptions`
+	 * writes it (plan 0020-w98 E4). */
+	alwaysOnTop?: boolean;
+	/** Taskbar Properties' "Auto hide": the taskbar slides off its edge,
+	 * leaving a 2 px strip, until the pointer reaches that edge. Absent (the
+	 * default) is off; `ClassicyDesktopTaskbarSetOptions` writes it. */
+	autoHide?: boolean;
+	/** Taskbar Properties' "Show small icons in Start menu": the Start menu's
+	 * first level takes small icons and no banner. Absent (the default) is
+	 * off; `ClassicyDesktopTaskbarSetOptions` writes it. */
+	smallStartMenuIcons?: boolean;
+	/** Taskbar Properties' "Show Clock": the clock in the status area. Absent
+	 * (the default) is shown; `ClassicyDesktopTaskbarSetOptions` writes it. A
+	 * host's `DateAndTime.show: false` hides it whatever this says. */
+	showClock?: boolean;
+}
+
+/**
+ * Taskbar Properties' options (plan 0020-w98 E4), as
+ * `ClassicyDesktopTaskbarSetOptions` takes them: any of them, each a boolean.
+ */
+export type ClassicyTaskbarOptions = Pick<
+	ClassicyStoreTaskbar,
+	"alwaysOnTop" | "autoHide" | "smallStartMenuIcons" | "showClock"
+>;
+
+/** The keys of `ClassicyTaskbarOptions`. */
+export const CLASSICY_TASKBAR_OPTION_KEYS: readonly (keyof ClassicyTaskbarOptions)[] =
+	["alwaysOnTop", "autoHide", "smallStartMenuIcons", "showClock"];
+
+/**
+ * Taskbar Properties' options as they stand, each with Windows 98's default
+ * when absent: Always on top and Show Clock on, Auto hide and small icons
+ * off.
+ */
+export const classicyTaskbarOptions = (
+	taskbar: ClassicyStoreTaskbar | undefined,
+): Required<ClassicyTaskbarOptions> => ({
+	alwaysOnTop: taskbar?.alwaysOnTop !== false,
+	autoHide: taskbar?.autoHide === true,
+	smallStartMenuIcons: taskbar?.smallStartMenuIcons === true,
+	showClock: taskbar?.showClock !== false,
+});
+
+/**
+ * The taskbar's stored size on `edge` (`ClassicyStoreTaskbar.size`): at the
+ * top and bottom its rows of window buttons, a whole number of at least 1
+ * (1 when nothing valid is stored); at a side its width in px, or
+ * `undefined` for the package's own width. Pure.
+ */
+export const classicyTaskbarSize = (
+	taskbar: ClassicyStoreTaskbar | undefined,
+	edge: ClassicyTaskbarEdge,
+): number | undefined => {
+	const stored =
+		taskbar?.size && Object.hasOwn(taskbar.size, edge)
+			? taskbar.size[edge]
+			: undefined;
+	const valid =
+		typeof stored === "number" && Number.isFinite(stored) && stored >= 1;
+	if (edge === "top" || edge === "bottom")
+		return valid ? Math.floor(stored) : 1;
+	return valid ? Math.round(stored) : undefined;
+};
+
+/** The edge the taskbar is docked to: the stored one, else the bottom. */
+export const classicyTaskbarEdge = (
+	taskbar: ClassicyStoreTaskbar | undefined,
+): ClassicyTaskbarEdge =>
+	isClassicyTaskbarEdge(taskbar?.edge) ? taskbar.edge : "bottom";
+
+/**
+ * What the Shut Down Windows dialog does (plan 0020-w98 E2), in the order
+ * Windows 98 SE's shell32 dialog lists the ones Classicy can do: Stand by,
+ * Shut down, Restart.
+ */
+export type ClassicyShutDownChoice = "standBy" | "shutDown" | "restart";
+
+/** Every `ClassicyShutDownChoice`, in the dialog's order. */
+export const CLASSICY_SHUT_DOWN_CHOICES: readonly ClassicyShutDownChoice[] = [
+	"standBy",
+	"shutDown",
+	"restart",
+];
+
+/** Whether `choice` is a `ClassicyShutDownChoice`. */
+export const isClassicyShutDownChoice = (
+	choice: unknown,
+): choice is ClassicyShutDownChoice =>
+	typeof choice === "string" &&
+	(CLASSICY_SHUT_DOWN_CHOICES as readonly string[]).includes(choice);
+
+/**
+ * The most commands the Run dialog keeps: Windows' RunMRU holds one per
+ * letter of its `MRUList`, a to z.
+ */
+export const CLASSICY_RUN_HISTORY_LIMIT = 26;
+
+/**
+ * The Run dialog's history with `command` first: trimmed, once (compared
+ * without case, as Windows compares its MRU entries, the newest spelling
+ * kept), at most `CLASSICY_RUN_HISTORY_LIMIT` long. A blank command, or a
+ * history that is not a list of strings (a hand-edited save), gives the
+ * history as it was, cleaned.
+ */
+export const classicyRunHistoryWith = (
+	history: unknown,
+	command: string,
+): string[] => {
+	const earlier = Array.isArray(history)
+		? history.filter(
+				(entry): entry is string =>
+					typeof entry === "string" && entry.trim() !== "",
+			)
+		: [];
+	const next = typeof command === "string" ? command.trim() : "";
+	if (next === "") return earlier.slice(0, CLASSICY_RUN_HISTORY_LIMIT);
+	const key = next.toLocaleLowerCase();
+	return [
+		next,
+		...earlier.filter((entry) => entry.trim().toLocaleLowerCase() !== key),
+	].slice(0, CLASSICY_RUN_HISTORY_LIMIT);
+};
 
 /** The default Control Strip arrangement: shown, nothing hidden or reordered. */
 export const defaultClassicyControlStripState =
@@ -223,6 +460,14 @@ export const defaultClassicyControlStripState =
 const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
 	ds.System.Manager.Desktop.controlStrip ??= defaultClassicyControlStripState();
 	return ds.System.Manager.Desktop.controlStrip;
+};
+
+// Whether the active theme holds the package font `family`
+// (`typography.families`), the only fonts ChangeFont and ChangeFontSize edit.
+const hasActiveThemeFontFamily = (ds: ClassicyStore, family: string) => {
+	const families =
+		ds.System.Manager.Appearance.activeTheme?.typography?.families;
+	return !!families && Object.hasOwn(families, family);
 };
 
 export const classicyDesktopEventHandler = (
@@ -289,7 +534,11 @@ export const classicyDesktopEventHandler = (
 				(action.e.target as Record<string, unknown>).id === "classicyDesktop"
 			) {
 				markAppFocused(ds, "Finder.app");
-				ds.System.Manager.Desktop.selectedIcons = [];
+				// A Shift or Control rectangle keeps the selection it starts
+				// from (`keepIconSelection`, `classicyDesktopSelectPress`'s
+				// `keep`; WIG Ch.5 "Region Selection", p.42).
+				if (action.keepIconSelection !== true)
+					ds.System.Manager.Desktop.selectedIcons = [];
 				ds.System.Manager.Desktop.selectBox.active = true;
 				ds.System.Manager.Desktop.selectBox.start = [
 					action.e.clientX,
@@ -600,6 +849,22 @@ export const classicyDesktopEventHandler = (
 			break;
 		}
 		case "ClassicyDesktopChangeFont": {
+			// A package font (`family`): only one the active theme holds, checked
+			// before the edit, so a refused change never forks a built-in theme.
+			if (action.family !== undefined) {
+				if (
+					!hasFontFamilyFont(action) ||
+					!hasActiveThemeFontFamily(ds, action.family)
+				)
+					break;
+				const { family, font } = action;
+				editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+					const families = theme.typography.families;
+					if (families && Object.hasOwn(families, family))
+						families[family] = { ...families[family], font };
+				});
+				break;
+			}
 			if (!hasFont(action)) break;
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
 				switch (action.fontType) {
@@ -619,6 +884,27 @@ export const classicyDesktopEventHandler = (
 		// The key and size are checked before the edit, so a refused change
 		// never forks a built-in theme.
 		case "ClassicyDesktopChangeFontSize": {
+			if (action.family !== undefined) {
+				if (
+					!hasFontFamilySize(action) ||
+					!hasActiveThemeFontFamily(ds, action.family)
+				) {
+					classicyLog(
+						"warn",
+						"ClassicyDesktopManager",
+						`ClassicyDesktopChangeFontSize rejected: family must name a font of the active theme's typography.families and fontSize be a number from ${CLASSICY_THEME_FONT_SIZE_MIN} to ${CLASSICY_THEME_FONT_SIZE_MAX}`,
+						{ family: action.family, fontSize: action.fontSize },
+					);
+					break;
+				}
+				const { family, fontSize } = action;
+				editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
+					const families = theme.typography.families;
+					if (families && Object.hasOwn(families, family))
+						families[family] = { ...families[family], size: fontSize };
+				});
+				break;
+			}
 			if (!hasFontSize(action)) {
 				classicyLog(
 					"warn",
@@ -664,9 +950,129 @@ export const classicyDesktopEventHandler = (
 			ds.System.Manager.Appearance.availableThemes = themes;
 			break;
 		}
+		case "ClassicyDesktopSetShortcutOverride": {
+			// Only a package that lets the user edit shortcuts writes one
+			// (Windows 98), so another package's persisted bytes never change.
+			if (
+				!classicyEditableShortcuts(
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId),
+				)
+			)
+				break;
+			const { itemId } = action as { itemId?: unknown };
+			if (!isClassicyShortcutOverrideId(itemId)) break;
+			const chord = classicyShortcutOverrideChord(
+				(action as { shortcut?: unknown }).shortcut,
+			);
+			if (!chord) break;
+			const desktop = ds.System.Manager.Desktop;
+			// The item's own chord again is no override: the map keeps only
+			// what differs, and loses the key when nothing does.
+			const own = (action as { defaultShortcut?: unknown }).defaultShortcut;
+			if (typeof own === "string" && canonicalChord(own) === chord) {
+				if (desktop.shortcutOverrides) {
+					delete desktop.shortcutOverrides[itemId];
+					if (Object.keys(desktop.shortcutOverrides).length === 0)
+						delete desktop.shortcutOverrides;
+				}
+				break;
+			}
+			desktop.shortcutOverrides ??= {};
+			desktop.shortcutOverrides[itemId] = chord;
+			break;
+		}
+		case "ClassicyDesktopResetShortcutOverrides": {
+			if (
+				!classicyEditableShortcuts(
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId),
+				)
+			)
+				break;
+			const desktop = ds.System.Manager.Desktop;
+			if (!desktop.shortcutOverrides) break;
+			const { itemIds } = action as { itemIds?: unknown };
+			if (Array.isArray(itemIds)) {
+				for (const id of itemIds) {
+					if (
+						isClassicyShortcutOverrideId(id) &&
+						Object.hasOwn(desktop.shortcutOverrides, id)
+					)
+						delete desktop.shortcutOverrides[id];
+				}
+				if (Object.keys(desktop.shortcutOverrides).length > 0) break;
+			}
+			delete desktop.shortcutOverrides;
+			break;
+		}
 		case "ClassicyDesktopSetBalloonHelp": {
 			if (!hasDisableBalloonHelp(action)) break;
 			ds.System.Manager.Desktop.disableBalloonHelp = action.disableBalloonHelp;
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetQuickLaunch": {
+			if (!hasVisible(action)) break;
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.quickLaunch = action.visible;
+			break;
+		}
+		case "ClassicyDesktopTaskbarAddRunCommand": {
+			// The Run dialog's history (plan 0020-w98 E2): written only when a
+			// command runs, so a desktop that never ran one carries none.
+			if (typeof action.command !== "string" || action.command.trim() === "")
+				break;
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.runHistory = classicyRunHistoryWith(
+				ds.System.Manager.Desktop.taskbar.runHistory,
+				action.command,
+			);
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetShutDownChoice": {
+			if (!isClassicyShutDownChoice(action.choice)) break;
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.shutDownChoice = action.choice;
+			break;
+		}
+		case "ClassicyDesktopTaskbarClearHistory": {
+			// Taskbar Properties' Clear (plan 0020-w98 E4): the Run dialog's
+			// history goes with Start ▸ Documents' (which is session state).
+			if (ds.System.Manager.Desktop.taskbar?.runHistory !== undefined)
+				delete ds.System.Manager.Desktop.taskbar.runHistory;
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetEdge": {
+			// Docking (plan 0020-w98 E4): written when a drag of the taskbar
+			// ends on another edge.
+			if (!isClassicyTaskbarEdge(action.edge)) break;
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.edge = action.edge;
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetSize": {
+			// Sizing (the shell addendum's B5): written when a drag of the
+			// taskbar's inner edge ends, for the edge it is docked to.
+			if (!isClassicyTaskbarEdge(action.edge)) break;
+			const size = action.size;
+			if (typeof size !== "number" || !Number.isFinite(size) || size < 1) break;
+			const horizontal = action.edge === "top" || action.edge === "bottom";
+			ds.System.Manager.Desktop.taskbar ??= {};
+			ds.System.Manager.Desktop.taskbar.size = {
+				...ds.System.Manager.Desktop.taskbar.size,
+				[action.edge]: horizontal ? Math.floor(size) : Math.round(size),
+			};
+			break;
+		}
+		case "ClassicyDesktopTaskbarSetOptions": {
+			// Taskbar Properties' OK and Apply (plan 0020-w98 E4): each boolean
+			// option given is written; anything else is ignored.
+			const options = action.options;
+			if (typeof options !== "object" || options === null) break;
+			for (const key of CLASSICY_TASKBAR_OPTION_KEYS) {
+				const value = (options as Record<string, unknown>)[key];
+				if (typeof value !== "boolean") continue;
+				ds.System.Manager.Desktop.taskbar ??= {};
+				ds.System.Manager.Desktop.taskbar[key] = value;
+			}
 			break;
 		}
 		case "ClassicyDesktopControlStripSetVisible": {
@@ -728,9 +1134,15 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopShowSystemDialog": {
 			// Unknown values close the dialog rather than open a blank one.
+			// The Windows shell's dialogs open only under a layout with a
+			// taskbar (their Start menu's); under any other they are unknown.
+			const shell =
+				isClassicyShellSystemDialog(action.dialog) &&
+				getClassicyAppearanceLayout(ds.System.Manager.Appearance?.packageId)
+					.taskbar !== undefined;
 			ds.System.Manager.Desktop.systemDialog =
-				action.dialog === "emptyTrash" || action.dialog === "resetPram"
-					? action.dialog
+				action.dialog === "emptyTrash" || action.dialog === "resetPram" || shell
+					? (action.dialog as ClassicyDesktopSystemDialog)
 					: null;
 			break;
 		}

@@ -96,6 +96,7 @@ export const FinderAboutThisComputer: FunctionalComponent<
 			zoomable={false}
 			scrollable={false}
 			collapsable={false}
+			taskbarButton={false}
 			initialSize={[520, 290]}
 			initialPosition={["center", "center"]}
 			onCloseFunc={() =>

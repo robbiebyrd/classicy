@@ -1,6 +1,7 @@
-import type {
-	ClassicyFileSystem,
-	ClassicyFileSystemMoveRefusal,
+import {
+	type ClassicyFileSystem,
+	type ClassicyFileSystemMoveRefusal,
+	classicyFileSystemEntryKey,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyStoredTrashIcon } from "@/SystemFolder/SystemResources/File/ClassicyTrashStoredIcon.internal";
@@ -105,13 +106,16 @@ export function listClassicyTrashItems(fs: ClassicyFileSystem): string[] {
  */
 const freeTrashName = (fs: ClassicyFileSystem, name: string): string => {
 	const trash = fs.resolve(CLASSICY_TRASH_PATH) ?? {};
-	if (!Object.hasOwn(trash, name)) return name;
+	// Taken whatever its case: names differing only by case are one name.
+	const taken = (candidate: string) =>
+		classicyFileSystemEntryKey(trash, candidate) !== undefined;
+	if (!taken(name)) return name;
 	const dot = name.lastIndexOf(".");
 	const [stem, ext] =
 		dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
 	for (let n = 2; ; n++) {
 		const candidate = `${stem} ${n}${ext}`;
-		if (!Object.hasOwn(trash, candidate)) return candidate;
+		if (!taken(candidate)) return candidate;
 	}
 };
 

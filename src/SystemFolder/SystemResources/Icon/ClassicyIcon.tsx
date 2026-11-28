@@ -6,12 +6,16 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	type RefObject,
+	useContext,
+	useEffect,
 	useId,
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
@@ -21,6 +25,7 @@ import {
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
+	type ClassicyFileDropEffect,
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
@@ -28,9 +33,21 @@ import {
 	classicyFileDragAppearanceCallbacks,
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import { classicyFileDropDestinationEffects } from "@/SystemFolder/SystemResources/File/ClassicyFileDragTransfer.internal";
+import { useClassicyFileDropMenu } from "@/SystemFolder/SystemResources/File/ClassicyFileDropMenu";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyRenameField } from "@/SystemFolder/SystemResources/Icon/ClassicyRenameField.internal";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
+import { classicyWindowsSelectionKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
+import { useClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
+import {
+	classicyIconDragThreshold,
+	classicyTraveledPast,
+	isClassicyGestureButton,
+} from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 interface ClassicyIconProps {
 	/** Owning app id; prefixes the element's DOM id (`<appId>.shortcut-…`). */
@@ -50,7 +67,11 @@ interface ClassicyIconProps {
 	 * measured against it, so without it the icon cannot be dragged.
 	 */
 	holder?: RefObject<HTMLElement | null>;
-	/** "Open" action: called on double-click, or Enter/Space while focused. A single click only selects. */
+	/**
+	 * "Open" action: called on double-click, or Enter/Space while focused
+	 * (Enter alone under `layout.selection.keyboard` "windows", where Space
+	 * selects). A single click only selects.
+	 */
 	onClickFunc?: () => void;
 	/**
 	 * Draws the icon and caption faded (45% opacity) — the file browser sets it
@@ -58,6 +79,15 @@ interface ClassicyIconProps {
 	 * to `false`.
 	 */
 	invisible?: boolean;
+	/**
+	 * Drawn as an item cut and waiting for a Paste (Explorer's Cut; WIG
+	 * Ch.5 "Command Method Transfers", p.66: "the system displays icons in a
+	 * checkerboard dither to indicate this state"): the root carries
+	 * `classicyFileCut`, which only an Appearance Package's stylesheet draws
+	 * (Windows 98's dither). The file browser's icon view sets it from the
+	 * file clipboard. Defaults to `false`.
+	 */
+	cut?: boolean;
 	/** Explicit icon size in px. Falls back to the theme's desktop icon size. */
 	size?: number;
 	/** Grid pitch. When set, a *dragged* icon rounds to the nearest cell. */
@@ -91,13 +121,108 @@ interface ClassicyIconProps {
 	 * icon itself. Called on release with the drop target (null when there is
 	 * none); return `false` to have the icon move to where its outline was let
 	 * go — a drop back in its own folder — or `true` when the drop was handled
-	 * (or refused) elsewhere and the icon stays put.
+	 * (or refused) elsewhere and the icon stays put. `moved` is how far the
+	 * pointer went across the icon's holder, less however far the holder
+	 * scrolled meanwhile: what the icon moves by on `false`, for a caller
+	 * moving other icons with it. `effect` is what the drop does: `"move"`,
+	 * else, under the package's `layout.transfer` (Windows 98), `"copy"`
+	 * (Control held at the release, or the transfer menu's Copy Here) or
+	 * `"link"` (Control and Shift, or Create Shortcut(s) Here). Under
+	 * `layout.transfer.secondaryButton` "menu" button 2 drags too, and its
+	 * release over a target shows Windows 98 SE's transfer menu, whose
+	 * choice calls this with its effect (Cancel calls nothing).
 	 */
 	onFileDrag?: (
 		target: ClassicyFileDropTarget | null,
 		point: [number, number],
 		outlineTopLeft: [number, number],
+		moved: [number, number],
+		effect: ClassicyFileDropEffect,
 	) => boolean;
+	/**
+	 * With `onFileDrag`: the effects a target takes for what is dragged
+	 * (`classicyFileDropEffects`), which bound the copy modifier and the
+	 * transfer menu's items. Omitted, the target's own
+	 * (`classicyFileDropDestinationEffects`: a move alone into the Trash).
+	 */
+	fileDropEffects?: (
+		target: ClassicyFileDropTarget,
+	) => readonly ClassicyFileDropEffect[];
+	/**
+	 * With `onFileDrag`: what the outline traces, read once when the drag
+	 * begins (the pointer past the drag threshold) rather than at the press,
+	 * so a caller that selects at the press outlines what it selected. Omitted,
+	 * the icon's own image and label (`ClassicyFileBrowser`'s icon view gives
+	 * every dragged icon's under `layout.fileBrowser.iconSelection` "view").
+	 */
+	fileDragParts?: () => ClassicyFileDragOutlinePart[];
+	/**
+	 * Moves the icon by `by` px (snapped when `snapTo` is set) each time `id`
+	 * changes, not on the first render: a caller moving several icons together
+	 * (a drag of the icon view's selection let go in its own folder). Ignored
+	 * while `positionLocked`.
+	 */
+	moveBy?: { by: [number, number]; id: number };
+	/**
+	 * Controlled selection: whether the icon is drawn selected. Omitted, a
+	 * click toggles the icon's own selected look (the icon's original
+	 * behavior). Given, the icon draws what it is told, reports each change
+	 * to the package as `select`, and a click calls `onSelectClick` instead
+	 * (`ClassicyFileBrowser`'s icon view keeps one selection for its icons).
+	 */
+	selected?: boolean;
+	/** With `selected`: a click on the icon (the caller selects). */
+	onSelectClick?: (e: MouseEvent<HTMLDivElement>) => void;
+	/**
+	 * With `selected`: a press of any button on the icon, before any drag it
+	 * starts (a caller selecting at the press, under `layout.selection`
+	 * `selectOn: "press"` or `secondaryButton: "select"`, selects here, so a
+	 * drag that follows outlines what it selected).
+	 */
+	onSelectPress?: (e: MouseEvent<HTMLDivElement>) => void;
+	/**
+	 * Drawn as an option of a list box (`role="option"`, `aria-selected`) in
+	 * place of a button (`role="button"`), for a caller whose holder is the
+	 * list box (`ClassicyFileBrowser`'s icon view under `layout.selection`
+	 * `keyboard: "windows"`). Defaults to `false`.
+	 */
+	listOption?: boolean;
+	/**
+	 * Whether Tab stops on the icon (`tabIndex` 0, the default) or passes it
+	 * by (`tabIndex` -1, still focused by a press or by its caller): a caller
+	 * keeping one Tab stop for its icons (`layout.selection.iconNavigation`
+	 * "roving") gives `false` to all but one.
+	 */
+	tabStop?: boolean;
+	/**
+	 * While true, the caption is a text field holding the name, selected, for
+	 * the user to rename the item: Return or a click elsewhere commits it
+	 * (`onRenameCommit`, with the text as typed), Escape cancels
+	 * (`onRenameCancel`). Clicks and keys inside the field stay in it.
+	 */
+	renaming?: boolean;
+	/**
+	 * With `renaming`: the text the field starts with, selected. Defaults to
+	 * `name`. The file browser's icon view passes the shown name, a hidden
+	 * extension left off (`layout.files.extensions`), and puts it back.
+	 */
+	renameText?: string;
+	/** With `renaming`: the new name, when committed. */
+	onRenameCommit?: (name: string) => void;
+	/** With `renaming`: Escape. */
+	onRenameCancel?: () => void;
+	/**
+	 * The icon stands for something stored elsewhere (a shortcut: an
+	 * `app_shortcut` or `shortcut` entry, `isAliasKind`). Under the package's
+	 * `layout.icon.aliasBadge` `"everywhere"` (Windows: WIG Ch.11
+	 * "Displaying Objects", p.230, Figure 11.11) the image and a second mask
+	 * pair carrying the `aliasBadge` system art,
+	 * `classicyIconMaskOuter classicyIconAliasBadge`, are drawn inside a
+	 * `classicyIconImage` element, as the desktop draws its shortcuts';
+	 * otherwise (Mac OS 8: the desktop alone badges aliases) it changes
+	 * nothing.
+	 */
+	alias?: boolean;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/**
@@ -138,7 +263,16 @@ export const snapToGrid = (
  * toggles the selected (highlighted) look; double-click or Enter/Space calls
  * `onClickFunc`. Position and selection are local state — nothing is written
  * to the store. Size follows the theme's `--desktop-icon-size` unless `size`
- * is set.
+ * is set. Drawn in a window that is not the active one, the root carries the
+ * `inactive` state (`ClassicyWindowActiveContext`), for a package that draws
+ * a selection in an inactive window apart. Under a package whose layout says
+ * `mouse: "windows"` (Windows 98), an icon without `onFileDrag` drags on
+ * button 1 alone and moves only once the pointer is 4 px from the press,
+ * keeping where it was grabbed; under `input.escapeCancels`, Escape
+ * mid-drag puts it back where the press found it. Under
+ * `selection.keyboard: "windows"` Space selects the icon (Control-Space
+ * toggles it; a controlled icon leaves Space to its caller) and Return alone
+ * opens it.
  *
  * ```tsx
  * <div ref={holderRef} style={{ position: "relative", height: 200 }}>
@@ -156,6 +290,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	holder,
 	onClickFunc,
 	invisible = false,
+	cut = false,
 	size,
 	snapTo,
 	snapOrigin,
@@ -163,28 +298,76 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	dropFolderPath,
 	filePath,
 	onFileDrag,
+	fileDropEffects,
+	fileDragParts,
+	moveBy,
+	selected: selectedProp,
+	onSelectClick,
+	onSelectPress,
+	listOption = false,
+	tabStop = true,
+	renaming = false,
+	renameText,
+	onRenameCommit,
+	onRenameCancel,
+	alias = false,
 	className,
 	style,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
 	const [dragging, setDragging] = useState<boolean>(false);
-	const [active, setActive] = useState<boolean>(false);
+	const [ownSelected, setActive] = useState<boolean>(false);
+	// Controlled (`selected` given): the caller's selection; else the icon's own.
+	const controlled = selectedProp !== undefined;
+	const active = controlled ? selectedProp : ownSelected;
+
+	// Moved with others (`moveBy`): each new id moves the icon once.
+	const movedByIdRef = useRef(moveBy?.id);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the id is the trigger; `by` and the grid are read when it changes
+	useEffect(() => {
+		if (!moveBy || movedByIdRef.current === moveBy.id) return;
+		movedByIdRef.current = moveBy.id;
+		if (positionLocked) return;
+		setPosition((p) => {
+			const next: [number, number] = [p[0] + moveBy.by[0], p[1] + moveBy.by[1]];
+			return snapTo ? snapToGrid(next, snapTo, snapOrigin) : next;
+		});
+	}, [moveBy?.id]);
 
 	// Whether the pointer actually moved the icon between mousedown and mouseup.
 	// A ref, not state: it must be readable inside the same mouseup that clears
 	// it, and it never affects what is rendered.
 	const movedWhileDragging = useRef<boolean>(false);
+	// The press discipline (`layout.mouse`, Escape's cancel): the active
+	// package's layout.
+	const layout = useClassicyAppearanceLayout();
+	// Space selects rather than opens (`layout.selection.keyboard` "windows").
+	const windowsSelectKey = classicyWindowsSelectionKeys(layout);
+	// The press of a drag of the icon itself: where the pointer went down
+	// and where the icon was then, for the drag threshold, the grab offset
+	// and Escape.
+	const pressRef = useRef<{
+		point: [number, number];
+		position: [number, number];
+	}>({ point: [0, 0], position: [0, 0] });
 
 	const iconRef = useRef<HTMLDivElement>(null);
+	// `inactive` while the window the icon is drawn in is not the active one
+	// (outside a window, never), as ClassicyScrollArea reads it: Windows 98
+	// draws an inactive list view's selected item apart (LVS_SHOWSELALWAYS).
+	const inactive = useContext(ClassicyWindowActiveContext) === false;
 	const appearance = useClassicyAppearance(
 		"Icon",
-		{ dragging, selected: active },
+		{ dragging, selected: active, inactive },
 		iconRef,
 	);
 	// One dragEnd per dragStart: mouseup also ends presses that never dragged.
 	const dragEmittedRef = useRef(false);
 	// A file drag in progress ends (canceled) before the icon unmounts.
 	const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
+	// Button 2 drags too, ending in Windows 98 SE's transfer menu
+	// (`layout.transfer.secondaryButton` "menu").
+	const dropMenu = useClassicyFileDropMenu();
 
 	const id = `${appId}.shortcut`;
 
@@ -195,6 +378,24 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		track("focus", analyticsArgs);
 		appearance.emit("select", { selected: !active });
 		setActive(!active);
+	};
+	// Controlled, the icon reports each change of the selection it is given
+	// (a click, the keyboard, a selection rectangle, Select All), never the
+	// first render's.
+	const reportedSelectedRef = useRef(active);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `active` is the trigger; emit closes over the package's hooks only
+	useEffect(() => {
+		if (!controlled || reportedSelectedRef.current === active) return;
+		reportedSelectedRef.current = active;
+		appearance.emit("select", { selected: active });
+	}, [active, controlled]);
+	const onClick = (e: MouseEvent<HTMLDivElement>) => {
+		if (!controlled) {
+			toggleFocus();
+			return;
+		}
+		track("focus", analyticsArgs);
+		onSelectClick?.(e);
 	};
 	const setFocus = (active: boolean) => {
 		track("focus", analyticsArgs);
@@ -207,10 +408,12 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	};
 
 	const doDoubleClick = () => {
+		if (renaming) return;
 		if (onClickFunc) {
 			// A double-click or Enter/Space.
 			appearance.emit("open", withClassicyAppearanceInput());
-			clearFocus();
+			// Controlled, the selection is the caller's to keep.
+			if (!controlled) clearFocus();
 			onClickFunc();
 		}
 	};
@@ -235,36 +438,103 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	// there, instead of following the pointer back with no button held.
 	useClassicyPointerStreamLost(dragging, () => stopChangeIcon(true));
 
+	// Escape mid-drag, under a package whose layout says
+	// `input.escapeCancels` (Windows 98; WIG Ch.4 "Shortcut Keys", p.27):
+	// the icon goes back where the press found it, and the drag ends there.
+	useClassicyEscapeCancel(dragging, () => {
+		if (movedWhileDragging.current) setPosition(pressRef.current.position);
+		movedWhileDragging.current = false;
+		setDragging(false);
+		if (dragEmittedRef.current) {
+			dragEmittedRef.current = false;
+			appearance.emit("dragEnd", { lost: false, canceled: true });
+		}
+	});
+
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
+		if (renaming) return;
+		// The caller's press-time selection first, so a drag that follows
+		// carries what it selected.
+		if (controlled) onSelectPress?.(e);
 		if (onFileDrag) {
-			if (e.button !== 0) return;
+			if (!dropMenu.startsDrag(e)) return;
 			const el = iconRef.current;
-			const abandon = startClassicyFileDrag({
-				start: { clientX: e.clientX, clientY: e.clientY },
-				parts: [
-					{ image: el?.querySelector("img"), label: el?.querySelector("p") },
-				],
-				source: el,
-				// The outline drags, not the icon: `dragging` stays off.
-				...classicyFileDragAppearanceCallbacks(appearance.emit),
-				onDrop: (target, point, outlineTopLeft) => {
-					if (onFileDrag(target, point, outlineTopLeft)) return;
+			// Where the icons' holder is on screen at the press: the folder's
+			// contents may scroll under the drag (its window auto-scrolls near
+			// an edge, or the wheel turns), carrying the holder with them.
+			const holderAtPress = holder?.current?.getBoundingClientRect();
+			const ownParts = () => [
+				{ image: el?.querySelector("img"), label: el?.querySelector("p") },
+			];
+			// The release, measured as it comes (a transfer menu's choice
+			// comes later): how far the pointer went across the contents,
+			// less however far they scrolled. Then the drop by an effect:
+			// back in its own folder, a move takes the icon where its outline
+			// was let go.
+			const releaseAt = (
+				target: ClassicyFileDropTarget | null,
+				point: [number, number],
+				outlineTopLeft: [number, number],
+			) => {
+				const holderNow = holder?.current?.getBoundingClientRect();
+				const scrolled =
+					holderAtPress && holderNow
+						? [
+								holderNow.left - holderAtPress.left,
+								holderNow.top - holderAtPress.top,
+							]
+						: [0, 0];
+				const moved: [number, number] = [
+					point[0] - e.clientX - scrolled[0],
+					point[1] - e.clientY - scrolled[1],
+				];
+				return (effect: ClassicyFileDropEffect) => {
+					if (onFileDrag(target, point, outlineTopLeft, moved, effect)) return;
 					if (positionLocked) return;
-					// Dropped back in its own folder: the icon goes where its
-					// outline was let go, i.e. it moves as far as the pointer did.
 					const next: [number, number] = [
-						position[0] + point[0] - e.clientX,
-						position[1] + point[1] - e.clientY,
+						position[0] + moved[0],
+						position[1] + moved[1],
 					];
 					setPosition(snapTo ? snapToGrid(next, snapTo, snapOrigin) : next);
 					setFocus(true);
+				};
+			};
+			const appearanceCallbacks = classicyFileDragAppearanceCallbacks(
+				appearance.emit,
+			);
+			const abandon = startClassicyFileDrag({
+				start: {
+					clientX: e.clientX,
+					clientY: e.clientY,
+					ctrlKey: e.ctrlKey,
+					shiftKey: e.shiftKey,
 				},
+				// Read when the outline is first drawn.
+				get parts() {
+					return fileDragParts ? fileDragParts() : ownParts();
+				},
+				source: el,
+				// The outline drags, not the icon: `dragging` stays off.
+				...appearanceCallbacks,
+				...dropMenu.dragOptions(e, {
+					effects: (target) =>
+						fileDropEffects?.(target) ??
+						classicyFileDropDestinationEffects(target.destination),
+					onStart: appearanceCallbacks.onStart,
+					transferAt: releaseAt,
+				}),
+				onDrop: (target, point, outlineTopLeft, effect) =>
+					releaseAt(target, point, outlineTopLeft)(effect),
 			});
 			endFileDragOnUnmount(abandon);
 			return;
 		}
 		if (positionLocked) return;
+		// Under `layout.mouse` "windows" only button 1 drags (WIG Ch.4 "Mouse
+		// Actions", pp.24-25).
+		if (!isClassicyGestureButton(e, layout)) return;
 		movedWhileDragging.current = false;
+		pressRef.current = { point: [e.clientX, e.clientY], position };
 		setDragging(true);
 		dragEmittedRef.current = true;
 		appearance.emit("dragStart");
@@ -272,8 +542,27 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 
 	const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
 		if (holder?.current && dragging && iconRef.current) {
+			// Under `layout.mouse` "windows" the icon moves only once the
+			// pointer is 4 px from the press (Windows' drag rectangle), and
+			// keeps where it was grabbed; else it centers under the pointer
+			// from the first move.
+			const threshold = classicyIconDragThreshold(layout);
+			const press = pressRef.current;
+			if (
+				!movedWhileDragging.current &&
+				!classicyTraveledPast(press.point, [e.clientX, e.clientY], threshold)
+			) {
+				return;
+			}
 			movedWhileDragging.current = true;
 			setFocus(true);
+			if (threshold > 0) {
+				setPosition([
+					press.position[0] + e.clientX - press.point[0],
+					press.position[1] + e.clientY - press.point[1],
+				]);
+				return;
+			}
 			setPosition([
 				e.clientX -
 					holder.current.getBoundingClientRect().left -
@@ -286,7 +575,14 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	};
 	const iconId = useId();
 
-	const labelEl = (
+	const labelEl = renaming ? (
+		<ClassicyRenameField
+			className={"classicyIconRename"}
+			name={renameText ?? name}
+			onCommit={(value) => onRenameCommit?.(value)}
+			onCancel={() => onRenameCancel?.()}
+		/>
+	) : (
 		<p className={classNames(invisible ? "classicyIconInvisible" : "")}>
 			{label ? label : name}
 		</p>
@@ -311,7 +607,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		size ?? themeIconSize ?? Number.POSITIVE_INFINITY,
 		active,
 	);
-	const iconEl = (
+	const imageEl = (
 		<div
 			className={classNames(
 				"classicyIconMaskOuter",
@@ -325,13 +621,37 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			</div>
 		</div>
 	);
+	// A shortcut's badge, under `layout.icon.aliasBadge` "everywhere" only:
+	// the image and the badge's own mask pair in one box, as
+	// ClassicyDesktopIcon draws a shortcut.
+	const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
+	const badged = alias && layout.icon?.aliasBadge === "everywhere";
+	const iconEl = badged ? (
+		<div className={"classicyIconImage"}>
+			{imageEl}
+			<div
+				className={"classicyIconMaskOuter classicyIconAliasBadge"}
+				style={
+					{ "--classicy-icon-mask": `url("${aliasBadge}")` } as CSSProperties
+				}
+			>
+				<div className={"classicyIconMask"}>
+					<img src={aliasBadge} alt="" aria-hidden="true" />
+				</div>
+			</div>
+		</div>
+	) : (
+		imageEl
+	);
 
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: icon is a draggable div with ref and complex mouse handling incompatible with <button>
+		// biome-ignore lint/a11y/noStaticElementInteractions: the role is spread (a button, or an option of the caller's list box); icon is a draggable div with ref and complex mouse handling incompatible with <button>
 		<div
 			{...appearance.attrs}
-			role="button"
-			tabIndex={0}
+			{...(listOption
+				? { role: "option", "aria-selected": active }
+				: { role: "button" })}
+			tabIndex={tabStop ? 0 : -1}
 			ref={iconRef}
 			id={`${id}-${iconId}`}
 			draggable={false}
@@ -345,6 +665,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				"classicyIcon",
 				appearance.className,
 				labelPositionClass(labelPosition),
+				cut && "classicyFileCut",
 				className,
 			)}
 			style={
@@ -367,8 +688,25 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					...withoutZIndex(style),
 				} as CSSProperties
 			}
-			onClick={toggleFocus}
+			onClick={onClick}
 			onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+				if (renaming) return;
+				// Space is the Select key under `layout.selection.keyboard`
+				// "windows" (WIG Ch.5 "Keyboard Selection", p.43; App. B Table
+				// B.2, p.358): Return alone opens. Controlled, it is the
+				// caller's (it bubbles to it, as a click goes to
+				// `onSelectClick`); else it selects the icon, Control (or ⌘)
+				// toggling it.
+				if (e.key === " " && windowsSelectKey) {
+					if (controlled) return;
+					e.preventDefault();
+					if (e.ctrlKey || e.metaKey) toggleFocus();
+					else if (!active) {
+						appearance.emit("select", { selected: true });
+						setFocus(true);
+					}
+					return;
+				}
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
 					doDoubleClick();

@@ -8,6 +8,11 @@ import {
 	TEST_RENAME_PACKAGE_ID,
 	TEST_RENAMED_ICON,
 } from "@/__tests__/testRenamePackage";
+import {
+	registerTestTaskbarPackage,
+	TEST_DIALOG_CAPTION_LAYOUT,
+	TEST_DIALOG_CAPTION_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { ClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindow";
@@ -32,7 +37,9 @@ vi.mock(
 		useAppManager: (selector: (state: unknown) => unknown) =>
 			selector({
 				System: {
-					Manager: { Applications: { apps: {} } },
+					// The Desktop slice: the caption buttons' tooltips (a titled
+					// dialog layout's) read balloon help's toggle from it.
+					Manager: { Desktop: {}, Applications: { apps: {} } },
 				},
 			}),
 		useAppManagerDispatch: () => mockDispatch,
@@ -176,5 +183,74 @@ describe("ClassicyAboutWindow under a renaming package", () => {
 			screen.getByRole("heading", { name: "Movie Player" }),
 		).toBeInTheDocument();
 		expect(screen.getByAltText("About")).toHaveAttribute("src", "x.png");
+	});
+});
+
+// Plan 0020-w98 §6: under a layout whose `dialog.caption` is `"titled"`
+// (Windows 98) the About box is captioned "About <name>", as Windows' About
+// boxes are (Wine's shell32 `ShellAbout`: "About %s"), and its caption's
+// Close box clicks OK, so `hideFunc` gets the real click event its type
+// promises. Under Platinum it is untitled and has no Close box.
+describe("ClassicyAboutWindow's caption", () => {
+	const caption = () =>
+		document.querySelector(".classicyWindow > .classicyWindowTitleBar");
+	const closeBox = () =>
+		caption()?.querySelector<HTMLElement>(".classicyWindowCloseBox") ?? null;
+	const renderAbout = (hideFunc: () => void) =>
+		render(
+			<ClassicyAboutWindow
+				appId="Finder.app"
+				appName="Finder"
+				appIcon="finder.png"
+				hideFunc={hideFunc}
+			/>,
+		);
+
+	afterEach(() => {
+		activePackage.id = "platinum";
+		unregisterClassicyAppearancePackage(TEST_DIALOG_CAPTION_PACKAGE_ID);
+	});
+
+	it("is untitled, with no Close box, under Platinum", () => {
+		renderAbout(() => {});
+		expect(caption()?.querySelector(".classicyWindowTitleText")).toBeNull();
+		expect(closeBox()).toBeNull();
+	});
+
+	describe('under dialog.caption: "titled"', () => {
+		beforeEach(() => {
+			registerTestTaskbarPackage(
+				TEST_DIALOG_CAPTION_LAYOUT,
+				TEST_DIALOG_CAPTION_PACKAGE_ID,
+			);
+			activePackage.id = TEST_DIALOG_CAPTION_PACKAGE_ID;
+		});
+
+		it("is captioned About and the app's name", () => {
+			renderAbout(() => {});
+			expect(
+				caption()?.querySelector(".classicyWindowTitleText p"),
+			).toHaveTextContent("About Finder");
+			expect(document.querySelector(".classicyWindow")).toHaveAttribute(
+				"aria-label",
+				"About Finder",
+			);
+		});
+
+		it("clicks OK from its Close box, hideFunc receiving the click event", () => {
+			const hideFunc = vi.fn();
+			renderAbout(hideFunc);
+			const ok = screen.getByRole("button", { name: "OK" });
+			const clickSpy = vi.spyOn(ok, "click");
+			fireEvent.click(closeBox() as HTMLElement);
+			expect(clickSpy).toHaveBeenCalledTimes(1);
+			expect(hideFunc).toHaveBeenCalledTimes(1);
+			const event = hideFunc.mock.calls[0][0] as {
+				type: string;
+				target: unknown;
+			};
+			expect(event.type).toBe("click");
+			expect(event.target).toBe(ok);
+		});
 	});
 });

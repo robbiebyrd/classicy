@@ -30,10 +30,20 @@ import type {
 	ClassicyBalloonPosition,
 	ClassicyIconBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
+import {
+	type ClassicyDesktopIconSelectMode,
+	classicyDesktopIconSelection,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import { classicyIconsRoveFocus } from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	classicyTaskbarHasBand,
+	getClassicyTaskbarInsets,
+} from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+import { classicyWindowsSelectionModifiers } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
 
 /**
  * The desktop-icon grid metrics, in px: the icon `size`, the `padding` around
@@ -53,6 +63,12 @@ export type ClassicyDesktopIconMetrics = {
 	 */
 	rowPitch?: number;
 	/**
+	 * The distance between columns, from the optional package knob
+	 * `desktopIconGrid.columnGap` (the icon `size` plus it: Windows 98's
+	 * 75 px IconSpacing). Unset, columns step by `cell + padding`.
+	 */
+	columnPitch?: number;
+	/**
 	 * The first row's top for a top origin, and the highest a bottom
 	 * origin's row goes: the optional package knob `desktopIconGrid.top`.
 	 * Unset, `4 × padding`.
@@ -69,7 +85,7 @@ export type ClassicyDesktopIconMetrics = {
 // own. A value that is not a finite number of zero or more is ignored.
 const desktopIconGridKnob = (
 	theme: ClassicyTheme,
-	key: "rowGap" | "top",
+	key: "rowGap" | "columnGap" | "top",
 ): number | undefined => {
 	const value = withDefaultThemeMetrics(
 		theme,
@@ -84,9 +100,38 @@ const desktopIconGridKnob = (
 const rowStep = ({ padding, cell, rowPitch }: ClassicyDesktopIconMetrics) =>
 	rowPitch ?? cell + padding;
 
+/** The columns' pitch: the package's, else one grid step (`cell + padding`). */
+const columnStep = ({
+	padding,
+	cell,
+	columnPitch,
+}: ClassicyDesktopIconMetrics) => columnPitch ?? cell + padding;
+
 /** The first row's top: the package's, else `4 × padding`. */
 const firstRowTop = ({ padding, top }: ClassicyDesktopIconMetrics) =>
 	top ?? padding * 4;
+
+/**
+ * The height the grid lays rows in: the viewport's, less the taskbar's band
+ * along its bottom or top (`getClassicyTaskbarInsets`, none with no taskbar,
+ * so every package without one lays out exactly as before). Read from the
+ * module, as `window.innerHeight` is, so the reducer path never touches the
+ * store. `gridWidth` is the width, less a band at either side, and
+ * `gridOffset` the work area's top-left corner, which a docked taskbar
+ * (plan 0020-w98 E4) moves past a left or top band: the icons follow it.
+ */
+const gridHeight = () => {
+	const band = getClassicyTaskbarInsets();
+	return window.innerHeight - band.top - band.bottom;
+};
+const gridWidth = () => {
+	const band = getClassicyTaskbarInsets();
+	return window.innerWidth - band.left - band.right;
+};
+const gridOffset = (): [number, number] => {
+	const band = getClassicyTaskbarInsets();
+	return [band.left, band.top];
+};
 
 // One named derivation's value in px, rounded exactly as getThemeVars emits
 // it (px3), so the reducer's number equals the stylesheet's.
@@ -125,6 +170,8 @@ export const classicyDesktopIconMetrics = (
 	// Each only when the package sets it, so Platinum's metrics are as before.
 	const rowGap = desktopIconGridKnob(theme, "rowGap");
 	if (rowGap !== undefined) metrics.rowPitch = metrics.size + rowGap;
+	const columnGap = desktopIconGridKnob(theme, "columnGap");
+	if (columnGap !== undefined) metrics.columnPitch = metrics.size + columnGap;
 	const top = desktopIconGridKnob(theme, "top");
 	if (top !== undefined) metrics.top = top;
 	return metrics;
@@ -132,8 +179,9 @@ export const classicyDesktopIconMetrics = (
 
 /**
  * The clean-up grid's column and row counts. Columns step by one grid step
- * (`cell + padding`, the step `classicyDesktopIconGridPosition` places by),
- * so every counted column fits the viewport; rows by the row pitch (the
+ * (`cell + padding`, the step `classicyDesktopIconGridPosition` places by,
+ * unless the package declares `desktopIconGrid.columnGap`), so every counted
+ * column fits the viewport; rows by the row pitch (the
  * same step unless the package declares `desktopIconGrid.rowGap`). A bottom
  * origin also reserves the menu bar's band at the top (the top origins'
  * first-row top, `4 * padding` unless the package declares
@@ -142,6 +190,15 @@ export const classicyDesktopIconMetrics = (
  * viewport shorter than that plus one row still gets one; there
  * `classicyDesktopIconGridPosition` clamps a bottom origin's y to at least
  * the first-row top, keeping that row on screen.
+ *
+ * Rows are counted in the height above the taskbar's band (`gridHeight`).
+ * While a band is published, a top origin counts only the rows whose cell
+ * ends above it, as Windows' icon view starts a new column unless the next
+ * icon fits whole (comctl32 `LISTVIEW_NextIconPosLeft`): `floor(h / pitch)`
+ * can let the last row run past `h` (by up to `3 × padding` with the default
+ * row geometry: Windows 98's tenth row at 768 px would end 4 px into a 28 px
+ * taskbar), where the taskbar, drawn above the icons, would cover it. With
+ * no band the count is today's.
  */
 const createGrid = (
 	metrics: ClassicyDesktopIconMetrics,
@@ -149,27 +206,35 @@ const createGrid = (
 ) => {
 	const { padding, cell } = metrics;
 	const pitch = rowStep(metrics);
+	const height = gridHeight();
+	const topRows = classicyTaskbarHasBand(getClassicyTaskbarInsets())
+		? Math.max(
+				1,
+				Math.floor((height - firstRowTop(metrics) - cell) / pitch) + 1,
+			)
+		: Math.floor(height / pitch);
 	return [
-		Math.floor(window.innerWidth / (cell + padding)),
+		Math.floor(gridWidth() / columnStep(metrics)),
 		origin.startsWith("bottom")
 			? Math.max(
 					1,
-					Math.floor(
-						(window.innerHeight - firstRowTop(metrics) - padding * 4) / pitch,
-					),
+					Math.floor((height - firstRowTop(metrics) - padding * 4) / pitch),
 				)
-			: Math.floor(window.innerHeight / pitch),
+			: topRows,
 	];
 };
 
 /**
  * The desktop location of grid cell (`col`, `row`), counted from the package
  * layout's icon grid origin. `col` starts at 1 and `row` at 0, as the
- * clean-up walks them; columns step by `cell + padding`, rows by the row
+ * clean-up walks them; columns step by `cell + padding` (unless the package
+ * declares `desktopIconGrid.columnGap`), rows by the row
  * pitch (the same, unless the package declares `desktopIconGrid.rowGap`),
  * the first row of a top origin at the first-row top (`4 × padding`, unless
  * it declares `desktopIconGrid.top`). `top-right` (Platinum) is the original
- * formula: columns step in from the right edge, rows down from the top.
+ * formula: columns step in from the right edge, rows down from the top. A
+ * bottom origin's rows are measured up from the taskbar's top (the bottom of
+ * `gridHeight`, the viewport's while no taskbar is mounted).
  */
 export const classicyDesktopIconGridPosition = (
 	metrics: ClassicyDesktopIconMetrics,
@@ -178,22 +243,25 @@ export const classicyDesktopIconGridPosition = (
 	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
 		.desktop.iconGridOrigin,
 ): [number, number] => {
-	const { padding, cell } = metrics;
-	const step = cell + padding;
+	const { padding } = metrics;
+	const step = columnStep(metrics);
 	const pitch = rowStep(metrics);
 	const top = firstRowTop(metrics);
+	const [offsetX, offsetY] = gridOffset();
 	return [
-		origin.endsWith("right")
-			? Math.floor(window.innerWidth - step * col)
-			: Math.floor(step * (col - 1) + padding),
-		origin.startsWith("top")
-			? Math.floor(pitch * row) + top
-			: // Never above the top origins' first row, so a row forced into a
-				// viewport too short for it stays on screen.
-				Math.max(
-					top,
-					Math.floor(window.innerHeight - pitch * (row + 1)) - padding * 4,
-				),
+		offsetX +
+			(origin.endsWith("right")
+				? Math.floor(gridWidth() - step * col)
+				: Math.floor(step * (col - 1) + padding)),
+		offsetY +
+			(origin.startsWith("top")
+				? Math.floor(pitch * row) + top
+				: // Never above the top origins' first row, so a row forced into a
+					// viewport too short for it stays on screen.
+					Math.max(
+						top,
+						Math.floor(gridHeight() - pitch * (row + 1)) - padding * 4,
+					)),
 	];
 };
 
@@ -302,6 +370,89 @@ const cleanupDesktopIcons = (
 	return newDesktopIcons;
 };
 
+/**
+ * The first cell of the desktop's grid, walked as Clean Up walks it (down
+ * each column from the package's icon grid origin), that no drawn icon of
+ * `icons` covers (within half a cell's step on both axes): where Explorer's
+ * New on the desktop puts an item made from the menu bar (WIG Ch.5 "New
+ * Command", p.69). Pure: the metrics come from `theme`, as Clean Up's do.
+ * Undefined only when every cell of the screen is covered.
+ */
+export const classicyDesktopFreeIconLocation = (
+	theme: ClassicyTheme,
+	icons: readonly Pick<
+		ClassicyStoreSystemDesktopManagerIcon,
+		"location" | "hidden"
+	>[],
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
+		.desktop.iconGridOrigin,
+): [number, number] | undefined => {
+	const metrics = classicyDesktopIconMetrics(theme);
+	const [columns, rows] = createGrid(metrics, origin);
+	const halfX = columnStep(metrics) / 2;
+	const halfY = rowStep(metrics) / 2;
+	const taken = icons.flatMap((icon) =>
+		!icon.hidden && icon.location ? [icon.location] : [],
+	);
+	for (let col = 1; col < Math.max(2, columns); col++) {
+		for (let row = 0; row < Math.max(1, rows); row++) {
+			const cell = classicyDesktopIconGridPosition(metrics, col, row, origin);
+			if (
+				!taken.some(
+					([x, y]) =>
+						Math.abs(x - cell[0]) < halfX && Math.abs(y - cell[1]) < halfY,
+				)
+			)
+				return cell;
+		}
+	}
+	return undefined;
+};
+
+/**
+ * Explorer's Line Up Icons on the desktop (Windows 98 SE's Line &Up Icons;
+ * the Finder's Clean Up lays every icon out afresh instead): each drawn icon,
+ * in the desktop's order, moves to the free cell of the screen's grid
+ * nearest where it is. Pure; hidden icons and icons with no location keep
+ * theirs. Returns each icon's new location, by `appId`.
+ */
+export const classicyDesktopLineUpLocations = (
+	theme: ClassicyTheme,
+	icons: readonly Pick<
+		ClassicyStoreSystemDesktopManagerIcon,
+		"appId" | "location" | "hidden"
+	>[],
+	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
+		.desktop.iconGridOrigin,
+): Map<string, [number, number]> => {
+	const metrics = classicyDesktopIconMetrics(theme);
+	const [columns, rows] = createGrid(metrics, origin);
+	const cells: [number, number][] = [];
+	for (let col = 1; col < Math.max(2, columns); col++) {
+		for (let row = 0; row < Math.max(1, rows); row++) {
+			cells.push(classicyDesktopIconGridPosition(metrics, col, row, origin));
+		}
+	}
+	const free = cells.slice();
+	const lined = new Map<string, [number, number]>();
+	for (const icon of icons) {
+		if (icon.hidden || !icon.location || free.length === 0) continue;
+		const [x, y] = icon.location;
+		let best = 0;
+		let bestDistance = Number.POSITIVE_INFINITY;
+		free.forEach(([cx, cy], index) => {
+			const distance = (cx - x) ** 2 + (cy - y) ** 2;
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				best = index;
+			}
+		});
+		const [cell] = free.splice(best, 1);
+		lined.set(icon.appId, cell);
+	}
+	return lined;
+};
+
 // Actions arrive untyped, and whatever lands here is persisted to localStorage,
 // so balloon payloads are validated field by field rather than cast.
 const readBalloonHelp = (
@@ -327,6 +478,32 @@ const iconGridOrigin = (ds: ClassicyStore) =>
 	getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId).desktop
 		.iconGridOrigin;
 
+const SELECT_MODES: readonly ClassicyDesktopIconSelectMode[] = [
+	"toggle",
+	"range",
+	"addRange",
+];
+
+/**
+ * Records `iconId` as the desktop's anchor (`Desktop.selectionAnchor`, under
+ * `layout.selection.modifiers` `"windows"`) and focus icon
+ * (`Desktop.focusIcon`, under `layout.selection.iconNavigation` `"roving"`)
+ * after a selection that makes it both, a plain click's or an arrow's (WIG
+ * Ch.5 "Selection Adjustment", p.38: the anchor is the first click's
+ * object). Session state, stripped by `sanitizeStateForPersistence`, and
+ * written only under the active package's keys, so a package without them
+ * keeps today's state.
+ */
+const recordAnchorAndFocusIcon = (ds: ClassicyStore, iconId: string) => {
+	const layout = getClassicyAppearanceLayout(
+		ds.System.Manager.Appearance.packageId,
+	);
+	if (classicyWindowsSelectionModifiers(layout))
+		ds.System.Manager.Desktop.selectionAnchor = iconId;
+	if (classicyIconsRoveFocus(layout))
+		ds.System.Manager.Desktop.focusIcon = iconId;
+};
+
 export const classicyDesktopIconEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -338,6 +515,21 @@ export const classicyDesktopIconEventHandler = (
 				ds.System.Manager.Desktop.icons,
 				iconGridOrigin(ds),
 			);
+			break;
+		}
+		case "ClassicyDesktopIconLineUp": {
+			// Explorer's Line Up Icons (`useClassicyDesktopCommands`, under
+			// `layout.finder.commands` "windows"): each icon to its nearest
+			// free cell, the others' places kept.
+			const lined = classicyDesktopLineUpLocations(
+				ds.System.Manager.Appearance.activeTheme,
+				ds.System.Manager.Desktop.icons,
+				iconGridOrigin(ds),
+			);
+			for (const icon of ds.System.Manager.Desktop.icons) {
+				const location = lined.get(icon.appId);
+				if (location) icon.location = location;
+			}
 			break;
 		}
 		case "ClassicyDesktopIconSort": {
@@ -357,6 +549,41 @@ export const classicyDesktopIconEventHandler = (
 			if (!hasIconId(action)) break;
 			markAppFocused(ds, "Finder.app");
 			ds.System.Manager.Desktop.selectedIcons = [action.iconId];
+			recordAnchorAndFocusIcon(ds, action.iconId);
+			break;
+		}
+		case "ClassicyDesktopIconSelect": {
+			// A modified click or key on the desktop (5.10; WIG Ch.5
+			// "Selection Adjustment", pp.38-39): Control or ⌘ toggles the
+			// icon, Shift selects the anchor's rectangle to it, both set
+			// that rectangle to the anchor's state
+			// (`classicyDesktopIconSelection`). The icon becomes the focus
+			// icon.
+			if (!hasIconId(action)) break;
+			const mode = action.mode as ClassicyDesktopIconSelectMode;
+			if (!SELECT_MODES.includes(mode)) break;
+			markAppFocused(ds, "Finder.app");
+			const desktop = ds.System.Manager.Desktop;
+			const next = classicyDesktopIconSelection(
+				desktop.icons.filter((icon) => !icon.hidden),
+				desktop.selectedIcons ?? [],
+				desktop.selectionAnchor,
+				action.iconId,
+				mode,
+				classicyDesktopIconMetrics(ds.System.Manager.Appearance.activeTheme)
+					.cell,
+			);
+			desktop.selectedIcons = next.selected;
+			desktop.selectionAnchor = next.anchor;
+			desktop.focusIcon = action.iconId;
+			break;
+		}
+		case "ClassicyDesktopIconMoveFocus": {
+			// Control (⌘, Option) with a navigation key moves the focus icon
+			// alone (5.18's desktop part; WIG Ch.5 "Disjoint Selection",
+			// pp.43-44): the selection stays.
+			if (!hasIconId(action)) break;
+			ds.System.Manager.Desktop.focusIcon = action.iconId;
 			break;
 		}
 		case "ClassicyDesktopIconSelectBox": {
@@ -458,6 +685,14 @@ export const classicyDesktopIconEventHandler = (
 					existing.icon = action.app.icon;
 					if (Array.isArray(action.contextMenu)) {
 						existing.contextMenu = action.contextMenu as ClassicyMenuItem[];
+					} else if (
+						action.contextMenu === null &&
+						existing.contextMenu !== undefined
+					) {
+						// An explicit null takes a stored menu away (Finder's desktop
+						// items once the package stops offering one); an omitted one
+						// keeps it.
+						delete existing.contextMenu;
 					}
 					// Icons persist to localStorage, so a shortcut whose target
 					// changed between releases would keep the stale URL forever.

@@ -1,10 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
-// getTheme/getAllThemes serve the registered packages' themes: Platinum's
-// and System 7's.
+// getTheme/getAllThemes serve the registered packages' themes: Platinum's,
+// System 7's and Windows 98's.
 import "@classicy/appearance-platinum";
 import "@classicy/appearance-system7";
+import "@classicy/appearance-windows98";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	getTheme,
@@ -84,7 +85,7 @@ const sheets = scssFiles.map((full) =>
 
 // A workspace Appearance Package's sheet may also read what its own themes
 // emit beyond the default theme's: the knob families only it declares
-// (System 7's `titleBar`, `box`, `growBox`). Keyed by package id.
+// (System 7's `titleBar`, `box`, `growBox`; Windows 98's `pixel`, `titleBar`, …). Keyed by package id.
 const PACKAGE_SHEET = /^packages\/appearance\/([^/]+)\/src\//;
 const packageOf = (full: string): string | undefined =>
 	PACKAGE_SHEET.exec(repoPath(full))?.[1];
@@ -146,6 +147,32 @@ describe("theme variable coverage (H 6.1)", () => {
 		expect(
 			reads
 				.filter(([, , next, fallback]) => next !== "," || !fallback)
+				.map(([read]) => read),
+		).toEqual([]);
+	});
+
+	// A package font (`--package-font-<name>`, its `-size` and `-weight`) is
+	// emitted only by a theme that holds `typography.families`, so every read
+	// carries a fallback: a core typography variable for a stack or a size, a
+	// keyword for a weight (no core variable holds one).
+	it("reads every package font with a core typography fallback", () => {
+		const reads = sheets.flatMap((sheet) => [
+			...sheet.matchAll(
+				/var\(\s*(--package-font-[a-zA-Z0-9-]+)\s*([,)])\s*([^)]*)/g,
+			),
+		]);
+		expect(reads.length).toBeGreaterThan(0);
+		expect(
+			reads
+				.filter(([, name, next, fallback]) =>
+					next !== ","
+						? true
+						: name.endsWith("-weight")
+							? !/^(normal|bold|[1-9]00)\s*$/.test(fallback)
+							: !/^var\(\s*--(ui|body|header|mono|digital)-font(-size)?\s*$/.test(
+									fallback,
+								),
+				)
 				.map(([read]) => read),
 		).toEqual([]);
 	});

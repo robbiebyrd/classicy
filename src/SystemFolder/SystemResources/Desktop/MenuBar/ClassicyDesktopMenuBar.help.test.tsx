@@ -1,5 +1,6 @@
-import { act } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { act, cleanup } from "@testing-library/react";
+import { produce } from "immer";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	render,
@@ -8,14 +9,24 @@ import {
 	waitFor,
 	within,
 } from "@/__tests__/test-utils";
+import {
+	registerTestTaskbarPackage,
+	TEST_TASKBAR_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	type AppleGuideData,
 	isAppleGuideData,
 } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 // Importing the extension registers both the topic and the reducer prefix.
 import "@/SystemFolder/Extensions/AppleGuide/AppleGuide";
+import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
@@ -215,5 +226,285 @@ describe("Help menu — per-app items", () => {
 
 		await userEvent.click(screen.getByText("Help"));
 		expect(screen.getByText("About Weather…")).toBeInTheDocument();
+	});
+});
+
+// The rows of a menu the bar draws: each item's id, or "—" for a divider.
+const helpRows = (menuId = "help-menu") =>
+	Array.from(
+		document.querySelectorAll(
+			`[id="${menuId}"] > .classicyMenuWrapper > ul > *`,
+		),
+	).map((row) => (row.tagName === "HR" ? "—" : row.id));
+
+// The bar's top-level menus titled Help, by word or by art (System 7 titles
+// its Help menu with an icon whose alt is "Help").
+const helpTitles = () =>
+	Array.from(
+		document.querySelectorAll(
+			".classicyDesktopMenuBar ul.classicyDesktopMenu > li",
+		),
+	).filter((li) => {
+		const title = li.querySelector(":scope > p");
+		if (!title) return false;
+		return (
+			title.textContent?.trim() === "Help" ||
+			title.querySelector('img[alt="Help"]') !== null
+		);
+	});
+
+/** Seed `appId` focused, its window's menus in `Desktop.appMenu`. */
+function seedFocusedAppMenu(
+	appId: string,
+	appMenu: ClassicyMenuItem[],
+	registered?: ClassicyMenuItem[],
+) {
+	seedAppWithHelp(appId, appId.replace(/\.app$/, ""), registered ?? []);
+	act(() => {
+		useAppManager.setState((s) => ({
+			...s,
+			System: {
+				...s.System,
+				Manager: {
+					...s.System.Manager,
+					Applications: {
+						...s.System.Manager.Applications,
+						focusedAppId: appId,
+					},
+					Desktop: {
+						...s.System.Manager.Desktop,
+						appMenu,
+						helpMenu: registered
+							? { [appId]: registered }
+							: s.System.Manager.Desktop.helpMenu,
+					},
+				},
+			},
+		}));
+	});
+}
+
+// Plan 0020-w98 §4, every package: an app's own top-level Help menu is
+// merged into the one Help menu, after the system's and its registered
+// items (HIGOS8 Ch.4 "Help menus", pp.91–92, Figure 4-2; HIG7 "The Help
+// Menu", p.125), never drawn as a second "Help" title.
+describe("Help menu — an app's own Help menu is merged", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("draws one Help, the app's items after the registered ones", () => {
+		seedFocusedAppMenu(
+			"Weather.app",
+			[
+				{
+					id: "Weather.app_file",
+					title: "File",
+					menuChildren: [{ id: "Weather.app_close", title: "Close" }],
+				},
+				{
+					id: "Weather.app_help",
+					title: "Help",
+					menuChildren: [
+						{ id: "Weather.app_tips", title: "Forecast Tips" },
+						{ id: "Weather.app_about", title: "About" },
+					],
+				},
+			],
+			[{ id: "Weather.app_registered", title: "Weather Guide" }],
+		);
+
+		render(<ClassicyDesktopMenuBar />);
+
+		expect(helpTitles()).toHaveLength(1);
+		expect(document.getElementById("Weather.app_help")).toBeNull();
+		expect(helpRows()).toEqual([
+			"help-about-balloon",
+			"help-toggle-balloons",
+			"—",
+			"Weather.app_registered",
+			"—",
+			"Weather.app_tips",
+		]);
+		// About is still hoisted into the Apple menu, before the merge.
+		expect(document.getElementById("Weather.app_about_apple")).not.toBeNull();
+		expect(document.getElementById("Weather.app_about")).toBeNull();
+		// Help stays the rightmost standard menu.
+		expect(document.getElementById("help-menu")?.dataset.classicyPart).toBe(
+			"help",
+		);
+	});
+
+	it("runs a merged item's action from the Help menu", async () => {
+		const tips = vi.fn();
+		seedFocusedAppMenu("Weather.app", [
+			{
+				id: "Weather.app_help",
+				title: "Help",
+				menuChildren: [
+					{ id: "Weather.app_tips", title: "Forecast Tips", onClickFunc: tips },
+				],
+			},
+		]);
+
+		render(<ClassicyDesktopMenuBar />);
+		await userEvent.click(screen.getByText("Help"));
+		await userEvent.click(screen.getByText("Forecast Tips"));
+		completeMenuItemFlash("Weather.app_tips");
+
+		await waitFor(() => expect(tips).toHaveBeenCalledTimes(1));
+	});
+
+	it("drops an app item that repeats the balloon toggle, and its divider", () => {
+		seedFocusedAppMenu("Weather.app", [
+			{
+				id: "Weather.app_help",
+				title: "Help",
+				menuChildren: [
+					{
+						id: "Weather.app_help_balloon",
+						title: "Hide Balloon Help",
+						event: "ClassicyDesktopSetBalloonHelp",
+						eventData: { disableBalloonHelp: true },
+					},
+				],
+			},
+		]);
+
+		render(<ClassicyDesktopMenuBar />);
+
+		expect(helpTitles()).toHaveLength(1);
+		expect(helpRows()).toEqual(["help-about-balloon", "help-toggle-balloons"]);
+		expect(document.getElementById("Weather.app_help_balloon")).toBeNull();
+	});
+
+	it("keeps an app's own balloon command that is not the toggle's event", () => {
+		seedFocusedAppMenu("Weather.app", [
+			{
+				id: "Weather.app_help",
+				title: "Help",
+				menuChildren: [
+					{
+						id: "Weather.app_balloons",
+						title: "Balloon Tour",
+						onClickFunc: vi.fn(),
+					},
+				],
+			},
+		]);
+
+		render(<ClassicyDesktopMenuBar />);
+
+		expect(helpRows()).toEqual([
+			"help-about-balloon",
+			"help-toggle-balloons",
+			"—",
+			"Weather.app_balloons",
+		]);
+	});
+
+	it("leaves a menu that is not Help where the app put it", () => {
+		seedFocusedAppMenu("Weather.app", [
+			{
+				id: "Weather.app_view",
+				title: "View",
+				menuChildren: [{ id: "Weather.app_radar", title: "Radar" }],
+			},
+		]);
+
+		render(<ClassicyDesktopMenuBar />);
+
+		expect(document.getElementById("Weather.app_view")).not.toBeNull();
+		expect(helpRows()).toEqual(["help-about-balloon", "help-toggle-balloons"]);
+	});
+});
+
+// The double Help: Finder's window Help menu held "Hide Balloon Help" and
+// About, so with a Finder window focused the bar drew two "Help" titles in
+// every package. Now one, holding what it holds with the desktop focused.
+// Last in the file: the packages these import stay registered.
+describe("Help menu — a focused Finder window adds no second Help", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	afterEach(() => {
+		cleanup();
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	const finderWindowFocused = () =>
+		(useAppManager.getState().System.Manager.Desktop.appMenu ?? []).some(
+			(menu) => menu.id.startsWith("Finder.app_") && menu.id.endsWith("_help"),
+		);
+
+	it.each([
+		["Platinum", "platinum", () => import("@classicy/appearance-platinum")],
+		["System 7", "system7", () => import("@classicy/appearance-system7")],
+	])("draws one Help under %s's layout", async (_, packageId, load) => {
+		await load();
+		useAppManager.setState(
+			produce(structuredClone(DefaultAppManagerState), (draft) => {
+				draft.System.Manager.Appearance.packageId = packageId;
+			}),
+			true,
+		);
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} />
+			</ClassicyAppManagerProvider>,
+		);
+
+		// The desktop focused: the system's two items.
+		expect(helpTitles()).toHaveLength(1);
+		expect(helpRows()).toEqual(["help-about-balloon", "help-toggle-balloons"]);
+
+		act(() => {
+			dispatch({ type: "ClassicyAppFinderOpenFolder", path: "Macintosh HD" });
+		});
+		await waitFor(() => expect(finderWindowFocused()).toBe(true));
+
+		// A Finder window focused: still one Help, with the same two items.
+		expect(helpTitles()).toHaveLength(1);
+		expect(helpRows()).toEqual(["help-about-balloon", "help-toggle-balloons"]);
+		expect(screen.queryByText("Hide Balloon Help")).toBeNull();
+		// Finder's About is in the Apple menu, as before.
+		expect(document.getElementById("Finder.app_about_apple")).not.toBeNull();
+	});
+});
+
+// Shell addendum B19: under a taskbar, where the screen bar is headless and
+// each window's bar draws Help without the balloon toggle, the screen bar
+// claims no ⌥H either (Windows 98's ToolTips always show, WIG Ch.12 p.276);
+// under every other layout it keeps the toggle and its chord.
+describe("Help menu — the balloon toggle's chord under a taskbar", () => {
+	const systemChords = () =>
+		[...useAppManager.getState().System.Manager.Keyboard.system].sort();
+	afterEach(() => {
+		cleanup();
+		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	it("claims the toggle's chord without a taskbar and not under one", () => {
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		render(<ClassicyDesktopMenuBar />);
+		const withToggle = systemChords();
+		cleanup();
+		registerTestTaskbarPackage();
+		useAppManager.setState(
+			produce(structuredClone(DefaultAppManagerState), (draft) => {
+				draft.System.Manager.Appearance.packageId = TEST_TASKBAR_PACKAGE_ID;
+			}),
+			true,
+		);
+		render(<ClassicyDesktopMenuBar />);
+		const shell = systemChords();
+		const dropped = withToggle.filter((chord) => !shell.includes(chord));
+		expect(dropped).toHaveLength(1);
+		expect(dropped[0]).toMatch(/H/i);
+		expect(shell.every((chord) => withToggle.includes(chord))).toBe(true);
 	});
 });

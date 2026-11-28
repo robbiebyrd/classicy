@@ -5,6 +5,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { focusClassicyReopenedWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDocumentReopen";
 import type { ClassicyQuickTimeDocument } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import {
 	isPictureViewerData,
@@ -89,16 +90,24 @@ export const classicyQuickTimePictureViewerEventHandler = (
 		// actual image source (url or _data) at render time in PictureViewer.tsx.
 		case "ClassicyAppPictureViewerOpenFile": {
 			if (!action.path) break;
-			if (!appData.openFiles.includes(action.path)) {
+			const wasOpen = appData.openFiles.includes(action.path);
+			if (!wasOpen) {
 				appData.openFiles = [...appData.openFiles, action.path];
 			}
 			// Opening an already-open file still brings the app forward, as
-			// the generic OpenFile handler does.
+			// the generic OpenFile handler does, and under
+			// `document.reopenActivates` the file's own window with it.
 			openApp(
 				ds,
 				PictureViewerAppInfo.id,
 				PictureViewerAppInfo.name,
 				PictureViewerAppInfo.icon,
+			);
+			focusClassicyReopenedWindow(
+				ds,
+				appId,
+				`${appId}_PictureViewer_${action.path}`,
+				wasOpen,
 			);
 			break;
 		}

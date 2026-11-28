@@ -6,4 +6,11 @@
   .classicySplitViewDivider {
     @include mixins.platinum-window-border;
   }
+
+  // A closed split's split box (a `splittable` view's, at the end of the
+  // other pane's scroll bar) wears the divider's border, so it reads as the
+  // divider it opens.
+  .classicySplitViewSplitBox {
+    @include mixins.platinum-window-border;
+  }
 }

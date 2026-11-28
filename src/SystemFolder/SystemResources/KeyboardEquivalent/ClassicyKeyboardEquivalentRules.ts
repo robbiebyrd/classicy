@@ -1,6 +1,10 @@
 import he from "he";
+import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	canonicalChord,
+	classicyCommandSpelledCtrl,
+	formatKeyboardShortcutNames,
 	isFunctionKey,
 	keyboardShortcutParts,
 	parseKeyboardShortcut,
@@ -38,9 +42,29 @@ export type ClassicyKeyboardEquivalentRuleOptions = {
 
 const TRY_AGAIN = "Please select another combination.";
 
-/** "⌃⌘S" -> "⌃ + ⌘ + S" — the spelled-out form of HIGOS8 Figures 6-8 to 6-10. */
-export const spellKeyboardEquivalent = (shortcut: string | undefined): string =>
-	keyboardShortcutParts(shortcut).join(" + ");
+/**
+ * "⌃⌘S" -> "⌃ + ⌘ + S" — the spelled-out form of HIGOS8 Figures 6-8 to 6-10.
+ * Under a package whose `layout.menu.shortcutSpelling` is `"names"` (Windows
+ * 98), the one names spelling every chord there takes
+ * (`formatKeyboardShortcutNames`; WIG Ch.7 "Shortcut Keys in Menu Items",
+ * p.110): "⌃⌥S" -> "Ctrl+Alt+S", ⌘ `Ctrl` while `layout.keyboard.command`
+ * is `"ctrl"`, else `Win`. `layout` defaults to the active package's, read
+ * at call time; a component passes `useClassicyAppearanceLayout()`.
+ */
+export const spellKeyboardEquivalent = (
+	shortcut: string | undefined,
+	layout: Pick<
+		ClassicyAppearanceLayout,
+		"menu" | "keyboard"
+	> = getClassicyAppearanceLayout(),
+): string => {
+	if (layout.menu?.shortcutSpelling !== "names")
+		return keyboardShortcutParts(shortcut).join(" + ");
+	if (!parseKeyboardShortcut(shortcut).key) return "";
+	return formatKeyboardShortcutNames(shortcut, {
+		commandIsCtrl: classicyCommandSpelledCtrl({ layout }),
+	});
+};
 
 /**
  * Check a newly typed combination against HIGOS8 p.121: refuse it if it has

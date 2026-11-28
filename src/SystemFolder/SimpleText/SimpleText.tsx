@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { SIMPLE_TEXT_APP_ID } from "@/SystemFolder/SimpleText/SimpleTextManifest";
+import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
 	useClassicyEditMenu,
 	useClassicyWindowClose,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
-import { quitMenuItemHelper } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
+import {
+	quitAppHelper,
+	quitMenuItemHelper,
+} from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type {
@@ -22,11 +28,14 @@ import type {
 import { desktopVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
 import { ClassicyFileSaveDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { useClassicyWindowViewState } from "@/SystemFolder/SystemResources/Window/ClassicyWindowViewState.internal";
 
 const appName = "SimpleText";
 const appId = SIMPLE_TEXT_APP_ID;
@@ -75,6 +84,65 @@ const sameTarget = (a: SaveTarget, b: SaveTarget): boolean =>
 			? a.path === b.path
 			: false;
 
+/** A file entry's text, as SimpleText reads it: `""` when it holds none. */
+const storedText = (entry: { _data?: unknown } | undefined | null): string =>
+	typeof entry?._data === "string" ? entry._data : "";
+
+// The unsaved-changes prompt (`layout.document.confirmUnsavedClose`):
+// the document asked about, and how its answer resolves the close or quit
+// waiting on it (`true` to go on, `false` to keep the document open).
+type UnsavedPrompt = {
+	doc: OpenDoc;
+	resolve: (proceed: boolean) => void;
+};
+
+/**
+ * A document window's editor, with the window's view state put back under
+ * a package's `layout.window.restoreViewState` (WIG Ch.2 "Persistence",
+ * p.12): the plain-text editor's caret and scroll offsets, for a document
+ * with a file (an untitled one is new each time). The Markdown editor grows
+ * with its text, so its window scrolls, and the window keeps that offset.
+ */
+const SimpleTextDocumentEditor = ({
+	doc,
+	fitsScrollBars,
+	onTextChange,
+}: {
+	doc: OpenDoc;
+	fitsScrollBars: boolean;
+	onTextChange: (doc: OpenDoc, text: string, normalized?: boolean) => void;
+}) => {
+	const viewState = useClassicyWindowViewState(appId, doc.windowId);
+	const keepsView = doc.target.kind === "path";
+	if (doc.type === ClassicyFileSystemEntryFileType.Markdown) {
+		return (
+			<ClassicyRichTextEditor
+				content={doc.content}
+				onChangeFunc={(markdown, normalized) =>
+					onTextChange(doc, markdown, normalized)
+				}
+			/>
+		);
+	}
+	return (
+		<ClassicyTextEditor
+			content={doc.content}
+			// A document: its bars stay while the text fits when the
+			// package keeps them (System 7's SimpleText).
+			fitsScrollBars={fitsScrollBars}
+			onChangeFunc={(e) => onTextChange(doc, e.target.value)}
+			{...(keepsView
+				? {
+						initialCaret: viewState.initialCaret,
+						onCaretSettled: viewState.onCaretSettled,
+						initialScroll: viewState.initialScroll,
+						onScrollSettled: viewState.onScrollSettled,
+					}
+				: {})}
+		/>
+	);
+};
+
 export const SimpleText = () => {
 	const appIcon =
 		useClassicyAsset("icons", "applications.simpletext.app") ?? "";
@@ -84,6 +152,22 @@ export const SimpleText = () => {
 	);
 
 	const fs = useClassicyFileSystem();
+	// Notepad's ways under a package that declares them: a changed document
+	// asks before it closes (`document.confirmUnsavedClose`; WIG Ch.1
+	// "Forgiveness", pp.2-3, Ch.5 "View Operations", p.46, "Transactions",
+	// p.49), and File ▸ Open… and Save carry CTRL+O and CTRL+S
+	// (`menu.standardShortcuts`; WIG Appendix B Table B.2, p.358).
+	const layout = useClassicyAppearanceLayout();
+	const confirmsUnsaved = layout.document?.confirmUnsavedClose === true;
+	// "Untitled - Notepad" (`document.titleAppName`; WIG Figure 6.6).
+	const titleAppName = layout.document?.titleAppName === true;
+	const standardShortcuts = layout.menu?.standardShortcuts === "windows";
+	// The name the message box is titled with: the app as the package shows
+	// it (Notepad's MessageBox caption is the application's name).
+	const shownName = useClassicyAppIdentity(appId, {
+		name: appName,
+		icon: appIcon,
+	}).name;
 	// The Classicy virtual clock, used to stamp Date Modified on a save.
 	const dateTime = useAppManager(
 		(state) => state.System.Manager.DateAndTime.dateTime,
@@ -96,6 +180,10 @@ export const SimpleText = () => {
 	// Working copy of each path-backed document's text, seeded from disk and
 	// updated on every keystroke so Save has something to write back.
 	const [pathContent, setPathContent] = useState<Record<string, string>>({});
+	// The working copies as last rendered, for a save or a dirty check made
+	// from a later render than the one that started it (the Quit cascade).
+	const pathContentRef = useRef(pathContent);
+	pathContentRef.current = pathContent;
 	// Live plain/styled view overrides keyed by path (the choice is also
 	// persisted onto the entry via setMetadata so it survives a reload).
 	const [pathTypeOverrides, setPathTypeOverrides] = useState<
@@ -162,8 +250,33 @@ export const SimpleText = () => {
 		setPathContent((prev) => ({ ...prev, [path]: content }));
 	}, []);
 
+	// The Markdown editor's own rewrite of a file's text as it loaded it
+	// (MDXEditor's normalization), by path: the document is unchanged while
+	// its working copy is that text.
+	const normalizedTextRef = useRef<Record<string, string>>({});
+	const setDocText = useCallback(
+		(doc: OpenDoc, text: string, normalized?: boolean) => {
+			if (normalized && doc.target.kind === "path") {
+				normalizedTextRef.current[doc.target.path] = text;
+			}
+			if (doc.target.kind === "untitled") {
+				setUntitledContent(doc.target.id, text);
+			} else {
+				setPathDocContent(doc.target.path, text);
+			}
+		},
+		[setUntitledContent, setPathDocContent],
+	);
+
 	const closeWindow = useClassicyWindowClose(appId);
 	const editMenu = useClassicyEditMenu(appId);
+	// The menus' access keys under a package that has them: Notepad's and
+	// WordPad's (notepad.exe "&File", "&New", "&Open...", "&Save", "Save
+	// &As..."; wordpad.exe "F&ormat"; WIG Appendix B Table B.5: Close C,
+	// Help H); Quit is unmarked.
+	const ak = useClassicyBundledAccessKeys();
+	// The user's own Open and Save keys (`keyboard.editableShortcuts`).
+	const shortcut = useClassicyMenuItemShortcuts();
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		appId,
 		appName,
@@ -196,19 +309,20 @@ export const SimpleText = () => {
 	// Write a path-backed document's current text straight back to its entry,
 	// preserving the entry's other metadata (unlike a full writeFile) and
 	// stamping Date Modified. Refuses locked documents and reports a write that
-	// the file system rejects (e.g. the path no longer resolves).
+	// the file system rejects (e.g. the path no longer resolves). Returns
+	// whether the text was written.
 	const saveExisting = useCallback(
-		(path: string) => {
+		(path: string): boolean => {
 			const entry = fs.resolve(path);
 			if (entry?._readOnly || entry?._system) {
 				desktopEventDispatch({
 					type: "ClassicyDesktopShowErrorDialog",
 					message: "This document is locked and cannot be saved.",
 				});
-				return;
+				return false;
 			}
 			const wrote = fs.setMetadata(path, {
-				_data: pathContent[path] ?? "",
+				_data: pathContentRef.current[path] ?? "",
 				_modifiedOn: new Date(dateTime),
 			});
 			if (!wrote) {
@@ -218,8 +332,9 @@ export const SimpleText = () => {
 						"This document could not be saved. It may have been moved or deleted.",
 				});
 			}
+			return wrote;
 		},
-		[fs, pathContent, dateTime, desktopEventDispatch],
+		[fs, dateTime, desktopEventDispatch],
 	);
 
 	// Save writes straight to disk for a titled document; an untitled one has no
@@ -234,6 +349,14 @@ export const SimpleText = () => {
 		},
 		[saveExisting],
 	);
+
+	// A close or quit waiting on the Save As… dialog an unsaved prompt's Yes
+	// opened for an untitled document: saved, the close goes on; cancelled, it
+	// stops and the document stays open.
+	const closeAfterSaveRef = useRef<{
+		target: SaveTarget;
+		resolve: (proceed: boolean) => void;
+	} | null>(null);
 
 	// Called by the save dialog after it has already written the file through
 	// the volume. Make the new file visible everywhere and open it as a document.
@@ -251,6 +374,15 @@ export const SimpleText = () => {
 			fs.flushNow();
 			desktopEventDispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
 
+			// Saved on the way to closing it: the document closes, as Notepad's
+			// does, rather than reopening under its new name.
+			const closing = closeAfterSaveRef.current;
+			if (closing && target && sameTarget(closing.target, target)) {
+				closeAfterSaveRef.current = null;
+				closing.resolve(true);
+				return;
+			}
+
 			desktopEventDispatch({
 				type: OPEN_FILE,
 				app: { id: appId },
@@ -263,6 +395,13 @@ export const SimpleText = () => {
 		},
 		[saveTarget, fs, desktopEventDispatch],
 	);
+
+	const cancelSave = useCallback(() => {
+		setSaveTarget(null);
+		const closing = closeAfterSaveRef.current;
+		closeAfterSaveRef.current = null;
+		closing?.resolve(false);
+	}, []);
 
 	const closeUntitled = useCallback((id: string) => {
 		setUntitledDocs((prev) => prev.filter((d) => d.id !== id));
@@ -342,66 +481,198 @@ export const SimpleText = () => {
 		),
 	];
 
+	// The documents as last rendered, for the Quit cascade, which looks for
+	// the next changed one after an earlier answer re-rendered.
+	const docsRef = useRef(docs);
+	docsRef.current = docs;
+
+	// --- Unsaved changes ---------------------------------------------------
+
+	// Close a document's window now: an untitled one just goes; a file's
+	// window closes and its working copy is dropped (CloseFile).
+	const closeDocNow = useCallback(
+		(doc: OpenDoc) => {
+			if (doc.target.kind === "untitled") {
+				const { id } = doc.target;
+				// An untitled doc has no file to clean up — just close its window.
+				desktopEventDispatch({
+					type: "ClassicyWindowClose",
+					app: { id: appId },
+					window: { id: doc.windowId },
+				});
+				closeUntitled(id);
+			} else {
+				const { path } = doc.target;
+				closeWindow(doc.windowId, {
+					type: CLOSE_FILE,
+					app: { id: appId },
+					path,
+				});
+			}
+		},
+		[desktopEventDispatch, closeUntitled, closeWindow],
+	);
+
+	// Changed since it was opened or saved: a file's working copy differs from
+	// the file's text, or an untitled document holds any text.
+	const isDirty = useCallback(
+		(doc: OpenDoc): boolean => {
+			if (doc.target.kind === "untitled") return doc.content !== "";
+			const working = pathContentRef.current[doc.target.path];
+			return (
+				working !== undefined &&
+				working !== storedText(fs.resolve(doc.target.path)) &&
+				working !== normalizedTextRef.current[doc.target.path]
+			);
+		},
+		[fs],
+	);
+
+	// The message box asking about one document; one at a time.
+	const [unsavedPrompt, setUnsavedPrompt] = useState<UnsavedPrompt | null>(
+		null,
+	);
+	const askToSave = useCallback(
+		(doc: OpenDoc) =>
+			new Promise<boolean>((resolve) => {
+				setUnsavedPrompt({ doc, resolve });
+			}),
+		[],
+	);
+
+	// The close guard every close of a document goes through (its close box,
+	// File ▸ Close): `true` at once for an unchanged document, or under a
+	// package that does not ask; else the answer to Notepad's message box.
+	const confirmClose = useCallback(
+		(doc: OpenDoc): boolean | Promise<boolean> => {
+			if (!confirmsUnsaved) return true;
+			const fresh = docsRef.current.find((d) => d.key === doc.key) ?? doc;
+			return isDirty(fresh) ? askToSave(fresh) : true;
+		},
+		[confirmsUnsaved, isDirty, askToSave],
+	);
+
+	// The message box's answer. Yes saves (an untitled document through Save
+	// As…, the close waiting for it) and goes on once saved; No goes on, the
+	// close discarding the working copy; Cancel keeps the document open.
+	const answerUnsavedPrompt = useCallback(
+		(answer: "yes" | "no" | "cancel") => {
+			const prompt = unsavedPrompt;
+			if (!prompt) return;
+			setUnsavedPrompt(null);
+			const { doc, resolve } = prompt;
+			if (answer === "cancel") {
+				resolve(false);
+			} else if (answer === "no") {
+				resolve(true);
+			} else if (doc.target.kind === "path") {
+				resolve(saveExisting(doc.target.path));
+			} else {
+				closeAfterSaveRef.current = { target: doc.target, resolve };
+				setSaveTarget(doc.target);
+			}
+		},
+		[unsavedPrompt, saveExisting],
+	);
+
+	// Quit, under `document.confirmUnsavedClose`: each changed document in
+	// turn comes forward and asks, as HyperCard's Quit walks its stacks; each
+	// answered Yes or No closes, and a Cancel stops the Quit with the rest
+	// open. Then the app quits.
+	const handleQuit = useCallback(() => {
+		const run = async (): Promise<void> => {
+			const asked = new Set<string>();
+			for (;;) {
+				const next = docsRef.current.find(
+					(d) => !asked.has(d.key) && isDirty(d),
+				);
+				if (!next) break;
+				asked.add(next.key);
+				desktopEventDispatch({
+					type: "ClassicyWindowFocus",
+					app: { id: appId },
+					window: { id: next.windowId },
+				});
+				const proceed = await askToSave(next);
+				if (!proceed) return;
+				closeDocNow(next);
+			}
+			desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
+		};
+		void run();
+	}, [isDirty, askToSave, closeDocNow, desktopEventDispatch, appIcon]);
+
 	// --- Menus -------------------------------------------------------------
 
 	const buildAppMenu = useCallback(
 		(doc: OpenDoc): ClassicyMenuItem[] => {
 			const isMarkdown = doc.type === ClassicyFileSystemEntryFileType.Markdown;
+			// File ▸ Close goes through the same guard as the close box.
 			const closeThis = () => {
-				if (doc.target.kind === "untitled") {
-					const { id } = doc.target;
-					// An untitled doc has no file to clean up — just close its window.
-					desktopEventDispatch({
-						type: "ClassicyWindowClose",
-						app: { id: appId },
-						window: { id: doc.windowId },
-					});
-					closeUntitled(id);
-				} else {
-					const { path } = doc.target;
-					closeWindow(doc.windowId, {
-						type: CLOSE_FILE,
-						app: { id: appId },
-						path,
+				const proceed = confirmClose(doc);
+				if (proceed === true) closeDocNow(doc);
+				else if (proceed !== false) {
+					void proceed.then((ok) => {
+						if (ok) closeDocNow(doc);
 					});
 				}
 			};
+			const quitItem = quitMenuItemHelper(appId, appName, appIcon, ak(""));
 
 			return [
 				{
 					id: `${doc.windowId}_file`,
 					title: "File",
+					accessKey: ak("f"),
 					menuChildren: [
-						{ id: `${doc.windowId}_new`, title: "New", onClickFunc: newFile },
+						{
+							id: `${doc.windowId}_new`,
+							title: "New",
+							accessKey: ak("n"),
+							onClickFunc: newFile,
+						},
 						{
 							id: `${doc.windowId}_open`,
 							title: "Open…",
+							accessKey: ak("o"),
+							...(standardShortcuts
+								? { keyboardShortcut: shortcut(`${appId}_file_open`, "⌃O") }
+								: {}),
 							onClickFunc: () => setShowOpenDialog(true),
 						},
 						{ id: "spacer" },
 						{
 							id: `${doc.windowId}_close`,
 							title: "Close",
+							accessKey: ak("c"),
 							onClickFunc: closeThis,
 						},
 						{
 							id: `${doc.windowId}_save`,
 							title: "Save",
+							accessKey: ak("s"),
+							...(standardShortcuts
+								? { keyboardShortcut: shortcut(`${appId}_file_save`, "⌃S") }
+								: {}),
 							onClickFunc: () => saveDoc(doc.target),
 						},
 						{
 							id: `${doc.windowId}_save_as`,
 							title: "Save As…",
+							accessKey: ak("A"),
 							onClickFunc: () => setSaveTarget(doc.target),
 						},
 						{ id: "spacer" },
-						quitMenuItemHelper(appId, appName, appIcon),
+						confirmsUnsaved
+							? { ...quitItem, onClickFunc: handleQuit }
+							: quitItem,
 					],
 				},
 				editMenu,
 				{
 					id: `${doc.windowId}_format`,
 					title: "Format",
+					accessKey: ak("o"),
 					menuChildren: [
 						{
 							id: `${doc.windowId}_toggle_format`,
@@ -413,17 +684,22 @@ export const SimpleText = () => {
 				{
 					id: `${doc.windowId}_help`,
 					title: "Help",
+					accessKey: ak("h"),
 					menuChildren: [aboutMenuItem],
 				},
 			];
 		},
 		[
+			ak,
 			newFile,
 			saveDoc,
 			toggleType,
-			closeWindow,
-			closeUntitled,
-			desktopEventDispatch,
+			confirmClose,
+			closeDocNow,
+			confirmsUnsaved,
+			standardShortcuts,
+			shortcut,
+			handleQuit,
 			editMenu,
 			aboutMenuItem,
 			appIcon,
@@ -485,11 +761,14 @@ export const SimpleText = () => {
 				<ClassicyWindow
 					key={doc.key}
 					id={doc.windowId}
-					title={doc.title}
+					title={titleAppName ? `${doc.title} - ${shownName}` : doc.title}
 					appId={appId}
 					initialSize={[400, 350]}
 					initialPosition={[200 + idx * 30, 100 + idx * 30]}
 					appMenu={buildAppMenu(doc)}
+					// Under `document.confirmUnsavedClose`, the close box asks
+					// first; without it the window has no veto, as before.
+					onBeforeClose={confirmsUnsaved ? () => confirmClose(doc) : undefined}
 					onCloseFunc={() => {
 						if (doc.target.kind === "untitled") {
 							closeUntitled(doc.target.id);
@@ -503,32 +782,11 @@ export const SimpleText = () => {
 					// window stays its scroller.
 					scrollable={doc.type === ClassicyFileSystemEntryFileType.Markdown}
 				>
-					{doc.type === ClassicyFileSystemEntryFileType.Markdown ? (
-						<ClassicyRichTextEditor
-							content={doc.content}
-							onChangeFunc={(markdown) => {
-								if (doc.target.kind === "untitled") {
-									setUntitledContent(doc.target.id, markdown);
-								} else {
-									setPathDocContent(doc.target.path, markdown);
-								}
-							}}
-						/>
-					) : (
-						<ClassicyTextEditor
-							content={doc.content}
-							// A document: its bars stay while the text fits when the
-							// package keeps them (System 7's SimpleText).
-							fitsScrollBars={keepsFitsBars}
-							onChangeFunc={(e) => {
-								if (doc.target.kind === "untitled") {
-									setUntitledContent(doc.target.id, e.target.value);
-								} else {
-									setPathDocContent(doc.target.path, e.target.value);
-								}
-							}}
-						/>
-					)}
+					<SimpleTextDocumentEditor
+						doc={doc}
+						fitsScrollBars={keepsFitsBars}
+						onTextChange={setDocText}
+					/>
 				</ClassicyWindow>
 			))}
 			<ClassicyFileOpenDialog
@@ -562,8 +820,44 @@ export const SimpleText = () => {
 				defaultFileName={saveDefaultName}
 				formats={saveFormats}
 				onSaveFunc={handleSaved}
-				onCancelFunc={() => setSaveTarget(null)}
+				onCancelFunc={cancelSave}
 			/>
+			{unsavedPrompt && (
+				// Notepad's message box (notepad.exe's strings, read from the
+				// Windows 98 SE CD: "The text in the %% file has changed.", a
+				// blank line, "Do you want to save the changes?"; "Untitled"),
+				// with the exclamation icon and Yes, No and Cancel, Yes the
+				// default.
+				<ClassicyAlert
+					id={`${appId}_unsaved_changes`}
+					appId={appId}
+					alertType={"caution"}
+					movable={true}
+					title={shownName}
+					label={`The text in the ${unsavedPrompt.doc.title} file has changed.`}
+					message={"Do you want to save the changes?"}
+					defaultButtonId={"yes"}
+					buttons={[
+						{
+							id: "yes",
+							label: "Yes",
+							role: "default",
+							onClick: () => answerUnsavedPrompt("yes"),
+						},
+						{
+							id: "no",
+							label: "No",
+							onClick: () => answerUnsavedPrompt("no"),
+						},
+						{
+							id: "cancel",
+							label: "Cancel",
+							role: "cancel",
+							onClick: () => answerUnsavedPrompt("cancel"),
+						},
+					]}
+				/>
+			)}
 			{aboutWindow}
 		</ClassicyApp>
 	);

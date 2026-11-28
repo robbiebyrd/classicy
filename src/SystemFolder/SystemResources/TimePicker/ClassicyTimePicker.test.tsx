@@ -30,6 +30,21 @@ vi.mock(
 const prefill = new Date("2026-07-14T10:30:20");
 
 describe("ClassicyTimePicker", () => {
+	// The frame carries the `disabled` state its inputs share, for a
+	// package's disabled look without `:has()`.
+	it("marks its frame disabled with its inputs", () => {
+		const { container, rerender } = render(
+			<ClassicyTimePicker id="tp" disabled />,
+		);
+		const frame = container.querySelector(".classicyTimePicker") as HTMLElement;
+		expect(frame.classList.contains("disabled")).toBe(true);
+		expect(
+			(document.getElementById("tp_hour") as HTMLInputElement).disabled,
+		).toBe(true);
+		rerender(<ClassicyTimePicker id="tp" />);
+		expect(frame.classList.contains("disabled")).toBe(false);
+	});
+
 	it("renders the visible little-arrows widget beside the field", () => {
 		render(<ClassicyTimePicker id="t" prefillValue={prefill} />);
 		expect(

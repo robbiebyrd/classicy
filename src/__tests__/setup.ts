@@ -3,6 +3,8 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach } from "vitest";
 import { resetClassicyDefaultStateSeedForTests } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDefaultStateSeed.internal";
 import { resetClassicyFileSystemSharedTrees } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { resetClassicyRecentDocuments } from "@/SystemFolder/SystemResources/File/ClassicyRecentDocuments.internal";
+import { resetClassicyTaskbarBandForTests } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
 
 // Node 23+ ships an experimental, file-backed global `localStorage` that throws
 // `SecurityError: Cannot initialize local storage without a --localstorage-file
@@ -108,6 +110,11 @@ beforeEach(() => {
 	resetClassicyFileSystemSharedTrees();
 	// A provider seeds once per page session; each test is a new one.
 	resetClassicyDefaultStateSeedForTests();
+	// No taskbar is mounted when a test starts, so no band a test published
+	// reaches the next one's window, icon or menu geometry.
+	resetClassicyTaskbarBandForTests();
+	// Start ▸ Documents lists this page's opens: each test is a new page.
+	resetClassicyRecentDocuments();
 });
 
 afterEach(() => {

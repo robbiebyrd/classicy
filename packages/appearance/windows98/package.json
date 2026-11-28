@@ -1,0 +1,70 @@
+{
+	"name": "@classicy/appearance-windows98",
+	"version": "3.7.0",
+	"description": "Windows 95 and 98, the classic Windows look with its color schemes, as an Appearance Package for Classicy.",
+	"keywords": [
+		"classicy",
+		"appearance-package",
+		"windows98",
+		"windows95",
+		"react"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/robbiebyrd/classicy",
+		"directory": "packages/appearance/windows98"
+	},
+	"author": "Robbie Byrd <me@robbiebyrd.com>",
+	"license": "Unlicense",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"types": "./dist/types/index.d.ts",
+	"main": "./dist/appearance-windows98.umd.js",
+	"module": "./dist/appearance-windows98.es.js",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/appearance-windows98.es.js",
+			"require": "./dist/appearance-windows98.umd.js"
+		},
+		"./scss/*": "./src/styles/*",
+		"./classicy-windows98.css": "./dist/classicy-windows98.css",
+		"./classicy-windows98.fonts.css": "./dist/classicy-windows98.fonts.css"
+	},
+	"files": [
+		"dist",
+		"src/styles",
+		"src/screenSavers/*.scss",
+		"src/assets/fonts/*.txt",
+		"README.md",
+		"LICENSE"
+	],
+	"sideEffects": [
+		"./dist/*.js",
+		"./src/index.ts",
+		"./src/assets/windows98Assets.ts",
+		"./src/assets/windows98AssetAdditions.ts",
+		"./src/assets/sounds/windows98.ts",
+		"./src/screenSavers/windows98ScreenSavers.ts",
+		"**/*.css",
+		"**/*.scss"
+	],
+	"scripts": {
+		"build": "vite build && pnpm verify:dist",
+		"verify:dist": "node bin/verify-dist.mjs",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"@classicy/classicy": "workspace:^",
+		"react": "^18.0.0 || ^19.0.0",
+		"react-dom": "^18.0.0 || ^19.0.0"
+	},
+	"devDependencies": {
+		"@classicy/classicy": "workspace:*"
+	}
+}

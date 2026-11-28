@@ -140,6 +140,19 @@ jobs:
           git add packages/appearance/system7/package.json
           git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-system7 to $VERSION [skip ci]"
 
+      # Windows 98 ships at the root's version too, synced the same way and
+      # skipped until its folder exists.
+      - name: Sync the Windows 98 package version
+        if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/windows98/package.json') != ''
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p 'require("./package.json").version')"
+          npm pkg set version="$VERSION" --prefix packages/appearance/windows98
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add packages/appearance/windows98/package.json
+          git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-windows98 to $VERSION [skip ci]"
+
       # Releases publish with npm trusted publishing (OIDC), never a stored
       # token (story 0156-tx7). Checked here, before the build and the push, so
       # a package whose trusted publisher is missing, mistyped or expired (a new
@@ -169,6 +182,9 @@ jobs:
           fi
           if [ -f packages/appearance/system7/package.json ]; then
             DIRS+=(packages/appearance/system7)
+          fi
+          if [ -f packages/appearance/windows98/package.json ]; then
+            DIRS+=(packages/appearance/windows98)
           fi
           FAILED=0
           for DIR in "${DIRS[@]}"; do
@@ -273,7 +289,7 @@ jobs:
         if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') != ''
         env:
           NODE_AUTH_TOKEN: ''
-        run: pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --filter @classicy/appearance-system7 --access public --no-git-checks
+        run: pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --filter @classicy/appearance-system7 --filter @classicy/appearance-windows98 --access public --no-git-checks
 
       # Until the Platinum package exists, only the root publishes.
       - name: Publish to npm (core only)
@@ -303,6 +319,9 @@ jobs:
           fi
           if [ -f packages/appearance/system7/package.json ]; then
             PACKAGES+=("$(node -p 'require("./packages/appearance/system7/package.json").name')")
+          fi
+          if [ -f packages/appearance/windows98/package.json ]; then
+            PACKAGES+=("$(node -p 'require("./packages/appearance/windows98/package.json").name')")
           fi
           POLL_SECONDS=30
           POLLS=90

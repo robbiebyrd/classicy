@@ -29,7 +29,10 @@ import {
 	appearanceOptionInputId,
 	useOptionsTab,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Options";
-import { APPEARANCE_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
+import {
+	APPEARANCE_MANAGER_APP_ID,
+	APPEARANCE_MANAGER_DESKTOP_TAB,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
 import type { ClassicyThemeMetricFamilyTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
@@ -701,6 +704,13 @@ describe("Appearance Manager — Packages and Options tabs", {
 			"Metrics",
 			"Sound",
 		]);
+		// Explorer's Display Properties opens the Desktop tab by its place
+		// (`APPEARANCE_MANAGER_DESKTOP_TAB`, the remaining chapters' audit's
+		// 2.2).
+		expect(
+			within(win).getAllByRole("tab")[APPEARANCE_MANAGER_DESKTOP_TAB]
+				.textContent,
+		).toBe("Desktop");
 	});
 
 	it("switches the package and edits its knob through the store", async () => {

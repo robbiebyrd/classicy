@@ -9,8 +9,13 @@ import {
 	hasWindowZoomed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import {
+	classicyAppPalettesHidden,
+	classicyVisibleSuccession,
+	classicyWindowsMinimize,
 	focusApp,
 	focusWindow,
+	isClassicyPrimaryWindow,
+	requestClassicyAppAttention,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
@@ -27,6 +32,7 @@ import {
 	updateAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { classicyWindowViewStatePatch } from "@/SystemFolder/SystemResources/Window/ClassicyWindowViewStatePatch.internal";
 
 const initialWindowState = {
 	closed: false,
@@ -105,6 +111,15 @@ export type ClassicyWindowAction =
 			app: { id: string };
 			window: { id: string };
 			zoomed: boolean;
+			/**
+			 * The rect a window maximized under `layout.window.zoom:
+			 * "maximize"` returns to (its outer left/top and content size
+			 * before the zoom), stored as the record's `restoreRect` so
+			 * Restore survives a reload. Sent only by such a window, with
+			 * `zoomed: true`; a malformed one (not two pairs of finite
+			 * numbers) refuses the action (`hasWindowZoomed`).
+			 */
+			restore?: { position: [number, number]; size: [number, number] };
 	  }
 	// Set a Window's Position
 	| {
@@ -128,6 +143,15 @@ export type ClassicyWindowAction =
 			window: { id: string };
 			position: [number, number];
 			moving: boolean;
+	  }
+	// Record a window's view state (its scroll offsets, a document's caret),
+	// kept only under a package's `layout.window.restoreViewState`
+	| {
+			type: "ClassicyWindowSetScroll";
+			app: { id: string };
+			window: { id: string };
+			scroll?: [number, number];
+			caret?: number;
 	  }
 	// Refresh a window's stored menuBar record (does not require focus)
 	| {
@@ -173,7 +197,21 @@ export const classicyWindowEventHandler = (
 				windowType?: "document" | "utility";
 				collapsable?: unknown;
 				modal?: unknown;
+				background?: unknown;
 			};
+			// Under the Windows shell, a modal dialog an inactive app opens
+			// while the user is not working in it (`background`, set by
+			// `ClassicyWindow` from `classicyModalOpensInBackground`) does not
+			// take the foreground: its app's taskbar button flashes instead,
+			// until the user activates the app (WIG Ch.10 "Message
+			// Notification", p.212; Windows 98's foreground lock, which turns a
+			// background SetForegroundWindow into FlashWindowEx). It opens
+			// focused as always when the app has no window with a button to
+			// flash, or under any package without a taskbar.
+			const opensInBackground = () =>
+				win.background === true &&
+				win.modal === true &&
+				requestClassicyAppAttention(ds, action.app.id);
 			// #278: persist the window's collapsable/modal props so Option-click
 			// collapse-all can skip windows that opted out. Only real booleans
 			// are written — a malformed payload leaves the record untouched.
@@ -207,7 +245,7 @@ export const classicyWindowEventHandler = (
 				} as ClassicyStoreSystemAppWindow);
 				// A genuinely new window opens focused (Mac behavior); re-registered
 				// persisted windows must not steal focus.
-				ds = focusWindow(ds, action.app.id, win.id);
+				if (!opensInBackground()) ds = focusWindow(ds, action.app.id, win.id);
 			} else {
 				const existing = getAppWindow(app, win.id);
 				// A window closed earlier this session and now registering again
@@ -223,7 +261,7 @@ export const classicyWindowEventHandler = (
 					closedThisSession: false,
 					...flags,
 				});
-				if (reopening) {
+				if (reopening && !opensInBackground()) {
 					ds = focusWindow(ds, action.app.id, win.id);
 				}
 			}
@@ -253,9 +291,30 @@ export const classicyWindowEventHandler = (
 				closedThisSession: true,
 				focused: false,
 			});
+			// A closed window has no taskbar button left to flash.
+			const closedRecord = getAppWindow(
+				ds.System.Manager.Applications.apps[action.app.id],
+				action.window.id,
+			);
+			if (closedRecord?.attention) delete closedRecord.attention;
 			// Promote a sibling only when this app holds focus — closing a
 			// background app's window must not steal global focus.
 			if (ds.System.Manager.Applications.focusedAppId !== action.app.id) {
+				break;
+			}
+			// Under `window.collapse: "minimize"` focus passes on as it does
+			// from a minimize: the app's front shown window, else another
+			// app's, else the desktop. A minimized sibling is never restored,
+			// and the app is never left focused with no window to show its
+			// menus (where ClassicyApp's refocus would restore one). A window
+			// of the app that still holds focus (its dialog) keeps it.
+			if (classicyWindowsMinimize(ds)) {
+				const stillFocused = listAppWindows(
+					ds.System.Manager.Applications.apps[action.app.id],
+				).some((w) => w.focused === true && !w.closed);
+				if (!stillFocused) {
+					ds = classicyVisibleSuccession(ds, action.app.id, action.window.id);
+				}
 				break;
 			}
 			const nextFocus = mostRecentAppWindow(
@@ -308,9 +367,15 @@ export const classicyWindowEventHandler = (
 			// Hand focus to a surviving sibling using the same succession rules
 			// as ClassicyWindowClose (lastAccessed → highest zOrder → default,
 			// skipping utility palettes). Removal happens first so the destroyed
-			// window can never select itself.
+			// window can never select itself. Under `window.collapse:
+			// "minimize"`, the minimize succession instead, which never picks
+			// (and so never restores) a minimized window.
 			if (heldFocus) {
-				focusApp(ds, action.app.id);
+				if (classicyWindowsMinimize(ds)) {
+					ds = classicyVisibleSuccession(ds, action.app.id, action.window.id);
+				} else {
+					focusApp(ds, action.app.id);
+				}
 			}
 			break;
 		}
@@ -335,6 +400,16 @@ export const classicyWindowEventHandler = (
 			break;
 		}
 
+		case "ClassicyWindowSetScroll": {
+			if (!hasAppAndWindow(action)) break;
+			const patch = classicyWindowViewStatePatch(
+				ds,
+				action as { scroll?: unknown; caret?: unknown },
+			);
+			if (patch) updateWindow(action.app.id, action.window.id, patch);
+			break;
+		}
+
 		case "ClassicyWindowResize": {
 			if (!hasWindowResizing(action)) break;
 			updateWindow(action.app.id, action.window.id, {
@@ -352,12 +427,66 @@ export const classicyWindowEventHandler = (
 		}
 		case "ClassicyWindowZoom": {
 			if (!hasWindowZoomed(action)) break;
-			updateWindow(action.app.id, action.window.id, { zoomed: action.zoomed });
+			const { zoomed, restore } = action;
+			updateWindow(action.app.id, action.window.id, (w) => {
+				w.zoomed = zoomed;
+				// A maximized window's rect to return to (plan 0020-w98 §5): kept
+				// while it stays zoomed, gone once it un-zooms, whatever un-zooms
+				// it (its Restore, a resize, a WindowShade collapse, another
+				// package's zoom box). Only a window maximized under
+				// `layout.window.zoom: "maximize"` sends one, so every other
+				// package's record never gains the key.
+				if (!zoomed) {
+					if ("restoreRect" in w) delete w.restoreRect;
+				} else if (restore) {
+					w.restoreRect = {
+						position: [restore.position[0], restore.position[1]],
+						size: [restore.size[0], restore.size[1]],
+					};
+				}
+			});
 			break;
 		}
 		case "ClassicyWindowCollapse": {
 			if (!hasAppAndWindow(action)) break;
-			updateWindow(action.app.id, action.window.id, { collapsed: true });
+			if (!classicyWindowsMinimize(ds)) {
+				updateWindow(action.app.id, action.window.id, { collapsed: true });
+				break;
+			}
+			// Under `window.collapse: "minimize"` (plan 0020-w98 §5): the
+			// window leaves the screen and keeps its taskbar button (WIG Ch.6
+			// "Minimizing Windows", p.85). A modal or a palette has no button
+			// to come back from, so its collapse is refused, whoever asks
+			// (collapse-all, a host's dispatch).
+			const app = ds.System.Manager.Applications.apps[action.app.id];
+			const record = getAppWindow(app, action.window.id);
+			if (!record || !isClassicyPrimaryWindow(record)) break;
+			const appFocused =
+				ds.System.Manager.Applications.focusedAppId === action.app.id;
+			const heldFocus = record.focused === true && appFocused;
+			ds = updateWindow(action.app.id, action.window.id, {
+				collapsed: true,
+				focused: false,
+			});
+			// The app's palette that holds focus goes with its last shown
+			// window (`classicyAppPalettesHidden`; Windows hides a minimized
+			// window's owned pop-ups, WIG Ch.8, p.145): off the screen, it
+			// passes the focus on as the window would have.
+			const after = ds.System.Manager.Applications.apps[action.app.id];
+			const paletteLeft =
+				appFocused &&
+				!heldFocus &&
+				classicyAppPalettesHidden(after) &&
+				listAppWindows(after).some(
+					(w) => w.focused === true && !w.closed && w.windowType === "utility",
+				);
+			// The active window minimized: focus passes to the next window
+			// down, never a minimized one, so the app is not left focused
+			// with no window (where ClassicyApp's refocus would restore the
+			// one just minimized). Minimizing any other window moves nothing.
+			if (heldFocus || paletteLeft) {
+				ds = classicyVisibleSuccession(ds, action.app.id, action.window.id);
+			}
 			break;
 		}
 		case "ClassicyWindowExpand": {

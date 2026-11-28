@@ -15,6 +15,7 @@ import {
 import { getAllThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 // Read as data, not through the package's entry, which would register it.
 import system7Json from "../../packages/appearance/system7/src/system7.json";
+import windows98Json from "../../packages/appearance/windows98/src/windows98.json";
 
 export type StorybookAppearancePackage = {
 	id: string;
@@ -39,6 +40,12 @@ export const STORYBOOK_APPEARANCE_PACKAGES: readonly StorybookAppearancePackage[
 			title: "System 7",
 			presets: () => system7Json.presets,
 			load: () => import("@classicy/appearance-system7"),
+		},
+		{
+			id: "windows98",
+			title: "Windows 98",
+			presets: () => windows98Json.presets,
+			load: () => import("@classicy/appearance-windows98"),
 		},
 	];
 

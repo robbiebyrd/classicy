@@ -68,8 +68,54 @@ export function isDriveSyncConnected(): boolean {
 export function buildDriveContextMenu(
 	drive: string,
 	isConnected: boolean,
+	options: {
+		/**
+		 * Lead with Open, the menu's default item (Explorer's commands,
+		 * `layout.finder.commands` "windows"; WIG Ch.5 "Default Operations
+		 * and Shortcut Techniques", p.45): it opens the drive's window, the
+		 * command a double-click runs. Mac OS 8's Finder sets no default item
+		 * in a contextual menu (HIGOS8 "Contextual Menus", pp.94-95), so it is
+		 * off unless asked for.
+		 */
+		open?: boolean;
+		/** Open's access key, when the package gives one (shell32.dll's "&Open"). */
+		openAccessKey?: string;
+		/**
+		 * End with Create Shortcut (Explorer's commands; WIG Ch.10
+		 * "Registering Commands", pp.200-201): a drive lies at the root of
+		 * the tree, where no shortcut may be made, so it asks Finder to offer
+		 * the desktop instead (`ClassicyAppFinderOfferDesktopShortcut`), as
+		 * Windows 98 SE offers it for a drive in My Computer.
+		 */
+		createShortcut?: boolean;
+		/** Create Shortcut's access key, when the package gives one (shell32.dll's "Create &Shortcut"). */
+		createShortcutAccessKey?: string;
+		/**
+		 * End with Properties after a separator (Explorer's commands; WIG
+		 * Ch.2 "Putting Theory into Practice", pp.12-13; Ch.5 "Properties",
+		 * p.51): the drive's property sheet (`ClassicyAppFinderPropertiesOpen`).
+		 */
+		properties?: boolean;
+		/** Properties' access key, when the package gives one (shell32.dll's "P&roperties"). */
+		propertiesAccessKey?: string;
+	} = {},
 ): ClassicyMenuItem[] {
 	return [
+		...(options.open
+			? [
+					{
+						id: `drive_${drive}_open`,
+						title: "Open",
+						...(options.openAccessKey !== undefined
+							? { accessKey: options.openAccessKey }
+							: {}),
+						isDefault: true,
+						event: "ClassicyAppFinderOpenFolder",
+						eventData: { path: drive },
+					},
+					{ id: "spacer" },
+				]
+			: []),
 		{
 			id: `drive_${drive}_initialize`,
 			title: "Initialize…",
@@ -90,5 +136,33 @@ export function buildDriveContextMenu(
 			eventData: { drive },
 			disabled: !isConnected,
 		},
+		...(options.createShortcut
+			? [
+					{ id: "spacer" },
+					{
+						id: `drive_${drive}_create_shortcut`,
+						title: "Create Shortcut",
+						...(options.createShortcutAccessKey !== undefined
+							? { accessKey: options.createShortcutAccessKey }
+							: {}),
+						event: "ClassicyAppFinderOfferDesktopShortcut",
+						eventData: { paths: [drive] },
+					},
+				]
+			: []),
+		...(options.properties
+			? [
+					{ id: "spacer" },
+					{
+						id: `drive_${drive}_properties`,
+						title: "Properties",
+						...(options.propertiesAccessKey !== undefined
+							? { accessKey: options.propertiesAccessKey }
+							: {}),
+						event: "ClassicyAppFinderPropertiesOpen",
+						eventData: { paths: [drive] },
+					},
+				]
+			: []),
 	];
 }

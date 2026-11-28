@@ -1,7 +1,28 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	registerTestTaskbarPackage,
+	TEST_MINIMIZE_LAYOUT,
+	TEST_MINIMIZE_PACKAGE_ID,
+	TEST_TASKBAR_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+// The Windows-layout package below needs a sound pack registered: the core
+// default theme names Platinum's.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import type {
+	ClassicyStore,
+	ClassicyStoreSystemApp,
+	ClassicyStoreSystemAppWindow,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { classicyDesktopStateEventReducer } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	countAppWindows,
 	getAppWindow,
@@ -9,6 +30,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { classicyWindowEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 function makeStore(
 	overrides: Partial<{
@@ -368,6 +390,92 @@ describe("ClassicyWindowSetMenuBar", () => {
 	});
 });
 
+// A window's view state (the WIG audit's 2.1; WIG Ch.2 "Persistence",
+// p.12): kept on its record only under a package's
+// `layout.window.restoreViewState`, finite values only.
+describe("ClassicyWindowSetScroll", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-view-state",
+			name: "Windows View State",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-view-state-default",
+				package: "windows-view-state",
+			},
+			layout: windows98.layout as never,
+		});
+	const w1 = (ds: ClassicyStore) =>
+		getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
+	const setScroll = (ds: ClassicyStore, extra: Record<string, unknown>) =>
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowSetScroll",
+			app: { id: "TestApp" },
+			window: { id: "w1" },
+			...extra,
+		});
+
+	it("records the scroll offsets and the caret under Windows 98's layout", () => {
+		useWindowsLayout();
+		const ds = makeStoreWithWindows();
+		setScroll(ds, { scroll: [12, 340] });
+		expect(w1(ds)?.scroll).toEqual([12, 340]);
+		expect(w1(ds)?.caret).toBeUndefined();
+		setScroll(ds, { caret: 57 });
+		expect(w1(ds)?.caret).toBe(57);
+		expect(w1(ds)?.scroll).toEqual([12, 340]);
+		setScroll(ds, { scroll: [0, 0], caret: 0 });
+		expect(w1(ds)?.scroll).toEqual([0, 0]);
+		expect(w1(ds)?.caret).toBe(0);
+	});
+
+	it("ignores values that are not finite, negative or fractional carets", () => {
+		useWindowsLayout();
+		const ds = makeStoreWithWindows();
+		setScroll(ds, { scroll: [10, 20], caret: 3 });
+		for (const extra of [
+			{ scroll: [Number.NaN, 5] },
+			{ scroll: [5, Number.POSITIVE_INFINITY] },
+			{ scroll: [-1, 5] },
+			{ scroll: [5] },
+			{ scroll: "10,20" },
+			{ caret: -2 },
+			{ caret: 1.5 },
+			{ caret: Number.NaN },
+			{},
+		]) {
+			setScroll(ds, extra);
+		}
+		expect(w1(ds)?.scroll).toEqual([10, 20]);
+		expect(w1(ds)?.caret).toBe(3);
+	});
+
+	it("is a no-op for an unknown window", () => {
+		useWindowsLayout();
+		const ds = makeStoreWithWindows();
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowSetScroll",
+			app: { id: "TestApp" },
+			window: { id: "nope" },
+			scroll: [1, 2],
+		});
+		expect(
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "nope"),
+		).toBeUndefined();
+	});
+
+	it("writes nothing under the default layout", () => {
+		const ds = makeStoreWithWindows();
+		setScroll(ds, { scroll: [12, 340], caret: 57 });
+		expect(w1(ds)).not.toHaveProperty("scroll");
+		expect(w1(ds)).not.toHaveProperty("caret");
+	});
+});
+
 describe("ClassicyWindowResize", () => {
 	it("updates the window size and resizing flag", () => {
 		const ds = makeStoreWithWindows();
@@ -451,6 +559,70 @@ describe("ClassicyWindowZoom", () => {
 		expect(
 			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1")?.zoomed,
 		).toBe(false);
+	});
+
+	// Plan 0020-w98 §5, "Maximize and restore": a window maximized under
+	// `window.zoom: "maximize"` sends the rect it returns to, stored as its
+	// record's `restoreRect` so Restore survives a reload.
+	describe("the restore rect", () => {
+		const w1 = (ds: ClassicyStore) =>
+			getAppWindow(ds.System.Manager.Applications.apps.TestApp, "w1");
+		const zoom = (
+			ds: ClassicyStore,
+			zoomed: boolean,
+			restore?: unknown,
+		): ClassicyStore =>
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowZoom",
+				app: { id: "TestApp" },
+				window: { id: "w1" },
+				zoomed,
+				...(restore === undefined ? {} : { restore }),
+			});
+
+		it("writes only `zoomed` for a zoom without one, as before", () => {
+			const ds = makeStoreWithWindows();
+			const before = { ...w1(ds) };
+			zoom(ds, true);
+			expect(w1(ds)).toEqual({ ...before, zoomed: true });
+			expect("restoreRect" in (w1(ds) ?? {})).toBe(false);
+			zoom(ds, false);
+			expect(w1(ds)).toEqual({ ...before, zoomed: false });
+		});
+
+		it("stores the rect a maximize sends, as a copy", () => {
+			const ds = makeStoreWithWindows();
+			const restore = { position: [100, 100], size: [400, 300] };
+			zoom(ds, true, restore);
+			expect(w1(ds)).toMatchObject({
+				zoomed: true,
+				restoreRect: { position: [100, 100], size: [400, 300] },
+			});
+			restore.position[0] = 5;
+			expect(w1(ds)?.restoreRect?.position).toEqual([100, 100]);
+		});
+
+		it("refuses a zoom whose rect is malformed, writing nothing", () => {
+			const ds = makeStoreWithWindows();
+			const before = { ...w1(ds) };
+			zoom(ds, true, { position: [Number.NaN, 0], size: [400, 300] });
+			zoom(ds, true, { position: [1, 2] });
+			zoom(ds, true, "maximized");
+			expect(w1(ds)).toEqual(before);
+		});
+
+		it("keeps the rect through a zoom without one, and deletes it on un-zoom", () => {
+			const ds = makeStoreWithWindows();
+			zoom(ds, true, { position: [100, 100], size: [400, 300] });
+			zoom(ds, true);
+			expect(w1(ds)?.restoreRect).toEqual({
+				position: [100, 100],
+				size: [400, 300],
+			});
+			zoom(ds, false);
+			expect(w1(ds)?.zoomed).toBe(false);
+			expect("restoreRect" in (w1(ds) ?? {})).toBe(false);
+		});
 	});
 });
 
@@ -1207,5 +1379,580 @@ describe("focus recency within a single millisecond", () => {
 		} finally {
 			nowSpy.mockRestore();
 		}
+	});
+});
+
+// Plan 0020-w98 §5, "Minimize": under `window.collapse: "minimize"` a
+// collapse takes the window off the screen and passes focus on, and a close
+// or a modal's destroy passes it on the same way; under every other package
+// all three are as they always were.
+describe("minimize (window.collapse)", () => {
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_MINIMIZE_PACKAGE_ID);
+	});
+
+	const win = (
+		id: string,
+		overrides: Partial<ClassicyStoreSystemAppWindow> = {},
+	): ClassicyStoreSystemAppWindow => ({
+		id,
+		closed: false,
+		collapsed: false,
+		focused: false,
+		zoomed: false,
+		size: [100, 100],
+		position: [0, 0],
+		minimumSize: [0, 0],
+		...overrides,
+	});
+
+	const app = (
+		id: string,
+		windows: ClassicyStoreSystemAppWindow[],
+		overrides: Partial<ClassicyStoreSystemApp> = {},
+	): ClassicyStoreSystemApp => ({
+		id,
+		name: id.replace(/\.app$/, ""),
+		icon: "",
+		windows: windowsRecord(...windows),
+		open: true,
+		focused: false,
+		data: {},
+		...overrides,
+	});
+
+	// A.app holds focus (its window `focused` is the focused window); B.app
+	// is in the background. `minimize` decides the drawing package.
+	const shell = (
+		minimize: boolean,
+		aWindows: ClassicyStoreSystemAppWindow[],
+		bWindows: ClassicyStoreSystemAppWindow[] = [],
+	) => {
+		const ds = makeStore();
+		if (minimize) {
+			registerTestTaskbarPackage(
+				TEST_MINIMIZE_LAYOUT,
+				TEST_MINIMIZE_PACKAGE_ID,
+			);
+			ds.System.Manager.Appearance.packageId = TEST_MINIMIZE_PACKAGE_ID;
+		}
+		const apps = ds.System.Manager.Applications.apps;
+		apps["Finder.app"].focused = false;
+		apps["A.app"] = app("A.app", aWindows, { focused: true });
+		if (bWindows.length > 0) apps["B.app"] = app("B.app", bWindows);
+		ds.System.Manager.Applications.focusedAppId = "A.app";
+		return ds;
+	};
+
+	const reduce = (
+		ds: ClassicyStore,
+		type: string,
+		appId: string,
+		windowId: string,
+	) =>
+		classicyWindowEventHandler(ds, {
+			type,
+			app: { id: appId },
+			window: { id: windowId },
+		});
+
+	const recordOf = (ds: ClassicyStore, appId: string, windowId: string) =>
+		getAppWindow(ds.System.Manager.Applications.apps[appId], windowId);
+
+	const focusOf = (ds: ClassicyStore) => ({
+		focusedAppId: ds.System.Manager.Applications.focusedAppId,
+		focusedWindows: Object.values(ds.System.Manager.Applications.apps).flatMap(
+			(a) =>
+				listAppWindows(a)
+					.filter((w) => w.focused)
+					.map((w) => `${a.id}/${w.id}`),
+		),
+	});
+
+	describe("ClassicyWindowCollapse", () => {
+		it("without the flag, collapses and keeps the focus where it is", () => {
+			const ds = shell(false, [
+				win("front", { focused: true, zOrder: 9 }),
+				win("back", { zOrder: 3 }),
+			]);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "front");
+			expect(recordOf(ds, "A.app", "front")).toMatchObject({
+				collapsed: true,
+				focused: true,
+			});
+			expect(focusOf(ds).focusedWindows).toEqual(["A.app/front"]);
+		});
+
+		it("minimizes, and passes focus to the app's front shown window", () => {
+			const ds = shell(true, [
+				win("front", { focused: true, zOrder: 9 }),
+				win("back", { zOrder: 3 }),
+				win("middle", { zOrder: 6 }),
+				win("min", { collapsed: true, zOrder: 8 }),
+				win("tools", { windowType: "utility", zOrder: 10 }),
+			]);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "front");
+			expect(recordOf(ds, "A.app", "front")).toMatchObject({
+				collapsed: true,
+				focused: false,
+			});
+			expect(focusOf(ds)).toEqual({
+				focusedAppId: "A.app",
+				focusedWindows: ["A.app/middle"],
+			});
+			expect(recordOf(ds, "A.app", "min")?.collapsed).toBe(true);
+		});
+
+		it("passes focus across apps when the app has no other shown window", () => {
+			const ds = shell(
+				true,
+				[win("only", { focused: true, zOrder: 9 })],
+				[win("doc", { zOrder: 2 })],
+			);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "only");
+			expect(focusOf(ds)).toEqual({
+				focusedAppId: "B.app",
+				focusedWindows: ["B.app/doc"],
+			});
+			expect(ds.System.Manager.Applications.apps["A.app"].focused).toBe(false);
+		});
+
+		it("passes focus to the desktop when no window is left on screen", () => {
+			const ds = shell(
+				true,
+				[win("only", { focused: true, zOrder: 9 })],
+				[win("min", { collapsed: true, zOrder: 2 })],
+			);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "only");
+			expect(focusOf(ds)).toEqual({
+				focusedAppId: "Finder.app",
+				focusedWindows: [],
+			});
+			expect(recordOf(ds, "B.app", "min")?.collapsed).toBe(true);
+		});
+
+		it("moves no focus when a window that did not hold it minimizes", () => {
+			const ds = shell(true, [
+				win("front", { focused: true, zOrder: 9 }),
+				win("back", { zOrder: 3 }),
+			]);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "back");
+			expect(recordOf(ds, "A.app", "back")?.collapsed).toBe(true);
+			expect(focusOf(ds).focusedWindows).toEqual(["A.app/front"]);
+		});
+
+		it("passes the focus on when the app's last shown window minimizes under its focused palette", () => {
+			const ds = shell(
+				true,
+				[
+					win("doc", { zOrder: 3 }),
+					win("tools", { windowType: "utility", focused: true, zOrder: 9 }),
+				],
+				[win("other", { zOrder: 2 })],
+			);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "doc");
+			// The palette goes with its app's last shown window, and so does
+			// the focus it held.
+			expect(focusOf(ds)).toEqual({
+				focusedAppId: "B.app",
+				focusedWindows: ["B.app/other"],
+			});
+			expect(recordOf(ds, "A.app", "tools")).toMatchObject({
+				focused: false,
+			});
+			expect(recordOf(ds, "A.app", "tools")?.collapsed).not.toBe(true);
+		});
+
+		it("leaves the focus with a palette whose app still shows a window", () => {
+			const ds = shell(true, [
+				win("doc", { zOrder: 3 }),
+				win("other", { zOrder: 2 }),
+				win("tools", { windowType: "utility", focused: true, zOrder: 9 }),
+			]);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "doc");
+			expect(focusOf(ds)).toEqual({
+				focusedAppId: "A.app",
+				focusedWindows: ["A.app/tools"],
+			});
+		});
+
+		it("refuses a palette's or a modal's collapse: neither has a taskbar button", () => {
+			const ds = shell(true, [
+				win("doc", { zOrder: 1 }),
+				win("tools", { windowType: "utility", focused: true, zOrder: 9 }),
+				win("dialog", { modal: true, zOrder: 5 }),
+			]);
+			const before = structuredClone(ds.System.Manager.Applications);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "tools");
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "dialog");
+			expect(ds.System.Manager.Applications).toEqual(before);
+		});
+
+		it("is a no-op for an unknown window", () => {
+			const ds = shell(true, [win("doc", { focused: true })]);
+			const before = structuredClone(ds.System.Manager.Applications);
+			reduce(ds, "ClassicyWindowCollapse", "A.app", "nope");
+			expect(ds.System.Manager.Applications).toEqual(before);
+		});
+	});
+
+	describe("ClassicyWindowClose", () => {
+		it("without the flag, promotes the highest-zOrder sibling, minimized or not", () => {
+			const ds = shell(false, [
+				win("closing", { focused: true, zOrder: 9 }),
+				win("shaded", { collapsed: true, zOrder: 8 }),
+				win("back", { zOrder: 3 }),
+			]);
+			reduce(ds, "ClassicyWindowClose", "A.app", "closing");
+			expect(focusOf(ds).focusedWindows).toEqual(["A.app/shaded"]);
+			expect(recordOf(ds, "A.app", "shaded")?.collapsed).toBe(true);
+		});
+
+		it("skips a minimized sibling, and never restores it", () => {
+			const ds = shell(true, [
+				win("closing", { focused: true, zOrder: 9 }),
+				win("min", { collapsed: true, zOrder: 8 }),
+				win("back", { zOrder: 3 }),
+			]);
+			reduce(ds, "ClassicyWindowClose", "A.app", "closing");
+			expect(focusOf(ds).focusedWindows).toEqual(["A.app/back"]);
+			expect(recordOf(ds, "A.app", "min")?.collapsed).toBe(true);
+		});
+
+		it("passes focus to another app, else the desktop, when only minimized siblings are left", () => {
+			const toB = shell(
+				true,
+				[
+					win("closing", { focused: true, zOrder: 9 }),
+					win("min", { collapsed: true, zOrder: 8 }),
+				],
+				[win("doc", { zOrder: 2 })],
+			);
+			reduce(toB, "ClassicyWindowClose", "A.app", "closing");
+			expect(focusOf(toB)).toEqual({
+				focusedAppId: "B.app",
+				focusedWindows: ["B.app/doc"],
+			});
+
+			const toDesktop = shell(true, [
+				win("closing", { focused: true, zOrder: 9 }),
+				win("min", { collapsed: true, zOrder: 8 }),
+			]);
+			reduce(toDesktop, "ClassicyWindowClose", "A.app", "closing");
+			expect(focusOf(toDesktop)).toEqual({
+				focusedAppId: "Finder.app",
+				focusedWindows: [],
+			});
+			expect(recordOf(toDesktop, "A.app", "min")?.collapsed).toBe(true);
+		});
+
+		it("leaves the focus with the app's dialog that holds it", () => {
+			const ds = shell(true, [
+				win("closing", { zOrder: 9 }),
+				win("dialog", { modal: true, focused: true, zOrder: 10 }),
+				win("back", { zOrder: 3 }),
+			]);
+			reduce(ds, "ClassicyWindowClose", "A.app", "closing");
+			expect(focusOf(ds).focusedWindows).toEqual(["A.app/dialog"]);
+		});
+
+		it("does not steal focus when a background app's window closes", () => {
+			const ds = shell(
+				true,
+				[win("front", { focused: true, zOrder: 9 })],
+				[win("closing", { zOrder: 2 }), win("other", { zOrder: 1 })],
+			);
+			reduce(ds, "ClassicyWindowClose", "B.app", "closing");
+			expect(focusOf(ds).focusedWindows).toEqual(["A.app/front"]);
+		});
+	});
+
+	describe("ClassicyWindowDestroy", () => {
+		it("without the flag, refocuses the app's last-accessed window, minimized or not", () => {
+			const ds = shell(false, [
+				win("dialog", { modal: true, focused: true, zOrder: 10 }),
+				win("shaded", { collapsed: true, zOrder: 8 }),
+				win("back", { zOrder: 3 }),
+			]);
+			ds.System.Manager.Applications.apps["A.app"].lastAccessedWindowId =
+				"shaded";
+			reduce(ds, "ClassicyWindowDestroy", "A.app", "dialog");
+			expect(focusOf(ds).focusedWindows).toEqual(["A.app/shaded"]);
+			expect(recordOf(ds, "A.app", "shaded")?.collapsed).toBe(true);
+		});
+
+		it("skips a minimized window, so a dialog's going never restores one", () => {
+			const ds = shell(
+				true,
+				[
+					win("dialog", { modal: true, focused: true, zOrder: 10 }),
+					win("min", { collapsed: true, zOrder: 8 }),
+				],
+				[win("doc", { zOrder: 2 })],
+			);
+			ds.System.Manager.Applications.apps["A.app"].lastAccessedWindowId = "min";
+			reduce(ds, "ClassicyWindowDestroy", "A.app", "dialog");
+			expect(focusOf(ds)).toEqual({
+				focusedAppId: "B.app",
+				focusedWindows: ["B.app/doc"],
+			});
+			expect(recordOf(ds, "A.app", "min")?.collapsed).toBe(true);
+		});
+
+		it("refocuses the dialog's owner when it is on screen", () => {
+			const ds = shell(true, [
+				win("dialog", { modal: true, focused: true, zOrder: 10 }),
+				win("owner", { zOrder: 8 }),
+			]);
+			reduce(ds, "ClassicyWindowDestroy", "A.app", "dialog");
+			expect(focusOf(ds).focusedWindows).toEqual(["A.app/owner"]);
+		});
+	});
+
+	it("ClassicyWindowExpand and ClassicyWindowFocus restore a minimized window", () => {
+		const ds = shell(true, [
+			win("a", { collapsed: true, zOrder: 2 }),
+			win("b", { collapsed: true, zOrder: 1 }),
+		]);
+		reduce(ds, "ClassicyWindowExpand", "A.app", "a");
+		expect(recordOf(ds, "A.app", "a")?.collapsed).toBe(false);
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowFocus",
+			app: { id: "A.app" },
+			window: { id: "b", menuBar: [] },
+		});
+		expect(recordOf(ds, "A.app", "b")).toMatchObject({
+			collapsed: false,
+			focused: true,
+		});
+	});
+});
+
+// Plan 0020-w98 E3 (the shell addendum's B17; WIG Ch.10 "Message
+// Notification", p.212): under the Windows shell an inactive app asks for
+// attention (`ClassicyAppRequestAttention`, and a modal it opens in the
+// background), its front primary window's taskbar button flashing until the
+// app is activated. Under a package without a taskbar nothing changes.
+describe("the attention signal (ClassicyAppRequestAttention)", () => {
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+	});
+
+	const win = (
+		id: string,
+		overrides: Partial<ClassicyStoreSystemAppWindow> = {},
+	): ClassicyStoreSystemAppWindow => ({
+		id,
+		closed: false,
+		focused: false,
+		size: [100, 100],
+		position: [0, 0],
+		minimumSize: [0, 0],
+		...overrides,
+	});
+
+	// A.app holds focus; B.app is in the background with two documents, the
+	// front one minimized. `taskbar` decides the drawing package.
+	const shell = (taskbar: boolean) => {
+		const ds = makeStore();
+		if (taskbar) {
+			registerTestTaskbarPackage();
+			ds.System.Manager.Appearance.packageId = TEST_TASKBAR_PACKAGE_ID;
+		}
+		const apps = ds.System.Manager.Applications.apps;
+		apps["Finder.app"].focused = false;
+		apps["A.app"] = {
+			id: "A.app",
+			name: "A",
+			icon: "",
+			open: true,
+			focused: true,
+			data: {},
+			windows: windowsRecord(win("doc", { focused: true, zOrder: 50 })),
+		};
+		apps["B.app"] = {
+			id: "B.app",
+			name: "B",
+			icon: "",
+			open: true,
+			focused: false,
+			data: {},
+			windows: windowsRecord(
+				win("back", { zOrder: 10 }),
+				win("front", { zOrder: 20, collapsed: true }),
+				win("palette", { zOrder: 30, windowType: "utility" }),
+			),
+		};
+		ds.System.Manager.Applications.focusedAppId = "A.app";
+		return ds;
+	};
+	const b = (ds: ClassicyStore, id: string) =>
+		getAppWindow(ds.System.Manager.Applications.apps["B.app"], id);
+	const attention = (ds: ClassicyStore) =>
+		Object.values(ds.System.Manager.Applications.apps).flatMap((a) =>
+			listAppWindows(a)
+				.filter((w) => w.attention)
+				.map((w) => `${a.id}:${w.id}`),
+		);
+	const request = (ds: ClassicyStore, window?: { id: string }) =>
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppRequestAttention",
+			app: { id: "B.app" },
+			...(window ? { window } : {}),
+		});
+	const openModal = (ds: ClassicyStore, background: boolean) =>
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "B.app" },
+			window: {
+				id: "alert",
+				position: [10, 10],
+				size: [200, 100],
+				minimumSize: [0, 0],
+				modal: true,
+				...(background ? { background: true } : {}),
+			},
+		});
+
+	it("flags the app's front primary window, a minimized one included, never a palette", () => {
+		const ds = request(shell(true));
+		expect(attention(ds)).toEqual(["B.app:front"]);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("A.app");
+	});
+
+	it("flags the window it names, when that is an open primary window", () => {
+		expect(attention(request(shell(true), { id: "back" }))).toEqual([
+			"B.app:back",
+		]);
+		expect(attention(request(shell(true), { id: "palette" }))).toEqual([
+			"B.app:front",
+		]);
+	});
+
+	it("does nothing for the focused app, a closed app or an app with no primary window", () => {
+		const ds = shell(true);
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppRequestAttention",
+			app: { id: "A.app" },
+		});
+		expect(attention(ds)).toEqual([]);
+		const closed = shell(true);
+		closed.System.Manager.Applications.apps["B.app"].open = false;
+		expect(attention(request(closed))).toEqual([]);
+		const palettesOnly = shell(true);
+		palettesOnly.System.Manager.Applications.apps["B.app"].windows =
+			windowsRecord(win("palette", { windowType: "utility" }));
+		expect(attention(request(palettesOnly))).toEqual([]);
+	});
+
+	it("does nothing under a package without a taskbar", () => {
+		expect(attention(request(shell(false)))).toEqual([]);
+	});
+
+	it("is not open to untrusted actions (a stack script's)", () => {
+		const ds = shell(true);
+		classicyDesktopStateEventReducer(
+			ds,
+			{ type: "ClassicyAppRequestAttention", app: { id: "B.app" } },
+			"untrusted",
+		);
+		expect(attention(ds)).toEqual([]);
+	});
+
+	it("is cleared when the app is activated, by any window or the app itself", () => {
+		const byWindow = request(shell(true));
+		classicyWindowEventHandler(byWindow, {
+			type: "ClassicyWindowFocus",
+			app: { id: "B.app" },
+			window: { id: "back" },
+		});
+		expect(attention(byWindow)).toEqual([]);
+		const byApp = request(shell(true));
+		classicyDesktopStateEventReducer(byApp, {
+			type: "ClassicyAppFocus",
+			app: { id: "B.app" },
+		});
+		expect(attention(byApp)).toEqual([]);
+	});
+
+	it("is cleared when its window closes", () => {
+		const ds = request(shell(true));
+		classicyWindowEventHandler(ds, {
+			type: "ClassicyWindowClose",
+			app: { id: "B.app" },
+			window: { id: "front" },
+		});
+		expect(b(ds, "front")?.attention).toBeUndefined();
+	});
+
+	it("is never persisted", () => {
+		const ds = request(shell(true));
+		expect(
+			b(sanitizeStateForPersistence(ds), "front")?.attention,
+		).toBeUndefined();
+	});
+
+	describe("a modal opened in the background", () => {
+		it("opens without focus under the shell, the app's button flashing", () => {
+			const ds = openModal(shell(true), true);
+			expect(b(ds, "alert")?.focused).not.toBe(true);
+			expect(b(ds, "alert")?.closed).toBe(false);
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("A.app");
+			expect(attention(ds)).toEqual(["B.app:front"]);
+		});
+
+		it("opens focused when it is not marked background", () => {
+			const ds = openModal(shell(true), false);
+			expect(b(ds, "alert")?.focused).toBe(true);
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("B.app");
+			expect(attention(ds)).toEqual([]);
+		});
+
+		it("opens focused under a package without a taskbar, background or not", () => {
+			const ds = openModal(shell(false), true);
+			expect(b(ds, "alert")?.focused).toBe(true);
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("B.app");
+			expect(attention(ds)).toEqual([]);
+		});
+
+		it("opens focused when its app has no window with a button to flash", () => {
+			const ds = shell(true);
+			ds.System.Manager.Applications.apps["B.app"].windows = {};
+			openModal(ds, true);
+			expect(b(ds, "alert")?.focused).toBe(true);
+			expect(ds.System.Manager.Applications.focusedAppId).toBe("B.app");
+		});
+
+		it("opens focused when its app is the focused one", () => {
+			const ds = shell(true);
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowOpen",
+				app: { id: "A.app" },
+				window: {
+					id: "alert",
+					position: [10, 10],
+					size: [200, 100],
+					minimumSize: [0, 0],
+					modal: true,
+					background: true,
+				},
+			});
+			expect(
+				getAppWindow(ds.System.Manager.Applications.apps["A.app"], "alert")
+					?.focused,
+			).toBe(true);
+			expect(attention(ds)).toEqual([]);
+		});
+
+		it("takes focus, and the flash stops, once the user activates it", () => {
+			const ds = openModal(shell(true), true);
+			classicyWindowEventHandler(ds, {
+				type: "ClassicyWindowFocus",
+				app: { id: "B.app" },
+				window: { id: "alert" },
+			});
+			expect(b(ds, "alert")?.focused).toBe(true);
+			expect(attention(ds)).toEqual([]);
+		});
 	});
 });

@@ -22,6 +22,7 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { onClassicyEscapeCancel } from "@/SystemFolder/SystemResources/Keyboard/useClassicyEscapeCancel.internal";
 import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
 import {
@@ -117,6 +118,18 @@ const indicatorClassMap: Record<ClassicySliderIndicatorDirection, string> = {
 	right: "classicySliderIndicatorRight",
 	nondirectional: "classicySliderIndicatorNondirectional",
 };
+
+// The same direction on the stack, so a package can place the ticks and
+// their labels on the side the indicator points to (Windows 98's trackbar)
+// without `:has()`, which the browser floor lacks.
+const stackIndicatorClassMap: Record<ClassicySliderIndicatorDirection, string> =
+	{
+		up: "classicySliderStackIndicatorUp",
+		down: "classicySliderStackIndicatorDown",
+		left: "classicySliderStackIndicatorLeft",
+		right: "classicySliderStackIndicatorRight",
+		nondirectional: "classicySliderStackIndicatorNondirectional",
+	};
 
 interface ClassicySliderProps {
 	/** Id of the native `<input type="range">`; links the label to it. */
@@ -224,7 +237,10 @@ interface ClassicySliderProps {
  * component as controlled: `onChangeFunc` fires live on every step and the
  * readout shows the `value` you pass back. `onCommitFunc` fires once when the
  * pointer or key is released — the place for persistence or store
- * dispatches. Without a visible `labelTitle`, give it an `ariaLabel`.
+ * dispatches. Without a visible `labelTitle`, give it an `ariaLabel`. Under
+ * a package whose layout says `input.escapeCancels` (Windows 98), Escape
+ * during a mouse or pen drag puts the value back where the press found it
+ * (`onChangeFunc` hears it) and commits nothing.
  *
  * ```tsx
  * <ClassicySlider id="vol" labelTitle="Volume" value={volume}
@@ -269,8 +285,9 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	const ticksRef = useRef<HTMLDivElement>(null);
 	useClassicyPatternOrigin("Slider", inputRef, ticksRef);
 	// A ghost drag on release (HIGOS8 p.34): the package's declaration, for a
-	// slider that draws a ghost.
-	const thumbDrag = useClassicyAppearanceLayout().slider?.thumbDrag;
+	// slider that draws a ghost; and Escape's cancel (`input.escapeCancels`).
+	const layout = useClassicyAppearanceLayout();
+	const thumbDrag = layout.slider?.thumbDrag;
 	const onRelease = ghost && thumbDrag === "onRelease";
 	// Only write to the DOM when value changes externally (i.e. the DOM doesn't
 	// already reflect it). During a drag, the DOM value already equals the prop
@@ -317,7 +334,8 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// stream being lost (see loseDrag). This stops watching both. `lost`:
 	// ended by the pointer stream being lost, not by a release.
 	const stopWatchingRef = useRef<(() => void) | null>(null);
-	const finishPointerDrag = (lost: boolean) => {
+	// `canceled`: Escape took the drag back (`cancelDrag`).
+	const finishPointerDrag = (lost: boolean, canceled = false) => {
 		const stopWatching = stopWatchingRef.current;
 		stopWatchingRef.current = null;
 		stopWatching?.();
@@ -326,6 +344,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		appearance.emit("dragEnd", {
 			value: Number(inputRef.current?.value),
 			lost,
+			...(canceled ? { canceled: true } : {}),
 		});
 	};
 	// Unmounted mid-press: stop watching (no dragEnd; the slider is gone).
@@ -357,6 +376,25 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	};
 	const loseDragRef = useRef(loseDrag);
 	loseDragRef.current = loseDrag;
+
+	// Escape mid-drag, under a package whose layout says
+	// `input.escapeCancels` (Windows 98; WIG Ch.4 "Shortcut Keys", p.27): the
+	// value goes back to where the press found it (an `input` event, so
+	// `onChangeFunc` hears it), the ghost goes, and the drag ends there; the
+	// release that follows commits nothing (`onCommitFunc` is not called:
+	// the value is the one the press found).
+	const cancelDrag = () => {
+		const drag = dragRef.current;
+		dragRef.current = null;
+		const input = inputRef.current;
+		if (drag && input && Number(input.value) !== drag.start)
+			setClassicySliderValue(input, drag.start);
+		setDragging(false);
+		committedByLossRef.current = true;
+		finishPointerDrag(false, true);
+	};
+	const cancelDragRef = useRef(cancelDrag);
+	cancelDragRef.current = cancelDrag;
 
 	// A press of the first button of a mouse or pen is the slider's own: the
 	// browser's range drag is stopped (Firefox would move the thumb to the
@@ -432,9 +470,15 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			const stopWatchingPointerStream = onClassicyPointerStreamLost(() =>
 				loseDragRef.current(),
 			);
+			// Only a drag of the slider's own goes back on Escape: a touch's
+			// is the browser's, which would carry on under the finger.
+			const stopWatchingEscape = drag
+				? onClassicyEscapeCancel(() => cancelDragRef.current(), layout)
+				: () => {};
 			stopWatchingRef.current = () => {
 				document.removeEventListener("pointerup", listener);
 				stopWatchingPointerStream();
+				stopWatchingEscape();
 			};
 			appearance.emit("dragStart", { value: Number(e.currentTarget.value) });
 		}
@@ -630,6 +674,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 					className={classNames(
 						"classicySliderStack",
 						isVertical && "classicySliderStackVertical",
+						stackIndicatorClassMap[resolvedIndicator],
 					)}
 				>
 					<div

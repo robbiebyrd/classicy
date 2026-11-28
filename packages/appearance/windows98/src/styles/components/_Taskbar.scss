@@ -1,0 +1,746 @@
+// The Windows 98 taskbar, included by windows98.scss inside the package
+// wrapper: it dresses the structure ClassicyTaskbar.scss lays down (the
+// docking, the stacking band, the flex row; plan 0020-w98 §2 and §7). WIG
+// Ch.3 "The Taskbar", "The Start Button", "Window Buttons" and "The Status
+// Area" (pp.15-16, Figure 3.1) and Ch.10 "Taskbar Integration" (pp.211-212,
+// Figure 10.2) are the reference; the pixels are Windows 98's as Wine's
+// comctl32 (`tab.c`, `toolbar.c`), its `uitools.c` DrawEdge tables and
+// explorer's `systray.c`, and ReactOS's explorer (`taskswnd.cpp`,
+// `traywnd.cpp`, `trayclock.cpp`) record them:
+//
+// - The bar: `--taskbar-height` (28) of ButtonFace with the raised edge on
+//   the side facing the desktop, its top: a ButtonLight row over a
+//   ButtonHilight row (DrawEdge EDGE_RAISED, BF_TOP, the outer ring
+//   ButtonLight). Everything in it is `--taskbar-button-height` (22,
+//   SM_CYSIZE 18 plus two edges) tall, 2 px above the bottom and so 2 px
+//   under the edge (the bar's other edges lie off the screen), on whole
+//   pixels, never centered on a half one.
+// - The Start button, 2 px from the left: a raised push button (the soft
+//   EDGE_RAISED of `b.raised`) at least `--taskbar-start-button-width` (54)
+//   wide, its 16 px glyph `--taskbar-button-padding-x` (3) in, then
+//   `--taskbar-icon-gap` (3), then its label bold. The glyph is the
+//   package's own pixel art (no Microsoft artwork: no flag), a small window
+//   drawn from the window tokens: a ButtonFace frame outlined in
+//   ButtonDkShadow, a caption in the active title's two colors with a dash
+//   of title text, and a Window-colored body. While its menu is open (and
+//   while held) it is pushed in: `b.pressed`, the soft EDGE_SUNKEN, its
+//   contents one pixel down and right, and no checker: a pushed button, not
+//   a checked one (ReactOS sets the Start button with BM_SETSTATE). The
+//   keyboard focus is the dotted rectangle three pixels in, inside the
+//   bevel. `--taskbar-start-gap` (4, SM_CXSIZEFRAME, where ReactOS places
+//   the task band) parts it from the window buttons.
+// - The window buttons: each `--taskbar-button-max-width` (160,
+//   SM_CXMINIMIZED) at most, shrinking evenly to `--taskbar-button-min-width`
+//   (22, SM_CXSIZE plus two edges), `--taskbar-button-gap` (3, comctl32's
+//   BUTTON_SPACINGX) apart and before the status area (ReactOS
+//   `UpdateButtonsSize`); its 16 px icon 3 px in, a 3 px gap, then the title
+//   cut with an ellipsis (the base's). Raised at rest. The active window's
+//   (`active`) is pushed in (`b.pressed`) over the ButtonHilight/ButtonFace
+//   checker inside its two-pixel edge, its title bold and its contents one
+//   pixel down and right (comctl32's `TAB_EraseTabInterior` fills a
+//   selected TCS_BUTTONS item with the 0x55AA brush, and `TAB_DrawItem`
+//   sinks it and offsets it one pixel; Figure 3.1's "Document" button); in
+//   a scheme whose ButtonHilight is not its Window color (every color
+//   scheme but Windows Standard's, Plum, Red, White, and Blue, Storm and
+//   Teal; the High Contrast schemes) `TAB_EraseTabInterior` fills it with
+//   the Scrollbar color instead, solid (the `taskbar.solidActive` switch,
+//   as `scrollBar.solidTrack` switches the track), so its title reads. A press
+//   held on another (`pressed`) is pushed in on a plain face, the contents
+//   moved likewise; a press on the active one keeps its checker (the
+//   selected button's drawing wins in comctl32). A minimized window's
+//   (`collapsed`) is an ordinary raised button. One whose app asks for
+//   attention (`classicyTaskbarTaskAttention`) flashes Hilight three times
+//   and then stays Hilight until the app is activated. Nothing changes under the
+//   pointer (the taskbar tracks no hover). The keyboard focus is the dotted
+//   rectangle three pixels in. Once the buttons at their least width no
+//   longer fit the row (`classicyTaskbarTasksPaged`), each takes exactly that
+//   width and the row shows one page of them, as ReactOS's
+//   `UpdateButtonsSize` sets every button to its least width before it wraps
+//   them; the up/down control (`.classicyTaskbarPager`) then stands at the
+//   band's right, `--window-scrollbar-size` (16, SM_CXVSCROLL) wide and the
+//   buttons' height, its two buttons the up-down control's (_LittleArrows.scss:
+//   raised, a 5-pixel triangle, embossed while dimmed on the first or last
+//   row), `--taskbar-button-gap` before the status area.
+// - Quick Launch (Windows 98's, Internet Explorer 4's desktop update): a
+//   toolbar band after the Start button, and while it shows the bar is a
+//   rebar of two bands, each led by comctl32's gripper (`GRIPPER_WIDTH` 3,
+//   `REBAR_PRE_GRIPPER` 2 from the band's start and inset 2 from its top and
+//   bottom, BDR_RAISEDINNER: ButtonHilight at its top and left, ButtonShadow
+//   at its bottom and right, on ButtonFace), `REBAR_ALWAYS_SPACE` (4) before
+//   the band's toolbar, `REBAR_POST_CHILD` (4) after it. Its buttons are
+//   flat toolbar buttons (TBSTYLE_FLAT) `--taskbar-quick-launch-button-width`
+//   (23: a 16-pixel icon and `DEFPAD_CX` 7) by the buttons' height, no edge
+//   at rest, the thin raised edge (BDR_RAISEDINNER) under the pointer and
+//   the thin sunken one (BDR_SUNKENOUTER) while pressed there, the icon a
+//   pixel down and right (comctl32's `TOOLBAR_DrawButton`). Show Desktop's
+//   glyph is the package's own pixel art: a desk pad in the desktop's color
+//   with a sheet of paper and a pencil.
+// - The status area, 2 px from the right: a pane `--taskbar-button-height`
+//   tall in one sunken ring (BDR_SUNKENOUTER, `b.sunken-thin`: ButtonShadow
+//   at the top and left, ButtonHilight at the bottom and right),
+//   `--taskbar-tray-padding-x` (3) inside it at either end. The
+//   notification icons and the menu bar extensions are flat
+//   `--taskbar-tray-icon-size` (16) icons centered in cells
+//   `--taskbar-tray-icon-pitch` (20) wide (the 16-pixel small icon and two
+//   pixels either side, explorer's `ICON_BORDER`), with no bevel at rest,
+//   held or open: Windows 98's tray drew none. The clock ends it, its text
+//   `--taskbar-clock-padding-x` (5, ReactOS `TRAY_CLOCK_WND_SPACING_X`) in
+//   from either side, in the UI font at `--ui-font-size`, its figures
+//   tabular so the pane keeps its width as the minutes turn.
+//
+// Every length is a `taskbar` knob, a ring (`b.$b`) or grid pixels of the
+// glyph (`px()`); every color a token. The active button's checker is drawn
+// in every scheme, as the package's scroll-bar track and latched buttons
+// draw theirs: comctl32 fills a selected TCS_BUTTONS item with the solid
+// Scrollbar color where Window and ButtonHilight differ (eleven of the
+// eighteen themes), by the rule user32 applies to a scroll bar's track
+// (`DEFWND_ControlColor`), but the themes carry no Scrollbar color, and the
+// track keeps the checker too.
+//
+// - The status area's pop-ups, which open above their icon on the bar's top
+//   edge: a module's menu (`classicyTaskbarTrayPopup` around a menu, and its
+//   button-2 menu at the pointer) is every menu's (_Menu.scss); its panel
+//   (the Sound module's slider) wears the dialog frame around its content,
+//   the menu frame (`Menu.menu-frame`: EDGE_RAISED and one ring of
+//   ButtonFace), as Windows 98's own tray pop-up did (sndvol32's tray volume
+//   dialog is DS_MODALFRAME, its frame SM_CXDLGFRAME 3), where another bevel
+//   pop-up's panel keeps the window frame's two rings alone
+//   (_PopUpMenu.scss). The Start menu is _StartMenu.scss's.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03   the bar, every face, the checker's
+//                                         dark pixels, the glyph's frame
+//   ButtonHilight     --color-system-01   the bar's inner edge row, the
+//                                         buttons' outer top-left ring, the
+//                                         pane's bottom-right ring, the
+//                                         checker's light pixels
+//   ButtonLight       --color-system-02   the bar's outer edge row, the
+//                                         buttons' inner top-left ring
+//   ButtonShadow      --color-system-05   the buttons' inner bottom-right
+//                                         ring, the pane's top-left ring
+//   ButtonDkShadow    --color-system-07   the buttons' outer bottom-right
+//                                         ring, the glyph's outline
+//   ButtonText        --color-black       the labels, the clock, the focus
+//                                         rectangle
+//   Window            --color-window-document   the glyph's body
+//   ActiveTitle…      --package-color-title-bar-*   the glyph's caption
+@use "sass:meta";
+@use "../bevels" as b;
+@use "../pixel" as *;
+@use "LittleArrows";
+@use "Menu";
+
+// --- Art --------------------------------------------------------------------
+// The Start button's glyph (16 x 14): a small window, six rectangles in
+// grid pixels, the first on top:
+//
+//   kkkkkkkkkkkkkkkk   k  the outline, ButtonDkShadow
+//   kffffffffffffffk   f  the frame, ButtonFace
+//   kfnnnnnnnnggggfk   n  the caption, the active title's color
+//   kfnttttnnnggggfk   g  running into its gradient color
+//   kfnnnnnnnnggggfk   t  a dash of title text
+//   kffffffffffffffk
+//   kfwwwwwwwwwwwwfk   w  the body, Window
+//   (four more body rows)
+//   kfwwwwwwwwwwwwfk
+//   kffffffffffffffk
+//   kkkkkkkkkkkkkkkk
+//
+// The caption's colors carry a core token behind each for a theme of
+// another package (as _Window.scss reads them).
+$title-active: var(--package-color-title-bar-active, var(--color-highlight));
+$title-active-to: var(--package-color-title-bar-active-gradient, var(--color-highlight));
+$title-text: var(--package-color-title-bar-text, var(--color-white));
+
+$start-glyph-art:
+  pixel-art($title-text, ((3 3 4 1),)),
+  pixel-art($title-active, ((2 2 8 3),)),
+  pixel-art($title-active-to, ((10 2 4 3),)),
+  pixel-art(b.$window, ((2 6 12 6),)),
+  pixel-art(b.$face, ((1 1 14 12),)),
+  pixel-art(b.$dkshadow, ((0 0 16 14),));
+
+// Show Desktop's glyph (16 x 16): a desk pad seen from above, with a sheet of
+// paper and a pencil, the first on top:
+//
+//   ................
+//   ................
+//   ................
+//   .kkkkkkkkkkkkkk.   k  the pad's edge, ButtonDkShadow
+//   .kddddddsssssdk.   d  the pad, the desktop's color
+//   .kddddddswwwsdk.   s  the sheet's edge, ButtonShadow
+//   .kdddddtswwwsdk.   w  the sheet, Window
+//   .kddddtdswwwsdk.   t  the pencil, the active title's color
+//   .kdddtddswwwsdk.
+//   .kddtdddsssssdk.
+//   .kdpddddddddddk.   p  its point, ButtonText
+//   .kddddddddddddk.
+//   .kkkkkkkkkkkkkk.
+$show-desktop-art:
+  pixel-art(b.$text, ((3 10),)),
+  pixel-art($title-active, ((4 9), (5 8), (6 7), (7 6))),
+  pixel-art(b.$window, ((9 5 3 4),)),
+  pixel-art(b.$shadow, ((8 4 5 6),)),
+  pixel-art(var(--desktop-background-color), ((2 4 12 8),)),
+  pixel-art(b.$dkshadow, ((1 3 14 10),));
+
+// --- Looks ------------------------------------------------------------------
+// The 50% checker of ButtonHilight and ButtonFace on the pixel grid, the face
+// of the active window's button.
+$checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
+
+// The active button's solid face (`taskbar.solidActive` 1): Scrollbar, an
+// inset fill spread over the whole button under its bevel, ten thousand
+// pixels a ring (a switch: 0 draws nothing, 1 covers any button), over the
+// checker.
+$active-solid: calc(var(--taskbar-solid-active) * 10000);
+$active-solid-face: var(--package-color-scroll-bar-track, var(--color-system-03));
+
+// The bar's raised edge on its top: a ButtonLight row over a ButtonHilight
+// row (DrawEdge EDGE_RAISED, BF_TOP).
+$edge: b.$b2;
+
+// A taskbar button (the Start button, a window button): a raised ButtonFace
+// box the buttons' height, its contents in a row from its left, the dotted
+// focus rectangle three pixels in.
+@mixin taskbar-button {
+  box-sizing: border-box;
+  height: var(--taskbar-button-height);
+  padding: 0 var(--taskbar-button-padding-x);
+  gap: var(--taskbar-icon-gap);
+  border: 0;
+  border-radius: 0;
+  color: b.$text;
+  background: b.$face;
+  font: inherit;
+  @include b.raised;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    @include b.focus-rect(calc(#{b.$b2} + #{b.$b}));
+  }
+}
+
+// The thin raised edge (BDR_RAISEDINNER) and the thin sunken one
+// (BDR_SUNKENOUTER): one ring, ButtonHilight at the top and left and
+// ButtonShadow at the bottom and right, or the reverse.
+@mixin raised-thin {
+  box-shadow:
+    inset b.$b b.$b b.$hilight,
+    inset b.$neg-b b.$neg-b b.$shadow;
+}
+
+@mixin sunken-thin {
+  box-shadow:
+    inset b.$b b.$b b.$shadow,
+    inset b.$neg-b b.$neg-b b.$hilight;
+}
+
+// Pushed in: the soft sunken edge, the contents one pixel down and right.
+@mixin taskbar-button-pushed {
+  @include b.pressed;
+
+  > * {
+    translate: b.$b b.$b;
+  }
+}
+
+@mixin taskbar {
+  // --- The bar ----------------------------------------------------------------
+  // The buttons and the pane sit 2 px above the bottom and as far under the
+  // edge, the bar's sides 2 px in.
+  .classicyTaskbar {
+    height: var(--taskbar-height);
+    padding: calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2}) b.$b2 b.$b2;
+    color: b.$text;
+    background: b.$face;
+    font-family: var(--ui-font);
+    font-size: var(--ui-font-size);
+    box-shadow:
+      inset 0 b.$b b.$light,
+      inset 0 $edge b.$hilight;
+  }
+
+  // The inner edge (the shell addendum's B5): the bar's margin on the side
+  // facing the desktop, its raised edge included, is where a drag sizes
+  // it, under the vertical size cursor (or the horizontal one at a side;
+  // ReactOS `CTrayWindow::OnNcHitTest` answers HTTOP, HTBOTTOM, HTLEFT or
+  // HTRIGHT there).
+  .classicyTaskbarSizer {
+    height: calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2});
+    @include b.registry-cursor(resize-ud, ns-resize, 15 16);
+  }
+
+  .classicyTaskbarVertical > .classicyTaskbarSizer {
+    width: calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2});
+    height: auto;
+    @include b.registry-cursor(resize-lr, ew-resize, 16 16);
+  }
+
+  // Taller than a row (the shell addendum's B5): the bar takes the rows'
+  // height, the Start button, Quick Launch and the status area on the first
+  // row, and the window buttons in a grid of `--classicy-taskbar-rows` rows,
+  // filled a row at a time, each column between the buttons' least and
+  // greatest width (ReactOS `UpdateButtonsSize`), `--taskbar-button-gap`
+  // apart both ways.
+  .classicyTaskbar.classicyTaskbarRows {
+    height: auto;
+    align-items: flex-start;
+  }
+
+  .classicyTaskbarTasks.classicyTaskbarTasksRows {
+    display: grid;
+    grid-template-rows: repeat(var(--classicy-taskbar-rows), var(--taskbar-button-height));
+    grid-template-columns: repeat(
+      var(--classicy-taskbar-columns),
+      minmax(var(--taskbar-button-min-width), var(--taskbar-button-max-width))
+    );
+    align-content: start;
+    justify-content: start;
+  }
+
+  .classicyTaskbarTasks.classicyTaskbarTasksRows > li {
+    min-width: 0;
+  }
+
+  // --- The Start button -------------------------------------------------------
+  .classicyTaskbarStart {
+    min-width: var(--taskbar-start-button-width);
+    margin-right: var(--taskbar-start-gap);
+    @include taskbar-button;
+
+    &:is(.open, :active) {
+      @include taskbar-button-pushed;
+    }
+  }
+
+  .classicyTaskbarStartIcon {
+    width: px(16);
+    height: px(14);
+    background: $start-glyph-art;
+  }
+
+  // The package's own Start flag (Explorer's bitmap 143, registered as the
+  // `appleMenu` art): 16 x 16, whole pixels at any zoom, in place of the
+  // pixel-art window, which is drawn only while the package registers none.
+  .classicyTaskbarStartIcon.classicyTaskbarStartFlag {
+    height: px(16);
+    background: var(--classicy-art-apple-menu, none) 0 0 / px(16) px(16) no-repeat;
+    image-rendering: pixelated;
+  }
+
+  .classicyTaskbarStartLabel {
+    font-weight: bold;
+  }
+
+  // --- The window buttons -----------------------------------------------------
+  // The row of window buttons, clipped where it meets the status area.
+  .classicyTaskbarTasks {
+    gap: var(--taskbar-button-gap);
+    padding-right: var(--taskbar-button-gap);
+    overflow: hidden;
+  }
+
+  // Each item takes an even share up to the maximum, never below the minimum.
+  .classicyTaskbarTasks > li {
+    flex: 0 1 var(--taskbar-button-max-width);
+    min-width: var(--taskbar-button-min-width);
+  }
+
+  .classicyTaskbarTask {
+    @include taskbar-button;
+  }
+
+  // Past one row the buttons take their least width, a page at a time.
+  .classicyTaskbarTasksPaged > li {
+    flex: 0 0 var(--taskbar-button-min-width);
+  }
+
+  .classicyTaskbarTaskIcon {
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+  }
+
+  // A window whose app asks for attention (the core's
+  // `classicyTaskbarTaskAttention`, WIG Ch.10 "Message Notification",
+  // p.212, Figure 10.3): its button keeps its raised edge and its interior
+  // turns Hilight, the title HilightText, as comctl32 fills a TCIS_HIGHLIGHTED
+  // button (Wine's `TAB_EraseTabInterior` and `TAB_DrawItem`). It toggles
+  // with the plain face three times at the caret-blink rate (530 ms a phase,
+  // Windows' FlashWindowEx with a zero timeout, ForegroundFlashCount 3), then
+  // stays highlighted until the app is activated; under reduced motion it
+  // stays highlighted from the start. Before the held press, which pushes it
+  // in on the same face.
+  @keyframes classicyWindows98TaskAttention {
+    0% {
+      color: b.$highlight-text;
+      background: b.$highlight;
+    }
+
+    50%,
+    100% {
+      color: b.$text;
+      background: b.$face;
+    }
+  }
+
+  .classicyTaskbarTaskAttention {
+    color: b.$highlight-text;
+    background: b.$highlight;
+    animation: classicyWindows98TaskAttention 1060ms step-end 3;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .classicyTaskbarTaskAttention {
+      animation: none;
+    }
+  }
+
+  // A press held on a button: pushed in on a plain face.
+  .classicyTaskbarTask.pressed {
+    @include taskbar-button-pushed;
+  }
+
+  // The active window's: pushed in over the checker, its title bold; after
+  // the held press, so a press on it keeps the checker.
+  .classicyTaskbarTask.active {
+    background: $checker;
+    // `taskbar-button-pushed`'s bevel over the solid face, which the switch
+    // spreads to nothing in a scheme whose ButtonHilight is its Window color.
+    box-shadow:
+      inset #{b.$neg-b} #{b.$neg-b} b.$hilight,
+      inset b.$b b.$b b.$dkshadow,
+      inset #{b.$neg-b2} #{b.$neg-b2} b.$light,
+      inset b.$b2 b.$b2 b.$shadow,
+      inset 0 0 0 $active-solid $active-solid-face;
+
+    > * {
+      translate: b.$b b.$b;
+    }
+
+    .classicyTaskbarTaskLabel {
+      font-weight: bold;
+    }
+  }
+
+  // --- The bands: grippers, Quick Launch, the up/down control ------------------
+  // A band's gripper: three pixels of BDR_RAISEDINNER on ButtonFace, two in
+  // from the band's start and from the row's top and bottom, four before the
+  // band's toolbar.
+  .classicyTaskbarGripper {
+    align-self: center;
+    box-sizing: border-box;
+    width: var(--taskbar-gripper-width);
+    height: calc(var(--taskbar-button-height) - var(--taskbar-gripper-inset) - var(--taskbar-gripper-inset));
+    margin: 0 var(--taskbar-gripper-gap) 0 var(--taskbar-gripper-inset);
+    background: b.$face;
+    @include raised-thin;
+  }
+
+  // Quick Launch: the buttons' height, its band ending four pixels after
+  // its last button.
+  .classicyTaskbarQuickLaunch {
+    align-self: center;
+    height: var(--taskbar-button-height);
+    padding-right: var(--taskbar-band-end-gap);
+  }
+
+  .classicyTaskbarQuickLaunchButtons,
+  .classicyTaskbarQuickLaunchButtons > li {
+    height: 100%;
+  }
+
+  // A flat toolbar button: no edge at rest, raised under the pointer, sunken
+  // while pressed there, the icon centered.
+  .classicyTaskbarQuickLaunchButton {
+    width: var(--taskbar-quick-launch-button-width);
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    color: b.$text;
+    background: transparent;
+    box-shadow: none;
+
+    &:hover {
+      @include raised-thin;
+    }
+
+    &:hover:active {
+      @include sunken-thin;
+
+      > * {
+        translate: b.$b b.$b;
+      }
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include b.focus-rect(b.$b);
+    }
+  }
+
+  .classicyTaskbarQuickLaunchIcon {
+    display: block;
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+    margin: 0;
+  }
+
+  .classicyTaskbarShowDesktopIcon {
+    width: px(16);
+    height: px(16);
+    background: $show-desktop-art;
+  }
+
+  // The window buttons' up/down control: SM_CXVSCROLL wide, the buttons'
+  // height, its two buttons the up-down control's.
+  .classicyTaskbarPager {
+    align-self: center;
+    box-sizing: border-box;
+    width: var(--window-scrollbar-size);
+    height: var(--taskbar-button-height);
+    margin-right: var(--taskbar-button-gap);
+    background: b.$face;
+  }
+
+  .classicyTaskbarPagerUp,
+  .classicyTaskbarPagerDown {
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    color: b.$text;
+    @include b.raised;
+    cursor: default;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include b.focus-rect(calc(#{b.$b2} + #{b.$b}));
+    }
+  }
+
+  .classicyTaskbarPagerUp {
+    @include LittleArrows.arrow-button(meta.get-function("up-arrow", $module: "LittleArrows"));
+  }
+
+  .classicyTaskbarPagerDown {
+    @include LittleArrows.arrow-button(meta.get-function("down-arrow", $module: "LittleArrows"));
+  }
+
+  // --- The status area --------------------------------------------------------
+  .classicyTaskbarTray {
+    box-sizing: border-box;
+    height: var(--taskbar-button-height);
+    padding: 0 var(--taskbar-tray-padding-x);
+    @include b.sunken-thin;
+  }
+
+  .classicyTaskbarTrayIcons,
+  .classicyTaskbarTrayIcons > li {
+    height: 100%;
+  }
+
+  // A notification icon: a flat cell of the pitch, the icon centered, no
+  // bevel at rest, held or open.
+  .classicyTaskbarTrayIcon {
+    width: var(--taskbar-tray-icon-pitch);
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: b.$text;
+    background: transparent;
+    box-shadow: none;
+
+    img {
+      display: block;
+      width: var(--taskbar-tray-icon-size);
+      height: var(--taskbar-tray-icon-size);
+      margin: 0;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include b.focus-rect(b.$b);
+    }
+  }
+
+  // The menu bar extensions an app adds: flat icons at the same pitch, plain
+  // under the pointer (the base highlights a hovered menu item).
+  .classicyTaskbarTray .classicyDesktopMenuExtensions {
+    height: 100%;
+    margin-left: 0;
+    padding: 0;
+  }
+
+  .classicyTaskbarTray .classicyDesktopMenuExtension {
+    box-sizing: border-box;
+    justify-content: center;
+    width: var(--taskbar-tray-icon-pitch);
+    height: 100%;
+    padding: 0;
+    color: b.$text;
+    background: transparent;
+  }
+
+  .classicyTaskbarTray .classicyDesktopMenuExtension:hover {
+    color: b.$text;
+    background: transparent;
+  }
+
+  .classicyTaskbarTray .classicyDesktopMenuExtensionTrigger {
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+    color: b.$text;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include b.focus-rect(b.$b);
+    }
+
+    img {
+      display: block;
+      width: var(--taskbar-tray-icon-size);
+      height: var(--taskbar-tray-icon-size);
+      margin: 0;
+    }
+  }
+
+  // The clock: its text 5 px in from either side, the pane's height.
+  .classicyTaskbarClock {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    height: 100%;
+    padding: 0 var(--taskbar-clock-padding-x);
+    color: b.$text;
+    font-family: var(--ui-font);
+    font-size: var(--ui-font-size);
+    font-variant-numeric: tabular-nums;
+  }
+
+  // --- Docked to another edge (plan 0020-w98 E4) -------------------------------
+  // The raised edge lies on the side facing the desktop, DrawEdge's
+  // EDGE_RAISED on that side (ReactOS `CTrayWindow::DrawEdge`): its bottom
+  // and right rows the dark ones (ButtonDkShadow outside, ButtonShadow
+  // inside), its top and left the light ones; the contents keep 2 px from
+  // the other sides and from the edge.
+  .classicyTaskbar.classicyTaskbarEdgeTop {
+    padding: b.$b2 b.$b2 calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2});
+    box-shadow:
+      inset 0 b.$neg-b b.$dkshadow,
+      inset 0 b.$neg-b2 b.$shadow;
+  }
+
+  // At a side: as wide as the Start button and the bar's edge and margins,
+  // the height of the desktop, the regions stacked down it (ReactOS sizes a
+  // side taskbar to its Start button, `CTrayWindow::CalculateValidSize`).
+  .classicyTaskbar.classicyTaskbarVertical {
+    width: calc(var(--taskbar-start-button-width) + var(--taskbar-height) - var(--taskbar-button-height));
+    height: auto;
+    gap: var(--taskbar-button-gap);
+  }
+
+  .classicyTaskbar.classicyTaskbarEdgeLeft {
+    padding: b.$b2 calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2}) b.$b2 b.$b2;
+    box-shadow:
+      inset b.$neg-b 0 b.$dkshadow,
+      inset b.$neg-b2 0 b.$shadow;
+  }
+
+  .classicyTaskbar.classicyTaskbarEdgeRight {
+    padding: b.$b2 b.$b2 b.$b2 calc(var(--taskbar-height) - var(--taskbar-button-height) - #{b.$b2});
+    box-shadow:
+      inset b.$b 0 b.$light,
+      inset b.$b2 0 b.$hilight;
+  }
+
+  // Down a side every region takes the bar's width: the Start button and
+  // each window button the buttons' height, stacked `--taskbar-button-gap`
+  // apart, the gaps after the Start button and the bands below them.
+  .classicyTaskbarVertical {
+    .classicyTaskbarStart {
+      margin-right: 0;
+      margin-bottom: var(--taskbar-start-gap);
+    }
+
+    .classicyTaskbarTasks {
+      padding-right: 0;
+      padding-bottom: var(--taskbar-button-gap);
+    }
+
+    .classicyTaskbarTasks > li,
+    .classicyTaskbarTasksPaged > li {
+      flex: 0 0 auto;
+      min-width: 0;
+      min-height: var(--taskbar-button-height);
+    }
+
+    // A gripper lies across the band, above it.
+    .classicyTaskbarGripper {
+      align-self: stretch;
+      width: auto;
+      height: var(--taskbar-gripper-width);
+      margin: var(--taskbar-gripper-inset) var(--taskbar-gripper-inset) var(--taskbar-gripper-gap);
+    }
+
+    .classicyTaskbarQuickLaunch {
+      align-self: stretch;
+      height: auto;
+      padding-right: 0;
+      padding-bottom: var(--taskbar-band-end-gap);
+    }
+
+    .classicyTaskbarQuickLaunchButtons > li {
+      height: var(--taskbar-button-height);
+    }
+
+    // The up/down control under the buttons, its two halves side by side.
+    .classicyTaskbarPager {
+      align-self: center;
+      width: calc(var(--window-scrollbar-size) + var(--window-scrollbar-size));
+      height: var(--window-scrollbar-size);
+      margin-right: 0;
+      margin-bottom: var(--taskbar-button-gap);
+    }
+
+    // The status area: the icons in rows, the clock under them.
+    .classicyTaskbarTray {
+      height: auto;
+      padding: var(--taskbar-tray-padding-x) 0;
+    }
+
+    .classicyTaskbarTrayIcons > li {
+      height: var(--taskbar-tray-icon-pitch);
+    }
+
+    .classicyTaskbarClock {
+      justify-content: center;
+      width: 100%;
+      height: var(--taskbar-button-height);
+    }
+  }
+
+  // --- The pop-ups -------------------------------------------------------------
+  // A module's panel: the dialog frame around its content (three classes:
+  // it outranks the bevel pop-up panel's own rule, which _PopUpMenu.scss
+  // includes after this partial).
+  .classicyBevelButtonPopup.classicyBevelButtonPopupPanel.classicyTaskbarTrayPopup {
+    @include Menu.menu-frame;
+  }
+}

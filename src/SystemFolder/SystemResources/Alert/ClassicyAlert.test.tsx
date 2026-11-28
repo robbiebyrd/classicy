@@ -1,10 +1,33 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
-import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
+import {
+	registerTestTaskbarPackage,
+	TEST_DIALOG_CAPTION_LAYOUT,
+	TEST_DIALOG_CAPTION_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import {
+	ClassicyAlert,
+	type ClassicyAlertButton,
+} from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import {
 	clampWindowPositionToViewport,
 	resolvePosition,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockPlayer = vi.hoisted(() => vi.fn());
@@ -13,15 +36,22 @@ const mockPlayer = vi.hoisted(() => vi.fn());
 // the modal renders (and portals to document.body) without a provider tree.
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
-	() => ({
-		useAppManager: (selector: (state: unknown) => unknown) =>
-			selector({
-				System: {
-					Manager: { Applications: { apps: {} } },
-				},
-			}),
-		useAppManagerDispatch: () => mockDispatch,
-	}),
+	() => {
+		const state = {
+			System: {
+				// The Desktop slice: the caption buttons' tooltips (a titled
+				// dialog layout's) read balloon help's toggle from it.
+				Manager: { Desktop: {}, Applications: { apps: {} } },
+			},
+		};
+		// `getState` too: the window's view state (Windows 98's
+		// `window.restoreViewState`) reads its record once as it mounts.
+		const useAppManager = Object.assign(
+			(selector: (s: unknown) => unknown) => selector(state),
+			{ getState: () => state },
+		);
+		return { useAppManager, useAppManagerDispatch: () => mockDispatch };
+	},
 );
 
 vi.mock(
@@ -257,6 +287,52 @@ describe("ClassicyAlert", () => {
 	// the message finishing load -- must re-run centering against the real,
 	// current size and re-clamp to the viewport, not leave the box pinned
 	// near the pre-image midpoint.
+	// The error sound an alert plays on opening carries its type, which a
+	// sound pack may give its own sound (`alertTypeSounds`: Windows 98's
+	// message box icon events); a pack without one plays its alert, as before.
+	describe("its opening sound", () => {
+		const errorSounds = () =>
+			mockPlayer.mock.calls
+				.map((call) => call[0] as { type: string })
+				.filter((action) => action.type === "ClassicySoundPlayError");
+
+		it("sends a fixed alert's type with its window's error sound, once", () => {
+			render(<ClassicyAlert alertType="stop" label="s" />);
+			expect(errorSounds()).toEqual([
+				{ type: "ClassicySoundPlayError", alertType: "stop" },
+			]);
+		});
+
+		it("sends a movable alert's type with its own error sound, once", () => {
+			render(<ClassicyAlert alertType="caution" label="c" movable />);
+			expect(errorSounds()).toEqual([
+				{ type: "ClassicySoundPlayError", alertType: "caution" },
+			]);
+		});
+
+		it("sends note for an alert with no alertType", () => {
+			render(<ClassicyAlert label="n" />);
+			expect(errorSounds()).toEqual([
+				{ type: "ClassicySoundPlayError", alertType: "note" },
+			]);
+		});
+
+		it("never sounds again when the type changes while open", () => {
+			const { rerender } = render(<ClassicyAlert alertType="note" label="n" />);
+			rerender(<ClassicyAlert alertType="stop" label="n" />);
+			const movable = render(
+				<ClassicyAlert id="m" alertType="note" label="m" movable />,
+			);
+			movable.rerender(
+				<ClassicyAlert id="m" alertType="caution" label="m" movable />,
+			);
+			expect(errorSounds()).toEqual([
+				{ type: "ClassicySoundPlayError", alertType: "note" },
+				{ type: "ClassicySoundPlayError", alertType: "note" },
+			]);
+		});
+	});
+
 	describe("re-centers when the message grows after mount (#248)", () => {
 		// jsdom has no ResizeObserver; this captures the callback ClassicyWindow
 		// registers so the test can invoke it manually once the image "loads" --
@@ -360,5 +436,290 @@ describe("ClassicyAlert", () => {
 			);
 			expect(moves[0]?.position).toEqual(expected);
 		});
+	});
+});
+
+// Plan 0020-w98 §6: under a layout whose `dialog.caption` is `"titled"`
+// (Windows 98) every message box has a titled caption with a Close box (WIG
+// Ch.8 "Message Box Types", p.166, Figure 8.17). The box presses the cancel
+// button, else the only button, as MessageBox maps Close to IDCANCEL, else,
+// with OK alone, to IDOK (ReactOS's `MessageBoxProc`), and is drawn
+// unavailable with neither (a Yes/No question), as MessageBox removes Close
+// there. Under every other layout the alert draws no Close box.
+describe("ClassicyAlert's caption Close box", () => {
+	const closeBox = () =>
+		document.querySelector<HTMLElement>(
+			".classicyWindow > .classicyWindowTitleBar .classicyWindowCloseBox",
+		);
+	const yesNo = (onYes = vi.fn(), onNo = vi.fn()): ClassicyAlertButton[] => [
+		{ id: "yes", label: "Yes", role: "default", onClick: onYes },
+		{ id: "no", label: "No", onClick: onNo },
+	];
+
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		mockPlayer.mockClear();
+	});
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_DIALOG_CAPTION_PACKAGE_ID);
+	});
+
+	it("draws none under a layout without titled captions", () => {
+		render(<ClassicyAlert alertType="caution" label="c" />);
+		expect(closeBox()).toBeNull();
+		expect(document.querySelector(".classicyWindowTitleText")).toBeNull();
+	});
+
+	describe('under dialog.caption: "titled"', () => {
+		beforeEach(() => {
+			registerTestTaskbarPackage(
+				TEST_DIALOG_CAPTION_LAYOUT,
+				TEST_DIALOG_CAPTION_PACKAGE_ID,
+			);
+		});
+
+		it("presses the cancel button", () => {
+			const onCancel = vi.fn();
+			const onContinue = vi.fn();
+			const onClose = vi.fn();
+			render(
+				<ClassicyAlert
+					alertType="caution"
+					label="c"
+					buttons={[
+						{
+							id: "cancel",
+							label: "Cancel",
+							role: "cancel",
+							onClick: onCancel,
+						},
+						{
+							id: "go",
+							label: "Continue",
+							role: "default",
+							onClick: onContinue,
+						},
+					]}
+					onClose={onClose}
+				/>,
+			);
+			const box = closeBox() as HTMLElement;
+			expect(box).not.toHaveAttribute("aria-disabled");
+			fireEvent.click(box);
+			expect(onCancel).toHaveBeenCalledTimes(1);
+			expect(onContinue).not.toHaveBeenCalled();
+			expect(onClose).toHaveBeenCalledTimes(1);
+		});
+
+		it("presses the only button when there is no cancel button, a help button aside", () => {
+			const onOk = vi.fn();
+			const onHelp = vi.fn();
+			const { unmount } = render(
+				<ClassicyAlert
+					alertType="note"
+					label="n"
+					buttons={[
+						{ id: "ok", label: "OK", role: "default", onClick: onOk },
+						{ id: "help", label: "Help", role: "help", onClick: onHelp },
+					]}
+				/>,
+			);
+			fireEvent.click(closeBox() as HTMLElement);
+			expect(onOk).toHaveBeenCalledTimes(1);
+			expect(onHelp).not.toHaveBeenCalled();
+			unmount();
+			// The generated OK of a note alert too.
+			const onClose = vi.fn();
+			render(<ClassicyAlert alertType="note" label="n" onClose={onClose} />);
+			fireEvent.click(closeBox() as HTMLElement);
+			expect(onClose).toHaveBeenCalledTimes(1);
+		});
+
+		it("is unavailable on a Yes/No question, and presses nothing", () => {
+			const onYes = vi.fn();
+			const onNo = vi.fn();
+			const onClose = vi.fn();
+			render(
+				<ClassicyAlert
+					alertType="caution"
+					label="Save changes?"
+					buttons={yesNo(onYes, onNo)}
+					onClose={onClose}
+				/>,
+			);
+			const box = closeBox() as HTMLElement;
+			expect(box).toHaveClass("disabled");
+			expect(box).toHaveAttribute("aria-disabled", "true");
+			fireEvent.click(box);
+			fireEvent.keyDown(box, { key: "Enter" });
+			expect(onYes).not.toHaveBeenCalled();
+			expect(onNo).not.toHaveBeenCalled();
+			expect(onClose).not.toHaveBeenCalled();
+		});
+
+		it("is unavailable while the button it would press is disabled", () => {
+			const onCancel = vi.fn();
+			render(
+				<ClassicyAlert
+					alertType="caution"
+					label="c"
+					buttons={[
+						{
+							id: "cancel",
+							label: "Cancel",
+							role: "cancel",
+							disabled: true,
+							onClick: onCancel,
+						},
+						{ id: "go", label: "Continue", role: "default" },
+					]}
+				/>,
+			);
+			const box = closeBox() as HTMLElement;
+			expect(box).toHaveAttribute("aria-disabled", "true");
+			fireEvent.click(box);
+			expect(onCancel).not.toHaveBeenCalled();
+		});
+
+		it("titles the alert with its app's name and lets it move", () => {
+			render(<ClassicyAlert appId="Finder.app" alertType="stop" label="s" />);
+			expect(
+				document.querySelector(".classicyWindowTitleText p"),
+			).toHaveTextContent("Finder");
+			const root = document.querySelector(".classicyWindow") as HTMLElement;
+			// A fixed alert (`type="error"`) still, its red band kept, but
+			// not fixed in place.
+			expect(root).toHaveClass("classicyWindowRed");
+			expect(root).not.toHaveClass("classicyWindowModalFixed");
+		});
+	});
+});
+
+// The remaining chapters' audit's 4.12 (WIG Appendix B Table B.5, p.360;
+// user.exe's "&Yes", "&No", "&Retry", "&Abort", "&Ignore", read from the
+// Windows 98 SE CD): a message box's own buttons take Windows' keys under a
+// package with access keys, OK and Cancel none; under Platinum, none.
+describe("ClassicyAlert — access keys", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-alerts",
+			name: "Windows alerts",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-alerts-default",
+				package: "windows-alerts",
+			},
+			layout: windows98.layout as never,
+		});
+	const keyOf = (name: string) =>
+		screen
+			.getByRole("button", { name })
+			.querySelector("[data-classicy-part='access-key']")?.textContent ?? null;
+	const buttons = (yes: () => void) => [
+		{ id: "abort", label: "Abort" },
+		{ id: "retry", label: "Retry" },
+		{ id: "ignore", label: "Ignore" },
+		{ id: "yes", label: "Yes", onClick: yes },
+	];
+
+	it("gives a message box's buttons Windows' keys, OK and Cancel none, under the Windows layout", () => {
+		useWindowsLayout();
+		const yes = vi.fn();
+		const onClose = vi.fn();
+		const { unmount } = render(
+			<ClassicyAlert label="Save?" buttons={buttons(yes)} onClose={onClose} />,
+		);
+		expect(["Abort", "Retry", "Ignore", "Yes"].map(keyOf)).toEqual([
+			"A",
+			"R",
+			"I",
+			"Y",
+		]);
+		const retry = screen.getByRole("button", { name: "Retry" });
+		retry.focus();
+		fireEvent.keyDown(retry, { key: "y", code: "KeyY", altKey: true });
+		expect(yes).toHaveBeenCalledTimes(1);
+		expect(onClose).toHaveBeenCalledTimes(1);
+		unmount();
+		render(
+			<ClassicyAlert
+				label="Delete?"
+				buttons={[
+					{ id: "no", label: "No" },
+					{ id: "cancel", label: "Cancel", role: "cancel" },
+					{ id: "ok", label: "OK", role: "default" },
+					{ id: "other", label: "Keep Both", accessKey: "b" },
+				]}
+			/>,
+		);
+		expect(keyOf("No")).toBe("N");
+		expect(keyOf("Cancel")).toBeNull();
+		expect(keyOf("OK")).toBeNull();
+		expect(keyOf("Keep Both")).toBe("B");
+	});
+
+	it("gives none by default (Platinum)", () => {
+		render(<ClassicyAlert label="Save?" buttons={buttons(vi.fn())} />);
+		for (const name of ["Abort", "Retry", "Ignore", "Yes"]) {
+			expect(keyOf(name), name).toBeNull();
+			expect(screen.getByRole("button", { name })).not.toHaveAttribute(
+				"accesskey",
+			);
+		}
+	});
+});
+
+// Windows 98 draws the message box's Help as a push button reading "Help"
+// (12.14, _Alert.scss), so the ToolTip an icon-only button gets under
+// `layout.balloonHelp.unlabeledTips` (12.9) would repeat its own text: the
+// alert's Help button takes none (the WIG audit's review).
+describe("ClassicyAlert — the Help button's ToolTip", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		vi.useRealTimers();
+	});
+	const helpButtons = [
+		{ id: "ok", label: "OK", role: "default" as const },
+		{ id: "help", label: "Help", role: "help" as const },
+	];
+	const hoverHelp = () => {
+		fireEvent.mouseEnter(screen.getByRole("button", { name: "Help" }), {
+			clientX: 10,
+			clientY: 10,
+		});
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+	};
+
+	it("shows no ToolTip on the alert's Help button under the Windows layout", () => {
+		vi.useFakeTimers();
+		registerClassicyAppearancePackage({
+			id: "windows-alert-tips",
+			name: "Windows alert tips",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-alert-tips-default",
+				package: "windows-alert-tips",
+			},
+			layout: windows98.layout as never,
+		});
+		render(<ClassicyAlert label="c" buttons={helpButtons} />);
+		hoverHelp();
+		expect(document.querySelector(".classicyBalloonHelp")).toBeNull();
+		expect(screen.getByRole("button", { name: "Help" })).not.toHaveAttribute(
+			"aria-describedby",
+		);
+	});
+
+	it("shows none under a Mac layout either", () => {
+		vi.useFakeTimers();
+		render(<ClassicyAlert label="c" buttons={helpButtons} />);
+		hoverHelp();
+		expect(document.querySelector(".classicyBalloonHelp")).toBeNull();
 	});
 });

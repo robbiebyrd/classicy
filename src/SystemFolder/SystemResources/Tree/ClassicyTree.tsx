@@ -4,24 +4,37 @@ import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEventHandler,
+	type MutableRefObject,
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent as ReactMouseEvent,
 	type ReactNode,
 	useCallback,
+	useContext,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import {
+	classicyListPageOf,
+	classicyListScroller,
+	classicyPageKeysMove,
+	classicyScrollListBy,
+	classicyTreeScrollChord,
+	classicyWindowsTreeKeys,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyListKeys.internal";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 import {
 	ClassicyTriangle,
 	type ClassicyTriangleDirection,
 } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
+import { classicySelectsOnPress } from "@/SystemFolder/SystemResources/Utils/ClassicyMousePolicy";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 /**
  * Configuration for the small ClassicyButton rendered to the right of a leaf
@@ -87,6 +100,15 @@ type ClassicyTreeProps = {
 	/** Fired whenever a branch node is expanded or collapsed. */
 	onToggleNode?: (id: string, open: boolean) => void;
 	/**
+	 * Ids of the open branches. Given, expansion is controlled: every
+	 * expansion path (a click, a double-click, the keys) reports through
+	 * `onToggleNode` and opens or closes nothing until the owner passes new
+	 * ids, so a control outside the tree can open a branch too (the Help
+	 * Topics browser's Open button). Absent (the default), the tree keeps
+	 * its own, seeded from each node's `defaultOpen`.
+	 */
+	openIds?: string[];
+	/**
 	 * `"none"` (the default) makes rows navigation-only. `"single"` and
 	 * `"multi"` both make enabled leaves (and `branchSelectable` branches)
 	 * report clicks and Enter/Space through `onSelectNode`; the tree does not
@@ -98,7 +120,12 @@ type ClassicyTreeProps = {
 	 * selection of its own, so update this from `onSelectNode`.
 	 */
 	selectedIds?: string[];
-	/** Fired when a selectable node is clicked or chosen with Enter/Space. */
+	/**
+	 * Fired when a selectable node is clicked or chosen with Enter/Space;
+	 * under a package whose layout says `selection.selectOn: "press"`
+	 * (Windows 98), at its button-1 press instead (`e` is the `mousedown`),
+	 * the click that ends it firing nothing.
+	 */
 	onSelectNode?: (
 		id: string,
 		node: ClassicyTreeNode,
@@ -119,6 +146,8 @@ type FlatTreeRow = {
 	depth: number;
 	hasChildren: boolean;
 	open: boolean;
+	/** The branch the row hangs under; absent at the root. */
+	parentId?: string;
 };
 
 const nodeHasChildren = (node: ClassicyTreeNode): boolean =>
@@ -146,13 +175,14 @@ function flattenVisible(
 	openSet: Set<string>,
 	depth = 0,
 	acc: FlatTreeRow[] = [],
+	parentId?: string,
 ): FlatTreeRow[] {
 	for (const node of nodes) {
 		const hasChildren = nodeHasChildren(node);
 		const open = hasChildren && openSet.has(node.id);
-		acc.push({ id: node.id, node, depth, hasChildren, open });
+		acc.push({ id: node.id, node, depth, hasChildren, open, parentId });
 		if (open && node.children) {
-			flattenVisible(node.children, openSet, depth + 1, acc);
+			flattenVisible(node.children, openSet, depth + 1, acc, node.id);
 		}
 	}
 	return acc;
@@ -180,6 +210,38 @@ type SharedRowContext = {
 		e: ReactMouseEvent | ReactKeyboardEvent,
 	) => void;
 	onActivateNode?: (id: string, node: ClassicyTreeNode) => void;
+	/**
+	 * Whether a selectable row is chosen at its button-1 press
+	 * (`layout.selection.selectOn` "press") rather than at its click.
+	 */
+	selectOnPress: boolean;
+	/** The row such a press last chose, for the click ending it to skip. */
+	pressedRef: MutableRefObject<string | null>;
+};
+
+/**
+ * A selectable row's press under `selectOnPress` (WIG Ch.5 "Selection with
+ * the Mouse", pp.37-38; comctl32's tree view selects on WM_LBUTTONDOWN):
+ * button 1 chooses it at once; the second press of a double-click changes
+ * nothing (Win32's WM_LBUTTONDBLCLK), the double-click still opening or
+ * toggling it.
+ */
+const pressSelectableRow = (
+	ctx: SharedRowContext,
+	node: ClassicyTreeNode,
+	e: ReactMouseEvent,
+) => {
+	if (!ctx.selectOnPress || e.button !== 0) return;
+	ctx.pressedRef.current = node.id;
+	if (e.detail > 1) return;
+	ctx.onSelectNode?.(node.id, node, e);
+};
+
+/** Whether a click ends a press that already chose its row (and clears it). */
+const clickEndsPress = (ctx: SharedRowContext, node: ClassicyTreeNode) => {
+	const pressed = ctx.pressedRef.current === node.id;
+	ctx.pressedRef.current = null;
+	return pressed;
 };
 
 type ClassicyTreeNodeItemProps = {
@@ -265,12 +327,17 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 								selected: canSelectBranch && isBranchSelected,
 							}),
 						)}
+						onMouseDown={(e) => {
+							if (canSelectBranch) pressSelectableRow(ctx, node, e);
+						}}
 						onClick={(e) => {
 							if (node.disabled) return;
 							// A branch opted into selection (e.g. the Save dialog's
-							// folder-target tree) is picked with a single click;
+							// folder-target tree) is picked with a single click
+							// (or its press, under `selectOn` "press");
 							// double-click still expands/collapses it below.
 							if (canSelectBranch) {
+								if (clickEndsPress(ctx, node)) return;
 								ctx.onSelectNode?.(node.id, node, e);
 								return;
 							}
@@ -297,7 +364,11 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 							"classicyTreeNodeSelectable",
 							classicyStateClasses({ selected: isSelected }),
 						)}
-						onClick={(e) => ctx.onSelectNode?.(node.id, node, e)}
+						onMouseDown={(e) => pressSelectableRow(ctx, node, e)}
+						onClick={(e) => {
+							if (clickEndsPress(ctx, node)) return;
+							ctx.onSelectNode?.(node.id, node, e);
+						}}
 						onDoubleClick={() => ctx.onActivateNode?.(node.id, node)}
 						onFocus={onFocus}
 					>
@@ -373,12 +444,28 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
  * `ClassicyTable` with `getSubRows` instead.
  *
  * Expansion is uncontrolled (seeded from each node's `defaultOpen`, reported
- * through `onToggleNode`); selection is fully controlled through
- * `selectedIds`. Clicking a branch toggles it unless it is
+ * through `onToggleNode`) unless `openIds` is given; selection is fully
+ * controlled through `selectedIds`. Clicking a branch toggles it unless it is
  * `branchSelectable`, in which case a click selects and a double-click
  * toggles. Keyboard: Up/Down, Home/End and type-select move focus through
  * the visible rows (without selecting), ⌘→ / ⌘← open and close the focused
- * branch, and Enter/Space toggles a branch or selects a leaf.
+ * branch, and Enter/Space toggles a branch or selects a leaf. Under a
+ * package whose layout declares `tree.keys: "windows"` (Windows 98; WIG
+ * Ch.7 "Tree View Controls", pp.123-124) a bare Right Arrow also expands a
+ * closed branch or moves to an open one's first child, and a bare Left
+ * Arrow collapses an open branch or moves to the row's parent. Under
+ * `selection.selectOn: "press"` (Windows 98; WIG Ch.5 "Selection with the
+ * Mouse", pp.37-38) a selectable leaf or branch is chosen at its button-1
+ * press, the click ending it choosing nothing more; button 2 never chooses.
+ * Under `selection.pageKeys: "move"` (Windows 98; WIG Ch.5 Table 5.1,
+ * pp.35-36) Page Up and Page Down move the keyboard row to the first or
+ * last row shown, or a page further; under `tree.keys: "windows"` Control
+ * (or ⌘) with an arrow, Home, End, Page Up or Page Down scrolls the tree's
+ * scroller instead of moving or toggling anything, as comctl32's tree view
+ * takes them (`TREEVIEW_ScrollKeyDown`; WIG App. B Table B.1, p.357).
+ * Drawn in a window that is not the active one, the root carries the
+ * `inactive` state (`ClassicyWindowActiveContext`), as `ClassicyScrollArea`
+ * does.
  *
  * ```tsx
  * <ClassicyTree
@@ -393,6 +480,7 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	nodes,
 	direction = "right",
 	onToggleNode,
+	openIds,
 	selectionMode = "none",
 	selectedIds,
 	onSelectNode,
@@ -400,8 +488,14 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	className,
 	style,
 }) => {
-	const [openSet, setOpenSet] = useState<Set<string>>(() =>
+	const [ownOpenSet, setOwnOpenSet] = useState<Set<string>>(() =>
 		collectDefaultOpen(nodes),
+	);
+	// Controlled by `openIds` when given, else the tree's own.
+	const controlledOpen = openIds !== undefined;
+	const openSet = useMemo(
+		() => (openIds ? new Set(openIds) : ownOpenSet),
+		[openIds, ownOpenSet],
 	);
 
 	const visible = useMemo(
@@ -412,34 +506,66 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 	// Roving tabindex + arrow/Home/End/type-select over the visible rows —
 	// see the SharedRowContext comment above for why the active row is kept
 	// separate from `selectedIds`.
+	// Windows' tree view takes the bare arrows along a branch, and scrolls on
+	// the Control chords (`tree.keys`); Mac OS 8's list views took ⌘→ / ⌘←
+	// alone. It chooses a row at the press (`selection.selectOn`), Mac OS
+	// 8's at the click, and moves a page on the page keys
+	// (`selection.pageKeys`), where Mac OS 8's scrolled.
+	const layout = useClassicyAppearanceLayout();
+	const windowsKeys = classicyWindowsTreeKeys(layout);
+	const selectOnPress = classicySelectsOnPress(layout);
+	const pageKeysMove = classicyPageKeysMove(layout);
+	const pressedRef = useRef<string | null>(null);
+
+	const rootRef = useRef<HTMLUListElement>(null);
 	const navRows = useMemo(
 		() => visible.map((r) => ({ id: r.id, label: r.node.label })),
 		[visible],
 	);
-	const { activeId, setActiveId, tabStopId, registerRef, handleNavKey } =
-		useListNavigation(navRows);
-
-	const rootRef = useRef<HTMLUListElement>(null);
-	// The list had no state class; row states stay on the rows.
-	const appearance = useClassicyAppearance("Tree", {}, rootRef);
+	const {
+		activeId,
+		setActiveId,
+		tabStopId,
+		registerRef,
+		selectRow,
+		handleNavKey,
+	} = useListNavigation(
+		navRows,
+		pageKeysMove
+			? {
+					pageRows: () =>
+						classicyListPageOf(
+							rootRef.current?.querySelector(".classicyTreeNodeLabelHolder"),
+						)?.pageRows ?? 1,
+				}
+			: undefined,
+	);
+	// The root's one state: `inactive` while the window it is drawn in is not
+	// the active one (as ClassicyScrollArea reads it; outside a window,
+	// never), so a package can draw the selection as an inactive window's
+	// (Windows 98: ButtonFace, as TVS_SHOWSELALWAYS draws it). Row states
+	// stay on the rows.
+	const inactive = useContext(ClassicyWindowActiveContext) === false;
+	const appearance = useClassicyAppearance("Tree", { inactive }, rootRef);
 	const emitAppearance = appearance.emit;
 
 	// Every expansion path (click, double-click, ⌘→/⌘←, Enter/Space) runs here.
 	const setOpen = useCallback(
 		(id: string, open: boolean) => {
-			setOpenSet((prev) => {
-				const next = new Set(prev);
-				if (open) next.add(id);
-				else next.delete(id);
-				return next;
-			});
+			if (!controlledOpen)
+				setOwnOpenSet((prev) => {
+					const next = new Set(prev);
+					if (open) next.add(id);
+					else next.delete(id);
+					return next;
+				});
 			emitAppearance(
 				open ? "expand" : "collapse",
 				withClassicyAppearanceInput({ nodeId: id, open }),
 			);
 			onToggleNode?.(id, open);
 		},
-		[onToggleNode, emitAppearance],
+		[controlledOpen, onToggleNode, emitAppearance],
 	);
 
 	const toggle = useCallback(
@@ -476,18 +602,45 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 		selectedIds: resolvedSelectedIds,
 		onSelectNode: selectNode,
 		onActivateNode,
+		selectOnPress,
+		pressedRef,
 	};
 
 	const handleKeyDown = useCallback(
 		(e: ReactKeyboardEvent<HTMLUListElement>) => {
 			if (visible.length === 0) return;
-			// Arrow/Home/End/type-select are the shared list-navigation keys;
+			// Windows: Control (or ⌘) with a navigation key scrolls the view,
+			// the keyboard row and the selection staying where they are
+			// (TREEVIEW_KeyDown hands every Control key to
+			// TREEVIEW_ScrollKeyDown); so the chords no longer open or close
+			// a branch, which the bare arrows do.
+			if (windowsKeys && (e.ctrlKey || e.metaKey) && !e.altKey) {
+				const scroller = classicyListScroller(rootRef.current);
+				const line = rootRef.current?.querySelector(".classicyTreeNodeRow");
+				const delta = classicyTreeScrollChord(e.key, {
+					rowHeight: line?.getBoundingClientRect().height ?? 0,
+					scrollTop: scroller?.scrollTop ?? 0,
+					scrollHeight: scroller?.scrollHeight ?? 0,
+					clientHeight: scroller?.clientHeight ?? 0,
+				});
+				if (delta) {
+					e.preventDefault();
+					classicyScrollListBy(rootRef.current, delta[0], delta[1]);
+					return;
+				}
+			}
+			// Arrow/Home/End/type-select (and the page keys, under
+			// `pageKeys` "move") are the shared list-navigation keys;
 			// everything after this is tree-specific (expansion, selection).
 			if (handleNavKey(e) !== null) return;
 			const curIndex = activeId
 				? visible.findIndex((r) => r.id === activeId)
 				: -1;
 			const current = curIndex >= 0 ? visible[curIndex] : undefined;
+
+			// A bare arrow (Shift allowed, as comctl32 ignores it; Alt is the
+			// browser's history chord) under Windows' tree keys.
+			const bareArrow = windowsKeys && !e.metaKey && !e.ctrlKey && !e.altKey;
 
 			switch (e.key) {
 				case "ArrowRight": {
@@ -500,6 +653,20 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 					) {
 						e.preventDefault();
 						setOpen(current.id, true);
+						return;
+					}
+					// Windows: expand a closed branch, else move to its first
+					// child (the row after it, the flattening being pre-order);
+					// a leaf stays where it is (TREEVIEW_KeyDown's VK_RIGHT).
+					if (bareArrow && current) {
+						e.preventDefault();
+						if (!current.hasChildren) return;
+						if (!current.open) {
+							if (!current.node.disabled) setOpen(current.id, true);
+							return;
+						}
+						const child = visible[curIndex + 1];
+						if (child && child.parentId === current.id) selectRow(child.id);
 					}
 					return;
 				}
@@ -513,6 +680,18 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 					) {
 						e.preventDefault();
 						setOpen(current.id, false);
+						return;
+					}
+					// Windows: collapse an open branch, else move to the parent
+					// (VK_LEFT); at the root a closed row stays. A dimmed branch,
+					// which refuses to toggle, moves to its parent instead.
+					if (bareArrow && current) {
+						e.preventDefault();
+						if (current.hasChildren && current.open && !current.node.disabled) {
+							setOpen(current.id, false);
+							return;
+						}
+						if (current.parentId !== undefined) selectRow(current.parentId);
 					}
 					return;
 				}
@@ -551,6 +730,8 @@ export const ClassicyTree: FunctionalComponent<ClassicyTreeProps> = ({
 			visible,
 			activeId,
 			handleNavKey,
+			windowsKeys,
+			selectRow,
 			setOpen,
 			toggle,
 			selectionMode,

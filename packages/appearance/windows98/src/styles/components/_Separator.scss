@@ -1,0 +1,40 @@
+// The Windows 98 separator, included by windows98.scss inside the package
+// wrapper; overrides the structure of ClassicySeparator.scss (the standalone
+// rule in dialogs and toolbars; a menu's separator is _Menu.scss's). The
+// look is the Windows 95/98 etched static (SS_ETCHEDHORZ, SS_ETCHEDVERT) as
+// `DrawEdge` drew it from the system colors (EDGE_ETCHED on one side; as
+// 98.css and os-gui re-create it):
+//
+// - A two-ring line, ButtonShadow over ButtonHilight: across, the dark ring
+//   above the light one; upright, the dark ring left of the light one. Each
+//   ring is one `--window-border-size`, drawn as the rule's two borders, as
+//   the base sheet draws it, so the rule stays exactly two rings and casts
+//   nothing past them.
+// - `--layout-item-gap` (4) of room along the rule on both sides: a whole
+//   number of pixels, so the two one-pixel rings land on the pixel grid
+//   (the base sheet's half-pixel padding would blur them).
+//
+//   Windows color     token
+//   ButtonShadow      --color-system-05        the dark ring
+//   ButtonHilight     --color-system-01        the light ring
+//
+// Every length is a knob or a ring (`b.$b`), every color a token.
+@use "../bevels" as b;
+
+@mixin separator {
+  .classicySeparatorHorizontal {
+    height: b.$b2;
+    margin: var(--layout-item-gap) 0;
+    border: 0;
+    border-top: b.$b solid b.$shadow;
+    border-bottom: b.$b solid b.$hilight;
+  }
+
+  .classicySeparatorVertical {
+    width: b.$b2;
+    margin: 0 var(--layout-item-gap);
+    border: 0;
+    border-left: b.$b solid b.$shadow;
+    border-right: b.$b solid b.$hilight;
+  }
+}

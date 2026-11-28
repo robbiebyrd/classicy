@@ -1,0 +1,24 @@
+// The Keyboard control panel (structure only; the package draws the
+// controls). Its Shortcuts page lists the bundled apps' commands in group
+// boxes, one per app, with Reset below the tabs.
+.classicyKeyboardManagerContent {
+  background-color: var(--color-system-03);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--window-padding-size);
+  min-height: 100%;
+  padding: var(--window-padding-size);
+  width: 100%;
+}
+
+.classicyKeyboardManagerShortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--window-padding-size);
+}
+
+.classicyKeyboardManagerButtons {
+  display: flex;
+  justify-content: flex-end;
+}

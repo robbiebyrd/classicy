@@ -6,6 +6,7 @@ import {
 	registerTestRenamePackage,
 	TEST_RENAME_PACKAGE_ID,
 	TEST_RENAMED_ICON,
+	TEST_STARTUP_DISK_ICON,
 } from "@/__tests__/testRenamePackage";
 import {
 	type ClassicyAppearancePackage,
@@ -467,6 +468,239 @@ describe("test-rename", () => {
 			expect(
 				typeOnDesktop([drive, icon("Scrapbook.app", "Scrapbook")], "Exp"),
 			).not.toContain("Finder.app");
+		});
+	});
+	// The package's `desktopIcons` (Windows 98's Recycle Bin and My Computer):
+	// the Trash and the startup disk show its name, image and balloon copy,
+	// while their records, paths and analytics keep their own.
+	describe("desktopIcons", () => {
+		const HD_ICON = "/icons/hd.png";
+		const TRASH_ICON = "/icons/trash.png";
+		const balloonTitle = () =>
+			document.querySelector(".classicyBalloonHelpTitle")?.textContent;
+		const relabel = () =>
+			act(() => registerTestRenamePackage({ desktopIcons: true }));
+		const renderTrash = (props: { label?: string } = {}) =>
+			render(
+				<ClassicyDesktopIcon
+					appId="Trash"
+					appName="Trash"
+					icon={TRASH_ICON}
+					kind="trash"
+					filePath="Trash"
+					noLaunch
+					{...props}
+				/>,
+			);
+		const renderDrive = (startupDisk: boolean) =>
+			render(
+				<ClassicyDesktopIcon
+					appId="Finder.app"
+					appName="Macintosh HD"
+					icon={HD_ICON}
+					kind="drive"
+					filePath="Macintosh HD"
+					startupDisk={startupDisk}
+				/>,
+			);
+
+		it("shows the Trash by the package's name, over its own art", () => {
+			relabel();
+			renderTrash();
+			expect(label("Trash")).toBe("Wastebasket");
+			expect(image("Trash")).toHaveAttribute("alt", "Wastebasket");
+			expect(image("Trash")).toHaveAttribute("src", TRASH_ICON);
+		});
+
+		it("shows the startup disk by the package's name and image", () => {
+			relabel();
+			renderDrive(true);
+			expect(label("Finder.app")).toBe("This Computer");
+			expect(image("Finder.app")).toHaveAttribute(
+				"src",
+				TEST_STARTUP_DISK_ICON,
+			);
+		});
+
+		it("leaves a drive that is not the startup disk alone", () => {
+			relabel();
+			renderDrive(false);
+			expect(label("Finder.app")).toBe("Macintosh HD");
+			expect(image("Finder.app")).toHaveAttribute("src", HD_ICON);
+		});
+
+		it("keeps the own names under a package that declares none", () => {
+			renderTrash();
+			expect(label("Trash")).toBe("Trash");
+			renderDrive(true);
+			expect(label("Finder.app")).toBe("Macintosh HD");
+			expect(image("Finder.app")).toHaveAttribute("src", HD_ICON);
+		});
+
+		it("restores the own names on a switch back to Platinum", () => {
+			relabel();
+			renderTrash();
+			renderDrive(true);
+			expect(label("Trash")).toBe("Wastebasket");
+			switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+			expect(label("Trash")).toBe("Trash");
+			expect(label("Finder.app")).toBe("Macintosh HD");
+			expect(image("Finder.app")).toHaveAttribute("src", HD_ICON);
+		});
+
+		it("lets a label win over the package's name", () => {
+			relabel();
+			renderTrash({ label: "Bin" });
+			expect(label("Trash")).toBe("Bin");
+		});
+
+		it("keeps the record's own name in analytics", () => {
+			relabel();
+			renderTrash();
+			fireEvent.mouseDown(iconRoot("Trash"));
+			fireEvent.mouseUp(iconRoot("Trash"));
+			fireEvent.click(iconRoot("Trash"));
+			expect(tracked.length).toBeGreaterThan(0);
+			for (const [, payload] of tracked)
+				expect(payload).toMatchObject({
+					appId: "Trash",
+					appName: "Trash",
+					icon: TRASH_ICON,
+				});
+		});
+
+		it("shows the package's balloon copy in place of the stock copy", async () => {
+			relabel();
+			renderTrash();
+			fireEvent.mouseEnter(iconRoot("Trash"));
+			expect(
+				await screen.findByText(
+					"Holds what you throw away.",
+					{},
+					{ timeout: 2000 },
+				),
+			).toBeInTheDocument();
+			expect(balloonTitle()).toBe("Wastebasket");
+		});
+
+		// The audit's 12.5: the other drives' balloon copy (`desktopIcons.drive`),
+		// their label and image their own.
+		it("shows the package's balloon copy for a drive that is not the startup disk", async () => {
+			relabel();
+			renderDrive(false);
+			expect(label("Finder.app")).toBe("Macintosh HD");
+			fireEvent.mouseEnter(iconRoot("Finder.app"));
+			expect(
+				await screen.findByText(
+					"Shows what is on this disk.",
+					{},
+					{ timeout: 2000 },
+				),
+			).toBeInTheDocument();
+			expect(balloonTitle()).toBe("Macintosh HD");
+		});
+
+		it("keeps the startup disk's own copy over the drives'", async () => {
+			relabel();
+			renderDrive(true);
+			fireEvent.mouseEnter(iconRoot("Finder.app"));
+			expect(
+				await screen.findByText(
+					"Shows what is on this computer.",
+					{},
+					{ timeout: 2000 },
+				),
+			).toBeInTheDocument();
+		});
+
+		it("keeps a drive's stock balloon under a package that declares none", async () => {
+			renderDrive(false);
+			fireEvent.mouseEnter(iconRoot("Finder.app"));
+			expect(
+				await screen.findByText(/This is a disk icon\./, {}, { timeout: 2000 }),
+			).toBeInTheDocument();
+		});
+
+		it("keeps the stock balloon under a package that declares none", async () => {
+			renderTrash();
+			fireEvent.mouseEnter(iconRoot("Trash"));
+			expect(
+				await screen.findByText(/This is the Trash\./, {}, { timeout: 2000 }),
+			).toBeInTheDocument();
+			expect(balloonTitle()).toBe("Trash");
+		});
+
+		describe("on the desktop", () => {
+			// The desktop's own records, as Finder adds them: the Trash, and
+			// the startup disk (the default tree's first drive).
+			const seed = () =>
+				act(() => {
+					useAppManager.setState((state) =>
+						produce(state, (draft) => {
+							draft.System.Manager.Desktop.icons = [
+								{
+									appId: "Finder.app",
+									appName: "Macintosh HD",
+									icon: HD_ICON,
+									kind: "drive",
+									filePath: "Macintosh HD",
+									noLaunch: true,
+								},
+								{
+									appId: "Trash",
+									appName: "Trash",
+									icon: TRASH_ICON,
+									kind: "trash",
+									filePath: "Trash",
+									noLaunch: true,
+								},
+							];
+						}),
+					);
+				});
+			const renderDesktop = () => {
+				seed();
+				render(
+					<ClassicyAppManagerProvider>
+						<ClassicyDesktop controlStrip={false} />
+					</ClassicyAppManagerProvider>,
+				);
+			};
+			const typeOnDesktop = (text: string) => {
+				for (const key of text) fireEvent.keyDown(iconRoot("Trash"), { key });
+				return useAppManager.getState().System.Manager.Desktop.selectedIcons;
+			};
+
+			it("passes the startup disk to its icon, which shows the package's name", () => {
+				relabel();
+				renderDesktop();
+				expect(label("Finder.app")).toBe("This Computer");
+				expect(label("Trash")).toBe("Wastebasket");
+				// The records keep their own names.
+				const icons = useAppManager.getState().System.Manager.Desktop.icons;
+				expect(icons.find((i) => i.appId === "Trash")?.appName).toBe("Trash");
+				expect(icons.find((i) => i.appId === "Finder.app")?.appName).toBe(
+					"Macintosh HD",
+				);
+			});
+
+			it("type-selects the Trash by the package's name", () => {
+				relabel();
+				renderDesktop();
+				expect(typeOnDesktop("Was")).toEqual(["Trash"]);
+			});
+
+			it("type-selects the startup disk by the package's name", () => {
+				relabel();
+				renderDesktop();
+				expect(typeOnDesktop("This")).toEqual(["Finder.app"]);
+			});
+
+			it("type-selects them by their own names under a package that declares none", () => {
+				renderDesktop();
+				expect(label("Finder.app")).toBe("Macintosh HD");
+				expect(typeOnDesktop("Mac")).toEqual(["Finder.app"]);
+			});
 		});
 	});
 });

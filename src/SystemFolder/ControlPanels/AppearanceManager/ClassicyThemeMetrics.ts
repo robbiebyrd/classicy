@@ -302,7 +302,7 @@ export function classicyThemeMeasurementDefaults(
 export const CLASSICY_MEASUREMENT_NAME = /^[a-z][A-Za-z0-9]*$/;
 
 /** `groupBox` → `group-box`, `titleBarHeight` → `title-bar-height`. */
-const kebab = (name: string): string =>
+export const classicyKebabName = (name: string): string =>
 	name.replace(/[A-Z]/g, (capital) => `-${capital.toLowerCase()}`);
 
 // Collisions already reported, so a re-render never repeats a warning.
@@ -411,6 +411,19 @@ export const isClassicyPackageColorVar = (name: string): boolean =>
 	name.startsWith(CLASSICY_PACKAGE_COLOR_VAR_PREFIX);
 
 /**
+ * The prefix of a package font's variables (`--package-font-<name>`, its
+ * `-size` and `-weight`; `classicyFontFamilyVarName`): the namespace
+ * Appearance Packages own for the fonts a theme holds under
+ * `typography.families`. Reserved whole, like `--package-color-`, so no
+ * measurement (a family `packageFont`, say) can make one.
+ */
+export const CLASSICY_PACKAGE_FONT_VAR_PREFIX = "--package-font-";
+
+/** True for a name in the package fonts' `--package-font-` space. */
+export const isClassicyPackageFontVar = (name: string): boolean =>
+	name.startsWith(CLASSICY_PACKAGE_FONT_VAR_PREFIX);
+
+/**
  * True when `getThemeVars` sets `name` itself, after the measurement inputs:
  * a palette, font or desktop variable (`CLASSICY_THEME_NON_MEASUREMENT_VARS`),
  * an earlier derived variable (`CLASSICY_THEME_DERIVED_VARS`) or a named
@@ -418,7 +431,8 @@ export const isClassicyPackageColorVar = (name: string): boolean =>
  * `--classicy-` prefix, which Classicy keeps for its own root variables
  * (`--classicy-layout-*`, `--classicy-art-*`, …); or when `name` takes the
  * palette's `--color-` prefix (H-R16), or the package colors'
- * `--package-color-` prefix. A package measurement whose
+ * `--package-color-` prefix, or the package fonts' `--package-font-`
+ * prefix. A package measurement whose
  * variable (`classicyMeasurementVarName`) is reserved is skipped by
  * `classicyMeasurementVars`, and is not an editable knob
  * (`isThemeMetricFamilyTarget`).
@@ -427,7 +441,8 @@ export const isReservedClassicyThemeVar = (name: string): boolean =>
 	RESERVED_THEME_VARS.has(name) ||
 	isClassicyPrefixedThemeVar(name) ||
 	isPaletteThemeVar(name) ||
-	isClassicyPackageColorVar(name);
+	isClassicyPackageColorVar(name) ||
+	isClassicyPackageFontVar(name);
 
 /**
  * The CSS variable a measurement makes: `--<family>-<key>`, kebab-cased
@@ -436,7 +451,7 @@ export const isReservedClassicyThemeVar = (name: string): boolean =>
 export const classicyMeasurementVarName = (
 	family: string,
 	key: string,
-): string => `--${kebab(family)}-${kebab(key)}`;
+): string => `--${classicyKebabName(family)}-${classicyKebabName(key)}`;
 
 const reportOnce = (collision: string, message: string): void => {
 	if (reportedCollisions.has(collision)) return;
@@ -505,7 +520,9 @@ export function classicyMeasurementVars(
 							? `Measurement ${source} makes ${name}; the --color- prefix is reserved for the palette.`
 							: isClassicyPackageColorVar(name)
 								? `Measurement ${source} makes ${name}; the --package-color- prefix is reserved for package colors.`
-								: `Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
+								: isClassicyPackageFontVar(name)
+									? `Measurement ${source} makes ${name}; the --package-font- prefix is reserved for package fonts.`
+									: `Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
 				);
 				continue;
 			}

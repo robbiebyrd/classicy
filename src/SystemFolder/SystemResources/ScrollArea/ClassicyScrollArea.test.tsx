@@ -21,6 +21,7 @@ import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/Classic
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyScrollArea } from "./ClassicyScrollArea";
 import { useClassicyScrollAreaHead } from "./ClassicyScrollAreaHead.internal";
+import { classicyScrollViewportOf } from "./ClassicyScrollViewportRegistry.internal";
 
 type Box = {
 	scrollWidth: number;
@@ -307,6 +308,73 @@ describe("ClassicyScrollArea", () => {
 		expect(thumbStyle(part(container, "scroll-thumb")).offset).toBe("83px");
 	});
 
+	// WIG Ch.6 "Scroll Arrows" (p.87): the arrow toward where the content
+	// cannot scroll further is disabled. The state follows the scroll
+	// position, from the same measurement that moves the thumb.
+	it("disables the arrow at the end of its travel: the start arrow at 0, the end arrow at the maximum, neither between", () => {
+		const { container, viewport } = renderTall();
+		const disabled = () => ({
+			start: part(container, "scroll-arrow-start").classList.contains(
+				CLASSICY_STATE.disabled,
+			),
+			end: part(container, "scroll-arrow-end").classList.contains(
+				CLASSICY_STATE.disabled,
+			),
+		});
+		// At the top: the up arrow alone.
+		expect(disabled()).toEqual({ start: true, end: false });
+		act(() => {
+			viewport.scrollTop = 400;
+			fireEvent.scroll(viewport);
+		});
+		// Mid-way: neither.
+		expect(disabled()).toEqual({ start: false, end: false });
+		act(() => {
+			viewport.scrollTop = 800;
+			fireEvent.scroll(viewport);
+		});
+		// At the bottom (1000 - 200): the down arrow alone.
+		expect(disabled()).toEqual({ start: false, end: true });
+		act(() => {
+			viewport.scrollTop = 0;
+			fireEvent.scroll(viewport);
+		});
+		expect(disabled()).toEqual({ start: true, end: false });
+		// The bar's other states are untouched by it.
+		expect(
+			part(container, "scrollbar").classList.contains(CLASSICY_STATE.fits),
+		).toBe(false);
+	});
+
+	it("disables both arrows of a bar whose axis fits", () => {
+		// Paired bars over content that is only too tall: the horizontal
+		// axis is at both of its ends at once, the vertical at its start.
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 1000,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container } = render(
+			<ClassicyScrollArea pairBars>
+				<p>Content</p>
+			</ClassicyScrollArea>,
+		);
+		const arrows = (bar: Element) =>
+			Array.from(bar.querySelectorAll(".classicyScrollBarArrow")).map((a) =>
+				a.classList.contains(CLASSICY_STATE.disabled),
+			);
+		const vertical = container.querySelector(
+			".classicyScrollBarVertical",
+		) as HTMLElement;
+		const horizontal = container.querySelector(
+			".classicyScrollBarHorizontal",
+		) as HTMLElement;
+		expect(horizontal.classList.contains(CLASSICY_STATE.fits)).toBe(true);
+		expect(arrows(horizontal)).toEqual([true, true]);
+		expect(arrows(vertical)).toEqual([true, false]);
+	});
+
 	it("follows the content's size as it changes", () => {
 		const { container, rerender } = renderTall();
 		viewportBox = { ...viewportBox, scrollHeight: 400 };
@@ -463,6 +531,69 @@ describe("ClassicyScrollArea", () => {
 		// 184, 368, 552, 736: the thumb (139..172) then covers the pointer.
 		expect(viewport.scrollTop).toBe(736);
 		expect(track.classList.contains(CLASSICY_STATE.pressed)).toBe(false);
+	});
+
+	// The stretch of track being paged, for a package that draws that side
+	// alone while the track is held (Windows inverted it): from the track's
+	// start along the bar, as `--classicy-scroll-page-start` and
+	// `--classicy-scroll-page-length` on the track, following the thumb as it
+	// pages, gone once the thumb reaches the pointer or the button comes up.
+	it("publishes the paged side of the track while it is held, and removes it", () => {
+		vi.useFakeTimers();
+		const { container, viewport } = renderTall({ lineStep: 16 });
+		const track = part(container, "scroll-track");
+		const thumb = part(container, "scroll-thumb");
+		const pageStart = () =>
+			track.style.getPropertyValue("--classicy-scroll-page-start");
+		const pageLength = () =>
+			track.style.getPropertyValue("--classicy-scroll-page-length");
+		expect(pageStart()).toBe("");
+		expect(pageLength()).toBe("");
+		// Below the thumb: the stretch from the thumb's end to the track's end
+		// (the track starts 17 px down the bar; the thumb's offset is from
+		// the bar's start).
+		fireEvent.mouseDown(track, { button: 0, clientY: 150 });
+		expect(viewport.scrollTop).toBe(184);
+		const thumbEnd =
+			px(thumb, "--classicy-scroll-thumb-offset") +
+			px(thumb, "--classicy-scroll-thumb-length") -
+			BAR;
+		expect(pageStart()).toBe(`${Math.round(thumbEnd)}px`);
+		expect(pageLength()).toBe(`${Math.round(LENGTH - 2 * BAR - thumbEnd)}px`);
+		// Each page moves the thumb, and the stretch with it.
+		act(() => {
+			vi.advanceTimersByTime(120);
+		});
+		expect(viewport.scrollTop).toBe(368);
+		const thumbEndAfter =
+			px(thumb, "--classicy-scroll-thumb-offset") +
+			px(thumb, "--classicy-scroll-thumb-length") -
+			BAR;
+		expect(thumbEndAfter).toBeGreaterThan(thumbEnd);
+		expect(pageStart()).toBe(`${Math.round(thumbEndAfter)}px`);
+		// The thumb reaches the pointer: the paging stops and the stretch goes.
+		act(() => {
+			vi.advanceTimersByTime(120 * 10);
+		});
+		expect(track.classList.contains(CLASSICY_STATE.pressed)).toBe(false);
+		expect(pageStart()).toBe("");
+		expect(pageLength()).toBe("");
+		fireEvent.mouseUp(document.body);
+		// Above the thumb: from the track's start to the thumb's start; the
+		// release removes it mid-page.
+		act(() => {
+			viewport.scrollTop = 800;
+			fireEvent.scroll(viewport);
+		});
+		fireEvent.mouseDown(track, { button: 0, clientY: 20 });
+		expect(viewport.scrollTop).toBe(616);
+		expect(pageStart()).toBe("0px");
+		expect(pageLength()).toBe(
+			`${Math.round(px(thumb, "--classicy-scroll-thumb-offset") - BAR)}px`,
+		);
+		fireEvent.mouseUp(document.body);
+		expect(pageStart()).toBe("");
+		expect(pageLength()).toBe("");
 	});
 
 	it("pages back up when pressed above the thumb", () => {
@@ -1381,11 +1512,470 @@ describe("ClassicyScrollArea live thumb drag (no declaration)", () => {
 		expect(part(container, "scroll-drag-outline")).toBeUndefined();
 		fireEvent.mouseUp(document);
 	});
+
+	it("follows the pointer however far it strays from the bar (Mac OS 8)", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		for (const [clientX, clientY] of [
+			[2000, 96.5],
+			[-2000, 96.5],
+			[108, 96.5],
+		] as const) {
+			fireEvent.mouseMove(document, { clientX, clientY });
+			expect(viewport.scrollTop, `${clientX}`).toBe(400);
+		}
+		// Far below the bar: the thumb's end of travel.
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 2000 });
+		expect(viewport.scrollTop).toBe(800);
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 2000 });
+		expect(viewport.scrollTop).toBe(800);
+	});
+});
+
+// A package that declares `layout.scrollBar.liveSnapBack` (Windows, WIG
+// Ch.6 "Scroll Box", p.89): a live drag snaps back past the distance.
+const LIVE_SNAP_PACKAGE = "test-live-snap-back";
+const registerLiveSnapPackage = (
+	scrollBar: (typeof CLASSICY_DEFAULT_APPEARANCE_LAYOUT)["scrollBar"],
+) =>
+	registerClassicyAppearancePackage({
+		id: LIVE_SNAP_PACKAGE,
+		name: "Live Snap Back",
+		css: "",
+		defaults: {
+			...getTheme("default"),
+			id: "test-live-snap-back-default",
+			package: LIVE_SNAP_PACKAGE,
+		},
+		layout: { ...CLASSICY_DEFAULT_APPEARANCE_LAYOUT, scrollBar },
+	});
+
+describe("ClassicyScrollArea live thumb drag that snaps back", () => {
+	beforeEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+
+	const pressThumb = (container: HTMLElement) =>
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+
+	it("scrolls back to where the drag started past Windows' rectangle, and follows again on return", () => {
+		// Windows 98's declaration: 8 bars across, 2 along.
+		registerLiveSnapPackage({
+			liveSnapBack: true,
+			snapBackScale: { across: 8, along: 2 },
+		});
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		act(() => {
+			viewport.scrollTop = 37;
+			fireEvent.scroll(viewport);
+		});
+		pressThumb(container);
+		// No outline: the drag is live.
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		expect(part(container, "scroll-drag-outline")).toBeUndefined();
+		const followed = viewport.scrollTop;
+		expect(followed).toBeGreaterThan(37);
+		// The bar is 17 x 200 at (100, 0): grown by 136 across and 34
+		// along, its right and bottom edges counted out (Wine's
+		// point_in_scroll_rect, PtInRect).
+		for (const [clientX, clientY, top] of [
+			[252, 96.5, followed],
+			[253, 96.5, 37],
+			[-36, 96.5, followed],
+			[-37, 96.5, 37],
+			[108, -34, 0],
+			[108, -35, 37],
+			[108, 233, 800],
+			[108, 234, 37],
+			[110, 96.5, followed],
+		] as const) {
+			fireEvent.mouseMove(document, { clientX, clientY });
+			expect(viewport.scrollTop, `${clientX},${clientY}`).toBe(top);
+		}
+		// Snapped back, the thumb is drawn where the content is again.
+		const thumbAtStart = thumbStyle(part(container, "scroll-thumb")).offset;
+		fireEvent.mouseMove(document, { clientX: 400, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(37);
+		expect(thumbStyle(part(container, "scroll-thumb")).offset).not.toBe(
+			thumbAtStart,
+		);
+		// Released out there: the content stays where the drag found it.
+		fireEvent.mouseUp(document, { clientX: 400, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(37);
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(37);
+	});
+
+	it("snaps back past the bar's own thickness each way without a scale", () => {
+		registerLiveSnapPackage({ liveSnapBack: true });
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		pressThumb(container);
+		fireEvent.mouseMove(document, { clientX: 133, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+		fireEvent.mouseMove(document, { clientX: 134, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(0);
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 216 });
+		expect(viewport.scrollTop).toBe(800);
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 217 });
+		expect(viewport.scrollTop).toBe(0);
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 217 });
+	});
+
+	it("takes the theme's own distance on every side over the scale", () => {
+		registerLiveSnapPackage({
+			liveSnapBack: true,
+			snapBackScale: { across: 8, along: 2 },
+		});
+		const sheet = document.createElement("style");
+		sheet.textContent = ".classicyScrollBar { --scroll-bar-snap-back: 20px; }";
+		document.head.append(sheet);
+		try {
+			const { container, viewport } = renderTall();
+			placeBar(container);
+			pressThumb(container);
+			fireEvent.mouseMove(document, { clientX: 136, clientY: 96.5 });
+			expect(viewport.scrollTop).toBe(400);
+			fireEvent.mouseMove(document, { clientX: 137, clientY: 96.5 });
+			expect(viewport.scrollTop).toBe(0);
+			fireEvent.mouseUp(document, { clientX: 137, clientY: 96.5 });
+		} finally {
+			sheet.remove();
+		}
+	});
+
+	it("follows anywhere when the package declares a scale but no live snap-back", () => {
+		registerLiveSnapPackage({ snapBackScale: { across: 1, along: 1 } });
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		pressThumb(container);
+		fireEvent.mouseMove(document, { clientX: 2000, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+		fireEvent.mouseUp(document, { clientX: 2000, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+	});
+
+	it("scales an on-release drag's distance too, where the theme sets none", () => {
+		registerLiveSnapPackage({
+			thumbDrag: "onRelease",
+			snapBackScale: { across: 2, along: 1 },
+		});
+		const { container } = renderTall();
+		placeBar(container);
+		pressThumb(container);
+		const outline = part(container, "scroll-drag-outline");
+		// 34 px right of the bar's last column follows, 35 does not.
+		fireEvent.mouseMove(document, { clientX: 150, clientY: 96.5 });
+		expect(outlineStyle(outline).offset).toBe("84px");
+		fireEvent.mouseMove(document, { clientX: 151, clientY: 96.5 });
+		expect(outlineStyle(outline).offset).toBe("17px");
+		fireEvent.mouseUp(document, { clientX: 151, clientY: 96.5 });
+	});
+});
+
+describe("ClassicyScrollArea bar accessories", () => {
+	const kids = (bar: Element) =>
+		Array.from(bar.children).map(
+			(el) => el.getAttribute("data-classicy-part") ?? el.className,
+		);
+
+	it("draws a control before the start arrow and after the end arrow of its bar", () => {
+		const { container } = renderTall({
+			barAccessories: {
+				vertical: {
+					start: <span id="split-box" />,
+					end: <span id="end-box" />,
+				},
+			},
+		});
+		const bar = part(container, "scrollbar");
+		expect(kids(bar).slice(0, 4)).toEqual([
+			"scroll-accessory-start",
+			"scroll-accessory-end",
+			"scroll-arrow-start",
+			"scroll-track",
+		]);
+		const start = part(container, "scroll-accessory-start");
+		expect(start).toHaveClass(
+			"classicyScrollBarAccessory",
+			"classicyScrollBarAccessoryStart",
+		);
+		expect(start.querySelector("#split-box")).not.toBeNull();
+		const end = part(container, "scroll-accessory-end");
+		expect(end).toHaveClass(
+			"classicyScrollBarAccessory",
+			"classicyScrollBarAccessoryEnd",
+		);
+		expect(end.querySelector("#end-box")).not.toBeNull();
+		// Inside the bar, which assistive technology skips.
+		expect(bar.getAttribute("aria-hidden")).toBe("true");
+	});
+
+	it("draws nothing for an end given no control, or a bar not drawn", () => {
+		const { container } = renderTall({
+			barAccessories: {
+				vertical: { start: null, end: false },
+				horizontal: { start: <span id="never" /> },
+			},
+		});
+		expect(part(container, "scrollbar")).toBeDefined();
+		expect(part(container, "scroll-accessory-start")).toBeUndefined();
+		expect(part(container, "scroll-accessory-end")).toBeUndefined();
+		// The content fits sideways: no horizontal bar, no accessory.
+		expect(container.querySelector("#never")).toBeNull();
+	});
+
+	it("draws no accessory part without the prop", () => {
+		const { container } = renderTall();
+		expect(container.querySelector(".classicyScrollBarAccessory")).toBeNull();
+	});
+
+	it("puts the accessory parts ahead of the start arrow and past the end one", () => {
+		const base = readFileSync(
+			path.join(__dirname, "ClassicyScrollArea.scss"),
+			"utf8",
+		);
+		const order = (name: string) =>
+			Number(
+				new RegExp(
+					`\\[data-classicy-part="${name}"\\] \\{\\s*order: (\\d+);`,
+				).exec(base)?.[1],
+			);
+		expect(order("scroll-accessory-start")).toBeLessThan(
+			order("scroll-arrow-start"),
+		);
+		expect(order("scroll-accessory-end")).toBeGreaterThan(
+			order("scroll-arrow-end"),
+		);
+		expect(base).toMatch(
+			/\.classicyScrollBarAccessory \{\s*display: flex;\s*flex: none;\s*flex-direction: inherit;/,
+		);
+	});
+});
+
+describe("ClassicyScrollArea's viewport registration", () => {
+	it("registers its viewport, scrolling by a line step and redrawing the bars", () => {
+		const { container, viewport, unmount } = renderTall({ lineStep: 24 });
+		const inner = viewport.querySelector("p") as HTMLElement;
+		const found = classicyScrollViewportOf(inner);
+		expect(found?.element).toBe(viewport);
+		expect(found?.entry.lineStep()).toBe(24);
+		act(() => {
+			found?.entry.scrollBy(0, 400);
+		});
+		expect(viewport.scrollTop).toBe(400);
+		expect(thumbStyle(part(container, "scroll-thumb")).offset).toBe("83px");
+		unmount();
+		expect(classicyScrollViewportOf(viewport)).toBeNull();
+	});
+
+	it("registers no viewport that clips instead of scrolling", () => {
+		const { viewport } = renderTall({ scrollable: false });
+		expect(classicyScrollViewportOf(viewport)).toBeNull();
+	});
+});
+
+// A window's view state (the WIG audit's 2.1; WIG Ch.2 "Persistence",
+// p.12): the offsets put back when the area mounts, and reported once a
+// scroll settles. Without either prop the area starts at the top left and
+// reports nothing, as before.
+describe("ClassicyScrollArea view state", () => {
+	it("starts at the top left without initialScroll", () => {
+		const { viewport } = renderTall();
+		expect(viewport.scrollTop).toBe(0);
+		expect(viewport.scrollLeft).toBe(0);
+	});
+
+	it("starts at initialScroll, and draws the thumb there", () => {
+		const { viewport, container } = renderTall({ initialScroll: [0, 400] });
+		expect(viewport.scrollTop).toBe(400);
+		const thumb = part(container, "scroll-thumb");
+		expect(px(thumb, "--classicy-scroll-thumb-offset")).toBeGreaterThan(BAR);
+	});
+
+	it("ignores an initialScroll that is not finite or is negative", () => {
+		for (const initialScroll of [
+			[Number.NaN, 300],
+			[0, Number.POSITIVE_INFINITY],
+			[-5, 300],
+		] as [number, number][]) {
+			const { viewport, unmount } = renderTall({ initialScroll });
+			expect(viewport.scrollTop).toBe(0);
+			unmount();
+		}
+	});
+
+	it("keeps trying while the content is too short to reach it, then stops once reached", () => {
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 200,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container, rerender } = render(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Short</p>
+			</ClassicyScrollArea>,
+		);
+		const viewport = viewportOf(container);
+		expect(viewport.scrollTop).toBe(0);
+		// The list fills in: the next measurement reaches the offset.
+		viewportBox = { ...viewportBox, scrollHeight: 1000 };
+		rerender(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Long</p>
+			</ClassicyScrollArea>,
+		);
+		expect(viewport.scrollTop).toBe(500);
+		// Reached: a later scroll by the user stays where it is.
+		viewport.scrollTop = 100;
+		fireEvent.scroll(viewport);
+		expect(viewport.scrollTop).toBe(100);
+	});
+
+	it("gives a pending restore up when the user presses in the area", () => {
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 200,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container, rerender } = render(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Short</p>
+			</ClassicyScrollArea>,
+		);
+		const viewport = viewportOf(container);
+		fireEvent.pointerDown(viewport);
+		viewportBox = { ...viewportBox, scrollHeight: 1000 };
+		rerender(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Long</p>
+			</ClassicyScrollArea>,
+		);
+		expect(viewport.scrollTop).toBe(0);
+	});
+
+	it("gives a pending restore up after two seconds", () => {
+		vi.useFakeTimers();
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 200,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container, rerender } = render(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Short</p>
+			</ClassicyScrollArea>,
+		);
+		const viewport = viewportOf(container);
+		act(() => {
+			vi.advanceTimersByTime(2500);
+		});
+		viewportBox = { ...viewportBox, scrollHeight: 1000 };
+		rerender(
+			<ClassicyScrollArea initialScroll={[0, 500]}>
+				<p>Long</p>
+			</ClassicyScrollArea>,
+		);
+		expect(viewport.scrollTop).toBe(0);
+	});
+
+	it("reports the offsets once scrolling settles, only when they change", () => {
+		vi.useFakeTimers();
+		const onScrollSettled = vi.fn();
+		const { viewport } = renderTall({ onScrollSettled });
+		viewport.scrollTop = 100;
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(100);
+		});
+		viewport.scrollTop = 250;
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(150);
+		});
+		expect(onScrollSettled).not.toHaveBeenCalled();
+		act(() => {
+			vi.advanceTimersByTime(100);
+		});
+		expect(onScrollSettled).toHaveBeenCalledTimes(1);
+		expect(onScrollSettled).toHaveBeenLastCalledWith([0, 250]);
+		// The same offsets again report nothing.
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(300);
+		});
+		expect(onScrollSettled).toHaveBeenCalledTimes(1);
+	});
+
+	it("never reports the offsets it put back, and reports a change from them", () => {
+		vi.useFakeTimers();
+		const onScrollSettled = vi.fn();
+		const { viewport } = renderTall({
+			initialScroll: [0, 400],
+			onScrollSettled,
+		});
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(300);
+		});
+		expect(onScrollSettled).not.toHaveBeenCalled();
+		viewport.scrollTop = 0;
+		fireEvent.scroll(viewport);
+		act(() => {
+			vi.advanceTimersByTime(300);
+		});
+		expect(onScrollSettled).toHaveBeenCalledWith([0, 0]);
+	});
+
+	it("makes a report still due when it unmounts", () => {
+		vi.useFakeTimers();
+		const onScrollSettled = vi.fn();
+		const { viewport, unmount } = renderTall({ onScrollSettled });
+		viewport.scrollTop = 300;
+		fireEvent.scroll(viewport);
+		unmount();
+		expect(onScrollSettled).toHaveBeenCalledWith([0, 300]);
+	});
+
+	it("puts a textarea viewport (renderViewport) back too", () => {
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 1000,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container } = render(
+			<ClassicyScrollArea
+				initialScroll={[0, 600]}
+				renderViewport={(v) => (
+					<textarea ref={v.ref} className={v.className} onScroll={v.onScroll} />
+				)}
+			/>,
+		);
+		expect(viewportOf(container).scrollTop).toBe(600);
+	});
 });
 
 describe("ClassicyScrollArea vocabulary and stylesheet", () => {
-	it("declares its parts and the fits state", () => {
+	it("declares its parts and the fits and disabled states", () => {
 		expect(CLASSICY_STATE.fits).toBe("fits");
+		expect(CLASSICY_STATE.disabled).toBe("disabled");
 		expect(CLASSICY_PART_ATTRIBUTE.part).toBe("data-classicy-part");
 		const vocabulary = JSON.parse(
 			readFileSync(
@@ -1405,6 +1995,8 @@ describe("ClassicyScrollArea vocabulary and stylesheet", () => {
 			"scroll-thumb",
 			"scroll-corner",
 			"scroll-drag-outline",
+			"scroll-accessory-start",
+			"scroll-accessory-end",
 		]) {
 			expect(parts).toContain(name);
 		}

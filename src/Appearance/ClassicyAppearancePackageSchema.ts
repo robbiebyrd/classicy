@@ -1,86 +1,285 @@
 import { z } from "zod";
 import type { ClassicyAssetKind } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import {
+	CLASSICY_THEME_COLOR_TARGETS,
+	isThemeColorTarget,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { ClassicyPackageThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicySoundPackSchema } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type {
 	ClassicyAppearanceKnobs,
 	ClassicyAppearanceLayout,
 	ClassicyAppearancePackage,
+	ClassicyAppearanceThemeFileImporter,
 	ClassicyAppIdentityOverride,
+	ClassicyDesktopIconOverrides,
 } from "./ClassicyAppearancePackage";
 
 // A component's pattern origin (`patternOrigin`), every component's key
 // optional; another key is refused (CLASSICY_PATTERN_ORIGIN_COMPONENTS).
 const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
 
+// Text the core draws from the layout (the Start button's label, the Start
+// menu's banner): one line of 1–24 characters, with no whitespace at either
+// end and no control character (C0, DEL, C1) or line or paragraph separator.
+// Refinements, never `.trim()`: the registry keeps the package as given, so
+// the layout the core reads must be the one that was checked. The length
+// checks keep zod's own messages, which name the bound.
+const LAYOUT_TEXT_ERROR =
+	"must be one line of text with no space at either end and no control character";
+const LAYOUT_TEXT_FORBIDDEN = /[\p{Cc}\u2028\u2029]/u;
+const layoutText = z
+	.string()
+	.min(1)
+	.max(24)
+	.refine((text) => text === text.trim() && !LAYOUT_TEXT_FORBIDDEN.test(text), {
+		error: LAYOUT_TEXT_ERROR,
+	});
+
 /**
  * The three arrangement groups, every one required, and the optional
- * behavior groups (`scrollBar`, `patternOrigin`, `slider`, `fileDialog`,
- * `fileBrowser`), each key of which is optional too.
+ * behavior groups (`menu`, `scrollBar`, `patternOrigin`, `slider`,
+ * `fileDialog`, `fileBrowser`, `fileList`, `tree`, `balloonHelp`,
+ * `text`, `edit`, `textField`,
+ * `assistant`,
+ * `help`,
+ * `selection`, `contextMenu`, `input`, `dialog`, `icon`, `taskbar`), each key
+ * of which is optional too, as are `menuBar.idleTimeoutMs`, `mouse` and the
+ * `window` group's behavior keys. Two rules tie the shell's keys together: a
+ * `taskbar` needs `menuBar.placement: "window"`, and
+ * `window.collapse: "minimize"` needs a `taskbar`.
  */
-export const ClassicyAppearanceLayoutSchema = z.object({
-	window: z.object({
-		growBoxCorner: z.enum([
-			"bottom-right",
-			"bottom-left",
-			"top-right",
-			"top-left",
-		]),
-		centering: z.enum(["exact", "wholePixel"]).optional(),
-	}),
-	menuBar: z.object({ placement: z.enum(["screen", "window"]) }),
-	desktop: z.object({
-		iconGridOrigin: z.enum([
-			"top-right",
-			"top-left",
-			"bottom-right",
-			"bottom-left",
-		]),
-	}),
-	scrollBar: z
-		.object({
-			thumbDrag: z.enum(["live", "onRelease"]).optional(),
-			fitsBars: z.enum(["hidden", "shown"]).optional(),
-			patternOrigin: z.enum(["element", "window"]).optional(),
-		})
-		.optional(),
-	patternOrigin: z
-		.strictObject({
-			ControlGroup: patternOrigin,
-			PopUpMenu: patternOrigin,
-			Separator: patternOrigin,
-			Slider: patternOrigin,
-			elements: z
-				.array(
-					z.strictObject({
-						// Not parsed here: a selector newer than the browser
-						// would refuse the whole package; the core skips it.
-						selector: z.string().trim().min(1).max(1024),
-						origin: z.enum(["window", "desktop"]),
-					}),
-				)
-				.readonly()
-				.optional(),
-		})
-		.optional(),
-	slider: z
-		.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
-		.optional(),
-	fileDialog: z
-		.object({
-			frame: z.enum(["movable", "fixed"]).optional(),
-			navigation: z.enum(["tree", "flat"]).optional(),
-			saveName: z.enum(["plain", "selected"]).optional(),
-		})
-		.optional(),
-	fileBrowser: z
-		.object({
-			listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
-		})
-		.optional(),
-}) satisfies z.ZodType<ClassicyAppearanceLayout>;
+export const ClassicyAppearanceLayoutSchema = z
+	.object({
+		window: z.object({
+			restoreViewState: z.boolean().optional(),
+			growBoxCorner: z.enum([
+				"bottom-right",
+				"bottom-left",
+				"top-right",
+				"top-left",
+			]),
+			centering: z.enum(["exact", "wholePixel"]).optional(),
+			collapse: z.enum(["shade", "minimize"]).optional(),
+			zoom: z.enum(["standard", "maximize"]).optional(),
+			titleDoubleClick: z.enum(["collapse", "zoom"]).optional(),
+			frameEdges: z.enum(["move", "resize"]).optional(),
+			systemMenu: z.boolean().optional(),
+			captionTooltips: z.boolean().optional(),
+			utilityTitle: z.boolean().optional(),
+		}),
+		menuBar: z.object({
+			placement: z.enum(["screen", "window"]),
+			// 0 never closes; an hour is the longest a menu may wait.
+			idleTimeoutMs: z.number().int().min(0).max(3_600_000).optional(),
+		}),
+		menu: z
+			.object({
+				standardShortcuts: z.enum(["windows"]).optional(),
+				keys: z.enum(["mac", "windows"]).optional(),
+				submenuDelayMs: z.number().int().min(0).max(10_000).optional(),
+				disabledItems: z.enum(["skip", "browse"]).optional(),
+				accessKeys: z.enum(["explicit", "auto"]).optional(),
+				shortcutSpelling: z.enum(["glyphs", "names"]).optional(),
+				emptySubmenus: z.enum(["leaf", "placeholder"]).optional(),
+				itemHelp: z.enum(["balloon", "statusBar"]).optional(),
+				confirmEllipsis: z.boolean().optional(),
+			})
+			.optional(),
+		desktop: z.object({
+			iconGridOrigin: z.enum([
+				"top-right",
+				"top-left",
+				"bottom-right",
+				"bottom-left",
+			]),
+		}),
+		scrollBar: z
+			.object({
+				thumbDrag: z.enum(["live", "onRelease"]).optional(),
+				fitsBars: z.enum(["hidden", "shown"]).optional(),
+				patternOrigin: z.enum(["element", "window"]).optional(),
+				liveSnapBack: z.boolean().optional(),
+				// Multiples of the bar's thickness; 64 bars is farther than any
+				// screen a scroll bar is drawn on.
+				snapBackScale: z
+					.object({
+						across: z.number().min(0).max(64),
+						along: z.number().min(0).max(64),
+					})
+					.optional(),
+			})
+			.optional(),
+		patternOrigin: z
+			.strictObject({
+				ControlGroup: patternOrigin,
+				PopUpMenu: patternOrigin,
+				Separator: patternOrigin,
+				Slider: patternOrigin,
+				elements: z
+					.array(
+						z.strictObject({
+							// Not parsed here: a selector newer than the browser
+							// would refuse the whole package; the core skips it.
+							selector: z.string().trim().min(1).max(1024),
+							origin: z.enum(["window", "desktop"]),
+						}),
+					)
+					.readonly()
+					.optional(),
+			})
+			.optional(),
+		slider: z
+			.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
+			.optional(),
+		fileDialog: z
+			.object({
+				frame: z.enum(["movable", "fixed"]).optional(),
+				navigation: z.enum(["tree", "flat"]).optional(),
+				saveName: z.enum(["plain", "selected"]).optional(),
+				listFlow: z.enum(["single", "columns"]).optional(),
+			})
+			.optional(),
+		fileBrowser: z
+			.object({
+				listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
+				keys: z.enum(["mac", "windows"]).optional(),
+				iconSelection: z.enum(["perIcon", "view"]).optional(),
+				regionSelect: z.boolean().optional(),
+			})
+			.optional(),
+		keyboard: z
+			.object({
+				contextMenuKey: z.boolean().optional(),
+				command: z.enum(["metaOrCtrl", "ctrl"]).optional(),
+				editableShortcuts: z.boolean().optional(),
+			})
+			.optional(),
+		finder: z
+			.object({ commands: z.enum(["mac", "windows"]).optional() })
+			.optional(),
+		files: z
+			.object({
+				names: z.enum(["mac", "windows"]).optional(),
+				unregisteredOpen: z.enum(["default", "openWith"]).optional(),
+				extensions: z.enum(["shown", "hideRegistered"]).optional(),
+			})
+			.optional(),
+		transfer: z
+			.object({
+				activateDropWindow: z.boolean().optional(),
+				secondaryButton: z.enum(["menu"]).optional(),
+				copyModifier: z.enum(["ctrl"]).optional(),
+				autoScroll: z.boolean().optional(),
+				desktopIconDrag: z.enum(["live", "outline"]).optional(),
+			})
+			.optional(),
+		fileList: z.object({ foldersFirst: z.boolean().optional() }).optional(),
+		tree: z.object({ keys: z.enum(["mac", "windows"]).optional() }).optional(),
+		balloonHelp: z
+			.object({
+				placement: z.enum(["anchor", "pointer"]).optional(),
+				contextHelp: z.enum(["whatsThis"]).optional(),
+				unlabeledTips: z.boolean().optional(),
+				// A minute is the longest a ToolTip waits or stays.
+				delayMs: z.number().int().min(0).max(60_000).optional(),
+				autoPopMs: z.number().int().min(1).max(60_000).optional(),
+				reshowMs: z.number().int().min(0).max(60_000).optional(),
+				hideOnPress: z.boolean().optional(),
+				activeWindowOnly: z.boolean().optional(),
+			})
+			.optional(),
+		text: z
+			.object({ wordSelect: z.enum(["native", "trailingSpace"]).optional() })
+			.optional(),
+		edit: z
+			.object({
+				scope: z.enum(["any", "window"]).optional(),
+				menu: z.enum(["mac", "windows"]).optional(),
+			})
+			.optional(),
+		textField: z
+			.object({ contextMenu: z.enum(["none", "edit"]).optional() })
+			.optional(),
+		assistant: z
+			.object({ navigation: z.enum(["pager", "buttons"]).optional() })
+			.optional(),
+		help: z.object({ topicWindow: z.enum(["winhelp"]).optional() }).optional(),
+		selection: z
+			.object({
+				secondaryButton: z.enum(["menu", "select"]).optional(),
+				selectOn: z.enum(["click", "press"]).optional(),
+				dragRange: z.boolean().optional(),
+				modifiers: z.enum(["mac", "windows"]).optional(),
+				pageKeys: z.enum(["scroll", "move"]).optional(),
+				keyboard: z.enum(["follow", "windows"]).optional(),
+				iconNavigation: z.enum(["each", "roving"]).optional(),
+			})
+			.optional(),
+		contextMenu: z
+			.object({
+				openOn: z.enum(["event", "release"]).optional(),
+				helpItem: z.boolean().optional(),
+				placement: z.enum(["click", "corner"]).optional(),
+			})
+			.optional(),
+		document: z
+			.object({
+				confirmUnsavedClose: z.boolean().optional(),
+				reopenActivates: z.boolean().optional(),
+				titleAppName: z.boolean().optional(),
+			})
+			.optional(),
+		mouse: z.enum(["mac", "windows"]).optional(),
+		input: z.object({ escapeCancels: z.boolean().optional() }).optional(),
+		taskbar: z
+			.object({
+				startLabel: layoutText.optional(),
+				startBanner: z
+					.object({ title: layoutText, edition: layoutText.optional() })
+					.optional(),
+			})
+			.optional(),
+		dialog: z
+			.object({
+				caption: z.enum(["plain", "titled"]).optional(),
+				flushInput: z.boolean().optional(),
+				modality: z.enum(["desktop", "application"]).optional(),
+			})
+			.optional(),
+		icon: z
+			.object({ aliasBadge: z.enum(["desktop", "everywhere"]).optional() })
+			.optional(),
+		crashScreen: z.enum(["sadMac", "fatalException"]).optional(),
+	})
+	.check((ctx) => {
+		const { taskbar, menuBar, window: windows } = ctx.value;
+		// A screen bar beside a taskbar would repeat its Apple, Help and App
+		// Switcher menus in the Start menu, the window bars and the task
+		// buttons.
+		if (taskbar !== undefined && menuBar.placement !== "window") {
+			ctx.issues.push({
+				code: "custom",
+				input: taskbar,
+				path: ["taskbar"],
+				message:
+					'requires menuBar.placement "window": a screen menu bar beside a taskbar would repeat its Apple, Help and App Switcher menus',
+			});
+		}
+		// Nothing but a taskbar button brings a minimized window back.
+		if (windows.collapse === "minimize" && taskbar === undefined) {
+			ctx.issues.push({
+				code: "custom",
+				input: windows.collapse,
+				path: ["window", "collapse"],
+				message:
+					'"minimize" requires a taskbar: a minimized window comes back only through its taskbar button',
+			});
+		}
+	}) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
 // Every ClassicyAssetKind, once. The `satisfies` and the check below fail the
 // type check when the registry gains or loses a kind.
@@ -141,6 +340,42 @@ const colorFamilies = z.record(
 		colors: z.record(colorFamilyName, z.object({ label: colorFamilyLabel })),
 	}),
 );
+
+// A package font's metadata (`fontFamilies`): names that become a
+// `--package-font-<name>` variable, and a label for each.
+const fontFamilies = z.record(
+	colorFamilyName,
+	z.object({ label: colorFamilyLabel }),
+);
+
+// The Colors tab's labels for the core's colors (`colorLabels`): keyed by a
+// color target's CSS variable, another key refused.
+const colorLabels = z.partialRecord(
+	z.enum(
+		CLASSICY_THEME_COLOR_TARGETS.map((info) => info.cssVar) as [
+			string,
+			...string[],
+		],
+	),
+	colorFamilyLabel,
+);
+
+// A theme file importer (`themeFileImporter`): its file name extensions
+// (lower case, with the dot) and the function that reads a file.
+const themeFileImporter = z.object({
+	extensions: z
+		.array(
+			z
+				.string()
+				.regex(/^\.[a-z0-9]+$/, "must be a lower-case extension with its dot"),
+		)
+		.min(1)
+		.max(8),
+	read: z.custom<ClassicyAppearanceThemeFileImporter["read"]>(
+		(value) => typeof value === "function",
+		{ error: "must be a function" },
+	),
+});
 
 // Keys that would reach Object.prototype through a plain-object lookup. The
 // registry stores the package object as given (its `apps` as a frozen copy of
@@ -227,26 +462,28 @@ const displayName = z
 		{ error: DISPLAY_NAME_ERROR },
 	);
 
+// An override's fields, shared by `apps` and `desktopIcons`.
+const overrideIcon = z.string().refine(isClassicyAssetSource, {
+	error: "must be an asset source (a URL or a data: URI)",
+});
+const overrideDescription = z
+	.string()
+	.min(1)
+	.max(512)
+	.refine((text) => text === text.trim(), {
+		error: "must not start or end with whitespace",
+	});
+
 /** One app's display override in a package's `apps`. Unknown keys are refused. */
 export const ClassicyAppIdentityOverrideSchema = z
 	.strictObject({
 		name: displayName
 			.optional()
 			.describe("Shown wherever the app's name is shown, in place of its own."),
-		icon: z
-			.string()
-			.refine(isClassicyAssetSource, {
-				error: "must be an asset source (a URL or a data: URI)",
-			})
+		icon: overrideIcon
 			.optional()
 			.describe("Shown wherever the app's icon is shown, in place of its own."),
-		description: z
-			.string()
-			.min(1)
-			.max(512)
-			.refine((text) => text === text.trim(), {
-				error: "must not start or end with whitespace",
-			})
+		description: overrideDescription
 			.optional()
 			.describe(
 				"Balloon-help copy for the app's desktop icon when the app supplies none.",
@@ -255,6 +492,50 @@ export const ClassicyAppIdentityOverrideSchema = z
 	.describe(
 		"A package's display override for one app. Display only: the app's id, action types, routing and saved state never change.",
 	) satisfies z.ZodType<ClassicyAppIdentityOverride>;
+
+const desktopIconName = displayName
+	.optional()
+	.describe("The icon's label, in place of its own name.");
+const desktopIconDescription = overrideDescription
+	.optional()
+	.describe("The icon's balloon-help copy, in place of its stock copy.");
+
+/**
+ * A package's `desktopIcons`: display overrides for the desktop's own icons,
+ * the Trash (a label and balloon copy; its image is the package's Trash art),
+ * the startup disk (a label, image and balloon copy) and the other drives
+ * (balloon copy). The names follow
+ * the `apps` rules. Unknown keys are refused at every level.
+ */
+export const ClassicyDesktopIconOverridesSchema = z
+	.strictObject({
+		trash: z
+			.strictObject({
+				name: desktopIconName,
+				description: desktopIconDescription,
+			})
+			.optional()
+			.describe("The Trash's desktop icon."),
+		startupDisk: z
+			.strictObject({
+				name: desktopIconName,
+				icon: overrideIcon
+					.optional()
+					.describe("The icon's image, in place of its own."),
+				description: desktopIconDescription,
+			})
+			.optional()
+			.describe("The startup disk's (the first drive's) desktop icon."),
+		drive: z
+			.strictObject({ description: desktopIconDescription })
+			.optional()
+			.describe(
+				"Every other drive's desktop icon (the startup disk too without a startupDisk override): its balloon copy.",
+			),
+	})
+	.describe(
+		"A package's display overrides for the desktop's own icons. Display only: the icons' records, paths, analytics and saved state never change.",
+	) satisfies z.ZodType<ClassicyDesktopIconOverrides>;
 
 const appsRecord = z.record(appIdKey, ClassicyAppIdentityOverrideSchema);
 
@@ -270,6 +551,50 @@ const appsWithoutForbiddenKeys = z.custom<z.input<typeof appsRecord>>(
 			(key) => typeof key === "string" && FORBIDDEN_KEYS.has(key),
 		),
 	{ error: `app ids ${FORBIDDEN_KEY_ERROR}` },
+);
+
+// A file type's name, shown in a list view's Kind column and a property
+// sheet's Type (`fileTypeNames`; WIG Ch.10 "The Application Identifier
+// Key", pp.197-198: "a title-case name of at most 40 characters"): a display
+// name's rules (no surrounding spaces, no control, bidi or invisible
+// character), at most 40 characters, every word beginning with a character
+// that is not a lower-case letter ("Text Document", "PDF Document").
+const FILE_TYPE_NAME_ERROR =
+	"must be a title-case type name (every word capitalized)";
+const fileTypeName = z
+	.string()
+	.min(1)
+	.max(40)
+	.refine(
+		(name) =>
+			name === name.trim() &&
+			!hasUnsafeCharacter(name) &&
+			name.split(/\s+/u).every((word) => !/^\p{Ll}/u.test(word)),
+		{ error: FILE_TYPE_NAME_ERROR },
+	);
+
+const fileTypeNamesRecord = z.partialRecord(
+	z.enum(
+		Object.values(ClassicyFileSystemEntryFileType) as [
+			ClassicyFileSystemEntryFileType,
+			...ClassicyFileSystemEntryFileType[],
+		],
+	),
+	fileTypeName,
+);
+
+// As for `apps`: an own `__proto__` key would be skipped by the record
+// without an issue, so the raw input's keys are checked first.
+const fileTypeNamesWithoutForbiddenKeys = z.custom<
+	z.input<typeof fileTypeNamesRecord>
+>(
+	(value) =>
+		typeof value !== "object" ||
+		value === null ||
+		!Reflect.ownKeys(value).some(
+			(key) => typeof key === "string" && FORBIDDEN_KEYS.has(key),
+		),
+	{ error: `file types ${FORBIDDEN_KEY_ERROR}` },
 );
 
 /**
@@ -290,10 +615,34 @@ const iconDimmingRule = z
 	})
 	.strict();
 
+// A theme color an emboss reads: `{ colorKey, index? }`, as the Colors tab
+// addresses one (`ClassicyThemeColorTarget`).
+const themeColorTarget = z
+	.object({
+		colorKey: z.string(),
+		index: z.number().int().optional(),
+	})
+	.strict()
+	.refine((target) => isThemeColorTarget(target), {
+		error: "must be a theme color target ({ colorKey, index? })",
+	});
+
+const iconEmbossRule = z
+	.object({
+		emboss: z
+			.object({ highlight: themeColorTarget, shadow: themeColorTarget })
+			.strict(),
+	})
+	.strict();
+
+// A disabled control's image may also be embossed (Windows 98's DSS_DISABLED).
+const disabledControlRule = z.union([iconDimmingRule, iconEmbossRule]);
+
 const iconDimming = z
 	.object({
 		hiddenApp: iconDimmingRule.optional(),
 		disabledItem: iconDimmingRule.optional(),
+		disabledControl: disabledControlRule.optional(),
 		variants: z
 			.record(
 				z.string(),
@@ -301,6 +650,7 @@ const iconDimming = z
 					.object({
 						hiddenApp: iconDimmingRule.nullable().optional(),
 						disabledItem: iconDimmingRule.nullable().optional(),
+						disabledControl: disabledControlRule.nullable().optional(),
 					})
 					.strict(),
 			)
@@ -329,6 +679,21 @@ export const ClassicyAppearancePackageSchema = z
 			.describe(
 				"Labels for the package's own colors (defaults.color.families), which the Appearance Manager's Colors tab edits.",
 			),
+		fontFamilies: fontFamilies
+			.optional()
+			.describe(
+				"Labels for the package's own fonts (defaults.typography.families), which the Appearance Manager's Fonts tab edits.",
+			),
+		colorLabels: colorLabels
+			.optional()
+			.describe(
+				"The Colors tab's labels for the core's colors in the package's own words, keyed by each color's CSS variable (CLASSICY_THEME_COLOR_TARGETS' cssVar); a color without one keeps the core's label.",
+			),
+		themeFileImporter: themeFileImporter
+			.optional()
+			.describe(
+				"Reads another system's theme files (by extension) for the Appearance Manager's Load Theme… while the package is active; the theme it returns is validated as a Classicy theme file's.",
+			),
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
 		sounds: z.array(ClassicySoundPackSchema).optional(),
@@ -345,10 +710,17 @@ export const ClassicyAppearancePackageSchema = z
 			.describe(
 				"Per-app display overrides keyed by app id (\"MoviePlayer.app\"): a name, icon or balloon description shown in place of the app's own. Display only; the app's id, action types and saved state keep its own identity.",
 			),
+		fileTypeNames: fileTypeNamesWithoutForbiddenKeys
+			.pipe(fileTypeNamesRecord)
+			.optional()
+			.describe(
+				'Names for file types, keyed by type ("text_file"), shown in a list view\'s Kind column and a property sheet\'s Type in place of the core\'s ("Text file"): title case, at most 40 characters. Display only.',
+			),
+		desktopIcons: ClassicyDesktopIconOverridesSchema.optional(),
 		iconDimming: iconDimming
 			.optional()
 			.describe(
-				"How the package dims an icon per pixel (a hidden application's icon): blend each channel toward a color, keep the top bits of each, then take the nearest palette entry. Per asset variant, null declares none.",
+				"How the package dims an icon per pixel (a hidden application's icon, a row's that cannot be chosen, a disabled control's image): blend each channel toward a color, keep the top bits of each, then take the nearest palette entry; or, for a disabled control, emboss it in two theme colors. Per asset variant, null declares none.",
 			),
 	})
 	// The defaults are the theme a switch to this package activates; one that
@@ -374,6 +746,21 @@ export const ClassicyAppearancePackageSchema = z
 						message: `has no value in defaults.color.families.${family}`,
 					});
 				}
+			}
+		}
+	})
+	// Every declared font needs a value in the defaults, as every declared
+	// color does: the Fonts tab lists the theme's entries under the labels.
+	.check((ctx) => {
+		const families = ctx.value.defaults.typography.families ?? {};
+		for (const name of Object.keys(ctx.value.fontFamilies ?? {})) {
+			if (!Object.hasOwn(families, name)) {
+				ctx.issues.push({
+					code: "custom",
+					input: name,
+					path: ["fontFamilies", name],
+					message: `has no value in defaults.typography.families`,
+				});
 			}
 		}
 	})

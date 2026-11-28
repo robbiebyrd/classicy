@@ -1,0 +1,142 @@
+import {
+	type ClassicyAppearanceLayout,
+	registerClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+// Registers Platinum's sound pack: the package's defaults are a Platinum
+// theme, and a theme's `sound.pack` must name a registered pack.
+import "../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+
+/** The test package's id. */
+export const TEST_TASKBAR_PACKAGE_ID = "test-taskbar";
+
+/**
+ * A Windows-shell arrangement (plan 0020-w98 §1): menus in each window, as a
+ * taskbar requires, and a taskbar along the desktop's bottom. Every other
+ * window behavior keeps the core's default, so a test sees the taskbar alone.
+ */
+export const TEST_TASKBAR_LAYOUT: ClassicyAppearanceLayout = {
+	window: { growBoxCorner: "bottom-right" },
+	menuBar: { placement: "window" },
+	desktop: { iconGridOrigin: "top-left" },
+	taskbar: { startLabel: "Start" },
+};
+
+/** The id of the test package that minimizes (`TEST_MINIMIZE_LAYOUT`). */
+export const TEST_MINIMIZE_PACKAGE_ID = "test-taskbar-minimize";
+
+/**
+ * `TEST_TASKBAR_LAYOUT` whose collapse box minimizes (`window.collapse:
+ * "minimize"`, plan 0020-w98 §5 "Minimize"), which the schema allows only
+ * beside a taskbar. Register it with
+ * `registerTestTaskbarPackage(TEST_MINIMIZE_LAYOUT, TEST_MINIMIZE_PACKAGE_ID)`.
+ */
+export const TEST_MINIMIZE_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_TASKBAR_LAYOUT,
+	window: { ...TEST_TASKBAR_LAYOUT.window, collapse: "minimize" },
+};
+
+/**
+ * Registers `test-taskbar` (or `id`), an Appearance Package with no CSS whose
+ * layout is `layout` (`TEST_TASKBAR_LAYOUT` by default). Tests that call it
+ * reset the registry afterwards (`resetClassicyAppearancePackagesForTests`)
+ * and put Platinum back.
+ */
+export const registerTestTaskbarPackage = (
+	layout: ClassicyAppearanceLayout = TEST_TASKBAR_LAYOUT,
+	id: string = TEST_TASKBAR_PACKAGE_ID,
+): void => {
+	registerClassicyAppearancePackage({
+		id,
+		name: "Taskbar",
+		css: "",
+		defaults: { ...getTheme("default"), id: `${id}-default`, package: id },
+		layout,
+	});
+};
+
+/** The id of the test package that maximizes (`TEST_MAXIMIZE_LAYOUT`). */
+export const TEST_MAXIMIZE_PACKAGE_ID = "test-maximize";
+
+/**
+ * Windows 98's window behavior from plan 0020-w98 step 6: the zoom box
+ * maximizes (`window.zoom: "maximize"`) and a double-click on the caption
+ * zooms (`window.titleDoubleClick: "zoom"`), with the menu bar on the screen
+ * and no taskbar, as the package declares them before its shell lands. Every
+ * other window behavior keeps the core's default. Register it with
+ * `registerTestTaskbarPackage(TEST_MAXIMIZE_LAYOUT, TEST_MAXIMIZE_PACKAGE_ID)`.
+ */
+export const TEST_MAXIMIZE_LAYOUT: ClassicyAppearanceLayout = {
+	window: {
+		growBoxCorner: "bottom-right",
+		zoom: "maximize",
+		titleDoubleClick: "zoom",
+	},
+	menuBar: { placement: "screen" },
+	desktop: { iconGridOrigin: "top-left" },
+};
+
+/** The id of the test package whose frame edges size (`TEST_FRAME_EDGES_LAYOUT`). */
+export const TEST_FRAME_EDGES_PACKAGE_ID = "test-frame-edges";
+
+/**
+ * Windows 98's window behavior from plan 0020-w98 step 7: `TEST_MAXIMIZE_LAYOUT`
+ * whose frame edges size a resizable window (`window.frameEdges: "resize"`),
+ * as the package declares them before its shell lands. Register it with
+ * `registerTestTaskbarPackage(TEST_FRAME_EDGES_LAYOUT, TEST_FRAME_EDGES_PACKAGE_ID)`.
+ */
+export const TEST_FRAME_EDGES_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_MAXIMIZE_LAYOUT,
+	window: { ...TEST_MAXIMIZE_LAYOUT.window, frameEdges: "resize" },
+};
+
+/** The id of the test package with the window pop-up menu (`TEST_SYSTEM_MENU_LAYOUT`). */
+export const TEST_SYSTEM_MENU_PACKAGE_ID = "test-system-menu";
+
+/**
+ * Windows 98's window behavior from plan 0020-w98 step 9:
+ * `TEST_FRAME_EDGES_LAYOUT` with the window pop-up (system) menu, ALT+SPACE
+ * and ALT+F4 (`window.systemMenu: true`), as the package declares them
+ * before its shell lands. Register it with
+ * `registerTestTaskbarPackage(TEST_SYSTEM_MENU_LAYOUT, TEST_SYSTEM_MENU_PACKAGE_ID)`.
+ */
+export const TEST_SYSTEM_MENU_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_FRAME_EDGES_LAYOUT,
+	window: { ...TEST_FRAME_EDGES_LAYOUT.window, systemMenu: true },
+};
+
+/** The id of the test shell with the system menu (`TEST_SHELL_SYSTEM_MENU_LAYOUT`). */
+export const TEST_SHELL_SYSTEM_MENU_PACKAGE_ID = "test-shell-system-menu";
+
+/**
+ * `TEST_MINIMIZE_LAYOUT` (a taskbar, windows that minimize) whose windows
+ * also maximize and have the window pop-up menu, the shell a taskbar
+ * button's right-click opens it in. Register it with
+ * `registerTestTaskbarPackage(TEST_SHELL_SYSTEM_MENU_LAYOUT, TEST_SHELL_SYSTEM_MENU_PACKAGE_ID)`.
+ */
+export const TEST_SHELL_SYSTEM_MENU_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_MINIMIZE_LAYOUT,
+	window: {
+		...TEST_MINIMIZE_LAYOUT.window,
+		zoom: "maximize",
+		systemMenu: true,
+	},
+};
+
+/** The id of the test package with titled dialog captions (`TEST_DIALOG_CAPTION_LAYOUT`). */
+export const TEST_DIALOG_CAPTION_PACKAGE_ID = "test-dialog-caption";
+
+/**
+ * Windows 98's window behavior from plan 0020-w98 step 10:
+ * `TEST_SYSTEM_MENU_LAYOUT` whose caption buttons name themselves in a
+ * tooltip (`window.captionTooltips: true`) and whose dialogs and message
+ * boxes are titled, closable from their caption and movable
+ * (`dialog.caption: "titled"`), as the package declares them before its
+ * shell lands. Register it with
+ * `registerTestTaskbarPackage(TEST_DIALOG_CAPTION_LAYOUT, TEST_DIALOG_CAPTION_PACKAGE_ID)`.
+ */
+export const TEST_DIALOG_CAPTION_LAYOUT: ClassicyAppearanceLayout = {
+	...TEST_SYSTEM_MENU_LAYOUT,
+	window: { ...TEST_SYSTEM_MENU_LAYOUT.window, captionTooltips: true },
+	dialog: { caption: "titled" },
+};

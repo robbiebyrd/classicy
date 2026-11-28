@@ -12,7 +12,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { DATE_AND_TIME_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
+import {
+	DATE_AND_TIME_MANAGER_APP_ID,
+	DATE_AND_TIME_MANAGER_APP_NAME,
+} from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -27,13 +30,15 @@ import {
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyDatePicker } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 import { ClassicyTimePicker } from "@/SystemFolder/SystemResources/TimePicker/ClassicyTimePicker";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const APP_ID = DATE_AND_TIME_MANAGER_APP_ID;
-const APP_NAME = "Date and Time Manager";
+const APP_NAME = DATE_AND_TIME_MANAGER_APP_NAME;
 const WINDOW_ID = "DateAndTimeManager_1";
 
 const TIMEZONES = [
@@ -100,6 +105,12 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		APP_NAME,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
+	// The user's own Close and Quit keys under a package that lets them be
+	// edited (`keyboard.editableShortcuts`; WIG Ch.4 "Shortcut Keys", p.27).
+	const shortcut = useClassicyMenuItemShortcuts();
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
 
@@ -203,18 +214,21 @@ export const ClassicyDateAndTimeManager: FunctionalComponent = () => {
 		{
 			id: `${APP_ID}_file`,
 			title: "File",
+			accessKey: ak("f"),
 			menuChildren: [
 				{ ...aboutMenuItem, title: `About ${APP_NAME}` },
 				{
 					...closeWindowMenuItemHelper(`${APP_ID}_close_window`, () =>
 						windowClose(WINDOW_ID, quitAppHelper(APP_ID, APP_NAME, appIcon)),
 					),
-					keyboardShortcut: "⌥W",
+					accessKey: ak("c"),
+					keyboardShortcut: shortcut(`${APP_ID}_close_window`, "⌥W"),
 				},
 				{ id: "spacer" },
 				{
 					...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
-					keyboardShortcut: "⌥Q",
+					accessKey: ak(""),
+					keyboardShortcut: shortcut(`${APP_ID}_quit`, "⌥Q"),
 				},
 			],
 		},

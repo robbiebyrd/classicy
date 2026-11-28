@@ -130,4 +130,10 @@ export const CLASSICY_APPEARANCE_CONTROL_STRIP_MODULE =
 		icon: useAppearanceModuleIcon,
 		fileIcon: ClassicyIcons.controlPanels.appearanceManager.app,
 		menuItems: useAppearanceModuleMenu,
+		// The Windows shell's status area makes its Open item the default.
+		panel: {
+			id: APPEARANCE_MANAGER_APP_ID,
+			name: "Appearance Manager",
+			icon: ClassicyIcons.controlPanels.appearanceManager.app,
+		},
 	});

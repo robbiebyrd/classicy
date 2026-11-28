@@ -256,6 +256,45 @@ describe("ClassicyIcon appearance", () => {
 			]);
 		});
 
+		// Dropped back in its own folder (onFileDrag returns false), the icon
+		// moves as far as the pointer did across the folder's contents: a
+		// window that scrolled under the drag (its auto-scroll, the wheel)
+		// carried the contents, and the icons' holder, with it.
+		it.each([
+			["did not move", 0, [80, 70]],
+			["scrolled 48 px down", -48, [80, 118]],
+		] as const)("lands where its outline was let go when the contents %s", (_label, shift, landed) => {
+			const holder = document.createElement("div");
+			document.body.append(holder);
+			let top = 0;
+			vi.spyOn(holder, "getBoundingClientRect").mockImplementation(() =>
+				DOMRect.fromRect({ x: 0, y: top, width: 300, height: 200 }),
+			);
+			const { container } = render(
+				<ClassicyIcon
+					appId="Test.app"
+					name="Read Me"
+					icon={ICON}
+					filePath="Macintosh HD:Read Me"
+					holder={{ current: holder }}
+					initialPosition={[50, 50]}
+					onFileDrag={() => false}
+				/>,
+			);
+			const el = root(container);
+			withElementsFromPoint([], () => {
+				press(el);
+				moveTo(40, 30);
+				top = shift;
+				releaseAt(40, 30);
+			});
+			expect([el.style.left, el.style.top]).toEqual([
+				`${landed[0]}px`,
+				`${landed[1]}px`,
+			]);
+			holder.remove();
+		});
+
 		it("ends the drag, canceled, before unmount when the icon unmounts mid-drag", () => {
 			const { el, onFileDrag, unmount } = renderFileIcon();
 			withElementsFromPoint([], () => {

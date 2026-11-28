@@ -1,6 +1,8 @@
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type {
 	ClassicyStore,
 	ClassicyStoreSystemApp,
+	ClassicyStoreSystemAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	getAppWindow,
@@ -63,7 +65,198 @@ export function markAppFocused(ds: ClassicyStore, appId: string) {
 	app.focused = true;
 	app.lastFocusedAt = Date.now();
 	if (app.hidden) app.hidden = false;
+	// The app is activated, so its task button stops asking for attention
+	// (`ClassicyAppRequestAttention`; WIG Ch.10 "Message Notification",
+	// p.212: "until the user activates the window"). Set only under the
+	// Windows shell, so under every other package there is nothing to clear.
+	for (const w of listAppWindows(app)) if (w.attention) delete w.attention;
 	ds.System.Manager.Applications.focusedAppId = appId;
+}
+
+/**
+ * Whether windows minimize under the package `ds` is drawn with
+ * (`layout.window.collapse: "minimize"`, the Windows shell, plan 0020-w98 §5
+ * "Minimize"), read store-free for the stored package id, as every reducer
+ * reads the layout.
+ * Under every other package (`"shade"`, the default) a collapse is
+ * WindowShade and nothing below that keys on it runs.
+ */
+export const classicyWindowsMinimize = (ds: ClassicyStore): boolean =>
+	getClassicyAppearanceLayout(ds.System.Manager.Appearance?.packageId).window
+		.collapse === "minimize";
+
+/**
+ * Whether the package `ds` is drawn with is the Windows 95/98 shell (its
+ * layout declares `taskbar`, plan 0020-w98 §2), read store-free for the
+ * stored package id, as `classicyWindowsMinimize` reads its flag. Under every
+ * other package the desktop has no taskbar and nothing keyed on it runs.
+ */
+export const classicyHasTaskbar = (ds: ClassicyStore): boolean =>
+	getClassicyAppearanceLayout(ds.System.Manager.Appearance?.packageId)
+		.taskbar !== undefined;
+
+type ClassicyWindowKind = Pick<
+	ClassicyStoreSystemAppWindow,
+	"modal" | "windowType"
+>;
+
+/**
+ * A primary window: neither a modal dialog nor a palette (`windowType:
+ * "utility"`). Under `window.collapse: "minimize"` only a primary window has
+ * a taskbar button ("secondary windows do not appear on the taskbar", WIG
+ * Ch.8, p.145), so only it can be minimized: a modal's or palette's stored
+ * `collapsed` is ignored there, drawn expanded, and kept for a package that
+ * shades it.
+ */
+export const isClassicyPrimaryWindow = (w: ClassicyWindowKind): boolean =>
+	w.modal !== true && w.windowType !== "utility";
+
+/**
+ * Whether `w` is minimized under `window.collapse: "minimize"`: a collapsed
+ * primary window. The same record is shaded under `"shade"`.
+ */
+export const isClassicyWindowMinimized = (
+	w: ClassicyWindowKind & Pick<ClassicyStoreSystemAppWindow, "collapsed">,
+): boolean => w.collapsed === true && isClassicyPrimaryWindow(w);
+
+/**
+ * Whether `app`'s palettes are hidden with it under `window.collapse:
+ * "minimize"`: it has at least one open primary window, and every one is
+ * minimized. Windows hides a minimized window's owned pop-ups (WIG Ch.8,
+ * p.145; Wine `NC_HandleSysCommand`); Classicy's palettes belong to an app,
+ * not a window, so they go when the app's last shown window does. An app
+ * with palettes only keeps them.
+ */
+export function classicyAppPalettesHidden(
+	app: ClassicyStoreSystemApp | undefined,
+): boolean {
+	const primary = listAppWindows(app).filter(
+		(w) => !w.closed && isClassicyPrimaryWindow(w),
+	);
+	return primary.length > 0 && primary.every((w) => w.collapsed === true);
+}
+
+/**
+ * Whether `w`, a window of `app`, is on screen under `window.collapse:
+ * "minimize"`: open, not minimized, and, for a palette, not hidden with its
+ * app (`classicyAppPalettesHidden`). A modal is on screen while it is open.
+ */
+export function isClassicyWindowShown(
+	app: ClassicyStoreSystemApp | undefined,
+	w: ClassicyStoreSystemAppWindow,
+): boolean {
+	if (w.closed) return false;
+	if (w.windowType === "utility" && w.modal !== true)
+		return !classicyAppPalettesHidden(app);
+	return !isClassicyWindowMinimized(w);
+}
+
+// The primary windows of `app` that may take focus when another leaves the
+// screen: open and not minimized, `exceptId` aside.
+const shownPrimaryWindows = (
+	app: ClassicyStoreSystemApp | undefined,
+	exceptId?: string,
+) =>
+	listAppWindows(app).filter(
+		(w) =>
+			!w.closed &&
+			w.id !== exceptId &&
+			isClassicyPrimaryWindow(w) &&
+			w.collapsed !== true,
+	);
+
+/**
+ * Where focus goes, under `window.collapse: "minimize"`, when the focused
+ * app `appId`'s window `windowId` leaves the screen (minimized, closed or
+ * destroyed; plan 0020-w98 §5 "Minimize"). Windows activates "the next
+ * top-level window in the Z order" (`ShowWindow`'s `SW_MINIMIZE`; Wine
+ * `activate_other_window`), never a minimized one:
+ *
+ * 1. the app's own front primary window: open, not minimized, the highest
+ *    `zOrder`, `windowId` aside. Classicy draws the focused app's windows
+ *    above every other app's (`classicyWindowActiveApp`), so that window is
+ *    the next one down;
+ * 2. else the front such window of any other open app that is not hidden,
+ *    Finder and extensions included (an Apple Guide window has a taskbar
+ *    button, so it is a primary window here). `zOrder` is a focus
+ *    timestamp (`focusWindow` stamps `max(Date.now(), top + 1)`), so it
+ *    orders windows across apps too;
+ * 3. else the desktop: Finder focused with no window focused (with no
+ *    Finder record, no app at all), so the desktop's menus are the bar's.
+ *
+ * It never picks a minimized window, so passing focus on never restores
+ * one, and never leaves an app focused with no window to show its menus.
+ */
+export function classicyVisibleSuccession(
+	ds: ClassicyStore,
+	appId: string,
+	windowId: string,
+): ClassicyStore {
+	const own = mostRecentAppWindow(
+		shownPrimaryWindows(ownApp(ds, appId), windowId),
+	);
+	if (own) return focusWindow(ds, appId, own.id);
+	let next: { appId: string; window: ClassicyStoreSystemAppWindow } | undefined;
+	for (const [id, app] of Object.entries(ds.System.Manager.Applications.apps)) {
+		if (id === appId || !app.open || app.hidden === true) continue;
+		const front = mostRecentAppWindow(shownPrimaryWindows(app));
+		if (front && (!next || (front.zOrder ?? 0) > (next.window.zOrder ?? 0)))
+			next = { appId: id, window: front };
+	}
+	if (next) return focusWindow(ds, next.appId, next.window.id);
+	if (ownApp(ds, "Finder.app")) markAppFocused(ds, "Finder.app");
+	else deFocusApps(ds);
+	return ds;
+}
+
+/**
+ * The window whose taskbar button stands for `app` when it asks for the
+ * user's attention (`ClassicyAppRequestAttention`): `windowId` when it names
+ * one of the app's open primary windows, else the app's front open primary
+ * window (the highest `zOrder`), a minimized one included, since its button
+ * is still on the taskbar. A modal or palette has no button, so it never is
+ * one; `undefined` when the app has no open primary window.
+ */
+export function classicyAttentionWindow(
+	app: ClassicyStoreSystemApp | undefined,
+	windowId?: string,
+): ClassicyStoreSystemAppWindow | undefined {
+	const primary = listAppWindows(app).filter(
+		(w) => !w.closed && isClassicyPrimaryWindow(w),
+	);
+	if (windowId !== undefined) {
+		const named = primary.find((w) => w.id === windowId);
+		if (named) return named;
+	}
+	return mostRecentAppWindow(primary);
+}
+
+/**
+ * Flags `appId`'s window for attention (plan 0020-w98 E3, the shell addendum's
+ * B17; WIG Ch.10 "Message Notification", p.212, Figure 10.3: "flash the
+ * application's taskbar button ... until the user activates the window"),
+ * as Windows' `FlashWindowEx` with `FLASHW_TRAY` does: sets the session-only
+ * `attention` on `classicyAttentionWindow(app, windowId)`, whose taskbar
+ * button then flashes. Only under the Windows shell (`classicyHasTaskbar`),
+ * only for an open app that is not the focused one (an active app's button
+ * is already pressed in), and only when the app has a window with a button.
+ * Returns whether it set the flag. The flag is cleared when the app is
+ * activated (`markAppFocused`) and when the window closes, and never
+ * persisted (`sanitizeStateForPersistence`).
+ */
+export function requestClassicyAppAttention(
+	ds: ClassicyStore,
+	appId: string,
+	windowId?: string,
+): boolean {
+	if (!classicyHasTaskbar(ds)) return false;
+	const app = ownApp(ds, appId);
+	if (!app?.open) return false;
+	if (ds.System.Manager.Applications.focusedAppId === appId) return false;
+	const win = classicyAttentionWindow(app, windowId);
+	if (!win) return false;
+	win.attention = true;
+	return true;
 }
 
 export function focusWindow(
@@ -77,6 +270,13 @@ export function focusWindow(
 	markAppFocused(ds, appId);
 	const win = getAppWindow(app, windowId);
 	if (win) {
+		// Under `window.collapse: "minimize"`, activating a minimized window
+		// restores it: its taskbar button, ALT+TAB, or its app activated
+		// (WIG Ch.6 "Restoring Windows", p.85). A modal's or palette's stored
+		// collapse is not a minimize, so it is kept; under every other
+		// package focus never touches `collapsed`.
+		if (isClassicyWindowMinimized(win) && classicyWindowsMinimize(ds))
+			win.collapsed = false;
 		win.focused = true;
 		// Strictly above every sibling, not just Date.now(): two focuses in the
 		// same millisecond would otherwise tie, and succession would break the

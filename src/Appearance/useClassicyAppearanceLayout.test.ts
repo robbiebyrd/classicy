@@ -242,3 +242,33 @@ describe("classicyLayoutThemeVars", () => {
 			{},
 		));
 });
+
+// The Windows shell's layout keys (plan 0020-w98 §1) add no attribute or
+// property to the desktop root: the taskbar's band is measured, not a theme
+// variable, and the other keys are read by components.
+describe("the shell's layout keys on the desktop root", () => {
+	const SHELL: ClassicyAppearanceLayout = {
+		...MIRROR,
+		window: {
+			...MIRROR.window,
+			collapse: "minimize",
+			zoom: "maximize",
+			titleDoubleClick: "zoom",
+			frameEdges: "resize",
+			systemMenu: true,
+			captionTooltips: true,
+		},
+		taskbar: {
+			startLabel: "Start",
+			startBanner: { title: "Windows", edition: "98" },
+		},
+		dialog: { caption: "titled" },
+	};
+
+	it("change neither classicyLayoutVars nor classicyLayoutThemeVars", () => {
+		expect(classicyLayoutVars(SHELL)).toStrictEqual(classicyLayoutVars(MIRROR));
+		expect(classicyLayoutThemeVars(SHELL)).toStrictEqual(
+			classicyLayoutThemeVars(MIRROR),
+		);
+	});
+});

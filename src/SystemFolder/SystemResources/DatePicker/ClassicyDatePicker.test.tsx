@@ -22,6 +22,19 @@ const prefill = new Date("1998-07-14T00:00:00");
 const field = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 describe("ClassicyDatePicker", () => {
+	// The frame carries the `disabled` state its inputs share, for a
+	// package's disabled look without `:has()`.
+	it("marks its frame disabled with its inputs", () => {
+		const { container, rerender } = render(
+			<ClassicyDatePicker id="dp" disabled />,
+		);
+		const frame = container.querySelector(".classicyDatePicker") as HTMLElement;
+		expect(frame.classList.contains("disabled")).toBe(true);
+		expect(field("dp_month").disabled).toBe(true);
+		rerender(<ClassicyDatePicker id="dp" />);
+		expect(frame.classList.contains("disabled")).toBe(false);
+	});
+
 	it("seeds the fields from prefillValue", () => {
 		render(<ClassicyDatePicker id="d" prefillValue={prefill} />);
 		expect(field("d_month").value).toBe("7");

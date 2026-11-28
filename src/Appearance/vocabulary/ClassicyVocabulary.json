@@ -3,6 +3,7 @@
 		"Tabs": "classicyTabContainer"
 	},
 	"extraClasses": {
+		"BalloonHelp": ["classicyWhatsThisMode"],
 		"Button": ["classicyButtonsHolder"],
 		"ControlLabel": [
 			"classicyLabelAbove",
@@ -15,6 +16,7 @@
 		],
 		"Disclosure": ["classicyDisclosureLabelLeft"],
 		"FileBrowser": [
+			"classicyFileCut",
 			"classicyFileDragGhost",
 			"classicyFileDragging",
 			"classicyFileDropTarget"
@@ -36,6 +38,7 @@
 			"classicyPixelm",
 			"classicyPixeln"
 		],
+		"RichTextEditor": ["classicyRichTextEditorPopups"],
 		"Tabs": [
 			"classicyTabActiveContent",
 			"classicyTabButton",
@@ -98,6 +101,7 @@
 			"AccessoryIconLg",
 			"AccessoryIconMd",
 			"AccessoryIconSm",
+			"Back",
 			"Body",
 			"BodyViewport",
 			"Footer",
@@ -106,12 +110,16 @@
 			"HeaderLabelIcon",
 			"HeaderTitle",
 			"Nav",
+			"Next",
 			"PageIndicator"
 		],
 		"BalloonHelp": [
 			"Anchor",
 			"Container",
 			"Content",
+			"Context",
+			"PointerAbove",
+			"PointerBelow",
 			"Tail",
 			"TailBottom",
 			"TailCenter",
@@ -232,7 +240,7 @@
 			"Tab",
 			"TabRight"
 		],
-		"CrashScreen": [],
+		"CrashScreen": ["FatalException", "Line", "Message", "Prompt", "Title"],
 		"DateAndTimeManager": [
 			"ButtonRow",
 			"Column",
@@ -248,6 +256,7 @@
 			"DialogContent",
 			"DialogOverlay",
 			"Select",
+			"SelectEmpty",
 			"SplitArrows",
 			"State"
 		],
@@ -257,6 +266,7 @@
 			"Image",
 			"Mask",
 			"MaskOuter",
+			"Rename",
 			"SelectedImage"
 		],
 		"DesktopMenu": [
@@ -278,9 +288,11 @@
 		"FileBrowser": [
 			"Fill",
 			"FillList",
+			"Select",
 			"ViewTableContainer",
 			"ViewTableDisclosure",
 			"ViewTableDisclosureTriangle",
+			"ViewTableRename",
 			"ViewTableRow",
 			"ViewTableRowContainer",
 			"ViewTableRowIcon",
@@ -305,10 +317,30 @@
 			"Footer",
 			"Volume",
 			"Well",
+			"WellColumns",
 			"WellViewport"
+		],
+		"FileProperties": [
+			"Attributes",
+			"Buttons",
+			"General",
+			"Head",
+			"Icon",
+			"Label",
+			"Name",
+			"Rows",
+			"Value"
 		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
+		"HelpTopics": [
+			"Buttons",
+			"Contents",
+			"List",
+			"ListViewport",
+			"Prompt",
+			"Window"
+		],
 		"HyperCard": [
 			"ActionAddSelect",
 			"ActionList",
@@ -346,11 +378,21 @@
 			"Stage",
 			"StageInner"
 		],
-		"Icon": ["DimmedImage", "Invisible", "Mask", "MaskOuter", "SelectedImage"],
+		"Icon": [
+			"AliasBadge",
+			"DimmedImage",
+			"Image",
+			"Invisible",
+			"Mask",
+			"MaskOuter",
+			"Rename",
+			"SelectedImage"
+		],
 		"ImageWell": ["DragOver", "Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
 		"Kbd": ["Inline", "Keycap", "Keycaps", "Modifier"],
+		"KeyboardManager": ["Buttons", "Content", "Shortcuts"],
 		"KeyboardEquivalent": [
 			"Buttons",
 			"Description",
@@ -360,11 +402,18 @@
 			"Prompt"
 		],
 		"Link": [],
-		"ListBox": ["Option", "OptionIcon", "OptionLabel", "Viewport"],
+		"ListBox": [
+			"Checkboxes",
+			"Option",
+			"OptionIcon",
+			"OptionLabel",
+			"Viewport"
+		],
 		"LittleArrows": ["Button", "ButtonDown", "Group"],
 		"Menu": ["ListScrolls", "ScrollShadow"],
 		"MenuItem": [
 			"BalloonAnchor",
+			"Bullet",
 			"Check",
 			"ChildMenuIndicator",
 			"Flash",
@@ -387,6 +436,7 @@
 			"Value"
 		],
 		"NoAppearancePackage": ["Body", "Code", "Heading", "Message"],
+		"OpenWithDialog": ["Buttons", "Icon", "Prompt", "Top"],
 		"Output": ["Inset", "Mono", "Plain"],
 		"Pager": ["Arrow", "ArrowNext", "ArrowPrev", "Page"],
 		"PictureViewer": ["Image"],
@@ -424,6 +474,7 @@
 			"Wrapper"
 		],
 		"PopUpSlider": ["Thumb", "Track"],
+		"PowerScreen": ["Message", "Off", "StandBy"],
 		"PreBootScreen": [],
 		"Progress": [
 			"ChasingArrows",
@@ -449,6 +500,9 @@
 			"ViewportClipped"
 		],
 		"ScrollBar": [
+			"Accessory",
+			"AccessoryEnd",
+			"AccessoryStart",
 			"Arrow",
 			"ArrowEnd",
 			"ArrowStart",
@@ -459,6 +513,20 @@
 			"Vertical"
 		],
 		"Separator": ["Horizontal", "Vertical"],
+		"ShellDialog": [
+			"Body",
+			"Buttons",
+			"Dim",
+			"Field",
+			"FieldLabel",
+			"Icon",
+			"LogOff",
+			"Options",
+			"Prompt",
+			"Run",
+			"ShutDown",
+			"Top"
+		],
 		"Slider": [
 			"Ghost",
 			"GhostHidden",
@@ -471,6 +539,11 @@
 			"IndicatorUp",
 			"InputVertical",
 			"Stack",
+			"StackIndicatorDown",
+			"StackIndicatorLeft",
+			"StackIndicatorNondirectional",
+			"StackIndicatorRight",
+			"StackIndicatorUp",
 			"StackVertical",
 			"Tick",
 			"TickLabel",
@@ -484,7 +557,14 @@
 		],
 		"SoundManager": ["Content"],
 		"Spinner": ["Default", "Holder", "InputGroup"],
-		"SplitView": ["Divider", "Horizontal", "Pane", "Vertical"],
+		"SplitView": ["Divider", "Horizontal", "Pane", "SplitBox", "Vertical"],
+		"StartMenu": [
+			"Banner",
+			"BannerArt",
+			"BannerEdition",
+			"BannerTitle",
+			"SmallIcons"
+		],
 		"StartupScreen": ["Extensions", "Logo", "Panel", "Progress", "Wordmark"],
 		"Storage": [],
 		"SubMenu": ["FlipLeft"],
@@ -505,6 +585,52 @@
 			"SortArrowAscending"
 		],
 		"Tabs": [],
+		"Taskbar": [
+			"AutoHide",
+			"Below",
+			"Clock",
+			"EdgeBottom",
+			"EdgeLeft",
+			"EdgeRight",
+			"EdgeTop",
+			"Gripper",
+			"Pager",
+			"PagerDown",
+			"PagerUp",
+			"Properties",
+			"PropertiesButtons",
+			"PropertiesPage",
+			"PropertiesPreview",
+			"PropertiesPreviewNoClock",
+			"PropertiesPreviewStartMenu",
+			"PropertiesPreviewTaskbar",
+			"PropertiesPreviewWindow",
+			"PropertiesText",
+			"QuickLaunch",
+			"QuickLaunchButton",
+			"QuickLaunchButtons",
+			"QuickLaunchIcon",
+			"Rows",
+			"ShowDesktopIcon",
+			"Sizer",
+			"Start",
+			"StartFlag",
+			"StartIcon",
+			"StartLabel",
+			"Task",
+			"TaskAttention",
+			"TaskIcon",
+			"TaskLabel",
+			"Tasks",
+			"TasksPaged",
+			"TasksRows",
+			"Tray",
+			"TrayExtensions",
+			"TrayIcon",
+			"TrayIcons",
+			"TrayPopup",
+			"Vertical"
+		],
 		"TextEditor": [
 			"Area",
 			"AreaAutoHeight",
@@ -547,25 +673,32 @@
 			"ContentsModalInner",
 			"ContentsNotDimmed",
 			"ContentsSelfPadded",
+			"ContentsWithFrame",
 			"ContentsWithHeader",
 			"ControlBox",
 			"Document",
 			"Floating",
 			"Frame",
 			"FrameBody",
+			"FrameCorner",
 			"FrameEdge",
 			"Header",
 			"HeaderAboveHead",
 			"HeaderDimmed",
 			"HeaderList",
+			"HeaderStatus",
+			"HelpBox",
 			"Icon",
+			"Maximized",
 			"Menu",
 			"MenuBar",
+			"Minimized",
 			"Modal",
 			"ModalFixed",
 			"ModalFront",
 			"ModalScrim",
 			"ModalScrimError",
+			"NoResize",
 			"NoScroll",
 			"PlacardBar",
 			"PlacardBarDimmed",
@@ -574,6 +707,8 @@
 			"ResizerDimmed",
 			"Resizing",
 			"ScrollBarsHidden",
+			"SizingBorder",
+			"StatusPart",
 			"Title",
 			"TitleBar",
 			"TitleBarModal",
@@ -605,9 +740,10 @@
 		"fits"
 	],
 	"attributes": {
-		"data-classicy-control": ["close", "zoom", "collapse"],
+		"data-classicy-control": ["close", "zoom", "collapse", "help"],
 		"data-classicy-role": ["default", "cancel", "other"],
 		"data-classicy-selection": ["all", "tail"],
+		"data-classicy-drop": ["copy", "link", "none"],
 		"data-classicy-part": [
 			"apple",
 			"app",
@@ -620,6 +756,7 @@
 			"modifier-option",
 			"modifier-shift",
 			"modifier-command",
+			"access-key",
 			"scrollbar",
 			"scroll-arrow-start",
 			"scroll-track",
@@ -627,8 +764,19 @@
 			"scroll-thumb",
 			"scroll-corner",
 			"scroll-drag-outline",
+			"scroll-accessory-start",
+			"scroll-accessory-end",
 			"menu-scroll-up",
-			"menu-scroll-down"
+			"menu-scroll-down",
+			"taskbar-start",
+			"taskbar-quick-launch",
+			"taskbar-tasks-gripper",
+			"taskbar-pager",
+			"taskbar-tasks",
+			"taskbar-tray",
+			"taskbar-sizer",
+			"start-menu-banner",
+			"list-check"
 		]
 	}
 }

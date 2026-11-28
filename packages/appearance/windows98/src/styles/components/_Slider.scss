@@ -1,0 +1,646 @@
+// The Windows 98 slider, included by windows98.scss inside the package
+// wrapper; overrides the structure of ClassicySlider.scss (the range input,
+// its channel and thumb, the ghost, the tick marks) and
+// ClassicyPopUpSlider.scss (the Control Strip's pop-up slider). The look is
+// the Windows 95/98 trackbar (TRACKBAR_CLASS) as comctl32 drew it from the
+// system colors (98.css, os-gui, React95; Wine's trackbar.c):
+//
+// - The channel: `--slider-channel` (4) pixels across in the sunken two-ring
+//   bevel (`DrawEdge(EDGE_SUNKEN)`: ButtonShadow and ButtonDkShadow at the
+//   top and left, ButtonHilight and ButtonLight at the bottom and right),
+//   the full length of the control, ButtonFace inside where a theme makes
+//   it thicker than its rings. It lies `--slider-thumb-rise` (5) pixels
+//   from the thumb's flat side (comctl32 sets the channel a quarter of the
+//   thumb's length, 21, in from the control's edge), so the thumb's body
+//   straddles it and its point reaches past.
+// - The thumb: a pointed raised box `--slider-thumb-along` (11) along the
+//   channel and `--slider-thumb-across` (21) across it, the point five rows
+//   deep. Its edges are the raised bevel's: ButtonHilight and ButtonLight on
+//   the top and left and on the diagonal that continues them, ButtonDkShadow
+//   and ButtonShadow on the bottom and right and on the diagonal that
+//   continues those, the tip dark, ButtonFace inside. Pointing down (the
+//   default, TBS_BOTTOM), up (TBS_TOP), left (TBS_LEFT, a vertical slider's
+//   default) or right (TBS_RIGHT), each drawn as seen; nondirectional (the
+//   TBS_BOTH thumb) a raised box 14 across, centered on the channel.
+// - Dragged (the mouse down on the input) or highlighted, the thumb's face
+//   is the 50% checker of ButtonFace and ButtonHilight (comctl32's 55AA
+//   pattern brush, the dragged trackbar thumb), its bevel unchanged; the
+//   ghost indicator (a slider that draws one) is the same dithered thumb,
+//   which is what a Windows thumb looks like under the pointer. Disabled, the
+//   face is dithered too (comctl32 draws a disabled thumb with the same
+//   brush) and the tick marks are GrayText.
+// - Tick marks: `--slider-tick-width` x `--slider-tick-height` (1 x 4)
+//   WindowText lines on the side the thumb points to (TBS_BOTTOM's ticks are
+//   below, TBS_TOP's above, TBS_LEFT's left of the channel), hanging from the
+//   control's edge, each centered on the thumb's tip column (a whole pixel
+//   where the tip is).
+// - The keyboard focus is the dotted rectangle around the control
+//   (`:focus-visible`).
+// - The pop-up slider (the Control Strip's volume control) is the taskbar
+//   volume pop-up's vertical trackbar: the 4-pixel sunken channel down the
+//   middle of its track column and a raised ButtonFace box 15 x 10 for its
+//   thumb (the pop-up has no pointer: a TBS_BOTH thumb), dithered while
+//   dragged or disabled. The core fixes the thumb's height (10) and travel
+//   (57) in its geometry, so the art keeps the registered art's box.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03        the faces, the checker's dark
+//   ButtonHilight     --color-system-01        the light outer ring, the
+//                                              checker's light
+//   ButtonLight       --color-system-02        the light inner ring
+//   ButtonShadow      --color-system-05        the dark inner ring, GrayText
+//   ButtonDkShadow    --color-system-07        the dark outer ring
+//   WindowText        --color-black            the tick marks, the focus
+//                                              rectangle
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// the thumb a stack of rectangles on the `--pixel-unit` grid (`row-art`
+// below, over ../_pixel.scss: a picture's runs, those alike in consecutive
+// rows merged into one rectangle), every color a token. The track is the
+// input's full thickness, the channel drawn on it at its offset, so the
+// thumb's box starts at the track's edge in both engines (Chromium lays a
+// thumb from the track's near edge, Firefox centers it on the track) and no
+// length is halved. The art is held in custom properties on the input
+// (`--windows98-thumb`, `--windows98-channel`), which both engines'
+// pseudo-elements read, so each picture is written once and a state or a
+// direction swaps a property.
+@use "sass:list";
+@use "sass:map";
+@use "sass:string";
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// --- Inks -------------------------------------------------------------------
+// The art's characters, each an image held in a custom property on the
+// track group: the bevel's four rings and the face as one-color gradients,
+// and `D`, the dithered face, as a one-pixel stripe in either phase (`.` is
+// clear). A run of `D` on an even row starts light, on an odd row dark, so
+// the rows together make the 50% checker.
+$inks: (
+  "W": var(--windows98-slider-w),
+  "L": var(--windows98-slider-l),
+  "F": var(--windows98-slider-f),
+  "S": var(--windows98-slider-s),
+  "K": var(--windows98-slider-k),
+);
+$dither: (
+  0: var(--windows98-slider-d0),
+  1: var(--windows98-slider-d1),
+);
+
+@mixin ink-images {
+  --windows98-slider-w: linear-gradient(#{b.$hilight}, #{b.$hilight});
+  --windows98-slider-l: linear-gradient(#{b.$light}, #{b.$light});
+  --windows98-slider-f: linear-gradient(#{b.$face}, #{b.$face});
+  --windows98-slider-s: linear-gradient(#{b.$shadow}, #{b.$shadow});
+  --windows98-slider-k: linear-gradient(#{b.$dkshadow}, #{b.$dkshadow});
+  --windows98-slider-d0: repeating-linear-gradient(to right, #{b.$hilight} 0 #{$px}, #{b.$face} 0 #{px(2)});
+  --windows98-slider-d1: repeating-linear-gradient(to right, #{b.$face} 0 #{$px}, #{b.$hilight} 0 #{px(2)});
+}
+
+// --- Art --------------------------------------------------------------------
+// Pointing down (11 x 21): sixteen rows of body, the point five.
+$thumb-down: (
+  "WWWWWWWWWWK",
+  "WLLLLLLLLSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  ".WLFFFFFSK.",
+  "..WLFFFSK..",
+  "...WLFSK...",
+  "....WSK....",
+  ".....K.....",
+);
+
+// Pointing up (11 x 21): the point first, the flat side at the bottom.
+$thumb-up: (
+  ".....K.....",
+  "....WSK....",
+  "...WLFSK...",
+  "..WLFFFSK..",
+  ".WLFFFFFSK.",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WSSSSSSSSSK",
+  "KKKKKKKKKKK",
+);
+
+// Pointing left (21 x 11, as seen on a vertical channel): the point at the
+// left, the flat side at the right.
+$thumb-left: (
+  ".....WWWWWWWWWWWWWWWK",
+  "....WLLLLLLLLLLLLLLSK",
+  "...WLFFFFFFFFFFFFFFSK",
+  "..WLFFFFFFFFFFFFFFFSK",
+  ".WLFFFFFFFFFFFFFFFFSK",
+  "KSFFFFFFFFFFFFFFFFFSK",
+  ".KSFFFFFFFFFFFFFFFFSK",
+  "..KSFFFFFFFFFFFFFFFSK",
+  "...KSFFFFFFFFFFFFFFSK",
+  "....KSSSSSSSSSSSSSSSK",
+  ".....KKKKKKKKKKKKKKKK",
+);
+
+// Pointing right (21 x 11): the flat side at the left, the point at the
+// right.
+$thumb-right: (
+  "WWWWWWWWWWWWWWWW.....",
+  "WLLLLLLLLLLLLLLLW....",
+  "WLFFFFFFFFFFFFFFLW...",
+  "WLFFFFFFFFFFFFFFFLW..",
+  "WLFFFFFFFFFFFFFFFFLW.",
+  "WLFFFFFFFFFFFFFFFFFSK",
+  "WLFFFFFFFFFFFFFFFFSK.",
+  "WLFFFFFFFFFFFFFFFSK..",
+  "WLFFFFFFFFFFFFFFSK...",
+  "WSSSSSSSSSSSSSSSK....",
+  "KKKKKKKKKKKKKKKK.....",
+);
+
+// Nondirectional (11 x 14 in the 11 x 21 box): a raised box whose middle
+// is the channel's, five rows above it and five below.
+$knob: (
+  "WWWWWWWWWWK",
+  "WLLLLLLLLSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WLFFFFFFFSK",
+  "WSSSSSSSSSK",
+  "KKKKKKKKKKK",
+);
+
+// The knob on a vertical channel (14 x 11 in the 21 x 11 box), seven
+// columns in: centered on the channel where the left-pointing thumb's lies.
+$knob-vertical: (
+  ".......WWWWWWWWWWWWWK",
+  ".......WLLLLLLLLLLLSK",
+  ".......WLFFFFFFFFFFSK",
+  ".......WLFFFFFFFFFFSK",
+  ".......WLFFFFFFFFFFSK",
+  ".......WLFFFFFFFFFFSK",
+  ".......WLFFFFFFFFFFSK",
+  ".......WLFFFFFFFFFFSK",
+  ".......WLFFFFFFFFFFSK",
+  ".......WSSSSSSSSSSSSK",
+  ".......KKKKKKKKKKKKKK",
+);
+
+// `$rows` with the face dithered: every `F` a `D`.
+@function dithered($rows) {
+  $out: ();
+  @each $row in $rows {
+    $d: "";
+    @for $i from 1 through string.length($row) {
+      $c: string.slice($row, $i, $i);
+      @if $c == "F" {
+        $c: "D";
+      }
+      $d: $d + $c;
+    }
+    $out: list.append($out, $d);
+  }
+  @return $out;
+}
+
+// The rectangles of a picture, `(ink x y w h)` each: one per run of one
+// character in a row, a run that repeats the one above it (the same
+// character, column and width) extending that rectangle a row instead. A
+// dithered run never merges: its phase is its row's.
+@function rects($rows) {
+  $rects: ();
+  $y: 0;
+  @each $row in $rows {
+    $length: string.length($row);
+    $x: 0;
+    @while $x < $length {
+      $ink: string.slice($row, $x + 1, $x + 1);
+      $run: 1;
+      @while $x + $run < $length and string.slice($row, $x + $run + 1, $x + $run + 1) == $ink {
+        $run: $run + 1;
+      }
+      @if $ink != "." {
+        $merged: false;
+        @if $ink != "D" and list.length($rects) > 0 {
+          @for $i from 1 through list.length($rects) {
+            $r: list.nth($rects, $i);
+            @if not
+              $merged and
+              list.nth($r, 1) ==
+              $ink and
+              list.nth($r, 2) ==
+              $x and
+              list.nth($r, 4) ==
+              $run and
+              list.nth($r, 3) + list.nth($r, 5) ==
+              $y
+            {
+              $rects: list.set-nth($rects, $i, ($ink $x list.nth($r, 3) $run (list.nth($r, 5) + 1)));
+              $merged: true;
+            }
+          }
+        }
+        @if not $merged {
+          $rects: list.append($rects, ($ink $x $y $run 1), $separator: comma);
+        }
+      }
+      $x: $x + $run;
+    }
+    $y: $y + 1;
+  }
+  @return $rects;
+}
+
+// One background layer: `$image` at grid (`$x`, `$y`), `$w` by `$h` grid
+// pixels, from the box's top left (or `$dx`, `$dy` into it).
+@function layer($image, $x, $y, $w, $h, $dx: 0, $dy: 0) {
+  @return #{$image} #{offset($x, $dx)} #{offset($y, $dy)} / #{px($w)} #{px($h)} no-repeat;
+}
+
+// A picture's layers.
+@function row-art($rows, $dx: 0, $dy: 0) {
+  $layers: ();
+  @each $r in rects($rows) {
+    $ink: list.nth($r, 1);
+    $x: list.nth($r, 2);
+    $y: list.nth($r, 3);
+    $image: map.get($inks, $ink);
+    @if $ink == "D" {
+      $image: map.get($dither, ($x + $y) % 2);
+    }
+    $layers: list.append($layers, layer($image, $x, $y, list.nth($r, 4), list.nth($r, 5), $dx, $dy), $separator: comma);
+  }
+  @return $layers;
+}
+
+// --- The channel ------------------------------------------------------------
+// The sunken channel drawn on the track, `$at` from the track's near edge
+// (its top, or a vertical channel's left), the full length: the outer and
+// inner rings as `b.sunken` lays them (the light bottom-right rings over
+// the dark top-left ones at the corners), ButtonFace under them.
+$channel: var(--slider-channel);
+
+// Where the channel lies: the rise from the near edge (pointing down or
+// right, and the nondirectional horizontal knob), or the rise from the far
+// edge (pointing up or left, and the vertical knob).
+$near: var(--slider-thumb-rise);
+$far: calc(var(--slider-thumb-across) - var(--slider-thumb-rise) - #{$channel});
+
+// One background layer of `$image`, `$w` by `$h` at the position `$x`,
+// `$y` (each a side and a length).
+@function rect($image, $x, $y, $w, $h) {
+  @return #{$image} #{$x} #{$y} / #{$w} #{$h} no-repeat;
+}
+
+@function channel($horizontal, $at) {
+  $w: map.get($inks, "W");
+  $l: map.get($inks, "L");
+  $f: map.get($inks, "F");
+  $s: map.get($inks, "S");
+  $k: map.get($inks, "K");
+  $inner: calc(#{$channel} - #{b.$b2});
+  $far-ring: calc(#{$at} + #{$channel} - #{b.$b});
+  $far-inner: calc(#{$at} + #{$channel} - #{b.$b2});
+  $near-inner: calc(#{$at} + #{b.$b});
+  $length-inner: calc(100% - #{b.$b2});
+  @if $horizontal {
+    @return rect($w, right 0, top $at, b.$b, $channel), rect($w, left 0, top $far-ring, 100%, b.$b),
+      rect($l, right b.$b, top $near-inner, b.$b, $inner), rect($l, left b.$b, top $far-inner, $length-inner, b.$b),
+      rect($s, left 0, top $at, 100%, b.$b), rect($s, left 0, top $at, b.$b, $channel),
+      rect($k, left b.$b, top $near-inner, $length-inner, b.$b), rect($k, left b.$b, top $near-inner, b.$b, $inner),
+      rect($f, left 0, top $at, 100%, $channel);
+  }
+  @return rect($w, left $far-ring, top 0, b.$b, 100%), rect($w, left $at, bottom 0, $channel, b.$b),
+    rect($l, left $far-inner, top b.$b, b.$b, $length-inner), rect($l, left $near-inner, bottom b.$b, $inner, b.$b),
+    rect($s, left $at, top 0, $channel, b.$b), rect($s, left $at, top 0, b.$b, 100%),
+    rect($k, left $near-inner, top b.$b, $inner, b.$b), rect($k, left $near-inner, top b.$b, b.$b, $length-inner),
+    rect($f, left $at, top 0, $channel, 100%);
+}
+
+// One direction's art: the channel at `$at` and the thumb at rest and
+// dithered, as the input's properties (the state rules pick between the
+// two).
+@mixin direction($horizontal, $at, $thumb) {
+  --windows98-channel: #{channel($horizontal, $at)};
+  --windows98-thumb-rest: #{row-art($thumb)};
+  --windows98-thumb-dithered: #{row-art(dithered($thumb))};
+}
+
+// The 50% checker over a whole box (the pop-up slider's dragged thumb).
+$checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
+
+// A horizontal slider's rules, not a vertical one's (the direction classes
+// sit on both).
+$horizontal: ":not(.classicySliderInputVertical)";
+
+@mixin slider {
+  // ----- The trackbar -------------------------------------------------------
+  // The thumb's box the base sheet sizes and places by: along the channel
+  // by across it, and the other way round on a vertical slider (the art is
+  // drawn as seen, nothing turns it); the art's inks, inherited by the
+  // input, its pseudo-elements and the ghost.
+  .classicySliderTrackGroup {
+    --slider-thumb-width: var(--slider-thumb-along);
+    --slider-thumb-height: var(--slider-thumb-across);
+    @include ink-images;
+  }
+
+  .classicySliderTrackGroupVertical {
+    --slider-thumb-width: var(--slider-thumb-across);
+    --slider-thumb-height: var(--slider-thumb-along);
+  }
+
+  // The input is as thick as the thumb; its track the same, the channel
+  // drawn on it (pointing down: the rise from the top); the thumb's box as
+  // the browser must hold it, the base sheet's turns and clip undone (the
+  // art is drawn as seen), laid from the track's near edge.
+  .classicySlider {
+    @include direction(true, $near, $thumb-down);
+    --windows98-thumb: var(--windows98-thumb-rest);
+
+    &::-webkit-slider-runnable-track {
+      height: var(--slider-thumb-across);
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: var(--windows98-channel);
+    }
+
+    &::-moz-range-track {
+      height: var(--slider-thumb-across);
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: var(--windows98-channel);
+    }
+
+    &::-webkit-slider-thumb {
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+      clip-path: none;
+      transform: none;
+      box-shadow: none;
+      background: var(--windows98-thumb);
+    }
+
+    &::-moz-range-thumb {
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+      clip-path: none;
+      transform: none;
+      box-shadow: none;
+      background: var(--windows98-thumb);
+    }
+
+    // Dragged, highlighted or disabled: the dithered face.
+    &:active,
+    &.classicySliderHighlighted,
+    &:disabled {
+      --windows98-thumb: var(--windows98-thumb-dithered);
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    // The keyboard focus: the dotted rectangle around the control.
+    &:focus-visible {
+      outline: b.$b dotted b.$text;
+      outline-offset: 0;
+    }
+  }
+
+  // Pointing up: the channel the rise from the bottom.
+  .classicySliderIndicatorUp#{$horizontal} {
+    @include direction(true, $far, $thumb-up);
+  }
+
+  // Nondirectional: the knob over the channel's middle.
+  .classicySliderIndicatorNondirectional#{$horizontal} {
+    @include direction(true, $near, $knob);
+  }
+
+  // A vertical slider: the input as wide as the thumb is across, the
+  // channel down it (pointing left, the default: the rise from the right),
+  // the thumb's box lying across the track from its left edge.
+  .classicySliderInputVertical {
+    width: var(--slider-thumb-across);
+    @include direction(false, $far, $thumb-left);
+
+    &::-webkit-slider-runnable-track {
+      width: var(--slider-thumb-across);
+      height: auto;
+    }
+
+    &::-moz-range-track {
+      width: var(--slider-thumb-across);
+      height: auto;
+    }
+  }
+
+  // Pointing right: the channel the rise from the left.
+  .classicySliderInputVertical.classicySliderIndicatorRight {
+    @include direction(false, $near, $thumb-right);
+  }
+
+  .classicySliderInputVertical.classicySliderIndicatorNondirectional {
+    @include direction(false, $far, $knob-vertical);
+  }
+
+  // ----- The ghost indicator ------------------------------------------------
+  // The thumb under the pointer: its art with the face dithered, laid where
+  // the thumb's box lies (from the track's near edge), as seen.
+  .classicySliderGhost {
+    margin-top: 0;
+    transform: none;
+    background: row-art(dithered($thumb-down));
+  }
+
+  .classicySliderGhost.classicySliderIndicatorUp {
+    background: row-art(dithered($thumb-up));
+  }
+
+  .classicySliderGhost.classicySliderIndicatorNondirectional {
+    background: row-art(dithered($knob));
+  }
+
+  .classicySliderStackVertical .classicySliderGhost {
+    margin-left: 0;
+    transform: none;
+    background: row-art(dithered($thumb-left));
+  }
+
+  .classicySliderStackVertical .classicySliderGhost.classicySliderIndicatorRight {
+    background: row-art(dithered($thumb-right));
+  }
+
+  .classicySliderStackVertical .classicySliderGhost.classicySliderIndicatorNondirectional {
+    background: row-art(dithered($knob-vertical));
+  }
+
+  // ----- Tick marks ---------------------------------------------------------
+  // WindowText lines hanging from the control's edge, each shifted back half
+  // its width by a margin, not the base sheet's transform, so its line lies
+  // on the tip's column (a whole pixel where the tip is).
+  .classicySliderTicks {
+    height: var(--slider-tick-height);
+  }
+
+  .classicySliderTick {
+    top: 0;
+    width: var(--slider-tick-width);
+    height: var(--slider-tick-height);
+    margin-left: px(-0.5);
+    transform: none;
+    background: b.$text;
+  }
+
+  .classicySliderStackVertical .classicySliderTicks {
+    width: var(--slider-tick-height);
+    height: auto;
+  }
+
+  .classicySliderStackVertical .classicySliderTick {
+    top: auto;
+    left: 0;
+    width: var(--slider-tick-height);
+    height: var(--slider-tick-width);
+    margin-left: 0;
+    margin-bottom: px(-0.5);
+    transform: none;
+  }
+
+  // On the side the thumb points to: above a slider pointing up, left of a
+  // vertical one pointing left (the base sheet lays them below and right),
+  // keyed on the direction the core puts on the stack
+  // (`classicySliderStackIndicator*`).
+  .classicySliderStack.classicySliderStackIndicatorUp:not(.classicySliderStackVertical),
+  .classicySliderStackVertical:not(
+      .classicySliderStackIndicatorRight,
+      .classicySliderStackIndicatorNondirectional
+    ) {
+    .classicySliderTicks {
+      order: -1;
+    }
+
+    .classicySliderTickLabels {
+      order: -2;
+    }
+  }
+
+  // Disabled: the ticks GrayText (the thumb is dithered above).
+  :where(.classicySliderTicks).disabled .classicySliderTick {
+    background: b.$gray-text;
+  }
+
+  .classicySliderTickLabel {
+    color: b.$text;
+  }
+
+  // ----- The pop-up slider --------------------------------------------------
+  // The track column holds the channel: the registered art's rectangles are
+  // not drawn, and the art's box itself is the sunken channel, three pixels
+  // into the column and the column's length (the pop-up's height less the
+  // track's top and two pixels, the registered track's 68).
+  .classicyPopUpSlider {
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: b.$b dotted b.$text;
+      outline-offset: b.$neg-b;
+    }
+  }
+
+  .classicyPopUpSliderTrack {
+    left: calc(var(--pop-up-slider-track-left) + #{px(3)});
+    width: $channel;
+    height: calc(var(--pop-up-slider-height) - var(--pop-up-slider-track-top) - #{px(2)});
+    overflow: visible;
+    background: b.$face;
+    @include b.sunken;
+
+    > * {
+      display: none;
+    }
+  }
+
+  // The thumb: a raised ButtonFace box 15 x 10 (the core's thumb height),
+  // in place of the registered art.
+  .classicyPopUpSliderThumb {
+    display: block;
+    box-sizing: border-box;
+    width: px(15);
+    height: px(10);
+    background: b.$face;
+    @include b.raised;
+
+    > * {
+      display: none;
+    }
+  }
+
+  // Dragged: the dithered face.
+  .classicyPopUpSlider:active .classicyPopUpSliderThumb {
+    background: $checker;
+  }
+
+  // Disabled: the dithered face, nothing faded.
+  :where(.classicyPopUpSlider).disabled {
+    opacity: 1;
+
+    .classicyPopUpSliderThumb {
+      background: $checker;
+    }
+  }
+
+  // The arrow over a trackbar and its slider, where the base shows the hand,
+  // and the slashed circle while it is disabled (WIG Ch.4 "Mouse Pointers",
+  // pp.23-24, Table 4.1; the audit's 4.1). The thumbs are pseudo-elements,
+  // each named apart.
+  .classicySlider {
+    @include b.registry-cursor(arrow, default);
+
+    &::-webkit-slider-thumb {
+      @include b.registry-cursor(arrow, default);
+    }
+
+    &::-moz-range-thumb {
+      @include b.registry-cursor(arrow, default);
+    }
+  }
+}

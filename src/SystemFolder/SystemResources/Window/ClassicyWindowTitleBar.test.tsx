@@ -1,6 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render } from "@/__tests__/test-utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render } from "@/__tests__/test-utils";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
+
+// The tooltip's text, while one shows.
+const tooltipText = () =>
+	document.querySelector(".classicyBalloonHelpContent")?.textContent ??
+	undefined;
 
 describe("ClassicyWindowTitleBar", () => {
 	it("renders close, zoom and collapse boxes only for the handlers given", () => {
@@ -62,6 +72,46 @@ describe("ClassicyWindowTitleBar", () => {
 		).not.toBeNull();
 	});
 
+	// `utilityTitle` (a Windows tool window's small caption): the title text,
+	// then the center band, no icon and no side bands; nothing new without a
+	// title, and a document bar ignores it.
+	it("renders a utility bar's title before its center band under utilityTitle", () => {
+		const { container, rerender } = render(
+			<ClassicyWindowTitleBar
+				title="Tools"
+				icon="tools.png"
+				variant="utility"
+				utilityTitle
+			/>,
+		);
+		const title = container.querySelector(".classicyWindowTitle");
+		expect(
+			[...(title?.children ?? [])].map((child) => child.className),
+		).toEqual(["classicyWindowTitleText", "classicyWindowTitleCenter"]);
+		expect(
+			container.querySelector(".classicyWindowTitleText p"),
+		).toHaveTextContent("Tools");
+		expect(container.querySelector(".classicyWindowIcon")).toBeNull();
+		rerender(
+			<ClassicyWindowTitleBar title="" variant="utility" utilityTitle />,
+		);
+		expect(container.querySelector(".classicyWindowTitleText")).toBeNull();
+		expect(
+			container.querySelector(".classicyWindowTitleCenter"),
+		).not.toBeNull();
+		rerender(<ClassicyWindowTitleBar title="Letter" utilityTitle />);
+		expect(
+			[
+				...(container.querySelector(".classicyWindowTitle")?.children ?? []),
+			].map((child) => child.className),
+		).toEqual([
+			"classicyWindowTitleLeft",
+			"classicyWindowIcon",
+			"classicyWindowTitleText",
+			"classicyWindowTitleRight",
+		]);
+	});
+
 	it("renders the side bands, icon and title text for a titled document bar", () => {
 		const { container } = render(
 			<ClassicyWindowTitleBar title="Letter" icon="letter.png" />,
@@ -112,6 +162,46 @@ describe("ClassicyWindowTitleBar", () => {
 		fireEvent.doubleClick(title);
 		expect(onTitleMouseDown).toHaveBeenCalledTimes(1);
 		expect(onTitleDoubleClick).toHaveBeenCalledTimes(1);
+	});
+
+	// The window pop-up menu's icon (plan 0020-w98 §5): `ClassicyWindow`
+	// passes the handlers under `window.systemMenu`, and the icon is inert
+	// without them.
+	it("fires onIconMouseDown and onIconDoubleClick from the icon, before the title area hears them", () => {
+		const order: string[] = [];
+		const { container } = render(
+			<ClassicyWindowTitleBar
+				title="T"
+				icon="doc.png"
+				onTitleMouseDown={() => order.push("title down")}
+				onTitleDoubleClick={() => order.push("title double")}
+				onIconMouseDown={() => order.push("icon down")}
+				onIconDoubleClick={(e) => {
+					order.push("icon double");
+					e.stopPropagation();
+				}}
+			/>,
+		);
+		const iconEl = container.querySelector(".classicyWindowIcon") as Element;
+		fireEvent.mouseDown(iconEl);
+		fireEvent.doubleClick(iconEl);
+		expect(order).toEqual(["icon down", "title down", "icon double"]);
+	});
+
+	it("keeps the icon inert, and its markup as it was, without the icon handlers", () => {
+		const onTitleMouseDown = vi.fn();
+		const { container } = render(
+			<ClassicyWindowTitleBar
+				title="T"
+				icon="doc.png"
+				onTitleMouseDown={onTitleMouseDown}
+			/>,
+		);
+		const iconEl = container.querySelector(".classicyWindowIcon") as Element;
+		expect(iconEl.getAttributeNames()).toEqual(["class"]);
+		fireEvent.mouseDown(iconEl);
+		// The press is the title area's, as any press in it.
+		expect(onTitleMouseDown).toHaveBeenCalledTimes(1);
 	});
 
 	it("clicks and keys each control box to its handler", () => {
@@ -176,6 +266,382 @@ describe("ClassicyWindowTitleBar", () => {
 		expect(getByRole("button", { name: "Collapse" })).toHaveClass(
 			"classicyWindowCollapseBox",
 		);
+	});
+
+	it("names the boxes from `labels`, each falling back to its own name", () => {
+		const { getByRole, rerender } = render(
+			<ClassicyWindowTitleBar
+				title="T"
+				onClose={vi.fn()}
+				onZoom={vi.fn()}
+				onCollapse={vi.fn()}
+				labels={{ collapse: "Minimize" }}
+			/>,
+		);
+		// Plan 0020-w98 §5: the collapse box is Windows' Minimize button.
+		expect(getByRole("button", { name: "Minimize" })).toHaveClass(
+			"classicyWindowCollapseBox",
+		);
+		expect(getByRole("button", { name: "Close" })).toHaveClass(
+			"classicyWindowCloseBox",
+		);
+		expect(getByRole("button", { name: "Zoom" })).toHaveClass(
+			"classicyWindowZoomBox",
+		);
+		rerender(
+			<ClassicyWindowTitleBar
+				title="T"
+				onClose={vi.fn()}
+				onZoom={vi.fn()}
+				onCollapse={vi.fn()}
+				labels={{ close: "Fermer", zoom: "Agrandir", collapse: "Réduire" }}
+			/>,
+		);
+		expect(
+			[
+				".classicyWindowCloseBox",
+				".classicyWindowZoomBox",
+				".classicyWindowCollapseBox",
+			].map((s) => document.querySelector(s)?.getAttribute("aria-label")),
+		).toEqual(["Fermer", "Agrandir", "Réduire"]);
+		// Without the prop the boxes keep their Mac OS names.
+		rerender(
+			<ClassicyWindowTitleBar
+				title="T"
+				onClose={vi.fn()}
+				onZoom={vi.fn()}
+				onCollapse={vi.fn()}
+			/>,
+		);
+		expect(getByRole("button", { name: "Collapse" })).toHaveClass(
+			"classicyWindowCollapseBox",
+		);
+	});
+
+	// Plan 0020-w98 §6: under `dialog.caption: "titled"` a modal that cannot
+	// close draws its Close box unavailable, as Windows grays the Close of a
+	// message box with no Cancel (Wine's `draw_close_button`).
+	describe("closeDisabled", () => {
+		it("draws the close box unavailable, with no handler, even without onClose", () => {
+			const { container, getByRole } = render(
+				<ClassicyWindowTitleBar title="T" closeDisabled />,
+			);
+			const close = getByRole("button", { name: "Close" });
+			expect(close).toHaveClass("classicyWindowCloseBox", "disabled");
+			expect(close).toHaveAttribute("aria-disabled", "true");
+			// Out of the tab order, as an unavailable control is.
+			expect(close).toHaveAttribute("tabindex", "-1");
+			expect(
+				container.querySelector('[data-classicy-control="close"]'),
+			).toContainElement(close);
+		});
+
+		it("runs no onClose from its click, Enter or Space", () => {
+			const onClose = vi.fn();
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" onClose={onClose} closeDisabled />,
+			);
+			const close = container.querySelector(
+				".classicyWindowCloseBox",
+			) as Element;
+			fireEvent.click(close);
+			fireEvent.keyDown(close, { key: "Enter" });
+			fireEvent.keyDown(close, { key: " " });
+			expect(onClose).not.toHaveBeenCalled();
+		});
+
+		it("leaves the close box as it was without the prop", () => {
+			const { container, rerender } = render(
+				<ClassicyWindowTitleBar title="T" />,
+			);
+			// No handler and no prop: no box at all, as always.
+			expect(container.querySelector(".classicyWindowCloseBox")).toBeNull();
+			rerender(<ClassicyWindowTitleBar title="T" onClose={vi.fn()} />);
+			const close = container.querySelector(
+				".classicyWindowCloseBox",
+			) as Element;
+			expect(close.className).toBe("classicyWindowCloseBox");
+			expect(close.getAttributeNames()).toEqual([
+				"class",
+				"role",
+				"aria-label",
+				"tabindex",
+			]);
+			expect(close).toHaveAttribute("tabindex", "0");
+		});
+	});
+
+	describe("zoomDisabled and collapseDisabled", () => {
+		it("draws each box unavailable, with no handler, even without its handler", () => {
+			const { getByRole } = render(
+				<ClassicyWindowTitleBar title="T" zoomDisabled collapseDisabled />,
+			);
+			for (const [name, box] of [
+				["Zoom", "classicyWindowZoomBox"],
+				["Collapse", "classicyWindowCollapseBox"],
+			]) {
+				const el = getByRole("button", { name });
+				expect(el).toHaveClass(box, "disabled");
+				expect(el).toHaveAttribute("aria-disabled", "true");
+				expect(el).toHaveAttribute("tabindex", "-1");
+			}
+		});
+
+		it("runs neither handler from a click, Enter or Space", () => {
+			const onZoom = vi.fn();
+			const onCollapse = vi.fn();
+			const onCollapseKey = vi.fn();
+			const { container } = render(
+				<ClassicyWindowTitleBar
+					title="T"
+					onZoom={onZoom}
+					zoomDisabled
+					onCollapse={onCollapse}
+					onCollapseKey={onCollapseKey}
+					collapseDisabled
+				/>,
+			);
+			for (const box of [
+				".classicyWindowZoomBox",
+				".classicyWindowCollapseBox",
+			]) {
+				const el = container.querySelector(box) as Element;
+				fireEvent.click(el);
+				fireEvent.keyDown(el, { key: "Enter" });
+				fireEvent.keyDown(el, { key: " " });
+			}
+			expect(onZoom).not.toHaveBeenCalled();
+			expect(onCollapse).not.toHaveBeenCalled();
+			expect(onCollapseKey).not.toHaveBeenCalled();
+		});
+
+		it("draws no zoom box on a modal bar, unavailable or not", () => {
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" modal zoomDisabled />,
+			);
+			expect(container.querySelector(".classicyWindowZoomBox")).toBeNull();
+		});
+
+		it("leaves the boxes as they were without the props", () => {
+			const { container, rerender } = render(
+				<ClassicyWindowTitleBar title="T" />,
+			);
+			expect(container.querySelector(".classicyWindowZoomBox")).toBeNull();
+			expect(container.querySelector(".classicyWindowCollapseBox")).toBeNull();
+			rerender(
+				<ClassicyWindowTitleBar
+					title="T"
+					onZoom={vi.fn()}
+					onCollapse={vi.fn()}
+				/>,
+			);
+			for (const box of [
+				"classicyWindowZoomBox",
+				"classicyWindowCollapseBox",
+			]) {
+				const el = container.querySelector(`.${box}`) as Element;
+				expect(el.className).toBe(box);
+				expect(el.getAttributeNames()).toEqual([
+					"class",
+					"role",
+					"aria-label",
+					"tabindex",
+				]);
+				expect(el).toHaveAttribute("tabindex", "0");
+			}
+		});
+	});
+
+	// Plan 0020-w98 §1 (`window.captionTooltips`): each box names itself in a
+	// tooltip after Windows' 500 ms (Wine's `TTDT_AUTOMATIC`), whatever
+	// Balloon Help says.
+	// Plan 0020-w98 E3: Windows' "?" caption button (a dialog's What's
+	// This?), drawn only for `onHelp`, last in the DOM (a package orders it),
+	// named "Help" unless `labels.help` names it, pressed by a click, Enter or
+	// Space, and named in a tooltip under `buttonTooltips`.
+	describe("onHelp", () => {
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it("draws no help box without it", () => {
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" onClose={vi.fn()} modal />,
+			);
+			expect(container.querySelector(".classicyWindowHelpBox")).toBeNull();
+			expect(
+				container.querySelector('[data-classicy-control="help"]'),
+			).toBeNull();
+		});
+
+		it('draws the help box last, named "Help", on a modal bar too', () => {
+			const { container } = render(
+				<ClassicyWindowTitleBar
+					title="T"
+					modal
+					onClose={vi.fn()}
+					onHelp={vi.fn()}
+				/>,
+			);
+			const bar = container.querySelector(
+				".classicyWindowTitleBar",
+			) as HTMLElement;
+			const wrapper = bar.lastElementChild;
+			expect(wrapper).toHaveAttribute("data-classicy-control", "help");
+			const box = wrapper?.querySelector(".classicyWindowHelpBox");
+			expect(box).toHaveAttribute("role", "button");
+			expect(box).toHaveAttribute("aria-label", "Help");
+			expect(box).toHaveAttribute("tabindex", "0");
+		});
+
+		it("is pressed by a click, Enter or Space, and named by labels.help", () => {
+			const onHelp = vi.fn();
+			const { container } = render(
+				<ClassicyWindowTitleBar
+					title="T"
+					onHelp={onHelp}
+					labels={{ help: "Aide" }}
+				/>,
+			);
+			const box = container.querySelector(
+				".classicyWindowHelpBox",
+			) as HTMLElement;
+			expect(box).toHaveAttribute("aria-label", "Aide");
+			fireEvent.click(box);
+			fireEvent.keyDown(box, { key: "Enter" });
+			fireEvent.keyDown(box, { key: " " });
+			fireEvent.keyDown(box, { key: "a" });
+			expect(onHelp).toHaveBeenCalledTimes(3);
+			expect(onHelp).toHaveBeenCalledWith();
+		});
+
+		it("names itself in a tooltip under buttonTooltips", () => {
+			vi.useFakeTimers();
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" onHelp={vi.fn()} buttonTooltips />,
+			);
+			fireEvent.mouseEnter(
+				container.querySelector(".classicyWindowHelpBox") as Element,
+			);
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+			expect(tooltipText()).toBe("Help");
+		});
+	});
+
+	describe("buttonTooltips", () => {
+		afterEach(() => {
+			vi.useRealTimers();
+			useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+		});
+
+		const boxes = (container: HTMLElement) =>
+			[
+				".classicyWindowCloseBox",
+				".classicyWindowZoomBox",
+				".classicyWindowCollapseBox",
+			].map((s) => container.querySelector(s) as HTMLElement);
+
+		it("shows each box's label after 500 ms with balloon help off", () => {
+			vi.useFakeTimers();
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopSetBalloonHelp",
+					disableBalloonHelp: true,
+				}),
+			);
+			const { container } = render(
+				<ClassicyWindowTitleBar
+					title="T"
+					onClose={vi.fn()}
+					onZoom={vi.fn()}
+					onCollapse={vi.fn()}
+					labels={{ zoom: "Maximize", collapse: "Minimize" }}
+					buttonTooltips
+				/>,
+			);
+			const labels: (string | undefined)[] = [];
+			for (const box of boxes(container)) {
+				fireEvent.mouseEnter(box);
+				act(() => {
+					vi.advanceTimersByTime(499);
+				});
+				expect(tooltipText()).toBeUndefined();
+				act(() => {
+					vi.advanceTimersByTime(1);
+				});
+				labels.push(tooltipText());
+				expect(box).toHaveAttribute("aria-describedby");
+				fireEvent.mouseLeave(box);
+				expect(tooltipText()).toBeUndefined();
+			}
+			expect(labels).toEqual(["Close", "Maximize", "Minimize"]);
+		});
+
+		it("names an unavailable Close too", () => {
+			vi.useFakeTimers();
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" closeDisabled buttonTooltips />,
+			);
+			fireEvent.mouseEnter(
+				container.querySelector(".classicyWindowCloseBox") as Element,
+			);
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+			expect(tooltipText()).toBe("Close");
+		});
+
+		it("hides on a press until the pointer comes back", () => {
+			vi.useFakeTimers();
+			const onZoom = vi.fn();
+			const { container } = render(
+				<ClassicyWindowTitleBar title="T" onZoom={onZoom} buttonTooltips />,
+			);
+			const zoom = container.querySelector(".classicyWindowZoomBox") as Element;
+			fireEvent.mouseEnter(zoom);
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+			expect(tooltipText()).toBe("Zoom");
+			fireEvent.mouseDown(zoom);
+			fireEvent.click(zoom);
+			expect(tooltipText()).toBeUndefined();
+			expect(onZoom).toHaveBeenCalledTimes(1);
+			act(() => {
+				vi.advanceTimersByTime(1000);
+			});
+			expect(tooltipText()).toBeUndefined();
+			// A press before the delay ends stops its timer too.
+			fireEvent.mouseLeave(zoom);
+			fireEvent.mouseEnter(zoom);
+			fireEvent.mouseDown(zoom);
+			act(() => {
+				vi.advanceTimersByTime(1000);
+			});
+			expect(tooltipText()).toBeUndefined();
+		});
+
+		it("shows nothing without the prop", () => {
+			vi.useFakeTimers();
+			const { container } = render(
+				<ClassicyWindowTitleBar
+					title="T"
+					onClose={vi.fn()}
+					onZoom={vi.fn()}
+					onCollapse={vi.fn()}
+				/>,
+			);
+			for (const box of boxes(container)) {
+				fireEvent.mouseEnter(box);
+				act(() => {
+					vi.advanceTimersByTime(1000);
+				});
+				expect(tooltipText()).toBeUndefined();
+				expect(box).not.toHaveAttribute("aria-describedby");
+			}
+		});
 	});
 
 	// The props are typed `() => void`: a host handler with an optional first

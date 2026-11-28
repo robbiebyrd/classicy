@@ -1,0 +1,349 @@
+// The Windows 98 list box, included by windows98.scss inside the package
+// wrapper: the LISTBOX control under its client edge, as DrawEdge and the
+// list box drew them from the system colors (98.css, os-gui): Window white
+// under the two-ring sunken edge (`b.sunken`, one ring `--window-border-size`
+// each), the rows and the list's scroll bar inside the rings; rows 13 px
+// (`--list-box-row-height`, `listBox.rowHeight`: the 8-point MS Sans Serif
+// row of WIG Ch.7 "Single Selection List Boxes" (p.120, Fig. 7.13), and the
+// package's own drop-down rows) in WindowText, the text two pixels in
+// (`--layout-item-gap-half`), the list capped at eight rows (the WIG's three
+// to eight); the selected row Hilight with HilightText across the row; the
+// row that has the keyboard ringed by the dotted focus rectangle a pixel
+// inside its edge (in HilightText on a selected row, as the XOR'd rectangle
+// reads over Hilight). A disabled row, or every row of a disabled list, is
+// GrayText on the list's own white: a disabled LISTBOX keeps its Window
+// ground and its selection, only the text grays (GrayText over Hilight on
+// the selected row, as user32 paints it), where a disabled edit control
+// turns ButtonFace. A list box keeps its Hilight in an inactive window too
+// (user32's LISTBOX draws the selection whatever has the focus; the core's
+// `inactive` on the list is not read here). A multiple selection list with
+// check boxes (the core's `checkboxes`, `classicyListBoxCheckboxes`; WIG
+// Ch.7 "Extended and Multiple Selection List Boxes", pp.122-123, Figure
+// 7.15) shows each row's choice in its check box alone, so a chosen row
+// stays WindowText on white and only the keyboard row is ringed: the box
+// (the `list-check` part, before the icon) is the flat check box nested
+// controls take (Ch.13 "Flat Appearance", p.309, Figure 13.21;
+// `DrawFrameControl` with DFCS_FLAT, Wine's uitools.c): `--checkbox-size`
+// (13) square, a ButtonShadow ring outside a ButtonFace one (Windows 98's
+// flat edge, BF_FLAT), Window white inside, the 7 x 7 WindowText check
+// three pixels in while the row is chosen (_Checkbox.scss's mark), the face
+// ButtonFace and the mark ButtonShadow while the row or the list is disabled.
+// The tree view (TREEVIEW): the same edge on a framed tree
+// or list frame, and the selection on the label alone, Hilight under
+// HilightText a pixel above and below the text and two beside it
+// (`--layout-item-gap-half`, the tree view's label margin) with the focus
+// rectangle on its edge, never the whole row; a disabled item's label
+// GrayText, its icon as it is (a tree view has no disabled items); in a
+// window that is not the active one (the core's `inactive` on the tree),
+// the selected label ButtonFace under WindowText and no focus rectangle, as
+// a tree view with TVS_SHOWSELALWAYS draws its selection while another
+// window has the focus (Wine's treeview.c, TREEVIEW_DrawItem; WIG Ch.6
+// "Activating and Deactivating Windows", p.81; Ch.13 "Highlighting",
+// p.318); and the hierarchy lines Windows' tree view draws beside its
+// buttons (TVS_HASLINES
+// with TVS_LINESATROOT, as Explorer's; WIG Ch.7 "Tree View Controls"
+// (pp.123-124, Fig. 7.16): "it is best to include" both): dotted
+// ButtonShadow, a pixel on and a pixel off on the pixel grid, down the
+// middle of each item's button column (the disclosure box's 12 px, so 6 in
+// from the row's indent) and from there 8 px out toward the item's icon at
+// the row's middle (the 9th pixel row of the 17-px row, where the box's bar
+// lies). Each row draws its own from its content box (the rows indent by
+// padding), so the line ends at the stub on a group's last item and begins
+// there on the root's first; a group whose item has siblings below carries
+// its parent's line on down beside its own items, at the parent's column,
+// which each group learns from its parent a level at a time
+// (`--windows98-tree-column` on a group, copied onto its items as
+// `--windows98-tree-parent-column`, so the next group adds one indent to a
+// value its own element never sets).
+//
+// Overrides ClassicyListBox.scss and ClassicyTree.scss (`classicyListBoxFrame`
+// and `classicyTreeFramed` included). Standard File's well is the dialogs'
+// (_Dialog.scss draws it as a list view, the whole row the selection), so
+// the label rules below leave its tree alone.
+//
+//   Windows color     token
+//   Window            --color-window-document   the list
+//   WindowText        --color-black             the rows, the focus rectangle
+//   ButtonShadow      --color-system-05         the outer top-left ring,
+//                                               a disabled check, the tree's
+//                                               lines
+//   ButtonDkShadow    --color-system-07         the inner top-left ring
+//   ButtonHilight     --color-system-01         the outer bottom-right ring
+//   ButtonLight       --color-system-02         the inner bottom-right ring
+//   ButtonFace        --color-system-03         the inactive window's
+//                                               selected label, the check
+//                                               box's inner ring
+//   Hilight           --color-highlight         the selected row or label
+//   HilightText       --package-color-selection-text (--color-white)
+//
+// Every length is a knob, a ring (`b.$b`) or grid pixels (`px()`), every
+// color a token.
+@use "../bevels" as b;
+@use "../pixel" as *;
+@use "Checkbox" as cb;
+
+// The client edge around a scrolling list: the two rings in the padding,
+// the viewport and bars inside them, Window white behind (the viewport
+// inherits it).
+@mixin client-edge {
+  box-sizing: border-box;
+  padding: b.$b2;
+  border: 0;
+  background: b.$window;
+  @include b.sunken;
+}
+
+// A tree row outside Standard File's well (whose rows the dialogs select
+// whole), its label holder and the row itself; the well is a list view, so
+// it draws no hierarchy lines either, and neither does the Help Topics
+// browser's Contents tree (winhlp32.exe's SysTreeView32 has no
+// TVS_HASLINES; _AppleGuide.scss).
+$tree-row: ".classicyTreeNodeLabelHolder:not(.classicyFileOpenDialogWell *)";
+$tree-lines-row: ".classicyTreeNodeRow:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)";
+$tree-lines-group: ".classicyTreeGroup:not(.classicyFileOpenDialogWell *, .classicyHelpTopicsList *)";
+
+// The tree's lines: ButtonShadow dots, one on and one off, running down and
+// running right.
+$dots-down: repeating-linear-gradient(to bottom, b.$shadow 0 px(1), transparent 0 px(2));
+$dots-right: repeating-linear-gradient(to right, b.$shadow 0 px(1), transparent 0 px(2));
+
+// The middle of a row's button column, the stub's length toward the icon,
+// and the stub's row (the 17-px row's 9th pixel, the tree button's bar).
+$column: px(6);
+$stub: px(8);
+$middle: px(8);
+
+// A check list's check box, and its mark in `$ink` three pixels in.
+$list-check: '[data-classicy-part="list-check"]';
+
+@function list-check-mark($ink) {
+  @return pixel-art($ink, cb.shift(cb.$check, 3, 3));
+}
+
+@mixin list-box {
+  // ----- The list box ----------------------------------------------------
+  // The rows' pitch, and the list's cap of so many rows plus the rings it
+  // took on (the base's cap counts the rows alone).
+  .classicyListBox {
+    --classicy-listbox-row-height: var(--list-box-row-height);
+
+    max-height: calc(
+      var(--classicy-listbox-visible-rows, 8) * var(--classicy-listbox-row-height) + #{b.$b2} + #{b.$b2}
+    );
+    color: b.$text;
+    @include client-edge;
+  }
+
+  .classicyListBoxViewport {
+    box-shadow: none;
+  }
+
+  .classicyListBoxOption {
+    padding: 0 var(--layout-item-gap-half);
+    color: b.$text;
+    outline: none;
+
+    &:focus {
+      @include b.focus-rect(b.$b);
+    }
+  }
+
+  :where(.classicyListBoxOption).selected {
+    color: b.$highlight-text;
+    background-color: b.$highlight;
+
+    &:focus {
+      outline-color: b.$highlight-text;
+    }
+  }
+
+  :where(.classicyListBoxOption).disabled {
+    color: b.$gray-text;
+  }
+
+  // A disabled list: white, its rows GrayText (the selected row's over
+  // Hilight), and no focus rectangle (a click still lands focus on a row).
+  :where(.classicyListBox).disabled {
+    color: b.$gray-text;
+
+    .classicyListBoxOption {
+      color: b.$gray-text;
+    }
+
+    .classicyListBoxOption:focus {
+      outline: none;
+    }
+  }
+
+  // ----- The multiple selection list's check boxes -----------------------
+  // A chosen row is plain: the check box shows the choice, the focus
+  // rectangle the keyboard row (in WindowText now on white).
+  .classicyListBoxCheckboxes :where(.classicyListBoxOption).selected {
+    color: b.$text;
+    background-color: transparent;
+
+    &:focus {
+      outline-color: b.$text;
+    }
+  }
+
+  .classicyListBoxCheckboxes :where(.classicyListBoxOption).selected.disabled,
+  :where(.classicyListBox).disabled.classicyListBoxCheckboxes .classicyListBoxOption {
+    color: b.$gray-text;
+  }
+
+  // The flat check box: a ButtonShadow ring outside a ButtonFace one, Window
+  // white inside, before the icon and the label.
+  .classicyListBoxOption > #{$list-check} {
+    display: block;
+    flex: none;
+    box-sizing: border-box;
+    width: var(--checkbox-size);
+    height: var(--checkbox-size);
+    background: b.$window;
+    box-shadow:
+      inset 0 0 0 b.$b b.$shadow,
+      inset 0 0 0 b.$b2 b.$face;
+  }
+
+  :where(.classicyListBoxOption).selected > #{$list-check} {
+    background: list-check-mark(b.$text), b.$window;
+  }
+
+  // Disabled (the row, or the whole list): a ButtonFace face, the mark
+  // ButtonShadow, as a disabled check box's.
+  :where(.classicyListBoxOption).disabled > #{$list-check},
+  :where(.classicyListBox).disabled .classicyListBoxOption > #{$list-check} {
+    background: b.$face;
+  }
+
+  :where(.classicyListBoxOption).disabled.selected > #{$list-check},
+  :where(.classicyListBox).disabled .classicyListBoxOption.selected > #{$list-check} {
+    background: list-check-mark(b.$shadow), b.$face;
+  }
+
+  // ----- The framed list and the tree view -------------------------------
+  .classicyListBoxFrame,
+  .classicyTreeFramed {
+    @include client-edge;
+  }
+
+  .classicyTree {
+    color: b.$text;
+  }
+
+  // The row takes the keyboard; the rectangle is drawn on its label.
+  .classicyTreeNodeLabelHolder {
+    color: b.$text;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  #{$tree-row} .classicyTreeNodeLabel {
+    padding: b.$b var(--layout-item-gap-half);
+  }
+
+  #{$tree-row}:focus .classicyTreeNodeLabel {
+    @include b.focus-rect(b.$b);
+  }
+
+  :where(#{$tree-row}).selected .classicyTreeNodeLabel {
+    color: b.$highlight-text;
+    background-color: b.$highlight;
+  }
+
+  // Written with the state class on the row, not in `:where()`: it must
+  // outrank the focus rule above, which sets the outline's color with its
+  // shorthand.
+  #{$tree-row}.selected:focus .classicyTreeNodeLabel {
+    outline-color: b.$highlight-text;
+  }
+
+  :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeLabel {
+    color: b.$gray-text;
+  }
+
+  // In an inactive window: the selected label ButtonFace under WindowText
+  // (TVS_SHOWSELALWAYS), and no focus rectangle, the focus being another
+  // window's.
+  .classicyTree.inactive :where(#{$tree-row}).selected .classicyTreeNodeLabel {
+    color: b.$text;
+    background-color: b.$face;
+  }
+
+  .classicyTree.inactive #{$tree-row}:focus .classicyTreeNodeLabel {
+    outline: none;
+  }
+
+  // ----- The tree view's lines -------------------------------------------
+  // Each group's button column: the root's rows' is the column's middle,
+  // every nested group's one indent further, learned from the item it hangs
+  // under (which copies its own group's), never from itself.
+  .classicyTree {
+    --windows98-tree-column: #{$column};
+  }
+
+  .classicyTreeNode {
+    --windows98-tree-parent-column: var(--windows98-tree-column);
+  }
+
+  .classicyTreeGroup {
+    --windows98-tree-column: calc(var(--windows98-tree-parent-column) + var(--window-control-size));
+  }
+
+  // A row: the line down its button column (from its content edge, past
+  // its indent) and the stub from the column's middle toward the icon, at
+  // the row's middle. The tree button, drawn over it, covers the line.
+  #{$tree-lines-row} {
+    background-image: $dots-down, $dots-right;
+    background-position:
+      $column 0,
+      $column $middle;
+    background-size:
+      px(1) 100%,
+      $stub px(1);
+    background-repeat: no-repeat;
+    background-origin: content-box;
+  }
+
+  // A group's last item: the line ends at the stub.
+  .classicyTreeNode:last-child > #{$tree-lines-row} {
+    background-size:
+      px(1) px(9),
+      $stub px(1);
+  }
+
+  // The root's first item: nothing above it to join, so the line begins at
+  // the stub; alone at the root, the stub is all there is.
+  .classicyTree > .classicyTreeNode:first-child > #{$tree-lines-row} {
+    background-position:
+      $column $middle,
+      $column $middle;
+    background-size:
+      px(1) calc(100% - #{$middle}),
+      $stub px(1);
+  }
+
+  .classicyTree > .classicyTreeNode:first-child:last-child > #{$tree-lines-row} {
+    background-image: $dots-right;
+    background-position: $column $middle;
+    background-size: $stub px(1);
+  }
+
+  // An item with siblings below it: its line runs on down beside its open
+  // children, at its own column (the group's parent column).
+  .classicyTreeNode:not(:last-child) > #{$tree-lines-group} {
+    background: $dots-down var(--windows98-tree-parent-column) 0 / px(1) 100% no-repeat;
+  }
+
+  // The arrow over a list's rows and a tree's, where the base shows the
+  // hand: Windows shows the normal select pointer over every control (WIG
+  // Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyListBoxOption,
+  .classicyTreeNodeBranch,
+  .classicyTreeNodeSelectable {
+    @include b.registry-cursor(arrow, default);
+  }
+}

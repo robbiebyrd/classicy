@@ -84,7 +84,8 @@ const EXEMPT_FILE =
 	/^src\/Appearance\/vocabulary\/_color\.scss$|^packages\/appearance\/platinum\/src\/screenSavers\//;
 
 // Declarations that hold a literal color on purpose, by file. The crash
-// screen's black is its only color outside the theme. The color picker's
+// screen's black, and Windows 98's fatal-exception blue and gray, are its
+// only colors outside the theme. The color picker's
 // crayon box is drawn as a physical object, not chrome: the dark cardboard
 // interior and its bevel, the gray front lip and its edge. Its RGB/CMYK
 // slider tracks run from black or white to each channel's pure color, which
@@ -95,6 +96,12 @@ const EXEMPT_DECLARATIONS: Readonly<Record<string, readonly RegExp[]>> = {
 	// the fallback.
 	"src/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen.scss": [
 		/background: var\(--color-black, black\);/,
+		// Windows 98's fatal-exception screen (layout.crashScreen): VGA text
+		// mode's light gray on blue, its title inverted.
+		/color: #aaaaaa;/,
+		/background: #0000aa;/,
+		/color: #0000aa;/,
+		/background: #aaaaaa;/,
 	],
 	"src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss": [
 		/background: #0e0906;/,

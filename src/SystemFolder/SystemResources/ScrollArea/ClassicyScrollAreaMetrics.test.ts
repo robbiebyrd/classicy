@@ -1,11 +1,64 @@
 import { describe, expect, it } from "vitest";
 import {
 	type ClassicyScrollBarsInput,
+	classicyScrollAxisEnds,
 	classicyScrollAxisFits,
 	classicyScrollPositionForThumb,
 	computeClassicyScrollBars,
 	computeClassicyScrollThumb,
 } from "./ClassicyScrollAreaMetrics";
+
+describe("classicyScrollAxisEnds (the arrows' disabled state)", () => {
+	it("is at the start at 0, at the end at the maximum, at neither between", () => {
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: 0 }),
+		).toEqual({ start: true, end: false });
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: 400 }),
+		).toEqual({ start: false, end: false });
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: 800 }),
+		).toEqual({ start: false, end: true });
+		// One line from either end is not that end.
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: 16 }),
+		).toEqual({ start: false, end: false });
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: 784 }),
+		).toEqual({ start: false, end: false });
+	});
+
+	it("is at both ends when the content fits", () => {
+		expect(
+			classicyScrollAxisEnds({ total: 200, visible: 200, position: 0 }),
+		).toEqual({ start: true, end: true });
+		expect(
+			classicyScrollAxisEnds({ total: 100, visible: 200, position: 0 }),
+		).toEqual({ start: true, end: true });
+	});
+
+	// A zoomed page reports a fractional offset against whole-pixel extents,
+	// so a scroller at its limit may read 799.5 of 800; a whole pixel short
+	// is still a pixel to scroll.
+	it("counts within a pixel of the end as the end", () => {
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: 799.5 }),
+		).toEqual({ start: false, end: true });
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: 799 }),
+		).toEqual({ start: false, end: false });
+		// Past the maximum (an elastic overscroll) is the end too.
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: 830 }),
+		).toEqual({ start: false, end: true });
+	});
+
+	it("counts an elastic (negative) position as the start", () => {
+		expect(
+			classicyScrollAxisEnds({ total: 1000, visible: 200, position: -30 }),
+		).toEqual({ start: true, end: false });
+	});
+});
 
 describe("computeClassicyScrollThumb (Chromium's thumb rules)", () => {
 	it("is as long as the visible share of the track, rounded", () => {

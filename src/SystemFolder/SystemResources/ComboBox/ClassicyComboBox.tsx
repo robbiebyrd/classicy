@@ -21,6 +21,7 @@ import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceI
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyTextFieldContextMenu } from "@/SystemFolder/SystemResources/App/ClassicyTextFieldMenu.internal";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -103,6 +104,9 @@ type ClassicyComboBoxProps = {
  * there is no room) instead of aligning a selection over it, and it is
  * dismissed by an outside click, an ancestor scroll or a window resize. Set
  * `freeText={false}` when the field must hold one of the option labels.
+ * Under a package whose layout says `textField.contextMenu: "edit"`
+ * (Windows) a right-click on the field shows its own Edit menu (Undo, Cut,
+ * Copy, Paste, Delete, Select All).
  *
  * ```tsx
  * <ClassicyComboBox id="city" label="City:" options={cities}
@@ -148,6 +152,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 
 	const anchorRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const textMenu = useClassicyTextFieldContextMenu();
 	const listRef = useRef<HTMLDivElement>(null);
 	// A long suggestion list scrolls by its indicators, as the pop-up menu's
 	// does (HIG7 p.78), never by a scroll bar.
@@ -165,7 +170,14 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const reactId = useId();
 	const listId = `${reactId}-list`;
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
-	const appearance = useClassicyAppearance("ComboBox", { disabled }, anchorRef);
+	// The root's states: `disabled`, and `open` while the list is shown (the
+	// input says so too, `aria-expanded`), so a package keys the pressed
+	// drop-down button on the root, not on `:has()`.
+	const appearance = useClassicyAppearance(
+		"ComboBox",
+		{ disabled, open },
+		anchorRef,
+	);
 	const emitAppearance = appearance.emit;
 	// `close` follows the list going away, whichever path dismissed it, and
 	// so comes after the `change` a commit emits.
@@ -492,6 +504,8 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 					disabled={disabled}
 					onChange={handleChange}
 					onKeyDown={handleKeyDown}
+					onMouseDown={textMenu?.onMouseDown}
+					onContextMenu={textMenu?.onContextMenu}
 				/>
 				<button
 					type="button"

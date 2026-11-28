@@ -97,15 +97,23 @@ import {
 	platinumJson,
 } from "@classicy/appearance-platinum";
 import { system7Json, system7SoundPack } from "@classicy/appearance-system7";
+import {
+	windows98Json,
+	windows98SoundPack,
+} from "@classicy/appearance-windows98";
 
 const theme: ClassicyTheme = platinumJson.presets[0];
 const system7Theme: ClassicyTheme = system7Json.presets[0];
+const windows98Theme: ClassicyTheme = windows98Json.presets[0];
 const sounds: ClassicySoundPack = system7SoundPack;
+const windows98Sounds: ClassicySoundPack = windows98SoundPack;
 
 export const host = {
 	theme,
 	system7Theme,
+	windows98Theme,
 	sounds,
+	windows98Sounds,
 	register: registerClassicyAppearancePackage,
 	hooks: platinumAppearanceHooks,
 };
@@ -303,6 +311,7 @@ if (
 	const root = fileURLToPath(new URL("..", import.meta.url));
 	const platinum = join(root, "packages/appearance/platinum");
 	const system7 = join(root, "packages/appearance/system7");
+	const windows98 = join(root, "packages/appearance/windows98");
 	const scratch = mkdtempSync(join(tmpdir(), "classicy-host-types-"));
 	let failed = false;
 	try {
@@ -317,6 +326,10 @@ if (
 				host,
 				"node_modules/@classicy/appearance-system7",
 			),
+			"@classicy/appearance-windows98": join(
+				host,
+				"node_modules/@classicy/appearance-windows98",
+			),
 		};
 		extract(
 			pack(root, join(scratch, "pack-core")),
@@ -329,6 +342,10 @@ if (
 		extract(
 			pack(system7, join(scratch, "pack-system7")),
 			packed["@classicy/appearance-system7"],
+		);
+		extract(
+			pack(windows98, join(scratch, "pack-windows98")),
+			packed["@classicy/appearance-windows98"],
 		);
 		// The packed manifests: what a host's install reads (workspace ranges
 		// already replaced by versions).

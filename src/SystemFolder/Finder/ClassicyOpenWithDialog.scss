@@ -1,0 +1,37 @@
+// Windows' Open With dialog (ClassicyOpenWithDialog; Windows 98 SE's,
+// shell32.dll): the file's icon beside the prompt, the list of programs,
+// the "Always use" check box, then OK and Cancel at the bottom right.
+// Structure only; a package draws the controls.
+.classicyOpenWithDialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-group-gap);
+  padding: var(--layout-dialog-edge);
+  min-width: var(--dialog-input-min-width);
+  max-width: var(--dialog-input-max-width);
+  font-family: var(--ui-font), sans-serif;
+
+  .classicyOpenWithDialogTop {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--layout-group-gap);
+  }
+
+  .classicyOpenWithDialogIcon {
+    flex: none;
+    width: var(--icon-size-regular);
+    height: var(--icon-size-regular);
+  }
+
+  .classicyOpenWithDialogPrompt {
+    margin: 0;
+  }
+
+  .classicyOpenWithDialogButtons {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: var(--button-gap);
+  }
+}

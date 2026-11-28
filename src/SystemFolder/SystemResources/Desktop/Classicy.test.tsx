@@ -1,9 +1,24 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+} from "@testing-library/react";
+import { produce } from "immer";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	registerTestTaskbarPackage,
+	TEST_TASKBAR_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { Classicy } from "@/SystemFolder/SystemResources/Desktop/Classicy";
 
 const iconFor = (appId: string) =>
@@ -50,5 +65,32 @@ describe("Classicy", () => {
 		expect(desktop?.classList.contains("host")).toBe(true);
 		expect(desktop?.style.marginTop).toBe("7px");
 		expect(container.querySelector(".classicyControlStrip")).not.toBeNull();
+	});
+
+	it("passes userName and onLogOff to the desktop's Windows shell", () => {
+		registerTestTaskbarPackage();
+		try {
+			act(() =>
+				useAppManager.setState(
+					produce(useAppManager.getState(), (draft) => {
+						draft.System.Manager.Appearance.packageId = TEST_TASKBAR_PACKAGE_ID;
+					}),
+				),
+			);
+			const onLogOff = vi.fn();
+			render(
+				<Classicy startupScreen={false} userName="Ada" onLogOff={onLogOff} />,
+			);
+			act(() =>
+				dispatch({ type: "ClassicyDesktopShowSystemDialog", dialog: "logOff" }),
+			);
+			const yes = Array.from(
+				document.querySelectorAll(".classicyShellDialogLogOff button"),
+			).find((b) => b.textContent === "Yes") as HTMLButtonElement;
+			fireEvent.click(yes);
+			expect(onLogOff).toHaveBeenCalledOnce();
+		} finally {
+			unregisterClassicyAppearancePackage(TEST_TASKBAR_PACKAGE_ID);
+		}
 	});
 });

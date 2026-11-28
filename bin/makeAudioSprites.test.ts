@@ -71,15 +71,15 @@ const runWithStubs = (
 };
 
 describe("pnpm build:audio", () => {
-	it("is bin/make_audio_sprites.sh with its defaults, then System 7's WAVs, and the watcher follows the sprites", () => {
+	it("is bin/make_audio_sprites.sh with its defaults, then System 7's and Windows 98's WAVs, and the watcher follows the sprites", () => {
 		const { scripts } = JSON.parse(readFileSync("package.json", "utf8"));
 		// System 7's pack (plan 0018-dbd §4.2) is built from WAV sources with no
 		// looping sprite: "," is a loop list with no names (an empty argument
 		// would take the script's default, Platinum's four loops).
 		expect(scripts["build:audio"]).toBe(
-			"./bin/make_audio_sprites.sh && ./bin/make_audio_sprites.sh ./packages/appearance/system7/src/assets/sounds ./packages/appearance/system7/src/assets/sounds wav ogg,m4a ,",
+			"./bin/make_audio_sprites.sh && ./bin/make_audio_sprites.sh ./packages/appearance/system7/src/assets/sounds ./packages/appearance/system7/src/assets/sounds wav ogg,m4a , && ./bin/make_audio_sprites.sh ./packages/appearance/windows98/src/assets/sounds ./packages/appearance/windows98/src/assets/sounds wav ogg,m4a ,",
 		);
-		for (const pkg of ["platinum", "system7"])
+		for (const pkg of ["platinum", "system7", "windows98"])
 			expect(scripts["build:watchaudio"]).toContain(
 				`--watch "packages/appearance/${pkg}/src/assets/sounds/**"`,
 			);

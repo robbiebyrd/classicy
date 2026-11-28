@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	act,
 	fireEvent,
 	renderWithProviders,
 	screen,
@@ -7,7 +8,20 @@ import {
 	waitFor,
 	within,
 } from "@/__tests__/test-utils";
+import {
+	registerTestTaskbarPackage,
+	TEST_DIALOG_CAPTION_LAYOUT,
+	TEST_DIALOG_CAPTION_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
+import { activateTestWindowsKeysPackage } from "@/__tests__/testWindowsKeysPackage";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	dispatch,
+	useAppManager,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyKeyboardEquivalentField } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentField";
+import { spellKeyboardEquivalent } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentRules";
 
 // Keys are captured on window; a Meta chord records as ⌘ on any platform.
 const press = (init: KeyboardEventInit & { key: string }) =>
@@ -176,5 +190,122 @@ describe("ClassicyKeyboardEquivalentDialog (HIGOS8 Figures 6-9 to 6-11)", () => 
 			.setup()
 			.click(await screen.findByRole("button", { name: "Help" }));
 		expect(onHelp).toHaveBeenCalledTimes(1);
+	});
+});
+
+// Plan 0020-w98 §6: under a layout whose `dialog.caption` is `"titled"`
+// (Windows 98) the dialog's caption has a Close box, its Cancel (WIG Ch.8,
+// p.145, Figure 8.1); under every other layout it has none (HIGOS8 p.59).
+describe("ClassicyKeyboardEquivalentDialog's caption Close box", () => {
+	const closeBox = () =>
+		document.querySelector<HTMLElement>(
+			".classicyWindow > .classicyWindowTitleBar .classicyWindowCloseBox",
+		);
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_DIALOG_CAPTION_PACKAGE_ID);
+		useAppManager.setState(structuredClone(DefaultAppManagerState), true);
+	});
+
+	it("is not drawn under a layout without titled captions", async () => {
+		setup();
+		await openDialog();
+		expect(closeBox()).toBeNull();
+	});
+
+	describe('under dialog.caption: "titled"', () => {
+		beforeEach(() => {
+			registerTestTaskbarPackage(
+				TEST_DIALOG_CAPTION_LAYOUT,
+				TEST_DIALOG_CAPTION_PACKAGE_ID,
+			);
+			act(() =>
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: TEST_DIALOG_CAPTION_PACKAGE_ID,
+				}),
+			);
+		});
+
+		it("cancels: the dialog closes and the equivalent stays", async () => {
+			const { onChange } = setup();
+			await openDialog();
+			press({ key: "k", code: "KeyK", metaKey: true });
+			fireEvent.click(closeBox() as HTMLElement);
+			expect(onChange).not.toHaveBeenCalled();
+			expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+		});
+	});
+});
+
+// The remaining chapters' audit's 1.12 and 4.19: under Windows 98's
+// layout the field and the dialog spell a chord by name, ⌘ as Ctrl
+// (`menu.shortcutSpelling` "names", `keyboard.command` "ctrl"), the
+// Windows key records nothing, and Win+period cancels nothing.
+describe("ClassicyKeyboardEquivalentField under Windows' spelling and command rule", () => {
+	let restore: (() => void) | undefined;
+	afterEach(() => {
+		restore?.();
+		restore = undefined;
+	});
+	const windows = () => {
+		restore = activateTestWindowsKeysPackage({
+			menu: { keys: "windows", shortcutSpelling: "names" },
+			keyboard: { contextMenuKey: true, command: "ctrl" },
+		});
+	};
+
+	it("spells the equivalent by name, ⌘ as Ctrl, in the field, the dialog and its alert", async () => {
+		windows();
+		setup({ value: "⌥⌘S", inUse: [{ shortcut: "⌘N", name: "New Folder" }] });
+		expect(
+			screen.getByLabelText("Current keyboard equivalent"),
+		).toHaveTextContent("Ctrl+Alt+S");
+		await openDialog();
+		expect(feedback()).toHaveTextContent("Ctrl+Alt+S");
+		press({ key: "k", code: "KeyK", ctrlKey: true });
+		expect(feedback()).toHaveTextContent("Ctrl+K");
+		press({ key: "n", code: "KeyN", ctrlKey: true });
+		expect(
+			await screen.findByText(
+				"The keyboard equivalent Ctrl+N is already used by “New Folder”.",
+			),
+		).toBeInTheDocument();
+	});
+
+	it("records nothing from the Windows key, and Win+period does not cancel", async () => {
+		windows();
+		const { onChange } = setup();
+		await openDialog();
+		press({ key: "k", code: "KeyK", metaKey: true });
+		expect(feedback()).toHaveTextContent("Ctrl+S");
+		press({ key: ".", code: "Period", metaKey: true });
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		press({ key: ".", code: "Period", ctrlKey: true });
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it("keeps the glyphs and Command-period by default (Platinum)", async () => {
+		expect(spellKeyboardEquivalent("⌥⌘S")).toBe("⌥ + ⌘ + S");
+		setup();
+		await openDialog();
+		press({ key: ".", code: "Period", metaKey: true });
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	});
+
+	it("spells the names with Win for ⌘ under the names spelling alone", () => {
+		expect(
+			spellKeyboardEquivalent("⌥⌘S", { menu: { shortcutSpelling: "names" } }),
+		).toBe("Alt+Win+S");
+		expect(
+			spellKeyboardEquivalent("⌥⌘S", {
+				menu: { shortcutSpelling: "names" },
+				keyboard: { command: "ctrl" },
+			}),
+		).toBe("Ctrl+Alt+S");
+		expect(
+			spellKeyboardEquivalent("", { menu: { shortcutSpelling: "names" } }),
+		).toBe("");
 	});
 });

@@ -42,6 +42,15 @@ const liveSourceAliases = [
 		find: /^@classicy\/appearance-system7$/,
 		replacement: path.resolve(root, "packages/appearance/system7/src/index.ts"),
 	},
+	// Windows 98, the workspace package packages/appearance/windows98, the
+	// same way.
+	{
+		find: /^@classicy\/appearance-windows98$/,
+		replacement: path.resolve(
+			root,
+			"packages/appearance/windows98/src/index.ts",
+		),
+	},
 	// Exact match only — `@classicy/classicy/scss/*` must keep resolving via the package
 	// `exports` map (which already points at source).
 	{
@@ -104,6 +113,7 @@ export default defineConfig(({ command }) => {
 				"@classicy/classicy",
 				"@classicy/appearance-platinum",
 				"@classicy/appearance-system7",
+				"@classicy/appearance-windows98",
 			],
 		},
 		// Platinum's SCSS (live source, and the mixins Browser.scss uses) reaches

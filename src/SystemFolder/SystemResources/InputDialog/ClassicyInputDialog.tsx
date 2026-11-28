@@ -35,9 +35,12 @@ export type ClassicyInputDialogProps = {
 	title?: string;
 	/**
 	 * Prompt shown above the field as its `<label>` (e.g. "Name of new
-	 * folder:"), a `ClassicyControlLabel`: text or rich content.
+	 * folder:"), a `ClassicyControlLabel`: text or rich content, or a
+	 * function of the field's current value returning it, for a prompt that
+	 * says why a value is refused (the file dialog's New Folder under
+	 * `layout.files.names` "windows").
 	 */
-	prompt?: ReactNode;
+	prompt?: ReactNode | ((value: string) => ReactNode);
 	/** Initial field value; its text is selected on open. Defaults to `""`. */
 	initialValue?: string;
 	/** Placeholder shown when the field is empty. */
@@ -89,7 +92,9 @@ const defaultValidate = (value: string): boolean => value.trim().length > 0;
  *     is free to mean "confirm");
  *   - Escape / Command-period triggers Cancel;
  *   - the default button is dimmed, and Return ignored, while the value fails
- *     `validate`.
+ *     `validate`;
+ *   - under a layout whose `dialog.caption` is `"titled"` (Windows 98) the
+ *     caption's Close box is Cancel.
  *
  * The dialog owns the field's text; callers receive the final value through
  * `onConfirm` and need not track keystrokes. It renders a `ClassicyWindow`, so
@@ -172,6 +177,8 @@ export const ClassicyInputDialog: FunctionalComponent<
 			title={title}
 			hideIcon={true}
 			closable={false}
+			// A titled caption's Close box (Windows 98) is Cancel.
+			onCaptionClose={cancel}
 			resizable={false}
 			zoomable={false}
 			collapsable={false}
@@ -205,7 +212,7 @@ export const ClassicyInputDialog: FunctionalComponent<
 							<ClassicyControlLabel
 								className="classicyInputDialogPrompt"
 								labelFor={`${id}-field`}
-								label={prompt}
+								label={typeof prompt === "function" ? prompt(value) : prompt}
 							/>
 							<ClassicyInput
 								id={`${id}-field`}

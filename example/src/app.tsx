@@ -4,9 +4,10 @@ import "./app.css";
 import { Classicy, registerClassicyIcons } from "@classicy/classicy";
 // The Appearance Packages: the core draws no desktop without one. Platinum
 // registers first, so it stays the default; System 7 adds its two themes
-// to the Appearance Manager (Themes tab).
+// and Windows 98 its thirty-four to the Appearance Manager (Themes tab).
 import "@classicy/appearance-platinum";
 import "@classicy/appearance-system7";
+import "@classicy/appearance-windows98";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
 import { Browser } from "./Applications/Browser/Browser";
 // Side-effect import: registers example HyperCard plugins (custom part, commands,
@@ -27,7 +28,9 @@ const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
 createRoot(rootElement).render(
 	<StrictMode>
-		<Classicy>
+		{/* userName: the Windows 98 shell's Start menu offers "Log Off
+		    Guest..." for it; no other package reads it. */}
+		<Classicy userName="Guest">
 			<Browser />
 			<BlueBox />
 			<Demo />

@@ -1,0 +1,192 @@
+// The Windows 98 bevels, shared by the component partials: the classic
+// four-ring edge, an outer and an inner one-pixel ring, light at the top and
+// left and dark at the bottom and right (or the reverse, pressed or sunken),
+// as `DrawEdge` drew them from the system colors. Each is a stack of inset
+// box-shadows (the first listed on top), so it sits inside the element's
+// box and never changes its size. One ring is `--window-border-size`.
+//
+// The system colors, as the theme holds them (windows98.json):
+//
+//   Windows color     token
+//   ButtonHilight     --color-system-01  (the light ring's bright side)
+//   ButtonLight       --color-system-02
+//   ButtonFace        --color-system-03  (every face)
+//   ButtonShadow      --color-system-05
+//   ButtonDkShadow    --color-system-07
+//   Window            --color-window-document
+//   WindowText        --color-black
+//   ButtonText        --package-color-text-button  (MenuText, the same in
+//                                                   every scheme)
+//   Hilight           --color-highlight
+//   HilightText       --package-color-selection-text
+//   GrayText          --package-color-text-gray    (ButtonShadow in every
+//                                                   scheme but High
+//                                                   Contrast's)
+//   InfoWindow/Text   --package-color-tooltip-face / -text
+//   Scrollbar         --package-color-scroll-bar-track
+//   ActiveBorder…     --package-color-sizing-border-active / -inactive
+//   ActiveTitle…      --package-color-title-bar-*
+//
+// A disabled control's glyphs (DFCS_INACTIVE) and a disabled button's label
+// (DSS_DISABLED) are embossed in ButtonShadow over ButtonHilight; disabled
+// text elsewhere (menus, lists, static text) is GrayText.
+// A scheme's own fonts (`typography.families`, the core's package fonts):
+// the caption's, small caption's, menu's, message box's and icon's, each read
+// with the UI font behind it, for a theme of another package.
+$caption-font: var(--package-font-caption, var(--ui-font));
+$caption-font-size: var(--package-font-caption-size, var(--ui-font-size));
+$caption-font-weight: var(--package-font-caption-weight, bold);
+$small-caption-font: var(--package-font-small-caption, var(--ui-font));
+$small-caption-font-size: var(--package-font-small-caption-size, var(--ui-font-size));
+$small-caption-font-weight: var(--package-font-small-caption-weight, bold);
+$menu-font: var(--package-font-menu, var(--ui-font));
+$menu-font-size: var(--package-font-menu-size, var(--ui-font-size));
+$menu-font-weight: var(--package-font-menu-weight, normal);
+$message-font: var(--package-font-message, var(--ui-font));
+$message-font-size: var(--package-font-message-size, var(--ui-font-size));
+$message-font-weight: var(--package-font-message-weight, normal);
+$icon-font: var(--package-font-icon, var(--ui-font));
+$icon-font-weight: var(--package-font-icon-weight, normal);
+
+// One ring, two rings, and each negated (a Sass name starting with `-`
+// would be private to this module, so the negatives are `$neg-*`).
+$b: var(--window-border-size);
+$b2: calc(#{$b} + #{$b});
+$neg-b: calc(#{$b} * -1);
+$neg-b2: calc(#{$b2} * -1);
+
+$hilight: var(--color-system-01);
+$light: var(--color-system-02);
+$face: var(--color-system-03);
+$shadow: var(--color-system-05);
+$dkshadow: var(--color-system-07);
+$window: var(--color-window-document);
+$text: var(--color-black);
+$button-text: var(--package-color-text-button, var(--color-black));
+$gray-text: var(--package-color-text-gray, var(--color-system-05));
+$highlight: var(--color-highlight);
+$highlight-text: var(--package-color-selection-text, var(--color-white));
+
+// Push buttons, scroll-bar arrows and thumbs, tabs, title-bar buttons.
+@mixin raised {
+  box-shadow:
+    inset $neg-b $neg-b $dkshadow,
+    inset $b $b $hilight,
+    inset $neg-b2 $neg-b2 $shadow,
+    inset $b2 $b2 $light;
+}
+
+// The same control while the mouse is down: the rings swap sides.
+@mixin pressed {
+  box-shadow:
+    inset $neg-b $neg-b $hilight,
+    inset $b $b $dkshadow,
+    inset $neg-b2 $neg-b2 $light,
+    inset $b2 $b2 $shadow;
+}
+
+// A pressed control drawn flat, one ring of shadow all round (scroll-bar
+// arrows, the pop-up's button).
+@mixin pressed-flat {
+  box-shadow: inset 0 0 0 $b $shadow;
+}
+
+// Edit fields, list boxes, checkboxes, document areas (WS_EX_CLIENTEDGE).
+@mixin sunken {
+  box-shadow:
+    inset $neg-b $neg-b $hilight,
+    inset $b $b $shadow,
+    inset $neg-b2 $neg-b2 $light,
+    inset $b2 $b2 $dkshadow;
+}
+
+// Window frames and menus: ButtonLight, not ButtonHilight, on the outer
+// ring's top and left, which is what makes a window edge read softer than a
+// button's.
+@mixin window-frame {
+  box-shadow:
+    inset $neg-b $neg-b $dkshadow,
+    inset $b $b $light,
+    inset $neg-b2 $neg-b2 $shadow,
+    inset $b2 $b2 $hilight;
+}
+
+// Group boxes: an engraved two-pixel line, shadow over highlight.
+@mixin etched {
+  box-shadow:
+    inset $neg-b $neg-b $hilight,
+    inset $b $b $shadow,
+    inset $neg-b2 $neg-b2 $shadow,
+    inset $b2 $b2 $hilight;
+}
+
+// A one-ring raised edge (BDR_RAISEDINNER: a flat toolbar button under the
+// pointer, the Control Strip's cells).
+@mixin raised-thin {
+  box-shadow:
+    inset $neg-b $neg-b $shadow,
+    inset $b $b $hilight;
+}
+
+// A one-ring sunken edge (BDR_SUNKENOUTER: an open menu-bar title), the
+// outer ring of `sunken`.
+@mixin sunken-thin {
+  box-shadow:
+    inset $neg-b $neg-b $hilight,
+    inset $b $b $shadow;
+}
+
+// Disabled text: GrayText with a one-pixel ButtonHilight emboss below right.
+@mixin disabled-text {
+  color: $gray-text;
+  text-shadow: $b $b 0 $hilight;
+}
+
+// A disabled button's label, as DrawState's DSS_DISABLED embosses it:
+// ButtonShadow over a ButtonHilight copy one pixel below right.
+@mixin disabled-label {
+  color: $shadow;
+  text-shadow: $b $b 0 $hilight;
+}
+
+// An access key's character (the core's `access-key` part on a menu title,
+// a menu item or a control label: the audit's 7.1 and 8.9): underlined in
+// its text's ink, a pixel thick, a pixel below the baseline, as Windows
+// 95/98's DrawText draws a prefixed character (`TEXT_DrawUnderscore` at the
+// ascent plus one; WIG Ch.7 "Menu Titles", p.106, Figure 7.4). Always shown:
+// hiding it until Alt is pressed came with Windows 2000. A disabled item's
+// emboss (`disabled-text`'s text-shadow) shadows it too, as DrawState
+// embosses the whole string.
+@mixin access-key {
+  text-decoration-line: underline;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: $b;
+  text-underline-offset: $b;
+}
+
+// The dotted keyboard-focus rectangle Windows draws inside a control,
+// `$inset` inside its edge.
+@mixin focus-rect($inset) {
+  outline: $b dotted $text;
+  outline-offset: calc(#{$inset} * -1);
+}
+
+// A title bar's face: the left-to-right gradient Windows 98 draws from the
+// active (or inactive) title color to its gradient color; a theme whose two
+// colors are equal (Windows 95's) draws a flat bar.
+@mixin title-bar-gradient($from, $to) {
+  background: linear-gradient(90deg, $from, $to);
+}
+
+// A pointer in the cursor registry's idiom (as the base writes its resize
+// cursors, ClassicyWindow.scss): the role's registered image
+// (`--classicy-cursor-<role>`, published by the desktop, with its hotspot),
+// else the keyword, the host's own pointer of that shape. Outside a desktop
+// the variable is undefined, which would void the declaration, so it falls
+// back to an image that never loads and the browser moves on to the
+// keyword (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1).
+@mixin registry-cursor($role, $keyword, $hotspot: 0 0) {
+  cursor:
+    var(--classicy-cursor-#{$role}, url('data:,')) var(--classicy-cursor-#{$role}-hotspot, #{$hotspot}),
+    $keyword;
+}

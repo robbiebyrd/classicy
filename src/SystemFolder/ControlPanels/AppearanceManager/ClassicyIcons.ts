@@ -237,6 +237,10 @@ export const ClassicyIcons = {
 		appleWhiteOnBlack: icon("system/apple-white-on-black.png"),
 		bigSwitchOff: icon("system/big-switch-off.png"),
 		bigSwitchOn: icon("system/big-switch-on.png"),
+		// The shell's Shut Down dialog (the Windows shell's, under a package's
+		// `layout.taskbar`): the power switch, as its own file so the key has
+		// its own URL.
+		shutDown: icon("system/shut-down.png"),
 		clipboard: icon("system/clipboard.png"),
 		comport1: icon("system/comport1.png"),
 		comport2: icon("system/comport2.png"),

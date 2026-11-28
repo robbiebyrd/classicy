@@ -10,6 +10,7 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	ClassicyControlLabel,
@@ -314,6 +315,8 @@ export const ClassicyTimePicker: FunctionalComponent<ClassicyTimePickerProps> =
 							className={classNames(
 								"classicyTimePicker",
 								isDefault ? "classicyTimePickerDefault" : "",
+								// The frame's state, for a package's disabled look.
+								classicyStateClasses({ disabled }),
 							)}
 						>
 							<input

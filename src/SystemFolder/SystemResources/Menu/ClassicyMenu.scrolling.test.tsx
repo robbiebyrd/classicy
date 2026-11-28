@@ -25,6 +25,7 @@ import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyMenuScrollMarginContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuScrollMargin.internal";
 
 const ROW = 20;
 const items = (n: number, prefix = "item") =>
@@ -298,6 +299,60 @@ describe("ClassicyMenu scrolling", () => {
 		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
 		// 200 − 4 (the margin) − 100 (the list's top), not the viewport's 196.
 		expect(list.style.maxHeight).toBe("96px");
+	});
+
+	// The margin is the pop-up menus' unless a host provides another
+	// (ClassicyMenuScrollMarginContext): the Windows shell's Start menu and
+	// tray pop-ups sit flush on the taskbar band's top edge and keep none,
+	// their submenus with them. A list that ends on the bounds' bottom then
+	// fits; one longer still is capped there.
+	describe("a host's scroll margin", () => {
+		it("caps a list at the bounds' bottom itself under a margin of 0", () => {
+			const { container } = render(
+				<ClassicyMenuScrollMarginContext.Provider value={0}>
+					<ClassicyMenu name="m" menuItems={items(30)} />
+				</ClassicyMenuScrollMarginContext.Provider>,
+			);
+			const list = container.querySelector("ul") as HTMLElement;
+			expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
+			// 300 − 0 − 100 (the list's top).
+			expect(list.style.maxHeight).toBe("200px");
+		});
+
+		it("leaves whole a list that ends on the bounds' bottom, which the default margin caps", () => {
+			// 10 rows of 20 from 100 down end at the screen's 300.
+			const { container, unmount } = render(
+				<ClassicyMenu name="m" menuItems={items(10)} />,
+			);
+			const capped = container.querySelector("ul") as HTMLElement;
+			expect(capped.classList.contains("classicyMenuListScrolls")).toBe(true);
+			expect(capped.style.maxHeight).toBe("196px");
+			unmount();
+			const flush = render(
+				<ClassicyMenuScrollMarginContext.Provider value={0}>
+					<ClassicyMenu name="m" menuItems={items(10)} />
+				</ClassicyMenuScrollMarginContext.Provider>,
+			).container.querySelector("ul") as HTMLElement;
+			expect(flush.classList.contains("classicyMenuListScrolls")).toBe(false);
+			expect(flush.style.maxHeight).toBe("");
+			expect(arrow("down")).toBeNull();
+		});
+
+		it("holds for an open submenu inside the host", () => {
+			const parent: ClassicyMenuItem[] = [
+				{ id: "more", title: "More", menuChildren: items(30, "sub") },
+			];
+			const { container } = render(
+				<ClassicyMenuScrollMarginContext.Provider value={0}>
+					<ClassicyMenu name="m" menuItems={parent} subNavClass="sub" />
+				</ClassicyMenuScrollMarginContext.Provider>,
+			);
+			fireEvent.click(screen.getByText("More"));
+			const submenu = container.querySelector("ul.sub") as HTMLElement;
+			expect(submenu.classList.contains("classicyMenuListScrolls")).toBe(true);
+			// 300 − 0 − 100 (the submenu's top, as every list's here).
+			expect(submenu.style.maxHeight).toBe("200px");
+		});
 	});
 
 	// A re-placed menu (flipped and pinned to show inside the desktop,

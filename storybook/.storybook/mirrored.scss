@@ -53,6 +53,7 @@
 @use "pkg:@classicy/appearance-platinum/scss/components/SplitView";
 @use "pkg:@classicy/appearance-platinum/scss/components/WindowFrame";
 @use "pkg:@classicy/appearance-platinum/scss/components/AppearanceManager";
+@use "pkg:@classicy/appearance-platinum/scss/components/BalloonHelp";
 
 @include package.classicy-package("mirrored") {
   @include assets.platinum-root-properties;
@@ -91,6 +92,7 @@
   @include SplitView.splitView;
   @include WindowFrame.windowFrame;
   @include AppearanceManager.appearanceManager;
+  @include BalloonHelp.balloonHelp;
 
   // ── Flips ────────────────────────────────────────────────────────────────
 

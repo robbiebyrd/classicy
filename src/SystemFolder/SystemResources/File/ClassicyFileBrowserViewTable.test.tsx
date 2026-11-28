@@ -3,16 +3,19 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the core default theme names.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { withElementsFromPoint } from "@/__tests__/withElementsFromPoint";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	registerClassicySelectedIconImages,
+	registerClassicySystemArt,
 	resetClassicyAssets,
 } from "@/Appearance/ClassicyAssetRegistry";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
+import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -770,5 +773,361 @@ describe("ClassicyFileBrowserViewTable's column titles", () => {
 				...(head?.querySelectorAll(".classicyTableDetachedHeader th") ?? []),
 			].map((th) => th.textContent),
 		).toEqual(["Filename", "Size", "Kind"]);
+	});
+});
+
+// Under a package that selects at the press (`selection.selectOn` "press",
+// the audit's 5.5 / A.2; WIG App. A Table A.1, p.349: "Drag. Unselected
+// object: ... selects the object"), a row dragged before it was selected is
+// drawn selected at the press, and the drag carries the selection as the
+// press left it, read when the drag begins (comctl32 begins a drag from the
+// selection its button-down made). A double-click opens the whole selection
+// through `openItemsFunc` under `selection.modifiers` "windows" (A.9).
+describe("ClassicyFileBrowserViewTable — a row dragged and opened under the Windows layout", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "test-windows-list-drag",
+			name: "Windows list drag",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-windows-list-drag-default",
+				package: "test-windows-list-drag",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				selection: {
+					selectOn: "press",
+					dragRange: true,
+					modifiers: "windows",
+				},
+			},
+		});
+	const PLAN = "Documents:Plan.txt";
+	const ARCHIVE = "Documents:Archive";
+	const renderList = (
+		key: string,
+		props: { openItemsFunc?: (paths: string[]) => void } = {},
+	) => {
+		const cfs = new ClassicyFileSystem(key, {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"Plan.txt": {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_data: "plan",
+				},
+				Archive: { _type: ClassicyFileSystemEntryFileType.Directory },
+			},
+		});
+		const onMoveItems = vi.fn();
+		const fileOnClickFunc = vi.fn();
+		const view = render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+				onMoveItems={onMoveItems}
+				fileOnClickFunc={fileOnClickFunc}
+				{...props}
+			/>,
+		);
+		const cell = (path: string) =>
+			view.container.querySelector(
+				`[data-classicy-file-path="${path}"]`,
+			) as HTMLElement;
+		const row = (path: string) => cell(path).closest("tr") as HTMLElement;
+		return { ...view, cell, row, onMoveItems, fileOnClickFunc };
+	};
+	const elsewhere = () => {
+		const el = document.createElement("div");
+		el.setAttribute("data-classicy-drop-folder", "Macintosh HD:Elsewhere");
+		return el;
+	};
+	const dragFrom = (
+		cell: HTMLElement,
+		init: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+		whilePressed: () => void = () => {},
+	) =>
+		withElementsFromPoint([elsewhere()], () => {
+			fireEvent.mouseDown(cell, {
+				button: 0,
+				detail: 1,
+				clientX: 10,
+				clientY: 10,
+				...init,
+			});
+			whilePressed();
+			fireEvent.mouseMove(document, { clientX: 60, clientY: 50 });
+			fireEvent.mouseUp(document, { clientX: 60, clientY: 50 });
+		});
+
+	it("selects an unselected row at the press, and its drag carries that row alone", () => {
+		useWindowsLayout();
+		const { cell, row, onMoveItems } = renderList("test-press-drag-one");
+		fireEvent.click(row(ARCHIVE));
+		dragFrom(cell(PLAN), {}, () => {
+			expect(row(PLAN)).toHaveClass("selected");
+			expect(row(ARCHIVE)).not.toHaveClass("selected");
+		});
+		expect(onMoveItems).toHaveBeenCalledTimes(1);
+		expect(onMoveItems.mock.calls[0][0]).toEqual([PLAN]);
+	});
+
+	it("carries the whole selection a Control press added the row to", () => {
+		useWindowsLayout();
+		const { cell, row, onMoveItems } = renderList("test-press-drag-ctrl");
+		fireEvent.click(row(ARCHIVE));
+		dragFrom(cell(PLAN), { ctrlKey: true });
+		expect(onMoveItems.mock.calls[0][0]).toEqual([ARCHIVE, PLAN]);
+	});
+
+	it("carries the whole selection from a selected row, the press keeping it", () => {
+		useWindowsLayout();
+		const { cell, row, onMoveItems } = renderList("test-press-drag-kept");
+		fireEvent.click(row(ARCHIVE));
+		fireEvent.click(row(PLAN), { metaKey: true });
+		dragFrom(cell(PLAN));
+		expect(onMoveItems.mock.calls[0][0]).toEqual([ARCHIVE, PLAN]);
+	});
+
+	it("leaves the selection as it was at the press without the key", () => {
+		const { cell, row, onMoveItems } = renderList("test-click-drag");
+		fireEvent.click(row(ARCHIVE));
+		dragFrom(cell(PLAN), { ctrlKey: true }, () => {
+			expect(row(PLAN)).not.toHaveClass("selected");
+		});
+		expect(onMoveItems.mock.calls[0][0]).toEqual([PLAN]);
+	});
+
+	it("opens the whole selection at a double-click through openItemsFunc", () => {
+		useWindowsLayout();
+		const openItemsFunc = vi.fn();
+		const { row, fileOnClickFunc } = renderList("test-open-selection", {
+			openItemsFunc,
+		});
+		fireEvent.click(row(ARCHIVE));
+		fireEvent.click(row(PLAN), { metaKey: true });
+		fireEvent.doubleClick(row(PLAN));
+		expect(openItemsFunc).toHaveBeenCalledWith(
+			expect.arrayContaining([ARCHIVE, PLAN]),
+		);
+		expect(fileOnClickFunc).not.toHaveBeenCalled();
+	});
+
+	it("opens the double-clicked row alone without openItemsFunc, or without the key", () => {
+		useWindowsLayout();
+		const first = renderList("test-open-row");
+		fireEvent.click(first.row(ARCHIVE));
+		fireEvent.click(first.row(PLAN), { metaKey: true });
+		fireEvent.doubleClick(first.row(PLAN));
+		expect(first.fileOnClickFunc).toHaveBeenCalledWith(PLAN);
+		first.unmount();
+		resetClassicyAppearancePackagesForTests();
+		const openItemsFunc = vi.fn();
+		const second = renderList("test-open-row-mac", { openItemsFunc });
+		fireEvent.click(second.row(ARCHIVE));
+		fireEvent.click(second.row(PLAN), { metaKey: true });
+		fireEvent.doubleClick(second.row(PLAN));
+		expect(openItemsFunc).not.toHaveBeenCalled();
+		expect(second.fileOnClickFunc).toHaveBeenCalledWith(PLAN);
+	});
+});
+
+// A row's transfers under Windows 98's `layout.transfer` (the remaining
+// chapters' audit's 5.33 and 5.34; WIG Ch.5 "Nondefault Drag and Drop",
+// pp.62-63; "Shortcut Keys for Transfer Operations", pp.67-68): a button-2
+// drag ends in the transfer menu, Control at the release copies, and a
+// copy let go in the list's own folder is made there.
+describe("ClassicyFileBrowserViewTable — a row's transfers under the Windows layout", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "test-windows-list-transfer",
+			name: "Windows list transfer",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-windows-list-transfer-default",
+				package: "test-windows-list-transfer",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				transfer: { secondaryButton: "menu", copyModifier: "ctrl" },
+			},
+		});
+	const PLAN = "Documents:Plan.txt";
+	const renderList = (key: string) => {
+		const cfs = new ClassicyFileSystem(key, {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"Plan.txt": { _type: ClassicyFileSystemEntryFileType.File },
+			},
+		});
+		const onMoveItems = vi.fn();
+		const view = render(
+			<ClassicyContextualMenuProvider>
+				<ClassicyFileBrowserViewTable
+					fs={cfs}
+					path="Documents"
+					appId="Finder.app"
+					onMoveItems={onMoveItems}
+				/>
+			</ClassicyContextualMenuProvider>,
+		);
+		const cell = view.container.querySelector(
+			`[data-classicy-file-path="${PLAN}"]`,
+		) as HTMLElement;
+		return { cell, onMoveItems };
+	};
+	const folder = (path: string) => {
+		const el = document.createElement("div");
+		el.setAttribute("data-classicy-drop-folder", path);
+		return el;
+	};
+	const drag = (
+		cell: HTMLElement,
+		target: Element,
+		{
+			button = 0,
+			ctrlKey = false,
+		}: { button?: number; ctrlKey?: boolean } = {},
+	) =>
+		withElementsFromPoint([target], () => {
+			fireEvent.mouseDown(cell, { button, clientX: 10, clientY: 10 });
+			fireEvent.mouseMove(document, { clientX: 60, clientY: 50, ctrlKey });
+			fireEvent.mouseUp(document, {
+				button,
+				clientX: 60,
+				clientY: 50,
+				ctrlKey,
+			});
+		});
+	const menuText = () =>
+		document.querySelector(".classicyContextMenuWrapper")?.textContent ?? null;
+
+	it("ends a button-2 drag in the transfer menu, and does what is chosen", async () => {
+		useWindowsLayout();
+		const { cell, onMoveItems } = renderList("test-list-transfer-menu");
+		drag(cell, folder("Elsewhere"), { button: 2 });
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(menuText()).toContain("Move Here");
+		expect(menuText()).toContain("Copy Here");
+		fireEvent.click(
+			document.getElementById("classicy_file_drop_copy") as HTMLElement,
+		);
+		await waitFor(() => expect(onMoveItems).toHaveBeenCalledTimes(1));
+		expect(onMoveItems.mock.calls[0][0]).toEqual([PLAN]);
+		expect(onMoveItems.mock.calls[0][1]).toEqual({
+			kind: "folder",
+			path: "Elsewhere",
+		});
+		expect(onMoveItems.mock.calls[0][4]).toBe("copy");
+	});
+
+	it("copies with Control held at the release, also into the list's own folder", () => {
+		useWindowsLayout();
+		const { cell, onMoveItems } = renderList("test-list-transfer-copy");
+		drag(cell, folder("Elsewhere"), { ctrlKey: true });
+		expect(onMoveItems.mock.calls[0][4]).toBe("copy");
+		// Let go in its own folder: a copy is made there, a move nothing.
+		drag(cell, folder("Documents"), { ctrlKey: true });
+		expect(onMoveItems).toHaveBeenCalledTimes(2);
+		expect(onMoveItems.mock.calls[1][1]).toEqual({
+			kind: "folder",
+			path: "Documents",
+		});
+		drag(cell, folder("Documents"));
+		expect(onMoveItems).toHaveBeenCalledTimes(2);
+	});
+
+	it("drags on button 1 alone and always moves without the keys", () => {
+		const { cell, onMoveItems } = renderList("test-list-transfer-none");
+		drag(cell, folder("Elsewhere"), { button: 2 });
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(menuText()).toBeNull();
+		drag(cell, folder("Elsewhere"), { ctrlKey: true });
+		expect(onMoveItems.mock.calls[0][4]).toBe("move");
+	});
+});
+
+// A shortcut's badge in the list view (the audit's 11.2; WIG Ch.11
+// "Displaying Objects", p.230): under `layout.icon.aliasBadge` "everywhere"
+// a shortcut's row icon and the `aliasBadge` art share a
+// `classicyIconImage` box; absent, the row is as before.
+describe("ClassicyFileBrowserViewTable — shortcuts' badges (layout.icon.aliasBadge)", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		resetClassicyAssets();
+	});
+	const BADGE = "data:image/gif;base64,R0lGODlhAQABAAAAACw=#badge";
+	const usePackage = (aliasBadge?: "everywhere") => {
+		registerClassicyAppearancePackage({
+			id: "test-list-badge",
+			name: "List badge",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-list-badge-default",
+				package: "test-list-badge",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				...(aliasBadge ? { icon: { aliasBadge } } : {}),
+			},
+		});
+		registerClassicySystemArt("test-list-badge", { aliasBadge: BADGE });
+	};
+	const renderList = (key: string) =>
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={
+					new ClassicyFileSystem(key, {
+						_type: "directory",
+						Documents: {
+							_type: ClassicyFileSystemEntryFileType.Directory,
+							SimpleText: {
+								_type: ClassicyFileSystemEntryFileType.AppShortcut,
+							},
+							"plan.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
+						},
+					})
+				}
+				path="Documents"
+				appId="Finder.app"
+			/>,
+		);
+	const rowOf = (name: string) =>
+		screen
+			.getByText(name)
+			.closest(".classicyFileBrowserViewTableRowContainer") as HTMLElement;
+
+	it("puts the badge after a shortcut's row icon under the key", () => {
+		usePackage("everywhere");
+		renderList("test-list-badge-on");
+		const box = rowOf("SimpleText").querySelector(
+			":scope > .classicyIconImage",
+		);
+		expect(box).not.toBeNull();
+		const [icon, badge] = Array.from(box?.children ?? []);
+		expect(icon).toHaveClass("classicyFileBrowserViewTableRowIcon");
+		expect(badge).toHaveClass("classicyIconAliasBadge");
+		expect(badge).toHaveAttribute("aria-hidden", "true");
+		expect(badge.querySelector("img")?.getAttribute("src")).toBe(BADGE);
+		expect(rowOf("plan.txt").querySelector(".classicyIconImage")).toBeNull();
+	});
+
+	it("draws no badge without it", () => {
+		usePackage();
+		renderList("test-list-badge-off");
+		expect(document.querySelector(".classicyIconImage")).toBeNull();
+		expect(document.querySelector(".classicyIconAliasBadge")).toBeNull();
+		expect(
+			rowOf("SimpleText").querySelector(
+				":scope > .classicyFileBrowserViewTableRowIcon",
+			),
+		).not.toBeNull();
 	});
 });

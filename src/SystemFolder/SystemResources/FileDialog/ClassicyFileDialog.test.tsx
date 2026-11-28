@@ -773,3 +773,201 @@ describe("ClassicyFileDialog under System 7.5's Standard File declarations", () 
 		);
 	});
 });
+
+// Plan 0020-w98 §6: under a layout whose `dialog.caption` is `"titled"`
+// (Windows 98) the Open and Save As boxes have a Close box in their caption
+// (WIG Ch.8 "Open Dialog Box" and "Save As Dialog Box", Figures 8.6 and
+// 8.7), which is Cancel, and drawn unavailable with no Cancel to run; under
+// every other layout they have none (HIGOS8 p.59: a movable modal dialog
+// box has no close box).
+describe("ClassicyFileDialog's caption Close box", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const closeBox = () =>
+		document.querySelector<HTMLElement>(
+			".classicyWindow > .classicyWindowTitleBar .classicyWindowCloseBox",
+		);
+	const open = (onCancelFunc?: () => void) =>
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[]}
+				onOpenFunc={() => {}}
+				onCancelFunc={onCancelFunc}
+			/>,
+		);
+	const titled = () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage({
+			id: "test-titled-dialogs",
+			name: "Titled Dialogs",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-titled-dialogs-default",
+				package: "test-titled-dialogs",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				dialog: { caption: "titled" },
+			},
+		});
+	};
+
+	it("is not drawn by default (Mac OS 8)", () => {
+		open(vi.fn());
+		expect(closeBox()).toBeNull();
+	});
+
+	it("runs Cancel under titled dialog captions", () => {
+		titled();
+		const onCancel = vi.fn();
+		open(onCancel);
+		fireEvent.click(closeBox() as HTMLElement);
+		expect(onCancel).toHaveBeenCalledTimes(1);
+	});
+
+	it("is unavailable with no Cancel to run", () => {
+		titled();
+		open();
+		expect(closeBox()).toHaveAttribute("aria-disabled", "true");
+	});
+});
+
+// The remaining chapters' audit's 10.9 and 10.10 (WIG Ch.10 "File Naming
+// Conventions", p.210; Windows 98 as shipped): under `layout.files.names`
+// "windows" a name may hold none of \ / : * ? " < > |, the New Folder
+// prompt reading Windows 98's refusal while it does, and New Folder offers
+// the folder's first free "New Folder", selected; without the key, `:`
+// alone is refused and the prompt opens empty, as before.
+describe("ClassicyFileDialog's names under files.names windows", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const namesPackage = (names?: "windows") =>
+		registerClassicyAppearancePackage({
+			id: "test-file-names",
+			name: "Names",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-file-names-default",
+				package: "test-file-names",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				fileDialog: { navigation: "flat" },
+				...(names ? { files: { names } } : {}),
+			},
+		});
+	const volume = (names: string[]) => ({
+		id: "fs-Macintosh HD",
+		label: "Macintosh HD",
+		icon: "disk.png",
+		list: async () =>
+			names.map((name) => ({ id: name, name, kind: "folder" as const })),
+		write: vi.fn(async () => {}),
+		mkDir: vi.fn(async () => {}),
+	});
+	const saveDialog = (v: ReturnType<typeof volume>) =>
+		render(
+			<ClassicyFileDialog
+				id="save-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="save"
+				volumes={[v]}
+				defaultFileName="Notes"
+				formats={[
+					{
+						label: "Text",
+						extension: ".txt",
+						fileType: "text",
+						data: () => "",
+					},
+				]}
+				onSaveFunc={() => {}}
+			/>,
+		);
+	const buttonNamed = (name: string) =>
+		[...document.querySelectorAll<HTMLButtonElement>("button")].find(
+			(b) => b.textContent === name || b.getAttribute("aria-label") === name,
+		);
+	const promptField = () =>
+		vi.waitFor(() => {
+			const input = document.querySelector<HTMLInputElement>(
+				".classicyInputDialogBody input",
+			);
+			expect(input).not.toBeNull();
+			return input as HTMLInputElement;
+		});
+	const promptText = () =>
+		document.querySelector(".classicyInputDialogPrompt")?.textContent ?? "";
+	const saveNameField = () =>
+		document.querySelector<HTMLInputElement>(
+			".classicyFileOpenDialogNameRow input, .classicyFileDialogNameRow input",
+		);
+
+	it("offers the first free New Folder, selected, and reads Windows 98's refusal", async () => {
+		namesPackage("windows");
+		const v = volume(["New Folder", "Letters"]);
+		saveDialog(v);
+		await vi.waitFor(() =>
+			expect(document.body.textContent).toContain("Letters"),
+		);
+		act(() => buttonNamed("New Folder")?.click());
+		const field = await promptField();
+		expect(field.value).toBe("New Folder (2)");
+		expect(promptText()).toBe("Name of new folder:");
+		act(() => {
+			fireEvent.change(field, { target: { value: "a?b" } });
+		});
+		expect(promptText()).toBe(
+			'A filename cannot contain any of the following characters:\n\\ / : * ? " < > |',
+		);
+		expect(buttonNamed("Create")?.disabled).toBe(true);
+		act(() => {
+			fireEvent.change(field, { target: { value: "Plans" } });
+		});
+		expect(buttonNamed("Create")?.disabled).toBe(false);
+		act(() => buttonNamed("Create")?.click());
+		await vi.waitFor(() => expect(v.mkDir).toHaveBeenCalledWith([], "Plans"));
+	});
+
+	it("dims Save for a name holding a refused character", async () => {
+		namesPackage("windows");
+		saveDialog(volume([]));
+		const name = await vi.waitFor(() => {
+			const input = saveNameField();
+			expect(input).not.toBeNull();
+			return input as HTMLInputElement;
+		});
+		act(() => {
+			fireEvent.change(name, { target: { value: "My*Notes" } });
+		});
+		expect(buttonNamed("Save")?.disabled).toBe(true);
+	});
+
+	it("keeps Mac OS 8's names without the key", async () => {
+		namesPackage();
+		const v = volume(["New Folder"]);
+		saveDialog(v);
+		await vi.waitFor(() =>
+			expect(document.body.textContent).toContain("New Folder"),
+		);
+		act(() => buttonNamed("New Folder")?.click());
+		const field = await promptField();
+		expect(field.value).toBe("");
+		act(() => {
+			fireEvent.change(field, { target: { value: "a?b" } });
+		});
+		expect(promptText()).toBe("Name of new folder:");
+		expect(buttonNamed("Create")?.disabled).toBe(false);
+		act(() => {
+			fireEvent.change(field, { target: { value: "a:b" } });
+		});
+		expect(buttonNamed("Create")?.disabled).toBe(true);
+	});
+});

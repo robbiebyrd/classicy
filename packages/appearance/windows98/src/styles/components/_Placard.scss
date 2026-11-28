@@ -1,0 +1,299 @@
+// The Windows 98 placard and its kin, included by windows98.scss inside the
+// package wrapper; overrides the Platinum look that the structure sheets of
+// ClassicyPlacard.scss, ClassicyPager.scss, ClassicyLink.scss and
+// ClassicyKbd.scss carry (the stepper's field, ClassicySpinner.scss, is an
+// edit control and takes its look with the edit fields in _TextField.scss).
+// None of these is a Windows control as such; each is drawn as the Windows
+// 95/98 element it stands for, from the system colors (as 98.css and os-gui
+// re-create them):
+//
+// - The placard (Mac OS 8's beveled info panel, at a window's bottom left):
+//   a status bar pane (STATUSCLASSNAME, SBT_NOBORDERS off), ButtonFace in
+//   the one-ring sunken edge (BDR_SUNKENOUTER: ButtonShadow at the top and
+//   left, ButtonHilight at the bottom and right), its text WindowText in the
+//   UI font three pixels in. A placard with a menu shows the combo box's
+//   WindowText triangle (7 x 4); pressed or open, its content steps a pixel
+//   down and right, as a pushed control's does; disabled, text and triangle
+//   are embossed (GrayText over a ButtonHilight copy one pixel down and
+//   right). Its menu is a Windows menu: ButtonFace in the window frame
+//   (`b.window-frame`), items `--menu-item-padding-x` (6) in, the tracked
+//   item HilightText on Hilight, a disabled one embossed and browsed like
+//   any other, the band tracking it with its text GrayText (WIG Ch.7 "Menu
+//   Items", p.107: disabling an item does not prevent browsing or choosing
+//   it, choosing only does nothing), framed and spaced as _Menu.scss frames
+//   the pull-downs. The keyboard focus is the dotted rectangle inside the
+//   edge, `:focus-visible` only.
+// - The pager (Mac OS 8 Help's page control): two raised ButtonFace push
+//   buttons (`b.raised`) with a WindowText triangle 6 x 11 pointing back and
+//   forward, pressed in the pressed bevel with the triangle a pixel down and
+//   right, disabled with the triangle embossed; between them the page
+//   number, WindowText on Window white in the client edge (`b.sunken`), in
+//   the plain weight (the base sets it bold; interface text is nonbold but
+//   to call attention or to make a hierarchy, WIG Ch.13 "Font and Size"
+//   (p.311)). The pager's own knobs keep its geometry.
+// - A link: the scheme's accent (`--color-theme-04`, navy in Windows
+//   Standard and the scheme's Hilight in every preset; the theme has no link
+//   color, and Windows' hyperlinks were navy) underlined, the same under the
+//   pointer (Windows 98's links do not change there), a shade darker while
+//   pressed, embossed when disabled (under the pointer and pressed too); the
+//   keyboard focus is the dotted rectangle around the text.
+// - A key cap (a keyboard shortcut drawn as keys): a raised ButtonFace box
+//   with WindowText in the UI font, square, no outline (a small push
+//   button).
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03        the faces
+//   ButtonHilight     --color-system-01        the light rings, the emboss
+//   ButtonLight       --color-system-02        the inner top-left ring
+//   ButtonShadow      --color-system-05        the dark rings, the embossed
+//                                              glyphs
+//   ButtonDkShadow    --color-system-07        the outer bottom-right ring
+//   Window            --color-window-document  the page number's ground
+//   WindowText        --color-black            text and triangles
+//   Hilight           --color-highlight        the tracked menu item
+//   HilightText       --package-color-selection-text (--color-white)
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// every glyph one-pixel rectangles on the `--pixel-unit` grid (`pixel-art`,
+// `runs`, ../_pixel.scss), every color a token.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The pop-up triangle (7 x 4), the combo box's, in an 8 x 6 box: the glyph
+// a row down, so its emboss (a pixel down and right) fits the box and the
+// box centers on a whole pixel in the pane.
+$down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
+
+// The pager's triangles (6 x 11) in a 7 x 12 box, for the same reason.
+$back: runs(
+  (".....x", "....xx", "...xxx", "..xxxx", ".xxxxx", "xxxxxx", ".xxxxx", "..xxxx", "...xxx", "....xx", ".....x"),
+  "x"
+);
+$forward: runs(
+  ("x.....", "xx....", "xxx...", "xxxx..", "xxxxx.", "xxxxxx", "xxxxx.", "xxxx..", "xxx...", "xx....", "x....."),
+  "x"
+);
+
+// A glyph in WindowText at (`$x`, `$y`) in its box, and embossed:
+// ButtonShadow over its ButtonHilight copy one pixel down and right.
+@function glyph($art, $x: 0, $y: 0) {
+  @return pixel-art(b.$text, $art, px($x), px($y));
+}
+
+@function glyph-embossed($art, $x: 0, $y: 0) {
+  @return pixel-art(b.$shadow, $art, px($x), px($y)), pixel-art(b.$hilight, $art, px($x + 1), px($y + 1));
+}
+
+// A status bar pane's edge: one ring sunken.
+@mixin pane {
+  box-shadow:
+    inset b.$b b.$b b.$shadow,
+    inset b.$neg-b b.$neg-b b.$hilight;
+}
+
+@mixin placard {
+  // ----- The placard: a status bar pane ------------------------------------
+  .classicyPlacard {
+    padding: 0 px(3);
+    font-size: var(--ui-font-size);
+    color: b.$text;
+    background-color: b.$face;
+    border: 0;
+    border-radius: 0;
+    @include pane;
+
+    &:focus-visible {
+      @include b.focus-rect(b.$b2);
+    }
+
+    // Pressed, or its menu open: the content steps a pixel down and right
+    // in the same pane.
+    &.pressed {
+      background-color: b.$face;
+      @include pane;
+
+      .classicyPlacardContent,
+      .classicyPlacardArrow {
+        transform: translate(b.$b, b.$b);
+      }
+    }
+
+    &.disabled {
+      border: 0;
+      background-color: b.$face;
+      @include b.disabled-text;
+      @include pane;
+    }
+  }
+
+  .classicyPlacardArrow {
+    width: px(8);
+    height: px(6);
+    background: glyph($down, 0, 1);
+  }
+
+  .classicyPlacard.disabled .classicyPlacardArrow {
+    background: glyph-embossed($down, 0, 1);
+  }
+
+  // Its menu: a Windows menu above the pane, framed as _Menu.scss frames the
+  // pull-downs (the two-ring bevel and a ring of face inside it), its rows
+  // 17 px tall (the 11 px face in 3 px of padding) as theirs are.
+  .classicyPlacardMenu {
+    padding: calc(#{b.$b2} + #{b.$b});
+    background-color: b.$face;
+    @include b.window-frame;
+  }
+
+  .classicyPlacardMenuItem {
+    padding: px(3) var(--menu-item-padding-x);
+    font-size: var(--ui-font-size);
+    line-height: 1;
+    color: b.$text;
+
+    // Browsed, under the pointer or the keyboard: the Hilight band with
+    // HilightText, and no focus rectangle (the band marks the item).
+    &:hover,
+    &:focus {
+      outline: none;
+      color: b.$highlight-text;
+      background-color: b.$highlight;
+    }
+
+    // Unavailable: embossed GrayText, and browsed like any item (WIG Ch.7
+    // "Menu Items", p.107), its text plain GrayText on the band, as the
+    // pull-downs' disabled items are (_Menu.scss) and as Windows 9x drew a
+    // selected disabled item. The state rules follow the band rule they
+    // override.
+    &:disabled {
+      @include b.disabled-text;
+    }
+
+    &:disabled:is(:hover, :focus) {
+      color: b.$gray-text;
+      background-color: b.$highlight;
+      text-shadow: none;
+    }
+  }
+
+  // ----- The pager: two push buttons about a page number ---------------------
+  .classicyPager {
+    border: 0;
+  }
+
+  .classicyPagerArrow {
+    color: b.$text;
+    background-color: b.$face;
+    @include b.raised;
+
+    // The triangle's box, placed from the button's center on whole pixels
+    // (a transform would halve an odd remainder).
+    &::before {
+      top: calc(50% - #{px(6)});
+      left: calc(50% - #{px(3)});
+      width: px(7);
+      height: px(12);
+      border: 0;
+      transform: none;
+    }
+
+    // The base's punch-out (its hollow disabled arrow) never shows: the
+    // disabled triangle is embossed instead.
+    &::after {
+      display: none;
+    }
+
+    &:active:not(:disabled) {
+      @include b.pressed;
+
+      &::before {
+        top: calc(50% - #{px(5)});
+        left: calc(50% - #{px(2)});
+      }
+    }
+
+    &:disabled {
+      color: b.$gray-text;
+      @include b.raised;
+
+      &::after {
+        display: none;
+      }
+    }
+  }
+
+  .classicyPagerArrowPrev {
+    &::before {
+      background: glyph($back);
+    }
+
+    &:disabled::before {
+      background: glyph-embossed($back);
+    }
+  }
+
+  .classicyPagerArrowNext {
+    &::before {
+      background: glyph($forward);
+    }
+
+    &:disabled::before {
+      background: glyph-embossed($forward);
+    }
+  }
+
+  .classicyPagerPage {
+    border: 0;
+    font-size: var(--ui-font-size);
+    font-weight: normal;
+    color: b.$text;
+    background: b.$window;
+    @include b.sunken;
+  }
+
+  // ----- Links ---------------------------------------------------------------
+  .classicyLink {
+    color: var(--color-theme-04);
+
+    &:hover {
+      color: var(--color-theme-04);
+    }
+
+    &:active {
+      color: var(--color-theme-05);
+    }
+
+    &:focus-visible {
+      outline: b.$b dotted b.$text;
+      outline-offset: 0;
+    }
+  }
+
+  // Unavailable, under the pointer or pressed alike: the state rule follows
+  // the hover and active rules it must beat at their specificity.
+  :where(.classicyLink).disabled {
+    &,
+    &:hover,
+    &:active {
+      @include b.disabled-text;
+    }
+  }
+
+  // ----- Key caps ------------------------------------------------------------
+  .classicyKbdKeycap {
+    padding: 0 px(4);
+    font-size: var(--ui-font-size);
+    color: b.$text;
+    background: b.$face;
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    @include b.raised;
+  }
+
+  // The arrow over the pager's arrows, where the base shows the hand (WIG
+  // Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyPagerArrow {
+    @include b.registry-cursor(arrow, default);
+  }
+}

@@ -6,4 +6,14 @@
   .classicyIconMask {
     @include mixins.platinum-halftone("--color-black", 7%);
   }
+
+  // A name being edited (a slow click on a selected icon's name): Mac OS
+  // 8's edit box, the name black on white in a one-pixel black frame.
+  .classicyIcon .classicyIconRename {
+    border: var(--window-border-size) solid var(--color-black);
+    border-radius: 0;
+    outline: none;
+    color: var(--color-black);
+    background: var(--color-white);
+  }
 }

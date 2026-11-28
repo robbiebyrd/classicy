@@ -1,7 +1,15 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { platinumSoundPack } from "@classicy/appearance-platinum";
 import { describe, expect, it } from "vitest";
 import {
+	getClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	ClassicyAppearanceLayoutSchema,
 	ClassicyAppearancePackageSchema,
+	ClassicyDesktopIconOverridesSchema,
 	classicyKnobsToSchema,
 } from "@/Appearance/ClassicyAppearancePackageSchema";
 // getAllThemes() serves the registered packages' themes: Platinum's here.
@@ -107,6 +115,548 @@ describe("ClassicyAppearancePackageSchema", () => {
 		]);
 	});
 
+	// A live thumb drag's snap-back and its distance (the WIG audit's 6.10):
+	// optional, Platinum's and System 7's layouts declaring neither.
+	it("takes optional scrollBar.liveSnapBack and snapBackScale, and refuses bad values", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).scrollBar = {
+			liveSnapBack: true,
+			snapBackScale: { across: 8, along: 2 },
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.scrollBar).toEqual({
+			liveSnapBack: true,
+			snapBackScale: { across: 8, along: 2 },
+		});
+		for (const [scrollBar, key] of [
+			[{ liveSnapBack: "yes" }, "liveSnapBack"],
+			[{ snapBackScale: { across: 8 } }, "snapBackScale"],
+			[{ snapBackScale: { across: -1, along: 2 } }, "snapBackScale"],
+			[{ snapBackScale: { across: 8, along: 65 } }, "snapBackScale"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).scrollBar = scrollBar;
+			const parsed = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(parsed.success, JSON.stringify(scrollBar)).toBe(false);
+			expect(
+				parsed.error?.issues.some(
+					(i) => i.path[1] === "scrollBar" && i.path[2] === key,
+				),
+				JSON.stringify(scrollBar),
+			).toBe(true);
+		}
+	});
+
+	// The menus' time-outs and their keyboard's treatment of dimmed items
+	// (the WIG audit's 7.6 / 14.4, 7.7 and 7.12): optional, so Platinum's
+	// layout, which declares none, still parses, and each kept as given.
+	it("takes an optional menuBar.idleTimeoutMs and an optional menu group", () => {
+		for (const [menuBar, menu] of [
+			[{ placement: "screen" }, undefined],
+			[{ placement: "screen", idleTimeoutMs: 0 }, {}],
+			[{ placement: "window", idleTimeoutMs: 15000 }, { submenuDelayMs: 0 }],
+			[{ placement: "screen" }, { disabledItems: "skip" }],
+		]) {
+			const input = platinumShaped();
+			const layout = input.layout as Record<string, unknown>;
+			layout.menuBar = menuBar;
+			layout.menu = menu;
+			expect(
+				ClassicyAppearancePackageSchema.safeParse(input).success,
+				JSON.stringify({ menuBar, menu }),
+			).toBe(true);
+		}
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.menuBar = { placement: "screen", idleTimeoutMs: 0 };
+		layout.menu = { submenuDelayMs: 400, disabledItems: "browse" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menuBar).toEqual({
+			placement: "screen",
+			idleTimeoutMs: 0,
+		});
+		expect(result.data?.layout.menu).toEqual({
+			submenuDelayMs: 400,
+			disabledItems: "browse",
+		});
+	});
+
+	it("rejects a negative or fractional menu time-out and an unknown disabledItems", () => {
+		for (const [path, menuBar, menu] of [
+			[
+				["layout", "menuBar", "idleTimeoutMs"],
+				{ placement: "screen", idleTimeoutMs: -1 },
+				undefined,
+			],
+			[
+				["layout", "menu", "submenuDelayMs"],
+				{ placement: "screen" },
+				{ submenuDelayMs: 0.5 },
+			],
+			[
+				["layout", "menu", "disabledItems"],
+				{ placement: "screen" },
+				{ disabledItems: "hide" },
+			],
+		] as const) {
+			const input = platinumShaped();
+			const layout = input.layout as Record<string, unknown>;
+			layout.menuBar = menuBar;
+			layout.menu = menu;
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.success, path.join(".")).toBe(false);
+			expect(result.error?.issues.map((i) => i.path)).toContainEqual(path);
+		}
+	});
+
+	// Access keys, the shortcuts' spelling and empty submenus (the WIG
+	// audit's 7.1, 8.9 and 7.15): optional, each kept as given.
+	it("takes optional menu.accessKeys, menu.shortcutSpelling and menu.emptySubmenus, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.menu = {
+			accessKeys: "auto",
+			shortcutSpelling: "names",
+			emptySubmenus: "placeholder",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menu).toEqual({
+			accessKeys: "auto",
+			shortcutSpelling: "names",
+			emptySubmenus: "placeholder",
+		});
+		for (const menu of [
+			{ accessKeys: "explicit" },
+			{ shortcutSpelling: "glyphs" },
+			{ emptySubmenus: "leaf" },
+		]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).menu = menu;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [key, value] of [
+			["accessKeys", "ampersand"],
+			["shortcutSpelling", "words"],
+			["emptySubmenus", "hidden"],
+		]) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).menu = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				"menu",
+				key,
+			]);
+		}
+	});
+
+	// The keys that keep Windows' behaviors from the Mac packages (the WIG
+	// audit's 7.7-7.9, 4.17 and 7.11): menu.keys, keyboard.contextMenuKey
+	// and finder.commands, optional, each kept as given.
+	it("takes optional menu.keys, keyboard.contextMenuKey and finder.commands, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.menu = { keys: "windows" };
+		layout.keyboard = { contextMenuKey: true };
+		layout.finder = { commands: "windows" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menu).toEqual({ keys: "windows" });
+		expect(result.data?.layout.keyboard).toEqual({ contextMenuKey: true });
+		expect(result.data?.layout.finder).toEqual({ commands: "windows" });
+		for (const [group, value] of [
+			["menu", { keys: "mac" }],
+			["keyboard", {}],
+			["finder", { commands: "mac" }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[group] = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success, group).toBe(
+				true,
+			);
+		}
+		for (const [group, key, value] of [
+			["menu", "keys", "emacs"],
+			["keyboard", "contextMenuKey", "yes"],
+			["finder", "commands", "linux"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
+	// How names are written (the remaining chapters' audit's 10.9 and
+	// 10.10; WIG Ch.10 "File Naming Conventions", p.210): files.names,
+	// optional, its own group.
+	it("takes an optional files.names, and refuses another value", () => {
+		for (const names of ["mac", "windows"] as const) {
+			const input = platinumShaped();
+			(input.layout as Record<string, unknown>).files = { names };
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.success, names).toBe(true);
+			expect(result.data?.layout.files).toEqual({ names });
+		}
+		const empty = platinumShaped();
+		(empty.layout as Record<string, unknown>).files = {};
+		expect(ClassicyAppearancePackageSchema.safeParse(empty).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).files = { names: "dos" };
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"files",
+			"names",
+		]);
+	});
+
+	// What opening an unregistered type does and whether extensions show
+	// (the remaining chapters' audit's 10.1 and 10.8; WIG Ch.10
+	// "Registering File Extensions", p.192, "System Naming Conventions",
+	// p.210): files.unregisteredOpen and files.extensions, optional, in the
+	// files group.
+	it("takes optional files.unregisteredOpen and files.extensions, and refuses other values", () => {
+		for (const [key, values] of [
+			["unregisteredOpen", ["default", "openWith"]],
+			["extensions", ["shown", "hideRegistered"]],
+		] as const) {
+			for (const value of values) {
+				const input = platinumShaped();
+				(input.layout as Record<string, unknown>).files = {
+					names: "windows",
+					[key]: value,
+				};
+				const result = ClassicyAppearancePackageSchema.safeParse(input);
+				expect(result.success, value).toBe(true);
+				expect(result.data?.layout.files).toEqual({
+					names: "windows",
+					[key]: value,
+				});
+			}
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).files = { [key]: "sometimes" };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				"files",
+				key,
+			]);
+		}
+	});
+
+	// Whether a drop activates its window (the remaining chapters' audit's
+	// 5.31; WIG Ch.5 "Direct Manipulation Method", p.62):
+	// transfer.activateDropWindow, optional, its own group.
+	it("takes an optional transfer.activateDropWindow, and refuses another value", () => {
+		for (const activateDropWindow of [true, false]) {
+			const input = platinumShaped();
+			(input.layout as Record<string, unknown>).transfer = {
+				activateDropWindow,
+			};
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.success, String(activateDropWindow)).toBe(true);
+			expect(result.data?.layout.transfer).toEqual({ activateDropWindow });
+		}
+		const empty = platinumShaped();
+		(empty.layout as Record<string, unknown>).transfer = {};
+		expect(ClassicyAppearancePackageSchema.safeParse(empty).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).transfer = {
+			activateDropWindow: "yes",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"transfer",
+			"activateDropWindow",
+		]);
+	});
+
+	// Explorer's drag transfers (the remaining chapters' audit's 5.33,
+	// 5.34, 5.35 and 5.36; WIG Ch.5 pp.62-68): transfer.secondaryButton,
+	// copyModifier, autoScroll and desktopIconDrag, optional, in the
+	// transfer group.
+	it("takes the transfer group's drag keys, and refuses other values", () => {
+		const good = {
+			secondaryButton: "menu",
+			copyModifier: "ctrl",
+			autoScroll: true,
+			desktopIconDrag: "outline",
+		};
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).transfer = good;
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.transfer).toEqual(good);
+		const live = platinumShaped();
+		(live.layout as Record<string, unknown>).transfer = {
+			autoScroll: false,
+			desktopIconDrag: "live",
+		};
+		expect(ClassicyAppearancePackageSchema.safeParse(live).success).toBe(true);
+		for (const [key, value] of [
+			["secondaryButton", "select"],
+			["copyModifier", "alt"],
+			["autoScroll", "yes"],
+			["desktopIconDrag", "ghost"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).transfer = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				"transfer",
+				key,
+			]);
+		}
+	});
+
+	// Which key a Command equivalent answers to (the remaining chapters'
+	// audit's 4.19; WIG Ch.4 "Shortcut Keys", p.28): keyboard.command,
+	// optional, beside contextMenuKey in the keyboard group.
+	it("takes an optional keyboard.command beside contextMenuKey, and refuses another value", () => {
+		for (const command of ["metaOrCtrl", "ctrl"] as const) {
+			const input = platinumShaped();
+			(input.layout as Record<string, unknown>).keyboard = {
+				contextMenuKey: true,
+				command,
+			};
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.success, command).toBe(true);
+			expect(result.data?.layout.keyboard).toEqual({
+				contextMenuKey: true,
+				command,
+			});
+		}
+		const alone = platinumShaped();
+		(alone.layout as Record<string, unknown>).keyboard = { command: "ctrl" };
+		expect(ClassicyAppearancePackageSchema.safeParse(alone).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).keyboard = { command: "meta" };
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"keyboard",
+			"command",
+		]);
+	});
+
+	// Editable shortcuts (the remaining chapters' audit's 4.15; WIG Ch.4
+	// "Shortcut Keys", p.27): keyboard.editableShortcuts, optional, beside
+	// the group's other keys.
+	it("takes an optional keyboard.editableShortcuts beside the group's other keys, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).keyboard = {
+			contextMenuKey: true,
+			command: "ctrl",
+			editableShortcuts: true,
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.keyboard).toEqual({
+			contextMenuKey: true,
+			command: "ctrl",
+			editableShortcuts: true,
+		});
+		const alone = platinumShaped();
+		(alone.layout as Record<string, unknown>).keyboard = {
+			editableShortcuts: false,
+		};
+		expect(ClassicyAppearancePackageSchema.safeParse(alone).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).keyboard = {
+			editableShortcuts: "yes",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"keyboard",
+			"editableShortcuts",
+		]);
+	});
+
+	// The tree's keys and the help's placement (the WIG audit's 7.21 and
+	// 7.27): optional groups with optional keys, each kept as given.
+	it("takes optional tree.keys and balloonHelp.placement, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.tree = { keys: "windows" };
+		layout.balloonHelp = { placement: "pointer" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.tree).toEqual({ keys: "windows" });
+		expect(result.data?.layout.balloonHelp).toEqual({ placement: "pointer" });
+		for (const [group, value] of [
+			["tree", {}],
+			["tree", { keys: "mac" }],
+			["balloonHelp", {}],
+			["balloonHelp", { placement: "anchor" }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[group] = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [group, key, value] of [
+			["tree", "keys", "emacs"],
+			["balloonHelp", "placement", "cursor"],
+		]) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
+	// The mouse conventions (the WIG audit's 5.6, 5.7, 4.8-4.10, 1.18, and
+	// 5.3, 5.5, 5.9 and A.9's `selection.selectOn`, `dragRange` and
+	// `modifiers`, and 5.2, 5.16, 5.18 and B.3's `selection.pageKeys` and
+	// `keyboard`): `selection.secondaryButton`, `contextMenu.openOn` and
+	// `input.escapeCancels` optional groups with optional keys, `mouse` a
+	// top-level keyword, each kept as given.
+	it("takes optional selection, contextMenu, mouse and input, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.selection = {
+			secondaryButton: "select",
+			selectOn: "press",
+			dragRange: true,
+			modifiers: "windows",
+			pageKeys: "move",
+			keyboard: "windows",
+			iconNavigation: "roving",
+		};
+		layout.contextMenu = { openOn: "release" };
+		layout.mouse = "windows";
+		layout.input = { escapeCancels: true };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.selection).toEqual({
+			secondaryButton: "select",
+			selectOn: "press",
+			dragRange: true,
+			modifiers: "windows",
+			pageKeys: "move",
+			keyboard: "windows",
+			iconNavigation: "roving",
+		});
+		expect(result.data?.layout.contextMenu).toEqual({ openOn: "release" });
+		expect(result.data?.layout.mouse).toBe("windows");
+		expect(result.data?.layout.input).toEqual({ escapeCancels: true });
+		for (const [key, value] of [
+			["selection", {}],
+			["selection", { secondaryButton: "menu" }],
+			["selection", { selectOn: "click" }],
+			["selection", { dragRange: false }],
+			["selection", { modifiers: "mac" }],
+			["selection", { pageKeys: "scroll" }],
+			["selection", { keyboard: "follow" }],
+			["selection", { iconNavigation: "each" }],
+			["contextMenu", {}],
+			["contextMenu", { openOn: "event" }],
+			["mouse", "mac"],
+			["input", {}],
+			["input", { escapeCancels: false }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[key] = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success, key).toBe(
+				true,
+			);
+		}
+		for (const [group, key, value] of [
+			["selection", "secondaryButton", "both"],
+			["selection", "selectOn", "release"],
+			["selection", "dragRange", "yes"],
+			["selection", "modifiers", "linux"],
+			["selection", "pageKeys", "jump"],
+			["selection", "keyboard", "mac"],
+			["selection", "iconNavigation", "tabs"],
+			["contextMenu", "openOn", "press"],
+			["input", "escapeCancels", "yes"],
+		]) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+		const badMouse = platinumShaped();
+		(badMouse.layout as Record<string, unknown>).mouse = "pen";
+		const refused = ClassicyAppearancePackageSchema.safeParse(badMouse);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"mouse",
+		]);
+	});
+
+	// The file browser's selection (the WIG audit's 5.8 / 5.22 / A.1 and
+	// 5.12): `fileBrowser.iconSelection` and `regionSelect`, optional keys of
+	// the optional group, beside `listColumnTitles` and `keys`.
+	it("takes optional fileBrowser.iconSelection and regionSelect, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).fileBrowser = {
+			keys: "windows",
+			iconSelection: "view",
+			regionSelect: true,
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.fileBrowser).toEqual({
+			keys: "windows",
+			iconSelection: "view",
+			regionSelect: true,
+		});
+		for (const value of [
+			{},
+			{ iconSelection: "perIcon" },
+			{ regionSelect: false },
+		]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).fileBrowser = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [key, value] of [
+			["iconSelection", "each"],
+			["regionSelect", "yes"],
+		]) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>).fileBrowser = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				"fileBrowser",
+				key,
+			]);
+		}
+	});
+
 	it("rejects defaults that belong to another package", () => {
 		const result = ClassicyAppearancePackageSchema.safeParse({
 			...platinumShaped(),
@@ -119,6 +669,233 @@ describe("ClassicyAppearancePackageSchema", () => {
 		expect(issue?.message).toBe(
 			'must be the package id "irix", not "platinum"',
 		);
+	});
+
+	// Documents (the WIG audit's 1.17 / 5.25, 5.24 / 9.2, 2.1 and B.4):
+	// `document.confirmUnsavedClose` and `reopenActivates`, an optional group
+	// of optional booleans, `window.restoreViewState` beside the required
+	// grow-box corner, and `menu.standardShortcuts`, one keyword.
+	it("takes optional document keys, window.restoreViewState and menu.standardShortcuts, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, Record<string, unknown>>;
+		layout.window.restoreViewState = true;
+		layout.menu = { standardShortcuts: "windows" };
+		layout.document = { confirmUnsavedClose: true, reopenActivates: true };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.window).toEqual({
+			restoreViewState: true,
+			growBoxCorner: "bottom-right",
+		});
+		expect(result.data?.layout.menu).toEqual({ standardShortcuts: "windows" });
+		expect(result.data?.layout.document).toEqual({
+			confirmUnsavedClose: true,
+			reopenActivates: true,
+		});
+		for (const value of [
+			{},
+			{ confirmUnsavedClose: false },
+			{ reopenActivates: false },
+		]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).document = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		for (const [group, key, value] of [
+			["document", "confirmUnsavedClose", "yes"],
+			["document", "reopenActivates", 1],
+			["window", "restoreViewState", "always"],
+			["menu", "standardShortcuts", "mac"],
+		] as const) {
+			const bad = platinumShaped();
+			const badLayout = bad.layout as Record<string, Record<string, unknown>>;
+			badLayout[group] = { ...badLayout[group], [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
+	// Text (the WIG audit's 5.19, 5.21, 5.29 and the Edit menu's Windows
+	// form of 5.44): `text.wordSelect`, `edit.scope`, `edit.menu` and
+	// `textField.contextMenu`, three optional groups of optional keywords.
+	it("takes optional text, edit and textField keys, and refuses another value", () => {
+		const input = platinumShaped();
+		const layout = input.layout as Record<string, unknown>;
+		layout.text = { wordSelect: "trailingSpace" };
+		layout.edit = { scope: "window", menu: "windows" };
+		layout.textField = { contextMenu: "edit" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.text).toEqual({ wordSelect: "trailingSpace" });
+		expect(result.data?.layout.edit).toEqual({
+			scope: "window",
+			menu: "windows",
+		});
+		expect(result.data?.layout.textField).toEqual({ contextMenu: "edit" });
+		for (const [group, value] of [
+			["text", {}],
+			["text", { wordSelect: "native" }],
+			["edit", {}],
+			["edit", { scope: "any" }],
+			["edit", { menu: "mac" }],
+			["textField", { contextMenu: "none" }],
+		] as const) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>)[group] = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success, group).toBe(
+				true,
+			);
+		}
+		for (const [group, key, value] of [
+			["text", "wordSelect", "word"],
+			["edit", "scope", "app"],
+			["edit", "menu", "windows98"],
+			["textField", "contextMenu", true],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, key).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
+	});
+
+	// The wizard's buttons (the WIG audit's 12.22): `assistant.navigation`,
+	// an optional group of one optional keyword.
+	it("takes an optional assistant navigation, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).assistant = {
+			navigation: "buttons",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.assistant).toEqual({ navigation: "buttons" });
+		for (const value of [{}, { navigation: "pager" }]) {
+			const ok = platinumShaped();
+			(ok.layout as Record<string, unknown>).assistant = value;
+			expect(ClassicyAppearancePackageSchema.safeParse(ok).success).toBe(true);
+		}
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).assistant = {
+			navigation: "wizard",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"assistant",
+			"navigation",
+		]);
+	});
+
+	// WinHelp's topic window and Help Topics browser (the WIG audit's 12.15,
+	// 12.16, 12.21): `help.topicWindow`, an optional group of one optional
+	// keyword.
+	it("takes an optional help topic window, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).help = {
+			topicWindow: "winhelp",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.help).toEqual({ topicWindow: "winhelp" });
+		const empty = platinumShaped();
+		(empty.layout as Record<string, unknown>).help = {};
+		expect(ClassicyAppearancePackageSchema.safeParse(empty).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).help = { topicWindow: "htmlhelp" };
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"help",
+			"topicWindow",
+		]);
+	});
+
+	// Context-sensitive Help, What's This? and F1 (the WIG audit's 12.2-12.4
+	// / B.5): `balloonHelp.contextHelp`, an optional keyword beside
+	// `placement` in the same optional group.
+	it("takes an optional balloonHelp.contextHelp, and refuses another value", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).balloonHelp = {
+			placement: "pointer",
+			contextHelp: "whatsThis",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.balloonHelp).toEqual({
+			placement: "pointer",
+			contextHelp: "whatsThis",
+		});
+		const alone = platinumShaped();
+		(alone.layout as Record<string, unknown>).balloonHelp = {
+			contextHelp: "whatsThis",
+		};
+		expect(ClassicyAppearancePackageSchema.safeParse(alone).success).toBe(true);
+		const bad = platinumShaped();
+		(bad.layout as Record<string, unknown>).balloonHelp = {
+			contextHelp: "balloons",
+		};
+		const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+		expect(refused.success).toBe(false);
+		expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"balloonHelp",
+			"contextHelp",
+		]);
+	});
+
+	// ToolTips (the WIG audit's 12.9, 12.11-12.13): the timing and gating
+	// keys beside `placement` in `balloonHelp`, and `menu.itemHelp`, each
+	// optional; a time outside 0-60000 ms (the auto-pop from 1), or another
+	// keyword, is refused.
+	it("takes the ToolTip keys and menu.itemHelp, and refuses another value", () => {
+		const input = platinumShaped();
+		const tips = {
+			placement: "pointer",
+			unlabeledTips: true,
+			delayMs: 500,
+			autoPopMs: 5000,
+			reshowMs: 100,
+			hideOnPress: true,
+			activeWindowOnly: true,
+		};
+		(input.layout as Record<string, unknown>).balloonHelp = tips;
+		(input.layout as Record<string, unknown>).menu = { itemHelp: "statusBar" };
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.balloonHelp).toEqual(tips);
+		expect(result.data?.layout.menu).toEqual({ itemHelp: "statusBar" });
+		for (const [group, key, value] of [
+			["balloonHelp", "delayMs", -1],
+			["balloonHelp", "delayMs", 60_001],
+			["balloonHelp", "autoPopMs", 0],
+			["balloonHelp", "reshowMs", 1.5],
+			["balloonHelp", "hideOnPress", "yes"],
+			["balloonHelp", "unlabeledTips", 1],
+			["balloonHelp", "activeWindowOnly", "true"],
+			["menu", "itemHelp", "tooltip"],
+		] as const) {
+			const bad = platinumShaped();
+			(bad.layout as Record<string, unknown>)[group] = { [key]: value };
+			const refused = ClassicyAppearancePackageSchema.safeParse(bad);
+			expect(refused.success, `${group}.${key} ${value}`).toBe(false);
+			expect(refused.error?.issues.map((i) => i.path)).toContainEqual([
+				"layout",
+				group,
+				key,
+			]);
+		}
 	});
 
 	it("accepts defaults that name the package", () => {
@@ -248,6 +1025,73 @@ describe("ClassicyAppearancePackageSchema", () => {
 				"shadow",
 			]);
 		}
+	});
+});
+
+// The audit's 1.13, 10.20 and 11.2: `menu.confirmEllipsis`, the `dialog`
+// group's `flushInput` and the `icon` group's `aliasBadge`, each optional;
+// another value is refused at its path.
+describe("ClassicyAppearancePackageSchema confirmEllipsis, dialog and icon", () => {
+	const withLayout = (layout: Record<string, unknown>) => {
+		const input = platinumShaped();
+		Object.assign(input.layout as Record<string, unknown>, layout);
+		return ClassicyAppearancePackageSchema.safeParse(input);
+	};
+
+	it("takes each key, and the groups empty", () => {
+		const result = withLayout({
+			menu: { confirmEllipsis: false },
+			dialog: { flushInput: true },
+			icon: { aliasBadge: "everywhere" },
+		});
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.menu).toEqual({ confirmEllipsis: false });
+		expect(result.data?.layout.dialog).toEqual({ flushInput: true });
+		expect(result.data?.layout.icon).toEqual({ aliasBadge: "everywhere" });
+		expect(
+			withLayout({ dialog: {}, icon: { aliasBadge: "desktop" } }).success,
+		).toBe(true);
+	});
+
+	it.each([
+		[
+			{ menu: { confirmEllipsis: "no" } },
+			["layout", "menu", "confirmEllipsis"],
+		],
+		[{ dialog: { flushInput: 1 } }, ["layout", "dialog", "flushInput"]],
+		[{ icon: { aliasBadge: "folders" } }, ["layout", "icon", "aliasBadge"]],
+	])("refuses %j", (layout, path) => {
+		const result = withLayout(layout);
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((i) => i.path)).toContainEqual(path);
+	});
+});
+
+// The Colors tab's labels for the core's colors (the audit's 1.2):
+// `colorLabels`, keyed by a color target's CSS variable; another key, or an
+// empty label, is refused.
+describe("ClassicyAppearancePackageSchema colorLabels", () => {
+	const withLabels = (colorLabels: unknown) =>
+		ClassicyAppearancePackageSchema.safeParse({
+			...platinumShaped(),
+			colorLabels,
+		});
+
+	it("takes labels keyed by the targets' CSS variables", () => {
+		const result = withLabels({
+			"--color-system-03": "3D Objects",
+			"--desktop-background-color": "Desktop",
+		});
+		expect(result.success).toBe(true);
+		expect(result.data?.colorLabels).toEqual({
+			"--color-system-03": "3D Objects",
+			"--desktop-background-color": "Desktop",
+		});
+	});
+
+	it("refuses a key that is no color target's, and an empty label", () => {
+		expect(withLabels({ "--color-menu": "Menu" }).success).toBe(false);
+		expect(withLabels({ "--color-system-03": " " }).success).toBe(false);
 	});
 });
 
@@ -515,5 +1359,497 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["Plays movies and sound."],
 	])("accepts the description %j", (description) => {
 		expect(appsIssues({ "A.app": { description } })).toEqual([]);
+	});
+});
+
+// The Windows shell's layout keys (plan 0020-w98 §1). Every one is optional,
+// and absent means today's behavior.
+describe("ClassicyAppearanceLayoutSchema shell keys", () => {
+	// A window-placement layout with a taskbar, so every shell key is allowed.
+	const shell = (extra: Record<string, unknown> = {}) => ({
+		window: { growBoxCorner: "bottom-right" },
+		menuBar: { placement: "window" },
+		desktop: { iconGridOrigin: "top-left" },
+		taskbar: {},
+		...extra,
+	});
+	const issues = (layout: unknown) => {
+		const result = ClassicyAppearanceLayoutSchema.safeParse(layout);
+		return result.success
+			? []
+			: result.error.issues.map(({ path, message }) => ({ path, message }));
+	};
+	const TEXT_RULE = /one line of text with no space at either end/;
+
+	it.each([
+		["collapse", ["shade", "minimize"], ["roll", "Minimize", "", true]],
+		["zoom", ["standard", "maximize"], ["full", "Maximize", 1]],
+		["titleDoubleClick", ["collapse", "zoom"], ["close", "maximize", null]],
+		["frameEdges", ["move", "resize"], ["size", "Resize", false]],
+		["systemMenu", [false, true], ["true", 1, null]],
+		["captionTooltips", [false, true], ["yes", 0, "false"]],
+	])("window.%s takes %j and refuses %j", (key, good, bad) => {
+		const window = (value: unknown) => ({
+			growBoxCorner: "bottom-right",
+			[key]: value,
+		});
+		for (const value of good) {
+			const result = ClassicyAppearanceLayoutSchema.safeParse(
+				shell({ window: window(value) }),
+			);
+			expect(result.success, JSON.stringify(value)).toBe(true);
+			expect(result.data?.window).toEqual(window(value));
+		}
+		for (const value of bad) {
+			expect(
+				issues(shell({ window: window(value) })),
+				JSON.stringify(value),
+			).toEqual([{ path: ["window", key], message: expect.any(String) }]);
+		}
+	});
+
+	it("leaves every window key optional", () => {
+		expect(issues(shell())).toEqual([]);
+		expect(ClassicyAppearanceLayoutSchema.parse(shell()).window).toStrictEqual({
+			growBoxCorner: "bottom-right",
+		});
+	});
+
+	it.each([["plain"], ["titled"]])("dialog.caption takes %j", (caption) => {
+		expect(
+			ClassicyAppearanceLayoutSchema.parse(shell({ dialog: { caption } }))
+				.dialog,
+		).toEqual({ caption });
+	});
+
+	it("takes a dialog group whose caption is optional", () => {
+		expect(issues(shell({ dialog: {} }))).toEqual([]);
+		expect(issues(shell({ dialog: undefined }))).toEqual([]);
+	});
+
+	it.each([
+		["none"],
+		["Titled"],
+		[""],
+		[true],
+	])("dialog.caption refuses %j", (caption) => {
+		expect(issues(shell({ dialog: { caption } }))).toEqual([
+			{ path: ["dialog", "caption"], message: expect.any(String) },
+		]);
+	});
+
+	it("refuses a dialog group that is not an object", () => {
+		expect(issues(shell({ dialog: "titled" }))).toEqual([
+			{ path: ["dialog"], message: expect.any(String) },
+		]);
+	});
+
+	it.each([
+		[{}],
+		[{ startLabel: "Start" }],
+		[{ startBanner: { title: "Windows" } }],
+		[{ startBanner: { title: "Windows", edition: "98" } }],
+		[
+			{
+				startLabel: "Start",
+				startBanner: { title: "Windows", edition: "95" },
+			},
+		],
+	])("takes the taskbar %j", (taskbar) => {
+		const result = ClassicyAppearanceLayoutSchema.safeParse(shell({ taskbar }));
+		expect(result.success).toBe(true);
+		expect(result.data?.taskbar).toEqual(taskbar);
+	});
+
+	it.each([
+		[true, ["taskbar"]],
+		["Start", ["taskbar"]],
+		[{ startLabel: 7 }, ["taskbar", "startLabel"]],
+		[{ startBanner: "Windows 98" }, ["taskbar", "startBanner"]],
+		[{ startBanner: {} }, ["taskbar", "startBanner", "title"]],
+		[{ startBanner: { edition: "98" } }, ["taskbar", "startBanner", "title"]],
+		[
+			{ startBanner: { title: "Windows", edition: 98 } },
+			["taskbar", "startBanner", "edition"],
+		],
+	])("refuses the taskbar %j", (taskbar, at) => {
+		expect(issues(shell({ taskbar }))).toEqual([
+			{ path: at, message: expect.any(String) },
+		]);
+	});
+
+	it("has no taskbar edge: an unknown taskbar key is dropped", () => {
+		expect(
+			ClassicyAppearanceLayoutSchema.parse(
+				shell({ taskbar: { startLabel: "Start", edge: "top" } }),
+			).taskbar,
+		).toStrictEqual({ startLabel: "Start" });
+	});
+
+	// Each text the layout carries: the Start button's label and both parts of
+	// the Start menu's banner.
+	const TEXTS: [string, (text: unknown) => unknown, (string | number)[]][] = [
+		["startLabel", (startLabel) => ({ startLabel }), ["taskbar", "startLabel"]],
+		[
+			"startBanner.title",
+			(title) => ({ startBanner: { title } }),
+			["taskbar", "startBanner", "title"],
+		],
+		[
+			"startBanner.edition",
+			(edition) => ({ startBanner: { title: "Windows", edition } }),
+			["taskbar", "startBanner", "edition"],
+		],
+	];
+
+	describe.each(TEXTS)("taskbar.%s", (_name, taskbar, at) => {
+		it.each([
+			["x"],
+			["x".repeat(24)],
+			["Start"],
+			["D\u00e9marrer"],
+			["Start Menu"],
+			["\u30b9\u30bf\u30fc\u30c8"],
+			["\u05d4\u05ea\u05d7\u05dc"],
+		])("takes %j", (text) => {
+			expect(issues(shell({ taskbar: taskbar(text) }))).toEqual([]);
+		});
+
+		it.each([
+			["", />=1 characters/],
+			["x".repeat(25), /<=24 characters/],
+		])("refuses %j by its length", (text, bound) => {
+			expect(issues(shell({ taskbar: taskbar(text) }))).toEqual([
+				{ path: at, message: expect.stringMatching(bound) },
+			]);
+		});
+
+		it.each([
+			[" Start"],
+			["Start "],
+			["\tStart"],
+			["Start\n"],
+			["\u00a0Start"],
+			["St\nart"],
+			["St\rart"],
+			["St\u0000art"],
+			["St\u001fart"],
+			["St\u007fart"],
+			["St\u0085art"],
+			["St\u009fart"],
+			["St\u2028art"],
+			["St\u2029art"],
+		])("refuses %j as no single line of text", (text) => {
+			expect(issues(shell({ taskbar: taskbar(text) }))).toEqual([
+				{ path: at, message: expect.stringMatching(TEXT_RULE) },
+			]);
+		});
+	});
+
+	describe("refinement 1: a taskbar requires window placement", () => {
+		it("refuses a taskbar beside a screen menu bar, naming the rule", () => {
+			expect(issues(shell({ menuBar: { placement: "screen" } }))).toEqual([
+				{
+					path: ["taskbar"],
+					message: expect.stringMatching(
+						/^requires menuBar\.placement "window": a screen menu bar beside a taskbar would repeat its Apple, Help and App Switcher menus$/,
+					),
+				},
+			]);
+		});
+
+		it("takes a taskbar under window placement, and window placement without one", () => {
+			expect(issues(shell())).toEqual([]);
+			expect(issues(shell({ taskbar: undefined }))).toEqual([]);
+		});
+
+		it("reports the rule at the package's layout path", () => {
+			const input = platinumShaped();
+			(input.layout as Record<string, unknown>).taskbar = {};
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.error?.issues.map((i) => i.path)).toEqual([
+				["layout", "taskbar"],
+			]);
+		});
+	});
+
+	describe("refinement 2: minimize requires a taskbar", () => {
+		const minimize = (extra: Record<string, unknown>) =>
+			shell({
+				window: { growBoxCorner: "bottom-right", collapse: "minimize" },
+				...extra,
+			});
+
+		it("refuses minimize without a taskbar, naming the rule", () => {
+			expect(issues(minimize({ taskbar: undefined }))).toEqual([
+				{
+					path: ["window", "collapse"],
+					message: expect.stringMatching(
+						/^"minimize" requires a taskbar: a minimized window comes back only through its taskbar button$/,
+					),
+				},
+			]);
+		});
+
+		it("takes minimize with a taskbar, and shade without one", () => {
+			expect(issues(minimize({}))).toEqual([]);
+			expect(
+				issues(
+					shell({
+						window: { growBoxCorner: "bottom-right", collapse: "shade" },
+						taskbar: undefined,
+					}),
+				),
+			).toEqual([]);
+		});
+
+		it("reports only the rule that fails: a screen bar with a taskbar and minimize", () => {
+			expect(
+				issues(minimize({ menuBar: { placement: "screen" } })).map(
+					(issue) => issue.path,
+				),
+			).toEqual([["taskbar"]]);
+			expect(
+				issues(
+					minimize({ menuBar: { placement: "screen" }, taskbar: undefined }),
+				).map((issue) => issue.path),
+			).toEqual([["window", "collapse"]]);
+		});
+
+		it("reports the rule at the package's layout path", () => {
+			const input = platinumShaped();
+			(
+				input.layout as Record<string, Record<string, unknown>>
+			).window.collapse = "minimize";
+			const result = ClassicyAppearancePackageSchema.safeParse(input);
+			expect(result.error?.issues.map((i) => i.path)).toEqual([
+				["layout", "window", "collapse"],
+			]);
+		});
+	});
+
+	it("takes the whole Windows shell and parses it to itself", () => {
+		const windows = {
+			window: {
+				growBoxCorner: "bottom-right",
+				centering: "wholePixel",
+				collapse: "minimize",
+				zoom: "maximize",
+				titleDoubleClick: "zoom",
+				frameEdges: "resize",
+				systemMenu: true,
+				captionTooltips: true,
+			},
+			menuBar: { placement: "window" },
+			desktop: { iconGridOrigin: "top-left" },
+			scrollBar: { fitsBars: "shown" },
+			fileDialog: {
+				frame: "movable",
+				navigation: "flat",
+				saveName: "selected",
+			},
+			taskbar: {
+				startLabel: "Start",
+				startBanner: { title: "Windows", edition: "98" },
+			},
+			dialog: { caption: "titled" },
+		};
+		expect(ClassicyAppearanceLayoutSchema.parse(windows)).toStrictEqual(
+			windows,
+		);
+	});
+});
+
+describe("the shipped layouts", () => {
+	// Read from the JSON, not the package entry, which would register System 7
+	// and Windows 98 and so change getAllThemes() for this file's other tests.
+	const layoutOf = (file: string): unknown =>
+		JSON.parse(readFileSync(path.resolve(process.cwd(), file), "utf8")).layout;
+
+	it.each([
+		["Platinum", "packages/appearance/platinum/src/platinum.json"],
+		["System 7", "packages/appearance/system7/src/system7.json"],
+		["Windows 98", "packages/appearance/windows98/src/windows98.json"],
+	])("%s's layout parses to itself", (_name, file) => {
+		const layout = layoutOf(file);
+		expect(layout).toBeTypeOf("object");
+		expect(ClassicyAppearanceLayoutSchema.parse(layout)).toStrictEqual(layout);
+	});
+
+	it("Platinum's registered layout is its JSON's", () => {
+		expect(getClassicyAppearancePackage("platinum")?.layout).toStrictEqual(
+			layoutOf("packages/appearance/platinum/src/platinum.json"),
+		);
+	});
+
+	it("Storybook's mirrored layout parses to itself", async () => {
+		// Registers the package; unregistered at once, so no other test here
+		// sees it in getAllThemes().
+		const { MIRRORED_APPEARANCE_PACKAGE_ID } = await import(
+			"../../storybook/.storybook/MirroredPackage"
+		);
+		try {
+			const layout = getClassicyAppearancePackage(
+				MIRRORED_APPEARANCE_PACKAGE_ID,
+			)?.layout;
+			expect(layout?.menuBar.placement).toBe("window");
+			expect(ClassicyAppearanceLayoutSchema.parse(layout)).toStrictEqual(
+				layout,
+			);
+		} finally {
+			unregisterClassicyAppearancePackage(MIRRORED_APPEARANCE_PACKAGE_ID);
+		}
+	});
+});
+
+// The remaining chapters' audit's 10.2 (WIG Ch.10 "The Application
+// Identifier Key", pp.197-198): a package's names for the file types, keyed
+// by type, title case and 40 characters at most.
+describe("ClassicyAppearancePackageSchema fileTypeNames", () => {
+	const withNames = (fileTypeNames: unknown) => ({
+		...platinumShaped(),
+		fileTypeNames,
+	});
+
+	it("takes title-case names of the file types", () => {
+		const names = {
+			directory: "File Folder",
+			text_file: "Text Document",
+			pdf: "PDF Document",
+			stack: "HyperCard Stack",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(withNames(names));
+		expect(result.success).toBe(true);
+		expect(result.data?.fileTypeNames).toEqual(names);
+		expect(
+			ClassicyAppearancePackageSchema.safeParse(platinumShaped()).data
+				?.fileTypeNames,
+		).toBeUndefined();
+	});
+
+	it("refuses an unknown type, a lower-case word, a long or padded name, an unsafe character", () => {
+		for (const names of [
+			{ spreadsheet: "Spreadsheet" },
+			{ text_file: "Text document" },
+			{ text_file: "text Document" },
+			{ text_file: "T".repeat(41) },
+			{ text_file: " Text Document" },
+			{ text_file: "" },
+			{ text_file: "Text\u202eDocument" },
+		]) {
+			expect(
+				ClassicyAppearancePackageSchema.safeParse(withNames(names)).success,
+				JSON.stringify(names),
+			).toBe(false);
+		}
+		expect(
+			ClassicyAppearancePackageSchema.safeParse(
+				withNames(JSON.parse('{"__proto__":"Bad","directory":"File Folder"}')),
+			).success,
+		).toBe(false);
+	});
+});
+
+// `desktopIcons`: the Trash's label and balloon copy, the startup disk's
+// label, image and balloon copy, under the `apps` rules; nothing else.
+describe("ClassicyAppearancePackageSchema desktopIcons", () => {
+	const valid = platinumShaped();
+	const issues = (desktopIcons: unknown) => {
+		const result = ClassicyAppearancePackageSchema.safeParse({
+			...valid,
+			desktopIcons,
+		});
+		return result.success ? [] : result.error.issues;
+	};
+
+	it("accepts the Trash's and the startup disk's overrides, and none", () => {
+		expect(
+			issues({
+				trash: { name: "Recycle Bin", description: "Holds deleted files." },
+				startupDisk: {
+					name: "My Computer",
+					icon: "data:image/png;base64,AA==",
+					description: "Shows what is on this computer.",
+				},
+			}),
+		).toEqual([]);
+		expect(issues({})).toEqual([]);
+		expect(issues({ trash: {} })).toEqual([]);
+		expect(
+			ClassicyAppearancePackageSchema.safeParse(valid).data?.desktopIcons,
+		).toBeUndefined();
+	});
+
+	it.each([
+		["another icon", { network: { name: "Network" } }],
+		["an image for the Trash", { trash: { icon: "/bin.png" } }],
+		["an unknown field", { startupDisk: { label: "C:" } }],
+		["a script image", { startupDisk: { icon: "javascript:alert(1)" } }],
+		["a name that is no display name", { trash: { name: "_Bin" } }],
+		["a name holding the path separator", { startupDisk: { name: "C:" } }],
+		["a padded description", { trash: { description: " Bin " } }],
+	])("refuses %s", (_what, desktopIcons) =>
+		expect(issues(desktopIcons).length).toBeGreaterThan(0));
+
+	it("reports the field it refuses", () =>
+		expect(issues({ trash: { name: "_Bin" } })[0]?.path).toEqual([
+			"desktopIcons",
+			"trash",
+			"name",
+		]));
+
+	it("describes the field", () =>
+		expect(ClassicyDesktopIconOverridesSchema.description).toMatch(
+			/desktop's own icons/,
+		));
+});
+
+// The audit's 12.5: the other drives' balloon copy, `desktopIcons.drive`,
+// description only.
+describe("ClassicyAppearancePackageSchema desktopIcons.drive", () => {
+	const issues = (desktopIcons: unknown) => {
+		const result = ClassicyAppearancePackageSchema.safeParse({
+			...platinumShaped(),
+			desktopIcons,
+		});
+		return result.success ? [] : result.error.issues;
+	};
+
+	it("accepts the drives' balloon copy", () => {
+		expect(
+			issues({ drive: { description: "Shows the files on this disk." } }),
+		).toEqual([]);
+		expect(issues({ drive: {} })).toEqual([]);
+	});
+
+	it.each([
+		["a name", { drive: { name: "Disk" } }],
+		["an image", { drive: { icon: "/disk.png" } }],
+		["a padded description", { drive: { description: " Disk " } }],
+	])("refuses %s", (_what, desktopIcons) =>
+		expect(issues(desktopIcons).length).toBeGreaterThan(0));
+});
+
+// The audit's 1.14: `layout.crashScreen`, the crash screen's form.
+describe("ClassicyAppearancePackageSchema crashScreen", () => {
+	const withLayout = (layout: Record<string, unknown>) => {
+		const input = platinumShaped();
+		Object.assign(input.layout as Record<string, unknown>, layout);
+		return ClassicyAppearancePackageSchema.safeParse(input);
+	};
+
+	it.each(["sadMac", "fatalException"])("takes %s", (crashScreen) => {
+		const result = withLayout({ crashScreen });
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.crashScreen).toBe(crashScreen);
+	});
+
+	it("refuses another form, at its path", () => {
+		const result = withLayout({ crashScreen: "blueScreen" });
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"crashScreen",
+		]);
 	});
 });

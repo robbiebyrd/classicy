@@ -10,6 +10,14 @@ export interface ClassicyMenuContextValue {
 	 * hover/keyboard activity so an in-use menu never times out.
 	 */
 	pokeActivity: () => void;
+	/**
+	 * The provider was mounted `startActive`: its menu is a pop-up shown as
+	 * it mounts (a contextual menu, a pop-up bevel button's), not a menu
+	 * bar whose titles a press opens. Its root list is a vertical menu to
+	 * the keyboard (`ClassicyMenu`'s `orientation`). Optional, so a host's
+	 * own context value still type-checks; absent reads as `false`.
+	 */
+	popup?: boolean;
 }
 
 export const ClassicyMenuContext = createContext<ClassicyMenuContextValue>({
@@ -18,4 +26,5 @@ export const ClassicyMenuContext = createContext<ClassicyMenuContextValue>({
 	menuBarActive: false,
 	activateMenuBar: () => {},
 	pokeActivity: () => {},
+	popup: false,
 });

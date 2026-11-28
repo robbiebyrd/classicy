@@ -10,8 +10,16 @@ import {
 	POINTER_STREAM_LOSSES,
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { HyperCardEditorCanvas } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 const dispatch = vi.fn();
 vi.mock(
@@ -328,5 +336,108 @@ describe("HyperCardEditorCanvas", () => {
 			stackId: "demo",
 			partId: undefined,
 		});
+	});
+});
+
+// The remaining chapters' audit's 1.4 (WIG Ch.1 "User in Control", p.1: a
+// mode is easy to cancel; Ch.4 "Shortcut Keys", p.27: ESC cancels): an
+// armed part tool is a one-shot mode, and under a package whose layout
+// declares `input.escapeCancels` (Windows 98) Escape on the card disarms it
+// before it deselects anything; elsewhere Escape deselects the part and
+// leaves the tool armed, as it always has.
+describe("HyperCardEditorCanvas — Escape and an armed part tool", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-hypercard",
+			name: "Windows HyperCard",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-hypercard-default",
+				package: "windows-hypercard",
+			},
+			layout: windows98.layout as never,
+		});
+	const surfaceOf = (container: HTMLElement) =>
+		container.querySelector(".classicyHyperCardEditorOverlay") as HTMLElement;
+
+	it("disarms the armed tool first under the Windows layout, the part staying selected", () => {
+		useWindowsLayout();
+		const { container, rerender } = render(
+			<HyperCardEditorCanvas
+				stackId={"demo"}
+				edit={makeEdit({ placing: "label", selectedPartId: "button1" })}
+			/>,
+		);
+		const escapeKey = createEvent.keyDown(surfaceOf(container), {
+			key: "Escape",
+		});
+		fireEvent(surfaceOf(container), escapeKey);
+		expect(escapeKey.defaultPrevented).toBe(true);
+		expect(dispatch.mock.calls).toEqual([
+			[
+				{
+					type: "ClassicyAppHCEditSetPlacing",
+					stackId: "demo",
+					partType: undefined,
+				},
+			],
+		]);
+		// Disarmed, the next Escape deselects the part.
+		dispatch.mockClear();
+		rerender(
+			<HyperCardEditorCanvas
+				stackId={"demo"}
+				edit={makeEdit({ selectedPartId: "button1" })}
+			/>,
+		);
+		fireEvent.keyDown(surfaceOf(container), { key: "Escape" });
+		expect(dispatch.mock.calls).toEqual([
+			[{ type: "ClassicyAppHCEditSelect", stackId: "demo", partId: undefined }],
+		]);
+	});
+
+	it("disarms an armed tool with nothing selected under the Windows layout", () => {
+		useWindowsLayout();
+		const { container } = render(
+			<HyperCardEditorCanvas
+				stackId={"demo"}
+				edit={makeEdit({ placing: "label" })}
+			/>,
+		);
+		fireEvent.keyDown(surfaceOf(container), { key: "Escape" });
+		expect(dispatch).toHaveBeenCalledWith({
+			type: "ClassicyAppHCEditSetPlacing",
+			stackId: "demo",
+			partType: undefined,
+		});
+	});
+
+	it("deselects and leaves the tool armed without the key", () => {
+		const { container } = render(
+			<HyperCardEditorCanvas
+				stackId={"demo"}
+				edit={makeEdit({ placing: "label", selectedPartId: "button1" })}
+			/>,
+		);
+		const escapeKey = createEvent.keyDown(surfaceOf(container), {
+			key: "Escape",
+		});
+		fireEvent(surfaceOf(container), escapeKey);
+		expect(escapeKey.defaultPrevented).toBe(false);
+		expect(dispatch.mock.calls).toEqual([
+			[{ type: "ClassicyAppHCEditSelect", stackId: "demo", partId: undefined }],
+		]);
+		// Nothing selected: Escape does nothing at all, the tool still armed.
+		dispatch.mockClear();
+		const { container: second } = render(
+			<HyperCardEditorCanvas
+				stackId={"demo"}
+				edit={makeEdit({ placing: "label" })}
+			/>,
+		);
+		fireEvent.keyDown(surfaceOf(second), { key: "Escape" });
+		expect(dispatch).not.toHaveBeenCalled();
 	});
 });

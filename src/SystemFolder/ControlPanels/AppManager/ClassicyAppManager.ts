@@ -27,8 +27,10 @@ import {
 	loadApp,
 	openApp,
 	pickSuccessorApp,
+	requestClassicyAppAttention,
 	showAllApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
+import { focusClassicyReopenedWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDocumentReopen";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -83,11 +85,34 @@ export interface ClassicyStoreSystemApp {
 	 * focus again (`focusApp` shows it). Never set on an extension.
 	 */
 	hidden?: boolean;
+	/**
+	 * Where the app's secondary windows were last left, for this session
+	 * only (stripped in `sanitizeStateForPersistence`, kept when the app
+	 * quits): its file dialog's last folder and its tab strips' last tabs,
+	 * so each shows again as it was last accessed (WIG Ch.8 "Interaction
+	 * with Other Windows", p.146; HIG7 p.146).
+	 */
+	session?: ClassicyStoreSystemAppSession;
 	debug?: boolean;
 	options?: Record<string, unknown>[];
 	appMenu?: ClassicyMenuItem[];
 	contextMenu?: ClassicyMenuItem[];
 	handlesFileTypes?: ClassicyFileSystemEntryFileType[];
+}
+
+/** An app's session-only places (`ClassicyStoreSystemApp.session`). */
+export interface ClassicyStoreSystemAppSession {
+	/**
+	 * The folder `ClassicyFileDialog` last showed for the app, Open and Save
+	 * alike (`ClassicyAppRememberFileDialogFolder`): the volume's id and the
+	 * folder names from its root.
+	 */
+	fileDialog?: { volumeId: string; path: string[] };
+	/**
+	 * The tab each of the app's remembering tab strips last showed, by the
+	 * strip's key (`ClassicyAppRememberTab`, `useClassicySessionTab`).
+	 */
+	tabs?: Record<string, number>;
 }
 
 export interface ClassicyStoreSystemAppWindow {
@@ -103,6 +128,15 @@ export interface ClassicyStoreSystemAppWindow {
 	default?: boolean;
 	resizing?: boolean;
 	zoomed?: boolean;
+	/**
+	 * The rect a maximized window returns to, written only by a window
+	 * maximized under `layout.window.zoom: "maximize"` (the Windows shell,
+	 * plan 0020-w98 §5: `ClassicyWindowZoom`'s `restore`) and deleted when the
+	 * window un-zooms. Persisted, so Restore survives a reload; absent means
+	 * none, so no other package's session ever writes it. Its reader uses it
+	 * only when both pairs are finite numbers (`isClassicyWindowRestoreRect`).
+	 */
+	restoreRect?: ClassicyStoreSystemAppWindowRect;
 	collapsed?: boolean;
 	// Mirrors the window's `collapsable` prop (#278). Absent ⇒ collapsable;
 	// only an explicit `false` opts the window out of Option-click
@@ -112,16 +146,39 @@ export interface ClassicyStoreSystemAppWindow {
 	moving?: boolean;
 	modal?: boolean;
 	menuBar?: ClassicyMenuItem[];
+	// The window's view state (`ClassicyWindowSetScroll`), written only under
+	// a package's `layout.window.restoreViewState`: its scroll area's
+	// `[scrollLeft, scrollTop]` and a document's caret offset, put back when
+	// the window mounts again (`useClassicyWindowViewState`). Persisted.
+	scroll?: [number, number];
+	caret?: number;
 	zOrder?: number;
 	// Session-only: set when the window is closed during this page session, so
 	// a later ClassicyWindowOpen for it counts as a reopen and brings it to the
 	// front. Stripped before persistence, so a reload's re-registration of a
 	// closed window never steals focus.
 	closedThisSession?: boolean;
+	/**
+	 * Session-only: the window's app asks for the user's attention, so its
+	 * taskbar button flashes (`ClassicyAppRequestAttention`, set only under
+	 * the Windows shell, plan 0020-w98 E3). Cleared when the app is
+	 * activated or the window closes; stripped before persistence.
+	 */
+	attention?: boolean;
 	// Platinum window class (#205). Utility (tool-palette) windows are excluded
 	// from automatic focus succession; absent ⇒ treated as "document".
 	windowType?: "document" | "utility";
 	options?: Record<string, JsonValue>[];
+}
+
+/**
+ * A window's rect as the window applies it: its outer left/top (`position`)
+ * and its content-box size (`size`), in px. A maximized window's
+ * `restoreRect`.
+ */
+export interface ClassicyStoreSystemAppWindowRect {
+	position: [number, number];
+	size: [number, number];
 }
 
 /** An app's windows, keyed by window id (each entry's `id` equals its key). */
@@ -370,6 +427,21 @@ export const classicyAppEventHandler = (
 			showAllApps(ds);
 			break;
 		}
+		// The Windows shell's attention signal (plan 0020-w98 E3): the app's
+		// taskbar button flashes until the app is activated. A no-op under
+		// every package without a taskbar.
+		case "ClassicyAppRequestAttention": {
+			if (hasApp(action)) {
+				const windowId =
+					typeof action.window === "object" &&
+					action.window !== null &&
+					typeof (action.window as { id?: unknown }).id === "string"
+						? (action.window as { id: string }).id
+						: undefined;
+				requestClassicyAppAttention(ds, action.app.id, windowId);
+			}
+			break;
+		}
 		case "ClassicyAppActivate": {
 			if (hasApp(action)) {
 				activateApp(ds, action.app.id);
@@ -424,6 +496,48 @@ export const classicyAppEventHandler = (
 			}
 			break;
 		}
+		// Session places (never persisted): the file dialog's last folder and
+		// a tab strip's last tab.
+		case "ClassicyAppRememberFileDialogFolder": {
+			const app = hasApp(action)
+				? ds.System.Manager.Applications.apps[action.app.id]
+				: undefined;
+			const { volumeId, path } = action as {
+				volumeId?: unknown;
+				path?: unknown;
+			};
+			if (
+				app &&
+				typeof volumeId === "string" &&
+				Array.isArray(path) &&
+				path.every((name) => typeof name === "string")
+			) {
+				app.session = {
+					...app.session,
+					fileDialog: { volumeId, path: [...(path as string[])] },
+				};
+			}
+			break;
+		}
+		case "ClassicyAppRememberTab": {
+			const app = hasApp(action)
+				? ds.System.Manager.Applications.apps[action.app.id]
+				: undefined;
+			const { tabs, index } = action as { tabs?: unknown; index?: unknown };
+			if (
+				app &&
+				typeof tabs === "string" &&
+				typeof index === "number" &&
+				Number.isInteger(index) &&
+				index >= 0
+			) {
+				app.session = {
+					...app.session,
+					tabs: { ...app.session?.tabs, [tabs]: index },
+				};
+			}
+			break;
+		}
 		case "ClassicyAppSetDefaultFileTypeHandler": {
 			if (hasAppAndFileType(action)) {
 				ds.System.Manager.Applications.fileTypeHandlers[
@@ -438,12 +552,22 @@ export const classicyAppEventHandler = (
 				if (app) {
 					if (!app.data) app.data = {};
 					const openFiles = app.data.openFiles;
+					const wasOpen =
+						Array.isArray(openFiles) && openFiles.includes(action.path);
 					if (!Array.isArray(openFiles)) {
 						app.data.openFiles = [action.path];
 					} else if (!openFiles.includes(action.path)) {
 						app.data.openFiles = [...openFiles, action.path];
 					}
 					openApp(ds, app.id, app.name, app.icon);
+					// Under `document.reopenActivates`, an open document's own
+					// window (ClassicyApp's file-window id) comes forward.
+					focusClassicyReopenedWindow(
+						ds,
+						app.id,
+						`${app.id}_file_${action.path}`,
+						wasOpen,
+					);
 				}
 			} else if (action.type.endsWith("CloseFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];

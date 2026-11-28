@@ -1,0 +1,516 @@
+// The Windows 98 push button family, included by windows98.scss inside the
+// package wrapper; overrides the structure of ClassicyButton.scss,
+// ClassicyBevelButton.scss, ClassicyHelpButton.scss,
+// ClassicyButtonToolbar.scss, ClassicyDisclosure.scss and
+// ClassicyTriangle.scss. The look is the Windows 95/98 command button and
+// toolbar button as `DrawFrameControl` drew them from the system colors (as
+// 98.css, os-gui and React95 re-create them, and as Wine's uitools.c and
+// button.c emulate them pixel for pixel):
+//
+// - A push button: a ButtonFace box `--push-button-height` (23) tall and
+//   `--button-min-width` (75) wide at least, the label WindowText in the UI
+//   font `--button-text-padding` (12) from each end, in the raised two-ring
+//   bevel (`b.raised`: ButtonHilight and ButtonLight at the top and left,
+//   ButtonDkShadow and ButtonShadow at the bottom and right). Pressed (the
+//   mouse down, the `pressed` prop, the keyboard flash), the rings turn
+//   (`b.pressed`) and the label steps one pixel down and right. The default
+//   button is ringed in WindowFrame, the same bevel one ring inside; pressed,
+//   Windows draws it flat: the ring and one ring of ButtonShadow (Wine's
+//   DFCS_FLAT for a pushed BS_DEFPUSHBUTTON, where any other button takes
+//   DFCS_PUSHED). Disabled, the bevel stays raised and the label is
+//   embossed: ButtonShadow over a ButtonHilight copy one ring down and right
+//   (`b.disabled-label`, DrawState's DSS_DISABLED). The label's ink is
+//   ButtonText (`b.$button-text`), WindowText's twin in every scheme but High
+//   Contrast #1's. The keyboard focus is the dotted rectangle inside
+//   the bevel (WIG Ch.7 "Command Buttons", Table 7.4 (p.113), the input
+//   focus appearance) whose line lies `--push-button-focus-inset` (3) pixels
+//   in (two rings of bevel, one of face: the row Windows draws it on, the
+//   client rectangle less the 2-pixel edge, deflated once more, as 98.css's
+//   `outline-offset: -4px` has it too), one further in on the default button,
+//   whose ring takes the first; `:focus-visible` only, so a mouse click
+//   leaves none behind.
+// - A bevel button (toolbar, palette, toggle, radio or pop-up): the same
+//   raised ButtonFace box, its content a pixel down and right with the rings
+//   turned while pressed, latched (checked) or open; latched or open, the
+//   face is the 50% checker of ButtonFace and ButtonHilight that Windows
+//   fills a checked button with (DFCS_CHECKED, the option-set appearance,
+//   WIG Ch.13 "Option-Set Appearance" (pp.304-305, Fig. 13.12)): a menu button
+//   whose menu is displayed takes it too (WIG Ch.7 "Command Buttons" (p.115;
+//   Fig. 7.8, p.114)). Mixed (a property whose values differ over the selection),
+//   the checker on the face with the rings still raised and the content in
+//   place: the mixed-value appearance (WIG Ch.13 "Mixed-Value Appearance"
+//   (p.306, Fig. 13.15), where only a set button is sunken). Disabled, the
+//   rings stay raised and the label is embossed; disabled and latched,
+//   sunken with the checker omitted (WIG Ch.13 "Unavailable Appearance"
+//   (pp.306-307, Fig. 13.19)); disabled and mixed, the plain disabled button.
+//   Inside a ClassicyButtonToolbar it is a Windows 98 flat toolbar button
+//   (TBSTYLE_FLAT, the 98 shell's and IE4's): no bevel at rest, one raised
+//   ring under the mouse, one sunken ring pressed or latched (a mixed one
+//   keeps the flat face under its checker). The Windows 95 scheme raises it
+//   at rest instead, as Windows 95's toolbars drew their buttons (WIG Ch.7
+//   "Toolbars and Status Bars", p.136, Figure 7.34; comctl32 without
+//   TBSTYLE_FLAT: EDGE_RAISED with BF_SOFT at rest, no change under the
+//   mouse, EDGE_SUNKEN pressed or latched): the theme knob
+//   `toolbar.restBevel` is the rest bevel's ring width, 0 flat and 1 raised,
+//   the one rule drawing both. A disabled button's image is the active
+//   package's embossed one (`iconDimming.disabledControl`, DSS_DISABLED:
+//   its ink in ButtonShadow over a ButtonHilight copy), drawn whole where
+//   the base sheet halves its opacity; and it takes the WIG's two
+//   toolbar button sizes (Ch.7 "Support for User Options" (p.137); Ch.13
+//   "Font and Size" (p.311) names the 24 x 22 one, its 16 x 16 glyph
+//   centered on the face): 32 x 30 with a 24 x 24 image in a large toolbar
+//   (the default size), 24 x 22 with a 16 x 16 image in a medium or small
+//   one (`toolbar.largeButtonWidth`/`-Height` and
+//   `toolbar.buttonWidth`/`-Height`; an icon-only button is the whole box,
+//   its image inset 4 and 3, and a labeled one keeps its width at the same
+//   height). Its pop-up arrow and pop-up panel are _PopUpMenu.scss's.
+// - The help button: the caption help "?" (DFCS_CAPTIONHELP, 6 x 10) as
+//   pixel art centered on the bevel button's 20 x 21 box, in place of the
+//   default package's art (the package registers no `helpButton` art:
+//   Windows drew the mark in the scheme's colors).
+// - The disclosure triangle: Windows' tree-view button, a 9 x 9 box in a
+//   ButtonShadow line on Window white with a black + while closed and a -
+//   while open, drawn centered on the component's 17 x 17 box in place of
+//   its triangle, the rotations undone (the box is held at that size here,
+//   since the Finder's list view shortens the svg to 15, which would set the
+//   art a pixel low); a disclosure header's keyboard focus is the dotted
+//   rectangle.
+// - Every label is in the one UI font size: Windows has no small button, so
+//   the base's smaller sizes for a small push button and for a toolbar's
+//   size variants give way to `--ui-font-size`, which the pixel face is cut
+//   for.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03        every face
+//   ButtonHilight     --color-system-01        the outer top-left ring, the
+//                                              emboss, the checker's light
+//   ButtonLight       --color-system-02        the inner top-left ring
+//   ButtonShadow      --color-system-05        the inner bottom-right ring,
+//                                              the embossed glyphs, the
+//                                              disabled label, the pressed default
+//                                              button's ring, the tree box's
+//                                              line
+//   ButtonDkShadow    --color-system-07        the outer bottom-right ring
+//   WindowFrame       --color-window-border    the default button's ring
+//   WindowText        --color-black            labels and marks
+//   Window            --color-window-document  the tree box's inside
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// every glyph a stack of one-pixel rectangles on the `--pixel-unit` grid
+// (`pixel-art`, `runs`, ../_pixel.scss), every color a token.
+@use "sass:list";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// --- Colors and lengths ---------------------------------------------------
+// WindowFrame, the default button's ring (black in every Windows scheme).
+$frame: var(--color-window-border);
+
+// Three rings, and its negative (the third ring's offset toward the bottom
+// or right).
+$b3: calc(#{b.$b2} + #{b.$b});
+$neg-b3: calc(#{$b3} * -1);
+
+// The 50% checker of ButtonFace and ButtonHilight on the pixel grid, the
+// face of a latched button (UITOOLS_DrawCheckedRect).
+$checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
+
+// --- Art --------------------------------------------------------------------
+// The caption help "?" (6 x 10): a two-pixel stroke, its hook, a gap and
+// the dot.
+$question: runs(
+  (".xxxx.", "xx..xx", "xx..xx", "....xx", "...xx.", "..xx..", "..xx..", "......", "..xx..", "..xx.."),
+  "x"
+);
+
+// The tree-view button (9 x 9): its ButtonShadow line (s), its inside
+// (Window white, .) and the + (x), the - its bar alone:
+//
+//   sssssssss
+//   s.......s
+//   s...x...s
+//   s...x...s
+//   s.xxxxx.s
+//   s...x...s
+//   s...x...s
+//   s.......s
+//   sssssssss
+$tree-line: (0 0 9 1) (0 8 9 1) (0 1 1 7) (8 1 1 7);
+$tree-inside: ((1 1 7 7),);
+$tree-plus: (4 2 1 5) (2 4 5 1);
+$tree-minus: ((2 4 5 1),);
+
+// `$rects` moved `$dx`, `$dy` grid pixels: the art placed inside its box by
+// its coordinates (numbers, so each lands as one `px()` length).
+@function shift($rects, $dx, $dy) {
+  $moved: ();
+  @each $rect in $rects {
+    $w: 1;
+    $h: 1;
+    @if list.length($rect) > 2 {
+      $w: list.nth($rect, 3);
+      $h: list.nth($rect, 4);
+    }
+    $moved: list.append(
+      $moved,
+      (list.nth($rect, 1) + $dx) (list.nth($rect, 2) + $dy) $w $h,
+      $separator: comma
+    );
+  }
+  @return $moved;
+}
+
+// A glyph `$art` at grid (`$x`, `$y`) in ButtonText over ButtonFace; the
+// same a pixel down and right, pressed; and embossed, disabled: ButtonShadow
+// over its ButtonHilight copy one pixel down and right (DFCS_INACTIVE).
+@function glyph($art, $x, $y) {
+  @return pixel-art(b.$button-text, shift($art, $x, $y)), b.$face;
+}
+
+@function glyph-pressed($art, $x, $y) {
+  @return pixel-art(b.$button-text, shift($art, $x + 1, $y + 1)), b.$face;
+}
+
+@function glyph-embossed($art, $x, $y) {
+  @return pixel-art(b.$shadow, shift($art, $x, $y)), pixel-art(b.$hilight, shift($art, $x + 1, $y + 1)), b.$face;
+}
+
+// The tree-view button with `$mark` (the + or the -), at (4, 4) in the
+// triangle's 17 x 17 box: the mark over the white inside over the line.
+@function tree-button($mark) {
+  @return list.join(
+    list.join(pixel-art(b.$text, shift($mark, 4, 4)), pixel-art(b.$window, shift($tree-inside, 4, 4)), comma),
+    pixel-art(b.$shadow, shift($tree-line, 4, 4)),
+    comma
+  );
+}
+
+// --- Bevels -----------------------------------------------------------------
+// The default button: the WindowFrame ring, the raised bevel one ring in.
+@mixin ringed-raised {
+  box-shadow:
+    inset 0 0 0 b.$b $frame,
+    inset b.$neg-b2 b.$neg-b2 b.$dkshadow,
+    inset b.$b2 b.$b2 b.$hilight,
+    inset $neg-b3 $neg-b3 b.$shadow,
+    inset $b3 $b3 b.$light;
+}
+
+// The default button pressed: the ring, then one ring of ButtonShadow.
+@mixin ringed-flat {
+  box-shadow:
+    inset 0 0 0 b.$b $frame,
+    inset 0 0 0 b.$b2 b.$shadow;
+}
+
+// A toolbar button's bevel, from the theme knob `toolbar.restBevel` (`$w`,
+// the rest bevel's ring width: 0 under Windows 98's schemes, 1 under Windows
+// 95's). At rest, the raised two-ring bevel (EDGE_RAISED | BF_SOFT, a push
+// button's) `$w` wide each ring: nothing at 0, the flat button. Under the
+// mouse, one raised ring (BDR_RAISEDINNER) where the rest bevel is flat,
+// `$hot` = one ring less `$w`, over the rest bevel (so at 1 it is the raised
+// bevel alone, Windows 95's buttons not tracking the mouse). Pressed or
+// latched, the outer sunken ring (BDR_SUNKENOUTER), then a second ring
+// inside it, ButtonDkShadow and ButtonLight, `$w` further in (EDGE_SUNKEN's
+// inner ring): at 0 it lies under the outer ring, drawn first, and shows
+// nothing.
+$rest: var(--toolbar-rest-bevel);
+$hot: max(0px, calc(#{b.$b} - #{$rest}));
+$neg-rest: calc(#{$rest} * -1);
+$rest2: calc(#{$rest} + #{$rest});
+$neg-rest2: calc(#{$rest2} * -1);
+$neg-hot: calc(#{$hot} * -1);
+$down-inner: calc(#{b.$b} + #{$rest});
+$neg-down-inner: calc(#{$down-inner} * -1);
+
+@mixin toolbar-rest {
+  box-shadow:
+    inset $neg-rest $neg-rest b.$dkshadow,
+    inset $rest $rest b.$hilight,
+    inset $neg-rest2 $neg-rest2 b.$shadow,
+    inset $rest2 $rest2 b.$light;
+}
+
+@mixin toolbar-hot {
+  box-shadow:
+    inset $neg-hot $neg-hot b.$shadow,
+    inset $hot $hot b.$hilight,
+    inset $neg-rest $neg-rest b.$dkshadow,
+    inset $rest $rest b.$hilight,
+    inset $neg-rest2 $neg-rest2 b.$shadow,
+    inset $rest2 $rest2 b.$light;
+}
+
+@mixin toolbar-down {
+  box-shadow:
+    inset b.$b b.$b b.$shadow,
+    inset b.$neg-b b.$neg-b b.$hilight,
+    inset $down-inner $down-inner b.$dkshadow,
+    inset $neg-down-inner $neg-down-inner b.$light;
+}
+
+// The dotted keyboard focus rectangle whose line lies on pixel row `$at`
+// from the edge (the outline hugs the edge one ring further in).
+@mixin focus-line($at) {
+  @include b.focus-rect(calc(#{$at} + #{b.$b}));
+}
+
+// The states that press a push button: the mouse down on it, the `pressed`
+// prop and the keyboard-activation flash. A disabled button never presses.
+$pressed: ":is(:active, .pressed, .classicyButtonKeyActive)";
+
+// The states that turn a bevel button's rings: pressed, latched (checked),
+// or its pop-up open. A mixed button's stay raised (WIG Fig. 13.15).
+$down: ":is(:active, .pressed, .checked, .open)";
+
+@mixin button {
+  // ----- Push buttons -------------------------------------------------------
+  .classicyButton {
+    box-sizing: border-box;
+    min-height: var(--push-button-height);
+    // One pixel above and below the label: pressed, both move to the top,
+    // so the label steps down a pixel in a content box of the same height.
+    padding: $px var(--button-text-padding);
+    border: 0;
+    border-radius: 0;
+    color: b.$button-text;
+    text-shadow: none;
+    background: b.$face;
+    @include b.raised;
+    cursor: default;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include focus-line(var(--push-button-focus-inset));
+    }
+  }
+
+  // A square (icon) button has no padding, as the base has it; a small one
+  // is a row's height, its label in the UI font size still (Windows has no
+  // smaller button face).
+  .classicyButton.classicyButtonShapeSquare {
+    padding: 0;
+  }
+
+  .classicyButton.classicyButtonSmall {
+    min-height: var(--control-row-height);
+    font-size: var(--ui-font-size);
+  }
+
+  // Pressed: the rings turn, the label a pixel down and right (a square
+  // button's icon by its own step, its padding being none).
+  .classicyButton:not(:disabled)#{$pressed} {
+    color: b.$button-text;
+    background: b.$face;
+    @include b.pressed;
+  }
+
+  .classicyButton:not(:disabled):not(.classicyButtonShapeSquare)#{$pressed} {
+    padding: px(2) calc(var(--button-text-padding) - #{$px}) 0 calc(var(--button-text-padding) + #{$px});
+  }
+
+  .classicyButton.classicyButtonShapeSquare:not(:disabled)#{$pressed} > * {
+    translate: $px $px;
+  }
+
+  // The default button: ringed in WindowFrame, its focus a ring further in.
+  .classicyButton.default {
+    @include ringed-raised;
+
+    &:focus-visible {
+      @include focus-line(calc(var(--push-button-focus-inset) + #{b.$b}));
+    }
+  }
+
+  // The default button pressed: flat inside its ring.
+  .classicyButton.default:not(:disabled)#{$pressed} {
+    @include ringed-flat;
+  }
+
+  // A button's access key (the core's `access-key` part, the remaining
+  // chapters' audit's 4.11; WIG Ch.4 "Access Keys" (p.27); Appendix B
+  // Table B.5 (p.360): "&Yes", "&Open"), underlined in its label's ink as
+  // DrawText draws a prefixed character, always shown; disabled, the
+  // label's emboss shadows it too.
+  .classicyButton [data-classicy-part="access-key"] {
+    @include b.access-key;
+  }
+
+  // Disabled: raised still, the label embossed; the default's ring stays.
+  .classicyButton:disabled {
+    background: b.$face;
+    @include b.raised;
+    @include b.disabled-label;
+
+    * {
+      color: b.$shadow;
+    }
+  }
+
+  .classicyButton.default:disabled {
+    @include ringed-raised;
+  }
+
+  // ----- Bevel buttons ------------------------------------------------------
+  .classicyBevelButton {
+    border: 0;
+    border-radius: 0;
+    // The one UI font size, in a toolbar's size variants too.
+    font-size: var(--ui-font-size);
+    color: b.$button-text;
+    text-shadow: none;
+    background: b.$face;
+    @include b.raised;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include focus-line(var(--push-button-focus-inset));
+    }
+  }
+
+  // Pressed, latched or open: the rings turn, the content a pixel down and
+  // right; latched, mixed or open, the checker face: the option-set
+  // appearance (WIG Ch.13 "Option-Set Appearance" (pp.304-305, Fig. 13.12)) and,
+  // on a mixed button, whose rings stay as they are (the root's raised
+  // bevel, or a toolbar's flat face) and whose content stays in place, the
+  // mixed-value appearance (WIG Ch.13 "Mixed-Value Appearance" (p.306,
+  // Fig. 13.15): only a set button is sunken).
+  .classicyBevelButton:not(.disabled)#{$down} {
+    color: b.$button-text;
+    background: b.$face;
+    @include b.pressed;
+
+    > * {
+      translate: $px $px;
+    }
+  }
+
+  .classicyBevelButton:not(.disabled):is(.checked, .mixed, .open) {
+    background: $checker;
+  }
+
+  // Disabled: raised, the label embossed (the base dims the icon); a
+  // disabled latched button stays latched, sunken, with the checker omitted
+  // (WIG Ch.13 "Unavailable Appearance" (pp.306-307, Fig. 13.19)); a disabled
+  // mixed button is the plain disabled one.
+  .classicyBevelButton.disabled {
+    background: b.$face;
+    @include b.raised;
+    @include b.disabled-label;
+  }
+
+  .classicyBevelButton.disabled.checked {
+    @include b.pressed;
+  }
+
+  // In a toolbar, the Windows 98 flat button: no bevel until the mouse is
+  // over it (one raised ring), one sunken ring pressed or latched (a mixed
+  // one keeps the flat face under its checker, Fig. 13.15's raised button
+  // flattened; a disabled latched one its sunken ring, no checker). Under
+  // the Windows 95 scheme (`--toolbar-rest-bevel` 1) the same rules draw
+  // Windows 95's raised toolbar button: the raised bevel at rest and under
+  // the mouse, the two-ring sunken one pressed or latched.
+  .classicyButtonToolbar .classicyBevelButton {
+    @include toolbar-rest;
+  }
+
+  .classicyButtonToolbar .classicyBevelButton:not(.disabled):hover {
+    @include toolbar-hot;
+  }
+
+  .classicyButtonToolbar .classicyBevelButton:not(.disabled)#{$down},
+  .classicyButtonToolbar .classicyBevelButton.disabled.checked {
+    @include toolbar-down;
+  }
+
+  // A disabled button's embossed image (the package's `disabledControl`
+  // emboss, marked `classicyIconDimmedImage`) is drawn whole: the base sheet
+  // halves a disabled bevel button's image, the dimming the emboss replaces.
+  .classicyBevelButton.disabled .classicyBevelButtonIcon.classicyIconDimmedImage {
+    opacity: 1;
+  }
+
+  // The toolbar button sizes (WIG Ch.7 "Support for User Options", p.137):
+  // 32 x 30 in a large toolbar (the base's default size), 24 x 22 in a
+  // medium or small one, an icon-only (square) button the whole box with
+  // its image, 24 x 24 or 16 x 16, four pixels in at the sides and three at
+  // the top and bottom; a labeled button takes the row's height alone. The
+  // help button keeps its own 20 x 21 box (its "?" is placed on it).
+  .classicyButtonToolbar .classicyBevelButton {
+    box-sizing: border-box;
+    height: var(--toolbar-large-button-height);
+  }
+
+  .classicyButtonToolbar .classicyBevelButton.classicyBevelButtonSquare:not(.classicyHelpButton) {
+    width: var(--toolbar-large-button-width);
+    padding: px(3) px(4);
+  }
+
+  :is(.classicyButtonToolbarSizeMedium, .classicyButtonToolbarSizeSmall) .classicyBevelButton {
+    height: var(--toolbar-button-height);
+  }
+
+  :is(.classicyButtonToolbarSizeMedium, .classicyButtonToolbarSizeSmall)
+    .classicyBevelButton.classicyBevelButtonSquare:not(.classicyHelpButton) {
+    width: var(--toolbar-button-width);
+  }
+
+  .classicyButtonToolbar .classicyBevelButton.classicyHelpButton {
+    height: var(--help-button-height);
+  }
+
+  // ----- The help button ----------------------------------------------------
+  // The "?" at (7, 5) of the 20 x 21 box, the registered art not drawn.
+  .classicyBevelButton.classicyHelpButton {
+    background: glyph($question, 7, 5);
+
+    .classicyBevelButtonIcon {
+      display: none;
+    }
+  }
+
+  .classicyBevelButton.classicyHelpButton:not(.disabled)#{$down} {
+    background: glyph-pressed($question, 7, 5);
+  }
+
+  .classicyBevelButton.classicyHelpButton.disabled {
+    background: glyph-embossed($question, 7, 5);
+  }
+
+  // ----- The disclosure triangle --------------------------------------------
+  // The tree-view button on the triangle's box, upright whichever way the
+  // component turns it: the + while closed, the - while open. The box keeps
+  // the component's 17 x 17 wherever it is drawn (the Finder's list view
+  // shortens the svg to the glyph size), so the art stays centered on it.
+  .classicyTriangle {
+    width: calc(var(--window-control-size) + var(--window-padding-size));
+    height: calc(var(--window-control-size) + var(--window-padding-size));
+    transition: none;
+    transform: none;
+    background: tree-button($tree-plus);
+
+    polygon {
+      display: none;
+    }
+  }
+
+  .classicyTriangle:is(.classicyTriangleRightOpen, .classicyTriangleLeftOpen, .classicyTriangleUpOpen, .classicyTriangleDownOpen) {
+    background: tree-button($tree-minus);
+  }
+
+  // A disclosure header's keyboard focus: the dotted rectangle on its box.
+  .classicyDisclosureHeader:focus {
+    outline: none;
+  }
+
+  .classicyDisclosureHeader:focus-visible {
+    outline: b.$b dotted b.$text;
+    outline-offset: 0;
+  }
+}

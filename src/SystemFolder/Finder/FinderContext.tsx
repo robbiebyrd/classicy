@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	hasFinderFile,
 	hasPath,
@@ -7,6 +8,7 @@ import {
 import {
 	type ClassicyActionTrust,
 	checkClassicyActionTrust,
+	classicyActionTrustOf,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	focusWindow,
@@ -34,9 +36,25 @@ import {
 	setAppWindow,
 	updateAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { focusClassicyReopenedWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDocumentReopen";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import {
+	type ClassicyPropertiesTarget,
+	classicyPropertiesKey,
+	classicyPropertiesWindowId,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileProperties";
+import {
+	classicyShortcutProblem,
+	resolveClassicyFileShortcut,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileShortcut";
+import { getClassicySharedFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { classicyExtensionControlPanelId } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	noteClassicyRecentDocument,
+	renameClassicyRecentDocuments,
+} from "@/SystemFolder/SystemResources/File/ClassicyRecentDocuments.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 
@@ -132,6 +150,48 @@ export const FinderDataSchema = z.looseObject({
 		.describe(
 			"Explicit per-folder view type. A path absent from this map follows the standard views.",
 		),
+	confirmDelete: z
+		.object({
+			paths: z.array(z.string()),
+			trust: z.enum(["trusted", "untrusted"]),
+		})
+		.optional()
+		.describe(
+			"A Delete waiting for its confirmation (Explorer's commands, `layout.finder.commands` \"windows\"): the items' paths and the trust the request arrived with. Session-only: never persisted.",
+		),
+	desktopShortcutOffer: z
+		.object({ paths: z.array(z.string()) })
+		.optional()
+		.describe(
+			"A Create Shortcut waiting for its answer (Explorer's commands): items whose folder takes no shortcut, which Windows 98 offers to make on the desktop instead. Session-only: never persisted.",
+		),
+	hideFileExtensions: z
+		.boolean()
+		.optional()
+		.describe(
+			'Finder Preferences\' "Hide file extensions for known file types" (Windows 98\'s Folder Options, offered under `layout.files.extensions` "hideRegistered"): on unless false.',
+		),
+	properties: z
+		.array(
+			z.object({
+				key: z.string(),
+				paths: z.array(z.string()).optional(),
+				appId: z.string().optional(),
+			}),
+		)
+		.optional()
+		.describe(
+			"The open property sheets (Explorer's Properties, `layout.finder.commands` \"windows\"), in open order: each its key (one path, several sorted paths joined by ::, or : and an app id) and the items' paths or the application's id. Session-only: never persisted.",
+		),
+	openWith: z
+		.object({
+			path: z.string(),
+			trust: z.enum(["trusted", "untrusted"]),
+		})
+		.optional()
+		.describe(
+			'An open waiting in the Open With dialog (`layout.files.unregisteredOpen` "openWith"): the file\'s path and the trust the open arrived with. Session-only: never persisted.',
+		),
 });
 
 export type FinderData = z.infer<typeof FinderDataSchema>;
@@ -160,6 +220,18 @@ const readPathMoves = (
 		: [];
 
 /**
+ * Records a document Finder opened for Start ▸ Documents
+ * (`ClassicyRecentDocuments.internal.ts`, plan 0020-w98 E2), as Windows'
+ * shell adds a document opened from the Explorer to its Recent folder. Only a
+ * trusted open: an untrusted one (a stack script's) may have been refused
+ * past this point, and never lists a document the user did not open.
+ */
+const noteRecentDocument = (path: string, trust: ClassicyActionTrust): void => {
+	if (classicyActionTrustOf(trust) === "trusted")
+		noteClassicyRecentDocument(path);
+};
+
+/**
  * Queue `path` on Finder's own record through the generic OpenFile handler,
  * by its record name, checked like any generic open: the type is not
  * necessarily the `ClassicyAppFinderOpenFile` that reached Finder.
@@ -179,11 +251,57 @@ const openInFinder = (
 	});
 };
 
+/** The types Finder's open routes itself, never to an application. */
+const ROUTED_BY_FINDER: ReadonlySet<string> = new Set([
+	ClassicyFileSystemEntryFileType.Extension,
+	ClassicyFileSystemEntryFileType.FileShortcut,
+	ClassicyFileSystemEntryFileType.AppShortcut,
+	ClassicyFileSystemEntryFileType.Shortcut,
+	ClassicyFileSystemEntryFileType.Directory,
+	ClassicyFileSystemEntryFileType.Drive,
+]);
+
+/**
+ * Whether opening `file` would show the Open With dialog (Finder's
+ * `ClassicyAppFinderOpenFile`, under `packageId`'s layout, the active
+ * package's when omitted, saying `files.unregisteredOpen: "openWith"`): a
+ * file Finder does not route itself (no system file, Extension, shortcut,
+ * folder, drive or legacy QuickTime document) whose type has no loaded
+ * application but the Finder in `applications.fileTypeHandlers`. Its
+ * item's menu then titles Open "Open With…". Store-free and pure.
+ */
+export const classicyFinderOpensWithDialog = (
+	file: Record<string, unknown> | undefined,
+	applications: {
+		fileTypeHandlers: Readonly<Partial<Record<string, string>>>;
+		apps: Readonly<Record<string, unknown>>;
+	},
+	packageId?: string,
+): boolean => {
+	if (
+		getClassicyAppearanceLayout(packageId).files?.unregisteredOpen !==
+		"openWith"
+	)
+		return false;
+	if (!file || file._system === true || file._creator === "QuickTime")
+		return false;
+	const type = file._type;
+	if (typeof type !== "string" || ROUTED_BY_FINDER.has(type)) return false;
+	const handler = Object.hasOwn(applications.fileTypeHandlers, type)
+		? applications.fileTypeHandlers[type]
+		: undefined;
+	return !(
+		typeof handler === "string" &&
+		handler !== "Finder.app" &&
+		Object.hasOwn(applications.apps, handler)
+	);
+};
+
 export const classicyFinderEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
 	trust: ClassicyActionTrust,
-) => {
+): ClassicyStore => {
 	const appId = "Finder.app";
 	if (!ds.System.Manager.Applications.apps[appId]) return ds;
 	const raw = ds.System.Manager.Applications.apps[appId].data ?? {};
@@ -196,6 +314,14 @@ export const classicyFinderEventHandler = (
 				appData = { ...appData, openPaths: [action.path] };
 				break;
 			}
+			// Under `document.reopenActivates`, an open folder's window (keyed
+			// by its path) comes forward, from the desktop's icons too.
+			focusClassicyReopenedWindow(
+				ds,
+				appId,
+				action.path,
+				appData.openPaths.includes(action.path),
+			);
 
 			appData = {
 				...appData,
@@ -313,6 +439,9 @@ export const classicyFinderEventHandler = (
 			// zoom — all follow it to the new path.
 			const moves = readPathMoves(action);
 			if (moves.length === 0) break;
+			// Start ▸ Documents follows a moved document, as Windows' shortcuts
+			// follow their target.
+			renameClassicyRecentDocuments(moves);
 			const rename = (p: string): string => {
 				for (const { from, to } of moves) {
 					if (p === from) return to;
@@ -330,8 +459,23 @@ export const classicyFinderEventHandler = (
 					setAppWindow(app, { ...record, id: newPath });
 				}
 			}
+			// An open property sheet follows its items too (a rename through
+			// its own name field included), its window record with it.
+			const sheets = appData.properties?.map((sheet) => {
+				if (!sheet.paths) return sheet;
+				const paths = sheet.paths.map(rename);
+				if (paths.every((p, i) => p === sheet.paths?.[i])) return sheet;
+				const key = classicyPropertiesKey({ paths });
+				const record = getAppWindow(app, classicyPropertiesWindowId(sheet.key));
+				if (record) {
+					removeAppWindow(app, classicyPropertiesWindowId(sheet.key));
+					setAppWindow(app, { ...record, id: classicyPropertiesWindowId(key) });
+				}
+				return { key, paths };
+			});
 			appData = {
 				...appData,
+				...(sheets ? { properties: sheets } : {}),
 				...(appData.openPaths
 					? { openPaths: appData.openPaths.map(rename) }
 					: {}),
@@ -348,6 +492,127 @@ export const classicyFinderEventHandler = (
 			};
 			break;
 		}
+		case "ClassicyAppFinderConfirmDelete": {
+			// A Delete under Explorer's commands asks first (the trash
+			// wrapper's `classicyDeleteConfirms`): Finder shows Windows 98
+			// SE's "Confirm File Delete" box over these paths, and its Yes
+			// moves them under the trust the request arrived with.
+			if (!hasPaths(action)) break;
+			const paths = (action.paths as string[]).filter(
+				(p) => typeof p === "string" && p !== "",
+			);
+			if (paths.length === 0) break;
+			appData = {
+				...appData,
+				confirmDelete: { paths, trust: classicyActionTrustOf(trust) },
+			};
+			break;
+		}
+		case "ClassicyAppFinderConfirmDeleteClose": {
+			const { confirmDelete: _answered, ...rest } = appData;
+			appData = rest;
+			break;
+		}
+		case "ClassicyAppFinderOfferDesktopShortcut": {
+			// Create Shortcut on an item whose folder takes no shortcut (a
+			// drive, an item of a derived folder): Finder asks Windows 98 SE's
+			// "Windows cannot create a shortcut here." and its Yes makes the
+			// shortcuts on the desktop.
+			if (!hasPaths(action)) break;
+			const paths = (action.paths as string[]).filter(
+				(p) => typeof p === "string" && p !== "",
+			);
+			if (paths.length === 0) break;
+			appData = { ...appData, desktopShortcutOffer: { paths } };
+			break;
+		}
+		case "ClassicyAppFinderOfferDesktopShortcutClose": {
+			const { desktopShortcutOffer: _answered, ...rest } = appData;
+			appData = rest;
+			break;
+		}
+		case "ClassicyAppFinderPropertiesOpen": {
+			// Explorer's Properties (WIG Ch.2 pp.12-13; Ch.5 "Properties",
+			// p.51): a sheet for the items or the application, or the open
+			// one focused, as choosing Properties again activates it.
+			const { paths: rawPaths, appId: rawAppId } = action as {
+				paths?: unknown;
+				appId?: unknown;
+			};
+			const paths = Array.isArray(rawPaths)
+				? rawPaths.filter((p): p is string => typeof p === "string" && p !== "")
+				: [];
+			const target: ClassicyPropertiesTarget | undefined =
+				paths.length > 0
+					? { paths }
+					: typeof rawAppId === "string" && rawAppId !== ""
+						? { appId: rawAppId }
+						: undefined;
+			if (!target) break;
+			const key = classicyPropertiesKey(target);
+			const open = appData.properties ?? [];
+			if (!open.some((sheet) => sheet.key === key)) {
+				appData = {
+					...appData,
+					properties: [
+						...open,
+						"appId" in target
+							? { key, appId: target.appId }
+							: { key, paths: [...target.paths] },
+					],
+				};
+			}
+			ds = focusWindow(ds, appId, classicyPropertiesWindowId(key));
+			break;
+		}
+		case "ClassicyAppFinderPropertiesClose": {
+			const key = (action as { key?: unknown }).key;
+			if (typeof key !== "string") break;
+			appData = {
+				...appData,
+				properties: (appData.properties ?? []).filter(
+					(sheet) => sheet.key !== key,
+				),
+			};
+			// A sheet keeps no place: the next opens where Windows opens one.
+			removeAppWindow(
+				ds.System.Manager.Applications.apps[appId],
+				classicyPropertiesWindowId(key),
+			);
+			break;
+		}
+		case "ClassicyAppFinderSetHideFileExtensions": {
+			const hide = (action as { hide?: unknown }).hide;
+			if (typeof hide !== "boolean") break;
+			appData = { ...appData, hideFileExtensions: hide };
+			break;
+		}
+		case "ClassicyAppFinderOpenWithChoose": {
+			// The Open With dialog's OK: the file opens in the application
+			// chosen, under the trust its open arrived with (or this
+			// action's, should it be the lesser).
+			const pending = appData.openWith;
+			const { openWith: _answered, ...rest } = appData;
+			appData = rest;
+			const chosen = (action as { appId?: unknown }).appId;
+			const app =
+				typeof chosen === "string" && chosen !== appId
+					? ds.System.Manager.Applications.apps[chosen]
+					: undefined;
+			if (!pending || !app) break;
+			ds.System.Manager.Applications.apps[appId].data = { ...appData };
+			const level =
+				classicyActionTrustOf(trust) === "untrusted" ||
+				pending.trust === "untrusted"
+					? "untrusted"
+					: "trusted";
+			return routeClassicyAppOpenFile(ds, app, pending.path, level);
+		}
+		case "ClassicyAppFinderOpenWithClose": {
+			const { openWith: _answered, ...rest } = appData;
+			appData = rest;
+			break;
+		}
 		case "ClassicyAppFinderEmptyTrash": {
 			// TODO: What will this do?
 			break;
@@ -362,6 +627,22 @@ export const classicyFinderEventHandler = (
 				return ds;
 			}
 			if (file?._type === ClassicyFileSystemEntryFileType.Extension) {
+				// Explorer's commands (`layout.finder.commands` "windows"; WIG
+				// Ch.9 p.176): a double-click runs the entry's Properties,
+				// the control panel that sets it up, when one does.
+				const panelId = classicyExtensionControlPanelId(file);
+				const panel = panelId
+					? ds.System.Manager.Applications.apps[panelId]
+					: undefined;
+				if (
+					panel &&
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId)
+						.finder?.commands === "windows"
+				) {
+					if (!checkClassicyActionTrust(trust, "ClassicyAppOpen")) return ds;
+					openApp(ds, panel.id, panel.name, panel.icon);
+					return ds;
+				}
 				// Mac OS 8 behavior: extensions add functionality at boot and are
 				// not openable documents or applications.
 				ds.System.Manager.Desktop.errorDialog = {
@@ -369,6 +650,48 @@ export const classicyFinderEventHandler = (
 					message:
 						"This file adds functionality to your computer. It cannot be opened.",
 				};
+				return ds;
+			}
+			if (file?._type === ClassicyFileSystemEntryFileType.FileShortcut) {
+				// A file shortcut (Explorer's Create Shortcut; WIG Ch.10
+				// "Registering Commands", pp.200-201) opens its target, read
+				// from the live tree, as a double-click on the target would and
+				// under the trust this open arrived with: a folder or drive in a
+				// window, anything else through this same case.
+				const fs = getClassicySharedFileSystem();
+				const target = fs ? resolveClassicyFileShortcut(fs, file) : undefined;
+				if (target?.found) {
+					const opensFolder =
+						target.entry._type === ClassicyFileSystemEntryFileType.Directory ||
+						target.entry._type === ClassicyFileSystemEntryFileType.Drive;
+					const next: ActionMessage = opensFolder
+						? { type: "ClassicyAppFinderOpenFolder", path: target.path }
+						: {
+								type: "ClassicyAppFinderOpenFile",
+								file: target.entry,
+								path: target.path,
+							};
+					if (!checkClassicyActionTrust(trust, next.type)) return ds;
+					return classicyFinderEventHandler(ds, next, trust);
+				}
+				// An application's shortcut still opens its application once
+				// the derived Applications folder names the entry otherwise.
+				const creator =
+					typeof file._creator === "string"
+						? ds.System.Manager.Applications.apps[file._creator]
+						: undefined;
+				if (creator) {
+					if (!checkClassicyActionTrust(trust, "ClassicyAppOpen")) return ds;
+					openApp(ds, creator.id, creator.name, creator.icon);
+					return ds;
+				}
+				// Windows 98 SE's "Problem with Shortcut" (its search for the
+				// nearest match has no Classicy counterpart).
+				ds.System.Manager.Desktop.errorDialog = classicyShortcutProblem(
+					target?.path ||
+						(typeof file._targetPath === "string" ? file._targetPath : ""),
+					ds.System.Manager.Appearance.packageId,
+				);
 				return ds;
 			}
 			// Legacy QuickTime _creator-based routing
@@ -416,6 +739,7 @@ export const classicyFinderEventHandler = (
 						type: "ClassicyAppMoviePlayerOpenDocument",
 						document: document as { url: string },
 					});
+					if (hasPath(action)) noteRecentDocument(action.path, trust);
 				}
 			} else if (
 				file &&
@@ -477,15 +801,34 @@ export const classicyFinderEventHandler = (
 					// when its manifest declares one, else the generic handler;
 					// under the trust this open arrived with.
 					ds = routeClassicyAppOpenFile(ds, targetApp, action.path, trust);
+					// A document opened (Start ▸ Documents, plan 0020-w98 E2).
+					noteRecentDocument(action.path, trust);
+				} else if (
+					getClassicyAppearanceLayout(ds.System.Manager.Appearance.packageId)
+						.files?.unregisteredOpen === "openWith"
+				) {
+					// A type no application but the Finder opens: Windows' Open
+					// With (WIG Ch.10 "Registering File Extensions", p.192),
+					// which Finder shows, keeping the trust this open arrived
+					// with for the open it chooses.
+					ds.System.Manager.Applications.apps[appId].data = {
+						...appData,
+						openWith: {
+							path: action.path,
+							trust: classicyActionTrustOf(trust),
+						},
+					};
 				} else if (targetApp) {
 					// Finder's own OpenFile case is this dispatcher (it takes a
 					// `file`), so a file Finder opens itself is queued generically.
 					ds = openInFinder(ds, targetApp.name, action.path, trust);
+					noteRecentDocument(action.path, trust);
 				} else {
 					// Fall back to Finder if it can handle the requested type
 					const finder = ds.System.Manager.Applications.apps[appId];
 					if (finder?.handlesFileTypes?.includes(fileType)) {
 						ds = openInFinder(ds, finder.name, action.path, trust);
+						noteRecentDocument(action.path, trust);
 					} else {
 						ds.System.Manager.Desktop.errorDialog = {
 							message: "Finder cannot open the file type you requested.",
@@ -575,6 +918,71 @@ registerApp({
 					)
 					.describe("Each moved item's old and new path."),
 			}),
+		},
+		ClassicyAppFinderConfirmDelete: {
+			description:
+				"Ask before moving items to the Trash (Explorer's commands: Windows 98 SE's Confirm File Delete box). Its Yes moves them under the trust this arrived with; it moves nothing itself.",
+			params: z.object({
+				paths: z
+					.array(z.string())
+					.describe("Absolute paths of the items to move to the Trash."),
+			}),
+		},
+		ClassicyAppFinderConfirmDeleteClose: {
+			description:
+				"Dismiss a pending Delete confirmation (its Yes or No was chosen).",
+		},
+		ClassicyAppFinderOfferDesktopShortcut: {
+			description:
+				"Offer to make on the desktop the shortcuts Create Shortcut cannot make beside their items (Explorer's commands: Windows 98 SE's \"Windows cannot create a shortcut here.\"). Its Yes makes them; it makes nothing itself.",
+			params: z.object({
+				paths: z
+					.array(z.string())
+					.describe("Absolute paths of the items the shortcuts are to."),
+			}),
+		},
+		ClassicyAppFinderOfferDesktopShortcutClose: {
+			description:
+				"Dismiss a pending desktop-shortcut offer (its Yes or No was chosen).",
+		},
+		ClassicyAppFinderPropertiesOpen: {
+			description:
+				"Open the property sheet of items, or of an application (Explorer's Properties: its General page), or focus it when it is open.",
+			params: z.object({
+				paths: z
+					.array(z.string())
+					.optional()
+					.describe("Absolute paths of the items the sheet describes."),
+				appId: z
+					.string()
+					.optional()
+					.describe("An application's id, for its desktop icon's sheet."),
+			}),
+		},
+		ClassicyAppFinderPropertiesClose: {
+			description: "Close a property sheet (its OK, Cancel or close box).",
+			params: z.object({
+				key: z.string().describe("The sheet's key, as its open recorded it."),
+			}),
+		},
+		ClassicyAppFinderSetHideFileExtensions: {
+			description:
+				'Set Finder Preferences\' "Hide file extensions for known file types" (under `layout.files.extensions` "hideRegistered").',
+			params: z.object({
+				hide: z
+					.boolean()
+					.describe("Whether registered types' extensions are hidden."),
+			}),
+		},
+		ClassicyAppFinderOpenWithChoose: {
+			description:
+				"The Open With dialog's OK: open the waiting file in the application chosen, under the trust its open arrived with.",
+			params: z.object({
+				appId: z.string().describe("The id of the application to open it in."),
+			}),
+		},
+		ClassicyAppFinderOpenWithClose: {
+			description: "Dismiss the Open With dialog without opening the file.",
 		},
 		ClassicyAppFinderEmptyTrash: {
 			description:

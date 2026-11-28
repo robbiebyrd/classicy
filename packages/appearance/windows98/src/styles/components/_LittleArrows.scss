@@ -1,0 +1,160 @@
+// The Windows 98 little arrows (the up-down, or spin, control), included by
+// windows98.scss inside the package wrapper; overrides the structure of
+// ClassicyLittleArrows.scss (the pair's box and its two buttons). The look
+// is the Windows 95/98 up-down control (UPDOWN_CLASS) as `DrawFrameControl`
+// (DFC_SCROLL, DFCS_SCROLLUP and DFCS_SCROLLDOWN) drew its two buttons from
+// the system colors, each a scroll-bar arrow button in small (98.css,
+// os-gui, Wine's uitools.c):
+//
+// - The pair: `--window-scrollbar-size` (16, SM_CXVSCROLL) wide and an edit
+//   field (`--edit-field-height`, 22) tall at least, split evenly between
+//   the two buttons, no line between them, ButtonFace.
+// - Each button: raised ButtonFace in the two-ring bevel (`b.raised`) with
+//   a WindowText triangle 5 wide and 3 tall, one pixel left of center as
+//   Windows sets its arrows, four pixels (two of bevel, two of face) from
+//   the button's outer edge: the up arrow from the pair's top, the down
+//   arrow from its bottom, so each stays on the grid at any height and both
+//   are centered in an 11-pixel button. Pressed, Windows draws a scroll
+//   button flat (`b.pressed-flat`: one ring of ButtonShadow) with the
+//   triangle a pixel down and right; disabled, the triangle is embossed,
+//   ButtonShadow over a ButtonHilight copy one pixel down and right, on the
+//   raised face.
+// - A field and its arrows (the spinner, the date and time pickers) stand
+//   flush, the arrows stretched to the field's height, as the up-down
+//   control attached to its buddy edit; no ring wraps the pair.
+// - The keyboard focus (Windows gives a spin button none) is the dotted
+//   rectangle just inside the bevel, `:focus-visible` only.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03        the faces
+//   ButtonHilight     --color-system-01        the outer top-left ring, the
+//                                              emboss
+//   ButtonLight       --color-system-02        the inner top-left ring
+//   ButtonShadow      --color-system-05        the inner bottom-right ring,
+//                                              the embossed triangle, the
+//                                              pressed ring
+//   ButtonDkShadow    --color-system-07        the outer bottom-right ring
+//   ButtonText        --package-color-text-button  the triangles
+@use "sass:list";
+@use "sass:meta";
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The up arrow (5 x 3), at (5, 4) from its button's top left; the down
+// arrow is its mirror, placed from its button's bottom.
+$up: runs(("..x..", ".xxx.", "xxxxx"), "x");
+
+// Three rings, negative: the focus rectangle's offset.
+$neg-b3: calc((#{b.$b2} + #{b.$b}) * -1);
+
+// `$rects` moved `$dx`, `$dy` grid pixels (numbers, so each lands as one
+// `px()` length).
+@function shift($rects, $dx, $dy) {
+  $moved: ();
+  @each $rect in $rects {
+    $w: 1;
+    $h: 1;
+    @if list.length($rect) > 2 {
+      $w: list.nth($rect, 3);
+      $h: list.nth($rect, 4);
+    }
+    $moved: list.append(
+      $moved,
+      (list.nth($rect, 1) + $dx) (list.nth($rect, 2) + $dy) $w $h,
+      $separator: comma
+    );
+  }
+  @return $moved;
+}
+
+// The up arrow in `$ink`, `$dx`, `$dy` pixels from its place.
+@function up-arrow($ink, $dx: 0, $dy: 0) {
+  @return pixel-art($ink, shift($up, 5 + $dx, 4 + $dy));
+}
+
+// The down arrow in `$ink`, anchored to the button's bottom: its 5-wide row
+// six pixels up, the 3-wide five, the point four; `$dy` down is one fewer
+// from the bottom.
+@function down-arrow($ink, $dx: 0, $dy: 0) {
+  @return (
+    layout.classicy-px-rect($ink, left px(5 + $dx), bottom px(6 - $dy), px(5), px(1)),
+    layout.classicy-px-rect($ink, left px(6 + $dx), bottom px(5 - $dy), px(3), px(1)),
+    layout.classicy-px-rect($ink, left px(7 + $dx), bottom px(4 - $dy), px(1), px(1))
+  );
+}
+
+// A button's faces: the arrow in WindowText at rest, a pixel down and right
+// pressed, embossed disabled, each over ButtonFace.
+@mixin arrow-button($arrow) {
+  background: list.join(meta.call($arrow, b.$button-text), b.$face, comma);
+
+  &:active:not(:disabled) {
+    background: list.join(meta.call($arrow, b.$button-text, 1, 1), b.$face, comma);
+    @include b.pressed-flat;
+  }
+
+  &:disabled {
+    background: list.join(
+      list.join(meta.call($arrow, b.$shadow), meta.call($arrow, b.$hilight, 1, 1), comma),
+      b.$face,
+      comma
+    );
+    @include b.raised;
+    cursor: default;
+  }
+}
+
+@mixin little-arrows {
+  .classicyLittleArrows {
+    box-sizing: border-box;
+    width: var(--window-scrollbar-size);
+    min-height: var(--edit-field-height);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: b.$face;
+
+    .classicyLittleArrowsButton {
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      color: b.$button-text;
+      @include b.raised;
+      cursor: default;
+      @include arrow-button(meta.get-function("up-arrow"));
+
+      // The native arrow image: the arrow is drawn on the button itself.
+      img {
+        display: none;
+      }
+
+      &:focus {
+        outline: none;
+      }
+
+      &:focus-visible {
+        outline: b.$b dotted b.$text;
+        outline-offset: $neg-b3;
+      }
+    }
+
+    .classicyLittleArrowsButtonDown {
+      @include arrow-button(meta.get-function("down-arrow"));
+    }
+  }
+
+  // A field and its arrows: flush, the arrows the field's height, no ring
+  // around the pair.
+  .classicyLittleArrowsGroup {
+    gap: 0;
+    align-items: stretch;
+
+    > .classicyLittleArrows {
+      align-self: stretch;
+    }
+  }
+}

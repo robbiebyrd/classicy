@@ -251,6 +251,124 @@ describe("rules that replaced !important", () => {
  * A subject with no non-state class (`li:after`) is not compared; pin such
  * an override in KNOWN_OVERRIDES.
  */
+// Plan 0020-w98 §5 "Frame-edge sizing": under `layout.window.frameEdges:
+// "resize"` a resizable window's root carries `classicyWindowSizingBorder`
+// (no other layout emits it), whose edges and corner arms show the resize
+// cursors. The edges' base rule says `cursor: default` (a frame that moves
+// the window); each sizing rule comes after it and is one class heavier, so
+// it wins by both, and every cursor is the registry's idiom: an image layer
+// that an undefined variable cannot void, then the keyword cursor.
+describe("frame-edge sizing", () => {
+	const css = compile("SystemResources/Window/ClassicyWindow.scss");
+	const rules = classicyCssRules(css);
+	// The first rule whose selector list holds `selector` and that sets
+	// `property` (a corner arm's geometry and its cursor are two rules).
+	const ruleOf = (selector: string, property?: string) => {
+		const found = rules.find(
+			(r) =>
+				splitClassicySelectorList(r.selector).includes(selector) &&
+				(!property || r.declarations.some(([p]) => p === property)),
+		);
+		if (!found) throw new Error(`no rule for ${selector}`);
+		return found;
+	};
+	const cursorOf = (selector: string) =>
+		Object.fromEntries(ruleOf(selector, "cursor").declarations).cursor;
+	const SIZING = ".classicyWindowSizingBorder >";
+	const registryCursor = (role: string, keyword: string) =>
+		`var(--classicy-cursor-${role}, url("data:,")) var(--classicy-cursor-${role}-hotspot, 8 8), ${keyword}`;
+	const CURSORS: [string, string, string][] = [
+		[`${SIZING} .classicyWindowFrameEdge-top`, "resize-ud", "ns-resize"],
+		[`${SIZING} .classicyWindowFrameEdge-bottom`, "resize-ud", "ns-resize"],
+		[`${SIZING} .classicyWindowFrameEdge-left`, "resize-lr", "ew-resize"],
+		[`${SIZING} .classicyWindowFrameEdge-right`, "resize-lr", "ew-resize"],
+		...(["h", "v"] as const).flatMap((arm): [string, string, string][] => [
+			[
+				`${SIZING} .classicyWindowFrameCorner-top-left-${arm}`,
+				"resize-nwse",
+				"nwse-resize",
+			],
+			[
+				`${SIZING} .classicyWindowFrameCorner-bottom-right-${arm}`,
+				"resize-nwse",
+				"nwse-resize",
+			],
+			[
+				`${SIZING} .classicyWindowFrameCorner-top-right-${arm}`,
+				"resize-nesw",
+				"nesw-resize",
+			],
+			[
+				`${SIZING} .classicyWindowFrameCorner-bottom-left-${arm}`,
+				"resize-nesw",
+				"nesw-resize",
+			],
+		]),
+	];
+
+	it("the edges' base cursor is the default arrow", () =>
+		expect(cursorOf(".classicyWindowFrameEdge")).toBe("default"));
+
+	it.each(
+		CURSORS,
+	)("%s shows the registry's %s cursor, else %s", (selector, role, keyword) => {
+		expect(cursorOf(selector)).toBe(registryCursor(role, keyword));
+		expect(ruleOf(selector).order).toBeGreaterThan(
+			ruleOf(".classicyWindowFrameEdge").order,
+		);
+		expect(
+			compareClassicySpecificity(
+				classicySelectorSpecificity(selector),
+				classicySelectorSpecificity(".classicyWindowFrameEdge"),
+			),
+		).toBeGreaterThan(0);
+	});
+
+	// Windows sizes from the whole frame (`SM_CXFRAME`, the ring
+	// `--window-frame-inset` draws), and a corner reaches the caption's height
+	// (`SM_CXSIZE`) past the inside of the frame along both of its edges.
+	it("sizes from the frame's width, each corner arm the frame plus a caption long", () => {
+		expect(
+			Object.fromEntries(
+				ruleOf(`${SIZING} .classicyWindowFrameEdge-top`).declarations,
+			).height,
+		).toBe("var(--window-frame-inset)");
+		expect(
+			Object.fromEntries(
+				ruleOf(`${SIZING} .classicyWindowFrameEdge-left`).declarations,
+			).width,
+		).toBe("var(--window-frame-inset)");
+		const arm =
+			"calc(var(--window-frame-inset) + var(--window-title-bar-height))";
+		expect(
+			Object.fromEntries(
+				ruleOf(`${SIZING} .classicyWindowFrameCorner-top-left-h`).declarations,
+			),
+		).toEqual({
+			top: "0",
+			left: "0",
+			width: arm,
+			height: "var(--window-frame-inset)",
+		});
+		expect(
+			Object.fromEntries(
+				ruleOf(`${SIZING} .classicyWindowFrameCorner-bottom-right-v`)
+					.declarations,
+			),
+		).toEqual({
+			bottom: "0",
+			right: "0",
+			width: "var(--window-frame-inset)",
+			height: arm,
+		});
+		expect(
+			Object.fromEntries(
+				ruleOf(`${SIZING} .classicyWindowFrameCorner`).declarations,
+			),
+		).toEqual({ position: "absolute", "z-index": "6" });
+	});
+});
+
 describe("cross-file overrides do not depend on import order", () => {
 	const STATES = new Set<string>(vocabulary.states);
 	// The component stylesheets: every compiled SCSS under src except the

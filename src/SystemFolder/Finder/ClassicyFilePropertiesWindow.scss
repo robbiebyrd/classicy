@@ -1,0 +1,67 @@
+// Windows' property sheet (ClassicyFilePropertiesWindow, Explorer's
+// Properties): its tab strip over the General page, then OK, Cancel and
+// Apply along the bottom right (WIG Ch.8 "Property Sheets", p.145). The
+// General page is Windows 98 SE's (shell32.dll's dialogs): the icon and
+// name, then labeled rows in two columns between etched rules
+// (ClassicySeparator). Structure only; a package draws the controls.
+.classicyFileProperties {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-group-gap);
+  padding: var(--layout-dialog-edge);
+  font-family: var(--ui-font), sans-serif;
+  font-size: var(--ui-font-size);
+
+  .classicyFilePropertiesGeneral {
+    display: flex;
+    flex-direction: column;
+    gap: var(--layout-item-gap);
+    padding: var(--layout-dialog-edge);
+  }
+
+  .classicyFilePropertiesHead {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--layout-group-gap);
+  }
+
+  .classicyFilePropertiesIcon {
+    flex: none;
+    width: var(--icon-size-regular);
+    height: var(--icon-size-regular);
+  }
+
+  .classicyFilePropertiesName {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  // Two columns: the labels as wide as the widest, the values the rest.
+  .classicyFilePropertiesRows {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: var(--layout-group-gap);
+    row-gap: var(--layout-item-gap);
+    align-items: baseline;
+  }
+
+  .classicyFilePropertiesValue {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .classicyFilePropertiesAttributes {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--layout-group-gap);
+  }
+
+  .classicyFilePropertiesButtons {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: var(--button-gap);
+  }
+}

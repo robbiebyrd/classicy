@@ -1,0 +1,62 @@
+{
+	"id": "windows98",
+	"name": "Windows98",
+	"src": [
+		"./windows98.ogg",
+		"./windows98.m4a"
+	],
+	"sprite": {
+		"ClassicyAlertChimes": [
+			0,
+			631.3378684807255
+		],
+		"ClassicyAlertChord": [
+			2000,
+			1098.9115646258504
+		],
+		"ClassicyAlertDing": [
+			5000,
+			915.6916099773244
+		],
+		"ClassicyAlertExclamation": [
+			7000,
+			1098.911564625851
+		],
+		"ClassicyAlertLogoff": [
+			10000,
+			3549.0249433106574
+		],
+		"ClassicyAlertNotify": [
+			15000,
+			1352.5170068027207
+		],
+		"ClassicyAlertRecycle": [
+			18000,
+			574.6485260770982
+		],
+		"ClassicyAlertStart": [
+			20000,
+			45.89569160997797
+		],
+		"ClassicyAlertTada": [
+			22000,
+			1938.866213151929
+		],
+		"ClassicyBeep": [
+			25000,
+			915.6916099773227
+		],
+		"ClassicyBoot": [
+			27000,
+			7858.503401360544
+		],
+		"ClassicyEmailNewMail": [
+			36000,
+			1352.5170068027207
+		],
+		"ClassicyTrashEmpty": [
+			39000,
+			574.6485260770982
+		]
+	}
+}

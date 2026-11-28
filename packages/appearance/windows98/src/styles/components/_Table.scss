@@ -1,0 +1,343 @@
+// The Windows 98 list view, included by windows98.scss inside the package
+// wrapper: the report-view LISTVIEW with its HEADER control, as Windows 98
+// drew them (98.css's and os-gui's tables): Window white under the two-ring
+// sunken edge (`b.sunken`, one ring `--window-border-size` each; the header
+// and the rows inside the rings), WindowText in the UI face at the one UI
+// size (Windows has no small or condensed face). The header is a row of
+// raised ButtonFace buttons (`b.raised`), each column's title
+// `--field-padding-y` x `--field-padding-x` inside its bevel, pressed
+// (`b.pressed`, the title a pixel down and right) while the mouse is down
+// on it and raised again at once, sorted or not: Windows 98 marks the sorted
+// column with no stripe, no pressed header and no arrow (the header's sort
+// arrow came with Windows XP), so the base's arrow image is not drawn and
+// `aria-sort` carries the order; a column resize leaves the bevel alone.
+// The rows stand contiguous (no white rule between them); a selected row is
+// Hilight with HilightText across the row (LVS_EX_FULLROWSELECT), and the
+// focus item, the one row the core marks `focused` (its keyboard cursor:
+// the row last clicked or arrowed to, else the first selected, else the
+// first), is ringed by the dotted focus rectangle a pixel inside while the
+// list has focus, in HilightText over a selected row and WindowText over a
+// white one; the list's own focus ring (the base's) is not drawn. So a
+// focused list with nothing selected rings its first row (the Finder's,
+// the first row's name): Windows' list view always keeps a focus item, the
+// first until one is selected, and it is the row Down Arrow and Home select
+// here (WIG Ch.14 "The User's Point of Focus" (p.333); App. C
+// "Accessibility" (p.365): the keyboard focus is always indicated). The
+// Finder's list (Explorer's details view) has the window's client edge for
+// its frame (_Window.scss) and no second one, and selects the name alone:
+// the label Hilight under HilightText with the focus rectangle on it, the
+// icon blended toward the highlight (a filter stands in for Explorer's 50%
+// Hilight dither; a package's own selected image,
+// `classicyIconSelectedImage`, stands as it is), the rest of the row white.
+// In a window that is not the active one (the core's `inactive` on the
+// list) the selection is drawn as a list view with LVS_SHOWSELALWAYS draws
+// it while another window has the focus (Wine's listview.c,
+// prepaint_setup and LISTVIEW_DrawItemPart: ButtonFace under ButtonText,
+// the image drawn ILD_NORMAL; WIG Ch.6 "Activating and Deactivating
+// Windows", p.81; Ch.13 "Highlighting", p.318): a selected row, or the
+// Finder's selected name, ButtonFace under WindowText, the name's icon
+// unblended, and no focus rectangle. A Finder row cut and waiting for a
+// Paste (`classicyFileCut` on its container, LVIS_CUT) has its icon faded
+// to half, a stand-in for the blend with the Window color, as the filter
+// stands in for the selection's. The selection rectangle a drag across
+// the Finder's list below its rows draws (`.classicyFileBrowserSelect`,
+// under `layout.fileBrowser.regionSelect`) is the icon view's, drawn by
+// _Icon.scss: DrawFocusRect's dots XORed over the rows.
+//
+// Overrides ClassicyTable.scss and ClassicyFileBrowserViewTable.scss.
+//
+//   Windows color     token
+//   Window            --color-window-document   the list, the rows
+//   WindowText        --color-black             the text
+//   ButtonFace        --color-system-03         the header buttons, an
+//                                               inactive window's selection
+//   ButtonHilight     --color-system-01         the frame's outer
+//                                               bottom-right ring, a
+//                                               button's outer top-left
+//   ButtonLight       --color-system-02         the inner rings' lights
+//   ButtonShadow      --color-system-05         the frame's outer top-left
+//                                               ring, a button's inner
+//                                               bottom-right
+//   ButtonDkShadow    --color-system-07         the frame's inner top-left
+//                                               ring, a button's outer
+//                                               bottom-right
+//   Hilight           --color-highlight         the selected row or name
+//   HilightText       --package-color-selection-text (--color-white)
+//
+// Every length is a knob or a ring (`b.$b`), every color a token.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The generic list: the Finder's has the window's edge and its own
+// selection, below.
+$list: ".classicyTableContainer:not(.classicyFileBrowserViewTableContainer)";
+$finder: ".classicyFileBrowserViewTableContainer";
+
+@mixin table {
+  // ----- The list ----------------------------------------------------------
+  .classicyTableContainer {
+    color: b.$text;
+    background: b.$window;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  // The client edge: the rings in the padding, the header and rows inside.
+  #{$list} {
+    box-sizing: border-box;
+    padding: b.$b2;
+    border: 0;
+    @include b.sunken;
+  }
+
+  .classicyTable {
+    font-family: var(--ui-font), sans-serif;
+    font-weight: normal;
+  }
+
+  .classicyTableContent {
+    font-size: var(--ui-font-size);
+    font-weight: normal;
+  }
+
+  // ----- The header --------------------------------------------------------
+  .classicyTableHeaderGroup {
+    background: b.$face;
+  }
+
+  .classicyTableColumnHeader {
+    padding: var(--field-padding-y) var(--field-padding-x);
+    border: 0;
+    font-size: var(--ui-font-size);
+    font-weight: normal;
+    font-stretch: normal;
+    color: b.$text;
+    background: b.$face;
+    cursor: default;
+    @include b.raised;
+
+    // The mouse down on a title (not on its resizer, which the base marks
+    // `isResizing` while it drags): the bevel turns, the title steps a pixel
+    // down and right.
+    &:active:not(.isResizing) {
+      @include b.pressed;
+
+      > .classicyTableHeaderCellContent > span {
+        position: relative;
+        top: b.$b;
+        left: b.$b;
+      }
+    }
+  }
+
+  // The sorted column's header is a header like the rest.
+  :where(.classicyTableColumnHeader).selected {
+    background-color: b.$face;
+  }
+
+  // The header kept for assistive technology under a detached copy has no
+  // height: no padding, no bevel (the base's zeroes, restated in this
+  // layer, which the rule above would otherwise beat).
+  .classicyTableHeaderHidden .classicyTableColumnHeader {
+    padding-top: 0;
+    padding-bottom: 0;
+    box-shadow: none;
+  }
+
+  .classicyTableSortArrow {
+    display: none;
+  }
+
+  // ----- The rows ----------------------------------------------------------
+  .classicyTableRow {
+    border: 0;
+    background: b.$window;
+  }
+
+  :where(.classicyTableRow).selected {
+    color: b.$highlight-text;
+    background: b.$highlight;
+  }
+
+  // The focus item: the dotted rectangle around the row the core marks
+  // `focused` while the list has focus, WindowText on a white row and
+  // HilightText on a selected one (LVIS_FOCUSED, drawn on the one focus item
+  // and not on every selected row). With nothing selected that is the first
+  // row, as Windows' list view keeps its focus item on the first item until
+  // one is selected (the row Down Arrow and Home select; WIG Ch.14 "The
+  // User's Point of Focus" (p.333), App. C "Accessibility" (p.365)).
+  #{$list}:focus :where(.classicyTableRow).focused {
+    @include b.focus-rect(b.$b);
+  }
+
+  #{$list}:focus :where(.classicyTableRow).focused.selected {
+    outline-color: b.$highlight-text;
+  }
+
+  .classicyTableCellSorted {
+    background: transparent;
+  }
+
+  // ----- The Finder's list -------------------------------------------------
+  // The row stays white (the generic row's Hilight, in this layer, would
+  // beat the base's neutralizing rule); the name takes the selection.
+  #{$finder} :where(.classicyTableRow).selected {
+    color: inherit;
+    background: b.$window;
+  }
+
+  :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
+    color: b.$highlight-text;
+    background: b.$highlight;
+  }
+
+  // The folder row under a file drag (LVIS_DROPHILITED; WIG Ch.5 "Direct
+  // Manipulation Transfers" (p.67): "use visual feedback to indicate the
+  // receptivity of potential destinations ... selection highlighting"):
+  // drawn as a selected row is, its name in Hilight and its icon dithered
+  // (below), in place of the base's Mac OS 8 darkening.
+  .classicyFileBrowserViewTableRowContainer.classicyFileDropTarget {
+    filter: none;
+
+    .classicyFileBrowserViewTableRowIconLabel {
+      color: b.$highlight-text;
+      background: b.$highlight;
+    }
+  }
+
+  // A name being edited (Explorer's Rename, New and F2 in the details
+  // view): the list view's edit control where the name was, WindowText on
+  // Window in a one-pixel WindowFrame border, the list's font.
+  .classicyFileBrowserViewTableRowContainer .classicyFileBrowserViewTableRename {
+    padding: 0 px(2);
+    border: b.$b solid b.$text;
+    border-radius: 0;
+    outline: none;
+    color: b.$text;
+    background: b.$window;
+  }
+
+  // The Finder's focus item: the focus rectangle on the `focused` row's name
+  // alone, as Explorer's details view rings its focus item's label,
+  // WindowText on a white name and HilightText on a selected one; with
+  // nothing selected, the first row's name (as above).
+  #{$finder}:focus :where(.classicyFileBrowserViewTableRow).focused .classicyFileBrowserViewTableRowIconLabel {
+    @include b.focus-rect(b.$b);
+  }
+
+  #{$finder}:focus :where(.classicyFileBrowserViewTableRow).focused.selected .classicyFileBrowserViewTableRowIconLabel {
+    outline-color: b.$highlight-text;
+  }
+
+  // The selected item's icon blended with the highlight: Explorer's
+  // ILD_BLEND50, a 50% dither of Hilight over the icon's own pixels, as the
+  // desktop's and the icon component's (_Desktop.scss, _Icon.scss), so it
+  // follows every scheme's selection color. The icon is a bare <img>, which
+  // takes no pseudo-element, so the dither is the disclosure gutter's
+  // `::after`, laid over the icon beside it (the gutter precedes the icon by
+  // the icon's margin, `--file-browser-list-icon-spacing`, and both are
+  // centered on the row), and clipped to the icon's shape by the mask the
+  // core publishes on the row, `--classicy-icon-mask`. The base's darkening
+  // filter stands down. Sized by the list's icon size, which the core
+  // publishes on the container (`--classicy-file-browser-icon-size`). The
+  // folder row under a file drag takes the same dither (LVIS_DROPHILITED).
+  :where(.classicyFileBrowserViewTableRow).selected
+    .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
+    filter: none;
+  }
+
+  .classicyFileBrowserViewTableDisclosure {
+    position: relative;
+  }
+
+  :where(.classicyFileBrowserViewTableRow).selected
+    .classicyFileBrowserViewTableDisclosure::after,
+  .classicyFileBrowserViewTableRowContainer.classicyFileDropTarget
+    .classicyFileBrowserViewTableDisclosure::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(100% + var(--file-browser-list-icon-spacing));
+    width: var(--classicy-file-browser-icon-size);
+    height: var(--classicy-file-browser-icon-size);
+    margin: auto 0;
+    pointer-events: none;
+    background: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
+    mask-image: var(--classicy-icon-mask);
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+  }
+
+  // A row cut and waiting for a Paste (Explorer's Cut, LVIS_CUT; WIG Ch.5
+  // "Command Method Transfers" (p.66)): its icon faded to half, a stand-in
+  // for ILD_BLEND50's blend with the Window color, as the details view's
+  // selected icon takes its dither from the gutter (above) and a bare <img>
+  // takes no layer of its own.
+  .classicyFileBrowserViewTableRowContainer.classicyFileCut .classicyFileBrowserViewTableRowIcon {
+    opacity: 0.5;
+  }
+
+  // ----- An inactive window's lists ----------------------------------------
+  // The selection ButtonFace under WindowText (LVS_SHOWSELALWAYS), the icon
+  // as it is, and no focus rectangle: the focus is another window's.
+  #{$list}.inactive :where(.classicyTableRow).selected {
+    color: b.$text;
+    background: b.$face;
+  }
+
+  #{$list}.inactive:focus :where(.classicyTableRow).focused {
+    outline: none;
+  }
+
+  #{$finder}.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
+    color: b.$text;
+    background: b.$face;
+  }
+
+  #{$finder}.inactive:focus :where(.classicyFileBrowserViewTableRow).focused .classicyFileBrowserViewTableRowIconLabel {
+    outline: none;
+  }
+
+  #{$finder}.inactive :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableDisclosure::after {
+    content: none;
+  }
+
+  // The arrow over the list view's expand buttons, where the base shows the
+  // hand (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyFileBrowserViewTableDisclosureTriangle {
+    @include b.registry-cursor(arrow, default);
+  }
+
+  // A shortcut's row (`layout.icon.aliasBadge` "everywhere"; the core's
+  // `classicyIconImage` box around the row icon and its badge): the shell's
+  // shortcut overlay over the small icon, at the icon's size, the same art
+  // the large icon takes, scaled (the asset registry holds no small image
+  // for it; WIG Ch.11 "Displaying Objects", p.230; the audit's 11.2). The
+  // box keeps the row icon's place in the row, and the badge lies inside
+  // the icon's margins.
+  .classicyFileBrowserViewTableRowContainer > .classicyIconImage {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    width: auto;
+    margin: 0;
+  }
+
+  .classicyFileBrowserViewTableRowContainer > .classicyIconImage > .classicyIconAliasBadge {
+    position: absolute;
+    top: var(--file-browser-list-row-padding, var(--file-browser-list-icon-spacing));
+    left: var(--file-browser-list-icon-spacing);
+    width: var(--classicy-file-browser-icon-size);
+    height: var(--classicy-file-browser-icon-size);
+    pointer-events: none;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+}

@@ -1,0 +1,129 @@
+// The Windows 98 package stylesheet, imported `?inline` by ../index.ts and
+// registered as the package's `css`: one `@layer classicy.package` block
+// scoped under `.classicyDesktop[data-classicy-appearance="windows98"]`. The
+// look is built element by element, each a components/_<Name>.scss partial
+// exposing one mixin, included inside the wrapper below: the windows, the
+// menus and menu bars, the taskbar and its Start menu, the pop-up menus, the
+// dialogs and alerts, the shell's own dialogs and power screens, the push
+// buttons, the checkboxes and radio buttons, the text fields and lists, the
+// group boxes, the progress bars, the scroll bars, the desktop and its
+// icons, the tab control, the sliders, the placards and bevel buttons, the
+// ToolTips, the wizards and the Help topic window, the tables, the
+// separators, the little arrows, the Appearance Manager, the Control Strip,
+// the HyperCard editor and the PDF viewer's pointer; then the High Contrast
+// block that keeps them all under forced colors; and, at the block's root,
+// the screen savers (_screenSavers.scss).
+@use "pkg:@classicy/classicy/scss/package";
+@use "bevels" as b;
+@use "components/Window";
+@use "components/Menu";
+@use "components/MenuBar";
+@use "components/Taskbar";
+@use "components/StartMenu";
+@use "components/TaskbarProperties";
+@use "components/PopUpMenu";
+@use "components/Dialog";
+@use "components/Alert";
+@use "components/ShellDialog";
+@use "components/Button";
+@use "components/Checkbox";
+@use "components/RadioInput";
+@use "components/TextField";
+@use "components/ListBox";
+@use "components/ControlGroup";
+@use "components/ProgressBar";
+@use "components/ScrollBar";
+@use "components/Desktop";
+@use "components/Icon";
+@use "components/Tabs";
+@use "components/Slider";
+@use "components/Placard";
+@use "components/BalloonHelp";
+@use "components/Assistant";
+@use "components/AppleGuide";
+@use "components/Table";
+@use "components/Separator";
+@use "components/LittleArrows";
+@use "components/AppearanceManager";
+@use "components/ControlStrip";
+@use "components/HyperCard";
+@use "components/PDFViewer";
+@use "components/ForcedColors";
+@use "screenSavers";
+
+@include package.classicy-package("windows98") {
+  @include Window.window;
+  @include Menu.menu;
+  @include MenuBar.menu-bar;
+  @include Taskbar.taskbar;
+  @include StartMenu.start-menu;
+  @include TaskbarProperties.taskbar-properties;
+  @include PopUpMenu.pop-up-menu;
+  @include Dialog.dialog;
+  @include Alert.alert;
+  @include ShellDialog.shell-dialog;
+  @include Button.button;
+  @include Checkbox.checkbox;
+  @include RadioInput.radio-input;
+  @include TextField.text-field;
+  @include ListBox.list-box;
+  @include ControlGroup.control-group;
+  @include ProgressBar.progress-bar;
+  @include ScrollBar.scroll-bar;
+  @include Desktop.desktop;
+  @include Icon.icon;
+  @include Tabs.tabs;
+  @include Slider.slider;
+  @include Placard.placard;
+  @include BalloonHelp.balloon-help;
+  @include Assistant.assistant;
+  @include AppleGuide.apple-guide;
+  @include Table.table;
+  @include Separator.separator;
+  @include LittleArrows.little-arrows;
+  @include AppearanceManager.appearance-manager;
+  @include ControlStrip.control-strip;
+  @include HyperCard.hyper-card;
+  @include PDFViewer.pdf-viewer;
+
+  // Text that sets no color of its own is WindowText, as a window's client
+  // area draws it (white in High Contrast Black; the browser's black, the
+  // same, in every other scheme).
+  & {
+    color: b.$text;
+  }
+
+  // The browser's own controls take the highlight color (Hilight, navy in
+  // Windows Standard), where the base sheet's accent is `--color-theme-04`.
+  &,
+  * {
+    accent-color: b.$highlight;
+  }
+
+  // List markers take their text's color, as Windows drew them.
+  *::marker {
+    color: currentColor;
+  }
+
+  // Selected text is HilightText on Hilight everywhere, where the base sheet
+  // paints `--color-theme-02`.
+  *::selection {
+    color: b.$highlight-text;
+    background: b.$highlight;
+  }
+
+  // The pointer during a file drag (_Desktop.scss): after every element's
+  // own pointer, which it outranks.
+  @include Desktop.file-drag-pointers;
+
+  // Last in the scope: under forced colors (Windows' High Contrast), the tokens above
+  // become the user's system colors.
+  @include ForcedColors.forced-colors;
+
+  // The screen savers' rules, keyed on their own classes, at the layer's root
+  // (outside the Windows 98 scope: the overlay is a portal). Last, so the
+  // reduced-motion pause that ends them follows every saver rule.
+  @at-root {
+    @include screenSavers.screenSavers;
+  }
+}

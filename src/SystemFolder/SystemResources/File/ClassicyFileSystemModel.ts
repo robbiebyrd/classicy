@@ -15,6 +15,13 @@ export enum ClassicyFileSystemEntryFileType {
 	Video = "video",
 	Audio = "audio",
 	Stack = "stack",
+	/**
+	 * A shortcut to another entry of the tree (Windows' file shortcut, WIG
+	 * Ch.10 "Registering Commands", pp.200-201; Explorer's Create Shortcut,
+	 * under `layout.finder.commands` "windows"): `_targetPath` names what it
+	 * opens. See `ClassicyFileShortcut.ts`.
+	 */
+	FileShortcut = "file_shortcut",
 }
 
 export type ClassicyFileSystemEntryMetadata = {
@@ -36,6 +43,12 @@ export type ClassicyFileSystemEntryMetadata = {
 	// For _type: Shortcut — how _url opens. Absent means "classicy", the
 	// in-desktop iframe window; see readShortcutDisposition.
 	_openIn?: ClassicyShortcutDisposition;
+
+	// For _type: FileShortcut — the path of the entry it opens (its
+	// target), as stored when the shortcut was made. A target moved,
+	// renamed or trashed since leaves it pointing at nothing; opening it
+	// then says so (`ClassicyFileShortcut.ts`).
+	_targetPath?: string;
 
 	// Icon data
 	_icon?: string;

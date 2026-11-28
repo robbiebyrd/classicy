@@ -1,0 +1,302 @@
+// The Windows 98 tab control, included by windows98.scss inside the package
+// wrapper; overrides the structure of ClassicyTabs.scss (the strip, its
+// tabs and scroll arrows, the panel). The look is the Windows 95/98 tab
+// control (SysTabControl32, TCS_TABS) as `TAB_DrawItem` drew it from the
+// system colors (as 98.css and os-gui re-create it, and Wine's tab.c
+// emulates it):
+//
+// - A tab: a raised ButtonFace box in the two-ring bevel, open at the
+//   bottom (ButtonHilight and ButtonLight at the top and left, ButtonDkShadow
+//   and ButtonShadow at the right; no bottom rings), its two top corners
+//   rounded off by `--tab-control-radius` (3; Windows' two-pixel diagonal,
+//   98.css's radius), its label WindowText in the UI font
+//   `--tab-control-padding-x` (10) from each side. Neighbors abut, each with
+//   its own edges, as the control draws them.
+// - The chosen tab (the `selected` state on its wrapper) stands
+//   `--tab-control-lift` (2) higher and two rings wider on each side than
+//   the rest (TAB_DrawItem's SELECTED_TAB_OFFSET), and its face runs two
+//   rings down over the panel's top edge, which joins the two: the panel's
+//   ButtonHilight line passes under the other tabs and stops under this
+//   one. Its label rises with it.
+// - The panel: raised ButtonFace in the two-ring bevel (`b.raised`), its
+//   content `--tab-control-padding` (12) in from the edge.
+// - The scroll arrows (Windows puts an up-down control at the strip's end
+//   when the tabs overflow): raised ButtonFace boxes `--window-scrollbar-size`
+//   (16) wide and a tab's height, standing on the panel's edge, each with a
+//   WindowText triangle 3 x 5 pointing its way; pressed, the box is drawn
+//   flat (`b.pressed-flat`) with the triangle a pixel down and right;
+//   disabled (nothing more to scroll that way), the triangle is embossed,
+//   ButtonShadow over a ButtonHilight copy one pixel down and right.
+// - A strip below the panel (`.classicyTabStripBottom`; TCS_BOTTOM): the
+//   same, hung from the panel's bottom edge, the bottom corners rounded and
+//   the bevel open at the top.
+// - The keyboard focus is the dotted rectangle three pixels inside the
+//   tab's outline (the chosen tab's wings included), `:focus-visible` only.
+// - One tab size: Windows has no smaller tab, so the small tabs keep the
+//   standard height and the UI font; the large tabs keep the base's height.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03        the faces
+//   ButtonHilight     --color-system-01        the outer top-left ring, the
+//                                              emboss
+//   ButtonLight       --color-system-02        the inner top-left ring
+//   ButtonShadow      --color-system-05        the inner bottom-right ring,
+//                                              the embossed triangle, the
+//                                              pressed ring
+//   ButtonDkShadow    --color-system-07        the outer bottom-right ring
+//   ButtonText        --package-color-text-button  labels, triangles
+//   WindowText        --color-black            the focus rectangle
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// the triangles one-pixel rectangles on the `--pixel-unit` grid
+// (`pixel-art`, `runs`, ../_pixel.scss), every color a token.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// A tab's height, the theme's `tabControl.height` knob: Windows' tab item
+// for the 8 pt system font is 21 pixels, the combo box's height (the same
+// geometry: the text row, two rings of edge and three pixels of padding
+// above and below).
+$tab-height: var(--tab-control-height);
+$radius: var(--tab-control-radius);
+$lift: var(--tab-control-lift);
+
+// The left and right triangles (3 x 5) in a 4 x 7 box: the glyph a row
+// down, so its ButtonHilight emboss (a pixel down and right) fits the box.
+$arrow-left: runs(("..x", ".xx", "xxx", ".xx", "..x"), "x");
+$arrow-right: runs(("x..", "xx.", "xxx", "xx.", "x.."), "x");
+
+// The tab's bevel, open at the bottom: the strip above the panel.
+@mixin tab-bevel-top {
+  border-radius: $radius $radius 0 0;
+  box-shadow:
+    inset b.$neg-b 0 b.$dkshadow,
+    inset b.$b b.$b b.$hilight,
+    inset b.$neg-b2 0 b.$shadow,
+    inset b.$b2 b.$b2 b.$light;
+}
+
+// The same open at the top: the strip below the panel.
+@mixin tab-bevel-bottom {
+  border-radius: 0 0 $radius $radius;
+  box-shadow:
+    inset b.$neg-b b.$neg-b b.$dkshadow,
+    inset b.$b 0 b.$hilight,
+    inset b.$neg-b2 b.$neg-b2 b.$shadow,
+    inset b.$b2 0 b.$light;
+}
+
+// A scroll arrow's triangle at rest, pressed (a pixel down and right) and
+// embossed (disabled).
+@function arrow($art) {
+  @return pixel-art(b.$button-text, $art, 0, px(1));
+}
+
+@function arrow-pressed($art) {
+  @return pixel-art(b.$button-text, $art, px(1), px(2));
+}
+
+@function arrow-embossed($art) {
+  @return pixel-art(b.$shadow, $art, 0, px(1)), pixel-art(b.$hilight, $art, px(1), px(2));
+}
+
+@mixin tabs {
+  // The strip paints over the panel's top edge (it comes before the panel in
+  // the DOM, so the panel's face would otherwise cover its overhang), two
+  // rings deep: the chosen tab's face reaches that far. The tabs start two
+  // rings in, so a chosen first tab, two rings wider, stands flush with the
+  // panel's edge; that indent is the scroller's padding, since the scroller
+  // clips what lies outside its box.
+  .classicyTabButtonsRow {
+    position: relative;
+    z-index: 1;
+    margin-bottom: b.$neg-b2;
+    margin-left: 0;
+  }
+
+  .classicyButtonsHolder {
+    gap: 0;
+    padding-inline: b.$b2;
+    // The tabs stand on the panel's edge; the chosen one, taller, rises
+    // above them.
+    align-items: flex-end;
+  }
+
+  // The tab strip scrolls under its arrows; its own bar stays hidden over
+  // the desktop's (see Platinum's _Tabs.scss).
+  .classicyTabScroller {
+    scrollbar-width: none;
+  }
+
+  .classicyTabButtonWrapper {
+    --windows98-tab-height: #{$tab-height};
+    clip-path: none;
+    box-sizing: content-box;
+    height: var(--windows98-tab-height);
+    // Two rings above the panel's edge: the tab's bottom meets the panel's
+    // top, whose ButtonHilight line runs under it.
+    margin-bottom: b.$b2;
+    background: b.$face;
+    @include tab-bevel-top;
+
+    // The chosen tab: lifted, two rings wider each side (over its
+    // neighbors' edges) and two rings down over the panel's edge. The two
+    // rings of width are the button's own padding (below), not the
+    // wrapper's, so the focus rectangle keeps its distance from the tab's
+    // whole outline, wings included.
+    &.selected {
+      position: relative;
+      z-index: 2;
+      height: calc(var(--windows98-tab-height) + #{$lift});
+      margin: 0 b.$neg-b2 0;
+      padding: 0 0 b.$b2;
+    }
+  }
+
+  .classicyTabsSizeLarge .classicyTabButtonWrapper {
+    --windows98-tab-height: var(--tab-height-large);
+  }
+
+  .classicyTabButton {
+    height: 100%;
+    min-width: 0;
+    padding: 0 var(--tab-control-padding-x);
+    color: b.$button-text;
+
+    // Three pixels inside the tab's outline (TAB_DrawItemInterior deflates
+    // the item rectangle by three for DrawFocusRect).
+    &:focus-visible {
+      @include b.focus-rect(px(3));
+    }
+  }
+
+  .classicyTabButtonWrapper.selected .classicyTabButton {
+    padding: 0 calc(var(--tab-control-padding-x) + #{b.$b2});
+  }
+
+  // A tab's access key (the core's `access-key` part, given by a host: the
+  // remaining chapters' audit's 4.11), underlined as the tab control's
+  // DrawText (no DT_NOPREFIX) draws a prefixed character.
+  .classicyTabButton [data-classicy-part="access-key"] {
+    @include b.access-key;
+  }
+
+  // Windows has no smaller tab: the small tabs keep the UI font.
+  .classicyTabsSizeSmall .classicyTabButton {
+    font-size: var(--ui-font-size);
+  }
+
+  // ----- The scroll arrows -------------------------------------------------
+  // The wrapper is bare (the button carries the bevel, so its pressed and
+  // disabled looks are its own) and holds its button at the panel's edge, a
+  // tab's height tall whatever the tabs' size, as the up-down control is
+  // smaller than large tabs.
+  .classicyTabScrollWrapper {
+    display: flex;
+    align-items: flex-end;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .classicyTabScrollButton {
+    box-sizing: border-box;
+    height: $tab-height;
+    min-width: var(--window-scrollbar-size);
+    padding: 0;
+    background: b.$face;
+    @include b.raised;
+
+    &:active:not(:disabled) {
+      @include b.pressed-flat;
+    }
+
+    &:disabled {
+      @include b.raised;
+    }
+  }
+
+  .classicyTabScrollGlyph {
+    width: px(4);
+    height: px(7);
+    border: 0;
+  }
+
+  .classicyTabScrollButtonLeft {
+    .classicyTabScrollGlyph {
+      background: arrow($arrow-left);
+    }
+
+    &:active:not(:disabled) .classicyTabScrollGlyph {
+      background: arrow-pressed($arrow-left);
+    }
+
+    &:disabled .classicyTabScrollGlyph {
+      background: arrow-embossed($arrow-left);
+    }
+  }
+
+  .classicyTabScrollButtonRight {
+    .classicyTabScrollGlyph {
+      background: arrow($arrow-right);
+    }
+
+    &:active:not(:disabled) .classicyTabScrollGlyph {
+      background: arrow-pressed($arrow-right);
+    }
+
+    &:disabled .classicyTabScrollGlyph {
+      background: arrow-embossed($arrow-right);
+    }
+  }
+
+  // ----- The panel -----------------------------------------------------------
+  .classicyTabsHolder {
+    border: 0;
+    background-color: b.$face;
+    @include b.raised;
+  }
+
+  .classicyTabActiveContent {
+    padding: var(--tab-control-padding);
+    background-color: transparent;
+  }
+
+  // ----- A strip below the panel (TCS_BOTTOM) -------------------------------
+  // Hung from the panel's bottom edge: the overhang and the standing margin
+  // move to the top, the chosen tab's extra rings to its top, the corners
+  // and the open side of the bevel to the bottom.
+  .classicyTabStripBottom {
+    .classicyTabButtonsRow {
+      margin-top: b.$neg-b2;
+      margin-bottom: 0;
+    }
+
+    .classicyButtonsHolder {
+      align-items: flex-start;
+    }
+
+    .classicyTabButtonWrapper {
+      margin-top: b.$b2;
+      margin-bottom: 0;
+      @include tab-bevel-bottom;
+
+      &.selected {
+        margin: 0 b.$neg-b2;
+        padding: b.$b2 0 0;
+      }
+    }
+
+    .classicyTabScrollWrapper {
+      align-items: flex-start;
+      border-radius: 0;
+      box-shadow: none;
+    }
+  }
+
+  // The arrow over the tab strip's scroll arrows, where the base shows the
+  // hand (WIG Ch.4 "Mouse Pointers", pp.23-24, Table 4.1; the audit's 4.1).
+  .classicyTabScrollButton {
+    @include b.registry-cursor(arrow, default);
+  }
+}

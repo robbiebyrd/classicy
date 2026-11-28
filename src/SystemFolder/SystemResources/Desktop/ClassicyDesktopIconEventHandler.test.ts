@@ -1,9 +1,22 @@
-import { describe, expect, it } from "vitest";
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+	type ClassicyAppearanceLayout,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import {
+	type ClassicyTheme,
+	getTheme,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDesktopIconEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { setClassicyTaskbarBand } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbarBand.internal";
+// Registers Platinum's sound pack: the band tests' packages take a Platinum
+// theme as their defaults, and a theme's `sound.pack` must name a registered
+// pack.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 
 function makeStore(
 	overrides: Partial<{
@@ -819,5 +832,157 @@ describe("classicyDesktopIconEventHandler — ClassicyDesktopIconAdd for Desktop
 		);
 		expect(icon?.filePath).toBe("HD:Desktop Folder:y");
 		expect(icon?.location).toEqual([10, 10]);
+	});
+});
+
+// Plan 0020-w98 §2 "The band": Clean Up lays the grid out in the height
+// above a mounted taskbar's band, so no cleaned-up icon lands under the
+// taskbar (drawn above the icons), whatever the package's grid origin; with
+// no band it lays out exactly as before. Windows' desktop icon view fills the
+// work area, and an icon starts a new column unless it fits whole (comctl32
+// `LISTVIEW_NextIconPosLeft`).
+describe("classicyDesktopIconEventHandler — Clean Up above the taskbar's band", () => {
+	// The test theme's icons: iconSize 32, so padding 8, a 64 px cell, a
+	// 72 px grid step and a 32 px first-row top.
+	const CELL = 64;
+	const origins = [
+		"top-right",
+		"top-left",
+		"bottom-right",
+		"bottom-left",
+	] as const satisfies ClassicyAppearanceLayout["desktop"]["iconGridOrigin"][];
+
+	const viewport: [number, number] = [window.innerWidth, window.innerHeight];
+	const setViewport = (width: number, height: number) => {
+		Object.defineProperty(window, "innerWidth", {
+			configurable: true,
+			writable: true,
+			value: width,
+		});
+		Object.defineProperty(window, "innerHeight", {
+			configurable: true,
+			writable: true,
+			value: height,
+		});
+	};
+
+	beforeEach(() => {
+		setViewport(1024, 768);
+		resetClassicyAppearancePackagesForTests();
+		for (const origin of origins) {
+			registerClassicyAppearancePackage({
+				id: `origin-${origin}`,
+				name: origin,
+				css: "",
+				defaults: {
+					...getTheme("default"),
+					id: `origin-${origin}-default`,
+					package: `origin-${origin}`,
+				},
+				layout: {
+					window: { growBoxCorner: "bottom-right" },
+					menuBar: { placement: "screen" },
+					desktop: { iconGridOrigin: origin },
+				},
+			});
+		}
+	});
+
+	afterEach(() => {
+		setViewport(...viewport);
+		resetClassicyAppearancePackagesForTests();
+	});
+
+	// Twenty-four app icons under `origin`'s test package, cleaned up.
+	const cleanUp = (origin: (typeof origins)[number]) => {
+		const ds = makeStoreForDesktop();
+		ds.System.Manager.Appearance.packageId = `origin-${origin}`;
+		ds.System.Manager.Desktop.icons = Array.from({ length: 24 }, (_, i) => ({
+			appId: `I${String(i).padStart(2, "0")}.app`,
+			appName: `I${String(i).padStart(2, "0")}`,
+			icon: "i.png",
+			kind: "app_shortcut",
+		}));
+		classicyDesktopIconEventHandler(ds, { type: "ClassicyDesktopIconCleanup" });
+		return ds.System.Manager.Desktop.icons.map(
+			(icon) => icon.location as [number, number],
+		);
+	};
+
+	// The first column's tops, in the order Clean Up fills them.
+	const firstColumn = (locations: [number, number][]) =>
+		locations.filter(([x]) => x === locations[0][0]).map(([, y]) => y);
+
+	it.each(origins)("a band withdrawn lays %s out as before", (origin) => {
+		const before = cleanUp(origin);
+		setClassicyTaskbarBand(28);
+		expect(cleanUp(origin)).not.toEqual(before);
+		setClassicyTaskbarBand(0);
+		expect(cleanUp(origin)).toEqual(before);
+	});
+
+	// Today's numbers, pinned: ten top rows (floor(768 / 72)) from 32, and
+	// nine bottom rows (floor((768 − 32 − 32) / 72)) up from 768 − 72 − 32.
+	it("keeps today's rows with no band", () => {
+		expect(firstColumn(cleanUp("top-left"))).toEqual([
+			32, 104, 176, 248, 320, 392, 464, 536, 608, 680,
+		]);
+		expect(firstColumn(cleanUp("bottom-left"))).toEqual([
+			664, 592, 520, 448, 376, 304, 232, 160, 88,
+		]);
+	});
+
+	it.each(origins)("keeps every %s icon above a 28 px band", (origin) => {
+		setClassicyTaskbarBand(28);
+		for (const [, y] of cleanUp(origin)) {
+			expect(y + CELL).toBeLessThanOrEqual(768 - 28);
+			expect(y).toBeGreaterThanOrEqual(32);
+		}
+	});
+
+	it("drops a top origin's row that would end under the band", () => {
+		setClassicyTaskbarBand(28);
+		// The tenth row (680) would end at 744, under a taskbar from 740.
+		expect(firstColumn(cleanUp("top-left"))).toEqual([
+			32, 104, 176, 248, 320, 392, 464, 536, 608,
+		]);
+	});
+
+	it("measures a bottom origin's rows up from the band", () => {
+		setClassicyTaskbarBand(28);
+		expect(firstColumn(cleanUp("bottom-right"))).toEqual([
+			636, 564, 492, 420, 348, 276, 204, 132, 60,
+		]);
+	});
+
+	// Plan 0020-w98 E4: the icons follow a taskbar docked to another edge.
+	it("starts the grid past a band docked at the left or the top", () => {
+		const before = cleanUp("top-left");
+		setClassicyTaskbarBand(60, undefined, "left");
+		expect(cleanUp("top-left")).toEqual(
+			before.map(([x, y]) => [x + 60, y] as [number, number]),
+		);
+		setClassicyTaskbarBand(28, undefined, "top");
+		const below = cleanUp("top-left");
+		expect(firstColumn(below)).toEqual([
+			60, 132, 204, 276, 348, 420, 492, 564, 636,
+		]);
+		expect(below.every(([x]) => x < 1024)).toBe(true);
+		setClassicyTaskbarBand(0, undefined, "top");
+	});
+
+	it("keeps a right origin's columns left of a band docked at the right", () => {
+		setClassicyTaskbarBand(60, undefined, "right");
+		for (const [x] of cleanUp("top-right"))
+			expect(x + CELL).toBeLessThanOrEqual(1024 - 60);
+		setClassicyTaskbarBand(0, undefined, "right");
+	});
+
+	it("keeps one row on screen when the band leaves room for none", () => {
+		setViewport(1024, 120);
+		setClassicyTaskbarBand(28);
+		for (const origin of origins) {
+			for (const [, y] of cleanUp(origin)) expect(y).toBe(32);
+		}
 	});
 });

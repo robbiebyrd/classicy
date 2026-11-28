@@ -18,6 +18,7 @@ import type {
 	ClassicyStoreSystemApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { validClassicyShortcutOverrides } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuShortcutOverrides";
 
 /**
  * Bring a desktop state of any earlier shape up to the current one.
@@ -66,6 +67,10 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   A value no registered wallpaper matches is left alone and still renders
  *   (`resolveClassicyWallpaper` passes `data:` and remote URLs through); it is
  *   only matched once its package has registered.
+ * - `Desktop.shortcutOverrides` (the user's keyboard shortcuts, written
+ *   under `layout.keyboard.editableShortcuts`) keeps only usable ids
+ *   holding a usable chord, in canonical form, and is dropped when none
+ *   is left (`migrateShortcutOverrides`).
  * - Every window's gesture flags (`resizing`, `dragging`, `moving`) are
  *   dropped (`stripWindowGestureFlags`). They belong to a gesture in
  *   progress, which a load ends; `sanitizeStateForPersistence` drops them on
@@ -73,6 +78,10 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   stale `dragging` never makes a window follow the pointer.
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
+	return migrateShortcutOverrides(migrateThemeWallpapersAll(state));
+}
+
+function migrateThemeWallpapersAll(state: ClassicyStore): ClassicyStore {
 	return migrateThemeWallpapers(
 		migrateThemeFontSizes(
 			migrateAppearancePackage(
@@ -84,6 +93,32 @@ export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
 			),
 		),
 	);
+}
+
+/**
+ * `Desktop.shortcutOverrides` (WIG Ch.4 "Shortcut Keys", p.27) made safe
+ * to read: only usable shortcut ids holding a usable chord, each in its
+ * canonical form (`validClassicyShortcutOverrides`); a map keeping none is
+ * dropped. Copy-on-write and idempotent: a valid map is the same object.
+ */
+function migrateShortcutOverrides(state: ClassicyStore): ClassicyStore {
+	const desktop = state?.System?.Manager?.Desktop;
+	if (!desktop || !Object.hasOwn(desktop, "shortcutOverrides")) return state;
+	const stored = desktop.shortcutOverrides;
+	const valid = validClassicyShortcutOverrides(stored);
+	if (valid === stored) return state;
+	const { shortcutOverrides: _dropped, ...rest } = desktop;
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Desktop: valid ? { ...rest, shortcutOverrides: { ...valid } } : rest,
+			},
+		},
+	};
 }
 
 /** The window flags that only a gesture in progress sets. */

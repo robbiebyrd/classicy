@@ -455,4 +455,12 @@ $origin-y: var(--classicy-scroll-origin-y);
     border-bottom: $px solid var(--color-black);
     background: var(--color-window-document) padding-box;
   }
+
+  // A closed split's split box (ClassicySplitView `splittable`, at the end
+  // of the other pane's scroll bar): the solid black split bar of HIG
+  // pp.170-171 (Figure 5-41), the divider's thickness along the bar and the
+  // bar's width across.
+  .classicySplitViewSplitBox {
+    background-color: var(--color-black);
+  }
 }

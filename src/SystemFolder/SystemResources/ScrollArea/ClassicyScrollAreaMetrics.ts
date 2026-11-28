@@ -30,6 +30,34 @@ export type ClassicyScrollThumb = {
 export const classicyScrollAxisFits = (axis: ClassicyScrollAxisMetrics) =>
 	!(axis.total > axis.visible);
 
+/** Whether an axis is scrolled to its start, and to its end. */
+export type ClassicyScrollAxisEnds = {
+	/** Nothing further toward the start: the position is 0 (or elastic). */
+	start: boolean;
+	/** Nothing further toward the end: the position is at its maximum. */
+	end: boolean;
+};
+
+/**
+ * Where this axis stands at either end of its travel. `ClassicyScrollArea`
+ * disables the arrow toward an end the content cannot scroll further to,
+ * as the Windows Interface Guidelines ask of an application ("When a window
+ * cannot be scrolled any further in a particular direction, disable the
+ * scroll arrow corresponding to that direction", WIG Ch.6 "Scroll Arrows"
+ * (p.87); Ch.7 "List Boxes" (p.120), "Scroll Bars" (p.131); Windows' own
+ * bars left it to the application). Within a pixel of the end counts as
+ * the end: `scrollHeight` and `clientHeight` are whole pixels while a
+ * browser reports `scrollTop` fractionally at some zoom levels, so a
+ * scroller at its limit may never read `total - visible` exactly. An axis
+ * that fits is at both.
+ */
+export const classicyScrollAxisEnds = (
+	axis: ClassicyScrollAxisMetrics,
+): ClassicyScrollAxisEnds => ({
+	start: axis.position <= 0,
+	end: axis.total - axis.visible - axis.position < 1,
+});
+
 /**
  * The thumb's length and offset in a track `trackLength` long, for a thumb
  * no shorter than `minLength` and no longer than `maxLength` (the minimum

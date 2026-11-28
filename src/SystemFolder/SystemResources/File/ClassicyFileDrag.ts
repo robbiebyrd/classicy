@@ -13,30 +13,120 @@
  * - `data-classicy-drop-desktop` — the desktop itself (its Desktop Folder).
  *
  * Only the topmost element under the pointer counts, walking up to the first
- * marked ancestor. Windows, the menu bar and the Control Strip block a drop, so
- * releasing over, say, a SimpleText window moves nothing.
+ * marked ancestor. Windows, the menu bar, the Control Strip and the Windows
+ * shell's taskbar block a drop, so releasing over, say, a SimpleText window
+ * moves nothing.
+ *
+ * One more mark takes no drop but answers a drag resting on it:
+ * `data-classicy-drop-activate`, which the taskbar's window buttons carry.
+ * "When the user drags over a taskbar button, the system activates the
+ * associated window, allowing the user to drop within that window" (WIG
+ * Ch.3 "Window Buttons", p.16; Ch.10 "Taskbar Window Buttons", p.211): once
+ * the drag has rested on the element for `CLASSICY_DROP_ACTIVATE_DELAY_MS`,
+ * the element gets a `classicy:dropactivate` event and acts on it.
+ *
+ * While the pointer rests within a line step of a scroll area's edge, and
+ * that area holds drop targets (a Finder window's contents), the area
+ * scrolls toward that edge a line at a time until it can go no further, so
+ * a folder out of view can be reached (automatic scrolling: WIG Ch.5
+ * "Scrolling When Transferring by Dragging", pp.64-65, and Ch.6 "Automatic
+ * Scrolling", p.91; HIG7 p.274, as the Mac OS Finder scrolled a window an
+ * icon was dragged to the edge of).
+ *
+ * Under a package's `layout.transfer` (Windows 98) a drag also takes
+ * Explorer's transfer rules (WIG Ch.5 "Direct Manipulation Method",
+ * pp.62-64; "Shortcut Keys for Transfer Operations", pp.67-68): a drag on
+ * button 2 ends in its source's transfer menu (`button`, `onMenu`),
+ * Control at the release copies and Control with Shift makes shortcuts
+ * (`copyModifier`, the drop's `effect`), and the scroll areas scroll by
+ * the pointer's velocity (`autoScroll`,
+ * `ClassicyFileDragAutoScroll.internal.ts`). Under every package the
+ * desktop root carries `data-classicy-drop` while the outline is shown
+ * (`"none"` over nothing that takes the drop, `"copy"` or `"link"` where
+ * the drop would copy or make shortcuts, `"move"` over a target it would
+ * move to), which only a package's stylesheet reads.
  */
 
 import "./ClassicyFileDrag.scss";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import {
+	addClassicyDragScrollSample,
+	CLASSICY_DRAG_SCROLL_INTERVAL_MS,
+	CLASSICY_DRAG_SCROLL_MAX_VELOCITY,
+	CLASSICY_DRAG_SCROLL_SAMPLE_INTERVAL_MS,
+	type ClassicyDragScrollZone,
+	classicyDragScrollVelocity,
+	createClassicyDragScrollData,
+	findClassicyFileDragVelocityScroll,
+	readClassicyDragScrollZone,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDragAutoScroll.internal";
 import {
 	type ClassicyFileDragOutlinePart,
 	drawClassicyDragOutline,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import {
+	type ClassicyFileDragKeys,
+	classicyFileDragFeedbackRoot,
+	classicyFileDragPressCtrlOnMac,
+	classicyFileDragRequestedEffect,
+	classicyFileDropDestinationEffects,
+	classicyFileDropEffectFor,
+	setClassicyFileDropFeedback,
+	swallowClassicyFileDragContextMenu,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDragTransfer.internal";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { CLASSICY_PRESS_REPEAT_INTERVAL_MS } from "@/SystemFolder/SystemResources/LittleArrows/useClassicyPressRepeat.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import {
+	type ClassicyScrollAxisMetrics,
+	classicyScrollAxisEnds,
+} from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollAreaMetrics";
+import { classicyScrollViewportOf } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollViewportRegistry.internal";
 
 /** The attribute a file item (an icon, a list row's name) carries its path in. */
 export const CLASSICY_FILE_PATH_ATTRIBUTE = "data-classicy-file-path";
 export const CLASSICY_DROP_FOLDER_ATTRIBUTE = "data-classicy-drop-folder";
 export const CLASSICY_DROP_DESKTOP_ATTRIBUTE = "data-classicy-drop-desktop";
+/**
+ * The attribute of an element a resting drag activates instead of dropping
+ * on (a taskbar window button): it takes no drop, and once a drag has rested
+ * on it for `CLASSICY_DROP_ACTIVATE_DELAY_MS` it gets
+ * `CLASSICY_DROP_ACTIVATE_EVENT`.
+ */
+export const CLASSICY_DROP_ACTIVATE_ATTRIBUTE = "data-classicy-drop-activate";
+/**
+ * The event a `CLASSICY_DROP_ACTIVATE_ATTRIBUTE` element gets when a drag
+ * has rested on it: a plain `Event` that does not bubble and carries
+ * nothing of the drag (no paths, names or pointer).
+ */
+export const CLASSICY_DROP_ACTIVATE_EVENT = "classicy:dropactivate";
+/**
+ * The event a `CLASSICY_DROP_ACTIVATE_ATTRIBUTE` element gets when a drag is
+ * let go on it: the drop is refused (nothing is dropped, `onDrop` gets
+ * null), and the element may say so (the taskbar's window buttons show
+ * Windows 98's "You cannot drag an item onto a button on the taskbar." box;
+ * the shell addendum's B15). A plain `Event` that does not bubble and
+ * carries nothing of the drag.
+ */
+export const CLASSICY_DROP_REFUSED_EVENT = "classicy:droprefused";
+/**
+ * How long a drag rests on a `CLASSICY_DROP_ACTIVATE_ATTRIBUTE` element
+ * before it is activated, in ms. The guidelines give no figure; this is the
+ * double-click time, the default Windows' own hover timers take (Wine
+ * `tooltips.c`, `TTDT_AUTOMATIC` = `GetDoubleClickTime()`, 500).
+ */
+export const CLASSICY_DROP_ACTIVATE_DELAY_MS = 500;
 
 /** Pixels the pointer must travel before a press becomes a drag. */
 export const CLASSICY_FILE_DRAG_THRESHOLD = 4;
 
 const DROP_TARGET_HIGHLIGHT_CLASS = "classicyFileDropTarget";
 const DRAGGING_BODY_CLASS = "classicyFileDragging";
+// The taskbar takes no drops: only its window buttons answer a drag, by
+// activating their windows (`CLASSICY_DROP_ACTIVATE_ATTRIBUTE`), and it sits
+// inside the desktop, whose drop target it would otherwise be.
 const BLOCKING_SELECTOR =
-	".classicyWindow, .classicyDesktopMenuBar, .classicyControlStrip, [role='dialog']";
+	".classicyWindow, .classicyDesktopMenuBar, .classicyControlStrip, .classicyTaskbar, [role='dialog']";
 
 /** Where a dragged item lands: a folder (or drive) by path, or the desktop. */
 export type ClassicyFileDropDestination =
@@ -49,6 +139,14 @@ export type ClassicyFileDropTarget = {
 	element: Element;
 };
 
+/**
+ * What a drop does with the items: moves them, copies them, or makes
+ * shortcuts to them (Windows' `DROPEFFECT_MOVE`, `_COPY`, `_LINK`). A drag
+ * moves unless the package's `layout.transfer.copyModifier` reads its keys
+ * or its transfer menu (`layout.transfer.secondaryButton`) is chosen from.
+ */
+export type ClassicyFileDropEffect = "move" | "copy" | "link";
+
 type ElementsFromPoint = (x: number, y: number) => Element[];
 
 const defaultElementsFromPoint: ElementsFromPoint = (x, y) =>
@@ -56,42 +154,159 @@ const defaultElementsFromPoint: ElementsFromPoint = (x, y) =>
 		? document.elementsFromPoint(x, y)
 		: [];
 
+type ClassicyFileDragHitOptions = {
+	exclude?: Element | null;
+	elementsFromPoint?: ElementsFromPoint;
+};
+
+// What is under a client point: a drop target, an element a resting drag
+// activates, or neither.
+type ClassicyFileDragHit =
+	| { kind: "target"; target: ClassicyFileDropTarget }
+	| { kind: "activate"; element: Element }
+	| { kind: "none" };
+
+const NO_HIT: ClassicyFileDragHit = { kind: "none" };
+
+// The topmost element under the point (the dragged one skipped), walked up
+// to its first marked ancestor. An activate mark is met before the blocking
+// check, so a taskbar button answers though the taskbar around it blocks.
+function hitClassicyFileDrag(
+	x: number,
+	y: number,
+	{
+		exclude,
+		elementsFromPoint = defaultElementsFromPoint,
+	}: ClassicyFileDragHitOptions,
+): ClassicyFileDragHit {
+	for (const hit of elementsFromPoint(x, y)) {
+		if (exclude?.contains(hit)) continue;
+		for (let el: Element | null = hit; el; el = el.parentElement) {
+			if (el.hasAttribute(CLASSICY_DROP_ACTIVATE_ATTRIBUTE)) {
+				return { kind: "activate", element: el };
+			}
+			const folder = el.getAttribute(CLASSICY_DROP_FOLDER_ATTRIBUTE);
+			if (folder !== null) {
+				return {
+					kind: "target",
+					target: {
+						destination: { kind: "folder", path: folder },
+						element: el,
+					},
+				};
+			}
+			if (el.hasAttribute(CLASSICY_DROP_DESKTOP_ATTRIBUTE)) {
+				return {
+					kind: "target",
+					target: { destination: { kind: "desktop" }, element: el },
+				};
+			}
+			if (el.matches(BLOCKING_SELECTOR)) return NO_HIT;
+		}
+		return NO_HIT;
+	}
+	return NO_HIT;
+}
+
 /**
  * The drop target under a client point, or null when there is none (or the
- * point is over something that refuses drops). `exclude` skips the dragged
- * element itself — a desktop icon follows the pointer, so it is often the
- * topmost element. `elementsFromPoint` is injectable because jsdom has none.
+ * point is over something that refuses drops, an element a resting drag
+ * activates included). `exclude` skips the dragged element itself — a
+ * desktop icon follows the pointer, so it is often the topmost element.
+ * `elementsFromPoint` is injectable because jsdom has none.
  */
 export function findClassicyFileDropTarget(
+	x: number,
+	y: number,
+	options: ClassicyFileDragHitOptions = {},
+): ClassicyFileDropTarget | null {
+	const hit = hitClassicyFileDrag(x, y, options);
+	return hit.kind === "target" ? hit.target : null;
+}
+
+/**
+ * The element a drag resting at a client point would activate: the topmost
+ * element under it, or its nearest ancestor, marked
+ * `CLASSICY_DROP_ACTIVATE_ATTRIBUTE`, found before the blocking check (a
+ * taskbar window button, inside the taskbar that blocks drops). Null when
+ * the first marked element is a drop target or something that blocks
+ * drops, or there is none. Options as `findClassicyFileDropTarget`'s.
+ */
+export function findClassicyFileDropActivator(
+	x: number,
+	y: number,
+	options: ClassicyFileDragHitOptions = {},
+): Element | null {
+	const hit = hitClassicyFileDrag(x, y, options);
+	return hit.kind === "activate" ? hit.element : null;
+}
+
+/**
+ * Where a scroll area under a file drag's pointer at `x`, `y` scrolls, or
+ * null: the topmost element there (`exclude`, the dragged element, aside)
+ * inside a `ClassicyScrollArea`'s viewport that holds a drop target (or
+ * lies in one), the pointer within the area's line step of the viewport's
+ * edge, toward an edge the viewport can still scroll to. `dx` and `dy` are
+ * the line step's signed pixels (0 on an axis with nothing to do), both
+ * near a corner. `elementsFromPoint` is injectable because jsdom has none.
+ */
+export function findClassicyFileDragAutoScroll(
 	x: number,
 	y: number,
 	{
 		exclude,
 		elementsFromPoint = defaultElementsFromPoint,
 	}: { exclude?: Element | null; elementsFromPoint?: ElementsFromPoint } = {},
-): ClassicyFileDropTarget | null {
-	for (const hit of elementsFromPoint(x, y)) {
-		if (exclude?.contains(hit)) continue;
-		for (let el: Element | null = hit; el; el = el.parentElement) {
-			const folder = el.getAttribute(CLASSICY_DROP_FOLDER_ATTRIBUTE);
-			if (folder !== null) {
-				return { destination: { kind: "folder", path: folder }, element: el };
-			}
-			if (el.hasAttribute(CLASSICY_DROP_DESKTOP_ATTRIBUTE)) {
-				return { destination: { kind: "desktop" }, element: el };
-			}
-			if (el.matches(BLOCKING_SELECTOR)) return null;
-		}
+): { viewport: HTMLElement; dx: number; dy: number } | null {
+	const hit = elementsFromPoint(x, y).find((el) => !exclude?.contains(el));
+	const found = classicyScrollViewportOf(hit ?? null);
+	if (!found) return null;
+	const { element: viewport, entry } = found;
+	// Only an area the dragged item could be dropped in moves.
+	if (
+		!viewport.closest(`[${CLASSICY_DROP_FOLDER_ATTRIBUTE}]`) &&
+		!viewport.querySelector(`[${CLASSICY_DROP_FOLDER_ATTRIBUTE}]`)
+	) {
 		return null;
 	}
-	return null;
+	const r = viewport.getBoundingClientRect();
+	// Inside the viewport, its right and bottom edges counted out (the
+	// pointer at a pixel's column is `clientX`).
+	if (x < r.left || x >= r.right || y < r.top || y >= r.bottom) return null;
+	const step = entry.lineStep();
+	// In the band a line step wide inside an edge the viewport can still
+	// scroll toward (within a pixel of its end counts as there, as the
+	// scroll arrows' `disabled` does).
+	const toward = (
+		at: number,
+		start: number,
+		end: number,
+		axis: ClassicyScrollAxisMetrics,
+	) => {
+		const ends = classicyScrollAxisEnds(axis);
+		if (at < start + step && !ends.start) return -step;
+		if (at >= end - step && !ends.end) return step;
+		return 0;
+	};
+	const dx = toward(x, r.left, r.right, {
+		total: viewport.scrollWidth,
+		visible: viewport.clientWidth,
+		position: viewport.scrollLeft,
+	});
+	const dy = toward(y, r.top, r.bottom, {
+		total: viewport.scrollHeight,
+		visible: viewport.clientHeight,
+		position: viewport.scrollTop,
+	});
+	return dx || dy ? { viewport, dx, dy } : null;
 }
 
 /** How a file drag ended, as `onEnd` reports it. */
 export type ClassicyFileDragEnd = {
 	/**
-	 * Released over a drop target, which is handed to `onDrop`. The source may
-	 * still refuse the move (a locked item, the same folder).
+	 * Released over a drop target, which is handed to `onDrop` (or, for a
+	 * button-2 drag, `onMenu`, whose Cancel may still do nothing). The
+	 * source may still refuse the move (a locked item, the same folder).
 	 */
 	dropped: boolean;
 	/**
@@ -109,8 +324,53 @@ export type ClassicyFileDragEnd = {
 };
 
 export type ClassicyFileDragOptions = {
-	/** The press that may become a drag. */
-	start: { clientX: number; clientY: number };
+	/**
+	 * The press that may become a drag. `ctrlKey` and `shiftKey` are the
+	 * keys it began with: the copy modifier is read later, never from the
+	 * press, but a press that began with Control on a Mac host (its
+	 * secondary click) moves throughout.
+	 */
+	start: {
+		clientX: number;
+		clientY: number;
+		ctrlKey?: boolean;
+		shiftKey?: boolean;
+	};
+	/**
+	 * The button that pressed, when the drag ends only on that button's
+	 * release (a button-2 drag, `layout.transfer.secondaryButton`);
+	 * omitted, any release ends it, as before. With `2`, the release over
+	 * a target calls `onMenu` (when given) in place of `onDrop`, and the
+	 * browser's `contextmenu` that follows a release is swallowed.
+	 */
+	button?: number;
+	/**
+	 * A button-2 drag let go over a target (`button: 2`): the source shows
+	 * its transfer menu at `point`, `effect` being what a plain drop there
+	 * would do (its default item), and does the transfer chosen.
+	 */
+	onMenu?: (
+		target: ClassicyFileDropTarget,
+		point: [number, number],
+		outlineTopLeft: [number, number],
+		effect: ClassicyFileDropEffect,
+	) => void;
+	/**
+	 * Whether `target` takes this drag: a target it refuses is neither
+	 * highlighted nor dropped on (`onDrop` gets null), as if there were
+	 * none. Omitted, every target takes it.
+	 */
+	canDrop?: (target: ClassicyFileDropTarget) => boolean;
+	/**
+	 * The effects `target` takes for the dragged items (a move alone into
+	 * the Trash; no copy of what cannot be copied): the copy modifier asks
+	 * only for one of them, falling back to a move, and a target taking
+	 * none refuses the drag. Omitted, every effect but where the Trash
+	 * takes a move alone (`classicyFileDropDestinationEffects`).
+	 */
+	effects?: (
+		target: ClassicyFileDropTarget,
+	) => readonly ClassicyFileDropEffect[];
 	/**
 	 * Each dragged item's icon image and label, measured when the drag starts:
 	 * the outline that follows the pointer traces them (see
@@ -121,13 +381,16 @@ export type ClassicyFileDragOptions = {
 	source?: Element | null;
 	/**
 	 * Release after a real drag, with the target under the pointer (or null),
-	 * the pointer, and where the outline's top-left corner was let go — the
-	 * point an item dropped in place should move to.
+	 * the pointer, where the outline's top-left corner was let go — the
+	 * point an item dropped in place should move to — and what the drop
+	 * does there (`"move"` unless the package's copy modifier was held; a
+	 * move over no target).
 	 */
 	onDrop: (
 		target: ClassicyFileDropTarget | null,
 		point: [number, number],
 		outlineTopLeft: [number, number],
+		effect: ClassicyFileDropEffect,
 	) => void;
 	/** Release without the pointer ever traveling far enough to drag. */
 	onClick?: () => void;
@@ -159,21 +422,73 @@ export type ClassicyFileDragOptions = {
  * hidden) cancels it the same way, and abandons a press that has not dragged
  * yet: the release that would end it may never arrive, and one that does
  * comes from wherever the pointer is on return.
+ *
+ * While the drag is over an element marked `CLASSICY_DROP_ACTIVATE_ATTRIBUTE`
+ * (`findClassicyFileDropActivator`), a timer runs from the move that
+ * brought it there: after `CLASSICY_DROP_ACTIVATE_DELAY_MS` the element gets
+ * `CLASSICY_DROP_ACTIVATE_EVENT`, once, however long the drag stays or
+ * moves about on it. Leaving the element stops the timer, and coming back
+ * starts it again; the drag ending, however it ends, stops it. The element
+ * is not highlighted, and a release on it drops nothing and sends it
+ * `CLASSICY_DROP_REFUSED_EVENT`, after `onDrop`.
+ *
+ * While the outline is shown the desktop root (the `.classicyDesktop`
+ * around `source`) carries `data-classicy-drop`, the drop effect under the
+ * pointer: `"none"` while nothing there takes the drop (a window, the menu
+ * bar, a target `canDrop` refuses), else `"move"`, `"copy"` or `"link"`;
+ * the attribute goes when the drag ends, however it ends. The package's
+ * `layout.transfer` keys add a button-2 drag's menu (`button`, `onMenu`),
+ * the copy modifier (`copyModifier`, read on each move, on Control and
+ * Shift presses and at the release) and the velocity rule for automatic
+ * scrolling (`autoScroll`).
  */
 export function startClassicyFileDrag(
 	options: ClassicyFileDragOptions,
 ): () => void {
 	const { start, source, elementsFromPoint } = options;
+	// The package's transfer rules, as they stand at the press.
+	const layout = getClassicyAppearanceLayout();
+	const velocityScroll = layout.transfer?.autoScroll === true;
+	// Only a drag on button 2 ends in a menu, and only its button's release
+	// ends it.
+	const secondary = options.button === 2;
+	// The keys the copy modifier reads: the press's until the pointer moves.
+	let keys: ClassicyFileDragKeys = {
+		ctrlKey: start.ctrlKey === true,
+		shiftKey: start.shiftKey === true,
+	};
+	const pressCtrlOnMac = classicyFileDragPressCtrlOnMac(start.ctrlKey);
+	// Where `data-classicy-drop` goes, and the target it was set for.
+	const feedbackRoot = classicyFileDragFeedbackRoot(source);
+	let feedbackTarget: ClassicyFileDropTarget | null = null;
 	let ghost: HTMLElement | null = null;
 	// The outline keeps the items' offset from the pointer at the press.
 	let grabOffset: [number, number] = [0, 0];
 	let highlighted: Element | null = null;
+	// The element a resting drag would activate, and the timer running while
+	// the drag is on it (null once it has fired, or while there is none).
+	let activator: Element | null = null;
+	let activateTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const setHighlight = (element: Element | null) => {
 		if (highlighted === element) return;
 		highlighted?.classList.remove(DROP_TARGET_HIGHLIGHT_CLASS);
 		highlighted = element;
 		highlighted?.classList.add(DROP_TARGET_HIGHLIGHT_CLASS);
+	};
+
+	const setActivator = (element: Element | null) => {
+		if (activator === element) return;
+		if (activateTimer !== null) clearTimeout(activateTimer);
+		activateTimer = null;
+		activator = element;
+		if (!element) return;
+		activateTimer = setTimeout(() => {
+			activateTimer = null;
+			if (element.isConnected) {
+				element.dispatchEvent(new Event(CLASSICY_DROP_ACTIVATE_EVENT));
+			}
+		}, CLASSICY_DROP_ACTIVATE_DELAY_MS);
 	};
 
 	const placeGhost = (x: number, y: number) => {
@@ -198,12 +513,28 @@ export function startClassicyFileDrag(
 	// Set once the listeners are added, below.
 	let stopWatchingPointerStream = () => {};
 
+	// The automatic scrolling's repeat, while one runs (below), and the
+	// velocity rule's sampling timer (`layout.transfer.autoScroll`).
+	let autoScroll: ReturnType<typeof setInterval> | null = null;
+	let sampling: ReturnType<typeof setInterval> | null = null;
+	const stopAutoScroll = () => {
+		if (autoScroll !== null) clearInterval(autoScroll);
+		autoScroll = null;
+		if (sampling !== null) clearInterval(sampling);
+		sampling = null;
+	};
+
 	const cleanup = () => {
+		stopAutoScroll();
 		stopWatchingPointerStream();
 		document.removeEventListener("mousemove", onMove, true);
 		document.removeEventListener("mouseup", onUp, true);
 		document.removeEventListener("keydown", onKey, true);
+		document.removeEventListener("keyup", onKeyUp, true);
 		setHighlight(null);
+		setActivator(null);
+		feedbackTarget = null;
+		setClassicyFileDropFeedback(feedbackRoot, null);
 		ghost?.remove();
 		ghost = null;
 		document.body.classList.remove(DRAGGING_BODY_CLASS);
@@ -219,10 +550,122 @@ export function startClassicyFileDrag(
 		}
 	};
 
-	const targetAt = (x: number, y: number) =>
-		findClassicyFileDropTarget(x, y, { exclude: source, elementsFromPoint });
+	// The effects a target takes for this drag; none refuses it.
+	const effectsAt = (target: ClassicyFileDropTarget) =>
+		options.effects?.(target) ??
+		classicyFileDropDestinationEffects(target.destination);
+	// What is under a point: a drop target, an element a resting drag
+	// activates (a taskbar button), or neither.
+	const hitAt = (x: number, y: number) =>
+		hitClassicyFileDrag(x, y, { exclude: source, elementsFromPoint });
+	// The target a hit names that takes the drag, or null.
+	const targetOf = (hit: ClassicyFileDragHit) => {
+		if (hit.kind !== "target") return null;
+		const { target } = hit;
+		if (options.canDrop && !options.canDrop(target)) return null;
+		return effectsAt(target).length > 0 ? target : null;
+	};
+	// What a drop on `target` does with the keys as they are.
+	const effectAt = (target: ClassicyFileDropTarget) =>
+		classicyFileDropEffectFor(
+			classicyFileDragRequestedEffect(layout, keys, pressCtrlOnMac),
+			effectsAt(target),
+		);
+	// The desktop root's `data-classicy-drop` for the target under the
+	// pointer, while the outline is shown.
+	const showFeedback = () => {
+		if (!ghost) return;
+		if (!feedbackTarget) {
+			setClassicyFileDropFeedback(feedbackRoot, "none");
+			return;
+		}
+		setClassicyFileDropFeedback(feedbackRoot, effectAt(feedbackTarget));
+	};
+
+	// The pointer as last moved, and the drop target highlighted for it.
+	let pointer: [number, number] = [start.clientX, start.clientY];
+	const highlightAt = (x: number, y: number) => {
+		// The desktop itself isn't highlighted (Mac OS 8 doesn't); folders are.
+		const hit = hitAt(x, y);
+		const target = targetOf(hit);
+		setHighlight(target?.destination.kind === "folder" ? target.element : null);
+		setActivator(hit.kind === "activate" ? hit.element : null);
+		feedbackTarget = target;
+		showFeedback();
+	};
+
+	// Automatic scrolling: while the pointer rests near a scroll area's
+	// edge, a line per press-repeat interval (a held scroll arrow's rate),
+	// the first after one interval, so a pointer crossing the band on its
+	// way elsewhere scrolls nothing. The content moved under a still
+	// pointer, so the target under it is found again.
+	const autoScrollAt = (x: number, y: number) =>
+		findClassicyFileDragAutoScroll(x, y, {
+			exclude: source,
+			elementsFromPoint,
+		});
+	const followAutoScroll = () => {
+		if (!autoScrollAt(pointer[0], pointer[1])) {
+			stopAutoScroll();
+			return;
+		}
+		if (autoScroll !== null) return;
+		autoScroll = setInterval(() => {
+			const scroll = autoScrollAt(pointer[0], pointer[1]);
+			if (!scroll) {
+				stopAutoScroll();
+				return;
+			}
+			classicyScrollViewportOf(scroll.viewport)?.entry.scrollBy(
+				scroll.dx,
+				scroll.dy,
+			);
+			highlightAt(pointer[0], pointer[1]);
+		}, CLASSICY_PRESS_REPEAT_INTERVAL_MS);
+	};
+
+	// The velocity rule (`layout.transfer.autoScroll`; WIG Ch.5 "Scrolling
+	// When Transferring by Dragging", pp.64-65): the pointer sampled at the
+	// drag's start, on each move and on a timer; at each sample the area
+	// under it scrolls a line toward the edge it rests by, when it moves
+	// slowly enough and long enough after the last scroll
+	// (`ClassicyFileDragAutoScroll.internal.ts`, Windows 98 SE's figures).
+	const scrollData = createClassicyDragScrollData();
+	let scrollZone: ClassicyDragScrollZone | null = null;
+	const sampleAutoScroll = () => {
+		const now = Date.now();
+		const full = addClassicyDragScrollSample(scrollData, {
+			x: pointer[0],
+			y: pointer[1],
+			t: now,
+		});
+		if (!full) return;
+		if (
+			classicyDragScrollVelocity(scrollData) > CLASSICY_DRAG_SCROLL_MAX_VELOCITY
+		)
+			return;
+		if (
+			scrollData.lastScroll !== null &&
+			now - scrollData.lastScroll < CLASSICY_DRAG_SCROLL_INTERVAL_MS
+		)
+			return;
+		scrollZone ??= readClassicyDragScrollZone();
+		const scroll = findClassicyFileDragVelocityScroll(pointer[0], pointer[1], {
+			exclude: source,
+			elementsFromPoint,
+			zone: scrollZone,
+		});
+		if (!scroll) return;
+		classicyScrollViewportOf(scroll.viewport)?.entry.scrollBy(
+			scroll.dx,
+			scroll.dy,
+		);
+		scrollData.lastScroll = now;
+		highlightAt(pointer[0], pointer[1]);
+	};
 
 	function onMove(e: MouseEvent) {
+		const starting = !ghost;
 		if (!ghost) {
 			const traveled = Math.max(
 				Math.abs(e.clientX - start.clientX),
@@ -233,27 +676,55 @@ export function startClassicyFileDrag(
 			options.onStart?.();
 		}
 		e.preventDefault();
+		pointer = [e.clientX, e.clientY];
+		keys = { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey };
 		placeGhost(e.clientX, e.clientY);
-		// The desktop itself isn't highlighted (Mac OS 8 doesn't); folders are.
-		const target = targetAt(e.clientX, e.clientY);
-		setHighlight(target?.destination.kind === "folder" ? target.element : null);
+		highlightAt(e.clientX, e.clientY);
+		if (!velocityScroll) {
+			followAutoScroll();
+			return;
+		}
+		sampleAutoScroll();
+		if (starting && sampling === null) {
+			sampling = setInterval(
+				sampleAutoScroll,
+				CLASSICY_DRAG_SCROLL_SAMPLE_INTERVAL_MS,
+			);
+		}
 	}
 
 	function onUp(e: MouseEvent) {
+		// A button-2 drag ends at that button's release alone.
+		if (options.button !== undefined && e.button !== options.button) return;
 		const dragged = ghost !== null;
+		if (dragged) keys = { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey };
 		cleanup();
 		if (!dragged) {
 			options.onClick?.();
 			return;
 		}
 		// Hit-tested once the outline and highlight are gone.
-		const target = targetAt(e.clientX, e.clientY);
+		const hit = hitAt(e.clientX, e.clientY);
+		const target = targetOf(hit);
+		const point: [number, number] = [e.clientX, e.clientY];
+		const outlineTopLeft: [number, number] = [
+			e.clientX - grabOffset[0],
+			e.clientY - grabOffset[1],
+		];
+		const effect = target ? effectAt(target) : "move";
 		reportEnd({ dropped: target !== null, canceled: false, lost: false });
-		options.onDrop(
-			target,
-			[e.clientX, e.clientY],
-			[e.clientX - grabOffset[0], e.clientY - grabOffset[1]],
-		);
+		// The browser's own menu after a button-2 release (a Windows host
+		// raises it then) must not replace the transfer menu.
+		if (secondary) swallowClassicyFileDragContextMenu();
+		if (target && secondary && options.onMenu) {
+			options.onMenu(target, point, outlineTopLeft, effect);
+			return;
+		}
+		options.onDrop(target, point, outlineTopLeft, effect);
+		// Let go on an element a resting drag activates (a taskbar button):
+		// refused, and the element hears it, after the drop's own handling.
+		if (hit.kind === "activate" && hit.element.isConnected)
+			hit.element.dispatchEvent(new Event(CLASSICY_DROP_REFUSED_EVENT));
 	}
 
 	// Escape, a lost pointer stream (`lost`), or the caller abandoning the
@@ -265,16 +736,30 @@ export function startClassicyFileDrag(
 		if (dragged) reportEnd({ dropped: false, canceled: true, lost });
 	};
 
+	// Control or Shift pressed or let go while the outline is shown: what
+	// the drop would do changes under a still pointer.
+	const followModifier = (e: KeyboardEvent) => {
+		if (!ghost || (e.key !== "Control" && e.key !== "Shift")) return;
+		keys = { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey };
+		showFeedback();
+	};
+
 	function onKey(e: KeyboardEvent) {
+		followModifier(e);
 		if (e.key !== "Escape" || !ghost) return;
 		e.preventDefault();
 		e.stopPropagation();
 		cancel(false);
 	}
 
+	function onKeyUp(e: KeyboardEvent) {
+		followModifier(e);
+	}
+
 	document.addEventListener("mousemove", onMove, true);
 	document.addEventListener("mouseup", onUp, true);
 	document.addEventListener("keydown", onKey, true);
+	document.addEventListener("keyup", onKeyUp, true);
 	stopWatchingPointerStream = onClassicyPointerStreamLost(() => cancel(true));
 	return () => cancel(false);
 }

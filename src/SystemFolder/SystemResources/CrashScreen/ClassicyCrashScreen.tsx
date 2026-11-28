@@ -7,6 +7,7 @@ import {
 	type ReactNode,
 } from "react";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { emitClassicyCrash } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 interface ClassicyCrashScreenProps {
@@ -21,6 +22,33 @@ interface ClassicyCrashScreenProps {
 	style?: CSSProperties;
 }
 
+/**
+ * Windows 98's fatal-exception screen, as `layout.crashScreen:
+ * "fatalException"` draws it: VGA text mode's 80 columns, each line as
+ * Windows wrote it. The title is shell.vxd's "Windows", the message
+ * vwin32.vxd's `A fatal exception %12x has occurred at %24x:%38x in VXD %4s.
+ * The current application will be terminated.` and its two bullets, filled
+ * with the exception and address of the well-known Windows 98 capture
+ * (exception 0E, a page fault, in VMM), and the prompt shell.vxd's "Press any
+ * key to continue " with the text-mode cursor after it.
+ */
+export const CLASSICY_FATAL_EXCEPTION_SCREEN = Object.freeze({
+	title: " Windows ",
+	message: Object.freeze([
+		"A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) +",
+		"00010E36. The current application will be terminated.",
+	]),
+	bullets: Object.freeze([
+		"*  Press any key to terminate the current application.",
+		"*  Press CTRL+ALT+DEL again to restart your computer. You will",
+		"   lose any unsaved information in all applications.",
+	]),
+	prompt: "Press any key to continue _",
+});
+
+const FATAL_EXCEPTION_LABEL =
+	"Windows: a fatal exception has occurred and the system has crashed. Click or press any key to restart.";
+
 interface ClassicyCrashScreenState {
 	crashed: boolean;
 }
@@ -28,8 +56,10 @@ interface ClassicyCrashScreenState {
 /**
  * Error boundary that replaces the desktop with a full-screen Sad Mac — the
  * classic Macintosh startup-failure icon — when any descendant throws while
- * rendering (or in a lifecycle method). Clicking it or pressing any key
- * reloads the page. Like any React error boundary, it does not catch errors
+ * rendering (or in a lifecycle method). Under a package whose layout declares
+ * `crashScreen: "fatalException"` (Windows 98) it is Windows' fatal-exception
+ * screen instead, light gray text on blue (`CLASSICY_FATAL_EXCEPTION_SCREEN`).
+ * Clicking it or pressing any key reloads the page. Like any React error boundary, it does not catch errors
  * thrown in event handlers or async code.
  *
  * `ClassicyDesktop` already wraps itself in one, so a typical app gets it for
@@ -92,6 +122,43 @@ export class ClassicyCrashScreen extends Component<
 
 	render(): ReactNode {
 		if (this.state.crashed) {
+			// Store-free, like the asset read below: the active package's layout
+			// from the same registry, so a crashed store cannot break it.
+			if (getClassicyAppearanceLayout().crashScreen === "fatalException") {
+				const screen = CLASSICY_FATAL_EXCEPTION_SCREEN;
+				return (
+					<button
+						className={classNames(
+							"classicyCrashScreen",
+							"classicyCrashScreenFatalException",
+							this.props.className,
+						)}
+						style={this.props.style}
+						type="button"
+						aria-label={FATAL_EXCEPTION_LABEL}
+						onClick={this.reload}
+						onKeyDown={this.reload}
+					>
+						<span className="classicyCrashScreenMessage" aria-hidden="true">
+							<span className="classicyCrashScreenTitle">{screen.title}</span>
+							<span className="classicyCrashScreenLine"> </span>
+							{screen.message.map((line) => (
+								<span className="classicyCrashScreenLine" key={line}>
+									{line}
+								</span>
+							))}
+							<span className="classicyCrashScreenLine"> </span>
+							{screen.bullets.map((line) => (
+								<span className="classicyCrashScreenLine" key={line}>
+									{line}
+								</span>
+							))}
+							<span className="classicyCrashScreenLine"> </span>
+							<span className="classicyCrashScreenPrompt">{screen.prompt}</span>
+						</span>
+					</button>
+				);
+			}
 			return (
 				<button
 					className={classNames("classicyCrashScreen", this.props.className)}

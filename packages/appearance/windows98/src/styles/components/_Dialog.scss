@@ -1,0 +1,337 @@
+// The Windows 98 dialog box, included by windows98.scss inside the package
+// wrapper, after the windows. A dialog is an ordinary overlapped window
+// whose client area is ButtonFace (DLGC: the dialog class paints COLOR_3DFACE
+// and no client edge); the frame, caption and buttons are the windows' own
+// (_Window.scss draws them, the modal's ButtonFace body included). This
+// partial dresses what the dialogs lay out inside: the modal body's margin,
+// the button rows, the input dialog, the keyboard-equivalent dialog and its
+// hot-key box, the file dialogs (Open and Save) and the About box, over the
+// core's structure in ClassicyWindow.scss (the modal rules),
+// ClassicyInputDialog.scss, ClassicyKeyboardEquivalent.scss, ClassicyForm.scss,
+// ClassicyFileOpenDialog.scss and ClassicyAboutWindow.scss. The alert box
+// (_Alert.scss) reuses the button order below.
+//
+// - Margins: a dialog's items start 7 dialog units from its edge, 11 pixels
+//   in MS Sans Serif 8 (`--layout-dialog-edge`, the core's HIG inset, which
+//   happens to be the same figure), the padding of a modal's inner area; a
+//   dialog that pads its own root (an alert, the input and keyboard dialogs,
+//   a dialog-layout form: `classicyWindowContentsSelfPadded`) gets none from
+//   the chrome. The file dialog's body gives up its own padding, so its
+//   items sit at the same margin.
+// - Button rows: Windows reads a dialog's buttons affirmative first, [OK]
+//   [Cancel], [Yes] [No] [Cancel], [Open] [Cancel], where the Mac puts the
+//   default last; so the default button goes first, any other button next
+//   and Cancel last, by `order` on the vocabulary's `[data-classicy-role]`
+//   parts (the alert's) and the `default` state class (every other row:
+//   the input, keyboard and form rows). Rows stay right-aligned (98.css's
+//   dialogs; the base sheets' `justify-content: flex-end`).
+// - The hot-key box (the read-only combination of the keyboard-equivalent
+//   dialog, and the field above the button that redefines it) is the hot key
+//   control, an edit control: Window white under a two-ring sunken edge
+//   (WS_EX_CLIENTEDGE, `b.sunken`), the edit control's height and text
+//   inset (`--field-height`, `--field-padding-*`, the text fields' own, the
+//   height following a larger UI font as theirs does), its
+//   text left-aligned as an edit's is (the base centers it, HIGOS8's figure);
+//   in the dialog it spans the dialog's width (the base insets it 24 pixels
+//   for the figure). Disabled, ButtonFace with plain GrayText: an edit
+//   control draws its disabled text plain, where a static control embosses
+//   it (the text fields' partial reads the same).
+// - The file dialogs are the Open and Save As common dialogs as far as the
+//   core's structure goes (WIG Ch.8 "Open Dialog Box" and "Save As Dialog
+//   Box", pp.155-157, Figures 8.6 and 8.7): the package's layout asks for
+//   flat navigation (`fileDialog.navigation: "flat"`: one folder's contents
+//   at a time, a folder entered by opening it, the pop-up over the list
+//   running the path upward and then the volumes, as Look in does) and for
+//   Save As to open with the file name selected (`saveName: "selected"`;
+//   p.157: "include a default name in the File Name text box", which the
+//   dialog manager selects on first focus). The list is a list view: white,
+//   sunken two rings, the viewport and its scroll bar inside the rings, rows
+//   of small icons and names with no disclosure cell; a selected row's name
+//   alone Hilight with HilightText, the icon untouched (Figure 8.6
+//   highlights "Letter to Nancy", not its icon), the focused name's dotted
+//   rectangle; the action buttons [Open or Save] [Cancel], then New Folder.
+// - The About box in the UI font: the name bold and large, the notice plain,
+//   no serif.
+// - Windows has no red alert caption and no uncaptioned dialog: an error
+//   modal (`classicyWindowRed`) and a fixed modal (`classicyWindowModalFixed`)
+//   keep the windows' caption, whose gradient (_Window.scss, in this layer)
+//   covers the base sheet's red; nothing to undo here.
+//
+// Every length is a knob or a ring (`b.$b`), every color a token.
+@use "../bevels" as b;
+
+// Windows' dialog margin, 7 dialog units.
+$edge: var(--layout-dialog-edge);
+
+// An edit control's height and the line inside its inset, as the text
+// fields' partial (_TextField.scss) sizes its fields: the knob (21), or, at
+// a UI font size the knob no longer holds, the font plus the text's inset
+// and the two rings above and below it, so the hot-key box follows the
+// Fonts tab (WIG Ch.14 "Scalability" (p.334)).
+$field-height: max(
+  var(--field-height),
+  calc(var(--ui-font-size) + var(--field-padding-y) + var(--field-padding-y) + #{b.$b2} + #{b.$b2})
+);
+$field-line: calc(#{$field-height} - var(--field-padding-y) - var(--field-padding-y));
+
+// A button row in Windows' order: the default button first, Cancel last, any
+// other button between (Help, at the alert's far right, is ordered by
+// _Alert.scss). Keyed on the role parts and on the `default` state class, so
+// a row with no roles orders too. Included on the row.
+@mixin button-row {
+  > .classicyButton,
+  > .classicyBevelButton,
+  > [data-classicy-role] {
+    order: 20;
+  }
+
+  > .classicyButton.default,
+  > [data-classicy-role="default"] {
+    order: 10;
+  }
+
+  > [data-classicy-role="cancel"] {
+    order: 30;
+  }
+}
+
+// An edit control's box: Window white, sunken two rings, WindowText.
+@mixin edit-box {
+  border: none;
+  color: b.$text;
+  background: b.$window;
+
+  @include b.sunken;
+}
+
+// The same control disabled: plain GrayText on ButtonFace, no emboss (the
+// base's dimmed static text, in GrayText already, keeps its color).
+@mixin edit-box-disabled {
+  color: b.$gray-text;
+  text-shadow: none;
+  background: b.$face;
+}
+
+@mixin dialog {
+  // The modal body's margin (the base gives it a hair of padding under a
+  // black rule; the windows' partial removes the rule). Border-box, so the
+  // inner area's 100% height keeps the margin inside the window.
+  .classicyWindowContentsModalInner {
+    box-sizing: border-box;
+    padding: $edge;
+  }
+
+  .classicyWindowContentsModalInner.classicyWindowContentsSelfPadded {
+    padding: 0;
+  }
+
+  // --- The input dialog -----------------------------------------------------
+  // Prompt over the field, the buttons under them (ClassicyInputDialog.scss
+  // lays it out at the dialog margin): WindowText in the UI font, the
+  // buttons in Windows' order.
+  .classicyInputDialog {
+    color: b.$text;
+
+    .classicyInputDialogPrompt .classicyControlLabel {
+      color: b.$text;
+    }
+
+    .classicyInputDialogButtons {
+      @include button-row;
+    }
+  }
+
+  // --- A form in a dialog ----------------------------------------------------
+  // Its button row (ClassicyForm.scss) in Windows' order.
+  .classicyFormButtonRow {
+    @include button-row;
+  }
+
+  // --- The keyboard-equivalent dialog ----------------------------------------
+  // Figures 6-9 and 6-10 of HIGOS8 as a Windows dialog: the prompt plain (a
+  // Windows dialog sets no bold heading), the hot-key box an edit control,
+  // the explanation in the UI font, the buttons in Windows' order.
+  .classicyKeyboardEquivalentDialog {
+    color: b.$text;
+
+    .classicyKeyboardEquivalentPrompt {
+      font-weight: normal;
+    }
+
+    .classicyKeyboardEquivalentDescription {
+      font-family: var(--ui-font), sans-serif;
+      font-size: var(--ui-font-size);
+    }
+
+    // The hot-key box spans the dialog's width (the base's HIG inset goes).
+    .classicyKeyboardEquivalentDisplay {
+      margin: 0;
+    }
+
+    .classicyKeyboardEquivalentButtons {
+      @include button-row;
+    }
+  }
+
+  // The hot-key box, in the dialog and in the field a control panel shows
+  // (the base names the element and both classes, so this does too): the
+  // edit control's height (`--field-height`, 21: Windows' edit and combo
+  // box stand at one height, the text fields' partial's choice; taller at a
+  // UI font size the knob no longer holds, as theirs are), its text on
+  // the line left inside the field's inset, left-aligned, Window white under
+  // the sunken edge; disabled, a disabled edit control.
+  output.classicyOutput.classicyKeyboardEquivalentDisplay {
+    min-height: $field-height;
+    line-height: $field-line;
+    padding: var(--field-padding-y) var(--field-padding-x);
+    text-align: left;
+
+    @include edit-box;
+
+    &.disabled {
+      @include edit-box-disabled;
+    }
+  }
+
+  // --- The file dialogs (Open and Save) --------------------------------------
+  // The common dialog's parts as Classicy lays them out: the folder pop-up
+  // over the list (the path upward, then the volumes, under the package's
+  // flat navigation: Windows' Look in / Save in, WIG Ch.8 p.156), the list,
+  // the name row (Save), then the filter pop-up at the left and the buttons
+  // at the right. The body's items sit at the modal's margin (its own
+  // padding given up), WindowText in the UI font.
+  .classicyFileOpenDialogBody {
+    padding: 0;
+    color: b.$text;
+  }
+
+  // The list: a list view with the client edge, its viewport and scroll bar
+  // inside the two rings (the padding), Window white behind both (the
+  // viewport inherits it). The base's black border and the viewport's own
+  // bevel go.
+  .classicyFileOpenDialogWell {
+    box-sizing: border-box;
+    padding: b.$b2;
+    border: none;
+    background: b.$window;
+
+    @include b.sunken;
+  }
+
+  .classicyFileOpenDialogWellViewport {
+    box-shadow: none;
+  }
+
+  // The rows, as Figure 8.6's list view has them (WIG Ch.8 "Open Dialog
+  // Box", pp.155-156): items a hair inside the edge (the base's five pixels
+  // are the Mac list's); the disclosure cell not drawn (under the package's
+  // flat navigation every row is a small icon and a name, so the cell is
+  // empty; the tree view outside the well keeps its triangles,
+  // _ListBox.scss); the name alone taking the selection, Hilight under
+  // HilightText a ring high and half an item gap wide around the text, the
+  // icon untouched (a list view highlights the label, where the Mac list
+  // ran the bar across the row); the dotted focus rectangle a list view
+  // draws around the name of the row that has the keyboard (whenever the
+  // list has focus, a click's included), one ring inside its highlight and
+  // in HilightText over a selected name; a disabled row's name GrayText.
+  .classicyFileOpenDialogWell {
+    .classicyTree {
+      padding: var(--layout-item-gap-half);
+    }
+
+    .classicyTreeNodeDisclosure {
+      display: none;
+    }
+
+    .classicyTreeNodeLabelHolder {
+      color: b.$text;
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    .classicyTreeNodeLabel {
+      padding: b.$b var(--layout-item-gap-half);
+    }
+
+    .classicyTreeNodeLabelHolder:focus .classicyTreeNodeLabel {
+      @include b.focus-rect(b.$b);
+    }
+
+    :where(.classicyTreeNodeLabelHolder).selected .classicyTreeNodeLabel {
+      color: b.$highlight-text;
+      background-color: b.$highlight;
+    }
+
+    // The state class on the row, not in `:where()`: it must outrank the
+    // focus rule above, whose shorthand sets the outline's color.
+    .classicyTreeNodeLabelHolder.selected:focus .classicyTreeNodeLabel {
+      outline-color: b.$highlight-text;
+    }
+
+    :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeLabel {
+      color: b.$gray-text;
+    }
+  }
+
+  // Flowing in columns (the package's `fileDialog.listFlow`), the list
+  // mode's columns sit the label's trailing padding apart, Wine's
+  // TRAILING_LABEL_PADDING (12): `--layout-group-gap`.
+  .classicyFileOpenDialogWellColumns .classicyTree {
+    column-gap: var(--layout-group-gap);
+  }
+
+  // The buttons, `--button-gap` apart, in Windows' order: Open or Save (the
+  // default, the row's last button) first, Cancel (the one before it) next,
+  // New Folder (Save's, before them both) last. By position: the dialog's
+  // buttons carry no role parts, and the base hides System 7.5's Eject,
+  // Desktop and the line before them, which keep their places in the row.
+  .classicyFileOpenDialogActions {
+    gap: var(--button-gap);
+
+    > .classicyButton {
+      order: 40;
+    }
+
+    > .classicyButton:nth-last-child(2) {
+      order: 30;
+    }
+
+    > .classicyButton:last-child {
+      order: 10;
+    }
+  }
+
+  // --- The About box -----------------------------------------------------------
+  // The application's icon, its name and the notice, centered, then OK: all
+  // in the UI font (the base sets the name in the serif header face), the
+  // name bold at the large size, the notice plain, the items `--layout-item-
+  // gap` apart and the button a group gap below.
+  .aboutWindow {
+    gap: var(--layout-item-gap);
+    font-family: var(--ui-font), sans-serif;
+    font-size: var(--ui-font-size);
+    color: b.$text;
+
+    h1 {
+      margin: 0;
+      font-family: var(--ui-font), sans-serif;
+      font-size: var(--ui-font-size-large);
+      font-weight: bold;
+      line-height: 1.2;
+    }
+
+    h5 {
+      margin: 0;
+      font-family: var(--ui-font), sans-serif;
+      font-size: var(--ui-font-size);
+      font-weight: normal;
+      line-height: 1.2;
+    }
+
+    > .classicyButton {
+      margin-top: var(--layout-group-gap);
+    }
+  }
+}

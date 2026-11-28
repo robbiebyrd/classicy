@@ -10,10 +10,12 @@ import {
 	registerClassicyWallpapers,
 	resetClassicyAssets,
 	resolveClassicyAsset,
+	resolveClassicyOwnAsset,
 	subscribeClassicyAssets,
 	useClassicyAsset,
 	useClassicyAssetTree,
 	useClassicyAssetVars,
+	useClassicyOwnAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
 import {
@@ -69,6 +71,49 @@ describe("ClassicyAssetRegistry", () => {
 		expect(resolveClassicyAsset("icons", "a", "other")).toBe("p");
 		expect(resolveClassicyAsset("icons", "b", "other")).toBe("o");
 		expect(resolveClassicyAsset("icons", "b")).toBeUndefined();
+	});
+
+	it("resolveClassicyOwnAsset reads the package's own tree, never the default package's", () => {
+		registerClassicySystemArt("platinum", { appleMenu: "apple.png" });
+		registerClassicySystemArt("other", { startMenuBanner: "banner.webp" });
+		expect(resolveClassicyAsset("systemArt", "appleMenu", "other")).toBe(
+			"apple.png",
+		);
+		expect(
+			resolveClassicyOwnAsset("systemArt", "appleMenu", "other"),
+		).toBeUndefined();
+		expect(
+			resolveClassicyOwnAsset("systemArt", "startMenuBanner", "other"),
+		).toBe("banner.webp");
+		expect(resolveClassicyOwnAsset("systemArt", "appleMenu", "platinum")).toBe(
+			"apple.png",
+		);
+		registerClassicySystemArt(
+			"other",
+			{ appleMenu: "flag-bw.webp" },
+			{ variant: "bw" },
+		);
+		expect(
+			resolveClassicyOwnAsset("systemArt", "appleMenu", "other", "bw"),
+		).toBe("flag-bw.webp");
+		expect(
+			resolveClassicyOwnAsset("systemArt", "appleMenu", "other", ""),
+		).toBeUndefined();
+	});
+
+	it("useClassicyOwnAsset follows the active package's own registrations", () => {
+		const Probe = () =>
+			createElement(
+				"span",
+				{ "data-testid": "own" },
+				useClassicyOwnAsset("systemArt", "startMenuBanner") ?? "none",
+			);
+		const { getByTestId } = render(createElement(Probe));
+		expect(getByTestId("own").textContent).toBe("none");
+		act(() =>
+			registerClassicySystemArt("platinum", { startMenuBanner: "b.webp" }),
+		);
+		expect(getByTestId("own").textContent).toBe("b.webp");
 	});
 
 	it("notifies subscribers once per registration", () => {

@@ -12,7 +12,8 @@ import {
  * Props of `Classicy`: every `ClassicyAppManagerProvider` prop
  * (analytics, `defaultState`, the default file system, `disable*` for the
  * built-in apps, `defaultMuted`) and every `ClassicyDesktop` prop (the
- * startup screen, `controlStrip`, `className`, `style`, `children`). The two
+ * startup screen, `controlStrip`, `userName`, `onLogOff`, `className`,
+ * `style`, `children`). The two
  * sets share no name, so each prop goes to the one component that takes it.
  */
 export type ClassicyProps = ClassicyAppManagerProviderProps &
@@ -45,6 +46,8 @@ export const Classicy: FunctionalComponent<ClassicyProps> = ({
 	startupWordmark,
 	bootScreen,
 	controlStrip,
+	userName,
+	onLogOff,
 	className,
 	style,
 	// ClassicyAppManagerProvider: everything else
@@ -59,6 +62,8 @@ export const Classicy: FunctionalComponent<ClassicyProps> = ({
 			startupWordmark={startupWordmark}
 			bootScreen={bootScreen}
 			controlStrip={controlStrip}
+			userName={userName}
+			onLogOff={onLogOff}
 			className={className}
 			style={style}
 		>

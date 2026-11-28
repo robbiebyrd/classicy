@@ -1,0 +1,72 @@
+// The Windows 98 group box, included by windows98.scss inside the package
+// wrapper; overrides the structure of ClassicyControlGroup.scss (the
+// fieldset's frame and its title). The look is the Windows 95/98 group box
+// (BS_GROUPBOX) as `GB_Paint` drew it from the system colors (as 98.css and
+// os-gui re-create it, and Wine's button.c emulates it):
+//
+// - The primary group: the etched edge (DrawEdge EDGE_ETCHED, `b.etched`):
+//   two rings, ButtonShadow over ButtonHilight at the top and left and the
+//   reverse at the bottom and right, an engraved line in the fieldset's
+//   two-ring border, drawn by a pseudo-element over the border box (an
+//   inset shadow stops at the padding box, so it cannot lie in the border
+//   itself); the border stays, transparent, so the content keeps its place.
+// - The title: WindowText in the UI font (the same size as every label;
+//   Windows has no smaller caption face), on a ButtonFace ground that
+//   breaks the top line, centered on it, its ink seven pixels in from the
+//   frame's outer edge with a pixel of face before and after it (GB_Paint:
+//   the label rectangle is the box deflated by 7, the fill a pixel wider
+//   each side). Its line box is the font size and a pixel, 12 px at the
+//   default 11 (an even height, so the base sheet's centering on the line, a
+//   half-height translate, lands the pixel font on whole pixels), so a title
+//   set larger in the Fonts tab keeps the face strip that breaks the line
+//   (WIG Ch.14 "Scalability" (p.334): size every element from the font the
+//   user can change).
+// - The secondary group (Windows drew one kind; a plain one-ring line, as
+//   the old package spec had it): one ring of ButtonShadow.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03        the title's ground
+//   ButtonHilight     --color-system-01        the etched line's light ring
+//   ButtonShadow      --color-system-05        the etched line's dark ring,
+//                                              the secondary line
+//   WindowText        --color-black            the title
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// every color a token.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+@mixin control-group {
+  .classicyControlGroupFieldsetPrimary {
+    border: b.$b2 solid transparent;
+
+    // The etched edge in the border: the pseudo-element's padding box is the
+    // fieldset's border box, so the two rings fall on the border's two.
+    &::before {
+      content: "";
+      position: absolute;
+      inset: b.$neg-b2;
+      pointer-events: none;
+      @include b.etched;
+    }
+  }
+
+  .classicyControlGroupFieldsetSecondary {
+    border: b.$b solid b.$shadow;
+  }
+
+  // The title breaks the line on the window's face, its ink seven pixels
+  // from the frame's outer edge: the base sheet places it from the padding
+  // box, two rings in, so four pixels on, and a pixel of face before it.
+  // Its line box (the font and a pixel: 12 px at the default size), centered
+  // on the line, overhangs the frame by five, within the overhang the base
+  // sheet reserves for a caption-sized title.
+  .classicyControlGroupLegend {
+    left: px(4);
+    padding: 0 $px;
+    font-size: var(--ui-font-size);
+    line-height: calc(var(--ui-font-size) + #{$px});
+    color: b.$text;
+    background-color: b.$face;
+  }
+}

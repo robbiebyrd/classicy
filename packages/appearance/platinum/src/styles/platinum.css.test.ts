@@ -689,6 +689,29 @@ describe("platinum.scss (compiled)", () => {
 	// Story 0196-1i1: the pop-up menu's look left ClassicyPopUpMenu.scss (now
 	// pinned by ClassicyBaseHoldsNoControlLook) for this partial, value for
 	// value, so Platinum draws the same pixels.
+	// The rich text editor's toolbar tips (MDXEditor's Radix tooltips), now
+	// opened in the desktop (the WIG audit's 12.10, a defect under every
+	// package): Platinum's help balloon box (HIG (1995) Ch.11 "Balloon
+	// Help", pp.316-317, Figure 11-8), the base `.classicyBalloonHelp`'s
+	// declarations and text.
+	it("draws the rich text editor's toolbar tips as its help balloon", () => {
+		const { props } = rule(
+			`${P} .classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > *`,
+		);
+		expect(props).toEqual({
+			"min-width": "var(--balloon-help-min-width)",
+			"max-width": "var(--balloon-help-max-width)",
+			padding: "var(--window-padding-size)",
+			border: "var(--window-border-size) solid var(--color-black)",
+			"border-radius": "var(--balloon-help-corner-radius)",
+			color: "var(--color-black)",
+			background: "var(--color-white)",
+			"font-family": "var(--ui-font)",
+			"font-size": "var(--balloon-help-font-size)",
+			"line-height": "1.3",
+		});
+	});
+
 	describe("the pop-up menu's look, moved from the base sheet", () => {
 		it("dims a disabled box with the gradient over its fill", () =>
 			expect(rule(`${P} .classicyPopUpMenu.disabled`).props).toEqual({
@@ -1900,6 +1923,24 @@ describe("platinum.scss (compiled)", () => {
 					.border,
 			).toBe(BORDER);
 			expect(rules(".classicySplitViewDivider").props.border).toBe(BORDER);
+			// A closed split's split box wears the divider's border.
+			expect(rules(".classicySplitViewSplitBox").props.border).toBe(BORDER);
+		});
+
+		// A name being edited in an icon view (a slow second click on a
+		// selected icon's name, as in Mac OS 8's Finder): the edit box, the
+		// name black on white in a one-pixel black frame. Platinum draws the
+		// icon view's selection rectangle as the desktop's (the base rule).
+		it("frames an icon's name being edited in one black pixel, on white", () => {
+			const field = rules(".classicyIcon .classicyIconRename").props;
+			expect(field.border).toBe(
+				"var(--window-border-size) solid var(--color-black)",
+			);
+			expect(field.background).toBe("var(--color-white)");
+			expect(field.color).toBe("var(--color-black)");
+			expect(field.outline).toBe("none");
+			expect(flat).not.toContain("classicyFileBrowserSelect");
+			expect(flat).not.toContain("classicyFileOpenDialogWellColumns");
 		});
 
 		it.each([

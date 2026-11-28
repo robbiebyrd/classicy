@@ -9,6 +9,7 @@ import {
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { withPortableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
+import { isClassicyPropertiesWindowId } from "@/SystemFolder/SystemResources/File/ClassicyFileProperties";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type {
 	ClassicyStoreSystemAppearanceManager,
@@ -45,6 +46,7 @@ import {
 	mergeClassicyState,
 } from "./ClassicyAppManager";
 import { validateAppStateForAction } from "./ClassicyAppManifest";
+import { listAppWindows, removeAppWindow } from "./ClassicyAppWindows";
 import {
 	markClassicyDefaultStateSeedApplied,
 	wasClassicyDefaultStateSeedApplied,
@@ -805,6 +807,31 @@ export function sanitizeStateForPersistence(
 		if (screenSaverApp?.data && "active" in screenSaverApp.data) {
 			delete (screenSaverApp.data as Record<string, unknown>).active;
 		}
+		// A Delete waiting for its confirmation (Explorer's commands) belongs to
+		// the session that asked: a reload must not greet the user with it.
+		const finderApp = draft.System.Manager.Applications.apps["Finder.app"];
+		if (finderApp?.data && "confirmDelete" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).confirmDelete;
+		}
+		// So does a Create Shortcut waiting for its desktop offer's answer.
+		if (finderApp?.data && "desktopShortcutOffer" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).desktopShortcutOffer;
+		}
+		// And the property sheets and the Open With dialog (Explorer's
+		// Properties and Open With): Windows reopens none after a restart,
+		// and a sheet's window keeps no place.
+		if (finderApp?.data && "properties" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).properties;
+		}
+		if (finderApp?.data && "openWith" in finderApp.data) {
+			delete (finderApp.data as Record<string, unknown>).openWith;
+		}
+		if (finderApp?.windows) {
+			for (const record of listAppWindows(finderApp)) {
+				if (isClassicyPropertiesWindowId(record.id))
+					removeAppWindow(finderApp, record.id);
+			}
+		}
 		// The Special menu's confirmation alert belongs to the session that
 		// opened it; a reload must not greet the user with Empty Trash. An
 		// error alert is just as transient, and its message may name an item
@@ -813,6 +840,11 @@ export function sanitizeStateForPersistence(
 		if (draft.System.Manager.Desktop) {
 			draft.System.Manager.Desktop.systemDialog = null;
 			draft.System.Manager.Desktop.errorDialog = null;
+			// The selection's anchor and the focus icon (Windows' layout keys
+			// `selection.modifiers` and `selection.iconNavigation`) belong to
+			// the session that set them, as a list's anchor and focus item do.
+			delete draft.System.Manager.Desktop.selectionAnchor;
+			delete draft.System.Manager.Desktop.focusIcon;
 		}
 		// Boot parade icons are session-only: owners re-register them on every
 		// mount, so persisting them would resurrect icons whose owner removed
@@ -832,8 +864,16 @@ export function sanitizeStateForPersistence(
 			// Hidden by the Application menu's Hide commands: session state, as
 			// Mac OS restores no hidden app (story 0214-c61, ruling R2).
 			delete app.hidden;
+			// The file dialog's last folder and the tab strips' last tabs are
+			// the session's (WIG Ch.8 p.146: shown as last accessed); a reload
+			// opens them afresh.
+			delete app.session;
 			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
+				// A taskbar button's call for attention (the Windows shell's
+				// `ClassicyAppRequestAttention`) belongs to the session that
+				// raised it.
+				delete w.attention;
 				delete w.resizing;
 				delete w.dragging;
 				delete w.moving;
@@ -865,6 +905,31 @@ export function startAppManagerPersistence(): () => void {
 		}, 500);
 	});
 	return unsubscribeFn;
+}
+
+/**
+ * Writes the state now when a debounced write is pending, so a reload that
+ * follows at once (the Windows shell's Restart, Shut down and Log Off, plan
+ * 0020-w98 E2) loses nothing. With persistence stopped, or nothing pending,
+ * it writes nothing.
+ */
+export function flushAppManagerPersistence(): void {
+	if (!unsubscribeFn || debounceTimer === null) return;
+	clearTimeout(debounceTimer);
+	debounceTimer = null;
+	try {
+		localStorage.setItem(
+			"classicyDesktopState",
+			JSON.stringify(sanitizeStateForPersistence(useAppManager.getState())),
+		);
+	} catch (error) {
+		classicyLog(
+			"error",
+			"ClassicyAppManager",
+			"Failed to persist desktop state to localStorage. Storage quota may be exceeded.",
+			error,
+		);
+	}
 }
 
 /** Call this during app cleanup or test teardown to stop localStorage sync. */

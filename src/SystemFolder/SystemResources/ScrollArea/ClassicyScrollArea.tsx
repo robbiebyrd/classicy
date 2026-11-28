@@ -31,16 +31,19 @@ import {
 	type ClassicyScrollAreaHeadSlot,
 } from "./ClassicyScrollAreaHead.internal";
 import {
+	type ClassicyScrollAxisEnds,
 	type ClassicyScrollAxisMetrics,
 	type ClassicyScrollBarPolicy,
 	type ClassicyScrollBarsShown,
 	type ClassicyScrollThumb,
+	classicyScrollAxisEnds,
 	classicyScrollAxisFits,
 	classicyScrollPositionForThumb,
 	computeClassicyScrollBars,
 	computeClassicyScrollThumb,
 } from "./ClassicyScrollAreaMetrics";
 import { useClassicyScrollPatternOrigin } from "./ClassicyScrollPatternOrigin.internal";
+import { registerClassicyScrollViewport } from "./ClassicyScrollViewportRegistry.internal";
 
 /** The distance one press of a scroll arrow scrolls, when not given. */
 const DEFAULT_LINE_STEP = 16;
@@ -50,10 +53,18 @@ export type ClassicyScrollBarOrientation = "vertical" | "horizontal";
 /** How dragging the thumb scrolls: the package's `layout.scrollBar.thumbDrag`. */
 type ClassicyScrollThumbDrag = "live" | "onRelease";
 
+/**
+ * Whether a live thumb drag snaps back (`layout.scrollBar.liveSnapBack`),
+ * and the snap-back distance's multiples of the bar's thickness across and
+ * along it (`snapBackScale`), for a theme that sets no distance of its own.
+ */
+type ClassicyScrollSnapBack = { live: boolean; across: number; along: number };
+
 // The theme variable an on-release package sets for how far the pointer may
 // stray from the bar before the drag outline snaps back (System 7's
 // `scrollBar.snapBack` knob). Unset, it is the bar's own thickness, "the
-// width of the scroll box" (HIG7 p.165).
+// width of the scroll box" (HIG7 p.165), times the package's
+// `layout.scrollBar.snapBackScale` across and along the bar.
 const SNAP_BACK_VAR = "--scroll-bar-snap-back";
 
 export interface ClassicyScrollAreaProps
@@ -119,7 +130,65 @@ export interface ClassicyScrollAreaProps
 	 * and with `false` when it unmounts while drawing one.
 	 */
 	onHeadChange?: (present: boolean) => void;
+	/**
+	 * Controls drawn inside a bar, past its arrows, taking their length
+	 * from the bar (WIG Ch.6 "Placing Adjacent Controls", p.92): a split
+	 * view's split box. Per bar, `start` goes before the start arrow (above
+	 * the up arrow, left of the left arrow) and `end` after the end arrow,
+	 * each in a `scroll-accessory-start` or `scroll-accessory-end` part.
+	 * Drawn only while the bar is (its policy decides); none by default.
+	 */
+	barAccessories?: Partial<
+		Record<ClassicyScrollBarOrientation, ClassicyScrollBarAccessories>
+	>;
+	/**
+	 * Where the viewport starts scrolled, `[scrollLeft, scrollTop]` in
+	 * pixels: a window's view state put back (`useClassicyWindowViewState`,
+	 * under a package's `layout.window.restoreViewState`). Read when the
+	 * area mounts; finite, non-negative values only. While the content is
+	 * not yet long enough to reach it (a list still filling) it is tried
+	 * again as the content grows, until it is reached, the user scrolls or
+	 * presses in the area, or two seconds pass. None by default: the
+	 * viewport starts at the top left.
+	 */
+	initialScroll?: [number, number];
+	/**
+	 * Called with the viewport's `[scrollLeft, scrollTop]` once scrolling
+	 * ends (no scroll event for 200 ms), when it differs from the last value
+	 * reported (or `initialScroll`), and once more if the area unmounts
+	 * while a report is due; never for `initialScroll` being put back. A
+	 * window records it as its view state (`useClassicyWindowViewState`).
+	 */
+	onScrollSettled?: (scroll: [number, number]) => void;
 }
+
+/**
+ * How long the viewport waits after its last scroll event before reporting
+ * the offsets (`onScrollSettled`), in milliseconds.
+ */
+const SCROLL_SETTLE_MS = 200;
+/**
+ * How long a pending `initialScroll` keeps being tried as the content grows,
+ * in milliseconds, before it is given up.
+ */
+const SCROLL_RESTORE_MS = 2000;
+
+/** `value` when it is a pair of finite, non-negative offsets other than the origin. */
+const classicyRestorableScroll = (value: unknown): [number, number] | null =>
+	Array.isArray(value) &&
+	value.length === 2 &&
+	value.every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0) &&
+	(value[0] > 0 || value[1] > 0)
+		? [value[0], value[1]]
+		: null;
+
+/** Controls at the ends of one bar (`barAccessories`). */
+export type ClassicyScrollBarAccessories = {
+	/** Before the start arrow: above the up arrow, left of the left arrow. */
+	start?: ReactNode;
+	/** After the end arrow: below the down arrow, right of the right arrow. */
+	end?: ReactNode;
+};
 
 /** What `renderViewport` puts on its scroller. */
 export type ClassicyScrollAreaViewportProps = {
@@ -129,6 +198,7 @@ export type ClassicyScrollAreaViewportProps = {
 };
 
 type Thumbs = Record<ClassicyScrollBarOrientation, ClassicyScrollThumb>;
+type Ends = Record<ClassicyScrollBarOrientation, ClassicyScrollAxisEnds>;
 type BarRefs = {
 	bar: RefObject<HTMLDivElement | null>;
 	track: RefObject<HTMLDivElement | null>;
@@ -136,6 +206,12 @@ type BarRefs = {
 };
 
 const NO_THUMB: ClassicyScrollThumb = { length: 0, offset: 0 };
+// A node React draws something for (an accessory's part is left out for
+// none).
+const isDrawn = (node: ReactNode) =>
+	node !== undefined && node !== null && node !== false;
+// An axis not measured yet is taken to fit: at both of its ends.
+const AT_BOTH_ENDS: ClassicyScrollAxisEnds = { start: true, end: true };
 
 const setRef = <T,>(ref: Ref<T> | undefined, value: T | null) => {
 	if (typeof ref === "function") ref(value);
@@ -254,8 +330,19 @@ const snapClassicyScrollPart = (el: HTMLElement | null) => {
  * `scroll-thumb`, and `scroll-corner` where two bars meet. Arrangement is
  * CSS `order` on the arrows and track. States: `inactive` on the root and
  * bars (the owning window is inactive), `fits` on a bar whose axis has
- * nothing to scroll (no thumb), `pressed` on a held arrow or track and
- * `dragging` on a dragged thumb.
+ * nothing to scroll (no thumb), `pressed` on a held arrow or track,
+ * `dragging` on a dragged thumb, and `disabled` on an arrow at the end of
+ * its travel: the start arrow while the axis is scrolled to 0, the end
+ * arrow while it is at its maximum, both while the axis fits, from the
+ * same measurement that sets `fits` and the thumb (so on every scroll).
+ * The state exists for the Windows Interface Guidelines' rule that an
+ * application disables the arrow toward where the content cannot scroll
+ * (WIG Ch.6 "Scroll Arrows" (p.87): "When a window cannot be scrolled any
+ * further in a particular direction, disable the scroll arrow corresponding
+ * to that direction"; Ch.7 "List Boxes" (p.120), "Scroll Bars" (p.131)),
+ * which the Windows 98 package draws embossed; it changes nothing the arrow
+ * does (a press there scrolls nothing, as before), and Platinum and System
+ * 7 read it not at all.
  *
  * An arrow press scrolls a line and repeats while held; a track press pages
  * toward the pointer and repeats until the thumb reaches it; dragging the
@@ -265,11 +352,20 @@ const snapClassicyScrollPart = (el: HTMLElement | null) => {
  * snapping back over the thumb (a release there scrolls nothing) while the
  * pointer is more than the theme's `--scroll-bar-snap-back` (else the bar's
  * thickness) from the bar; the keys and the wheel are held off meanwhile,
- * and Escape cancels it. A lost pointer stream ends any of them (an
- * on-release drag scrolling nothing). The
+ * and Escape cancels it. A live drag snaps back the same way when the
+ * package's `layout.scrollBar.liveSnapBack` is set (Windows, WIG Ch.6
+ * "Scroll Box", p.89): past that distance the content returns to where the
+ * drag started, and follows again when the pointer comes back. The
+ * distance where the theme sets none is the bar's thickness times
+ * `layout.scrollBar.snapBackScale`, across and along the bar. A lost
+ * pointer stream ends any of them (an on-release drag scrolling nothing).
+ * `barAccessories` puts controls inside a bar past its arrows (a split
+ * view's split box). The
  * bars are `aria-hidden` and never take focus: the viewport is the
  * scrollable region assistive technology and the keyboard use, as with a
- * native scroll bar.
+ * native scroll bar. The viewport is registered for a file drag, which
+ * scrolls it by a line at a time while the pointer is within a line of
+ * its edge (`startClassicyFileDrag`).
  */
 export const ClassicyScrollArea = forwardRef<
 	HTMLDivElement,
@@ -291,6 +387,9 @@ export const ClassicyScrollArea = forwardRef<
 		renderViewport,
 		head,
 		onHeadChange,
+		barAccessories,
+		initialScroll,
+		onScrollSettled,
 		className,
 		style,
 		...rootProps
@@ -298,8 +397,14 @@ export const ClassicyScrollArea = forwardRef<
 	ref,
 ) {
 	const windowActive = useContext(ClassicyWindowActiveContext);
+	const scrollBarLayout = useClassicyAppearanceLayout().scrollBar;
 	const thumbDrag: ClassicyScrollThumbDrag =
-		useClassicyAppearanceLayout().scrollBar?.thumbDrag ?? "live";
+		scrollBarLayout?.thumbDrag ?? "live";
+	const snapBack: ClassicyScrollSnapBack = {
+		live: scrollBarLayout?.liveSnapBack === true,
+		across: scrollBarLayout?.snapBackScale?.across ?? 1,
+		along: scrollBarLayout?.snapBackScale?.along ?? 1,
+	};
 	const isInactive = inactive ?? windowActive === false;
 	const verticalPolicy = scrollable ? vertical : "never";
 	const horizontalPolicy = scrollable ? horizontal : "never";
@@ -335,10 +440,16 @@ export const ClassicyScrollArea = forwardRef<
 		horizontal: NO_THUMB,
 	});
 	const [fits, setFits] = useState({ vertical: true, horizontal: true });
-	// The thumbs and fits states as last set, for `update` to compare with
-	// without waiting for the render.
+	// Each axis at its start and its end (the arrows' `disabled`).
+	const [ends, setEnds] = useState<Ends>({
+		vertical: AT_BOTH_ENDS,
+		horizontal: AT_BOTH_ENDS,
+	});
+	// The thumbs, fits and ends states as last set, for `update` to compare
+	// with without waiting for the render.
 	const thumbsRef = useRef(thumbs);
 	const fitsRef = useRef(fits);
+	const endsRef = useRef(ends);
 	const policyRef = useRef({
 		vertical: verticalPolicy,
 		horizontal: horizontalPolicy,
@@ -353,6 +464,27 @@ export const ClassicyScrollArea = forwardRef<
 	const onOverflowChangeRef = useRef(onOverflowChange);
 	onOverflowChangeRef.current = onOverflowChange;
 	const overflowRef = useRef<ClassicyScrollBarsShown | null>(null);
+
+	// The view state put back (`initialScroll`), read at mount: tried on
+	// each measurement until the viewport reaches it, the user takes over,
+	// or SCROLL_RESTORE_MS pass. `restoreStartedRef` is when it was first
+	// tried.
+	const pendingRestoreRef = useRef<[number, number] | null | undefined>(
+		undefined,
+	);
+	if (pendingRestoreRef.current === undefined) {
+		pendingRestoreRef.current = classicyRestorableScroll(initialScroll);
+	}
+	const restoreStartedRef = useRef<number | null>(null);
+	// The offsets last reported (`onScrollSettled`), or put back, and the
+	// viewport's offsets at its last scroll event (read after it unmounts).
+	const settledRef = useRef<[number, number]>(
+		pendingRestoreRef.current ?? [0, 0],
+	);
+	const scrolledRef = useRef<[number, number] | null>(null);
+	const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const onScrollSettledRef = useRef(onScrollSettled);
+	onScrollSettledRef.current = onScrollSettled;
 
 	// The head: drawn when given, or while a descendant asks for one
 	// (useClassicyScrollAreaHead), which portals into it.
@@ -398,6 +530,25 @@ export const ClassicyScrollArea = forwardRef<
 	const update = useCallback(() => {
 		const el = viewportElRef.current;
 		if (!el) return;
+		// The view state put back, until the content lets the viewport
+		// reach it (a pixel off counts, as sub-pixel rounding does).
+		const restore = pendingRestoreRef.current;
+		if (restore) {
+			const now = Date.now();
+			restoreStartedRef.current ??= now;
+			if (now - restoreStartedRef.current > SCROLL_RESTORE_MS) {
+				pendingRestoreRef.current = null;
+			} else {
+				if (el.scrollLeft !== restore[0]) el.scrollLeft = restore[0];
+				if (el.scrollTop !== restore[1]) el.scrollTop = restore[1];
+				if (
+					Math.abs(el.scrollLeft - restore[0]) <= 1 &&
+					Math.abs(el.scrollTop - restore[1]) <= 1
+				) {
+					pendingRestoreRef.current = null;
+				}
+			}
+		}
 		// The head scrolls sideways with the viewport.
 		const headNow = headElRef.current;
 		if (headNow && headNow.scrollLeft !== el.scrollLeft) {
@@ -430,9 +581,11 @@ export const ClassicyScrollArea = forwardRef<
 		}
 		const nextThumbs: Thumbs = { vertical: NO_THUMB, horizontal: NO_THUMB };
 		const nextFits = { vertical: true, horizontal: true };
+		const nextEnds: Ends = { vertical: AT_BOTH_ENDS, horizontal: AT_BOTH_ENDS };
 		for (const orientation of ["vertical", "horizontal"] as const) {
 			const axis = axisOf(el, orientation);
 			nextFits[orientation] = classicyScrollAxisFits(axis);
+			nextEnds[orientation] = classicyScrollAxisEnds(axis);
 			if (!current[orientation]) continue;
 			const track = trackOf(refs[orientation], orientation);
 			const thumb = thumbOf(axis, track.length, refs[orientation], orientation);
@@ -457,6 +610,16 @@ export const ClassicyScrollArea = forwardRef<
 			fitsRef.current = nextFits;
 			setFits(nextFits);
 		}
+		const endsNow = endsRef.current;
+		if (
+			endsNow.vertical.start !== nextEnds.vertical.start ||
+			endsNow.vertical.end !== nextEnds.vertical.end ||
+			endsNow.horizontal.start !== nextEnds.horizontal.start ||
+			endsNow.horizontal.end !== nextEnds.horizontal.end
+		) {
+			endsRef.current = nextEnds;
+			setEnds(nextEnds);
+		}
 		const overflow = {
 			vertical: el.scrollHeight > el.clientHeight + 1,
 			horizontal: el.scrollWidth > el.clientWidth + 1,
@@ -477,11 +640,11 @@ export const ClassicyScrollArea = forwardRef<
 
 	// Every render may have moved something (bars drawn or removed, a policy
 	// changed): measure before paint. Not the render that only commits the
-	// thumbs or fits states `update` itself set (one measurement per scroll
-	// frame): that moves nothing it reads. It is told by what the render
-	// committed, never by a flag a bailed-out render could leave set: the
-	// thumbs or fits object changed since the last commit, to the one
-	// `update` set last, and the bars and their policies did not.
+	// thumbs, fits or ends states `update` itself set (one measurement per
+	// scroll frame): that moves nothing it reads. It is told by what the
+	// render committed, never by a flag a bailed-out render could leave set:
+	// the thumbs, fits or ends object changed since the last commit, to the
+	// one `update` set last, and the bars and their policies did not.
 	const layoutInputs = [
 		verticalPolicy,
 		horizontalPolicy,
@@ -493,16 +656,18 @@ export const ClassicyScrollArea = forwardRef<
 		inputs: string;
 		thumbs: Thumbs;
 		fits: typeof fits;
+		ends: Ends;
 	} | null>(null);
 	useLayoutEffect(() => {
 		const last = committedRef.current;
-		committedRef.current = { inputs: layoutInputs, thumbs, fits };
+		committedRef.current = { inputs: layoutInputs, thumbs, fits, ends };
 		const ownStateOnly =
 			last !== null &&
 			last.inputs === layoutInputs &&
-			(last.thumbs !== thumbs || last.fits !== fits) &&
+			(last.thumbs !== thumbs || last.fits !== fits || last.ends !== ends) &&
 			thumbs === thumbsRef.current &&
-			fits === fitsRef.current;
+			fits === fitsRef.current &&
+			ends === endsRef.current;
 		if (ownStateOnly) return;
 		update();
 	});
@@ -586,6 +751,77 @@ export const ClassicyScrollArea = forwardRef<
 		[viewportRef],
 	);
 
+	// The root, for the presses and keys that end a pending restore.
+	const rootElRef = useRef<HTMLDivElement | null>(null);
+	const rootRefCallback = useCallback(
+		(el: HTMLDivElement | null) => {
+			rootElRef.current = el;
+			setRef(ref, el);
+		},
+		[ref],
+	);
+	// The user scrolling or pressing anywhere in the area (a bar, the
+	// content, a key) takes over from a restore still pending, so a later
+	// measurement never moves the viewport back. Listened for only while an
+	// `initialScroll` is pending, from the mount.
+	useEffect(() => {
+		const root = rootElRef.current;
+		if (!root || !pendingRestoreRef.current) return;
+		const events = [
+			"wheel",
+			"pointerdown",
+			"mousedown",
+			"touchstart",
+			"keydown",
+		];
+		const takeOver = () => {
+			pendingRestoreRef.current = null;
+			for (const type of events) {
+				root.removeEventListener(type, takeOver, { capture: true });
+			}
+		};
+		for (const type of events) {
+			root.addEventListener(type, takeOver, { capture: true, passive: true });
+		}
+		return () => {
+			for (const type of events) {
+				root.removeEventListener(type, takeOver, { capture: true });
+			}
+		};
+	}, []);
+
+	// The offsets once scrolling has ended (`onScrollSettled`), when they
+	// changed; never while a restore is still pending.
+	const settle = useCallback(() => {
+		settleTimerRef.current = null;
+		const at = scrolledRef.current;
+		if (!at || pendingRestoreRef.current) return;
+		const last = settledRef.current;
+		if (at[0] === last[0] && at[1] === last[1]) return;
+		settledRef.current = at;
+		onScrollSettledRef.current?.(at);
+	}, []);
+	const onViewportScrolled = useCallback(
+		(el: HTMLElement) => {
+			scrolledRef.current = [el.scrollLeft, el.scrollTop];
+			if (!onScrollSettledRef.current) return;
+			if (settleTimerRef.current !== null) {
+				clearTimeout(settleTimerRef.current);
+			}
+			settleTimerRef.current = setTimeout(settle, SCROLL_SETTLE_MS);
+		},
+		[settle],
+	);
+	// A report still due when the area goes is made then.
+	useEffect(
+		() => () => {
+			if (settleTimerRef.current === null) return;
+			clearTimeout(settleTimerRef.current);
+			settle();
+		},
+		[settle],
+	);
+
 	const scrollBy = useCallback(
 		(orientation: ClassicyScrollBarOrientation, delta: number) => {
 			const el = viewportElRef.current;
@@ -596,6 +832,21 @@ export const ClassicyScrollArea = forwardRef<
 		},
 		[update],
 	);
+
+	// The viewport, for a file drag nearing its edge to scroll it
+	// (`startClassicyFileDrag`): by the area's line step, its bars redrawn.
+	const lineStepRef = useRef(lineStep);
+	lineStepRef.current = lineStep;
+	useEffect(() => {
+		if (!viewportEl || !scrollable) return;
+		return registerClassicyScrollViewport(viewportEl, {
+			lineStep: () => lineStepRef.current,
+			scrollBy: (dx, dy) => {
+				if (dx) scrollBy("horizontal", dx);
+				if (dy) scrollBy("vertical", dy);
+			},
+		});
+	}, [viewportEl, scrollable, scrollBy]);
 
 	// A focused root (a list box that takes the keyboard itself) scrolls its
 	// viewport for the keys a focused scroller takes, unless its own handler
@@ -632,9 +883,12 @@ export const ClassicyScrollArea = forwardRef<
 			viewportRef={viewportElRef}
 			thumb={thumbs[orientation]}
 			fits={fits[orientation]}
+			ends={ends[orientation]}
 			inactive={isInactive}
 			lineStep={lineStep}
 			thumbDrag={thumbDrag}
+			snapBack={snapBack}
+			accessories={barAccessories?.[orientation]}
 			scrollBy={scrollBy}
 			update={update}
 		/>
@@ -645,7 +899,7 @@ export const ClassicyScrollArea = forwardRef<
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: the keys only reach a root its caller made focusable (with its role); the area adds none */}
 			<div
 				{...rootProps}
-				ref={ref}
+				ref={rootRefCallback}
 				onKeyDown={onRootKeyDown}
 				className={classNames(
 					"classicyScrollArea",
@@ -669,6 +923,7 @@ export const ClassicyScrollArea = forwardRef<
 							),
 							onScroll: (e) => {
 								update();
+								onViewportScrolled(e.currentTarget);
 								onScroll?.(e as UIEvent<HTMLDivElement>);
 							},
 						})
@@ -684,6 +939,7 @@ export const ClassicyScrollArea = forwardRef<
 							)}
 							onScroll={(e) => {
 								update();
+								onViewportScrolled(e.currentTarget);
 								onScroll?.(e);
 								viewportProps?.onScroll?.(e);
 							}}
@@ -720,9 +976,13 @@ type ClassicyScrollBarProps = {
 	viewportRef: RefObject<HTMLElement | null>;
 	thumb: ClassicyScrollThumb;
 	fits: boolean;
+	/** The axis at its start and its end: the arrows' `disabled`. */
+	ends: ClassicyScrollAxisEnds;
 	inactive: boolean;
 	lineStep: number;
 	thumbDrag: ClassicyScrollThumbDrag;
+	snapBack: ClassicyScrollSnapBack;
+	accessories?: ClassicyScrollBarAccessories;
 	scrollBy: (orientation: ClassicyScrollBarOrientation, delta: number) => void;
 	update: () => void;
 };
@@ -737,9 +997,12 @@ const ClassicyScrollBar = ({
 	viewportRef,
 	thumb,
 	fits,
+	ends,
 	inactive,
 	lineStep,
 	thumbDrag,
+	snapBack,
+	accessories,
 	scrollBy,
 	update,
 }: ClassicyScrollBarProps) => {
@@ -874,9 +1137,37 @@ const ClassicyScrollBar = ({
 				end: track.start + t.offset + t.length,
 			};
 		};
+		// The part of the track being paged, from the track's start along
+		// the bar: the stretch between the thumb and the arrow on the
+		// pointer's side, published on the track as
+		// `--classicy-scroll-page-start` and `--classicy-scroll-page-length`
+		// while the track is held and paging, so a package can draw that
+		// side alone (Windows inverted it; HIG7's Mac OS darkened nothing),
+		// and removed when the paging stops or the hold ends.
+		const trackEl = e.currentTarget;
+		const publishPaged = (direction: -1 | 1 | null) => {
+			if (direction === null) {
+				trackEl.style.removeProperty("--classicy-scroll-page-start");
+				trackEl.style.removeProperty("--classicy-scroll-page-length");
+				return;
+			}
+			const track = trackOf(refs, orientation);
+			const t = thumbNow();
+			const start = direction < 0 ? 0 : t.end - track.start;
+			const length =
+				direction < 0 ? t.start - track.start : track.length - start;
+			trackEl.style.setProperty(
+				"--classicy-scroll-page-start",
+				`${Math.max(0, Math.round(start))}px`,
+			);
+			trackEl.style.setProperty(
+				"--classicy-scroll-page-length",
+				`${Math.max(0, Math.round(length))}px`,
+			);
+		};
 		hold(
 			"track",
-			e.currentTarget,
+			trackEl,
 			(run, entered) => {
 				// Toward the pointer where it is now (a return over the track
 				// may be on the thumb's other side): where it came back over
@@ -885,17 +1176,23 @@ const ClassicyScrollBar = ({
 					pointer = along(entered) - barStart(barEl.getBoundingClientRect());
 				}
 				const direction = pointer < thumbNow().start ? -1 : 1;
+				publishPaged(direction);
 				run(() => {
 					// Stop once the thumb reaches the pointer (HIG7 p.165).
 					const t = thumbNow();
 					if (direction < 0 ? pointer >= t.start : pointer < t.end) {
+						publishPaged(null);
 						return false;
 					}
 					scrollBy(orientation, direction * page());
+					publishPaged(direction);
 					return undefined;
 				});
 			},
-			() => document.removeEventListener("mousemove", onMove, true),
+			() => {
+				document.removeEventListener("mousemove", onMove, true);
+				publishPaged(null);
+			},
 		);
 	};
 
@@ -938,31 +1235,51 @@ const ClassicyScrollBar = ({
 		};
 
 		const onRelease = thumbDrag === "onRelease";
+		// An on-release drag always snaps back; a live one when the package
+		// says so (Windows), else it follows the pointer anywhere (Mac OS 8).
+		const snapsBack = onRelease || snapBack.live;
 		const barEl = refs.bar.current;
 		// Read once per drag (a style read): how far the pointer may stray,
-		// the theme's knob, else the bar's thickness across ("the width of
-		// the scroll box").
+		// the theme's knob on every side, else the bar's thickness across
+		// ("the width of the scroll box") times the package's scale, across
+		// the bar and along it.
 		const thickness = barEl
 			? vertical
 				? barEl.offsetWidth
 				: barEl.offsetHeight
 			: 0;
-		const snapBack = onRelease
-			? readClassicyThemeVar(SNAP_BACK_VAR, thickness, barEl)
-			: Number.POSITIVE_INFINITY;
-		// Within `snapBack` pixels of the bar's own on every side: its box
-		// grown by that much, its right and bottom edges counted out, as
-		// QuickDraw's PtInRect did (the pointer at a pixel's column is
-		// `clientX`, and the bar's last column is its right edge less one).
+		const knob =
+			snapsBack && barEl
+				? readClassicyThemeVar(SNAP_BACK_VAR, Number.NaN, barEl)
+				: Number.NaN;
+		const reach = Number.isFinite(knob)
+			? { across: knob, along: knob }
+			: {
+					across: thickness * snapBack.across,
+					along: thickness * snapBack.along,
+				};
+		const reachX = vertical ? reach.across : reach.along;
+		const reachY = vertical ? reach.along : reach.across;
+		// Within that reach of the bar's own pixels: its box grown by it,
+		// its right and bottom edges counted out, as QuickDraw's PtInRect and
+		// Windows' did (the pointer at a pixel's column is `clientX`, and the
+		// bar's last column is its right edge less one).
 		const nearBar = (ev: MouseEvent) => {
-			if (!barEl || !onRelease) return true;
+			if (!barEl || !snapsBack) return true;
 			const r = barEl.getBoundingClientRect();
 			return (
-				ev.clientX >= r.left - snapBack &&
-				ev.clientX < r.right + snapBack &&
-				ev.clientY >= r.top - snapBack &&
-				ev.clientY < r.bottom + snapBack
+				ev.clientX >= r.left - reachX &&
+				ev.clientX < r.right + reachX &&
+				ev.clientY >= r.top - reachY &&
+				ev.clientY < r.bottom + reachY
 			);
+		};
+		// A live drag snapped back: the content where the drag found it.
+		const scrollToStart = () => {
+			if ((vertical ? el.scrollTop : el.scrollLeft) === startPosition) return;
+			if (vertical) el.scrollTop = startPosition;
+			else el.scrollLeft = startPosition;
+			update();
 		};
 		// Where an on-release drag would scroll to if released now; null
 		// while the outline is snapped back (or nothing has moved).
@@ -970,6 +1287,13 @@ const ClassicyScrollBar = ({
 
 		const onMove = (ev: MouseEvent) => {
 			if (!onRelease) {
+				// Too far from the bar (a package that snaps a live drag
+				// back): the content goes back to where the drag started
+				// until the pointer returns, as Windows' scroll box does.
+				if (!nearBar(ev)) {
+					scrollToStart();
+					return;
+				}
 				const m = measure(ev);
 				if (m) scrollTo(m);
 				return;
@@ -1043,12 +1367,31 @@ const ClassicyScrollBar = ({
 			aria-hidden="true"
 			onMouseDown={keepFocus}
 		>
+			{isDrawn(accessories?.start) && (
+				<div
+					className="classicyScrollBarAccessory classicyScrollBarAccessoryStart"
+					data-classicy-part="scroll-accessory-start"
+				>
+					{accessories.start}
+				</div>
+			)}
+			{isDrawn(accessories?.end) && (
+				<div
+					className="classicyScrollBarAccessory classicyScrollBarAccessoryEnd"
+					data-classicy-part="scroll-accessory-end"
+				>
+					{accessories.end}
+				</div>
+			)}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: a scroll bar is a pointer affordance; the viewport is the keyboard- and AT-scrollable region */}
 			<div
 				className={classNames(
 					"classicyScrollBarArrow",
 					"classicyScrollBarArrowStart",
-					classicyStateClasses({ pressed: pressed === "start" }),
+					classicyStateClasses({
+						pressed: pressed === "start",
+						disabled: ends.start,
+					}),
 				)}
 				data-classicy-part="scroll-arrow-start"
 				onMouseDown={(e) => pressArrow(e, -1)}
@@ -1068,7 +1411,10 @@ const ClassicyScrollBar = ({
 				className={classNames(
 					"classicyScrollBarArrow",
 					"classicyScrollBarArrowEnd",
-					classicyStateClasses({ pressed: pressed === "end" }),
+					classicyStateClasses({
+						pressed: pressed === "end",
+						disabled: ends.end,
+					}),
 				)}
 				data-classicy-part="scroll-arrow-end"
 				onMouseDown={(e) => pressArrow(e, 1)}

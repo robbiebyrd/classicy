@@ -4,6 +4,7 @@ import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/Syste
 import { CLASSICY_SEEDED_PLACEHOLDER } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import {
 	buildApplicationsFolder,
+	isClassicyApplicationsEntry,
 	resetClassicyDerivedAppEntryNameWarnings,
 	withApplicationsFolder,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
@@ -27,6 +28,52 @@ const appIcon = (
 	appName,
 	icon: `/icons/${appId}.png`,
 	kind,
+});
+
+describe("isClassicyApplicationsEntry", () => {
+	it("accepts an app shortcut, opted in or persisted before the field existed", () => {
+		expect(isClassicyApplicationsEntry(appIcon("TV.app", "TV"))).toBe(true);
+		expect(
+			isClassicyApplicationsEntry({
+				...appIcon("TV.app", "TV"),
+				inApplications: true,
+			}),
+		).toBe(true);
+		// A hidden desktop icon still lists the app in Applications.
+		expect(
+			isClassicyApplicationsEntry({ ...appIcon("TV.app", "TV"), hidden: true }),
+		).toBe(true);
+	});
+
+	it("refuses an app shortcut that opted out, and every other kind", () => {
+		expect(
+			isClassicyApplicationsEntry({
+				...appIcon("TV.app", "TV"),
+				inApplications: false,
+			}),
+		).toBe(false);
+		for (const kind of ["drive", "trash", "directory", "file", "shortcut"])
+			expect(isClassicyApplicationsEntry(appIcon("X.app", "X", kind))).toBe(
+				false,
+			);
+	});
+
+	it("is the rule buildApplicationsFolder lists by", () => {
+		const icons = [
+			appIcon("TV.app", "TV"),
+			{ ...appIcon("News.app", "News"), inApplications: false },
+			appIcon("Disk", "Disk", "drive"),
+		];
+		const listed = Object.values(buildApplicationsFolder(icons))
+			.filter(
+				(entry): entry is ClassicyFileSystemEntry =>
+					typeof entry === "object" && entry !== null,
+			)
+			.map((entry) => entry._creator);
+		expect(listed).toEqual(
+			icons.filter(isClassicyApplicationsEntry).map((icon) => icon.appId),
+		);
+	});
 });
 
 describe("buildApplicationsFolder", () => {

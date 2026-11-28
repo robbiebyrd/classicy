@@ -9,4 +9,10 @@ export const SIMPLE_TEXT_APP_ID = "SimpleText.app";
 registerApp({
 	id: SIMPLE_TEXT_APP_ID,
 	description: "Read and edit plain-text and styled-text documents.",
+	// Explorer's File ▸ New ▸ Text Document (Windows 98's ShellNew entry for
+	// .txt, WIG Ch.10 "Supporting Creation", pp.199-200), listed under
+	// `layout.finder.commands` "windows" only.
+	creates: [
+		{ fileType: "text_file", typeName: "Text Document", extension: "txt" },
+	],
 });

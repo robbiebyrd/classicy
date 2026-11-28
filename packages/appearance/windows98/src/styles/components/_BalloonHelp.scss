@@ -1,0 +1,138 @@
+// The Windows 98 ToolTip, included by windows98.scss inside the package
+// wrapper; overrides the structure of ClassicyBalloonHelp.scss (the balloon,
+// its title and text, its tail). Balloon Help is Mac OS 8's; under Windows a
+// hovered control's help is a ToolTip (TOOLTIPS_CLASS), drawn from the
+// system colors (as 98.css and os-gui re-create it):
+//
+// - A plain box on InfoWindow (the ToolTip's own system color, cream in
+//   Windows Standard) in a one-ring WindowFrame line, square corners, the
+//   text InfoText in the UI font `--tooltip-padding-x` (4) in from the sides
+//   and `--tooltip-padding-y` (2) from the top and bottom; it is as wide as
+//   its text (no minimum), up to the balloon's own maximum.
+// - No tail: a ToolTip is a box beside the pointer, so the balloon's tail
+//   and its placements (top or bottom, left, center or right) are hidden.
+// - A title, where the help has one (a desktop icon's name), is the first
+//   line of the same plain text, with no gap below it: Figure 12.5 (WIG
+//   Ch.12, p.276) draws an icon's help as its name and description in one
+//   weight, and "Guidelines for Writing Context-Sensitive Help" (p.275) has
+//   help pop-ups in plain text (Figure 12.3). A bold ToolTip title
+//   (TTM_SETTITLE) came with comctl32 5.80, after Windows 98's 4.72.
+// - Where: at the pointer (the package's `balloonHelp.placement`
+//   "pointer"; WIG Ch.7 "Tooltip Controls", p.133: "usually displayed at
+//   the lower right of the pointer, but is automatically adjusted if this
+//   location is offscreen"). The core puts the box's top left at the
+//   pointer's hot spot; below it (`classicyBalloonHelpPointerBelow`) the box
+//   stands `--tooltip-pointer-offset` (20) lower, under the arrow cursor, as
+//   TOOLTIPS_Show places it (Wine's tooltips.c: the cursor position plus
+//   20); moved above its control (`classicyBalloonHelpPointerAbove`) where it
+//   would pass the desktop's bottom, it stands two pixels clear of it
+//   (`rc.top - 2`).
+//
+//   Windows color     token
+//   InfoWindow        --package-color-tooltip-face (--color-window-document)
+//   InfoText          --package-color-tooltip-text (--color-black)
+//   WindowFrame       --color-window-border
+//
+// What's This? (the package's `balloonHelp.contextHelp` "whatsThis"; WIG
+// Ch.12 "Context-Sensitive Help", pp.273-275):
+//
+// - The pointer: while the mode is on (`html.classicyWhatsThisMode`), the
+//   contextual Help pointer over the active window (Figure 12.2), the
+//   registered `help` cursor else the browser's `help` keyword. The base
+//   sheet holds the same rule, which this package's own `cursor: default`
+//   on its buttons, check boxes and option buttons would beat from this
+//   layer, so it is repeated here, its root the desktop's.
+// - The pop-up (`classicyBalloonHelpContext`, Figure 12.3, WinHelp's
+//   context-sensitive Help window): the ToolTip's box, with a shadow at its
+//   right and bottom, the box moved `--tooltip-shadow` (6) right and down,
+//   a 50 % checker of WindowFrame and transparent (Figure 12.3, measured at
+//   600 dpi: one-pixel cells, six deep, black over the dialog's face).
+//
+// The rich text editor's toolbar tips (MDXEditor's Radix tooltips, which
+// the editor opens in its `classicyRichTextEditorPopups` element in the
+// desktop; WIG Ch.12 "Tooltips", p.276, Figure 12.6; Ch.7 "Tooltip
+// Controls", p.133) are ToolTips: the same box, its text in the UI font on
+// one line.
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// every color a token.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The ToolTip's box: InfoWindow in a one-ring WindowFrame line, square,
+// the ToolTip's padding.
+@mixin tooltip-box {
+  min-width: 0;
+  padding: var(--tooltip-padding-y) var(--tooltip-padding-x);
+  border: b.$b solid var(--color-window-border);
+  border-radius: 0;
+  color: var(--package-color-tooltip-text, var(--color-black));
+  background: var(--package-color-tooltip-face, var(--color-window-document));
+}
+
+@mixin balloon-help {
+  .classicyBalloonHelp {
+    @include tooltip-box;
+
+    p {
+      font-size: var(--ui-font-size);
+      color: var(--package-color-tooltip-text, var(--color-black));
+    }
+
+    // The title is the first line of the same text (Figure 12.5).
+    .classicyBalloonHelpTitle {
+      font-weight: normal;
+      margin-bottom: 0;
+    }
+  }
+
+  // The rich text editor's toolbar tips (MDXEditor's Radix tooltips, in
+  // the editor's `classicyRichTextEditorPopups` element in the desktop):
+  // ToolTips, the box and its one line of text as the balloon's (Figure
+  // 12.6).
+  .classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > * {
+    @include tooltip-box;
+    font-family: var(--ui-font);
+    font-size: var(--ui-font-size);
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  // A ToolTip has no tail, whichever way the balloon would point.
+  .classicyBalloonHelpTail {
+    display: none;
+  }
+
+  // At the pointer: under the cursor, or clear of the control above it.
+  .classicyBalloonHelpPointerBelow {
+    margin-top: var(--tooltip-pointer-offset);
+  }
+
+  .classicyBalloonHelpPointerAbove {
+    margin-bottom: px(2);
+  }
+
+  // What's This?'s pop-up: the ToolTip's box above its shadow, the box's
+  // border box moved right and down, behind it.
+  .classicyBalloonHelpContext {
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: b.$neg-b;
+      transform: translate(var(--tooltip-shadow), var(--tooltip-shadow));
+      background: repeating-conic-gradient(var(--color-window-border) 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
+    }
+  }
+
+  // What's This?'s pointer over the active window, here too so that it
+  // beats this layer's own `cursor` on the controls.
+  html.classicyWhatsThisMode & .classicyWindow.active,
+  html.classicyWhatsThisMode & .classicyWindow.active * {
+    cursor:
+      var(--classicy-cursor-help, url('data:,')) var(--classicy-cursor-help-hotspot, 0 0),
+      help;
+  }
+}

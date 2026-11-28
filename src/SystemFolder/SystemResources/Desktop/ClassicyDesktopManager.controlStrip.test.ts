@@ -5,6 +5,7 @@ import {
 	classicyDesktopStateEventReducer,
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 
 const fresh = (): ClassicyStore => structuredClone(DefaultAppManagerState);
@@ -101,5 +102,41 @@ describe("classicyDesktopEventHandler — Control Strip", () => {
 			"untrusted",
 		);
 		expect(strip(ds)?.visible).toBe(true);
+	});
+});
+
+// Plan 0020-w98 E1: the taskbar's Toolbars ▸ Quick Launch, stored beside the
+// Control Strip's settings only once the user changes it.
+describe("classicyDesktopEventHandler — the taskbar's Quick Launch", () => {
+	it("carries no taskbar preferences by default", () => {
+		expect(fresh().System.Manager.Desktop.taskbar).toBeUndefined();
+	});
+
+	it("stores Quick Launch shown or hidden, ignoring a non-boolean", () => {
+		const ds = run(fresh(), {
+			type: "ClassicyDesktopTaskbarSetQuickLaunch",
+			visible: false,
+		});
+		expect(ds.System.Manager.Desktop.taskbar).toEqual({ quickLaunch: false });
+		run(ds, { type: "ClassicyDesktopTaskbarSetQuickLaunch", visible: "no" });
+		expect(ds.System.Manager.Desktop.taskbar).toEqual({ quickLaunch: false });
+		run(ds, { type: "ClassicyDesktopTaskbarSetQuickLaunch", visible: true });
+		expect(ds.System.Manager.Desktop.taskbar).toEqual({ quickLaunch: true });
+	});
+
+	it("persists it, and stays out of reach of an untrusted dispatch", () => {
+		const ds = classicyDesktopStateEventReducer(fresh(), {
+			type: "ClassicyDesktopTaskbarSetQuickLaunch",
+			visible: false,
+		});
+		expect(
+			sanitizeStateForPersistence(ds).System.Manager.Desktop.taskbar,
+		).toEqual({ quickLaunch: false });
+		const untrusted = classicyDesktopStateEventReducer(
+			fresh(),
+			{ type: "ClassicyDesktopTaskbarSetQuickLaunch", visible: false },
+			"untrusted",
+		);
+		expect(untrusted.System.Manager.Desktop.taskbar).toBeUndefined();
 	});
 });

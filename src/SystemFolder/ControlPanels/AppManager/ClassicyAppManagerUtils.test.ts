@@ -736,6 +736,51 @@ describe("sanitizeStateForPersistence — closedThisSession", () => {
 	});
 });
 
+describe("sanitizeStateForPersistence — view state", () => {
+	// A window's scroll offsets and caret (`layout.window.restoreViewState`,
+	// the WIG audit's 2.1) are kept, so a reload puts them back.
+	it("keeps a window's scroll and caret", async () => {
+		const { sanitizeStateForPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const { DefaultAppManagerState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const state = structuredClone(DefaultAppManagerState);
+		state.System.Manager.Applications.apps["X.app"] = {
+			id: "X.app",
+			name: "X",
+			icon: "",
+			open: true,
+			data: {},
+			windows: {
+				w: {
+					id: "w",
+					closed: false,
+					size: [100, 100],
+					position: [0, 0],
+					minimumSize: [0, 0],
+					scroll: [4, 120],
+					caret: 31,
+				},
+				plain: {
+					id: "plain",
+					closed: false,
+					size: [100, 100],
+					position: [0, 0],
+					minimumSize: [0, 0],
+				},
+			},
+		};
+		const out = sanitizeStateForPersistence(state);
+		const windows = out.System.Manager.Applications.apps["X.app"].windows;
+		expect(windows.w.scroll).toEqual([4, 120]);
+		expect(windows.w.caret).toBe(31);
+		expect(windows.plain).not.toHaveProperty("scroll");
+		expect(windows.plain).not.toHaveProperty("caret");
+	});
+});
+
 describe("sanitizeStateForPersistence — gesture flags", () => {
 	// A reload ends any drag or resize; a persisted `resizing: true` would keep
 	// the window acting as if resized until its first click.

@@ -23,6 +23,11 @@ import {
 	isValidThemeColor,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
+	isClassicyFontFamilyName,
+	isClassicyFontFamilySize,
+	isClassicyFontStack,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontFamilies";
+import {
 	type ClassicyThemeFontSizeKey,
 	isClassicyThemeFontSizeKey,
 	isValidClassicyThemeFontSize,
@@ -35,6 +40,7 @@ import {
 	isValidThemeMetric,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
+import type { ClassicyStoreSystemAppWindowRect } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 type Msg = Record<string, unknown> & { type: string };
@@ -52,6 +58,10 @@ function isNumberTuple2(v: unknown): v is [number, number] {
 		typeof v[0] === "number" &&
 		typeof v[1] === "number"
 	);
+}
+
+function isFiniteNumberTuple2(v: unknown): v is [number, number] {
+	return isNumberTuple2(v) && Number.isFinite(v[0]) && Number.isFinite(v[1]);
 }
 
 // ─── App identity ─────────────────────────────────────────────────────────────
@@ -108,11 +118,40 @@ export function hasWindowDragging(m: Msg): m is Msg & {
 	return hasAppAndWindow(m) && typeof m.dragging === "boolean";
 }
 
-/** Action has app+window ids plus `zoomed: boolean` */
-export function hasWindowZoomed(
-	m: Msg,
-): m is Msg & { app: { id: string }; window: { id: string }; zoomed: boolean } {
-	return hasAppAndWindow(m) && typeof m.zoomed === "boolean";
+/**
+ * `v` is a window rect to restore: `{ position, size }`, each a pair of
+ * finite numbers (a maximized window's `restoreRect`, `ClassicyWindowZoom`'s
+ * `restore`). A rect that fails it is never stored and never applied, so a
+ * hand-edited store cannot place a window at `NaN`.
+ */
+export function isClassicyWindowRestoreRect(
+	v: unknown,
+): v is ClassicyStoreSystemAppWindowRect {
+	return (
+		isObject(v) &&
+		isFiniteNumberTuple2(v.position) &&
+		isFiniteNumberTuple2(v.size)
+	);
+}
+
+/**
+ * Action has app+window ids plus `zoomed: boolean`, and, when it carries the
+ * optional `restore` (the rect a window maximized under `layout.window.zoom:
+ * "maximize"` returns to), a valid one (`isClassicyWindowRestoreRect`). A
+ * payload without `restore`, the only kind a window sends under every other
+ * layout, is checked exactly as before.
+ */
+export function hasWindowZoomed(m: Msg): m is Msg & {
+	app: { id: string };
+	window: { id: string };
+	zoomed: boolean;
+	restore?: ClassicyStoreSystemAppWindowRect;
+} {
+	return (
+		hasAppAndWindow(m) &&
+		typeof m.zoomed === "boolean" &&
+		(m.restore === undefined || isClassicyWindowRestoreRect(m.restore))
+	);
 }
 
 /** Action has app+window ids plus `resizing: boolean` and `size: [number, number]` */
@@ -229,6 +268,30 @@ export function hasBackgroundSize(
 /** Action has `fontType: string` and `font: string` */
 export function hasFont(m: Msg): m is Msg & { fontType: string; font: string } {
 	return typeof m.fontType === "string" && typeof m.font === "string";
+}
+
+/**
+ * Action is a valid package font edit (`ClassicyDesktopChangeFont { family,
+ * font }`): `family` is a package font name and `font` a font stack the
+ * theme schema accepts (`typography.families.<family>.font`).
+ */
+export function hasFontFamilyFont(
+	m: Msg,
+): m is Msg & { family: string; font: string } {
+	return isClassicyFontFamilyName(m.family) && isClassicyFontStack(m.font);
+}
+
+/**
+ * Action is a valid package font size edit (`ClassicyDesktopChangeFontSize {
+ * family, fontSize }`): `family` is a package font name and `fontSize` within
+ * the font-size bounds the theme schema uses.
+ */
+export function hasFontFamilySize(
+	m: Msg,
+): m is Msg & { family: string; fontSize: number } {
+	return (
+		isClassicyFontFamilyName(m.family) && isClassicyFontFamilySize(m.fontSize)
+	);
 }
 
 /**

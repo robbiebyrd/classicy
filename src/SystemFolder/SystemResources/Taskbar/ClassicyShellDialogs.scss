@@ -1,0 +1,105 @@
+// The Windows shell's own dialogs and power screens (plan 0020-w98 E2):
+// Shut Down, Run and Log Off, the dim behind the system-modal two, and the
+// screens Stand by and Shut down leave. ClassicyDesktop mounts them only
+// under a layout that declares `taskbar`, so no rule here reaches a package
+// without one.
+//
+// Structure only, laid out as ClassicyInputDialog's is (an icon column, a
+// body beside it, the buttons under them): the package sizes the dialogs to
+// Windows' dialog units and draws the dim, the screens' colors and text.
+
+.classicyShellDialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-group-gap);
+  padding: var(--layout-dialog-edge);
+  min-width: var(--dialog-input-min-width);
+  max-width: var(--dialog-input-max-width);
+  font-family: var(--ui-font), sans-serif;
+}
+
+.classicyShellDialogTop {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--layout-group-gap);
+}
+
+.classicyShellDialogIcon {
+  flex: 0 0 auto;
+  width: var(--icon-size-regular);
+  height: var(--icon-size-regular);
+
+  img {
+    display: block;
+    width: var(--icon-size-regular);
+    height: var(--icon-size-regular);
+  }
+}
+
+.classicyShellDialogBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-focus-gap);
+}
+
+.classicyShellDialogPrompt {
+  margin: 0;
+  line-height: 1.2;
+}
+
+// Run's Open box: its label in the icon's column, the box under the prompt.
+.classicyShellDialogField {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--layout-group-gap);
+
+  .classicyComboBoxWrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.classicyShellDialogFieldLabel {
+  flex: 0 0 var(--icon-size-regular);
+}
+
+.classicyShellDialogButtons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--button-gap);
+}
+
+// Behind Shut Down and Log Off: the whole screen, the taskbar (355)
+// included, under the modal scrim (360) and the dialog (370). The package
+// draws it; it takes no pointer.
+.classicyShellDialogDim {
+  position: fixed;
+  inset: 0;
+  z-index: 358;
+  pointer-events: none;
+}
+
+// Over everything, the screen saver (100001) included, the pointer hidden.
+.classicyPowerScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+  background: var(--color-black);
+  cursor: none;
+}
+
+.classicyPowerScreenMessage {
+  margin: 0;
+  text-align: center;
+}

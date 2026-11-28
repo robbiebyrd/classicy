@@ -1,6 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
+import {
+	registerTestTaskbarPackage,
+	TEST_MINIMIZE_LAYOUT,
+	TEST_MINIMIZE_PACKAGE_ID,
+} from "@/__tests__/testTaskbarPackage";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	type ClassicyStoreSystemApp,
 	DefaultAppManagerState,
@@ -225,5 +231,92 @@ describe("ClassicyDesktopSetDoubleClickTitleToCollapse (#280)", () => {
 		fireEvent.dblClick(titleBarOf(container));
 
 		expect(windowRecord("clicked")?.collapsed).toBe(true);
+	});
+});
+
+// Plan 0020-w98 §5, "Minimize": under `window.collapse: "minimize"`,
+// Option-click minimizes every window with a Minimize box (a primary window
+// that is collapsable), its click bubbling no further than the box, and
+// expand-all restores them; a palette's stored collapse is left alone.
+describe('Option-click under window.collapse: "minimize"', () => {
+	beforeEach(() => {
+		mockPlayer.mockClear();
+		seedApp();
+		registerTestTaskbarPackage(TEST_MINIMIZE_LAYOUT, TEST_MINIMIZE_PACKAGE_ID);
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: TEST_MINIMIZE_PACKAGE_ID,
+			}),
+		);
+	});
+
+	afterEach(() => {
+		unregisterClassicyAppearancePackage(TEST_MINIMIZE_PACKAGE_ID);
+	});
+
+	const renderWithPalette = () => {
+		const outerClick = vi.fn();
+		const result = render(
+			// biome-ignore lint/a11y/noStaticElementInteractions: a test probe for bubbling clicks
+			// biome-ignore lint/a11y/useKeyWithClickEvents: a test probe for bubbling clicks
+			<div onClick={outerClick}>
+				<ClassicyWindow id="clicked" appId={APP} title="Clicked">
+					<p>clicked</p>
+				</ClassicyWindow>
+				<ClassicyWindow id="plain" appId={APP} title="Plain">
+					<p>plain</p>
+				</ClassicyWindow>
+				<ClassicyWindow
+					id="fixed"
+					appId={APP}
+					title="Fixed"
+					collapsable={false}
+				>
+					<p>fixed</p>
+				</ClassicyWindow>
+				<ClassicyWindow
+					id="tools"
+					appId={APP}
+					title="Tools"
+					windowType="utility"
+				>
+					<p>tools</p>
+				</ClassicyWindow>
+				<ClassicyWindow id="dialog" appId={APP} title="Dialog" modal>
+					<p>dialog</p>
+				</ClassicyWindow>
+			</div>,
+		);
+		const collapseBox = result.container.querySelector(
+			`[id="${APP}_clicked"] .classicyWindowCollapseBox`,
+		) as HTMLElement;
+		return { ...result, collapseBox, outerClick };
+	};
+
+	it("minimizes every primary window with a Minimize box, and the click goes no further", () => {
+		const { collapseBox, outerClick } = renderWithPalette();
+
+		fireEvent.click(collapseBox, { altKey: true });
+
+		expect(windowRecord("clicked")?.collapsed).toBe(true);
+		expect(windowRecord("plain")?.collapsed).toBe(true);
+		expect(windowRecord("fixed")?.collapsed).toBe(false);
+		expect(windowRecord("tools")?.collapsed).toBe(false);
+		expect(windowRecord("dialog")?.collapsed).toBe(false);
+		expect(outerClick).not.toHaveBeenCalled();
+	});
+
+	it("expand-all restores them and leaves a palette's stored collapse", () => {
+		const { collapseBox } = renderWithPalette();
+		setCollapsed(["clicked", "plain", "fixed", "tools"], true);
+
+		fireEvent.click(collapseBox, { altKey: true });
+
+		expect(windowRecord("clicked")?.collapsed).toBe(false);
+		expect(windowRecord("plain")?.collapsed).toBe(false);
+		// No Minimize box to undo it with, and a palette is never minimized.
+		expect(windowRecord("fixed")?.collapsed).toBe(true);
+		expect(windowRecord("tools")?.collapsed).toBe(true);
 	});
 });

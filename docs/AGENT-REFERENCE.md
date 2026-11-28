@@ -39,9 +39,10 @@ pnpm add react react-dom # for a new app
 The package was published as `classicy` through 2.x; every specifier is
 `@classicy/classicy` now (§5, "Migrating to the scoped packages"). A host that
 auto-bumps its dependencies must list every Classicy package it loads
-(`@classicy/classicy`, `@classicy/appearance-platinum` and, when it loads it,
-`@classicy/appearance-system7`) and move them together. The core and Platinum
-exist from 3.0.0, System 7 from 3.5.0.
+(`@classicy/classicy`, `@classicy/appearance-platinum` and, when it loads
+them, `@classicy/appearance-system7` and `@classicy/appearance-windows98`) and
+move them together. The core and Platinum exist from 3.0.0, System 7 from
+3.5.0, Windows 98 from 3.8.0.
 
 **Import an Appearance Package at the entry.** The core registers none.
 Import Platinum once, before rendering; importing it registers Platinum and
@@ -60,7 +61,12 @@ at one version and bumps them together; mixing versions of the two
 Appearance Packages is unsupported. Everything below that names Platinum's
 files has a System 7 twin: `classicy-system7.css`,
 `classicy-system7.fonts.css` (the same Chicago, Geneva and Monaco faces) and
-its own `dist/assets/`.
+its own `dist/assets/`. The Windows 98 package, `@classicy/appearance-windows98`
+(§8, "Windows 98"), is installed and imported the same way; it ships
+`classicy-windows98.css`, `classicy-windows98.fonts.css` (its
+`"Pixelated MS Sans Serif"` faces) and its `dist/assets/` (its fonts, its
+package icon, its art and icons, its cursors, its wallpapers, 3D Pipes'
+texture and its sprites).
 
 The desktop fills the window with no host CSS. When it is the page (mounted
 in a child of `body`, directly or through up to four wrappers that each hold
@@ -199,6 +205,7 @@ export default defineConfig({
             '@classicy/classicy',
             '@classicy/appearance-platinum',
             '@classicy/appearance-system7', // when you load it
+            '@classicy/appearance-windows98', // when you load it
         ],
     },
 })
@@ -208,7 +215,7 @@ Excluding them means any CommonJS dependency they pull in may then need to be
 listed in `optimizeDeps.include`. Bundlers that handle
 `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a
 URL plugin) need no setting; with any other (plain esbuild, Rollup without such
-a plugin), copy each package's `dist/assets/` (Platinum's, and System 7's when you load it) next to your bundle,
+a plugin), copy each package's `dist/assets/` (Platinum's, and System 7's and Windows 98's when you load them) next to your bundle,
 and the core's `dist/sample.mp4` too: the Movie Player's sample movie, the one
 asset the core ships as a file (`new URL("sample.mp4", import.meta.url)`).
 The PDF viewer's pdf.js worker needs nothing: it is embedded in the core's
@@ -400,8 +407,8 @@ export default function App() {
 with your apps as its children. It takes every prop of both, all optional:
 the provider's (below) go to the provider, and the desktop's (`children`,
 `startupScreen`, `startupDuration`, `preBootScreen`, `startupLogo`,
-`startupWordmark`, `bootScreen`, `controlStrip`, `className`, `style`; §4)
-go to the desktop, whose root `#classicyDesktop` takes `className` and
+`startupWordmark`, `bootScreen`, `controlStrip`, `userName`, `onLogOff`,
+`className`, `style`; §4) go to the desktop, whose root `#classicyDesktop` takes `className` and
 `style`. The two sets share no name. It mounts the desktop in the provider's
 own commit, so the lazy-mount hazard (the desktop a tick after the provider)
 cannot happen. Both components stay exported (their props as
@@ -550,14 +557,20 @@ Common built-in actions:
 | `ClassicyAppFocus` | `{ app: { id } }` | Focus an app (and show it, when hidden) |
 | `ClassicyAppHide` | `{ app: { id } }` | Hide an open app (the Application menu's Hide <app>, HIG7 p.127): `apps[id].hidden` (session state: `sanitizeStateForPersistence` drops it, so a reload shows every app; `closeApp` clears it), its `ClassicyApp` container `hidden`, its windows mounted, a portaled modal and its scrim `display: none`; any focus (`focusApp`, `focusWindow`, a window opening, the desktop focusing the Finder: `markAppFocused`) shows it; the next shown app (the most recently focused, Finder last) takes the menu bar. No-op for an extension, a closed app or the last shown app |
 | `ClassicyAppHideOthers` | `{ app: { id } }` | Hide every other open app (Hide Others); `id` takes the menu bar |
+| `ClassicyAppRequestAttention` | `{ app: { id }, window?: { id } }` | Under the Windows shell (a layout with `taskbar`), the app asks for the user's attention (WIG Ch.10 "Message Notification", p.212; Windows' `FlashWindowEx` with `FLASHW_TRAY`): its window `window.id` when that is an open primary window, else its front (highest-`zOrder`) open primary window, a minimized one included, gets the session-only `attention` flag, so its taskbar button flashes (`classicyTaskbarTaskAttention`) until the app is activated (any focus of the app clears every window's flag; a closed window's is cleared; `sanitizeStateForPersistence` strips it). A no-op for the focused app, a closed app, an app with no primary window, and under every package without a taskbar. Not on the untrusted allowlist. `ClassicyWindowOpen` raises it itself for a modal opened in the background (its `background`) |
 | `ClassicyAppShowAll` | `{}` | Show every hidden app (Show All) |
-| `ClassicyWindowOpen` | `{ app: { id }, window: { id, size, minimumSize, position?, autoPosition?, menuBar?, windowType?, collapsable?, modal? } }` | Register (or reopen) a window. A new window opens at `position` as given, `[0, 0]` included. With no `position`, or with `autoPosition: true`, it is cascaded instead: `[30 + 10·n, 30 + 10·n]`, n being the app's window count. An existing window keeps its stored position. `ClassicyWindow` always passes a position (its `initialPosition`, default `[110, 110]`), so it never cascades |
+| `ClassicyAppRememberFileDialogFolder` | `{ app: { id }, volumeId: string, path: string[] }` | Where the app's file dialog was left (`ClassicyFileDialog` dispatches it as it closes): `apps[id].session.fileDialog`. Session state: kept when the app quits, dropped by `sanitizeStateForPersistence`; a malformed payload or an app not loaded changes nothing |
+| `ClassicyAppRememberTab` | `{ app: { id }, tabs: string, index: number }` | The tab a strip last showed (`useClassicySessionTab`): `apps[id].session.tabs[tabs]`, a whole number from 0. Session state, as above |
+| `ClassicyWindowOpen` | `{ app: { id }, window: { id, size, minimumSize, position?, autoPosition?, menuBar?, windowType?, collapsable?, modal?, background? } }` | Register (or reopen) a window. A new window opens at `position` as given, `[0, 0]` included. With no `position`, or with `autoPosition: true`, it is cascaded instead: `[30 + 10·n, 30 + 10·n]`, n being the app's window count. An existing window keeps its stored position. `ClassicyWindow` always passes a position (its `initialPosition`, default `[110, 110]`), so it never cascades. `background: true` on a `modal` (which `ClassicyWindow` sends under the Windows shell for a modal an inactive app opens while the user is not interacting with the page, `classicyModalOpensInBackground`) opens it without focus and raises `ClassicyAppRequestAttention` for its app instead, when that succeeds (the shell, an app other than the focused one, a primary window with a button to flash); otherwise it opens focused as always |
 | `ClassicyWindowFocus` | `{ app: { id }, window: { id } }` | Focus a window |
+| `ClassicyWindowSetScroll` | `{ app: { id }, window: { id }, scroll?: [number, number], caret?: number }` | Record a window's view state on its record (`scroll`, its scroll area's `[scrollLeft, scrollTop]`; `caret`, a document's caret offset), only under a package's `layout.window.restoreViewState` (§8; Windows 98) and only finite, non-negative values (the caret a whole number); otherwise a no-op, so Platinum's and System 7's records never gain the fields. Kept by `sanitizeStateForPersistence`; on the guarded `ClassicyWindow*` floor. Dispatched by `useClassicyWindowViewState`'s callbacks |
 | `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (the active package's loaded built-ins, then its defaults and presets, then custom themes, then other packages' built-ins) |
 | `ClassicyDesktopChangeAppearancePackage` | `{ packageId: string }` | Switch the active Appearance Package (`System.Manager.Appearance.packageId`, persisted, default `"platinum"`); activates a copy of the package's default theme unless the active theme already belongs to it (`theme.package`). An unregistered id is a logged no-op; untrusted dispatches never reach it (`ClassicyDesktop*` floor) |
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` or `{ family, key, color }` | Set one theme color, or one of the active package's own colors (forks a built-in into "Custom"; see §8, "Package color families") |
 | `ClassicyDesktopChangeMetric` | `{ metricKey, value }` or `{ family, key, value }` | Set one core layout metric, or one knob of the active package (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
+| `ClassicyDesktopChangeFont` | `{ fontType, font }` or `{ family, font }` | Set a core typography family (`ui`, `body`, `header`, `mono`, `digital`, `uiSmall`), or the stack of a package font the active theme holds (`typography.families`; forks a built-in into "Custom"; see §8, "Package font families") |
+| `ClassicyDesktopChangeFontSize` | `{ fontType, fontSize }` or `{ family, fontSize }` | Set a core typography size, or a package font's size, 8–72 px (refused with a warning otherwise) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a registered wallpaper is held by its filename. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (Platinum included: no package counts as installed until it registers) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename, `<package>\|<file>` or its source) is stored by filename when it is the theme's package's, or Platinum's and the theme's package has no file of that name, else as `<package>\|<file>` (`portableClassicyWallpaper(value, theme.package)`; never decided by the active package). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
@@ -590,6 +603,7 @@ exported from the action-predicates module.
     defaultWindow="main"             // window id to open on launch
     showDesktopIcon={false}          // default true — desktop icon on/off
     showInApplicationsFolder={true}  // default true — listing in the derived Applications folder
+    showInQuickLaunch                // default false — a Quick Launch button (Windows 98's taskbar)
     desktopIconBalloonHelp="Double-click to watch TV."
     contextMenu={[{ id: 'about', title: 'About TV…' }]}
 >
@@ -608,6 +622,7 @@ Full props:
 | `restoreWindowFocus` | `boolean` | `true` | when the app is focused with no window focused, raise its most recent window (else `defaultWindow`); Finder turns it off so the desktop stays active |
 | `showDesktopIcon` | `boolean` | `true` | ignored for extensions (they never get icons) |
 | `showInApplicationsFolder` | `boolean` | `true` | independent of `showDesktopIcon` |
+| `showInQuickLaunch` | `boolean` | `false` | a button for the app on the Windows shell's Quick Launch toolbar while it is mounted (plan 0020-w98 E1): a runtime mark (`ClassicyQuickLaunchApps.internal.ts`), stored nowhere, read only by the taskbar, which only a layout with `taskbar` (Windows 98) mounts; ignored for extensions |
 | `desktopIconBalloonHelp` | `string \| ClassicyIconBalloonHelp` | — | stored on the icon record as given; an untitled balloon is titled at render with the name the icon shows. Omitted, the icon shows the package's `apps[id].description`, else the manifest `description`, resolved at render |
 | `addSystemMenu` | `boolean` | — | contribute to the system menu |
 | `extension` | `boolean` | — | background app: no windows UI affordances, no icons |
@@ -624,6 +639,16 @@ Menu/lifecycle hooks for app authors: `useClassicyWindowClose`,
 menu-item helpers `quitAppHelper`, `quitMenuItemHelper`,
 `closeWindowMenuItemHelper`, `closeAllWindowsMenuItemHelper`.
 `ClassicyAppIdContext` provides the current app id to descendants.
+
+`useClassicyHelpMenu(appId, items)` (`items` memoized) publishes `items` as
+`Desktop.helpMenu[appId]` (`ClassicyDesktopHelpMenuAdd`, removed on unmount by
+`ClassicyDesktopHelpMenuRemove`). The one Help menu shows them for the
+focused app after the system's items and a divider: the screen bar's
+`help-menu` in every package, and, under a taskbar, the Help menu at the end
+of each of the app's window bars. They are never hoisted into the Apple menu,
+and their chords are claimed in the system scope, as before. A top-level
+Help menu in an app's `appMenu` merges into the same menu after them (§4.5,
+`ClassicyDesktopMenuBar`), so both ways of publishing help end in one menu.
 
 Text your app draws that names the app (a window title, a proxy icon, an
 "Open … Control Panel" item) reads `useClassicyAppIdentity(id, { name, icon })`
@@ -698,6 +723,36 @@ Rules (enforced/warned by the kernel):
   be called directly without one, since the reducer's own `"trusted"` default
   would upgrade a missing trust. A handler that never forwards may declare
   only `(ds, action)`.
+- **Documents File ▸ New makes** (`creates`, optional; WIG Ch.10 "Supporting
+  Creation", pp.199-200, the ShellNew entry): `{ fileType, typeName,
+  extension?, data? }[]`, each validated by `ClassicyAppCreatesEntrySchema`
+  (`fileType` the made file's `_type`; `typeName` 1–40 characters, title
+  case, no surrounding spaces and none of `\ / : * ? " < > |`; `extension` 1–8
+  letters or digits, without its dot; `data` the new file's `_data`) and
+  dropped with a warning when it fails. Under `layout.finder.commands`
+  "windows", Finder's and the desktop's New ▸ list Folder, a separator,
+  then every mounted app's types by name (`listClassicyCreatableFileTypes`),
+  each making "New <typeName>[.extension]", numbered "(2)"… on a clash, and
+  starting its name's edit. Re-registering adds the types not listed yet
+  (first wins, by `fileType` and `typeName`). SimpleText declares `{
+  fileType: "text_file", typeName: "Text Document", extension: "txt" }`
+  (Windows 98's New ▸ Text Document); a package without the key lists none.
+- **Verbs on its files' menus** (`verbs`, optional; WIG Ch.10 "Registering
+  Commands", pp.200-201, a type's Shell verbs): `{ id, title, action,
+  accessKey? }[]`, each validated by `ClassicyAppVerbEntrySchema` (`id` a
+  language-independent name, a letter then up to 31 letters, digits, `_` or
+  `-`, unique within the app; `title` 1–40 characters, no surrounding
+  spaces; `action` an action type the app's own reducer handles; `accessKey`
+  one letter or digit of the title) and dropped with a warning when it
+  fails. Under `layout.finder.commands` "windows", Finder lists the verbs of
+  the app `fileTypeHandlers` names for an item's type, while that app is
+  mounted, after Open on the item's menu (in a folder window and on a
+  desktop file), and runs one by dispatching `{ type: action, app: { id },
+  path }`, trusted, for each selected item of a type that app handles; the
+  app's reducer does the rest (opening its window, if it needs one). None
+  for a folder or drive. Re-registering adds the verbs whose `id` is not
+  listed yet (first wins). No bundled app declares one (Classicy has no
+  printing, the WIG's example verb); a package without the key lists none.
 
 Open-with exports (`ClassicyAppOpenFileRouting.ts`, `ClassicyAppManager.ts`):
 
@@ -718,6 +773,8 @@ Read-side helpers:
 | `describeAppAction` | `(appId, type) => { title, content } \| undefined` | balloon-ready copy |
 | `describeAppState` | `(appId, "dot.path") => { title, content } \| undefined` | field docs from `.describe()` |
 | `parseAppData<T>` | `(appId, raw) => T \| undefined` | typed guard for `apps[id].data`; `undefined` on failure — use `parseAppData<TVData>(id, raw) ?? {}` |
+| `listClassicyCreatableFileTypes` | `(appIds?: ReadonlySet<string>) => ClassicyCreatableFileType[]` | every registered app's `creates` entries (or only `appIds`'), with their `appId`, sorted by type name without case, a type name two apps declare listed once (the first registered's) |
+| `listClassicyAppVerbs` | `(appId) => ClassicyAppVerbEntry[]` | the verbs `appId` registered (`verbs`), in registration order, each frozen; empty when it registered none |
 
 Deprecated but still working: `registerAppEventHandler(prefix, handler)`
 (routing only — no manifest, so no balloon help / script discovery / dev
@@ -734,7 +791,8 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, isDefault?, accessKey?, keyboardShortcut?, event?, eventData?, confirms?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`balloon` is `{ title?, content, position?, disabledContent? }`: a balloon beside the item while balloons are on, or, under the package's `layout.menu.itemHelp` `"statusBar"` (Windows 98; WIG Ch.12 "Status Bar Messages", pp.276-277), no balloon and `content` as the menus' status text while the item is highlighted, `disabledContent` in its place while the item is disabled (its reason, "Guidelines for Writing Status Bar Messages", p.278), shown by a `ClassicyPlacard` with `menuStatus` (§4.4, §4.5); `accessKey` is the item's access key, one character, read only under the package's `layout.menu.accessKeys` (Windows 98; under Platinum and System 7, which declare none, it is inert: nothing drawn, named or taken), its first match in the title (the key's own case first) wrapped in `<span data-classicy-part="access-key">` (in one `<span>` holding the whole title, so a flex row keeps its spaces), typed to choose the item or, on a bar's title, with Alt to open its menu ("Menu keyboard and press tracking", §4.5), and announced as the item's `aria-keyshortcuts` (`Alt+F` on a bar's title, `O` in a menu); under the package's `layout.menu.accessKeys` `"auto"` an item without one takes the first free character of its title, `""` opting it out; two items of one menu sharing a key (explicit ones) log a development `"Menu"` warning, once per set (`warnClassicyDuplicateAccessKeys`); the bundled apps' menus give Windows 98's letters through `useClassicyBundledAccessKeys()` (`Keyboard/ClassicyAccessKeys.internal.tsx`: the key while the package declares `layout.menu.accessKeys`, else `undefined`, so Platinum's and System 7's menus carry, draw and store none; File F, Edit E, View V, Help H, Special S; About A, New N, Open… O, Close and Close Window C, Save S, Save As… A, Undo U, Cut t, Copy C, Paste P, Clear l, Select All A, Delete D, Next N, Back B, Format o; Quit `""`, unmarked; WIG Appendix B Table B.5, read against Windows 98 SE's own menus); an empty `menuChildren` is a plain item unless the package's `layout.menu.emptySubmenus` is `"placeholder"`, which gives it a submenu of one dimmed "(Empty)" item, id `<id>_empty`, with no access key; `imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark` (default `"check"`) makes a checkable item an option button with `"bullet"`, one choice of an interdependent group: `role="menuitemradio"` with `aria-checked` `true` or `false` (`"mixed"` reads as unchecked there, ARIA 1.2 allowing it on a check box alone) and its gutter span carrying `classicyMenuItemBullet` beside `classicyMenuItemCheck`, so a package draws the Windows Interface Guidelines' round bullet there (WIG Ch.7 "Types of Menu Items" (p.108), Figure 7.5 "Option Button") while Platinum and System 7, keyed on `.classicyMenuItemCheck.checked`, draw their check mark for either kind; `isDefault: true` marks the menu's default item, the command a double-click on the selection runs, emitted as the `default` state class on the item's `<li>`, which the WIG draws in bold (Ch.7 "Types of Menu Items" (pp.108–109), Figure 7.5 "Default Item"; Ch.13 "Font and Size" (p.311)) and Platinum and System 7 read not at all. Finder's View as Icons / View as List are a `"bullet"` group, and the Trash icon's Open is its menu's default item)
+- `ClassicyMenuItem.confirms`: the item only asks first, its command showing a warning alert whose button runs it (the Special menu's Empty Trash and Reset PRAM, the Trash icon's Empty Trash; give the title without an ellipsis). `ClassicyMenu` appends "…" to its title (`withClassicyConfirmEllipsis(items, ellipsis)`, exported: Platinum and System 7 read "Empty Trash…" and "Reset PRAM…" byte for byte), unless the package's `layout.menu.confirmEllipsis` is `false` (Windows 98: WIG Ch.7 "Types of Menu Items", pp.107-108, no ellipsis for a command that only confirms; the audit's 1.13; §8).
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -817,29 +875,35 @@ component's root class, never folded into a longer class name and never in a
 
 ```css
 .classicyButton.pressed { … }           /* not .classicyButtonPressed */
-.classicyWindow.active { … }            /* .inactive, .collapsed, .dragging */
+.classicyWindow.active { … }            /* .inactive, .collapsed, .dragging, .expanded */
 .classicyBevelButton.checked.pressed { … }
 ```
 
 | Component (root class) | States it sets |
 |---|---|
-| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed`, `dragging` |
+| `ClassicyWindow` (`classicyWindow`; its contents get `collapsed` too) | `active`, `inactive`, `collapsed` (shaded: WindowShade, the store's `collapsed` under every layout but `window.collapse: "minimize"`, where a minimized window carries none and is marked `classicyWindowMinimized` instead, §4.1), `dragging`, `expanded` (zoomed: the store's `zoomed`; the zoom's geometry stays inline, so no base rule reads it. Windows 98 shows Restore in place of Maximize on it, WIG Ch.6 "Maximizing Windows"; Platinum and System 7 read it not at all. Under `window.zoom: "maximize"` a zoomed window is maximized and also carries the part class `classicyWindowMaximized`, §4.1). Under `window.frameEdges: "resize"` a window whose frame sizes it carries the part class `classicyWindowSizingBorder` and draws eight corner arms, `classicyWindowFrameCorner` with `classicyWindowFrameCorner-<corner>-<h\|v>` (§4.1, "Frame-edge sizing"); no other layout emits either |
+| `ClassicyWindowTitleBar` (none on its root) | its close box (`classicyWindowCloseBox`): `disabled` while `closeDisabled` draws it unavailable (with `aria-disabled="true"`; under `layout.dialog.caption: "titled"`, a modal that cannot close); its zoom and collapse boxes (`classicyWindowZoomBox`, `classicyWindowCollapseBox`): `disabled` while `zoomDisabled` or `collapseDisabled` draws one unavailable (under `layout.window.zoom: "maximize"`, the box a primary window lacks beside the one it has); only Windows 98 draws them (embossed, never pressed); its help box (`classicyWindowHelpBox`, in a `data-classicy-control="help"` wrapper, drawn only for `onHelp`: Windows' "?" caption button, which only Windows 98 draws) has no state |
 | `ClassicyButton` | `default` (`isDefault`), `pressed` (`depressed`) |
 | `ClassicyBevelButton` | `checked`, `pressed`, `mixed`, `disabled`, `open` (its menu or panel is showing) |
 | `ClassicyCheckbox`, `ClassicyRadioInput` | `checked`, `mixed`, `disabled`, `default` |
 | `ClassicyPlacard` | `pressed` (also while its menu is open), `disabled` |
 | `ClassicyImageWell` | `selected`, `disabled` |
-| `ClassicyIcon` | `selected`, `dragging` |
+| `ClassicyIcon` | `selected`, `dragging`, `inactive` (while the window it is drawn in is not the active one, as below) |
 | `ClassicyDesktopIcon` | `selected`, `open` (its app is open, or its folder is open in a Finder window), `dragging` |
 | `ClassicyControlStrip` | `collapsed`, `dragging` |
-| `ClassicyMenu` items | `disabled`, `open` |
+| `ClassicyTaskbar` (none on its root) | its Start button (`classicyTaskbarStart`): `open` (the Start menu is open); each window button (`classicyTaskbarTask`): `active` (the active window's, or its app's front window under the app's dialog or palette), `collapsed` (its window is collapsed: minimized under a layout that minimizes), `pressed` (a press held on it), and the part class `classicyTaskbarTaskAttention` while its window asks for attention (`ClassicyAppRequestAttention`; never on the active button); each notification icon (`classicyTaskbarTrayIcon`): `open` (its module's surface is open) |
+| `ClassicyMenu` items | `disabled`, `open`, `default` (the item's `isDefault`: the command a double-click runs, which Windows 98 draws bold, such as the window pop-up menu's Close, §4.1; Platinum and System 7 read it not at all) |
+| `ClassicyMenu`'s root list (a menu bar's, a contextual menu's, a pop-up bevel button's: the one `<ul>` straight inside its `.classicyMenuWrapper` that a root menu draws) | `focused` while the keyboard, not the pointer, last moved the tree's tracked item (an arrow key, Home, End, a typed letter, F10), until the pointer moves; only under the package's `layout.menu.keys` `"windows"` (Windows 98: Platinum's and System 7's menus take no keyboard navigation and never carry it); select it as `:where(.classicyMenuWrapper > .focused)`. Windows 98 draws the keyboard's item from `:focus-visible` (the Hilight band); under `focused` an item under a resting pointer drops its hover highlight (the base sheet's rule, and Windows 98's own), and Windows 98's rule that tracks the pointer's item alone stands down, so one item is tracked at a time. A menu used with the pointer alone never carries it |
 | `ClassicyTabs` tab buttons and their wrappers (`classicyTabButtonWrapper`); `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
+| `ClassicyTree` (`classicyTree`), `ClassicyTable` (`classicyTableContainer`, the Finder's list included), `ClassicyListBox` (`classicyListBox`) | `inactive` while the window it is drawn in is not the active one (`ClassicyWindowActiveContext`, as `ClassicyScrollArea` reads it; outside a window, never): the tree adds it to its root, a table with `scrollable={false}` to its container, and a scrolling table's or a list box's root is its `ClassicyScrollArea`'s, which carries it already. Windows 98 draws a tree's, a list view's and the Finder's selections in ButtonFace under WindowText there, its icons unblended and with no focus rectangle (comctl32's TVS_/LVS_SHOWSELALWAYS; WIG Ch.13 "Highlighting", p.318), and keeps a list box's Hilight (user32's LISTBOX); Platinum and System 7 read it on none of these roots |
+| `ClassicyTable` rows (Finder list rows included) | `focused` on the one focus row, the keyboard cursor: the row last clicked or arrowed to while it is listed, else the first selected row, else the first row; carried whether or not the list has focus, so a package rings it under the container's `:focus` (Windows 98's dotted focus rectangle; Platinum and System 7 read it not at all) |
 | `ClassicyPopUpMenu` | `open`, `disabled`; while it is open, its label's root (`classicyControlLabelHolder`) and its indicator (`classicyPopUpMenuIndicator`) carry `open` too |
 | `ClassicyDisclosure` (its content element) | `open` |
 | `ClassicyFileInput` | `error` |
 | `ClassicyInput` (the `<input>`) | `selected` (while it has focus and a selection that runs to its text's end, the whole text or its tail; the `<input>` then carries `--classicy-input-selection-start`, the selection's start in px from its text's left edge, its own scrolling included, and `data-classicy-selection` (`all` from the text's first character, `tail` from a later one), and System 7 highlights the line from there to the field's right edge, as TextEdit did: the whole line a pixel left of the text's pen position, a tail from its first character's) |
 | `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch, `ClassicyLittleArrows` (`classicyLittleArrows`, while both its arrows are) | `disabled` |
-| `ClassicyScrollArea` (`classicyScrollArea`; each bar `classicyScrollBar` and the corner too) | `inactive` (the root, bars and corner, while its window is inactive); on a bar, `fits` (its axis has nothing to scroll: no thumb); `pressed` on a held arrow or track, `dragging` on a dragged thumb |
+| `ClassicyScrollArea` (`classicyScrollArea`; each bar `classicyScrollBar` and the corner too) | `inactive` (the root, bars and corner, while its window is inactive); on a bar, `fits` (its axis has nothing to scroll: no thumb); `pressed` on a held arrow or track, `dragging` on a dragged thumb; `disabled` on an arrow at the end of its travel (the start arrow while the axis is scrolled to 0, the end arrow while it is at its maximum, within a pixel; both while the axis fits), following every scroll: the arrow the Windows Interface Guidelines have an application disable (Ch.6 "Scroll Arrows", p.87), which Windows 98 embosses and Platinum and System 7 read not at all (a press there scrolls nothing, as before) |
+| `ClassicySplitView` divider (`classicySplitViewDivider`) and panes (`classicySplitViewPane`) | `dragging` on the divider from a press to its release, and through the Split command's keyboard mode (Windows 98 draws it in the halftone of a moving split bar, WIG Ch.6 Figure 6.12; Platinum and System 7 read it not at all); `collapsed` on a `splittable` view's closed pane, kept mounted and not drawn (`display: none` in the base sheet) |
 
 Not every declared state has a component row above:
 
@@ -847,13 +911,17 @@ Not every declared state has a component row above:
   manager's focus rather than a prop: the focused window (and every modal) is
   `active`, every other open window `inactive`. `ClassicyScrollArea` sets
   `inactive` on its root and bars from the window it is drawn in (through
-  `ClassicyWindowActiveContext`), unless its `inactive` prop says otherwise.
-- `hover`, `focused` and `expanded` are declared for appearance packages and
-  hosts, but no Classicy component sets them and no Classicy rule reads them
-  yet. Classicy styles hover and focus with the `:hover` and `:focus-visible`
-  pseudo-classes, and an expanded disclosure or menu is `open`. A package or
-  host may add them itself (through `className`), knowing Classicy never
-  toggles them.
+  `ClassicyWindowActiveContext`), unless its `inactive` prop says otherwise;
+  `ClassicyTree`, an unscrolled `ClassicyTable` and `ClassicyIcon` set it on
+  their roots from the same context (the table above).
+- `hover` is declared for appearance packages and hosts, but no Classicy
+  component sets it and no Classicy rule reads it: Classicy styles hover and
+  focus with the `:hover` and `:focus-visible` pseudo-classes, and an
+  expanded disclosure or menu is `open`. A package or host may add it itself
+  (through `className`), knowing Classicy never toggles it. `focused` is set
+  by `ClassicyTable` on its one focus row, and `expanded` by `ClassicyWindow`
+  while it is zoomed (both above); no base rule reads either, Windows 98
+  reads both.
 
 `aria-*` attributes are still emitted alongside (for example `aria-expanded`
 on the Control Strip tab and `aria-pressed` where it applies); style the
@@ -900,10 +968,11 @@ on Classicy's internal class names carry one of four attributes
 
 | Attribute | Values | On |
 |---|---|---|
-| `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
+| `data-classicy-control` | `close`, `zoom`, `collapse`, `help` | the window title bar's control boxes (`help`: Windows' "?" box, drawn only for `ClassicyWindowTitleBar`'s `onHelp`) |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
+| `data-classicy-drop` | `none`, `move`, `copy`, `link` | the `.classicyDesktop` root while a file drag's outline is shown (`startClassicyFileDrag`, set at run time, under every package): Windows' drop effect under the pointer, `none` while nothing there takes the drop (a window, the menu bar, the Control Strip, a dialog, a target the drag refuses), else what the drop would do, `copy` and `link` only under the package's `layout.transfer.copyModifier` (§8); absent before the drag starts and once it ends, however it ends. No base, Platinum or System 7 rule reads it; Windows 98 draws its pointers from it (the arrow, no-drop, copy, alias) |
 | `data-classicy-selection` | `all`, `tail` | a `ClassicyInput`'s `<input>` while it is `selected`: `all` when the selection starts at the text's first character (the whole text), `tail` when it starts at a later one. A tail scrolled so its first character sits at the field's left edge publishes `--classicy-input-selection-start: 0px`, as the whole text does, so this is what tells them apart (System 7 highlights a tail from its first character's pen position, the whole line a pixel left of the text's). Absent while the field is not `selected` |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3) |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `access-key`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`, `scroll-accessory-start`, `scroll-accessory-end`; `menu-scroll-up`, `menu-scroll-down`; `taskbar-start`, `taskbar-quick-launch`, `taskbar-tasks-gripper`, `taskbar-tasks`, `taskbar-pager`, `taskbar-tray`; `start-menu-banner`; `list-check` | the taskbar's regions (`ClassicyTaskbar`: the Start button, the Quick Launch toolbar, the window buttons' band's gripper (drawn while Quick Launch shows), the window buttons' list, their up/down control (drawn while they take more than one row), the status area, whose menu bar extensions' region is `extensions` and whose clock (`time.classicyTaskbarClock`) is `clock`, as the screen bar's are); the Start menu's banner (`classicyStartMenuBanner`, drawn only under `taskbar.startBanner`); the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders (holding its name and `+` under `layout.menu.shortcutSpelling` `"names"`); the access key's character in a menu title, a menu item, a `ClassicyControlLabel` (and so a check box's or an option button's label), a `ClassicyButton` or a `ClassicyTabs` tab (`accessKey` under `layout.menu.accessKeys`, and the automatic pick under its `"auto"`, tabs excepted; Windows 98 underlines it; never rendered under Platinum or System 7, which declare no access keys); and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8), and the holders of the controls a caller puts inside a bar past its arrows (`barAccessories`: `scroll-accessory-start` before the start arrow, `scroll-accessory-end` after the end one, `classicyScrollBarAccessory` with `…Start`/`…End`, ordered 5 and 35 by the base sheet; a `splittable` split view's split box); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3); and a `ClassicyListBox` check list's check box before each row (`list-check`, `checkboxes`, `aria-hidden`; hidden by the base sheet, drawn by Windows 98) |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -968,8 +1037,9 @@ and icon states own:
   `ClassicyListBox`), the props land on the wrapper when a label is shown and
   on the control otherwise. Dialog components (`ClassicyAlert`,
   `ClassicyAboutWindow`, the file and input dialogs, `ClassicyEmptyTrashAlert`,
-  `AppleGuideWindow`, `FinderAboutThisComputer`, `FinderPreferences`,
-  `HyperCardDialog`) forward them to their `ClassicyWindow`.
+  `AppleGuideWindow`, `ClassicyHelpTopics`, `FinderAboutThisComputer`,
+  `FinderPreferences`, `HyperCardDialog`) forward them to their
+  `ClassicyWindow`.
 - Components whose root changes with their phase apply them to whichever
   root is showing: `ClassicyBootSequence` (the power-on overlay, then the
   default startup screen; a custom `bootScreen` gets neither),
@@ -1026,28 +1096,31 @@ manager. Must be a descendant of `ClassicyApp`.
 | `appId` * | `string` | — |
 | `title` | `string` | `""` |
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
-| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true` |
+| `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true`. `resizable={false}` draws no grow box and marks the root `classicyWindowNoResize` (a window that cannot be sized, which Windows 98 frames as a dialog, WIG Ch.6 "Window Frames"; Platinum and System 7 read it not at all), as `scrollable={false}` marks it `classicyWindowNoScroll`. The collapse box shades the window (WindowShade), or, under `layout.window.collapse: "minimize"`, is Minimize (below; a `modal` or utility window draws none there). The zoom box toggles the standard state, or, under `layout.window.zoom: "maximize"`, is Maximize and Restore (below; a utility window draws none there). The frame's edges move the window, or, under `layout.window.frameEdges: "resize"`, size a resizable window from any edge and corner and do nothing on a non-resizable one (below) |
 | `fitsScrollBars` | `boolean` | the package's `layout.scrollBar.fitsBars` for a resizable, non-utility window, else `false`: keep both bars (`fits`) while the content fits |
-| `modal` | `boolean` | `false` |
-| `movable` | `boolean` | `true` (modal only) |
+| `taskbarButton` | `boolean` | `true`: whether the Windows taskbar gives the window a button (WIG Ch.10 "Taskbar Window Buttons", p.211; Ch.8 p.145: secondary windows have none; shell addendum B13). Read only by the taskbar's membership, which only a layout with `taskbar` mounts, so it changes nothing under another package; a modal or a palette has no button whatever it says. Finder Preferences and About This Computer pass `false` |
+| `modal` | `boolean` | `false` (under `layout.dialog.caption: "titled"` a modal's caption is always titled, has a Close box and moves it: "Dialog and message box captions", below) |
+| `movable` | `boolean` | `true` (modal only; ignored under `layout.dialog.caption: "titled"`, where every modal moves) |
+| `onCaptionClose` | `() => void` | — (read only on a `modal` that is not `closable`, under `layout.dialog.caption: "titled"`: what its caption's Close box, the window pop-up menu's Close, ALT+F4 and the icon's double-click run; without it the Close box is drawn unavailable) |
 | `defaultWindow` | `boolean` | `false` |
 | `initialSize` / `minimumSize` | `[w, h]`, each `number \| "\${number}%"` | `[350, 0]` / `[300, 0]` (0 = auto) |
 | `initialPosition` | `[x, y]` — x: `number \| "left" \| "center" \| "right"`, y: `number \| "top" \| "center" \| "bottom"` | `[110, 110]` |
 | `windowType` | `"document" \| "utility"` | `"document"` |
-| `zoomMode` | `"full" \| "horizontal" \| "vertical"` | `"full"` |
-| `headerVariant` | `"standard" \| "list"` | `"standard"` |
+| `zoomMode` | `"full" \| "horizontal" \| "vertical"` | `"full"` (ignored under `layout.window.zoom: "maximize"`) |
+| `headerVariant` | `"standard" \| "list" \| "status"` | `"standard"` (`"status"`: the header is the window's status bar, WIG Ch.7 p.96, drawn after the contents, `classicyWindowHeaderStatus` with `role="status"`, its children the parts, `classicyWindowStatusPart`; the base sheet keeps it in the flow, a package draws it. Finder's folder windows pass it under `layout.finder.commands` "windows" with Explorer's three parts, `FinderStatusBar.ts`: shell32's "n object(s)", "n object(s) (plus n hidden)" or "n object(s) selected" (from the browser's `onSelectionChange`), the selection's files' size else the folder's own files' (StrFormatByteSize, `classicyFormatByteSize`; folders count nothing), and the zone "My Computer"; under `mac` and absent the header is the Finder's, as before) |
 | `header` / `placard` | `ReactNode` | — |
-| `appMenu` / `contextMenu` | `ClassicyMenuItem[]` | — |
+| `appMenu` / `contextMenu` | `ClassicyMenuItem[]` | — (under `layout.window.systemMenu` a right-click on the title bar shows the window pop-up menu instead; `contextMenu` keeps the body, "The window pop-up (system) menu", below) |
 | `alwaysOnTop` / `contentFrame` / `dimContents` | `boolean` | `false` / `false` / `true` |
 | `analyticsPath` / `analyticsExclude` | `string` / `boolean` | derived / `false` (see §9) |
 | `onCloseFunc` | `(id: string) => void` | — |
 | `onBeforeClose` | `(id: string) => boolean \| Promise<boolean>` | — (close always proceeds) |
-| `idealSize` | `[w, h]`, each `number \| "\${number}%"` | — (zoom fits the content) |
+| `idealSize` | `[w, h]`, each `number \| "\${number}%"` | — (zoom fits the content; ignored under `layout.window.zoom: "maximize"`) |
 | `hidden` | `boolean` | `false` |
 | `growable` | `boolean` | `false` |
 | `type` | `"default" \| "error"` | `"default"` |
 | `backgroundColor` | `string` | — |
 | `initialFocusRef` | `RefObject<HTMLElement \| null>` | — (nothing focused) |
+| `contextHelp` | `boolean` | `false` (only a modal that is not an alert offers the "?" box) |
 
 `initialFocusRef` names the element that takes keyboard focus whenever the
 window *becomes* the focused window (the store's `focused` flag turning true
@@ -1058,10 +1131,23 @@ title-bar press in the already-focused window, and focused with
 `preventScroll`. For a `modal` window it is the focus trap's initial target
 instead. Finder passes its list view's list box (via
 `ClassicyFileBrowser`'s `focusTargetRef` / `ClassicyTable`'s `containerRef`)
-so arrows and Return work as soon as a folder opens.
+so arrows and Return work as soon as a folder opens; Explorer's Properties
+sheet and Taskbar Properties pass their selected tab, as a property sheet
+starts there, so ENTER and ESC reach OK and Cancel at once.
+
+`contextHelp` makes a modeless window offer context-sensitive Help as a
+dialog does: under a package whose layout says `balloonHelp.contextHelp`
+"whatsThis" (Windows 98) it draws the "?" caption box while its content
+holds a described control (WIG Ch.8 "Property Sheets", p.145: Explorer's
+Properties and Taskbar Properties pass it, their check boxes described for
+What's This? alone by `useClassicyWhatsThisHelp`, so no ToolTip shows on
+hover). Absent, only a modal that is not an alert offers it; under any other
+package nothing changes.
 
 `onBeforeClose` is a close veto. It runs before every close that goes through
-the window (the close box, Escape or ⌘-period on a modal), ahead of
+the window (the close box, Escape or ⌘-period on a modal, and, under
+`layout.window.systemMenu`, the window pop-up menu's Close, ALT+F4 and a
+double-click on the title bar's icon), ahead of
 `onCloseFunc`, the close sound and the `ClassicyWindowClose` dispatch. Return
 or resolve `false` to keep the window open; a promise is awaited, so it can
 show a "Save changes before closing?" alert first. `idealSize` is the
@@ -1092,7 +1178,78 @@ the top and no second bevel on the contents
 (`.classicyWindowModalFixed:not(.classicyWindowRed)`). Platinum's fixed
 alert keeps its red title bar. With no title bar, such a modal has no close
 or collapse box to show, so pass `closable={false}` (Escape then beeps) and
-`collapsable={false}`, and dismiss it with its own buttons.
+`collapsable={false}`, and dismiss it with its own buttons. Under a layout
+whose `dialog.caption` is `"titled"` (Windows 98) no modal is fixed: neither
+kind carries `classicyWindowModalFixed`, and both move by their caption
+(below).
+
+**Application-modal dialogs** (`layout.dialog.modality: "application"`, the
+shell addendum's B18; WIG Ch.10 "Message Notification", p.212, "Modeless
+Interaction", p.214; Ch.8 "Modeless vs. Modal", p.147). Windows 98 disables
+a dialog's owner, not the screen (MB_APPLMODAL): such a modal draws no
+`classicyWindowModalScrim`, and `useClassicyApplicationModal`
+(`Window/ClassicyWindowModality.internal.ts`) marks every other modeless
+window of its app (the window registry's entries, re-read as windows
+register, each found by its DOM id `${appId}_${windowId}`) `inert`, counted
+per element so the last of two stacked dialogs clears it, and listens for
+`mousedown` in the capture phase: a press inside an owner window, or one a
+browser hands past the inert window to the desktop, a desktop icon or a
+window stacked below it at that point (`classicyApplicationModalBlocks`), is
+swallowed, beeps (`ClassicySoundPlayError`), focuses the dialog's window and
+gives the focus back to the dialog's control focused last (else its first).
+Other apps' windows, the desktop, the taskbar and its Start menu (CTRL+ESC
+too) stay usable, and while its app is not focused the dialog drops out of
+the modal-front band (`classicyWindowModalFront`), so the focused app's
+windows come in front of it; the owner's task button stays pressed under it.
+An alert of `type="error"` keeps the scrim, and so does a dialog under
+`ClassicyWindowModalOwnerContext` `"system"`, which the desktop provides
+around `Desktop.errorDialog`, Empty Trash and Reset PRAM and the shell
+around Shut Down and Log Off (system modal, above the taskbar); the shell's
+Run is under `"taskbar"` (explorer.exe's own window), so it takes no scrim
+and disables no app's window. The context is internal: a host's modal is
+always its app's. Under any other layout every modal draws its scrim, as
+before, and nothing is made inert.
+
+**Dialog and message box captions** (`layout.dialog.caption: "titled"`, the
+Windows shell, plan 0020-w98 §6; WIG Ch.8 "Appearance and Behavior", p.145,
+Figure 8.1; "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17).
+Only a `modal` window changes; every other window is captioned as always,
+and under every other layout a modal is too (`onCaptionClose` read nowhere):
+- **Title.** A modal with an empty `title` shows its app's display name
+  (`useClassicyAppIdentity`: a package's `apps` override, else the app
+  record's name, else the `appId` less `.app`), as a message box's title
+  names its context; the root's `aria-label` and the window registry's
+  `title` follow it. The desktop's alerts read "Finder". `ClassicyAboutWindow`
+  passes "About <name>", as Windows' `ShellAbout` captions its box.
+- **Close box.** The caption always draws one: a `closable` modal closes as
+  before; a non-closable one runs its `onCaptionClose`; with neither the box
+  is drawn unavailable (`ClassicyWindowTitleBar`'s `closeDisabled`: the
+  `disabled` state, `aria-disabled="true"`, out of the tab order, no
+  handler), as Windows grays the Close of a message box with no Cancel
+  (ReactOS's `MessageBoxProc` removes `SC_CLOSE`; Wine's
+  `draw_close_button` grays the box for a missing or grayed `SC_CLOSE`, and
+  its press does nothing). The window pop-up menu's Close is enabled, and
+  the registry's `close` command (ALT+F4, the icon's double-click) runs,
+  exactly when the box would close the dialog, so ALT+F4 on a Yes/No alert
+  does nothing.
+- **Movable.** Every modal moves by its caption (WIG p.145), an alert of
+  `type="error"` and a `movable={false}` modal included: neither carries
+  `classicyWindowModalFixed`, the drag and the keyboard Move are allowed,
+  and the pop-up menu's Move is enabled. An alert keeps its red band
+  (`classicyWindowRed`, which Windows 98 draws as any caption) and its beep.
+- **The bundled dialogs** pass `onCaptionClose`, each the path its own
+  button runs: `ClassicyAlert` presses its `cancel`-role button, else its
+  only button (a help button aside), else none, so a Yes/No question's box
+  is unavailable (and so while that button is disabled), as `MessageBox`
+  maps Close to IDCANCEL, else, with OK alone, to IDOK; `ClassicyFileDialog`
+  runs `onCancelFunc` (unavailable without it); `ClassicyInputDialog` and
+  `ClassicyKeyboardEquivalentDialog` their Cancel; `ClassicyAboutWindow`
+  clicks its own OK button (`.click()` on a ref), so `hideFunc` still gets a
+  real click event; `HyperCardDialog` an ask's Cancel (the empty answer), an
+  answer's Cancel button, else its only button.
+- **Escape is unchanged.** Each dialog's own keyboard equivalents take
+  Escape first, as before; a non-closable modal with no Escape of its own
+  still beeps, whatever `onCaptionClose` says.
 
 A modal's inner area (`.classicyWindowContentsModalInner`) carries
 `classicyWindowContentsSelfPadded` while its content root lays itself out
@@ -1139,6 +1296,390 @@ drag keeps the opposite corner fixed (`computeClassicyWindowResize`); with
 `layout.menuBar.placement: "window"` a window with an `appMenu` draws it in
 its own menu bar under the title bar. See §8, "Layout declarations".
 
+A window keeps to the work area: below the menu bar's band and, while a
+taskbar is mounted (the Windows shell, plan 0020-w98), above the taskbar's
+band, the taskbar's own measured height. Its opening size (a percentage
+height is a share of the room between the two bands), its opening position
+(`"center"` centers within that room, `"bottom"` sits on the taskbar), the
+clamp that keeps it on screen (re-applied on every render, so a window
+drawn before the taskbar measured itself is moved above it at once), the
+zoom's standard state and a grow-box drag (stopped at the taskbar's top)
+all leave the band out. The exported `resolveSize(size, menuBarHeight?,
+bottomBand?)`, `resolvePosition(pos, size, menuBarHeight?, centering?,
+bottomBand?)` and `clampWindowPositionToViewport(position, size,
+menuBarHeight?, bottomBand?)` take it as an optional last argument, default
+0; with no taskbar the window passes 0, so every other package's numbers
+are unchanged. Under a layout with a taskbar each mounted window also
+re-clamps on a desktop resize (the shell addendum's B14; WIG Ch.10 "Plug
+and Play Support", p.213): a `ResizeObserver` on `#classicyDesktop` (the
+viewport's `resize` without one) runs the release clamp over the record's
+stored position and size and dispatches `ClassicyWindowMove` only when that
+moves the window; a maximized window re-applies its work-area rect instead,
+and a window being moved or sized, by the pointer or the keyboard, is left
+to its gesture. Without a taskbar nothing is observed.
+
+**Minimize** (`layout.window.collapse: "minimize"`, the Windows shell, plan
+0020-w98 §5; WIG Ch.6 "Minimizing Windows" and "Restoring Windows", p.85).
+The collapse box, named "Minimize" (`ClassicyWindowTitleBar`'s `labels`),
+still writes the store's `collapsed` flag, so a window minimized under one
+package is shaded under another, but the window is not shaded: it leaves the
+screen and keeps its taskbar button. Its root carries
+`classicyWindowMinimized` (base rule `display: none`) and none of
+WindowShade's drawing (no `collapsed` state, its size and every part kept,
+its whole tree mounted, so its children keep their state); it is not
+re-centered or measured while hidden. Only a primary window minimizes: a
+`modal` or utility window has no taskbar button to come back from, so it
+draws no collapse box, its title's double-click does nothing, the reducer
+refuses its `ClassicyWindowCollapse` (collapse-all and a host's dispatch
+included), and a stored `collapsed` (from a package that shades) is drawn
+expanded and kept. A palette is hidden with its app (it carries
+`classicyWindowMinimized` too) while its app has an open primary window and
+every one is minimized (WIG Ch.8, p.145); an app with palettes only keeps
+them. The box's click does not bubble (a click reaching the window's root or
+its `ClassicyApp` would activate, and so restore, the window it just
+minimized), and a minimize keeps `zoomed`, so a maximized window comes back
+maximized. When the focused window minimizes, focus passes to the next window
+down, never a minimized one (`classicyVisibleSuccession`), and so it does when
+the app's last shown primary window minimizes while one of its palettes holds
+the focus, the palette going with it: the app's own front
+primary window that is on screen (Classicy draws the focused app's windows
+above the others), else the front such window of any other open app that is
+not hidden, Finder and extensions included, by `zOrder`, which is a focus
+timestamp across apps; else the desktop (Finder focused with no window, its
+menus the bar's). `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy`
+pass focus on the same way under the flag, so neither restores a minimized
+window nor leaves an app focused with no window. Focusing a minimized window
+restores it (`focusWindow` clears `collapsed`), as its taskbar button does
+and as activating its app (`focusApp`, its last-accessed window) does.
+Option-click minimizes every primary window with a box, and expand-all
+restores them. Under every other layout (`"shade"`, the default) the box
+shades, its click bubbles, a collapse clears `zoomed` and keeps the focus,
+a close promotes the app's highest-`zOrder` open sibling (shaded or not), and
+focusing a window never touches `collapsed`.
+
+**Maximize and restore** (`layout.window.zoom: "maximize"`, the Windows
+shell, plan 0020-w98 §5; WIG Ch.6 "Maximizing Windows" and "Restoring
+Windows", pp.84–85). The zoom box, named "Maximize", and "Restore" while the
+window is maximized (`ClassicyWindowTitleBar`'s `labels`), still writes the
+store's `zoomed` flag, but the window takes the work area, not the standard
+state: its content box is the desktop less the menu bar's band (0 under
+window placement) and the taskbar's, and its frame lies just outside it
+(`classicyMaximizedWindowRect`, below), as Windows grows a maximized
+window's rect by its frame, so the caption meets the screen's top and sides
+(the desktop's `overflow: hidden` clips the frame; the taskbar covers its
+bottom). `zoomMode` and `idealSize` are ignored: Windows has one maximized
+state. The zoom carries the rect the window had (`ClassicyWindowZoom`'s
+`restore`, its outer left/top and content size), which the reducer stores on
+the record as `restoreRect` and deletes when the window un-zooms, whatever
+un-zooms it; it is persisted, so Restore survives a reload. While maximized
+the root carries `classicyWindowMaximized` (base rule `max-height: none`, so
+the height reserve, `--window-max-height-reserve`, does not stop it short of
+the taskbar) beside `expanded`; the window is not clamped on screen (its
+frame is off it by design), its caption's drag is refused (dragging a
+maximized window does nothing in Windows 95/98), its frame edges and grow
+box are not drawn, and it is not re-centered as its content resizes; it
+takes the work area again on mount (a reload, a package switch: the record
+says zoomed, its geometry may be another package's standard state), when it
+comes back from a minimize, when the menu bar's or the taskbar's band changes
+and when the desktop resizes (a `ResizeObserver` on `#classicyDesktop`, the
+viewport's `resize` without one). Restore returns it to the rect this mount
+remembers, else the record's `restoreRect` (read under every package, and
+only when both pairs are finite numbers), else the rect the window opened
+at. A minimize keeps the zoom (`window.collapse: "minimize"`), so it comes
+back maximized (Restore, its taskbar button or the window pop-up menu's
+Maximize, which a window minimized while maximized offers, Windows
+clearing WS_MAXIMIZE as it minimizes); a window maximized while minimized
+stores the work area's size once it is drawn again. Minimize and Maximize
+come as a pair under the flag: a primary window with one of the two boxes
+draws the other unavailable (`ClassicyWindowTitleBar`'s `zoomDisabled` or
+`collapseDisabled`: `disabled`, `aria-disabled`, no handler), as Windows
+95/98 draws both whenever a window has either, the one it lacks grayed
+(Wine's `NC_DrawCaption`: "In win95 the two buttons are always there"; the
+Calculator's grayed Maximize); WIG Ch.6 "Title Bar Buttons" (p.80) would
+leave an unsupported button out, and the OS as shipped wins. A window with
+neither box draws neither. Only a primary window maximizes: a utility window has no
+Maximize button (WIG Ch.8 "Palette Windows", p.164, Figure 8.16: Close
+alone), so under the flag it draws no zoom box, the registry publishes
+`zoomable: false` and refuses `maximize`, and a zoom stored by another
+package is drawn as it is, unmaximized; a modal draws no zoom box under any
+layout. Under every other layout (`"standard"`, the default) the zoom box
+toggles the standard state, the window is clamped and moves and sizes as
+always, no `restore` is sent, and only a record that already holds a
+`restoreRect` (a window maximized under Windows 98, then the package
+switched) is un-zoomed to it; its root never carries
+`classicyWindowMaximized`.
+
+The pure `classicyMaximizedWindowRect({ width, height, top, bottomBand,
+chrome })` (`ClassicyWindowMaximize.ts`, exported) returns `{ position, size }`:
+`position` is `[−chrome.left, top − chrome.top]` and `size` is `[width,
+height − top − bottomBand]` (never below 0), for a desktop `width` × `height`,
+the menu bar's band `top`, the taskbar's `bottomBand` and the window's
+`chrome`, the padding plus border of each side, which
+`classicyWindowChromeEdges(el)` measures off the window's computed style
+(`{ left, top, right, bottom }`; `classicyWindowChromeSize` is each axis's
+sum).
+
+**The caption's double-click** (`layout.window.titleDoubleClick`). Under
+`"collapse"` (the default) it collapses the window while the desktop's
+`doubleClickTitleToCollapse` preference is on, as always. Under `"zoom"`
+(Windows 95/98 as shipped: Wine's `NC_HandleNCLButtonDblClk` sends
+`SC_MAXIMIZE` or `SC_RESTORE` when the window has a Maximize box) it runs the
+zoom box's toggle on a window that draws one, whatever the preference says
+(it stays stored, and applies again under another package), and does nothing
+on a window that cannot zoom (`zoomable={false}`, a palette under maximize)
+or on a modal's caption: it never falls back to a collapse.
+
+**Frame-edge sizing** (`layout.window.frameEdges: "resize"`, the Windows
+shell, plan 0020-w98 §5; WIG Ch.6 "Sizing Borders", p.83). Under `"move"`
+(the default) the four frame edges (`classicyWindowFrameEdge-top|right|bottom|left`,
+`--window-padding-size` thick) move the window, as the title bar does.
+Under `"resize"` a resizable window drawn at its size (not maximized,
+shaded or minimized) has a sizing border instead: its root carries
+`classicyWindowSizingBorder`, a press on an edge sizes the window from that
+edge, and eight corner arms (`classicyWindowFrameCorner
+classicyWindowFrameCorner-<corner>-<arm>`, corners `top-left`, `top-right`,
+`bottom-left`, `bottom-right`; arm `h` along the top or bottom edge, `v`
+along the side) size both edges of their corner. Windows sizes from the
+whole frame and nothing inside it, and a corner reaches `SM_CXSIZE` past the
+inside of the frame along both of its edges (Wine's `NC_HandleNCHitTest`), so
+under the sizing border the base sheet makes each edge and arm the frame's
+width, `--window-frame-inset` (4 px under Windows 98, `SM_CXFRAME`), and each
+arm `--window-frame-inset` + `--window-title-bar-height` long (22 px), above
+the edges and below the grow box; the edges show the registry's `resizeUd`
+and `resizeLr` cursors, the arms `resizeNwse` and `resizeNesw`, each falling
+back to `ns-resize`, `ew-resize`, `nwse-resize` and `nesw-resize`. A press
+(button 1) activates the window ("the action of sizing the window
+implicitly makes it active"), takes the pointer's capture, so the edge
+keeps its cursor however far the pointer outruns it, and runs the grow
+box's gesture (the store's `resizing`, the inline width and height, the
+release, a lost pointer stream ending it where it is): the named edges
+follow the pointer's travel (`computeClassicyWindowEdgeResize`, §8) and the
+others stay, each moving edge stopping at the menu bar's underside or the
+screen's left, at the work area's right and bottom (the viewport's right,
+the taskbar's top), at `minimumSize`, and at the height the window's
+`max-height` (`calc(100% - var(--window-max-height-reserve))`) draws it at
+most, so the stored size is the drawn one and the release clamp never moves
+a window just sized. A non-resizable window's edges (a fixed border, WIG
+Ch.6 "Window Frames", p.76, modals included) neither move nor size it, and
+it carries no sizing border; a maximized window draws no edges or arms. Under
+every other layout the edges move the window as always and no window
+carries `classicyWindowSizingBorder` or draws a corner arm.
+
+**Keyboard Move and Size** (the window registry's `move` and `size`
+commands, below, which the Windows 98 shell's window pop-up menu runs; plan
+0020-w98 §5; WIG Ch.6 "Moving Windows" and "Sizing Borders", p.83:
+"the user can move the window with the keyboard interface by using arrow
+keys and pressing the ENTER key"; Windows' `SC_MOVE`/`SC_SIZE` tracking
+loop, Wine's `WINPOS_SysCommandSizeMove`, ReactOS's `DefWndDoSizeMove`).
+Under every package, each command activates the window and starts a mode
+that lasts until ENTER, a button-1 release or a lost pointer stream ends it
+where it is, or ESC puts the window back where it started. While it lasts,
+capture-phase listeners on the document hold every key press and mouse
+button (`ClassicyWindowKeyboardMove.internal.ts`, internal), so menu
+shortcuts, dialog keys (a modal's ESC included) and the controls under the
+pointer see none of them, and the click that ends a mode presses nothing;
+a key's release still reaches the page, as Windows' loop dispatches
+`WM_KEYUP`. Only one mode runs on the page at a time. Each arrow moves 8 px
+(`CLASSICY_WINDOW_KEYBOARD_STEP`, Wine's step), and the mouse, button held
+or not, moves by its travel since its first move (the browser cannot put
+the pointer on the caption, as Windows does).
+- **Move** (refused for a fixed modal, a maximized window under
+  `window.zoom: "maximize"`, a minimized one under `window.collapse:
+  "minimize"`, or a palette hidden with its app; a shaded window moves):
+  the store's `moving` is set, so the root carries `dragging` and the
+  package draws its drag band, as a title-bar drag does. An arrow stops at
+  the screen's edges and the menu bar's underside (the arrow back moves at
+  once), and the end goes through the release clamp
+  (`clampWindowPositionToViewport`).
+- **Size** (refused for a window that is not `resizable`, or is maximized,
+  shaded, minimized or hidden with its app): the store's `resizing` is set,
+  so the root carries `classicyWindowResizing`. The first arrow picks its
+  edge (Up the top, Down the bottom, Left the left, Right the right) and
+  moves nothing; an arrow across the chosen edge adds its own, making a
+  corner (Windows as shipped; Wine's and ReactOS's loops keep the one edge),
+  and moves nothing either; every other arrow moves the chosen edges 8 px.
+  Before an arrow has, the mouse picks the sizing-border edge or corner it
+  crosses (the pointer clamped to the window's rect, as Windows hit-tests
+  it: `--window-frame-inset` thick, a corner reaching
+  `--window-title-bar-height` past the frame's inside), then sizes it by
+  its travel. The edges move through `computeClassicyWindowEdgeResize`
+  (§8), stopping where a frame-edge drag stops (the menu bar's underside,
+  the screen's left, the work area's right and bottom, `minimumSize`, the
+  height `max-height` draws at most). The end stores the size and position
+  drawn and, under a layout without `window.zoom: "maximize"`, leaves a
+  zoom's standard state as a grow-box resize does; ESC keeps it.
+
+A mode ends where it is before the window carries out any other command,
+when it unmounts, and when another path (a host's dispatch) closes,
+minimizes or maximizes it, hides it with its app or, sizing, shades it (a
+maximized window's rect then wins). Its Window events are the drags'
+(`dragStart`, a `change` for each step that moves something, one
+`dragEnd`), each detail carrying `input: "keyboard"` and the `dragEnd`'s
+`canceled` (true for ESC). Analytics: `track("move")` or `track("resize")`
+when it starts.
+
+**The window pop-up (system) menu** (`layout.window.systemMenu: true`, the
+Windows shell, plan 0020-w98 §5; WIG Ch.6 "Title Bars", "Title Bar Icons"
+and "Title Bar Buttons", pp.76–80; Ch.7 "The Window Pop-up Menu", p.102;
+Ch.8, pp.145 and 164; the audit's 6.2, 6.3, 7.10 and 8.7). The menu is the
+desktop's one contextual menu, opened with no Help item (a Windows pop-up
+menu has none) and taking the keyboard while open (the up and down arrows
+walk it, ESC closes it; `useClassicyContextualMenu`, §4.5), and its items
+are `classicyWindowSystemMenuItems`'s (below), each running the registry
+command of its name, so a box's sounds, analytics, veto and geometry are
+the same from the menu:
+- **Where it opens.** A right-click anywhere in the window's own title bar,
+  its icon and boxes included (Wine's `NC_HandleNCRButtonDown`: the window
+  menu on the caption and the system button alike, the OS as shipped over
+  p.78's icon menu, since a Classicy window's icon stands for no object),
+  at the pointer (1 px below and right of it, as every right-click menu);
+  a right-click in the body resolves the window's or its app's
+  `contextMenu` as always. A press (button 1) on the title bar's icon,
+  which then arms no move, and ALT+SPACE drop it from the caption's
+  bottom-left corner exactly, where Wine's `NC_GetSysPopupPos` puts the
+  system menu (the system button's square at the caption's left: the
+  plan's "the icon's bottom-left" is 2 px in and 1 px up from it), the
+  latter with its first item focused; a held press chooses the item it is
+  released over, as Windows tracks a menu with the button down, and a press
+  while any contextual menu is open (this one included) only closes it, as
+  Windows' menu loop eats that click. A window button's right-click on the
+  taskbar opens it at the pointer (the registry's `systemMenu` with `at`).
+  The window is activated first, unless it is off the screen (minimized,
+  or a palette hidden with its app), whose menu opens without restoring it.
+- **Items.** A primary window: Restore, Move, Size, Minimize, Maximize, a
+  separator, Close; a modal: Move, a separator, Close; a palette
+  (`windowType="utility"`): Move, Size, a separator, Close. Enabled as
+  Windows enables them (Wine's `MENU_InitSysMenuPopup`): Restore while the
+  window is collapsed (minimized, or shaded under a layout that shades) or
+  zoomed (maximized under `window.zoom: "maximize"`); Move for a window
+  that moves (not a fixed modal), not zoomed and on the screen (a shaded
+  window still moves by its title bar; Windows grays Move only while
+  maximized, and a minimized window here has nothing on the screen to
+  move); Size for a resizable window neither collapsed nor zoomed; Minimize
+  with a collapse box and not collapsed; Maximize with a zoom box and not
+  zoomed on the screen (a window minimized while maximized offers it beside
+  Restore: Windows clears WS_MAXIMIZE as it minimizes, and either brings it
+  back maximized); Close when the Close box would close the window (`closable`, or,
+  under `dialog.caption: "titled"`, a modal's `onCaptionClose`). Close is the default item (`isDefault`, the
+  `default` state, which Windows 98 draws bold; Wine's `SetMenuDefaultItem(…,
+  SC_CLOSE)`) and shows ALT+F4 (`"⌥F4"`, drawn in the menu's glyph
+  spelling). Item ids are `${appId}_${windowId}_system_<command>`. Each
+  carries user.exe's access key (`CLASSICY_WINDOW_SYSTEM_MENU_ACCESS_KEYS`:
+  **R**estore, **M**ove, **S**ize, Mi**n**imize, Ma**x**imize, **C**lose;
+  audit 4.12, shell addendum B7), typed in the open menu under
+  `layout.menu.accessKeys` and `menu.keys: "windows"`. Move and
+  Size start the keyboard modes (above).
+- **The icon's double-click** closes the window through the Close box's
+  path, its `onBeforeClose` veto included, and nothing when it cannot close
+  (Wine's `NC_HandleNCLButtonDblClk`: SC_CLOSE for HTSYSMENU, unless Close is
+  grayed); the press that ends its first click opens no menu, the
+  double-click hides the one the first opened, and it never reaches the
+  caption's own double-click.
+- **ALT+SPACE and ALT+F4** (WIG App. B, Table B.2, p.358): `ClassicyDesktop`
+  binds them on the document only under the flag
+  (`useClassicyWindowShellKeys`, internal), for the focused window (the
+  focused app's focused, open window, a modal included). ALT+SPACE runs the
+  window's `systemMenu` command with no point and prevents the key's
+  default when the menu opens, in a text field too (macOS gives Option+Space
+  as a non-breaking space; this differs on purpose from the shortcut
+  dispatcher, which leaves Option-only chords to a text field); a held
+  key's repeats open nothing more. ALT+F4 runs its `close` command, so a
+  window that cannot close stays open (Windows ignores ALT+F4 when Close is
+  unavailable) and a veto holds, closes any open contextual menu with it,
+  and prevents the key's default whenever a window is focused; with none it
+  does nothing. Both skip an event already `defaultPrevented` (a menu
+  shortcut, a keyboard mode). Windows takes both keys before a page on a
+  Windows host (ALT+F4 closes the browser), so they reach Classicy where
+  the browser lets them through: macOS delivers them as Option chords.
+- **ALT+F6 and ALT+SHIFT+F6** (WIG App. B, Table B.2, p.358, "Switch to the
+  next window (modeless-compatible)"; shell addendum B20): under a layout
+  with `taskbar` (Windows 98), not keyed on this flag, the same hook
+  (`useClassicyWindowShellKeys(systemMenu, { switchWindows })`) activates
+  the focused app's next or previous window through its `activate` command:
+  of its open, unminimized, non-modal windows, palettes included, in
+  ascending `zOrder` (then id), the one after (or before) the focused one,
+  wrapping (`classicyWindowShellSwitchTarget`); nothing while a modal is
+  focused or with no other window. The key's default is prevented whenever
+  an app is focused. Without a taskbar it is not bound.
+- Analytics: each opening tracks `contextMenu` with `show: true` (a title
+  bar right-click once, as before); no pageview, since the menu is no
+  window. Under every other layout a title bar right-click resolves as
+  anywhere in the window, the icon is inert (`ClassicyWindowTitleBar` gets
+  no icon handler, and its press is the title bar's, a drag), the
+  `systemMenu` command reports `false`, and no key is bound.
+
+The pure `classicyWindowSystemMenuItems(state, handlers)`
+(`ClassicyWindowSystemMenu.ts`, exported) builds that menu: `state` is
+`{ appId, windowId, kind: "document" | "modal" | "utility", minimized,
+maximized, offScreen, movable, resizable, minimizable, maximizable,
+closable }` (`ClassicyWindowSystemMenuState`; `minimized` is collapsed,
+`offScreen` not drawn), `handlers` one function per command
+(`ClassicyWindowSystemMenuHandlers`: `restore`, `move`, `size`, `minimize`,
+`maximize`, `close`), and it returns the `ClassicyMenuItem[]` above, with
+`CLASSICY_WINDOW_SYSTEM_MENU_TITLES` as titles and
+`CLASSICY_WINDOW_SYSTEM_MENU_CLOSE_SHORTCUT` (`"⌥F4"`) on Close;
+`classicyWindowSystemMenuItemId(appId, windowId, command)` and
+`classicyWindowSystemMenuItemIdPrefix(appId, windowId)` spell the ids.
+
+Each mounted window, modals included, also registers in the core's window
+registry (`ClassicyWindowRegistry.internal.ts`, internal: not exported), for
+a surface that lists windows or acts on one, such as the Windows 98 shell's
+taskbar (plan 0020-w98). Its entry holds what the store record does not:
+`appId`, `windowId`, `title` (the caption's: under `dialog.caption:
+"titled"` an untitled modal's is its app's display name), the resolved
+`icon`, `modal`, `windowType`, `closable` (whether its Close closes it:
+`closable`, or, under `dialog.caption: "titled"`, a modal's
+`onCaptionClose`), `zoomable` (whether it draws a zoom box: `false` for a modal or
+utility window under `window.zoom: "maximize"`), `collapsable` (whether it draws a collapse box:
+`false` for a modal or utility window under `window.collapse: "minimize"`),
+`resizable` and `movable` (`false` for a fixed modal), and `run(command)`, which carries a command out through the
+path the window's own box or click takes, so its sounds, analytics, the
+`onBeforeClose` veto and the zoom geometry are unchanged: `activate` focuses
+it; `minimize` collapses it (`false` without a collapse box, which a modal
+or utility window lacks under `window.collapse: "minimize"`, or when already
+collapsed); `restore` expands a collapsed window (a minimized one comes back
+as it was, maximized included), else un-zooms a zoomed one, then focuses it
+(`false` when it is neither; a modal's or palette's ignored collapse under
+minimize, or its ignored zoom under maximize, is neither); `maximize` zooms
+it (maximizes it under `window.zoom: "maximize"`), then
+focuses it (`false` without a zoom box, on a modal, or when already zoomed,
+except that a window minimized while maximized, under `window.collapse:
+"minimize"`, comes back maximized, as Windows' SC_MAXIMIZE shows it);
+`close` runs the close box's path, veto included, or, for a non-closable
+modal under `dialog.caption: "titled"`, its `onCaptionClose` (`false` when
+it has neither); `move` and `size` start the keyboard Move and Size modes
+(above; `false` where a mode is refused, while one is already in effect on
+the page, or during a pointer drag of the window), and any other command
+ends the window's mode where it is first. `systemMenu` opens the window
+pop-up menu (below), at `at` when given (a taskbar button's right-click),
+else dropped from the caption with its first item selected, as ALT+SPACE
+opens it; it reports `false` under a layout without `window.systemMenu`, and
+for a window off the screen (minimized, or a palette hidden with its app)
+given no point. `place` (`{ type: "place", position, size?, maximized? }`,
+plan 0020-w98 E1: the taskbar's Cascade Windows, Tile Windows and their
+Undo, Windows' `CascadeWindows`, `TileWindows` and `SetWindowPlacement`)
+moves the window to `position` (its outer top-left, the record's
+`position`, rounded) and, when it is resizable, gives its content `size`
+(never below `minimumSize`, nor taller than its `max-height`,
+`--window-max-height-reserve`, lets CSS draw it, so the stored size is the
+drawn one), with no activation and no sound; a maximized
+window is restored first, its zoom cleared and the rect it remembered
+dropped (the zoom event carries `cause: "resize"`), and with `maximized:
+true` a window that can maximize takes the work area afterwards, the rect
+given being the one its Restore returns to (stored as `restoreRect`); it
+reports `false` for a window not drawn (minimized, shaded, its app hidden,
+or a palette hidden with its app), a fixed modal, and one in a keyboard
+mode or a pointer drag. The entry's `geometry()` reads, when asked, where a
+drawn window is: `rect` (the record's `position` and the content size it is
+drawn at), `restoreRect` (while maximized, the rect its Restore returns it
+to: this mount's, else `restoreRect`, else the rect it opened at; otherwise
+`rect`), `maximized`, `chrome` (each axis's frame padding and border,
+summed) and `minimumSize`; `undefined` while it is not drawn. Every command reports `false` while the window is closed. The entry is updated in place when a
+published value changes (the window keeps its place in the list) and removed
+on unmount; a StrictMode phantom cleanup's stale token removes nothing.
+Registering adds no DOM, no attribute and no store field, under every
+package.
+
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`. It draws the
 window's own title bar (`ClassicyWindowTitleBar`, always focused, with no
@@ -1159,9 +1700,16 @@ dispatches nothing; `ClassicyWindow` passes its own handlers in. It merges
 | `variant` | `"document" \| "utility"` | default `"document"` (side bands around the title); `"utility"` draws the windoid's center band and no title text |
 | `modal` | `boolean` | adds `classicyWindowTitleBarModal`; never a zoom box |
 | `onClose` / `onZoom` | `() => void` | each draws its box (a `data-classicy-control` wrapper) and is called, with no arguments, by a click, Enter or Space |
+| `closeDisabled` | `boolean` | draws the close box unavailable, `onClose` given or not: the `disabled` state, `aria-disabled="true"`, `tabIndex` -1 and no handler (its click, Enter and Space do nothing). `ClassicyWindow` passes it under `layout.dialog.caption: "titled"` for a modal that cannot close (no `closable`, no `onCaptionClose`), as Windows grays an unavailable Close; Windows 98 draws it embossed and unpressable, and Platinum and System 7, which never get it, would draw it as their close box. Without it the box renders as before |
+| `zoomDisabled` / `collapseDisabled` | `boolean` | draws the zoom (not on a modal bar) or collapse box unavailable, its handler given or not, as `closeDisabled` draws the close box. `ClassicyWindow` passes one under `layout.window.zoom: "maximize"` for a primary window that has the other box alone, Windows 95/98's Minimize and Maximize pair (Wine's `NC_DrawCaption`); Windows 98 draws it embossed and unpressable. Without them the boxes render as before |
 | `onCollapse` | `(e: MouseEvent<HTMLDivElement>) => void` | draws the collapse box; called by its click |
 | `onCollapseKey` | `() => void` | Enter or Space on the collapse box; without it those keys click the box |
+| `onHelp` | `() => void` | draws the help box, Windows' "?" caption button (a dialog's What's This? button, WIG Ch.8 "Appearance and Behavior", p.145; Ch.12 "Context-Sensitive Help", p.273): `.classicyWindowHelpBox` in a `data-classicy-control="help"` wrapper, last in the DOM (a package places it with `order`; Windows 98 just left of Close), named `"Help"` (`labels.help`), called with no arguments by its click, Enter or Space, named in a tooltip under `buttonTooltips`. Its wrapper also carries `data-classicy-whats-this` (`CLASSICY_WHATS_THIS_COMMAND_ATTRIBUTE`), so a press on it passes through the What's This? mode and its second click ends it. `ClassicyWindow` passes it under `balloonHelp.contextHelp` "whatsThis" (Windows 98) for a `modal` that is not an alert (no `ClassicyWindowAlertTypeContext`: a message box has no "?" button) while its content holds a described control (`classicyHasHelpAnchorWithin`, checked after each commit), starting the mode over the window (`startClassicyWhatsThis`), and likewise for a modeless window given its `contextHelp` prop (a property sheet); every other window and layout gets none. Without it no box is drawn |
 | `onTitleMouseDown` / `onTitleDoubleClick` | handlers | on the title area, the drag handle |
+| `onIconMouseDown` / `onIconDoubleClick` | `(e: MouseEvent<HTMLDivElement>) => void` | on the proxy icon (`.classicyWindowIcon`), before the title area hears the event (a double-click handler calls `e.stopPropagation()` to keep it from `onTitleDoubleClick`). Without them the icon is inert, and its element carries its class alone. `ClassicyWindow` passes them under `layout.window.systemMenu`: the press opens the window pop-up menu, the double-click closes the window (WIG Ch.6 "Title Bar Icons", p.78) |
+| `labels` | `{ close?, zoom?, collapse?, help? }` (`ClassicyWindowTitleBarLabels`) | the boxes' accessible names, each defaulting to `"Close"`, `"Zoom"`, `"Collapse"`, `"Help"`; `ClassicyWindow` names the collapse box `"Minimize"` under `layout.window.collapse: "minimize"`, and the zoom box `"Maximize"`, `"Restore"` while maximized, under `layout.window.zoom: "maximize"` (WIG Ch.6 "Title Bar Buttons", p.80; "Maximizing Windows", p.84) |
+| `utilityTitle` | `boolean` | a `"utility"` bar draws its title too: `.classicyWindowTitleText` (no icon, no side bands) before the `.classicyWindowTitleCenter` band. `ClassicyWindow` passes it under `layout.window.utilityTitle: true` (Windows 98: a tool window's small caption carries its title). Without it, or with an empty `title`, a utility bar renders as before; a document bar ignores it |
+| `buttonTooltips` | `boolean` | each box names itself (its label) in a tooltip once the pointer has rested on it 500 ms (Windows' automatic delay, Wine's `TTDT_AUTOMATIC`), whatever Balloon Help says (`useClassicyBalloonHelp`'s `force`), below the box, `aria-describedby` pointing at it while shown; a press on the box hides it until the pointer comes back. `ClassicyWindow` passes it under `layout.window.captionTooltips: true`. Without it no box runs the balloon hook, and the boxes render as before |
 | `className` / `style` | passthrough | onto the root |
 
 The structure is two SCSS mixins in `Window/ClassicyWindowTitleBar.scss`
@@ -1172,18 +1720,20 @@ or `.classicyWindowFrame .classicyWindowTitleBar …`. Rendered on its own,
 outside a `ClassicyWindow` or `ClassicyWindowFrame`, the title bar is
 unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 "System art"). The control boxes are `role="button"` elements named
-`"Close"`, `"Zoom"` and `"Collapse"` (`aria-label`).
+`"Close"`, `"Zoom"` and `"Collapse"` (`aria-label`), unless `labels` names
+them otherwise.
 
 ### 4.2 Buttons & toggles
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyButton` | `isDefault?`, `disabled?`, `depressed?` (draw it held down, e.g. while its menu is open), `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs. Each `padding` class names its horizontal padding `--classicy-button-padding-inline` (both sides in the base sheet), so a package can move part of it from one side to the other and keep the sum (System 7's `pushButton.labelShift`) |
-| `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`, or a function of the button returning one, called each time the surface opens), `popupHoldDelayMs? (500)`, `square?` (square bevel, as in a toolbar), `iconAlt?` (the icon's alt text; omit when the button has a text label), `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behavior, a long press shows the options (tool palettes), and a press let go anywhere (or lost) before the hold delay opens nothing. Enter/Space or Down Arrow open it from the keyboard |
-| `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (system-art key `helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
+| `ClassicyButton` | `isDefault?`, `disabled?`, `depressed?` (draw it held down, e.g. while its menu is open), `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs. Each `padding` class names its horizontal padding `--classicy-button-padding-inline` (both sides in the base sheet), so a package can move part of it from one side to the other and keep the sum (System 7's `pushButton.labelShift`). `accessKey?` (one character; `""` for none; the remaining chapters' audit's 4.11): read only under the package's `layout.menu.accessKeys` (Windows 98), its first match in the button's text is wrapped in `<span data-classicy-part="access-key">` (Windows 98's `_Button.scss` underlines it), and Alt and the key, in the window holding focus, focuses and clicks the button, as does the key alone from a button, a check box or an option button (one register with `ClassicyControlLabel`'s keys, unique per window, a menu bar's title first outside a modal window, ahead of a ⌥ chord). Under `"auto"` a button given none takes the first free character of its text, except one reading OK or Cancel, which Return and Escape reach (WIG Appendix B Table B.5, p.360: "Avoid assigning access keys to OK and Cancel"). Under Platinum and System 7 a given `accessKey` is the native `accesskey` attribute, as it was |
+| `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`, or a function of the button returning one, called each time the surface opens), `popupHoldDelayMs? (500)`, `square?` (square bevel, as in a toolbar), `iconAlt?` (the icon's alt text; omit when the button has a text label), `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behavior, a long press shows the options (tool palettes), and a press let go anywhere (or lost) before the hold delay opens nothing. Enter/Space or Down Arrow open it from the keyboard. Under `layout.balloonHelp.unlabeledTips` (Windows 98) a button with no text children and an accessible name (`aria-label`, else `iconAlt`) shows that name as its ToolTip, balloon help on or off (§4.8), unless `nameTip={false}` (for a button the package's stylesheet labels with that name: `ClassicyAlert`'s Help button, which Windows 98 draws as a push button reading "Help"); its pop-up menu, outside any window, gives no menu status text (`layout.menu.itemHelp`) |
+| `ClassicyBevelButtonPopup` | `id` *, `anchor` * (`{top, bottom, left, right}`), `side` * (`"below"\|"right"`), `buttonRef` *, `onClose` *, `align? ("start"\|"center")`, `menuItems?`, `content?`, `aside?` (`ReactNode`), `menuScrollMargin?` (px), `label?`, `focusFirstItem?`, `keyboard?`, `className?`, `style?` | the surface a pop-up bevel button reveals, usually reached through `ClassicyBevelButton`'s `menuItems` or `popupContent`: a menu (`role="menu"`) or a panel (`role="dialog"`, `classicyBevelButtonPopupPanel`) in a fixed portal on `#classicyDesktop`, placed against `anchor` by `classicyBevelPopupPlacement` inside the menu bounds and closed by a press outside it (not on `buttonRef`), Escape, a scroll or a resize. `aside` is drawn as the surface's first child, before the menu or the panel's content (the Windows Start menu's banner, plan 0020-w98 §3); without it the surface's DOM is unchanged. `menuScrollMargin` is how far its menu's scroll cap (`ClassicyMenu`) keeps the list, and its submenus, from the bounds' bottom: absent, the pop-up menus' 4 px, as before; the taskbar's Start menu and tray pop-ups pass 0, since they sit flush on the taskbar band's top edge, where the bounds end, so a menu that fits there is drawn whole instead of scrolling by those 4 px (plan 0020-w98 §2); the surface's DOM is the same either way. In a menu the arrow keys walk the items shown: an item inside a closed submenu (drawn `display: none`) is passed over. `keyboard` makes its menu take the keyboard as Windows' menu loop does (the taskbar's Start menu and tray pop-ups pass it): the arrows walk dimmed items too (Wine's `MENU_MoveSelection` passes over separators alone; `focusFirstItem` then focuses the first item, dimmed or not), Down and Up reach the menu from wherever the focus is (the first item, the last), and the menu never closes for idleness; absent (every other surface), the arrows walk the enabled items from inside the menu and an idle menu closes after 15 seconds (HIGOS8 p.92), as before; a panel ignores it |
+| `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `nameTip? (true)` (`ClassicyBevelButton`'s: `false` keeps `label` off the `layout.balloonHelp.unlabeledTips` ToolTip; `ClassicyAlert` passes it), `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (system-art key `helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
 | `ClassicyButtonToolbar` / `ClassicyButtonToolbarGroup` | `children` *, `size? ("large"\|"medium"\|"small")` (toolbar only; default `"large"`), `className?` | auto dividers between groups; roving-tabindex keyboard nav |
-| `ClassicyCheckbox` | `id` *, `checked?`, `mixed?`, `disabled?`, `onClickFunc?(checked)`, `label?`, `labelPosition?`, `labelSize?`, `mark? ("check"\|"x")`, `isDefault?` | `mark="x"` draws an ✕ instead of the checkmark, for locales where a checkmark is not acceptable (HIGOS8 p.28); `isDefault` draws the checked box in the theme accent |
-| `ClassicyRadioInput` | `name` *, `inputs` * (`{id, label?, checked?, disabled?}[]`), `onClickFunc?(id)`, `align? ("rows"\|"columns")`, `label?` | `align` defaults to `"rows"` (side by side); `"columns"` stacks the buttons in one column |
+| `ClassicyCheckbox` | `id` *, `checked?`, `mixed?`, `disabled?`, `onClickFunc?(checked)`, `label?`, `labelPosition?`, `labelSize?`, `mark? ("check"\|"x")`, `isDefault?` | `mark="x"` draws an ✕ instead of the checkmark, for locales where a checkmark is not acceptable (HIGOS8 p.28); `isDefault` draws the checked box in the theme accent. `accessKey?` is its label's (`ClassicyControlLabel`'s): under the package's `layout.menu.accessKeys`, Alt and the key focuses and toggles the box (the label's underline is Windows 98's `_TextField.scss` label rule) |
+| `ClassicyRadioInput` | `name` *, `inputs` * (`{id, label?, checked?, disabled?, accessKey?}[]`), `onClickFunc?(id)`, `align? ("rows"\|"columns")`, `label?` | `align` defaults to `"rows"` (side by side); `"columns"` stacks the buttons in one column. Each input's `accessKey` is its label's (`ClassicyControlLabel`'s): under the package's `layout.menu.accessKeys`, Alt and the key focuses and turns that button on; the group's title labels no control and takes none |
 | `ClassicyDisclosure` | `direction?`, `label?`, `labelSize?`, `labelPosition? ("left"\|"right")`, `children` | collapsible section; `labelPosition="left"` puts the text before the triangle (default `"right"`) |
 | `ClassicyTriangle` | `direction?`, `open?`, `defaultOpen?`, `onToggle?`, `interactive?` | disclosure triangle primitive |
 | `ClassicyLink` | `href?`, `disposition? ("classicy"\|"browser"\|"browser-new")`, `event?`/`eventData?`, `onClickFunc?`, `disabled?` | real `<a>`; plain clicks dispatch `ClassicyDesktopOpenUrl`, modifier/middle clicks fall through to the browser; `event` form dispatches an internal action instead (anchor gets `role="button"`) |
@@ -1192,24 +1742,24 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>`; carries the `selected` state while focused with a selection running to its text's end, and `--classicy-input-selection-start` and `data-classicy-selection` (`all` or `tail`) with it (§4.0.1) |
-| `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
+| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>`; carries the `selected` state while focused with a selection running to its text's end, and `--classicy-input-selection-start` and `data-classicy-selection` (`all` or `tail`) with it (§4.0.1). Under `layout.text.wordSelect` `"trailingSpace"` (§8) a double-click takes the spaces after its word; under `layout.textField.contextMenu` `"edit"` a right-click (or Shift+F10) shows the field's own Edit menu (Undo, Cut, Copy, Paste, Delete, Select All) |
+| `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `wrap? (false)`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…). With the field focused, Up and Down Arrow (unmodified) step by one through the same clamp, taking the key's default (the native number field stepped on them too, past the clamp; WIG Ch.7 "Spin Boxes", p.128), each step tracked as `selected` as the field's own change was. Under `layout.textField.contextMenu` `"edit"` (§8) a right-click on the field shows its own Edit menu, Cut, Copy and Delete lit while it holds text (a number field's selection cannot be read). `wrap` cycles a step past `maxValue` round to `minValue` and back (by the range's span, `max - min + 1`, a held arrow's larger steps included; the up-down control's UDS_WRAP, as spin boxes "typically wrap"); a typed value is still clamped, and without `maxValue` the bottom clamps |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
-| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `ghost` draws a ghost indicator that follows the pointer while it drags, and under a package whose layout says `slider.thumbDrag: "onRelease"` (Platinum, §8 "Layout declarations") the indicator stays put meanwhile and the value changes, once, on release (live otherwise; a slider without a ghost always drags live, the HIG's "live feedback"); on a vertical slider the ghost travels up the track, where the indicator lies across it. A mouse or pen press (first button) is the slider's own, not the browser's: its `mousedown` default (the engine's range drag) is prevented, while the `pointerdown`, `mousedown` and `mouseup` still reach the page; a press on the thumb grabs it where it is, so a press that never moves changes nothing, in every engine (Firefox moved the thumb to the pointer on every press), and the value follows the pointer's travel from there, on the step grid; a press on the track puts the thumb's center under the pointer (onRelease: the ghost) and drags from there; the input captures the pointer, so the release reaches it, and a drag that loses the capture, sees a move with the button up or a release only the document hears ends where it is; the value is set through the input's prototype setter with a synthetic `input` event (which `onChangeFunc` receives), and a `change` event is dispatched by hand on a release that moved it. Touch, the keyboard and the wheel stay the browser's; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws the HIGOS8 figures pixel for pixel (Figures 2-18 and 2-19 at rest: a 7 px etched channel with one-pixel pixel-art ends, a 15 × 16 pixel-art indicator in the theme's lavender ramp lit from the top left, its flat side 3 px past the channel and its point 6 px past it, Figure 2-18's 3 × 8 tick marks; the 1996 draft's Figure 13, a four-gray screenshot whose grays are the ramp's, for the vertical channel and the left-pointing indicator, which is lit from the top left too, not the down one turned; the up- and right-pointing indicators, which no figure draws, lit by the same rule; pressed or highlighted, the same art every ink a step down the ramp, Figure 2-17's tone, since that figure is 2-18's slider resampled a row and a column larger; a pointless knob centered on the channel, turned under the same light on a vertical one; a gray ghost; the `slider` knob family, every placement derived from it), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders. The base sheet resets Firefox's thumb border and 0.5em corner radius, which would clip a package's thumb art round, and raises the track layer (`z-index: 1`, the stack `isolation: isolate`) above the tick rail, so a thumb overhanging the input is never painted under a tick |
-| `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?`, `fitsScrollBars? (false)` | plain textarea. `autoHeight` grows the field with its text, at least three control heights: by CSS `field-sizing: content` where the browser has it (Chrome 123), else the editor sets the field's height to its scroll height whenever the text, the field's width or a loaded font changes (Firefox, Safari, Chrome 120–122), and removes it with `autoHeight`. `fitsScrollBars` keeps both bars drawn (`fits`) while the text fits, for a document editor that fills its window; SimpleText passes the package's declaration (`useClassicyFitsScrollBars()`), so its plain-text window keeps its bars under System 7 |
-| `ClassicyRichTextEditor` | `content` *, `onChangeFunc?(markdown)`, `editorRef?` | MDXEditor-backed markdown |
+| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `ghost` draws a ghost indicator that follows the pointer while it drags, and under a package whose layout says `slider.thumbDrag: "onRelease"` (Platinum, §8 "Layout declarations") the indicator stays put meanwhile and the value changes, once, on release (live otherwise; a slider without a ghost always drags live, the HIG's "live feedback"); on a vertical slider the ghost travels up the track, where the indicator lies across it. A mouse or pen press (first button) is the slider's own, not the browser's: its `mousedown` default (the engine's range drag) is prevented, while the `pointerdown`, `mousedown` and `mouseup` still reach the page; a press on the thumb grabs it where it is, so a press that never moves changes nothing, in every engine (Firefox moved the thumb to the pointer on every press), and the value follows the pointer's travel from there, on the step grid; a press on the track puts the thumb's center under the pointer (onRelease: the ghost) and drags from there; the input captures the pointer, so the release reaches it, and a drag that loses the capture, sees a move with the button up or a release only the document hears ends where it is; the value is set through the input's prototype setter with a synthetic `input` event (which `onChangeFunc` receives), and a `change` event is dispatched by hand on a release that moved it. Touch, the keyboard and the wheel stay the browser's. Under a package whose layout says `input.escapeCancels` (§8; Windows 98, WIG Ch.4 "Shortcut Keys", p.27), Escape during a mouse or pen drag puts the value back where the press found it (through the same setter, so `onChangeFunc` hears it), hides the ghost and ends the drag (`dragEnd` with `canceled: true`); its release commits nothing. `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws the HIGOS8 figures pixel for pixel (Figures 2-18 and 2-19 at rest: a 7 px etched channel with one-pixel pixel-art ends, a 15 × 16 pixel-art indicator in the theme's lavender ramp lit from the top left, its flat side 3 px past the channel and its point 6 px past it, Figure 2-18's 3 × 8 tick marks; the 1996 draft's Figure 13, a four-gray screenshot whose grays are the ramp's, for the vertical channel and the left-pointing indicator, which is lit from the top left too, not the down one turned; the up- and right-pointing indicators, which no figure draws, lit by the same rule; pressed or highlighted, the same art every ink a step down the ramp, Figure 2-17's tone, since that figure is 2-18's slider resampled a row and a column larger; a pointless knob centered on the channel, turned under the same light on a vertical one; a gray ghost; the `slider` knob family, every placement derived from it), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders. The base sheet resets Firefox's thumb border and 0.5em corner radius, which would clip a package's thumb art round, and raises the track layer (`z-index: 1`, the stack `isolation: isolate`) above the tick rail, so a thumb overhanging the input is never painted under a tick |
+| `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?`, `fitsScrollBars? (false)`, `initialCaret?` (a character offset, clamped to the text: the caret put back when the editor mounts, without focusing or scrolling the field), `onCaretSettled?(caret)` (the selection's start once it has not moved for 200 ms, when it changed, and once more on unmount while due), `initialScroll?` / `onScrollSettled?` (its scroll area's, the `<textarea>` being the viewport) | plain textarea. The four view-state props are what `useClassicyWindowViewState` hands a document's editor (SimpleText's plain-text windows, under `layout.window.restoreViewState`); absent, the caret starts at the beginning and nothing is reported. `autoHeight` grows the field with its text, at least three control heights: by CSS `field-sizing: content` where the browser has it (Chrome 123), else the editor sets the field's height to its scroll height whenever the text, the field's width or a loaded font changes (Firefox, Safari, Chrome 120–122), and removes it with `autoHeight`. `fitsScrollBars` keeps both bars drawn (`fits`) while the text fits, for a document editor that fills its window; SimpleText passes the package's declaration (`useClassicyFitsScrollBars()`), so its plain-text window keeps its bars under System 7. Under `layout.text.wordSelect` `"trailingSpace"` (§8) a double-click takes the spaces after its word, never a line break; under `layout.textField.contextMenu` `"edit"` a right-click on the `<textarea>` shows its own Edit menu |
+| `ClassicyRichTextEditor` | `content` *, `onChangeFunc?(markdown, initialMarkdownNormalize?)`, `editorRef?` | MDXEditor-backed markdown. Its toolbar's tips open in the desktop it is in (a `classicyRichTextEditorPopups` element appended to its root's `.classicyDesktop`, `document.body` outside one, MDXEditor's `overlayContainer`), drawn by the package (§4.8). `onChangeFunc` also hears MDXEditor's own rewrite of the loaded `content`, once, with `initialMarkdownNormalize` `true`, so a caller comparing the text with what it loaded (SimpleText's unsaved check) can tell it from an edit. Under `layout.textField.contextMenu` `"edit"` (§8) a right-click on the text (the content editable, never the toolbar) shows its own Edit menu, the selection put back before each command |
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
 | `ClassicyDatePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock (`DateAndTime.dateTime`); re-syncs when `prefillValue` changes to a different moment |
 | `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock, like the date picker; re-syncs when `prefillValue` changes to a different moment |
 | `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs. A list too long for its space scrolls as Mac OS menus do (HIG7 pp.78, 83), with no scroll bar: an indicator over the first or last row while items lie hidden past that end (`data-classicy-part` `menu-scroll-up` / `menu-scroll-down`, `.classicyPopUpMenuScrollArrow` + `Up`/`Down`, `aria-hidden`, a fixed-position sibling of the list that the package draws), and the list scrolls a row at a time while the pointer rests on one; the wheel over an indicator scrolls it (by rows for a wheel that counts lines), and the keyboard's highlight scrolls it clear of the indicators (scroll padding a row tall). Opened aligned and scrolled, the selection never lands under an indicator: it sits a row in from that end |
-| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard. Its vertical bar shows while the rows overflow, or always (in the `fits` state while they fit) under a package whose layout says `scrollBar.fitsBars: "shown"` (§8) |
-| `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic and its scroll indicators; focus stays in the input (`aria-activedescendant`) |
+| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `onActivateSelection?(values)`, `visibleRows?`, `label?`, `accessKey?` (the label's, `ClassicyControlLabel`'s: drawn and taken only under `layout.menu.accessKeys`; Windows 98's Open With gives its list C), `disabled?`, `checkboxes? (false)` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard. Under the active package's layout (§8, "Layout declarations"; Windows 98 declares all three): `selection.selectOn: "press"` selects at the button-1 press (a plain press on a selected row of a multi list waits for its click to reset the selection to it; a check list toggles at the press; button 2 never selects); `selection.dragRange` selects the rows a press drags across, scrolling toward a pointer past the list's ends; `selection.modifiers: "windows"` makes Control-Shift-click set the anchor's range to the anchor's state, keeping the rest, and a double-click call `onActivateSelection` with the selected values (in the list's order) in place of `onActivateFunc`, where it is given. Under `selection.pageKeys: "move"` Page Up and Page Down select the first or last row shown, or a page further (Shift extends); under `selection.keyboard: "windows"` a multi list's Control, ⌘ or Option with a navigation key moves the focused row without selecting, and Shift+F8 toggles Add mode (`data-classicy-selection-mode="add"` on the `role="listbox"` root; the keys and typing move alone, Space toggles and moves the anchor, Shift extends keeping the rest). Its vertical bar shows while the rows overflow, or always (in the `fits` state while they fit) under a package whose layout says `scrollBar.fitsBars: "shown"` (§8). `checkboxes` (multi only) makes it a multiple selection list box in the WIG's sense (Ch.7 "Extended and Multiple Selection List Boxes", pp.122-123, Figure 7.15): a `<span data-classicy-part="list-check" aria-hidden>` before each row's icon and label (the row's `aria-selected` carries the choice), the root `classicyListBoxCheckboxes`, a plain click or Space toggling that row alone (no range), the arrows, Home, End and typing moving the keyboard row without choosing. The base sheet hides the part, so under Platinum and System 7 the chosen rows highlight as in any multi list; Windows 98 draws the flat check box (a ButtonShadow ring outside a ButtonFace one, the 7 × 7 check while the row is chosen; Ch.13 "Flat Appearance", p.309) and leaves the chosen rows plain. No bundled list uses it: the one list box Classicy ships (the Control Strip control panel's modules) chooses the row to reorder, a single selection. The root carries `inactive` from its scroll area (the states table) |
+| `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic and its scroll indicators; focus stays in the input (`aria-activedescendant`). Under `layout.textField.contextMenu` `"edit"` (§8) a right-click on the field shows its own Edit menu |
 
 ### 4.4 Labels, grouping, display
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyControlLabel` | `label?` (text or rich content, a `ReactNode`), `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?` | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc` |
+| `ClassicyControlLabel` | `label?` (text or rich content, a `ReactNode`), `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?`, `accessKey?` (one character; `""` for none) | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc`. `accessKey` (WIG Ch.4 "Access Keys" (p.27); Ch.8 "Navigation in Secondary Windows" (pp.148-149); the Windows 98 audit's 8.9), read only under the package's `layout.menu.accessKeys` (inert under Platinum and System 7, which declare none: Mac OS had no access keys): its first match in the label's text (the key's own case first; inside the element of a rich label that holds it) is wrapped in `<span data-classicy-part="access-key">`; Alt and the key, in the window holding focus (its `.classicyWindow`, else the document; with focus on the page, the front modal or active window), focuses the control (`labelFor`'s element, else the row itself when clickable, else the first focusable control among `children`) and, for a check box, an option button or a button, clicks it (a text field's text is selected), as Windows' dialog manager does; the key alone does the same while focus is on a check box, an option button or a button. Labels of one window sharing a key are moved between, none clicked (a development build logs a `"Dialog"` warning, once per set: WIG p.27 asks a key "unique within the scope of its interaction"); a disabled or hidden control is skipped. Alt and the key listens in the capture phase on `window` and `preventDefault`s the key it takes, so it wins over a menu item's Option (⌥) equivalent of the same chord (the remaining chapters' audit's 4.14; WIG Ch.4 "Shortcut Keys", p.27), which the menu-shortcut dispatcher then skips; the key alone listens in the bubble phase, after the focused control's own handler, and never from a tab (a tab control takes letters). Left alone: a key a handler took, Control or Command held, a key a menu bar's title holds outside a modal window (the bar takes it, WIG Ch.7 p.143), focus in a menu or a menu shown on Windows' keyboard, and on a Mac focus in a text entry (Option types a character there). `ClassicyButton`, `ClassicyCheckbox`, `ClassicyRadioInput`'s buttons and `ClassicyTabs`' tabs join the same register (`useClassicyLabelAccessKey`), so a window's keys are unique across all of them. Under the package's `layout.menu.accessKeys` `"auto"` (Windows 98) every label of a focusable control given none takes the first character of its text no other label of its window holds, an explicit key reserved first (labels resolved in document order, again whenever one mounts, unmounts or changes); a label with no key under `"explicit"`, or any label under a package that declares no `layout.menu.accessKeys`, registers nothing |
 | `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default: the package's window face, Platinum `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
 | `ClassicyControlGroupFormRow` | `children` *, `justify? ("start"\|"end")` | full-width row inside a `layout="form"` group for anything that is not a label/control pair (checkbox, push button, text); `end` puts a button at the group's lower right |
 | `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--group-box-gap`); the content of a control panel that is a stack of groups |
@@ -1217,35 +1767,240 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyForm` | `onSubmitFunc?`, `layout? ("default"\|"dialog")`, children * | real `<form>`; always calls `preventDefault` (never navigates); make the confirming button `isDefault buttonType="submit"` so Enter submits |
 | `ClassicyFormButtonRow` | `children` * | HIG dialog button row: right-aligned, `--button-gap`, group-gap above |
 | `ClassicySeparator` | `orientation?` | |
-| `ClassicyPlacard` | `menuItems?`, `onSelect?(id)`, `onClick?`, `disabled?` | window-corner placard |
+| `ClassicyPlacard` | `menuItems?`, `onSelect?(id)`, `onClick?`, `disabled?`, `menuStatus?` | window-corner placard. `menuStatus` makes it the window's status bar for menu help (WIG Ch.12 "Status Bar Messages", pp.276-277, Figure 12.7): under `layout.menu.itemHelp` `"statusBar"` (Windows 98), while a menu is shown and its window is active (or it is in none), it shows the highlighted item's help (`balloon.content`, `balloon.disabledContent` while the item is disabled, nothing for an item with none) in place of its children, until the menu closes (`useClassicyMenuStatusText`, `Menu/ClassicyMenuStatusText.internal.ts`); under any other package it never changes |
 | `ClassicyImageWell` | `src?`, `onDrop?(files, e)`, `selected?`, `enabled?` | drag-and-drop image slot |
 | `ClassicyProgressBar` | `value?`, `max? (100)`, `indeterminate?`, `autoSwitch?`, `chasingArrows?`, `label?` | barber-pole when indeterminate (its stripes slide by animating the registered `--slide-var`; Safari 16.2–16.3 and Firefox 113–127 have no `@property`: in Safari, which draws the stripes, the bar carries `classicyProgressSlideByScript`, its keyframes stopped, and sets the offset on its `<progress>` from a frame loop along the same path, the period read once when it starts, the `<progress>` marked `data-classicy-paint-only-style` meanwhile so the pattern-origin watcher and the scroll area skip its per-frame writes; Firefox draws no stripes, `::-webkit-progress-value` being the only part they are drawn on, so nothing runs there); with `autoSwitch` an indeterminate bar becomes determinate as soon as it has a `value` |
-| `ClassicyMeter` | `value` *, `min?/max? (0/100)`, `low?/high?/optimum?`, `segments?`, `showValue?`, `label?` | native `<meter>` zone semantics: the region holding `optimum` is optimal (theme accent), adjacent is suboptimal (`--color-alert`), two away is bad (`--color-error`); `meterZone()` exported |
+| `ClassicyMeter` | `value` *, `min?/max? (0/100)`, `low?/high?/optimum?`, `segments?`, `showValue?`, `label?` | native `<meter>` zone semantics: the region holding `optimum` is optimal (theme accent), adjacent is suboptimal (`--color-alert`), two away is bad (`--color-error`); `meterZone()` exported. The zone is the gauge's part class (`classicyMeterOptimal`, `classicyMeterSuboptimal`, `classicyMeterBad`), which a package keys a pattern on so the zone reads without its color (WIG Ch.14 "Visual Disabilities", p.329): Windows 98 lays a WindowText 25% stipple over a suboptimal zone's blocks and the 50% checker over a bad zone's |
 | `ClassicyOutput` | `id` *, `value?` or children, `htmlFor?: string[]`, `variant? ("plain"\|"inset")`, `mono?`, `label?`, `disabled?` (dimmed) | real `<output>`; `inset` is the white beveled result well |
-| `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
-| `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
-| `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list; a `disabled` node's `leftIcon` is dimmed by the active package's `iconDimming.disabledItem` rule where it declares one (§8, "Icon dimming") |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window); `headerPlacement? ("inList"\|"aboveList", "inList")` (`aboveList`: the column titles above the list's scrolling region, in its scroll area's head, its own or, with `scrollable={false}`, the scrolling ancestor's: a copy, `classicyTableDetachedHeader`, `aria-hidden`, taking the container's custom properties, its table and each column as wide as the list's, padded after by the head's room past the viewport so the two scroll as far sideways; the table's own header row stays for assistive technology, laid out with no height, `classicyTableHeaderHidden`; with no scroll area the titles stay in the list) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks. The sorted column's body cells carry the part class `classicyTableCellSorted`, and the root publishes the sorted header's place from its left edge as `--classicy-table-sorted-start` and `--classicy-table-sorted-width` (px, both `0px` with nothing sorted; measured after each sort or column resize and as the table resizes), so a package can draw the sorted column below the last row too: Platinum draws it in `--color-system-02` in the Finder's list view only (`.classicyFileBrowserViewTableContainer`), cells and the empty list alike, as HIGOS8 Figs. 2-24 and 2-43 (Finder list views) do; generic tables keep one face |
+| `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it. Under the package's `layout.menu.shortcutSpelling` `"names"` (Windows 98; WIG Ch.7 "Shortcut Keys in Menu Items", p.110) `inline` spells the chord by its keycaps' names joined by `+` with no spaces, "Ctrl+Shift+S" (`formatKeyboardShortcutNames`: ⌃ Ctrl, ⌥ Alt, ⇧ Shift, ⌘ Win, in that order; the key by `classicyKeycapName`: ⌫ Backspace, ⌦ Del, the arrows Up, Down, Left and Right, Escape Esc, Return Enter, Page Up PgUp, a function key as it is, a single character upper-cased), each modifier's span holding its name and the `+` after it; ⌘ is `Ctrl`, in Control's place (first) and once with ⌃, while the package's `layout.keyboard.command` is `"ctrl"` (Windows 98: Command answers to Control alone there), and for `nativeShortcut` (a prop: the browser's own editing key, a menu item's `nativeShortcut`, which `ClassicyMenu` passes) off a Mac whatever it says (WIG Ch.5 "Shortcut Keys for Transfer Operations", pp.67-68: Ctrl+X, Ctrl+C, Ctrl+V), else `Win` (`classicyCommandSpelledCtrl`, `classicyShortcutModifierNames`); `keycaps` keeps the glyphs |
+| `ClassicyTabs` | `tabs` * (`{title?, icon?, accessKey?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")`, `defaultTab? (0)` (the tab selected on mount, clamped), `onTabChange?(index)` | tab height and label type scale; small tabs suit dense panels. `useClassicySessionTab(appId, key)` returns `{ defaultTab, onTabChange }` to spread on it, so the strip reopens, for the rest of the session, on the tab it last showed (WIG Ch.8 p.146, "the last tabbed page"; HIG7 p.146): the Appearance Manager's and Finder Preferences' strips do, under every package. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up. A tab is chosen when the button comes up over it, unless the package's layout says `mouse: "windows"` (§8; Windows 98, whose tab control selects on WM_LBUTTONDOWN, Wine's `TAB_LButtonDown`), where the button-1 press chooses it and the release does nothing; the press is reported (`press`) either way. A tab's `accessKey` (one character), read only under the package's `layout.menu.accessKeys`, is drawn as the `access-key` part in its title (Windows 98's `_Tabs.scss` underlines it) and Alt and the key chooses and focuses the tab, as the arrow keys do (`press`, then `select`); a tab given none takes none, even under `"auto"`, as Windows 98's property sheets' tabs carried none (shell32.dll's "General", no `&`) |
+| `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?`, `openIds?` (the open branches: given, expansion is controlled, every click, double-click and key only reporting through `onToggleNode`, so a control outside the tree can open a branch, the Help Topics browser's Open; absent, the tree keeps its own from `defaultOpen`) | hierarchical list; a `disabled` node's `leftIcon` is dimmed by the active package's `iconDimming.disabledItem` rule where it declares one (§8, "Icon dimming"). Keys: Up, Down, Home, End and typing move the keyboard row, ⌘→ / ⌘← (or Control) open and close the focused branch, Return or Space toggles a branch or selects a leaf; under a package whose layout says `tree.keys: "windows"` (§8; Windows 98) a bare Right Arrow also expands a closed branch or moves to an open one's first child, and a bare Left Arrow collapses an open branch or moves to the row's parent (a dimmed branch never toggles; Alt and an arrow stay the browser's). Under `selection.selectOn: "press"` (§8; Windows 98) a selectable leaf or branch fires `onSelectNode` at its button-1 press (`e` the `mousedown`), the click ending it firing nothing and toggling nothing, the second press of a double-click choosing nothing (the double-click still opens or toggles it); button 2 never chooses. Under `selection.pageKeys: "move"` Page Up and Page Down move the keyboard row to the first or last row shown, or a page further, choosing nothing; under `tree.keys: "windows"` Control (or ⌘) with an arrow, Home, End, Page Up or Page Down scrolls the tree's scroller (a row, a row's height sideways, a page, an end) instead, the keyboard row and the selection staying put, so ⌘→ / ⌘← no longer open or close a branch there. The keys come from the public `useListNavigation(rows, options?)` (`options.pageRows`, a page's whole rows, turns the page keys on), which `ClassicyListBox` shares. The root carries `inactive` in an inactive window (the states table) |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `onActivateSelection?(ids)` (a double-click's whole selection, under `selection.modifiers: "windows"`), `rowsDrag? (false)` (the rows start drags of their own, so a press dragged across them selects no range), `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll, select?(ids), sortBy?(columnId, desc?) }`: `select` makes the rows the selection, the first the anchor and keyboard row; `sortBy` sorts by a column as a click on its title does, a missing or unsortable column changing nothing), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window); `sortGroup?(row) → number` (groups the sort keeps together: each level's rows lowest group first, each group sorted in itself, the whole order reversed by a descending sort, as Explorer's folders-first compare; the Finder's list passes folders 0 and files 1 under `layout.fileList.foldersFirst`), `headerPlacement? ("inList"\|"aboveList", "inList")` (`aboveList`: the column titles above the list's scrolling region, in its scroll area's head, its own or, with `scrollable={false}`, the scrolling ancestor's: a copy, `classicyTableDetachedHeader`, `aria-hidden`, taking the container's custom properties, its table and each column as wide as the list's, padded after by the head's room past the viewport so the two scroll as far sideways; the table's own header row stays for assistive technology, laid out with no height, `classicyTableHeaderHidden`; with no scroll area the titles stay in the list) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. Under the active package's layout (§8, "Layout declarations"; Windows 98 declares all three): `selection.secondaryButton: "select"` selects an unselected row alone at a button-2 `mousedown` (`onSelectionChange` fires then, before the `contextmenu`, so a menu handler above the table reads the new selection) and leaves a selected row's selection as it is; `mouse: "windows"` lets only button 1 start a column resize; `input.escapeCancels` makes Escape mid-resize end it (through TanStack's own release, as a lost stream does) with the columns' widths put back as the press found them. Under `selection.selectOn: "press"` a button-1 press selects an unselected row, or applies any modified press, at once (comctl32's `LISTVIEW_LButtonDown`), a plain press on a selected row waiting for its click to reset the selection to that row; `selection.dragRange` then selects the rows a press drags across unless `rowsDrag`; `selection.modifiers: "windows"` makes Control-Shift-click set the anchor's range to the anchor's state, keeping the rest, and a double-click call `onActivateSelection` with the selected rows shown, in the visual order, in place of `onActivateRow` (not with `selectionMode="none"`). Under `selection.pageKeys: "move"` Page Up and Page Down select the first or last row shown below the pinned titles, or a page further, so the scroll area no longer pages; under `selection.keyboard: "windows"` Space selects the cursor row alone (Control or ⌘ toggling it, Shift extending, in a multi table), a multi table's Control, ⌘ or Option with a navigation key moves the `focused` row without selecting, and Shift+F8 toggles Add mode (`data-classicy-selection-mode="add"` on the container); under `tree.keys: "windows"` the tree rows expand and collapse on the bare Right and Left Arrows in place of ⌘→ / ⌘←. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks. One row carries the state `focused`, the keyboard cursor (the row last clicked or arrowed to, else the first selected, else the first), whether or not the list has focus. The sorted column's body cells carry the part class `classicyTableCellSorted`, and the root publishes the sorted header's place from its left edge as `--classicy-table-sorted-start` and `--classicy-table-sorted-width` (px, both `0px` with nothing sorted; measured after each sort or column resize and as the table resizes), so a package can draw the sorted column below the last row too: Platinum draws it in `--color-system-02` in the Finder's list view only (`.classicyFileBrowserViewTableContainer`), cells and the empty list alike, as HIGOS8 Figs. 2-24 and 2-43 (Finder list views) do; generic tables keep one face. The container carries `inactive` in an inactive window (the states table) |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
-| `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
-| `ClassicyScrollArea` | `children`, `vertical?`/`horizontal? ("auto"\|"always"\|"never", "auto")`, `pairBars?` (either drawn → both), `scrollable? (true)` (`false` clips), `inactive?` (default: its window's), `lineStep? (16)`, `viewportRef?` (`Ref<HTMLElement>`: the area's `<div>`, or a `renderViewport` scroller), `viewportClassName?`, `viewportProps?`, `onScroll?`, `onOverflowChange?({ vertical, horizontal })` (whether the content overflows each axis by more than a pixel, once measured and on each change; `ClassicyWindow` decides its bars from it), `renderViewport?(viewport)` (a scroller of your own, e.g. a `<textarea>`), `head?` (content above the viewport and the vertical bar, the area's full width, scrolled sideways with the viewport: the part `classicyScrollAreaHead`, which the vertical bar starts under; the area also draws one while a descendant asks for it, as a list with `scrollable={false}` does to put its titles there), `onHeadChange?(present)` (whether the head is drawn, once and on each change, and `false` when the area unmounts while drawing one; `ClassicyWindow` marks its header `classicyWindowHeaderAboveHead` from it), and any `<div>` attribute for the root (forwarded `ref`) | a scrolling area with Classicy's own scroll bars, which an Appearance Package draws (parts and states in §4.0.1). The content scrolls natively in the viewport (wheel, keyboard, touch, selection and accessibility are the browser's), whose own bars are hidden (`scrollbar-width: none` and `::-webkit-scrollbar`); the bars are `aria-hidden` and never take focus. An arrow press scrolls a line and repeats while held; a track press pages toward the pointer, repeating until the thumb reaches it; dragging the thumb scrolls in proportion, as it goes, or on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"` (§8, "Layout declarations": the thumb stays put while a `scroll-drag-outline` part follows the pointer, snapping back over the thumb while the pointer is more than the theme's `--scroll-bar-snap-back`, else the bar's thickness, from the bar; Escape cancels it, and the keys and the wheel wait while it is held); a lost pointer stream ends any of them (an on-release drag scrolling nothing). Content changes (elements, text, and the `class`, `style` and `hidden` attributes) are measured once an animation frame. A root made focusable by its caller scrolls for Page Up/Down, Space, Home/End and the arrows its own `onKeyDown` leaves. Thumb length and position follow Chromium's rules (`computeClassicyScrollThumb`), and each bar sits on the device-pixel grid, so a package draws exactly what the browser drew. Bars are sized by `--window-scrollbar-size`; the thumb's minimum length is the package's `min-height` (vertical) or `min-width` (horizontal), and its maximum the package's `max-height` or `max-width` (the minimum winning, as in CSS; equal limits fix its length, as System 7's square scroll box does); only px lengths count, any other value leaving that limit unset. Windows, list boxes, tables, text editors, split-view panes, the Assistant, file dialogs and the color picker scroll in one |
+| `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })`, `splittable? (false)`, `defaultClosed? ("leading"\|"trailing")`, `onSplitChange?(closed)`, `commandsRef?` (`RefObject<ClassicySplitViewCommands>`: `split()`, `removeSplit()`, `isSplit()`) | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`). The moving divider carries `dragging` from the press to the release (and through the Split command's mode); Windows 98 draws it in the halftone, Platinum and System 7 read nothing for it. `splittable` (two panes only; three warn and stay split) lets the user close and reopen the split, as WIG Ch.6 "Splitting Windows" (pp.92-95) and HIG7 (pp.170-172) describe: dragging the divider to either end of the view (past `minPaneSize`, within the divider's own thickness of the edge, `classicySplitViewClosingPane`) closes the pane it is dragged over, live, reopening if the pointer leaves the end before the release, the split keeping its location before the drag; a double-click on the divider closes the smaller pane. A closed pane stays mounted with `collapsed` (`display: none` in the base sheet); the other pane keeps its scroll bar along the split drawn (`always`) with the split box, `classicySplitViewSplitBox`, in its `barAccessories` at the closed pane's end (the start of the bar, above the up arrow or left of the left arrow, for a closed leading pane; its end for a trailing one): the divider's thickness along the bar (`--window-padding-size`), the bar's width across, the divider's resize cursor and fill; dragging it out reopens the split from that end (never below the minimum), a double-click reopens where the split last was. `onSplitChange` reports the closed pane, or `null`, on each close or reopening (feed it back as `defaultClosed`). `commandsRef`'s `split()` is the WIG's Split command (p.95), for any split view: a closed split opens in the middle, the first divider takes focus and `dragging`, its arrow keys move it, Enter sets it (`onResizeCommit`, `onSplitChange(null)` if it opened) and Escape puts it back as it was (closed again if it was), each returning focus where it was; focus leaving the divider sets it too. `removeSplit()` closes the smaller pane; `isSplit()` says whether the view is split. No bundled app splits a view (none shows two parts of one document): the capability has stories (`Controls/SplitView` `Splittable`, `Appearance/Windows 98` `Splitting`). The split box's look: Platinum the divider's window-frame border, System 7 the HIG's solid black split bar (Figure 5-41), Windows 98 a raised ButtonFace box (Figure 6.11). Under a package whose layout says `mouse: "windows"` (§8; Windows 98) only button 1 drags a divider or the split box (`isClassicyGestureButton`), and under `input.escapeCancels` Escape mid-drag puts the split back as the press found it (closed again if it was), `onResize` hearing the sizes go back, nothing committed and no `onSplitChange` |
+| `ClassicyScrollArea` | `children`, `vertical?`/`horizontal? ("auto"\|"always"\|"never", "auto")`, `pairBars?` (either drawn → both), `scrollable? (true)` (`false` clips), `inactive?` (default: its window's), `lineStep? (16)`, `viewportRef?` (`Ref<HTMLElement>`: the area's `<div>`, or a `renderViewport` scroller), `viewportClassName?`, `viewportProps?`, `onScroll?`, `onOverflowChange?({ vertical, horizontal })` (whether the content overflows each axis by more than a pixel, once measured and on each change; `ClassicyWindow` decides its bars from it), `renderViewport?(viewport)` (a scroller of your own, e.g. a `<textarea>`), `head?` (content above the viewport and the vertical bar, the area's full width, scrolled sideways with the viewport: the part `classicyScrollAreaHead`, which the vertical bar starts under; the area also draws one while a descendant asks for it, as a list with `scrollable={false}` does to put its titles there), `onHeadChange?(present)` (whether the head is drawn, once and on each change, and `false` when the area unmounts while drawing one; `ClassicyWindow` marks its header `classicyWindowHeaderAboveHead` from it), `barAccessories?` (`{ vertical?, horizontal? }`, each `{ start?, end? }` nodes: controls inside that bar past its arrows, taking their length from the track, in the `scroll-accessory-start`/`-end` parts, WIG Ch.6 "Placing Adjacent Controls" (p.92); drawn only while the bar is; a split view's split box), `initialScroll?: [number, number]` (`[scrollLeft, scrollTop]` the viewport starts at, read at mount, finite and non-negative only; tried again as the content grows until reached, until the user scrolls, presses or types in the area, or for two seconds), `onScrollSettled?(scroll)` (the viewport's `[scrollLeft, scrollTop]` once no scroll event has come for 200 ms, when it differs from the last reported or `initialScroll`, and once more on unmount while due; never for `initialScroll` put back): a window's view state (`useClassicyWindowViewState`, §8 `window.restoreViewState`), and any `<div>` attribute for the root (forwarded `ref`) | a scrolling area with Classicy's own scroll bars, which an Appearance Package draws (parts and states in §4.0.1). The content scrolls natively in the viewport (wheel, keyboard, touch, selection and accessibility are the browser's), whose own bars are hidden (`scrollbar-width: none` and `::-webkit-scrollbar`); the bars are `aria-hidden` and never take focus. An arrow press scrolls a line and repeats while held, and an arrow at the end of its travel carries `disabled` (§4.0.1: the start arrow at scroll position 0, the end arrow at the maximum, both while the axis fits, set with the thumb on every scroll, so a package can draw it unavailable as WIG Ch.6 "Scroll Arrows" (p.87) asks); a track press pages toward the pointer, repeating until the thumb reaches it (while it pages, the track carries `--classicy-scroll-page-start` and `--classicy-scroll-page-length`, the stretch between the thumb and the arrow on the pointer's side from the track's start, removed when the thumb reaches the pointer or the hold ends, for a package that draws that side alone, as Windows 98 inverts it); dragging the thumb scrolls in proportion, as it goes, or on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"` (§8, "Layout declarations": the thumb stays put while a `scroll-drag-outline` part follows the pointer, snapping back over the thumb while the pointer is more than the theme's `--scroll-bar-snap-back`, else the bar's thickness times the package's `layout.scrollBar.snapBackScale`, from the bar; Escape cancels it, and the keys and the wheel wait while it is held); under `layout.scrollBar.liveSnapBack` a live drag snaps back the same way, the content returning to where the drag started while the pointer is that far from the bar and following again when it comes back, a release out there leaving it there (Windows, WIG Ch.6 "Scroll Box", p.89); a lost pointer stream ends any of them (an on-release drag scrolling nothing). The viewport is registered (a `WeakMap`, no attribute) for a file drag, which scrolls it a line at a time while the pointer rests within a line step of its edge (`startClassicyFileDrag`, §7); a `scrollable={false}` area is not registered. Content changes (elements, text, and the `class`, `style` and `hidden` attributes) are measured once an animation frame. A root made focusable by its caller scrolls for Page Up/Down, Space, Home/End and the arrows its own `onKeyDown` leaves. Thumb length and position follow Chromium's rules (`computeClassicyScrollThumb`), and each bar sits on the device-pixel grid, so a package draws exactly what the browser drew. Bars are sized by `--window-scrollbar-size`; the thumb's minimum length is the package's `min-height` (vertical) or `min-width` (horizontal), and its maximum the package's `max-height` or `max-width` (the minimum winning, as in CSS; equal limits fix its length, as System 7's square scroll box does); only px lengths count, any other value leaving that limit unset. Windows, list boxes, tables, text editors, split-view panes, the Assistant, file dialogs and the color picker scroll in one |
 | `ClassicySpinner` | see inputs | |
-| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
-(→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
+| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space; Enter alone under `selection.keyboard: "windows"`), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
+(→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft, moved, effect) → handled` (`moved`: the pointer's travel across the holder, less its scroll, what the icon moves by on `false`; `effect`: the drop's `"move"`, `"copy"` or `"link"`, the last two only under the package's `layout.transfer`, §8), `fileDropEffects?(target) → ClassicyFileDropEffect[]` (with `onFileDrag`: the effects a target takes for what is dragged, `classicyFileDropEffects`, bounding the copy modifier and the transfer menu's items; default the target's own, a move alone into the Trash), `fileDragParts?() → ClassicyFileDragOutlinePart[]` (what the outline traces, read when the drag begins; default the icon's own image and label), `moveBy?: { by, id }` (moves by `by`, snapped to `snapTo`, each time `id` changes, never at mount or while `positionLocked`: icons moved together), `selected?` + `onSelectClick?(e)` (controlled selection) + `onSelectPress?(e)` (with `selected`: every button's press, before any drag it starts, for a caller selecting at the press), `listOption? (false)` (`role="option"` with `aria-selected`, in place of `role="button"`, inside the caller's `role="listbox"`), `tabStop? (true)` (`false`: `tabIndex` -1, for a caller keeping one Tab stop for its icons), `cut? (false)` (an item cut and waiting for a Paste, Explorer's Cut: the root carries `classicyFileCut`, which only a package's stylesheet draws, Windows 98's dither; the file browser's icon view sets it from the file clipboard, §7 "Cut, Copy and Paste"), `renaming?` + `renameText?` (the field's starting text, default `name`: the file browser's icon view passes the shown name when `layout.files.extensions` hides an extension, and puts the extension back) + `onRenameCommit?(name)` / `onRenameCancel?()` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. Under `layout.transfer.secondaryButton: "menu"` (§8; Windows 98) button 2 drags it too, and its release over a target shows Windows 98 SE's transfer menu (`useClassicyFileDropMenu`), whose choice calls `onFileDrag` with its effect and whose Cancel calls nothing; under `layout.transfer.copyModifier: "ctrl"` Control at the release makes the effect a copy, Control and Shift shortcuts. `dropFolderPath` makes it a drop target. Without `selected` a click toggles its own selected look; with it the icon draws what it is told, hands each click to `onSelectClick`, and reports each change of it to the package as `select` (`ClassicyFileBrowser`'s icon view keeps one selection this way). While `renaming`, the caption is a text field (`classicyIconRename`, structure in the base sheet, frame and colors the package's) holding the name, focused and selected whole: Return or its blur commits once, Escape cancels, and its presses, clicks and keys never reach the icon. Dragged by itself (no `onFileDrag`), it centers under the pointer from the first move, on any button; under a package whose layout says `mouse: "windows"` (§8; Windows 98) only button 1 drags it, and it moves only once the pointer is 4 px from the press (`CLASSICY_MOUSE_DRAG_THRESHOLD`, Windows' SM_CXDRAG), keeping where it was grabbed; under `input.escapeCancels`, Escape mid-drag puts it back where the press found it and ends the drag (`dragEnd` with `canceled: true`). Under `selection.keyboard: "windows"` (§8; Windows 98, WIG Ch.5 "Keyboard Selection", p.43) Space is the Select key and Return alone opens: uncontrolled, Space selects the icon and Control (or ⌘) with it toggles it; controlled, the icon leaves Space to its caller (the key bubbles, as a click goes to `onSelectClick`); `alias?` (a shortcut's icon: under the package's `layout.icon.aliasBadge` `"everywhere"` (Windows 98; §8) the image and a second mask pair carrying the `aliasBadge` system art, `classicyIconMaskOuter classicyIconAliasBadge`, inside a `classicyIconImage` box, as the desktop draws a shortcut; else nothing changes; `ClassicyFileBrowser`'s icon view passes `isAliasKind(_type)`, and its list view puts the badge after a shortcut's row icon in the same box) |
 
 ### 4.5 Menus
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
-| `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
-| `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
-| `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned |
-| `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y]), hideContextMenu() }` | imperative API |
-| `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
-| `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the package layout's placement is `"window"`; usually not used directly. Root carries `data-classicy-part="window-menu-bar"`; the window root carries `classicyWindowWithMenuBar` while it draws one |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount: a root menu), `orientation?` (`"horizontal" \| "vertical"`, a root menu's: its items are a menu bar's titles or a menu's items, to the keyboard and the pointer; default `"vertical"` under a `startActive` provider, else `"horizontal"`; a submenu is always vertical) | renders a menu list; a root menu takes press-drag-release, and the keyboard as the package's `layout.menu.keys` says (Return alone under Platinum and System 7, Windows' keys under Windows 98), for its whole tree ("Menu keyboard and press tracking" below); items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below; the pop-up menus' `POPUP_MENU_VIEWPORT_MARGIN`, unless a host that sits its menu flush on that edge provides another through the internal `ClassicyMenuScrollMarginContext`, which its submenus read too: only `ClassicyBevelButtonPopup`'s `menuScrollMargin` does, and only the Windows shell passes it) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
+| `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs?` (default: the active package's `layout.menuBar.idleTimeoutMs`, else `15000`) | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout). `startActive` makes its root `ClassicyMenu` a pop-up (vertical) menu to the keyboard and the pointer; without it the root is a menu bar |
+| `useClassicyMenuIdleTimeout()` | → `number` | the idle time-out a provider given no `idleTimeoutMs` uses: the active package's `layout.menuBar.idleTimeoutMs` (Windows 98: `0`, never), else `CLASSICY_MENU_DEFAULT_IDLE_TIMEOUT_MS` (15000, HIGOS8 p.92); re-renders on a package switch. The screen and window menu bars need no prop: their providers read it |
+| `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element. Under the package's `layout.keyboard.contextMenuKey` (Windows 98) Shift+F10 and the Application key open it too, from a focused element inside it ("Menu keyboard and press tracking" below) |
+| `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?`, `focusFirstItem?`, `keyboard?`, `anchor?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned. Opened from below the bounds' bottom (a point in the Windows shell's taskbar band, where the bounds end: the taskbar's, the clock's, a tray icon's and a window button's menus), it is pinned flush on the band's top edge and its scroll cap keeps no margin there (`ClassicyMenuScrollMarginContext` 0, as the band's own pop-ups' `menuScrollMargin`), so a menu that fits is drawn whole; a point inside the bounds, every point on a desktop with no taskbar, keeps the pop-up menus' 4 px, as before (plan 0020-w98 E1). `focusFirstItem` focuses its first item once placed and gives the focus back, on unmount, to the element that had it; `keyboard` makes it take the keyboard while open (a capture-phase document listener: the up and down arrows walk its items, dimmed ones included, wrapping, from the focused one or, with none, Down from the first and Up from the last; ESC calls `onClose`; neither reaches anything else; every other key passes, so ENTER chooses the focused item) and drops its idle timeout. Both default to `false`. `anchor` (an `Element`) is the element it was opened from: a press on it is not a press outside the menu, so it is left to its owner (a menu opened by a press needs it, since its outside-press listener is in place before that press reaches the document) `onClose` runs on a selection, a click outside, Escape (a level at a time: an open submenu first) or the idle time-out |
+| `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y], options?), hideContextMenu() }` | imperative API. `options` (`ClassicyContextualMenuOptions`, every key optional; none opens the menu as always): `helpItem` (default: the package's `layout.contextMenu.helpItem`, else `true`; `false` leaves the leading Help item out), `placement` (default: the package's `layout.contextMenu.placement`, else `"click"`: 1 px below and right of the point; `"corner"`: the menu's top-left at the point), `focusFirstItem`, `keyboard`, `anchor` (`ClassicyContextualMenu`'s, above). The Windows shell's window pop-up menu opens with `helpItem: false` and `keyboard: true`, from the title bar's icon with it as the `anchor`. Under a package whose layout says `contextMenu.openOn: "release"` (§8, "Layout declarations"; Windows 98) a `showContextMenu` made while button 2 (or, as a macOS host raises `contextmenu` for it, a Control-press of button 1) is down is held, and the menu opens at that button's `mouseup`, heard on the document in the capture phase; a newer call replaces the held one, and a lost pointer stream or `hideContextMenu` drops it. A Windows host raises `contextmenu` at the release, so the menu opens at once there; under other packages it opens at the call, at the press on macOS and Linux hosts (Mac OS 8's Control-press) |
+| `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. It draws one Help menu (`help-menu`, the last standard menu) in every package: the system's items (About Balloon Help…, Show/Hide Balloons ⌥H), then, each after a divider, the focused app's registered items (`useClassicyHelpMenu`) and the items of the focused window's own top-level Help menus, which are merged in and not drawn as a second "Help" title (a top-level item with `menuChildren` whose `part` is `"help"`, whose id ends with `_help` or whose title is `"Help"`); the app's About is hoisted into the Apple menu first, and an app item whose `event` is `"ClassicyDesktopSetBalloonHelp"` is dropped, since the system Help has the toggle (HIGOS8 Ch.4 "Help menus", pp.91–92, Figure 4-2; HIG7 "The Help Menu", p.125). Chords keep their scopes: the app scope claims the raw `appMenu`'s, Help's included, and the system scope the Apple menu's, the system Help items' and the registered items'. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
+| `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the package layout's placement is `"window"`; usually not used directly. Under a taskbar (`layout.taskbar`) it ends with a Help menu (`` `${appId}_${windowId}_help-menu` ``, `data-classicy-part="help"`; §8, "Window menu bars"). There the Help menu's system part is `classicyWindowSystemHelpItems`: the screen bar's items without the Show/Hide Balloons toggle (no ⌥H: Windows 98's ToolTips always show, WIG Ch.12 p.276; Start ▸ Settings keeps it), Help Topics (`help-topics`, H) in place of About Balloon Help… under `help.topicWindow` "winhelp", What's This? (`help-whats-this`, W, ⇧F1 drawn) after it under `balloonHelp.contextHelp` "whatsThis", starting the mode over the bar's window; without the keys About Balloon Help… alone; About <display name> last, access key A. The menus before it are `withClassicyWindowsFileMenu`'s: no Special menu (an `appMenu` menu whose id ends `_special` or titled "Special"; its items live in the Start menu and on the Trash's menu), and the File menu (id ending `_file` or titled "File") ending with a divider and Exit, its Quit item (id ending `_quit` or titled "Quit") retitled (access key X) and moved there, or, with no Quit, with Close, its Close Window item (titled so, or id ending `_closew`) retitled (C); a Quit elsewhere reads Exit in place (`withClassicyExitItem`). Root carries `data-classicy-part="window-menu-bar"`; the window root carries `classicyWindowWithMenuBar` while it draws one |
 | `useClassicyMenuCloseOnOutsideMouseDown(ref)` | `ref` * (`RefObject<HTMLElement \| null>`) | call inside a `ClassicyMenuProvider`: while its menu bar is active (a title was clicked open), a mouse-down outside `ref`'s element closes the provider's menus. Both menu bars use it; a null ref closes nothing |
-| `ClassicyMenuBarExtension` | `id` *, `order?`, `icon?`, `title?`, `menuItems?`, `onClick?` | add a right-side menu bar item (like the clock). Its menu hangs from the item's left side, or, where that would pass the desktop's right edge, with its right side under the item's right side, as a title's pull-down does ("Where menus open") |
+| `ClassicyMenuBarExtension` | `id` *, `order?`, `icon?`, `title?`, `menuItems?`, `onClick?` | add a right-side menu bar item (like the clock). Its menu hangs from the item's left side, or, where that would pass the desktop's right edge, with its right side under the item's right side, as a title's pull-down does ("Where menus open"). It portals into `#classicyDesktopMenuExtensions`: the screen bar's region, or, under a package whose layout declares `taskbar`, the taskbar's status area's (`classicyTaskbarTrayExtensions`, beside the notification icons), where its menu, kept to the menu bounds that end at the taskbar's band, is pinned upward above the taskbar and takes the keyboard (the arrows walk it, ESC closes it, no idle close), and the item is a status indicator (WIG Ch.10 "Status Notification", pp.212–213): its `title` is a tooltip after 500 ms whatever Balloon Help says, put away by a press, button 2 opens its menu at the pointer as a pop-up menu (no Help item; nothing without a menu), and a pointer press takes no focus; there it is an icon alone (WIG Ch.10 p.211, a graphic; shell addendum B16): its `icon` at 16 px, or, without one, the active package's generic application icon (`ClassicyIcons.system.files.application`, drawn as the package's image for that key: Windows 98's shell32 #3), its `title` the button's name and tooltip, and its `children` (which may hold text) not drawn; under the screen bar its button carries its class and `aria-label` alone and draws its `children` (else its `icon`), as before; it renders nothing where neither is drawn (window placement with no taskbar), and looks the region up again whenever the layout's placement or its taskbar's presence changes |
+
+**Menu keyboard and press tracking** (WIG Ch.7, pp.97-98, 101, 104-106,
+109; HIGOS8 "Sticky Menus", p.92; the Windows 98 audit's 7.1, 7.5 to 7.9
+and 7.12). A root `ClassicyMenu` (one rendered with no `open`) owns a
+register of its lists and items (`ClassicyMenuTree.internal.ts`) and
+handles, for its whole tree, keys that reach it and presses on it. The
+press tracking, the submenu time-outs and the idle time-out are every
+package's (the last two only as the package's layout declares them);
+everything the keyboard does is Windows' and only under the package's
+`layout.menu.keys` `"windows"` (Windows 98), its access keys also only
+under `layout.menu.accessKeys` and the context-menu keys only under
+`layout.keyboard.contextMenuKey` (§8, "Layout declarations"). Mac OS 8's
+and System 7's menus had no keyboard navigation, access keys or menu key
+(HIGOS8 "Sticky Menus" (p.92), "Contextual Menus" (pp.93-95)), so under
+Platinum and System 7, which declare none of the three, a menu takes
+Return alone, choosing the focused item as a click does, as it always has;
+a pop-up bevel button's menu keeps its own Up/Down walk and Escape
+(`ClassicyBevelButtonPopup`), the root list never carries `focused`,
+nothing is drawn for an `accessKey`, and Alt, F10, Shift+F10 and the
+Application key are left to the browser. Under `"windows"`:
+
+- Roving focus: every item is a `tabIndex={-1}` `<li>`; the keyboard moves
+  focus between them (`:focus-visible` is the package's drawing: Windows 98
+  draws its Hilight band). A root's items are a menu
+  bar's titles (`orientation` `"horizontal"`, the default under a provider
+  without `startActive`) or a menu's items (`"vertical"`, the default under
+  a `startActive` one: contextual menus, pop-up bevel buttons' menus).
+- Up and Down move through a list, wrapping and passing over dividers and,
+  unless the package's `layout.menu.disabledItems` is `"browse"` (Windows
+  98), dimmed items; on a closed title either opens its menu on the first
+  item (Windows selects the first: Wine's `MENU_ShowSubPopup`); on a title
+  whose menu is open (opened by a click, focus left on the title) Down
+  enters it at its first item, Up at its last. Right opens a submenu on its
+  first item, or, on a title or on a leaf of a bar's menu, moves to the next
+  title (wrapping), opening its menu on the first item when a menu was open
+  on the bar; Left closes a submenu back to its item, or moves to the
+  previous title the same way. Home and End go to a list's ends; Return and
+  Space do what a click does (a closed submenu opens on its first item; an
+  open one closes every menu, as a second click does; a leaf is chosen);
+  a letter or digit that is an item's access key acts on it (below);
+  any other printable character jumps to the next item, wrapping, whose
+  title (else image alt text) starts with it, case-insensitively. Moving off
+  an item with an open submenu closes that submenu. Keys with Control or
+  Command, and Alt with anything but an access key, are left to their
+  owners (the keyboard-equivalent dispatcher).
+- Access keys (only under the package's `layout.menu.accessKeys`:
+  `ClassicyMenuItem.accessKey` under `"explicit"`, and the automatic pick
+  too under `"auto"`, Windows 98; resolved per list, an explicit key
+  reserved first, `ClassicyAccessKeys.internal.tsx`):
+  typed in a list, Alt held or not (a Windows user keeps Alt down through
+  Alt+F, X), the one item holding the key is chosen as Return chooses it (a
+  submenu or a title's menu opens on its first item, a leaf runs; a dimmed
+  one is only tracked, and only where the package browses dimmed items);
+  items sharing it are moved between, from the current one, wrapping, none
+  chosen (WIG Ch.4 "Access Keys", p.27). With the bar keyboard-active (a
+  title focused, after F10 or Alt alone), a title's key opens its menu.
+  Outside the menus, Alt and a title's key (`useClassicyMenuBarAccessKeys`,
+  a window `keydown`) opens that title's menu on its first item, and Alt
+  pressed and released alone, nothing else pressed between, brings focus to
+  the bar's first title and back (closing an open menu), as F10 does (WIG
+  Appendix B, Table B.2: "ALT Activate or inactivate menu bar mode"), both
+  only on a bar whose titles have access keys and, for a window's bar,
+  while its window is active. Alt and a title's key wins over a menu
+  item's Option (⌥) keyboard equivalent of the same chord (the remaining
+  chapters' audit's 4.14; WIG Ch.4 "Shortcut Keys" (p.27): "avoid ALT+key
+  combinations, because they conflict with access keys"): the bar's
+  listener runs in the capture phase on `window`, ahead of the
+  menu-shortcut dispatcher's `document` listener, and `preventDefault`s
+  the key it takes, so the dispatcher, which skips a prevented event, runs
+  no ⌥ item for it; a ⌥ chord no title holds still runs its item (⌥W
+  Close Window stays bound: Windows' own Ctrl+F4 is the browser's). Left
+  alone when focus is in a modal window (`.classicyWindowModal`) the bar
+  is not in, in a menu (a bar's title or an open menu: it takes its own
+  keys), while a menu on Windows' keyboard is shown (it takes the keys
+  typed, `isClassicyMenuShown`), and, on a Mac, Alt and a key in a text
+  entry (where Option types a character). A bar without access keys, so
+  every bar under Platinum and System 7, leaves Alt to the browser and
+  every ⌥ chord to the dispatcher.
+- Escape closes one level: a submenu back to its item; a bar's menu back
+  to its title, which keeps focus ("leaves its menu title highlighted"); a
+  title with nothing open deactivates the bar, focus going back where it
+  was before the keyboard (or a title's press) brought it into the menus; a
+  pop-up menu closes (its provider's `onClose`), focus going back the same
+  way. F10 (no modifier) brings focus to a menu bar's first title, and back
+  again: the screen bar, or a window's own bar while its window is active
+  (`ClassicyWindowActiveContext`). Alt alone does the same on a bar whose
+  titles have access keys (above); elsewhere it is not claimed (browsers
+  keep it: Firefox shows its own menu bar). Escape closing an open
+  contextual menu is this level's too: under any other layout a contextual
+  menu closes as a Mac OS sticky menu does, on a click outside, a choice
+  or the idle time-out.
+- A root whose menu is shown while focus is outside it (a contextual menu
+  opened by the pointer leaves focus on what was clicked; a pop-up bevel
+  button's opened by a click, on the button) takes Escape (one level), Up
+  and Down (into the deepest shown list, at its first or last item) and an
+  access key of the deepest shown list (a key no item holds passes on, so
+  typing continues where no item has keys) from the document, in the
+  capture phase, before the focused element or a dialog around it sees
+  them.
+- Focus is given back where it was when the menus close (a selection, a
+  close) only after the keyboard has moved it in the menus, so a menu used
+  with the pointer alone leaves focus as it always did; a pop-up menu
+  unmounting with the keyboard's focus in it gives focus back before its
+  items leave the document.
+- One item is tracked at a time: while the keyboard last moved the
+  tracking, the root list carries the `focused` state (§4.0.1) until the
+  pointer moves (a `mousemove` with travel; the browser's re-dispatch over
+  content that moved under a resting pointer keeps it), and the keyboard
+  picks up from the item under the pointer when the pointer moved last.
+
+Every package, keyboard or not:
+
+- Press-drag-release (`useClassicyMenuPress.internal.ts`; Mac OS 8's
+  menus open on the press and choose on the release, HIGOS8 "Sticky Menus"
+  (p.92), as Windows' do, WIG Ch.7 (p.97)): a press on a
+  menu bar title opens its menu at once (a click no longer has to end
+  first), the pointer tracks the items while the button is held (another
+  title it crosses opens, as hovering an active bar does); released over an
+  enabled item with no submenu, other than the one pressed, that item is
+  chosen (`click()`), whatever the press began on (a title, or an item of a
+  menu already open); released over the pressed title (a quick click) or
+  anywhere else in the tree's menus (a dimmed item, a divider, an item with
+  a submenu, another title), a menu the press opened stays open (sticky),
+  the click that ends the press swallowed; released off every menu, it
+  closes. A press that opened nothing (on an open title, on an item of an
+  open menu) released over the item it began on is left to the click, as
+  before: a second click on an open title still closes it. A lost pointer
+  stream ends the press, closing a menu it opened. A pop-up root's items are
+  not titles: a press there opens nothing.
+- Submenu time-outs: with the package's `layout.menu.submenuDelayMs`
+  (Windows 98: 400, `SPI_GETMENUSHOWDELAY`), a submenu waits that long
+  under a resting pointer before it opens, a leave first cancels it, and an
+  open one closes that long after the pointer rests on another item of its
+  list, unless the pointer comes back to the open item or its submenu
+  first (a diagonal drag); a pop-up menu's submenus open on hover too, and a
+  dimmed item's never do. Absent (Platinum, System 7): a hovered submenu of
+  an active menu opens at once and stays open until another opens or the
+  menus close, and a pop-up menu's open on a click. Menu bar titles switch
+  at once either way, and a click, Return or an arrow key opens at once.
+- The idle time-out: every `ClassicyMenuProvider` given no `idleTimeoutMs`
+  reads the package's `layout.menuBar.idleTimeoutMs`
+  (`useClassicyMenuIdleTimeout`; absent, 15 s; Windows 98: `0`, never).
+- Shift+F10 and the Application key, only under the package's
+  `layout.keyboard.contextMenuKey` (Windows 98;
+  `useClassicyContextMenuKey.internal.ts`, mounted by
+  `ClassicyContextualMenuProvider`), send the focused element a
+  `contextmenu` of its own, at the center of its visible box (as Windows
+  places an edit control's keyboard pop-up menu: Wine's `edit.c`), which
+  every target a right-click reaches resolves innermost first: a
+  `ClassicyContextualMenuTarget`, a window's `contextMenu` (from a focused
+  element in it), a focused desktop icon's, the desktop's (the desktop
+  itself focused). With focus on the page or on the desktop itself (which a
+  click inside a window focuses), it goes to where the pointer last went
+  down in the desktop, at that point. Keys outside `#classicyDesktop`, a key
+  a handler took (`defaultPrevented`) and auto-repeats are left alone; the
+  browser's own `contextmenu` for the key (Chrome on Windows fires it on the
+  Menu key's keyup) is swallowed for half a second. The menu is the focused
+  selection's (the remaining chapters' audit's 4.17, 11.4 and B.6; WIG Ch.4
+  "Shortcut Keys", p.28; App. B Tables B.2 and B.3: "the pop-up menu for the
+  selected item"; `classicyContextMenuKeySelectionTarget`): in a file view
+  (`.classicyFileBrowserFill`) the focused item when it is selected, else
+  the view's first selected icon or row, so its `itemContextMenu` answers
+  wherever in the view focus is; on the desktop (its root, or a desktop icon
+  outside any window, focus on the page included unless the pointer last
+  went down in a window) the focused icon when it is selected, else the
+  first selected icon; each at the center of the item's icon
+  (`classicyContextMenuKeyItemPoint`, kept in the viewport: Explorer's
+  LVIR_ICON center, as ReactOS's `CDefView::OnContextMenu` has it, the
+  audit's review over L4-H2's lower left). With nothing
+  selected there, and in a text field (an icon's rename field included,
+  which opens its own menu at its center, Wine's `EDIT_WM_ContextMenu`), the
+  element itself. A `contextmenu` the browser raises with no pointer
+  position (`isClassicyKeyboardContextMenuEvent`: both coordinates 0 and
+  `button` 0 or `detail` 0, the key reaching the page as that event alone)
+  is taken (`classicyRedirectKeyboardContextMenu`) and sent the same way.
+- Under the package's `layout.balloonHelp.contextHelp` `"whatsThis"`
+  (Windows 98) the provider also mounts F1 and Shift+F1
+  (`useClassicyContextHelpKeys`) and What's This?'s pop-up, and a
+  right-click (or Shift+F10) on a described control in a window that opens
+  no menu of its own (nothing called `showContextMenu` for the event) opens
+  a menu holding "What's This?" alone, with no Help item (WinHelp's
+  HELP_CONTEXTMENU, WIG Ch.12 Figure 12.4; §4.8).
+- `ClassicyBevelButtonPopup`'s own Up/Down walk and its document Escape
+  listener skip a key the menu already took (`defaultPrevented`): under
+  `layout.menu.keys` `"windows"` the menu walks its items (passing dimmed
+  ones, as the pop-up did) and closes it; under any other they are the
+  pop-up's, as before.
+- Under the package's `layout.menu.itemHelp` `"statusBar"` (Windows 98;
+  WIG Ch.12 "Status Bar Messages", pp.276-277, Figure 12.7) an item's
+  `balloon` draws no balloon; while the item is highlighted (the pointer
+  over its own row, or the keyboard's focus) its help is the menus' status
+  text (`Menu/ClassicyMenuStatusText.internal.ts`, store-free and
+  page-wide: `useClassicyMenuStatusText()` is `null` while no menu giving
+  it is shown, else the highlighted item's `balloon.content`, its
+  `disabledContent` while it is disabled, or `""`). A root menu marks
+  itself while its tree shows (`markClassicyMenuStatusShown`), so the text
+  runs from the menu's opening (a bar's title already pointed at gives its
+  own) to its closing; `ClassicyMenuStatusContext` (`false` provided by
+  `ClassicyBevelButtonPopup` outside any window: the Start menu, the tray,
+  the Control Strip) turns it off for a tree. A `ClassicyPlacard` given
+  `menuStatus` in the active window shows the text in place of its
+  children (MenuHelp's simple mode); no bundled window has one, so the
+  capability shows in the `Appearance/Windows 98/ToolTips` story (WordPad's
+  messages from the Windows 98 SE CD's wordpad.exe).
 
 **Where menus open** (System 7.5's Menu Manager, measured: its Help menu at
 the bar's right end, `*-menu-help-and-selected-icon.png`, and its
@@ -1257,10 +2012,16 @@ agrees). Every package, no declaration needed:
   overlaps the viewport. A desktop embedded in a page ends inside the
   viewport; one wider or taller than the window (a host that fixes its
   size, a scrolled page) is cut to it. With no desktop, one not laid out or
-  one wholly off screen, the viewport. A menu is measured as painted: its
-  list's border box with its outer `box-shadow` and any absolutely placed
-  `::before`/`::after` (every package's frame shadow), and a scrolling
-  list's `.classicyMenuScrollShadow`.
+  one wholly off screen, the viewport. While a taskbar is mounted (the
+  Windows shell, plan 0020-w98), its band comes off the bottom of that box
+  (the desktop's, or the viewport's where it stands in) before the overlap
+  is taken, so every menu, pop-up menu, combo box list, contextual menu and
+  bevel pop-up flips, scrolls or is pinned above the taskbar rather than
+  running under it, as Windows keeps a popup menu to the work area (Wine
+  `MENU_ShowPopup`); with no taskbar the box is as described above. A menu
+  is measured as painted: its list's border box with its outer `box-shadow`
+  and any absolutely placed `::before`/`::after` (every package's frame
+  shadow), and a scrolling list's `.classicyMenuScrollShadow`.
 - A menu bar's pull-down (the screen bar's and a window's own bar's,
   `menuBar.placement: "window"`) hangs where its package hangs it, under its
   title's left side. One that would pass the bounds' right edge there is
@@ -1372,22 +2133,63 @@ Keyboard shortcut helpers: `parseKeyboardShortcut`, `formatKeyboardShortcut`,
 `useFocusTrap`, `useClassicyShortcutDispatcher`. The one modifier table is
 `CLASSICY_MODIFIER_GLYPHS` (`{ control: "⌃", option: "⌥", shift: "⇧",
 command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
-`CLASSICY_MODIFIER_ORDER`; every helper and `ClassicyKbd` reads it.
+`CLASSICY_MODIFIER_ORDER`; every helper and `ClassicyKbd` reads it. Windows'
+spelling (`layout.menu.shortcutSpelling` `"names"`) has its own:
+`CLASSICY_MODIFIER_KEY_NAMES` (`{ control: "Ctrl", option: "Alt", shift:
+"Shift", command: "Win" }`), `classicyKeycapName(key)` (⌫ → `Backspace`,
+⌦ → `Del`, `ArrowUp` → `Up`, `Escape` → `Esc`, `Return` → `Enter`, `f5`
+→ `F5`, `s` → `S`) and `formatKeyboardShortcutNames(raw, { commandIsCtrl? })`
+(`"⌃⇧S"` → `"Ctrl+Shift+S"`; `"⇧⌘Z"` → `"Shift+Win+Z"`, or
+`"Ctrl+Shift+Z"` with `commandIsCtrl`), the names
+`formatKeyboardShortcut`'s glyphs stand for, from
+`classicyShortcutModifierNames(raw, { commandIsCtrl? })`;
+`classicyCommandSpelledCtrl({ layout?, nativeShortcut?, mac? })` says
+whether ⌘ is spelled `Ctrl` (the package's `layout.keyboard.command`
+`"ctrl"`, or a native chord off a Mac). Which key a ⌘ equivalent answers
+to is the package's `layout.keyboard.command` (§8), read store-free at call
+time by `shortcutMatchesEvent`, `canonicalChordsFromEvent` and
+`keyboardShortcutFromEvent` (so the dispatcher, which calls them, follows
+with no change): `classicyCommandIsCtrl(layout?)` reads it and
+`classicyCommandKeyHeld(e, layout?)` is the test for code matching a ⌘
+chord by hand (`useKeyboardEquivalents`' and the keyboard-equivalent
+dialog's Command-period, HyperCard's editor): Command or Control by
+default, Control without the Windows key (`metaKey`) under `"ctrl"`.
+Under the package's `layout.dialog.flushInput` (Windows 98; WIG Ch.10
+"Message Notification", p.212; the audit's 10.20; §8)
+`useKeyboardEquivalents` takes no key pressed before its dialog showed: it
+ignores every auto-repeated keydown, and every keydown stamped before the
+hook mounted until a key comes up or a new key goes down, so a Return held
+from the command that raised an alert never dismisses it. Absent, any
+keydown counts.
+The user's own shortcuts (the package's `layout.keyboard.editableShortcuts`,
+Windows 98; the audit's 4.15; §8): a bundled menu builder resolves each
+item's chord with `useClassicyMenuItemShortcuts()` (a resolver
+`(itemId, chord) => chord`, stable while nothing changes) or
+`useClassicyMenuItemShortcut(itemId, chord)`
+(`Menu/useClassicyMenuItemShortcut.ts`), which return the chord stored for
+the stable shortcut id in `System.Manager.Desktop.shortcutOverrides` while
+the key is on, else `chord`. The store-free helpers are in
+`Menu/ClassicyMenuShortcutOverrides.ts`: `classicyEditableShortcuts(layout?)`,
+`isClassicyShortcutOverrideId(id)`, `classicyShortcutOverrideChord(shortcut)`
+(the canonical chord, or `""` without Command, Control, Option or a
+function key), `classicyShortcutFromChord(chord)` (`"control+o"` → `"⌃O"`),
+`validClassicyShortcutOverrides(value)` and
+`resolveClassicyMenuItemShortcut(overrides, itemId, chord)`.
 
 ### 4.6 Alerts & dialogs
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
-| `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
-| `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
-| `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?, accessKey?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound on opening, sent with its `alertType` (`ClassicySoundPlayError { alertType }`), so a pack's `alertTypeSounds` may give each type its own (§10; Windows 98's Chord). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once. A button's `accessKey` is its `ClassicyButton`'s; omitted, a message box's own buttons take Windows' under a package with access keys (`layout.menu.accessKeys`; user.exe's "&Yes", "&No", "&Retry", "&Abort", "&Ignore", read from the Windows 98 SE CD), OK and Cancel none (Return and Escape reach them, WIG Appendix B Table B.5), others the automatic pick; under Platinum and System 7 none Under `layout.dialog.caption: "titled"` (Windows 98) its caption reads `title`, else the app's display name, it moves whatever `movable` says, and its Close box presses the `cancel`-role button, else the only button (a help button aside), and is drawn unavailable with neither (a Yes/No question) or while that button is disabled (§4.1, "Dialog and message box captions") |
+| `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field; or a function of the field's value returning it, as the file dialog's New Folder says why a name is refused under `layout.files.names` "windows"), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` Under `layout.dialog.caption: "titled"` its caption's Close box is Cancel |
+| `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`; by name, `Ctrl+Alt+S`, under the package's `layout.menu.shortcutSpelling` `"names"`, ⌘ `Ctrl` under its `layout.keyboard.command` `"ctrl"`: `spellKeyboardEquivalent(shortcut, layout?)`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`). Under `layout.keyboard.command` `"ctrl"` Control records as ⌘ on any host, a key pressed with the Windows key records nothing, and Windows+period does not cancel |
+| `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own; under `layout.dialog.caption: "titled"` its caption's Close box is Cancel |
 | `ClassicyFileOpenDialog` | `id` *, `appId` *, `open` *, `volumes` *, `onOpenFunc(selections)` *, `selectionMode?`, `fileTypeFilters?`, `onCancelFunc?`, `title? ("Open")` | always renders System 7.5's Standard File parts (`*-755-dialog-standardfile-layout.png`): the volume's small icon and name (`classicyFileOpenDialogVolume`), Eject (`classicyFileOpenDialogEject`, always dimmed), Desktop (`classicyFileOpenDialogDesktop`: goes to the volume with id `"desktop"`, `desktopVolume(fs)`'s; dimmed without one or on it) and a line (`<hr class="classicyFileOpenDialogDivider">`), before the actions. The base sheet hides all four, so a package shows them (System 7 does). The box is a movable modal unless the package's `layout.fileDialog.frame` is `"fixed"` (§8, "Layout declarations"); its size is the theme's optional `fileDialog.width` x `height` knobs, else 440 x 400; a save box's body also carries `classicyFileDialogSaveBody`. A closed `ClassicyPopUpMenu` draws its selected option's `icon` as the part `classicyPopUpMenuValueIcon`, which the base sheet hides (System 7 shows it) |
-| `ClassicyFileSaveDialog` | `id` *, `appId` *, `open` *, `volumes` *, `formats` *, `onSaveFunc(saved)` *, `defaultFileName?`, `onErrorFunc?`, `onCancelFunc?`, `title? ("Save")` | |
+| `ClassicyFileSaveDialog` | `id` *, `appId` *, `open` *, `volumes` *, `formats` *, `onSaveFunc(saved)` *, `defaultFileName?`, `onErrorFunc?`, `onCancelFunc?`, `title? ("Save")` || Open and Save: under `layout.dialog.caption: "titled"` the caption's Close box runs `onCancelFunc` (drawn unavailable without it) |
 | `ClassicyColorPickerDialog` | `id` *, `open` *, `initialColor?`, `onSelectFunc?(color: number)`, `onCancelFunc?`, `crayons?` | |
 | `ClassicyColorPicker` | `id` *, `value?`/`defaultValue?` (int color), `onChangeFunc?(color)`, `labelTitle?` | swatch control that opens the dialog |
-| `ClassicyAboutWindow` | `appId` *, `appName` *, `appIcon` *, `hideFunc` *, `appMenu?` (`ClassicyMenuItem[]`, the menu bar while it is focused) | standard About box. `appName`/`appIcon` are the app's own; the heading and icon show the package's display identity for `appId` (§8, "App display overrides"), while its analytics keep `appName` |
-| `ClassicyAssistant` | `pages` * (`{title, content, buttons?, canAdvance?, labelIcon?, accessoryIcon?, accessoryIconSize? ("sm"\|"md"\|"lg")}[]`), `buttons?`, `page?`/`onPageChange?`, `initialPage? (0)` | setup-assistant flow. `page` makes it controlled; `initialPage` is the zero-based starting page when uncontrolled. Per page, `labelIcon` is a small icon left of the title and `accessoryIcon` a decorative icon at the right of the header (default size `"sm"`; `"lg"` overflows the header) |
+| `ClassicyAboutWindow` | `appId` *, `appName` *, `appIcon` *, `hideFunc` *, `appMenu?` (`ClassicyMenuItem[]`, the menu bar while it is focused) | standard About box. `appName`/`appIcon` are the app's own; the heading and icon show the package's display identity for `appId` (§8, "App display overrides"), while its analytics keep `appName`. Under `layout.dialog.caption: "titled"` (Windows 98) it is captioned "About <display name>" (Windows' `ShellAbout` caption) and its caption's Close box clicks OK, so `hideFunc` gets a real click event |
+| `ClassicyAssistant` | `pages` * (`{title, content, buttons?, canAdvance?, labelIcon?, accessoryIcon?, accessoryIconSize? ("sm"\|"md"\|"lg")}[]`), `buttons?`, `page?`/`onPageChange?`, `initialPage? (0)` | setup-assistant flow. `page` makes it controlled; `initialPage` is the zero-based starting page when uncontrolled. Per page, `labelIcon` is a small icon left of the title and `accessoryIcon` a decorative icon at the right of the header (default size `"sm"`; `"lg"` overflows the header). The footer moves through the pages with a `ClassicyPager` (its arrows around the page number); under a package whose layout says `assistant.navigation: "buttons"` (§8, "Layout declarations"; Windows 98, a wizard, WIG Ch.12 "Wizard Buttons", p.289) two push buttons stand in `.classicyAssistantNav` in its place, "< Back" (`classicyAssistantBack`, disabled on the first page) and "Next >" (`classicyAssistantNext`, disabled on the last), carrying the access keys B and N under `menu.accessKeys`, through the same handlers, so `canAdvance`, `onPageChange` and the `change` hook hold, and no page number is drawn |
 
 Keyboard-equivalent helpers: `checkKeyboardEquivalent(shortcut, {inUse,
 requireCommandKey, current, validate})` (the HIG rules, `null` = OK),
@@ -1398,6 +2200,23 @@ requireCommandKey, current, validate})` (the HIG rules, `null` = OK),
 File dialog volumes: build with `desktopVolume(fs)` or
 `fileSystemVolume(fs, drive)` (both exported), or implement
 `ClassicyFileDialogVolume { id, label, icon?, list(path), write?(), mkDir?() }`.
+The file system volumes' New Folder takes a folder already there under
+another case of its name (names are compared without case, §7) and refuses a
+file of that name; Save's collision check finds a case-only twin too.
+
+The dialog reopens, for the rest of the session, where its app's dialog was
+last left (WIG Ch.8 "Interaction with Other Windows", p.146: "the Open
+dialog's current directory"; Mac OS 8's Standard File reopened in the last
+folder too), under every package: when it closes, however it closes, it
+dispatches `ClassicyAppRememberFileDialogFolder { app: { id }, volumeId, path }`
+with the folder shown (flat navigation), the folder Save saves into, or the
+selected file's folder or the folder last opened (the tree), kept in
+`apps[appId].session.fileDialog` (Open and Save share it; never persisted).
+On opening, that volume (while still offered) and folder show: the flat list
+lists it, and the tree lists and opens every folder down to it and selects it
+as Save's target; a folder gone since (its parent's listing no longer holds
+it) falls back as far up as is still there, and a volume no longer offered
+to the first volume's top.
 
 Color sub-pickers are individually exported (`ClassicyColorPickerRGB`, `HSV`,
 `HLS`, `CMYK`, `Crayon`, `ClassicyColorWheel`) along with conversion utils
@@ -1409,22 +2228,49 @@ plain integers (`0xRRGGBB`).
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
-| `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
-| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
-| `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
+| `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`), `userName?`, `onLogOff?(() => void)` | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip (or, under a package whose layout declares `taskbar`, a `ClassicyTaskbar` in its place, given `controlStrip`'s `disabledModules`, `hideModules` for `controlStrip={false}` and `userName`, and the Windows shell's dialogs and power screens, below) and a `ClassicyCrashScreen`. `userName` and `onLogOff` are the Windows shell's (plan 0020-w98 E2) and every other package ignores them: with a `userName` (not blank) the Start menu shows **Log Off <userName>...**, whose Log Off Windows dialog's Yes closes the programs and then runs `onLogOff` (the host's own logon), or, without one, reloads the page into a fresh session with every setting and file kept and no startup screen. **The Windows shell's dialogs** (`ClassicyShellDialogs.internal.tsx`, mounted only under `layout.taskbar`, opened by `ClassicyDesktopShowSystemDialog` from the Start menu; each a modal window of the Finder's, titled, Return its default button and Escape Cancel, Tab kept inside it, its content `div.classicyShellDialog` with `role="dialog"` named by its title, padding itself): **Shut Down Windows** (`classicyShellDialogShutDown`, centered; Windows 98 SE's shell32 dialog 1064: its icon `system.shutDown` (shell32 #136 under Windows 98; a core key whose core image is the power switch), "What do you want the computer to do?" over the radio buttons Stand by, Shut down and Restart (`classicyShellDialogOptions`; `CLASSICY_SHUT_DOWN_CHOICE_LABELS`), opened on the last choice (`Desktop.taskbar.shutDownChoice`, written by `ClassicyDesktopTaskbarSetShutDownChoice { choice }`; Shut down the first time) with that choice focused, then OK, Cancel and Help (H). Help dispatches `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT` (the Help Topics browser under `help.topicWindow` "winhelp", else the About Help topic) and leaves the dialog open, as WinHelp opened beside it. Windows 98 SE drew a choice only where the computer could make it: Classicy has no wake events, hibernation, MS-DOS mode or Log off there (Log Off is the Start menu's), so those are left out. **Stand by** blanks the screen (`div.classicyPowerScreen.classicyPowerScreenStandBy`, over everything, the screen saver included, the pointer hidden) until a key or a press wakes the session as it was; **Shut down** closes the programs (`closeClassicySessionPrograms`: `ClassicyAppClose` for each open app that is not an extension or the Finder, whose folder windows stay as Windows 98's Explorer reopens them; then the state is written at once, `flushAppManagerPersistence`) and shows `classicyPowerScreenOff` with `p.classicyPowerScreenMessage` "It's now safe to turn off / your computer." (`role="status"`) until a key or a press powers on: a fresh session with the startup screen (`startClassicyFreshSession("restart")`: the page reloads, settings and files kept); **Restart** closes the programs and starts that fresh session at once. The waking key or press is swallowed (a window capture listener), and the click after it, and a screen saver that started meanwhile is woken with it. Behind Shut Down and Log Off, which are system modal, `div.classicyShellDialogDim` covers the screen, the taskbar included (z-index 358, under the modal scrim), for the package to dim.), **Run** (`classicyShellDialogRun`, in the work area's lower-left corner above the Start button; shell32 dialog 1003: its icon `system.files.application`, "Type the name of a program, folder, document, or Internet resource, and Windows will open it for you." (the shell's name from `taskbar.startBanner.title`, `"Windows"` without one), the Open box (`classicyShellDialogField`, its label `classicyShellDialogFieldLabel` "Open:" in the icon's column, an editable `ClassicyComboBox` `#classicy-run-open` listing the earlier commands, `Desktop.taskbar.runHistory`, most recent first, 26 at most, once without case, written by `ClassicyDesktopTaskbarAddRunCommand { command }` when a command runs; it opens on the last one, its text selected), then OK (dimmed while the box is blank), Cancel and Browse... (an Open dialog titled "Browse", Programs then All Files, whose choice fills the box, quoted when it holds a space). OK runs the command (`classicyResolveRunCommand`, in `ShellExecute`'s order): an http(s) URL through `ClassicyDesktopOpenUrl`; a path (the file system's separator or Windows' `\`, without case, a quoted one unquoted) as a Finder window on a folder or drive (the one open brought forward) or the file through Finder's open; a mounted app that is not an extension by its id (with or without `.app`), its name or the name the active package shows, through `ClassicyAppOpen` (the Finder by a window on the startup disk, as `explorer` opens one); a bare name at the tree's root. A command that names nothing shows Windows' message box (a stop alert captioned with the name: "Cannot find the file '<name>' (or one of its components). Make sure the path and filename are correct and that all required libraries are available.", shell32 string 8449) and the dialog stays. It dims nothing: Windows 98's Run belongs to the taskbar), and **Log Off Windows** (`classicyShellDialogLogOff`, centered; shell32 dialog 1071: its icon `system.security.key`, "Are you sure you want to log off?", Yes (the default) and No). Each lays its icon (`classicyShellDialogIcon`) and body (`classicyShellDialogBody`, its text `classicyShellDialogPrompt`) in a row (`classicyShellDialogTop`) above its buttons (`classicyShellDialogButtons`); the package sizes them. **The desktop under Windows' layout keys** (each read from the active package, absent = Mac OS 8's rule, the shell addendum's section C): its bar's File, Edit and View and its white-space menu are Explorer's under `finder.commands` "windows" (`useClassicyDesktopCommands`, Special following them; Ctrl+X, C and V on its icons); a press on the empty desktop goes by `classicyDesktopSelectPress` (`mouse`, `selection.secondaryButton`, `contextMenu.openOn`, `selection.modifiers`: button 2 may start the rectangle, its menu then opening at the release; a Shift or Control rectangle keeps the selection, `classicyDesktopBoxSelection`), the outline carrying `classicyDesktopSelectEmpty` while it is 0 × 0, and Escape takes the rectangle back under `input.escapeCancels`; the arrows, Home, End, the page keys and Space go to `classicyDesktopKeyCommand` (`selection.iconNavigation`, `selection.keyboard`), the root then a `role="listbox"` with `aria-multiselectable` (`classicyDesktopListboxAttributes`); and a desktop file icon let go on a folder is moved, copied or linked by the drop's effect (`transferClassicyFileSystemItems`), the folder's Finder window brought forward under `transfer.activateDropWindow`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
+| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `startupDisk? (false)`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination, target, effect)` moves the selection's items (`target` the drop target, its marked element included, for `activateClassicyDropWindow`; `effect` the drop's, `"move"` unless the package's `layout.transfer` made it `"copy"` or `"link"`, §8). `ClassicyDesktop` wires both callbacks. Under `layout.transfer.secondaryButton: "menu"` a file icon drags on button 2 too, ending in Windows 98 SE's transfer menu (`useClassicyFileDropMenu`); under `copyModifier: "ctrl"` Control at the release copies and Control and Shift make shortcuts; a copy or shortcut let go on the desktop itself is made by the icon (`transferClassicyFileSystemItems`), each new icon where its original's outline was let go. Under `layout.transfer.desktopIconDrag: "outline"` (Windows 98) an icon that stands for no file drags as an outline of the selected icons, which stay put until it is let go on the desktop (a folder, drive or the Trash refuses it); Escape or a lost pointer stream leaves them where they were. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. A `trash` icon, and a `drive` icon with `startupDisk` (`ClassicyDesktop` sets it on the first drive's), show the package's `desktopIcons` name, image and balloon copy instead (§8, "Desktop icon overrides"). The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, for the Trash and the startup disk the package's `desktopIcons` description, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon`. Right-clicking selects the icon (collapsing a multiple selection to it) before its `contextMenu` shows; under a package whose layout says `selection.secondaryButton: "select"` (§8; Windows 98, WIG Ch.5 pp.37-38) the button-2 press selects an unselected icon and a right-click on a selected one keeps the whole selection, so its menu acts on every selected icon (Finder's Move To Trash does), the icon still taking focus. A non-file icon follows the pointer from its first move on any button; under `mouse: "windows"` only button 1 drags it (button 2 selects it, the middle button and the others do nothing), and it moves only once the pointer is 4 px from the press, keeping where it was grabbed; under `input.escapeCancels`, Escape mid-drag moves it back where the press found it (`ClassicyDesktopIconMove`, so the selection it carried goes back too), ends the drag (`dragEnd` with `canceled: true`) and swallows the release's click. Under `selection.modifiers: "windows"` (WIG Ch.5 "Selection Adjustment", pp.38-39; App. A Tables A.2, A.3) a button-1 Control- or ⌘-click toggles it, a Shift-click selects the anchor's rectangle to it, both set that rectangle to the anchor's state, through `ClassicyDesktopIconSelect { iconId, mode: "toggle" \| "range" \| "addRange" }` (`classicyDesktopIconSelectMode`); the press's modifiers decide, an unselected icon taking the selection at the press (Table A.3, "CTRL+Press": selects) and a selected one at the click, so a drag from it, a file drag included, carries the selection, and a modified press never collapses the selection. Under `selection.keyboard: "windows"` it is `role="option"` with `aria-selected` (an option of the desktop's list box, `classicyDesktopListboxAttributes`): Space selects it alone (`ClassicyDesktopIconFocus`), Control or ⌘ with Space toggles it, Shift with Space extends to it, Option with Space does nothing, and the key stops there; Enter alone opens it. Under `selection.iconNavigation: "roving"` its `tabIndex` is 0 only while it is the desktop's focus icon (`classicyDesktopFocusIconId`: `Desktop.focusIcon`, else the first icon), else -1, and a press on a selected icon makes it the focus icon (`ClassicyDesktopIconMoveFocus`). Without the keys a modified click selects it alone, Space and Enter open it, and every icon is a Tab stop. A Desktop Folder item's name is edited in place while `startClassicyDesktopIconRename(appId)` (`Desktop/ClassicyDesktopIconRename.internal.ts`, session state outside the store) names it: the label becomes `classicyDesktopIconRename` (structure in the base sheet, Windows 98's list view edit control), Return or a click elsewhere renames the item (`renameClassicyFileSystemItem`, its refusals told as any rename's) and selects its icon under the new name, Escape cancels; Explorer's Rename and New on the desktop start it under `layout.finder.commands` "windows", and F2 on the one selected item under `layout.fileBrowser.keys` "windows". Under `layout.files.extensions: "hideRegistered"` a Desktop Folder item's label and its rename field show the name without a registered type's extension, the rename keeping it (`useClassicyDisplayFileName`). Under `layout.finder.commands: "windows"` Alt+Enter on the focused icon and an Alt double-click on it show its Properties (WIG App. B Table B.2, p.358; Ch.5 "View Shortcuts", p.47): the property sheet of the desktop's selection when the icon is in it, else of its item or application (`classicyDesktopIconPropertiesTarget`, `ClassicyAppFinderPropertiesOpen`), the key's default prevented and the icon not opened; without the key they do what Enter and a double-click do. A file or folder icon whose `filePath` the file clipboard holds as cut (Explorer's Cut, `useClassicyFileCut`, §7 "Cut, Copy and Paste") carries `classicyFileCut` until the Paste, another Cut or Copy, or Escape; only Windows 98's stylesheet draws it (the image blended with the Background) |
+| `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen; under a package whose layout declares `crashScreen: "fatalException"` (§8; Windows 98) Windows' own fatal-exception screen instead (`CLASSICY_FATAL_EXCEPTION_SCREEN`: VGA text, light gray on blue, " Windows " inverted, vwin32.vxd's message, `classicyCrashScreenFatalException` with its parts `Title`, `Message`, `Line`, `Prompt`; the accessible name says the system crashed and a key restarts it). Either reloads on a click or any key. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
-| `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
+| `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time. Its virtual clock (the store's `DateAndTime.dateTime` shifted by `timeZoneOffset`, on wall-clock anchors, standing still while `paused`) ticks each second and writes `dateTime` once a minute (`ClassicyManagerDateTimeSet`), also while `show` hides it; the taskbar's clock runs the same tick (`useClassicyClockTime.internal.ts`) and keeps the store's time where the screen bar is headless |
 | `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted. It no longer floats right: the menu bar places its clusters by flex `order`, so mounted in a container that is not a flex row it floats left |
-| `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel |
-| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` (its file's 32 px icon; default the core's generic module file icon; a core icon URL, `ClassicyIcons.*`, draws as the active package's, though it misses a later re-registration of its key, §5) | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`; `appearance` → `classicy-appearance`, order 30, owned by `AppearanceManager.app`: the active package's themes, checked, and the installed packages when there are two or more) |
+| `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Under `input.escapeCancels` Escape takes back a Control-drag (the strip stays where it was) or a tab drag (the stored width put back), the release then no click. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel. Under a package whose layout declares `taskbar` it is not drawn: `ClassicyTaskbar` takes its place and draws the same modules as notification icons in its status area (the strip's arrangement, none under `controlStrip={false}`; the strip's `visible` and `hiddenModules` are not read there, since under the shell nothing edits them; button 1 opens a module's `content`, else its `menuItems`, button 2 its `menuItems`, a double-click its `isDefault` item, and its name is a 500 ms tooltip; `ClassicyTaskbar` row, below), while its `visible`, `hiddenModules`, `collapsed`, `width`, `edge` and `bottom` stay stored, unused |
+| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` (its file's 32 px icon; default the core's generic module file icon; a core icon URL, `ClassicyIcons.*`, draws as the active package's, though it misses a later re-registration of its key, §5), `panel?` (`{ id, name, icon, command? }`, the control panel it belongs to, the app `classicyControlStripOpenControlPanelItem` opens) and `trayLabel?` (string or hook) — both read only by the Windows shell's status area (`ClassicyTaskbarTray`, shell addendum B3), never by the Control Strip: there the tray's own copy of the module's item `classicyControlStripOpenControlPanelItemId(panel.id)` (`open-<id>`) is the default (`isDefault`, which a double-click runs), a module with `panel` and no `menuItems` gets a menu of that one command titled `command` (default `Open <name> Control Panel`, access key O under `layout.menu.accessKeys`), and `trayLabel` is the icon's tooltip and name (default the label); Sound's are `panel` SoundManager.app with "Open Volume Controls" and "Volume" / "Volume (muted)" (Windows 98 SE's systray.exe; its "Adjust Audio Properties" left out, as Classicy has one Sound panel; no What's This? in a tray menu, as systray.exe's menus have none), Screen Saver's and Appearance's `panel` their control panels | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"; its id is `classicyControlStripOpenControlPanelItemId(app.id)`). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`; `appearance` → `classicy-appearance`, order 30, owned by `AppearanceManager.app`: the active package's themes, checked, and the installed packages when there are two or more) |
+| `ClassicyTaskbar` | `disabledModules?` (module ids), `hideModules?`, `userName?`, `className?`, `style?` | the Windows 95/98 taskbar (WIG Ch.3 "The Taskbar", "The Start Button", "Window Buttons", pp.15–16, Figure 3.1; Ch.10 "Taskbar Integration", pp.211–212), a `<nav aria-label="Taskbar">` along the desktop's bottom edge (z-index 355, the Control Strip's band: over windows and palettes, under a modal's scrim). Its presses keep every selection (WIG Ch.5 "Scope of Selection", p.37; the shell addendum's B9): no part of it is `#classicyDesktop` itself, so pressing Start, its menu, a window button (activating, minimizing or restoring the window, which stays mounted while minimized and comes back with its selection), a notification icon or a window menu bar's title leaves `Desktop.selectedIcons` and every Finder window's selection as they were (`ClassicyTaskbar.selection.test.tsx`). `ClassicyDesktop` mounts it in the Control Strip's place, at the same point among its children, only while the active package's layout declares `taskbar` (§8, "Layout declarations"): Windows 98 does (§8, "Windows 98"), Platinum and System 7 do not. Left to right: the Start button (`classicyTaskbarStart`, `data-classicy-part="taskbar-start"`, `aria-haspopup="menu"`, `aria-expanded`, and `aria-controls="classicy-start-menu"` while its menu is open; `open` while the Start menu is open: a press toggles it, and a press that opened it is followed to its release (shell addendum B6; WIG Ch.4 "Mouse Actions", p.24, Ch.7 p.97; `classicyStartPressRelease`): released over an enabled item with no submenu it chooses that item, over the Start button or anywhere else in the menu (a dimmed item, a divider, an item with a submenu, the banner) the menu stays open, off both it closes, and a lost pointer stream closes it choosing nothing; as do Enter, Space and CTRL+ESC anywhere on the page (WIG App. B, Table B.2, p.358: "Access Start button in taskbar"; a held key's repeats do nothing more, and on a Windows host the system takes the key before the page sees it), and Escape closes it, leaving the focus on the button (handed back to it from the menu, and from wherever it was when CTRL+ESC opened the menu, so Tab then moves on through the taskbar, as in Windows 98); nothing opens it while a modal dialog's scrim is open on the desktop, which blocks the taskbar as it blocks the desktop; its label (`span.classicyTaskbarStartLabel`) is `layout.taskbar.startLabel`, `"Start"` when absent (`CLASSICY_TASKBAR_DEFAULT_START_LABEL`), and `classicyTaskbarStartIcon` an empty span the package draws, carrying `classicyTaskbarStartFlag` while the active package registers its own `appleMenu` art (`useClassicyOwnAsset`; Windows 98's Explorer bitmap 143, which its stylesheet draws 16 x 16 from `--classicy-art-apple-menu`, its pixel-art window drawn only without the class; shell addendum B2); its tooltip is Windows 98 SE's "Click here to begin." (`CLASSICY_TASKBAR_START_TOOLTIP`, explorer.exe's string 533) after 500 ms whatever Balloon Help says, `aria-describedby` pointing at it while shown, never while the menu is open and put away by a press or the menu opening by any path; the WINDOWS key is not bound: it is Command on a Mac keyboard, which Classicy leaves to the browser); the window buttons (`ul.classicyTaskbarTasks`, `data-classicy-part="taskbar-tasks"`, "Running windows"), one `<button class="classicyTaskbarTask">` per open primary window, read from the window registry: every mounted `ClassicyWindow` that is neither `modal` nor `windowType="utility"` nor registered with `taskbarButton={false}` (WIG Ch.8, p.145: "secondary windows do not appear on the taskbar"; a modeless secondary window says so with the prop: Finder Preferences and About This Computer, shell addendum B13), whose record is open and whose app is open, extension apps included; and the status area (`div.classicyTaskbarTray`, `data-classicy-part="taskbar-tray"`, a `group` labelled "Notification area": `ul.classicyTaskbarTrayIcons`, then the menu bar extensions' region `ul#classicyDesktopMenuExtensions.classicyDesktopMenuExtensions.classicyTaskbarTrayExtensions`, `data-classicy-part="extensions"`, which `ClassicyMenuBarExtension` portals into while the headless screen bar draws none, then the clock `time.classicyTaskbarClock`, `data-classicy-part="clock"`). A window button draws the window's icon (`classicyTaskbarTaskIcon`) and title (`classicyTaskbarTaskLabel`, its app's display name when the title is empty), cut with an ellipsis; a title cut short is shown whole as a tooltip after 500 ms (Wine's `TTDT_AUTOMATIC`), whatever Balloon Help says (`useClassicyBalloonHelp`'s `force`). States: `active` and `aria-pressed` for the focused, unminimized window, and for the app's front (highest-`zOrder`) unminimized window while one of its modals or palettes holds focus, as Windows keeps an owner's button pressed under its dialog; `collapsed` while the window is collapsed (minimized under a layout that minimizes); `pressed` while a press, or Space, is held on it; and `classicyTaskbarTaskAttention` while the window's record has `attention` (`ClassicyAppRequestAttention`, plan 0020-w98 E3; WIG Ch.10 "Message Notification", p.212, Figure 10.3), never on the active button, until its app is activated: Windows 98 draws it flashing. A click (ReactOS `HandleTaskItemClick`) restores a collapsed window, minimizes the active one (when it has a collapse box) and activates any other, through the window's own commands (the window registry's `restore`, `minimize`, `activate`), decided on the store as it stands; a pointer press takes no focus, and a pointer click runs its command only after a button-1 press released over the same button (shell addendum B6), so a release elsewhere or after a lost pointer stream runs nothing (a click with no press count, Enter or Space, always runs). Button 2 draws no press, activates the window unless it is collapsed, then asks it for its pop-up menu at the pointer (the registry's `systemMenu`, which a window without one refuses), at the release under `contextMenu.openOn: "release"` (shell addendum B11; ReactOS `CTaskSwitchWnd::HandleTaskItemRightClick` activates first, and Windows 98 SE did too, so the window is activated at the right-click). Each window button carries `data-classicy-drop-activate`, so a Finder outline drag (`startClassicyFileDrag`) resting on it for 500 ms brings its window up for the drop (WIG Ch.3 "Window Buttons", p.16: "When the user drags over a taskbar button, the system activates the associated window, allowing the user to drop within that window"; Ch.10 "Taskbar Window Buttons", p.211): it restores a collapsed window and activates any other, the active one included, never minimizing it, through the same registry commands, decided on the store as it stands; the taskbar itself takes no drop (`.classicyTaskbar` blocks drops; §7, "Browse UI"), so a release on it moves nothing, and a release on a window button (`classicy:droprefused`, `CLASSICY_DROP_REFUSED_EVENT`, which `startClassicyFileDrag` sends the `data-classicy-drop-activate` element after `onDrop`) also shows Windows 98 SE's message box (shell addendum B15; `ClassicyDesktopShowSystemDialog { dialog: "taskbarDrop" }`, window id `taskbar_drop`): the information icon, titled "Taskbar" (explorer.exe's string 518), "You cannot drag an item onto a button on the taskbar." then "However, if you do this without releasing the mouse button, the window will open and you can then drag the item into the window." (string 711; `CLASSICY_TASKBAR_DROP_TITLE`, `CLASSICY_TASKBAR_DROP_MESSAGE`), and OK. The buttons keep the order their windows opened in for the session (those open at mount by `zOrder`; a window opened or reopened later at the end; activating and minimizing move none). The taskbar publishes its root's measured height (`offsetHeight`, again on each resize) as the taskbar band (§4.1, "A window keeps to the work area"), so windows, Clean Up and every menu keep above it, and withdraws it on unmount; each mount owns its own band, the tallest in effect; and it publishes `disabledModules` for the Control Strip control panel, as the strip does. **The status area** (WIG Ch.3 "The Status Area", p.16; Ch.10 "Status Notification", pp.211–212, Figure 10.2) shows the Control Strip's registered modules as notification icons, left to right in the strip's arrangement (`arrangeClassicyControlStripModules`: owners mounted, none in `disabledModules`, the user's `moduleOrder` first), and none under `hideModules` (`classicyTaskbarTrayModules`); the strip's `visible` and `hiddenModules` are not read, because under the shell the Control Strip control panel is Taskbar Properties, so nothing could turn a stored choice back (a strip hidden under Platinum would leave the status area empty for good), and Windows 98's Taskbar Properties has no per-icon choice either; they, and the strip's `collapsed`, `width`, `edge` and `bottom`, stay stored, unused, and apply again under a package that draws the strip. Each module is its own component keyed `id:revision`, so its hook-form `icon` and `menuItems` and its `content` run inside the providers: a `<button class="classicyTaskbarTrayIcon">` with its 16 px icon (`alt=""`), `aria-label` its name (the module's `trayLabel`, else `classicyControlStripModuleLabel`), `aria-haspopup` `"dialog"` for a module with `content`, else `"menu"` for one with `menuItems`, and `open` and `aria-expanded` while its surface is open. Button 1 opens the module's `content` (Sound's slider), else its `menuItems` (Windows 98's own Display indicator opened its menu on a click), as a `ClassicyBevelButtonPopup` (`#classicy-taskbar-tray-<module id>`, `classicyTaskbarTrayPopup` beside `classicyBevelButtonPopup`, and `classicyBevelButtonPopupPanel` for `content`) placed below the icon where there is room, so flipped above it onto the band's top edge, a menu from the icon's left edge and a panel centered on it, its menu drawn whole wherever it fits there (`menuScrollMargin={0}`: no scroll cap held 4 px off the band); when the menu has a default item (`isDefault`, enabled, not a divider or a submenu: `classicyTaskbarTrayDefaultItem`) it opens only once the double-click time (`CLASSICY_TASKBAR_DOUBLE_CLICK_MS`, 500) passes with no second click, so a double-click runs the default alone; a click on an open icon closes its surface; Enter and Space open it at once, its first item or control focused, and Escape hands the focus back; its menu takes the keyboard as Windows' menu loop does (the surface's `keyboard`: Down and Up reach it from wherever the focus is, its dimmed items are walked too, and it never closes for idleness). Button 2 opens `menuItems` at the pointer as a pop-up menu (no Help item, the arrows walking it), or nothing for a module with `content` only, so a module with both shows its control on button 1 and its menu on button 2, as Windows' volume indicator does. A double-click runs the default item (its `onClickFunc`, else its `event` with `eventData`). The menu is the tray's own copy (`classicyTaskbarTrayMenuItems`, shell addendum B3): a module's `panel` makes its "Open … Control Panel" item (`classicyControlStripOpenControlPanelItemId(panel.id)`) the default, and gives a module with no `menuItems` a menu of that one command (Sound's **Open Volume Controls**, bold, access key O: Windows 98 SE's volume icon's menu, less "Adjust Audio Properties", Classicy having one Sound panel); Screen Saver's and Appearance's Open items are their defaults; the module's own list, which the Control Strip draws, is never changed; no tray menu has a What's This? item, as systray.exe's own menus have none (the 1995 text, pp.211–212, asks for one; the OS as shipped wins). The module's name is a tooltip after 500 ms, whatever Balloon Help says (audit 7.28), put away by a press (Sound's "Volume", "Volume (muted)" while muted, its `trayLabel`); a pointer press takes no focus. A menu bar extension in the status area is a status indicator too (`ClassicyMenuBarExtension`): an icon alone, never text (its `icon`, else the package's generic application icon), its `title` its name and tooltip, button 2 opens its menu at the pointer, and its dropped menu takes the keyboard. **The clock** (WIG Ch.3 "The Status Area", p.16; Ch.10, p.211, Figure 10.2; ReactOS `trayclock.cpp`) ends the status area and stays when its modules go: a `<time class="classicyTaskbarClock">` whose `dateTime` is the local date and time shown, to the minute (`2026-11-25T16:37`), and whose `aria-label` is the long date and the time, never a tab stop. It shows the virtual clock's time without seconds in Windows' US short format, `h:mm AM` (`4:37 PM`, `12:05 AM`; LOCALE_STIMEFORMAT `h:mm:ss tt` under TIME_NOSECONDS), or `HH:mm` (`16:37`) under the Date & Time control panel's 24-hour clock (`DateAndTime.militaryTime`); the Mac clock's seconds, day, period and flashing separators are options it ignores, and it is not drawn while `DateAndTime.show` is false. It turns with the minute, and writes `DateAndTime.dateTime` once a minute as the menu bar's clock does (`useClassicyClockTime.internal.ts`, shared with `ClassicyDesktopMenuWidgetTime`), hidden or not, so the store keeps time under a headless screen bar. Its tooltip, after 500 ms whatever Balloon Help says and put away by a press, is the long date in Windows' US long date format, `dddd, MMMM dd, yyyy` (`Wednesday, November 25, 2026`; `Thursday, November 05, 2026`, the day in two digits as Windows 98's English (United States) LOCALE_SLONGDATE spells it, Wine `enu.nls`). A click does nothing and a pointer press takes no focus; a double-click opens the Date & Time control panel (`DATE_AND_TIME_MANAGER_APP_ID`, as `DATE_AND_TIME_MANAGER_APP_NAME`); button 2 opens the taskbar's own menu (below) led by **Adjust Date/Time** (`taskbar-adjust-date-time`, its default item, `isDefault`, which a package draws bold) and a divider, as Windows 98's clock menu has it, with no Toolbars ▸ (the status area is not the band site); it is the taskbar's one menu, so its Undo is the background's. **Its own menu** (plan 0020-w98 E1; Windows 98 SE's explorer.exe menu 205 under the band site's Toolbars ▸, browselc.dll's menu 268): button 2 on the taskbar's background (the bar; the band site: Quick Launch around its buttons, the grippers, the window buttons' list around its buttons and its up/down control; the status area around its icons) opens a pop-up menu (`ClassicyTaskbarMenu.internal.ts`, `classicyTaskbarMenuItems`, no Help item): over the band site only, **Toolbars ▸** (`taskbar-toolbars`) holding **Quick Launch** (`taskbar-toolbar-quick-launch`), checked while the toolbar shows, which hides or shows it (`ClassicyDesktopTaskbarSetQuickLaunch { visible }`, stored as `System.Manager.Desktop.taskbar.quickLaunch`; absent, shown, as Windows 98 installs it; Address, Links, Desktop and New Toolbar… are left out: Classicy has no address bar, Links folder or folder toolbars), and a divider; then **Cascade Windows**, **Tile Windows Horizontally** and **Tile Windows Vertically** (`taskbar-cascade`, `taskbar-tile-horizontally`, `taskbar-tile-vertically`; disabled while no window is shown), which arrange the shown window buttons' windows (`classicyTaskbarArrangeTargets`: not minimized, their app not hidden; palettes and dialogs, which have no button, stay put) in the work area (the desktop less the menu bar's and the taskbar's bands) as Windows' `CascadeWindows` and `TileWindows` do (ReactOS `mdi.c`; `ClassicyTaskbarArrange.internal.ts`): from the back window to the front one, so the stacking stands and the front window is placed last, then activated; a maximized window is restored first. Cascade puts the back window at the area's top-left and each next one `--window-frame-inset` plus `--window-title-bar-height` (SM_CXSIZEFRAME plus SM_CXSIZE, whole pixels) further down and right, starting again from the area's left or top past its edge, and, while more than one window is arranged, holds a resizable window between 4/7 and 5/7 of the area (`classicyCascadeRects`). Tile Windows Horizontally stacks the windows one above another (one column, adding columns while a row would be shorter than three SM_CYMIN and a column wider than two SM_CXMIN, `classicyTileGrid`); Tile Windows Vertically sets them side by side (one row, adding rows likewise); each resizable window takes its cell, never below its minimum, and one that does not size keeps its size at its cell's top-left (`classicyTileRects`; SM_CXMIN and SM_CYMIN from the theme's caption metrics, `classicyArrangeMetrics`, Windows 98's 112 by 27). ReactOS's own `TileWindows` lays `MDITILE_HORIZONTAL` side by side, but Windows as shipped stacks the windows for Tile Windows Horizontally (and Wine's MDI tiling agrees), so the OS wins. Each window is placed through its own `place` command (the window registry). A divider; **Minimize All Windows** (`taskbar-minimize-all`; WIG App. B, Table B.3, p.359: WINDOWS+M), which dispatches `ClassicyWindowCollapse` for every window button's window that is not minimized and has a Minimize box, from the one handler, the active window last, so React commits them once and the focus passes on once (to the desktop when nothing is left on screen), disabled when there is none; and below it, while there is one, the menu's one **Undo** (`taskbar-undo`, explorer's "&Undo %s": **Undo Cascade**, **Undo Tile** or **Undo Minimize All**, SHIFT+WINDOWS+M, `CLASSICY_TASKBAR_UNDO_TITLES`), which undoes the last of those: the windows Minimize All minimized that are still minimized are expanded (`ClassicyWindowExpand`), or the arranged windows go back to the rects they had, maximized again where they were (a run of arrangements returns to the places before the first, as explorer backs the windows up only when nothing is arranged), then the window that was active is activated; a Minimize All is forgotten once one of its windows is restored or closed by other means, a window opens that was not open after it, or another window is activated (the focus going to the desktop keeps it; WIG App. B Table B.3, p.359, shell addendum B21: `ClassicyTaskbarMinimizedAll`'s `open` and `focus`), an arrangement once none of its windows is open or the menu opens with no window to arrange (remembered per taskbar mount); then a divider and **Properties**, which opens the Control Strip control panel (`CONTROL_STRIP_MANAGER_APP_ID`), drawn under the shell as Taskbar Properties (below). Explorer's menu holds Minimize All Windows and its Undo both, so Minimize All Windows stays, dimmed with nothing left to minimize. **Quick Launch** (`ClassicyTaskbarQuickLaunch.internal.tsx`; Windows 98's, Internet Explorer 4's desktop update), shown after the Start button unless the user turned it off: `div.classicyTaskbarQuickLaunch` (`data-classicy-part="taskbar-quick-launch"`, `role="toolbar"`, "Quick Launch"), a band led by its gripper (`span.classicyTaskbarGripper`), then `ul.classicyTaskbarQuickLaunchButtons` of flat `button.classicyTaskbarQuickLaunchButton`s (`classicyQuickLaunchItems`), in Windows 98 SE's order (Launch Internet Explorer Browser, Launch Outlook Express, Show Desktop, View Channels, then the user's own): the Finder (Windows 98's browser and Explorer launcher, while the Finder is mounted: a Finder window on the startup disk, `ClassicyAppFinderOpenFolder`, or the one open brought forward, restored when minimized), **Show Desktop** (`CLASSICY_QUICK_LAUNCH_SHOW_DESKTOP_LABEL`, its glyph an empty `span.classicyTaskbarShowDesktopIcon` the package draws: Windows 98's ToggleDesktop, Minimize All Windows while a window button's window is shown, else the Undo of the Minimize All that hid them; it shares the menu's Undo), then each mounted app marked `showInQuickLaunch`, in the order marked, opening it with `ClassicyAppOpen` and its internal identity, drawn by its display name and icon (`img.classicyTaskbarQuickLaunchIcon`); an app has one button. Each button's `aria-label` and tooltip (500 ms, whatever Balloon Help says) is its name; a press takes no focus and the click runs it; button 2 opens the taskbar's menu led by its **Open** (`taskbar-quick-launch-open`, the default item) and Toolbars ▸. While Quick Launch shows the bar is a rebar of two bands, so the window buttons' band leads with its gripper too (`span.classicyTaskbarGripper`, `data-classicy-part="taskbar-tasks-gripper"`, `aria-hidden`); with it hidden neither gripper is drawn, as comctl32's rebar draws a gripper only beside another sizable band. **Paging** (`classicyTaskbarTasksPerPage`, ReactOS `UpdateButtonsSize`): when the window buttons at their least width (the package's `min-width` on the list's items, and its `column-gap`, read from the computed style on mount, on a resize and as windows come and go) no longer fit the row, the list carries `classicyTaskbarTasksPaged` and shows one row of as many as fit beside the up/down control (`div.classicyTaskbarPager`, `data-classicy-part="taskbar-pager"`: `button.classicyTaskbarPagerUp` "Previous row of window buttons", disabled on the first row, and `button.classicyTaskbarPagerDown` "Next row of window buttons", disabled on the last; each acts at the press, taking no focus, and on Enter and Space), as Windows 95/98's task band scrolled its rows with an up-down control at its right; the row holding the active window's button comes into view whenever that window changes; a package that sets no least width never pages. The Start button's right-click shows Windows 98 SE's menu for its Start Menu folder (shell addendum B11; `classicyStartButtonMenuItems`, `CLASSICY_START_BUTTON_MENU_IDS`): **Open** (the default, bold, access key O) and **Explore** (E), both opening a Finder window on the derived Applications folder, the folder Start ▸ Programs lists (Classicy has no Start Menu folder and its Finder no Explorer pane, so Explore opens the same window; Windows 98's Find... is left out, Classicy having no Find), opened at the release under `contextMenu.openOn: "release"`, with no Help item; a window button's, a Quick Launch button's and a tray icon's show their own, and neither the browser's menu nor the desktop's ever opens over the taskbar. **The keyboard** (shell addendum B10; WIG Ch.5 Table 5.1, pp.35–36, "Keyboard Navigation" p.35): the Start button is one Tab stop, Quick Launch one (a toolbar), the window buttons one and the status area one, Shift+Tab in reverse; each group has a roving focus (`tabIndex` 0 on one member, the one last focused, else, for the window buttons, the active window's, else the first; `classicyTaskbarTabStop`, `useClassicyTaskbarRovingGroup`), Left and Right (Up and Down at a side) moving to the previous and next member and Home and End to the first and last (`classicyTaskbarRovingKey`; the window buttons turn the page to show the one focused); Enter or Space runs a window button's click and opens a tray icon's surface; Shift+F10 or the Application key opens a focused tray icon's menu (under `keyboard.contextMenuKey`); the status area's roving focus takes the menu bar extensions' triggers too. Each focused button draws the package's dotted focus rectangle inside its bevel (Windows 98's `b.focus-rect`, `_Taskbar.scss`). **The Start menu** (WIG Ch.3 "The Start Button", p.15, Figure 3.1; plan 0020-w98 §3) is a `ClassicyBevelButtonPopup` (`#classicy-start-menu`, `role="menu"` named by the Start label, `classicyStartMenu` beside `classicyBevelButtonPopup`) placed against the Start button: below it where there is room, so at the foot of the desktop flipped above it onto the taskbar band's top edge (the menu bounds end at the band), at the button's left, on whole pixels inside the desktop, drawn whole wherever it fits there (`menuScrollMargin={0}`: its scroll cap, and its submenus', keep no margin from the band). Under a layout with `taskbar.startBanner` its first child is the banner (`div.classicyStartMenuBanner`, `data-classicy-part="start-menu-banner"`, `aria-hidden`: `span.classicyStartMenuBannerTitle`, then `span.classicyStartMenuBannerEdition` when the banner has an edition), beside the menu; with none, no banner. While the active package registers its own `startMenuBanner` art (`useClassicyOwnAsset`, never the default package's) the banner is that bitmap instead: `classicyStartMenuBannerArt` beside `classicyStartMenuBanner`, `role="img"` named by the layout's title and edition ("Windows 98"), with no text inside (Windows 98 draws Explorer's bitmap 157 from `--classicy-art-start-menu-banner`, anchored to the banner's foot, the space above it its first row stretched, as Explorer painted it: ReactOS `CMenuDeskBar::_OnPaint`; shell addendum B2). Its items, top to bottom: **About This Computer** (the Apple menu's `about` item, left out with its divider when the Apple menu has none), a divider, **Programs ▸** (one item per app the derived Applications folder lists, `isClassicyApplicationsEntry`, whose app is mounted, by its display name and icon, opening it with `ClassicyAppOpen` and its internal identity, sorted by display name; a disabled "(Empty)" when there is none), **Documents ▸** (plan 0020-w98 E2: the documents Finder opened this session that still exist, by file name and icon, sorted by name as Windows lists its Recent folder, each opening again through Finder's open; a disabled "(Empty)" when there is none; Windows 98 led it with My Documents, a folder Classicy does not have), **Settings ▸** (**Control Panel ▸**: the Apple menu's app entries for mounted apps the Applications folder does not list, so every bundled control panel and no bundled app, by display name, sorted, or "(Empty)"; a divider; then the system Help menu's **Show Balloons** / **Hide Balloons** ⌥H, which the headless screen bar dispatches, so the toggle stays reachable with no window open), **Help** (Apple Guide's About Balloon Help topic), **Run...** (the Run dialog, `ClassicyDesktop`'s row), a divider, the Special menu's **Empty Trash…** (drawn with the active package's Trash art, full while anything is in the Trash) and **Reset PRAM…**, then a divider and Windows 98's last group: **Log Off <name>...** (only with a `userName`, `ClassicyDesktop`'s) and **Shut Down...** (the Shut Down Windows dialog). Windows 98 SE's Start menu (explorer.exe's menu 204) also has Favorites and Find ▸ Files or Folders…: Classicy keeps no favorites and its Finder and file browser have no search, so both are left out. The shell's own items keep Windows' three periods ("Run...", "Shut Down..."), Classicy's their "…". First-level items carry their icons through `image` (the core icons `system.macos`, `system.folders.applications`, `system.folders.recentDocuments`, `system.folders.controlPanels`, `system.help`, `system.files.application`, `system.bigSwitchOn` (Reset PRAM…), `system.security.key` and `system.bigSwitchOff` (Shut Down...), read at render) and no keyboard equivalent. The shell's items carry Windows 98 SE's access keys (explorer.exe's menu 204; shell addendum B7): **P**rograms, **D**ocuments, **S**ettings (**C**ontrol Panel, **T**askbar & Start Menu...), **H**elp, **R**un..., **L**og Off <name>..., Sh**u**t Down...; About This Computer, Empty Trash…, Reset PRAM… and the balloon toggle take the automatic picks (`layout.menu.accessKeys` `"auto"`), so a letter in the open menu runs its item under Windows 98. It opens with no item selected, however it was opened, as Windows' does: Down Arrow selects the first item and Up Arrow the last, from the Start button or wherever the focus is, and the arrows then walk the items shown, dimmed ones included, as Windows' menu loop does (a closed submenu's are passed over; the surface's `keyboard`). A choice, Escape, a press outside it, a scroll or a resize closes it; idleness never does (the Mac's sticky menus close after 15 seconds). Structure only: the package's stylesheet sizes and draws every part, the grippers, Quick Launch's buttons and the up/down control included (Windows 98's in `_Taskbar.scss` and `_StartMenu.scss`, from its `taskbar` and `startMenu` knobs and its `startMenu` colors: §8, "Windows 98") **Docking and Taskbar Properties** (plan 0020-w98 E4; `ClassicyTaskbarDock.internal.ts`, `ClassicyTaskbarProperties.internal.tsx`): a button-1 press on the taskbar's empty area (the bar, the bands around their buttons, the status area around its icons; never a button or a gripper) and a drag past Windows' drag rectangle (`CLASSICY_TASKBAR_DRAG_THRESHOLD_PX`, 4) carries it to the edge whose quarter of the desktop, cut by its diagonals, holds the pointer (`classicyTaskbarEdgeAt`, ReactOS `CTrayWindow::GetDraggingRectFromPt`), drawn there live (`dragging`), and the release, or a lost pointer stream, docks it there: `ClassicyDesktopTaskbarSetEdge { edge }` (`"top" | "right" | "bottom" | "left"`), stored as `System.Manager.Desktop.taskbar.edge` (absent, the bottom; read through `classicyTaskbarEdge`, which takes anything else as the bottom). The root carries `classicyTaskbarEdgeTop|Right|Bottom|Left`, and at a side `classicyTaskbarVertical`: the base stacks the regions in a column (the window buttons one under another, each a "row" of the paging, which measures down the band: the list's height, the items' `min-height`, its `row-gap`) and the package sets the width. The band lies on that edge (its width at a side; `setClassicyTaskbarBand(px, owner, edge)`, `getClassicyTaskbarInsets`/`useClassicyTaskbarInsets`, a `getClassicyTaskbarBand` of 0 off the bottom), so window geometry, maximize, Cascade and Tile, Clean Up's grid (which starts past a left or top band) and every menu's bounds keep to the work area it leaves (§4.1), and the Start menu and the tray's pop-ups open toward the desktop: below (flipping above from the bottom), or to the right of a side taskbar (flipping left from the right one). **Sizing** (shell addendum B5; WIG Ch.3 "The Taskbar", p.15; `ClassicyTaskbarSize.internal.ts`): the root's first child is `span.classicyTaskbarSizer` (`data-classicy-part="taskbar-sizer"`, `aria-hidden`), which the base lays along the inner edge (the side facing the desktop) and the package sizes (Windows 98: the bar's margin on that side, under the `resizeUd` cursor role with `ns-resize`, or `resizeLr` with `ew-resize` at a side; the arrow over the rest of the bar). A button-1 press on it with no modifier, then a drag, sizes the taskbar live (`classicyTaskbarSizeFor`, `classicyTaskbarThicknessAt`, `measureClassicyTaskbarSize`): at the top and bottom by whole rows of window buttons (the nearest, one at least, at most as many as keep it within half the desktop, `classicyTaskbarMaxRows`; a row's pitch is the Start button's height and the window buttons' `row-gap`), at a side in px between the Start button's width (with the bar's padding across) and half the desktop, as ReactOS's `CTrayWindow::CalculateValidSize` bounds it; the release, or a lost pointer stream, stores it for that edge, `ClassicyDesktopTaskbarSetSize { edge, size }` into `System.Manager.Desktop.taskbar.size[edge]` (kept per edge, as Windows keeps a rect per edge; read by `classicyTaskbarSize`, which takes anything invalid as one row, or the package's width at a side; persisted as it stands, no migration needed: absent is today's taskbar). A side taskbar takes its width inline; a top or bottom one past a row carries `classicyTaskbarRows` (the package lets its height follow its contents) and its window buttons' list `classicyTaskbarTasksRows` with `--classicy-taskbar-rows` and `--classicy-taskbar-columns` (the buttons a row holds, `ceil(count / rows)`, or the page's) inline, which Windows 98 lays as a grid filled a row at a time, each column between the buttons' least and greatest width (ReactOS `UpdateButtonsSize`); paging (`classicyTaskbarTasksPerPage`'s `rows`) starts only when every row is full, a page then being every row. The band publisher measures the bar as drawn, so the work area, maximize, the icon grid, Clean Up and every menu's bounds take the bigger band off the docked side, and the Start menu and tray pop-ups open toward the desktop as before. Button 2 on the sizer opens the taskbar's own menu. **Taskbar Properties**, the face of the Control Strip control panel under a taskbar (its window "Taskbar Properties", `CLASSICY_TASKBAR_PROPERTIES_TITLE`, which the taskbar menu's Properties opens; Windows 98 names the panel "Taskbar & Start Menu" through its `apps`), (`div.classicyTaskbarProperties`: a tab per page, each a `classicyTaskbarPropertiesPage`, the Documents group's note a `classicyTaskbarPropertiesText`, then the OK, Cancel and Apply row, `classicyTaskbarPropertiesButtons`) holds Windows 98 SE's two pages: Taskbar Options, the check boxes **Always on top**, **Auto hide**, **Show small icons in Start menu** and **Show Clock** (`CLASSICY_TASKBAR_PROPERTIES_OPTIONS`), stored on OK or Apply, never before (`ClassicyDesktopTaskbarSetOptions { options }`, each boolean given written to `taskbar.alwaysOnTop`, `autoHide`, `smallStartMenuIcons`, `showClock`; `classicyTaskbarOptions` gives Windows 98's defaults: on top, not hidden, large icons, the clock), with Apply dimmed until a choice changes and Cancel dropping them; and Start Menu Programs, whose Documents menu group's **Clear** empties Start ▸ Documents and the Run history (`ClassicyDesktopTaskbarClearHistory`); above Taskbar Options' check boxes its preview (`ClassicyTaskbarPropertiesPreview`, `div.classicyTaskbarPropertiesPreview`, `aria-hidden`), drawn from the page's choices before Apply as explorer.exe's dialog 6 draws it: the frame holds the desktop picture and, over it, `classicyTaskbarPropertiesPreviewStartMenu` (the large-icon Start menu) unless *Show small icons* is checked, `…PreviewTaskbar` unless *Auto hide* is, `…PreviewNoClock` over it while *Show Clock* is off, and `…PreviewWindow` (a window's edge over the taskbar) unless *Always on top* is; the base sheet only positions them, the package sizes, places and paints them (Windows 98: system art `taskbarPreview` and `taskbarPreviewShadow`, explorer.exe bitmaps 149–153); Windows 98's Customize Start menu group (Add..., Remove..., Advanced..., which edit a Start Menu folder Classicy has none of) are left out. *Always on top* off: the root carries `classicyTaskbarBelow` (z-index 15, under every window and over the desktop icons) except while it is in use (pressed or focused since a window was last activated, its Start menu open, being moved), as a taskbar that is not topmost comes forward when used; the work area stays reserved. *Auto hide*: the root carries `classicyTaskbarAutoHide`, takes no band (the work area is the whole desktop) and, `collapsed` while hidden, is slid off its edge by an inline `translate` to a 2 px strip (`CLASSICY_TASKBAR_AUTOHIDE_STRIP_PX`, `classicyTaskbarHiddenTranslate`), coming in 50 ms after the pointer reaches it and going 2 s after it leaves while nothing of it is open or focused (ReactOS `AUTOHIDE_DELAY_SHOW`, `AUTOHIDE_DELAY_HIDE`), at ReactOS's speeds (1 px per 10 ms away, 10 px per 10 ms back; `classicyTaskbarAutoHideDuration`, the inline `transition-duration`; none under reduced motion); its Start menu (CTRL+ESC included) shows it. *Show small icons in Start menu*: the Start menu carries `classicyStartMenuSmallIcons` and no banner. *Show Clock* off: no clock (a host's `DateAndTime.show: false` hides it either way). Every one of these is read only by the taskbar and the panel's taskbar face, which only a layout with `taskbar` mounts. |
 | `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
+| `ClassicyKeyboardManager` | none | the Keyboard control panel (`KeyboardManager.app`, "Keyboard"), mounted by `ClassicyControlPanels` only under the package's `layout.keyboard.editableShortcuts` (Windows 98; §8): a Shortcuts tab listing, under each mounted app's display name, the bundled commands that carry a shortcut (`CLASSICY_BUNDLED_MENU_SHORTCUTS`, `ClassicyKeyboardShortcutCatalog.ts`), each a `ClassicyKeyboardEquivalentField` writing `ClassicyDesktopSetShortcutOverride` (its `inUse` from `classicyKeyboardShortcutsInUse`: the app's other commands and `CLASSICY_NATIVE_EDIT_SHORTCUTS`), and Reset (`ClassicyDesktopResetShortcutOverrides`) |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
 | `ClassicyPixelArt` | `rows` (`string[]` of palette tokens, `.` transparent) **or** `art` (a `ClassicySystemArtKey` holding pixel art, read from the active package at render time), `className?`, `style?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors). `useClassicyPixelArtRows(key)` returns a key's rows; a package registers rows as system art with `encodeClassicyPixelArtRows(rows)` (a `data:text/x-classicy-pixel-art,…` source, `CLASSICY_PIXEL_ART_MIME`), and `decodeClassicyPixelArtRows(src)` reads one back outside React |
 
+#### Windows shell exports
+
+The Windows 95/98 shell (plan 0020-w98) adds these public helpers and types
+beside the `ClassicyTaskbar` row above. Each is inert under a layout without
+the flag it names: Platinum, System 7 and Storybook's `mirrored` package
+never reach them.
+
+| Export | Where | What it is |
+|---|---|---|
+| `ClassicyTaskbarProps` | `Taskbar/ClassicyTaskbar.tsx` | the taskbar's props (`disabledModules?`, `hideModules?`, `userName?`, `className?`, `style?`) |
+| `ClassicyStoreTaskbar` | `Desktop/ClassicyDesktopManager.tsx` | `System.Manager.Desktop.taskbar`, every field optional, Windows 98's default when absent: `quickLaunch`, `runHistory`, `shutDownChoice`, `edge`, `alwaysOnTop`, `autoHide`, `smallStartMenuIcons`, `showClock` |
+| `ClassicyTaskbarOptions`, `CLASSICY_TASKBAR_OPTION_KEYS` | the same | Taskbar Properties' four options as `ClassicyDesktopTaskbarSetOptions` takes them, and their keys |
+| `ClassicyDesktopSystemDialog` | the same | `systemDialog`'s values: `"emptyTrash"`, `"resetPram"` and the shell's `"shutDown"`, `"run"`, `"logOff"` (accepted only under `layout.taskbar`) |
+| `ClassicyShutDownChoice`, `CLASSICY_SHUT_DOWN_CHOICES`, `isClassicyShutDownChoice(v)` | the same | Shut Down Windows' choices in its order (`"standBy"`, `"shutDown"`, `"restart"`) and their guard |
+| `CLASSICY_RUN_HISTORY_LIMIT`, `classicyRunHistoryWith(history, command)` | the same | Run's history size (26, RunMRU's a to z) and the history with `command` first, once (compared without case), cleaned |
+| `classicyWindowsMinimize(ds)`, `classicyHasTaskbar(ds)` | `AppManager/ClassicyAppHelpers.ts` | store-free reads of the stored package's `window.collapse: "minimize"` and `taskbar` |
+| `isClassicyPrimaryWindow(w)`, `isClassicyWindowMinimized(w)`, `isClassicyWindowShown(app, w)`, `classicyAppPalettesHidden(app)` | the same | a window that is neither modal nor a palette; a collapsed primary window; a window on screen under minimize (open, not minimized, a palette not hidden with its app); an app whose every open primary window is minimized |
+| `classicyAttentionWindow(app, windowId?)`, `requestClassicyAppAttention(ds, appId, windowId?)` | the same | the window whose button stands for an app asking for attention, and the reducer step behind `ClassicyAppRequestAttention` (returns whether it set `attention`) |
+| `isClassicyWindowRestoreRect(v)`, `hasWindowZoomed(m)` | `AppManager/ClassicyActionPredicates.ts` | a valid `{ position, size }` rect (`restoreRect`, `ClassicyWindowZoom`'s `restore`), and the zoom payload guard that checks it |
+| `ClassicyStoreSystemAppWindowRect` | `AppManager/ClassicyAppManager.ts` | `{ position: [x, y], size: [w, h] }`, a window's persisted `restoreRect` |
+| `ClassicyMaximizedWindowRect`, `ClassicyMaximizedWindowRectInput`, `ClassicyWindowChromeEdges` | `Window/ClassicyWindowMaximize.ts` | `classicyMaximizedWindowRect`'s result, input (the desktop's size, the menu bar's band, the taskbar's insets, the window's chrome) and the chrome on each side |
+| `ClassicyWindowSystemMenuCommand` | `Window/ClassicyWindowSystemMenu.ts` | the window pop-up menu's commands (`restore`, `move`, `size`, `minimize`, `maximize`, `close`), each a window registry command |
+
 Desktop icon `kind` values (sort order): `drive`, `directory`, `app_shortcut`,
-`shortcut`, `trash`, `file`, `icon`. Kinds `app_shortcut` and `shortcut` get
-the Mac OS 8 alias arrow badge + italic label (`isAliasKind(kind)` predicate is
-exported). Trash and drive icons carry stock balloon help automatically
+`shortcut`, `trash`, `file`, `icon`, and `file_shortcut` (a Desktop Folder
+item that is a file shortcut, `classicyDesktopItemIconAction`). Kinds
+`app_shortcut`, `shortcut` and `file_shortcut` get the alias arrow badge +
+italic label (`isAliasKind(kind)` predicate is exported) under every
+package. Trash and drive icons carry stock balloon help automatically
 (`defaultBalloonForKind(kind, title)`).
 
 ### 4.8 Balloon help
@@ -1435,7 +2281,7 @@ exported). Trash and drive icons carry stock balloon help automatically
 </ClassicyBalloonHelp>
 ```
 
-- Positions: `top-left | top-center | top-right | bottom-left | bottom-center | bottom-right` (default `top-left`); `delay` default 600 ms.
+- Positions: `top-left | top-center | top-right | bottom-left | bottom-center | bottom-right` (default `top-left`); `delay` default the package's `layout.balloonHelp.delayMs`, else 600 ms.
 - Rendered via portal into `#classicyDesktop`, so never clipped by overflow.
 - The wrapper is `position: relative; display: inline-block`. If that breaks
   your layout, use the hook instead — zero added DOM:
@@ -1446,6 +2292,115 @@ return <div ref={myRef} {...handlers}>target{balloon}</div>
 ```
 
 - Globally disabled via `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`.
+- The hook's optional third argument, `{ force: true }`
+  (`ClassicyBalloonHelpOptions`), shows the balloon even while balloon help
+  is turned off: for a tooltip rather than a help balloon, which Windows
+  shows whatever the toggle says (`ClassicyTaskbar`'s window buttons use it
+  for a title cut short, WIG Ch.3 "Window Buttons", p.15). Omitted, or
+  `force: false`, the toggle hides it as before; a `config` is still needed.
+- Where it goes is the active package's `layout.balloonHelp.placement` (§8,
+  "Layout declarations"). `anchor` (the default; Platinum, System 7): against
+  the anchor, on the side `position` prefers, flipped where there is no room,
+  its tail pointing at it. `pointer` (Windows 98's ToolTip; WIG Ch.7
+  "Tooltip Controls", p.133): it opens once the pointer has rested on the
+  anchor for the delay (a move restarts the wait), with its top-left corner at
+  the pointer's hot spot and no tail: below the pointer, its container
+  carrying `classicyBalloonHelpPointerBelow` (the package's stylesheet sets
+  how far under the cursor: Windows 98 `margin-top: var(--tooltip-pointer-offset)`,
+  20 px, Wine's TOOLTIPS_Show), moved left to end at the desktop's right edge
+  (never past its left), and above the anchor where it would pass the
+  desktop's bottom (`classicyBalloonHelpPointerAbove`, its bottom at the
+  anchor's top; Windows 98 two pixels clear); a shown tip stays where it
+  opened. A press on the anchor hides it, and cancels a pending one, until the
+  pointer leaves. The pointer is followed by `mousemove` and `mousedown`
+  listeners the hook adds to the anchor element itself, so `handlers` keeps
+  its keys (`onMouseEnter`, `onMouseLeave`, `aria-describedby`) and never
+  overrides the anchor's own handlers (a desktop icon's drag). The settling
+  is `resolveBalloonPointerPlacement(point, box, bounds)`, exported beside
+  `resolveBalloonPosition`.
+- What's This? and F1, under the package's `layout.balloonHelp.contextHelp`
+  `"whatsThis"` (§8; Windows 98; WIG Ch.12 "Context-Sensitive Help",
+  pp.273-275; App. B Table B.2): the help a balloon shows is also the
+  element's context-sensitive Help. Every anchor given a config is
+  registered with it (`registerClassicyHelpAnchor`, a WeakMap, whatever the
+  layout and whether balloons are shown; nothing changes on the page), and
+  `BalloonHelp/ClassicyWhatsThis.internal.ts` (internal, not in the barrel)
+  holds the mode: `startClassicyWhatsThis(scope?)` (a window's root, else
+  the active window; again, it ends the mode), `stopClassicyWhatsThis()`,
+  `useClassicyWhatsThisActive()` and `showClassicyContextHelp(anchor, at?)`.
+  While the mode is on (session state, never persisted) the document
+  element carries `classicyWhatsThisMode` and the active window shows the
+  `help` cursor role (`--classicy-cursor-help`, else the browser's `help`
+  keyword; `ClassicyBalloonHelp.scss`); a button-1 or button-2 press in the
+  scope is swallowed with the rest of that press: on an element with help
+  (itself or its nearest described ancestor) it shows that help as a
+  pop-up at the press and ends the mode, on anything else it keeps the
+  mode. A press on a menu title or item, or button 2 on a
+  `ClassicyContextualMenuTarget`, passes through and keeps the mode until
+  the menu closes; a control carrying `data-classicy-whats-this` (the
+  command's own "?" box) passes through too; Escape (taken from everything
+  else, a dialog's Cancel included), a press outside the scope (which goes
+  on to what it pressed), the window losing focus or the command again ends
+  it. The pop-up (`ClassicyWhatsThisPopup`, mounted by
+  `ClassicyContextualMenuProvider`) is `classicyBalloonHelpContainer` >
+  `classicyBalloonHelp classicyBalloonHelpContext` (`role="tooltip"`, the
+  title and text as a balloon's) in `#classicyDesktop`, centered across the
+  press with its top there, or below an element (F1, a call with no point),
+  kept on the desktop (`resolveClassicyContextHelpPlacement`, WinHelp's
+  placement as Wine's winhlp32 has it); the next press or key (not a bare
+  modifier), which it takes, or the window losing focus closes it. F1 (no
+  modifier) shows the focused element's help below it, or, with none,
+  dispatches `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`; Shift+F1 starts or ends
+  the mode on the active window (`useClassicyContextHelpKeys`, mounted by
+  the provider; keys outside the desktop are left alone, both taken with
+  `preventDefault`). A right-click on a described control in a window that
+  opens no menu of its own shows a menu holding "What's This?" alone
+  (access key W, user.exe's "&What's This?"), which shows the help at the
+  click. Without the key none of this runs: F1 and Shift+F1 stay the
+  browser's, and the functions do nothing.
+- `useClassicyBalloonHelp(ref, config, options?)`: `options.force` shows
+  the balloon even while balloon help is turned off (`disableBalloonHelp`),
+  for a tip that is a tooltip (the shell's step 4 contract,
+  `ClassicyBalloonHelpOptions`); omitted, the toggle hides it as before.
+- ToolTip timing and gating, each under its key of the package's
+  `layout.balloonHelp` (§8; Windows 98; WIG Ch.12 "Tooltips", p.276;
+  Wine's `tooltips.c`), every key absent keeping the behavior above
+  (Platinum, System 7): `delayMs` is the wait where the config names no
+  `delay` (Windows 98 500, the double-click time); `reshowMs` (100): a tip
+  whose pointer arrives within that long of leaving another *shown* tip's
+  element, page-wide (a module stamp), waits only that long, for its whole
+  visit (TTDT_RESHOW, "moved from one to another"; the WIG's "display the
+  new tooltip immediately"); `autoPopMs` (5000): a shown tip hides after
+  that long without a pointer move over its element (each move restarts
+  it), and stays hidden until the pointer leaves; `hideOnPress`: a press
+  (`pointerdown` or `mousedown`) on the element hides the tip, or cancels
+  its wait, until the pointer leaves, at the anchor too (at the pointer it
+  always did); `activeWindowOnly`: an element in an inactive window
+  (its `.classicyWindow` root without the `active` state, read from the
+  document when the tip would show and watched while it shows, so the hook
+  imports nothing of the window's) shows no tip, a shown one hides
+  when its window goes inactive, and the next move or arrival starts again
+  once it is active; an element outside any window (desktop icons, the
+  taskbar) is unaffected. The What's This? pop-up is not a tip and follows
+  none of these.
+- `unlabeledTips` (Windows 98; WIG Ch.12 "Tooltips", p.276, Figure 12.6;
+  App. C "User Assistance", p.364): a `ClassicyBevelButton` with no text
+  children and an accessible name (`aria-label`, else `iconAlt`) shows that
+  name as its tip, forced (`force`), through a small internal component
+  mounted only while there is one (`ClassicyBevelButtonTip`), so a button
+  without adds no hook and no DOM; the tip's id joins the button's
+  `aria-describedby` while it shows. A toolbar's icon-only buttons
+  (`ClassicyButtonToolbar`) are named this way.
+- The rich text editor's toolbar tips (MDXEditor's Radix tooltips): under
+  every package (the audit's 12.10; a defect everywhere), they open in a
+  `classicyRichTextEditorPopups` element the editor appends to its root's
+  `.classicyDesktop` (`document.body` outside one), MDXEditor's
+  `overlayContainer` from the first render, so the package draws
+  `.classicyRichTextEditorPopups [data-radix-popper-content-wrapper] > *`:
+  Platinum's and System 7's help balloon box (white, a one-pixel black
+  line, the balloon's round corners, padding, widths and text; no tail),
+  Windows 98's ToolTip. The base sheet gives it only the balloons' z-index
+  (100000), so it shows above the windows.
 
 ### 4.9 QuickTime media primitives
 
@@ -1503,7 +2458,7 @@ off:
 | `QuickTimePictureViewer` | Picture viewer | `disablePictureViewer` |
 | `WebViewer` | Web browser | `disableWebViewer` |
 | `Calculator` | Four-function calculator (Apple menu and Applications) | `disableCalculator` |
-| `AppleGuide` | Help system extension | always on |
+| `AppleGuide` | Help system extension: a window per open topic (`AppleGuideWindow`) and, under `layout.help.topicWindow` `"winhelp"` (§8), the Help Topics browser (`ClassicyHelpTopics`) while it is open | always on |
 
 The components are still individually exported (all take no props) for
 advanced setups that build their own desktop shell. The four control panels
@@ -1541,6 +2496,13 @@ dispatch({
 | | `ClassicyAppPictureViewerOpenFile` / `CloseFile` | `{ path: string }` |
 | PDF Viewer (`PDFViewer.app`) | `ClassicyAppPDFViewerOpenFile` / `CloseFile` | `{ path: string }` (FS path only) |
 | Web Viewer (`WebViewer.app`) | `ClassicyAppWebViewerOpenUrl` / `CloseUrl` | `{ url*: string, title?: string }`; `url` is the window identity — re-opening focuses the existing window |
+
+Opening a file that is already open brings its app forward with the app's
+last-focused window; under a package's `layout.document.reopenActivates`
+(§8; Windows 98) the file's own window comes forward instead, in the generic
+`ClassicyApp${name}OpenFile` route and the Movie Player's, Picture Viewer's
+and PDF Viewer's `OpenFile` cases (`focusClassicyReopenedWindow`, which an
+app with its own reducer calls with its own window key).
 
 Exported zod schemas / types / guards: `MoviePlayerOpenFileSchema`,
 `MoviePlayerData`/`isMoviePlayerData`, `PictureViewerOpenFileSchema`,
@@ -1606,6 +2568,15 @@ registerClassicyWallpapers('platinum', [{ name: 'Bubbles', file: 'bubbles.png', 
 registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
 ```
 
+- **Document icons by type.** The icon tree's optional `system.files.byType`
+  family (`system.files.byType.<type>`, a `ClassicyFileSystemEntryFileType`
+  value) is the document icon of an entry of that type that stores none of
+  its own: `iconImageByType(type, packageId?)` reads it (the active or given
+  package, then the default package) before the generic
+  `system.files.file`. Platinum and System 7 register none, so every type
+  draws the generic page as before; Windows 98 registers the text document,
+  Imaging's, and the video and sound clips (WIG Ch.10 "Registering Icons",
+  p.200; the audit's 10.4).
 - **Deep merge.** Registration merges into the package's tree for that kind:
   new leaves are added, an existing leaf is replaced, and sibling entries are
   kept. `registerClassicyIcons({ system: { files: { document } } })` therefore
@@ -1736,7 +2707,13 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   `"platinum"`, where the core's icon tree registers), else `undefined`.
   Components use `?? ""`. `variant` defaults to the active theme's when that
   theme belongs to the package, even when `packageId` is given; `""` reads
-  the base tree alone. `resolveClassicyThemeAsset(kind, dottedPath, theme)`
+  the base tree alone. `resolveClassicyOwnAsset(kind, dottedPath, packageId?,
+  variant?)` (and the hook `useClassicyOwnAsset(kind, path)`, for the active
+  package) reads the package's own variant and base trees only, never the
+  default package's: `undefined` says the package registered nothing there
+  itself (the taskbar draws its Start flag and Start menu banner from a
+  package's own `appleMenu` and `startMenuBanner` art only, never
+  Platinum's Apple). `resolveClassicyThemeAsset(kind, dottedPath, theme)`
   resolves for a theme that need not be active (a preview of a sibling
   theme): `theme.package` (Platinum when absent) at `theme.assetVariant`,
   else its base tree, never the active theme's variant, with no warning.
@@ -1831,8 +2808,9 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   active theme draws those keys differently.
   - **Store core URLs.** Code that stores an icon stores the core's
     (`resolveClassicyAsset("icons", path, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`,
-    `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`), never the
-    active package's, so the stored bytes are the same under every package
+    `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`, the
+    generic page, since the default package registers no
+    `system.files.byType` key), never the active package's, so the stored bytes are the same under every package
     and nothing keeps another package's art after a switch. The file system
     does this for new folders, the derived folders, the Desktop Folder's
     desktop icons, and the Open and Save dialogs' volumes (their entries'
@@ -1968,7 +2946,7 @@ two source trees:
 |  | `classicyWindowInactive` | `.classicyWindow.inactive` |
 |  | `classicyWindowCollapsed` | `.classicyWindow.collapsed` |
 |  | `classicyWindowDragging` | `.classicyWindow.dragging` |
-|  | `classicyWindowZoomed` | none (it had no rule; a zoomed window carries no class) |
+|  | `classicyWindowZoomed` | `.classicyWindow.expanded` (since 3.8; it had no rule, and before 3.8 a zoomed window carried no class) |
 |  | `hidden` | `.classicyWindowContents.collapsed` / `.classicyWindowContentsModal.collapsed` (the window's contents while collapsed); the global `.hidden` utility is gone |
 |  | `block` | none (the contents of an expanded window carry no extra class) |
 | ClassicyButton | `classicyButtonDefault` | `.classicyButton.default` |
@@ -2224,7 +3202,9 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   `ClassicyMenuItem` with `checked` set (`true`, `false` or `"mixed"`) renders
   as `role="menuitemcheckbox"` with that `aria-checked` (§4,
   `ClassicyMenuItem`), so `getByRole("menuitem", { name })` misses it; query
-  `menuitemcheckbox`. A HyperCard tools-palette entry is `role="button"` with
+  `menuitemcheckbox` (and, since 3.8, `menuitemradio` for an option item,
+  one with `mark: "bullet"`, such as Finder's View as Icons / View as
+  List). A HyperCard tools-palette entry is `role="button"` with
   `aria-pressed` (a toggle: pressing the armed entry again disarms it).
 - **Caption colors are custom properties.** A `captionStyle`'s colors reach
   the cue as `--classicy-caption-fg`/`-bg` and their `-alpha` properties,
@@ -2347,7 +3327,7 @@ the `crashScreen.artWidth` knob and the `controlStripPopup` family (now
 
 ### System art
 
-`ClassicySystemArtKey` is a union of 45 keys. Platinum registers 36 of them;
+`ClassicySystemArtKey` is a union of 46 keys. Platinum registers 36 of them;
 the rest resolve to `undefined` and their consumers fall back to the stylesheet
 default (or draw nothing). Each registered entry is published on the desktop
 root as `--classicy-art-<kebab-key>` (pixel art excepted: its
@@ -2367,7 +3347,7 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `halftone`, `halftoneLarge` | the open-icon dot pattern (the mask of `platinum-halftone`'s `::before`, no fallback) and the pre-boot dither |
 | `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
-Unregistered by Platinum (9 keys): `newFolderGlyph` (pixel art the file
+Unregistered by Platinum (10 keys): `newFolderGlyph` (pixel art the file
 dialog's New Folder button draws after "New", in its part
 `classicyFileDialogNewGlyph`, which the base sheet hides; System 7 shows it
 and hides the noun part `classicyFileDialogNewNoun`), `openFolderIcon` (the
@@ -2384,7 +3364,12 @@ Platinum's menu partial), `ditherChecker` (the dither vocabulary's checker
 tile, a mask, §8 "Dither vocabulary"; Platinum draws no dithers) and
 `helpMenuTitle` (the menu bar draws it in place of the Help menu's title
 text when the active package registers it, else the word "Help", which
-stays the image's `alt`; Platinum titles its Help menu with the word).
+stays the image's `alt`; Platinum titles its Help menu with the word) and
+`startMenuBanner` (the Windows shell's Start menu banner bitmap: the taskbar
+draws it while the active package registers its own, marking the banner
+`classicyStartMenuBannerArt` and naming it with the layout's
+`taskbar.startBanner` text, else that text; Windows 98 registers Explorer's
+bitmap 157; Platinum and System 7 have no taskbar).
 
 The window, menu, pop-up, slider, tab and QuickTime art is drawn as **image layers**,
 never masks, so it shows the colors the file holds (`currentColor` draws black
@@ -2414,8 +3399,11 @@ a file: the same mask is fetched there, but the layer it masks draws
 nothing in color (`menuBar.titleArtInvert` is 0), so a mask dropped there
 changes no pixel. The masks that remain are the icons'
 `--classicy-icon-mask` (the icon's own image, any URL the host gives, and
-the alias badge): a host serving those from another origin must send CORS
-headers, in every engine.
+the alias badge; `ClassicyFileBrowser`'s list rows,
+`classicyFileBrowserViewTableRowContainer`, carry it too, the row's icon,
+for a package that draws a selected icon through its shape, as Windows 98
+does, while the row's `<img>` is unchanged): a host serving those from
+another origin must send CORS headers, in every engine.
 
 The four title-bar cap keys (`titleBarCapLeft`, `-Right`, `-LeftRed`,
 `-RightRed`) and the split windoid keys (`windowUtilityShade`,
@@ -2457,16 +3445,28 @@ own form table, `"image"` or `"pixelArt"` per key, is exhaustive the same way).
 
 `ClassicyCursorRole`: `arrow`, `watch`, `hand`, `ibeam`, `crosshair`,
 `resizeLr`, `resizeUd`, `resizeNwse`, `resizeNesw`, `resizeU`, `resizeD`,
-`resizeL`, `resizeR`. Platinum registers `arrow`, `watch`, `hand`, `resizeLr`,
+`resizeL`, `resizeR`, `help`, `notAllowed`, `appStarting`. Platinum registers `arrow`, `watch`, `hand`, `resizeLr`,
 `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR`; `ibeam`, `crosshair`,
 `resizeNwse` and `resizeNesw` have no Platinum file and stay unregistered, so
-the browser's own cursor shows for them.
+the browser's own cursor shows for them. `help` is the contextual Help
+pointer What's This? shows over the active window (§4.8; WIG Ch.12 p.273,
+Figure 12.2), read as `--classicy-cursor-help` with the browser's `help`
+keyword behind it; Mac OS had no such mode, so neither Platinum nor System 7
+registers it. `notAllowed` (Windows' Unavailable, the slashed circle) and
+`appStarting` (Working in Background, the arrow with a small hourglass; WIG
+Ch.4 Table 4.1) are read only by the Windows 98 package's stylesheet (a
+refused drop's `data-classicy-drop="none"`, a loading PDF), as
+`--classicy-cursor-not-allowed` and `--classicy-cursor-app-starting` with
+the browser's `no-drop` and `progress` keywords behind them; Windows 98
+registers USER.EXE's cursors 110 and 111, and no Mac package registers
+either.
 
 `useClassicyCursor()` returns a stable `setCursor(role?)` that reads the role
 from the registry at call time and sets `document.body.style.cursor`; a role
 with no registered cursor (or no argument) restores the default. For a cursor
 over one element, use CSS instead: `cursor: var(--classicy-cursor-<role>,
-url('data:,')) <x> <y>, <keyword>` (the window grow box and the split-view
+url('data:,')) <x> <y>, <keyword>` (the window grow box, a window's sizing
+border under `layout.window.frameEdges: "resize"`, §4.1, and the split-view
 dividers do this; inside a desktop, `.classicyDesktop { cursor: default }`
 hides a body cursor anyway).
 
@@ -2573,6 +3573,22 @@ colon-separated paths (`Macintosh HD:Documents:note.txt`). Access it with the
 `mkDir`, `rmDir`, `move`, `load`, `setMetadata`) — never touch `fs.fs` or entries
 directly.
 
+**Names are compared without case, and kept as typed**, as on HFS (Mac OS 8,
+System 7) and FAT (Windows 95/98), under every package: `resolve`, `move`,
+`writeFile`, `mkDir`, `rmDir` and `setMetadata` find `Macintosh
+HD:Documents:Plan.txt` by `macintosh hd:documents:PLAN.TXT`, `move` refuses a
+destination (or a new `name`) whose folder holds another entry of that name in
+any case as `exists` (a change of case alone renames in place), `writeFile` of
+a case-only twin replaces it under its stored name, `mkDir` keeps a folder
+already there under another case, and the Trash numbers a case-only clash. An
+exact spelling always wins, so a tree saved before this rule, which may hold
+twins such as `Plan.txt` beside `plan.txt`, keeps each reachable by its own
+name (another spelling finds the first in the folder's order). Journal
+entries and returned paths spell every name as stored. `fs.storedPath(path)`
+returns that spelling (or `undefined`), and `classicyFileSystemEntryKey(parent,
+name)` the key a name is stored under in a folder object (exact first; only
+entries, never `_` metadata, match without case).
+
 All instances for one storage key share a single live tree: a mutation through
 any of them is visible through every one, and is announced to
 `subscribeClassicyFileSystem(storageKey, listener)` (snapshot:
@@ -2589,11 +3605,65 @@ patched onto the entry in the same journaled move, `undefined` values removing
 keys),
 reason one of `missing`, `not-a-folder`, `same-folder`, `into-itself`, `locked`
 (drive, `_system`, `_readOnly` item, or read-only source/target folder),
-`exists` (never replaces). `moveClassicyFileSystemItems(fs, paths, destination,
-dispatch, { desktopLocation? })` (`ClassicyFileMove.ts`) is the Finder's
+`exists` (never replaces). `renameClassicyFileSystemItem(fs, path, name,
+dispatch)` renames in the item's own folder through `fs.move` (a change of
+case alone included), dispatches `ClassicyAppFinderPathsMoved`, re-places a
+Desktop Folder item's icon where it was, refuses an empty name, `:` or a
+leading `_` as invalid and every `move` refusal in an alert, and returns the
+new path; under `layout.files.names` "windows" a name holding one of `\ / : *
+? " < > |` is refused in Windows 98's "Rename" box instead. The naming rules
+are store-free in `ClassicyFileNames.ts`: `isClassicyValidFileName(name,
+packageId?)` (Windows' nine characters refused under `files.names`
+"windows", else `:` alone), `classicyFileNameRefusal(packageId?)` (Windows
+98's text, else undefined), `CLASSICY_WINDOWS_FORBIDDEN_FILE_NAME_CHARACTERS`,
+`CLASSICY_WINDOWS_FILE_NAME_REFUSAL`, and `classicyFirstFreeName(fs, folder,
+base, { extension? })` / `classicyFirstFreeNameAmong(names, base, {
+extension? })`, the first free of "base", "base (2)", "base (3)"… compared
+without case, the extension after the number. `fs.copy(path, toFolderPath, {
+name? })` → `{ ok: true, path }` | `{ ok: false, reason }` (Explorer's Copy
+and Paste, §7 "Cut, Copy and Paste") copies deeply, the original kept: every
+entry of the copy a new one created now (`_createdOn`), its other fields as
+the original's (`_modifiedOn`, `_readOnly` and `_icon` included), the
+entries a derived overlay generated left out, and the Trash's markers and a
+placeholder's mark dropped (`CLASSICY_COPY_DROPPED_METADATA`); it keeps the
+original's name, else, where the destination holds that name in any case,
+takes Windows 95's "Copy of <name>", "Copy (2) of <name>"…
+(`classicyFirstFreeCopyName(taken, name)`, shell32.dll's "Copy () of "
+template; the WIG wrote "Copy 2 of Sample"), so it never replaces; `name`
+names it instead. Reason one of `missing` (also an unusable `name`),
+`not-a-folder`, `into-itself`, `locked` (a drive, `_system` or `_derived`
+entry, or a read-only, system or derived destination: the Trash takes no
+copy) and `exists` (a `name` taken). Journaled as one `copy` (§7
+"Mirroring to a backend"). `moveClassicyFileSystemItems(fs, paths, destination,
+dispatch, { desktopLocation?, desktopLocationFor? })` (`ClassicyFileMove.ts`) is the Finder's
 wrapper: moves, dispatches `ClassicyAppFinderPathsMoved { moves: {from, to}[] }`
 (Finder windows follow moved folders), places desktop icons, and shows an alert
-for the first refusal.
+for the first refusal; a desktop destination's icons go to `desktopLocation`,
+stepping down, else where `desktopLocationFor(index)` puts each, asked as
+each is placed (a Paste's next free cells), else the desktop is laid out
+afresh. `copyClassicyFileSystemItems(fs, paths, destination, dispatch, {
+desktopLocation?, desktopLocationFor? })` is its copy, the same options
+placing the copies' desktop icons, dispatching nothing for the originals,
+and returning the copies made. `desktopLocationFor(index, from)` is also
+given the original's path, so a copy's icon can go where its original's
+outline was let go (`classicyDesktopIconLocation(options, index, from)`,
+exported, resolves the options for one icon). `activateClassicyDropWindow(target, dispatch)`
+activates an inactive Finder window a drop landed in, under
+`layout.transfer.activateDropWindow` (§8). A drop's effect (a copy or
+shortcuts, under `layout.transfer`'s copy modifier and transfer menu, §8)
+goes through `transferClassicyFileSystemItems(fs, paths, destination,
+dispatch, effect = "move", options?)` (`File/ClassicyFileCommands.internal.ts`):
+`"move"` is `moveClassicyFileSystemItems`, `"copy"`
+`copyClassicyFileSystemItems`, and `"link"`
+`linkClassicyFileSystemItems(fs, paths, destination, dispatch, options?)`, a
+shortcut to each item in the tree and not in the Trash ("Shortcut to
+<name>", "Shortcut (2) to <name>"), its desktop icon placed by the options
+(else the first free cell) and the new icons selected; a folder that takes
+no new item (the Trash, a read-only, system or derived folder) takes none,
+Windows 98's offer of the desktop instead being asked
+(`ClassicyAppFinderOfferDesktopShortcut`). Each returns what it
+transferred, `{ from, to }[]`; Finder's drop handler uses it, as the
+desktop's (`moveDesktopItems` in `ClassicyDesktop`, by the drop's effect) does.
 
 **Trash** (`ClassicyTrash.ts`): a root-level folder `CLASSICY_TRASH_PATH`
 (`"Trash"`), made by `ensureClassicyTrash(fs, icon?)` (Finder runs it on every
@@ -2613,12 +3683,51 @@ paths, locations?)` records `_trashed`/`_trashedFrom`/`_trashedName`/
 puts items back (refusals add `no-origin`); `emptyClassicyTrash`;
 `listClassicyTrashItems`, `isInClassicyTrash`, `isClassicyTrashItem`. Finder
 wrappers with alerts and icon handling: `moveClassicyItemsToTrash(fs, paths,
-dispatch)`, `restoreClassicyTrashItems(fs, paths, dispatch)`. A drop on the
-Trash routes through `moveClassicyFileSystemItems`. Special menu:
+dispatch, { confirmed?, trust? })`, `restoreClassicyTrashItems(fs, paths,
+dispatch)`. A drop on the Trash routes through `moveClassicyFileSystemItems`.
+Under `layout.finder.commands` "windows", while Finder is mounted
+(`classicyDeleteConfirms()`), `moveClassicyItemsToTrash` moves nothing and
+returns `[]`: it dispatches `ClassicyAppFinderConfirmDelete { paths }` under
+`trust` (Finder's data `confirmDelete: { paths, trust }`, session-only), and
+Finder shows Windows 98 SE's Confirm File Delete box
+(`classicyDeleteConfirmation`), whose Yes calls it again with `confirmed`,
+its follow-up dispatches under the request's trust, and whose No moves
+nothing (`ClassicyAppFinderConfirmDeleteClose`), so every route asks: the
+menus, the browsers' and the desktop's Delete and ⌃⌫, and a drop on the
+Trash. Special menu:
 `ClassicyDesktopShowSystemDialog { dialog: "emptyTrash" | "resetPram" | null }`
 (`Desktop.systemDialog`, never persisted, like the refusal alerts'
 `Desktop.errorDialog`); `classicySpecialMenuItems(dispatch,
-idPrefix)` and `ClassicyEmptyTrashAlert` are the shared pieces.
+idPrefix, trashName?)` and `ClassicyEmptyTrashAlert` are the shared pieces, The same
+action opens the Windows shell's own dialogs, `"shutDown"`, `"run"` and
+`"logOff"` (`ClassicyShellSystemDialog`, `CLASSICY_SHELL_SYSTEM_DIALOGS`,
+`isClassicyShellSystemDialog`; plan 0020-w98 E2), but only while the active
+package's layout declares `taskbar` (§8, "Layout declarations"): under any
+other layout they are unknown values and close the dialog, as before.
+`SYSTEM_DIALOG_WINDOW_IDS` names each dialog's window (`shut_down`, `run`,
+`log_off`). Finder's open also records each document it opens (a file it
+routes to an app or opens itself, a legacy QuickTime document; a trusted
+open only; never a program, a folder or a refused file) in the session's
+recent documents (`ClassicyRecentDocuments.internal.ts`: most recent first,
+once, at most 15, store-free and never persisted, a move renaming them),
+which the Windows shell's Start ▸ Documents lists (§4.7, `ClassicyTaskbar`).
+each naming the Trash as the package shows it (`useClassicyTrashName`,
+Windows 98's "Recycle Bin", §8 "Desktop icon overrides"). Under
+`layout.finder.commands` "windows" the alert is Windows 98 SE's own
+confirmation (`classicyEmptyTrashConfirmation(itemCount, only?)`,
+shell32.dll's strings): one file "Confirm File Delete" / "Are you sure you
+want to delete '<name>'?", one folder "Confirm Folder Delete" / "Are you
+sure you want to remove the folder '<name>' and all its contents?", more
+"Confirm Multiple File Delete" / "Are you sure you want to delete these
+<n> items?", Yes (the default) and No, the lone item's original name read
+through the file system accessor; an empty Recycle Bin gets the note "The
+Recycle Bin is empty.", since Windows dimmed the command instead and the
+desktop renders the alert whenever it is asked for. Elsewhere it is worded
+as Mac OS 8 wrote it. Once the
+alert's OK removes something, the desktop plays `ClassicyTrashEmpty`
+(`ClassicySoundPlayInterrupt`), an optional sprite (§10): Windows 98's pack
+plays its Empty Recycle Bin sound, and a pack without it, Platinum's and
+System 7's, plays nothing.
 
 ### Entry format
 
@@ -2628,12 +3737,13 @@ An entry is a plain object: underscore-prefixed keys are metadata
 
 | Field | Type | Meaning |
 |---|---|---|
-| `_type` * | `ClassicyFileSystemEntryFileType` | one of `file, shortcut, app_shortcut, extension, drive, directory, text_file, markdown, pdf, image, video, audio, stack` |
+| `_type` * | `ClassicyFileSystemEntryFileType` | one of `file, shortcut, app_shortcut, extension, drive, directory, text_file, markdown, pdf, image, video, audio, stack, file_shortcut` |
 | `_mimeType` | `string` | MIME type |
 | `_creator` / `_format` | `string` | select the opening application for the file |
 | `_label` / `_comments` | `string` | standard Mac metadata fields |
 | `_url` | `string` | URL to fetch content from; also the target of a `shortcut` |
 | `_openIn` | `"classicy" \| "browser" \| "browser-new"` | how a shortcut's `_url` opens (absent = `"classicy"`, the in-desktop WebViewer window) |
+| `_targetPath` | `string` | for a `file_shortcut`, the path of the entry it opens, as stored when it was made; a target moved, renamed or trashed since leaves it pointing at nothing (see "File shortcuts" below) |
 | `_data` | `unknown` | file contents; a string read via `resolveFileSystemEntrySource` is gzip+base64url bytes and takes precedence over `_url` |
 | `_icon` / `_badge` | `string` / `ReactNode` | icon URL / badge overlay |
 | `_createdOn` / `_modifiedOn` | `Date` | timestamps |
@@ -2651,30 +3761,476 @@ format. Seed-tree helpers for the provider's `defaultFileSystem` prop:
 `DefaultFSContent` (the stock tree) and `mergeClassicyFileSystemEntries`.
 A live tree is seeded from a deep copy of its default tree, so neither
 `DefaultFSContent` nor a host's `defaultFileSystem` is ever changed by edits.
+`getClassicySharedFileSystem(storageKey? = "classicyStorage", separator?)`
+(`ClassicyFileSystem.ts`) is a store-free reader of the live tree already
+shared under a key, `undefined` while no instance has read one; it never
+seeds, reloads or persists a tree (Finder's reducer resolves a file
+shortcut's target through it).
+
+### Property sheets
+
+Explorer's Properties (WIG Ch.2 "Putting Theory into Practice", pp.12-13;
+Ch.5 "Properties", p.51; App. B Table B.2, p.358; the audit's 2.2, 5.27 and
+B.10), reached from Finder's and the desktop's menus, Alt+Enter and an Alt
+double-click under `layout.finder.commands` "windows" (§8): Finder renders
+one `ClassicyFilePropertiesWindow` (`src/SystemFolder/Finder/`) for each
+sheet in its data's `properties` (session-only: `sanitizeStateForPersistence`
+drops it and every `properties:` window record, as Windows reopens no sheet
+after a restart), opened by `ClassicyAppFinderPropertiesOpen { paths }` (an
+item, or a multiple selection) or `{ appId }` (an application's desktop
+icon), which brings the sheet forward when it is open (`focusWindow`) rather
+than opening a second, and closed by `ClassicyAppFinderPropertiesClose { key }`,
+which drops its window record too, so the next opens where Windows opens
+one. A sheet follows its items when they move or are renamed (Finder's
+`ClassicyAppFinderPathsMoved`, its window record moving with it).
+
+| Export (`File/ClassicyFileProperties.ts`, store-free) | What it does |
+| --- | --- |
+| `classicyPropertiesKey(target)` | a sheet's key: one path, several sorted paths joined by `::` (an empty name no path holds), or `:` and an app id (a leading separator no path has) |
+| `classicyPropertiesWindowId(key)`, `isClassicyPropertiesWindowId(id)` | `properties:<key>`, the sheet's window id |
+| `classicyPropertiesOpenAction(target)` | the action that opens or focuses `target`'s sheet |
+| `classicyDesktopIconPropertiesTarget(icons, selectedIds, iconId)` | what Properties on a desktop icon describes: the selection's items when the icon is in it, else the icon's item (a Desktop Folder item, a drive, the Trash) or application, else nothing (a host's URL shortcut) |
+| `classicyFormatPropertiesDate(value)` | Windows 98's General page date, "Wednesday, November 25, 2026 1:04:05 PM", in the page's time zone; `(unknown)` for none |
+| `classicyFormatByteSize(bytes)`, `classicyPropertiesSize(bytes)` | shlwapi's StrFormatByteSize, three significant digits truncated ("1.23KB", "12.3KB", "123KB"), and the Size row, "1.23KB (1,263 bytes)" (shell32.dll's "%1 (%2 bytes), %3 bytes used", whose space used on disk has no Classicy clusters) |
+| `classicyCountFolderContents(entry)` | a folder's files and folders all the way down, for "Contains:" ("%1 Files, %2 Folders") |
+| `classicyPropertiesAttributesEditable(entry)` | whether Read-only and Hidden may be written: no drive, system or derived entry |
+| the strings | `CLASSICY_PROPERTIES_TITLE`, `classicyPropertiesCaption` ("<name> Properties"), `classicyPropertiesMultipleName` ("<first>, ..."), `CLASSICY_PROPERTIES_MULTIPLE_TYPES`, `classicyPropertiesAllOfType`, `classicyPropertiesAllIn`, `CLASSICY_PROPERTIES_VARIOUS_FOLDERS`, `classicyPropertiesCount`, `CLASSICY_PROPERTIES_UNKNOWN`: shell32.dll's |
+
+`ClassicyFilePropertiesWindow` (`appId` *, `fs` *, `paths?` or `targetAppId?`,
+`index?` (its cascade place), `trashIcon?`, `className?`, `style?`) is a
+modeless window titled "<name> Properties" with no Minimize or Maximize
+(Ch.8 "Property Sheets", p.145; `collapsable`, `zoomable` and `resizable`
+off), its pageview path `/Finder/properties` (`classicyWindowPagePath`: its
+id holds a path), and a tab strip with Windows 98 SE's General page
+(shell32.dll's dialogs): a file's icon and name (an edit field when it may
+be renamed, `classicyCanRename`; renamed through
+`renameClassicyFileSystemItem`, whose refusals it shows, a hidden extension
+kept), Type (the package's `fileTypeNames`), Location, Size, Created,
+Modified and the Read-only (R) and Hidden (d) attributes (`_readOnly`,
+`_invisible`); a folder's Contains and no Modified, as shell32's folder page
+has none; a drive's label, Type and "Used space:" (its items' sizes summed all the way down, as a folder's Size is, `calculateSizeDir`); the Trash's folder page
+with nothing editable; a multiple selection's "%1 Files, %2 Folders", "All
+of type …" or "Multiple Types", "All in …" or "Various Folders", their size
+and the attributes, a mixed one drawn mixed (`ClassicyCheckbox`'s `mixed`)
+and written only when changed; an application's icon, display name and Type
+"Application". OK applies and closes, Cancel (and Escape) closes, Apply
+(access key A) applies and stays, dimmed until something changes; writes
+go through `fs.setMetadata`. Windows 98's MS-DOS name, Accessed, Archive and
+System attributes, a drive's file system, free space, capacity and Disk
+Cleanup, a shortcut's Shortcut tab and the Recycle Bin's settings have no
+Classicy data and are not shown; an item that is gone closes its sheet.
+
+`openClassicyAppAtTab(dispatch, appId, key, index)`
+(`Tabs/useClassicySessionTab.ts`): opens a closed app on the tab `index` of
+its remembering strip `key` (the session's remembered tab set first), or
+brings an open one forward as it stands; false, opening nothing, for an app
+not loaded. The desktop's Display Properties is
+`openClassicyAppAtTab(dispatch, APPEARANCE_MANAGER_APP_ID,
+APPEARANCE_MANAGER_TABS_KEY, APPEARANCE_MANAGER_DESKTOP_TAB)`.
+
+### File shortcuts
+
+A `file_shortcut` entry (`ClassicyFileSystemEntryFileType.FileShortcut`)
+is Windows' shortcut to a file, folder or drive (WIG Ch.10 "Registering
+Commands", pp.200-201, and "System Naming Conventions", p.210; Windows 98
+SE's Create Shortcut, its names and its message boxes as shell32.dll holds
+them). `_targetPath` names what it opens; `_icon` is its target's icon as
+stored when it was made (the target's own `_icon`, else the core's icon for
+its type, which every icon surface draws as the active package's; for an
+entry a derived folder lists for an application, that app's record icon,
+never the display icon the folder draws it by), and `_creator` the app of a
+shortcut to an application's entry. `ClassicyFileShortcut.ts` (public):
+
+| Export | Use |
+|---|---|
+| `createClassicyFileShortcut(fs, targetPath, folder, { path?, appIcon? })` | writes a shortcut to the entry at `targetPath` in `folder` (a write, journaled and persisted), named `classicyFileShortcutPath(fs, targetPath, folder)` unless `path` gives one; a shortcut to a shortcut is a copy of it, pointing where it points (Windows 98 makes no shortcut to a shortcut: "You cannot create a shortcut to another shortcut. Either copy the shortcut…"); `undefined` when the target is gone or the write was refused |
+| `classicyShortcutName(name, n?)` / `classicyFirstFreeShortcutName(fs, folder, name)` | "Shortcut to <name>", "Shortcut (2) to <name>"… (shell32.dll's "Shortcut () to %s.lnk"), the first free one compared without case |
+| `resolveClassicyFileShortcut(fs, shortcut)` | `{ found: true, path, entry }` for the target, following a shortcut to a shortcut (up to sixteen, never in a circle), or `{ found: false, path }` with the path that is missing |
+| `isClassicyFileShortcut(entry)` | `_type === "file_shortcut"` |
+| `classicyShortcutProblem(targetPath, packageId?)` | the box for a target that is gone: Windows 98 SE's `{ title: "Problem with Shortcut", message: "The file or folder '<target>' that this shortcut refers to cannot be found." }` under `layout.finder.commands` "windows", else `{ message: CLASSICY_SHORTCUT_MISSING_ORIGINAL }` ("The original item for this shortcut could not be found.", the core's text for a URL shortcut with no URL) |
+| `CLASSICY_SHORTCUT_TITLE`, `CLASSICY_SHORTCUT_PROBLEM_TITLE`, `CLASSICY_SHORTCUT_DESKTOP_OFFER`, `classicyShortcutMissingMessage(path)` | shell32.dll's "Shortcut", "Problem with Shortcut", "Windows cannot create a shortcut here.\nDo you want the shortcut to be placed on the desktop instead?" and the missing-target text |
+
+Opening one (Finder's `ClassicyAppFinderOpenFile` with the shortcut as
+`file`, as a double-click in either view or on the desktop sends it) opens
+its target under every package, read from the live tree, as a double-click
+on the target would and under the trust the open arrived with: a folder or
+drive through `ClassicyAppFinderOpenFolder`, anything else through the same
+OpenFile case, each checked as a dispatch of its type would be
+(`checkClassicyActionTrust`), so a script's open of a shortcut reaches no
+route its open of the target could not. A missing target opens the
+`_creator` app when it is loaded (the Applications folder renames an entry
+with the package), else sets `Desktop.errorDialog` to
+`classicyShortcutProblem` (Windows 98's search for the nearest match has no
+Classicy counterpart). Under `layout.finder.commands` "windows" Create
+Shortcut makes them (§8 `finder.commands`): beside each item; for one whose
+folder takes no new item (`classicyCanMakeItemIn`: a drive at the root of
+the tree, the Trash, an item of a derived, read-only or system folder)
+`ClassicyAppFinderOfferDesktopShortcut { paths }` (Finder's data
+`desktopShortcutOffer`, session-only), and Finder shows Windows 98 SE's
+"Shortcut" box (Yes, No), whose Yes makes them in the Desktop Folder. A
+drop on a shortcut to a folder moves nothing into it.
+
+### Cut, Copy and Paste
+
+Explorer's command transfers of files (WIG Ch.5 "Command Method",
+pp.59-61, "Command Method Transfers", p.66; Windows 98 SE's menus and
+names, shell32.dll; the remaining chapters' audit's 5.28), under
+`layout.finder.commands` "windows" (§8; the menus they sit in are listed
+there). The file clipboard, `File/ClassicyFileClipboard.ts` (public), holds
+what Cut and Copy took, in the page and apart from the system clipboard,
+which holds no Classicy file:
+
+| Export | Use |
+|---|---|
+| `setClassicyFileClipboard(op, paths, storageKey?)` / `getClassicyFileClipboard()` / `clearClassicyFileClipboard()` | fill it (`op` `"cut"` or `"copy"`, the paths without repeats, of the tree under `storageKey`, Finder's `"classicyStorage"` by default; no paths empties it) and read or empty it (`{ op, paths, storageKey }`, frozen, or null) |
+| `subscribeClassicyFileClipboard(listener)` / `useClassicyFileClipboard()` | be told of each change; the contents, live |
+| `isClassicyFileCut(path, storageKey?)` / `useClassicyFileCutPaths(storageKey?)` / `useClassicyFileCut(path?, storageKey?)` | whether an item is cut and waiting for a Paste; the cut items' paths, live (empty unless a Cut of that tree is held); one item's, live |
+| `classicyFileClipboardKey(e)` | `"cut"`, `"copy"` or `"paste"` for Ctrl+X, Ctrl+C or Ctrl+V (matched as the package matches ⌘, `shortcutMatchesEvent`: ⌘ or Ctrl on Mac OS, Ctrl alone under `layout.keyboard.command` "ctrl"), no Shift or Alt; else undefined |
+
+While it holds a Cut, Escape pressed in a folder view
+(`.classicyFileBrowserFill`), on a desktop icon, on the desktop or on the
+page, outside a text field and not taken by anything first (a shown menu, a
+dialog, a gesture), empties it, as Explorer cancels a Cut; and text cut or
+copied in a field (the browser's `cut` and `copy` events) empties it, one
+clipboard as Windows keeps one. The commands (`File/ClassicyFileCommands.internal.ts`,
+Finder's and `useClassicyDesktopCommands`'s):
+
+- **Cut** (`classicyCutItems`) and **Copy** (`classicyCopyItems`) fill the
+  clipboard with the items that may be (`classicyCanCut`: what `fs.move`
+  could move, no drive, system, read-only or derived entry, nor an item of a
+  read-only folder, a Trash item included; `classicyCanCopy`: no drive,
+  system or derived entry, nor anything in the Trash), replacing it; none
+  leaves it as it was. A cut item is drawn cut until a Paste, another Cut or
+  Copy, or Escape: `classicyFileCut` on its `ClassicyIcon` (`cut`), its
+  `ClassicyDesktopIcon` and its list row's container
+  (`.classicyFileBrowserViewTableRowContainer`), which only Windows 98's
+  stylesheet draws (WIG p.66's "checkerboard dither": the icon blended with
+  the Window color, on the desktop with the Background, a list row's icon
+  faded to half); a Copy draws nothing (p.66: "The Copy command requires no
+  special feedback").
+- **Paste** (`classicyPasteItems(fs, destination, dispatch, { commands?,
+  at? })`) puts the clipboard's items still in the tree into a folder
+  window's folder or the desktop's Desktop Folder (made on first use):
+  moved for a Cut (`moveClassicyFileSystemItems`, the clipboard emptied once
+  something moved; a Cut pasted into its own folder moves nothing and stays),
+  copied for a Copy (`copyClassicyFileSystemItems`, "Copy of <name>" where
+  the name is taken; the clipboard kept, so pastes repeat). The pasted
+  items become the selection: in the window, placed through `commands`
+  (`place`, the first at the white-space menu's point `at`, the rest each to
+  a free cell of its own) and selected (`select`); on the desktop at `at`
+  (stepping down) or each in the next free cell
+  (`classicyNextFreeDesktopIconLocation`), then selected
+  (`ClassicyDesktopIconSelectBox`). Nothing is pasted into a folder that
+  takes no new item (`classicyCanMakeItemIn`: the Trash, a read-only, system
+  or derived folder) or from another tree's clipboard; refusals are told in
+  an alert, as a drag's are.
+- **Paste Shortcut** (`classicyPasteShortcuts`, same arguments), after a
+  Copy only: a shortcut to each copied item ("Shortcut to <name>", "File
+  shortcuts" above) where a Paste would put it, placed and selected; the
+  clipboard is kept.
+- `classicyCanPaste(fs, folder, { shortcut? })` says whether Paste (or Paste
+  Shortcut) would take anything, `folder` undefined for the desktop; the
+  menus dim the items by it.
+
+Windows 98 SE asked "Confirm File Replace" ("This folder already contains a
+file named '%2'. Would you like to replace the existing file…", shell32.dll)
+for a copy into another folder holding the name, and named the copy "Copy of
+<name>" only in its own folder; Classicy names it so wherever the name is
+taken, never replacing anything, as its moves refuse a clash rather than
+replace. Its Edit menu's Undo Ctrl+Z (shell32.dll's "&Undo", which undid a
+copy as "Copy of %s") has no Classicy counterpart (no file undo), and its
+Invert Selection is a selection command no item here builds.
 
 Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
 `display? ("icons"|"list")`, `dirOnClickFunc?`, `fileOnClickFunc?`,
-`onMoveItems?(paths, destination, outlineTopLeft)`,
+`openItemsFunc?(paths)` — every selected item's path when a double-click
+opens the whole selection (either view, under
+`layout.selection.modifiers: "windows"`, and Return on a selected icon, as
+Explorer opens its selection; Finder opens each; omitted, a double-click
+opens its own item),
+`onMoveItems?(paths, destination, outlineTopLeft, target?, effect?)`
+(`target`: the drop target itself, its marked `element` included, which
+Finder hands to `activateClassicyDropWindow`; `effect`: the drop's
+`ClassicyFileDropEffect`, `"move"` unless the package's `layout.transfer`
+made it `"copy"` or `"link"` (§8), the two also called for a drop in the
+items' own folder, which then makes the copy or shortcut there; Finder
+transfers by it, `transferClassicyFileSystemItems`),
 `showInvisible? (true)` — list `_invisible` entries (Finder passes false),
 `onDeleteItems?(paths)` — Delete/⌃⌫ with a selection,
 `itemContextMenu?(path, selectedPaths) → ClassicyMenuItem[] | undefined` —
-right-click on an item, `commandsRef?` — `{ selectedPaths() }`), with
-`ClassicyFileBrowserViewIcons` / `ClassicyFileBrowserViewTable` as the
+right-click on an item, `backgroundContextMenu?(at) → ClassicyMenuItem[] |
+undefined` — a right-click on the view's white space (no item, no column
+titles), given the client point (Finder's Explorer menu under
+`layout.finder.commands` "windows"), `commandsRef?` —
+`ClassicyFileBrowserCommands`: `selectedPaths()`, and for Explorer's
+commands `select(paths)` (the selection, alone), `rename(path)` (the name
+edited in place, in either view), `place(path, at?)` (where a new item's
+icon goes in the icon view: the client point, else the first free cell;
+call it before making the item), `arrange(key)` (Arrange Icons, `"name" |
+"kind" | "size" | "modified"`: the icon view laid out once in that order,
+the list view sorted by that column), `lineUp()` (Line Up Icons, each icon
+to its nearest free cell, `classicyLineUpIconPlaces`) and `display()`; each
+of `select` and `rename` waits for an item not listed yet, so a caller may
+ask right after making it, `selectionApiRef?` — `{ selectAll }`, either view
+(the list view's also `select` and `sortBy`, `ClassicyTable`'s),
+`onRenameItem?(path, name) → newPath | undefined` — a rename committed in
+either view (the icon view's slow click; `rename`; F2 in the list view under
+`layout.fileBrowser.keys: "windows"`, as the icon view's), the list view's
+field `classicyFileBrowserViewTableRename` in the name cell (structure in the
+base sheet, the look the package's: Windows 98's list view edit control);
+under `layout.files.extensions: "hideRegistered"` every view's field (and
+label) shows the name without a registered type's extension and puts it
+back on the name it reports (`useClassicyDisplayFileName`, §8), and the list
+view's Kind column names types the package's way (`fileTypeNames`,
+`useClassicyFileTypeDisplayName`);
+`onPropertiesItems?(paths)` — Explorer's Properties from the keyboard and
+the mouse (WIG App. B Table B.2, p.358; Ch.5 "View Shortcuts", p.47):
+Alt+Enter (⌥↩) in the view calls it with the selection's paths (none when
+nothing is selected; Finder then shows the folder's own sheet), an Alt
+double-click on an icon or anywhere along a list row with the selection
+holding the item (else the item alone), in place of opening it, both
+defaults prevented; Finder passes it under `layout.finder.commands`
+"windows", and without it Alt+Enter and an Alt double-click do what Enter
+and a double-click do;
+`onClipboardCommand?(command, paths)` — Explorer's Ctrl+X, Ctrl+C and
+Ctrl+V in the view (WIG Ch.5 "Shortcut Keys for Transfer Operations",
+pp.67-68; `classicyFileClipboardKey`): called with `"cut"`, `"copy"` or
+`"paste"` and the selection's paths (none when nothing is selected), the
+key's default prevented, never in a text field (a name being edited keeps
+the browser's own); Finder passes it under `layout.finder.commands`
+"windows" (§7 "Cut, Copy and Paste"), and without it the keys are not the
+browser's. Either view draws an item cut and waiting for a Paste with
+`classicyFileCut` whatever the prop (`useClassicyFileCutPaths`, the
+browser's `fs.storageKey`);
+`selectedPaths?` / `onSelectionChange?` — the list view's
+selection, which its selection rectangle (`layout.fileBrowser.regionSelect`)
+selects through, the browser holding it when no `selectedPaths` is given), with
+`ClassicyFileBrowserViewIcons` (its own `openItemsFunc?` and
+`onSelectionChange?(paths)`, the selection in the view's order in the commit
+that draws it) / `ClassicyFileBrowserViewTable` as the
 individual views. With `onMoveItems`, items drag as Mac OS 8 Finder items: a
 dotted outline (icon shape ∪ label box) follows the pointer; let go on a folder
 or drive (`destination {kind:"folder", path}`) or the desktop (`{kind:"desktop"}`)
-the callback moves them. Drop targets are any element marked
+the callback moves them. A list-view row's drag carries the selection when the
+row is in it, else the row alone, read when the drag begins (the pointer past
+the threshold), so under `layout.selection.selectOn: "press"` it carries what
+the press selected; its rows passing `rowsDrag` to the table, a press dragged
+across them selects no range.
+
+**Icon view selection** (`ClassicyFileBrowserViewIcons`, the Finder's icon
+windows): one selection for the view's icons, kept by the view
+(`ClassicyIcon`'s controlled `selected`), as Mac OS 8's Finder kept it (HIG7
+"Selecting", pp.288-291), under every package: a click selects one icon, a
+click on empty space deselects, Shift-, ⌘- or Control-click adds an icon or
+takes it out (the Finder's icons are discrete objects: a discontinuous
+selection); an arrow key selects the nearest icon its way (the desktop's 45°
+sector, `nearestIconInDirection`) and focuses it, an arrow with nothing
+selected the first; typing selects the first icon, alphabetically, whose name
+starts with the keys typed within a second (`CLASSICY_FILE_BROWSER_TYPEAHEAD_MS`);
+a press on empty space focuses the view and, dragged, draws the selection
+rectangle (`classicyFileBrowserSelect`, the desktop's dotted outline in the
+base sheet, `aria-hidden`), selecting the icons it touches, added to the
+selection with Shift, ⌘ or Control; a click on a selected icon's name that
+no second click follows within `CLASSICY_FILE_BROWSER_RENAME_DELAY_MS` (500
+ms, the double-click time) opens the name for renaming (with `onRenameItem`;
+not a drive, a `_system`, `_readOnly` or derived item, or one in a read-only
+folder), the renamed icon staying where it was; Edit ▸ Select All selects
+every icon. Under `layout.fileBrowser.keys: "windows"` (Windows 98) the
+modified clicks, the rectangle's modifiers, the paging keys and a repeated
+letter follow Explorer instead, Shift's range being the icons in the
+rectangle the anchor's icon and the item span (comctl32's icon view), and F2
+renames (§8, "Layout declarations"). The view reports its selection, in the
+view's order, through `onSelectionChange` in the commit that draws it, so
+`ClassicyFileBrowser`'s `commandsRef.selectedPaths()`, its Delete key and its
+item menus read the view's state, not the DOM. Windows 98's layout adds, each
+behind its key (§8): a press selects (`selection.selectOn: "press"`: an
+unselected icon or any modified press at once, a plain press on a selected
+icon leaving its click to reset the selection to it, a double-click's second
+press nothing); button 2 selects an unselected icon alone, keeps a selection
+it lands in, and on empty space clears it and draws the rectangle
+(`selection.secondaryButton: "select"`); a drag of a selected icon carries
+the whole selection, outlining each, let go in its own folder moving every
+selected icon as far (`fileBrowser.iconSelection: "view"`); the rectangle
+scrolls the window toward an edge the pointer is near or past, and the list
+view takes one too (`fileBrowser.regionSelect`); Space selects the keyboard's
+icon (Control-Space toggles it), Return alone opens, and the holder is a
+`role="listbox"` `aria-multiselectable` of `role="option"` icons
+(`selection.keyboard: "windows"`); one icon is the view's Tab stop
+(`selection.iconNavigation: "roving"`); a double-click or Return on a
+selected icon hands the whole selection to `openItemsFunc`
+(`selection.modifiers: "windows"`); Escape mid-rectangle puts back the
+selection the press found (`input.escapeCancels`). The rules are pure
+functions in `ClassicyFileBrowserIconSelection.ts`
+(`classicyIconClickSelection`, `classicyIconInDirection`, `classicyIconPage`,
+`classicyIconTypeahead`, `classicyIconRange`, `classicyIconRectRange`,
+`classicyIconMarqueeSelection`, `classicyRectsIntersect`; the readers
+`classicyIconViewDragsSelection` and `classicyFileBrowserRegionSelect`); the
+rectangle itself, both views', is `startClassicyFileBrowserMarquee`
+(`File/ClassicyFileBrowserMarquee.internal.ts`, with the pure
+`classicyFileBrowserMarqueeScroll`).
+Finder's item menus (an icon or a list row) hold Move To Trash or, in the
+Trash, Restore (none deeper in it), with no default item, as Mac OS 8's
+Finder set none (HIGOS8 "Contextual Menus", pp.94-95: "you should not set a
+default item"), and a desktop file or folder icon has none. Under
+`layout.finder.commands: "windows"` (Windows 98; §8) every one of them, a
+desktop file or folder icon's included (stored with the icon,
+`ClassicyDesktopIconAdd { contextMenu }`, and taken away again by a re-add
+with `contextMenu: null` once the package offers none), leads with Open, the
+default item (`isDefault`), the command a double-click runs, as Windows'
+icon pop-up menus do (WIG Ch.7 "Icon Pop-up Menus", pp.102-103). Under the
+same key the menus are Windows 98 SE Explorer's (shell32.dll's menus and
+letters; the remaining chapters' audit's 1.21, 5.23, 5.39, 5.40, 10.3, 9.3
+and A.4; this supersedes lane 2's decision to keep the Mac's commands
+alone): an item's menu is Open (bold, O), its handler's verbs (the app that
+opens its type, while mounted: `registerApp`'s `verbs`, each run on every
+selected item that app opens; none for a folder; 10.6), then Create
+Shortcut (S), Delete (D, drawn with Del, `keyboardShortcut: "⌦"` as a native
+key) and Rename (m; dimmed for more than one item or one that may not be
+renamed); an Extension's leads with
+Properties (r, its default), which opens the control panel that sets it up
+(`classicyExtensionControlPanelId`: a Control Strip module's the Control
+Strip panel, the Screen Saver extension's the Screen Saver panel), as its
+double-click does (Mac OS 8's "This file adds functionality to your
+computer. It cannot be opened." stays for an extension no panel sets up);
+an app shortcut's desktop menu and a drive's lead with Open, their default,
+too (a stored event, `ClassicyDesktopIconOpen` or
+`ClassicyAppFinderOpenFolder`), and a drive's and the Trash's end with
+Create Shortcut (S), which offers the desktop (both lie at the root of the
+tree, where Windows 98 SE asks "Windows cannot create a shortcut here. Do you
+want the shortcut to be placed on the desktop instead?"). A folder window's
+File menu is Open ⌃O, New ▸, Create Shortcut, Delete, Rename and Close (the
+Trash's Open, Restore and Close); its View
+menu Large Icons and Details (the icon and list views), Arrange Icons ▸ (by
+Name, by Type, by Size, by Date, each a sort key the Finder's views have; in
+the list view only the shown columns') and Line Up Icons (dimmed in the
+list view, as Windows 98 SE dims it in the details view); and a right-click
+on its white space (`ClassicyFileBrowser`'s `backgroundContextMenu`) View ▸,
+Arrange Icons ▸, Line Up Icons and New ▸. New ▸ holds Folder (F), then the
+document types the mounted apps declare (`registerApp`'s `creates`, sorted,
+by their first free letter: SimpleText's Text Document); it makes "New
+Folder", "New Folder (2)"… (`classicyFirstFreeName`, Windows 98's numbering)
+or "New Text Document.txt" in the window's folder (none in the Trash or a
+read-only, derived or system folder), its icon where the white-space menu
+was opened (else the first free cell), selected alone, its name edited at
+once (`ClassicyFileBrowserCommands`' `place`, `select` and `rename`).
+Create Shortcut (`classicyCreateShortcuts`) makes "Shortcut to <name>"
+("Shortcut (2) to <name>"… on a clash), a `file_shortcut` ("File
+shortcuts" above), beside each selected item: in a window's folder in the
+first free cell, selected there, not renamed (Windows 98 SE leaves the name
+as made); beside a Desktop Folder item on the desktop, selected; for the
+items whose folder takes none, the desktop offer, whose Yes makes them in
+the Desktop Folder; the Trash's items have none, as the Recycle Bin's
+lacked it. An application's own desktop icon (`app_shortcut`, no entry of
+the tree) has no Create Shortcut: the desktop's File ▸ Create Shortcut
+passes it over. The File menus list no verbs (Explorer's listed the
+selection's at the top of its File menu; Classicy's File menus are built
+without the selection).
+Delete, on every route (the menus, the browsers' and the desktop's Delete
+and ⌃⌫, a drop on the Trash), asks Windows 98 SE's question first while
+Finder is mounted (`moveClassicyItemsToTrash`, `classicyDeleteConfirms`):
+"Confirm File Delete" ("Are you sure you want to send '<name>' to the
+Trash?"), "Confirm Folder Delete" ("Are you sure you want to remove the
+folder '<name>' and move all its contents to the Trash?") or "Confirm
+Multiple File Delete" ("Are you sure you want to send these <n> items to the
+Trash?"), Yes and No (`classicyDeleteConfirmation`; Finder's
+`confirmDelete` data, session-only, under the trust the request arrived
+with). Windows 98 SE's Send To (optional, WIG p.67), Select All on the white
+space (it stays in Edit and on ⌃A), Refresh (nothing to do in a live tree),
+Undo Delete and Undo Rename (Classicy has no file undo), Auto Arrange (the
+Finder's View Options' Keep arranged) and Small Icons and List (no Classicy
+view) are left out. Drop targets are any element marked
 `data-classicy-drop-folder="<path>"` or `data-classicy-drop-desktop`
 (`CLASSICY_DROP_FOLDER_ATTRIBUTE`/`…DESKTOP…`); windows, the menu bar, the
-Control Strip and dialogs block drops. The drag engine is
+Control Strip, the Windows shell's taskbar (`.classicyTaskbar`) and dialogs
+block drops. An element marked `data-classicy-drop-activate`
+(`CLASSICY_DROP_ACTIVATE_ATTRIBUTE`, the taskbar's window buttons) takes no
+drop but answers a drag resting on it, and is found before the blocking
+check (`findClassicyFileDropActivator`): once a drag has rested on it for
+`CLASSICY_DROP_ACTIVATE_DELAY_MS` (500, the double-click time), from the
+move that brought it there, it gets one `classicy:dropactivate` event
+(`CLASSICY_DROP_ACTIVATE_EVENT`, a plain `Event` that does not bubble and
+carries nothing of the drag); moving on it starts no new wait, leaving it
+stops the wait and coming back starts it again, and the drag ending, however
+it ends, stops it. It is not highlighted. The drag engine is
 `startClassicyFileDrag` (`ClassicyFileDrag.ts`); its optional `onStart()` (at
 the 4 px threshold) and `onEnd({ dropped, canceled, lost })` (exactly once
 per start; Escape and a lost pointer stream, a window `blur`, a
 `pointercancel` or the page turning hidden, end it canceled, and only the
 lost stream sets `lost`) callbacks are how the views emit
-the appearance `dragStart`/`dragEnd` events (§8, "Package hooks"). The desktop's files and
-folders live in the invisible `Desktop Folder` on the startup disk; Finder
-mirrors it as desktop icons (`kind` `file`/`directory`, `filePath` set).
+the appearance `dragStart`/`dragEnd` events (§8, "Package hooks"). Its
+`onDrop(target, point, outlineTopLeft, effect)` gets what the drop does,
+`ClassicyFileDropEffect` (`"move"`, `"copy"`, `"link"`; Windows'
+`DROPEFFECT_*`): a move, unless the package's `layout.transfer.copyModifier`
+read Control (a copy) or Control and Shift (shortcuts) at the release (§8).
+Further options: `start.ctrlKey`/`start.shiftKey` (the press's keys, which
+the copy modifier never reads, though a Control press on a Mac host moves
+throughout), `canDrop?(target)` (a target it refuses is neither highlighted
+nor dropped on, `onDrop` getting `null`), `effects?(target)` (the effects a
+target takes for the dragged items, which bound the copy modifier; none
+refuses the target; default `classicyFileDropDestinationEffects`, a move
+alone into the Trash), and for a button-2 drag `button: 2` (only that
+button's release ends it) with `onMenu?(target, point, outlineTopLeft,
+effect)`, called over a target in place of `onDrop` to show the source's
+transfer menu, `effect` being what a plain drop there would do, the
+browser's `contextmenu` after such a release swallowed
+(`swallowClassicyFileDragContextMenu`). While the outline is shown, under
+every package, the desktop root (the `.classicyDesktop` around the source)
+carries `data-classicy-drop`, the drop effect under the pointer: `"none"`
+while nothing there takes the drop (a window, the menu bar, the Control
+Strip, a dialog, a target `canDrop` refuses), else `"move"`, `"copy"` or
+`"link"`, removed when the drag ends, however it ends (§4.0.1); only a
+package's stylesheet reads it (Windows 98's pointers). The sources share
+Windows 98 SE's transfer menu through `useClassicyFileDropMenu()`
+(`File/ClassicyFileDropMenu.ts`): `{ secondaryDrags, startsDrag(e),
+dragOptions(e, { effects, onStart?, transferAt }) }`, where `transferAt(target,
+point, outlineTopLeft)` returns the function that does the transfer by an
+effect; under `layout.transfer.secondaryButton: "menu"` a button-2 press
+starts a drag, whose `onStart` first closes the item's own menu the press
+asked for and whose release over a target shows the menu
+(`classicyFileDropMenuItems(effects, defaultEffect, ak, onChoose)`,
+shell32.dll's menu 200, "Move Here", "Copy Here", "Create Shortcut(s) Here",
+a separator, "Cancel", the items whose effect the drop cannot make left
+out, as `classicyFileDropEffects(fs?, paths, destination)` says: a move
+alone into the Trash, menu 201, no copy of a drive, a system or derived
+entry or a Trash item, no shortcut to a Trash item; the default item the
+plain drop's), with the bundled access keys M, C and S; Cancel, Escape or a
+click elsewhere does nothing. The menu goes through the desktop's
+contextual menu with `helpItem: false`, so it carries no leading Help
+item, as Windows' drop menu has none. While the
+pointer rests within a line step of the edge of a `ClassicyScrollArea`'s
+viewport that holds a drop target (a Finder window's contents, a file
+browser), the area scrolls toward that edge a line (its `lineStep`) per
+press-repeat interval (120 ms, a held scroll arrow's rate), the first after
+one interval, until it reaches its end (within a pixel counts) or the
+pointer leaves the band; the drop target under the still pointer is found
+again after each line. Only the topmost element under the pointer counts,
+the dragged element aside, as for the drop target; `findClassicyFileDragAutoScroll(x,
+y, { exclude?, elementsFromPoint? })` returns `{ viewport, dx, dy }` or
+`null`. Under `layout.transfer.autoScroll` (§8; Windows 98) the WIG's
+velocity rule replaces that band and rate, with Windows 98 SE's figures from
+shell32.dll's `DAD_AutoScroll` (`File/ClassicyFileDragAutoScroll.internal.ts`):
+the pointer is sampled at the drag's start, on every move and every 100 ms
+(`CLASSICY_DRAG_SCROLL_SAMPLE_INTERVAL_MS`, the WIG's figure) into a ring of
+three (`addClassicyDragScrollSample`); at each sample the area under it
+scrolls a line toward each edge the pointer is past when the ring is full,
+its velocity (`classicyDragScrollVelocity`: the three pairs' `|Δx| + |Δy|`
+times 1024 over one more than their `|Δt|`, rounded down) is at most 20
+(`CLASSICY_DRAG_SCROLL_MAX_VELOCITY`) and 250 ms
+(`CLASSICY_DRAG_SCROLL_INTERVAL_MS`, half the double-click time) have passed
+since the last scroll; the zone runs from the icon size
+(`--desktop-icon-size`, Windows' "Shell Icon Size") inside the viewport's
+edges to the small icon size (`--icon-small-size`) outside them, over its
+scroll bars (`classicyDragScrollEdges`, `findClassicyFileDragVelocityScroll`),
+toward an end the axis can still reach. This is automatic scrolling as WIG Ch.5 "Scrolling When Transferring
+by Dragging" (pp.64-65) and Ch.6 "Automatic Scrolling" (p.91) and HIG7 p.274
+("your application can also scroll the document (using automatic
+scrolling)") describe, and as the Mac OS and Windows Finders/Explorer did, so
+it runs under every package; it changes nothing outside a drag. An icon
+dropped back in its own folder moves as far as the pointer did across the
+folder's contents, the scroll the drag caused (or the wheel's) counted. The
+desktop's files and folders live in the invisible `Desktop Folder` on the
+startup disk; Finder mirrors it as desktop icons (`kind` `file`/`directory`,
+`filePath` set).
 
 ### Mirroring to a backend
 
@@ -2684,7 +4240,7 @@ import { registerClassicyFileSystemAdapter } from '@classicy/classicy'
 registerClassicyFileSystemAdapter({
     id: 'my-backend',
     // journal mode: every mutation, with a persisted monotonic seq (gap = missed delivery)
-    onChange: (entry) => { /* { seq, op: "write"|"mkdir"|"rmdir"|"meta"|"load"|"move", path, to? (move), data?, metadata?, unsetMetadata? (move: removed keys), timestamp } */ },
+    onChange: (entry) => { /* { seq, op: "write"|"mkdir"|"rmdir"|"meta"|"load"|"move"|"copy", path, to? (move, copy), data?, metadata?, unsetMetadata? (move: removed keys; copy: keys left off), timestamp } */ },
     // snapshot mode: debounced full tree + sha256 hash
     onSnapshot: (snapshot) => { /* { tree, hash, seq, storageKey, timestamp } */ },
     // two-way boot sync; errors degrade to local-wins
@@ -2729,7 +4285,9 @@ type ClassicyTheme = {
     color: { outline; select; highlight; black; white; alert; error;
              system: number[7]; theme: number[7];
              window: { border; borderOutset; borderInset; frame; title; document } }  // colors are ints
-    typography: { ui; uiSize; header; headerSize; body; bodySize; mono; monoSize; digital; digitalSize }
+    typography: { ui; uiSize; header; headerSize; body; bodySize; mono; monoSize; digital; digitalSize;
+                  uiSmall?;                // the small UI text's family (System 7's Geneva)
+                  families?: Record<string, { font; size?; weight? }> }  // a package's own fonts (below)
     measurements: { window; control; button; groupBox; layout;  // the 20 core metrics (below)
                     [family: string]: Record<string, number> }   // plus a package's own families
     desktop: { iconSize; iconFontSize; backgroundImage; backgroundColor;
@@ -3008,12 +4566,14 @@ registered by `packages/appearance/platinum/src/assets/platinumWallpapers.ts`.
 
 An **Appearance Package** is a complete look the desktop switches to as a
 unit: its CSS, its default theme and presets, its arrangement, and the assets,
-sound packs and hooks that go with it. Classicy ships two, each its own npm
+sound packs and hooks that go with it. Classicy ships three, each its own npm
 package, which the core neither imports nor exports: Platinum,
 `@classicy/appearance-platinum` (`packages/appearance/platinum/` in the
-repository), and System 7, `@classicy/appearance-system7`
-(`packages/appearance/system7/`; "System 7", below). A host imports one or
-both at its entry (`import '@classicy/appearance-platinum'`), and the desktop
+repository), System 7, `@classicy/appearance-system7`
+(`packages/appearance/system7/`; "System 7", below), and Windows 98,
+`@classicy/appearance-windows98` (`packages/appearance/windows98/`; "Windows
+98", below). A host imports any of them at its entry
+(`import '@classicy/appearance-platinum'`), and the desktop
 draws only the stop screen until some package registers. Themes are presets of a
 package, and every theme names its package in `theme.package`.
 
@@ -3048,9 +4608,12 @@ registerClassicyAppearancePackage({
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
-| `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, desktop.iconGridOrigin, scrollBar?, slider?, fileDialog?, fileBrowser? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
+| `colorLabels` | Optional: the Colors tab's labels for the core's colors in the package's own words, `Partial<Record<cssVar, string>>` keyed by each `CLASSICY_THEME_COLOR_TARGETS` entry's `cssVar` (another key, or an empty label, is refused); a color without one keeps the core's label (`useColorsTab`'s `colorLabels`, the active theme's package's). Platinum and System 7 declare none; Windows 98 names nine (the audit's 1.2) |
+| `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, menuBar.idleTimeoutMs?, desktop.iconGridOrigin, menu?, keyboard?, finder?, files?, scrollBar?, patternOrigin?, slider?, fileDialog?, fileBrowser?, fileList?, tree?, balloonHelp?, selection?, contextMenu?, mouse?, input?, dialog?, icon? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
+| `fileTypeNames` | `Partial<Record<ClassicyFileSystemEntryFileType, string>>`: the package's names for the file types (WIG Ch.10 "The Application Identifier Key", pp.197-198: title case, at most 40 characters; every word must begin with a character that is no lower-case letter, a display name's character rules apply, a key must be a type and none may be `__proto__`, `constructor` or `prototype`), shown in a list view's Kind column (`ClassicyFileBrowser`) and a property sheet's Type (`ClassicyFilePropertiesWindow`) in place of the core's ("Text file", "Directory", "Pdf"); a type it names not keeps the core's. Display only. Stored as a frozen copy, as `apps` is. Read with `fileTypeDisplayName(type, packageId?)` (`File/ClassicyFileBrowserUtils.ts`; the active package's without an id), `getClassicyFileTypeNames(packageId?)` (store-free, `src/Appearance/ClassicyFileTypeNames.ts`) or, live in components, `useClassicyFileTypeDisplayName()` / `useClassicyFileTypeNames()`. Windows 98 names directory "File Folder", drive "Local Disk", text_file "Text Document", video "Video Clip", app_shortcut "Application", shortcut "Internet Shortcut", file_shortcut "Shortcut", stack "HyperCard Stack" and pdf "PDF Document" (`windows98FileTypeNames.ts`); Platinum and System 7 declare none. The core's "Pdf" stays under the Mac packages: changing a core default would change their Kind column and needs its own HIGOS8 check (the audit's 10.2) |
+| `desktopIcons` | `{ trash?: { name?, description? }, startupDisk?: { name?, icon?, description? }, drive?: { description? } }` (`ClassicyDesktopIconOverrides`): display overrides for the desktop's own icons, the Trash (whose name every surface takes, 1.15), the startup disk and the other drives' balloon copy; read with `useClassicyDesktopIconIdentity` / `resolveClassicyDesktopIconIdentity`. See "Desktop icon overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
 **Registering.** `registerClassicyAppearancePackage(pkg)` runs at module
@@ -3107,13 +4670,17 @@ set.
 **Glyphs and colors a package supplies.** Some text glyphs are look, so the
 components render an empty span and the package draws the glyph as `::before`
 content: the menu check and mixed dash (`.classicyMenuItemCheck.checked`,
-`.mixed`), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
+`.mixed`; an option item's gutter, `mark: "bullet"`, carries
+`classicyMenuItemBullet` beside it, where Windows 98 draws its round bullet
+and Platinum and System 7 their check), the pop-up and combo-box check
+(`.classicyPopUpMenuCheck.checked`),
 the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 `.classicyBevelButtonArrowVertical`), the placard arrow
 (`.classicyPlacardArrow`) and the file input's remove cross
 (`.classicyFileInputRemoveGlyph`); the HyperCard tools palette's armed entry
 (`role="button"`, `aria-pressed`, `.selected`; a toggle: pressing the armed
-entry again disarms it) gets its " ✓" as `::after`
+entry again disarms it; Windows 98 draws no ✓ but latches the entry, the
+ButtonHilight / ButtonFace checker in the pressed rings) gets its " ✓" as `::after`
 content on the aria-hidden `.classicyHyperCardPaletteEntryMark` after its
 label. Platinum uses the font's ✓ – ▸ ▾ ✕ and
 writes them as escapes with `string.unquote('"\\2713"')`, because Sass
@@ -3321,8 +4888,11 @@ keeps its `label`.
 - **Analytics.** The pageview title's app segment
   (`classicyWindowPageTitle(currentApp?.name, …)`), the About box's and the
   desktop icon's `track` payloads, and every path (built from the app id).
-- **Quit** items stay a plain "Quit", and HyperCard's window keeps the default
-  proxy icon.
+- **Quit** items stay a plain "Quit", never "Quit <display name>" (under a
+  taskbar the window menu bar draws the app's Quit item, an id ending
+  `_quit` or a "Quit" title, as Windows' "Exit" at the File menu's end,
+  `withClassicyWindowsFileMenu`, a title that names no app), and
+  HyperCard's window keeps the default proxy icon.
 
 Two consequences follow:
 
@@ -3430,7 +5000,10 @@ resolved where it is drawn:
   <display name>". It finds the item by `${appId}_about`, then any `_about`
   id, then a title of "About".
 - **A window's own menu bar** (`ClassicyWindowMenuBar`, window placement)
-  runs `withClassicyAppIdentityAboutItem`. It finds the item only by its exact
+  under a taskbar (`layout.taskbar`) moves the About item it finds (as the
+  screen bar finds it) to the end of its Help menu, always titled "About
+  <display name>". With no taskbar it runs
+  `withClassicyAppIdentityAboutItem`. That finds the item only by its exact
   id, `${appId}_about`, at any depth, and retitles it only when its title is
   `` `About ${record name}` ``. A plain "About" (the `useClassicyAboutMenu`
   item, which SimpleText, Web Viewer, Movie Player, Picture Viewer, PDF Viewer
@@ -3533,15 +5106,97 @@ first fallback is `label`. With `label` omitted, `name` is the own label.
   reducer creates one; on a close with invalid `data`, it replaces `data` with
   `{ openFiles: [] }`.
 
+#### Desktop icon overrides
+
+A package's `desktopIcons` shows the desktop's own icons by other names, as
+`apps` shows the apps: the Trash (Windows 98's Recycle Bin) and the startup
+disk (its My Computer), and gives the other drives balloon copy. Display only, and absent by default: a package that
+declares none (Platinum, System 7) draws today's labels, images and stock
+balloons.
+
+```ts
+registerClassicyAppearancePackage({
+    id: 'windows98',
+    // name, css, defaults, layout, apps, … as above
+    desktopIcons: {
+        trash: { name: 'Recycle Bin', description: 'Contains deleted items you can permanently remove or restore.' },
+        startupDisk: { name: 'My Computer', icon: myComputerIcon, description: 'Displays the contents of your computer.' },
+        drive: { description: 'Shows the files and folders on this disk.' },
+    },
+})
+```
+
+- **`trash`** (`kind: "trash"`, the Trash Finder adds, `filePath:
+  "Trash"`): `name` and `description`. Its image is the package's
+  `trashEmpty`/`trashFull` art already, so there is no `icon`.
+- **`startupDisk`**: `name`, `icon` and `description` for the drive icon
+  standing for the startup disk, the first drive (`classicyStartupDisk(fs)`).
+  `ClassicyDesktop` reads it through the file-system accessor only while the
+  active package declares `startupDisk`, and passes `startupDisk` to that
+  drive's `ClassicyDesktopIcon`; other drives keep theirs.
+- **`drive`** (the audit's 12.5): `description` only, the balloon copy of
+  every other drive icon (`kind: "drive"`; the startup disk too while the
+  package declares no `startupDisk`), in place of the kind's stock "This is
+  a disk icon…". Its label and image stay its own.
+
+**Where it shows.** The icon's label, image, alt text and mask; its balloon
+(title the shown name; the `description` in place of the kind's stock copy;
+a stored balloon still wins); and desktop type-select, which matches the
+shown name. A non-empty `label` beats the override, as for `apps`.
+
+**What never changes.** The icons' records (`appId`, `appName`, `icon`,
+`filePath`), the Trash's path and the drive's, the open actions, analytics
+payloads and persisted state.
+
+**The Trash's name everywhere else** (the audit's 1.15; WIG Ch.1
+"Consistency", p.2, Ch.10 "Recycle Bin Integration", p.212). `trash.name`
+names the Trash on every surface that names it, display only
+(`File/ClassicyTrashName.ts`: `CLASSICY_TRASH_NAME` "Trash",
+`classicyTrashDisplayName(packageId?)` store-free, `useClassicyTrashName()`
+live): the Trash window's title (Finder, `op === CLASSICY_TRASH_PATH`), its
+property sheet's name and caption and its items' Location, the Empty item
+(`Empty ${name}`, `confirms`, so "Empty Trash…" under the Mac packages and
+"Empty Recycle Bin" under Windows 98, its access key B on the Trash icon's
+menu under `menu.accessKeys`, shell32.dll's "Empty Recycle &Bin"; Restore's
+E was there already) in the Trash icon's menu and every Special menu
+(`classicySpecialMenuItems(dispatch, idPrefix, trashName?)`, which reads the
+active package itself when no name is given, so the desktop's own call
+needs no change), Delete's question (`classicyDeleteConfirmation(fs, paths,
+trashName)`: "Are you sure you want to send 'x' to the Recycle Bin?"), the
+refusal alerts of a move into or out of it, and the Empty alert
+(`ClassicyEmptyTrashAlert`, below). `CLASSICY_TRASH_PATH`, the folder's
+stored name and every saved byte keep "Trash".
+
+**Validation.** `ClassicyDesktopIconOverridesSchema`, strict at every level
+(only `trash`, `startupDisk` and `drive`; the Trash takes no `icon`, a drive
+only a `description`), each `name` under
+the `apps` display-name rules, each `icon` an asset source, each
+`description` 1–512 characters with no surrounding whitespace. The registry
+stores a frozen copy of the validated value, as for `apps`.
+
+**Reading it.** In `ClassicyAppIdentity.ts`, store-free like the rest:
+
+```ts
+type ClassicyDesktopSystemIcon = "trash" | "startupDisk" | "drive"
+
+useClassicyDesktopIconIdentity(icon: ClassicyDesktopSystemIcon | undefined, fallback: ClassicyAppIdentity): ClassicyAppIdentity
+useClassicyDesktopIconOverrides(): Readonly<ClassicyDesktopIconOverrides>
+resolveClassicyDesktopIconIdentity(icon: ClassicyDesktopSystemIcon, fallback: ClassicyAppIdentity, packageId?: string): ClassicyAppIdentity
+getClassicyDesktopIconOverrides(packageId?: string): Readonly<ClassicyDesktopIconOverrides>
+classicyDesktopIconIdentityFrom(overrides, icon, fallback): ClassicyAppIdentity
+CLASSICY_NO_DESKTOP_ICON_OVERRIDES   // the frozen {} of a package with no `desktopIcons`
+```
+
 #### Icon dimming
 
 A package's optional `iconDimming` declares how it dims an icon, per pixel;
-the core draws the result on a canvas (`ClassicyIconDimming.ts`). Two
+the core draws the result on a canvas (`ClassicyIconDimming.ts`). Three
 surfaces read it: `hiddenApp`, a hidden application's icon in the
-Application menu (HIG7 p.127), and `disabledItem`, the icon of a
+Application menu (HIG7 p.127), `disabledItem`, the icon of a
 `ClassicyTree` row that cannot be chosen (a `disabled` node: the files a
-Save box dims). Each is optional, in `variants` too. A rule is data,
-validated at registration:
+Save box dims), and `disabledControl`, a disabled bevel or toolbar button's
+image (`ClassicyBevelButton`'s `icon` while `disabled`). Each is optional, in
+`variants` too. A rule is data, validated at registration:
 
 ```ts
 iconDimming: {
@@ -3555,7 +5210,35 @@ iconDimming: {
 ```
 
 Only `blend` is required; `bits` defaults to 8 and `palette` to none. A
-pixel's alpha is never changed, so the icon keeps its mask. The dimmed image
+pixel's alpha is never changed, so the icon keeps its mask.
+
+`disabledControl` may instead be an **emboss** (`ClassicyIconEmbossRule`),
+the way Windows draws a disabled control's image (DrawState's
+`DSS_DISABLED`; comctl32's `TOOLBAR_DrawMasked`): every pixel that is opaque
+(alpha 128 or more) and not pure white becomes the `shadow` color, over the
+same pixels one down and right in the `highlight` color, everything else
+clear (`embossClassicyIconPixels`). The two colors are theme colors,
+addressed as the Colors tab addresses them (`ClassicyThemeColorTarget`),
+read from the active theme when the image is drawn
+(`classicyIconEmbossColors`, through the asset registry's link to the
+store), so the emboss follows the scheme:
+
+```ts
+iconDimming: {
+    disabledControl: {
+        emboss: {
+            highlight: { colorKey: 'system', index: 0 }, // ButtonHilight
+            shadow: { colorKey: 'system', index: 4 },    // ButtonShadow
+        },
+    },
+}
+```
+
+Windows 98 declares exactly that, and only that. A package that declares no
+`disabledControl` rule (Platinum, System 7) draws a disabled button's image
+as before, dimmed by its stylesheet; one that declares an emboss marks the
+image `classicyIconDimmedImage`, and Windows 98's sheet draws it at full
+opacity (the base halves a disabled bevel button's image). The dimmed image
 is a `data:` URL, cached per source, rule and size for the page (except a failed load, which is drawn again on the next request: a cross-origin icon without CORS fails to load under `crossOrigin = "anonymous"`, and `onerror` carries no reason, so that cannot be told from a network error and is requested again on each dimmed mount; each source logs one `warn`), and the
 `<img>` drawing it carries the part class `classicyIconDimmedImage`
 (`CLASSICY_ICON_DIMMED_IMAGE_CLASS`), so the package's stylesheet dimming
@@ -3780,7 +5463,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Checkbox | `input.classicyCheckbox` | default, mixed, checked, disabled | change `{ checked, input }` |
 | RadioInput | `div.classicyRadioInputGroup` | none (item states stay on `.classicyRadioInputWrapper`) | press `{ itemId }` and release `{ itemId, lost, canceled }` (mouse only, on the input or label, one per press; a press let go off its item, `canceled: true`, or lost, `lost: true, canceled: true`, adds `input: "pointer"`), change `{ itemId, input }` (click, arrow keys) |
 | PopUpMenu | `div.classicyPopUpMenu` | disabled, open | open `{ input }`, change `{ value, input }`, close `{ input }` |
-| ComboBox | `div.classicyComboBox` | disabled | open `{ input }` (typing, an arrow key, the arrow button), change `{ value, input }` (a pick from the list), close `{ input }` |
+| ComboBox | `div.classicyComboBox` | disabled, open (while its list is shown) | open `{ input }` (typing, an arrow key, the arrow button), change `{ value, input }` (a pick from the list), close `{ input }` |
 | Input | `input.classicyInput` | none (`isDefault` keeps `classicyInputDefault`) | focus `{ input }`, blur `{ input }`, change `{ value }` (text entry: no `input`) |
 | ListBox | `div.classicyListBox` | disabled | select `{ value, selected, input }` (click, Space, arrows, Home/End, type-select; `selected: false` for a Ctrl/⌘-click deselect), focus/blur `{ input }` when focus enters or leaves the list |
 | Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart `{ value }` and dragEnd `{ value, lost }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input or when the pointer stream is lost: a window `blur`, a `pointercancel`, the page hidden, which also commits the value through `onCommitFunc`, with `lost: true`) |
@@ -3791,12 +5474,13 @@ inner elements (rows, tab buttons, items) stay there.
 | Table | `div.classicyTableContainer` | none (`selected` stays on rows and headers) | select `{ rowId, selected, input }` (⌘A emits nothing); change `{ columnId, desc }` from a sortable header (pointer only: headers are not focusable); dragStart/dragEnd with the detail a cell reports through its context's `emitDrag` (the file browser's list view: a Finder outline drag, below, whose `dragEnd` carries `lost`), pointer only |
 | Link | `a.classicyLink` | disabled | click `{ input }` (never while disabled) |
 | FileInput | `div.classicyFileInputHolder` | none (`error` stays on `.classicyFileInputMessage`) | change `{ fileName }` for an accepted addition (the button or `addFiles`): the first file only of a batch, nothing on a refusal or removal, no `input` |
-| Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` (pointer only) |
+| Window | `div.classicyWindow` | collapsed, active, inactive, dragging, expanded (active: a modal or the front window; dragging: the store's `moving`; expanded: the store's `zoomed`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` from a pointer drag; from a keyboard Move or Size mode (the window registry's `move`, `size`) the same with `input: "keyboard"`, and dragEnd's `canceled` (true for ESC) |
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
-| MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
+| MenuItem | `li.classicyMenuItem` | disabled, open, default (the item's `isDefault`) | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
 | DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
+| Taskbar | `nav.classicyTaskbar` | none (`open` stays on the Start button, the window buttons' states on each button) | none beyond `mount` and `unmount` |
 | ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box) and dragEnd `{ kind, lost }`, pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` (`lost: true`) |
 | Assistant | `div.classicyAssistant` | none | change `{ page, input }` (pager arrows, ←/→; not for a refused or no-op move) |
 
@@ -4225,6 +5909,869 @@ each warning shows once. Mixing versions of the two Appearance Packages is unsup
 older Platinum can re-register the savers under `platinum` only, or keep its
 own logo registry, which then diverges from System 7's.
 
+#### Windows 98
+
+`@classicy/appearance-windows98` (`packages/appearance/windows98/`) is the
+third Appearance Package: Windows 95 and 98, as 98.css, os-gui and React95
+re-create them, and, through its layout, the Windows 95/98 shell (plan
+0020-w98): a taskbar where Mac OS draws its menu bar and Control Strip,
+and a menu bar in each window. It is built as a third-party
+package would be (it reaches the core only as `@classicy/classicy`, and
+nothing of Platinum's or System 7's; `Windows98SourceImports.test.ts`). It
+registers Windows 98 Second Edition's own icons and system art, read from
+the Windows 98 SE CD (`docs/windows98-asset-inventory.md` maps every key to
+its resource), its cursors (USER.EXE's), its interface font (98.css's
+recreation of MS Sans Serif, CC BY-SA 3.0), Windows 98's names for the
+bundled apps, the Trash and the startup disk, its wallpapers and desktop
+patterns, and its screen savers; the glyphs Windows drew in the scheme's
+colors stay pixel art drawn from theme tokens. Install and import it like Platinum (§1); its
+README lists what it ships and every asset's source.
+
+- **Themes.** Thirty-four, every one `package: "windows98"`, `sound.pack:
+  "windows98"`, no `assetVariant`, `dither.tileSize: 0`: the thirty-three
+  color schemes of Windows 98 Second Edition's Display control panel, each
+  read from the scheme its `SHELL2.INF` writes (`[schemes.reg]`, under
+  `HKCU\Control Panel\Appearance\Schemes`: a NONCLIENTMETRICS, the icon
+  font and 29 COLORREFs), named exactly as Windows 98 names them, and
+  `windows95` ("Windows 95"). The order is the Display control panel's
+  (a sorted combo box) after `windows98` ("Windows Standard", the defaults)
+  and `windows95`: Brick, Desert, Eggplant, the twelve High Contrast schemes
+  (`windows98HighContrast1`, `…1Large`, `…1ExtraLarge`, the same for `2`,
+  `Black` and `White`), Lilac, Lilac (large), Maple, Marine (high color),
+  Plum (high color), Pumpkin (large), Rainy Day, Red, White, and Blue (VGA),
+  Rose, Rose (large), Slate, Spruce, Storm (VGA), Teal (VGA), Wheat, Windows
+  Standard (extra large) (`windows98ExtraLarge`) and (large)
+  (`windows98Large`); every id 3.7 shipped is kept, so a saved choice still
+  resolves. Each scheme maps its colors as Windows draws them: `system`
+  ButtonHilight, ButtonLight, ButtonFace, the mid gray between ButtonFace
+  and ButtonShadow, ButtonShadow, the one between ButtonShadow and
+  ButtonDkShadow, ButtonDkShadow; `window.document` Window, `black`
+  WindowText, `window.border` and `outline` WindowFrame, `highlight`
+  Hilight (its tints and shades in `theme`), `window.title` TitleText,
+  `desktop.backgroundColor` Background; the rest in the package colors
+  (below). The named schemes' captions are flat, as the INF stores them;
+  Windows Standard and its two sizes keep USER's built-in 0 0 128 → 16 132
+  208 and 128 128 128 → 181 181 181 gradients, which a fresh Windows 98
+  draws. Windows 95 keeps the palette it shipped with (Windows Standard's
+  with ButtonLight on the face, flat captions) and takes Windows Standard's
+  metrics and fonts. The metrics are the scheme's: `window.scrollbarSize`
+  (iScrollWidth), `window.titleBarHeight` (iCaptionHeight),
+  `titleBar.buttonWidth`/`buttonHeight` (SM_CXSIZE − 2 by SM_CYSIZE − 4,
+  Wine's caption buttons), `window.utilityTitleBarHeight`
+  (iSmCaptionHeight), `menuBar.titleHeight` (iMenuHeight), `sizingBorder.width`
+  (iBorderWidth) and `sizingBorder.frame` (SM_CXFRAME, 3 plus it, which the
+  stylesheet sets as each window's `--window-frame-inset`, so the frame's
+  padding, edges, grip, drag band, keyboard sizing and the taskbar's
+  Cascade step follow it), `titleBar.markUnit` (2 in a caption button 24
+  or more tall, where the marks are drawn at twice their size, else 1),
+  `titleBar.gap` (1: SM_CYCAPTION's last row) and `utilityTitleBar`'s
+  11 x 11 tool-window Close in every scheme (Wine's `draw_close_button`);
+  the fonts the scheme's caption, small caption, menu,
+  message box and icon fonts (`typography.families`, "Package font
+  families"; the icon font's size `desktop.iconFontSize`): Arial and Times
+  New Roman where Windows 98 names them; MS Sans Serif, a bitmap face, at
+  the size GDI draws it (the largest of its 11, 13, 16, 18, 24 and 32 px
+  faces at or under the request, 11 for any smaller), the pixel face named
+  first only at 11 px, its one cut. The UI font stays 11 px MS Sans Serif in
+  every scheme (`"Pixelated MS Sans Serif"`, the package's own face, then MS
+  Sans Serif, Microsoft Sans Serif, Tahoma, Arial; Fixedsys, Lucida Console,
+  Courier New for monospaced text, which the host supplies): a dialog's font is its template's, not the scheme's. The desktop
+  labels are white, black on High Contrast White's white desktop.
+- **Color families** ("Package color families"): `titleBar` (`active`,
+  `activeGradient`, `inactive`, `inactiveGradient`, `text`, `inactiveText`:
+  ActiveTitle, GradientActiveTitle, InactiveTitle, GradientInactiveTitle,
+  TitleText, InactiveTitleText), `selection` (`text`: HilightText),
+  `tooltip` (`face`, `text`: InfoWindow, InfoText, each scheme's own: Brick's
+  dark red on its pale face, Plum's, Marine's), `desktop` (`text`: the
+  desktop labels'), `text` (`button`, `gray`: ButtonText, the ink of buttons,
+  menus, tabs and arrows, and GrayText, disabled text; High Contrast #1's
+  ButtonText is white beside its yellow WindowText, every High Contrast
+  GrayText green), `scrollBar` (`track`: Scrollbar), `sizingBorder`
+  (`active`, `inactive`: ActiveBorder and InactiveBorder, High Contrast
+  Black's yellow and green), `startMenu` (`banner`, `bannerGradient`,
+  `bannerText`: the Start menu banner's blue, navy and white, the same in
+  every theme, as Windows 98 SE's banner bitmap, explorer.exe bitmap 157,
+  was under every scheme), the Windows colors no palette slot holds,
+  editable in the Colors tab. Every stylesheet read carries a `--color-*`
+  fallback. A disabled control's glyph (DFCS_INACTIVE) and a disabled
+  button's label (DSS_DISABLED) are embossed in ButtonShadow, not GrayText.
+- **Knob families** ("Package knob families"): `pixel` (`unit`, the
+  pixel-art grid), `titleBar` (button width and height, the gap before
+  Close, the end, icon and text insets, the gap below), `pushButton`,
+  `checkbox`, `radio`, `popUp`, `field` (`height`, every single-line field's,
+  21: Windows' edit and combo box height, plus the text's padding),
+  `tabControl` (`height`, a tab's, 21; the radius, lift and padding),
+  `progressBar` (block width and gap, the stripe, the inset), `tooltip` (`paddingX`, `paddingY` and `pointerOffset`, 20: a ToolTip at the pointer stands that far under its hot spot; `shadow`, 6: how far right and down What's This?'s pop-up casts its shadow, Figure 12.3),
+  `menuItem`, `menuBar` (`titleHeight`, 18: a window menu bar's titles,
+  which the band draws under a row of ButtonFace, 19 px in all, as Wine's
+  `calc_menu_bar_size` and `NC_DoNCPaint` lay out a menu bar: `SM_CYMENU`;
+  the titles in the scheme's menu font and MenuText; the core's derived
+  `--window-menu-bar-height` is 21, and a host's
+  `--classicy-window-menu-bar-height` still wins), `taskbar` (the
+  taskbar's sizes, which only the package's stylesheet reads, the core's
+  band being the bar's measured height: `height` 28, `buttonHeight` 22,
+  SM_CYSIZE 18 plus two edges, the Start button, the window buttons and
+  the status area 2 px under the bar's two-row edge and 2 px above its
+  bottom; `startButtonWidth` 54, the Start button's least width;
+  `startGap` 4, SM_CXSIZEFRAME, before the window buttons, where ReactOS's
+  explorer places the task band; `buttonMaxWidth` 160, SM_CXMINIMIZED, and
+  `buttonMinWidth` 22, SM_CXSIZE plus two edges, a window button's widest
+  and narrowest, `buttonGap` 3, comctl32's BUTTON_SPACINGX, between them
+  (ReactOS `UpdateButtonsSize`); `buttonPaddingX` 3 and `iconGap` 3, a
+  button's icon from its left side and from its label; `trayIconSize` 16
+  and `trayIconPitch` 20, the status area's icons and their cells, two
+  pixels each side as explorer's `ICON_BORDER` has them; `trayPaddingX` 3,
+  inside the status area's ends; `clockPaddingX` 5, ReactOS's
+  `TRAY_CLOCK_WND_SPACING_X`; the pitch and padding read from Figure
+  10.2, the rest from Wine and ReactOS; `quickLaunchButtonWidth` 23, a
+  Quick Launch button, a 16-pixel icon and comctl32's toolbar padding
+  `DEFPAD_CX` 7; `gripperWidth` 3, `gripperInset` 2 and `gripperGap` 4, a
+  band's gripper as comctl32's rebar draws it (`GRIPPER_WIDTH`,
+  `REBAR_PRE_GRIPPER`, also its inset from the row's top and bottom, and
+  `REBAR_ALWAYS_SPACE`); `bandEndGap` 4, `REBAR_POST_CHILD`, after Quick
+  Launch's last button; the window buttons' up/down control is
+  `--window-scrollbar-size` wide, SM_CXVSCROLL), `startMenu` (the Start menu's
+  sizes, which only the package's stylesheet reads: `bannerWidth` 21, the
+  banner bitmap's width; `bannerFontSize` 18, its letters' 10-pixel x-height
+  and 13-pixel ascenders; `bannerInset` 5, the text's start above the
+  banner's foot; `itemHeight` 32 and `iconSize` 32, the first level's rows
+  and their large icons; `iconInset` 2 and `iconGap` 4, an icon from the
+  banner and from its label), `shellDialog` (the shell's Shut Down, Run and
+  Log Off dialogs, plan 0020-w98 E2, which only the package's stylesheet
+  reads: Windows 98 SE's shell32 templates 1065, 1003 and 1071 in dialog
+  units at MS Sans Serif 8, a horizontal unit 1.5 px and a vertical one
+  1.625, MulDiv-rounded: `shutDownWidth` 317, `runWidth` 341 and
+  `logOffWidth` 282, 211, 227 and 188 units; `top` 7, the icon and the text
+  at y 11 units (18 px) below the dialog margin; `shutDownBodyGap` 14 and
+  `runBodyGap` 11, the text at x 38 and 36 units beside the 32 px icon;
+  `promptGap` 13, `optionHeight` 16 and `optionGap` 3, Shut Down's choices
+  from y 27 units, ten units tall twelve apart; `shutDownButtonsGap` 18,
+  `shutDownButtonsInset` 48, `shutDownButtonWidth` 78 and `shutDownBottom`
+  8, OK and Cancel 52 units wide from x 39 units under the choices,
+  `buttonGap` 6 (four units) apart; `runFieldGap` 10 and `runButtonsGap`
+  21, the Open box at y 37 units and the buttons at y 63, `runButtonWidth`
+  75 and `runBottom` 13; `logOffTop` 10, `logOffSide` 12, `logOffBodyGap`
+  30, `logOffPromptTop` 14, `logOffButtonsGap` 20, `logOffButtonsInset` 62,
+  `logOffButtonWidth` 65, `logOffButtonGap` 10 and `logOffBottom` 13, Log
+  Off's icon at (8, 6) units, its question at (49, 15) and Yes and No 43
+  units wide from (49, 38)), `menu` (`popUpMaxHeight`, 106: a drop-down's
+  open list eight 13-px rows and its line, the WIG's three to eight items),
+  `dialog` (`alertMaxWidth` and `inputMaxWidth`, 415: the core's structural
+  family set to the WIG's largest secondary window, 234 dialog base units,
+  so a message box or input dialog never grows to the core's 460; the
+  package declares no `menuFrame`, its menu frame being `window-frame` from
+  `--window-border-size`),
+  `appleGuide` (`headerFontSize` and `bodyFontSize`, 11: the core's
+  structural family's two type sizes at MS Sans Serif 8, so the Help topic
+  window's title band and topic read at the system font's size, where the
+  floor's, Platinum's, are 13 and 14; its other keys the floor's),
+  `listBox` (`rowHeight`, 13: the 8-point MS Sans Serif row), `toolbar`
+  (`buttonWidth`/`buttonHeight`, 24 x 22, and `largeButtonWidth`/
+  `largeButtonHeight`, 32 x 30: the WIG's two toolbar button sizes, for a
+  medium or small and a large ClassicyButtonToolbar; and `restBevel`, the
+  rest bevel's ring width: 0, the flat TBSTYLE_FLAT button, in every
+  Windows 98 scheme, 1, the raised one, in Windows 95's, Figure 7.34),
+  `slider`, `growBox`, `utilityTitleBar`,
+  `desktopLabel` (`shadow`, the desktop labels' text shadow offset, 1; 0
+  sends the shadow out of the desktop, the stock Windows 98 label),
+  `scrollBar` (`solidTrack`: 1 where ButtonHilight is not Window, the track
+  then the solid Scrollbar brush, Wine's DEFWND_ControlColor; 0 the 50%
+  checker), `taskbar.solidActive` (the same switch for the active task
+  button: comctl32's `TAB_EraseTabInterior` fills a selected TCS_BUTTONS
+  item with the checker only where ButtonHilight is Window, else with
+  Scrollbar), `sizingBorder` (`width`, iBorderWidth: 1, 2 in Rose (large), 6
+  or 7 in the large High Contrast schemes, the band of ActiveBorder or
+  InactiveBorder between the window's edge and its last ring of ButtonFace;
+  `frame`, SM_CXFRAME) and `menuBar` (`titleHeight`,
+  iMenuHeight: 18, up to 38), the last two read by the window frame and the
+  menu bar, and `desktopIconGrid` (`rowGap` and `columnGap` 43: Windows'
+  75 px IconSpacing over a 32 px icon); `knobs`, and so the Options tab,
+  covers `titleBar` (its button sizes up to 40), `progressBar`, `field`,
+  `popUp` (`height`), `tabControl`, `desktopLabel`, `toolbar` (`restBevel`,
+  "Raised buttons") and `scrollBar` (`solidTrack`, "Solid track"). Layout: the shell,
+  `menuBar.placement: "window"`, `taskbar: { startLabel: "Start",
+  startBanner: { title: "Windows", edition: "98" } }` and `window: {
+  collapse: "minimize" }`: no menu bar crosses the top of the screen (the
+  screen bar is headless and `--menu-bar-height` is 0; it still dispatches
+  keyboard equivalents), each window with an `appMenu` draws its own bar,
+  ending with one Help menu (the system's items, the registered and the
+  app's own, then "About <name>"; WIG Ch.7 "The Help Menu", p.99; §8,
+  "Window menu bars"), and a
+  `ClassicyTaskbar` (§4.7) runs along the bottom in the Control Strip's
+  place: the Start button, labelled "Start", whose menu (About This
+  Computer, Programs, Settings ▸ Control Panel and the balloon toggle,
+  Help, Empty Trash…, Reset PRAM…) carries the banner "Windows" "98",
+  CTRL+ESC opening it too; a button per open primary window; and the status
+  area, the Control Strip's modules (Sound, Screen Saver, Appearance and
+  any a host registers) as notification icons, then the menu bar
+  extensions and the clock (WIG Ch.3 "The Taskbar", "The Start Button",
+  "Window Buttons" and "The Status Area", pp.15–16, Figure 3.1; Ch.10
+  "Taskbar Integration", pp.211–212); the taskbar's measured height is the
+  band windows, Clean Up and every menu keep above. Minimize sends a
+  primary window to its taskbar button, which brings it back (a palette
+  goes with its app's last window, a dialog has no Minimize), and focus
+  passes to the next window on screen (WIG Ch.6 "Minimizing Windows",
+  p.85; §4.1, "Minimize"); the same stored `collapsed` flag is WindowShade
+  under Platinum and System 7, so nothing is lost on a switch. Grow box
+  bottom right, the menu bars' `idleTimeoutMs: 0` (an open menu stays until
+  the next click), `menu: { keys: "windows", submenuDelayMs: 400, disabledItems:
+  "browse", accessKeys: "auto", shortcutSpelling: "names", emptySubmenus:
+  "placeholder" }` (the menus take Windows' keyboard, a cascading menu opens
+  and closes on Windows' 400 ms time-out, a pop-up menu's on hover too, the
+  keyboard browses dimmed items,
+  every menu title, item, label of a focusable control and push button
+  (OK and Cancel excepted) takes an access key, underlined by `_Menu.scss`,
+  `_TextField.scss` (labels, a check box's and an option button's among
+  them), `_Button.scss` and `_Tabs.scss` (a tab given one) (`b.access-key`:
+  a pixel thick, a pixel below the baseline, as `DrawText` draws a prefixed
+  character), so Alt+F opens File, Alt alone activates the bar and Alt and
+  a control's key reaches it, ahead of any ⌥ chord, the bundled menus and
+  message boxes carrying Windows 98's own letters (Cu&t, Select &All,
+  &Yes, &No, &Retry), a menu's shortcuts read "Ctrl+Backspace" and
+  "Ctrl+X", the Edit menu's Clear "Del", and an empty submenu shows a
+  dimmed "(Empty)"), icon grid
+  from the top left, `window.centering:
+  "wholePixel"` (a centered alert or dialog lands on whole pixels, as under
+  System 7, so its pixel-grid bevels stay sharp), `scrollBar.fitsBars:
+  "shown"`, a window's bars drawn, disabled, where its content fits, as
+  Windows kept them, `scrollBar.liveSnapBack: true` with `snapBackScale:
+  { across: 8, along: 2 }` (a dragged scroll box snaps back, the document
+  with it, while the pointer is more than 128 px to the side of a 16-px bar
+  or 32 px past its ends, and follows again on return, WIG Ch.6 "Scroll
+  Box", p.89; Wine's `point_in_scroll_rect`), and `fileDialog: { frame: "movable", navigation:
+  "flat", saveName: "selected", listFlow: "columns" }`: the Open and Save As
+  boxes titled and movable, one folder at a time under the path pop-up
+  (Windows' Look in), the list flowing in columns as the list view's List
+  mode (Left and Right move a column), Save As opening with the name selected
+  (WIG Ch.8, Figures 8.6 and 8.7), `fileBrowser.keys: "windows"` (the icon
+  view's Shift ranges, the rectangle two icons span, Control toggles,
+  Control-Shift setting the range to the anchor's state, a selection
+  rectangle adding with Shift and toggling with Control, Home, End and the
+  page keys, a letter typed again stepping on, F2 to rename, WIG Ch.5
+  "Selection"), `fileBrowser.iconSelection: "view"` (a drag of a selected
+  icon carries the whole selection, p.44, p.66), `fileBrowser.regionSelect:
+  true` (the list view's selection rectangle from below its rows, either
+  view's scrolling the window toward an edge the pointer passes, p.42) and
+  `fileList.foldersFirst: true` (folders before files, as Explorer lists
+  them, last when a list sorts down), `keyboard: { contextMenuKey: true,
+  command: "ctrl", editableShortcuts: true }` (Shift+F10 and the
+  Application key open the focused selection's contextual menu, a file
+  view's or the desktop's selected item's at its icon's center, WIG Appendix B
+  Table B.2; a Command equivalent answers to Control alone, never the
+  Windows key, and reads `Ctrl+`, WIG Ch.4 "Shortcut Keys", p.28, Table
+  B.3; the bundled apps' shortcuts are the user's to change, in the
+  Keyboard control panel's Shortcuts tab, WIG Ch.4 p.27), `finder.commands: "windows"` (Finder's
+  item menus lead with Open, their default item, WIG Ch.7 "Icon Pop-up
+  Menus", pp.102-103, and its menus are Explorer's: File ▸ Open, New ▸,
+  Create Shortcut, Delete and Rename, View ▸ Large Icons, Details, Arrange
+  Icons ▸ and Line Up Icons, the same on a folder's white space, Delete
+  asking Windows 98 SE's "Confirm File Delete" first, an Extension's
+  Properties opening its control panel, an item's handler's verbs after
+  Open, Create Shortcut making "Shortcut to <name>" or offering the desktop,
+  a missing target's "Problem with Shortcut", Properties last on every
+  item's, drive's, app's and the Trash's menu and in the File menus, and on
+  Alt+Enter and an Alt double-click, opening Windows 98 SE's General page,
+  the empty desktop's opening Display Properties, Cut, Copy, Paste and
+  Paste Shortcut on the item menus, the Edit menus and the white spaces and
+  on Ctrl+X, Ctrl+C and Ctrl+V, a Paste moving a Cut's items or copying a
+  Copy's as "Copy of <name>", WIG Ch.1 p.8, Ch.2 pp.12-13, Ch.5 pp.45, 47,
+  51, 59-61, 66-69, Ch.10 pp.199-201, 210),
+  `files: { names: "windows", unregisteredOpen: "openWith", extensions:
+  "hideRegistered" }` (a name holds none of `\ / : * ? " < > |`, refused in
+  Windows 98's words, and New Folder is "New Folder (2)" on a clash; a type
+  no application but the Finder opens opens in Open With; a registered
+  type's extension is hidden, Finder Preferences offering "Hide file
+  extensions for known file types", WIG Ch.10 pp.192, 210),
+  `transfer: { activateDropWindow: true, secondaryButton: "menu",
+  copyModifier: "ctrl", autoScroll: true, desktopIconDrag: "outline" }` (a
+  drop into an inactive Finder window activates it, WIG Ch.5 p.62; a
+  button-2 drag of files ends in Windows 98 SE's Move Here, Copy Here,
+  Create Shortcut(s) Here and Cancel menu, pp.62-64; Control at the release
+  copies and Control with Shift makes shortcuts, pp.67-68; a file drag
+  scrolls the area under it by the WIG's velocity rule with shell32's
+  figures, pp.64-65; an application's, drive's or the Trash's desktop icon
+  drags as an outline the desktop alone takes, p.66), its
+  `fileTypeNames` naming the types as Windows 98 does ("File Folder",
+  "Text Document", "Local Disk", WIG Ch.10 pp.197-198),
+  `tree.keys: "windows"` (a bare Right Arrow expands a branch or goes into
+  it, a bare Left Arrow collapses it or goes up, WIG Ch.7 "Tree View
+  Controls", pp.123-124) and `balloonHelp.placement: "pointer"` (help as a
+  ToolTip under the resting pointer, gone on a press, WIG Ch.7 "Tooltip
+  Controls", p.133; the `tooltip` family's `pointerOffset`, 20, sets how far
+  under the pointer, as Wine's TOOLTIPS_Show places it), and the mouse's
+  conventions: `selection.secondaryButton: "select"` (a right-click on an
+  unselected desktop icon or list row selects it alone first, one on a
+  selected item keeps the selection for its menu, WIG Ch.5 pp.37-38),
+  `selection.selectOn: "press"` (lists, tables, the Finder's list view and
+  trees select at the button-1 press, pp.37-38), `selection.dragRange: true`
+  (a press dragged across a list's rows selects them, the list scrolling
+  toward a pointer past its ends, pp.37-39), `selection.modifiers:
+  "windows"` (Control-Shift-click adds the anchor's range in the anchor's
+  state, keeping the rest, p.39, and a double-click opens the whole
+  selection, App. A Tables A.2 and A.3; on the desktop Control-click
+  toggles an icon, Shift-click takes the anchor's rectangle, and a Shift or
+  Control rectangle adds or toggles, pp.38-39, 42), `selection.pageKeys: "move"`
+  (Page Up and Page Down move a list's, a table's and a tree's keyboard
+  row to the page's edge, then a page further, Ch.5 Table 5.1, pp.35-36),
+  `selection.keyboard: "windows"` (Space selects a table's row, Control,
+  ⌘ or Option with a navigation key moves a multi list's keyboard row
+  alone, Shift+F8 toggles Add mode, pp.43-44, and in the icon view Space
+  selects, Control-Space toggles, Return alone opens, the view a list box of
+  options, as a desktop icon's Space and Enter do; `tree.keys: "windows"`
+  also makes a tree's Control chords scroll it, App. B Table B.1, p.357),
+  `selection.iconNavigation: "roving"` (the icon view, and the desktop, one
+  Tab stop, Table 5.1, pp.35-36),
+  `contextMenu.openOn: "release"` (the menu opens when button 2 comes up,
+  p.38), `mouse: "windows"` (a tab chosen at the press, an icon moving only
+  past 4 px, only button 1 dragging, WIG Ch.4 "Mouse Actions", pp.24-25) and
+  `input.escapeCancels: true` (Escape puts back a divider, a slider, an icon
+  or a column edge mid-drag, Ch.4 "Shortcut Keys", p.27);
+  and `window: { zoom: "maximize", titleDoubleClick: "zoom" }`: the
+  Maximize button fills the screen above the taskbar with the frame off
+  the screen, Restore (drawn on `expanded`) returns the
+  window to the rect it had, even after a reload, a maximized window neither
+  moves nor sizes and has no size grip, a double-click on the caption
+  maximizes or restores it, and a window with only one of Minimize and
+  Maximize draws the other embossed and unavailable beside it, as Windows
+  95/98 draws the pair (the Calculator's grayed Maximize; a
+  window with neither, a control panel's, draws Close alone; WIG Ch.6 "Maximizing Windows" and "Restoring Windows",
+  pp.84–85; §4.1, "Maximize and restore"); and `window:
+  { frameEdges: "resize" }`: a resizable window sizes from any edge of its
+  four-pixel frame and from its corners, each reaching a caption's height
+  along both edges, and a dialog's or other fixed window's frame does
+  nothing (WIG Ch.6 "Sizing Borders", p.83; §4.1, "Frame-edge sizing");
+  and `window: { systemMenu: true }`: every window has the window pop-up
+  menu (Restore, Move, Size, Minimize, Maximize and Close; Move and Close on
+  a dialog; Move, Size and Close on a palette), from a right-click on its
+  title bar, a press on its icon and ALT+SPACE, Close bold with ALT+F4, a
+  double-click on the icon and ALT+F4 closing the window, and its Move and
+  Size moving and sizing it with the arrow keys (WIG Ch.7 "The Window Pop-up
+  Menu", p.102; §4.1, "The window pop-up (system) menu"); its Minimize, like
+  the caption's Minimize box, sends the window to its taskbar button, and a
+  right-click on a taskbar button opens its window's menu (WIG Ch.7
+  "Command Buttons", p.112). `window: { captionTooltips: true }`: each
+  caption button names itself in a tooltip after 500 ms (Windows 98 as
+  shipped); `window: { utilityTitle: true }`: a palette's (tool window's)
+  caption shows its title, in the small caption font; and `dialog: { caption: "titled" }`: every dialog and message
+  box has a titled caption (its app's name when untitled; an About box
+  "About <name>") with a Close box, its Cancel (a message box's only
+  button when it has no Cancel; embossed and unavailable on a Yes/No
+  question, where ALT+F4 does nothing too), and moves by it, alerts included
+  (WIG Ch.8, pp.145, 164, 166; §4.1, "Dialog and message box captions").
+  Until the package registers cursors of its own, the edges show the
+  default package's (Platinum's) `resizeUd` and `resizeLr` art, as the size
+  grip shows its `resizeLr`, and the corners the browser's diagonal resize
+  cursors, which Platinum does not register.
+- **The look** (`src/styles/windows98.scss`, one `components/_<Name>.scss`
+  partial per component, `_bevels.scss` and `_pixel.scss`): the four-ring
+  bevels as inset box-shadows of the system tokens (`raised`, `pressed`,
+  `sunken`, `window-frame`, `etched`), every glyph (the title-bar buttons'
+  marks, scroll arrows, the check and the radio dot, menu and pop-up
+  arrows, the slider's thumb) as `classicy-px-rect` layers in units of
+  `--pixel-unit` (`px()`, `pixel-art()`, `runs()`), the title bar's
+  gradient from `title-bar-gradient`, the title-bar buttons reordered by
+  CSS `order` (Minimize is Classicy's `collapse`, Maximize its `zoom`, drawn
+  as Restore while the window carries `expanded`, Close last after
+  `--title-bar-close-gap`) and shown on inactive windows too, the dialog's
+  three-ring fixed frame on every modal and on any window that cannot be
+  sized (`classicyWindowNoResize`: the control panels, the About windows,
+  the Calculator), its drag band and placard corner following,
+  a window's menu bar (`_MenuBar.scss`, every rule scoped under
+  `.classicyWindowMenuBar` or `.classicyDesktopMenuBar`, so none reaches
+  the taskbar's `clock` and `extensions` parts) as the flat 20 px band
+  above, its titles MenuText with one average character
+  (`--menu-item-padding-x`) each side, plain under the pointer (Windows 98's
+  menu bar tracks no hover; the raised title under the pointer is
+  Explorer's command bar), sunken one ring (BDR_SUNKENOUTER: ButtonShadow
+  at the top and left, ButtonHilight at the bottom and right, the text one
+  pixel down and right, as ReactOS's `MENU_DrawMenuItem` offsets a
+  highlighted, ungrayed menu bar item's, where Wine draws it in place:
+  shell addendum B8) while open or tracked by the keyboard (`:focus-visible`,
+  or the title focused in the root list's `focused` state: ALT or F10, then
+  the arrows), with no Hilight band or
+  focus rectangle, an unavailable one GrayText embossed (sunken in GrayText
+  alone, in place, when the keyboard reaches it), an inactive window's bar
+  drawn as an active one's (no rule reads `inactive` there: MenuText titles,
+  access keys underlined, no hot-tracking; WIG Ch.9 "Display Layout",
+  p.187, Figure 9.6; B12), each pull-down hanging from its
+  title's bottom-left corner (Wine's `MENU_DrawMenuItem` and
+  `MENU_ShowSubPopup`; a screen bar a host forces with `placement="screen"`
+  is the same flat strip, with no taskbar dress), the taskbar
+  (`_Taskbar.scss`, plan 0020-w98 §7; WIG Ch.3, pp.15–16, Figure 3.1;
+  Ch.10, pp.211–212, Figure 10.2) as Windows 98 draws it: a 28 px ButtonFace
+  bar (`taskbar` knobs, above) with the raised edge on its top, a
+  ButtonLight row over a ButtonHilight row (DrawEdge EDGE_RAISED, BF_TOP),
+  everything in it 22 px tall on whole pixels, 2 px under the edge and 2 px
+  above the bottom; the Start button 2 px from the left, a raised push
+  button at least 54 wide (the soft EDGE_RAISED of `b.raised`), its glyph
+  Windows 98's Start flag (Explorer's bitmap 143, its `appleMenu` art, 16 x
+  16 from `--classicy-art-apple-menu`, `image-rendering: pixelated`, while
+  the glyph carries `classicyTaskbarStartFlag`; shell addendum B2), else
+  the package's own 16 x 14 pixel art (a small window, a ButtonFace frame
+  outlined in ButtonDkShadow, a caption in the active title's two colors
+  with a dash of title text, a Window-colored body), then
+  its label bold, pushed in while its menu is open (the soft EDGE_SUNKEN of
+  `b.pressed`, its contents a pixel down and right, no checker: a pushed
+  button, not a checked one); the window buttons each an even share of
+  the row up to 160 px and never under 22, 3 px apart (ReactOS
+  `UpdateButtonsSize`), the 16 px icon then the title cut with an ellipsis,
+  raised at rest, pushed in on a plain face while held (`pressed`), the
+  active window's (`active`) pushed in over the ButtonHilight/ButtonFace
+  checker, its title bold and its contents a pixel down and right
+  (comctl32's selected TCS_BUTTONS item, Figure 3.1's "Document" button;
+  a press on it keeps the checker), a minimized window's (`collapsed`)
+  plain raised, a window asking for attention
+  (`classicyTaskbarTaskAttention`) raised with a Hilight interior and a
+  HilightText title (comctl32's TCIS_HIGHLIGHTED button, Wine's
+  `TAB_EraseTabInterior`), toggling with the plain face three times at the
+  caret-blink rate (530 ms a phase, Windows' ForegroundFlashCount 3) and
+  then held, not animated under reduced motion, nothing under the pointer, the dotted focus rectangle three
+  pixels in on both kinds of button; past one row, each window button at
+  its least width (`classicyTaskbarTasksPaged`) beside the up/down control,
+  16 px wide and the buttons' height, its two buttons the up-down
+  control's (raised, a 5-pixel triangle, flat while pressed, embossed while
+  dimmed on the first or last row; plan 0020-w98 E1); Quick Launch after
+  the Start button, its band and the window buttons' each led by
+  comctl32's rebar gripper (3 px of BDR_RAISEDINNER on ButtonFace, 2 px in
+  from the band's start and from the row's top and bottom, 4 px before the
+  band's toolbar), its buttons flat toolbar buttons 23 px wide (no edge at
+  rest, BDR_RAISEDINNER under the pointer, BDR_SUNKENOUTER pressed there,
+  the icon a pixel down and right), 4 px after its last, Show Desktop's
+  glyph the package's own 16 x 16 pixel art (a desk pad in the desktop's
+  color with a sheet of paper and a pencil); and the status area 2 px from the
+  right, a pane in one sunken ring (BDR_SUNKENOUTER) holding the
+  notification icons and the menu bar extensions as flat 16 px icons in
+  20 px cells with no bevel at rest, held or open (Windows 98's tray drew
+  none), and the clock, its text 5 px in from either side in the UI font,
+  tabular figures; the active button's checker is drawn in every scheme, as
+  the scroll-bar track's is (comctl32 fills a selected TCS_BUTTONS item
+  with the solid Scrollbar color where Window and ButtonHilight differ, by
+  the rule user32 applies to a scroll bar's track, but the themes carry no
+  Scrollbar color); the status area's pop-ups, a module's menu every
+  menu's and its panel (Sound's slider) in the dialog frame (the window
+  edge and one ring of ButtonFace inside it, SM_CXDLGFRAME 3, as Windows
+  98's own tray volume pop-up, sndvol32's DS_MODALFRAME dialog, wore it);
+  the Start menu (`_StartMenu.scss`, plan 0020-w98 §3 and §7) in one dialog
+  frame around its banner and its items (the shell's menu band is WS_POPUP
+  | WS_DLGFRAME, ReactOS `CMenuDeskBar`), the menu list's own frame
+  cleared, the banner 21 px wide down its left side, its full height:
+  Windows 98 SE's own banner bitmap (explorer.exe bitmap 157, its
+  `startMenuBanner` art, every pixel kept, while the banner carries
+  `classicyStartMenuBannerArt`; shell addendum B2) upright at the banner's
+  foot, the space above it the bitmap's first row (navy) stretched, as
+  Explorer painted it (ReactOS `CMenuDeskBar::_OnPaint`: a StretchBlt of
+  row 0, then a BitBlt at the foot), one `border-image` whose 1-row top
+  slice spans all but the last 232 pixels and whose middle is the other 232
+  rows; without the art, a gradient from the package's `startMenu` colors
+  drawn smooth from that bitmap (navy above the 98th row from the foot,
+  blue from the 52nd row to the 28th, back toward navy at the foot), its
+  text reading upward in the UI font at 18 px from 5 px above the foot,
+  white, the layout's title bold and its edition regular; the first level 32 px rows of
+  32 px icons, 2 px in and 4 px before the label, and every submenu an
+  ordinary menu with 16 px icons; the shell's own dialogs
+  (`_ShellDialog.scss`, plan 0020-w98 E2) at Windows 98 SE's shell32
+  templates (the `shellDialog` knobs), Shut Down's and Log Off's buttons
+  from under their text, Run's right-aligned, the screen behind Shut Down
+  and Log Off dimmed with a 50% checker of black pixels over everything,
+  the taskbar included, Stand by's screen black and Shut down's Windows 98's
+  LOGOS.SYS drawn, "It's now safe to turn off / your computer." centered in
+  orange on black in a bold sans serif sized from the screen's height (the
+  CD holds no LOGOS.SYS to take the pixels from; the colors are the
+  package's own constants, `--windows98-shell-black` and
+  `--windows98-shell-safe-text`, the same in every scheme as the bitmap
+  was),
+  balloon help drawn as a ToolTip with no tail, a menu's keyboard item the
+  one band while the keyboard moved the tracking last (the core's `focused`
+  on the root list: an item under the resting pointer plain, a dimmed one
+  embossed, and the rule that tracks the pointer's item alone standing
+  down), a message box's buttons
+  centered (as MessageBox centers them; a dialog's stay right-aligned), a
+  selected icon blended with a 50% dither of the highlight (Explorer's
+  ILD_BLEND50) through the icon's own shape, on the desktop, in the icon
+  component and in the Finder's list (whose rows carry `--classicy-icon-mask`
+  for it, §5), a cut icon waiting for a Paste (`classicyFileCut`, §7 "Cut,
+  Copy and Paste") blended the same way with the Window color, on the
+  desktop with the Background (WIG Ch.5 p.66's "checkerboard dither",
+  LVIS_CUT), a cut list row's icon faded to half, the folder row under a
+  file drag drawn as a selected one (its name in Hilight and its icon
+  dithered, LVIS_DROPHILITED, WIG Ch.5 p.67), the pointer during a file drag
+  the arrow over everything, no-drop where nothing takes the drop, the
+  arrow with a plus for a copy and with the shortcut curl for shortcuts
+  (from the desktop root's `data-classicy-drop`, §4.0.1; WIG Ch.5 Figures
+  5.16 and 5.17, Ch.4 Table 4.1; the host's own `no-drop`, `copy` and
+  `alias` until the package registers Windows 98's), the pressed side of a
+  scroll-bar track inverted from
+  the track's `--classicy-scroll-page-start`/`-length` (§4.4 "Scroll bars"),
+  and a scroll arrow at the end of its travel embossed as a fitting bar's
+  are (the core's `disabled` on the arrow, §4.0.1; WIG Ch.6 "Scroll
+  Arrows", p.87), a split view's split box (`classicySplitViewSplitBox`, a
+  `splittable` view's while its split is closed) a raised ButtonFace box at
+  the end of the scroll bar (WIG Ch.6 Figure 6.11) and its divider, flat
+  ButtonFace at rest, drawn in the halftone while it moves (`dragging`: the
+  moving split bar of Figure 6.12, ButtonFace checked with ButtonDkShadow),
+  a set image well's option-set border (two solid rings
+  inside its client edge, WindowText outside ButtonHilight, WIG Ch.13
+  Figure 13.13, drawn as an overlay so it lies over the picture) and the
+  HyperCard editor's handles as Hilight squares in a one-ring HilightText
+  border (`_HyperCard.scss`; WIG Ch.13 "Handles", pp.319-320), a check
+  list's flat check boxes (`ClassicyListBox`'s `checkboxes`, the
+  `list-check` part: a ButtonShadow ring outside a ButtonFace one, the 7 × 7
+  check while the row is chosen, the chosen row plain; WIG Ch.7 Figure 7.15,
+  Ch.13 "Flat Appearance", p.309), an inactive window's tree, list view and
+  Finder selections in ButtonFace under WindowText with the icons unblended
+  and no focus rectangle (the core's `inactive` on the tree, the table and
+  the icon; comctl32's SHOWSELALWAYS look, WIG Ch.13 "Highlighting", p.318;
+  a list box keeps its Hilight, as user32's does), the dotted focus
+  rectangle on the focus icon's label alone, in a window and on the
+  desktop, while it has the focus, never on every selected label, and no
+  browser ring on an icon (LVIS_FOCUSED; WIG Ch.5 "Keyboard Selection",
+  p.43, "Selection Feedback", p.36: `_Icon.scss`, `_Desktop.scss`), either
+  folder view's selection rectangle, and the desktop's, as DrawFocusRect's
+  dots XORed over what lies under them (white dots under `mix-blend-mode:
+  difference`; the desktop's over its icons, `z-index` 11, and hidden while
+  a press has not moved, `classicyDesktopSelectEmpty`, WIG Ch.5 "Region
+  Selection", p.42), and a
+  meter's warning zones patterned over their color, a WindowText 25% stipple on a
+  suboptimal zone's blocks and the 50% checker on a bad zone's
+  (`_ProgressBar.scss`; WIG Ch.14 "Visual Disabilities", p.329), a
+  toolbar button's bevel from `--toolbar-rest-bevel` (raised at rest under
+  Windows 95, flat with a one-ring hot track under Windows 98's schemes,
+  `_Button.scss`), a solid track's Scrollbar fill an inset box-shadow over
+  the checker spread by `--scroll-bar-solid-track` (its held side inverted
+  by a `::after` of white in `mix-blend-mode: difference`, DSTINVERT), the
+  menus in `--package-font-menu`, a message box in `--package-font-message`
+  and icon labels in `--package-font-icon`, text with no color of its own
+  WindowText, and, under `@media (forced-colors: active)` (Windows' High
+  Contrast setting, `_ForcedColors.scss`, last), the drawing kept
+  (`forced-color-adjust: none`) with every token pointed at a CSS system
+  color (ButtonFace, ButtonBorder, ButtonText, Canvas, CanvasText,
+  Highlight, HighlightText, GrayText, LinkText), the wallpaper hidden (WIG
+  Ch.14 "Color", p.334). It also draws a shortcut's badge (Windows' overlay, drawn over the whole icon) sized to
+  the icon (`--alias-badge-size`), the size grip under the diagonal size
+  cursor (`resizeNwse`, where the base reads `resizeLr`), kept through a
+  grip resize (`.classicyWindow.classicyWindowResizing .classicyWindowResizer`),
+  the normal select arrow (`arrow`) over a window being moved
+  (`.classicyWindow.dragging`), where the base shows its grabbing hand for
+  both (WIG Ch.4 "Mouse Pointers", p.23, Table 4.1; Ch.6 "Moving Windows",
+  p.83; the shell addendum's B4), and the desktop's
+  text drawn unsmoothed (`-webkit-font-smoothing: none`, as Windows drew its
+  bitmap MS Sans Serif), and a desktop picture whole pixels
+  (`image-rendering: pixelated` on the desktop, `auto` again on its
+  children but the desktop icons, which keep the base's `pixelated`), the
+  Desktop tab's preview showing the desktop's own background
+  (its color under its picture, tiled as the theme lays it; the `<img>`'s
+  own image pushed out with `object-fit: none` at `100vw 100vh`, as System
+  7's preview does).
+- **Wallpapers and desktop patterns** (`src/assets/windows98Wallpapers.ts`,
+  `WINDOWS98_WALLPAPERS`, `WINDOWS98_DESKTOP_PATTERNS`, exported;
+  `docs/windows98-asset-inventory.md`, "Wallpapers" and "Desktop
+  patterns"): registered with `registerClassicyWallpapers` under
+  `windows98`, so the Desktop tab lists them (after the default package's)
+  while Windows 98 is active. The nineteen wallpaper bitmaps of Windows 98 SE
+  (`WIN98_22.CAB`), every pixel kept, as `wallpapers/<name>.webp`, each
+  labeled by the long name Setup installed it under and held by a theme as
+  that name in lower case with hyphens (`black-thatch.bmp`, …; spaces are
+  not allowed in a wallpaper filename); and the nineteen desktop patterns
+  `shell.inf` writes to `control.ini [Patterns]` (not Windows 3.1's
+  thirteen), each an 8 x 8 tile drawn from its eight bytes, a 1 bit opaque
+  black and a 0 bit clear (`pattern-<name>.png`, shipped as
+  `pattern-<name>.webp`, labeled "<Name> Pattern"), so the desktop color
+  the base sheet draws under its picture shows through: a pattern is drawn
+  in the scheme's Background and black, as Windows drew it, and follows
+  every scheme. No preset names one (Windows Standard is plain teal).
+- **Screen savers** (`src/screenSavers/`, `windows98ScreenSavers.ts`;
+  inventory "Screen savers"): seven, offered under `windows98` only, each a
+  port of its `.scr` on the CD, named as `applets.inf` named its file, with
+  its Settings dialog's options as a zod `configSchema` (the derived form)
+  and its `control.ini` reader's defaults: Flying Through Space
+  (`flying-through-space`: warp speed 1-20, 10; stars 10-200, 25), Flying
+  Windows (`flying-windows`: warp 1-20, 20; windows 5-75, 25; Wingdings'
+  0xFF glyph, its outline read from the CD's `wingding.ttf`, in the default
+  palette's colors 1 to 14), Mystify Your Mind (`mystify-your-mind`: per
+  polygon Active, Lines 1-15, Two colors or Multiple random colors; Clear
+  screen), Curves and Colors (`curves-and-colors`: Speed 0-8, Lines 1-80,
+  Curves 2-10, Density 0-6, One color or Multiple random colors, Clear
+  screen), Scrolling Marquee (`scrolling-marquee`: Position, Background
+  color, Speed 1-60, Text, and Format Text's font, style, size, effects and
+  color; "Where do you want to go today?" in red bold 72-point Arial), 3D
+  Pipes (`3d-pipes`: Single or Multiple, Traditional with Elbow, Ball, Mixed
+  or Cycle joints or Flex, Resolution 0-200, Solid (its sixteen teapot
+  materials) or Textured (its own striped texture,
+  `Pipes/pipes-texture.webp`), drawn with WebGL, black without it) and Blank
+  Screen (`blank-screen`, the package's `defaultScreenSaver`: Windows 98 set
+  none). The canvas savers run through `useWindows98Saver`: they tick on
+  Windows 98's 55 ms timer tick (`windows98TimerPeriod`), draw on a canvas
+  one CSS pixel to a pixel (`image-rendering: pixelated`) with a software
+  surface that draws as GDI did (whole-pixel rectangles, Bresenham lines
+  with the last pixel left out, filled glyph outlines), erase by drawing in
+  black, draw one still frame under `prefers-reduced-motion: reduce` (and
+  stop or resume as the preference changes), stop while the page is hidden,
+  and start over when their box changes size. Mystify and Curves and Colors
+  are `transparentBackground` savers that paint the screen black themselves
+  while Clear screen is on, and draw over the desktop when it is off. Their
+  stylesheet (`_windows98ScreenSavers.scss`, through `styles/_screenSavers.scss`)
+  sits at the package layer's root, keyed on the savers' classes, and ends
+  with the reduced-motion pause; no saver sets `cursor`. Each saver's
+  component and schema are exported, as Platinum's are.
+- **Icons and system art** (`src/assets/windows98Assets.ts`, the key map in
+  `windows98Icons.ts`, `docs/windows98-asset-inventory.md`): lossless WebP of
+  Windows 98 SE's resources, one base tree for every theme. 85 icon keys draw
+  a file: an icon group's 32 px image with its own 16 px one (`{ src, small }`
+  leaves, `icons/<binary>-<group>-<size>.webp`), a 16 px image alone (the
+  tray's volume icons), a cell of IE 5's toolbar (`browseui.dll` bitmaps 265
+  and 266) or Web View's sky (`classicy.bg`); 110 reuse another key's (the
+  Fallback rule: a system folder a plain folder, a DVD the CD-ROM drive, …);
+  the other 101 are the core's. Its own leaves `windows98.explorer`,
+  `windows98.recycleBinEmpty` and `windows98.recycleBinFull` give the
+  Finder's override icon and the Trash their 16 px images. System art:
+  `appleMenu` (Explorer's Start flag, bitmap 143, drawn 16 x 16 as the Start
+  button's glyph), `startMenuBanner` (Explorer's bitmap 157, the "Windows98"
+  banner, 21 x 233, every pixel kept), `trashEmpty`/`trashFull` (the Recycle
+  Bin), `aliasBadge` (the shortcut overlay), `startupLogo`/`aboutLogo` (the
+  About box's Windows logo), `openFolderIcon` and `fileDialogFolderIcon`;
+  the other keys resolve to the default package's art, which the stylesheet
+  hides or draws over from tokens. A core icon URL follows (§5): under
+  Windows 98 a stored folder draws `shell32.dll`'s folder.
+- **Cursors** (`WINDOWS98_CURSORS`, exported): USER.EXE's system cursors
+  (`cursors/user-cursor-<id>.png`, 32 x 32, black, white and clear, a pixel
+  that inverted the screen drawn black), every `ClassicyCursorRole`
+  registered `{ src, hotspot }` at the resource's own hotspot (cursor id,
+  then hotspot): `arrow` 100 at 0, 0; `watch` 102, the hourglass, at 16, 16;
+  `hand` 114, IDC_HAND, at 5, 0; `ibeam` 101 and `crosshair` 103 at 15, 16;
+  `resizeLr` 107 at 16, 16; `resizeUd` 108 at 15, 16; `resizeNwse` 105 and
+  `resizeNesw` 106 at 16, 16; `help` 112, Help Select (What's This?'s
+  pointer), at 5, 7; and, from `windows98AssetAdditions.ts`
+  (`WINDOWS98_CURSOR_ADDITIONS`), `notAllowed` 110, Unavailable (a refused
+  drop), at 15, 15 and `appStarting` 111, Working in Background (a PDF
+  loading), at 0, 0. Windows had no one-way size cursors, so
+  `resizeU`/`resizeD` draw 108 and `resizeL`/`resizeR` 107.
+- **Fonts** (`src/assets/windows98Fonts.internal.ts`,
+  `WINDOWS98_FONT_FACES`): `"Pixelated MS Sans Serif"` normal and bold
+  (`fonts/PixelatedMSSansSerif-<weight>-normal.woff2`), lou's FontStruct
+  recreations of MS Sans Serif 8 pt as 98.css converted them, licensed CC
+  BY-SA 3.0; their four readme and license files sit beside them and ship in
+  the tarball (`files: "src/assets/fonts/*.txt"`). No face is shared with
+  another package. Registered at runtime as `<style
+  id="classicy-fonts-windows98">`, and emitted as
+  `dist/classicy-windows98.fonts.css` for strict-CSP hosts.
+- **Names** (`src/windows98Apps.ts`): `apps` shows the Finder as Windows
+  Explorer (with its icon), SimpleText as Notepad, the Appearance Manager as
+  Display, the Sound Manager as Sounds, Date and Time as Date/Time, the
+  Control Strip as Taskbar & Start Menu, Apple Guide as Windows Help, Movie
+  Player as Media Player, Picture Viewer as Imaging and Web Viewer as
+  Internet Explorer, with Windows 98's descriptions, and gives the PDF
+  viewer, HyperCard and Drive Setup verb-first descriptions of their own
+  (12.6); `desktopIcons` shows the Trash as the Recycle Bin (its name on
+  every surface: the window, Empty Recycle Bin, Delete's question, the
+  Empty alert; 1.15) and the startup disk as My Computer, with Windows 98's
+  own InfoTips, and gives the other drives "Shows the files and folders on
+  this disk." (12.5) ("Desktop icon overrides").
+- **What lane 3 left** (`src/assets/windows98AssetAdditions.ts`): the
+  document icons by type (`system.files.byType`: the text document,
+  shell32.dll #152; Imaging's document, kodakimg.exe #129; the video and
+  sound clips, quartz.dll #100 and #200; 10.4), and USER.EXE's Unavailable
+  (cursor 110, `notAllowed`, the refused drop's pointer) and Working in
+  Background (cursor 111, `appStarting`, a PDF loading) pointers.
+  `crashScreen: "fatalException"` draws Windows 98's fatal-exception screen
+  in place of the Sad Mac (1.14).
+- **Documents.** `document: { confirmUnsavedClose: true, reopenActivates:
+  true }`, `window.restoreViewState: true` and `menu.standardShortcuts:
+  "windows"` (§8, "Layout declarations"): SimpleText asks Notepad's "The
+  text in the <name> file has changed." / "Do you want to save the
+  changes?" with Yes, No and Cancel before a changed document closes, from
+  its close box, File ▸ Close or Quit (WIG Ch.1 "Forgiveness", pp.2-3); an
+  open document's or folder's own window comes forward when it is opened
+  again (Ch.6 "Opening and Closing Windows", pp.94-95); a document window's
+  caret and scroll offsets come back with it (Ch.2 "Persistence", p.12);
+  and File ▸ Open… and Save take Ctrl+O and Ctrl+S (App. B Table B.2,
+  p.358).
+- **Text.** `text: { wordSelect: "trailingSpace" }`, `edit: { scope:
+  "window", menu: "windows" }` and `textField: { contextMenu: "edit" }`
+  (§8, "Layout declarations"): a double-click takes the word and the spaces
+  after it (WIG Ch.5 "Selection Shortcuts", p.44); the Edit commands act
+  only on a field of the active window ("Operations for a Multiple
+  Selection", p.44); the bundled Edit menu is Notepad's, Undo, Cut, Copy,
+  Paste, Delete (Del), Select All, dimmed by the field's selection
+  ("Command Method", p.59); and a right-click on a text field shows
+  user.exe's edit menu, Undo, Cut, Copy, Paste, Delete, Select All, at the
+  pointer, or at the field's center from Shift+F10.
+- **Wizards, Help topics and HyperCard's tools.** `assistant: { navigation:
+  "buttons" }` (§8, "Layout declarations"): a `ClassicyAssistant` is a
+  wizard, "< Back" and "Next >" push buttons in the pager's place (WIG
+  Ch.12 "Wizard Buttons", p.289), drawn by `_Assistant.scss` as Windows 98
+  SE's comctl32 template places them: a ButtonFace page, the title band
+  ruled off by the etched line (ButtonShadow over ButtonHilight, a window
+  header strip's), the etched line above the footer's buttons, Back and
+  Next first and touching, then the page's own (Finish, Cancel), every one
+  a push button (23 × 75 at least), no page number (pp.289-290). Apple
+  Guide's window is a WinHelp task topic window (`_AppleGuide.scss`; Ch.12
+  "Task Topic Windows", p.280): the title band and topic on InfoWindow in
+  InfoText and the UI font at the `appleGuide` knobs' 11 px, a WindowFrame
+  line under the title band ("Nonscrolling Regions", p.283) and a text jump
+  green (`help.jump`, "Jumps", p.283; LinkText under forced colors).
+  `help: { topicWindow: "winhelp" }` (§8): that window can be sized and
+  carries WinHelp's command buttons above the topic, Help Topics, Back and
+  Options (Copy), on a ButtonFace band ruled off by a WindowFrame line
+  (Figure 12.10), and Help Topics opens winhlp32's browser, a ButtonFace
+  dialog laid out in its dialog units (the tab control and the buttons 6 px
+  in, the Contents page 18 px right of the tab's edge and 44 px below its
+  top), its tree a tree view with the client edge and no lines or buttons
+  (pp.284-288, Figure 12.13). The Help menu's built-in topic reads "Using
+  Help" under Windows 98, two "how" steps, the ToolTip and What's This?
+  (pp.280-281), Platinum and System 7 keeping "About Help".
+  `balloonHelp: { contextHelp: "whatsThis" }` (§8, §4.8): What's This?
+  and F1, the help a ToolTip shows given as WinHelp's context-sensitive
+  pop-up, the ToolTip's InfoWindow box with Figure 12.3's shadow, the box
+  moved `tooltip.shadow` (6) right and down behind it in a one-pixel
+  checker of WindowFrame and transparent (`classicyBalloonHelpContext`,
+  `_BalloonHelp.scss`; measured on Figure 12.3 at 600 dpi), and, while the
+  mode is on, the `help` pointer over the active window, repeated in the
+  package's layer so it beats the package's own `cursor: default` on its
+  buttons, check boxes and option buttons.
+  `balloonHelp: { unlabeledTips: true, delayMs: 500, autoPopMs: 5000,
+  reshowMs: 100, hideOnPress: true, activeWindowOnly: true }` (§8, §4.8;
+  WIG Ch.12 "Tooltips", p.276; Wine's `tooltips.c`, TTDT_AUTOMATIC on the
+  500 ms double-click time): an icon-only toolbar button is named by a
+  ToolTip, shown after half a second, gone after five seconds, on a press
+  or when the pointer leaves, the next one a tenth of a second after the
+  pointer comes straight from a shown one, and none in an inactive window;
+  a tip's title (a desktop icon's name) is its first line, plain, with no
+  gap (Figure 12.5; TTM_SETTITLE's bold title came with comctl32 5.80,
+  after Windows 98's 4.72); the rich text editor's toolbar tips are
+  ToolTips, the balloon's box with their text on one line
+  (`.classicyRichTextEditorPopups [data-radix-popper-content-wrapper] >
+  *`). `menu.itemHelp: "statusBar"` (§8, §4.5; "Status Bar Messages",
+  pp.276-277, Figure 12.7): a highlighted menu item's help goes to the
+  window's status bar (a `ClassicyPlacard` with `menuStatus`), not a
+  balloon. In
+  HyperCard's editor the armed part tool is a latched toolbar button, the
+  ButtonHilight / ButtonFace checker in the pressed rings (`_HyperCard.scss`;
+  Ch.13 "Option-Set Appearance", pp.304-305), and Escape disarms it
+  (`input.escapeCancels`).
+- **The shell's own surfaces under these keys** (the shell addendum's
+  section C: what the package's layout asks of the desktop, the windows,
+  the Start menu and the window bars). The desktop's bar and white-space
+  menus are Explorer's (`finder.commands`); a press on its empty area
+  selects by Windows' rules (button 2 starts the rectangle, its menu at
+  the release; Shift adds, Control toggles; a middle press does nothing),
+  Escape takes the rectangle back, its keys rove a focus icon and Space
+  selects, and a file let go on a folder is moved, copied (Control) or
+  linked (Control+Shift, or the button-2 menu, which carries no Help
+  item), the folder's window then activated. A window moves and sizes by
+  button 1 alone, and Escape puts a move or a resize back; a window
+  reopened comes back at its scroll offset (`window.restoreViewState`). A
+  dialog with described controls draws the "?" caption box, which starts
+  What's This?; a window bar's Help leads with Help Topics (H) and What's
+  This? (W, ⇧F1), and Start ▸ Help opens the Help Topics browser. Each is
+  read from its own key, so Platinum, System 7 and `mirrored` keep
+  today's desktop, windows and menus.
+- **Icon dimming.** `iconDimming.disabledControl`, an emboss in
+  ButtonHilight (`system` 0) and ButtonShadow (`system` 4): a disabled
+  toolbar button's image as DrawState's DSS_DISABLED draws it ("Icon
+  dimming").
+- **Theme files.** `themeFileImporter` `{ extensions: [".theme"], read:
+  readWindows98ThemeFile }` (`windows98ThemeFile.ts`, exported): a Windows
+  `.theme` file (Plus! for Windows 95, Windows 98's Desktop Themes) loads
+  through Load Theme… as a custom theme of the package. Its
+  `[Control Panel\Colors]` map as the schemes' do (a color it lacks is
+  Windows Standard's; GradientActiveTitle and GradientInactiveTitle, which
+  no Plus! file has, take their base color, a flat caption), `[Metrics]`'s
+  NonclientMetrics and IconMetrics (decimal bytes, ANSI or wide, told apart
+  by length) give the metrics and fonts as the schemes' do and the icon
+  spacing, `[Control Panel\Desktop]`'s wallpaper is kept by its file name
+  when a package registers it (case aside, else none; `TileWallpaper` tiles,
+  `WallpaperStyle=2` stretches), and `[Theme] DisplayName`, else the file
+  name, names it. Sounds, cursors, icons and screen savers are not read.
+- **Sound** (`src/assets/sounds/windows98.ts`). One pack, `windows98`,
+  ogg and m4a, from Windows 98 SE's own WAVs (the CD's `C:\WINDOWS\MEDIA`
+  files, `src/assets/sounds/windows98/sprites/<sprite>.wav`), mapped as
+  its default scheme (`MMOPT.INF`, `MOTOWN.INF`) maps the events:
+  `ClassicyBoot` The Microsoft Sound (Start Windows), `ClassicyBeep` Ding
+  (Default sound), `ClassicyEmailNewMail` Notify (New Mail Notification),
+  `ClassicyTrashEmpty` Recycle (Empty Recycle Bin; an optional sprite).
+  `alerts` are the Media folder's eight short WAVs (Chimes, Chord, Ding,
+  Logoff, Notify, Recycle, Start, Tada; `defaultAlert` Ding, the Default
+  sound an error beep plays), and `alertTypeSounds` gives an alert box
+  Chord, its icon's event (Asterisk for a note, Exclamation for a caution,
+  `ClassicyAlertExclamation`, Critical Stop for a stop) while the user has
+  picked no alert. `ClassicyAlertExclamation` (Chord again) is kept from
+  the earlier pack but no longer offered. Each WAV's file and SHA-256 is in
+  `docs/windows98-asset-inventory.md`, "Sounds". The scheme gives opening,
+  closing, maximizing, minimizing and menus no sound, and the package's
+  one hook (below) plays nothing, so controls play no feedback.
+- **Dialogs, menus, the Colors tab and the pointers** (the remaining
+  chapters' audit's L4-K). `hooks` (`windows98AppearanceHooks`, exported,
+  deeply frozen as Platinum's are) holds one handler pair, a chosen menu
+  item's: the press gives the item `windows98MenuItemChosen`, whose 1 ms
+  animation (`_Menu.scss`) draws nothing and ends within a frame, so the
+  core runs the command on its `animationend` at once, with no flash and
+  no sound, where it waited for the 400 ms fallback (WIG Ch.4 "Mouse
+  Actions", p.24; Ch.7 "Drop-down Menu Interaction", p.97; 1.19 / 4.7);
+  the release clears it. `menu.confirmEllipsis: false` drops the ellipsis
+  from Empty Trash and Reset PRAM (1.13); `dialog.flushInput: true` keeps a
+  held Return out of the alert it raised (10.20); `icon.aliasBadge:
+  "everywhere"` draws the shortcut overlay in the Finder's icon and list
+  views over the whole image, as on the desktop (11.2). `colorLabels` names
+  nine core colors in Windows' words: the Display Properties Items of
+  Windows 98 SE's Appearance tab (deskcp16.dll) where an Item is the color
+  (`--desktop-background-color` Desktop, `--color-window-document` Window,
+  `--color-highlight` Selected Items, `--color-system-03` 3D Objects), and
+  the colors Windows offered as no Item, derived from 3D Objects and each
+  Item's font color, by their `[Control Panel\Colors]` names in words
+  (`--color-system-01` Button Highlight, `-02` Button Light, `-05` Button
+  Shadow, `-07` Button Dark Shadow, `--color-black` Window Text); the Items
+  that are no core color (the title bars, the window borders, the scroll
+  bar, the ToolTip) are its color families (1.2). The message box's Help
+  button is a 75 x 23 push button reading its accessible name ("Help"),
+  last in the row (WIG Ch.12 "The Help Command Button", p.278, Figure 12.8;
+  12.14). The startup screen shows no extensions parade (1.16; the boot
+  sound is The Microsoft Sound). The pointers follow Table 4.1
+  (WIG Ch.4 "Mouse Pointers", pp.23-24), each in the cursor registry's
+  idiom with the host's keyword behind it (`b.registry-cursor`,
+  `_bevels.scss`): the arrow over list and tree rows, the list view's expand
+  buttons, the tab strip's scroll arrows, the pager's arrows, sliders and
+  their thumbs (disabled too) and the Colors tab's swatches and crayons,
+  where the base shows the hand or the slashed circle (4.1); the two-headed
+  `resize-lr` / `resize-ud` over the split dividers, kept while a drag lasts
+  where the base turns to the one-way arrows (4.2); the hourglass (`watch`,
+  `wait`) over the startup screen and the host's `progress` pointer over the
+  PDF viewer's "Loading…" (`_PDFViewer.scss`; 4.5). ClassicyLink's hand and
+  the HyperCard editor's handles stay.
+- **Build.** `pnpm --filter @classicy/appearance-windows98 build`: its
+  `verify:dist` holds System 7's invariants for its own files, with
+  nothing inlined (its `dist/assets` is its two woff2 faces, its package
+  icon, its art, icons, wallpapers and pattern tiles and 3D Pipes' texture,
+  each byte for byte its WebP, its cursors, each byte for byte its PNG, and
+  the two sprites; zod is carried, as Platinum carries it, and is in
+  `dependencies`; invariant 6 holds
+  `classicy-windows98.fonts.css` to the runtime's rules). Storybook
+  registers it only through `storybook/.storybook/windows98.ts` (its own
+  stories) or the Package toolbar.
+- **Storybook (the shell).** `Appearance/Windows 98/Shell`
+  (`Windows98Shell.stories.tsx`, plan 0020-w98 step 20) draws the shell on
+  the story desktop, each story leaving `parameters.classicy.controlStrip`
+  unset so the status area holds the strip's modules: the taskbar with three
+  windows (one active, one minimized), the Start menu with Programs open, a
+  tray icon's menu and the Sound panel, a window menu bar's Help, a maximized
+  window, the system menu, the three message box types (WIG Figure 8.17),
+  the "Windows 95" and "Rainy Day" schemes, and the extras: the taskbar's
+  menu, Quick Launch with its tooltip, task-band paging, Shut Down, Run,
+  Start ▸ Documents, Log Off (the decorator's `parameters.classicy.userName`
+  is the desktop's `userName`), the flashing task button, the Start and
+  caption-button tooltips, Taskbar Properties, docking left and top, Auto
+  hide and small Start menu icons. `storybook/.storybook/windows98.ts`
+  holds the helpers: `WithActions` (store actions once on mount),
+  `WhenWindowsOpen` (window registry commands and actions, run once every
+  named window is mounted and open), `noteRecentDocuments`, and the play
+  helpers, which act with the events the shell listens for
+  (`openStartMenu(doc, path)`, `openTrayIcon(doc, label, button)`,
+  `openTaskbarMenu`, `chooseMenuItem`, `openWindowMenu(doc, appId,
+  windowId, menuId)`, `hoverForTooltip`, `untilSelector`, `untilElement`,
+  `pressElement`, `clickElement`, `contextClickElement`, `hoverElement`);
+  `Windows98StoryHelpers.test.tsx` covers them. The "?" caption box has no
+  story: no window passes the title bar's `onHelp` until What's This? is
+  wired (E3).
+
 ### Layout declarations
 
 A package's **arrangement** (where the parts of a surface go, as opposed to
@@ -4238,25 +6785,103 @@ how they look) has two halves:
    keeps scroll bars drawn while the content fits (`fitsBars`) and adds a
    drag outline during a thumb drag (`thumbDrag`).
 2. **The package's `layout` block**, for the three arrangements that need
-   JavaScript as well as CSS, the optional `window.centering`, and the
-   optional `scrollBar`, `patternOrigin` and `slider` groups, which declare
-   behavior rather than arrangement. The groups and each of their keys are
+   JavaScript as well as CSS, the optional `window.centering`,
+   `menuBar.idleTimeoutMs` and `mouse`, and the optional `menu`,
+   `keyboard`, `finder`, `scrollBar`, `patternOrigin`, `slider`,
+   `fileDialog`, `fileBrowser`, `fileList`, `tree`, `balloonHelp`,
+   `selection`, `contextMenu` and `input` groups, which declare behavior
+   rather than arrangement, the optional `taskbar` group, which
+   gives the desktop a Windows taskbar in its Control Strip's place, and the
+   optional `dialog` group, which captions modals as Windows does. The groups and each of their keys are
    optional, so a package that leaves one out keeps the core's behavior;
    Platinum declares only `slider`.
 
 | Key | Values (Platinum's first) | Drives |
 |---|---|---|
-| `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
+| `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?, bottomBand?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7 and Windows 98): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
+| `window.restoreViewState` (optional) | `false`, `true` | whether a window's view state comes back with it (WIG Ch.2 "Persistence", p.12: "view state information, such as cursor position, scroll position, and window size and location, should be preserved so it can be restored when an object's view is reopened"; Ch.6 "Opening and Closing Windows", p.94: "reinstate the other related view information, such as selection state, scroll position"; the audit's 2.1). Absent or `false` (Platinum, System 7): a window's record keeps its size, place, zoom and collapse alone, and a reopened window starts at the top with the caret at the start. `true` (Windows 98): `useClassicyWindowViewState(appId, windowId)` (`Window/ClassicyWindowViewState.internal.ts`) hands back `{ initialScroll, onScrollSettled, initialCaret, onCaretSettled }`, the record's `scroll` and `caret` as the window mounted (finite values only) and callbacks writing new ones through `ClassicyWindowSetScroll` once they settle, for the window's content `ClassicyScrollArea` and a document's `ClassicyTextEditor`; without the key every member is `undefined` and the reducer writes nothing. SimpleText's plain-text windows (with a file) put their caret and scroll back, and `ClassicyWindow` hands the scroll pair to its own content scroll area, so a Finder folder or a Markdown document reopens at its offset (under the key only). The record keeps both across a close and a reload |
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
-| `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
+| `window.collapse` (optional) | `shade`, `minimize` | what the collapse box does (and Option-click collapse-all, and a `ClassicyWindowCollapse` dispatch). `shade` (the default, Mac OS 8's WindowShade, every package but Windows 98): the window rolls up into its title bar. `minimize` (Windows 95/98, WIG Ch.6 "Minimizing Windows", p.85; Windows 98 declares it): the box is "Minimize", a primary window leaves the screen (`classicyWindowMinimized`, `display: none`, its tree kept mounted) and keeps its taskbar button, the box's click does not bubble, the zoom is kept, focus passes to the next window down that is on screen (the app's own, else another app's by `zOrder`, else the desktop; `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy` too), and focusing the window again restores it (§4.1, "Minimize"). A modal or utility window draws no collapse box there and its collapse is refused (a stored one drawn expanded and kept), and an app's palettes are hidden while every one of its open primary windows is minimized (WIG Ch.8, p.145). Either way it is the store's `collapsed` flag, so a window minimized under one package is shaded under another. Requires `taskbar` (the schema refuses it without one: a minimized window comes back through its taskbar button). The root gains no attribute or custom property for it |
+| `window.zoom` (optional) | `standard`, `maximize` | what the zoom box does (and the window registry's `maximize` and `restore`). `standard` (the default, Mac OS 8, every package but Windows 98): it toggles the window between the rect the user gave it and its standard state, the content's ideal size within the desktop less `--window-zoom-margin` (`zoomMode`, `idealSize`). `maximize` (Windows 95/98, WIG Ch.6 "Maximizing Windows" and "Restoring Windows", pp.84–85; the audit's 6.6; Windows 98 declares it): the box is "Maximize", "Restore" while maximized; the window's content box takes the work area (the desktop less the menu bar's band and the taskbar's) with its frame just outside it, as Windows grows a maximized window's rect by its frame (`classicyMaximizedWindowRect`); `zoomMode` and `idealSize` are ignored; the rect it had goes with the zoom (`ClassicyWindowZoom`'s `restore`) and is stored as the record's `restoreRect`, deleted on un-zoom, so Restore survives a reload; while maximized the root carries `classicyWindowMaximized` (base rule `max-height: none`) beside `expanded`, the window is not clamped on screen, its caption's drag is refused, its frame edges and grow box are not drawn, and it takes the work area again on mount, on a band change and on a desktop resize (§4.1, "Maximize and restore"). A primary window with only one of the zoom and collapse boxes draws the other unavailable beside it (`zoomDisabled`, `collapseDisabled`), Windows 95's Minimize and Maximize pair (Wine's `NC_DrawCaption`). A utility window has no Maximize button there (WIG Ch.8, p.164, Figure 8.16), so it draws no zoom box and a stored zoom is drawn unmaximized. Either way it is the store's `zoomed` flag, so a window maximized under one package is a zoomed one under another (clamped back on screen, un-zoomed to its `restoreRect`). The root gains no attribute or custom property for it |
+| `window.titleDoubleClick` (optional) | `collapse`, `zoom` | what a double-click on the caption does. `collapse` (the default, Mac OS 8): it collapses the window while the desktop's `doubleClickTitleToCollapse` preference is on. `zoom` (Windows 95/98 as shipped, Wine's `NC_HandleNCLButtonDblClk`; Windows 98 declares it): it runs the zoom box's toggle (maximize or restore, under `window.zoom: "maximize"`) whatever the preference says (the preference stays stored and applies again under another package), and does nothing on a window that draws no zoom box or on a modal's caption, never a collapse (§4.1, "The caption's double-click"). The root gains no attribute or custom property for it |
+| `window.frameEdges` (optional) | `move`, `resize` | what the four frame edges do. `move` (the default, Mac OS 8, whose frame is a drag region; every package but Windows 98): a press on an edge moves the window, as the title bar does. `resize` (Windows 95/98, WIG Ch.6 "Sizing Borders", p.83; the audit's 6.5; Windows 98 declares it): a resizable window drawn at its size has a sizing border, its root carrying `classicyWindowSizingBorder`: each edge (the frame's width, `--window-frame-inset`, `SM_CXFRAME`) sizes it from that edge and eight corner arms (`classicyWindowFrameCorner-<corner>-<h\|v>`, reaching `--window-title-bar-height` past the inside of the frame along each edge, as Wine's `NC_HandleNCHitTest` makes a corner `SM_CXSIZE` long) size both edges of their corner, with the registry's resize cursors; a press activates the window and takes the pointer's capture, the moving edges follow the pointer (`computeClassicyWindowEdgeResize`, below) and stop at the work area, the minimum size and the height reserve's cap, so the release clamp never moves a window just sized. A non-resizable window's edges (modals included) do nothing, and a maximized window draws none (§4.1, "Frame-edge sizing"). The root gains no attribute or custom property for it |
+| `window.systemMenu` (optional) | `false`, `true` | whether windows have the window pop-up (system) menu. `false` (the default, every package but Windows 98): a right-click on the title bar shows the window's or its app's `contextMenu`, as anywhere in the window, the title bar's icon is inert, the window registry's `systemMenu` command reports `false`, and no key is bound. `true` (Windows 95/98, WIG Ch.6 "Title Bars", "Title Bar Icons", "Title Bar Buttons", pp.76–80; Ch.7 "The Window Pop-up Menu", p.102; Ch.8, pp.145 and 164; App. B, Table B.2, p.358; the audit's 6.2, 6.3, 7.10 and 8.7; Windows 98 declares it): the menu (Restore, Move, Size, Minimize, Maximize and Close; Move and Close on a modal; Move, Size and Close on a palette; each enabled as Wine's `MENU_InitSysMenuPopup` enables it; Close the bold default with ALT+F4; `classicyWindowSystemMenuItems`, below) opens at the pointer on a right-click anywhere in the title bar and on a window button's right-click on the taskbar, and drops from the caption's bottom-left on a press on its icon and on ALT+SPACE (the first item selected), with no Help item, the arrows walking it and ESC closing it; a double-click on the icon and ALT+F4 close the window through its Close box's path (veto included; nothing when it cannot close), and the menu's Move and Size run the keyboard modes (§4.1, "The window pop-up (system) menu"). `ClassicyDesktop` binds ALT+SPACE and ALT+F4 only under it (ALT+F6 and ALT+SHIFT+F6 follow `taskbar`, below). The root gains no class, attribute or custom property for it |
+| `window.captionTooltips` (optional) | `false`, `true` | whether each title-bar box names itself in a tooltip. `false` (the default, every package but Windows 98): none. `true` (Windows 98 as shipped; Windows 95 had none, and the 1995 guidelines say nothing; Windows 98 declares it): a box shows its label ("Close"; "Maximize" or "Restore", "Minimize" under the shell's flags, else "Zoom" and "Collapse"; "Help" for a help box) after the pointer rests on it 500 ms, whatever Balloon Help says, hidden by a press on it (`ClassicyWindowTitleBar`'s `buttonTooltips`, §4.1). The root gains no class, attribute or custom property for it |
+| `window.utilityTitle` (optional) | `false`, `true` | whether a utility window's (palette's) title bar shows its title. `false` (the default, every package but Windows 98): one title-less band, as Mac OS 8's and System 7's windoids. `true` (Windows 98: a WS_EX_TOOLWINDOW caption carries its title in the small caption font, Wine's `draw_nc_caption`; WIG Ch.8 "Palette Windows", p.163): the bar draws the title text before its band, no icon (`ClassicyWindowTitleBar`'s `utilityTitle`, §4.1). The root gains no class, attribute or custom property for it |
+| `dialog.caption` (optional group `dialog`) | `plain`, `titled` | how a `modal` window is captioned. `plain` (the default, Mac OS 8, every package but Windows 98): the title it is given, a Close box only when `closable`, and an alert or a `movable={false}` modal fixed in place. `titled` (Windows 95/98, WIG Ch.8 "Appearance and Behavior", p.145, Figure 8.1; "Message Boxes", p.164; "Message Box Types", p.166, Figure 8.17; Windows 98 declares it): every modal's caption has a title (its app's display name when it is given none), a Close box (closing a `closable` modal, running `onCaptionClose` for any other, drawn unavailable with neither, as for a Yes/No message box) whose path the window pop-up menu's Close and ALT+F4 follow, and moves the dialog, an alert included (no `classicyWindowModalFixed`) (§4.1, "Dialog and message box captions"). Every other window is unaffected. The root gains no attribute or custom property for it |
+| `menuBar.placement` | `screen`, `window` | `screen` (Platinum, System 7): the one menu bar across the top. `window` (Windows 98, under its taskbar; Storybook's `mirrored` package, with none): the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
+| `taskbar` (optional group) | absent; `{ startLabel?, startBanner? }` | the Windows 95/98 shell's taskbar (WIG Ch.3 "The Taskbar", pp.15–16, Figure 3.1; Ch.9, p.175; Ch.10 "Taskbar Integration", pp.211–212). Absent (Platinum, System 7): `ClassicyDesktop` draws its Control Strip and no taskbar. Present (Windows 98: `{ startLabel: "Start", startBanner: { title: "Windows", edition: "98" } }`): it mounts `ClassicyTaskbar` (§4.7) in the Control Strip's place, at the same point among its children, and draws no Control Strip (its stored settings are kept; its modules are the taskbar's notification icons, and the menu bar extensions sit beside them); the taskbar's measured height is the band windows, Clean Up and every menu keep above, and each window's menu bar ends with the Help menu ("Window menu bars", below). The Start button opens the Start menu, and CTRL+ESC does too (§4.7, `ClassicyTaskbar`); ALT+F6 and ALT+SHIFT+F6 go to the focused app's next and previous window (§4.1, "The window pop-up (system) menu"). `startLabel` (1–24 characters, trimmed, no control character; `"Start"` when absent) is the Start button's label and the Start menu's accessible name. `startBanner` (`{ title, edition? }`, each one line of 1–24 characters, trimmed, no control character; absent, no banner) is the Start menu's banner, the vertical strip down its left side (`classicyStartMenuBanner`, its first child): `title` (`classicyStartMenuBannerTitle`), then `edition` (`classicyStartMenuBannerEdition`), which the package sets reading upward, the title bold. It is text in the layout, not art in the theme, so it is the same under every scheme, as Windows 98 drew its banner under every color scheme. Requires `menuBar.placement: "window"` (the schema refuses it beside a screen bar). The root gains no attribute or custom property for it |
+| `menuBar.idleTimeoutMs` (optional) | a whole number of ms, `0` to `3600000` | how long an open menu waits, untouched, before it closes itself: read by every `ClassicyMenuProvider` given no `idleTimeoutMs` (the screen and window bars, contextual menus, pop-up bevel buttons' menus) through `useClassicyMenuIdleTimeout`. Absent (Platinum, System 7): 15000, HIGOS8 "Sticky Menus" (p.92). `0` (Windows 98): never, as a Windows menu stays until the next click (WIG Ch.7 "Drop-down Menu Interaction", p.97; Ch.14 "Timing and Navigational Interfaces", p.333) |
+| `menu.keys` (optional) | `mac`, `windows` | how menus take the keyboard ("Menu keyboard and press tracking", §4.5). `mac` (the default, Platinum, System 7: Mac OS 8's and System 7's menus had no keyboard navigation, HIGOS8 "Sticky Menus" (p.92)): Return chooses the focused item as a click does, and nothing else is taken (a pop-up bevel button's menu keeps its own Up/Down walk and Escape); the root list never carries `focused`. `windows` (Windows 98; WIG Ch.7 "The Menu Bar and Drop-down Menus" (pp.97-98), "Pop-up Menu Interaction" (p.101)): roving focus through every menu tree (Up/Down wrapping, Right/Left into and out of submenus and across a bar's titles, Home/End, Return and Space, typing to the next item), Escape a level at a time (an open contextual menu included), F10 to a bar and back, a pop-up shown with focus outside it taking Escape, Up, Down and its access keys from the document, access keys typed in a menu and Alt with a title's (`menu.accessKeys`), and the `focused` state on the root list while the keyboard tracks |
+| `menu.submenuDelayMs` (optional) | a whole number of ms, `0` to `10000` | a cascading menu's pointer time-outs ("Menu keyboard and press tracking", §4.5). Absent (Platinum, System 7): a hovered submenu opens at once and stays open until another opens or the menus close, and a pop-up menu's submenus open on a click. Set (Windows 98: 400, `SPI_GETMENUSHOWDELAY`; WIG Ch.7 "Cascading Menus", pp.104-105): it waits that long under a resting pointer before opening (a leave cancels it), an open one closes that long after the pointer rests on another item of its list unless the pointer returns to it first, a pop-up menu's open on hover too, and a dimmed item's never on hover. Bar titles switch at once either way; a click, Return or an arrow key opens at once |
+| `menu.disabledItems` (optional) | `skip`, `browse` | how the menus' keyboard treats a dimmed item. `skip` (the default, as Mac OS menus and the pop-up bevel buttons' menus did): Up, Down, Home, End and typing pass over it. `browse` (Windows 98; WIG Ch.7 "Menu Items", p.107: disabling "does not prevent the user from browsing or choosing it"): it is tracked like any other, and choosing it does nothing |
+| `menu.accessKeys` (optional) | `explicit`, `auto` | which menu titles, menu items and control labels have an access key (`data-classicy-part="access-key"`; "Menu keyboard and press tracking", §4.5; `ClassicyControlLabel`, §4.4). Absent (Platinum, System 7: Mac OS had no access keys): none, a given `accessKey` included, so a Mac menu or label draws, names and takes nothing new. `explicit`: those given an `accessKey` alone. A menu's keys are typed through the menu keyboard (`menu.keys` `"windows"`); a label's Alt and key work under either value. `auto` (Windows 98; WIG Ch.7 "Menu Titles" (p.106), "Menu Item Labels" (p.109); Ch.8 pp.148-149): every other titled item, and every other label of a focusable control and every other `ClassicyButton` (OK and Cancel excepted, which Return and Escape reach: WIG Appendix B Table B.5), takes the first character of its text that no sibling (the menu's items, the bar's titles, the window's labels and buttons) holds: its first letter, a later word's first letter, a consonant, then a vowel (WIG Ch.4 "Access Keys", p.27), an explicit key reserved first, so the pick never takes it (Windows 98's Start menu, Favorites "a" and Find "F", passes both); `""` opts one out; a `ClassicyTabs` tab takes only one given. The bundled menus and message boxes give Windows 98's letters through `useClassicyBundledAccessKeys()`, which returns a key only under this key (the remaining chapters' audit's 4.12). Under it, Alt and a title's or a control's key wins over a menu item's Option (⌥) equivalent of the same chord (4.14: the access-key listeners run in the capture phase and `preventDefault`), and two siblings sharing a key log a development warning (`"Menu"`, `"Dialog"`) |
+| `menu.shortcutSpelling` (optional) | `glyphs`, `names` | how `ClassicyKbd`'s `inline` form, a menu item's keyboard equivalent, and `ClassicyKeyboardEquivalentField`'s display spell a chord. `glyphs` (the default, Platinum, System 7): ⌃⌥⇧⌘ and the key. `names` (Windows 98; WIG Ch.7 "Shortcut Keys in Menu Items", p.110: "Ctrl+key ... and Shift+key", "Fn"): the keycaps' names joined by `+`, "Ctrl+Shift+S", ⌫ Backspace, ⌦ Del, Escape Esc, the arrows Up, Down, Left, Right (`formatKeyboardShortcutNames`); ⌘ as `Ctrl`, first, while `keyboard.command` is `"ctrl"`, and for a `nativeShortcut` item off a Mac whatever it says (the remaining chapters' audit's 1.12 and 5.30; WIG Ch.5 pp.67-68: the Edit menu's Undo Ctrl+Z, Cut Ctrl+X, Copy Ctrl+C, Paste Ctrl+V, Select All Ctrl+A), else `Win`; and the Edit menu's Clear shows the Delete key, "Del", as Windows 98's editors do (`useClassicyEditMenu`, a native key). Display only: the chord fires as before |
+| `menu.emptySubmenus` (optional) | `leaf`, `placeholder` | an item given an empty `menuChildren`. `leaf` (the default): a plain item, chosen as any other. `placeholder` (Windows 98, as its Start menu and Favorites show an empty folder): a submenu of one dimmed "(Empty)" item (id `<id>_empty`, no access key) |
+| `menu.itemHelp` (optional) | `balloon`, `statusBar` | where a menu item's help (`ClassicyMenuItem.balloon`) goes (the audit's 12.13; §4.5). `balloon` (the default, Platinum, System 7: Mac OS 8's Balloon Help): a balloon beside the item while balloons are on. `statusBar` (Windows 98; WIG Ch.12 "Status Bar Messages", pp.276-277, Figure 12.7): no balloon; while the item is highlighted (the pointer on its row, or the keyboard's focus) its `balloon.content`, or `balloon.disabledContent` while it is disabled, is the menus' status text (`useClassicyMenuStatusText`), `""` for an item with none, from the menu's opening to its closing; a `ClassicyPlacard` with `menuStatus` in the active window shows it in place of its children. A `ClassicyBevelButtonPopup` outside any window (the Start menu, the tray, the Control Strip) gives none. Recorded choices: the text runs while any menu tree that gives it is shown, page-wide (MenuHelp's simple mode), and no bundled window has a status placard, so the capability is shown in the `Appearance/Windows 98/ToolTips` story |
+| `menu.confirmEllipsis` (optional) | `true`, `false` | whether a confirming item (`ClassicyMenuItem.confirms`: Empty Trash, Reset PRAM, whose command only opens a warning alert) takes an ellipsis (the audit's 1.13; §4). Absent or `true` (Platinum, System 7: HIGOS8 Ch.4 "Menu Items"): `ClassicyMenu` appends "…" ("Empty Trash…", "Reset PRAM…", byte for byte as before). `false` (Windows 98: WIG Ch.7 "Types of Menu Items", pp.107-108, "Don't use an ellipsis for commands that only display a message confirming the action"): the title as given, "Empty Trash" and "Reset PRAM" (with 1.15's names, L4-L's, the Windows title reads Explorer's "Empty Recycle Bin"). It applies to every menu, the contextual menus and the window menu bars included, since each draws through `ClassicyMenu` |
+| `menu.standardShortcuts` (optional) | absent, `windows` | the standard shortcut keys a bundled document app's File menu carries (WIG Appendix B Table B.2, p.358: CTRL+O Open, CTRL+S Save, "Avoid assigning these keys to functions other than those listed"; the audit's B.4). Absent (Platinum, System 7, whose ⌘O and ⌘S the browser keeps): SimpleText's Open… and Save carry none. `windows` (Windows 98): they carry `⌃O` and `⌃S`, spelled Ctrl+O and Ctrl+S under `shortcutSpelling: "names"`, which the menu-shortcut dispatcher matches on `e.ctrlKey` and claims with `preventDefault`, so on a Windows host the browser's Open and Save Page never run (Chrome, Edge and Firefox let a page take both) |
+| `keyboard.command` (optional) | `metaOrCtrl`, `ctrl` | which key a Command (⌘) keyboard equivalent answers to (the remaining chapters' audit's 4.19). `metaOrCtrl` (the default, Platinum, System 7): Command or Control, so a ⌘ equivalent works on any keyboard. `ctrl` (Windows 98; WIG Ch.4 "Shortcut Keys" (p.28), Appendix B Table B.3 (p.359): the Windows keys are for the system's own functions): Control alone, and a key pressed with the Windows key (`metaKey`) satisfies no shortcut: `shortcutMatchesEvent`, `canonicalChordsFromEvent` (so `ClassicyShortcutDispatcher` and `findMenuItemByShortcut`, unchanged), `classicyCommandKeyHeld` (`useKeyboardEquivalents`' and the keyboard-equivalent dialog's Command-period, HyperCard's editor keys) read it store-free at call time, so Win+letter runs no command and Win+period cancels nothing; `keyboardShortcutFromEvent` records Control as ⌘ on any host and a Windows-key chord as nothing; under `menu.shortcutSpelling` `"names"` a ⌘ chord reads `Ctrl+` |
+| `keyboard.editableShortcuts` (optional) | `false`, `true` | `true` (Windows 98; the remaining chapters' audit's 4.15; WIG Ch.4 "Shortcut Keys" (p.27): "let the user change shortcut assignments where possible"): the bundled apps' menu shortcuts take the user's own. `System.Manager.Desktop.shortcutOverrides` maps a stable shortcut id (`CLASSICY_BUNDLED_MENU_SHORTCUTS`: the item's own id where it is stable, `${appId}_close_window` and `${appId}_quit`; `finder_file_open`, `finder_file_move_to_trash` and `finder_edit_select_all` for the Finder windows' and the desktop's items alike; `SimpleText.app_file_open`, `SimpleText.app_file_save`; HyperCard's `view_hypercard_tools`, `view_hypercard_inspector`) to a canonical chord (`"control+o"`), written by `ClassicyDesktopSetShortcutOverride { itemId, shortcut, defaultShortcut? }` (the item's own chord again removes the entry, and the map goes with its last) and `ClassicyDesktopResetShortcutOverrides { itemIds? }`, both only under this key, so Platinum's and System 7's persisted bytes never change; absent from the default state, kept by `sanitizeStateForPersistence`, validated on load (`migrateClassicyState`: usable ids, 1-128 characters and no prototype name, holding a chord with Command, Control, Option or a function key, canonical; the rest dropped). Applied where each menu is built: every bundled builder that sets a `keyboardShortcut` resolves it through `useClassicyMenuItemShortcuts()` / `useClassicyMenuItemShortcut(itemId, chord)` (the stored chord, in a menu item's form, while this key is on, else `chord`), so the menu bar's claims (`collectMenuChords`), `ClassicyShortcutDispatcher`'s `findMenuItemByShortcut` and the chord a menu draws follow with no change to `Desktop/MenuBar/`; a host's own items keep their chords. `ClassicyControlPanels` mounts the Keyboard control panel (`ClassicyKeyboardManager`, `KeyboardManager.app`, "Keyboard") only under this key, so the Apple menu, the Control Panels folder and the Start menu list it only then: its Shortcuts tab lists, under each mounted app's display name, the catalog's commands, each a `ClassicyKeyboardEquivalentField` ("Change…") whose `inUse` is the app's other commands at their current chords and the browser's edits (⌘Z, ⌘X, ⌘C, ⌘V, `CLASSICY_NATIVE_EDIT_SHORTCUTS`), a change applying at once, and Reset (R) restores every app's own. Recorded: Windows 98 had no such page (its programs' shortcuts were fixed; the WIG asks for one "where possible"), so the panel is Classicy's; the Edit menus' native shortcuts (the browser performs them), modifier-less chords (Finder's Delete ⌦) and the screen bar's Show Balloons ⌥H (a shell item) are not listed; a chord needs Control (⌘ under `keyboard.command` "ctrl") or a function key, the dialog's rule (WIG p.27: Ctrl combinations and function keys), though a current Alt chord (⌥W, ⌥Q) stays. Absent or `false` (Platinum, System 7, whose equivalents are the application's): every chord is the app's own, a stored override is kept but never applied, and no Keyboard panel is mounted |
+| `keyboard.contextMenuKey` (optional) | `false`, `true` | `true` (Windows 98; WIG Ch.7 "Pop-up Menu Interaction" (p.101), Appendix B Tables B.2 and B.3): Shift+F10 and the Application (ContextMenu) key open the focused element's contextual menu, as a right-click on it does (`ClassicyContextualMenuProvider`, "Menu keyboard and press tracking", §4.5). The menu is the focused selection's (4.17, 11.4, B.6; WIG Ch.4 p.28, App. B Table B.2): a file view's selected item's (`itemContextMenu`) or the desktop's selected icon's, at the center of the item's icon (Explorer's LVIR_ICON center, ReactOS's `CDefView::OnContextMenu`; the audit's review), and a `contextmenu` the browser raises with no pointer position is sent the same way; a text field's opens at its center (Wine's `EDIT_WM_ContextMenu`, recorded by L4-G2) (§4.5, "Menu keyboard and press tracking"). Absent or `false` (Platinum, System 7: Mac OS contextual menus open from a Control-click alone, HIGOS8 "Contextual Menus" (p.93)): neither key is taken |
+| `finder.commands` (optional) | `mac`, `windows` | which commands Finder's and the desktop's menus offer ("Icon view selection", §7). `mac` (the default, Platinum, System 7): Mac OS 8's menus byte for byte: an item's Move To Trash, or Restore in the Trash, with no default item (HIGOS8 "Contextual Menus" (pp.94-95): "you should not set a default item"), none on a desktop file, folder or app icon, a folder window's File menu Close Window, Close All Windows and Move To Trash, its View menu View as Icons and View as List, no white-space menu, Delete with no confirmation and Mac OS 8's alert on an Extension. `windows` (Windows 98; WIG Ch.1 "Understanding Users" (p.8); Ch.5 pp.45, 61, 67, 69; Ch.7 "Icon Pop-up Menus" (pp.102-103); Ch.9 p.176; Ch.10 pp.199-200; App. A Table A.1 note 3 (p.350); Windows 98 SE Explorer's menus and letters, shell32.dll; the audit's 1.21, 5.23, 5.28, 5.39, 5.40, 9.3, 10.3, 10.6, A.4): every item's menu, a desktop file's, folder's, app's and drive's included, leads with Open, its default item (`isDefault`), the command a double-click runs, an item's then its handler's verbs (`registerApp`'s `verbs`), Create Shortcut, Delete (Del) and Rename; a drive's and the Trash's icon end with Create Shortcut, which offers the desktop ("File shortcuts", §7); an Extension's leads with Properties, which (as its double-click) opens its control panel (`classicyExtensionControlPanelId`); a folder window's File menu is Open ⌃O, New ▸, Create Shortcut, Delete, Rename, Close; its View menu Large Icons, Details, Arrange Icons ▸ (by Name, Type, Size, Date) and Line Up Icons; its white space's menu (`backgroundContextMenu`) View ▸, Arrange Icons ▸, Line Up Icons, Paste, Paste Shortcut, New ▸ and Properties (the folder's); the desktop's (`useClassicyDesktopCommands`, `Desktop/ClassicyDesktopCommands.internal.tsx`, which `ClassicyDesktop` draws: the bar's File, Edit and View, Special after them, and the white-space menu in place of the desktop's own) File ▸ Open, New ▸, Create Shortcut, Delete, Rename, Edit ▸ Cut, Copy, Paste, Paste Shortcut and Select All, View ▸ Arrange Icons ▸ (by Name, Type) and Line Up Icons, and on its white space Arrange Icons ▸, Line Up Icons, Paste, Paste Shortcut, New ▸ and Properties; Cut, Copy, Paste and Paste Shortcut (WIG Ch.5 "Command Method" (pp.59-61), "Command Method Transfers" (p.66); the audit's 5.28; shell32.dll's "Cu&t", "&Copy", "&Paste" and "Paste &Shortcut", access keys t, C, P and S) sit in an item's menu after Open and the verbs (Cut and Copy; a Trash item's Cut alone, whose Paste takes it out of the Trash), in a folder window's Edit menu before Select All (Ctrl+X, Ctrl+C and Ctrl+V shown, native keys the browser takes, `onClipboardCommand`, and the desktop's hook, never in a text field) and on the white spaces (Paste and Paste Shortcut, the first pasted item at the menu's point), and fill and paste the file clipboard (§7 "Cut, Copy and Paste": a Paste moves a Cut's items, emptying it, or copies a Copy's, "Copy of <name>", keeping it; the pasted items selected; a cut item drawn `classicyFileCut` until a Paste, another Cut or Copy, or Escape); New ▸ makes "New Folder" (2)… or a registered type's "New <Type Name>" (`registerApp`'s `creates`) and starts its name's edit in place (the icon view's, the list view's and a desktop icon's field); Create Shortcut makes "Shortcut to <name>" ("Shortcut (2) to <name>"…, a `file_shortcut`) beside each item, placed and selected, or offers the desktop where none may be made; every Delete route asks Windows 98 SE's "Confirm File Delete" (Folder, Multiple File) box first while Finder is mounted (`classicyDeleteConfirms`). Properties (WIG Ch.2 "Putting Theory into Practice" (pp.12-13); Ch.5 "Properties" (p.51), "View Shortcuts" (p.47); App. B Table B.2 (p.358); the audit's 2.2, 5.27, B.10; shell32.dll's "P&roperties", access key r) ends every item's menu after a separator (an Extension's but its own, whose leading Properties is its control panel), a Desktop Folder item's, a drive's (`buildDriveContextMenu`'s `properties`), an app shortcut's (`ClassicyApp`'s stored menu) and the Trash's; a folder window's File menu holds it after Rename (the selection's, else the folder's own), and the desktop's File menu after Rename (the selected icons', else Display Properties); Alt+Enter (⌥↩ where the browser delivers it) and an Alt double-click run it on the selection in a folder window (`ClassicyFileBrowser`'s `onPropertiesItems`) and on a desktop icon. It opens the items' property sheet (`ClassicyAppFinderPropertiesOpen { paths } \| { appId }`, `ClassicyFilePropertiesWindow`, §7 "Property sheets"), or brings the open one forward; the empty desktop's Properties (its white-space menu's, last) opens Display Properties, the Appearance control panel on its Desktop tab (`openClassicyAppAtTab`), or brings it forward as it stands when it is open, as Windows activates an open control panel. Read with `layout.finder?.commands === "windows"` (`useClassicyWindowsFinderCommands()` in components) |
+| `files.names` (optional) | `mac`, `windows` | how names are written (`File/ClassicyFileNames.ts`). `mac` and absent (Platinum, System 7; HFS): a name may hold anything but `:`, and the file dialog's New Folder prompt opens empty. `windows` (Windows 98; WIG Ch.10 "File Naming Conventions" (p.210); the audit's 10.9 and 10.10): a name may hold none of `\ / : * ? " < > \|` (`isClassicyValidFileName`; the WIG lists eight, Windows 98 as shipped refused the quotation mark too), a rename refused in Windows 98's "Rename" box, "A filename cannot contain any of the following characters:" and the nine (`CLASSICY_WINDOWS_FILE_NAME_REFUSAL`, shell32.dll), the file dialog dimming Save and Create for such a name, its New Folder prompt reading the refusal while the name holds one; and the New Folder prompt offers the folder's first free "New Folder", "New Folder (2)", "New Folder (3)"… (`classicyFirstFreeName`; Windows 98's parentheses over the WIG's "Document 2"), selected. The Trash's clash names and the derived folders keep their own numbering |
+| `files.unregisteredOpen` (optional) | `default`, `openWith` | what opening a file no application but the Finder opens does (Finder's `ClassicyAppFinderOpenFile`, its last route: the type's `fileTypeHandlers` entry is the Finder's, or names no loaded app). `default` and absent (Platinum, System 7): the Finder's own plain file window (the generic OpenFile queue), else the alert "Finder cannot open the file type you requested.". `openWith` (Windows 98; WIG Ch.10 "Registering File Extensions" (p.192): Open With is an unregistered type's default command; the audit's 10.1): the open waits in Finder's data (`openWith: { path, trust }`, session-only) and Finder shows Windows 98 SE's Open With dialog (`ClassicyOpenWithDialog`, shell32.dll's words): "Click the program you want to use to open the file '<name>'.", "Choose the program you want to use:" (access key C) over the mounted apps but the Finder whose manifests declare their own `<prefix>OpenFile` or that handle any file type (`useClassicyOpenWithApps`, by display name), "Always use this program to open this type of file" (access key u, checked as Windows 98 opens it; it dispatches `ClassicyAppSetDefaultFileTypeHandler`), OK, which opens the file in the chosen app through `routeClassicyAppOpenFile` under the trust its open arrived with, or this action's when that is the lesser (`ClassicyAppFinderOpenWithChoose { appId }`), and Cancel (`ClassicyAppFinderOpenWithClose`). Windows 98's Other… and its line "If the program you want is not in the list, click Other." (no program browser) and "Description of '<ext>' files:" (no store of type names) are not shown. Under `finder.commands: "windows"` the item's first menu command, its default, reads "Open With…" for such a file (`classicyFinderOpensWithDialog`, `Finder/FinderContext.tsx`). Read with `layout.files?.unregisteredOpen` |
+| `files.extensions` (optional) | `shown`, `hideRegistered` | whether names show their extension. `shown` and absent (Platinum, System 7): every surface shows the stored name. `hideRegistered` (Windows 98; WIG Ch.10 "System Naming Conventions" (p.210); Folder Options' "Hide file extensions for known file types", on by default; the audit's 10.8): a file (never a folder or a drive) whose type an application other than the Finder opens (`fileTypeHandlers`; `classicyFileTypeIsRegistered`) is shown without its final extension (a final `.` and one to five ASCII letters or digits, one at least a letter, after a name of its own: "Read Me.txt" reads "Read Me", "Version 1.2" and ".profile" stay) in the icon view's labels, the list view's names, a Desktop Folder item's label, the property sheet's name and caption and the Open With prompt (`useClassicyDisplayFileName()`; store-free `classicyDisplayFileName(name, entry, packageId?, { fileTypeHandlers, hideFileExtensions })` and `classicyHiddenFileExtension`, `File/ClassicyFileNames.ts`, which take the handler map as an argument, a store-free function reading no store); a rename in place (the icon view, the list view, a desktop icon, the property sheet) edits the shown name and keeps the extension; Finder Preferences' Views tab offers "Hide file extensions for known file types" (`ClassicyAppFinderSetHideFileExtensions { hide }`, Finder's persisted `hideFileExtensions`, on unless false). Finder's windows show folders, whose names are never shortened, so their titles are unchanged. Windows 98 only hid a registered extension (the registry's): Classicy's types are not keyed by extension, so the rule is the type's handler and the extension's shape. Read with `classicyFileExtensionsHidden(layout, hideFileExtensions?)` |
+| `transfer.activateDropWindow` (optional) | boolean | whether a drop activates the window it lands in. Absent or `false` (Platinum, System 7; Mac OS 8's Finder): a drag moves the items into an inactive window, which stays inactive. `true` (Windows 98; WIG Ch.5 "Direct Manipulation Method" (p.62): "the user can drop an object in an inactive window. This action activates the window"; the audit's 5.31): after a drop that moved something into a Finder window that is not the `active` one, Finder's `onMoveItems` focuses it (`activateClassicyDropWindow(target, dispatch)`, `File/ClassicyFileMove.ts`: the `.classicyWindow` holding the drop target's element, when it is the Finder window of the `.classicyFileBrowserFill` root around it, keyed by that root's `data-classicy-drop-folder`, gets `ClassicyWindowFocus`); a drop on the desktop, a drive, the Trash icon, the active window or another app's window does nothing. The desktop's own drops onto a folder (`ClassicyDesktop`'s `moveDesktopItems`) do the same once something went. The `transfer` group holds the remaining chapters' audit's transfer keys |
+| `transfer.secondaryButton` (optional) | `menu` | what a button-2 drag of files does. Absent (Platinum, System 7; Mac OS 8's Finder): a secondary press never drags, it opens the item's menu. `menu` (Windows 98; WIG Ch.5 "Nondefault Drag and Drop" (pp.62-63), Figure 5.13, "Canceling a Drag and Drop Transfer" (p.64); Ch.11 "Direct Manipulation" (pp.224-225); App. A Table A.1; the audit's 5.33, 11.7, A.5): `ClassicyIcon` with `onFileDrag`, a file browser's list rows and the desktop's file icons drag on button 2 too, ending only at its release; the item's own menu the press asked for is closed as the drag starts, and the release over a target shows Windows 98 SE's transfer menu at the pointer (`useClassicyFileDropMenu`, `File/ClassicyFileDropMenu.ts`; shell32.dll's menu 200: Move Here (M), Copy Here (C), Create Shortcut(s) Here (S), a separator, Cancel; menu 201, Move Here and Cancel, over the Trash), the plain drop's command bold (`isDefault`: Move Here, or Copy Here with Control held, as the copy modifier "may be used with either mouse button"), an effect the items cannot take left out (`classicyFileDropEffects`), the browser's `contextmenu` after the release swallowed. Choosing an item makes that transfer (`onMoveItems`, `onFileDrag`, `onMoveFilePaths` with its effect; a copy or shortcut in the items' own folder is made there); Cancel, Escape or a click elsewhere makes none. Create Shortcut(s) Here writes L4-A2's file shortcuts (the section left it out for want of them). A release over nothing drops nothing |
+| `transfer.copyModifier` (optional) | `ctrl` | the modifier a file drag reads for its drop's effect. Absent (Platinum, System 7; Mac OS 8's Finder): every drop moves. `ctrl` (Windows 98; WIG Ch.5 "Shortcut Keys for Transfer Operations" (pp.67-68): "CTRL+drag ... a copy operation", "Direct Manipulation Transfers" (p.67), Figure 5.16; App. A Table A.3 and notes 2-3; the audit's 5.34, A.8): Control held at the release copies (`fs.copy`, "Copy of <name>" where the name is taken, as in the items' own folder), Control with Shift makes shortcuts (the shell's own rule, ReactOS's `CFSDropTarget::DragEnter` as Windows' drop targets take it; the 1995 table lists Control alone), read on every move, on every Control and Shift press and release while the outline is shown, and at the release, never at the press (notes 2-3: "releasing CTRL before the button reverts"); a press that began with Control on a Mac host (`isClassicyMacPlatform()`, its secondary click) moves throughout. A target that takes a move alone (the Trash, the Recycle Bin's menu 201) takes a move, and so does one where no dragged item may be copied. The desktop root's `data-classicy-drop` reads `copy` or `link` meanwhile (§4.0.1), which Windows 98 draws as the arrow with a plus or the shortcut curl. Finder's drop handler copies or links by the effect (`transferClassicyFileSystemItems`); the desktop's own drops onto a folder hand the effect to `onMoveFilePaths`, which `ClassicyDesktop`'s `moveDesktopItems` honors (`transferClassicyFileSystemItems`: a move, a copy or shortcuts); a copy or shortcut let go on the desktop itself is made by the icon |
+| `transfer.autoScroll` (optional) | boolean | how a file drag scrolls the area under it. Absent or `false` (Platinum, System 7, and every package before: lane 2's automatic scrolling): while the pointer rests within a line step of an edge, a line per press-repeat interval. `true` (Windows 98; WIG Ch.5 "Scrolling When Transferring by Dragging" (pp.64-65), Figure 5.14; the audit's 5.35, extending 6.11): the WIG's velocity rule with Windows 98 SE's own figures, read from shell32.dll's `DAD_AutoScroll` (the WIG leaves the hot zone and threshold "XXX"; Wine's and ReactOS's are stubs): samples at the drag's start, on each move and every 100 ms (the WIG's figure), three kept; a line toward an edge when the velocity is at most 20 (`|Δx| + |Δy|` times 1024 over the milliseconds, around the ring), the pointer is within the icon size (32) inside the viewport's edge or the small icon size (16) outside it, over its scroll bar, 250 ms have passed since the last scroll (`GetDoubleClickTime() / 2`, where the section had guessed OLE's 50-ms `DD_DEFSCROLLINTERVAL`), and the axis is not at its end (§7) |
+| `transfer.desktopIconDrag` (optional) | `live`, `outline` | how a desktop icon that stands for no file (an application, a drive, the Trash) is dragged. Absent or `live` (Platinum, System 7; Mac OS 8): the icon itself follows the pointer (with `mouse` and `input.escapeCancels` as they are). `outline` (Windows 98; WIG Ch.5 "Direct Manipulation Transfers" (p.66): "the object remains at its original location until the transfer completes", "Canceling a Drag and Drop Transfer" (p.64); the audit's 5.36): button 1 drags a dotted outline of every selected icon (`startClassicyFileDrag`, the icons' images and labels) while the icons stay put; only the desktop takes it (`canDrop`: a folder, a drive or the Trash neither highlights nor accepts it, and the desktop root reads `data-classicy-drop="none"` there); let go on the desktop, the icons move as far as the pointer did (one `ClassicyDesktopIconMove`, which carries the selection); Escape or a lost pointer stream leaves them where they were |
+| `tree.keys` (optional) | `mac`, `windows` | how the keyboard drives a `ClassicyTree`. `mac` (the default, Platinum, System 7, as Mac OS 8's list views): Up, Down, Home, End and typing move the keyboard row, ⌘→ / ⌘← open and close the focused branch, and a bare Right or Left Arrow does nothing (its default left to the browser). `windows` (Windows 98; WIG Ch.7 "Tree View Controls", pp.123-124; comctl32's TREEVIEW_KeyDown): a bare Right Arrow expands a closed branch or moves to an open one's first child (a leaf stays), a bare Left Arrow collapses an open branch or moves to the row's parent (a closed root row stays), Shift allowed and Alt left to the browser, the key's default taken; a dimmed branch never toggles. Under `windows` the chords give way to the bare arrows and scroll instead, as comctl32's tree view takes every Control key (`TREEVIEW_KeyDown` hands it to `TREEVIEW_ScrollKeyDown`; WIG App. B Table B.1, p.357; the audit's B.3): Control (or ⌘) with Up or Down scrolls the tree's scroller one row (a registered scroll area's through its own `scrollBy`, else the nearest ancestor that scrolls), with Left or Right a row's height sideways, with Page Up or Page Down the page's whole rows, with Home or End to its top or bottom, the keyboard row and the selection staying put and the key's default taken. A `ClassicyTable`'s tree rows (`getSubRows`, the Finder's list view) read the same key for their expand keys (one key for both, recorded): ⌘→ / ⌘← (or Control) under `mac`, a bare Right and Left Arrow (Shift allowed) under `windows`, where the chords expand nothing. Read with `classicyWindowsTreeKeys(layout)` (`Keyboard/ClassicyListKeys.internal.ts`) |
+| `balloonHelp.placement` (optional) | `anchor`, `pointer` | where `useClassicyBalloonHelp` (`ClassicyBalloonHelp`, the desktop icons' balloons) shows help (§4.8). `anchor` (the default, Platinum, System 7): Mac OS 8's balloon against the anchor, after the delay from the pointer's arrival. `pointer` (Windows 98; WIG Ch.7 "Tooltip Controls", p.133; Ch.12 "Tooltips"): a tip at the resting pointer, below it (`classicyBalloonHelpPointerBelow`, offset by the package) or above the anchor at the desktop's bottom (`classicyBalloonHelpPointerAbove`), moved left at its right edge, with no tail, hidden by a press on the anchor until the pointer leaves |
+| `balloonHelp.contextHelp` (optional) | `whatsThis` | context-sensitive Help (the audit's 12.2, 12.3, 12.4 and B.5; §4.8). Absent (Platinum, System 7: Mac OS had no What's This? or F1): nothing; F1 and Shift+F1 stay the browser's, and `startClassicyWhatsThis` and `showClassicyContextHelp` do nothing. `whatsThis` (Windows 98; WIG Ch.12 "Context-Sensitive Help", pp.273-275, Figures 12.1-12.4; App. B Table B.2, p.358): What's This? (`startClassicyWhatsThis`, Shift+F1) sets a session-only mode on the active window, shown by `html.classicyWhatsThisMode` and the `help` cursor role over the active window (Figure 12.2); a click on an element `useClassicyBalloonHelp` describes shows its help as a pop-up (`classicyBalloonHelpContext`) at the click and ends the mode, one on nothing described keeps it, a menu title or button 2 on a `ClassicyContextualMenuTarget` passes through and keeps it until the menu closes, and Escape, a press outside the window or the command again ends it. F1 shows the focused element's help below it, or, with none, dispatches Help Topics (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`); a right-click on a described control in a window that opens no menu shows a menu holding "What's This?" (W), which shows its help at once (Figure 12.4). Recorded choices: the mode's class is on the document element, not the window's root (the brief's move: the root is the shell's `ClassicyWindow`); the pop-up is WinHelp's placement as Wine's winhlp32 has it, centered across the click with its top there; the dismissing press or key is taken, as WinHelp's pop-up took it; choosing a menu item while the mode holds runs it (Windows would show the item's help, but no Windows 98 menu item carries any). Two commands start it beside Shift+F1: a window bar's Help ▸ What's This? under a taskbar (after Help Topics, access key W, ⇧F1 drawn as `nativeShortcut`, so the key hook alone runs it; `classicyWindowSystemHelpItems`), over that bar's window, and a dialog's "?" caption box (`ClassicyWindowTitleBar`'s `onHelp`, which `ClassicyWindow` passes for a non-alert `modal`, or a modeless window with `contextHelp`, whose content holds a described control, `classicyHasHelpAnchorWithin`), over the dialog |
+| `balloonHelp.unlabeledTips` (optional) | boolean | absent or `false` (Platinum, System 7): an icon-only `ClassicyBevelButton` has its accessible name only. `true` (Windows 98; the audit's 12.9; WIG Ch.12 "Tooltips", p.276, Figure 12.6; App. C "User Assistance", p.364): a `ClassicyBevelButton` with no text children and an accessible name (`aria-label`, else `iconAlt`) shows that name as its ToolTip, balloon help on or off (`useClassicyBalloonHelp`'s `force`), the tip's id in its `aria-describedby` while it shows; a button passing `nameTip={false}` shows none (`ClassicyAlert`'s Help, which Windows 98's message box draws as a push button reading "Help", 12.14, so a tip would repeat its text: the audit's review) |
+| `balloonHelp.delayMs` (optional) | integer 0-60000 | the wait before a tip shows where its config names no `delay` (the audit's 12.11; §4.8). Absent, 600 (Mac OS 8's balloons). Windows 98: 500, the double-click time, as Wine's `tooltips.c` sets TTDT_AUTOMATIC from it |
+| `balloonHelp.autoPopMs` (optional) | integer 1-60000 | absent, a shown tip stays until the pointer leaves. Given (Windows 98: 5000, ten times the delay, TTDT_AUTOPOP), a shown tip hides after that long without a pointer move over its element (each move restarts it, as ID_TIMERPOP), and stays hidden until the pointer leaves (the audit's 12.11; WIG Ch.12 "Tooltips", p.276: "or after another time-out"). Recorded choice: a move after the time-out shows nothing until the pointer leaves, where Wine would wait again |
+| `balloonHelp.reshowMs` (optional) | integer 0-60000 | absent, every tip waits its delay. Given (Windows 98: 100, a fifth of the delay, TTDT_RESHOW), a tip whose pointer arrives within that long of leaving another shown tip's element (any anchor's, page-wide) waits that long instead, for its whole visit (the audit's 12.11). Recorded choice: the WIG's "display the new tooltip immediately" (p.276) gives way to the reshow time Windows ships (Wine's "moved from one to another"); the previous tip must have shown |
+| `balloonHelp.hideOnPress` (optional) | boolean | absent, a press hides a tip only at the pointer (`placement` `pointer`); a balloon at the anchor stays through it. `true` (Windows 98; the audit's 12.11; WIG Ch.12 "Tooltips", p.276: "until the user presses the button"): a press (`pointerdown`, `mousedown`) on the element hides the tip, or cancels its wait, until the pointer leaves, under either placement. Recorded choice: lane 2's "until the pointer leaves" (WIG Ch.7 p.133), where Wine waits again on the next move |
+| `balloonHelp.activeWindowOnly` (optional) | boolean | absent, a tip shows in any window. `true` (Windows 98; the audit's 12.12; WIG Ch.12 "Status Bar Messages", p.276: "Like tooltips, the window typically must be active"): an element in an inactive window (its `.classicyWindow` root without the `active` state) shows no tip, a shown one hides when its window goes inactive, and the pointer's next move or arrival starts again once it is active; an element outside any window (desktop icons, the taskbar) is unaffected |
+| `text.wordSelect` (optional) | `native`, `trailingSpace` | what a double-click in a `ClassicyInput` or a `ClassicyTextEditor` selects (WIG Ch.5 "Selection Shortcuts", p.44; the audit's 5.19). `native` (the default, Platinum, System 7, as TextEdit selected the word alone): what the browser selects, the word alone on macOS and Linux hosts. `trailingSpace` (Windows 98): once the browser has selected the word, `extendClassicyWordSelection` (`App/ClassicyWordSelect.internal.ts`) extends the selection forward over the spaces after it (U+0020, U+00A0), never a line break, a tab or a punctuation mark, as user32's edit control takes the word and the space after it; on a Windows host the browser has taken them already, and nothing changes |
+| `edit.scope` (optional) | `any`, `window` | which field the Edit commands (`classicyEditCommands`, the bundled Edit menu) act on when the focus is not in one, a menu click having taken it (WIG Ch.5 "Operations for a Multiple Selection", p.44; the audit's 5.21). `any` (the default, Platinum, System 7, today's rule, a candidate for their check against HIGOS8 since the bug is under every package): the field last focused, wherever it is, so a word selected in SimpleText was deleted by Edit ▸ Clear chosen in another window. `window` (Windows 98): the last field only while its `.classicyWindow` root carries `active` (the focused window, a modal, a utility palette, each of which draws active), else none: every command does nothing, Undo has nothing to undo, and a field outside every window is no target. A focused field is the target under either. The undo state is read again when a press or its release activates another window (a tick after it, once the window's class has landed) |
+| `edit.menu` (optional) | `mac`, `windows` | the form of the bundled Edit menu (`useClassicyEditMenu`; the shell's 5.44, built here). `mac` (the default, Platinum, System 7, byte for byte as before): Undo named after the last edit ("Undo Typing") or dimmed "Can't Undo", a divider, Cut, Copy, Paste, Clear (no shortcut but "Del" under `shortcutSpelling: "names"`) and Select All. `windows` (Windows 98; Windows 98 SE's Notepad, notepad.exe's "&Undo\tCtrl+Z", "Cu&t\tCtrl+X", "&Copy\tCtrl+C", "&Paste\tCtrl+V", "De&lete\tDel", "Select &All"; WIG Ch.5 "Command Method", p.59): "Undo" alone, dimmed with nothing to undo, a divider, Cut, Copy, Paste, Delete in Clear's place (its id still `<prefix>_clear`, Notepad's letter l, the Delete key), a divider, and Select All (⌘A, Ctrl+A, kept from Explorer's and WordPad's menus, which the browser's editing answers; Notepad's carried none), with `menu.accessKeys`' letters (U, t, C, P, l, A). Its items are dimmed as Notepad's menu-init dims them (Wine's `NOTEPAD_InitMenuPopup`) from `subscribeEditTargetState`: Cut, Copy and Delete while the target has no selection, Select All while it holds no text, every command while there is no target; Cut, Paste and Delete while it is read-only and Cut and Copy in a password field, as user.exe's edit menu has them; Paste is never dimmed by the clipboard, which a page cannot read without the user's permission |
+| `textField.contextMenu` (optional) | `none`, `edit` | what a right-click on a text field does (WIG Ch.5 "Command Method", p.59; the audit's 5.29). `none` (the default, Platinum, System 7, whose text fields had no menu of their own): the right-click goes on to the window's or the app's menu. `edit` (Windows 98): `ClassicyInput`, `ClassicyTextEditor`'s `<textarea>`, `ClassicyRichTextEditor`'s text, `ClassicyComboBox`'s field and `ClassicySpinner`'s take it (`useClassicyTextFieldContextMenu`, `App/ClassicyTextFieldMenu.internal.ts`): a button-2 press keeps the selection (its default prevented, as Windows' edit control moves no caret on a right-click), the `contextmenu` focuses the field without scrolling, is taken (`preventDefault`, `stopPropagation`; one another handler took is left alone, and a disabled field takes none) and opens user.exe's edit menu at the pointer with no Help item (the Windows 98 SE CD's user.exe: "&Undo", "Cu&t", "&Copy", "&Paste", "&Delete", "Select &All"; a divider after Undo and before Select All; no shortcuts drawn), each item running the command on that field (`classicyEditCommandsFor`) with the selection it had put back. Dimmed as Wine's `EDIT_WM_ContextMenu` dims them: Undo with nothing to undo or read-only, Cut with an empty selection, a password or read-only field, Copy with an empty selection or a password field, Paste read-only, Delete with an empty selection or read-only, Select All while everything is selected (an empty field included); a number field, whose selection cannot be read, counts as selected while it holds text. Shift+F10 and the Application key (`keyboard.contextMenuKey`) open it at the field's center, where Windows places an edit control's keyboard menu (Wine's `EDIT_WM_ContextMenu`, "Windows places the menu at the edit's center"), as the key places every keyboard menu |
+| `assistant.navigation` (optional) | `pager`, `buttons` | how a `ClassicyAssistant` (Apple Guide's topic window included) is moved through (the audit's 12.22). `pager` (the default, Platinum, System 7, the Mac OS Setup Assistant's): a `ClassicyPager` at the footer's right, its arrows around the page number, the page's own buttons at the left. `buttons` (Windows 98; WIG Ch.12 "Wizard Buttons", p.289, Figures 12.17 and 12.18; Windows 98 SE's comctl32.dll wizard template, "< &Back" and "&Next >"): two `ClassicyButton`s in `.classicyAssistantNav` in the pager's place, "< Back" (`classicyAssistantBack`, disabled on page 0) and "Next >" (`classicyAssistantNext`, disabled on the last page), with the access keys B and N where the package has access keys (`useClassicyBundledAccessKeys`), through the pager's own handlers (`canAdvance` refuses Next with the error sound; the `change` hook and `onPageChange` hear both); no page number is drawn. The package's stylesheet orders them and the page's buttons (Windows 98: Back and Next first, touching, then Finish and Cancel). Next is not made the default button, since the assistant has no Return handling of its own |
+| `help.topicWindow` (optional) | `winhelp` | the window Apple Guide's help shows in (the audit's 12.15, 12.16, 12.18's lookup, 12.21). Absent (Platinum, System 7, Mac OS 8's Apple Guide): `AppleGuideWindow` is fixed at 700 × 322, pages with the assistant's navigation alone, and no window lists the topics (`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT` shows the `ABOUT_BALLOON_HELP_TOPIC_ID` topic). `winhelp` (Windows 98; WIG Ch.12 "Task Topic Windows", pp.279-280, Figure 12.10, and "The Help Topics Browser" / "The Help Topic Tabs", pp.284-288, Figure 12.13; winhlp32.exe on the Windows 98 SE CD): a topic's window is a primary window the user can size (at least 320 × 200), captioned with Apple Guide's display name and icon, with a row of command buttons above the topic (`appleGuideButtonBar`): "Help Topics" (access key T) dispatches `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`, "Back" shows the previous page (dimmed on the first; no key, the footer's "< Back" holding B), and "Options" (O) drops a menu of "Copy" (o), which puts the page's text, after its title, on the clipboard (`classicyAppleGuidePageText`; WinHelp's Annotate…, Print Topic…, Font, Keep Help on Top and Use System Colors are left out: Classicy has no annotations, printing or help font). `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT` opens `ClassicyHelpTopics`, winhlp32's modeless dialog "Help Topics: <Apple Guide's display name>" (428 × 403 inside the frame, its 285 × 248 dialog units): a Contents tab (access key C) with the prompt "Click a topic, and then click Display." (or "Click a book, and then click Open."), a tree of a book row per `book` and a page row per topic offered under the active package (the first row chosen), and Display (the default button; Open or Close on a book; also Return and a double-click) and Cancel (also Escape and the close box). Display shows the topic and closes the browser, as WinHelp does. Start ▸ Help (`classicyStartMenuItems`' `helpTopics`) and a window bar's Help ▸ Help Topics under a taskbar (`classicyWindowSystemHelpItems`, in place of About Balloon Help…, access key H, no ellipsis: Windows 98 SE's "&Help Topics") dispatch it; without the key Start ▸ Help shows the About Balloon Help topic and the window bar keeps About Balloon Help…. Index and Find are left out (no keywords or full-text index; the prompt drops "Or click another tab, such as Index."), and so is Print… |
+| `selection.secondaryButton` (optional) | `menu`, `select` | what button 2 does to the selection it presses on. `menu` (the default, Platinum, System 7, as Mac OS 8's Control-click): it shows the object's menu, a desktop icon's collapsing the desktop's selection to it first, and a `ClassicyTable` row under it changes nothing. `select` (Windows 98; WIG Ch.5 "Selection with the Mouse", pp.37-38; Ch.11 "Accessing Commands for Selected Objects", p.234; App. A Table A.1, p.349): a press on an unselected desktop icon or table row (the Finder's list view) selects it alone before its `contextmenu`, so its menu acts on what is drawn selected, and a press on a selected one keeps the whole selection for its menu. `ClassicyListBox` and `ClassicyTree` ignore button 2 under either, as user32's list box does. The desktop's empty area reads it through `classicyDesktopSelectPress` (`Desktop/ClassicyDesktopSelectBox.internal.ts`: button 2 clears the icons and starts the rectangle as button 1 does) |
+| `selection.selectOn` (optional) | `click`, `press` | when button 1 selects a row of a `ClassicyListBox`, a `ClassicyTable` (the Finder's list view) or a `ClassicyTree`. `click` (the default, Platinum, System 7, as Mac OS 8's List Manager): when the button comes up over it, so a press shows nothing. `press` (Windows 98; WIG Ch.5 "Selection with the Mouse", pp.37-38; Ch.13 "Highlighting", p.318, "shown on mouse down"; App. A Table A.1, p.349; user32's list box, comctl32's `LISTVIEW_LButtonDown` and tree view): at the press, which also sets the anchor, so a row dragged before it was selected is drawn selected as it goes, and the click ending the press adds nothing. A plain press on a selected row (a multi list box's, any table's) leaves the selection for its click to reset to that row, as comctl32's `nLButtonDownItem` does, so a drag from it carries the whole selection; the second press of a double-click (`detail` 2, Win32's `WM_LBUTTONDBLCLK`) changes nothing; a check list toggles at the press; button 2 never selects a list box's or a tree's row. The Finder's row drag reads the selection when the drag begins (past the threshold), so it carries what the press selected. Read with `classicySelectsOnPress(layout)` (`Utils/ClassicyMousePolicy.ts`) |
+| `selection.dragRange` (optional) | `false`, `true` | whether a press dragged across a list's rows selects them (WIG Ch.5 "Mouse Selection", "Selection with the Mouse", p.37; "Selection Adjustment", pp.38-39): meaningful with `selectOn: "press"` (`classicyDragSelectsRange(layout)` is `false` without it), for a `ClassicyListBox` that is not a check list and a `ClassicyTable` whose rows do not drag (`rowsDrag`; the Finder's list view drags its files, so its multiple selection is by modifier clicks). Absent or `false` (Platinum, System 7): a drag selects nothing. `true` (Windows 98): from the press to the `mouseup` or a lost pointer stream, the row under the pointer (hit-tested with `elementFromPoint`, else by the rows' boxes) is the range's other end, the first or last row shown while the pointer is above or below the list, whose scroll viewport then scrolls a line step an animation frame toward it (user32's list box scrolls a row per timer tick there); a single selection list selects that row, a multi list the anchor's row to it (no modifier, or Shift), or keeps the selection the press found with that range set to the anchor's state (Control or ⌘, which toggled the anchor at the press; Control-Shift under `modifiers: "windows"`), the modifiers held at the press governing to the release (p.39); `onChangeFunc` / `onSelectionChange` fire on each change, and the keyboard row follows the pointer. Shared by both lists in `Utils/ClassicyListPressSelection.internal.ts` (`startClassicyListRangeDrag`, `classicyListDragSelection`, `classicyRangeSetTo`) |
+| `selection.modifiers` (optional) | `mac`, `windows` | what Control (or ⌘) with Shift does to a multi `ClassicyListBox`'s or a `ClassicyTable`'s selection, and what a double-click opens. `mac` (the default, Platinum, System 7): Shift wins (the anchor's range replaces the selection), and a double-click opens the row under the pointer. `windows` (Windows 98; WIG Ch.5 "Selection Adjustment", p.39: "Only the selection made from the current anchor point is adjusted. Any other disjoint selections are not affected", the range taking the first item's state; App. A Tables A.2, pp.352-353, and A.3, p.356): Control-Shift-click keeps the other selections and sets every row from the anchor to the one clicked to the anchor's state, the anchor staying put (the WIG's rule, recorded over Wine's `LISTVIEW_AddGroupSelection`, which selects the range whatever the anchor's state: Wine reimplements comctl32 and is not the shipped OS); the second click of a double-click changes no selection; and a double-click calls `onActivateSelection(ids)` with the selection as its clicks left it (in the list's order; not called when it is empty), where given, in place of `onActivateRow` / `onActivateFunc`, so `ClassicyFileBrowser`'s `openItemsFunc` (the Finder's) opens every selected item. The desktop reads it too (the audit's 5.10 / A.6 and 5.11 / A.7; WIG Ch.5 "Selection Adjustment", pp.38-39, "Region Selection", p.42; App. A Table A.2, pp.351-353, Table A.3, pp.354-356 and its note 4): a button-1 Control- or ⌘-click on a desktop icon toggles it and makes it the anchor, a Shift-click selects the icons in the rectangle the anchor's icon and it span, replacing the rest (`classicyDesktopIconRectRange`: the icons whose corner lies in the union of the two icons' boxes, comctl32's icon-view range), Control (or ⌘) with Shift sets that rectangle to the anchor's state (`ClassicyDesktopIconSelect`, `classicyDesktopIconSelection`, the anchor in the session field `Desktop.selectionAnchor`, which a plain click sets too); an unselected icon takes the selection at the press, a selected one at the click, so a drag carries the selection; and a rectangle on the empty desktop pressed with Shift keeps the selection and adds what it covers (`classicyDesktopSelectPress`'s `keep: "union"`), with Control or ⌘ toggles what it covers (`"toggle"`; `classicyDesktopBoxSelection(base, boxed, keep, firstCoveredSelected?)`: every covered icon set to the first covered icon's toggled state when the desktop names it, note 4, else each toggled, as comctl32's marquee does), the press dispatching `ClassicyDesktopFocus` with `keepIconSelection: true` so the reducer keeps the selection. Read with `classicyWindowsSelectionModifiers(layout)` |
+| `selection.pageKeys` (optional) | `scroll`, `move` | what Page Up and Page Down do in a `ClassicyListBox`, a `ClassicyTable` (the Finder's list view) and a `ClassicyTree`. `scroll` (the default, Platinum, System 7, as Mac OS 8's lists "scroll without moving the selection"): the list leaves them alone, so a scrolling table's or list box's scroll area pages, else the browser scrolls. `move` (Windows 98; WIG Ch.5 "Basic Navigation Keys", Table 5.1, pp.35-36, "Down one screen (next screen, same position)"; App. B Table B.1, p.357; the audit's 5.2 and B.3, correcting the Ch.7 "Single Selection List Boxes" row): Page Down moves the keyboard row to the last row wholly shown in the scroller the rows scroll in (below a table's pinned column titles), or, when it is there already, a page further, one row fewer than the page holds (`floor(viewport height / row height)`), so the row it left stays in sight; Page Up to the first row shown, or a page back. That is comctl32's list view in report view (`LISTVIEW_KeyDown`, VK_NEXT and VK_PRIOR), the 1995 text's "one screen" as Windows 98's Explorer lists shipped it; user32's list box steps the same page less one from the keyboard row, and Wine's tree view a whole page from it (`TREEVIEW_GetVisibleCount`), the three kept as the list view's one rule here (recorded); with no row laid out, the step is taken from the keyboard row. The key's default is taken and the row brought into view by the least scroll (`block: "nearest"`). A list box and a table select the row reached as their arrows do (Shift extends from the anchor; `selection.keyboard` below may make it a move alone); a tree moves its keyboard row alone, as its arrows do. `useListNavigation(rows, { pageRows })` carries it for the list box and the tree (a hook a host's own list may use: `pageRows` given, the page keys are its navigation keys too); the arithmetic is `classicyListPageIndex` (`Keyboard/ClassicyListKeys.internal.ts`). Read with `classicyPageKeysMove(layout)` |
+| `selection.keyboard` (optional) | `follow`, `windows` | how the keyboard builds a multi `ClassicyListBox`'s (not a check list's) or a `ClassicyTable`'s selection. `follow` (the default, Platinum, System 7): the selection follows the keyboard row (Shift extends), a list box's Space selects (Control or ⌘ with it toggling), and a table leaves Space to its scroll area, which pages. `windows` (Windows 98; WIG Ch.5 "Keyboard Selection", p.43, "Disjoint Selection", pp.43-44; App. B Table B.2, p.358; comctl32's `LISTVIEW_KeySelection`; the audit's 5.16 and 5.18): Space is a table's Select key, choosing the keyboard row alone and making it the anchor (the drawn focus row while none has been moved to), Control or ⌘ with it toggling the row in a multi table and Shift with it extending from the anchor, the key's default taken, as a list box's Space already does; in a multi list box or table, Control, ⌘ or Option with an arrow, Home, End, Page Up or Page Down moves the keyboard row (the list box's focused row, the table's `focused` row) without selecting, as comctl32 moves the focus item (macOS takes Control and the arrows for Spaces, hence Option), Shift still extending; and Shift+F8 (fn+Shift+F8 on a Mac laptop) toggles Add mode, published as `data-classicy-selection-mode="add"` on the list's root (the list box's `role="listbox"`, the table's container), which no base, Platinum or System 7 rule reads: there the navigation keys and typing move the keyboard row alone, Space toggles the row and makes it the anchor, and Shift with a navigation key or Space sets the anchor's range to the anchor's state, the other selections staying. Leaving Add mode keeps the selection, and the next plain click or navigation key replaces it (p.44). A single selection list and a table's mouse are unchanged. `ClassicyFileBrowser`'s icon view reads it too (the audit's 5.16, its icon part): Space selects the keyboard's icon alone (the first, with none) and makes it the anchor, Control (or ⌘) with Space toggles it, Shift with Space takes the anchor's rectangle (`fileBrowser.keys`), and Return alone opens (Space opens an icon under `follow`); the view's holder is then a `role="listbox"` with `aria-multiselectable`, each icon a `role="option"` with `aria-selected` (`ClassicyIcon`'s `listOption`), so assistive technology is not promised Space activation; an uncontrolled `ClassicyIcon` selects on Space and toggles on Control-Space itself. The desktop reads it too (the audit's 5.16 and 5.18, their desktop parts): a desktop icon is a `role="option"` with `aria-selected` whose Space selects it alone, Control or ⌘ with Space toggling it and Shift with Space extending to it, its Enter alone opening it (`classicyDesktopSpaceSelection`); the desktop root is a `role="listbox"` with `aria-multiselectable` (`classicyDesktopListboxAttributes(layout)`); and Control, ⌘ or Option with an arrow, Home, End or a page key moves the desktop's focus icon alone (`classicyDesktopKeyCommand`'s `"focus"`, `ClassicyDesktopIconMoveFocus`). The desktop has no Add mode: comctl32's list view, which Explorer's desktop is, takes no Shift+F8, Control with the arrows and Space building a disjoint selection there. Read with `classicyWindowsSelectionKeys(layout)` |
+| `selection.iconNavigation` (optional) | `each`, `roving` | how Tab reaches a view's icons (`ClassicyFileBrowser`'s icon view). `each` (the default, Platinum, System 7, today's rule): every icon is a Tab stop. `roving` (Windows 98; WIG Ch.5 Table 5.1, pp.35-36, "Keyboard Selection", p.43; Ch.7 "List View Controls", p.123: an icon view is one field the arrows move inside; the audit's 5.17, its icon-view part): one icon has `tabIndex` 0, the one last pressed or moved to, else the first in the view's order, the rest -1 (`ClassicyIcon`'s `tabStop`), reached by the arrows, Home, End and typing. The desktop reads it too (the audit's 5.17 and B.2; App. B Table B.1, p.357): only its focus icon has `tabIndex` 0 (`classicyDesktopFocusIconId(icons, Desktop.focusIcon)`: the icon last pressed or moved to, kept in the session field `Desktop.focusIcon`, else the first in the desktop's order, `Desktop.icons`, the order every Clean Up and sort lays them out in, comctl32's item index: Windows 98 as shipped over the 1995 text's "topmost position", the same icon on an arranged desktop); and the desktop's keys (`classicyDesktopKeyCommand(e, { icons, selectedIds, focusIconId, layout })`, `Desktop/ClassicyDesktopKeyNav.ts`) move an arrow from the focus icon to the nearest icon its way (`nearestIconInDirection`; with none that way the focus stays), with no focus icon from the first selected icon, with nothing selected to the first icon, Home and Page Up to the first icon, End and Page Down to the last (comctl32 steps a page of the screen's slots, which on the one-screen desktop reaches the first or last icon), selecting the icon reached alone, or with Shift the anchor's rectangle to it. Read with `classicyIconsRoveFocus(layout)` (`Keyboard/ClassicyListKeys.internal.ts`) |
+| `contextMenu.openOn` (optional) | `event`, `release` | when a contextual menu opens (`ClassicyContextualMenuProvider`, §4.5). `event` (the default, Platinum, System 7, as Mac OS 8 opened its menus at the Control-press): at the `showContextMenu` call, so at the press on macOS and Linux hosts and at the release on Windows hosts, as the browser raises `contextmenu`. `release` (Windows 98; WIG Ch.5 "Selection with the Mouse", p.38: "display the contextual pop-up menu for the selected objects when the user releases the mouse button"; Ch.7 "Pop-up Menu Interaction", p.101): a call made while button 2 is down (or, on a macOS host, a Control-press of button 1) is held and the menu opens at that button's `mouseup`, on every host; a newer call replaces it, a lost pointer stream or `hideContextMenu` drops it |
+| `contextMenu.helpItem` (optional) | `true`, `false` | whether a contextual menu gets the leading Help item when the caller's `ClassicyContextualMenuOptions.helpItem` is unsaid (§4.5). `true` (the default, Platinum, System 7: HIGOS8 p.93, every contextual menu leads with a Help item, a disabled placeholder when the items hold none). `false` (Windows 98: WIG Ch.7 "Pop-up Menus", pp.100-101, and shell32's own item menus hold no Help item): the items open as given. A caller's explicit `helpItem` wins either way. |
+| `contextMenu.placement` (optional) | `click`, `corner` | where a contextual menu opens when the caller's `ClassicyContextualMenuOptions.placement` is unsaid. `click` (the default, Platinum, System 7: HIGOS8 "Contextual Menus"): 1 px below and right of the click. `corner` (Windows 98: `TrackPopupMenu` puts the menu's top-left corner at the point `WM_CONTEXTMENU` carries): at the click itself. A caller's explicit `placement` wins. |
+| `document.confirmUnsavedClose` (optional) | `false`, `true` | whether closing a changed document asks first (WIG Ch.1 "Forgiveness", pp.2-3; Ch.5 "View Operations", p.46, "Transactions", p.49; the audit's 1.17 / 5.25). Absent or `false` (Platinum, System 7, a candidate for their parity check since Mac OS 8 asks too): SimpleText's close box, File ▸ Close and Quit close the document and drop its working copy, as before. `true` (Windows 98): a document whose working copy differs from its file's text (`fs.resolve(path)._data`; the Markdown editor's own rewrite of the file as it loads counts as no change), or an untitled one holding any text, shows Notepad's message box first (notepad.exe's strings, read from the Windows 98 SE CD): a movable `ClassicyAlert` titled with the app's display name, the caution (exclamation) icon, "The text in the <name> file has changed." over "Do you want to save the changes?" ("Untitled" for a new document; Notepad's `%%` is its file's full path, Classicy shows the window's title, its paths being Mac volume paths), and Yes (the default), No and Cancel. Yes saves (an untitled document through Save As…, the close waiting for the dialog: saved, the window closes without reopening under the new name; cancelled, it stays) and closes; No closes, discarding the working copy; Cancel keeps the window open. The close box (`ClassicyWindow`'s `onBeforeClose`) and File ▸ Close go through it, and Quit brings each changed document forward in turn and asks, each answered Yes or No closing, a Cancel stopping the Quit with the rest open |
+| `document.reopenActivates` (optional) | `false`, `true` | what opening a document or folder that is already open does (WIG Ch.6 "Opening and Closing Windows", pp.94-95: "Activates the existing window of the object and displays it at the top of the window Z order"; Ch.5 "View Operations", p.46; Ch.9 "Single Document Window Interface", p.175; the audit's 5.24 / 9.2). Absent or `false` (Platinum, System 7, a candidate for their check against HIGOS8 since Mac OS 8 raises the document's window too): the app comes forward with its last-focused window, which may be another document's. `true` (Windows 98): after the open brings the app forward, `focusClassicyReopenedWindow(ds, appId, windowId, wasOpen)` (`ControlPanels/AppManager/ClassicyDocumentReopen.ts`, store-free; `classicyReopenActivates(ds)` reads the key) focuses the object's own window when it was open already and its window is registered and not closed: the kernel's generic `*OpenFile` route (`${appId}_file_${path}`, ClassicyApp's file window), the PDF Viewer's (`${appId}_file_${path}`), Picture Viewer's (`${appId}_PictureViewer_${path}`) and Movie Player's (`${appId}_MoviePlayer_${path}`) OpenFile cases, and Finder's `ClassicyAppFinderOpenFolder` (the folder's path, so a desktop drive or folder icon raises its open window). An app with a reducer of its own calls it with its own key |
+| `document.titleAppName` (optional) | `false`, `true` | whether a document window's title names its application (WIG Ch.6 "Title Text", pp.78-79, Figure 6.6). `false` (the default, Platinum, System 7): the document's name alone. `true` (Windows 98, as its Notepad titles "Untitled - Notepad"): SimpleText titles each document window "<document> - <app display name>", which its taskbar button shows too. |
+| `mouse` (optional) | `mac`, `windows` | the press discipline (WIG Ch.4 "Mouse Actions", pp.24-25). `mac` (the default, Platinum, System 7): a `ClassicyTabs` tab is chosen when the button comes up over it; a non-file icon follows the pointer from its first move (`ClassicyDesktopIcon` keeping its grab, `ClassicyIcon` without `onFileDrag` centered under it); any button drags a split view's divider, a table's column edge and a non-file icon. `windows` (Windows 98): a tab is chosen at the button-1 press (comctl32 selects on WM_LBUTTONDOWN, Wine's `TAB_LButtonDown`: the OS as shipped, over the 1995 text's release); a non-file icon moves only once the pointer is 4 px from the press (`CLASSICY_MOUSE_DRAG_THRESHOLD`, SM_CXDRAG, `Math.hypot` as a window's title-bar drag measures), keeping its grab; only button 1 drags (`isClassicyGestureButton(e, layout)`, `Utils/ClassicyMousePolicy.ts`), a desktop icon ignoring the middle button and the others altogether (button 2 still selects it); a window moves (its caption, a moving frame edge) and sizes (its grow box, a sizing frame edge) by button 1 alone, as Windows' WM_NCLBUTTONDOWN does, and a press of the empty desktop by a button other than 1 and 2 does nothing (`classicyDesktopSelectPress`'s `"ignore"`); under `mac` every button moves and sizes a window, and the desktop's middle button starts the rectangle, as before. `ClassicyLink` keeps its middle-click new tab, a redundant shortcut the WIG allows. The readers of this key, the `selection` group's and `contextMenu.openOn` are pure and exported, each taking the layout: `isClassicyGestureButton`, `classicyIconDragThreshold`, `classicyTraveledPast(start, point, threshold)`, `classicyTabSelectsOnPress`, `classicySecondaryButtonSelects`, `classicySelectsOnPress`, `classicyDragSelectsRange`, `classicyWindowsSelectionModifiers`, `classicyContextMenuOpensOnRelease` |
+| `input.escapeCancels` (optional) | `false`, `true` | whether Escape takes back a direct manipulation in progress (WIG Ch.4 "Shortcut Keys", p.27: "Use the ESC key to stop a function in process or to cancel a direct manipulation operation"; Ch.1 "Forgiveness", pp.2-3). Absent or `false` (Platinum, System 7): only a file drag, System 7's on-release thumb drag, a pop-up and a combo list cancel on Escape, under every package. `true` (Windows 98): a capture-phase document `keydown` for Escape, while a gesture lasts (`useClassicyEscapeCancel(active, onCancel)` for one held in state, `onClassicyEscapeCancel(onCancel, layout?)` for one held in a closure; `Keyboard/useClassicyEscapeCancel.internal.ts`), prevents the key, stops it there and puts back what the press found: a split view's sizes (closed again if it was), a slider's value, a non-file icon's place (the desktop's carrying its selection back), a table column's width, a window's position and size (`ClassicyWindow`'s caption move, grow-box resize and frame-edge sizing: the inline geometry and the record put back, the release that follows moving nothing), the desktop's selection rectangle (the selection the press found comes back: a Shift or Control press's, else none, since a plain press cleared it) and the Control Strip's Control-drag and tab drag (the position kept, the stored width put back, the release no click on the collapse box or the tab); nothing is committed, and a `dragEnd` the gesture reports carries `canceled: true`. In HyperCard's editor, Escape on the card (`HyperCardEditorOverlay`) or in the Tools palette (`HyperCardToolsPalette`) disarms an armed part tool (`ClassicyAppHCEditSetPlacing` with no `partType`; WIG Ch.1 "User in Control", p.1: a mode is easy to cancel; the audit's 1.4), whatever is selected, the next Escape deselecting the part as it always has |
+| `dialog.flushInput` (optional) | `false`, `true` | whether a dialog takes the keys pressed before it showed (WIG Ch.10 "Message Notification", p.212; the audit's 10.20; §4.5). Absent or `false` (Platinum, System 7: today's behavior): `useKeyboardEquivalents` runs the default action on any Return keydown, an auto-repeat of a Return held from the command that raised the alert included, which then dismisses the alert the moment it mounts. `true` (Windows 98): every auto-repeated keydown is ignored, and so is every keydown that came before the hook mounted (an event stamped earlier than a fresh event at mount), until the dialog is armed by a keyup anywhere or a new keydown after the mount. The defect stands under every package, but it is gated here: changing Platinum's and System 7's dialogs waits for a check against HIGOS8 and HIG7. The group also holds `caption` and `modality` |
+| `dialog.modality` (optional) | `desktop`, `application` | what a `modal` window blocks (WIG Ch.10 "Message Notification", p.212, "Modeless Interaction", p.214; Ch.8 "Modeless vs. Modal", p.147; the audit's 10.21, the shell addendum's B18; §4.1, "Application-modal dialogs"). Absent or `desktop` (Platinum, System 7: today's behavior): every modal draws the desktop-wide `classicyWindowModalScrim` (z-index 360, above the taskbar's 355), so a press anywhere else beeps. `application` (Windows 98, MB_APPLMODAL): a modal draws no scrim; its own app's other modeless windows (the window registry's, those opening meanwhile included) carry `inert`, and a press over one, caught in a document capture-phase `mousedown`, beeps (`ClassicySoundPlayError`), activates the dialog and gives the focus back to its control focused last; other apps, the desktop and the taskbar stay usable (CTRL+ESC opens the Start menu, the scrim test finding none), and the dialog leaves the modal-front band while its app is not the focused one, so the focused app's windows come in front of it. An alert of `type="error"` and a system-modal dialog (`ClassicyWindowModalOwnerContext` `"system"`: `Desktop.errorDialog`, Empty Trash, Reset PRAM, the shell's Shut Down and Log Off) keep the scrim; Run, the taskbar's (`"taskbar"`), takes none and disables no window. The root gains no attribute or custom property for it |
+| `icon.aliasBadge` (optional) | `desktop`, `everywhere` | where a shortcut's badge (the `aliasBadge` system art) is drawn (WIG Ch.11 "Displaying Objects", p.230, Figure 11.11; the audit's 11.2). Absent or `desktop` (Platinum, System 7: Mac OS 8 badges aliases on the desktop alone): the desktop's icons only, and `ClassicyIcon`'s `alias` changes nothing. `everywhere` (Windows 98: the shell's shortcut overlay in every view): also a `ClassicyIcon` given `alias` (the Finder's icon view passes `isAliasKind(_type)`) and a shortcut's row in the list view, each image and its badge inside a `classicyIconImage` element (`classicyIconMaskOuter classicyIconAliasBadge` in the icon view, `span.classicyIconAliasBadge` after the row icon in the list view). The 16 px row takes the same art scaled: the asset registry holds no small image for the badge |
+| `crashScreen` (optional) | `sadMac`, `fatalException` | what `ClassicyCrashScreen` draws when a descendant throws (WIG Ch.1 "Consistency", p.2; the audit's 1.14), read at render with the store-free `getClassicyAppearanceLayout()`, so the fallback stays self-contained. Absent or `sadMac` (Platinum, System 7): the `sadMac` system art on black, as before. `fatalException` (Windows 98, which has no picture for it): Windows 98's fatal-exception screen in VGA text mode, `classicyCrashScreenFatalException` (parts `Title`, `Message`, `Line`, `Prompt`), light gray `#AAAAAA` on blue `#0000AA` (literals, as the Sad Mac's black, outside any theme), the text sized in viewport units, 80 columns: shell.vxd's " Windows " title, inverted and centered; vwin32.vxd's `A fatal exception %12x has occurred at %24x:%38x in VXD %4s. The current application will be terminated.` filled with the well-known capture's 0E, 0028:C0011E36 and VMM(01) + 00010E36, wrapped at Windows' 80 columns, and its two bullets; shell.vxd's "Press any key to continue" with the text-mode cursor, centered. A click or any key reloads; the accessible name says the system crashed and a key restarts it |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
 | `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open (a folder row with no icon of its own draws the package's `fileDialogFolderIcon` system art, else the folder icon), Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |
 | `fileBrowser.listColumnTitles` (optional) | `inList`, `aboveList` | where `ClassicyFileBrowser`'s list view (the Finder's) draws its column titles (`ClassicyTable`'s `headerPlacement`). `inList` (the default, Mac OS 8): the list's first row, pinned while it scrolls, beside the vertical bar. `aboveList` (System 7, HIG p.218, `*-755-finder-list-row-selected.png`): above the list's scrolling region, in its window's scroll area's head (`classicyScrollAreaHead`, the window's full width, over the vertical bar's column, scrolled sideways with the rows), so the vertical bar starts under them; the titles drawn there are a copy (`classicyTableDetachedHeader`, `aria-hidden`, its columns sized from the list's), while the list keeps its own header row for assistive technology, laid out with no height (`classicyTableHeaderHidden`); the window's header, when it has one, is marked `classicyWindowHeaderAboveHead` meanwhile, so a package can move its bottom rule under the titles |
 | `fileDialog.saveName` (optional) | `plain`, `selected` | how the Save box opens. `plain` (the default, Mac OS 8): the modal focuses its first control. `selected` (System 7.5, `*-dialog-standardfile-save.png`): the name field is the modal's first focus (`initialFocusRef`) and, once it shows the default name, takes focus with the whole name selected (the field's `selected` state, which System 7 draws as TextEdit's whole-line highlight) |
+| `fileDialog.listFlow` (optional) | `single`, `columns` | how a flat list (`fileDialog.navigation: "flat"`) lays out its rows. `single` (the default): one column, scrolling down. `columns` (Windows 98, WIG Ch.8 "Open Dialog Box", Figure 8.6, the list view's List mode): the well carries `classicyFileOpenDialogWellColumns` and the rows flow in columns, top to bottom then left to right, as many to a column as the list's height holds and each column as wide as the widest row (measured by `ClassicyFileDialog` from the rows, published on the well as `--classicy-file-dialog-list-rows` and `--classicy-file-dialog-list-column-width`, remeasured when the rows change or the list is resized); the list scrolls sideways (its horizontal bar takes the package's fits policy, the vertical none); Left and Right Arrow move the focus a column (none past the last, as Wine's `LISTVIEW_GetNextItem`), Up and Down a row, through the column breaks. The tree navigation ignores it |
+| `fileBrowser.keys` (optional) | `mac`, `windows` | how `ClassicyFileBrowser`'s icon view answers modified clicks and keys ("Icon view selection", §7). Under either: a click selects one icon, an arrow the nearest icon its way, typing the icon whose name starts with the keys typed (a second's buffer), a drag across empty space selects the icons the rectangle touches, a slow second click on a selected icon's name renames it. `mac` (the default, Platinum, System 7, HIG7 pp.288-291): Shift-, ⌘- or Control-click adds an icon or takes it out; Home, End and the page keys are left to the window, which scrolls. `windows` (Windows 98, WIG Ch.5 "Selection", pp.38-45): Shift-click and Shift with an arrow, Home or End select the icons whose top left lies in the rectangle the anchor's icon and the item span (the union of their boxes, right and bottom edges out), replacing the rest, the anchor staying: comctl32's icon-view group selection (`LISTVIEW_SetGroupSelection` outside the list and report views), the OS as shipped over a run of the view's order (`classicyIconRectRange`); Control (or ⌘) adds or takes out one and moves the anchor; Control with Shift keeps the other selections and sets that rectangle's icons to the anchor's state, the anchor staying (WIG p.39, as `selection.modifiers` has it for a list; Wine's `LISTVIEW_AddGroupSelection` selects an index range whatever the state, and WIG's rule is kept, as for a list); a selection rectangle (either view's) drawn with Shift adds what it touches, with Control (or ⌘, with or without Shift) toggles it (the symmetric difference, as comctl32's marquee inverts the items it covers while Control is down, `LISTVIEW_MarqueeHighlight`), with neither selects it alone (`classicyIconMarqueeSelection`; under `mac` any of them adds); Home, End, Page Up and Page Down select the first icon, the last and the farthest icon a viewport's height up or down; a letter typed again steps to the next icon starting with it, a longer buffer searching on from the focused one; F2 renames the selected icon |
+| `fileBrowser.iconSelection` (optional) | `perIcon`, `view` | what a drag of a selected icon in `ClassicyFileBrowser`'s icon view carries. `perIcon` (the default, Platinum, System 7, today's rule): the icon pressed alone. `view` (Windows 98; WIG Ch.5 "Operations for a Multiple Selection", p.44, "Direct Manipulation Transfers", p.66; App. A Tables A.1-A.3; the audit's 5.8, 5.22 and A.1): the view's whole selection (the icon is in it; the selection a press made under `selection.selectOn: "press"`, read when the drag begins), each selected icon's image and label in the outline (`ClassicyIcon`'s `fileDragParts`), `onMoveItems` getting every path in the view's order; let go in its own folder, every selected icon moves as far as the pointer went (`ClassicyIcon`'s `moveBy`), and the click ending the drag leaves the selection as it is. The view keeps one selection under either (lane 2 made that every package's, as Mac OS 8's Finder kept it: a click selects an icon, a press on empty space clears it, Select All works), so the key is the drag alone; Mac OS 8's Finder dragged its whole selection too, a question for the every-package review. Read with `classicyIconViewDragsSelection(layout)` |
+| `fileBrowser.regionSelect` (optional) | boolean | `true` (Windows 98; WIG Ch.5 "Region Selection", p.42; Ch.7 "List View Controls", p.123, correcting its row; the audit's 5.12): `ClassicyFileBrowser`'s list view takes a selection rectangle (`classicyFileBrowserSelect`, the icon view's, drawn in the browser's root) from a button-1 press on its empty space (below its last row; never a row, a row's name, the column titles or the scroll area's head), or button 2 under `selection.secondaryButton: "select"`: the press clears the list's selection unless Shift, Control or ⌘ is held (button 2 always: comctl32's `LISTVIEW_LButtonDown` and `LISTVIEW_RButtonDown`), and, dragged 2 px, the rows whose names (`[data-classicy-file-path]`, the name cell, the report view's item bounds) it touches are selected live through the table's controlled `selected` (the browser holds it when the caller passes no `selectedPaths`) and `onSelectionChange`, with `fileBrowser.keys`' rectangle modifiers; and while either view's rectangle is drawn the window's scroll area scrolls toward an edge the pointer is within a line step of, or past, a line (`lineStep`) per press-repeat interval (120 ms), the first after one interval, while the axis can go further, measuring again after each (`classicyFileBrowserMarqueeScroll`; lane 2's file-drag automatic scrolling, past the edge too, as comctl32's marquee scrolls while the pointer is outside the list, `LISTVIEW_ScrollTimer`; HIG7 p.289 asks the same of a Mac view, a question for the every-package review). The release or a lost pointer stream removes the rectangle and keeps the selection; Escape under `input.escapeCancels` removes it and puts back the selection the press found. Absent or `false`: the list view has no rectangle, and the icon view's never scrolls. Read with `classicyFileBrowserRegionSelect(layout)` |
+| `fileList.foldersFirst` (optional) | `false`, `true` | how file lists order their items. Absent or `false` (Mac OS 8's Finder): folders and files sort together. `true` (Windows 98, Explorer): folders (and drives) first, each group in its own order, in the icon view (arranged or not) and the list view (`ClassicyTable`'s `sortGroup`); a descending sort of the list reverses the whole order, folders last, as Explorer negates a compare that puts folders first (Wine's `ShellView_ListViewCompareItems`, ReactOS's `CDefView::ListViewCompareItems`). The file dialogs' volumes (`fileSystemVolume`, `desktopVolume`) list folders first already, under every package |
 | `slider.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicySlider` drawn with a `ghost` drags. `live` (the default): the indicator follows the pointer and the value changes as it goes, the ghost with it. `onRelease` (Platinum, HIGOS8 p.34, Figure 2-17, "a slider with a downward pointing indicator shadowed by a ghost indicator"): the indicator stays where it was while the ghost follows the pointer, and the value changes once, when the button comes up (`onChangeFunc`, then `onCommitFunc`); a lost pointer stream drops the ghost's value. A slider without a ghost drags live under either, the HIG's "live feedback" (p.35); the keyboard and the wheel are unaffected; touch stays the browser's live drag, even under `onRelease` |
 | `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
-| `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 24; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") past the bar's own pixels on any side (its box grown by that much, the right and bottom edges counted out, as QuickDraw's `PtInRect`), the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
+| `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 24; a theme that does not emit it gets the bar's own thickness, "the width of the scroll box", times `scrollBar.snapBackScale` across and along the bar) past the bar's own pixels on any side (its box grown by that much, the right and bottom edges counted out, as QuickDraw's `PtInRect`), the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
+| `scrollBar.liveSnapBack` (optional) | `true`, `false` | whether a live thumb drag snaps back. Absent or `false` (Mac OS 8, Platinum): the content follows the thumb wherever the pointer goes. `true` (Windows 98; WIG Ch.6 "Scroll Box", p.89: "If the user starts dragging the scroll box and then moves outside of the scroll bar, the scroll box returns to its original position … if the user moves the pointer back within the scroll-sensitive area, the scroll box returns to tracking the pointer"): while the pointer is outside the bar's box grown by the snap-back distance (the theme's `--scroll-bar-snap-back` on every side, else the bar's thickness times `snapBackScale`, the right and bottom edges counted out), the content is scrolled back to where the drag started and the thumb drawn there; coming back, it follows the pointer again; a release out there leaves the content where the drag started. Read once per drag. The keys, the wheel and Escape are left alone (Windows' thumb tracking dispatched them) |
+| `scrollBar.snapBackScale` (optional) | `{ across, along }`, numbers 0–64 | the snap-back distance, as multiples of the bar's thickness across the bar (to either side) and along it (past either end), for an on-release drag and a live one that `liveSnapBack` lets snap back, where the theme emits no `--scroll-bar-snap-back` (which wins, in px on every side). Absent: 1 each way. Windows 98: `{ across: 8, along: 2 }`, the rectangle Windows grew a scroll bar by before the thumb snapped back (Wine's `point_in_scroll_rect`, `InflateRect(width × 8, width × 2)` for a vertical bar, shared by ReactOS), so 128 px to either side of a 16-px bar and 32 px past its ends; proportional, as the WIG's "proportional to the width of the scroll bar" asks, so a larger scroll bar metric widens it |
 | `patternOrigin.<Component>` (optional) | `element`, `window`, `desktop` | where a component's patterns are laid from, per component: `ControlGroup`, `PopUpMenu`, `Separator`, `Slider` (`CLASSICY_PATTERN_ORIGIN_COMPONENTS`; another key is refused). `element` (the default, and a component left out): the core publishes nothing and watches nothing, and the package lays its pattern where its stylesheet anchors it (the part's own corner). `window` (System 7, as QuickDraw laid a pattern from the window's port): the window's content origin (inside its frame, under its title bar; outside a window, the desktop's corner). `desktop`: the desktop's corner (outside a desktop, the viewport's), whatever window holds the part. The core publishes that origin on each of the component's pattern-bearing elements (a `ControlGroup`'s fieldset; a `PopUpMenu`'s button and its indicator; a `Separator`'s rule; a `Slider`'s range input and its tick rail), from the element's padding-box corner (inside its computed border, not `clientLeft`, which Firefox makes a text field's border and padding), as `--classicy-pattern-origin-x` / `-y` (whole pixels on the device-pixel grid), and keeps it current on the scroll bars' signals (below, and the window's own attributes, so a window moved on the desktop republishes). An element with no client rects (not rendered: `display: none`, a hidden tab panel, a closed menu) is given none, and loses what it had, until it renders; so are a scroll bar and its track. One watcher per window (outside one, per desktop, else per document body) serves every part in it, scroll bars included: each signal reads every part, then writes the changed values; a DOM change and a scroll are read in the next animation frame, once however many came (before it paints; a change made in an animation frame callback is read the frame after), and a style write on an element marked `data-classicy-paint-only-style` (it repaints that element alone: `CLASSICY_PAINT_ONLY_STYLE_ATTRIBUTE`, `ClassicyPaintOnlyStyle.internal.ts`) not at all, and a settle signal (a resize, a transition or an animation ending, a font loading) at once (`ClassicyPatternOrigin.internal.ts`, `useClassicyPatternOrigin`) |
 | `patternOrigin.elements` (optional) | `{ selector, origin: "window" \| "desktop" }[]` | any other element a package fills or masks with a pattern (the core's dither mixins included: `classicy-dither-mask/-text/-line($x, $y)` place the checker's tile from the padding box, `mask-origin: padding-box`, when given a position), by CSS selector. Every `ClassicyWindow` publishes the origin on the matching elements whose nearest window it is, and `ClassicyDesktop` on those outside every window (menus, the menu bar), each selector queried on its own each signal, so an element that starts matching (a control dimmed, a menu opened) is published and one that stops has the properties removed, and its box and ancestors are watched like a component's (`useClassicyPatternOriginElements`, `watchClassicyPatternOriginSelector`). A selector the browser cannot parse (`:has()` before Firefox 121) is skipped with one warning, never refusing the package |
 | `scrollBar.patternOrigin` (optional) | `element`, `window` | where a pattern in a bar is laid from. `element` (the default): the core publishes nothing, and a package anchors its track pattern where its stylesheet does. `window` (System 7, as QuickDraw laid a pattern from the window's port: the 7.5 Finder list, 7.5.5 Scrapbook and 7.5.5 Finder captures, three screen phases, one window phase): the core publishes the window's content origin (inside its frame, under its title bar; outside a window, the desktop's corner) on each bar and on its track, from that element's padding-box corner, as `--classicy-scroll-origin-x` / `-y` (whole pixels, the bar measured where its snap nudge puts it on the device-pixel grid), kept current as the bar, the window, its title bar or anything between them resizes, the DOM inside the window (outside one, the desktop's or the body's) changes, the desktop's attributes change, a stylesheet is added, removed or edited, anything in the window scrolls (outside one, anything in the document), a transition or an animation ends, a font loads, the viewport resizes, and a frame after the pointer or the focus moves (a pseudo-class rule) (`ClassicyScrollPatternOrigin.internal.ts`, on the window's shared pattern-origin watcher, `patternOrigin` above). A part inside the bar offsets the bar's (System 7's drag outline subtracts `--classicy-scroll-outline-offset`) |
@@ -4303,6 +6928,9 @@ theme's variables, so it wins over the theme's 30 px, and before the host's
 | Window title bar | `[data-classicy-control="close"]` 10, `.classicyWindowTitle` 20, `[data-classicy-control="zoom"]` 30, `[data-classicy-control="collapse"]` 40 | the stripes are `.classicyWindowTitleLeft`/`Center`/`Right`, which a package may hide (`display: none`) |
 | Alert top row (`.classicyAlertTop`) | `.classicyAlertIcon` 10, `.classicyAlertBody` 20 | |
 | Alert buttons (`.classicyAlertButtons`) | each button by `[data-classicy-role="default\|cancel\|other"]` | no base `order`: the button list's order, default last; flip with `flex-direction`. Help keeps `margin-right: auto` |
+| Taskbar (`.classicyTaskbar`) | `[data-classicy-part]` `taskbar-start` 10, `taskbar-quick-launch` 15, `taskbar-tasks-gripper` 18, `taskbar-tasks` 20, `taskbar-pager` 25, `taskbar-tray` 30 | the window buttons' list grows (`flex: 1 1 auto; min-width: 0`) and each button may shrink to nothing, its label cut with an ellipsis; the package sizes every part |
+| Start menu (`.classicyStartMenu`) | none (DOM order: `start-menu-banner` first, then the menu) | a flex row, the banner (`flex: 0 0 auto`) the surface's full height beside the menu; the package draws the frame, the banner's colors and its upward text, and sizes the items |
+| Shell dialog (`.classicyShellDialog`, a flex column) | none (DOM order: `.classicyShellDialogTop` (`.classicyShellDialogIcon`, then `.classicyShellDialogBody`), Run's `.classicyShellDialogField`, then `.classicyShellDialogButtons`) | the Windows shell's Shut Down, Run and Log Off dialogs (plan 0020-w98 E2), laid out as `ClassicyInputDialog` is; their buttons stand in Windows' order in the DOM (the default first, Cancel next); the package sizes each to Windows' dialog units |
 | Menu bar (`.classicyDesktopMenu`) | `[data-classicy-part]` `apple` 10, `app` 20, `help` 30, `extensions` 40, `clock` 50, `switcher` 60 | `extensions` carries `margin-left: auto`, which pushes the right-hand cluster over. A title with balloon help is wrapped in an anchor; that anchor is the flex item, ordered by the part it wraps (`:has()`), and sized by its title. Window menu bars use the same rules |
 | Tabs (`.classicyTabContainer`, a flex column) | `.classicyTabButtonsRow` (strip), `.classicyTabsHolder` (panel) | `stripPosition="bottom"` (`.classicyTabStripBottom`) moves the strip below with `order: 1` and moves its 1 px overhang to the top edge |
 | Disclosure header (`.classicyDisclosureHeader`) | the triangle, then `.classicyControlLabelHolder` | `labelPosition="left"` (`.classicyDisclosureLabelLeft`) sets the label's `order: -1` |
@@ -4314,21 +6942,54 @@ under the title bar. Utility windows, modals, collapsed windows and windows
 with an empty `appMenu` get none. It has its own `ClassicyMenuProvider`:
 menus stick as the screen bar's do and close on a selection, a re-click of
 the open title, a mouse-down outside the bar
-(`useClassicyMenuCloseOnOutsideMouseDown`), or the 15 s idle timeout. Another
+(`useClassicyMenuCloseOnOutsideMouseDown`), or the package's idle time-out
+(`layout.menuBar.idleTimeoutMs`; 15 s when it declares none). Another
 window's bar counts as outside, so only one window's menu is open at a time.
 A switch to window placement closes any menu open on the screen bar. Its
 height is `--classicy-window-menu-bar-height` when a host or package sets it
-(it inherits), else `control size × 1.75`, and the window's contents shrink
-by it. While it draws the bar, the window root carries
+(it inherits), else `control size × 1.75` (Windows 98's stylesheet draws
+Windows' 20 px band instead, its `menuBar.titleHeight` and a row above and
+below; "Windows 98", above), and the window's contents shrink by it. While it draws the bar, the window root carries
 `classicyWindowWithMenuBar`, which keys that sizing; a separate
 `:has(> .classicyWindowMenuBar)` rule repeats it, so a browser without
-`:has()` still fits the window together. Limits of this placement: the Apple, Help
-and App Switcher menus, the clock and menu bar extensions have no home in a
-window bar and are not shown. A `ClassicyMenuBarExtension` renders nothing
-while the placement is `window` and reappears in the screen bar's new
-extensions region when it returns to `screen`. It follows the package
-layout only: a bar forced to `placement="screen"` under a window-placement
-package is not re-queried. The headless screen bar reserves no band: in
+`:has()` still fits the window together. Limits of this placement without a
+taskbar (Storybook's `mirrored` package): the Apple, Help and App Switcher
+menus, the clock and menu bar extensions have no home in a window bar and are
+not shown, and the bar draws the `appMenu` as given (its About item retitled
+by `withClassicyAppIdentityAboutItem`, below). Under a taskbar
+(`layout.taskbar`, the Windows 95/98 shell), where no screen bar is drawn, the
+bar ends with Help, as a Windows menu bar does (WIG Ch.7 "The Menu Bar and
+Drop-down Menus", p.97; "The Help Menu", p.99): the `appMenu` with its About
+item (found as the screen bar finds it) and its top-level Help menus taken
+out, then a last menu titled "Help" (`` `${appId}_${windowId}_help-menu` ``,
+`data-classicy-part="help"`, base `order` 30, so it is last; access key H
+under `layout.menu.accessKeys`, Notepad's "&Help", shell addendum B7) holding the
+system's Help items (About Balloon Help…, or Help Topics and What's This?
+under their keys; never the Show/Hide Balloons toggle, Windows 98's ToolTips
+always showing, WIG Ch.12 p.276, shell addendum B19), then, each
+after a divider, the app's registered items (`useClassicyHelpMenu`) and the
+items of its own Help menus (an item repeating the balloon toggle dropped),
+then a divider and "About <display name>" when the app has an About item (no
+ellipsis, WIG p.99; access key A under `menu.accessKeys`, Notepad's "&About
+Notepad"; the item keeps its handler, its title from
+`classicyAppIdentityFrom`). The app's menus before it follow Windows' File
+menu (WIG Ch.7 "The File Menu", p.98; shell addendum B1,
+`withClassicyWindowsFileMenu`): the Special menu (id ending `_special` or
+titled "Special") is not drawn, its Empty Trash… and Reset PRAM… being in
+the Start menu and Empty Recycle Bin on the Trash's own menu; the File menu
+ends with a divider and Exit, the app's Quit item (id ending `_quit` or
+titled "Quit") retitled (access key X) and moved there, and a File menu with
+no Quit (a Finder folder window's) ends with a divider and Close, its Close
+Window item retitled (access key C). The window bars dispatch no keyboard
+equivalents: the headless screen bar still does, over the focused window's
+`appMenu` and the system Help, which under a taskbar holds no balloon
+toggle, so ⌥H runs nothing there. A `ClassicyMenuBarExtension` renders nothing
+while the placement is `window` with no taskbar, portals into the taskbar's
+status area under a layout that declares `taskbar` (its region keeps the id
+`classicyDesktopMenuExtensions`), and reappears in the screen bar's new
+extensions region when the placement returns to `screen`. It follows the
+package layout only (its placement and its taskbar's presence): a bar forced
+to `placement="screen"` under a window-placement package is not re-queried. The headless screen bar reserves no band: in
 window placement `ClassicyDesktop` sets `--menu-bar-height: 0px` on its root
 (`classicyLayoutThemeVars(layout)`, spread after the theme's variables and
 before the host's `style`, which still wins), so windows are placed, zoomed,
@@ -4344,9 +7005,9 @@ under a window-placement package draws the screen bar and, in each window
 with an `appMenu`, a window bar as well.
 
 **`computeClassicyWindowResize(corner, rect, pointer, chrome, fudge?,
-minimum?, floor?)`** → `{ size: [w, h], position: [left, top] }`. Pure; the
-size and position for a resize drag whose grow box is in `corner`. The
-corner opposite the grow box is the anchor: the size is the pointer's
+minimum?, floor?, ceiling?)`** → `{ size: [w, h], position: [left, top] }`.
+Pure; the size and position for a resize drag whose grow box is in
+`corner`. The corner opposite the grow box is the anchor: the size is the pointer's
 distance from it plus `fudge` (default 5, which keeps the grow box under the
 pointer; `ClassicyWindow` passes the live `--window-resize-inset`, 5 px under
 Platinum, read once per gesture), and the position keeps the anchor fixed.
@@ -4370,13 +7031,63 @@ axis whose grow box moves the left or top edge:
   is not 30 px still releases a top-edge resize exactly where it stopped.
 
 `bottom-right` moves no edge, ignores both limits, and gives the numbers
-Classicy always used. `ClassicyWindow` writes `size` as the window's width
-and height during the drag and, for any other corner, `position` as its
-left and top.
+Classicy always used.
+
+A third optional limit applies only on an axis whose grow box moves the
+right or bottom edge (both axes of `bottom-right`):
+
+- `ceiling` (`[right, bottom]`, default `[Infinity, Infinity]`, no limit):
+  the largest right/bottom that edge may reach, measured as the release
+  clamp measures it, the left or top plus the content size; past it the
+  size shrinks so the edge stops there (never below 0). `ClassicyWindow`
+  passes `[Infinity, innerHeight − band]`, the taskbar's top, only while a
+  taskbar's band is published (plan 0020-w98 §2), so a drag into the
+  taskbar stops at its top instead of being moved back up by the release
+  clamp. With no taskbar it passes none, and the numbers are today's.
+
+`ClassicyWindow` writes `size` as the window's width and height during the
+drag and, for any other corner, `position` as its left and top.
 
 Types: `ClassicyWindowRect` is the `rect` argument (`{ left, top, right,
 bottom }`, viewport pixels, frame included); `ClassicyWindowResizeResult` is
 the return value (`{ size, position }`, both `[number, number]`).
+
+**`computeClassicyWindowEdgeResize(edges, startRect, startPointer, pointer,
+chrome, minimum?, floor?, ceiling?, maximum?)`** → `{ size: [w, h],
+position: [left, top] }`. Pure; the size and position for a frame-edge
+sizing drag (`layout.window.frameEdges: "resize"`, §4.1, "Frame-edge
+sizing"). `edges` (`ClassicyWindowSizingEdges`: `"top"`, `"right"`,
+`"bottom"`, `"left"`, `"top-left"`, `"top-right"`, `"bottom-left"`,
+`"bottom-right"`, Windows' eight sizing hit-test codes; a corner names both
+of its edges) move by the pointer's travel since the press, `pointer −
+startPointer` rounded to whole pixels; every other edge stays, so a left or
+top drag keeps the right or bottom edge where it was. `startRect` is the
+window's bounding rect at the press (frame included) and `chrome` its frame
+padding plus border, as for `computeClassicyWindowResize`. Each moving edge
+stops at a limit, as Windows confines a sizing drag's pointer to the work
+area and stops the edge at the window's tracking sizes (Wine's
+`sys_command_size_move`):
+
+- `floor` (`[x, y]`, default `[0, 0]`): the lowest left/top a moving left or
+  top edge may take (`ClassicyWindow` passes `windowViewportFloor`).
+- `ceiling` (`[right, bottom]`, default `[Infinity, Infinity]`): the largest
+  right/bottom a moving right or bottom edge may reach, measured as the
+  release clamp measures it, the left or top plus the content size.
+  `ClassicyWindow` passes the work area's, `[innerWidth, innerHeight − band]`
+  (the taskbar's top while one is mounted, else the viewport's bottom),
+  always: frame-edge sizing exists only under that flag.
+- `minimum` and `maximum` (`[w, h]`, defaults `[0, 0]` and `[Infinity,
+  Infinity]`): the content size CSS draws at least and at most;
+  `ClassicyWindow` passes its `minimumSize` and, for the height, its
+  containing block's height less `--window-max-height-reserve` (the
+  `max-height` every window has), read once per gesture.
+
+The size is never below 0, and the minimum wins over every other limit, as
+CSS's `min-height` beats `max-height`; it can conflict with the floor or the
+ceiling only for a window stored below its minimum, because the release
+clamp keeps every stored rect between the two. `ClassicyWindow` writes
+`size` as the window's width and height during the drag and, for a moving
+left or top edge, `position` as its left or top.
 
 **Icon grid.** Clean Up walks the grid one grid step at a time: the icon
 cell plus its padding (`cell + padding` from `classicyDesktopIconMetrics`,
@@ -4386,7 +7097,16 @@ column from the origin's edge, then to the next column. Every counted column
 fits the viewport, and a bottom origin also keeps its last row clear of the
 menu bar, so no cleaned-up icon lands off-screen. In a viewport too short
 for even one row below that band, a bottom origin's one row is clamped to
-the top origins' first-row height (`4 × padding`).
+the top origins' first-row height (`4 × padding`). While a taskbar is
+mounted (plan 0020-w98), rows are laid out in the height above its band: a
+bottom origin's rows are measured up from the taskbar's top, and a top
+origin counts only the rows whose cell ends above it (`floor(height /
+pitch)`, the count with no taskbar, can let the last row run past the
+bottom, by up to `3 × padding` with the default row geometry, where the
+taskbar would cover it), as Windows' icon view starts a new column unless
+an icon fits whole (comctl32 `LISTVIEW_NextIconPosLeft`). An icon dragged
+by hand may still be dropped anywhere. With no taskbar the grid is exactly
+as described.
 `classicyDesktopIconGridPosition(metrics, col, row, origin?)` is the
 grid-position-to-location function. `metrics` is a
 `ClassicyDesktopIconMetrics` (`{ size, padding, cell }`, below under
@@ -4435,7 +7155,8 @@ one preview iframe across sidebar navigation, so a story visited after a
 
 The Appearance Manager's Themes tab has **Save Theme…** (downloads the
 *active* theme, built-in or custom) and **Load Theme…** (picks a `.json`
-file, imports it, selects it). A load error shows a stop alert with the
+file, imports it, selects it; and, while the active package has a theme
+file importer, a file of another system's format, below). A load error shows a stop alert with the
 reason; a theme for a package that is not installed is refused this way
 before anything is dispatched. A theme for another *installed* package
 switches to that package first (`ClassicyDesktopChangeAppearancePackage`),
@@ -4443,6 +7164,22 @@ then imports, so the active theme and the active look agree. That switch is
 the panel's: a programmatic `ClassicyDesktopImportTheme` leaves `packageId`
 alone. Helpers live in `ClassicyThemeFile.ts`; the schema in
 `ClassicyThemeSchema.ts`.
+
+**Another system's theme files.** A package may read another system's theme
+files (`ClassicyAppearancePackage.themeFileImporter`,
+`ClassicyAppearanceThemeFileImporter`: `{ extensions, read(text, fileName)
+}`, `extensions` lower case with the dot). While it is the active package,
+Load Theme…'s picker accepts those extensions beside JSON
+(`classicyThemeFileAccept(importer)`, `"application/json,.json,.theme"`), a
+file whose name ends in one (case aside, `isClassicyForeignThemeFile`) is
+read as text and handed to `read`, and the theme it returns is validated as
+a Classicy theme file's theme (`parseClassicyForeignThemeFile`, through
+`readClassicyTheme`: unknown keys stripped, every string held to its CSS
+role, its package installed) before `ClassicyDesktopImportTheme` adds it as
+a custom theme; a refusal (`{ ok: false, error }`), a throw or a file over
+the size limit shows in the panel's alert. A package without an importer
+(Platinum, System 7) leaves the picker at JSON and reads every file as one.
+Windows 98's reads Windows `.theme` files (the Windows 98 section).
 
 File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json`:
 
@@ -4569,8 +7306,8 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
 | Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (None first, which stores `""`: no picture, the desktop's solid color; then the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`). `bg` is the resolved picture, `""` for none (the picker reads None and the preview shows the desktop color) |
-| Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies? })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
-| Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
+| Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies?, colorLabels? })` (`colorLabels`: the same package's names for the core's colors, by `cssVar`, each picker's `labelTitle` taking its label where given) | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
+| Fonts | `useFontsTab({ typography, changeFont, changeFontSize, fontFamilies?, changeFamilyFont?, changeFamilyFontSize? })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`); then a row per package font the theme holds (`typography.families`, labeled by the active package's `fontFamilies`, a size beside each that has one; "Package font families") |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
 | Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.5, and a call without it works as in 3.1) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
@@ -4608,6 +7345,7 @@ Theme-driven variables (values change per theme):
 | Window metrics | `--window-control-size`, `--window-border-size`, `--window-padding-size`, `--window-scrollbar-size`, `--window-scrollbar-arrow-size` |
 | Typography | `--header-font`/`--header-font-size`, `--body-font`/`--body-font-size`, `--ui-font`/`--ui-font-size`, `--mono-font`/`--mono-font-size`, `--digital-font`/`--digital-font-size` |
 | Package colors | `--package-color-<family>-<key>`: the active theme's `color.families` ("Package color families" below), e.g. Platinum's `--package-color-gray-ramp-step2` |
+| Package fonts | `--package-font-<name>`, `-size`, `-weight`: the active theme's `typography.families` ("Package font families"), e.g. Windows 98's `--package-font-menu-size`; none for a theme without them |
 | Desktop | `--desktop-icon-size`, `--desktop-icon-font-size`, `--desktop-background-image`, `--desktop-background-color`, `--desktop-background-repeat`, `--desktop-background-position`, `--desktop-background-size`; fixed: `--icon-small-size` (16px), `--icon-size-regular` (32px) |
 
 **Package color families.** An Appearance Package may declare colors of its
@@ -4695,7 +7433,62 @@ change), the way it declares measurement families. They are additive, 3.5.
   strip drawing its grays through the 50% checker), and
   `controlStrip.pressedGlyphInk` / `pressedGlyphLight` / `pressedGlyphDark`
   (black / #777777 / #222222; white / black / black), a pressed collapse
-  box's glyph darkened, inverted in 1-bit, as 7.5.5 draws it.
+  box's glyph darkened, inverted in 1-bit, as 7.5.5 draws it. **Windows 98**
+  declares `titleBar`, `selection`, `tooltip`, `desktop`, `text`
+  (`button`, `gray`: ButtonText and GrayText), `scrollBar` (`track`:
+  Scrollbar), `sizingBorder` (`active`, `inactive`: ActiveBorder and
+  InactiveBorder), each scheme's own values from Windows 98 SE's SHELL2.INF
+  (the Windows 98 section below), and `help` (`jump`: a Help topic's text
+  jump, WinHelp's green, #008000 in every scheme).
+
+**Package font families.** An Appearance Package may hold fonts of its own
+in a theme beside the core typography (`ui`, `header`, `body`, `mono`,
+`digital`, which do not change), the way it holds colors. Additive, 3.8;
+Platinum and System 7 hold none and emit none.
+
+- **Theme data.** `typography.families.<name>`: `{ font, size?, weight? }`
+  (`ClassicyThemeFontFamily`, `ClassicyThemeFontFamilies`,
+  `ClassicyThemeFontFamilies.ts`): `font` a font stack the schema's
+  `fontStack` accepts (family names, quotes and commas), `size` a font size
+  within 8–72 px, `weight` 100 to 900 in hundreds. Names are
+  lowercase-first camelCase (`constructor`, `prototype` and `__proto__`
+  never). Windows 98 holds each scheme's `caption`, `smallCaption`, `menu`,
+  `message` and `icon` fonts there (the icon font's size is the theme's
+  `desktop.iconFontSize`, so it has none).
+- **Variables.** `getThemeVars` emits `--package-font-<name>` (the stack),
+  `--package-font-<name>-size` (px, when set) and
+  `--package-font-<name>-weight` (when set), kebab-cased
+  (`classicyFontFamilyVars`, `classicyFontFamilyVarName`): `smallCaption` →
+  `--package-font-small-caption`. The prefix
+  (`CLASSICY_PACKAGE_FONT_VAR_PREFIX`) is reserved whole
+  (`isReservedClassicyThemeVar`), so no measurement family makes one; two
+  names that make one variable (`smallCaption`'s size and a family
+  `smallCaptionSize`) keep the first in key order, one warning. A malformed
+  entry, an unsafe stack, a size or weight out of bounds emits nothing.
+  Read them from a package's own stylesheet with a core fallback, a
+  typography variable for a stack or a size and a keyword for a weight
+  (`var(--package-font-menu, var(--ui-font))`,
+  `var(--package-font-menu-weight, normal)`): the var-coverage test
+  requires it.
+- **Package metadata.** `ClassicyAppearancePackage.fontFamilies`
+  (`ClassicyAppearanceFontFamilies`): name → `{ label }`. The package
+  schema refuses a declared font that `defaults.typography.families` holds
+  no value for.
+- **Editing.** The Fonts tab adds a row per family the active theme holds
+  after the core rows, in the declared order and labeled by it (else by
+  name; `listClassicyThemeFontFamilies`): a family pop-up (the font
+  registry) and a size spinner when the entry has a size. They dispatch
+  `ClassicyDesktopChangeFont { family, font }` and
+  `ClassicyDesktopChangeFontSize { family, fontSize }` (predicates
+  `hasFontFamilyFont`, `hasFontFamilySize`), which edit only a family the
+  active theme holds, checked before the edit so a refused change never
+  forks a built-in; the `fontType` forms are unchanged. The weight is the
+  theme's.
+- **Persistence and theme files.** The families are stored, exported and
+  imported with the theme, whole (`ClassicyThemeSchema` keeps them,
+  optional; a build without the capability strips them and loads the theme
+  in the core fonts). A theme without them is not completed from its
+  package: every read has its core fallback.
 
 **Layout metrics** are theme data too. The inputs live in the theme JSON under
 `measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,
@@ -4829,17 +7622,21 @@ literals.
   row's (rows step by `desktop.iconSize` plus it, so the pitch follows an
   edited icon size; the metrics' `rowPitch`), and `top`, the first row's
   top for a top origin and the highest a bottom origin's row goes (the
-  metrics' `top`). Each is read from the theme completed by its package's
+  metrics' `top`), and `columnGap`, the room beside an icon's box before the
+  next column's (columns step by `desktop.iconSize` plus it; the metrics'
+  `columnPitch`). Each is read from the theme completed by its package's
   defaults (`withDefaultThemeMetrics(theme,
   classicyThemeMeasurementDefaults(theme.package))`, as `getThemeVars`
   reads every knob), so a saved Custom theme, which persistence stores
   without the values equal to those defaults, keeps its package's rows.
   Each counts when that value is a finite number of zero or more; unset in
-  the theme and in its package, rows step by `cell + padding` from
-  `4 × padding`, as columns always do, so Platinum, which sets neither,
-  lays its desktop out as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
+  the theme and in its package, rows and columns step by `cell + padding`,
+  rows from `4 × padding`, so Platinum, which sets none, lays its desktop
+  out as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
   tops at y 60, 112, 164, 216 under its 20 px bar, a 52 px pitch for its
-  32 px icons; `*-desktop-menubar-icons.png`).
+  32 px icons; `*-desktop-menubar-icons.png`). Windows 98 sets `rowGap` and
+  `columnGap` 43 over its 32 px icons, Windows' 75 px IconSpacing both ways
+  (Wine `sysparams.c`, 1125 twips).
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
@@ -5398,7 +8195,9 @@ skips:
 - the helpers' own definitions and the screen savers' ported art under
   `packages/appearance/platinum/src/screenSavers/` (whole files);
 - the crash screen's `var(--color-black, black)`: the Sad Mac replaces the
-  desktop, so it renders outside the element that carries the theme;
+  desktop, so it renders outside the element that carries the theme; and,
+  for the same reason, Windows 98's fatal-exception screen's VGA light gray
+  `#aaaaaa` on blue `#0000aa` (its four declarations);
 - in `ClassicyColorPicker.scss`, only the crayon box's art (its cardboard,
   bevel, lip and lip edge) and the RGB/CMYK slider tracks, each listed by
   declaration (`EXEMPT_DECLARATIONS`);
@@ -5592,8 +8391,9 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 43 sites over 11 files, the sites kept on purpose
-(Part G), the H-R7 and H-R21 geometry and the button spacing scale:
+the list ends at these 46 sites over 14 files, the sites kept on purpose
+(Part G), the H-R7 and H-R21 geometry, two on/off switches and the button
+spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
   `--desktop-icon-size` per icon, and the root's `--desktop-icon-cell` would
@@ -5616,6 +8416,15 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   triangle, the dotted group box and separator), one-pixel rectangles on
   the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
   Strip's.
+- Windows 98's `_pixel.scss`, the one `pixel-unit × n` in its `px()`
+  helper: the title-bar buttons' marks, the scroll arrows, the check, the
+  radio ring and dot, the pop-up and menu arrows and the slider's thumb,
+  one-pixel rectangles on the art's grid (H-R7), as System 7's.
+- Windows 98's two switches, each a knob of 0 or 1 times ten thousand
+  pixels: `_Desktop.scss`'s label shadow (`desktopLabel.shadow`; at 0 the
+  shadow is sent out of the desktop) and `_ScrollBar.scss`'s solid track
+  (`scrollBar.solidTrack`; the inset fill's spread, nothing at 0 and the
+  whole track at 1). On/off switches, not theme proportions (H-R7).
 - Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
   helper: the slider drawn pixel for pixel from HIGOS8 Figures 2-18 and
   2-19 at rest (the channel and its caps, the indicator, the knob, the
@@ -5766,8 +8575,26 @@ rewritten, so switching packs and back restores it. The default state seeds
 no `alertSound`, so a first session plays the active pack's default. The
 store-free readers are `classicyPackAlerts(pack)`,
 `classicyPackDefaultAlert(pack)` (`defaultAlert` when it is one of the
-alerts, else the first) and `resolveClassicyAlertSound(pack, stored)` (the
-stored choice or Platinum's default when no pack is known).
+alerts, else the first) and `resolveClassicyAlertSound(pack, stored,
+alertType?)` (the stored choice or Platinum's default when no pack is
+known).
+**Alert types** (3.8): a pack may give each alert type its own sound,
+`alertTypeSounds: { note?, caution?, stop? }` (`ClassicyAlertTypeSounds`,
+each a sprite id of the pack; `ClassicyAlertSoundType` is `ClassicyAlert`'s
+`alertType` union). `ClassicyAlert` sends its type with the error sound it
+plays on opening, `ClassicySoundPlayError { alertType }` (the fixed
+variant's window sends it, through an internal context the alert provides;
+every other error sound, a scrim click, a fixed modal's Escape, the
+Assistant's refusal, carries none). While the stored choice is not one of
+the pack's `alerts` (the default state stores none), such an alert plays
+its type's sprite, else the default alert; a stored choice the pack offers
+wins for every alert, and a type naming a sprite the pack lacks falls back
+to the default (and is listed by `classicySoundPackMissingSprites`). Only
+the pack's own: a pack never takes the default pack's. Windows 98's gives
+every type Chord, Windows' message-box sound, beside its Ding beep;
+Platinum's and System 7's declare none, so their alerts resolve exactly as
+before (`classicyPackAlertTypeSound(pack, alertType)` is the store-free
+reader).
 `CLASSICY_ALERT_SOUNDS` (Platinum's seven) and `DEFAULT_ALERT_SOUND`
 (`"ClassicyAlertSosumi"`) are deprecated: they are Platinum's values, kept
 for existing imports; read the active pack instead.
@@ -5794,7 +8621,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 })
 ```
 
-- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite, alerts?, defaultAlert? }`
+- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite, alerts?, defaultAlert?, alertTypeSounds? }`
   (`ClassicySoundPackSchema` validates it; an invalid pack is rejected with a
   `classicyLog` warning). `sprite` is `Record<string, [offsetMs, durationMs, loop?]>`.
   `src` entries must be resolvable by the page: `http(s)` URLs or `data:`
@@ -5842,6 +8669,20 @@ registerClassicySoundPack({            // module scope, like the other registrie
   `ClassicyAlertTabitha`, `ClassicyAlertWildEep`), the first seven entries of
   `CLASSICY_SOUND_SPRITE_IDS`; a pack that declares no `alerts` should define
   them.
+- **Optional sprites** (3.8): `CLASSICY_OPTIONAL_SOUND_SPRITES` (`{ id,
+  group, label, description }[]`; its ids `CLASSICY_OPTIONAL_SOUND_SPRITE_IDS`,
+  `isClassicyOptionalSoundSprite(id)`) are dispatched by Classicy but not
+  part of the contract: a pack may leave one out, its absence is never
+  reported missing, and it plays only from the active pack when that pack
+  defines it. The default pack never stands in for one, so a pack that
+  lacks it plays nothing and stops nothing for it, even on
+  `ClassicySoundPlayInterrupt`. While a pack that defines one plays, its
+  label joins the sound state's `labels` (the Sound control panel's
+  Disable Sounds list and HyperCard's sound picker), and leaves it when a
+  pack without it loads; a pack that defines none keeps the labels array as
+  it was. The one so far is `ClassicyTrashEmpty` ("System", "Empty
+  Trash"), played after Special ▸ Empty Trash removes something; only
+  Windows 98's pack defines it (Recycle, Windows' Empty Recycle Bin sound).
 - **Single source of truth**: the active theme's `sound.pack` decides which
   pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption
   { path: "sound.pack", value: "<pack id>" }` (the Sound tab's action: the pack
@@ -5891,11 +8732,13 @@ registerClassicySoundPack({            // module scope, like the other registrie
 | API | Purpose |
 |---|---|
 | `registerHyperCardPart` / `registerHyperCardCommand` / `registerHyperCardEffectHandler` / `registerHyperCardStack` / `registerHyperCardSaveProvider` (+ `registerHyperCardPartEditorMeta`, `registerHyperCardCommandEditorMeta`) | Extend HyperCard with custom parts, script commands, effects, preloaded stacks, and save backends |
-| `registerAppleGuideTopic(topic: HelpTopic)` | Add help topics to Apple Guide; open one programmatically by dispatching the exported `APPLE_GUIDE_SHOW_TOPIC_EVENT` action type; `getAppleGuideTopic(id)` reads back |
+| `registerAppleGuideTopic(topic: HelpTopic)` | Add help topics to Apple Guide; open one programmatically by dispatching the exported `APPLE_GUIDE_SHOW_TOPIC_EVENT` action type; `getAppleGuideTopic(id, packageId?)` reads back. A topic may name the Appearance Packages its variant is offered under (`packages`, as a screen saver's; absent or empty, every package): several variants share an id, a lookup taking the one offered under the active (or given) package, else the unrestricted one, and re-registering an id replaces only the variant offered under the same packages (Windows 98 words the built-in `ABOUT_BALLOON_HELP_TOPIC_ID` as "Using Help" for itself alone). `book` names the book the Help Topics browser lists it under. `listAppleGuideTopics(packageId?)` lists the topics offered (one per id, in first-registration order), `isAppleGuideTopicRegistered(id)` asks for any variant, `subscribeAppleGuideTopics` hears registrations, and `useAppleGuideTopic(id)` / `useAppleGuideTopics()` follow both the registry and the active package. Under `layout.help.topicWindow` `"winhelp"` (§8) `APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT` opens the Help Topics browser (`ClassicyHelpTopics`, window `APPLE_GUIDE_HELP_TOPICS_WINDOW_ID`; `ClassicyAppAppleGuideCloseTopics` closes it); without the key it shows the `ABOUT_BALLOON_HELP_TOPIC_ID` topic |
 | `registerClassicyScreenSaver(def)` | Add screensavers to the idle-activated Screen Saver extension, offered under the Appearance Packages `def.packages` names (see "Screen savers" below) |
 | `registerClassicyLogSink(sink)` | Receive Classicy's logs, errors, and crash reports in the host app (see "Logging & diagnostics" below) |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
-| `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars |
+| `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars. Under `layout.edit.scope` `"window"` (§8) the last field counts only while its window is active, and a command with no field does nothing |
+| `classicyEditCommandsFor(field)`, `classicyEditCanUndo(field)`, `classicyEditFieldState(field)` | The same commands bound to one field whatever has the focus (a text field's own contextual menu, `textField.contextMenu`); whether that field has an edit to undo; what its selection holds (`{ selection, allSelected, text, readOnly, password }`, `selection` `null` where it cannot be read, a number field's) |
+| `subscribeEditTargetState`, `getEditTargetStateSnapshot`, `getEditTargetStateServerSnapshot` | `useSyncExternalStore` source for the Edit commands' target, `{ target, selection, text, readOnly, password }`, its identity changing only when a flag does; the selection is watched (`selectionchange`, `select`, a key's release) only while something subscribes. `useClassicyEditMenu`'s Windows form (`edit.menu`) dims its items from it |
 | `useFinderFolderSize`, `FinderContext` | Finder integration points |
 | `useClassicyCursor()` | Platinum cursor management |
 | `mergeClassicyState(base, overrides)`, `DefaultAppManagerState`, `sanitizeStateForPersistence` | Building custom `defaultState` for the provider |
@@ -5935,7 +8778,12 @@ when imported (ids: `bouncing-ball`, `fade-out`, `fish`, `flying-toasters`,
 host loading System 7 alone gets them too (§8, "System 7"); both packages
 name `defaultScreenSaver: "bouncing-ball"`. Platinum exports their components,
 config schemas and options UIs under the names `@classicy/classicy` exported
-them by in 3.0 (import them from the Platinum package now). The "Screen
+them by in 3.0 (import them from the Platinum package now). Windows 98
+(`@classicy/appearance-windows98`) registers its own seven, offered under
+`windows98` only (ids: `3d-pipes`, `blank-screen`, `curves-and-colors`,
+`flying-through-space`, `flying-windows`, `mystify-your-mind`,
+`scrolling-marquee`; `defaultScreenSaver: "blank-screen"`; §8, "Windows
+98"), canvas savers that pause themselves under reduced motion. The "Screen
 Saver" control panel (part of `ClassicyControlPanels`) exposes saver choice,
 timeout, on/off, and per-saver options.
 

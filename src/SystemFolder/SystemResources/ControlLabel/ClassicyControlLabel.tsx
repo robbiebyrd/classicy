@@ -1,14 +1,20 @@
 import "./ClassicyControlLabel.scss";
 import classNames from "classnames";
-import type {
-	CSSProperties,
-	FC as FunctionalComponent,
-	KeyboardEvent,
-	MouseEvent,
-	ReactNode,
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	type KeyboardEvent,
+	type MouseEvent,
+	type ReactNode,
+	useRef,
 } from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { useClassicyLabelAccessKey } from "@/SystemFolder/SystemResources/ControlLabel/useClassicyLabelAccessKey.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import {
+	classicyNodeText,
+	renderClassicyAccessKeyNode,
+} from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
 
 type ClassicyControlLabelDirections = "left" | "right";
 export type ClassicyControlLabelSize = "small" | "medium" | "large";
@@ -57,6 +63,29 @@ interface ClassicyControlLabelProps {
 	label?: ReactNode;
 	/** Text size: `small`, `medium` or `large` (double size). Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
+	/**
+	 * The label's access key (mnemonic), one character (WIG Ch.4 "Access
+	 * Keys" (p.27); Ch.8 "Navigation in Secondary Windows" (pp.148-149)):
+	 * Alt and the key, in the window holding focus, moves focus to the
+	 * control (`labelFor`'s, else the row's own: a clickable row, or a
+	 * control among `children`) and, for a check box, an option button or a
+	 * button, activates it as a click does (a text field's text is
+	 * selected); the key alone does the same while focus is on a check box,
+	 * an option button or a button. Labels of a window sharing a key are
+	 * moved between instead. A menu bar's title holding the key takes Alt
+	 * and it first outside a modal window, and a menu item's keyboard
+	 * equivalent always wins. Its first match in the label's text, in the
+	 * key's own case first, is wrapped in `<span
+	 * data-classicy-part="access-key">`, which a package underlines (Windows
+	 * 98 does). Read only under the package's `layout.menu.accessKeys`: under
+	 * Platinum and System 7, which declare none (Mac OS had no access keys),
+	 * it is inert, nothing drawn or taken. Under its `"auto"` (Windows 98) a
+	 * label of a
+	 * focusable control given none takes the first character of its text no
+	 * other label of its window holds, never one an explicit key holds; `""`
+	 * gives it none.
+	 */
+	accessKey?: string;
 	/** Draws the text in the disabled gray (HIGOS8 p.42). Defaults to `false`. */
 	disabled?: boolean;
 	/**
@@ -120,6 +149,7 @@ export const ClassicyControlLabel: FunctionalComponent<
 	id,
 	label = "",
 	labelSize = "medium",
+	accessKey,
 	disabled = false,
 	direction = "left",
 	icon,
@@ -131,6 +161,16 @@ export const ClassicyControlLabel: FunctionalComponent<
 	className,
 	style,
 }) => {
+	const holderRef = useRef<HTMLDivElement>(null);
+	const labelRef = useRef<HTMLLabelElement>(null);
+	const labelAccessKey = useClassicyLabelAccessKey({
+		labelRef,
+		holderRef,
+		text: classicyNodeText(label),
+		accessKey,
+		labelFor: labelFor || undefined,
+	});
+
 	if (
 		label === "" ||
 		label === null ||
@@ -180,6 +220,7 @@ export const ClassicyControlLabel: FunctionalComponent<
 	return (
 		<div
 			{...buttonProps}
+			ref={holderRef}
 			className={classNames(
 				"classicyControlLabelHolder",
 				isLeftOrBottom
@@ -205,6 +246,7 @@ export const ClassicyControlLabel: FunctionalComponent<
 			{isLeftOrBottom && children}
 
 			<label
+				ref={labelRef}
 				id={id}
 				htmlFor={labelFor || undefined}
 				className={classNames(
@@ -218,7 +260,7 @@ export const ClassicyControlLabel: FunctionalComponent<
 				onMouseDown={onMouseDown}
 				onMouseUp={onMouseUp}
 			>
-				{label}
+				{renderClassicyAccessKeyNode(label, labelAccessKey)}
 			</label>
 
 			{!isLeftOrBottom && children}

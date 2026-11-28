@@ -1,7 +1,8 @@
 import {
-	fileTypeDisplayName,
 	iconImageByType,
+	useClassicyFileTypeDisplayName,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
+import { useClassicyDisplayFileName } from "@/SystemFolder/SystemResources/File/useClassicyDisplayFileName";
 import "./ClassicyFileBrowserViewTable.scss";
 import classNames from "classnames";
 import {
@@ -12,26 +13,40 @@ import {
 	type RefObject,
 	useCallback,
 	useEffect,
+	useImperativeHandle,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { FinderListViewOptions } from "@/SystemFolder/Finder/FinderContext";
 import {
 	asFinderDate,
 	formatFinderDate,
 } from "@/SystemFolder/Finder/FinderViewOptions";
-import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
+import type {
+	ClassicyFileBrowserArrangeKey,
+	ClassicyFileBrowserMoveItems,
+	ClassicyFileBrowserViewCommands,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
+import { useClassicyFileCutPaths } from "@/SystemFolder/SystemResources/File/ClassicyFileClipboard";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
+	type ClassicyFileDropEffect,
+	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
 	classicyFileDragAppearanceCallbacks,
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import {
+	classicyFileDropEffects,
+	useClassicyFileDropMenu,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDropMenu";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	ClassicyFileSystemEntryFileType,
@@ -43,6 +58,7 @@ import {
 	useClassicyTrashIcon,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { ClassicyRenameField } from "@/SystemFolder/SystemResources/Icon/ClassicyRenameField.internal";
 import {
 	ClassicyTable,
 	type ClassicyTableCellContext,
@@ -60,11 +76,35 @@ type FileRow = ClassicyFileSystemEntryMetadata & {
 	subRows?: FileRow[];
 };
 
+/** Folders (and drives) 0, files 1: the list's groups under `foldersFirst`. */
+const folderRowGroup = (row: FileRow): number =>
+	row._type === ClassicyFileSystemEntryFileType.Directory ||
+	row._type === ClassicyFileSystemEntryFileType.Drive
+		? 0
+		: 1;
+
 // Hoisted so its identity is stable across renders: the columns useMemo below
 // keys on this object, and a fresh literal on every render (the omitted-prop
 // case, when the component still re-renders on every size resolution) would
 // invalidate the memo constantly — the same DOM-remount hazard fixed for
 // renderers by 99fc5dd2.
+/** The list's column for each Arrange Icons order. */
+const ARRANGE_COLUMNS: Record<ClassicyFileBrowserArrangeKey, string> = {
+	name: "_name",
+	kind: "_type",
+	size: "_size",
+	modified: "_modifiedOn",
+};
+
+/** Every row path listed, disclosed folders' rows included. */
+const listedRowPaths = (rows: FileRow[], into = new Set<string>()) => {
+	for (const row of rows) {
+		if (row._path) into.add(row._path);
+		if (row.subRows) listedRowPaths(row.subRows, into);
+	}
+	return into;
+};
+
 const DEFAULT_LIST_COLUMN_FLAGS: FinderListViewOptions["columns"] = {
 	modified: false,
 	created: false,
@@ -82,6 +122,13 @@ type ClassicyFileBrowserViewTableProps = {
 	iconSize?: number;
 	dirOnClickFunc?: (path: string) => void;
 	fileOnClickFunc?: (path: string) => void;
+	/**
+	 * Opens every selected item at once, when a double-click opens the
+	 * selection (ClassicyTable's `onActivateSelection`, under
+	 * `layout.selection.modifiers: "windows"`). Omitted, a double-click
+	 * opens its own row through `dirOnClickFunc` / `fileOnClickFunc`.
+	 */
+	openItemsFunc?: (paths: string[]) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
 	/** List entries marked `_invisible`. Defaults to true. */
@@ -99,6 +146,19 @@ type ClassicyFileBrowserViewTableProps = {
 	focusTargetRef?: RefObject<HTMLDivElement | null>;
 	/** Move items dragged out of the list (see `ClassicyFileBrowser`). */
 	onMoveItems?: ClassicyFileBrowserMoveItems;
+	/**
+	 * Rename an item: called with its path and the name typed when a rename
+	 * begun through `viewCommandsRef` (Explorer's Rename, New, F2) is
+	 * committed. Return the item's new path when it was renamed, so the
+	 * list keeps it selected. Without it, names are not editable.
+	 */
+	onRenameItem?: (path: string, name: string) => string | undefined;
+	/**
+	 * Receives the list's commands (`ClassicyFileBrowserViewCommands`):
+	 * select, rename in place, and sort by a column (Arrange Icons); it
+	 * places nothing and lines nothing up.
+	 */
+	viewCommandsRef?: RefObject<ClassicyFileBrowserViewCommands | null>;
 	/** Extra class names, merged onto the table's root after the component's own. */
 	className?: string;
 	/** Inline style for the table's root. */
@@ -117,6 +177,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			appId,
 			dirOnClickFunc = () => {},
 			fileOnClickFunc = () => {},
+			openItemsFunc,
 			hideFilesCreatedAfter = null,
 			showInvisible = true,
 			listViewOptions,
@@ -126,6 +187,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			onSelectionChange,
 			focusTargetRef,
 			onMoveItems,
+			onRenameItem,
+			viewCommandsRef,
 			className,
 			style,
 		}) => {
@@ -145,59 +208,121 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 
 			// A row drag in progress ends (canceled) before the list unmounts.
 			const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
+			// Button 2 drags too, ending in Windows 98 SE's transfer menu
+			// (`layout.transfer.secondaryButton` "menu").
+			const dropMenu = useClassicyFileDropMenu();
 			const startRowDrag = useCallback(
 				(
 					e: MouseEvent<HTMLDivElement>,
 					rowPath: string,
 					emitDrag: ClassicyTableCellContext["emitDrag"],
 				) => {
-					if (e.button !== 0 || !onMoveItems) return;
-					const selection = selectionRef.current;
-					const paths = selection.includes(rowPath) ? selection : [rowPath];
+					if (!dropMenu.startsDrag(e) || !onMoveItems) return;
 					const table = (e.currentTarget as HTMLElement).closest(
 						".classicyFileBrowserViewTableContainer",
 					);
-					const cells = paths
-						.map((p) =>
-							Array.from(
-								table?.querySelectorAll(`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`) ??
-									[],
-							).find(
-								(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) === p,
-							),
-						)
-						.filter((el): el is Element => el !== undefined);
-					const abandon = startClassicyFileDrag({
-						start: { clientX: e.clientX, clientY: e.clientY },
-						parts: cells.map((cell) => ({
-							image: cell.querySelector("img"),
-							label: cell.querySelector(
-								".classicyFileBrowserViewTableRowIconLabel",
-							),
-						})),
-						source: e.currentTarget,
-						...(emitDrag && classicyFileDragAppearanceCallbacks(emitDrag)),
-						onDrop: (target, _point, outlineTopLeft) => {
-							if (!target) return;
+					// What the drag carries: the selection when the row is in it,
+					// else the row alone, read once, when the drag begins (the
+					// pointer past the threshold) or ends, rather than at this
+					// press, which the table's own handler (below this cell's)
+					// may still select with (`selection.selectOn` "press";
+					// comctl32 begins a drag from the selection the press made).
+					// Under a package that selects at the click the press changes
+					// nothing, so it is the selection the press found either way.
+					let dragged: string[] | null = null;
+					const draggedPaths = () => {
+						if (!dragged) {
+							const selection = selectionRef.current;
+							dragged = selection.includes(rowPath) ? selection : [rowPath];
+						}
+						return dragged;
+					};
+					const cellsOf = (paths: string[]) =>
+						paths
+							.map((p) =>
+								Array.from(
+									table?.querySelectorAll(
+										`[${CLASSICY_FILE_PATH_ATTRIBUTE}]`,
+									) ?? [],
+								).find(
+									(el) => el.getAttribute(CLASSICY_FILE_PATH_ATTRIBUTE) === p,
+								),
+							)
+							.filter((el): el is Element => el !== undefined);
+					// The drop: into another folder or the desktop, by its effect;
+					// let go in the list's own folder, a move does nothing, a copy
+					// or shortcut is made beside its item ("Copy of", "Shortcut
+					// to").
+					const transferAt =
+						(
+							target: ClassicyFileDropTarget,
+							_point: [number, number],
+							outlineTopLeft: [number, number],
+						) =>
+						(effect: ClassicyFileDropEffect) => {
 							if (
+								effect === "move" &&
 								target.destination.kind === "folder" &&
 								target.destination.path === path
 							) {
 								return;
 							}
-							onMoveItems(paths, target.destination, outlineTopLeft);
+							onMoveItems(
+								draggedPaths(),
+								target.destination,
+								outlineTopLeft,
+								target,
+								effect,
+							);
+						};
+					const appearanceCallbacks =
+						emitDrag && classicyFileDragAppearanceCallbacks(emitDrag);
+					const abandon = startClassicyFileDrag({
+						start: {
+							clientX: e.clientX,
+							clientY: e.clientY,
+							ctrlKey: e.ctrlKey,
+							shiftKey: e.shiftKey,
+						},
+						// Read when the outline is first drawn.
+						get parts() {
+							return cellsOf(draggedPaths()).map((cell) => ({
+								image: cell.querySelector("img"),
+								label: cell.querySelector(
+									".classicyFileBrowserViewTableRowIconLabel",
+								),
+							}));
+						},
+						source: e.currentTarget,
+						...appearanceCallbacks,
+						...dropMenu.dragOptions(e, {
+							effects: (target) =>
+								classicyFileDropEffects(fs, draggedPaths(), target.destination),
+							onStart: appearanceCallbacks?.onStart,
+							transferAt,
+						}),
+						onDrop: (target, point, outlineTopLeft, effect) => {
+							if (target) transferAt(target, point, outlineTopLeft)(effect);
 						},
 					});
 					endFileDragOnUnmount(abandon);
 				},
-				[onMoveItems, path, endFileDragOnUnmount],
+				[onMoveItems, path, endFileDragOnUnmount, dropMenu, fs],
 			);
 			// Derive the effective options once, so an omitted prop reproduces
 			// today's rendering — three columns, sizes computed, no dates.
 			// Where the package draws the column titles: in the list (Mac OS 8)
 			// or above it, over the window's scroll bar (System 7).
-			const headerPlacement =
-				useClassicyAppearanceLayout().fileBrowser?.listColumnTitles ?? "inList";
+			const layout = useClassicyAppearanceLayout();
+			const headerPlacement = layout.fileBrowser?.listColumnTitles ?? "inList";
+			// Folders before files, whatever the sort (Windows Explorer), under
+			// a package that says so; else sorted together (the Finder).
+			const foldersFirst = layout.fileList?.foldersFirst === true;
+			// A shortcut's row icon takes the badge where the package draws one
+			// in windows too (`layout.icon.aliasBadge` "everywhere"; WIG Ch.11
+			// "Displaying Objects", p.230): the same art at the row's size.
+			const badgeAliases = layout.icon?.aliasBadge === "everywhere";
+			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
 			const columnFlags = listViewOptions?.columns ?? DEFAULT_LIST_COLUMN_FLAGS;
 			const computeFolderSizes = listViewOptions?.calculateFolderSizes ?? true;
 			const relativeDates = listViewOptions?.useRelativeDate ?? true;
@@ -332,67 +457,200 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				};
 			}, [data, fs, sizes, computeFolderSizes]);
 
+			// Explorer's commands (`viewCommandsRef`): the table's own selection
+			// and sort, through a handle forwarded to the caller's
+			// `selectionApiRef`; a selection or a rename asked for a row not
+			// listed yet (New makes the item, then asks) waits for the listing
+			// that shows it.
+			const tableApiRef = useRef<ClassicyTableSelectionApi | null>(null);
+			useImperativeHandle(
+				selectionApiRef,
+				() => ({
+					selectAll: () => tableApiRef.current?.selectAll(),
+					select: (ids) => tableApiRef.current?.select?.(ids),
+					sortBy: (columnId, desc) =>
+						tableApiRef.current?.sortBy?.(columnId, desc),
+				}),
+				[],
+			);
+			const [renaming, setRenaming] = useState<string | null>(null);
+			const pendingCommandsRef = useRef<{
+				select?: string[];
+				rename?: string;
+			}>({});
+			const renamable = (rowPath: string): boolean => {
+				if (!onRenameItem) return false;
+				const entry = fs.resolve(rowPath);
+				const parent = fs.resolve(
+					rowPath.split(fs.separator).slice(0, -1).join(fs.separator),
+				);
+				return (
+					!!entry &&
+					entry._type !== ClassicyFileSystemEntryFileType.Drive &&
+					entry._system !== true &&
+					entry._readOnly !== true &&
+					entry._derived !== true &&
+					parent?._readOnly !== true
+				);
+			};
+			const applyPendingCommands = () => {
+				const listed = listedRowPaths(data);
+				const pending = pendingCommandsRef.current;
+				if (pending.select?.every((p) => listed.has(p))) {
+					const paths = pending.select;
+					pending.select = undefined;
+					tableApiRef.current?.select?.(paths);
+				}
+				if (pending.rename !== undefined && listed.has(pending.rename)) {
+					const target = pending.rename;
+					pending.rename = undefined;
+					if (renamable(target)) setRenaming(target);
+				}
+			};
+			// biome-ignore lint/correctness/useExhaustiveDependencies: the listing is the trigger; the pending commands are read from a ref
+			useEffect(() => {
+				applyPendingCommands();
+			}, [data]);
+			useImperativeHandle(viewCommandsRef, () => ({
+				select: (paths) => {
+					pendingCommandsRef.current.select = [...paths];
+					applyPendingCommands();
+				},
+				rename: (rowPath) => {
+					pendingCommandsRef.current.rename = rowPath;
+					applyPendingCommands();
+				},
+				place: () => {},
+				arrange: (key) =>
+					tableApiRef.current?.sortBy?.(ARRANGE_COLUMNS[key], false),
+				lineUp: () => {},
+			}));
+			// The Kind column's names (the package's `fileTypeNames`) and the
+			// shown names (`layout.files.extensions` "hideRegistered": a
+			// registered type's extension hidden, a rename keeping it).
+			const typeName = useClassicyFileTypeDisplayName();
+			const shownNames = useClassicyDisplayFileName();
+			// The items cut and waiting for a Paste (Explorer's Cut): each row's
+			// container carries `classicyFileCut`.
+			const cutPaths = useClassicyFileCutPaths(fs.storageKey);
+			const commitRename = useCallback(
+				(rowPath: string, typed: string) => {
+					setRenaming(null);
+					const oldName = rowPath.split(fs.separator).pop() ?? "";
+					const name =
+						typed + shownNames.hiddenExtension(oldName, fs.resolve(rowPath));
+					if (name === oldName) return;
+					const renamed = onRenameItem?.(rowPath, name);
+					if (typeof renamed === "string" && renamed !== rowPath) {
+						pendingCommandsRef.current.select = [renamed];
+					}
+				},
+				[fs, onRenameItem, shownNames],
+			);
+
 			const columns = useMemo<ClassicyTableColumn<FileRow>[]>(() => {
 				const cols: ClassicyTableColumn<FileRow>[] = [
 					{
 						id: "_name",
 						title: "Filename",
 						accessor: (row) => row._name ?? "",
-						render: (row, expansion) => (
-							// biome-ignore lint/a11y/noStaticElementInteractions: a press here may start a drag; keyboard users move items through the table's own selection
-							<div
-								className={"classicyFileBrowserViewTableRowContainer"}
-								{...{ [CLASSICY_FILE_PATH_ATTRIBUTE]: row._path }}
-								{...(row._type === ClassicyFileSystemEntryFileType.Directory &&
-								row._path
-									? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }
-									: {})}
-								onMouseDown={(e) =>
-									row._path && startRowDrag(e, row._path, expansion.emitDrag)
-								}
-								style={{
-									paddingLeft: `calc(var(--window-control-size) * ${expansion.depth})`,
-								}}
-							>
-								{/* Fixed-width gutter so files line up with folders at the
-								    same depth; only folders put a triangle in it. */}
-								<span className={"classicyFileBrowserViewTableDisclosure"}>
-									{expansion.canExpand && (
-										// biome-ignore lint/a11y/noStaticElementInteractions: swallows the click so toggling disclosure never doubles as a row selection
-										// biome-ignore lint/a11y/useKeyWithClickEvents: the triangle itself owns keyboard toggling; this wrapper only stops mouse bubbling
-										<span
-											className={
-												"classicyFileBrowserViewTableDisclosureTriangle"
-											}
-											onClick={(e) => e.stopPropagation()}
-											// A press on the triangle toggles; it never starts a drag.
-											onMouseDown={(e) => e.stopPropagation()}
-										>
-											<ClassicyTriangle
-												direction={"right"}
-												open={expansion.isExpanded}
-												onToggle={expansion.toggle}
-											/>
-										</span>
+						render: (row, expansion) => {
+							const iconSrc = row._icon || iconImageByType(row._type);
+							return (
+								// biome-ignore lint/a11y/noStaticElementInteractions: a press here may start a drag; keyboard users move items through the table's own selection
+								<div
+									className={classNames(
+										"classicyFileBrowserViewTableRowContainer",
+										row._path !== undefined &&
+											cutPaths.has(row._path) &&
+											"classicyFileCut",
 									)}
-								</span>
-								{/* The Finder draws a selected item's icon selected: the
+									{...{ [CLASSICY_FILE_PATH_ATTRIBUTE]: row._path }}
+									{...(row._type ===
+										ClassicyFileSystemEntryFileType.Directory && row._path
+										? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }
+										: {})}
+									onMouseDown={(e) =>
+										row._path && startRowDrag(e, row._path, expansion.emitDrag)
+									}
+									style={
+										{
+											paddingLeft: `calc(var(--window-control-size) * ${expansion.depth})`,
+											// The row's icon as a mask, for a package that draws
+											// a selected icon through its own shape (Windows 98's
+											// dither), as ClassicyIcon publishes its own.
+											"--classicy-icon-mask": `url("${iconSrc}")`,
+										} as CSSProperties
+									}
+								>
+									{/* Fixed-width gutter so files line up with folders at the
+								    same depth; only folders put a triangle in it. */}
+									<span className={"classicyFileBrowserViewTableDisclosure"}>
+										{expansion.canExpand && (
+											// biome-ignore lint/a11y/noStaticElementInteractions: swallows the click so toggling disclosure never doubles as a row selection
+											// biome-ignore lint/a11y/useKeyWithClickEvents: the triangle itself owns keyboard toggling; this wrapper only stops mouse bubbling
+											<span
+												className={
+													"classicyFileBrowserViewTableDisclosureTriangle"
+												}
+												onClick={(e) => e.stopPropagation()}
+												// A press on the triangle toggles; it never starts a drag.
+												onMouseDown={(e) => e.stopPropagation()}
+											>
+												<ClassicyTriangle
+													direction={"right"}
+													open={expansion.isExpanded}
+													onToggle={expansion.toggle}
+												/>
+											</span>
+										)}
+									</span>
+									{/* The Finder draws a selected item's icon selected: the
 									active package's selected image when it has one,
 									else the stylesheet's darkening. */}
-								<ClassicyIconImage
-									src={row._icon || iconImageByType(row._type)}
-									drawnAt={iconSize}
-									width={iconSize}
-									alt={row._path}
-									className={"classicyFileBrowserViewTableRowIcon"}
-									selectable
-									selected={expansion.selected === true}
-								/>
-								<span className={"classicyFileBrowserViewTableRowIconLabel"}>
-									{row._name}
-								</span>
-							</div>
-						),
+									{(() => {
+										const rowIcon = (
+											<ClassicyIconImage
+												src={iconSrc}
+												drawnAt={iconSize}
+												width={iconSize}
+												alt={row._path}
+												className={"classicyFileBrowserViewTableRowIcon"}
+												selectable
+												selected={expansion.selected === true}
+											/>
+										);
+										return badgeAliases && isAliasKind(row._type) ? (
+											<span className={"classicyIconImage"}>
+												{rowIcon}
+												<span
+													className={"classicyIconAliasBadge"}
+													aria-hidden={true}
+												>
+													<img src={aliasBadge} alt="" />
+												</span>
+											</span>
+										) : (
+											rowIcon
+										);
+									})()}
+									{renaming !== null && row._path === renaming ? (
+										<ClassicyRenameField
+											className={"classicyFileBrowserViewTableRename"}
+											name={shownNames.display(row._name ?? "", row)}
+											onCommit={(name) => commitRename(renaming, name)}
+											onCancel={() => setRenaming(null)}
+										/>
+									) : (
+										<span
+											className={"classicyFileBrowserViewTableRowIconLabel"}
+										>
+											{shownNames.display(row._name ?? "", row)}
+										</span>
+									)}
+								</div>
+							);
+						},
 					},
 				];
 				if (columnFlags.modified) {
@@ -452,7 +710,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						id: "_type",
 						title: "Kind",
 						accessor: (row) => row._type,
-						render: (row) => <span>{fileTypeDisplayName(row._type)}</span>,
+						render: (row) => <span>{typeName(row._type)}</span>,
 					});
 				}
 				if (columnFlags.label) {
@@ -488,6 +746,13 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				relativeDates,
 				computeFolderSizes,
 				startRowDrag,
+				renaming,
+				commitRename,
+				typeName,
+				shownNames,
+				cutPaths,
+				badgeAliases,
+				aliasBadge,
 			]);
 
 			return (
@@ -520,11 +785,16 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					}
 					defaultSort={{ columnId: "_name" }}
 					headerPlacement={headerPlacement}
+					sortGroup={foldersFirst ? folderRowGroup : undefined}
 					onActivateRow={(_, row) => openFileOrFolder(row, row._path ?? "")}
+					onActivateSelection={openItemsFunc}
+					// Rows drag as Finder items when they can be moved, so a
+					// press dragged across them never selects a range.
+					rowsDrag={onMoveItems !== undefined}
 					// ClassicyTable puts `selected` on a selected row itself.
 					rowClassName={() => "classicyFileBrowserViewTableRow"}
 					selectionMode={"multi"}
-					selectionApiRef={selectionApiRef}
+					selectionApiRef={tableApiRef}
 					selected={selectedPaths}
 					onSelectionChange={trackSelection}
 					containerRef={focusTargetRef}

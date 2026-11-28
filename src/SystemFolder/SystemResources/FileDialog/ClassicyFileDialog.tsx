@@ -6,6 +6,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -13,9 +14,18 @@ import {
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
-import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	useAppManager,
+	useAppManagerDispatch,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import {
+	CLASSICY_WINDOWS_FILE_NAME_REFUSAL,
+	classicyFirstFreeNameAmong,
+	classicyWindowsFileNames,
+	isClassicyValidFileName,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileNames";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
@@ -78,8 +88,11 @@ type ClassicyFileDialogSharedProps = {
 	appId: string;
 	/**
 	 * Shows the dialog when true; renders nothing when false. Each false → true
-	 * transition starts a fresh session (selection, name and folder caches reset).
-	 * The dialog never closes itself — set this false from your callbacks.
+	 * transition starts a fresh session (selection, name and folder caches
+	 * reset), shown at the volume and folder the app's dialog was last left
+	 * at this session (`apps[appId].session.fileDialog`, Open and Save alike),
+	 * else the first volume's top. The dialog never closes itself — set this
+	 * false from your callbacks.
 	 */
 	open: boolean;
 	/** Title-bar text. Defaults to `"Open"` or `"Save"` by mode. */
@@ -90,7 +103,11 @@ type ClassicyFileDialogSharedProps = {
 	 * `ClassicyFileDialogVolume`. Keep the array stable (e.g. `useMemo`).
 	 */
 	volumes: ClassicyFileDialogVolume[];
-	/** Called when Cancel, Escape or Command-period fires. */
+	/**
+	 * Called when Cancel, Escape or Command-period fires, and, under a layout
+	 * whose `dialog.caption` is `"titled"` (Windows 98), by the caption's
+	 * Close box (drawn unavailable without it).
+	 */
 	onCancelFunc?: () => void;
 	/** Extra class names, merged onto the dialog window after the component's own. */
 	className?: string;
@@ -199,13 +216,20 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const desktopVolumeOffered = volumes.find((v) => v.id === "desktop");
 	// A fixed modal dialog box under a package whose layout says so (System
 	// 7); else the movable modal window of HIGOS8 p.59.
-	const dialogLayout = useClassicyAppearanceLayout().fileDialog;
+	const appearanceLayout = useClassicyAppearanceLayout();
+	const dialogLayout = appearanceLayout.fileDialog;
+	// Windows' names (`layout.files.names` "windows"; WIG Ch.10 p.210): none
+	// of `\ / : * ? " < > |`, and New Folder named "New Folder" (2)…
+	const windowsNames = classicyWindowsFileNames(appearanceLayout);
 	const fixedFrame = dialogLayout?.frame === "fixed";
 	// System 7.5's Standard File browses one folder at a time (the package's
 	// `fileDialog.navigation: "flat"`): its contents only, a folder entered by
 	// a double-click or Open, the pop-up listing the path upward. Else the
 	// folders expand in place (Mac OS 8's tree).
 	const flat = dialogLayout?.navigation === "flat";
+	// Windows' common dialogs flow a flat list in columns (the list view's
+	// List mode, WIG Ch.8 Figure 8.6), scrolling sideways; else one column.
+	const columns = flat && dialogLayout?.listFlow === "columns";
 	// System 7.5's Save box opens with its name field focused and the default
 	// name selected (the package's `fileDialog.saveName: "selected"`,
 	// `*-dialog-standardfile-save.png`); else the modal focuses its first
@@ -261,10 +285,35 @@ export const ClassicyFileDialog: FunctionalComponent<
 			.catch(() => setFolder(key, "error"));
 	};
 
-	// fresh dialog session: reset caches, load the first volume's root
+	// Where the app's dialog was last left this session (read on opening).
+	const rememberedPlace = useAppManager(
+		(s) => s.System?.Manager?.Applications?.apps?.[appId]?.session?.fileDialog,
+	);
+	// The tree navigation's restored folders: each ancestor of the folder
+	// the dialog was last left at opens (`defaultOpen`), and the tree mounts
+	// afresh (`treeEpoch`) once they have loaded, as it reads `defaultOpen`
+	// on mount only.
+	const [restoredOpen, setRestoredOpen] = useState<ReadonlySet<string>>(
+		() => new Set(),
+	);
+	const [treeEpoch, setTreeEpoch] = useState(0);
+	// Each opening's token: a restore still loading when the dialog closes
+	// or opens again changes nothing.
+	const sessionRef = useRef(0);
+	// The tree's last expanded folder (open mode), for where the dialog was
+	// left when no file is selected.
+	const lastExpandedRef = useRef<string[]>([]);
+
+	// A fresh dialog session: reset caches, then show the volume and folder
+	// the app's dialog was last left at this session (WIG Ch.8 "Interaction
+	// with Other Windows", p.146: the Open dialog's current directory; Mac
+	// OS 8's Standard File reopened in the last folder too), else the first
+	// volume's top. A folder gone since, or a volume no longer offered,
+	// falls back to the top of the first.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: this effect must fire only on open transitions — volumes/loadFolder are read fresh from the current closure, not tracked as invalidation keys
 	useEffect(() => {
 		if (!open || volumes.length === 0) return;
+		const session = ++sessionRef.current;
 		setFolders(new Map());
 		setSelectedIds([]);
 		setFilterIndex(0);
@@ -274,10 +323,98 @@ export const ClassicyFileDialog: FunctionalComponent<
 		setReplacePrompt(null);
 		setNewFolderOpen(false);
 		setErrorPrompt(null);
-		setActiveVolumeId(volumes[0].id);
-		setCurrentPath([]);
-		loadFolder(volumes[0], []);
+		setRestoredOpen(new Set());
+		lastExpandedRef.current = [];
+		const remembered = rememberedPlace;
+		const rememberedVolume = remembered
+			? volumes.find((v) => v.id === remembered.volumeId)
+			: undefined;
+		const volume = rememberedVolume ?? volumes[0];
+		const path = rememberedVolume && remembered ? remembered.path : [];
+		setActiveVolumeId(volume.id);
 		nameToSelect.current = selectsName ? (props.defaultFileName ?? "") : null;
+		if (path.length === 0) {
+			setCurrentPath([]);
+			loadFolder(volume, []);
+			return;
+		}
+		// The top and every folder down to the one left at, listed: a folder
+		// is still there while its parent's listing holds it (a volume may
+		// list a folder that is gone as empty).
+		const levels = [...path.keys(), path.length].map((n) => path.slice(0, n));
+		for (const level of levels)
+			setFolder(cacheKey(volume.id, level), "loading");
+		if (flat) setCurrentPath(path);
+		else setCurrentPath([]);
+		void Promise.all(
+			levels.map((level) =>
+				volume.list(level).then(
+					(entries) => entries,
+					() => null,
+				),
+			),
+		).then((listed) => {
+			if (sessionRef.current !== session) return;
+			// How deep the place still goes: the levels whose folder its
+			// parent lists.
+			let depth = 0;
+			while (
+				depth < path.length &&
+				listed[depth]?.some(
+					(entry) => entry.kind === "folder" && entry.name === path[depth],
+				) &&
+				listed[depth + 1] !== null
+			) {
+				depth += 1;
+			}
+			// The levels still there take their listings; the rest leave the
+			// cache, to be listed afresh if they come back.
+			setFolders((prev) => {
+				const next = new Map(prev);
+				listed.forEach((entries, n) => {
+					const key = cacheKey(volume.id, levels[n]);
+					if (n <= depth) next.set(key, entries ?? "error");
+					else next.delete(key);
+				});
+				return next;
+			});
+			if (flat) {
+				// A folder gone since: the volume's top.
+				if (depth < path.length) setCurrentPath([]);
+				return;
+			}
+			// The tree: those folders opened, the deepest Save's target.
+			const opened = new Set(
+				levels.slice(1, depth + 1).map((level) => cacheKey(volume.id, level)),
+			);
+			setRestoredOpen(opened);
+			setTreeEpoch((n) => n + 1);
+			lastExpandedRef.current = path.slice(0, depth);
+			if (mode === "save" && depth > 0) {
+				setSelectedIds([cacheKey(volume.id, path.slice(0, depth))]);
+			}
+		});
+	}, [open]);
+
+	// Where the dialog is left: the folder shown (flat), the folder Save
+	// saves into, else the selected file's folder or the folder last opened
+	// (the tree). Remembered for the app, for the session, when the dialog
+	// closes, however it closes.
+	const appDispatch = useAppManagerDispatch();
+	const placeRef = useRef<{ volumeId: string; path: string[] } | null>(null);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fires on open transitions only; the place is read from a ref kept current every render
+	useEffect(() => {
+		if (!open) return;
+		return () => {
+			const place = placeRef.current;
+			if (!place) return;
+			appDispatch({
+				type: "ClassicyAppRememberFileDialogFolder",
+				app: { id: appId },
+				volumeId: place.volumeId,
+				path: place.path,
+			});
+		};
 	}, [open]);
 
 	// Selects the Save box's default name once the field shows it, focusing
@@ -327,10 +464,12 @@ export const ClassicyFileDialog: FunctionalComponent<
 			if (entry.kind === "folder") {
 				// A folder node's id IS its children's cache key, so the toggle
 				// handler can split it straight back into path names.
+				const id = cacheKey(volume.id, [...path, entry.name]);
 				return {
-					id: cacheKey(volume.id, [...path, entry.name]),
+					id,
 					label: entry.name,
 					leftIcon: entry.icon,
+					defaultOpen: restoredOpen.has(id),
 					children: buildNodes(volume, [...path, entry.name]),
 					// Save mode's folder tree is a target picker (single click
 					// selects); open mode leaves folders as pure navigation
@@ -407,6 +546,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 		folderIcon,
 		listFolderIcon,
 		fileIcon,
+		restoredOpen,
 	]);
 
 	const isFlatFolder = (nodeId: string) =>
@@ -448,8 +588,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const handleFolderToggle = (nodeId: string, isOpen: boolean) => {
 		if (!activeVolume || !isOpen) return;
 		if (nodeId.includes(`${SEP}#`)) return; // placeholder rows
+		const [, ...pathNames] = nodeId.split(SEP);
+		lastExpandedRef.current = pathNames;
 		if (!folders.has(nodeId)) {
-			const [, ...pathNames] = nodeId.split(SEP);
 			loadFolder(activeVolume, pathNames);
 		}
 	};
@@ -498,6 +639,19 @@ export const ClassicyFileDialog: FunctionalComponent<
 		}
 	};
 
+	placeRef.current = activeVolume
+		? {
+				volumeId: activeVolume.id,
+				path: flat
+					? currentPath
+					: mode === "save"
+						? selectedFolderPath
+						: (liveSelectedIds
+								.map((sid) => nodeIndex.current.get(sid)?.path)
+								.find((p) => p !== undefined) ?? lastExpandedRef.current),
+			}
+		: null;
+
 	const commitOpen = (ids: string[]) => {
 		if (props.mode !== "open") return;
 		// Flat navigation: Open on a folder enters it.
@@ -529,7 +683,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const canSave =
 		mode === "save" &&
 		strippedBase.trim().length > 0 &&
-		!trimmedName.includes(":") &&
+		isClassicyValidFileName(trimmedName) &&
 		activeVolume?.write !== undefined &&
 		activeFormat !== undefined &&
 		!saving;
@@ -563,7 +717,13 @@ export const ClassicyFileDialog: FunctionalComponent<
 		try {
 			if (confirmedName === undefined) {
 				const entries = await ensureListing(activeVolume, path);
-				const collision = entries.find((e) => e.name === targetName);
+				// Names differing only by case are one name (HFS and FAT both
+				// compared them so; ClassicyFileSystem does): the exact spelling
+				// first, then a case-only twin.
+				const folded = targetName.toLowerCase();
+				const collision =
+					entries.find((e) => e.name === targetName) ??
+					entries.find((e) => e.name.toLowerCase() === folded);
 				// A folder collision is refused outright: the underlying write
 				// would replace the directory subtree wholesale, destroying it.
 				// Only a same-named file offers the existing Replace prompt.
@@ -616,11 +776,19 @@ export const ClassicyFileDialog: FunctionalComponent<
 		}
 	};
 
+	// The names already in the folder New Folder makes its folder in (the
+	// listing loaded for it; none while it loads).
+	const newFolderTakenNames = (): string[] => {
+		if (!activeVolume) return [];
+		const listing = folders.get(cacheKey(activeVolume.id, selectedFolderPath));
+		return Array.isArray(listing) ? listing.map((entry) => entry.name) : [];
+	};
+
 	const handleCreateFolder = async (rawName: string) => {
 		if (props.mode !== "save") return;
 		if (!activeVolume?.mkDir) return;
 		const name = rawName.trim();
-		if (name.length === 0 || name.includes(":")) return;
+		if (name.length === 0 || !isClassicyValidFileName(name)) return;
 		const path = selectedFolderPath;
 		try {
 			await activeVolume.mkDir(path, name);
@@ -642,6 +810,75 @@ export const ClassicyFileDialog: FunctionalComponent<
 		if (nextVolume && !folders.has(cacheKey(nextVolume.id, []))) {
 			loadFolder(nextVolume, []);
 		}
+	};
+
+	// The columns' geometry, measured from the rows: as many rows to a
+	// column as the list's height holds, each column as wide as the widest
+	// row (comctl32's list mode, one width for every column). Remeasured
+	// when the rows change and when the list is resized.
+	const wellRef = useRef<HTMLDivElement>(null);
+	const [listGrid, setListGrid] = useState<{
+		rows: number;
+		width: number;
+	} | null>(null);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `nodes` is the trigger (new rows to measure); the measurement reads the DOM
+	useLayoutEffect(() => {
+		if (!columns || !open) {
+			setListGrid(null);
+			return;
+		}
+		const viewport = wellRef.current?.querySelector<HTMLElement>(
+			".classicyFileOpenDialogWellViewport",
+		);
+		if (!viewport) return;
+		const measure = () => {
+			const rows = Array.from(
+				viewport.querySelectorAll<HTMLElement>(
+					".classicyTree > .classicyTreeNode",
+				),
+			);
+			const rowHeight = rows[0]?.getBoundingClientRect().height ?? 0;
+			const perColumn =
+				rowHeight > 0
+					? Math.max(1, Math.floor(viewport.clientHeight / rowHeight))
+					: Math.max(1, rows.length);
+			const width = Math.ceil(
+				Math.max(0, ...rows.map((row) => row.getBoundingClientRect().width)),
+			);
+			setListGrid((prev) =>
+				prev && prev.rows === perColumn && prev.width === width
+					? prev
+					: { rows: perColumn, width },
+			);
+		};
+		measure();
+		if (typeof ResizeObserver === "undefined") return;
+		const observer = new ResizeObserver(measure);
+		observer.observe(viewport);
+		return () => observer.disconnect();
+	}, [columns, open, nodes]);
+
+	// Left and Right move a column, as the list mode's arrows do (Wine's
+	// LISTVIEW_GetNextItem: the item a column's rows away, or none); Up and
+	// Down, Home and End stay the list's, which runs down each column.
+	const handleColumnKeys = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (!columns || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+		if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+		const tree = wellRef.current?.querySelector(".classicyTree");
+		const target = e.target as HTMLElement;
+		if (!tree?.contains(target)) return;
+		const rows = Array.from(
+			tree.querySelectorAll<HTMLElement>(
+				":scope > .classicyTreeNode > .classicyTreeNodeRow > [tabindex]",
+			),
+		);
+		const at = rows.findIndex((row) => row === target || row.contains(target));
+		if (at < 0) return;
+		e.preventDefault();
+		e.stopPropagation();
+		const step = listGrid?.rows ?? rows.length;
+		const next = at + (e.key === "ArrowRight" ? step : -step);
+		rows[next]?.focus();
 	};
 
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -692,6 +929,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 				// dismissed only via its Cancel button or Escape / Command-period
 				// (handled by the dialog-body useKeyboardEquivalents above).
 				closable={false}
+				// Under a titled caption (Windows 98: Open and Save As have a
+				// Close box, WIG Ch.8, Figures 8.6 and 8.7) the box is Cancel.
+				onCaptionClose={onCancelFunc}
 				zoomable={false}
 				collapsable={false}
 				resizable={false}
@@ -710,6 +950,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 						mode === "save" && "classicyFileDialogSaveBody",
 					)}
 					onKeyDown={handleKeyDown}
+					onKeyDownCapture={handleColumnKeys}
 				>
 					{flat && activeVolume ? (
 						// The folder pop-up (System 7.5's Standard File): the folder
@@ -783,11 +1024,29 @@ export const ClassicyFileDialog: FunctionalComponent<
 						<span>{activeVolume?.label}</span>
 					</div>
 					<ClassicyScrollArea
-						className={"classicyFileOpenDialogWell"}
+						ref={wellRef}
+						className={classNames(
+							"classicyFileOpenDialogWell",
+							columns && "classicyFileOpenDialogWellColumns",
+						)}
 						viewportClassName={"classicyFileOpenDialogWellViewport"}
-						vertical={wellVerticalPolicy}
+						vertical={columns ? "never" : wellVerticalPolicy}
+						horizontal={columns ? wellVerticalPolicy : "auto"}
+						style={
+							columns && listGrid
+								? ({
+										"--classicy-file-dialog-list-rows": listGrid.rows,
+										...(listGrid.width > 0
+											? {
+													"--classicy-file-dialog-list-column-width": `${listGrid.width}px`,
+												}
+											: {}),
+									} as CSSProperties)
+								: undefined
+						}
 					>
 						<ClassicyTree
+							key={flat ? "flat" : `tree-${treeEpoch}`}
 							nodes={nodes}
 							selectionMode={selectionMode === "multi" ? "multi" : "single"}
 							selectedIds={liveSelectedIds}
@@ -957,10 +1216,25 @@ export const ClassicyFileDialog: FunctionalComponent<
 					id={`${id}-new-folder`}
 					appId={appId}
 					title={"New Folder"}
-					prompt={"Name of new folder:"}
+					// Under Windows' names a refused character turns the prompt
+					// into Windows 98's message (shell32.dll), and the name
+					// offered is the folder's first free "New Folder", selected
+					// (WIG Ch.10 p.210; Windows 98's "New Folder (2)").
+					prompt={(name) =>
+						windowsNames && !isClassicyValidFileName(name)
+							? CLASSICY_WINDOWS_FILE_NAME_REFUSAL
+							: "Name of new folder:"
+					}
+					initialValue={
+						windowsNames
+							? classicyFirstFreeNameAmong(newFolderTakenNames(), "New Folder")
+							: undefined
+					}
 					placeholder={"untitled folder"}
 					confirmLabel={"Create"}
-					validate={(name) => name.trim().length > 0 && !name.includes(":")}
+					validate={(name) =>
+						name.trim().length > 0 && isClassicyValidFileName(name)
+					}
 					onConfirm={(name) => void handleCreateFolder(name)}
 					onCancel={() => setNewFolderOpen(false)}
 				/>

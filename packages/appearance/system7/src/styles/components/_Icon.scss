@@ -191,6 +191,22 @@ $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
   );
   @include icon-states(".classicyIcon", ".classicyIconMaskOuter", ".classicyIconMask", ".classicyIconSelectedImage");
 
+  // A name being edited (a slow click on a selected icon's name): the
+  // label's box (`iconLabel.height` rows, its text `iconLabel.pad` in),
+  // white, framed by one black pixel, the name black, as 7.5's Finder
+  // framed a name open for editing.
+  .classicyIcon .classicyIconRename {
+    height: var(--icon-label-height);
+    margin-top: 0;
+    padding: 0 var(--icon-label-pad);
+    border: $px solid var(--color-black);
+    border-radius: 0;
+    outline: none;
+    line-height: calc(var(--icon-label-height) - #{px(2)});
+    color: var(--color-black);
+    background: var(--color-white);
+  }
+
   // The Finder's list view (ClassicyFileBrowser's table): a selected item's
   // name inverted, white on black at both depths
   // (`*-finder-list-row-selected.png`), where the base sheet's is

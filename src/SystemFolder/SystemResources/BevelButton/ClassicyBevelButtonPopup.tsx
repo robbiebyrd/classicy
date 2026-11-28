@@ -6,12 +6,18 @@ import {
 	type KeyboardEvent,
 	type ReactNode,
 	type RefObject,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import {
+	CLASSICY_BEVEL_POPUP_ANY_MENU_ITEM_SELECTOR,
+	CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR,
+	classicyBevelPopupShownItems,
+} from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupItems.internal";
 import {
 	type ClassicyBevelPopupAlign,
 	type ClassicyBevelPopupRect,
@@ -28,15 +34,13 @@ import {
 	classicyMenuWholePixel,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
+import { ClassicyMenuScrollMarginContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuScrollMargin.internal";
+import { ClassicyMenuStatusContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuStatusText.internal";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 
 // A panel (non-menu surface) gives keyboard focus to its first control.
 const PANEL_FOCUS_SELECTOR =
 	'[tabindex]:not([tabindex="-1"]), input, button, select, textarea';
-
-// Plain and checkable items alike (ClassicyMenu renders a checkable item as
-// a menuitemcheckbox).
-const MENU_ITEM_SELECTOR =
-	'li:is([role="menuitem"],[role="menuitemcheckbox"]):not(.disabled)';
 
 type ClassicyBevelButtonPopupProps = {
 	/** DOM id of the surface; the button points `aria-controls` at it. */
@@ -51,10 +55,40 @@ type ClassicyBevelButtonPopupProps = {
 	menuItems?: ClassicyMenuItem[];
 	/** …or any other surface, such as a slider (HIG Figure 2-16). */
 	content?: ReactNode;
+	/**
+	 * Drawn as the surface root's first child, before the menu or panel: the
+	 * Windows Start menu's vertical banner (plan 0020-w98 §3). Placement
+	 * measures the whole surface, so it is placed with what it holds. Absent
+	 * (every other surface), the surface's DOM is as it was.
+	 */
+	aside?: ReactNode;
+	/**
+	 * How far its menu's scroll cap keeps the list from the bottom of the
+	 * menu bounds, in px. Absent (every surface but the Windows shell's),
+	 * the pop-up menus' 4, as before. The taskbar's Start menu and tray
+	 * pop-ups pass 0: they sit flush on the taskbar band's top edge, which
+	 * the bounds end at, so a menu that fits there is drawn whole rather
+	 * than capped by the margin into scrolling (plan 0020-w98 §2). Its
+	 * submenus keep the same margin.
+	 */
+	menuScrollMargin?: number;
 	/** Accessible name for the menu or panel. */
 	label?: string;
 	/** Move focus onto the first enabled item — set when opened by keyboard. */
 	focusFirstItem?: boolean;
+	/**
+	 * Its menu takes the keyboard as Windows' menu loop does (the Windows
+	 * shell's Start menu and tray pop-ups, plan 0020-w98): the arrow keys
+	 * walk the items shown, dimmed ones included (Wine's
+	 * `MENU_MoveSelection` passes over separators alone), from wherever the
+	 * focus is, Down selecting the first item and Up the last while the focus
+	 * is outside the menu (`focusFirstItem` focuses the first item, dimmed or
+	 * not); and the menu never closes for idleness (the 15-second close is
+	 * the Mac's sticky menus', HIGOS8 p.92). Absent (every other surface),
+	 * the arrows walk the enabled items from inside the menu and an idle menu
+	 * closes after 15 seconds, as before. A panel (`content`) ignores it.
+	 */
+	keyboard?: boolean;
 	/** The owning button: a press on it toggles the popup, so it is not "outside". */
 	buttonRef: RefObject<HTMLButtonElement | null>;
 	/** Called when the surface should close (item chosen, Escape, outside press, scroll, resize). */
@@ -84,14 +118,19 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	align = "start",
 	menuItems,
 	content,
+	aside,
+	menuScrollMargin,
 	label,
 	focusFirstItem = false,
+	keyboard = false,
 	buttonRef,
 	onClose,
 	className,
 	style: consumerStyle,
 }) => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
+	// In a window (its React tree's), not the taskbar's or Control Strip's.
+	const inWindow = useContext(ClassicyWindowActiveContext) !== undefined;
 	// Null until measured: the first paint is hidden so the popup never flashes
 	// at an unplaced position.
 	const [position, setPosition] = useState<{
@@ -151,10 +190,35 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 	useLayoutEffect(() => {
 		if (!focusFirstItem || !position) return;
 		const first = wrapperRef.current?.querySelector<HTMLElement>(
-			menuItems ? MENU_ITEM_SELECTOR : PANEL_FOCUS_SELECTOR,
+			menuItems
+				? keyboard
+					? CLASSICY_BEVEL_POPUP_ANY_MENU_ITEM_SELECTOR
+					: CLASSICY_BEVEL_POPUP_MENU_ITEM_SELECTOR
+				: PANEL_FOCUS_SELECTOR,
 		);
 		first?.focus();
-	}, [focusFirstItem, position, menuItems]);
+	}, [focusFirstItem, position, menuItems, keyboard]);
+
+	// `keyboard`: the arrows reach the menu from outside it too (its button,
+	// or the page after CTRL+ESC), as Windows' menu loop takes them; inside
+	// it, `onMenuKeyDown` walks them.
+	const walksFromOutside = keyboard && menuItems !== undefined;
+	useEffect(() => {
+		if (!walksFromOutside) return;
+		const onKeyDown = (e: globalThis.KeyboardEvent) => {
+			if (e.defaultPrevented) return;
+			if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+			if (e.altKey || e.ctrlKey || e.metaKey) return;
+			const surface = wrapperRef.current;
+			if (!surface || surface.contains(document.activeElement)) return;
+			const items = classicyBevelPopupShownItems(surface, { dimmed: true });
+			if (items.length === 0) return;
+			e.preventDefault();
+			items[e.key === "ArrowDown" ? 0 : items.length - 1].focus();
+		};
+		document.addEventListener("keydown", onKeyDown);
+		return () => document.removeEventListener("keydown", onKeyDown);
+	}, [walksFromOutside]);
 
 	useEffect(() => {
 		const onPointerDown = (e: MouseEvent) => {
@@ -168,6 +232,9 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 			onClose();
 		};
 		const onKeyDown = (e: globalThis.KeyboardEvent) => {
+			// A menu's own Escape (ClassicyMenu closes a submenu first, then
+			// this surface, through its provider's onClose) is already handled.
+			if (e.defaultPrevented) return;
 			if (e.key === "Escape") {
 				e.preventDefault();
 				onClose();
@@ -194,13 +261,18 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		};
 	}, [buttonRef, onClose]);
 
-	// Menu items keep focus off the button, so arrow keys walk them here.
+	// Menu items keep focus off the button, so arrow keys walk them here,
+	// unless the menu walked them already: ClassicyMenu takes the keys for
+	// every menu it roots (dimmed items passed over, as here, unless the
+	// package's `layout.menu.disabledItems` browses them). Only the items
+	// shown: a closed submenu's (drawn `display: none`, which takes no
+	// focus) are passed over rather than walked into.
 	const onMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (e.defaultPrevented) return;
 		if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-		const items = Array.from(
-			wrapperRef.current?.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR) ??
-				[],
-		);
+		const items = classicyBevelPopupShownItems(wrapperRef.current, {
+			dimmed: keyboard,
+		});
 		if (items.length === 0) return;
 		e.preventDefault();
 		const current = items.indexOf(document.activeElement as HTMLElement);
@@ -223,8 +295,27 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		...consumerStyle,
 	};
 
+	// Its items give the menus' status text (`layout.menu.itemHelp`) only in
+	// a window: the taskbar's and the Control Strip's pop-ups belong to no
+	// window's status bar.
+	const menu = menuItems ? (
+		<ClassicyMenuStatusContext.Provider value={inWindow}>
+			<ClassicyMenu
+				name={id}
+				menuItems={menuItems}
+				navClass="classicyContextMenu"
+				subNavClass="classicyContextSubMenu"
+			/>
+		</ClassicyMenuStatusContext.Provider>
+	) : null;
+
 	const surface = menuItems ? (
-		<ClassicyMenuProvider onClose={onClose} startActive={true}>
+		<ClassicyMenuProvider
+			onClose={onClose}
+			startActive={true}
+			// Windows' menu loop waits for the user: no idle close.
+			{...(keyboard ? { idleTimeoutMs: 0 } : {})}
+		>
 			<div
 				ref={wrapperRef}
 				id={id}
@@ -234,12 +325,14 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 				style={style}
 				onKeyDown={onMenuKeyDown}
 			>
-				<ClassicyMenu
-					name={id}
-					menuItems={menuItems}
-					navClass="classicyContextMenu"
-					subNavClass="classicyContextSubMenu"
-				/>
+				{aside}
+				{menuScrollMargin === undefined ? (
+					menu
+				) : (
+					<ClassicyMenuScrollMarginContext.Provider value={menuScrollMargin}>
+						{menu}
+					</ClassicyMenuScrollMarginContext.Provider>
+				)}
 			</div>
 		</ClassicyMenuProvider>
 	) : (
@@ -255,6 +348,7 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 			)}
 			style={style}
 		>
+			{aside}
 			{content}
 		</div>
 	);

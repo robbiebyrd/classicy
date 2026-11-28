@@ -4,22 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Classicy is a React/TypeScript UI framework that replicates the Mac OS 8 (Platinum) interface. It's distributed as three npm packages, each with ES and UMD module formats and its own type declarations: `@classicy/classicy`, the framework (it registers no look of its own), and two Appearance Packages, `@classicy/appearance-platinum`, the Platinum Appearance Package (`packages/appearance/platinum`), and `@classicy/appearance-system7`, the System 7 Appearance Package (`packages/appearance/system7`; System 7.5 in black and white and in color, design 0017-6me), each of which a host imports once at its entry and which peer-depend on the core. All three publish at one version, and a host installs and bumps the ones it uses together (mixing the two Appearance Packages' versions is unsupported: they share the savers' registration module and the Logo saver's registry). Platinum is not always present: with no package registered, the core draws only a stop screen (design plan 0014-ahm; it supersedes plan 0002's D14, "Platinum is always present").
+Classicy is a React/TypeScript UI framework that replicates the Mac OS 8 (Platinum) interface. It's distributed as four npm packages, each with ES and UMD module formats and its own type declarations: `@classicy/classicy`, the framework (it registers no look of its own), and three Appearance Packages, `@classicy/appearance-platinum`, the Platinum Appearance Package (`packages/appearance/platinum`), `@classicy/appearance-system7`, the System 7 Appearance Package (`packages/appearance/system7`; System 7.5 in black and white and in color, design 0017-6me), and `@classicy/appearance-windows98`, the Windows 98 Appearance Package (`packages/appearance/windows98`; Windows 95 and 98, and through its layout the Windows 95/98 shell (see Windows Shell): the thirty-three color schemes of Windows 98 SE's Display control panel, each read from its `SHELL2.INF`, and Windows 95; it registers themes, a layout, color and font families, an emboss for disabled controls' images, a `.theme` file importer, Windows' names for the file types (`fileTypeNames`), Windows 98 Second Edition's own icons, system art and cursors read from its CD and its own sounds as its sound pack (the CD's WAVs, mapped as its default sound scheme maps the events; `docs/windows98-asset-inventory.md`), 98.css's pixel recreation of MS Sans Serif as its font (`"Pixelated MS Sans Serif"`, lou's FontStruct faces, CC BY-SA 3.0, its notices shipped in `src/assets/fonts/`), Windows 98's names for the bundled apps, the Trash and the startup disk (`apps`, `desktopIcons`), its nineteen wallpapers and nineteen desktop patterns (black-on-clear 8 x 8 tiles over the scheme's desktop color, `src/assets/windows98Wallpapers.ts`) and its seven screen savers, ports of the CD's `.scr` files offered under Windows 98 only (`src/screenSavers/`, Blank Screen its `defaultScreenSaver`); every other glyph Windows drew in the scheme's colors is pixel art from theme tokens), each of which a host imports once at its entry and which peer-depend on the core. All four publish at one version, and a host installs and bumps the ones it uses together (mixing the Appearance Packages' versions is unsupported: Platinum and System 7 share the savers' registration module and the Logo saver's registry). Platinum is not always present: with no package registered, the core draws only a stop screen (design plan 0014-ahm; it supersedes plan 0002's D14, "Platinum is always present").
 
 ## Common Commands
 
-This project uses **pnpm** (enable via `corepack enable`). The repo is a pnpm workspace: the root is the `@classicy/classicy` library, `example/` is a member that consumes it via a `workspace:*` dependency — no `npm link` needed — and `packages/appearance/platinum` is `@classicy/appearance-platinum`, the Platinum Appearance Package (peer-depends on the core; its own `vite.config.ts` and `vitest.config.ts`; the root `pnpm test` runs it as a second vitest project). Root tests, Storybook and the example import it by name; vitest, both tsconfigs, Storybook and the example's live-source dev server alias `@classicy/appearance-platinum` to its `src/index.ts`, and `build:source` builds its `dist/` for the example's production build. `packages/appearance/system7` is `@classicy/appearance-system7`, the System 7 Appearance Package (plan 0018-dbd), wired the same way (a third vitest project; the same aliases, the example's live-source one included, and the example imports it); in Storybook only its own stories register it (`storybook/.storybook/system7.ts`, the `mirrored` pattern).
+This project uses **pnpm** (enable via `corepack enable`). The repo is a pnpm workspace: the root is the `@classicy/classicy` library, `example/` is a member that consumes it via a `workspace:*` dependency — no `npm link` needed — and `packages/appearance/platinum` is `@classicy/appearance-platinum`, the Platinum Appearance Package (peer-depends on the core; its own `vite.config.ts` and `vitest.config.ts`; the root `pnpm test` runs it as a second vitest project). Root tests, Storybook and the example import it by name; vitest, both tsconfigs, Storybook and the example's live-source dev server alias `@classicy/appearance-platinum` to its `src/index.ts`, and `build:source` builds its `dist/` for the example's production build. `packages/appearance/system7` is `@classicy/appearance-system7`, the System 7 Appearance Package (plan 0018-dbd), wired the same way (a third vitest project; the same aliases, the example's live-source one included, and the example imports it); in Storybook only its own stories register it (`storybook/.storybook/system7.ts`, the `mirrored` pattern). `packages/appearance/windows98` is `@classicy/appearance-windows98`, the Windows 98 Appearance Package, wired the same way again (a fourth vitest project, the same aliases, imported by the example; its stories register it through `storybook/.storybook/windows98.ts`, which also holds the shell stories' scene and play helpers, `Windows98Shell.stories.tsx`, and the decorator's `parameters.classicy.userName` is the desktop's `userName`); its `src/styles/windows98.scss` includes one `components/_<Name>.scss` partial per component inside the package wrapper, its bevels and pixel-art helpers are `_bevels.scss` and `_pixel.scss`, its screen savers' sheet `_screenSavers.scss` (at the package layer's root, as Platinum's), and it reaches the core only as `@classicy/classicy` and nothing of Platinum's or System 7's (`Windows98SourceImports.test.ts`).
 
 ```bash
 pnpm install              # Install dependencies (root + example workspace)
 pnpm build:source         # TypeScript + Vite build only (fastest iteration)
 pnpm build                # Full build (audio sprites + source)
-pnpm build:audio          # Generate audio sprites from packages/appearance/platinum/src/assets/sounds/, then System 7's
+pnpm build:audio          # Generate audio sprites from packages/appearance/platinum/src/assets/sounds/, then System 7's, then Windows 98's
 pnpm build:watch          # Watch mode: rebuilds source + audio on file changes
 pnpm --filter @classicy/appearance-platinum exec vitest run   # Platinum package tests only
 pnpm --filter @classicy/appearance-platinum build             # Platinum's vite build + its verify:dist (build the core first: it needs the core's declarations)
 pnpm --filter @classicy/appearance-system7 exec vitest run    # System 7 package tests only
 pnpm --filter @classicy/appearance-system7 build              # System 7's vite build + its verify:dist (core first, likewise)
+pnpm --filter @classicy/appearance-windows98 exec vitest run  # Windows 98 package tests only
+pnpm --filter @classicy/appearance-windows98 build            # Windows 98's vite build + its verify:dist (core first, likewise)
 pnpm lint                 # Run Biome (`biome check .`), the only linter; lint:fix writes changes
 pnpm storybook:typecheck  # Type-check the stories under storybook/tsconfig.json (strict)
 pnpm preview              # Full build → run example app
@@ -63,7 +65,7 @@ Uses **Zustand** for app/desktop state with the existing event reducer for domai
 - **`useAppManagerDispatch()`** - Returns `dispatch`, the module export of the same file (`dispatch(action, trust?)` runs the reducer inside `useAppManager.setState`)
 - **classicyDesktopStateEventReducer** (`ClassicyAppManager.ts`) - Still routes events by prefix to domain-specific handlers (called inside Zustand's `set()`)
 - **App windows** — `apps[id].windows` is a `Record<windowId, ClassicyStoreSystemAppWindow>` (1.0; an array in 0.x). Read/write it only through `getAppWindow`, `listAppWindows`, `hasAppWindow`, `countAppWindows`, `setAppWindow`, `removeAppWindow`, `updateAppWindow` (`ClassicyAppWindows.ts`); never branch on key order. `migrateClassicyState` (`ClassicyStateMigrations.ts`) converts 0.x arrays on load (after the merge over defaults) and on every `mergeClassicyState` result; it is shape-detecting and idempotent — there is no state version number
-- **SoundManager** still uses React Context/useReducer (not migrated to Zustand). Its `volume` (0–100, `ClassicyVolumeSet`) is the Howl player's gain, applied by `ClassicySoundManagerProvider` and re-applied when a sound pack loads; it is per-mount, like the mute flag (`"*"` in `disabled`); alerts (`ClassicyAlertSound`/`ClassicySoundPlayError`) play at that gain × the persisted `Appearance.alertVolume` (0–100, `ClassicyDesktopChangeAlertVolume`). The Howl is loaded from the registered sound pack named by `activeTheme.sound.pack` (`ClassicySoundPacks.ts`), reloaded when that changes, with Platinum as the fallback for sprites the pack lacks when Platinum's pack is registered (the sound modules import no pack; with none registered, no Howl is built and sound is silent, logging each missing pack id once). The alert sounds a user may pick are the pack's: `alerts` (`{ value, label }[]`; absent, the default pack's, as for sprites; `[]`, none) and `defaultAlert` (`ClassicyAlertSounds.ts`: `classicyPackAlerts`, `classicyPackDefaultAlert`, `resolveClassicyAlertSound`). The alert played is the stored `Appearance.alertSound` when the pack offers it, else the pack's default; it is never rewritten, and the default state seeds none. `CLASSICY_ALERT_SOUNDS` and `DEFAULT_ALERT_SOUND` are deprecated (Platinum's values)
+- **SoundManager** still uses React Context/useReducer (not migrated to Zustand). Its `volume` (0–100, `ClassicyVolumeSet`) is the Howl player's gain, applied by `ClassicySoundManagerProvider` and re-applied when a sound pack loads; it is per-mount, like the mute flag (`"*"` in `disabled`); alerts (`ClassicyAlertSound`/`ClassicySoundPlayError`) play at that gain × the persisted `Appearance.alertVolume` (0–100, `ClassicyDesktopChangeAlertVolume`). The Howl is loaded from the registered sound pack named by `activeTheme.sound.pack` (`ClassicySoundPacks.ts`), reloaded when that changes, with Platinum as the fallback for sprites the pack lacks when Platinum's pack is registered (the sound modules import no pack; with none registered, no Howl is built and sound is silent, logging each missing pack id once). The alert sounds a user may pick are the pack's: `alerts` (`{ value, label }[]`; absent, the default pack's, as for sprites; `[]`, none) and `defaultAlert` (`ClassicyAlertSounds.ts`: `classicyPackAlerts`, `classicyPackDefaultAlert`, `resolveClassicyAlertSound`). The alert played is the stored `Appearance.alertSound` when the pack offers it, else, for an alert box (`ClassicyAlert` sends `ClassicySoundPlayError { alertType }`, its fixed variant through its window, `ClassicyWindowAlertType.internal.ts`), the pack's `alertTypeSounds[alertType]` (Windows 98's Chord; Platinum and System 7 declare none), else the pack's default; it is never rewritten, and the default state seeds none. `CLASSICY_ALERT_SOUNDS` and `DEFAULT_ALERT_SOUND` are deprecated (Platinum's values). `CLASSICY_OPTIONAL_SOUND_SPRITES` (`ClassicyTrashEmpty`, played after Special ▸ Empty Trash removes something) are dispatched but outside the contract: never reported missing, played only by a pack that defines them (Windows 98's), never by the default pack in its place, and labeled in the sound state's `labels` only while such a pack plays
 
 Event routing by prefix (unchanged):
 - `ClassicyWindow*` → Window operations (focus, move, resize, collapse, zoom)
@@ -128,6 +130,22 @@ commentary:
 - Re-registering an id merges additively (HyperCard.app spans two modules:
   player and editor prefixes); the same prefix twice is a no-op, actions
   merge first-wins, and the first `state` schema wins.
+- `creates` (optional): the document types the app makes from File ▸ New
+  under `layout.finder.commands` "windows" (Explorer's ShellNew entries),
+  `{ fileType, typeName, extension?, data? }[]`, each validated by
+  `ClassicyAppCreatesEntrySchema` (a failing one dropped with a warning),
+  merged first-wins; `listClassicyCreatableFileTypes(appIds?)` lists them by
+  name, and New ▸ lists the mounted apps'. SimpleText declares Text Document
+  (`.txt`).
+- `verbs` (optional): the commands the app adds to its files' menus under
+  `layout.finder.commands` "windows", after Open (a type's Shell verbs, WIG
+  Ch.10 pp.200-201), `{ id, title, action, accessKey? }[]`, each validated
+  by `ClassicyAppVerbEntrySchema` (a failing one dropped with a warning),
+  merged first-wins by `id`; `listClassicyAppVerbs(appId)` reads them.
+  Finder lists the verbs of the app `fileTypeHandlers` names for an item's
+  type while it is mounted, and runs one by dispatching `{ type: action,
+  app: { id }, path }`, trusted, per selected item of that type. No bundled
+  app declares one (Classicy has no printing).
 - Read side: `getAppManifest`, `listAppManifests`, `listScriptableActions`,
   `describeAppAction`/`describeAppState` (balloon-ready `{title, content}`),
   and `parseAppData` (typed guard replacing hand-rolled `isXData` functions).
@@ -180,8 +198,9 @@ The Trash and drive icons carry stock balloon help automatically
 #### Alias Badging
 
 Desktop icons whose `kind` is `app_shortcut` or `shortcut` — every icon
-`ClassicyApp` registers — render the Mac OS 8 alias arrow over the icon's
-bottom-left corner and italicize their label. System kinds (`drive`, `trash`,
+`ClassicyApp` registers — or `file_shortcut` (a Desktop Folder item that is
+a file shortcut, `classicyDesktopItemIconAction`) render the Mac OS 8 alias
+arrow over the icon's bottom-left corner and italicize their label. System kinds (`drive`, `trash`,
 `directory`, `file`, `icon`) get neither. The predicate lives in
 `ClassicyDesktopIconKinds.ts`; the badge is a second mask pair reusing
 `classicyDesktopIconMaskOuter`/`classicyDesktopIconMask`, so it inherits the
@@ -206,9 +225,106 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   same app+id has mounted again by then (StrictMode's phantom remount, or a
   replacement instance). Modal windows are destroyed instead, as before.
 - `ClassicyWindowClose` promotes the app's highest-`zOrder` open sibling.
+- Under a layout with `taskbar` (plan 0020-w98 E3, WIG Ch.10 "Message
+  Notification" p.212), `ClassicyAppRequestAttention { app: { id },
+  window? }` sets the session-only `attention` on the app's named (else
+  front) open primary window, minimized included, when the app is open and
+  not focused (`requestClassicyAppAttention`, `ClassicyAppHelpers.ts`); its
+  taskbar button flashes until any focus of the app (`markAppFocused`)
+  clears it; a close clears it, `sanitizeStateForPersistence` strips it,
+  and it is a no-op under every other package. `ClassicyWindow` sends
+  `ClassicyWindowOpen`'s `window.background` for a modal an inactive app
+  opens while the page has no transient user activation
+  (`classicyModalOpensInBackground`, `Window/ClassicyWindowAttention.internal.ts`;
+  no User Activation API counts as active); the reducer then opens it
+  unfocused and requests attention instead, when that succeeds, and the
+  window takes no DOM focus until the store focuses it.
+- Under `layout.window.collapse: "minimize"` (the Windows shell, plan
+  0020-w98 §5; Windows 98 declares it; absent, `"shade"`, every other
+  package is as above) the
+  collapse box minimizes: the same `collapsed` flag, but the window is
+  `classicyWindowMinimized` (`display: none`, tree mounted), its click does
+  not bubble and `zoomed` is kept. A modal or palette never minimizes (no box;
+  the reducer refuses it; a stored flag is drawn expanded), and palettes hide
+  while every primary window of their app is minimized
+  (`classicyAppPalettesHidden`). When the focused window minimizes (or the
+  last shown primary window under the app's focused palette, which goes with
+  it), and on `ClassicyWindowClose` and a modal's `ClassicyWindowDestroy`,
+  focus goes by
+  `classicyVisibleSuccession` (`ClassicyAppHelpers.ts`): the app's front
+  on-screen primary window, else another open, unhidden app's by `zOrder`,
+  else the desktop (Finder, no window); it never picks a minimized window.
+  `focusWindow` restores a minimized window it focuses.
+- Under `layout.window.zoom: "maximize"` (Windows 98 declares it; absent,
+  `"standard"`, the zoom box toggles Mac OS 8's standard state) the zoom box
+  is Maximize/Restore: the same `zoomed` flag, but the content box takes the
+  work area (desktop less the menu bar's and taskbar's bands) with the frame
+  outside it (`classicyMaximizedWindowRect`, `ClassicyWindowMaximize.ts`),
+  the root carries `classicyWindowMaximized` (`max-height: none`), the clamp,
+  the caption drag, the frame edges and the grow box are off, and the rect is
+  re-applied on mount, band changes and desktop resizes. The zoom sends
+  `restore` (the rect it had), stored as the record's persisted
+  `restoreRect` and deleted on un-zoom; Restore uses this mount's rect, else
+  `restoreRect` (under every package, validated by
+  `isClassicyWindowRestoreRect`), else the opening rect. A palette or modal
+  never maximizes there, and a primary window with only one of the zoom and
+  collapse boxes draws the other unavailable (`ClassicyWindowTitleBar`'s
+  `zoomDisabled`/`collapseDisabled`), Windows 95's Minimize/Maximize pair. `layout.window.titleDoubleClick: "zoom"` makes the
+  caption's double-click the zoom box's toggle, never a collapse.
+- Under `layout.window.frameEdges: "resize"` (Windows 98 declares it; absent,
+  `"move"`, the four frame edges move the window) a resizable window drawn at
+  its size (not maximized, shaded or minimized) has a sizing border: the root
+  carries `classicyWindowSizingBorder`, each edge (`--window-frame-inset`
+  thick, Windows' `SM_CXFRAME`) and eight corner arms
+  (`classicyWindowFrameCorner-<corner>-<h|v>`, the frame plus
+  `--window-title-bar-height` long, Wine's `NC_HandleNCHitTest`) size it
+  through the grow box's gesture, with the registry's resize cursors; a press
+  activates the window and takes the pointer's capture, and the moving edges
+  (`computeClassicyWindowEdgeResize`, `ClassicyWindowResize.ts`) stop at the
+  viewport floor, the work area's right and bottom, `minimumSize` and the
+  `max-height` reserve's cap, so the release clamp never moves the window. A
+  non-resizable window's edges do nothing.
+- Under `layout.mouse: "windows"` a window moves (its caption, a moving frame
+  edge) and sizes (its grow box, a sizing frame edge) by button 1 alone
+  (`isClassicyGestureButton`, `Utils/ClassicyMousePolicy.ts`). Under
+  `layout.input.escapeCancels`, Escape during a press puts a move or resize
+  back: the inline geometry, the record's position and size, and a `dragEnd`
+  with `canceled: true`; the release that follows moves nothing. The Control
+  Strip's Control-drag and tab drag take Escape the same way. Under
+  `layout.window.restoreViewState` the window hands `useClassicyWindowViewState`'s
+  scroll pair to its content `ClassicyScrollArea`. Under
+  `balloonHelp.contextHelp: "whatsThis"`, a non-alert `modal` whose content
+  holds a described control (`classicyHasHelpAnchorWithin`) draws the title
+  bar's "?" box (`onHelp`, wrapper `data-classicy-whats-this`), which starts
+  What's This? over the window.
+- Under `layout.dialog.caption: "titled"` (Windows 98 declares it; absent,
+  `"plain"`, a modal's caption is as above) every `modal` window's caption is
+  titled (its app's display name, `useClassicyAppIdentity`, when `title` is
+  empty), always draws a Close box (closing a closable modal, else running
+  the new `onCaptionClose` prop, else drawn unavailable through
+  `ClassicyWindowTitleBar`'s `closeDisabled`: `disabled`, `aria-disabled`),
+  and moves (no modal is `classicyWindowModalFixed`). The registry's `close`
+  command (ALT+F4, the icon's double-click) and the pop-up menu's Close follow
+  the box. Each bundled dialog passes its Cancel (an alert its cancel-role
+  button, else its only button; none for Yes/No). `layout.window.captionTooltips:
+  true` gives each box a forced 500 ms tooltip of its label (the title bar's
+  `buttonTooltips`). `layout.window.utilityTitle: true` (Windows 98) makes a
+  palette's caption show its title (the title bar's `utilityTitle`); a
+  package may set `--window-frame-inset` on its windows (Windows 98's
+  `sizingBorder.frame`, SM_CXFRAME), which the keyboard Size mode and the
+  taskbar's Cascade read from a window. A modeless window with the
+  `contextHelp` prop (Explorer's Properties and Taskbar Properties) also
+  draws the "?" box under `balloonHelp.contextHelp` "whatsThis"; its
+  controls are described for What's This? alone by `useClassicyWhatsThisHelp`
+  (`BalloonHelp/useClassicyWhatsThisHelp.internal.ts`).
 - The Application menu's Hide <app>, Hide Others and Show All dispatch
   `ClassicyAppHide`, `ClassicyAppHideOthers` and `ClassicyAppShowAll`
-  (HIG7 p.127). `apps[id].hidden` is **session state**: `sanitizeStateForPersistence`
+  (HIG7 p.127). `apps[id].session` is session state too (kept when the app
+  quits, dropped by `sanitizeStateForPersistence`): the file dialog's last
+  folder (`ClassicyAppRememberFileDialogFolder`, `ClassicyFileDialog` reopens
+  there) and tab strips' last tabs (`ClassicyAppRememberTab`,
+  `useClassicySessionTab`; the Appearance Manager and Finder Preferences),
+  WIG Ch.8 p.146. `apps[id].hidden` is **session state**: `sanitizeStateForPersistence`
   drops it, `closeApp` clears it, and any focus of the app (`focusApp`,
   `focusWindow`, a window opening) shows it again. A hidden app's container
   and modals are `display: none` with its windows still mounted; the next
@@ -218,6 +334,61 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   window via `pickWindowToRestore` when the app is focused but no window is,
   reading the **live** store, not the render snapshot, so a window that
   registered or took focus in the same commit is never covered back up.
+- Every mounted `ClassicyWindow`, modals included, also registers in the
+  runtime window registry (`Window/ClassicyWindowRegistry.internal.ts`, plan
+  0020-w98 §5): its title, icon and capabilities, which the persisted record
+  does not hold, and `run(command)` (`activate`, `minimize`, `restore`,
+  `maximize`, `close`, `move`, `size`, `systemMenu`, `place`) through the window's
+  own paths, read with
+  `useClassicyWindowEntries()` and `runClassicyWindowCommand(appId, windowId,
+  command)`; `place` puts a window at a rect (restoring a maximized one
+  first) for the taskbar's Cascade and Tile, and the entry's `geometry()`
+  reads its drawn and restore rects, chrome and minimum. The entry is updated in place, a stale token unregisters
+  nothing, and registering adds no DOM and no store field. Its `move` and
+  `size` start the keyboard Move and Size modes
+  (`Window/ClassicyWindowKeyboardMove.internal.ts`, WIG Ch.6 p.83): until
+  ENTER, a button-1 release or a lost pointer stream ends one where it is,
+  or ESC puts the window back, document capture-phase listeners hold every
+  key press and mouse button, and each arrow moves the window, or the edges being sized
+  (the first arrow picks one, an arrow across it makes the corner), 8 px,
+  the mouse by its travel; the store's `moving` or `resizing` shows the
+  drag band. One mode runs at a time, and any other command ends it first.
+  Its `systemMenu` opens the window pop-up menu under
+  `layout.window.systemMenu` (at `at`, else from the caption with its first
+  item selected, as ALT+SPACE does; see Contextual Menus) and reports
+  `false` without the flag.
+- A mounted taskbar's measured thickness is the **taskbar band**
+  (`Taskbar/ClassicyTaskbarBand.internal.ts`, store-free:
+  `setClassicyTaskbarBand(px, owner?, edge?)`, the thickest band any owner
+  publishes in effect, on the edge it is docked to (plan 0020-w98 E4);
+  `getClassicyTaskbarInsets`/`useClassicyTaskbarInsets` give it per edge,
+  `getClassicyTaskbarBand`/`useClassicyTaskbarBand` the bottom's; all 0
+  with no taskbar or under Auto hide).
+  Window geometry (`resolveSize`, `resolvePosition`,
+  `clampWindowPositionToViewport`, each with an optional `bottomBand` that
+  takes the insets, a number being the bottom's, the zoom's standard state,
+  maximize, and a grow-box drag's `ceiling`, passed only while a band is
+  not 0), Cascade and Tile, Clean Up's grid and every menu's bounds keep to
+  the work area it leaves, so with no taskbar every number is today's.
+- Opening a document or folder that is already open, under a package's
+  `layout.document.reopenActivates` (Windows 98), focuses the object's own
+  window once the app has come forward: the generic `*OpenFile` route
+  (`${appId}_file_${path}`), the PDF Viewer's, Picture Viewer's and Movie
+  Player's OpenFile cases and `ClassicyAppFinderOpenFolder` call the
+  store-free `focusClassicyReopenedWindow(ds, appId, windowId, wasOpen)`
+  (`ClassicyDocumentReopen.ts`); without the key the app's last-focused
+  window comes forward, as before.
+- A window's view state, under `layout.window.restoreViewState`: `scroll`
+  (`[scrollLeft, scrollTop]`) and `caret` on its record, written only under
+  the key by `ClassicyWindowSetScroll` (finite values; a no-op otherwise, so
+  Platinum's and System 7's records never gain them) and kept by
+  `sanitizeStateForPersistence`. `useClassicyWindowViewState(appId,
+  windowId)` (`Window/ClassicyWindowViewState.internal.ts`) hands back the
+  record's values as the window mounted and the callbacks that write them,
+  for `ClassicyScrollArea`'s `initialScroll`/`onScrollSettled` and
+  `ClassicyTextEditor`'s `initialCaret`/`onCaretSettled`, all `undefined`
+  without the key; SimpleText's plain-text windows pass them. The store-free
+  rules the reducer uses are `ClassicyWindowViewStatePatch.internal.ts`.
 
 ### Analytics
 
@@ -277,8 +448,9 @@ path is what stays free of user data.
 - `position`: one of `top-left | top-center | top-right | bottom-left | bottom-center | bottom-right` (default `top-left`)
 - `delay`: hover delay in ms before balloon appears (default `600`)
 - Rendered via a React portal into `#classicyDesktop` so it is never clipped by parent overflow
-- The wrapper is `position: relative; display: inline-block`. If that would break your layout (e.g. an absolutely positioned element), use the `useClassicyBalloonHelp(ref, config)` hook instead — it returns `{ handlers, balloon }` to spread onto an element you already own, adding no DOM. `ClassicyDesktopIcon` does this.
+- The wrapper is `position: relative; display: inline-block`. If that would break your layout (e.g. an absolutely positioned element), use the `useClassicyBalloonHelp(ref, config, options?)` hook instead — it returns `{ handlers, balloon }` to spread onto an element you already own, adding no DOM. `ClassicyDesktopIcon` does this. `options.force` shows it even while balloon help is off (a tooltip: the taskbar's cut-short window titles).
 - Globally disabled by `System.Manager.Desktop.disableBalloonHelp` (Zustand store). Toggle with event `ClassicyDesktopSetBalloonHelp` — e.g. `dispatch({ type: 'ClassicyDesktopSetBalloonHelp', disableBalloonHelp: true })`
+- Placement is the active package's `layout.balloonHelp.placement`: `anchor` (default; Platinum, System 7) as above; `pointer` (Windows 98's ToolTip) opens once the pointer rests on the anchor for the delay, at the pointer (`classicyBalloonHelpPointerBelow`, the package offsetting it under the cursor; above the anchor, `classicyBalloonHelpPointerAbove`, at the desktop's bottom; moved left at its right edge), no tail, hidden by a press until the pointer leaves. The hook follows the pointer with listeners on the anchor element itself, so `handlers` keeps its keys and never overrides the anchor's own mouse handlers (`resolveBalloonPointerPlacement`).
 
 ### Schema-Driven Forms
 
@@ -308,7 +480,12 @@ call `console.warn/error` directly in library code (the only exceptions: the
 mounted by `ClassicyDesktop` that idle-activates a full-viewport screensaver.
 The core holds the mechanism only (registry, overlay, reducer, control panel);
 the savers themselves ship with an Appearance Package, Platinum's twelve in
-`@classicy/appearance-platinum` (plan 0016-vbq).
+`@classicy/appearance-platinum` (plan 0016-vbq) and Windows 98's seven in
+`@classicy/appearance-windows98` (`src/screenSavers/`, offered under
+`windows98` only: canvas savers that tick on Windows 98's 55 ms timer, draw
+whole pixels and erase in black as GDI did, draw one still frame under reduced
+motion and stop while the page is hidden, `useWindows98Saver.ts`; 3D Pipes in
+WebGL).
 Idle detection is **wall-clock** (document-level activity listeners + refs;
 independent of the Classicy virtual clock, and never writes the store per
 event — only the activate/deactivate transitions dispatch). The waking
@@ -431,8 +608,20 @@ resizable container splitting two or three content areas along one axis:
   back as `defaultSizes`.
 - The divider follows the ARIA window-splitter pattern (`role="separator"`,
   focusable, arrow keys nudge by 1%) and uses the same document-level drag
-  listener idiom as `ClassicyWindow`. Pure resize math is exported as
+  listener idiom as `ClassicyWindow`; it carries `dragging` while it moves
+  (Windows 98 draws the halftone split bar). Pure resize math is exported as
   `computeSplitViewSizes` for tests.
+- `splittable` (two panes; WIG Ch.6 "Splitting Windows", HIG7 pp.170-172):
+  dragging the divider to either end of the view (within its thickness,
+  `classicySplitViewClosingPane`) or double-clicking it (the smaller pane)
+  closes that pane, kept mounted with `collapsed`; the other pane keeps its
+  bar along the split (`always`) with a split box (`classicySplitViewSplitBox`,
+  in the bar's `barAccessories`) at the closed pane's end, dragged out to
+  reopen, double-clicked to reopen where the split last was.
+  `defaultClosed`, `onSplitChange(closed | null)`. `commandsRef`'s `split()`
+  is the WIG's Split command (a closed split opens in the middle; the
+  divider takes focus, arrows move it, Enter sets, Escape restores),
+  `removeSplit()`, `isSplit()`. No bundled app splits a view: stories only.
 
 ### Scroll Bars
 
@@ -445,19 +634,41 @@ parts the package styles (`scrollbar` > `scroll-arrow-start`, `scroll-track`,
 in every browser (Firefox now shows Platinum's full bars).
 
 - States: `inactive` (root, bars, corner) from `ClassicyWindowActiveContext`
-  (`ClassicyWindow` provides it) or the `inactive` prop; `fits` on a bar whose
+  (`ClassicyWindow` provides it) or the `inactive` prop (`ClassicyTree`, an
+  unscrolled `ClassicyTable` and `ClassicyIcon` emit it on their roots from
+  the same context, a list box's and a scrolling table's root being a scroll
+  area's; only Windows 98 reads it there); `fits` on a bar whose
   axis has nothing to scroll (no thumb); `pressed` on a held arrow or track;
-  `dragging` on the thumb.
+  `dragging` on the thumb; `disabled` on an arrow at the end of its travel
+  (`classicyScrollAxisEnds`: the start arrow while the axis is scrolled to 0,
+  the end arrow while it is at its maximum, within a pixel, both while the
+  axis fits), from the measurement that sets `fits` and the thumb, so on
+  every scroll; WIG Ch.6 "Scroll Arrows" (p.87) asks the application to
+  disable that arrow, Windows 98 embosses it, and Platinum and System 7 read
+  it not at all (a press there scrolls nothing, as before).
 - Behavior: arrows scroll `lineStep` and repeat while held, the track pages
   toward the pointer until the thumb reaches it (both through
   `useClassicyPressRepeat`, `LittleArrows/useClassicyPressRepeat.internal.ts`,
-  which the little arrows share), the thumb drags proportionally, live, or
+  which the little arrows share; while the track is held and paging it
+  carries `--classicy-scroll-page-start` and `--classicy-scroll-page-length`,
+  the stretch between the thumb and the arrow on the pointer's side, from
+  the track's start, removed when the thumb reaches the pointer or the hold
+  ends, so a package may draw that side alone, as Windows 98's inverts it;
+  Platinum and System 7 read neither), the thumb drags proportionally, live, or
   on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"`
   (System 7: the thumb stays put, a `scroll-drag-outline` part follows the
   pointer and snaps back past the theme's `--scroll-bar-snap-back`, else the
-  bar's thickness; keys and wheel wait, Escape cancels); a lost pointer
+  bar's thickness times `layout.scrollBar.snapBackScale` across and along;
+  keys and wheel wait, Escape cancels); `layout.scrollBar.liveSnapBack`
+  (Windows 98, with `snapBackScale` 8 across, 2 along, Wine's
+  `point_in_scroll_rect`) snaps a live drag back the same way, the content
+  returning to where the drag began until the pointer comes back; a lost pointer
   stream (`onClassicyPointerStreamLost`) ends each (an on-release drag
   scrolling nothing). Content changes are measured once a frame (rAF).
+  `barAccessories` puts controls in a bar past its arrows
+  (`scroll-accessory-start`/`-end` parts; a split box). The viewport is
+  registered (`ClassicyScrollViewportRegistry.internal.ts`, a `WeakMap`) so
+  a file drag can auto-scroll it.
   Bars are
   `aria-hidden` and never focusable; a focusable root scrolls its viewport for
   the paging keys its own handler leaves.
@@ -489,6 +700,12 @@ in every browser (Firefox now shows Platinum's full bars).
   selector and layer; parts `menu-scroll-up` and `menu-scroll-down`), as
   HIG7 p.78 has it. The geometry is measured on open, placement and new rows;
   a scroll reads only the extents.
+- View state: `initialScroll` (`[scrollLeft, scrollTop]`, read at mount,
+  finite and non-negative) is tried on each measurement until the viewport
+  reaches it, the user scrolls, presses or types in the area, or two seconds
+  pass, so a list still filling is restored; `onScrollSettled` reports the
+  offsets 200 ms after the last scroll event when they changed (never the
+  offsets put back), and once more on unmount while due.
 
 ### Pop-Up Bevel Buttons
 
@@ -511,7 +728,16 @@ in every browser (Firefox now shows Platinum's full bars).
   behavior and only a long press opens the surface; the click ending that
   press is swallowed (`suppressClickRef`).
 - Keyboard: a click with `detail === 0` (Enter/Space) toggles a click-trigger
-  surface; Down Arrow opens either kind with the first item focused.
+  surface; Down Arrow opens either kind with the first item focused. In a
+  menu the arrows walk only the items shown (a closed submenu's, drawn
+  `display: none`, are passed over).
+- The surface itself, `ClassicyBevelButtonPopup`, takes an optional `aside`,
+  drawn as its first child before the menu or panel (the Windows Start
+  menu's banner, plan 0020-w98 §3); without it the DOM is unchanged. Its
+  optional `keyboard` (the Start menu's and the tray's) is Windows' menu
+  loop: the arrows reach the menu from anywhere and walk dimmed items too,
+  and it never closes for idleness; absent, the 15 s idle close and the
+  enabled-only walk stand.
 
 ### Menu Frame
 
@@ -531,13 +757,20 @@ Menus open where they show (`ClassicyMenuPlacement.internal.ts`,
 `useClassicySubmenuPlacement.internal.ts`): measured in layout effects, frame
 shadow included (border box, outer `box-shadow`, absolute
 `::before`/`::after`), against the bounds, `.classicyDesktop`'s box where it
-overlaps the viewport, on both axes. A pull-down (screen or window bar) or
+overlaps the viewport, less a mounted taskbar's band on the edge it is
+docked to, on both axes. A pull-down (screen or window bar) or
 submenu that would pass the right edge gets `classicySubMenuFlipLeft`, a
 pull-down then hanging with its right side under its title's right side
 (base `ClassicyDesktopMenuBar.scss`; a package that places pull-downs itself
 places it too, as System 7 does); a submenu passing both sides keeps the side
 it passes by less; one still outside is pinned by equal and opposite wrapper
-margins, across and down. The scroll cap ends at the bounds' bottom; a
+margins, across and down. The scroll cap ends 4 px above the bounds'
+bottom (`POPUP_MENU_VIEWPORT_MARGIN`), or flush on it under a host that sits
+its menu there (`ClassicyMenuScrollMarginContext`, provided by
+`ClassicyBevelButtonPopup`'s `menuScrollMargin`, which only the taskbar's
+Start menu and tray pop-ups pass, as 0: they sit on the band's top edge, and
+as 0 by a contextual menu opened from a point below the bounds, in the band:
+the taskbar's, the clock's, a tray icon's and a window button's menus); a
 capped list's shadow sibling is rendered in the cap's own commit; a menu
 whose 64 px floor still passes the bounds is pinned, top winning. Again on
 reopen and on a desktop resize (the outermost open menu's `ResizeObserver` +
@@ -547,6 +780,42 @@ bevel pop-ups (`classicyBevelPopupPlacement`'s `bounds`) keep to the same
 bounds on both axes, on whole pixels (`classicyMenuWholePixel`), at
 `width: max-content`. `bin/check-menus-on-desktop.ts [--embed WxH+L+T]`
 checks it in a browser.
+
+### Menu Keyboard and Press Tracking
+
+A root `ClassicyMenu` (no `open`: a menu bar, a contextual menu, a bevel
+pop-up's) registers its lists and items (`ClassicyMenuTree.internal.ts`) and
+takes the presses for its whole tree in every package, and the keys only
+under `layout.menu.keys: "windows"` (Windows 98; absent or `"mac"`, a menu
+takes Return alone, as Mac OS 8's did, and the bevel pop-up keeps its own
+Up/Down walk and Escape). Its `orientation` (default: `"vertical"` under a
+`startActive` provider, else `"horizontal"`) says whether its items are bar
+titles. Under `"windows"`: roving focus on the `tabIndex={-1}` items (the
+package draws `:focus-visible`), Up/Down through a list (wrapping, past
+dividers and, unless `layout.menu.disabledItems` is `"browse"`, dimmed
+items; on a closed title, open on the first item), Right/Left into and out of
+submenus and across the bar's titles, Home/End, Return/Space as a click,
+typing to the next item a letter starts, Escape a level at a time (a bar's
+menu back to its title, then the bar, focus going back; a contextual menu
+too), F10 to the bar's first title and back (a window's bar only while its
+window is active); with focus outside a shown root, Escape and Up/Down come
+from a document capture listener; while the keyboard moved the tracking
+last, the root list carries `focused` until the pointer moves, the base
+sheet dropping the hover highlight under it. In every package a press on a
+bar title opens it at once (`useClassicyMenuPress.internal.ts`; HIGOS8
+p.92): released over an enabled leaf it chooses it, over the title or
+elsewhere in the menus it stays sticky (the ending click swallowed through
+the tree's `swallowClickWithin`), off every menu it closes; a press on an
+open title is still a click that closes it. `layout.menu.submenuDelayMs`
+(absent: hovered submenus open at once and stay) delays a cascade's open and
+its close under a resting pointer, and opens pop-up menus' submenus on hover.
+`layout.menuBar.idleTimeoutMs` (absent: 15 s; `0`: never) is every
+provider's default `idleTimeoutMs` (`useClassicyMenuIdleTimeout`), so the
+bars pass none. Shift+F10 and the Application key
+(`useClassicyContextMenuKey.internal.ts`, in `ClassicyContextualMenuProvider`)
+act only under `layout.keyboard.contextMenuKey` (Contextual Menus, below).
+Access keys (`layout.menu.accessKeys`) are under Keyboard Equivalents.
+Details: `docs/AGENT-REFERENCE.md` §4.5, "Menu keyboard and press tracking".
 
 ### Keyboard Equivalents
 
@@ -559,6 +828,28 @@ on a recorded key. Recorded shortcuts use the menu-item form (`"⌃⌘S"`, via
 Rules live in `checkKeyboardEquivalent` (needs ⌘ or a function key unless
 `requireCommandKey={false}`; `inUse` conflicts name their owner).
 
+Which key ⌘ answers to is the package's `layout.keyboard.command`
+(`classicyCommandIsCtrl`, read store-free inside `shortcutMatchesEvent`,
+`canonicalChordsFromEvent`, `keyboardShortcutFromEvent` and
+`classicyCommandKeyHeld`, so the dispatcher needs no change): Command or
+Control by default, Control alone under Windows 98's `"ctrl"`, where a
+Windows-key (`metaKey`) chord runs nothing and Command-period is
+Ctrl+period (match a ⌘ chord by hand only through `classicyCommandKeyHeld`).
+Under `menu.shortcutSpelling` `"names"` ⌘ is then spelled `Ctrl+`, as is a
+`nativeShortcut` item's off a Mac (`classicyCommandSpelledCtrl`).
+
+Access keys (`layout.menu.accessKeys` only; `Keyboard/ClassicyAccessKeys.internal.tsx`):
+menus, menu bar titles and `ClassicyControlLabel`, plus
+`ClassicyButton`, `ClassicyCheckbox`, `ClassicyRadioInput`'s inputs and
+`ClassicyTabs`' tabs, all one register per window
+(`useClassicyLabelAccessKey`). Alt and a key listens in the capture phase
+on `window` and `preventDefault`s what it takes, so an access key beats a
+menu item's ⌥ chord (WIG Ch.4 p.27) and the dispatcher stands down. The
+bundled menus and message boxes take Windows 98's letters through
+`useClassicyBundledAccessKeys()` (the key only under the flag, so Platinum
+and System 7 store and draw none); a new bundled menu item or button gets
+its letter the same way.
+
 ### Control Strip
 
 `ClassicyDesktop` mounts a `ClassicyControlStrip` at its lower left — the home
@@ -566,6 +857,10 @@ of the Sound control (the menu bar has no speaker widget). Its `controlStrip`
 prop takes the strip's props (`disabledModules`, `defaultCollapsed`,
 `defaultWidth`) or `false` to hide it; Storybook desktop stories opt out with
 `parameters.classicy.controlStrip: false`.
+
+Under a package whose layout declares `taskbar` (Windows 98) no strip is
+drawn: `ClassicyDesktop` mounts the taskbar in its place, and the strip's
+modules become the status area's notification icons (Windows Shell, below).
 
 Modules come only from `registerClassicyControlStripModule`
 (`ClassicyControlStripRegistry.ts`) — `{ id, label, icon, appId?, order?,
@@ -632,6 +927,171 @@ follows the theme. Widths snap to whole modules (module width plus its
 separator, `--control-strip-module-width` + `--control-strip-border-width`,
 31 px under Platinum).
 
+### Windows Shell
+
+Plan 0020-w98 (`docs/plans/0020-w98-dsgn-windows-98-shell-taskbar-and-window-menu-bars.md`)
+gives the Windows 95/98 shell to a package whose layout asks for it: a
+taskbar in the Control Strip's place, a Start menu, window menu bars that
+end with Help, and Windows' minimize, maximize, sizing border, system menu
+and dialog captions. Every piece is keyed on an optional layout flag
+(`ClassicyAppearanceLayoutSchema`; absent, Mac OS 8's behavior), so
+Platinum, System 7 and Storybook's `mirrored` package render and behave as
+before; Windows 98 declares them all (`windows98.json` `layout`):
+
+| Flag | Windows 98 | Absent (every other package) | Where |
+|---|---|---|---|
+| `menuBar.placement` | `"window"`: a headless screen bar, each window its own bar | `"screen"` | Theming, "Arrangement" |
+| `taskbar` (`startLabel`, `startBanner`) | the taskbar, the Start menu (its banner), CTRL+ESC | the Control Strip | below |
+| `window.collapse` | `"minimize"` | `"shade"` | Window Order & Focus Succession |
+| `window.zoom` | `"maximize"` | `"standard"` | the same |
+| `window.titleDoubleClick` | `"zoom"` | a collapse | the same |
+| `window.frameEdges` | `"resize"` | `"move"` | the same |
+| `window.systemMenu` | `true`: the window pop-up menu, ALT+SPACE, ALT+F4 | `false` | Contextual Menus |
+| `window.captionTooltips` | `true` | `false` | Window Order & Focus Succession |
+| `window.utilityTitle` | `true`: a palette's (tool window's) small caption carries its title | `false`: one title-less band | Window Order & Focus Succession |
+| `dialog.caption` | `"titled"` | `"plain"` | the same |
+| `document.titleAppName` | `true`: "<document> - <app>" window titles (WIG Ch.6 p.78) | the document's name alone | SimpleText, the taskbar buttons |
+
+The window behaviors (minimize and `classicyVisibleSuccession`, maximize and
+`restoreRect`, the sizing border, keyboard Move and Size, the window
+registry, attention, the taskbar band) are under Window Order & Focus
+Succession above; the system menu under Contextual Menus below; Help in one
+menu, and the window bar's Help and About under a taskbar, under App display
+overrides. Under a taskbar a window bar's Help leads with Help Topics
+(`APPLE_GUIDE_SHOW_HELP_TOPICS_EVENT`, as Start ▸ Help does, under
+`help.topicWindow: "winhelp"`) and What's This? (W, Shift+F1 drawn only,
+`startClassicyWhatsThis`, under `balloonHelp.contextHelp: "whatsThis"`), and
+a non-alert modal whose content holds a described control draws the title
+bar's "?" box (`onHelp`, carrying `data-classicy-whats-this`, so its second
+press ends the mode). The look is the package's (`_Taskbar.scss`, `_StartMenu.scss`,
+`_ShellDialog.scss`, `_MenuBar.scss` (window menu bars), `_Window.scss` in
+`packages/appearance/windows98/src/styles/components/`, from its `taskbar`,
+`startMenu`, `shellDialog` and `menuBar` knobs and `startMenu` colors). The example
+app marks Demo `showInQuickLaunch` and passes `userName`, so it shows a
+host's Quick Launch button and Log Off; `Appearance/Windows 98/Shell`
+(`Windows98Shell.stories.tsx`, helpers in `storybook/.storybook/windows98.ts`)
+draws every scene.
+
+**The Start menu** (`Taskbar/ClassicyStartMenu.internal.tsx`, items from
+`classicyStartMenuItems`, `ClassicyStartMenuItems.internal.ts`; WIG Ch.3
+p.15, Figure 3.1) is a `ClassicyBevelButtonPopup` (`#classicy-start-menu`,
+`classicyStartMenu`) against the Start button, flipped onto the band's edge,
+with the layout's `taskbar.startBanner` as its `aside`
+(`classicyStartMenuBanner`, `start-menu-banner` part) and Windows' menu loop
+as its `keyboard`: About This Computer, Programs ▸ (the Applications folder's
+mounted apps), Documents ▸, Settings ▸ (Control Panel ▸, the balloon
+toggle), Help, Run..., Empty Trash… and Reset PRAM…, Log Off <name>... and
+Shut Down... . The Start button toggles it, and so does CTRL+ESC anywhere on
+the page (`useClassicyTaskbarKeys.internal.ts`, WIG App. B Table B.2; not
+while a modal's scrim is open; the WINDOWS key is Command and is not bound).
+
+**The taskbar.** `ClassicyDesktop` mounts `ClassicyTaskbar` (`Taskbar/`) in
+the Control Strip's place, at the same point among its children, and no
+strip: a `<nav>` along the
+bottom, or the edge it is docked to (z-index 355) with the Start button (`taskbar-start`, `open`; its
+tooltip Windows 98's "Click here to begin.", forced, 500 ms, never over the
+open menu), a
+button per open primary window from the window registry (`taskbar-tasks`;
+no modal or palette; `active` for the active window or, under its app's
+dialog or palette, the app's front window; `collapsed`; `pressed`; a click
+restores, minimizes or activates through the registry, button 2 asks for
+the window's `systemMenu`; creation order for the session; a cut-short title
+is a forced 500 ms tooltip; each carries `data-classicy-drop-activate`, so a
+file drag resting on it 500 ms restores or activates its window, never
+minimizing it, WIG Ch.3 p.16; `classicyTaskbarTaskAttention` while its
+record's session-only `attention` is set, below) and the status area
+(`taskbar-tray`). It takes
+`controlStrip`'s `disabledModules` (published for the control panel, as the
+strip does) and `hideModules` for `controlStrip={false}`, and publishes its
+measured height as the taskbar band.
+
+**The status area.** Under a taskbar the strip's modules are its notification icons
+(`ClassicyTaskbarTray.internal.tsx`, WIG Ch.10 pp.211–212): the strip's
+arrangement, none under `hideModules` (`classicyTaskbarTrayModules`; the
+strip's `visible` and `hiddenModules` are not read, since under the shell
+the control panel is Taskbar Properties and nothing edits them); each its own
+component keyed `id:revision`, a `button.classicyTaskbarTrayIcon` (`open`
+while its surface is) opening its own `ClassicyBevelButtonPopup`
+(`classicyTaskbarTrayPopup`, flipped above the band). Button 1 opens
+`content`, else `menuItems` (after 500 ms when the menu has an `isDefault`
+item, so a double-click runs that item alone); button 2 opens `menuItems` at
+the pointer; the label is a forced 500 ms tooltip. Then the menu bar
+extensions' region, `ul#classicyDesktopMenuExtensions`
+(`classicyTaskbarTrayExtensions`), which `ClassicyMenuBarExtension` looks up
+again when the placement or the taskbar's presence changes; then the clock
+(`ClassicyTaskbarClock.internal.tsx`, `time.classicyTaskbarClock`, the
+`clock` part): `h:mm AM` (`HH:mm` under `militaryTime`), hidden while
+`DateAndTime.show` is false, the long date (`dddd, MMMM dd, yyyy`) a forced
+500 ms tooltip, a double-click opening Date & Time, button 2 the taskbar's
+menu led by Adjust Date/Time (`isDefault`); it shares the menu bar clock's
+tick (`Widgets/Time/useClassicyClockTime.internal.ts`, which writes
+`DateAndTime.dateTime` each minute), so the store keeps time under the
+headless screen bar. The strip's
+`collapsed`, `width`, `edge` and `bottom` stay stored, unused. Button 2 on
+the taskbar's background opens its own menu (`ClassicyTaskbarMenu.internal.ts`,
+Windows 98 SE's explorer.exe menu, plan 0020-w98 E1): Toolbars ▸ Quick
+Launch (over the bar and its bands only; `ClassicyDesktopTaskbarSetQuickLaunch`,
+stored as `Desktop.taskbar.quickLaunch`, absent = shown), Cascade Windows
+and Tile Windows Horizontally (stacked) / Vertically (side by side), placing
+each shown window button's window from the back through the registry's
+`place` command as ReactOS's `CascadeWindows`/`TileWindows` do
+(`ClassicyTaskbarArrange.internal.ts`), Minimize All Windows (one
+`ClassicyWindowCollapse` per window with a Minimize box, from one handler,
+the active window last), the one Undo of the last of those (Undo Cascade,
+Undo Tile, Undo Minimize All), and Properties (the Control Strip control
+panel). Quick Launch (`ClassicyTaskbarQuickLaunch.internal.tsx`) follows the
+Start button: the Finder, Show Desktop (Minimize All, then its Undo) and the
+apps marked `showInQuickLaunch` (a runtime mark,
+`App/ClassicyQuickLaunchApps.internal.ts`), each band then led by a
+`classicyTaskbarGripper`. Past one row at their least width (the package's
+`min-width` and `column-gap`, measured) the window buttons page
+(`classicyTaskbarTasksPaged`, an up/down `classicyTaskbarPager`).
+
+**Docking and Taskbar Properties.** The taskbar docks to any edge (plan 0020-w98 E4,
+`Taskbar/ClassicyTaskbarDock.internal.ts`): a drag of its empty area moves it
+to the edge whose diagonal quarter of the desktop holds the pointer, stored
+as `Desktop.taskbar.edge` (`ClassicyDesktopTaskbarSetEdge`; root classes
+`classicyTaskbarEdge<Edge>`, `classicyTaskbarVertical` at a side, where the
+buttons stack and page down the band), and the band lies on that edge
+(`setClassicyTaskbarBand(px, owner, edge)`, `getClassicyTaskbarInsets`; every
+geometry function's band argument takes insets, a number being the
+bottom's), so windows, maximize, Cascade and Tile, Clean Up and menus keep to
+the work area, and the Start menu and tray pop-ups open toward the desktop.
+Under a taskbar the Control Strip control panel is Taskbar Properties
+(`Taskbar/ClassicyTaskbarProperties.internal.tsx`; Windows 98 names the panel
+"Taskbar & Start Menu" through its `apps`): Always on top (off:
+`classicyTaskbarBelow`, z-index 15, until the taskbar is used), Auto hide
+(`classicyTaskbarAutoHide`, `collapsed` while slid off to a 2 px strip, no
+band), Show small icons in Start menu (`classicyStartMenuSmallIcons`, no
+banner) and Show Clock, written together by `ClassicyDesktopTaskbarSetOptions`
+on OK or Apply (`Desktop.taskbar.alwaysOnTop|autoHide|smallStartMenuIcons|showClock`,
+defaults from `classicyTaskbarOptions`); Clear
+(`ClassicyDesktopTaskbarClearHistory`) empties Documents and the Run history.
+
+**The shell's dialogs.** The Start menu (plan 0020-w98 E2) adds Documents ▸ (the session's recent
+documents, `File/ClassicyRecentDocuments.internal.ts`: Finder's
+`ClassicyAppFinderOpenFile` records each document it opens, trusted opens
+only, most recent first, at most 15, `ClassicyAppFinderPathsMoved` renames
+them; store-free, never persisted), Run..., and, after Empty Trash… and
+Reset PRAM…, Log Off <name>... (only with `ClassicyDesktop`'s `userName`) and
+Shut Down...; no Favorites or Find (Classicy has no search). Those open the
+shell's dialogs through `ClassicyDesktopShowSystemDialog` (`"shutDown"`,
+`"run"`, `"logOff"`, accepted only under `layout.taskbar`), which
+`ClassicyDesktop` draws (`Taskbar/ClassicyShellDialogs.internal.tsx`, mounted
+only under a taskbar; Windows 98 SE's shell32 dialogs): Shut Down Windows
+(Stand by: a dark `classicyPowerScreen` until a key or press; Shut down:
+`closeClassicySessionPrograms`, then "It's now safe to turn off your
+computer." until a key or press reloads; Restart: the programs closed, then
+`startClassicyFreshSession("restart")`, a reload replaying the startup
+screen with settings and files kept; the last choice stored as
+`Desktop.taskbar.shutDownChoice`), Run (`ClassicyRunCommand.internal.ts`: an
+http(s) URL through `ClassicyDesktopOpenUrl`, a path through Finder, an app
+by id or name; else Windows' "Cannot find the file" message; history in
+`Desktop.taskbar.runHistory`, 26 at most) and Log Off Windows (Yes runs the
+host's `onLogOff`, else a reload). Shut Down and Log Off draw
+`classicyShellDialogDim` over the taskbar (z 358) for the package to dim.
+Closing the programs writes the state at once (`flushAppManagerPersistence`).
+
 ### Contextual Menus
 
 Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.
@@ -645,8 +1105,24 @@ Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMen
 - Components with custom right-click behavior and no menu call `e.preventDefault()` in their own `onContextMenu`; every menu layer checks `e.defaultPrevented` and stays silent.
 - If neither a window nor its app defines a menu, right-click shows nothing (the native browser menu stays suppressed inside the desktop).
 - Right-clicking a window focuses it first, so the active menu always tracks focus.
+- `showContextMenu(items, at, options?)` takes optional `ClassicyContextualMenuOptions` (`helpItem: false` leaves the HIG's leading Help item out; `placement: "corner"` puts the menu's top-left at `at` instead of 1 px off a click; `focusFirstItem`; `keyboard`: the arrows walk the items, ESC closes, no idle timeout; `anchor`: a press on that element is not an outside press, for a menu opened by a press, whose outside-press listener is in place before that press reaches the document). With none, a menu opens exactly as before.
+- A call that leaves `helpItem` or `placement` unsaid takes the package's `layout.contextMenu.helpItem` (false: no leading Help item) and `layout.contextMenu.placement` (`"corner"`: the menu's corner at the click). Windows 98 declares both; absent, Mac OS 8's Help item and 1 px offset. Under `finder.commands: "windows"` the empty desktop's menu is Explorer's (`useClassicyDesktopCommands().whiteSpaceMenu`), and the bar's File, Edit and View are Explorer's, with Special after them.
+- **The window pop-up (system) menu** (`layout.window.systemMenu: true`, Windows 98 only; plan 0020-w98 §5, WIG Ch.7 p.102): a right-click anywhere in a window's own title bar shows `classicyWindowSystemMenuItems` (`Window/ClassicyWindowSystemMenu.ts`: Restore, Move, Size, Minimize, Maximize, Close; Move and Close on a modal; Move, Size, Close on a palette; enabled as Wine's `MENU_InitSysMenuPopup`; Close the `isDefault` item with `⌥F4`) instead of the `contextMenu` chain, with no Help item; a press on the title bar's icon (`ClassicyWindowTitleBar`'s `onIconMouseDown`) and ALT+SPACE drop it from the caption's bottom-left (Wine's `NC_GetSysPopupPos`), the icon's double-click (`onIconDoubleClick`) and ALT+F4 close the window, and a taskbar button's right-click opens it through the registry's `systemMenu` command. Each item runs the window registry command of its name. `ClassicyDesktop` binds the two keys (`useClassicyWindowShellKeys`, `Window/useClassicyWindowShellKeys.internal.ts`) only under the flag. Without it the title bar's right-click resolves as anywhere in the window and the icon is inert.
+- Shift+F10 and the Application key open the focused element's menu only under `layout.keyboard.contextMenuKey` (Windows 98; `useClassicyContextMenuKey`, mounted by the provider), and Escape closes an open one a level at a time only under `layout.menu.keys: "windows"`; a Mac OS package declares neither.
+- Under a package whose layout says `contextMenu.openOn: "release"` (Windows 98) the provider holds a `showContextMenu` made while button 2 is down (a capture-phase document `mousedown`/`mouseup` watch) and opens it at the release; under `selection.secondaryButton: "select"` a right-click on a selected desktop icon or table row keeps the selection for its menu, and an unselected one is selected alone at the press. The press discipline (`layout.mouse`, `isClassicyGestureButton`, `Utils/ClassicyMousePolicy.ts`) and Escape's cancel of a drag (`layout.input.escapeCancels`, `useClassicyEscapeCancel`/`onClassicyEscapeCancel`, `Keyboard/useClassicyEscapeCancel.internal.ts`) are read the same way; the desktop's empty-area press rule is `classicyDesktopSelectPress` (`Desktop/ClassicyDesktopSelectBox.internal.ts`).
+- Under `layout.textField.contextMenu: "edit"` (Windows 98) a text field is the innermost target: `ClassicyInput`, `ClassicyTextEditor`, `ClassicyRichTextEditor`'s text, `ClassicyComboBox`'s and `ClassicySpinner`'s fields put `useClassicyTextFieldContextMenu()` (`App/ClassicyTextFieldMenu.internal.ts`; `undefined` under other layouts, so no handler is attached) on the field, which keeps its selection through the button-2 press and opens user.exe's edit menu (Undo, Cut, Copy, Paste, Delete, Select All) with `showContextMenu(items, at, { helpItem: false })`, each item running `classicyEditCommandsFor(field)`. The hook reads the context from `ContextualMenu/ClassicyContextualMenuContext.internal.ts`, never the provider module: a field importing the provider's renderer moved the store's evaluation order and broke wallpaper healing at boot (`ClassicyWallpaperPersistence.test.ts`).
+- The Edit commands (`App/ClassicyEditCommands.ts`) act on the last focused field only while its window is active under `layout.edit.scope: "window"`, and the bundled Edit menu takes Notepad's form under `layout.edit.menu: "windows"` (dimmed from `subscribeEditTargetState`); `layout.text.wordSelect: "trailingSpace"` makes a double-click take the spaces after its word (`App/ClassicyWordSelect.internal.ts`).
 
 ### File System: Shared Live Tree
+
+Names are compared without case and kept as typed (HFS and FAT both did),
+under every package: `resolve`, `move`, `writeFile`, `mkDir`, `rmDir` and
+`setMetadata` find an entry by any case of its names, the exact spelling
+first (`classicyFileSystemEntryKey`), so a stored tree with case-only twins
+keeps each reachable; `move` onto another entry's name in any case is
+`exists`, a change of case alone renames in place, `writeFile` of a twin
+replaces it under its stored name, `mkDir` keeps a folder already there, and
+journals spell names as stored (`fs.storedPath`).
 
 Every `ClassicyFileSystem` for a storage key shares **one live tree**
 (`sharedTrees` in `ClassicyFileSystem.ts`); `fs` is a getter onto it. Every
@@ -671,6 +1147,172 @@ tree. Because `fs` changes identity on every mutation, effects keyed on `fs`
 must be idempotent — key non-idempotent ones on a derived value (Finder's
 drive icons key on `drivesKey`).
 
+### Finder Icon View Selection
+
+`ClassicyFileBrowserViewIcons` keeps one selection for its icons
+(`ClassicyIcon`'s controlled `selected` / `onSelectClick`); under every
+package, as Mac OS 8's Finder (HIG7 pp.288-291): a click selects one icon,
+empty space deselects, Shift/⌘/Control-click toggles one, arrows go to the
+nearest icon (the desktop's `nearestIconInDirection`), typing selects by name
+(1 s buffer), a drag across empty space draws `classicyFileBrowserSelect`
+(the desktop marquee's base look) selecting what it touches, a slow second
+click on a selected icon's name (`CLASSICY_FILE_BROWSER_RENAME_DELAY_MS`,
+500) renames it in a `classicyIconRename` field (each package draws its
+frame), committed through `onRenameItem` (Finder: `renameClassicyFileSystemItem`),
+and Select All works in icon view. `layout.fileBrowser.keys: "windows"` adds
+Explorer's Shift ranges (the rectangle the anchor's icon and the item span,
+`classicyIconRectRange`), Control toggles, Control-Shift by the anchor's
+state, the rectangle's Shift-adds / Control-toggles, Home/End/Page keys,
+letter cycling and F2. Rules: `ClassicyFileBrowserIconSelection.ts`; the
+rectangle, both views': `startClassicyFileBrowserMarquee`
+(`ClassicyFileBrowserMarquee.internal.ts`). The view reports its selection
+(`onSelectionChange`, the commit that draws it), which the browser's
+`commandsRef`, Delete and item menus read, never the DOM. Windows-only, each
+behind a layout key: press selection (`selection.selectOn`, via
+`ClassicyIcon`'s `onSelectPress`), button 2 (`selection.secondaryButton`), a
+drag carrying the selection (`fileBrowser.iconSelection: "view"`:
+`fileDragParts`, and `moveBy` for a drop in its own folder), the list view's
+rectangle and either rectangle's auto-scroll (`fileBrowser.regionSelect`),
+Space/`role="option"` (`selection.keyboard`), one Tab stop
+(`selection.iconNavigation: "roving"`, `tabStop`), a double-click opening the
+selection (`selection.modifiers`, `openItemsFunc`), and Open first, the
+default item (`isDefault`), in Finder's item menus (icons, list rows, desktop
+file icons; `finder.commands: "windows"`; under `mac` the menus hold Move To
+Trash or Restore alone, with no default, and a desktop file stores none).
+
+### Desktop Selection
+
+The desktop's icons select as Mac OS 8's did (a click selects one, a press on
+empty space clears and draws `classicyDesktopSelect`) unless the package's
+layout says otherwise, each behind its key (WIG Ch.5 pp.38-43; App. A Tables
+A.2, A.3): `selection.modifiers: "windows"` makes Control/⌘-click toggle,
+Shift-click take the anchor's rectangle and both set it to the anchor's state
+(`ClassicyDesktopIconSelect { iconId, mode: "toggle" | "range" | "addRange" }`,
+`classicyDesktopIconSelection`, `classicyDesktopIconRectRange`), a modified
+press on an unselected icon applying at the press and on a selected one at the
+click, so a drag carries the selection; and makes a Shift or Control rectangle
+keep the selection (`classicyDesktopSelectPress`'s `keep`,
+`classicyDesktopBoxSelection`, `ClassicyDesktopFocus { keepIconSelection }`).
+`selection.keyboard: "windows"` makes Space select (Control/⌘ toggles, Shift
+extends), Enter alone open and the icons `role="option"`;
+`selection.iconNavigation: "roving"` makes the focus icon
+(`classicyDesktopFocusIconId`) the one Tab stop. The anchor and the focus icon
+are session fields (`Desktop.selectionAnchor`, `Desktop.focusIcon`, written
+only under those keys, by `ClassicyDesktopIconSelect` and
+`ClassicyDesktopIconMoveFocus`; stripped by `sanitizeStateForPersistence`).
+The desktop's keys (`classicyDesktopKeyCommand`, `classicyDesktopListboxAttributes`
+in `Desktop/ClassicyDesktopKeyNav.ts`) and the rectangle's wiring are in
+`ClassicyDesktop`: a press on the empty desktop goes by
+`classicyDesktopSelectPress` (button 2 may start the rectangle, its menu at
+the release; a third button does nothing under `mouse: "windows"`), the
+outline carries `classicyDesktopSelectEmpty` while it is 0 x 0, Escape takes
+the rectangle back under `input.escapeCancels`, the arrows, Home, End, the
+page keys and Space go to `classicyDesktopKeyCommand`, and the root spreads
+`classicyDesktopListboxAttributes`.
+
+### Explorer's Commands in Finder
+
+`layout.finder.commands: "windows"` (Windows 98) gives Finder's and the
+desktop's menus Windows 98 SE Explorer's commands (shell32.dll's items and
+access keys); `mac` and absent keep Mac OS 8's menus byte for byte. The
+shared pieces are `File/ClassicyFileCommands.internal.ts` (New ▸, Arrange
+Icons ▸, Line Up Icons, Delete with a native Del, Rename, the rules
+`classicyCanMakeItemIn` and `classicyCanRename`, and
+`classicyDeleteConfirmation`'s three Windows 98 boxes). A folder window's File
+menu is Open ⌃O, New ▸, Delete, Rename, Close; its View menu Large Icons,
+Details, Arrange Icons ▸, Line Up Icons; its white space's menu is
+`ClassicyFileBrowser`'s `backgroundContextMenu(at)`; an item's menu Open,
+Delete, Rename (an Extension's Properties first: its control panel,
+`classicyExtensionControlPanelId`, which its double-click opens too, in
+FinderContext); app shortcuts' and drives' menus lead with Open too. The
+desktop's are `useClassicyDesktopCommands()` (`barMenu`, `whiteSpaceMenu(at)`,
+`Desktop/ClassicyDesktopCommands.internal.tsx`), which `ClassicyDesktop`
+draws as the bar's File, Edit and View (Special after them) and the
+white-space menu under `finder.commands: "windows"`, its Move To Trash chord
+following the user's editable shortcut. New makes "New Folder" (2)… or a registered `creates` type in the
+folder (`classicyFirstFreeName`), places, selects and renames it in place
+through `ClassicyFileBrowserCommands` (`place`, `select`, `rename`; both
+views edit names in place, the list view in `classicyFileBrowserViewTableRename`)
+or, on the desktop, `startClassicyDesktopIconRename`
+(`Desktop/ClassicyDesktopIconRename.internal.ts`, session state, the field
+`classicyDesktopIconRename`). Every Delete route asks first while Finder is
+mounted: `moveClassicyItemsToTrash` hands the paths to Finder
+(`ClassicyAppFinderConfirmDelete`, Finder's session-only `confirmDelete`,
+stripped by `sanitizeStateForPersistence`) and Finder's Yes moves them with
+`{ confirmed: true }`. `layout.files.names: "windows"` refuses `\ / : * ? " < >
+|` in names (`isClassicyValidFileName`, `ClassicyFileNames.ts`; renames in
+Windows 98's "Rename" box, the file dialog's Save and New Folder) and offers
+New Folder's first free name.
+
+Create Shortcut (10.6; File menus, item menus, a drive's and the Trash's
+icon, the desktop's `barMenu`) makes a `file_shortcut` entry
+(`ClassicyFileSystemEntryFileType.FileShortcut`, `_targetPath` its target,
+`File/ClassicyFileShortcut.ts`): "Shortcut to <name>", "Shortcut (2) to
+<name>"… beside each item, placed and selected, through
+`classicyCreateShortcuts` (`ClassicyFileCommands.internal.ts`); a shortcut
+to a shortcut is a copy of it. Where the item's folder takes no new item (a
+drive, the Trash, a derived or read-only folder) it dispatches
+`ClassicyAppFinderOfferDesktopShortcut` (Finder's session-only
+`desktopShortcutOffer`, stripped by sanitize) and Finder asks Windows 98 SE's
+"Windows cannot create a shortcut here." box, whose Yes makes them in the
+Desktop Folder. Opening one, under every package, is Finder's
+`ClassicyAppFinderOpenFile` resolving `_targetPath` in the live tree
+(`getClassicySharedFileSystem`, store-free) and opening the target as its
+double-click would, under the open's trust; a missing one shows "Problem
+with Shortcut" under the flag (`classicyShortcutProblem`), the core's text
+otherwise. An item's menu lists its handler's `verbs` after Open.
+
+Properties (2.2, 5.27, B.10) ends every item's, Desktop Folder item's,
+drive's (`buildDriveContextMenu`'s `properties`), app shortcut's (`ClassicyApp`)
+and the Trash's menu, and sits after Rename in the File menus; Alt+Enter and
+an Alt double-click run it (`ClassicyFileBrowser`'s `onPropertiesItems`,
+`ClassicyDesktopIcon` itself). It dispatches `ClassicyAppFinderPropertiesOpen
+{ paths } | { appId }` (`File/ClassicyFileProperties.ts`: the key, the window
+id `properties:<key>`, `classicyDesktopIconPropertiesTarget`, Windows 98 SE's
+General page text), and Finder renders one `ClassicyFilePropertiesWindow`
+(`Finder/`) per sheet in its session-only `properties` (sanitize drops them and
+their window records; a sheet follows its items through PathsMoved; choosing it
+again focuses it). The empty desktop's Properties opens the Appearance panel on
+its Desktop tab (`openClassicyAppAtTab`, `Tabs/useClassicySessionTab.ts`;
+`APPEARANCE_MANAGER_DESKTOP_TAB`). `layout.files.unregisteredOpen: "openWith"`
+turns Finder's last OpenFile route (a type only the Finder opens) into Finder's
+session-only `openWith: { path, trust }`, shown as `ClassicyOpenWithDialog`,
+whose OK (`ClassicyAppFinderOpenWithChoose`) routes through
+`routeClassicyAppOpenFile` under the kept trust; the item's first command then
+reads "Open With…" (`classicyFinderOpensWithDialog`). `layout.files.extensions:
+"hideRegistered"` hides a registered type's extension wherever names show
+(`useClassicyDisplayFileName`, `classicyDisplayFileName` in
+`ClassicyFileNames.ts`, which takes the handler map: store-free), renames
+keeping it, and Finder Preferences offers the check box (Finder's persisted
+`hideFileExtensions`). A package's `fileTypeNames` (Windows 98's "File Folder",
+"Text Document") name the types in the Kind column and the sheet's Type
+(`fileTypeDisplayName(type, packageId?)`, `useClassicyFileTypeDisplayName`,
+`src/Appearance/ClassicyFileTypeNames.ts`).
+
+Cut, Copy, Paste and Paste Shortcut (5.28; item menus after Open and the verbs,
+a Trash item's Cut alone, a folder window's Edit menu before Select All, the
+white spaces, the desktop's `barMenu` and `whiteSpaceMenu`; Ctrl+X, Ctrl+C and
+Ctrl+V through `ClassicyFileBrowser`'s `onClipboardCommand` and the desktop
+hook's own document listener, never in a text field) fill and paste the file
+clipboard, `File/ClassicyFileClipboard.ts` (`{ op: "cut" | "copy", paths,
+storageKey }`, module state apart from the system clipboard,
+`useClassicyFileClipboard`; Escape after a Cut, or text cut or copied in a
+field, empties it). `classicyPasteItems` moves a Cut's items
+(`moveClassicyFileSystemItems`, emptying it) or copies a Copy's
+(`copyClassicyFileSystemItems` over `fs.copy`, a deep copy journaled as
+`copy`, "Copy of <name>", "Copy (2) of <name>" where the name is taken, so it
+never replaces) into the window's folder or the Desktop Folder, placed (the
+first at the menu's point) and selected; `classicyPasteShortcuts` makes
+shortcuts after a Copy. A cut item carries `classicyFileCut` on its
+`ClassicyIcon` (`cut`), `ClassicyDesktopIcon` and list row container, which
+only Windows 98 draws. `layout.transfer.activateDropWindow` (5.31) makes a drop
+into an inactive Finder window focus it (`activateClassicyDropWindow`,
+`ClassicyFileMove.ts`, from Finder's `onMoveItems`, which now gets the drop
+target); the desktop's `moveDesktopItems` (`ClassicyDesktop`) transfers a
+desktop file icon let go on a folder by the drop's effect
+(`transferClassicyFileSystemItems`), then brings the folder's window forward
+(`activateClassicyDropWindow`); its drop menu has no Help item.
+
 ### Finder Drag and Drop
 
 Finder items (icon and list views) and the desktop's file icons drag as Mac OS
@@ -688,8 +1330,19 @@ end where they are instead, as a release there would). Targets are hit-tested
 with `elementsFromPoint` against
 `data-classicy-drop-folder="<path>"` (folder/drive icons, list rows' name cells,
 each file browser's root) and `data-classicy-drop-desktop` (the desktop root);
-`.classicyWindow`, the menu bar, Control Strip and dialogs block. Folder targets
-get `.classicyFileDropTarget` (darkened icon/row, framed window).
+`.classicyWindow`, the menu bar, Control Strip, the taskbar (`.classicyTaskbar`)
+and dialogs block. Folder targets get `.classicyFileDropTarget` (darkened
+icon/row, framed window). An element marked `data-classicy-drop-activate`
+(the taskbar's window buttons), found before the blocking check, takes no
+drop: once the drag has rested on it 500 ms (`CLASSICY_DROP_ACTIVATE_DELAY_MS`)
+it gets one non-bubbling `classicy:dropactivate`, the wait stopped by leaving
+it or the drag ending.
+While the pointer rests within a line step of a registered `ClassicyScrollArea`
+viewport's edge, and that area holds a drop target, the area auto-scrolls a
+line per press-repeat interval (120 ms) until its end
+(`findClassicyFileDragAutoScroll`; WIG Ch.6 p.91, HIG7 p.274; every package:
+the Mac OS Finder scrolled too, and nothing changes outside a drag); an
+icon-view icon dropped in its own folder counts the scroll in its travel.
 
 - `fs.move(path, toFolder)` does the move (refusals: `missing`, `not-a-folder`,
   `same-folder`, `into-itself`, `locked`, `exists`; journal op `"move"` with
@@ -707,6 +1360,39 @@ get `.classicyFileDropTarget` (darkened icon/row, framed window).
   accessor.
 - Dropped back in its own folder, an icon-view icon repositions by the pointer's
   travel (snapping when the arrangement is a grid).
+- A list-view row's drag carries the selection when the row is in it, else the
+  row alone, read when the drag begins, not at the press: under
+  `layout.selection.selectOn: "press"` (Windows 98) the table's own row handler,
+  below the name cell's, selects at the press, so the drag carries what is
+  drawn selected. The list passes `rowsDrag` to `ClassicyTable`, so
+  `selection.dragRange` (a press dragged across rows selecting them,
+  `startClassicyListRangeDrag`, `Utils/ClassicyListPressSelection.internal.ts`,
+  which `ClassicyListBox` shares) never runs there; under
+  `selection.modifiers: "windows"` a double-click opens every selected item
+  (`openItemsFunc`).
+- While the outline is shown the desktop root carries `data-classicy-drop`,
+  Windows' drop effect under the pointer (`none` over nothing that takes the
+  drop, else `move`, `copy` or `link`), under every package and read only by
+  Windows 98's stylesheet (its drag pointers, keyed on `#classicyDesktop` and
+  included last). The drop's effect reaches every callback
+  (`onDrop(…, effect)`, `onMoveItems`, `onFileDrag`, `onMoveFilePaths`; a
+  move unless the package says otherwise), and Finder transfers by it
+  (`transferClassicyFileSystemItems`, `ClassicyFileCommands.internal.ts`:
+  move, copy, or `linkClassicyFileSystemItems`' shortcuts). Windows 98's
+  `layout.transfer` adds Explorer's rules: `secondaryButton: "menu"` (button
+  2 drags too and ends in shell32's transfer menu, Move Here, Copy Here,
+  Create Shortcut(s) Here, Cancel, through `useClassicyFileDropMenu`,
+  `File/ClassicyFileDropMenu.ts`, the press's own item menu closed at the
+  drag's start and the browser's `contextmenu` after the release
+  swallowed), `copyModifier: "ctrl"` (Control at the release copies,
+  Control and Shift make shortcuts, never read from the press; a Mac host's
+  Control press moves), `autoScroll` (the WIG's velocity rule with
+  shell32's `DAD_AutoScroll` figures, `ClassicyFileDragAutoScroll.internal.ts`,
+  in place of the line-step band) and `desktopIconDrag: "outline"` (an
+  application's, drive's or the Trash's desktop icon drags as an outline
+  only the desktop takes, `canDrop`). The desktop's own `moveDesktopItems`
+  passes the effect on (`transferClassicyFileSystemItems`), so a copy or link
+  drop on a desktop folder is never carried out as a move.
 
 ### Trash
 
@@ -730,7 +1416,9 @@ fs-only operations; `ClassicyFileMove.ts` the dispatching wrappers.
   the Trash clears its trash metadata.
 - **Empty:** Special ▸ Empty Trash… (desktop and every Finder window, plus the
   Trash icon's contextual menu) → `ClassicyDesktopShowSystemDialog { dialog:
-  "emptyTrash" }` → `ClassicyEmptyTrashAlert` warning → `emptyClassicyTrash`.
+  "emptyTrash" }` → `ClassicyEmptyTrashAlert` warning → `emptyClassicyTrash`,
+  then, when it removed anything, `ClassicySoundPlayInterrupt
+  ClassicyTrashEmpty` (an optional sprite: silent under Platinum and System 7).
   Special ▸ **Reset PRAM…** (`dialog: "resetPram"`) is the old "clear saved
   state and reload". `Desktop.systemDialog` and the refusal alerts'
   `Desktop.errorDialog` are stripped from persistence.
@@ -775,7 +1463,7 @@ registerClassicyFileSystemAdapter({
 ```
 
 All methods are optional (capability-based). Every mutation flows through
-`writeFile`/`mkDir`/`rmDir`/`load`/`setMetadata` — never mutate `fs.fs` or
+`writeFile`/`mkDir`/`rmDir`/`load`/`setMetadata`/`move`/`copy` — never mutate `fs.fs` or
 entries directly; use `fs.setMetadata(path, patch)` for metadata changes.
 Snapshots carry a sha256 hash and a persisted monotonic `seq` for drift/gap
 detection. At boot, `reconcile` may return
@@ -853,38 +1541,40 @@ shortcut never opens untrusted, since `ClassicyDesktopOpenUrl` is on the floor.
 ### Theming
 
 Themes are JSON presets of an Appearance Package (`packages/appearance/platinum/src/platinum.json` for Platinum: its 21 `presets`, completed and registered by `packages/appearance/platinum/src/index.ts`; `getAllThemes`/`getTheme` read the registered packages' themes, and with none registered serve the core's own `CLASSICY_CORE_DEFAULT_THEME`, `src/Appearance/ClassicyCoreTheme.ts`) and control:
-- Typography (body, ui, header fonts; an optional `typography.uiSmall` family, emitted as `--ui-font-small` only when set, for small control labels and the slider's ticks and readout: System 7 sets Geneva, Platinum keeps the UI family; the name is reserved and the Fonts tab shows a "Small UI Font" row only for a theme that has it)
+- Typography (body, ui, header fonts; an optional `typography.uiSmall` family, emitted as `--ui-font-small` only when set, for small control labels and the slider's ticks and readout: System 7 sets Geneva, Platinum keeps the UI family; the name is reserved and the Fonts tab shows a "Small UI Font" row only for a theme that has it; and an optional `typography.families`, a package's own fonts, `{ font, size?, weight? }` by name, emitted as `--package-font-<name>`/`-size`/`-weight` (`ClassicyThemeFontFamilies.ts`, the prefix reserved), labeled by the package's `fontFamilies`, edited in the Fonts tab by `ClassicyDesktopChangeFont { family, font }` and `ClassicyDesktopChangeFontSize { family, fontSize }`, read with a core fallback: Windows 98 holds each scheme's caption, small caption, menu, message box and icon fonts there, Platinum and System 7 none)
 - Colors (system palette, theme accent colors)
 - Desktop appearance (background, patterns)
 
-Appearance Packages (`registerClassicyAppearancePackage`, registry in `src/Appearance/ClassicyAppearancePackageRegistry.ts`, hooks and resolution in `ClassicyAppearancePackage.ts`) own the look: base component SCSS is structure only, and every bevel, border, gradient and piece of art lives in the package's stylesheet, one `@layer classicy.package` block scoped under `.classicyDesktop[data-classicy-appearance="<id>"]` (written with `classicy-package($id)` from `src/Appearance/vocabulary/_package.scss`, imported `?inline`, injected as `<style id="classicy-appearance-<id>">`). The active package is the persisted `System.Manager.Appearance.packageId` (default `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`), switched by `ClassicyDesktopChangeAppearancePackage { packageId }` (unregistered id: logged no-op), resolved by `useActiveClassicyAppearancePackage` / `resolveClassicyAppearancePackage` (registered id → registered default package → first registered → `CLASSICY_FALLBACK_APPEARANCE_PACKAGE`, for lone components only); the desktop root's `data-classicy-appearance` carries the **resolved** id, and the desktop warns once per page per unregistered stored id other than the default id (which the default state seeds). With no package registered `ClassicyDesktop` draws only `ClassicyNoAppearancePackage` (`Desktop/`; "No Appearance Package is loaded", the `import "@classicy/appearance-platinum";` line, one `classicyLog("error", "Appearance", …)` per page; styled from the core theme's variables it sets itself; not the Sad Mac) and mounts no children until one registers. A package's optional `icon` (an asset source; Platinum's `platinum.webp` is in its art) is shown in the Themes tab, else the generic `system.extension` glyph. Every theme names its package (`theme.package`, missing → `"platinum"`). The `platinum-*` mixins (`_mixins.scss`, `_scrollbars.scss`, `_assets.scss`) live in the package, `packages/appearance/platinum/src/styles/` (one `components/_<Name>.scss` partial per component, included by `platinum.scss` in `dist/classicy.css` bundle order, except Tabs and ScrollArea, which come after Desktop so the tab scroller's and the scroll areas' viewports' hidden native scroll bars beat the desktop's Firefox fallback); when a look declaration moves there, every base declaration that must still beat it moves with it, since anything in `classicy.package` beats all of `classicy.base`. `@classicy/classicy/scss/*` is the vocabulary (`vocabulary`, `layout`, `package`, `color`, `dither`: the 1-bit checker mixins, switched per theme by the `dither.tileSize` knob, 0 = plain ink); `@classicy/appearance-platinum/scss/*` is Platinum's SCSS (`mixins`, `scrollbars`, `assets` for host `@use`; `platinum.scss` itself ships compiled and is not for host compilation); The core neither imports nor exports Platinum: nothing `src/index.ts` reaches lies under `packages/`, and it has none of Platinum's names (`ClassicyCoreImportGraph.test.ts`); Platinum is the workspace package `@classicy/appearance-platinum` (`packages/appearance/platinum`), whose source imports the core only as `@classicy/classicy` (`PlatinumSourceImports.test.ts`) and whose own build leaves it external (`PlatinumOneRegistry.test.ts`). So a host imports a package at its entry; tests that draw Platinum import `@/__tests__/withPlatinum` (`setup.ts` registers no package); Storybook's preview imports it by name; its Package toolbar switches between the shipped packages (`storybook/.storybook/StorybookPackages.ts`: Platinum and System 7, the latter imported only once chosen), a story's own `parameters.classicy.appearancePackage` winning, and its Theme toolbar lists the registered packages' presets, then each unregistered switchable package's from its JSON, a theme of another package than the drawn one falling back to that package's defaults. The core's library build enters at `src/index.ts` and bundles no package (`verify:dist` invariants 5 and 7); Platinum has its own build (below); the example imports `@classicy/appearance-platinum` (its dev server aliases the name to Platinum's source, its production build uses the package's dist, which `build:source` builds). Components rendered outside a `.classicyDesktop[data-classicy-appearance]` element get no look. Details: `docs/AGENT-REFERENCE.md` §8, "Appearance Packages".
+Appearance Packages (`registerClassicyAppearancePackage`, registry in `src/Appearance/ClassicyAppearancePackageRegistry.ts`, hooks and resolution in `ClassicyAppearancePackage.ts`) own the look: base component SCSS is structure only, and every bevel, border, gradient and piece of art lives in the package's stylesheet, one `@layer classicy.package` block scoped under `.classicyDesktop[data-classicy-appearance="<id>"]` (written with `classicy-package($id)` from `src/Appearance/vocabulary/_package.scss`, imported `?inline`, injected as `<style id="classicy-appearance-<id>">`). The active package is the persisted `System.Manager.Appearance.packageId` (default `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`), switched by `ClassicyDesktopChangeAppearancePackage { packageId }` (unregistered id: logged no-op), resolved by `useActiveClassicyAppearancePackage` / `resolveClassicyAppearancePackage` (registered id → registered default package → first registered → `CLASSICY_FALLBACK_APPEARANCE_PACKAGE`, for lone components only); the desktop root's `data-classicy-appearance` carries the **resolved** id, and the desktop warns once per page per unregistered stored id other than the default id (which the default state seeds). With no package registered `ClassicyDesktop` draws only `ClassicyNoAppearancePackage` (`Desktop/`; "No Appearance Package is loaded", the `import "@classicy/appearance-platinum";` line, one `classicyLog("error", "Appearance", …)` per page; styled from the core theme's variables it sets itself; not the Sad Mac) and mounts no children until one registers. A package's optional `icon` (an asset source; Platinum's `platinum.webp` is in its art) is shown in the Themes tab, else the generic `system.extension` glyph. Every theme names its package (`theme.package`, missing → `"platinum"`). The `platinum-*` mixins (`_mixins.scss`, `_scrollbars.scss`, `_assets.scss`) live in the package, `packages/appearance/platinum/src/styles/` (one `components/_<Name>.scss` partial per component, included by `platinum.scss` in `dist/classicy.css` bundle order, except Tabs and ScrollArea, which come after Desktop so the tab scroller's and the scroll areas' viewports' hidden native scroll bars beat the desktop's Firefox fallback); when a look declaration moves there, every base declaration that must still beat it moves with it, since anything in `classicy.package` beats all of `classicy.base`. `@classicy/classicy/scss/*` is the vocabulary (`vocabulary`, `layout`, `package`, `color`, `dither`: the 1-bit checker mixins, switched per theme by the `dither.tileSize` knob, 0 = plain ink); `@classicy/appearance-platinum/scss/*` is Platinum's SCSS (`mixins`, `scrollbars`, `assets` for host `@use`; `platinum.scss` itself ships compiled and is not for host compilation); The core neither imports nor exports Platinum: nothing `src/index.ts` reaches lies under `packages/`, and it has none of Platinum's names (`ClassicyCoreImportGraph.test.ts`); Platinum is the workspace package `@classicy/appearance-platinum` (`packages/appearance/platinum`), whose source imports the core only as `@classicy/classicy` (`PlatinumSourceImports.test.ts`) and whose own build leaves it external (`PlatinumOneRegistry.test.ts`). So a host imports a package at its entry; tests that draw Platinum import `@/__tests__/withPlatinum` (`setup.ts` registers no package); Storybook's preview imports it by name; its Package toolbar switches between the shipped packages (`storybook/.storybook/StorybookPackages.ts`: Platinum, System 7 and Windows 98, the latter two imported only once chosen), a story's own `parameters.classicy.appearancePackage` winning, and its Theme toolbar lists the registered packages' presets, then each unregistered switchable package's from its JSON, a theme of another package than the drawn one falling back to that package's defaults. The core's library build enters at `src/index.ts` and bundles no package (`verify:dist` invariants 5 and 7); Platinum has its own build (below); the example imports `@classicy/appearance-platinum` (its dev server aliases the name to Platinum's source, its production build uses the package's dist, which `build:source` builds). Components rendered outside a `.classicyDesktop[data-classicy-appearance]` element get no look. Details: `docs/AGENT-REFERENCE.md` §8, "Appearance Packages".
 
 Components call `useClassicyAppearance(component, state, ref)` (`src/Appearance/useClassicyAppearance.ts`) on their root: it returns `{ className, style, attrs, emit }`, where `className` is the state classes then the package's `decorate()` class then the last decoration a handler returned (a handler returning nothing keeps it, `{}` clears it), `attrs` holds only package `data-*` keys outside `data-classicy-*` and is spread before the component's own attributes, and `emit(event, detail)` runs the package's `hooks.on[component][event]`; `decorate` must be a pure function of `(component, state)` (memoized on the state classes). User gestures with both a pointer and a keyboard path carry `detail.input` (`ClassicyAppearanceInput`, `"pointer" | "keyboard"`), read from the last press or release (bare modifier keys ignored) unless a pointer-only handler passes it outright. Feedback sounds and the menu-item flash are Platinum hooks (`packages/appearance/platinum/src/hooks.ts`, deeply frozen: compose a new object to build on them; sounds played with `playClassicyAppearanceSound`, mapped per input exactly as the components played them), never component code; error beeps (`ClassicySoundPlayError`) and the boot sound stay in the components. So a component with no package hooks is silent, and a menu item with no package flash runs its action through the 400 ms fallback. The hook reads the active package without the store, so store-mocking tests need no `System.Manager.Appearance`; tests that assert a feedback sprite or the flash `import "@classicy/appearance-platinum"`. Each wired component has an `AppearanceHooks` story under the `storybook-probe` package (`storybook/.storybook/ClassicyAppearanceProbe.tsx`), registered only while the probe is mounted (`unregisterClassicyAppearancePackage`). Details: `docs/AGENT-REFERENCE.md` §8, "Package hooks".
 
-Arrangement (where parts go, not how they look) is CSS `order` on the parts carrying `data-classicy-control` (title-bar boxes; base 10/30/40, title 20), `data-classicy-role` (alert buttons) and `data-classicy-part` (menu-bar clusters 10–60; a balloon-wrapped title's anchor is ordered by `:has()`), plus the alert icon/body, tab strip and disclosure label classes, all set in base SCSS and overridden in a package's CSS; plus the package's `layout` block (`window.growBoxCorner`, `menuBar.placement`, `desktop.iconGridOrigin`, `fileDialog.frame` (`movable` | `fixed`: Mac OS 8's movable titled window, System 7's fixed Standard File box) and `fileDialog.navigation` (`tree` | `flat`: folders expand in place, or one folder at a time), and the optional behavior group `scrollBar` { `thumbDrag`, `fitsBars`, `patternOrigin` }, read by `ClassicyScrollArea`, `ClassicyWindow` and the lists, not published on the root; and the optional `patternOrigin` { `ControlGroup`, `PopUpMenu`, `Separator`, `Slider`: `element` | `window` | `desktop`; `elements`: `{ selector, origin }[]` }, where a component's (or a selected element's) patterns are laid from: the core publishes the window's content origin or the desktop's corner on them from the padding box as `--classicy-pattern-origin-x`/`-y` (`useClassicyPatternOrigin`, `useClassicyPatternOriginElements` in `ClassicyWindow` and `ClassicyDesktop`, `ClassicyPatternOrigin.internal.ts`, one watcher per window, scroll bars included), and the dither mixins take `($x, $y)` to place their tile; System 7 lays every dither from `window`), read by `useClassicyAppearanceLayout()` (components) or the store-free `getClassicyAppearanceLayout(packageId?)` (reducers), resolved from `Appearance.packageId`, and published on the desktop root as `data-classicy-grow-box` / `data-classicy-menu-bar` and `--classicy-layout-*` (by `ClassicyDesktop`, not `getThemeVars`). Placement `window` makes the screen bar headless (it still dispatches chords), zeroes `--menu-bar-height` on the desktop root (`classicyLayoutThemeVars`, spread after the theme's variables and before the host's `style`), so windows may use the full height, and gives each window with an `appMenu` a `ClassicyWindowMenuBar`; the grow-box corner drives the grip CSS and `computeClassicyWindowResize` (fed the live `--window-resize-inset` as its fudge and `[0, --menu-bar-height]` as its floor, the same floor the release clamp applies; the window reads both from its own element, so it follows the desktop it is in). Existence of parts stays behavioral: a package only reorders or hides, except that `scrollBar.fitsBars: "shown"` keeps scroll bars drawn (in the `fits` state) where the content fits, and `thumbDrag: "onRelease"` adds the drag outline while a thumb drag lasts. The Storybook-only `mirrored` package (`storybook/.storybook/MirroredPackage.ts`, `mirrored.scss`: Platinum's mixins rescoped, then the flips) is the proof, with six `Mirrored` stories (`mirroredParameters` from `storybook/.storybook/mirrored.ts`, which registers the package; only those story files import it, never `preview.tsx`, so other iframes' package lists stay clean), and the template for a new package. Details: `docs/AGENT-REFERENCE.md` §8, "Layout declarations".
+Arrangement (where parts go, not how they look) is CSS `order` on the parts carrying `data-classicy-control` (title-bar boxes; base 10/30/40, title 20), `data-classicy-role` (alert buttons) and `data-classicy-part` (menu-bar clusters 10–60; a balloon-wrapped title's anchor is ordered by `:has()`), plus the alert icon/body, tab strip and disclosure label classes, all set in base SCSS and overridden in a package's CSS; plus the package's `layout` block (`window.growBoxCorner`, `menuBar.placement`, `desktop.iconGridOrigin`, `fileDialog.frame` (`movable` | `fixed`: Mac OS 8's movable titled window, System 7's fixed Standard File box) and `fileDialog.navigation` (`tree` | `flat`: folders expand in place, or one folder at a time), `fileDialog.listFlow` (`single` | `columns`: a flat list in one column, or flowing in columns as Windows' list view in List mode, `classicyFileOpenDialogWellColumns`, Left/Right moving a column), `fileBrowser.keys` (`mac` | `windows`: the icon view's modified clicks and paging keys, the Finder's or Explorer's), `fileBrowser.iconSelection` (`perIcon` | `view`: a drag of a selected icon carrying the icon or the whole selection) and `fileBrowser.regionSelect` (the list view's selection rectangle, and either view's scrolling the window), `selection.iconNavigation` (`each` | `roving`: every icon a Tab stop, or one), `fileList.foldersFirst` (folders before files in `ClassicyFileBrowser`'s views, `ClassicyTable`'s `sortGroup`; a descending list sort reverses it, as Explorer's), the optional behavior group `scrollBar` { `thumbDrag`, `fitsBars`, `patternOrigin`, `liveSnapBack`, `snapBackScale` }, read by `ClassicyScrollArea`, `ClassicyWindow` and the lists, not published on the root, `tree.keys` (`mac` | `windows`: `ClassicyTree`'s bare Right/Left Arrow expand or enter, collapse or go up, and its Control (or ⌘) chords scroll it without moving its row (`TREEVIEW_ScrollKeyDown`), under `windows` alone, where a `ClassicyTable`'s tree rows expand on the bare arrows too), `selection.pageKeys` (`scroll` | `move`: Page Up/Down page the list, or move its keyboard row to the page's edge then a page further, `useListNavigation`'s `pageRows` and `classicyListPageIndex`) and `selection.keyboard` (`follow` | `windows`: a table's Space, Control with a navigation key moving a multi list's row alone, Shift+F8's Add mode published as `data-classicy-selection-mode="add"`; both in `Keyboard/ClassicyListKeys.internal.ts`) and `balloonHelp.placement` (`anchor` | `pointer`, above); and the optional `patternOrigin` { `ControlGroup`, `PopUpMenu`, `Separator`, `Slider`: `element` | `window` | `desktop`; `elements`: `{ selector, origin }[]` }, where a component's (or a selected element's) patterns are laid from: the core publishes the window's content origin or the desktop's corner on them from the padding box as `--classicy-pattern-origin-x`/`-y` (`useClassicyPatternOrigin`, `useClassicyPatternOriginElements` in `ClassicyWindow` and `ClassicyDesktop`, `ClassicyPatternOrigin.internal.ts`, one watcher per window, scroll bars included), and the dither mixins take `($x, $y)` to place their tile; System 7 lays every dither from `window`), read by `useClassicyAppearanceLayout()` (components) or the store-free `getClassicyAppearanceLayout(packageId?)` (reducers), resolved from `Appearance.packageId`, and published on the desktop root as `data-classicy-grow-box` / `data-classicy-menu-bar` and `--classicy-layout-*` (by `ClassicyDesktop`, not `getThemeVars`). Placement `window` makes the screen bar headless (it still dispatches chords), zeroes `--menu-bar-height` on the desktop root (`classicyLayoutThemeVars`, spread after the theme's variables and before the host's `style`), so windows may use the full height, and gives each window with an `appMenu` a `ClassicyWindowMenuBar`; the grow-box corner drives the grip CSS and `computeClassicyWindowResize` (fed the live `--window-resize-inset` as its fudge and `[0, --menu-bar-height]` as its floor, the same floor the release clamp applies; the window reads both from its own element, so it follows the desktop it is in). Existence of parts stays behavioral: a package only reorders or hides, except that `scrollBar.fitsBars: "shown"` keeps scroll bars drawn (in the `fits` state) where the content fits, and `thumbDrag: "onRelease"` adds the drag outline while a thumb drag lasts. The Storybook-only `mirrored` package (`storybook/.storybook/MirroredPackage.ts`, `mirrored.scss`: Platinum's mixins rescoped, then the flips) is the proof, with six `Mirrored` stories (`mirroredParameters` from `storybook/.storybook/mirrored.ts`, which registers the package; only those story files import it, never `preview.tsx`, so other iframes' package lists stay clean), and the template for a new package. Details: `docs/AGENT-REFERENCE.md` §8, "Layout declarations".
 
 Built-in themes are never mutated: the first color/font/desktop/metric edit on one (`ClassicyDesktopChangeColor { colorKey, index?, color }`, `ChangeFont*`, `ChangeBackground*`, `ChangeMetric`, `ChangeAppearanceOption`) forks it into its package's "Custom" theme (`classicyCustomThemeSlotId`: `"custom"` for Platinum, `custom-<packageId>` otherwise; a slot held by another package's theme moves that theme aside to `<slotId>-<n>`) in `Appearance.customThemes` and activates it; later edits modify the active custom theme (`editActiveClassicyTheme`, `ClassicyCustomTheme.ts`). `ChangeTheme` searches the active package's loaded built-ins, then its defaults and presets (completed like a package switch's defaults: a registered wallpaper held by its filename), then customs, then other packages' built-ins, so an id another package also uses resolves to the active package's theme; it never changes `packageId`. Built-ins are never persisted (`ClassicyBuiltInThemes.internal.ts`): `sanitizeStateForPersistence` drops `availableThemes` (the load path drops one saved by an older build; the default state lists none, and `ClassicyDesktop` loads `getAllThemes()` when it mounts with a package registered, else when the first one registers) and saves a built-in active theme as `{ id, package }`, plus `defaults: true` when it is its package's defaults theme. On load, an active theme whose id names a built-in of its package is replaced by the current preset (same completion as `ChangeTheme`), whatever data it held, in-place edits saved before custom themes (v0.83) included; for a package not registered yet that happens when it registers, Platinum included: a first session's active theme is the core's `CLASSICY_CORE_DEFAULT_THEME`, refreshed when the store is created (default package registered first) or when that package registers (store first, as a host's entry loads them); an active theme that is its own package's defaults (by id; the core stand-in's id for the unregistered default package; for another unregistered package, a pending reference saved with `defaults: true`, so a package the host dropped still heals) gives way to the drawn package's defaults whenever the drawn package differs, at store creation, on every registry change and on a drawn-package change through the store, without writing `packageId` (`drawnClassicyPackageDefaults`; customs, presets and an unregistered package's host-loaded themes are never replaced; another package's defaults chosen explicitly last until the next load); a provider `defaultState` seed's theme tweaks (data, not id) are forked into the Custom theme of the package the seed draws, so they persist, and that fork follows the drawn package while it stays untouched in the session (`withClassicyDefaultStateSeed`). A reference to a preset that is gone falls back to its package's defaults with one `classicyLog` warning. Customs, host-loaded themes and an unregistered package's themes (Platinum's too, before it registers: no load or persist helper treats a package as known until it registers, except that the default state's merge base is always stripped of default knobs, since it holds no user edits) are saved whole and never refreshed, except that a package's registration stores by filename the wallpaper of each of its themes that a `data:` URI or older URL saved before the index had it, in the same store write as the preset refresh. Themes hold and persist a registered wallpaper by its filename (`"azul_dark.png"`, the `file` given to `registerClassicyWallpapers`), never a build's URL for it; that identity is not the name of the file shipped (since plan 0019-fb7 the wallpapers are WebP: `azul_dark.png` ships as `azul_dark.webp`, Platinum's `default.jpg` as `default_photo.webp`, and no identity, `legacyDigests` entry or theme JSON changed), and the index also maps the emitted file's name back to it (`fileBySrcBasename`: a bare `azul_dark.webp`, or a local path to it, hashed or not, stores as `"azul_dark.png"`; a remote URL only when its name carries a bundler hash; an identity name always wins): `ChangeBackground`, theme loading, `sanitizeStateForPersistence` and a `migrateClassicyState` step store `portableClassicyWallpaper(value, theme.package)` (a 2.x save's inlined `data:` URI matches by the `legacyDigests` Platinum registers, `platinumLegacyWallpapers.ts`; an old path or hashed asset URL by its basename, hash stripped), and `getThemeVars` resolves it at render (`resolveClassicyWallpaper`, `src/Appearance/ClassicyWallpaperIndex.ts`, store-free); an unmatched `data:` or http(s) URL is kept and still renders, any other unmatched value renders no image. A filename is unique within its package only (0143): a bare filename means the theme's own package's (then Platinum's, then the active one's), a theme stores a wallpaper bare when it is its own package's or Platinum's that its package has no file of that name for, and `<package>|<file>` otherwise (`"platinum|default.png"` in a theme of a package with its own `default.png`; neither half may hold `:` or `/`, so it never reads as a URL or `data:` URI), decided from the theme's package and Platinum only, never the active package, so a stored theme renders the same image whichever package is active; a reference resolves to that package's only, and a bare filename is never rewritten, so a Platinum-only host's saved bytes are unchanged; theme files write and import `classicyWallpaperReferenceFor`, which qualifies every other package's wallpaper (an import pins a bare filename its package lacks to the first of Platinum, the importing host's active package, then the other packages in registration order that registers it, so with two other packages sharing it the pick depends on the importing host). A host's `ClassicyDesktopLoadThemes` list is session state, dispatched on every boot.
 The 28 editable colors are defined once in `CLASSICY_THEME_COLOR_TARGETS` (`ClassicyThemeColorTargets.ts`), which drives the reducer's validation and the Appearance Manager's Colors tab. Details: `docs/AGENT-REFERENCE.md` §8. A package may declare more colors of its own (`colorFamilies` metadata, values under `color.families.<family>.<key>`, emitted as `--package-color-<family>-<key>`, a prefix reserved against measurements; completed from the package's defaults, edited in the Colors tab by `ClassicyDesktopChangeColor { family, key, color }` against the active theme's package's declarations, stored without the default values, every stylesheet read carrying a `--color-*` fallback for a theme of another package (`ClassicyAppearance.varCoverage.test.ts`); `ClassicyThemeColorFamilies.ts`, `docs/AGENT-REFERENCE.md` §8, "Package color families").
 The 20 editable layout metrics are defined the same way in `CLASSICY_THEME_METRIC_TARGETS` (`ClassicyThemeMetricTargets.ts`, edited by `ClassicyDesktopChangeMetric { metricKey, value }`): layout constants are theme data under `measurements.<family>` (window, control, button, groupBox, layout; Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`; an Appearance Package may add families of numbers, which the schema and `withDefaultThemeMetrics` keep), every numeric input is emitted as `--<family>-<key>` (kebab-case) by `classicyMeasurementVars` (`ClassicyThemeMetrics.ts`; names must be lowercase-first camelCase, and on a name collision core inputs win, then package families in key order, each collision logged once), derived sizes (frames, bevels, the edit-field height, …) are computed in `getThemeVars`, and there are no `--hig-*` variables. Themes persisted or saved before the groups existed are completed by `withDefaultThemeMetrics(theme, defaults?)` (on load via `migrateClassicyState`, in files via zod defaults); the migration fills only the core five, because it runs before a host registers its package (H-R17).
 No bare `Npx` in `src/**/*.scss` or a workspace Appearance Package's `packages/appearance/<id>/src/**/*.scss` (`bin/check-pixel-literals.ts`, run by `pnpm lint`; it reads `#{…}px` too; the SCSS gates share these roots, `classicyScssSourceRoots` in `bin/classicyScssSource.ts`); pixel-matched surfaces read `measurements.<family>` knobs from `platinum.json`, emitted as `--<family>-<key>` by `getThemeVars`. Platinum's `defaults.measurements` holds 24 knob families (105 keys) beside the core five (only in `defaults`; Platinum's `index.ts` fills the 21 presets); `knobs` metadata, and so the Options tab, covers six of them (`controlStrip`, `menuFrame`, `pager`, `balloonHelp`, `popUpSlider`, `scrollbar`; 42 knobs, H-R4). A knob a base stylesheet or component reads is a structural knob (H-R13): every package's themes must emit it, which the core floor guarantees (`CLASSICY_CORE_MEASUREMENT_DEFAULTS`, `src/Appearance/ClassicyCoreTheme.ts`: the core five and the 85 structural knobs at Platinum's values, never read from `platinum.json`; the 18 look-only knobs are Platinum's alone, as are its two optional `fileBrowserList` knobs, the list view's HIGOS8 icon size and row padding, which the file browser reads with a fallback). `getThemeVars` completes a theme key by key from `classicyThemeMeasurementDefaults(theme.package)` (the core floor, then the registered package's own values, the package winning; H-R2) before walking it, and `sanitizeStateForPersistence` stores each theme without the knob values equal to its package's defaults (`withoutDefaultThemeMeasurements`; a theme whose package is not registered yet is stored whole). The pixel gate has no allowlist (any literal in a scanned `.scss` fails), and `ClassicyAppearance.varCoverage.test.ts` (over the same roots, Platinum's scripts included) fails on a `var(--x, Npx)` fallback or on a read nothing emits, declares or sets. Full table and rules: `docs/AGENT-REFERENCE.md` §8, "Package knob families" and "Pixel literal gate".
-Colors: never a literal — use a `--color-*` token or `classicy-tint`/`classicy-shade`/`classicy-alpha("--color-x", pct)` from `src/Appearance/vocabulary/_color.scss` (`@classicy/classicy/scss/color`; `color-mix` expansions). `node bin/classicyLiteralColorSweep.ts` (also run by a test) lists any literal left; it scans the same roots and exempts an Appearance Package's custom-property declarations (`--name: value`) under `src/Appearance/<Package>/` or `packages/appearance/<id>/src/`, `var(--classicy-*, …)` fallbacks and data URIs (the span only, not the rest of the line; a theme variable's literal fallback is dead and flagged), the screen savers' art under `packages/appearance/platinum/src/screenSavers/`, and the crash screen's and color picker's listed declarations. Proportions: `getThemeVars` emits 119 named derivations last (`CLASSICY_THEME_DERIVATIONS`, `ClassicyThemeDerivations.ts`), such as `--window-collapsed-height`, `--menu-bar-height`, `--popup-height` and `--ui-font-size-small`: rounded to three decimals except the font sizes, which are unrounded to match the `calc()`s they replaced. Stylesheets read the name, never a new `calc(var(--x) * N)`: `node bin/check-pixel-literals.ts` (in `pnpm lint`, and a test) also gates multipliers against `bin/multiplier-allowlist.json`, which holds only the 43 sites over 11 files kept on purpose (Part G's, the H-R7/H-R21 pixel-grid (the Control Strip's bevels, System 7's pixel-grid art, Platinum's slider), crayon-art and centering geometry, and the button spacing scale; a file's Sass constants, in-block ones included, and numeric loop variables count as factors), each group with a one-line reason (`docs/AGENT-REFERENCE.md` §8); a multiplier of a user-editable metric becomes a derivation of it, never a fixed knob (H-R25). Every variable `getThemeVars` sets after the measurement inputs, every `--classicy-*` name and every `--color-*` name (H-R16) is reserved (`isReservedClassicyThemeVar`): a package measurement that would make one is skipped by the walker, and is never an editable knob (`isThemeMetricFamilyTarget`) — derivation names that sit in a knob family's namespace (`--balloon-help-font-size`) included (H-R28c). Derived sizes are computed from the theme, so a host overriding an input variable no longer rescales them; it overrides the derived variable instead. JS reads a size with `readClassicyThemeVar(name, fallback?, el?)` (`ClassicyThemeMetricReader.ts`), never a hard-coded number, and never from a reducer: reducers compute from `getThemeVars(theme)` (desktop icons: `classicyDesktopIconMetrics` in the reducer, `readClassicyDesktopIconMetrics` in render and handler code).
-Theme files (`ClassicyThemeFile.ts`, Themes tab "Save Theme…"/"Load Theme…") are `{ format: "classicy-theme", version: 1, theme }`, validated by the zod `ClassicyThemeSchema` (strips unknown keys except measurement families and package color families, `color.families`, whose names may not be `constructor` or `prototype`; font sizes are 8–72 px (`ClassicyThemeFontSizes.ts`): the typography sizes, `desktop.iconFontSize` and, by key name, any measurement key `fontSize` or `…FontSize` in any family, which `ClassicyDesktopChangeMetric` and the Options tab also bound and `migrateClassicyState` clamps on load; `package` defaults to `"platinum"`; `backgroundImage` must be a registered wallpaper, a filename or `<package>|<file>` (a package's own themes, `ClassicyPackageThemeSchema`, may name any plain filename or `<package>|<file>`) or a plain http(s) URL because it lands in a CSS `url("…")`). Export writes wallpapers by filename, another package's than the theme's as `<package>|<file>`. A theme whose `package` is not registered, Platinum's included, is refused (`readClassicyTheme`): Load Theme… refuses it before any dispatch (`parseClassicyThemeFile`) and shows the error in the Appearance Manager's own alert, a raw `ClassicyDesktopImportTheme` for an uninstalled package sets `Desktop.errorDialog`, and a raw dispatch whose payload fails the schema is ignored silently. `ClassicyDesktopImportTheme { theme }` re-validates, always appends a new custom theme (`custom-<slug>` id, name de-duplicated against every theme and the active package's presets, never a registered package's Custom slot) and activates it; the Appearance Manager's Load Theme… switches to the file's installed package first.
+Colors: never a literal — use a `--color-*` token or `classicy-tint`/`classicy-shade`/`classicy-alpha("--color-x", pct)` from `src/Appearance/vocabulary/_color.scss` (`@classicy/classicy/scss/color`; `color-mix` expansions). `node bin/classicyLiteralColorSweep.ts` (also run by a test) lists any literal left; it scans the same roots and exempts an Appearance Package's custom-property declarations (`--name: value`) under `src/Appearance/<Package>/` or `packages/appearance/<id>/src/`, `var(--classicy-*, …)` fallbacks and data URIs (the span only, not the rest of the line; a theme variable's literal fallback is dead and flagged), the screen savers' art under `packages/appearance/platinum/src/screenSavers/`, and the crash screen's and color picker's listed declarations. Proportions: `getThemeVars` emits 119 named derivations last (`CLASSICY_THEME_DERIVATIONS`, `ClassicyThemeDerivations.ts`), such as `--window-collapsed-height`, `--menu-bar-height`, `--popup-height` and `--ui-font-size-small`: rounded to three decimals except the font sizes, which are unrounded to match the `calc()`s they replaced. Stylesheets read the name, never a new `calc(var(--x) * N)`: `node bin/check-pixel-literals.ts` (in `pnpm lint`, and a test) also gates multipliers against `bin/multiplier-allowlist.json`, which holds only the 46 sites over 14 files kept on purpose (Part G's, the H-R7/H-R21 pixel-grid (the Control Strip's bevels, System 7's and Windows 98's pixel-grid art, Platinum's slider), crayon-art and centering geometry, Windows 98's two on/off switches (the desktop labels' shadow, the solid scroll track), and the button spacing scale; a file's Sass constants, in-block ones included, and numeric loop variables count as factors), each group with a one-line reason (`docs/AGENT-REFERENCE.md` §8); a multiplier of a user-editable metric becomes a derivation of it, never a fixed knob (H-R25). Every variable `getThemeVars` sets after the measurement inputs, every `--classicy-*` name and every `--color-*` name (H-R16) is reserved (`isReservedClassicyThemeVar`): a package measurement that would make one is skipped by the walker, and is never an editable knob (`isThemeMetricFamilyTarget`) — derivation names that sit in a knob family's namespace (`--balloon-help-font-size`) included (H-R28c). Derived sizes are computed from the theme, so a host overriding an input variable no longer rescales them; it overrides the derived variable instead. JS reads a size with `readClassicyThemeVar(name, fallback?, el?)` (`ClassicyThemeMetricReader.ts`), never a hard-coded number, and never from a reducer: reducers compute from `getThemeVars(theme)` (desktop icons: `classicyDesktopIconMetrics` in the reducer, `readClassicyDesktopIconMetrics` in render and handler code).
+Theme files (`ClassicyThemeFile.ts`, Themes tab "Save Theme…"/"Load Theme…") are `{ format: "classicy-theme", version: 1, theme }`, validated by the zod `ClassicyThemeSchema` (strips unknown keys except measurement families and package color families, `color.families`, whose names may not be `constructor` or `prototype`; font sizes are 8–72 px (`ClassicyThemeFontSizes.ts`): the typography sizes, `desktop.iconFontSize` and, by key name, any measurement key `fontSize` or `…FontSize` in any family, which `ClassicyDesktopChangeMetric` and the Options tab also bound and `migrateClassicyState` clamps on load; `package` defaults to `"platinum"`; `backgroundImage` must be a registered wallpaper, a filename or `<package>|<file>` (a package's own themes, `ClassicyPackageThemeSchema`, may name any plain filename or `<package>|<file>`) or a plain http(s) URL because it lands in a CSS `url("…")`). Export writes wallpapers by filename, another package's than the theme's as `<package>|<file>`. A theme whose `package` is not registered, Platinum's included, is refused (`readClassicyTheme`): Load Theme… refuses it before any dispatch (`parseClassicyThemeFile`) and shows the error in the Appearance Manager's own alert, a raw `ClassicyDesktopImportTheme` for an uninstalled package sets `Desktop.errorDialog`, and a raw dispatch whose payload fails the schema is ignored silently. `ClassicyDesktopImportTheme { theme }` re-validates, always appends a new custom theme (`custom-<slug>` id, name de-duplicated against every theme and the active package's presets, never a registered package's Custom slot) and activates it; the Appearance Manager's Load Theme… switches to the file's installed package first. A package's optional `themeFileImporter` (`{ extensions, read(text, fileName) }`) reads another system's theme files: while it is the active package, Load Theme… accepts those extensions (`classicyThemeFileAccept`) and validates what `read` returns as a theme file's theme (`parseClassicyForeignThemeFile`); Windows 98's reads Windows `.theme` files, Platinum and System 7 declare none.
 
 Swappable assets (icons, cursors, wallpapers, fonts, system art) live in the per-package asset registry, `src/Appearance/ClassicyAssetRegistry.ts`: `registerClassicyAssets(kind, packageId, tree)` deep-merges (so `registerClassicyIcons({ system: { files: { document } } })` keeps every other `system` entry), reads resolve the active package then the default package (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, where `ClassicyIcons.ts` registers the core icon tree), with the active theme's `assetVariant` tree of the active package first when it names one (`registerClassicyAssets(…, { variant })`; an unregistered variant warns once and draws the base tree), and components read at render time with `useClassicyAsset`/`useClassicyAssetTree` (elsewhere `resolveClassicyAsset` at call time) — never a module-scope capture like `const x = ClassicyIcons.…`. A core icon URL stands for its key: every icon surface (`resolveClassicyIconImage`, via `ClassicyIconImage`/`ClassicyIcon`/desktop icons) draws a URL the default package registers as the active package's and variant's image for that key, so code that stores an icon stores the core's URL (`classicyCoreIcon`, `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`), never the active package's, and a host that wants an image drawn as is passes its own URL (story 0193-801). `ClassicyDesktop` publishes registered cursors and system art as `--classicy-cursor-<role>` / `--classicy-art-<key>` on its root (`useClassicyAssetVars`); stylesheets use them with a fallback, since an undefined variable voids the whole `cursor` declaration. Everything Platinum registers is in `packages/appearance/platinum/src/assets/platinumAssets.ts` (cursors by `ClassicyCursorRole`, the `ClassicySystemArtKey` art, wallpapers, the thirteen `.woff2` faces) plus the core icon tree registered by `ClassicyIcons.ts` under `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`; each of Platinum's registrations is made under `const PLATINUM = "platinum"`. Full reference: `docs/AGENT-REFERENCE.md` §5.
 Platinum's art lives in `packages/appearance/platinum/src/assets/` (`art/*.svg|webp`, mapped to `ClassicySystemArtKey`s by `art/platinumArt.ts`, the alias badge alone kept as `art/alias.png`; beside it `cursors/` (PNG), `sounds/` and `wallpapers/` (WebP); Control Strip and pop-up slider pixel art in `pixelart/`, read by `ClassicyPixelArt`'s `art` prop) and is read from package SCSS as `var(--classicy-art-<key>)` image layers (title-bar stripes and windoid texture, control-box glyphs and dither, grip, menu and pop-up arrows, slider thumbs, tab outline, QuickTime controller thumbs: images, not masks, because masks blend anti-aliased edges differently and Platinum must render pixel-identical) or as `::before`/`::after` glyph `content` in the component partials (menu check and dash, bevel ▸ ▾, placard ▾, file-input ✕, written as CSS escapes so the CSS stays ASCII). Never embed a `data:` URI or a text glyph in component code. Both chromes draw one title bar, `ClassicyWindowTitleBar` (structure mixins in `Window/ClassicyWindowTitleBar.scss`, stripes from Platinum's `platinum-title-bar-stripes`).
 
 Platinum's sorted-column stripe (HIGOS8 Figs. 2-24 and 2-43, `--color-system-02`, `_Table.scss`) draws in the Finder's list view and a `ClassicyFileBrowser` in list display only; a generic `ClassicyTable` keeps one face.
 
-A package's optional `iconDimming` (`ClassicyIconDimming.ts`; `hiddenApp` is the one surface, a hidden application's icon in the Application menu) declares how it dims an icon per pixel (`blend`, `bits`, `palette`; `variants: { bw: { hiddenApp: null } }` for none under a variant), and the core draws the result on a canvas as a `data:` URL, the `<img>` carrying `classicyIconDimmedImage` so the stylesheet's dimming (written as `:not(.classicyIconDimmedImage)`) stands down. That stylesheet rule is the fallback: no rule, the image not ready, or an icon a canvas cannot read: a cross-origin icon served without CORS fails to load for the canvas (icons load with `crossOrigin = "anonymous"`; one that loads but taints it is refused alike), a browser limit, logged once per source at `warn`, and a failed load is drawn again on the next request. Platinum and System 7 declare the same rule. `docs/AGENT-REFERENCE.md` §8, "Icon dimming".
+A package's optional `iconDimming` (`ClassicyIconDimming.ts`; three surfaces: `hiddenApp`, a hidden application's icon in the Application menu, `disabledItem`, a tree row's that cannot be chosen, and `disabledControl`, a disabled bevel or toolbar button's image) declares how it dims an icon per pixel (`blend`, `bits`, `palette`; `variants: { bw: { hiddenApp: null } }` for none under a variant; for `disabledControl` also an `emboss` of two theme colors, `ClassicyThemeColorTarget`s read from the active theme, DrawState's DSS_DISABLED, which only Windows 98 declares), and the core draws the result on a canvas as a `data:` URL, the `<img>` carrying `classicyIconDimmedImage` so the stylesheet's dimming (written as `:not(.classicyIconDimmedImage)`) stands down. That stylesheet rule is the fallback: no rule, the image not ready, or an icon a canvas cannot read: a cross-origin icon served without CORS fails to load for the canvas (icons load with `crossOrigin = "anonymous"`; one that loads but taints it is refused alike), a browser limit, logged once per source at `warn`, and a failed load is drawn again on the next request. Platinum and System 7 declare the same rule, and no `disabledControl` one. `docs/AGENT-REFERENCE.md` §8, "Icon dimming".
 
 #### App display overrides (`apps` on a package)
 
-A package's optional `apps: Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`, validated by `ClassicyAppIdentityOverrideSchema`) shows any app, bundled or host, by another name, icon or desktop-icon balloon copy; the package beats the `ClassicyApp` `name`/`icon` props for display, the props stay the internal identity, and Platinum declares none. Display only: ids, action types (`ClassicyApp${name}OpenFile`/`CloseFile` keep the internal name; bundled apps use literal types), routing, records (`loadApp` refreshes `apps[id].name/icon` from code, though a host `defaultState` seed wins for a first session; parade entries carry a `followsAppIcon` flag, never the override), persisted state (pinned by `ClassicyAppIdentityPersistence.test.tsx`) and analytics (the pageview app segment, paths, the About box's and desktop icons' `track` payloads) never take it; Quit stays "Quit", but window titles reach GA verbatim and a window's `track` payload carries its `icon` prop. Read it with `useClassicyAppIdentity(appId, fallback)` / `useClassicyAppIdentityOverrides()` in components and `resolveClassicyAppIdentity(appId, fallback, packageId?)` / `classicyAppIdentityFrom` elsewhere (`src/Appearance/ClassicyAppIdentity.ts`): **store-free**, like `useClassicyAppearanceLayout.ts`, so reducers may import it; lookups use `Object.hasOwn`. Desktop icons resolve it only for `kind === "app_shortcut"` (drives share `Finder.app`); an app shortcut's balloon is the stored `desktopIconBalloonHelp`, else the package's `description`, else the manifest's, else the kind's stock copy, titled with the name shown. Menu helpers (`appSwitcherAppsFrom`, `withClassicyAppIdentityMenuItems`, `withClassicyAppIdentityAboutItem`) live in `ClassicyAppSwitcherUtils.ts`; stored About titles keep `About ${internal name}`, and the window menu bar retitles only the `${appId}_about` item titled that way. A Control Strip module with an `appId` takes the app's display name only when it is overridden (`classicyControlStripModuleLabel`). The derived Applications, Extensions and Control Strip Modules folders key entries by **display name** (`classicyDerivedAppEntryNames`, `ClassicyDerivedAppEntrySource`): static entries are never overwritten (only an untouched `_placeholder` gives way), and an app that cannot take its name falls back to its own name, then `"<own name> (<id>)"`, numbered `"… 2"`, warning once; `_derived` entries are stripped from every snapshot and the localStorage write, so a switch never changes persisted bytes; a display name holding `fs.separator` is never a key, in Control Strip Modules too. Display names are 1–64 chars with no surrounding spaces, leading `_`, `:`, control, bidi or invisible characters, checked by code point (tags, Hangul fillers and variation selectors refused, VS16 after an emoji allowed); registration stores a frozen copy of the validated `apps`. Every asset `url()` an emitter writes, in src or a workspace package's source, is quoted, `url("…")`, as `isClassicyAssetSource` assumes (`ClassicyQuotedUrl.repo.test.ts`). The Storybook-only `renamed` package (`storybook/.storybook/RenamedPackage.ts`, `RenamedByPackage` story) is the proof. Details: `docs/AGENT-REFERENCE.md` §8, "App display overrides".
+A package's optional `apps: Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`, validated by `ClassicyAppIdentityOverrideSchema`) shows any app, bundled or host, by another name, icon or desktop-icon balloon copy; the package beats the `ClassicyApp` `name`/`icon` props for display, the props stay the internal identity, and Platinum declares none. Display only: ids, action types (`ClassicyApp${name}OpenFile`/`CloseFile` keep the internal name; bundled apps use literal types), routing, records (`loadApp` refreshes `apps[id].name/icon` from code, though a host `defaultState` seed wins for a first session; parade entries carry a `followsAppIcon` flag, never the override), persisted state (pinned by `ClassicyAppIdentityPersistence.test.tsx`) and analytics (the pageview app segment, paths, the About box's and desktop icons' `track` payloads) never take it; Quit stays "Quit" (under a taskbar the window menu bar titles the app's `${appId}_quit` item "Exit", `withClassicyExitItem`), but window titles reach GA verbatim and a window's `track` payload carries its `icon` prop. Read it with `useClassicyAppIdentity(appId, fallback)` / `useClassicyAppIdentityOverrides()` in components and `resolveClassicyAppIdentity(appId, fallback, packageId?)` / `classicyAppIdentityFrom` elsewhere (`src/Appearance/ClassicyAppIdentity.ts`): **store-free**, like `useClassicyAppearanceLayout.ts`, so reducers may import it; lookups use `Object.hasOwn`. Desktop icons resolve it only for `kind === "app_shortcut"` (drives share `Finder.app`); an app shortcut's balloon is the stored `desktopIconBalloonHelp`, else the package's `description`, else the manifest's, else the kind's stock copy, titled with the name shown. Menu helpers (`appSwitcherAppsFrom`, `withClassicyAppIdentityMenuItems`, `withClassicyAppIdentityAboutItem`) live in `ClassicyAppSwitcherUtils.ts`; stored About titles keep `About ${internal name}`, and the window menu bar retitles only the `${appId}_about` item titled that way, except under a taskbar (`layout.taskbar`), where it moves the app's About (found as the screen bar finds it) to the end of the Help menu it ends with, always titled "About <display name>". Help is one menu in every package (`ClassicyHelpMenu.internal.ts`): the screen bar merges a focused app's own top-level Help menus into its `help-menu`, after the system's and the registered (`useClassicyHelpMenu`) items, dropping an app item that repeats the balloon toggle, and chords keep their scopes (the app's raw `appMenu`; the Apple menu, system Help and registered items). A Control Strip module with an `appId` takes the app's display name only when it is overridden (`classicyControlStripModuleLabel`). The derived Applications, Extensions and Control Strip Modules folders key entries by **display name** (`classicyDerivedAppEntryNames`, `ClassicyDerivedAppEntrySource`): static entries are never overwritten (only an untouched `_placeholder` gives way), and an app that cannot take its name falls back to its own name, then `"<own name> (<id>)"`, numbered `"… 2"`, warning once; `_derived` entries are stripped from every snapshot and the localStorage write, so a switch never changes persisted bytes; a display name holding `fs.separator` is never a key, in Control Strip Modules too. Display names are 1–64 chars with no surrounding spaces, leading `_`, `:`, control, bidi or invisible characters, checked by code point (tags, Hangul fillers and variation selectors refused, VS16 after an emoji allowed); registration stores a frozen copy of the validated `apps`. Every asset `url()` an emitter writes, in src or a workspace package's source, is quoted, `url("…")`, as `isClassicyAssetSource` assumes (`ClassicyQuotedUrl.repo.test.ts`). The Storybook-only `renamed` package (`storybook/.storybook/RenamedPackage.ts`, `RenamedByPackage` story) is the proof. Details: `docs/AGENT-REFERENCE.md` §8, "App display overrides".
+
+A package's optional `desktopIcons: { trash?: { name?, description? }, startupDisk?: { name?, icon?, description? } }` (`ClassicyDesktopIconOverrides`, `ClassicyDesktopIconOverridesSchema`, the same display-name rules, stored as a frozen copy) shows the desktop's own icons otherwise, display only, as `apps` does (Windows 98's Recycle Bin and My Computer): `ClassicyDesktopIcon` applies it to a `kind: "trash"` icon and to a `drive` icon with its `startupDisk` prop, which `ClassicyDesktop` sets on the first drive's icon (`classicyStartupDisk`, read through the file-system accessor only while the active package declares `startupDisk`); the label, image, alt text, mask, balloon copy (in place of the kind's stock copy) and type-select follow it, a `label` still wins, and records, paths, analytics and persisted state keep their own names. Absent, as under Platinum and System 7, nothing changes. Read it with `useClassicyDesktopIconIdentity(icon, fallback)` / `resolveClassicyDesktopIconIdentity` (`ClassicyAppIdentity.ts`, store-free). Details: `docs/AGENT-REFERENCE.md` §8, "Desktop icon overrides".
 
 ### Vocabulary and cascade
 
 - **State classes** are bare and sit beside the root: `.classicyButton.pressed`, `.classicyWindow.active`, never `classicyButtonPressed` and never `data-state` (none is emitted). The 16 states (`active inactive disabled selected pressed focused hover collapsed open dragging error default checked mixed expanded fits`) are generated from `src/Appearance/vocabulary/ClassicyVocabulary.json` by `node bin/generate-vocabulary.ts` (run by `generate-barrels`; CI runs `--check` for freshness) into `ClassicyVocabulary.ts` (`CLASSICY_STATE`, `classicyStateClasses`, `CLASSICY_COMPONENT`, `CLASSICY_PART_ATTRIBUTE`) and `_vocabulary.scss` (`$classicy-states`, `classicy-state()`, which errors at compile time on an unknown name). Emit states with `classicyStateClasses({ … })`; write single-state base rules as `:where(.root).state` so they keep the root rule's specificity. The generator rejects a state that collides with a root or part class; a coverage test (`ClassicyVocabulary.test.ts`) requires every `classicy[A-Z]…` token in the string/template literals and object-literal keys of src `.ts`/`.tsx` and each workspace package's `packages/appearance/<id>/src` (savers, tests and stories excepted) to be a declared root, part or extra class — non-class tokens go in its `NOT_CLASSES` allowlist with a reason, and a class built as `` `classicyX${…}` `` needs a `TEMPLATE_FAMILIES` entry, whose suffixes the test reads from the type union (or SCSS palette) the template interpolates, each declared.
-- **Part attributes**: `data-classicy-control` (`close|zoom|collapse`, window control boxes), `data-classicy-role` (`default|cancel|other`, alert buttons), `data-classicy-part` (`apple|app|help|switcher|extensions|clock`, menu-bar clusters; `window-menu-bar`, the root of a window's own menu bar; `modifier-control|option|shift|command`, `ClassicyKbd`'s modifier glyph spans; `scrollbar`, `scroll-arrow-start|end`, `scroll-track`, `scroll-thumb`, `scroll-corner`, `ClassicyScrollArea`'s parts), `data-classicy-selection` (`all|tail`, on a `ClassicyInput`'s `<input>` while it is `selected`: the selection runs to the end of the text from its first character, or from a later one).
+- **Part attributes**: `data-classicy-control` (`close|zoom|collapse`, window control boxes), `data-classicy-role` (`default|cancel|other`, alert buttons), `data-classicy-part` (`apple|app|help|switcher|extensions|clock`, menu-bar clusters; `window-menu-bar`, the root of a window's own menu bar; `modifier-control|option|shift|command`, `ClassicyKbd`'s modifier glyph spans; `access-key`, an access key's character in a menu title, item, control label, push button or tab (only under a package's `layout.menu.accessKeys`); `scrollbar`, `scroll-arrow-start|end`, `scroll-track`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`, `scroll-accessory-start|end`, `ClassicyScrollArea`'s parts; `list-check`, a `ClassicyListBox` check list's check box (`checkboxes`), hidden by the base sheet, drawn by Windows 98), `data-classicy-selection` (`all|tail`, on a `ClassicyInput`'s `<input>` while it is `selected`: the selection runs to the end of the text from its first character, or from a later one).
 - **Passthrough**: every exported component with a DOM root merges `className` (appended after root and state classes) and `style` (spread after its own) onto its outermost element, so consumer `style` keys win over the component's own, component custom properties included — except window geometry and `zIndex`, which the window and icon states own (`ClassicyWindow` keeps its geometry and drops `zIndex`; `ClassicyIcon`/`ClassicyDesktopIcon` drop `zIndex`, and a `left`/`top` there overrides the drag position). Components with no root of their own (`ClassicyApp` and the bundled apps on it, the providers, controllers, and fragment renderers such as `QuickTimeSeekBar`) take neither — the full list is in `docs/AGENT-REFERENCE.md` §4.0.1; `ClassicyPassthrough.test.tsx` and `ClassicyPassthrough.more.test.tsx` hold one row per component that does.
 - **Cascade**: component CSS compiles into `@layer classicy.base` (see the Cascade layers note under Build Notes for the plugin and host rules); there is no `!important` in src SCSS or a workspace package's (test-enforced by `ClassicyCascade.repo.test.ts`), so a state rule must follow the base rule it overrides. Public contract: `docs/AGENT-REFERENCE.md` §4.0.1.
 
@@ -893,19 +1583,20 @@ A package's optional `apps: Record<appId, { name?, icon?, description? }>` (`Cla
 - Uses **mise** for tool version management (`mise.toml`) — Node 24, ffmpeg 8.0.1
 - ffmpeg is **built from source** on macOS and Linux (prebuilt binaries were inconsistent and missing codecs). `mise install` runs `bin/ffmpeg-deps.sh` via a `preinstall` hook, which installs the required development libraries with `brew` or `apt-get` — on Linux that means an **automatic `sudo` prompt** the first time. The script is a fast no-op once the libraries are present. Run `bin/ffmpeg-deps.sh --check` to see what's missing without installing. Its package lists must stay in sync with `ASDF_FFMPEG_ENABLE` in `mise.toml`; it must stay executable (mise runs hooks via `sh`, so the `#!/bin/bash` shebang is what provides bash semantics). Non-apt Linux distros are reported, not automated. CI deliberately still uses the distro `ffmpeg` package.
 - `pnpm build:source` runs `generate-barrels` first — barrelsby auto-generates all `index.ts` barrel files. Don't manually edit barrel files.
-- Audio sprites generated via audiosprite from the `packages/appearance/platinum/src/assets/sounds/` directories (`bin/make_audio_sprites.sh`'s default; the core ships no sprites), then, in a second run of the same script, from System 7's WAV sources in `packages/appearance/system7/src/assets/sounds/system7/sprites/`. Each pack is encoded as ogg and m4a only (the script's default format list, and System 7's `ogg,m4a` in `build:audio`): Howler plays the first file in `src` the browser can, ogg in Chrome, Edge and Firefox, m4a in Safari, so the mp3 and ac3 that 3.5 also shipped were never reached and went in plan 0019-fb7 (`platinum.ts`/`system7.ts` import exactly the two, and pin the JSON's `src` to them). audiosprite is a pinned devDependency run from `node_modules/.bin` (never `npx`, no network at build time). Rebuilding unchanged sources leaves the sprites byte-identical: an `ffmpeg` shim adds `-fflags +bitexact -map_metadata -1` to audiosprite's encode call (ffmpeg otherwise writes a random Ogg stream serial), and `<name>.sprites.sha256` (a hash of the pack's source files in `sprites/` (Platinum's mp3s, System 7's WAVs), the script, the audiosprite version and the encode formats and loops, not ffmpeg's) makes `build:audio` skip an up-to-date pack, so a distro ffmpeg and mise's never rewrite each other's committed bytes; `CLASSICY_AUDIO_FORCE=1` encodes anyway. The script exports `LC_ALL=C`, because the stamp hashes the sources in glob order and a glob lists them in the locale's collation order (en_US.UTF-8 put `ClassicyTabClickDown.mp3` before `ClassicyTabClick.mp3`), so a stamp is the same on every machine. `CLASSICY_AUDIO_RESTAMP=1` encodes nothing: it rewrites the stamp of each pack whose outputs all exist from the current inputs, for a change that leaves the sprites as they are but changes the hash (the script, the format list); a pack missing an output is named and left alone, and the run fails. It wins over `CLASSICY_AUDIO_FORCE`.
+- `package.json` `sideEffects` lists `src/SystemFolder/ClassicyBundledApps.internal.ts` and every module it imports, so Storybook's production preview keeps their `registerApp` calls; `storybook/.storybook/PreviewAppManifests.test.ts` fails when a new bundled app's module is not listed.
+- Audio sprites generated via audiosprite from the `packages/appearance/platinum/src/assets/sounds/` directories (`bin/make_audio_sprites.sh`'s default; the core ships no sprites), then, in a second run of the same script, from System 7's WAV sources in `packages/appearance/system7/src/assets/sounds/system7/sprites/`, and in a third from Windows 98's (`packages/appearance/windows98/src/assets/sounds/windows98/sprites/`, the Windows 98 SE CD's own WAVs, one per sprite id, a sound two ids play copied under each). Each pack is encoded as ogg and m4a only (the script's default format list, and System 7's and Windows 98's `ogg,m4a` in `build:audio`): Howler plays the first file in `src` the browser can, ogg in Chrome, Edge and Firefox, m4a in Safari, so the mp3 and ac3 that 3.5 also shipped were never reached and went in plan 0019-fb7 (`platinum.ts`/`system7.ts` import exactly the two, and pin the JSON's `src` to them). audiosprite is a pinned devDependency run from `node_modules/.bin` (never `npx`, no network at build time). Rebuilding unchanged sources leaves the sprites byte-identical: an `ffmpeg` shim adds `-fflags +bitexact -map_metadata -1` to audiosprite's encode call (ffmpeg otherwise writes a random Ogg stream serial), and `<name>.sprites.sha256` (a hash of the pack's source files in `sprites/` (Platinum's mp3s, System 7's and Windows 98's WAVs), the script, the audiosprite version and the encode formats and loops, not ffmpeg's) makes `build:audio` skip an up-to-date pack, so a distro ffmpeg and mise's never rewrite each other's committed bytes; `CLASSICY_AUDIO_FORCE=1` encodes anyway. The script exports `LC_ALL=C`, because the stamp hashes the sources in glob order and a glob lists them in the locale's collation order (en_US.UTF-8 put `ClassicyTabClickDown.mp3` before `ClassicyTabClick.mp3`), so a stamp is the same on every machine. `CLASSICY_AUDIO_RESTAMP=1` encodes nothing: it rewrites the stamp of each pack whose outputs all exist from the current inputs, for a change that leaves the sprites as they are but changes the hash (the script, the format list); a pack missing an output is named and left alone, and the run fails. It wins over `CLASSICY_AUDIO_FORCE`.
 - Library outputs to `dist/` as `classicy.es.js` and `classicy.umd.js`
-- **One build and one dist check per package**: `build:source` builds the core (`vite.config.ts`, entry `src/index.ts`) and runs its `verify:dist` (`bin/check-dist-imports.mjs`), then runs `pnpm --filter @classicy/appearance-platinum build`: Platinum's own `vite build` (`packages/appearance/platinum/vite.config.ts`; ES and UMD bundles with `@classicy/classicy` and React external, `dist/types` from `vite-plugin-dts` over `tsconfig.build.json`, which resolves `@classicy/classicy` through the workspace link to the core's built declarations, so the core builds first) and its `verify:dist` (`packages/appearance/platinum/bin/verify-dist.mjs`). The core's check requires that its dist holds no workspace package's file, as a file or inlined (invariant 5: whole-file base64 match, `findClassicyCorePackageFiles` in `bin/classicyDistAssets.ts`, which now also covers the saver images under `src/screenSavers`), that no bundle carries a `@layer classicy.package` block (invariant 7), and that no `classicySaver*` keyframe or class is in the core's dist (invariant 14, `findClassicySaverMarkers`); its old invariant 12 moved to Platinum. It also holds the plan 0019-fb7 gates: `dist/types` has no `.d.ts.map` (part of invariant 8, below), every map keeps Classicy's own text only (invariant 16, below), the pdf.js worker ships deflated (invariant 17, below), and `classicy.es.js` and `classicy.umd.js` each embed `assets/img/ui/earth.webp` (the About box's Earth picture, icon key `classicy.bg`, the core's only WebP, lossless with the ICC profile its PNG's gAMA and cHRM stood for) as exactly one `data:image/webp` URI, byte for byte the file, so `VitePluginImageTools` never re-encoded it (invariant 18). Platinum's check holds the rest: the bundles import the core rather than carry it (React is external too; zod is carried on purpose, as the core carries it, and stays in `dependencies` for the declarations), `dist/assets` holds exactly its fonts, art (SVG and WebP), cursors (PNG), wallpapers (WebP), screen saver art (`src/screenSavers/*/*.webp`) and two sprites (ogg and m4a), each byte-identical to its source (a PNG or JPG art or wallpaper fails unless `PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS` names it: only `art/alias.png`, whose translucent pixels Chromium draws one level darker from a WebP), nothing but the halftone mask is inlined (System 7's check allows its seven masks, below), every `new URL("assets/…")` names a file and every file is referenced, the package block and its byte-identical `classicy-platinum.css`, the charset rule, the font stylesheet, production JSX (invariant 8: the savers are its first JSX, so its build sets `NODE_ENV=production` like the core's), and `dist/types/index.d.ts` with no test, build-script or JSON declaration and every relative specifier carrying its `.js` (the package is `"type": "module"`, so a `node16`/`nodenext` host resolves no other; dts's `beforeWriteFile` adds them with `bin/classicyDeclarationSpecifiers.ts`) and no `.d.ts.map` (invariant 7), and maps that keep Classicy's own text only (invariant 10, the core's 16). `PlatinumOneRegistry.test.ts` builds Platinum with `--mode bundle-test`, which skips the declarations. System 7 then builds the same way (`pnpm --filter @classicy/appearance-system7 build`, `packages/appearance/system7/vite.config.ts`), and its `bin/verify-dist.mjs` holds Platinum's invariants for its own files (the saver art under Platinum's `src/screenSavers/` included; its art, icons and wallpapers WebP, its cursors PNG, with no format exception), except that nothing but its seven masks may be inlined: the dither checker (`art/dither-checker.svg`), the title bar's stripes and the windoid's drag-bar dots in both variants (`art/{color,bw}/window-stripes.webp` and `window-utility-texture.webp`), and the 1-bit open Apple and Help titles' inversion masks (`art/bw/apple-menu.webp`, `art/bw/help-button.webp`), the six WebPs typed `image/webp`, each byte for byte its file; and that `dist/types` may declare or reference nothing of Platinum's.
-- **Styles ship inside the JS** (#303): `injectCssPlugin` (`vite.config.ts`) appends `bin/classicyStyleInjector.ts`'s code to both of the core's entry bundles, which inserts `classicy.css` as `<style id="classicy-styles">` at the top of `<head>` on first import (once; skipped without a `document`). `dist/classicy.css` is still emitted for strict-CSP hosts. A package's look and fonts are not part of it: each package's `?inline` stylesheet ships as a string in that package's bundles, injected at runtime by the package registry, and Platinum's fonts are `.woff2` files under `packages/appearance/platinum/src/assets/fonts/`, registered by `registerClassicyFonts` as `<style id="classicy-fonts-platinum">` pointing at Platinum's emitted `dist/assets/*.woff2`. A strict CSP blocks both elements, so the package's build emits them as files too, with `classicyPackageStylesheetsPlugin` (`bin/classicyPackageStylesheets.ts`): `dist/classicy-<name>.css` from the stylesheet module's final code (Platinum: `classicy-platinum.css`, starting with the layer order) and `dist/classicy-<id>.fonts.css`, the same `@font-face` rules, unlayered, from the same face list (`platinumFonts.internal.ts`) and rule writer (`ClassicyFontFaceCss.internal.ts`) the runtime uses (`bin/classicyFontStylesheet.ts`), each `url()` the font's emitted file relative to dist. Strict-CSP hosts link `@classicy/classicy/dist/classicy.css`, then `@classicy/appearance-platinum/classicy-platinum.css` and `@classicy/appearance-platinum/classicy-platinum.fonts.css` (both packages' `exports`), in that order; System 7 ships `classicy-system7.css` and `classicy-system7.fonts.css` the same way. The dotted name keeps the fonts file out of the `classicy-<name>.css` namespace, which belongs to package stylesheets. `dist/fonts.js` (+ `fonts.d.ts`, emitted by `injectCssPlugin`; not a Rollup input, since UMD allows one entry) is a deprecated no-op shim so existing `import "@classicy/classicy/fonts"` lines keep resolving (`exports` `./fonts`, listed in `sideEffects`); the 2.x `@classicy/classicy/appearance/platinum` shim and `./appearance/platinum/scss/*` export are gone (Platinum's package exports `.` and `./scss/*`). Every `dist/*.css` of each package must be ASCII only or open with `@charset "UTF-8";` (core invariant 9, Platinum's and System 7's invariant 5, `bin/classicyDistCharset.ts`; a linked stylesheet served without an HTTP charset otherwise takes a non-UTF-8 page's encoding); every package's Vite config keeps them ASCII with `esbuild.charset: "ascii"`, so package glyph `content` is written as escapes.
+- **One build and one dist check per package**: `build:source` builds the core (`vite.config.ts`, entry `src/index.ts`) and runs its `verify:dist` (`bin/check-dist-imports.mjs`), then runs `pnpm --filter @classicy/appearance-platinum build`: Platinum's own `vite build` (`packages/appearance/platinum/vite.config.ts`; ES and UMD bundles with `@classicy/classicy` and React external, `dist/types` from `vite-plugin-dts` over `tsconfig.build.json`, which resolves `@classicy/classicy` through the workspace link to the core's built declarations, so the core builds first) and its `verify:dist` (`packages/appearance/platinum/bin/verify-dist.mjs`). The core's check requires that its dist holds no workspace package's file, as a file or inlined (invariant 5: whole-file base64 match, `findClassicyCorePackageFiles` in `bin/classicyDistAssets.ts`, which now also covers the saver images under `src/screenSavers`), that no bundle carries a `@layer classicy.package` block (invariant 7), and that no `classicySaver*` keyframe or class is in the core's dist (invariant 14, `findClassicySaverMarkers`); its old invariant 12 moved to Platinum. It also holds the plan 0019-fb7 gates: `dist/types` has no `.d.ts.map` (part of invariant 8, below), every map keeps Classicy's own text only (invariant 16, below), the pdf.js worker ships deflated (invariant 17, below), and `classicy.es.js` and `classicy.umd.js` each embed `assets/img/ui/earth.webp` (the About box's Earth picture, icon key `classicy.bg`, the core's only WebP, lossless with the ICC profile its PNG's gAMA and cHRM stood for) as exactly one `data:image/webp` URI, byte for byte the file, so `VitePluginImageTools` never re-encoded it (invariant 18). Platinum's check holds the rest: the bundles import the core rather than carry it (React is external too; zod is carried on purpose, as the core carries it, and stays in `dependencies` for the declarations), `dist/assets` holds exactly its fonts, art (SVG and WebP), cursors (PNG), wallpapers (WebP), screen saver art (`src/screenSavers/*/*.webp`) and two sprites (ogg and m4a), each byte-identical to its source (a PNG or JPG art or wallpaper fails unless `PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS` names it: only `art/alias.png`, whose translucent pixels Chromium draws one level darker from a WebP), nothing but the halftone mask is inlined (System 7's check allows its seven masks, below), every `new URL("assets/…")` names a file and every file is referenced, the package block and its byte-identical `classicy-platinum.css`, the charset rule, the font stylesheet, production JSX (invariant 8: the savers are its first JSX, so its build sets `NODE_ENV=production` like the core's), and `dist/types/index.d.ts` with no test, build-script or JSON declaration and every relative specifier carrying its `.js` (the package is `"type": "module"`, so a `node16`/`nodenext` host resolves no other; dts's `beforeWriteFile` adds them with `bin/classicyDeclarationSpecifiers.ts`) and no `.d.ts.map` (invariant 7), and maps that keep Classicy's own text only (invariant 10, the core's 16). `PlatinumOneRegistry.test.ts` builds Platinum with `--mode bundle-test`, which skips the declarations. System 7 then builds the same way (`pnpm --filter @classicy/appearance-system7 build`, `packages/appearance/system7/vite.config.ts`), and its `bin/verify-dist.mjs` holds Platinum's invariants for its own files (the saver art under Platinum's `src/screenSavers/` included; its art, icons and wallpapers WebP, its cursors PNG, with no format exception), except that nothing but its seven masks may be inlined: the dither checker (`art/dither-checker.svg`), the title bar's stripes and the windoid's drag-bar dots in both variants (`art/{color,bw}/window-stripes.webp` and `window-utility-texture.webp`), and the 1-bit open Apple and Help titles' inversion masks (`art/bw/apple-menu.webp`, `art/bw/help-button.webp`), the six WebPs typed `image/webp`, each byte for byte its file; and that `dist/types` may declare or reference nothing of Platinum's. Windows 98 builds last (`pnpm --filter @classicy/appearance-windows98 build`, `packages/appearance/windows98/vite.config.ts`, its `bin/verify-dist.mjs`): its `dist/assets` holds exactly its fonts (`src/assets/fonts/*.woff2`; the faces' readme and license files ship in the tarball beside them, `files`, never in `dist`), its package icon (`windows98.svg`), its art and icons (WebP, `src/assets/art` and `src/assets/icons`), its cursors (PNG, `src/assets/cursors`), its wallpapers and pattern tiles (WebP, `src/assets/wallpapers`), its savers' art (`src/screenSavers/*/*.webp`: 3D Pipes' texture) and its two sprites (ogg and m4a), each byte for byte its file, nothing inlined, zod carried as Platinum carries it (in `dependencies`), the font stylesheet (`classicy-windows98.fonts.css`, the runtime's rules for `WINDOWS98_FONT_FACES`, `windows98Fonts.internal.ts`) beside `classicy-windows98.css`, the bundles and `dist/types`, and its declarations reference nothing of Platinum's or System 7's.
+- **Styles ship inside the JS** (#303): `injectCssPlugin` (`vite.config.ts`) appends `bin/classicyStyleInjector.ts`'s code to both of the core's entry bundles, which inserts `classicy.css` as `<style id="classicy-styles">` at the top of `<head>` on first import (once; skipped without a `document`). `dist/classicy.css` is still emitted for strict-CSP hosts. A package's look and fonts are not part of it: each package's `?inline` stylesheet ships as a string in that package's bundles, injected at runtime by the package registry, and Platinum's fonts are `.woff2` files under `packages/appearance/platinum/src/assets/fonts/`, registered by `registerClassicyFonts` as `<style id="classicy-fonts-platinum">` pointing at Platinum's emitted `dist/assets/*.woff2`. A strict CSP blocks both elements, so the package's build emits them as files too, with `classicyPackageStylesheetsPlugin` (`bin/classicyPackageStylesheets.ts`): `dist/classicy-<name>.css` from the stylesheet module's final code (Platinum: `classicy-platinum.css`, starting with the layer order) and `dist/classicy-<id>.fonts.css`, the same `@font-face` rules, unlayered, from the same face list (`platinumFonts.internal.ts`) and rule writer (`ClassicyFontFaceCss.internal.ts`) the runtime uses (`bin/classicyFontStylesheet.ts`), each `url()` the font's emitted file relative to dist. Strict-CSP hosts link `@classicy/classicy/dist/classicy.css`, then `@classicy/appearance-platinum/classicy-platinum.css` and `@classicy/appearance-platinum/classicy-platinum.fonts.css` (both packages' `exports`), in that order; System 7 ships `classicy-system7.css` and `classicy-system7.fonts.css` the same way, and Windows 98 `classicy-windows98.css` and `classicy-windows98.fonts.css`. The dotted name keeps the fonts file out of the `classicy-<name>.css` namespace, which belongs to package stylesheets. `dist/fonts.js` (+ `fonts.d.ts`, emitted by `injectCssPlugin`; not a Rollup input, since UMD allows one entry) is a deprecated no-op shim so existing `import "@classicy/classicy/fonts"` lines keep resolving (`exports` `./fonts`, listed in `sideEffects`); the 2.x `@classicy/classicy/appearance/platinum` shim and `./appearance/platinum/scss/*` export are gone (Platinum's package exports `.` and `./scss/*`). Every `dist/*.css` of each package must be ASCII only or open with `@charset "UTF-8";` (core invariant 9, Platinum's and System 7's invariant 5, `bin/classicyDistCharset.ts`; a linked stylesheet served without an HTTP charset otherwise takes a non-UTF-8 page's encoding); every package's Vite config keeps them ASCII with `esbuild.charset: "ascii"`, so package glyph `content` is written as escapes.
 - **Cascade layers**: `classicyCssLayerPlugin` (`bin/`, registered in `vite.config.ts`, Storybook's `viteFinal` and the example's live-source dev server) wraps every compiled `<repo>/src/**/*.scss`, `?inline` included, in `@layer classicy.base { … }` (one block per file; on the dev server each is also preceded by `CLASSICY_LAYER_ORDER`, `@layer classicy.base, classicy.package, classicy.user;`), except a stylesheet that already is exactly one block of another declared layer: an Appearance Package's `?inline` sheet, one `@layer classicy.package { … }` block, which wrapped would sink to `classicy.base.classicy.package`, under every base rule; its `transformIndexHtml` prepends `<style id="classicy-layer-order">` to every HTML page Vite serves or builds (Storybook's iframe, the example dev server), and the injected stylesheet and `dist/classicy.css` (`prependLayerOrder`, after Vite's hoisted `@charset`) start with the statement. Because it comes first in `<head>`, unlayered host CSS **and every host layer** (Tailwind v4 preflight in `@layer base`, say) beat all of `classicy.*`, `classicy.user` included; hosts override in `classicy.user` or unlayered, and keep resets beneath Classicy in the reserved sublayer `classicy.base.host`, which Classicy never declares. For Tailwind v4 that means **replacing** `@import "tailwindcss";` with its granular form, `@layer theme, base, components, utilities;` plus `theme.css layer(theme)`, `preflight.css layer(classicy.base.host)` and `utilities.css layer(utilities)` (an extra preflight import beside the shorthand still loads a copy into `base`). Contract in `docs/AGENT-REFERENCE.md` §1. New Classicy styles must be `.scss` under `src/` (a plain `.css` would sit unlayered and beat them all), and a component SCSS must never contain a CSS `@import`: it is invalid inside the layer block. `verify:dist` fails if either artifact loses the order statement, holds anything but `@layer classicy.base` blocks after it (invariant 10, `bin/classicyBaseCss.ts`), or if a plain `.css` file under `src/` or a package's `packages/appearance/<id>/src/` holds a rule (invariant 11; the empty `src/index.css` passes). The runtime `@font-face` `<style>` that `registerClassicyFonts` writes stays unlayered (layers do not affect `@font-face`).
 - **Package assets emit as files**: lib mode inlines every asset regardless of `assetsInlineLimit`, so `noInlineAppearanceAssetsPlugin` (`bin/classicyNoInlineAssets.ts`, used by every library build with its default rule) appends the per-import `?no-inline` opt-out to every asset import that resolves under `src/Appearance/` or `packages/appearance/`, and `assetFileNames` puts those files in `dist/assets/`. Platinum's sound sprites, wallpapers, and the art and cursors that left the core's icon tree live in `packages/appearance/platinum/src/assets/` (the core's `assets/` keeps only what the core reads, and its orphans); Platinum's build emits them, its art and its fonts as files in its own `dist/assets/`, and the core's build reaches none of them (its dist has no `assets/` folder). The one deliberate exception is the `halftone` art, imported `?inline` (`art/platinumArt.ts`, ruling E17): it is Platinum's only mask, and a `data:` mask needs no CORS fetch; `halftone.svg` is still emitted with the rest of the art. System 7's exceptions are likewise its masks, the seven above, imported `?inline` (`assets/system7Assets.ts`).
-- **Breaking change for Vite consumers**: because package assets are files referenced by `new URL("assets/…", import.meta.url)`, a consumer's Vite dev server must not pre-bundle any of the packages (the pre-bundle in `node_modules/.vite/deps/` rewrites those URLs, so fonts, art, wallpapers and sprites return the SPA fallback). Consumers set `optimizeDeps: { exclude: ["@classicy/classicy", "@classicy/appearance-platinum"] }` (plus `@classicy/appearance-system7` when they load it), as `example/vite.config.ts` does (`ClassicyPackageExports.test.ts`); any CommonJS dependency classicy pulls in may then need to go in `optimizeDeps.include`. Bundlers that handle `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a URL plugin) need no setting; with any other (plain esbuild, Rollup without such a plugin) the consumer copies each package's `dist/assets/` (Platinum's, and System 7's when loaded) next to the bundle, and the core's `dist/sample.mp4` too (the Movie Player's sample movie, imported `?no-inline` by `MoviePlayer.tsx` and referenced as `new URL("sample.mp4", import.meta.url)`, the one asset the core emits as a file). The pdf.js worker asks nothing of a host (it is embedded, below). Documented in `docs/AGENT-REFERENCE.md` §1 and the README, alongside `@classicy/classicy/fonts` becoming a no-op and 2.x's `dist/fonts.css` being removed. Package assets also ship exactly as authored: neither package's build has an image plugin, and each `verify:dist` fails on any file in its `dist/assets/` that differs from its source or has none (an optimizer's re-encoded copy); the core's `VitePluginImageTools` takes `excludes: CLASSICY_IMAGE_TOOLS_EXCLUDES` (`bin/classicyImageTools.ts`: `src/Appearance/` and `packages/appearance/`).
-- **Raster art is WebP** (plan 0019-fb7 Part 5): Platinum's art and wallpapers, System 7's art, icons and wallpapers, and the core's `assets/img/ui/earth.webp` are WebP, lossless with `exact` (the color under fully transparent pixels kept), written by `bin/classicyWebp.ts`: libwebp compiled to WebAssembly (`@jsquash/webp`, pinned exactly at `1.5.0`; sources decoded with `pngjs` and `jpeg-js`, all root devDependencies), so a source gives the same bytes on any machine. A PNG with gAMA and cHRM and no sRGB chunk, which browsers color-manage (Platinum's `art/sad-mac.png`, `earth.png`), got the ICC profile those chunks stand for (`classicyIccFromPngChunks`, muxed as VP8X plus ICCP). Only the photos (`CLASSICY_WEBP_PHOTOS`) may go lossy, at 45 dB PSNR or more over white and over black and only when smaller than lossless: Platinum's `default.jpg` did (`default_photo.webp`, quality 90), `earth` did not. Cursors stay PNG (the format every browser takes for a CSS `cursor`), and so does Platinum's `art/alias.png` (`CLASSICY_WEBP_KEEP_ORIGINAL`: Chromium draws its translucent pixels one level darker from a WebP). `bin/convert-images-to-webp.ts` did the one-time conversion; `bin/check-webp-in-browsers.ts --browser chromium|firefox` compares each WebP with its original as that browser draws them, each browser its own reference (Firefox launched with color management mode 2; a control exits 2 when management is off); System 7's exporters (`bin/export-assets.mjs`, `bin/export-pixel-art.mjs`) write WebP through `bin/classicyWebp.ts`, cursors as PNG. Nothing under `src/` imports these tools.
+- **Breaking change for Vite consumers**: because package assets are files referenced by `new URL("assets/…", import.meta.url)`, a consumer's Vite dev server must not pre-bundle any of the packages (the pre-bundle in `node_modules/.vite/deps/` rewrites those URLs, so fonts, art, wallpapers and sprites return the SPA fallback). Consumers set `optimizeDeps: { exclude: ["@classicy/classicy", "@classicy/appearance-platinum"] }` (plus `@classicy/appearance-system7` and `@classicy/appearance-windows98` when they load them), as `example/vite.config.ts` does (`ClassicyPackageExports.test.ts`); any CommonJS dependency classicy pulls in may then need to go in `optimizeDeps.include`. Bundlers that handle `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a URL plugin) need no setting; with any other (plain esbuild, Rollup without such a plugin) the consumer copies each package's `dist/assets/` (Platinum's, and System 7's and Windows 98's when loaded) next to the bundle, and the core's `dist/sample.mp4` too (the Movie Player's sample movie, imported `?no-inline` by `MoviePlayer.tsx` and referenced as `new URL("sample.mp4", import.meta.url)`, the one asset the core emits as a file). The pdf.js worker asks nothing of a host (it is embedded, below). Documented in `docs/AGENT-REFERENCE.md` §1 and the README, alongside `@classicy/classicy/fonts` becoming a no-op and 2.x's `dist/fonts.css` being removed. Package assets also ship exactly as authored: no package's build has an image plugin, and each `verify:dist` fails on any file in its `dist/assets/` that differs from its source or has none (an optimizer's re-encoded copy); the core's `VitePluginImageTools` takes `excludes: CLASSICY_IMAGE_TOOLS_EXCLUDES` (`bin/classicyImageTools.ts`: `src/Appearance/` and `packages/appearance/`).
+- **Raster art is WebP** (plan 0019-fb7 Part 5): Platinum's art and wallpapers, System 7's art, icons and wallpapers, Windows 98's art, icons and wallpapers, and the core's `assets/img/ui/earth.webp` are WebP, lossless with `exact` (the color under fully transparent pixels kept), written by `bin/classicyWebp.ts`: libwebp compiled to WebAssembly (`@jsquash/webp`, pinned exactly at `1.5.0`; sources decoded with `pngjs` and `jpeg-js`, all root devDependencies), so a source gives the same bytes on any machine. A PNG with gAMA and cHRM and no sRGB chunk, which browsers color-manage (Platinum's `art/sad-mac.png`, `earth.png`), got the ICC profile those chunks stand for (`classicyIccFromPngChunks`, muxed as VP8X plus ICCP). Only the photos (`CLASSICY_WEBP_PHOTOS`) may go lossy, at 45 dB PSNR or more over white and over black and only when smaller than lossless: Platinum's `default.jpg` did (`default_photo.webp`, quality 90), `earth` did not. Cursors stay PNG (the format every browser takes for a CSS `cursor`), and so does Platinum's `art/alias.png` (`CLASSICY_WEBP_KEEP_ORIGINAL`: Chromium draws its translucent pixels one level darker from a WebP). `bin/convert-images-to-webp.ts` did the one-time conversion; `bin/check-webp-in-browsers.ts --browser chromium|firefox` compares each WebP with its original as that browser draws them, each browser its own reference (Firefox launched with color management mode 2; a control exits 2 when management is off); System 7's exporters (`bin/export-assets.mjs`, `bin/export-pixel-art.mjs`) write WebP through `bin/classicyWebp.ts`, cursors as PNG. Nothing under `src/` imports these tools.
 - **Source maps keep Classicy's own text** (plan 0019-fb7 Part 1): `classicySourceMapTextPlugin` (`bin/classicySourceMapText.ts`), the last plugin in the three library builds' configs (not Storybook's or the example's), sets `sourcesContent` to `null` for every third-party source (a path through `node_modules/`, the deflated pdf.js worker's module included) and every embedded asset (by extension, `CLASSICY_MAP_ASSET_EXTENSIONS`, or a module whose text starts `export default "data:`; a query alone makes nothing an asset, so a package's `.scss?inline` keeps its text) and lists each vendor source in `x_google_ignoreList`. `sources`, `names` and `mappings` stay, so stack traces and DevTools still name the vendor file and line, and every `src/` source (the core's, a package's, Platinum's savers as System 7 bundles them) keeps its text. The gate (`findClassicySourceMapTextProblems`, core invariant 16, the packages' invariant 10) classifies with the same rules, so a `src/` module that is an asset only by its text fails it loudly: add its extension to the list.
 - **No declaration maps** (plan 0019-fb7 Part 4): each library build's `dts()` call passes `compilerOptions: { declarationMap: false }`; the root `tsconfig.json` keeps `declarationMap: true` for the editor. A `.d.ts.map` pointed at `.ts` files no tarball holds except the core's `src/Appearance`, so a host loses only Go to Source Definition into those. Core invariant 8 and the packages' invariant 7 fail on any `.d.ts.map` in `dist/types`.
 - **The pdf.js worker ships deflated** (plan 0019-fb7 Part 2): the PDF viewer lazily loads pdfjs-dist's **legacy** build (`pdfjs-dist/legacy/build/pdf.mjs`, `PDFViewerDocument.tsx`; the modern build calls `Map.prototype.getOrInsertComputed` natively, which the oldest supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack, so every release from 0.71.6 through 3.5.0, every 3.x release among them, all bundling pdfjs-dist 6.2.108's modern build, drew "Couldn't render this page." for every page there (0.70.3 to 0.71.5 bundled 6.1.200, whose modern build calls it natively too; before 0.70.3 the host supplied pdf.js); the types still come from `pdfjs-dist`) beside `ClassicyPdfWorkerSource.internal.ts`, which imports the legacy worker (`legacy/build/pdf.worker.min.mjs`) as `?classicy-deflate` (`classicyDeflateAssetPlugin`, `bin/classicyDeflateAsset.ts`: the default export is `CLASSICY_DEFLATE_MARK` then the base64 of the file raw-deflated at level 9) and, when the first PDF opens, rebuilds the same `data:text/javascript;base64,` URI the old `?url` import inlined, with fflate's `inflateSync`, as `GlobalWorkerOptions.workerSrc`. pdf.js then takes its old path (a `blob:` module worker importing the `data:` URI, its main-thread fallback included) and fetches nothing, so PDFs still open on `file:`, CDN and custom-scheme hosts, and a CSP that admitted the viewer still does. In the ES build pdf.js and the worker source are two lazy chunks (`pdf-*.js`, `ClassicyPdfWorkerSource.internal-*.js`), so a host that never opens a PDF loads neither; the UMD bundle carries both inline. Neither chunk imports the entry: the worker source imports only fflate and the deflated worker and returns `{ ok, src }` or `{ ok: false, problem, error? }`, keeping only a rebuilt URI, and `PDFViewerDocument` logs (a chunk importing `classicyLog` would name the entry as `./classicy.es.js`, so a host serving it under another URL would load a second library, or none). The viewer logs each document-load, page-load and page-render failure through `classicyLog` (`PDFViewer`, the error as a detail), never a canceled render. pdf.js's legacy build installs core-js polyfills on the page's built-in prototypes (`Map`, `Set`, `WeakMap`, `Iterator`, `Uint8Array.prototype.toBase64` and others) where a method is missing or nonconforming: in the UMD bundle at load, in the ES build when the first PDF opens. A failed chunk load is not kept (the next document imports again). The plugin is registered wherever `src/` compiles: the core's build, the three vitest configs (each also lists `CLASSICY_DEFLATE_ID_RE` in `test.server.deps.inline`: vitest runs a `node_modules` file in Node, past every plugin, unless inlined), Storybook's `viteFinal` and the example's live-source dev server. `fflate` and `pdfjs-dist` are devDependencies the core bundles (`MUST_BE_BUNDLED`, invariant 2). Invariant 17: no `dist/*.js` holds a `data:text/javascript` URI with a payload, `classicy.umd.js` carries exactly one deflated payload, the ES chunks other than `classicy.es.js` exactly one between them and `classicy.es.js` none, and each inflates to the installed legacy worker byte for byte (the modern worker is named when found); `classicy.umd.js` and each ES chunk carrying pdf.js's API (getDocument's argument-check text) carry its legacy build, known by core-js's `Map.prototype.getOrInsertComputed` polyfill call (`target: "Map"` … `getOrInsertComputed: function`, keys and a string no minifier renames), at least one ES chunk carrying it; and no `dist/*.js` but `classicy.es.js` imports `classicy.es.js` (static, re-export or `import()`).
 - **Published SCSS**: the core's `files` ships `src/Appearance` for the `./scss/*` (vocabulary) export and nothing under `packages/`; Platinum's SCSS is its own package's `./scss/*` (it ships `src/styles`, its tests kept out by `src/styles/.npmignore`; `PlatinumPackageExports.test.ts` packs it with both packers and checks that pnpm's packed manifest peer-depends on `@classicy/classicy` at `^<version>`, with no `workspace:` range). System 7's SCSS is its package's `./scss/*` the same way (`src/styles`; `scss/system7` ships compiled and is not for host compilation, since it loads Platinum's saver stylesheet index, which neither tarball holds). Platinum's sheets reach the vocabulary as `pkg:@classicy/classicy/scss/*`, so every build and test that compiles them passes Sass's `NodePackageImporter`. The core's tests and `__tests__` helpers are kept out by `src/Appearance/.npmignore`, which npm and pnpm both honor. A `!` pattern in `files` would not do: npm 11 honors it, but pnpm 10 ignores it and packs every test. `ClassicyPackageExports.test.ts` asserts on what both packers really pack (`npm pack --dry-run --json`, `pnpm pack --dry-run --json`). The core's type declarations leave out tests, `__tests__` helpers and stories too: `vite-plugin-dts` takes `exclude: CLASSICY_DTS_EXCLUDE` (`bin/classicyDistTypes.ts`), and `verify:dist` fails if `dist/types` holds a declaration for one. Their relative specifiers carry `.js`, as Platinum's do (dts's `beforeWriteFile`, `bin/classicyDeclarationSpecifiers.ts`, which skips comments and other strings; `verify:dist` invariant 8 fails on one without), and `build:source` ends with `pnpm verify:host-types` (`bin/check-host-types.ts`): it packs the core, Platinum and System 7 with pnpm and type-checks a host file against them under `bundler`, `node16` and `nodenext` with `skipLibCheck` and under `bundler` without it, the host holding only the packed manifests' dependencies and peers (an `@types/…` package only when declared), and fails on any package a packed declaration imports that its manifest does not declare (0151-0cc, 0153-k0e).
-- **`resources/` location**: the Apple Human Interface Guidelines and reference art live in `packages/appearance/platinum/resources/`, beside Platinum's source, because they are Platinum's references. It is never published (not in the package's `files`), and never scanned by the SCSS gates.
+- **`resources/` location**: the Apple Human Interface Guidelines and reference art live in `packages/appearance/platinum/resources/`, beside Platinum's source, because they are Platinum's references. It is never published (not in the package's `files`), and never scanned by the SCSS gates. Windows 98's reference, Microsoft's _Windows Interface Guidelines_ (1995), lives the same way in `packages/appearance/windows98/resources/` (cited as WIG by chapter, topic and printed page; its audit is `docs/plans/windows-guidelines-audit.md`).
 - **Lint gates' scan roots**: the pixel-literal gate, the literal-color sweep and `ClassicyAppearance.varCoverage.test.ts` share `classicyScssSourceRoots` (`bin/classicyScssSource.ts`): `src/` plus every workspace Appearance Package's `packages/appearance/<id>/src/`. A new package's source is scanned without any gate edit.
 - All styling uses SCSS files co-located with components — no Tailwind or inline styles for layout/presentation
 - **Stale `index.lock`**: an empty `index.lock` (mode 600, no holder) in the main checkout or in `.git/worktrees/<name>/` is left by a `git status` that was SIGKILLed mid-scan: the clued plugin's hook relay runs `git status --porcelain --untracked-files=all` after every Bash call under a 2 s `exec.CommandContext` timeout (umask 077, hence mode 600). Clear it with `bin/git-clear-stale-lock.sh [--dry-run] [--min-age SECONDS] [DIR]`, never a bare `rm`: it removes the checkout's own lock only when it is a regular file, empty, at least 60 s old, held open by no process, and no git process runs in that git dir (exit 2 otherwise; Linux only, it reads `/proc`). Story 0094-h7m.

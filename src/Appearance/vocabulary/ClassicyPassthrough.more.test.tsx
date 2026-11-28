@@ -6,6 +6,9 @@ import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyA
 import { DriveSetupList } from "@/SystemFolder/ControlPanels/DriveSetup/DriveSetupList";
 import { registerAppleGuideTopic } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { AppleGuideWindow } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
+import { ClassicyHelpTopics } from "@/SystemFolder/Extensions/AppleGuide/ClassicyHelpTopics";
+import { ClassicyFilePropertiesWindow } from "@/SystemFolder/Finder/ClassicyFilePropertiesWindow";
+import { ClassicyOpenWithDialog } from "@/SystemFolder/Finder/ClassicyOpenWithDialog";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import { FinderPreferences } from "@/SystemFolder/Finder/FinderPreferences";
 import { HyperCardEditorCanvas } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";
@@ -42,6 +45,7 @@ import { QuickTimeCaptionsOverlay } from "@/SystemFolder/SystemResources/QuickTi
 import { QuickTimeFullscreenButton } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeFullscreenButton";
 import { QuickTimeVideoEmbed } from "@/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed";
 import { QuickTimePlayPauseButton } from "@/SystemFolder/SystemResources/QuickTime/QuickTimePlayPauseButton";
+import { ClassicyTaskbar } from "@/SystemFolder/SystemResources/Taskbar/ClassicyTaskbar";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
@@ -248,6 +252,11 @@ const cases: Row[] = [
 		".classicyDesktopMenuTime",
 	],
 	[
+		"ClassicyTaskbar",
+		() => <ClassicyTaskbar className={HOST} style={STYLE} />,
+		"nav.classicyTaskbar",
+	],
+	[
 		"ClassicyFileBrowserViewIcons",
 		() => (
 			<ClassicyFileBrowserViewIcons
@@ -298,8 +307,39 @@ const cases: Row[] = [
 		".classicyWindow",
 	],
 	[
+		"ClassicyHelpTopics (forwards to its window)",
+		() => <ClassicyHelpTopics className={HOST} style={STYLE} />,
+		".classicyWindow",
+	],
+	[
 		"FinderAboutThisComputer (forwards to its window)",
 		() => <FinderAboutThisComputer className={HOST} style={STYLE} />,
+		".classicyWindow",
+	],
+	[
+		"ClassicyFilePropertiesWindow (forwards to its window)",
+		() => (
+			<ClassicyFilePropertiesWindow
+				appId={"Finder.app"}
+				fs={new ClassicyFileSystem()}
+				paths={["Macintosh HD"]}
+				className={HOST}
+				style={STYLE}
+			/>
+		),
+		".classicyWindow",
+	],
+	[
+		"ClassicyOpenWithDialog (forwards to its window)",
+		() => (
+			<ClassicyOpenWithDialog
+				appId={"Finder.app"}
+				fs={new ClassicyFileSystem()}
+				path={"Macintosh HD:data.bin"}
+				className={HOST}
+				style={STYLE}
+			/>
+		),
 		".classicyWindow",
 	],
 	[

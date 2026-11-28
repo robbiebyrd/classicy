@@ -69,8 +69,33 @@ describe("ClassicyWindow.scss cascade", () => {
 			".classicyWindowContentsNotDimmed",
 			".classicyWindowPlacardBarDimmed",
 			".classicyWindowContentsFramedDimmed",
+			".classicyWindow.classicyWindowMinimized",
+			".classicyWindow.classicyWindowMaximized",
 		])
 			expect(at(s)).toBeGreaterThan(base);
+	});
+
+	// Plan 0020-w98 §5 "Maximize and restore": a maximized window
+	// (`window.zoom: "maximize"`, the only layout that emits the class)
+	// fills the work area, so the base rule's height reserve is lifted. Two
+	// classes and later than the base rule, so it wins.
+	it("a maximized window keeps no height reserve", () => {
+		expect(rule(".classicyWindow")["max-height"]).toBe(
+			"calc(100% - var(--window-max-height-reserve))",
+		);
+		expect(rule(".classicyWindow.classicyWindowMaximized")).toEqual({
+			"max-height": "none",
+		});
+	});
+
+	// Plan 0020-w98 §5: a minimized window (`window.collapse: "minimize"`,
+	// the only layout that emits the class) leaves the screen with its tree
+	// mounted. Two classes, so it beats every one-class rule that sets
+	// `display`, wherever it sits.
+	it("a minimized window is not displayed", () => {
+		expect(rule(".classicyWindow.classicyWindowMinimized")).toEqual({
+			display: "none",
+		});
 	});
 
 	// A window can carry two of these at once, so the one that must win

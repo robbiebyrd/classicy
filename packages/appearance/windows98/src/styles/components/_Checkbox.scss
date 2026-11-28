@@ -1,0 +1,192 @@
+// The Windows 98 checkbox, included by windows98.scss inside the package
+// wrapper; overrides the structure of ClassicyCheckbox.scss (the box's size
+// and margin, the holder) and dresses the ControlLabel it is paired with.
+// The look is the Windows 95/98 check box as `DrawFrameControl`
+// (DFC_BUTTON, DFCS_BUTTONCHECK) drew it from the system colors (98.css,
+// os-gui, Wine's uitools.c):
+//
+// - The box: `--checkbox-size` (13) square in a `--checkbox-margin` (2)
+//   margin, Window white in the sunken two-ring bevel (`b.sunken`:
+//   ButtonShadow and ButtonDkShadow at the top and left, ButtonHilight and
+//   ButtonLight at the bottom and right).
+// - On: the 7 x 7 WindowText check mark, three pixels in (two of bevel, one
+//   of face), its short leg rising three rows and its long leg five:
+//
+//     ......x
+//     .....xx
+//     x...xxx
+//     xx.xxx.
+//     xxxxx..
+//     .xxx...
+//     ..x....
+//
+//   The "x" mark (the HIG's localization opt-in, `mark="x"`) is a 7 x 7 X of
+//   two-pixel strokes in the same place (Windows 3.1's mark).
+// - Pressed (the mouse down on the box or its label), the face turns
+//   ButtonFace with the mark kept; disabled, the face is ButtonFace and the
+//   mark ButtonShadow (DFCS_INACTIVE; Windows embosses no check mark).
+// - Mixed (BST_INDETERMINATE, the 3-state box's third state): Windows 9x
+//   fills the box with the 50% checker of ButtonFace and ButtonHilight and
+//   draws the mark in ButtonShadow over it (Wine's DFC_ButtonCheck: a
+//   DFCS_BUTTON3STATE box's mark takes COLOR_BTNSHADOW), whether or not the
+//   box is also on; pressed or disabled, its face is ButtonFace, as any
+//   box's, the mark ButtonShadow still.
+// - The label starts six pixels after the box (98.css: a 19-pixel label
+//   inset less the 13-pixel box): the holder's gap is the core's label
+//   spacing less the box's margin, and the label's own margin is none.
+// - The keyboard focus is the dotted rectangle around the label's text (the
+//   box's own, a pixel out, when it has no label), while anything in the
+//   holder has focus (`:focus-within`: the label precedes the box in the DOM,
+//   so no sibling selector reaches it, and `:has()` is missing from Firefox
+//   113 to 120). A disabled label is embossed: GrayText over a ButtonHilight
+//   copy one ring down and right.
+//
+//   Windows color     token
+//   Window            --color-window-document  the face
+//   WindowText        --color-black            the mark
+//   ButtonFace        --color-system-03        the pressed and disabled face,
+//                                              the checker's dark
+//   ButtonHilight     --color-system-01        the outer bottom-right ring,
+//                                              the checker's light, the emboss
+//   ButtonLight       --color-system-02        the inner bottom-right ring
+//   ButtonShadow      --color-system-05        the outer top-left ring,
+//                                              a disabled or mixed mark
+//   ButtonDkShadow    --color-system-07        the inner top-left ring
+//
+// The face and the mark's ink are the box's own custom properties, which
+// the pressed and disabled states reset, so each mark is drawn once over
+// whichever face the state gives it.
+@use "sass:list";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The check mark (7 x 7) and the X (7 x 7), both at (3, 3) in the box.
+$check: runs(("......x", ".....xx", "x...xxx", "xx.xxx.", "xxxxx..", ".xxx...", "..x...."), "x");
+$x-mark: runs(("xx...xx", ".xx.xx.", "..xxx..", "...x...", "..xxx..", ".xx.xx.", "xx...xx"), "x");
+
+// The mixed box's 50% checker of ButtonFace and ButtonHilight on the pixel
+// grid (UITOOLS_DrawCheckedRect).
+$checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
+
+// The box's face and its mark's ink, as the state sets them.
+$face: var(--windows98-checkbox-face);
+$ink: var(--windows98-checkbox-ink);
+
+// `$rects` moved `$dx`, `$dy` grid pixels: the mark placed inside the box
+// by its coordinates (numbers, so each lands as one `px()` length).
+@function shift($rects, $dx, $dy) {
+  $moved: ();
+  @each $rect in $rects {
+    $w: 1;
+    $h: 1;
+    @if list.length($rect) > 2 {
+      $w: list.nth($rect, 3);
+      $h: list.nth($rect, 4);
+    }
+    $moved: list.append(
+      $moved,
+      (list.nth($rect, 1) + $dx) (list.nth($rect, 2) + $dy) $w $h,
+      $separator: comma
+    );
+  }
+  @return $moved;
+}
+
+// A mark in the state's ink, three pixels in, over the state's face.
+@function marked($art) {
+  @return pixel-art($ink, shift($art, 3, 3)), $face;
+}
+
+// The dotted keyboard focus rectangle.
+@mixin focus-rect($offset) {
+  outline: b.$b dotted b.$text;
+  outline-offset: $offset;
+}
+
+@mixin checkbox {
+  // The box and its label on one line, centered on each other, the label
+  // six pixels after the box (the gap plus the box's margin).
+  .classicyCheckboxHolder {
+    align-items: center;
+    gap: calc(var(--control-label-spacing) - var(--checkbox-margin));
+  }
+
+  .classicyCheckboxHolder > .classicyControlLabelHolder > .classicyControlLabel {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .classicyCheckbox {
+    --windows98-checkbox-face: #{b.$window};
+    --windows98-checkbox-ink: #{b.$text};
+    box-sizing: border-box;
+    flex: none;
+    width: var(--checkbox-size);
+    height: var(--checkbox-size);
+    margin: var(--checkbox-margin);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    appearance: none;
+    background: $face;
+    @include b.sunken;
+    cursor: default;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:checked {
+      background: marked($check);
+    }
+
+    // Pressed: the face turns ButtonFace, the bevel and the mark as they are.
+    &:active:not(:disabled) {
+      --windows98-checkbox-face: #{b.$face};
+    }
+
+    // Disabled: a ButtonFace face, the mark ButtonShadow (DFCS_INACTIVE).
+    &:disabled {
+      --windows98-checkbox-face: #{b.$face};
+      --windows98-checkbox-ink: #{b.$shadow};
+    }
+  }
+
+  // The "x" mark in the check mark's place.
+  .classicyCheckbox.classicyCheckboxX:checked {
+    background: marked($x-mark);
+  }
+
+  // Mixed: the checker face with the mark in ButtonShadow, on or off (each rule
+  // at or above its checked counterpart's weight, and after it); pressed or
+  // disabled, the face is ButtonFace, as any box's.
+  .classicyCheckbox.mixed {
+    --windows98-checkbox-face: #{$checker};
+    --windows98-checkbox-ink: #{b.$shadow};
+    background: marked($check);
+  }
+
+  .classicyCheckbox.mixed.classicyCheckboxX {
+    background: marked($x-mark);
+  }
+
+  .classicyCheckbox.mixed:active:not(:disabled),
+  .classicyCheckbox.mixed:disabled {
+    --windows98-checkbox-face: #{b.$face};
+  }
+
+  // The focus rectangle: around the label while the box has focus, around
+  // the box itself (a pixel out) when it is the holder's only child.
+  .classicyCheckboxHolder:focus-within > .classicyControlLabelHolder > .classicyControlLabel {
+    @include focus-rect(0);
+  }
+
+  .classicyCheckboxHolder > .classicyCheckbox:only-child:focus-visible {
+    @include focus-rect($px);
+  }
+
+  // A disabled label, embossed.
+  .classicyCheckboxHolder > .classicyControlLabelHolder > .classicyControlLabel.disabled {
+    @include b.disabled-text;
+  }
+}

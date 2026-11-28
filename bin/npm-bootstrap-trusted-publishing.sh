@@ -54,10 +54,12 @@ if ! [[ "$PUBLISH_WAIT_SECONDS" =~ ^[0-9]+$ && "$PUBLISH_POLL_SECONDS" =~ ^[1-9]
 	exit 1
 fi
 # The release the placeholder makes way for, named in its deprecation. It is
-# per package: the core and Platinum first shipped in 3.0.0, System 7 in 3.5.0.
+# per package: the core and Platinum first shipped in 3.0.0, System 7 in 3.5.0,
+# Windows 98 in 3.8.0.
 first_release_for() {
 	case "$1" in
 	@classicy/appearance-system7) echo "3.5.0" ;;
+	@classicy/appearance-windows98) echo "3.8.0" ;;
 	*) echo "3.0.0" ;;
 	esac
 }
@@ -80,7 +82,7 @@ for arg in "$@"; do
 	esac
 done
 if [ "${#MANIFESTS[@]}" -eq 0 ]; then
-	MANIFESTS=("$ROOT/package.json" "$ROOT/packages/appearance/platinum/package.json" "$ROOT/packages/appearance/system7/package.json")
+	MANIFESTS=("$ROOT/package.json" "$ROOT/packages/appearance/platinum/package.json" "$ROOT/packages/appearance/system7/package.json" "$ROOT/packages/appearance/windows98/package.json")
 fi
 
 NPM_VERSION="$(npm --version)"
@@ -142,12 +144,12 @@ DEPRECATION_FOR() { echo "Placeholder with no code; install $1@$(first_release_f
 manifest_name() { node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name' "$1"; }
 
 # The distinct first releases of the packages given, oldest first, for the
-# closing notes ("3.0.0" or "3.0.0 and 3.5.0").
+# closing notes ("3.0.0", "3.0.0 and 3.5.0" or "3.0.0, 3.5.0 and 3.8.0").
 RELEASES=""
 for MANIFEST in "${MANIFESTS[@]}"; do
 	RELEASES="$RELEASES$(first_release_for "$(manifest_name "$MANIFEST")")"$'\n'
 done
-RELEASES="$(sort -uV <<<"$RELEASES" | sed '/^$/d' | paste -sd, - | sed 's/,/ and /g')"
+RELEASES="$(sort -uV <<<"$RELEASES" | sed '/^$/d' | paste -sd, - | sed 's/,/, /g; s/\(.*\), /\1 and /')"
 case "$RELEASES" in
 *" and "*) RELEASE_PHRASE="the $RELEASES releases" ;;
 *) RELEASE_PHRASE="the $RELEASES release" ;;

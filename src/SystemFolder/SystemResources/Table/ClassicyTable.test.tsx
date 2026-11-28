@@ -6,12 +6,22 @@ import {
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
+// The Windows-layout package below needs a sound pack registered.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import {
 	ClassicyTable,
 	type ClassicyTableColumn,
 	type ClassicyTableSelectionApi,
 } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+import windows98 from "../../../../packages/appearance/windows98/src/windows98.json";
 
 vi.mock("@/SystemFolder/SystemResources/Table/ClassicyTable.scss", () => ({}));
 
@@ -176,6 +186,61 @@ describe("ClassicyTable", () => {
 		expect(onSelection).toHaveBeenLastCalledWith(["pepper"]);
 		fireEvent.keyDown(box, { key: "End" });
 		expect(onSelection).toHaveBeenLastCalledWith(["rubber"]);
+	});
+
+	// The focus item (Windows' LVIS_FOCUSED, the Mac list's cursor): one row
+	// always carries `focused`, the first until a key or click moves the
+	// cursor, so a package can ring it under the list's :focus without :has().
+	it("marks the cursor row `focused`: the first row, then the row arrowed to or clicked", () => {
+		const { container } = render(
+			<ClassicyTable columns={columns} rows={albums} getRowId={(a) => a.id} />,
+		);
+		const focusedTitles = () =>
+			[...container.querySelectorAll("tbody tr.focused td:first-child")].map(
+				(td) => td.textContent,
+			);
+		expect(focusedTitles()).toEqual(["Rubber Soul"]);
+		const box = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		fireEvent.keyDown(box, { key: "ArrowDown" });
+		expect(focusedTitles()).toEqual(["Rubber Soul"]);
+		fireEvent.keyDown(box, { key: "ArrowDown" });
+		expect(focusedTitles()).toEqual(["Sgt. Pepper"]);
+		expect(
+			container
+				.querySelector("tbody tr.focused")
+				?.classList.contains("selected"),
+		).toBe(true);
+		fireEvent.click(screen.getByText("Abbey Road"));
+		expect(focusedTitles()).toEqual(["Abbey Road"]);
+	});
+
+	it("with a controlled selection and no cursor yet, the first selected row is the focus row", () => {
+		const { container, rerender } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode="multi"
+				selected={["abbey", "pepper"]}
+			/>,
+		);
+		const focusedTitles = () =>
+			[...container.querySelectorAll("tbody tr.focused td:first-child")].map(
+				(td) => td.textContent,
+			);
+		expect(focusedTitles()).toEqual(["Sgt. Pepper"]);
+		rerender(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode="multi"
+				selected={[]}
+			/>,
+		);
+		expect(focusedTitles()).toEqual(["Rubber Soul"]);
 	});
 
 	it("Enter activates the cursor row; double-click activates too", () => {
@@ -515,6 +580,44 @@ describe("ClassicyTable — Select All", () => {
 		);
 		act(() => apiRef.current?.selectAll());
 		expect(onSelectionChange).toHaveBeenCalledWith(albums.map((a) => a.id));
+	});
+
+	// Explorer's New selects the item it made, and Arrange Icons sorts the
+	// details view by a column (the remaining chapters' audit's 5.40 and
+	// A.4): `select` and `sortBy` beside `selectAll`.
+	it("selects given rows and sorts by a column through the selection API", () => {
+		const onSelectionChange = vi.fn();
+		const apiRef = createRef<ClassicyTableSelectionApi>();
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode={"multi"}
+				onSelectionChange={onSelectionChange}
+				selectionApiRef={apiRef}
+			/>,
+		);
+		act(() => apiRef.current?.select?.(["pepper"]));
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper"]);
+		expect(
+			container.querySelector('tr[data-row-id="pepper"]')?.classList,
+		).toContain("selected");
+		act(() => apiRef.current?.sortBy?.("year", true));
+		expect(rowTitles(container)).toEqual([
+			"Abbey Road",
+			"Sgt. Pepper",
+			"Rubber Soul",
+		]);
+		act(() => apiRef.current?.sortBy?.("title"));
+		expect(rowTitles(container)).toEqual([
+			"Abbey Road",
+			"Rubber Soul",
+			"Sgt. Pepper",
+		]);
+		// A column the table does not have changes nothing.
+		act(() => apiRef.current?.sortBy?.("missing"));
+		expect(rowTitles(container)[0]).toBe("Abbey Road");
 	});
 
 	it("includes rows disclosed under an expanded parent", () => {
@@ -1105,5 +1208,859 @@ describe("ClassicyTable's detached titles' style", () => {
 			detached.style.getPropertyValue("--classicy-table-sorted-width"),
 		).not.toBe("");
 		expect(detached.style.height).toBe("");
+	});
+});
+
+// WIG Ch.6 "Activating and Deactivating Windows" (p.81); Ch.13 "Highlighting"
+// (p.318): the list says whether its window is the active one (the audit's
+// 6.4 / 13.8), as ClassicyScrollArea does, so a package can draw an inactive
+// window's selection apart (Windows 98's ButtonFace).
+describe("ClassicyTable — inactive", () => {
+	const container = () =>
+		document.querySelector(".classicyTableContainer") as HTMLElement;
+	const table = (scrollable: boolean) => (
+		<ClassicyTable
+			columns={columns}
+			rows={albums}
+			getRowId={(a) => a.id}
+			scrollable={scrollable}
+			className="host"
+		/>
+	);
+
+	for (const scrollable of [false, true])
+		it(`carries inactive in a window that is not the active one (scrollable ${scrollable}), once`, () => {
+			render(
+				<ClassicyWindowActiveContext.Provider value={false}>
+					{table(scrollable)}
+				</ClassicyWindowActiveContext.Provider>,
+			);
+			expect(container()).toHaveClass("inactive");
+			expect(
+				container()
+					.className.split(" ")
+					.filter((c) => c === "inactive"),
+			).toHaveLength(1);
+		});
+
+	for (const scrollable of [false, true])
+		it(`does not in the active window, or outside any window (scrollable ${scrollable})`, () => {
+			const { unmount } = render(
+				<ClassicyWindowActiveContext.Provider value={true}>
+					{table(scrollable)}
+				</ClassicyWindowActiveContext.Provider>,
+			);
+			expect(container()).not.toHaveClass("inactive");
+			unmount();
+			render(table(scrollable));
+			expect(container()).not.toHaveClass("inactive");
+		});
+
+	it("leaves the unscrolled container's classes as they were when active", () => {
+		render(table(false));
+		expect(container().className).toBe("classicyTableContainer host");
+	});
+});
+
+// `sortGroup` keeps groups together through a sort (the file browser's list
+// groups folders first under `layout.fileList.foldersFirst`, as Windows
+// Explorer does), and a descending sort reverses the whole order, as
+// Explorer negates a compare that puts folders first.
+describe("ClassicyTable — sortGroup", () => {
+	type Item = { id: string; name: string; folder: boolean; items?: Item[] };
+	const items: Item[] = [
+		{ id: "b", name: "banana", folder: false },
+		{
+			id: "Z",
+			name: "zeta",
+			folder: true,
+			items: [
+				{ id: "y", name: "yam", folder: false },
+				{ id: "A", name: "inner", folder: true },
+			],
+		},
+		{ id: "a", name: "apple", folder: false },
+		{ id: "M", name: "mid", folder: true },
+	];
+	const itemColumns: ClassicyTableColumn<Item>[] = [
+		{ id: "name", title: "Name", accessor: (i) => i.name },
+	];
+	const names = (container: HTMLElement) =>
+		[...container.querySelectorAll("tbody tr td:first-child")].map(
+			(td) => td.textContent,
+		);
+
+	it("sorts folders and files together without it", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={itemColumns}
+				rows={items}
+				getRowId={(i) => i.id}
+				defaultSort={{ columnId: "name" }}
+			/>,
+		);
+		expect(names(container)).toEqual(["apple", "banana", "mid", "zeta"]);
+	});
+
+	it("puts the lower group first ascending and last descending, at every level", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={itemColumns}
+				rows={items}
+				getRowId={(i) => i.id}
+				getSubRows={(i) => i.items}
+				expanded={["Z"]}
+				defaultSort={{ columnId: "name" }}
+				sortGroup={(i) => (i.folder ? 0 : 1)}
+			/>,
+		);
+		expect(names(container)).toEqual([
+			"mid",
+			"zeta",
+			"inner",
+			"yam",
+			"apple",
+			"banana",
+		]);
+		fireEvent.click(screen.getByText("Name").closest("th") as HTMLElement);
+		expect(names(container)).toEqual([
+			"banana",
+			"apple",
+			"zeta",
+			"yam",
+			"inner",
+			"mid",
+		]);
+	});
+
+	it("walks the keyboard and Shift ranges in the grouped order", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={itemColumns}
+				rows={items}
+				getRowId={(i) => i.id}
+				defaultSort={{ columnId: "name" }}
+				selectionMode={"multi"}
+				sortGroup={(i) => (i.folder ? 0 : 1)}
+			/>,
+		);
+		const row = (name: string) =>
+			screen.getByText(name).closest("tr") as HTMLElement;
+		fireEvent.click(row("zeta"));
+		fireEvent.click(row("banana"), { shiftKey: true });
+		expect(
+			[...container.querySelectorAll("tbody tr.selected")].map((r) =>
+				r.getAttribute("data-row-id"),
+			),
+		).toEqual(["Z", "a", "b"]);
+	});
+});
+
+// Under the Windows 98 layout: button 2 selects an unselected row before its
+// menu (`selection.secondaryButton` "select"; WIG Ch.5 "Selection with the
+// Mouse", pp.37-38; App. A Table A.1, p.349), only button 1 resizes a
+// column (`mouse` "windows"; Ch.4 "Mouse Actions", pp.24-25), and Escape
+// takes a resize back (`input.escapeCancels`; Ch.4 "Shortcut Keys", p.27).
+// Without a package the default layout declares none of it.
+describe("ClassicyTable — the mouse under the Windows layout", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+	const useWindowsLayout = () =>
+		registerClassicyAppearancePackage({
+			id: "windows-table",
+			name: "Windows table",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-table-default",
+				package: "windows-table",
+			},
+			layout: windows98.layout as never,
+		});
+	const row = (container: HTMLElement, id: string) =>
+		container.querySelector(`tr[data-row-id="${id}"]`) as HTMLElement;
+	const selectedIds = (container: HTMLElement) =>
+		[...container.querySelectorAll("tr.classicyTableRow.selected")].map((r) =>
+			r.getAttribute("data-row-id"),
+		);
+	const renderTable = (onSelectionChange = vi.fn()) => {
+		const view = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				selectionMode="multi"
+				onSelectionChange={onSelectionChange}
+			/>,
+		);
+		const header = view.container.querySelector("th") as HTMLElement;
+		const resizer = header.querySelector(".resizer") as HTMLElement;
+		return { ...view, header, resizer, onSelectionChange };
+	};
+	const pressEscape = () =>
+		act(() => {
+			document.body.dispatchEvent(
+				new KeyboardEvent("keydown", {
+					key: "Escape",
+					bubbles: true,
+					cancelable: true,
+				}),
+			);
+		});
+
+	it("selects an unselected row at a button-2 press, before its menu, under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, onSelectionChange } = renderTable();
+		const heard: (string | null)[][] = [];
+		// What a contextmenu handler above the table sees: the new selection.
+		container.addEventListener("contextmenu", () =>
+			heard.push(selectedIds(container)),
+		);
+		fireEvent.mouseDown(row(container, "pepper"), { button: 2 });
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper"]);
+		fireEvent.contextMenu(row(container, "pepper"), { button: 2 });
+		expect(heard).toEqual([["pepper"]]);
+	});
+
+	it("keeps a selection a button-2 press lands inside, under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, onSelectionChange } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		fireEvent.click(row(container, "abbey"), { metaKey: true });
+		expect(selectedIds(container)).toEqual(["rubber", "abbey"]);
+		onSelectionChange.mockClear();
+		fireEvent.mouseDown(row(container, "abbey"), { button: 2 });
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		expect(selectedIds(container)).toEqual(["rubber", "abbey"]);
+	});
+
+	it("leaves the selection to clicks without the key", () => {
+		const { container, onSelectionChange } = renderTable();
+		fireEvent.mouseDown(row(container, "pepper"), { button: 2 });
+		fireEvent.contextMenu(row(container, "pepper"), { button: 2 });
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		expect(selectedIds(container)).toEqual([]);
+	});
+
+	it("resizes a column with button 1 alone under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, header, resizer } = renderTable();
+		for (const button of [1, 2]) {
+			fireEvent.mouseDown(resizer, { button, clientX: 100 });
+			fireEvent.mouseMove(document, { clientX: 150 });
+			fireEvent.mouseUp(document, { clientX: 150 });
+			expect(header.style.width).toBe("150px");
+		}
+		fireEvent.mouseDown(resizer, { button: 0, clientX: 100 });
+		expect(container.querySelector(".isResizing")).not.toBeNull();
+		fireEvent.mouseMove(document, { clientX: 150 });
+		fireEvent.mouseUp(document, { clientX: 150 });
+		expect(header.style.width).toBe("200px");
+	});
+
+	it("resizes a column with any button without the key", () => {
+		const { header, resizer } = renderTable();
+		fireEvent.mouseDown(resizer, { button: 1, clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 130 });
+		fireEvent.mouseUp(document, { clientX: 130 });
+		expect(header.style.width).toBe("180px");
+	});
+
+	it("puts the column back and ends the resize on Escape under the Windows layout", () => {
+		useWindowsLayout();
+		const { container, header, resizer } = renderTable();
+		// A first resize the second one starts from.
+		fireEvent.mouseDown(resizer, { button: 0, clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 120 });
+		fireEvent.mouseUp(document, { clientX: 120 });
+		expect(header.style.width).toBe("170px");
+		fireEvent.mouseDown(resizer, { button: 0, clientX: 120 });
+		fireEvent.mouseMove(document, { clientX: 200 });
+		expect(header.style.width).toBe("250px");
+		pressEscape();
+		expect(header.style.width).toBe("170px");
+		expect(container.querySelector(".isResizing")).toBeNull();
+		// The pointer moving on and the release that follows change nothing.
+		fireEvent.mouseMove(document, { clientX: 260 });
+		fireEvent.mouseUp(document, { clientX: 260 });
+		expect(header.style.width).toBe("170px");
+	});
+
+	it("leaves Escape alone mid-resize without the key", () => {
+		const { container, header, resizer } = renderTable();
+		fireEvent.mouseDown(resizer, { button: 0, clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 150 });
+		pressEscape();
+		expect(header.style.width).toBe("200px");
+		expect(container.querySelector(".isResizing")).not.toBeNull();
+		fireEvent.mouseUp(document, { clientX: 150 });
+	});
+});
+
+// Under the Windows 98 layout a row is selected at the button-1 press
+// (`selection.selectOn` "press", the audit's 5.5 / A.2; WIG Ch.5 "Selection
+// with the Mouse", pp.37-38; comctl32's LISTVIEW_LButtonDown), a press
+// dragged across rows that do not drag selects them (`selection.dragRange`,
+// 5.3; pp.37-39), and Control with Shift keeps the other selections while a
+// double-click opens the whole selection (`selection.modifiers` "windows",
+// 5.9 / A.9; p.39; App. A Tables A.2 and A.3). The default layout declares
+// none of it: the tests above select at the click.
+describe("ClassicyTable — selection by the mouse under the Windows layout", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		// biome-ignore lint/suspicious/noExplicitAny: jsdom has no elementFromPoint of its own
+		delete (document as any).elementFromPoint;
+	});
+	const useLayout = (selection: Record<string, unknown>) =>
+		registerClassicyAppearancePackage({
+			id: "windows-table-selection",
+			name: "Windows table selection",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-table-selection-default",
+				package: "windows-table-selection",
+			},
+			layout: { ...windows98.layout, selection } as never,
+		});
+	const useWindowsLayout = () => useLayout(windows98.layout.selection);
+	const tracks: Album[] = [
+		...albums,
+		{ id: "help", title: "Help!", year: 1965 },
+		{ id: "revolver", title: "Revolver", year: 1966 },
+	];
+	const row = (container: HTMLElement, id: string) =>
+		container.querySelector(`tr[data-row-id="${id}"]`) as HTMLElement;
+	const selectedIds = (container: HTMLElement) =>
+		[...container.querySelectorAll("tr.classicyTableRow.selected")].map((r) =>
+			r.getAttribute("data-row-id"),
+		);
+	const renderTable = (
+		props: Partial<Parameters<typeof ClassicyTable<Album>>[0]> = {},
+	) => {
+		const onSelectionChange = vi.fn();
+		const view = render(
+			<ClassicyTable
+				columns={columns}
+				rows={tracks}
+				getRowId={(a) => a.id}
+				selectionMode="multi"
+				onSelectionChange={onSelectionChange}
+				{...props}
+			/>,
+		);
+		return { ...view, onSelectionChange };
+	};
+	const press = (
+		el: HTMLElement,
+		init: Partial<MouseEventInit & { detail: number }> = {},
+	) => fireEvent.mouseDown(el, { button: 0, detail: 1, ...init });
+	// Lays the rows (unsorted: rubber, pepper, abbey, help, revolver) out 20
+	// px apart from y 100 in a 60-px viewport, and answers the hit test by y.
+	const layOut = (container: HTMLElement) => {
+		const rows = [...container.querySelectorAll<HTMLElement>("tbody tr")];
+		const viewport = container.querySelector(
+			".classicyScrollAreaViewport",
+		) as HTMLElement;
+		const box = (top: number, height: number) =>
+			({
+				top,
+				bottom: top + height,
+				left: 0,
+				right: 300,
+				width: 300,
+				height,
+				x: 0,
+				y: top,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		viewport.getBoundingClientRect = () => box(100, 60);
+		rows.forEach((r, i) => {
+			r.getBoundingClientRect = () => box(100 + i * 20, 20);
+		});
+		document.elementFromPoint = vi.fn(
+			(_x: number, y: number) =>
+				rows.find((_, i) => y >= 100 + i * 20 && y < 120 + i * 20) ?? null,
+		);
+	};
+	const moveTo = (index: number) =>
+		fireEvent.mouseMove(document, { clientX: 50, clientY: 110 + index * 20 });
+
+	it("selects an unselected row at the press, its click adding nothing", () => {
+		useWindowsLayout();
+		const { container, onSelectionChange } = renderTable();
+		press(row(container, "pepper"));
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper"]);
+		expect(selectedIds(container)).toEqual(["pepper"]);
+		fireEvent.click(row(container, "pepper"), { detail: 1 });
+		expect(onSelectionChange).toHaveBeenCalledTimes(1);
+	});
+
+	it("selects at the click alone without the key", () => {
+		const { container, onSelectionChange } = renderTable();
+		press(row(container, "pepper"));
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		fireEvent.click(row(container, "pepper"), { detail: 1 });
+		expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper"]);
+	});
+
+	it("leaves a selected row's selection to its click, which resets it to that row", () => {
+		useWindowsLayout();
+		const { container, onSelectionChange } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		fireEvent.click(row(container, "abbey"), { shiftKey: true });
+		onSelectionChange.mockClear();
+		press(row(container, "pepper"));
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		expect(selectedIds(container)).toEqual(["rubber", "pepper", "abbey"]);
+		fireEvent.click(row(container, "pepper"), { detail: 1 });
+		expect(selectedIds(container)).toEqual(["pepper"]);
+	});
+
+	it("applies a modified press at once, even on a selected row", () => {
+		useWindowsLayout();
+		const { container } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		press(row(container, "abbey"), { ctrlKey: true });
+		expect(selectedIds(container)).toEqual(["rubber", "abbey"]);
+		fireEvent.click(row(container, "abbey"), { detail: 1, ctrlKey: true });
+		expect(selectedIds(container)).toEqual(["rubber", "abbey"]);
+		press(row(container, "rubber"), { metaKey: true });
+		expect(selectedIds(container)).toEqual(["abbey"]);
+		press(row(container, "help"), { shiftKey: true });
+		// The anchor is rubber, the Control press's row.
+		expect(selectedIds(container)).toEqual([
+			"rubber",
+			"pepper",
+			"abbey",
+			"help",
+		]);
+	});
+
+	it("sets the anchor's range to the anchor's state at a Control-Shift click, keeping the rest", () => {
+		useLayout({ modifiers: "windows" });
+		const { container } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		fireEvent.click(row(container, "abbey"), { metaKey: true });
+		fireEvent.click(row(container, "revolver"), {
+			ctrlKey: true,
+			shiftKey: true,
+		});
+		expect(selectedIds(container)).toEqual([
+			"rubber",
+			"abbey",
+			"help",
+			"revolver",
+		]);
+		// An unselected anchor takes its range out.
+		fireEvent.click(row(container, "help"), { metaKey: true });
+		fireEvent.click(row(container, "abbey"), { metaKey: true, shiftKey: true });
+		expect(selectedIds(container)).toEqual(["rubber", "revolver"]);
+	});
+
+	it("lets Shift win at a Control-Shift click without the key", () => {
+		const { container } = renderTable();
+		fireEvent.click(row(container, "rubber"));
+		fireEvent.click(row(container, "abbey"), { metaKey: true });
+		fireEvent.click(row(container, "revolver"), {
+			ctrlKey: true,
+			shiftKey: true,
+		});
+		expect(selectedIds(container)).toEqual(["abbey", "help", "revolver"]);
+	});
+
+	it("opens the selection a double-click's clicks leave, its second press changing nothing", () => {
+		useWindowsLayout();
+		const onActivateSelection = vi.fn();
+		const onActivateRow = vi.fn();
+		const { container } = renderTable({ onActivateSelection, onActivateRow });
+		fireEvent.click(row(container, "rubber"));
+		const abbey = row(container, "abbey");
+		press(abbey, { shiftKey: true });
+		fireEvent.click(abbey, { detail: 1, shiftKey: true });
+		press(abbey, { detail: 2, shiftKey: true });
+		fireEvent.click(abbey, { detail: 2, shiftKey: true });
+		fireEvent.doubleClick(abbey, { shiftKey: true });
+		expect(onActivateSelection).toHaveBeenCalledWith([
+			"rubber",
+			"pepper",
+			"abbey",
+		]);
+		expect(onActivateRow).not.toHaveBeenCalled();
+	});
+
+	it("opens the double-clicked row alone without the key, without onActivateSelection, or with no selection mode", () => {
+		const onActivateSelection = vi.fn();
+		const onActivateRow = vi.fn();
+		const first = renderTable({ onActivateSelection, onActivateRow });
+		fireEvent.click(row(first.container, "rubber"));
+		fireEvent.click(row(first.container, "abbey"), { metaKey: true });
+		fireEvent.doubleClick(row(first.container, "abbey"));
+		expect(onActivateRow).toHaveBeenLastCalledWith("abbey", tracks[2]);
+		first.unmount();
+		useWindowsLayout();
+		const second = renderTable({ onActivateRow });
+		fireEvent.doubleClick(row(second.container, "pepper"));
+		expect(onActivateRow).toHaveBeenLastCalledWith("pepper", tracks[1]);
+		second.unmount();
+		const third = renderTable({
+			onActivateSelection,
+			onActivateRow,
+			selectionMode: "none",
+		});
+		fireEvent.doubleClick(row(third.container, "help"));
+		expect(onActivateRow).toHaveBeenLastCalledWith("help", tracks[3]);
+		expect(onActivateSelection).not.toHaveBeenCalled();
+	});
+
+	it("selects the rows a press drags across, and scrolls toward a pointer below the list", () => {
+		useWindowsLayout();
+		const frames: FrameRequestCallback[] = [];
+		vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+			frames.push(cb);
+			return frames.length;
+		});
+		vi.stubGlobal("cancelAnimationFrame", () => {});
+		try {
+			const { container, onSelectionChange } = renderTable();
+			layOut(container);
+			press(row(container, "pepper"), { clientY: 130 });
+			moveTo(2);
+			expect(selectedIds(container)).toEqual(["pepper", "abbey"]);
+			expect(onSelectionChange).toHaveBeenLastCalledWith(["pepper", "abbey"]);
+			moveTo(0);
+			expect(selectedIds(container)).toEqual(["rubber", "pepper"]);
+			// Below the viewport: its last shown row, then a frame's scroll.
+			fireEvent.mouseMove(document, { clientX: 50, clientY: 300 });
+			expect(selectedIds(container)).toEqual(["pepper", "abbey"]);
+			expect(frames.length).toBeGreaterThan(0);
+			fireEvent.mouseUp(document);
+			moveTo(4);
+			expect(selectedIds(container)).toEqual(["pepper", "abbey"]);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("keeps the selection a Control drag found", () => {
+		useWindowsLayout();
+		const { container } = renderTable();
+		layOut(container);
+		fireEvent.click(row(container, "revolver"));
+		press(row(container, "rubber"), { ctrlKey: true, clientY: 110 });
+		moveTo(1);
+		expect(selectedIds(container)).toEqual(["rubber", "pepper", "revolver"]);
+		fireEvent.mouseUp(document);
+	});
+
+	it("selects no range across rows that drag, without the key, or with a press selection alone", () => {
+		useWindowsLayout();
+		const dragging = renderTable({ rowsDrag: true });
+		layOut(dragging.container);
+		press(row(dragging.container, "rubber"), { clientY: 110 });
+		moveTo(2);
+		fireEvent.mouseUp(document);
+		expect(selectedIds(dragging.container)).toEqual(["rubber"]);
+		dragging.unmount();
+		resetClassicyAppearancePackagesForTests();
+		useLayout({ selectOn: "press" });
+		const pressOnly = renderTable();
+		layOut(pressOnly.container);
+		press(row(pressOnly.container, "rubber"), { clientY: 110 });
+		moveTo(2);
+		fireEvent.mouseUp(document);
+		expect(selectedIds(pressOnly.container)).toEqual(["rubber"]);
+		pressOnly.unmount();
+		resetClassicyAppearancePackagesForTests();
+		const plain = renderTable();
+		layOut(plain.container);
+		press(row(plain.container, "rubber"), { clientY: 110 });
+		moveTo(2);
+		fireEvent.mouseUp(document);
+		expect(selectedIds(plain.container)).toEqual([]);
+	});
+});
+
+// Under the Windows 98 layout Page Up and Page Down move the cursor a
+// screen, selecting as the arrows do (`selection.pageKeys` "move", the
+// audit's 5.2 / B.3; WIG Ch.5 Table 5.1, pp.35-36; comctl32's
+// LISTVIEW_KeyDown), Space is the Select key, Control (⌘, Option) with a
+// navigation key moves the cursor alone and Shift+F8 toggles Add mode
+// (`selection.keyboard` "windows", 5.16 / 5.18; pp.43-44), and the tree
+// rows expand and collapse on the bare Right and Left Arrows (`tree.keys`
+// "windows", B.3). Without the keys (the tests above, Platinum, System 7)
+// the scroll area takes the page keys and Space, and the selection
+// follows the cursor.
+describe("ClassicyTable — the keyboard under the Windows layout", () => {
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+	});
+	const useLayout = (
+		selection: Record<string, unknown>,
+		tree?: Record<string, unknown>,
+	) =>
+		registerClassicyAppearancePackage({
+			id: "windows-table-keys",
+			name: "Windows table keys",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "windows-table-keys-default",
+				package: "windows-table-keys",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				selection,
+				...(tree ? { tree } : {}),
+			},
+		});
+	type Item = { id: string; name: string };
+	const items: Item[] = Array.from({ length: 10 }, (_, i) => ({
+		id: `i${i}`,
+		name: `${String.fromCharCode(65 + i)} item`,
+	}));
+	const cols: ClassicyTableColumn<Item>[] = [
+		{ id: "name", title: "Name", accessor: (n) => n.name },
+	];
+	const renderTable = (
+		props: Partial<Parameters<typeof ClassicyTable<Item>>[0]> = {},
+	) => {
+		const view = render(
+			<ClassicyTable
+				columns={cols}
+				rows={items}
+				getRowId={(n) => n.id}
+				selectionMode="multi"
+				{...props}
+			/>,
+		);
+		const box = view.container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		return { ...view, box };
+	};
+	const row = (container: HTMLElement, i: number) =>
+		container.querySelector(`tr[data-row-id="i${i}"]`) as HTMLElement;
+	const chosen = (container: HTMLElement) =>
+		[...container.querySelectorAll("tr.classicyTableRow.selected")].map((r) =>
+			r.getAttribute("data-row-id"),
+		);
+	const cursor = (container: HTMLElement) =>
+		container
+			.querySelector("tr.classicyTableRow.focused")
+			?.getAttribute("data-row-id");
+	const key = (box: HTMLElement, k: string, init: KeyboardEventInit = {}) =>
+		!fireEvent.keyDown(box, { key: k, ...init });
+	const rect = (top: number, height: number) =>
+		({
+			top,
+			bottom: top + height,
+			left: 0,
+			right: 300,
+			width: 300,
+			height,
+			x: 0,
+			y: top,
+			toJSON: () => ({}),
+		}) as DOMRect;
+	// Rows 20 px tall from y 100 in an 80-px viewport (four rows show),
+	// scrolled `by` rows; the column titles' bottom at `head`.
+	const layOut = (container: HTMLElement, by = 0, head = 0) => {
+		const viewport = container.querySelector(
+			".classicyScrollAreaViewport",
+		) as HTMLElement;
+		viewport.getBoundingClientRect = () => rect(100, 80);
+		Object.defineProperty(viewport, "clientHeight", {
+			value: 80,
+			configurable: true,
+		});
+		for (let i = 0; i < items.length; i++) {
+			row(container, i).getBoundingClientRect = () =>
+				rect(100 + (i - by) * 20, 20);
+		}
+		const thead = container.querySelector("thead") as HTMLElement;
+		thead.getBoundingClientRect = () => rect(head - 20, 20);
+	};
+
+	it("selects the last row shown on Page Down, then a page further, Page Up back", () => {
+		useLayout({ pageKeys: "move" });
+		const { container, box } = renderTable({ selectionMode: "single" });
+		layOut(container);
+		fireEvent.click(row(container, 1));
+		expect(key(box, "PageDown")).toBe(true);
+		expect(chosen(container)).toEqual(["i3"]);
+		key(box, "PageDown");
+		expect(chosen(container)).toEqual(["i6"]);
+		layOut(container, 3);
+		key(box, "PageUp");
+		expect(chosen(container)).toEqual(["i3"]);
+		key(box, "PageUp");
+		expect(chosen(container)).toEqual(["i0"]);
+	});
+
+	it("extends with Shift, and counts the rows under pinned titles as hidden", () => {
+		useLayout({ pageKeys: "move" });
+		const { container, box } = renderTable();
+		// The titles pinned over the viewport's top 20 px hide row 0.
+		layOut(container, 0, 120);
+		fireEvent.click(row(container, 2));
+		key(box, "PageUp", { shiftKey: true });
+		expect(chosen(container)).toEqual(["i1", "i2"]);
+		// From the first row shown, a page (three rows) less one back.
+		key(box, "PageUp", { shiftKey: true });
+		expect(chosen(container)).toEqual(["i0", "i1", "i2"]);
+	});
+
+	it("leaves the page keys to the scroll area without the key", () => {
+		const { container, box } = renderTable();
+		layOut(container);
+		fireEvent.click(row(container, 1));
+		key(box, "PageDown");
+		key(box, "PageUp");
+		expect(chosen(container)).toEqual(["i1"]);
+		expect(cursor(container)).toBe("i1");
+	});
+
+	it("moves the cursor alone with Control, ⌘ or Option, and selects with Space", () => {
+		useLayout({ keyboard: "windows" });
+		const onSelectionChange = vi.fn();
+		const { container, box } = renderTable({ onSelectionChange });
+		fireEvent.click(row(container, 0));
+		onSelectionChange.mockClear();
+		expect(key(box, "ArrowDown", { ctrlKey: true })).toBe(true);
+		expect(cursor(container)).toBe("i1");
+		key(box, "ArrowDown", { altKey: true });
+		key(box, "End", { metaKey: true });
+		expect(cursor(container)).toBe("i9");
+		key(box, "Home", { ctrlKey: true });
+		key(box, "ArrowDown", { ctrlKey: true });
+		expect(cursor(container)).toBe("i1");
+		expect(onSelectionChange).not.toHaveBeenCalled();
+		expect(chosen(container)).toEqual(["i0"]);
+		// Control+Space toggles the cursor row in; Space alone selects it
+		// alone, and its default is taken (no page scroll).
+		expect(key(box, " ", { ctrlKey: true })).toBe(true);
+		expect(chosen(container)).toEqual(["i0", "i1"]);
+		key(box, "ArrowDown", { ctrlKey: true });
+		key(box, "ArrowDown", { ctrlKey: true });
+		expect(key(box, " ")).toBe(true);
+		expect(chosen(container)).toEqual(["i3"]);
+		// Control+Space takes it out again.
+		key(box, " ", { metaKey: true });
+		expect(chosen(container)).toEqual([]);
+		// Shift with a navigation key extends from the anchor.
+		key(box, " ");
+		key(box, "ArrowUp", { shiftKey: true, ctrlKey: true });
+		expect(chosen(container)).toEqual(["i2", "i3"]);
+	});
+
+	it("selects with Space alone in a single table, where Control still selects", () => {
+		useLayout({ keyboard: "windows" });
+		const { container, box } = renderTable({ selectionMode: "single" });
+		fireEvent.click(row(container, 0));
+		key(box, "ArrowDown", { ctrlKey: true });
+		expect(chosen(container)).toEqual(["i1"]);
+		key(box, " ", { ctrlKey: true });
+		expect(chosen(container)).toEqual(["i1"]);
+	});
+
+	it("leaves Space alone, and Control selecting, without the key", () => {
+		const { container, box } = renderTable();
+		fireEvent.click(row(container, 0));
+		key(box, "ArrowDown", { ctrlKey: true });
+		expect(chosen(container)).toEqual(["i1"]);
+		key(box, "ArrowDown", { altKey: true });
+		key(box, " ", { ctrlKey: true });
+		key(box, " ");
+		expect(chosen(container)).toEqual(["i2"]);
+	});
+
+	it("takes Add mode on Shift+F8: the keys move alone, Space toggles, Shift extends keeping the rest", () => {
+		useLayout({ keyboard: "windows" });
+		const { container, box } = renderTable();
+		fireEvent.click(row(container, 0));
+		expect(box).not.toHaveAttribute("data-classicy-selection-mode");
+		expect(key(box, "F8", { shiftKey: true })).toBe(true);
+		expect(box).toHaveAttribute("data-classicy-selection-mode", "add");
+		key(box, "ArrowDown");
+		key(box, "ArrowDown");
+		expect(cursor(container)).toBe("i2");
+		expect(chosen(container)).toEqual(["i0"]);
+		key(box, "f");
+		expect(cursor(container)).toBe("i5");
+		expect(chosen(container)).toEqual(["i0"]);
+		key(box, " ");
+		expect(chosen(container)).toEqual(["i0", "i5"]);
+		key(box, "ArrowDown");
+		key(box, "ArrowDown", { shiftKey: true });
+		expect(chosen(container)).toEqual(["i0", "i5", "i6", "i7"]);
+		key(box, " ");
+		expect(chosen(container)).toEqual(["i0", "i5", "i6"]);
+		key(box, "F8", { shiftKey: true });
+		expect(box).not.toHaveAttribute("data-classicy-selection-mode");
+		expect(chosen(container)).toEqual(["i0", "i5", "i6"]);
+		key(box, "ArrowUp");
+		expect(chosen(container)).toEqual(["i6"]);
+	});
+
+	it("takes no Add mode without the key, or in a single table", () => {
+		const { container, box, unmount } = renderTable();
+		fireEvent.click(row(container, 0));
+		expect(key(box, "F8", { shiftKey: true })).toBe(false);
+		expect(box).not.toHaveAttribute("data-classicy-selection-mode");
+		unmount();
+		useLayout({ keyboard: "windows" });
+		const single = renderTable({ selectionMode: "single" });
+		fireEvent.click(row(single.container, 0));
+		expect(key(single.box, "F8", { shiftKey: true })).toBe(false);
+		expect(single.box).not.toHaveAttribute("data-classicy-selection-mode");
+	});
+
+	it("publishes Add mode on an unscrolled table's container too", () => {
+		useLayout({ keyboard: "windows" });
+		const { box } = renderTable({ scrollable: false });
+		key(box, "F8", { shiftKey: true });
+		expect(box).toHaveAttribute("data-classicy-selection-mode", "add");
+	});
+
+	type Node = { id: string; name: string; children?: Node[] };
+	const tree: Node[] = [
+		{
+			id: "docs",
+			name: "Documents",
+			children: [{ id: "q1", name: "q1.pdf" }],
+		},
+		{ id: "top", name: "top.pdf" },
+	];
+	const treeCols: ClassicyTableColumn<Node>[] = [
+		{ id: "name", title: "Name", accessor: (n) => n.name },
+	];
+
+	it("expands and collapses a tree row on the bare arrows under Windows' tree keys", () => {
+		useLayout({}, { keys: "windows" });
+		const { container } = render(
+			<ClassicyTable
+				columns={treeCols}
+				rows={tree}
+				getRowId={(n) => n.id}
+				getSubRows={(n) => n.children}
+			/>,
+		);
+		const box = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		fireEvent.click(screen.getByText("Documents"));
+		// The chord gives way to the bare arrows.
+		expect(key(box, "ArrowRight", { metaKey: true })).toBe(false);
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+		expect(key(box, "ArrowRight")).toBe(true);
+		expect(screen.getByText("q1.pdf")).toBeInTheDocument();
+		key(box, "ArrowLeft", { ctrlKey: true });
+		expect(screen.getByText("q1.pdf")).toBeInTheDocument();
+		expect(key(box, "ArrowLeft", { shiftKey: true })).toBe(true);
+		expect(screen.queryByText("q1.pdf")).toBeNull();
+		// A row that cannot expand leaves the key to the scroll area.
+		fireEvent.click(screen.getByText("top.pdf"));
+		key(box, "ArrowRight");
+		expect(screen.queryByText("q1.pdf")).toBeNull();
 	});
 });

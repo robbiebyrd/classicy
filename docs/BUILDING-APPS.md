@@ -851,6 +851,20 @@ from your File menu before rendering, so listing it in File is correct. Keep the
 item's id, `${appId}_about`: it is how both menu bars find it and title it with
 a package's display name (§4, "Display overrides: what your app must do").
 
+Help has one menu, the system's, in every package. Put your help commands
+there with `useClassicyHelpMenu(appId, items)`, which publishes them for your
+app (`Desktop.helpMenu[appId]`): the menu bar shows them while your app is
+focused, after About Balloon Help… and Show/Hide Balloons and a divider. A
+top-level Help menu in your `appMenu` (an item with `menuChildren` titled
+"Help", with an id ending in `_help`, or with `part: "help"`) is not drawn as
+a second "Help" title either: its items are merged into the system Help
+menu, after a divider and the registered items, and an item that repeats the
+balloon toggle (`event: "ClassicyDesktopSetBalloonHelp"`) is dropped. Under a
+package with a taskbar (the Windows 98 shell) there is no screen menu bar, so
+each of your windows' own menu bars ends with that same Help menu, your About
+item last in it as "About <your app's name>". Keyboard equivalents of your
+Help items stay yours: they fire only while your app is focused.
+
 ### Balloon help on menu items
 
 Menu items are data, so balloon help rides along as the `balloon` field rather

@@ -42,6 +42,8 @@ import {
 	ClassicyControlGroupFormRow,
 	ClassicyControlGroupStack,
 } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
+import { useClassicyBundledAccessKeys } from "@/SystemFolder/SystemResources/Keyboard/ClassicyAccessKeys.internal";
+import { useClassicyMenuItemShortcuts } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuItemShortcut";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -79,6 +81,12 @@ export function ClassicyScreenSaverManager() {
 		APP_NAME,
 		appIcon,
 	);
+	// The menus' access keys under a package that has them (WIG Appendix B
+	// Table B.5: File F, About A, Close C, Help H; Quit unmarked).
+	const ak = useClassicyBundledAccessKeys();
+	// The user's own Close and Quit keys under a package that lets them be
+	// edited (`keyboard.editableShortcuts`; WIG Ch.4 "Shortcut Keys", p.27).
+	const shortcut = useClassicyMenuItemShortcuts();
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
 
@@ -144,6 +152,7 @@ export function ClassicyScreenSaverManager() {
 					{
 						id: `${APP_ID}_file`,
 						title: "File",
+						accessKey: ak("f"),
 						menuChildren: [
 							{ ...aboutMenuItem, title: `About ${APP_NAME}` },
 							{
@@ -153,12 +162,14 @@ export function ClassicyScreenSaverManager() {
 										quitAppHelper(APP_ID, APP_NAME, appIcon),
 									),
 								),
-								keyboardShortcut: "⌥W",
+								accessKey: ak("c"),
+								keyboardShortcut: shortcut(`${APP_ID}_close_window`, "⌥W"),
 							},
 							{ id: "spacer" },
 							{
 								...quitMenuItemHelper(APP_ID, APP_NAME, appIcon),
-								keyboardShortcut: "⌥Q",
+								accessKey: ak(""),
+								keyboardShortcut: shortcut(`${APP_ID}_quit`, "⌥Q"),
 							},
 						],
 					},
